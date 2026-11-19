@@ -61,7 +61,7 @@ export async function joinAllChannel(
         .limit(1);
 
     if (!allChannel) {
-        throw new Error('This Haus server has no #all Channel to join.');
+        throw new Error('This Haus server has no #haus channel to join.');
     }
 
     await db

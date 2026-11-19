@@ -4,6 +4,7 @@ import { cloudAgentWorkUpdatedTopic } from '../src/realtime/topics.ts';
 import { readTargetAsAgent } from './agent-read-target.ts';
 import { cloudAgentFixture } from './cloud-agent-fixture.ts';
 import { cloudAgentLinkHelpers } from './cloud-agent-link-helpers.ts';
+import { createTestProject } from './project.fixture.ts';
 import { captureTopic, settleRealtime } from './realtime-capture.ts';
 import { startTestTask } from './task-place-fixture.ts';
 
@@ -180,7 +181,7 @@ test('a second Agent links only work it can read through a link', async () => {
         })
     ).agent.id;
     const roomId = (
-        await fixture.owner.trpc.chat.createChannel.mutate({
+        await createTestProject(fixture.harness, fixture.owner, {
             agentIds: [novaId],
             name: 'nova-room',
             serverId: fixture.serverId,

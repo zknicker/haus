@@ -22,7 +22,7 @@ afterAll(async () => {
 test('a Task assignment never runs the main session ahead of the greeting', async () => {
     const board = await seedTaskBoard(connection.db);
     const { seed } = board;
-    const allChannelId = await addChannel(connection.db, seed, 'all');
+    const allChannelId = await addChannel(connection.db, seed, 'haus');
     await enqueueAgentGreeting(connection.db, {
         agentId: seed.agentId,
         allChannelId,

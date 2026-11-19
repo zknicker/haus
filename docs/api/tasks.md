@@ -2,7 +2,7 @@
 summary: The Task and Task key tRPC procedures (`task.*`, `taskKey.*`), their inputs, results, refusal codes, and realtime events. Boards, columns, Convert to Task, and the Task Inbox are gone (ADR 0053).
 read_when:
   - calling or changing `task.list`, `task.listOpen`, `task.get`, `task.update`, `task.setState`, `task.assign`, or `task.setFollow`
-  - calling or changing `taskKey.list` or `taskKey.create`
+  - calling or changing `taskKey.list`
   - subscribing to `task.onCreated`, `task.onUpdated`, or `task.onFollowUpdated`
 ---
 
@@ -37,7 +37,8 @@ exactly while it is `done` or `canceled`. A Task is numbered by its key-ledger e
 | Procedure | Input | Result |
 | --- | --- | --- |
 | `taskKey.list` (query) | `taskKeyListInputSchema`: `serverId` | Every ledger entry, by key, with `nextNumber` |
-| `taskKey.create` | `taskKeyCreateInputSchema`: `serverId`, `key` | `{ taskKey }` |
+
+A ledger entry is made by creating a Project or changing its key ([Projects API](projects.md)).
 
 ## Refusals
 

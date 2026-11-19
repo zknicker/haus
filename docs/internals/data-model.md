@@ -102,8 +102,10 @@ A Task ([specs/tasks.md](../../specs/tasks.md)) is a `tasks` row plus its own `c
 `task`, whose `parent_chat_id` is the origin Channel and `anchor_message_id` the origin Message;
 `tasks.chat_id` links them, one Chat per Task, and is null only for legacy history Tasks.
 `tasks.state` is `todo`, `open`, `done`, or `canceled`. `task_keys` is the key ledger, each entry
-with its own `next_number`; `tasks.key_id` names a Task's entry and `chats.task_key_id` a
-Channel's. `task_pull_requests` attaches pull requests by repository and number, and
+with its own `next_number`; `tasks.key_id` names a Task's entry and `projects.task_key_id` a
+Project's (one per channel, unique). Migration 0130 made every live or archived channel a Project,
+renamed `#all` to `haus`, and gave channels that shared a key new entries by the key rule
+([specs/projects.md](../../specs/projects.md#migration-from-channels)). `task_pull_requests` attaches pull requests by repository and number, and
 `cloud_agent_work.task_id` attaches cloud work. Followers ride `thread_follows` (people) and
 `agent_thread_follows` (Agents) with `thread_chat_kind = 'task'`. Migrations 0124–0128 made Tasks
 places: 0124 added the ledger, states, and Task Chats (every board became a ledger entry); 0125

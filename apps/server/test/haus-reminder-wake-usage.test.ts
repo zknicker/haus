@@ -132,7 +132,7 @@ async function seedFire(
         isAll: true,
         kind: 'channel',
         lastMessageSequence: 1,
-        name: 'all',
+        name: 'haus',
         serverId,
     });
     await db.insert(agentsTable).values({

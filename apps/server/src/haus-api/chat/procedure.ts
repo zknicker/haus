@@ -10,12 +10,10 @@ import {
     ChatArchivedError,
     ChatNotFoundError,
 } from '../../chats/chat-access.ts';
-import { ChannelAgentNotFoundError, ChannelNameTakenError } from '../../chats/create-channel.ts';
 import { DmPeerNotFoundError, InvalidDmPeerError } from '../../chats/ensure-dm.ts';
 import { InvalidInlineReplyError } from '../../chats/reply-context.ts';
 import { ChatMessageNotFoundError } from '../../chats/select-message-page.ts';
 import { ChatNonceConflictError } from '../../chats/send-message.ts';
-import { TaskKeyNotFoundError } from '../../chats/update-channel.ts';
 import { chatMissingError } from '../../realtime/refusal.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
@@ -71,14 +69,6 @@ export const chatProcedure = memberProcedure.use(async ({ next, type }) => {
 
     if (cause instanceof InvalidInlineReplyError) {
         throw new TRPCError({ cause, code: 'BAD_REQUEST', message: cause.message });
-    }
-
-    if (cause instanceof ChannelAgentNotFoundError || cause instanceof TaskKeyNotFoundError) {
-        throw new TRPCError({ cause, code: 'NOT_FOUND', message: cause.message });
-    }
-
-    if (cause instanceof ChannelNameTakenError) {
-        throw new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
     }
 
     if (cause instanceof ChannelLifecycleDeniedError) {

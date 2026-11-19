@@ -11,6 +11,7 @@ import {
 } from '../src/reminders/reminders.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { createTestProject } from './project.fixture.ts';
 
 let agentId: string;
 let anchorMessageId: string;
@@ -126,12 +127,12 @@ describe('reminder author anchor access', () => {
     test('left-channel reminders do not block list, update, cancel, or fire elsewhere', async () => {
         const authorId = 'agt_left_channel_author';
         await addAgent(authorId);
-        const leftChat = await owner.trpc.chat.createChannel.mutate({
+        const leftChat = await createTestProject(harness, owner, {
             agentIds: [authorId],
             name: 'tech-ops',
             serverId,
         });
-        const keptChat = await owner.trpc.chat.createChannel.mutate({
+        const keptChat = await createTestProject(harness, owner, {
             agentIds: [authorId],
             name: 'tech-alerts',
             serverId,

@@ -338,7 +338,7 @@ describe('reminder scheduler lifecycle', () => {
         expect(item).toMatchObject({
             senderHandle: 'reminder',
             senderType: 'system',
-            target: '#all',
+            target: '#haus',
         });
         expect(envelope).toBe(
             [
@@ -416,7 +416,7 @@ async function seedOverdueReminder(haus: HausConnection) {
         isAll: true,
         kind: 'channel',
         lastMessageSequence: 1,
-        name: 'all',
+        name: 'haus',
         serverId,
     });
     await haus.db.insert(agentsTable).values({

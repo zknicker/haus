@@ -15,7 +15,6 @@ import {
 import { agentsTable } from './agents.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
 import { serversTable } from './servers.ts';
-import { taskKeysTable } from './task-keys.ts';
 
 export const chatsTable = pgTable(
     'chats',
@@ -46,7 +45,6 @@ export const chatsTable = pgTable(
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
-        taskKeyId: text('task_key_id'),
     },
     (table) => [
         unique('chats_server_id_key').on(table.serverId, table.id),
@@ -89,12 +87,6 @@ export const chatsTable = pgTable(
             foreignColumns: [agentsTable.serverId, agentsTable.id],
             name: 'chats_dm_agent_fk',
         }),
-        foreignKey({
-            columns: [table.serverId, table.taskKeyId],
-            foreignColumns: [taskKeysTable.serverId, taskKeysTable.id],
-            name: 'chats_task_key_fk',
-        }),
-        check('chats_task_key_shape', sql`${table.taskKeyId} is null or ${table.kind} = 'channel'`),
         check('chats_nonnegative_sequence', sql`${table.lastMessageSequence} >= 0`),
         check('chats_nonnegative_claim_number', sql`${table.lastClaimNumber} >= 0`),
         check(
@@ -124,7 +116,7 @@ export const chatsTable = pgTable(
                     and ${table.parentChatId} is null
                     and ${table.parentChatKind} is null
                     and ${table.anchorMessageId} is null
-                    and (not ${table.isAll} or ${table.name} = 'all')
+                    and (not ${table.isAll} or ${table.name} = 'haus')
                 )
                 or (
                     ${table.kind} = 'dm'

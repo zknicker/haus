@@ -4,7 +4,6 @@ import type { TaskWriteResult } from '../../tasks/task-assignment.ts';
 import {
     TaskConflictError,
     TaskInvariantError,
-    TaskKeyConflictError,
     TaskNotFoundError,
 } from '../../tasks/task-errors.ts';
 import type { HausContext } from '../context.ts';
@@ -35,7 +34,7 @@ function toTaskError(cause: unknown): TRPCError | null {
     if (cause instanceof TaskNotFoundError) {
         return new TRPCError({ cause, code: 'NOT_FOUND', message: cause.message });
     }
-    if (cause instanceof TaskConflictError || cause instanceof TaskKeyConflictError) {
+    if (cause instanceof TaskConflictError) {
         return new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
     }
     if (cause instanceof TaskInvariantError) {

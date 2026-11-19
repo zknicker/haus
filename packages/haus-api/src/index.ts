@@ -60,7 +60,6 @@ export type HausUpsertResponseRequest = HausApiSchema<'UpsertResponseRequest'>;
 
 export * from './agent.ts';
 export * from './agent-activity.ts';
-export * from './agent-channel-create.ts';
 export * from './agent-claim-input.ts';
 export * from './agent-creation.ts';
 export * from './agent-deliveries.ts';
@@ -148,6 +147,8 @@ export * from './mentions.ts';
 export * from './message-notification.ts';
 export * from './message-routing.ts';
 export * from './participant-handle.ts';
+export * from './project.ts';
+export * from './project-key.ts';
 export * from './push.ts';
 export * from './reaction-emoji.ts';
 export * from './realtime-events.ts';

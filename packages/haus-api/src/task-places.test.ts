@@ -4,7 +4,7 @@ import { formatTaskTarget, TASK_TARGET_PATTERN } from './agent-task-refusals.ts'
 import { agentTaskListQuerySchema } from './agent-task.ts';
 import { chatMessagePageSchema } from './chat.ts';
 import { taskSetStateInputSchema } from './task-input.ts';
-import { taskKeyCreateInputSchema } from './task-key-ledger.ts';
+import { taskKeyPrefixSchema } from './task-key-ledger.ts';
 import { taskPreviewSchema } from './task-preview.ts';
 
 test('a message page defaults its Task previews to none', () => {
@@ -53,8 +53,8 @@ test('state changes and key-ledger entries validate their shapes', () => {
     };
     expect(taskSetStateInputSchema.parse(setState)).toEqual(setState);
     expect(() => taskSetStateInputSchema.parse({ ...setState, state: 'closed' })).toThrow();
-    expect(taskKeyCreateInputSchema.parse({ key: 'SEC', serverId: 'srv_1' }).key).toBe('SEC');
-    expect(() => taskKeyCreateInputSchema.parse({ key: 'sec', serverId: 'srv_1' })).toThrow();
+    expect(taskKeyPrefixSchema.parse('SEC')).toBe('SEC');
+    expect(() => taskKeyPrefixSchema.parse('sec')).toThrow();
 });
 
 test('the Agent Task list filters by state and key, as a comma list or repeated', () => {

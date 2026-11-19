@@ -14,13 +14,6 @@ export class TaskConflictError extends Error {
     }
 }
 
-export class TaskKeyConflictError extends Error {
-    constructor(key: string) {
-        super(`Another Task key on this Server is already ${key}.`);
-        this.name = 'TaskKeyConflictError';
-    }
-}
-
 /**
  * A write the Task rules refuse: an assignee who is not an active member or
  * Agent, an unknown label, an origin that is no Channel Message, or a change

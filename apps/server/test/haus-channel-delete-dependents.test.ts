@@ -5,6 +5,7 @@ import { purgeDeletedChannels } from '../src/chats/channel-lifecycle.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { createTestProject } from './project.fixture.ts';
 import { startTestTask } from './task-place-fixture.ts';
 
 let harness: HausServerHarness;
@@ -65,7 +66,7 @@ test('restores a pre-refusal onboarding channel tombstone instead of purging it'
 });
 
 test('deletes Triggers anchored in the channel aggregate with the channel', async () => {
-    const channel = await owner.trpc.chat.createChannel.mutate({
+    const channel = await createTestProject(harness, owner, {
         agentIds: [agentId],
         name: 'automations',
         serverId,
@@ -94,7 +95,7 @@ test('deletes Triggers anchored in the channel aggregate with the channel', asyn
 });
 
 test('archiving then deleting a Channel takes its Task Chats and cancels their open Tasks', async () => {
-    const channel = await owner.trpc.chat.createChannel.mutate({
+    const channel = await createTestProject(harness, owner, {
         agentIds: [agentId],
         name: 'tasks-go',
         serverId,

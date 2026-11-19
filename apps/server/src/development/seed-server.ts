@@ -6,7 +6,6 @@ import {
     agentsTable,
     agentTokenUsageDailyTable,
     channelAgentParticipantsTable,
-    channelParticipantsTable,
     chatMessagesTable,
     chatsTable,
     computersTable,
@@ -16,9 +15,9 @@ import {
     serversTable,
     usersTable,
 } from '../postgres/schema.ts';
+import { insertProject } from '../projects/insert-project.ts';
 import { listAccessibleServers } from '../servers/accessible-servers.ts';
-import { allChannelDescription, type ServerSummary } from '../servers/contracts.ts';
-import { insertTaskKeyEntry } from '../tasks/task-key-ledger.ts';
+import { allChannelDescription, allChannelName, type ServerSummary } from '../servers/contracts.ts';
 import { demoTokenUsage } from './demo-token-usage.ts';
 import { developmentComputerCredentialHash } from './seed-computer-attachment.ts';
 import { demoAgent } from './seed-demo-agent.ts';
@@ -76,7 +75,6 @@ export async function seedDevelopmentServer(
         await tx
             .insert(serversTable)
             .values({ displayName: 'Dev Server', id: serverId, slug: 'dev' });
-        const generalKeyId = await insertTaskKeyEntry(tx, { key: GENERAL_TASK_KEY, serverId });
         await tx.insert(serverMembershipsTable).values({
             id: membershipId,
             role: 'owner',
@@ -87,37 +85,34 @@ export async function seedDevelopmentServer(
             .update(usersTable)
             .set({ avatarId: avatarIds.owner })
             .where(eq(usersTable.id, userId));
-        await tx.insert(chatsTable).values({
-            description: allChannelDescription,
-            id: channelId,
-            isAll: true,
-            kind: 'channel',
-            lastActivityAt: now,
-            lastMessageSequence: 9,
-            name: 'all',
+        const { taskKeyId: generalKeyId } = await insertProject(tx, {
+            chat: {
+                description: allChannelDescription,
+                id: channelId,
+                isAll: true,
+                lastActivityAt: now,
+                lastMessageSequence: 9,
+                name: allChannelName,
+            },
+            key: GENERAL_TASK_KEY,
             serverId,
+            userIds: [userId],
         });
-        await tx.insert(chatsTable).values({
-            id: onboardingChannelId,
-            kind: 'channel',
-            name: 'onboarding-owner',
+        await insertProject(tx, {
+            chat: { id: onboardingChannelId, name: 'onboarding-owner' },
             serverId,
+            userIds: [userId],
         });
-        await tx.insert(chatsTable).values({
-            id: demoChannelId,
-            kind: 'channel',
-            lastActivityAt: now,
-            lastMessageSequence: 2,
-            name: 'product',
+        await insertProject(tx, {
+            chat: {
+                id: demoChannelId,
+                lastActivityAt: now,
+                lastMessageSequence: 2,
+                name: 'product',
+            },
             serverId,
+            userIds: [userId],
         });
-        await tx.insert(channelParticipantsTable).values(
-            [channelId, demoChannelId, onboardingChannelId].map((chatId) => ({
-                chatId,
-                serverId,
-                userId,
-            }))
-        );
         await tx.insert(computersTable).values({
             architecture: process.arch,
             attachedByUserId: userId,

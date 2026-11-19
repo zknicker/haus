@@ -31,7 +31,7 @@ test('a Server holding real Tasks purges completely', async () => {
         'user_task_purge_peer'
     );
     await fixture.addAgent(serverId, agentId, 'purge-agent');
-    await owner.trpc.taskKey.create.mutate({ key: 'SEC', serverId });
+    await owner.trpc.project.create.mutate({ key: 'SEC', name: 'security', serverId });
     const label = await owner.trpc.taskLabel.create.mutate({ name: 'Purge', serverId });
     const task = await startTestTask(harness, owner, {
         channelId,
@@ -74,6 +74,7 @@ test('a Server holding real Tasks purges completely', async () => {
         (await harness.sql`
             select
                 (select count(*)::int from task_keys where server_id = ${serverId}) as keys,
+                (select count(*)::int from projects where server_id = ${serverId}) as projects,
                 (select count(*)::int from tasks where server_id = ${serverId}) as tasks,
                 (select count(*)::int from chats where server_id = ${serverId} and kind = 'task')
                     as task_chats,
@@ -85,7 +86,15 @@ test('a Server holding real Tasks purges completely', async () => {
                     as follows
         `) as Record<string, number>[];
     expect(await counts()).toEqual([
-        { follows: 1, keys: 2, labels: 1, message_links: 1, task_chats: 2, tasks: 2 },
+        {
+            follows: 1,
+            keys: 3,
+            labels: 1,
+            message_links: 1,
+            projects: 3,
+            task_chats: 2,
+            tasks: 2,
+        },
     ]);
 
     const { deletionId } = await owner.trpc.server.delete.mutate({
@@ -99,7 +108,15 @@ test('a Server holding real Tasks purges completely', async () => {
     }
     expect(status.status).toBe('completed');
     expect(await counts()).toEqual([
-        { follows: 0, keys: 0, labels: 0, message_links: 0, task_chats: 0, tasks: 0 },
+        {
+            follows: 0,
+            keys: 0,
+            labels: 0,
+            message_links: 0,
+            projects: 0,
+            task_chats: 0,
+            tasks: 0,
+        },
     ]);
     peer.close();
 });

@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { triggerBurstLimit } from '../src/triggers/trigger-rate-limit.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { createTestProject } from './project.fixture.ts';
 
 let admin: HausClient;
 let channelId: string;
@@ -96,11 +97,8 @@ test('keeps every Agent to its own triggers', async () => {
 });
 
 test('refuses an anchor the Agent cannot reach or write', async () => {
-    const privateChannel = await owner.trpc.chat.createChannel.mutate({
-        agentIds: [doomedAgentId],
-        name: 'private-room',
-        serverId,
-    });
+    const room = { agentIds: [doomedAgentId], name: 'private-room', serverId };
+    const privateChannel = await createTestProject(harness, owner, room);
     const unreachable = await owner.trpc.chat.send.mutate({
         chatId: privateChannel.id,
         content: 'Not for Sage',

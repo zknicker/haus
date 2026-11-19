@@ -28,9 +28,11 @@ Workers and their places are [ADR 0056](../docs/adr/0056-agents-run-quiet-worker
   | `chat_id` | The channel's Chat id, primary key, references `chats` |
   | `server_id` | The Server |
   | `task_key_id` | The Project's key, a `task_keys` row, unique across Projects |
-  | `is_haus` | True for exactly one Project per Server, the Haus project |
   | `default_worker_place` | `computer:<computerId>`, `cursor`, `claude`, or null |
 
+  The Haus project is the channel whose `chats.is_all` is true, exactly one per Server; the flag
+  stays on the channel row and the wire `Chat.isAll` until an explicit rename, and `projectSchema`
+  exposes it as `isHaus`. `default_worker_place` lands with W3.
   Repos are `project_repos` rows ([Repos](#repos)). Home Agents are `agents.home_project_id`
   ([Agents](#agents)). Name, description, icon, color, archive, and delete stay on the channel's
   Chat row as they are today ([chats.md](chats.md#channels-are-projects)).
@@ -44,8 +46,9 @@ Workers and their places are [ADR 0056](../docs/adr/0056-agents-run-quiet-worker
 ## Creating a Project
 
 - Only people create Projects. "New project" asks for a name and a key, suggests the key from the
-  name, and creates the channel, its `projects` row, and the key's ledger entry in one
-  transaction. The creator becomes the channel's first human member. There is no "New channel".
+  name with `suggestProjectKey` (`packages/haus-api/src/project-key.ts`), and creates the channel, its `projects` row, and the key's ledger entry in one
+  transaction. The key is optional on `project.create`: without one the Server allocates it by
+  the key rule. The creator becomes the channel's first human member. There is no "New channel".
 - Agents cannot create Projects. `POST /api/agent/channels/create` and `haus channel create` are
   deleted. An Agent asked for a new Project says that a person creates it in the App.
 - A new Project has no Agents. A person adds them in its settings.

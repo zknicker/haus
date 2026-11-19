@@ -13,6 +13,7 @@ import {
 } from '../src/image-generation/run-image-generation.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { imageGenerationFixture } from './image-generation-fixture.ts';
+import { createTestProject } from './project.fixture.ts';
 
 const fixture = imageGenerationFixture();
 let connection: HausConnection;
@@ -25,7 +26,7 @@ beforeAll(async () => {
         serverId: fixture.serverId,
     });
     secondChannelId = (
-        await fixture.owner.trpc.chat.createChannel.mutate({
+        await createTestProject(fixture.harness, fixture.owner, {
             agentIds: [fixture.orbitAgentId],
             name: 'art2',
             serverId: fixture.serverId,

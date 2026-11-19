@@ -5,6 +5,7 @@ import { ImageProviderError } from '../src/image-generation/providers/image-prov
 import type { ImageProviderAdapters } from '../src/image-generation/run-image-generation.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { createTestProject } from './project.fixture.ts';
 
 const computerId = `cmp_${'i'.repeat(16)}`;
 const credential = `image-generation-computer-credential-${'x'.repeat(16)}`;
@@ -113,7 +114,7 @@ export function imageGenerationFixture() {
             })
         ).agent.id;
         channelId = (
-            await owner.trpc.chat.createChannel.mutate({
+            await createTestProject(harness, owner, {
                 agentIds: [orbitAgentId],
                 name: 'art',
                 serverId,

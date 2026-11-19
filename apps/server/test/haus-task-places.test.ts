@@ -74,15 +74,12 @@ beforeAll(async () => {
         insert into channel_participants (chat_id, server_id, user_id)
         values (${fixture.channelId}, ${serverId}, ${calUserId})
     `;
-    const { taskKey } = await owner.trpc.taskKey.create.mutate({ key: 'SEC', serverId });
-    const product = await owner.trpc.chat.updateChannel.mutate({
-        agentIds: [fixture.orbitAgentId],
+    const product = await owner.trpc.project.update.mutate({
         chatId: fixture.channelId,
-        name: 'product',
+        key: 'SEC',
         serverId,
-        taskKeyId: taskKey.id,
     });
-    expect(product.taskKeyId).toBe(taskKey.id);
+    expect(product.project).toMatchObject({ key: 'SEC', keyEditable: true });
     originId = (await send(owner, fixture.channelId, 'Two problems in the deploy')).message.id;
     first = await start('Rotate the key');
     second = await start('Fix the health check', { state: 'todo' });

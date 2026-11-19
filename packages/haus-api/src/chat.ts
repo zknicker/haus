@@ -1,5 +1,5 @@
 import { channelColorSchema, channelIconSchema } from './channel-appearance.ts';
-import { channelDescriptionSchema, channelEditInputFields } from './channel-description.ts';
+import { channelDescriptionSchema } from './channel-description.ts';
 import { chatMessageAuthorSchema, chatMessageReplySchema } from './chat-message-context.ts';
 
 export * from './channel-appearance.ts';
@@ -137,7 +137,6 @@ export const chatSchema = z
         peerAgentRetired: z.boolean(),
         peerUserId: idSchema.nullable(),
         serverId: idSchema,
-        taskKeyId: idSchema.nullable().default(null),
         unreadCount: z.number().int().nonnegative(),
     })
     .strict();
@@ -145,57 +144,6 @@ export const chatSchema = z
 export type Chat = z.infer<typeof chatSchema>;
 
 export const chatGetInputSchema = z.object({ chatId: idSchema, serverId: idSchema }).strict();
-
-export const channelCreateInputSchema = z
-    .object({
-        ...channelEditInputFields,
-        agentIds: z.array(idSchema).min(1),
-        name: z
-            .string()
-            .trim()
-            .min(1)
-            .max(32)
-            .regex(/^[A-Za-z0-9_-]+$/u),
-        serverId: idSchema,
-    })
-    .strict()
-    .superRefine((input, context) => {
-        if (new Set(input.agentIds).size !== input.agentIds.length) {
-            context.addIssue({
-                code: 'custom',
-                message: 'Channel agents must be unique.',
-                path: ['agentIds'],
-            });
-        }
-    });
-
-export type ChannelCreateInput = z.infer<typeof channelCreateInputSchema>;
-
-export const channelUpdateInputSchema = z
-    .object({
-        ...channelEditInputFields,
-        agentIds: z.array(idSchema).min(1),
-        chatId: idSchema,
-        name: z
-            .string()
-            .trim()
-            .min(1)
-            .max(32)
-            .regex(/^[A-Za-z0-9_-]+$/u),
-        serverId: idSchema,
-    })
-    .strict()
-    .superRefine((input, context) => {
-        if (new Set(input.agentIds).size !== input.agentIds.length) {
-            context.addIssue({
-                code: 'custom',
-                message: 'Agent ids must be unique.',
-                path: ['agentIds'],
-            });
-        }
-    });
-
-export type ChannelUpdateInput = z.infer<typeof channelUpdateInputSchema>;
 
 export const ensureDmInputSchema = z
     .object({

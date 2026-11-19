@@ -2,6 +2,7 @@ import { beforeAll, expect, test } from 'bun:test';
 import type { MessageRouter, RoutingState } from '../src/message-routing/jev.ts';
 import type { MentionScopeDecision } from '../src/message-routing/mention-scope.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
+import { createTestProject } from './project.fixture.ts';
 import { startTestTask } from './task-place-fixture.ts';
 
 const scopeCalls: RoutingState[] = [];
@@ -47,7 +48,7 @@ const mentionedOnly = async (): Promise<MentionScopeDecision> => ({
 
 beforeAll(async () => {
     channelId = (
-        await fixture.owner.trpc.chat.createChannel.mutate({
+        await createTestProject(fixture.harness, fixture.owner, {
             agentIds: [fixture.orbitAgentId, fixture.peerAgentId, fixture.coveAgentId],
             name: 'mentions',
             serverId: fixture.serverId,

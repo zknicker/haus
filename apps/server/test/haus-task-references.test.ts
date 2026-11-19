@@ -40,7 +40,7 @@ beforeAll(async () => {
         insert into channel_agent_participants (server_id, chat_id, agent_id)
         values (${serverId}, ${chatId}, ${agentId})
     `;
-    await owner.trpc.taskKey.create.mutate({ key: 'SEC', serverId });
+    await owner.trpc.project.create.mutate({ key: 'SEC', name: 'security', serverId });
     sec1 = await start('Audit', 'SEC');
     gen1 = await start('Gen');
 });

@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import { agentUpdatedTopic, chatLifecycleTopic } from '../src/realtime/topics.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
+import { createTestProject } from './project.fixture.ts';
 import { captureTopic, settleRealtime } from './realtime-capture.ts';
 
 const fixture = agentCreationFixture();
@@ -32,7 +33,7 @@ test('creation records the Agent and memberships without messages, Tasks, or inb
     });
     expect(await conversationCounts()).toEqual(before);
     await settleRealtime();
-    // The Server Owner's new DM with the Agent is announced, then the #all join.
+    // The Server Owner's new DM with the Agent is announced, then the #haus join.
     expect(lifecycle.events.map((event) => event.action)).toEqual(['created', 'updated']);
     expect(await updates.next()).toMatchObject({ agentId, serverId: fixture.serverId });
     lifecycle.stop();
@@ -53,7 +54,7 @@ test('the creator introduces the returned handle through ordinary send with a se
     const sent = await fixture.post('/api/agent/messages/send', runner, {
         content: `Meet @${handle}, our delivery teammate.`,
         nonce: 'ordinary-introduction',
-        target: '#all',
+        target: '#haus',
     });
     expect(sent.status).toBe(200);
     const [message] = await fixture.harness.sql`
@@ -98,7 +99,7 @@ test('a reused nonce with different values is refused as a conflict', async () =
 });
 
 test('an archived target refuses the creation', async () => {
-    const archived = await fixture.owner.trpc.chat.createChannel.mutate({
+    const archived = await createTestProject(fixture.harness, fixture.owner, {
         agentIds: [fixture.orbitAgentId],
         name: 'retired-lane',
         serverId: fixture.serverId,

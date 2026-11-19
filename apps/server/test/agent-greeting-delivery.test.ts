@@ -60,7 +60,7 @@ test('a mention landing during the greeting turn reaches it as a notice, never a
     const allChannelId = await greet(seed);
     const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
 
-    // Alone, the greeting leads its own run in #all as soon as the Agent can run.
+    // Alone, the greeting leads its own run in #haus as soon as the Agent can run.
     const start = await wake();
     expect(start).toMatchObject({
         chatId: allChannelId,
@@ -169,7 +169,7 @@ test('a greeting a stopped run already posted is spent; one it never posted ride
     });
     await delivery.start({ agentId: seed.agentId, serverId: seed.serverId });
 
-    // The introduction is already in #all, so no later run greets again.
+    // The introduction is already in #haus, so no later run greets again.
     const third = transport.framesOfType('start').at(-1);
     expect(third?.runId).not.toBe(second?.runId);
     expect(third?.greets).toBeUndefined();
@@ -217,7 +217,7 @@ async function postAsAgent(seed: Seed, chatId: string, runId: string) {
 
 async function greet(seed: Seed): Promise<string> {
     const [existing] = await greetingRows(seed);
-    const allChannelId = existing?.chatId ?? (await addChannel(connection.db, seed, 'all'));
+    const allChannelId = existing?.chatId ?? (await addChannel(connection.db, seed, 'haus'));
     await enqueueAgentGreeting(connection.db, {
         agentId: seed.agentId,
         allChannelId,

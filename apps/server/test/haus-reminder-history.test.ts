@@ -3,6 +3,7 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import { scheduleReminder, tickReminders } from '../src/reminders/reminders.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { createTestProject } from './project.fixture.ts';
 
 /**
  * `reminder.history` is the Agent's fire log: one entry per fire, newest first,
@@ -104,7 +105,7 @@ beforeAll(async () => {
 
     // The Agent answered the recurring reminder's first wake in another
     // Channel, so the entry's Chat can only come from the message row.
-    const otherChannel = await owner.trpc.chat.createChannel.mutate({
+    const otherChannel = await createTestProject(harness, owner, {
         agentIds: [agentId],
         name: 'history-answers',
         serverId,

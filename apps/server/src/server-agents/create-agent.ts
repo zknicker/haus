@@ -24,7 +24,7 @@ import { toAgent } from './agent-shape.ts';
 export type AgentCreator = { agentId: string; kind: 'agent' } | { kind: 'human'; user: HausUser };
 
 export interface CreatedAgentFromApp extends AgentCreated {
-    /** The `#all` membership change, for the App's channel member lists. */
+    /** The `#haus` membership change, for the App's channel member lists. */
     event: PreparedRealtimeEvent | null;
 }
 
@@ -122,7 +122,7 @@ export async function createAgentInTransaction(
         throw cause;
     }
 
-    // Every Agent belongs to `#all`, whoever made it. The Server owns that
+    // Every Agent belongs to `#haus`, whoever made it. The Server owns that
     // guarantee here, at the one seam both creation paths share, rather than in
     // the App dialog and the Agent route separately.
     const allChannel = await findAllChannel(db, input.serverId);

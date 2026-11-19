@@ -1,18 +1,23 @@
 import { randomBytes } from 'node:crypto';
+import { GENERAL_TASK_KEY } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import type { HausDatabase } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
-import { agentInboxTable, agentsTable } from '../src/postgres/schema.ts';
+import { agentInboxTable, agentsTable, projectsTable } from '../src/postgres/schema.ts';
 import { assignTask } from '../src/tasks/task-assign.ts';
-import { insertGeneralTaskKey } from '../src/tasks/task-key-ledger.ts';
+import { insertTaskKeyEntry } from '../src/tasks/task-key-ledger.ts';
 import { type Seed, seedAgent } from './agent-inbox-harness.ts';
 
 export type TaskBoard = Awaited<ReturnType<typeof seedTaskBoard>>;
 
 export async function seedTaskBoard(db: HausDatabase) {
     const seed = await seedAgent(db);
-    return { keyId: await insertGeneralTaskKey(db, seed.serverId), seed };
+    const keyId = await insertTaskKeyEntry(db, { key: GENERAL_TASK_KEY, serverId: seed.serverId });
+    await db
+        .insert(projectsTable)
+        .values({ chatId: seed.channelId, serverId: seed.serverId, taskKeyId: keyId });
+    return { keyId, seed };
 }
 
 export async function assignNewTask(

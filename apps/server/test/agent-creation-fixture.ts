@@ -12,6 +12,7 @@ import { type AvatarProviderMode, deterministicPng } from './agent-creation-avat
 import { readCreationGuidance } from './agent-creation-guidance-fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { createTestProject } from './project.fixture.ts';
 
 export function agentCreationFixture(
     messageRouter?: MessageRouter,
@@ -85,7 +86,7 @@ export function agentCreationFixture(
         peerAgentId = await createAgent('Peer', 'peer');
         coveAgentId = await seedCove();
         channelId = (
-            await owner.trpc.chat.createChannel.mutate({
+            await createTestProject(harness, owner, {
                 agentIds: [orbitAgentId],
                 name: 'product',
                 serverId,

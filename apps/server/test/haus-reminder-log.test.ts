@@ -56,7 +56,7 @@ test('bounds the fire history it reads to the retention window, by real time', a
         isAll: true,
         kind: 'channel',
         lastMessageSequence: 1,
-        name: 'all',
+        name: 'haus',
         serverId,
     });
     await db.insert(agentsTable).values({
@@ -154,7 +154,7 @@ test('a script fire the Computer has not settled yet reads as "not reported", ne
         isAll: true,
         kind: 'channel',
         lastMessageSequence: 1,
-        name: 'all',
+        name: 'haus',
         serverId,
     });
     await db.insert(agentsTable).values({
