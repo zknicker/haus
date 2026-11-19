@@ -4,6 +4,7 @@ import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readMessageCauses } from '../automations/message-cause-read.ts';
 import { listMessageClaimMap } from '../claims/claim-shape.ts';
 import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-work.ts';
+import { readMessageDriveCitations } from '../drive/citations.ts';
 import { readLinkedImageGenerations } from '../image-generation/linked-image-generations.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -65,18 +66,29 @@ export async function readMessagesById(
             and(eq(chatMessagesTable.serverId, serverId), inArray(chatMessagesTable.id, messageIds))
         );
     const foundIds = rows.map((row) => row.id);
-    const [attachments, claims, causes, bodies, works, images, reactions, replies, taskLinks] =
-        await Promise.all([
-            readMessageAttachments(db, serverId, foundIds),
-            listMessageClaimMap(db, serverId, foundIds),
-            readMessageCauses(db, serverId, foundIds),
-            readMessageBodies(db, serverId, foundIds),
-            readLinkedCloudAgentWork(db, serverId, foundIds),
-            readLinkedImageGenerations(db, serverId, foundIds),
-            readChatMessageReactions(db, serverId, foundIds),
-            readInlineReplyContexts(db, serverId, rows),
-            readMessageTaskLinks(db, serverId, foundIds),
-        ]);
+    const [
+        attachments,
+        claims,
+        causes,
+        bodies,
+        works,
+        images,
+        reactions,
+        replies,
+        taskLinks,
+        citations,
+    ] = await Promise.all([
+        readMessageAttachments(db, serverId, foundIds),
+        listMessageClaimMap(db, serverId, foundIds),
+        readMessageCauses(db, serverId, foundIds),
+        readMessageBodies(db, serverId, foundIds),
+        readLinkedCloudAgentWork(db, serverId, foundIds),
+        readLinkedImageGenerations(db, serverId, foundIds),
+        readChatMessageReactions(db, serverId, foundIds),
+        readInlineReplyContexts(db, serverId, rows),
+        readMessageTaskLinks(db, serverId, foundIds),
+        readMessageDriveCitations(db, serverId, foundIds),
+    ]);
     return new Map(
         rows.map((row) => [
             row.id,
@@ -87,6 +99,7 @@ export async function readMessagesById(
                     body: bodies.get(row.id),
                     cause: causes.get(row.id),
                     cloudAgentWork: works.get(row.id),
+                    driveCitations: citations.get(row.id),
                     imageGenerations: images.get(row.id),
                     reactions: reactions.get(row.id),
                     reply: replies.get(row.id) ?? null,

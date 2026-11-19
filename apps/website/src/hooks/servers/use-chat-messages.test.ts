@@ -90,6 +90,7 @@ function message(id: string, sequence: number, userId = 'usr_inline'): ChatMessa
         chatId: 'cht_inline',
         cloudAgentWork: [],
         imageGenerations: [],
+        driveCitations: [],
         content: id,
         createdAt: '2026-08-22T12:00:00.000Z',
         id,

@@ -14,9 +14,9 @@ const bytes = (seed: number, length: number) =>
 test('a folder zips with its structure and byte-identical, stored members', async () => {
     const a = bytes(1, 70_000);
     const b = bytes(2, 1234);
-    await publish({ body: a, contentType: 'image/png', path: 'zip/print-ready/a.png' });
-    await publish({ body: b, contentType: 'image/png', path: 'zip/print-ready/nested/b.png' });
-    await publish({ path: 'zip/candidates/c.png' });
+    await publish({ body: a, contentType: 'image/png', path: 'haus/zip/print-ready/a.png' });
+    await publish({ body: b, contentType: 'image/png', path: 'haus/zip/print-ready/nested/b.png' });
+    await publish({ path: 'haus/zip/candidates/c.png' });
     const link = await zip('zip', ['zip/print-ready']);
     expect(link).toMatchObject({ file_count: 2, filename: 'print-ready.zip', total_bytes: 71_234 });
     const response = await fetch(new URL(link.zip_path, state.harness.url));
@@ -32,9 +32,9 @@ test('a folder zips with its structure and byte-identical, stored members', asyn
 });
 
 test('a selection zips relative to its root, and the link survives a retry', async () => {
-    await publish({ body: 'one', path: 'zip/pick/one.png' });
-    await publish({ body: 'two', path: 'zip/pick/two.png' });
-    await publish({ body: 'three', path: 'zip/pick/three.png' });
+    await publish({ body: 'one', path: 'haus/zip/pick/one.png' });
+    await publish({ body: 'two', path: 'haus/zip/pick/two.png' });
+    await publish({ body: 'three', path: 'haus/zip/pick/three.png' });
     const link = await zip('zip/pick', ['zip/pick/one.png', 'zip/pick/three.png']);
     expect(link).toMatchObject({ file_count: 2, filename: 'pick.zip' });
     for (const _attempt of [1, 2]) {
@@ -48,7 +48,7 @@ test('a selection zips relative to its root, and the link survives a retry', asy
 test('zips refuse oversize selections, paths outside the root, and outsiders', async () => {
     // Sixteen files at the 256 MiB per-file limit pass the 4 GB zip cap.
     for (const index of Array.from({ length: 16 }, (_, at) => at)) {
-        const huge = await publish({ path: `zip/huge/print-${index}.png` });
+        const huge = await publish({ path: `haus/zip/huge/print-${index}.png` });
         await state.harness.sql`
             update artifact_revisions set byte_size = 268435456
             where id = ${huge.artifact.revision_id}
@@ -81,7 +81,7 @@ test('zips refuse oversize selections, paths outside the root, and outsiders', a
 });
 
 test('HEAD answers the headers without reading storage', async () => {
-    await publish({ path: 'zip/head/one.png' });
+    await publish({ path: 'haus/zip/head/one.png' });
     const link = await zip('zip', ['zip/head']);
     const original = storage.stream.bind(storage);
     let reads = 0;
@@ -100,7 +100,7 @@ test('HEAD answers the headers without reading storage', async () => {
 });
 
 test('a cancelled download stops reading storage', async () => {
-    const slow = await publish({ path: 'zip/slow/endless.png' });
+    const slow = await publish({ path: 'haus/zip/slow/endless.png' });
     const original = storage.stream.bind(storage);
     let cancelled = false;
     let key = '';
@@ -137,7 +137,11 @@ test('a cancelled download stops reading storage', async () => {
 });
 
 function zip(root: string, paths: string[]) {
-    return state.owner.trpc.artifact.zip.mutate({ paths, root, serverId: state.serverId });
+    return state.owner.trpc.artifact.zip.mutate({
+        paths: paths.map((path) => `haus/${path}`),
+        root: `haus/${root}`,
+        serverId: state.serverId,
+    });
 }
 
 /** The compression method of every local file header (0 is STORE). */

@@ -5,6 +5,7 @@ import { deleteVersionArtifactProcedure } from './delete-version.ts';
 import { deleteArtifactProcedure } from './delete.ts';
 import { downloadArtifactProcedure } from './download.ts';
 import { getArtifactProcedure } from './get.ts';
+import { listDeletedArtifactProcedure } from './list-deleted.ts';
 import { listArtifactProcedure } from './list.ts';
 import { moveManyArtifactProcedure } from './move-many.ts';
 import { moveArtifactProcedure } from './move.ts';
@@ -19,6 +20,7 @@ import { versionsArtifactProcedure } from './versions.ts';
 import { zipArtifactProcedure } from './zip.ts';
 export const artifactRouter = createRouter({
     list: listArtifactProcedure,
+    listDeleted: listDeletedArtifactProcedure,
     creators: creatorsArtifactProcedure,
     get: getArtifactProcedure,
     versions: versionsArtifactProcedure,

@@ -28,6 +28,7 @@ export * from './schema/cloud-agents.ts';
 export * from './schema/computer-login.ts';
 export * from './schema/computer-system-events.ts';
 export * from './schema/computers.ts';
+export * from './schema/drive.ts';
 export * from './schema/github.ts';
 export * from './schema/haus-auth.ts';
 export * from './schema/image-generation-keys.ts';

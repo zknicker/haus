@@ -61,8 +61,10 @@ export async function registerHausServerRoutes(
         runtime: dependencies.runtime,
     });
     registerAgentArtifactRoutes(app, {
+        agentDelivery: dependencies.agentDelivery,
         appOrigin: dependencies.appOrigin,
         db,
+        postCommitWork: dependencies.postCommitWork,
         storage: dependencies.artifactStorage,
         budget: dependencies.artifactStorageBytes,
         thumbnails: dependencies.artifactThumbnails,

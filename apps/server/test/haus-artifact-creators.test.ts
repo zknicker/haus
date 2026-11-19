@@ -69,7 +69,7 @@ beforeAll(async () => {
             actor,
             db: connection.db,
             input: artifactPublishInputSchema.parse({
-                path: `${name}.txt`,
+                path: `haus/${name}.txt`,
                 request_id: `creator-${name}`,
                 title: name,
             }),
@@ -84,12 +84,12 @@ beforeAll(async () => {
         `;
         await harness.sql`
             update artifacts set created_at = ${minute(createdMinute)}
-            where server_id = ${serverId} and path = ${`${name}.txt`}
+            where server_id = ${serverId} and path = ${`haus/${name}.txt`}
         `;
     }
     await harness.sql`
         update artifacts set creator_user_id = null, creator_agent_id = ${agentId}
-        where server_id = ${serverId} and path in ('agent-d.txt', 'agent-e.txt')
+        where server_id = ${serverId} and path in ('haus/agent-d.txt', 'haus/agent-e.txt')
     `;
 });
 afterAll(async () => {
@@ -100,7 +100,7 @@ afterAll(async () => {
 });
 
 test('list sorts by latest revision time and maps creators and timestamps', async () => {
-    const { artifacts } = await owner.trpc.artifact.list.query({ serverId });
+    const { artifacts } = await owner.trpc.artifact.list.query({ prefix: 'haus', serverId });
     expect(artifacts.map((item) => item.title)).toEqual([
         'agent-d',
         'user-c',
@@ -118,7 +118,7 @@ test('list sorts by latest revision time and maps creators and timestamps', asyn
 
 test('creator filter composes with search and pagination', async () => {
     const list = (creator: ArtifactCreator, query = '', offset = 0) =>
-        owner.trpc.artifact.list.query({ creator, offset, query, serverId });
+        owner.trpc.artifact.list.query({ creator, offset, prefix: 'haus', query, serverId });
     expect((await list(agentCreator)).artifacts.map((item) => item.title)).toEqual([
         'agent-d',
         'agent-e',

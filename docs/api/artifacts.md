@@ -35,9 +35,18 @@ The Agent API follows Raft's published action names and parameters, implemented 
 | `delete-artifact-version` | JSON `artifact_id`, `revision_id` |
 
 A write names a `path` in Files. A free path creates an artifact. An occupied path adds a revision
-only with `base_revision_id` equal to its current head or with `replace=true`; otherwise it fails
-with 409 `REVISION_CONFLICT` and `current`, the head it lost to. The head is checked again when
-the upload lands, so of two writers from one base exactly one wins.
+with `base_revision_id` equal to its current head, with an older revision of the same file whose
+text merges cleanly onto the head, or with `replace=true`; otherwise it fails with 409
+`REVISION_CONFLICT` and `current`, the head it lost to. The head is checked again when the upload
+lands, so of two writers from one base the second merges onto the first or fails. A merged
+revision's base differs from its parent; a `request_id` retry compares the bytes the writer sent.
+
+After a turn, the machine pushes the turn's Drive changes under the run id:
+`POST /api/agent/drive/push/put` (raw bytes; query `push_id`, `path`, `request_id`, optional
+`base_revision_id`, `content_type`), `POST /api/agent/drive/push/delete` (JSON `push_id`, `path`,
+`base_revision_id`, `request_id`), and `POST /api/agent/drive/push/close` (JSON `push_id`). Each
+put or delete answers one push outcome and never a `REVISION_CONFLICT`; a failed merge keeps both
+versions in a `.conflict-<handle>` copy. The code is `apps/server/src/drive/push/`.
 [Artifact drive](../../specs/artifact-drive.md) owns path rules, folders, moves, error codes, and
 the migration from names. Raft's `name` upserts; Haus has no name, and a path never upserts
 blindly: `replace` is the only overwrite. Members publish through `PUT /artifacts/:serverId/publish`
@@ -334,16 +343,30 @@ The managed prompt's Files family names `list`, `pull`, and `push` and points at
 which carries when to share versus attach or use a workbench `page` fence, the pull-merge-push
 loop, sharing the `stable_url` in the message (the App renders a same-Server link as a file
 chip and tile), and resolving a pasted `/artifacts/<id>` link with `view`.
-Lists have 50 entries per offset page. Deletion requires the artifact creator or a human Owner/Admin;
-the current revision cannot be deleted separately. Deleted records become inaccessible immediately;
-cloud deletion failures retain their storage reservation and retry during Server startup.
+Lists have 50 entries per offset page. Every path sits in a Drive area (`haus/`, `projects/<key>/`,
+`agents/<handle>/`); any other path is `INVALID_PATH`, and the area prefix is stored in its canonical
+spelling. Writing, deleting, and moving (at both ends) need write access to the area: people write
+every area, and an Agent writes `haus/`, Projects, and its own area (`FORBIDDEN` elsewhere;
+`artifact.deleteMany` reports such files as `forbidden`). The current revision cannot be deleted
+separately. A deleted file leaves the listings at once but keeps its head and every revision:
+`artifact.listDeleted` lists a folder's deleted files from the last 30 days, `artifact.restore` on
+one of its revisions brings it back at its last path (`PATH_TAKEN` when another file lives there),
+and a write whose `base_revision_id` names one of its revisions brings it back at the written path.
+Deleting a file disables its public link. `delete-artifact-version` purges one replaced revision at
+once; its cloud deletion failures retain their storage reservation and retry during Server startup.
 
-Revisions are kept for a bounded time. Once a newer ready revision of the same file was created
-seven days ago (`ARTIFACT_REVISION_RETENTION_DAYS` in `@haus/api`), the Server's hourly revision
-retention sweep (`apps/server/src/artifacts/retention.ts`, a boot sweep beside the other retention
-sweeps) deletes the older revision's R2 objects and frees its storage. The clock starts when the
-newer revision was created, not at the older revision's own creation, so every replaced revision
-stays restorable for a full week. The current revision of a file is never pruned, however old.
+Every committed put and delete also bumps its area's change counter in the same transaction.
+`drive.changes` (tRPC) and `GET /api/agent/drive/changes?since=<json>&until=<json>` answer what
+changed since a set of counters ([artifact drive](../../specs/artifact-drive.md#change-counter)).
+
+A replaced revision up to `artifactTextMaxBytes` (1 MiB) is kept for the life of the file. A larger
+one goes once a newer ready revision of the same file was created seven days ago
+(`ARTIFACT_REVISION_RETENTION_DAYS` in `@haus/api`): the Server's hourly revision retention sweep
+(`apps/server/src/artifacts/retention.ts`, a boot sweep beside the other retention sweeps) deletes
+its R2 objects and frees its storage. The clock starts when the newer revision was created, not at
+the older revision's own creation. The same sweep purges every revision of a file deleted more than
+`driveDeletedRetentionDays` (30) ago, keeping the file's row and its change tombstone. The current
+revision of a live file is never pruned, however old.
 A pruned revision ends exactly like a deleted one: its row stays as `deleted` with no reserved
 bytes, so its version URL answers not found, a late `request_id` retry answers `DELETED` instead
 of publishing again, and a push based on it after a move still names the file's new path. The

@@ -13,6 +13,7 @@ import { cloudAgentWorkRouter } from './cloud-agent-work/router.ts';
 import { computerSecretsRouter } from './computer-secrets/router.ts';
 import { computerRouter } from './computer/router.ts';
 import { devRouter } from './dev/router.ts';
+import { driveRouter } from './drive/router.ts';
 import { githubRouter } from './github/router.ts';
 import { imageGenerationSettingsRouter } from './image-generation-settings/router.ts';
 import { imageGenerationRouter } from './image-generation/router.ts';
@@ -48,6 +49,7 @@ export const hausRouter = createRouter({
     computer: computerRouter,
     computerSecrets: computerSecretsRouter,
     dev: devRouter,
+    drive: driveRouter,
     github: githubRouter,
     imageGeneration: imageGenerationRouter,
     imageGenerationSettings: imageGenerationSettingsRouter,

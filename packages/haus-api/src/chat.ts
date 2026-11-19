@@ -21,6 +21,7 @@ import {
     chatMessageAuthoredContentMaxLength,
     chatMessageContentMaxLength,
 } from './cloud-agent-work-link.ts';
+import { driveCitationSchema } from './drive.ts';
 import { imageGenerationSchema } from './image-generation.ts';
 import { taskLinkSchema } from './task-key.ts';
 import { taskPreviewSchema } from './task-preview.ts';
@@ -44,6 +45,8 @@ export const chatMessageSchema = z
         cloudAgentWork: z.array(cloudAgentWorkSchema).default([]),
         content: z.string().max(chatMessageContentMaxLength),
         createdAt: timestampSchema,
+        /** Drive files the Message cites, in link order, each bound to a revision. */
+        driveCitations: z.array(driveCitationSchema).default([]),
         id: idSchema,
         /**
          * The image generations this Message links, in link order. Each entry
