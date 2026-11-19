@@ -5,6 +5,7 @@ import { runnerHelloSchema, runnerSocketPath } from '@haus/api';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { onAgentLifecycle } from '../agent-delivery/lifecycle.ts';
+import type { InvocationRouter } from '../agent-invocations/invocation-router.ts';
 import {
     defaultComputerSocketLiveness,
     watchComputerSocketLiveness,
@@ -19,6 +20,7 @@ import type { RunnerAttachment, RunnerLink } from './runner-link.ts';
 export interface RunnerSocketServices {
     db: HausDatabase;
     delivery: AgentDelivery;
+    invocations: InvocationRouter;
     postCommitWork: ServerPostCommitWork;
 }
 
@@ -78,6 +80,7 @@ export function startRunnerSocket(
                     }
                     link.attach(attachment);
                     attachment.send({ type: 'runner-hello-accepted' });
+                    services.invocations.runnerAttached();
                     if (hostsLoops) {
                         await delivery.onRunnerReconnect();
                     }
@@ -97,6 +100,7 @@ export function startRunnerSocket(
         close: () => {
             server.off('upgrade', onUpgrade);
             stopThoughtsOnSettle();
+            services.invocations.close();
             for (const socket of sockets) {
                 socket.close(1001, 'Server shutting down');
             }

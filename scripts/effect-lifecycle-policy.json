@@ -604,6 +604,28 @@
                 "timer": 0
             }
         },
+        "apps/server/src/agent-invocations/invocation-clock.ts": {
+            "disposition": "external-adapter",
+            "reason": "The invocation grace timer seam: the router cancels each scheduled grace when its invocation settles or its Computer reconnects, and close cancels every grace still open.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 1
+            }
+        },
+        "apps/server/src/agent-invocations/invocation-payloads.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A payload upload releases its Server write hold in lexical finally; the staged upload it wraps owns its own file cleanup.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
         "apps/server/src/agent-api/attachments.ts": {
             "disposition": "finite-cleanup",
             "reason": "Each attachment request closes its staged file and discards incomplete storage while preserving the primary route error.",

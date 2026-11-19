@@ -10,6 +10,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { clearStartRejectedHolds } from '../agent-delivery/failure-hold.ts';
 import { onAgentLifecycle } from '../agent-delivery/lifecycle.ts';
+import type { InvocationRouter } from '../agent-invocations/invocation-router.ts';
 import { sendPendingCoveApplication } from '../onboarding/create-cove.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computerUpdatedTopic } from '../realtime/topics.ts';
@@ -48,6 +49,7 @@ export function startComputerAttachmentSocket(
     delivery: AgentDelivery,
     postCommitWork: ServerPostCommitWork,
     thoughtSummarizer: ThoughtSummarizer | null,
+    invocations: InvocationRouter,
     liveness: ComputerSocketLivenessTiming = defaultComputerSocketLiveness
 ) {
     const thoughts = createAgentThoughts({ summarizer: thoughtSummarizer });
@@ -184,6 +186,7 @@ export function startComputerAttachmentSocket(
             if (!ordinary) {
                 return;
             }
+            invocations.computerAttached(computer.id);
             // A Computer holds every runtime setting off until an attach turns one on.
             void connections.runtimeSettings
                 .attached(computer.serverId, computer.id, () =>
@@ -221,7 +224,8 @@ export function startComputerAttachmentSocket(
                             ordinary,
                             rawString,
                             postCommitWork,
-                            thoughts
+                            thoughts,
+                            invocations
                         );
                         return;
                     }
@@ -244,6 +248,7 @@ export function startComputerAttachmentSocket(
             if (computerId && sockets.get(computerId) === socket) {
                 sockets.delete(computerId);
                 connections.unregister(computerId);
+                invocations.computerDetached(computerId);
             }
             // Generation-guarded, so a newer attachment's row is never touched.
             markClosedOffline();
