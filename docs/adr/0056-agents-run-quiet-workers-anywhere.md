@@ -67,8 +67,10 @@ runs silent until they finish or are blocked.
 
 7. **A Worker uses that machine's own logins** for its model runtime and git, so it can run any
    model that machine can. It runs as a fresh Claude Code or Codex session in a worktree of the
-   Project repo, with a credential scoped to that Worker. The Agent's session, memory and skills
-   never leave its home Computer. Moving a running Worker between machines is out of scope.
+   Project repo, with a credential scoped to that Worker. Workers keep the harness on the machine,
+   and a dead machine is a failed Worker. The Agent itself runs on the Server
+   ([ADR 0057](0057-agents-run-on-the-server-and-machines-run-their-tools.md)). Moving a running
+   Worker between machines is out of scope.
 
 8. **People talk to a Worker directly.** Each Worker card has its own composer. What you type goes
    into that Worker as a steer, or as a follow-up when it is idle, and also posts in the Task
@@ -130,6 +132,11 @@ Deleted:
 - "Cloud agent" as a noun and the `haus cloud-agent` CLI family.
 - The per-Computer **Make default** provider setting, replaced by the Project's default place.
 - An Agent's lock to one machine for its work.
+
+Related:
+
+- [ADR 0057](0057-agents-run-on-the-server-and-machines-run-their-tools.md) holds the Agent's
+  runtime and tools. Workers keep native harnesses and machine logins.
 
 Follow-up:
 

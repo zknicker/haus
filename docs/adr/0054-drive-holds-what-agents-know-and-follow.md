@@ -56,14 +56,15 @@ remembers.
    that wrote it. The browser has History, Compare and Restore. Concurrent writes merge or keep
    both, and a mass delete is held for confirmation.
 
-4. **Mounted, not pushed.** A Computer mounts the Drive folders its Agents and Workers can see, as
-   an ordinary folder. Agents use ordinary file tools, and edits save as attributed versions. The
+4. **Mounted, not pushed.** Every machine mounts the Drive folders its Agents and Workers can see,
+   as an ordinary folder. The Agent runner reads Drive directly
+   ([ADR 0057](0057-agents-run-on-the-server-and-machines-run-their-tools.md)). Agents use ordinary file tools, and edits save as attributed versions. The
    machine-local workspace remains as execution scratch and checkouts, with no human surface.
 
 5. **Everyone can read everything.** There is no privacy layer and no personal folder. Members can
    read and edit any Agent's rules and memory.
 
-6. **Rules arrive by receipt.** The main session receives the Haus `AGENTS.md`, its home Project's
+6. **Rules arrive by receipt.** The runner composes each turn from Drive. The main session receives the Haus `AGENTS.md`, its home Project's
    `AGENTS.md`, its own `AGENTS.md` and `MEMORY.md` in the turn input when they changed, the way
    ADR 0052 delivers `MEMORY.md`. A generalist in the Haus project receives a Project's
    `AGENTS.md` the first time it acts in that Project in a session. A Worker gets its whole stack
@@ -107,6 +108,8 @@ Amended:
   Members can read and edit it.
 - The Server-held conversation style (`conversationStyle` in `docs/api/agents.md`) becomes
   `agents/<handle>/AGENTS.md`.
+- [ADR 0057](0057-agents-run-on-the-server-and-machines-run-their-tools.md) moves prompt
+  composition from the Computer to the Server-side runner, which reads Drive directly.
 
 Deleted:
 

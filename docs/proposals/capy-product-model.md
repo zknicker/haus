@@ -165,7 +165,7 @@ contractors quiet.
 ```
 Haus (Server)
 ├── Projects    created by humans; each one is its channel
-│   ├── Agents  (v2) each belongs to one Project; one home Computer, one global session
+│   ├── Agents  (v2) each belongs to one Project; loop on the Server, one machine for its tools
 │   └── Tasks   places for one piece of work, each in one Project
 │       └── Workers   quiet, scoped runs attached to the Task, on a Computer or in the cloud
 ├── DMs         person ↔ Agent, person ↔ person
@@ -242,9 +242,9 @@ Haus (Server)
     replaces today's per-Computer **Make default** provider setting.
   - A Worker uses **that machine's own logins** for its model runtime and git, so it can run any
     model that machine can.
-  - The Agent's session, memory and skills never leave its home Computer. Only the Worker travels:
-    a fresh Claude Code or Codex session in a worktree of the project repo, with a credential
-    scoped to that Worker.
+  - The Agent itself runs on the Server (ADR 0057). The Worker runs on the machine: a fresh Claude
+    Code or Codex session in a worktree of the project repo, with a credential scoped to that
+    Worker.
   - Not in this round: moving a running Worker between machines.
 - **People talk to a Worker directly.**
   - Each Worker card has its own composer. What you type goes into that Worker as a steer, or as a
@@ -356,6 +356,19 @@ report, cited files and PR, and has its own composer.
 
 **Project page**: the channel, with settings behind the header menu.
 
+### Runtime
+
+[ADR 0057](../adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md) settles where
+Agents run, following Capy and Amp:
+- **The loop runs on the Server,** in a sandboxed runner. Claude plans use the Claude Agent SDK and
+  every other model uses Pi Durable. The session is stored in Postgres.
+- **Each Agent has one machine where its tools run:** `bash` and an edit tool, plus the one
+  `execute` tool. It can move between turns. v1 machines are Computers.
+- **The Agent keeps working with its machine offline.** Only its machine work waits.
+- **The Server holds the Agent's model logins.** Workers keep native harnesses and their machine's
+  logins.
+- **agent-desktop and agent-browser are built in.** User-configured local MCP is descoped.
+
 ### Cross-agent communication
 
 Agents coordinate where people can see them:
@@ -376,7 +389,7 @@ Agents coordinate where people can see them:
 | Server-held conversation style | `agents/<handle>/AGENTS.md` |
 | The Direct messages sidebar section | Agent tiles |
 | Per-Computer **Make default** provider | The Project's default place |
-| An Agent's lock to one machine for its work | A home Computer for the session, and Workers anywhere they're allowed |
+| An Agent's lock to one machine for its work | A Server-side session with a movable machine for its tools (ADR 0057), and Workers anywhere they're allowed |
 | (v2) An Agent hearing every channel it has joined | Its home Project, plus @mentions |
 
 Kept: Agents with one global session and the inbox, Tasks as places, claims, Reminders, Triggers,
@@ -472,7 +485,13 @@ Engineering's default place is the mini.
    - Add `AGENTS.md` layers and "Loaded before the first message".
    - *What you notice:* you can read and fix what an Agent knows and follows, and see who changed
      it.
-3. **Projects.**
+3. **Agents on the Server** ([ADR 0057](../adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)).
+   - Every Agent moves to the Server-side runner at once.
+   - The invocation contract, the result ledger, and built-in agent-desktop and agent-browser
+     come with it.
+   - *What you notice:* an Agent keeps talking when its Computer sleeps, and moves between
+     Computers.
+4. **Projects.**
    - "New project" creates the channel, and channels become Projects.
    - Project settings: key, Agents, repos with per-Computer links, rules, and the default place.
    - Home Projects, with Agents hearing their own Project plus @mentions, and human-filed Tasks
@@ -480,7 +499,7 @@ Engineering's default place is the mini.
    - The new sidebar and the Agent page Overview.
    - *What you notice:* the sidebar is about half as long, every effort has one home, and you know
      which Agent to ask.
-4. **Workers.**
+5. **Workers.**
    - Cloud agents become Workers, with typed reports, `WORKER.md`, and quiet cards.
    - The "Workers can run here" switch, worktree runs on any granted Computer using its logins,
      the direct-steer composer, and the `Haus-Task` trailer.
@@ -511,7 +530,8 @@ Each is marked (v2) above.
   Status still reads "Not yet implemented" and should say it landed.
 - **`specs/workers.md` uses "worker"** in an older sense, for background agent work. Reconcile it
   or rewrite it when Workers land.
-- **This proposal is split into three ADRs:**
+- **This proposal is split into four ADRs:**
   [ADR 0054, Drive](../adr/0054-drive-holds-what-agents-know-and-follow.md),
-  [ADR 0055, Projects](../adr/0055-projects-own-agents-and-tasks.md) (decisions 1, 2 and 5), and
-  [ADR 0056, Workers](../adr/0056-agents-run-quiet-workers-anywhere.md) (decisions 3, 4 and 6).
+  [ADR 0055, Projects](../adr/0055-projects-own-agents-and-tasks.md) (decisions 1, 2 and 5),
+  [ADR 0056, Workers](../adr/0056-agents-run-quiet-workers-anywhere.md) (decisions 3, 4 and 6), and
+  [ADR 0057, Runtime](../adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md).

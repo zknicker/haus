@@ -57,8 +57,8 @@ someone @mentions it. Haus is a team, so it takes Capy's ownership and Amp's qui
    working it.
 
 6. **An Agent belongs to one Project.** It is listed under it, and that Project's rules always
-   apply to it. Moving an Agent to another Project is a setting. Its home Computer and one global
-   session are unchanged.
+   apply to it. Moving an Agent to another Project is a setting. Its one global session and the
+   machine its tools run on are unchanged ([ADR 0057](0057-agents-run-on-the-server-and-machines-run-their-tools.md)).
 
 7. **An Agent hears its own Project and @mentions elsewhere.** It receives every message in its
    Project's channel and Tasks, and is that Project's first responder. In other Projects and their
