@@ -66,6 +66,12 @@ Every live path sits in an area. Its first segment is `haus`, `projects`, or `ag
 Agents, active or retired. No file sits directly in `projects/` or `agents/`. Any other path is
 `INVALID_PATH`. Projects arrive with ADR 0055, so `projects/` holds nothing until then.
 
+A write stores the area prefix in its canonical spelling, so `HAUS/a.md` lands as `haus/a.md` and
+`Agents/ORBIT/a.md` as `agents/orbit/a.md`. A handle compares without case. Handles are unique only
+among active Agents, so `agents/<handle>/` names the active Agent with that handle, otherwise the
+most recently retired one. A folder move may start or end at an area root such as `haus`, but never
+at `projects` or `agents` alone.
+
 The rule and memory files are ordinary files. What reads them, and when, is ADR 0054 decisions 7
 and 8 and [context management](../docs/features/context-management.md). The memory cap stays ADR
 0052's.
@@ -135,7 +141,7 @@ Each revision records four facts.
 - `parent_revision_id` is the head the revision was committed on. It is null for a file's first
   revision.
 
-A revision whose base is not its parent was merged. The writer comes from the caller's credential,
+A revision whose base is set and differs from its parent was merged. The writer comes from the caller's credential,
 never from the request body. The Server sets every id, counter, and timestamp.
 
 In `packages/haus-api`, `artifactAuthorSchema` widens `artifactCreatorSchema` with the Worker
@@ -174,7 +180,9 @@ driveChangesResult = {
 }
 ```
 
-An area missing from `since` reads from zero. `areas` lists every area with its current counter, so
+An area missing from `since` reads from zero, and an area missing from a passed `until` returns
+nothing until the next call. The Agent route takes `since` and `until` as JSON-encoded query
+parameters, and bad JSON or a bad shape is 400 `INVALID_ARG`. `areas` lists every area with its current counter, so
 a caller learns of a new Agent or Project from any call. Changes come in area order, then sequence
 order, at most 1,000 per page. A call without `until` fixes it at each area's counter and returns
 it. When `complete` is false, the caller applies the page and asks again from the last sequence it
@@ -199,8 +207,9 @@ nothing has published there yet (a first upload still in flight, or a base that 
 Server ever held). A push never gets this error. It keeps both versions instead (below).
 
 The head is checked twice: when the write reserves storage, before any bytes move, and again when
-the upload lands, under the same Server row lock that serializes every artifact insert, move, and
-delete. Two writers from one base both upload. The first to land becomes the head, and the second
+the upload lands. Reserve lets through any base that is an older revision of the file at the path,
+because only the landed bytes can decide a merge. The second check runs under the same Server row
+lock that serializes every artifact insert, move, and delete. Two writers from one base both upload. The first to land becomes the head, and the second
 merges onto it or fails. A create whose only upload fails frees its path. `request_id` retries
 return the first attempt's revision even after the head has moved; reusing a `request_id` for
 another path, title, or content type fails with `IDEMPOTENCY_KEY_REUSED`.
@@ -209,7 +218,9 @@ Writes travel as raw bytes with query metadata: Agents through
 `POST /api/agent/artifacts/publish-artifact-raw`, members through
 `PUT /artifacts/:serverId/publish` with a Haus AppSession. Both take `path`, optional
 `base_revision_id` or `replace=true`, `request_id`, and optional `title` (default: the file name)
-and `content_type`. A write answers its revision, and `merged: true` when it merged.
+and `content_type`. A write answers its revision as `{ artifact }`. Deployed CLIs and the App parse
+that shape strictly, so a merge shows as a revision whose base differs from its parent, and as the
+`merged` push outcome.
 
 ### Merging a stale base
 
@@ -233,6 +244,12 @@ A machine sends one turn's changes as one push. The push id is the run id from t
 frame (`runId`). The Server takes the Agent and the Task from that run, so the machine names
 neither. A Worker's push uses its own run's id (W2).
 
+The push routes take any live runner credential of the pushing Agent, because the run's own
+credential ends when its turn settles and the push runs after that. `push_id` must name a run the
+Server dispatched to that Agent, otherwise the request fails with 404 `NOT_FOUND`. The push's Task
+is the Task whose chat the run answered in, or for a Task assignment run, the Task of the
+assignment that led it.
+
 | Route (Agent API) | Input |
 | --- | --- |
 | `POST /api/agent/drive/push/put` | Raw bytes; query `push_id`, `path`, `request_id`, optional `base_revision_id`, `content_type` |
@@ -252,14 +269,25 @@ or an author to fill it.
 | `deleted` | A delete whose base is the head | A tombstone |
 | `kept_both` | A put whose merge failed, or a create at a path someone else filled | The other version at the path, and the incoming bytes in a copy |
 | `kept_edit` | An edit met a delete, on either side | The edited file, live at its path |
-| `refused` | Path rules, area write access, size, or storage limits | Nothing new |
+| `refused` | Path rules, area write access, a file and folder clash, size, content type, or storage limits | Nothing new |
+
+The path rules apply after the request parses, so a bad path is a `refused` outcome, not a 400.
+A clean merge whose result equals the head answers `unchanged`. A create at a filled path, or a base
+that names a different file than the one at the path, keeps both with reason `both_created`. A put
+whose base names a file that moved to another path since creates the pushed path as a new file and
+answers `committed`, because History does not follow a rename yet. A delete onto a path that holds
+another file than its base's leaves that file alone and answers `deleted` with it as `current`. A
+delete onto a path where nothing is live answers `deleted`. A transient failure, such as storage
+being unavailable or a duplicate request still uploading, answers an error and stores nothing, so
+the machine sends the file again.
 
 A copy is named `<stem>.conflict-<handle>.<ext>`, splitting the file name at its last dot. A name
 with no dot, or only a leading dot, takes the suffix at its end, so `.env` becomes
 `.env.conflict-blippy`. The handle is the pushing Agent's, or the Worker's Agent's. A taken copy
 name takes `-2`, then `-3`, before the extension. The copy is an ordinary new file in the same
-folder, authored by the writer with the push's Task. It is resolved by merging into the original
-and deleting the copy.
+folder, authored by the writer with the push's Task, with no base and no parent. It takes over the
+object the push uploaded, so its R2 key keeps the prefix of the file the push first wrote to. It is
+resolved by merging into the original and deleting the copy.
 
 A machine sends deletes before puts, so a case-only rename frees its path key first. A rename is a
 delete plus an add. The added file is a new file, and History does not follow it yet.
@@ -292,7 +320,10 @@ citation to the head at send time. When the sending run's push closes, each cita
 that push changed moves to the revision the push left. When the push kept both versions, the
 citation moves to the writer's own copy, because the copy holds what the Agent meant. A path that
 does not exist at send has null ids until the push creates it. A citation that never resolves renders its label as plain text.
-Citations keep artifact and revision ids, so they survive moves. A citation whose revision was
+The Server reads links in order, skipping inline code and code fences. It percent-decodes each
+path, ignores one that is malformed or breaks the path rules, keeps each path once by its key, and
+reads at most 100 per message. A kept-both rebind moves the ids to the copy and keeps the path as the
+link wrote it. Citations keep artifact and revision ids, so they survive moves. A citation whose revision was
 purged opens the current revision and says the cited one is gone. Attachments stay as they are.
 
 ## Retention
@@ -302,7 +333,9 @@ the life of the file, so rule and memory history never expires. A larger replace
 deleted seven days after a newer revision took its place (`ARTIFACT_REVISION_RETENTION_DAYS`). A
 deleted file keeps every revision for 30 days (`driveDeletedRetentionDays`), then its revisions are
 purged and its tombstone stays. `delete-artifact-version` still removes one non-current revision at
-once.
+once. A delete also turns off the file's public link, so a restore never re-exposes a link the
+delete ended. `artifact.restore` on a deleted file's revision brings the file back at its last path
+on top of its last head, or fails with `PATH_TAKEN` when another file lives there now.
 
 ## Moves
 
@@ -373,7 +406,7 @@ current revision's filename extension (letters, digits, `_+-`, at most 16 charac
 creation order, compared by the folded key. The `name` column, its index, and the create-only name
 contract are gone; the path is the identity.
 
-The Drive migration (D2) prefixes every live path with `haus/`, so `starter-kit/scripts/tm_check.py`
+The Drive migration (D2, `0129_drive`) prefixes every path with `haus/`, deleted rows included, so `starter-kit/scripts/tm_check.py`
 becomes `haus/starter-kit/scripts/tm_check.py`. It rewrites paths only, like a move, and starts each
 area's counter at the number of its files. Moving Agent workspaces into `agents/<handle>/` is D3,
 which writes each file as the Agent that owned the workspace, with no Task.

@@ -127,7 +127,8 @@ A durable `message.created` is planned once by Server delivery
   `packages/haus-api/src/agent-inbox.ts`: the push id, the writer (the Agent, or a Worker with its
   Task), and every listed file of the push, uncapped because conflicts are rare. Each file carries
   `path`, `outcome`, `copyPath` for `kept_both`, `currentRevisionId`, `currentAuthorHandle`, and
-  `reason` (`same_lines`, `binary`, `base_gone`, `edit_over_delete`, or the refusal code). When
+  `reason` (`same_lines`, `binary`, `base_gone`, `both_created`, `edit_over_delete`, or the refusal
+  code). When
   nothing is live at the path, as after a refused create, `currentRevisionId` and
   `currentAuthorHandle` are explicit nulls. The item never invents a revision or an actor.
   `drive_conflict` joins `chatlessInboxSources`, and the start frame carries the item as
@@ -367,7 +368,7 @@ turn starts when its creator sends the working brief.
 | A single-Agent channel addresses `sole` without Jev for one human and judges it at the gate for more | `apps/server/test/haus-message-routing-sole.test.ts` |
 | The unread digest excludes notice-row chats and drained ids, so a bounded drain's remainder still shows | `apps/server/test/agent-inbox-digest.test.ts` |
 | Assignments coalesce into one main-session run, a busy Agent gets a count then the Tasks, and reassigning retires a queued item | `apps/server/test/haus-task-agent-delivery.test.ts`, `apps/computer/src/harness/task-assignment-turn.test.ts`, `apps/computer/src/inbox-store-task-assignments.test.ts` |
-| One `drive_conflict` item per push lists every file, wakes an idle Agent, reaches a Worker's Agent, and waits at the chain ceiling instead of dropping (lands with D2) | `apps/server/test/drive-conflict-delivery.test.ts` |
+| One `drive_conflict` item per push lists every file, wakes an idle Agent, reaches a Worker's Agent, and waits at the chain ceiling instead of dropping | `apps/server/test/drive-conflict-delivery.test.ts`, `apps/server/test/drive-conflict-chain.test.ts` |
 
 ## Presentation split (I1/I4)
 
