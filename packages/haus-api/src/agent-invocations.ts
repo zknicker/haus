@@ -87,6 +87,22 @@ export const editorCommandSchema = z.discriminatedUnion('command', [
 ]);
 export type EditorCommand = z.infer<typeof editorCommandSchema>;
 
+/** One patch in OpenAI Codex's `apply_patch` grammar, the shape GPT models are trained on. */
+export const patchCommandSchema = z
+    .object({
+        command: z.literal('apply_patch'),
+        cwd: machinePathSchema.optional(),
+        input: z.string().min(1).max(262_144),
+    })
+    .strict();
+export type PatchCommand = z.infer<typeof patchCommandSchema>;
+
+export const invocationEditSchema = z.discriminatedUnion('command', [
+    ...editorCommandSchema.options,
+    patchCommandSchema,
+]);
+export type InvocationEdit = z.infer<typeof invocationEditSchema>;
+
 export const invocationOperationSchema = z.discriminatedUnion('kind', [
     z
         .object({
@@ -95,7 +111,7 @@ export const invocationOperationSchema = z.discriminatedUnion('kind', [
             kind: z.literal('bash'),
         })
         .strict(),
-    z.object({ edit: editorCommandSchema, kind: z.literal('edit') }).strict(),
+    z.object({ edit: invocationEditSchema, kind: z.literal('edit') }).strict(),
     z.object({ kind: z.literal('view-image'), path: machinePathSchema }).strict(),
     z
         .object({
