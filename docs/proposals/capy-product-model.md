@@ -280,7 +280,8 @@ Haus (Server)
   - three areas: Haus, each Project, each Agent (memory, rules, notes, reports, skills)
   - every revision attributed to the Agent, Worker or person and the Task
   - a per-area change counter
-  - a Drive page with History and Restore, and files that open beside the chat
+  - a Drive page with History, Compare (rendered with `@pierre/diffs`) and Restore, and files that
+    open beside the chat
 - **A plain `drive/` folder on each machine.** It pulls what changed when a turn starts and pushes
   changed files after the reply. Agents use native file commands only. The Server merges clean text
   edits. A real conflict keeps both versions and sends the Agent a `drive_conflict` inbox item.
@@ -492,7 +493,7 @@ Engineering's default place is the mini.
      Agent workspaces into it.
    - The `drive/` folder on Computers, pulled at turn start and pushed after the reply, with
      merges and `drive_conflict` inbox items.
-   - The Drive page with History and Restore, and the `AGENTS.md` layers.
+   - The Drive page with History, Compare and Restore, and the `AGENTS.md` layers.
    - *What you notice:* you can read and fix what an Agent knows and follows, and see who changed
      it.
 3. **Agents on the Server** ([ADR 0057](../adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)).
@@ -515,9 +516,9 @@ Engineering's default place is the mini.
      follow-ups and stop from the card, and the `Haus-Task` trailer.
    - *What you notice:* "fix these six bugs" becomes six Workers spread across the mini, the
      MacBook and the cloud. You hear about each one once, when it's done or needs you.
-6. **Computer use and richer Drive.**
+6. **Computer use and the token panel.**
    - agent-desktop and the per-Computer "Computer use allowed" switch.
-   - Compare in Drive, and the "Loaded before the first message" token panel.
+   - The "Loaded before the first message" token panel.
 
 Each phase that changes prompt text follows the guarded prompt contract in AGENTS.md: a
 divergence-register row, a cap raise, and a `tune-agent-behavior` baseline.

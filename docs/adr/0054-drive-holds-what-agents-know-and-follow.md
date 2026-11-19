@@ -110,7 +110,8 @@ searchable threads. Rules people can edit outlast facts a model remembers.
 11. **References carry a revision.** Citing a Drive file in a message records the revision current
     at send time, so the citation opens what the Agent meant. Attachments stay as they are.
 
-12. **v1 Drive page.** History and Restore. The Agent page links its rule files.
+12. **v1 Drive page.** History, Compare and Restore. Compare renders two stored revisions with
+    `@pierre/diffs` (Apache-2.0), so it needs no Server work. The Agent page links its rule files.
 
 ## Considered and rejected
 
@@ -165,7 +166,7 @@ Deleted:
 
 Deferred:
 
-- Compare, held mass deletes, and mounts of any kind.
+- Held mass deletes, and mounts of any kind.
 - The "Loaded before the first message" token panel.
 
 Follow-up:

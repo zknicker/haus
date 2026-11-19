@@ -91,7 +91,7 @@ loops.
     recipe in Project settings, run on the working machine, with availability shown per Computer.
 
 12. **Ship order.** Tasks (landed), then minimal Drive, then Agents move to the runner, then
-    Projects, then Workers, then computer use (agent-desktop) and richer Drive (Compare). The runner
+    Projects, then Workers, then computer use (agent-desktop). The runner
     ships with one harness, and the second follows once tool dispatch works. Agents move in one
     cutover, and no Agent stays on a Computer after it.
 
