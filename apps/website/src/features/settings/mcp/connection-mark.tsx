@@ -7,16 +7,17 @@ import type { McpConnection } from './mcp-server-shared.ts';
  *
  * Every row on the Connections page is an MCP server, so every row carries a
  * mark from the same resolver — a preset the operator has not added yet is
- * still an MCP server, and drawing it bare made the Recommended list read as a
- * different kind of thing from the Added one.
+ * still an MCP server, and drawing it bare made the catalog read as a
+ * different kind of thing from the Connected list.
  *
  * Haus Server owns service branding before and after an account is added.
- * Recommended uses its preset catalog, with bundled art as a local fallback;
- * saved connections receive the same branding policy in their Server snapshot.
+ * The Explore connections catalog uses its preset catalog, with bundled art as
+ * a local fallback; saved connections receive the same branding policy in
+ * their Server snapshot.
  */
 
 /**
- * Every host owns the box — `ItemCard.Icon` on both lists, the hero tile on the
+ * Every host owns the box — `ItemCard.Icon` in both lists, the hero tile on the
  * connection page — so this draws only what goes inside one.
  */
 export function ConnectionGlyph({ connection }: { connection: ConnectionMarkSubject }) {

@@ -6,8 +6,8 @@ import { useHausUpdate } from '../../updates/use-haus-update.ts';
 import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { ColorThemeRow } from './color-theme-row.tsx';
+import { LinksSection } from './links-section.tsx';
 import { ModeRow } from './mode-row.tsx';
-import { NotificationsSection } from './notifications-section.tsx';
 import { SnowRow } from './snow-row.tsx';
 import { WindowLayoutRow } from './window-layout-row.tsx';
 
@@ -18,7 +18,7 @@ export function PreferencesSettings() {
             <SettingsPageHeader title="Preferences" />
             <AppearanceSection />
             <ChatSection />
-            <NotificationsSection />
+            <LinksSection />
             <HausVersionSummary view={update.view} />
         </SettingsPageColumn>
     );

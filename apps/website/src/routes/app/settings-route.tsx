@@ -19,10 +19,12 @@ import { ConnectionPage } from '../../features/settings/mcp/connection-page.tsx'
 import { ConnectionsPage } from '../../features/settings/mcp/connections-page.tsx';
 import { useConnectionSignIn } from '../../features/settings/mcp/use-connection-sign-in.ts';
 import { ModelsSettings } from '../../features/settings/models/page.tsx';
+import { NotificationsSettings } from '../../features/settings/notifications/page.tsx';
 import { PreferencesSettings } from '../../features/settings/preferences/page.tsx';
 import { ProfileSettings } from '../../features/settings/profile/page.tsx';
 import { ServerSettings } from '../../features/settings/server/page.tsx';
 import { ServersSettings } from '../../features/settings/servers/page.tsx';
+import { ShortcutsSettings } from '../../features/settings/shortcuts/page.tsx';
 import { SkillsSettings } from '../../features/skills/skills-settings.tsx';
 import { AgentsUsageOverview } from '../../features/usage/agents-usage-overview.tsx';
 import { useMember } from '../../hooks/members/use-member.ts';
@@ -51,9 +53,11 @@ const sectionRenderers: Record<SettingsPageId, (context: SectionContext) => Reac
             serverId={server.id}
         />
     ),
+    notifications: () => <NotificationsSettings />,
     preferences: () => <PreferencesSettings />,
     profile: ({ server }) => <ProfileSettings serverId={server.id} />,
     servers: () => <ServersSettings />,
+    shortcuts: () => <ShortcutsSettings />,
     skills: ({ server }) => <SkillsSettings serverId={server.id} />,
     usage: ({ server }) => <AgentsUsageOverview serverId={server.id} />,
 };

@@ -265,6 +265,9 @@ in New Tab and Copy Image on an image; Copy and Search Google on a selection; ed
 field; Back, Forward, and Reload on a bare page. Development builds add Inspect Element.
 
 Website-only clients open links in the system browser, as do authentication flows that ask for it.
+On desktop, Settings → Preferences → **Open links in** can send web links clicked in the App
+(messages, chips, Haus pages) to the default browser instead of a Haus tab; links inside a web page
+stay in Haus either way, and a link the system refuses opens as a tab.
 
 ## Desktop ownership
 

@@ -3,6 +3,8 @@ import {
     Analytics01Icon,
     ArchiveIcon,
     ComputerIcon,
+    KeyboardIcon,
+    Notification03Icon,
     Exchange01Icon,
     Plug01Icon,
     PreferenceHorizontalIcon,
@@ -12,6 +14,7 @@ import {
     ZapIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import type { IconSvgElement } from '@hugeicons/react';
+import { shortcutRegistry } from '../../shortcuts/shortcut-registry.ts';
 
 export const settingsNavItems = [
     {
@@ -28,7 +31,23 @@ export const settingsNavItems = [
         id: 'preferences',
         kind: 'page',
         label: 'Preferences',
-        rows: ['Mode', 'Theme', 'Snow', 'Window layout', 'Notifications', 'Show claims in chat'],
+        rows: ['Mode', 'Theme', 'Snow', 'Window layout', 'Show claims in chat', 'Open links in'],
+    },
+    {
+        access: 'everyone',
+        icon: Notification03Icon,
+        id: 'notifications',
+        kind: 'page',
+        label: 'Notifications',
+        rows: ['System notifications', "Notify me when I'm needed", 'Test notification'],
+    },
+    {
+        access: 'everyone',
+        icon: KeyboardIcon,
+        id: 'shortcuts',
+        kind: 'page',
+        label: 'Shortcuts',
+        rows: ['Keyboard shortcuts', ...shortcutRegistry.map((shortcut) => shortcut.command)],
     },
     {
         access: 'everyone',
@@ -121,7 +140,11 @@ export const settingsPages = settingsNavItems.filter(
 );
 
 export const settingsNavSections = [
-    { id: 'you', itemIds: ['profile', 'preferences', 'servers'], label: 'You' },
+    {
+        id: 'you',
+        itemIds: ['profile', 'preferences', 'notifications', 'shortcuts', 'servers'],
+        label: 'You',
+    },
     { id: 'captains', itemIds: ['models', 'skills', 'connections'], label: 'Captains' },
     {
         id: 'haus',
