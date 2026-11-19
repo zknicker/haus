@@ -3537,6 +3537,19 @@
         border: 1px solid var(--separator);
     }
 
+    /*
+     * A Compare diff (`@pierre/diffs`) renders in its own shadow root and
+     * paints the shiki theme's page color. Its CSS-variable hooks inherit in,
+     * so the host maps that page onto the text well's surface and the code
+     * onto the app's mono face.
+     */
+    .artifact-diff {
+        --diffs-light-bg: var(--surface);
+        --diffs-dark-bg: var(--surface);
+        --diffs-font-family: var(--font-mono);
+        --diffs-header-font-family: var(--font-sans);
+    }
+
     .artifact-preview__image {
         display: flex;
         width: 100%;

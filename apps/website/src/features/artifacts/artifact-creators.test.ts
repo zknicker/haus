@@ -39,7 +39,7 @@ test('Created by lists You, then Agents, then other people, each in Server order
     expect(artifactCreatorOptions(summaries, directory).map((option) => option.label)).toEqual([
         'You',
         'Blippy',
-        'Removed Agent',
+        'Removed Captain',
         'Ada',
     ]);
 });
