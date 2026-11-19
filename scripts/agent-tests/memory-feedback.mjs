@@ -59,6 +59,7 @@ export async function runMemoryFeedback(variant, { agents, expect, kit, log, set
         ...driveMemoryPath(worker.handle).split('/')
     );
     const seeded = renderSeedMemory(worker.displayName ?? worker.handle);
+    await kit.harness.waitForAgentQuiet(worker.id, 10_000, 300_000);
     log('seeding MEMORY.md');
     await mkdir(path.dirname(memoryPath), { recursive: true });
     await writeFile(memoryPath, seeded);
