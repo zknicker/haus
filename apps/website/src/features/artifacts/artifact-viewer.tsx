@@ -141,7 +141,7 @@ function isZoomedEntry(state: unknown): boolean {
 }
 
 /**
- * Version history (a file menu action) lands on `#revisions`: once the file
+ * History (a file menu action) lands on `#revisions`: once the file
  * is on screen, its History scrolls into view.
  */
 function useRevisionsAnchor(page: React.RefObject<HTMLElement | null>, ready: boolean) {

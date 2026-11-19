@@ -106,7 +106,7 @@ test('right-clicking an item selects it and offers only the actions this member 
         'Copy path',
         'Rename',
         'Move to…',
-        'Version history',
+        'History',
         'Delete…',
     ];
     const menuItems = page.getByRole('menu').getByRole('menuitem');

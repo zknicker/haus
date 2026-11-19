@@ -118,7 +118,7 @@ export function fileActions(
         { group: 1, icon: Copy01Icon, id: 'copy-path', label: 'Copy path' },
         { group: 2, icon: Edit02Icon, id: 'rename', label: viewer ? 'Rename…' : 'Rename' },
         { group: 2, icon: FolderTransferIcon, id: 'move', label: 'Move to…' },
-        { group: 2, icon: WorkHistoryIcon, id: 'history', label: 'Version history' },
+        { group: 2, icon: WorkHistoryIcon, id: 'history', label: 'History' },
         access.canDelete
             ? { danger: true, group: 3, icon: Delete02Icon, id: 'delete', label: 'Delete…' }
             : null,
