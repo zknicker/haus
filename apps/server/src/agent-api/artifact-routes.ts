@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { artifactFolderSchema, artifactListPageMax } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
+import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { ArtifactActor } from '../artifacts/access.ts';
 import { defaultArtifactListFilters, runArtifactAction } from '../artifacts/action.ts';
 import { publishInputFromQuery } from '../artifacts/publish-route.ts';
@@ -9,18 +10,22 @@ import { publishArtifact } from '../artifacts/publish.ts';
 import { ArtifactError, type ArtifactStorage } from '../artifacts/storage.ts';
 import type { ArtifactThumbnails } from '../artifacts/thumbnails.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { registerAgentArtifactActions } from './artifact-actions.ts';
 import { registerAgentArtifactDriveRoutes } from './artifact-drive-routes.ts';
 import { sendArtifactError } from './artifact-errors.ts';
 import { registerAgentArtifactPublicLinkRoutes } from './artifact-public-link-routes.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 import { registerAgentDriveChangesRoute } from './drive-changes-route.ts';
+import { registerAgentDrivePushRoutes } from './drive-push-routes.ts';
 
 export function registerAgentArtifactRoutes(
     app: FastifyInstance,
     options: {
+        agentDelivery: AgentDelivery;
         appOrigin: string;
         db: HausDatabase;
+        postCommitWork: ServerPostCommitWork;
         storage: ArtifactStorage | null;
         budget: number;
         thumbnails: ArtifactThumbnails | null;
@@ -30,6 +35,7 @@ export function registerAgentArtifactRoutes(
     registerAgentArtifactDriveRoutes(app, options);
     registerAgentArtifactPublicLinkRoutes(app, options);
     registerAgentDriveChangesRoute(app, options);
+    registerAgentDrivePushRoutes(app, options);
     for (const path of [
         '/api/agent/artifacts/publish-artifact-raw',
         '/api/agent/actions/publish-artifact-raw',

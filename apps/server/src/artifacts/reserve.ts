@@ -43,43 +43,79 @@ export async function reserveArtifact(
         if (existing) {
             return await retryOf(tx, existing, input);
         }
-        const [used] = await tx
-            .select({ total: sql<number>`coalesce(sum(${revisions.reservedBytes}), 0)::float8` })
-            .from(revisions)
-            .where(eq(revisions.serverId, access.serverId));
-        requireStorageBudget(used?.total, budget);
+        await requireStorageBudget(tx, access.serverId, budget);
         const { artifact, expect, path } = await writeTarget(tx, access, input, origin);
-        const revisionId = createOpaqueId('rev');
-        const [revision] = await tx
-            .insert(revisions)
-            .values({
-                artifactId: artifact.id,
-                authorAgentId: access.agentId,
-                authorKey: access.authorKey,
-                authorUserId: access.userId,
-                baseRevisionId: expect.kind === 'replace' ? null : expect.base,
-                contentType: input.content_type,
-                filename: artifactPathBasename(path),
-                id: revisionId,
-                objectKey: `servers/${access.serverId}/artifacts/${artifact.id}/${revisionId}`,
-                requestId: input.request_id,
-                reservedBytes: artifactMaxBytes,
-                revisionNumber: artifact.nextRevision,
-                serverId: access.serverId,
-                state: 'uploading',
-                taskId: write.taskId,
-                title: publishTitle(input),
-            })
-            .returning();
-        await tx
-            .update(artifacts)
-            .set({ nextRevision: artifact.nextRevision + 1 })
-            .where(eq(artifacts.id, artifact.id));
-        if (!revision) {
-            throw new Error('Revision reservation did not return its row.');
-        }
+        const revision = await insertUploadingRevision(tx, access, {
+            artifact,
+            base: expect.kind === 'replace' ? null : expect.base,
+            contentType: input.content_type,
+            path,
+            requestId: input.request_id,
+            taskId: write.taskId,
+            title: publishTitle(input),
+        });
         return { artifact, expect, retry: false, revision };
     });
+}
+
+export async function requireStorageBudget(tx: HausDatabase, serverId: string, budget: number) {
+    const [used] = await tx
+        .select({ total: sql<number>`coalesce(sum(${revisions.reservedBytes}), 0)::float8` })
+        .from(revisions)
+        .where(eq(revisions.serverId, serverId));
+    if ((used?.total ?? 0) + artifactMaxBytes > budget) {
+        throw new ArtifactError(
+            'Server shared-file storage budget is exhausted.',
+            507,
+            'STORAGE_LIMIT'
+        );
+    }
+}
+
+export async function insertUploadingRevision(
+    tx: HausDatabase,
+    access: Pick<ArtifactAccess, 'agentId' | 'authorKey' | 'serverId' | 'userId'>,
+    write: {
+        artifact: Artifact;
+        base: string | null;
+        contentType: string;
+        path: string;
+        requestId: string;
+        taskId: string | null;
+        title: string;
+    }
+) {
+    const { artifact } = write;
+    const revisionId = createOpaqueId('rev');
+    const [revision] = await tx
+        .insert(revisions)
+        .values({
+            artifactId: artifact.id,
+            authorAgentId: access.agentId,
+            authorKey: access.authorKey,
+            authorUserId: access.userId,
+            baseRevisionId: write.base,
+            contentType: write.contentType,
+            filename: artifactPathBasename(write.path),
+            id: revisionId,
+            objectKey: `servers/${access.serverId}/artifacts/${artifact.id}/${revisionId}`,
+            requestId: write.requestId,
+            reservedBytes: artifactMaxBytes,
+            revisionNumber: artifact.nextRevision,
+            serverId: access.serverId,
+            state: 'uploading',
+            taskId: write.taskId,
+            title: write.title,
+        })
+        .returning();
+    await tx
+        .update(artifacts)
+        .set({ nextRevision: artifact.nextRevision + 1 })
+        .where(eq(artifacts.id, artifact.id));
+    if (!revision) {
+        throw new Error('Revision reservation did not return its row.');
+    }
+    return revision;
 }
 
 async function retryOf(tx: HausDatabase, existing: Revision, input: ArtifactPublishInput) {
@@ -131,14 +167,4 @@ function verifyRetry(
         );
     }
     return artifact;
-}
-
-function requireStorageBudget(used: number | undefined, budget: number) {
-    if ((used ?? 0) + artifactMaxBytes > budget) {
-        throw new ArtifactError(
-            'Server shared-file storage budget is exhausted.',
-            507,
-            'STORAGE_LIMIT'
-        );
-    }
 }

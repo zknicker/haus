@@ -48,14 +48,14 @@ export async function publishArtifact(options: ArtifactPublishOptions) {
     if (reserved.retry) {
         await requireSameBytes(reserved.revision, options.stream);
     } else {
-        const uploaded = await upload(options, access, reserved, storage);
+        const landed = await upload(options, access, reserved, storage);
         // Committed: nothing below may fail the publish or reach the upload's cleanup.
         artifactUpdatedTopic.announce({
             artifactId: reserved.artifact.id,
             serverId: access.serverId,
         });
         void options.thumbnails?.ensure({
-            byteSize: uploaded.size,
+            byteSize: landed.byteSize,
             contentType: input.content_type,
             id: reserved.revision.id,
             objectKey: reserved.revision.objectKey,
@@ -84,32 +84,43 @@ async function upload(
         if (uploaded.size > artifactMaxBytes) {
             throw new ArtifactError('File exceeds the 256 MiB limit.', 413, 'SIZE_LIMIT');
         }
-        await landArtifactRevision(db, access, options.origin, {
+        return await landArtifactRevision(db, access, options.origin, storage, {
             artifactId: reserved.artifact.id,
             expect: reserved.expect,
             revision: reserved.revision,
             uploaded,
         });
-        return uploaded;
     } catch (cause) {
-        await db
-            .update(revisions)
-            .set({ state: 'failed' })
-            .where(eq(revisions.id, reserved.revision.id));
-        await releasePendingPath(db, reserved.artifact.id);
-        try {
-            await storage.delete(reserved.revision.objectKey);
-            await db
-                .update(revisions)
-                .set({ reservedBytes: 0 })
-                .where(eq(revisions.id, reserved.revision.id));
-        } catch (cleanupCause) {
-            throw new AggregateError(
-                [cause, cleanupCause],
-                'Artifact upload failed and cleanup remains pending.'
-            );
-        }
+        await abandonUpload(db, storage, reserved.revision, cause);
         throw cause;
+    }
+}
+
+export async function abandonUpload(
+    db: HausDatabase,
+    storage: ArtifactStorage,
+    revision: Pick<typeof revisions.$inferSelect, 'artifactId' | 'id' | 'objectKey'>,
+    cause: unknown
+) {
+    await db.update(revisions).set({ state: 'failed' }).where(eq(revisions.id, revision.id));
+    await releasePendingPath(db, revision.artifactId);
+    await dropUploadedBytes(db, storage, revision, cause);
+}
+
+export async function dropUploadedBytes(
+    db: HausDatabase,
+    storage: ArtifactStorage,
+    revision: Pick<typeof revisions.$inferSelect, 'id' | 'objectKey'>,
+    cause: unknown = null
+) {
+    try {
+        await storage.delete(revision.objectKey);
+        await db.update(revisions).set({ reservedBytes: 0 }).where(eq(revisions.id, revision.id));
+    } catch (cleanupCause) {
+        throw new AggregateError(
+            cause ? [cause, cleanupCause] : [cleanupCause],
+            'Artifact upload failed and cleanup remains pending.'
+        );
     }
 }
 
