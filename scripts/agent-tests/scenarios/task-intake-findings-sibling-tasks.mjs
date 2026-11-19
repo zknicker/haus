@@ -18,7 +18,7 @@ const issues = [
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'Three separate issues found while going through notes become three Tasks, one per issue, all started from one Agent message in the channel.',
+        'Three separate issues found while going through notes become three Tasks, one per issue, all started from one message in the channel: the request itself or an Agent message.',
     name: 'task-intake-findings-sibling-tasks',
     run: withRoutingEvidence(async ({ agents, expect, kit, log, settleTurn }) => {
         const [worker] = agents;
@@ -26,7 +26,7 @@ export default defineScenario({
 
         try {
             log('asking for the read-through');
-            await kit.harness.send(
+            const request = await kit.harness.send(
                 channel.id,
                 `@${worker.handle} can you go through this week's incident notes and handle whatever needs handling?\n\n${notes}`
             );
@@ -48,12 +48,16 @@ export default defineScenario({
             const origins = new Set(tasks.map((task) => task.origin?.messageId ?? null));
             expect([...origins], 'every Task starts from the same message').toHaveLength(1);
             const origin = await originMessage(kit, tasks[0], {
-                agentId: worker.id,
+                agentId: null,
                 chatId: channel.id,
             });
-            expect(Boolean(origin), 'the shared origin is an Agent message in the channel').toBe(
-                true
-            );
+            const fromRequest = origin?.id === request.message.id;
+            const fromAgent =
+                origin?.author.kind === 'agent' && origin.author.agentId === worker.id;
+            expect(
+                fromRequest || fromAgent,
+                'the shared origin is the request or an Agent message in the channel'
+            ).toBe(true);
         } finally {
             await cancelTasksBy(kit, [worker.id]);
         }

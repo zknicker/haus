@@ -4,7 +4,11 @@
 // in through the stack's PostgreSQL, shaped like
 // apps/server/test/github-trigger-seed.ts: a connected `github` connection the
 // worker holds a grant on, and an active installation whose access cache is
-// fresh and reaches one repository. Deliveries are signed with the stack's
+// fresh and reaches one repository. The connection's MCP URL never resolves:
+// the Server's background MCP inventory sweeps every connected connection, and
+// the real GitHub MCP answers a tokenless sweep with 401, which marks the
+// connection signed out and refuses Trigger create and fire with
+// github_access_required. Deliveries are signed with the stack's
 // own App webhook secret (HAUS_GITHUB_APP_WEBHOOK_SECRET, resolved by varlock).
 
 import { createHmac } from 'node:crypto';
@@ -14,6 +18,7 @@ import { createDevStackStatePaths } from '../dev-stack-shared.mjs';
 import { createAgentAuthor } from './author.mjs';
 
 export const githubAccount = 'acme';
+const unreachableMcpUrl = 'https://github-mcp.agent-tests.invalid/mcp/';
 const idAlphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
 const ciPermissions = {
     actions: 'read',
@@ -55,7 +60,7 @@ export async function seedGithubWorld(
     const now = new Date();
     await sql`
         insert into mcp_connections (id, server_id, name, url, auth, connected, header_names, tools, preset)
-        values (${connectionId}, ${kit.serverId}, 'GitHub', 'https://api.githubcopilot.com/mcp/',
+        values (${connectionId}, ${kit.serverId}, 'GitHub', ${unreachableMcpUrl},
                 'oauth', true, '{}', '{}', 'github')
     `;
     await sql`

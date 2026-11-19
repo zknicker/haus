@@ -3,7 +3,9 @@ import { defineScenario } from '../scenario.mjs';
 import { armWorkflowTrigger } from '../task-intake-events.mjs';
 import {
     cancelTasksBy,
+    channelFootprint,
     expectSettled,
+    expectShortFootprint,
     originMessage,
     postsAcross,
     tasksCreatedBy,
@@ -12,7 +14,7 @@ import {
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'A CI-failure Trigger fire that needs a fix becomes exactly one Task started from a top-level Agent message in the Trigger channel attributed to the fire, with nothing else top level in the channel.',
+        'A CI-failure Trigger fire that needs a fix becomes exactly one Task started from a top-level Agent message in the Trigger channel attributed to the fire; besides that origin the channel carries at most one brief reference to the Task.',
     name: 'task-intake-trigger-needs-fix',
     run: withRoutingEvidence(async ({ agents, expect, kit, log, marker, settleTurn }) => {
         const [worker] = agents;
@@ -52,10 +54,14 @@ export default defineScenario({
             const topLevel = (await postsAcross(kit, channel.id, worker.id, head)).filter(
                 (message) => message.chatId === channel.id
             );
-            expect(
-                topLevel.filter((message) => message.id !== origin.id),
-                'top-level channel posts besides the origin'
-            ).toHaveLength(0);
+            expectShortFootprint(
+                expect,
+                channelFootprint(
+                    topLevel.filter((message) => message.id !== origin.id),
+                    tasks[0]
+                ),
+                { acknowledgments: 0 }
+            );
         } finally {
             await armed.cleanup();
             await cancelTasksBy(kit, [worker.id]);

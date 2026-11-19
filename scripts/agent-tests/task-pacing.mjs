@@ -18,12 +18,17 @@ export async function startTaskAsAgent(kit, { agentId, channel, messageId, ...fi
         method: 'POST',
     });
     const payload = await response.json().catch(() => null);
-    if (!(response.ok && payload?.task?.id)) {
+    const key = startedTaskKey(response, payload);
+    return await kit.trpc('task.get', { key, serverId: kit.serverId });
+}
+
+export function startedTaskKey(response, payload) {
+    if (!(response.ok && typeof payload?.task?.key === 'string')) {
         throw new Error(
             `Agent Task start failed (${response.status}): ${JSON.stringify(payload)?.slice(0, 300)}`
         );
     }
-    return payload.task;
+    return payload.task.key;
 }
 
 export async function assignAsPerson(kit, task, agentId) {

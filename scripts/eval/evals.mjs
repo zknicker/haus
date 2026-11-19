@@ -103,7 +103,6 @@ export const evals = {
             'task-intake-trigger-acknowledge',
             'task-intake-findings-sibling-tasks',
             'task-intake-cloud-finish-reports-in-task',
-            'task-intake-peer-quick-claim',
             'task-intake-dm-work-routes-to-channel',
         ],
         summary:

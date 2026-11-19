@@ -3,7 +3,9 @@ import { defineScenario } from '../scenario.mjs';
 import { cancelReminder, fireReminderNow, scheduleAgentReminder } from '../task-intake-events.mjs';
 import {
     cancelTasksBy,
+    channelFootprint,
     expectSettled,
+    expectShortFootprint,
     originMessage,
     postsAcross,
     relayPuzzle,
@@ -18,7 +20,7 @@ const puzzle = relayPuzzle({ divisor: 9, limit: 450, modulus: 83 });
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'A Reminder that starts multi-step work becomes exactly one Task started from a top-level Agent message in the anchor channel caused by the fire, and the result is reported in the Task, with no copy of it in the channel.',
+        'A Reminder whose work waits on input that arrives after the fire becomes exactly one Task started from a top-level Agent message in the anchor channel caused by the fire; once the input arrives in the Task the result is reported there, and the channel carries at most one brief reference to the Task and no copy of the result.',
     name: 'task-intake-reminder-starts-work',
     run: withRoutingEvidence(async ({ agents, expect, kit, log, marker, settleTurn }) => {
         const [worker] = agents;
@@ -29,13 +31,13 @@ export default defineScenario({
         try {
             const anchor = await kit.harness.send(
                 channel.id,
-                `FYI, no reply needed now. Release checklist ${kit.stamp} goes out Friday. When it is time to re-run it, the checklist is a four-step relay, each step sealed in the one before; step 1 unpacks with \`${puzzle.command}\``
+                `FYI, no reply needed now. Release checklist ${kit.stamp} gets re-run against each release build when its reminder fires.`
             );
             await settleIfStarted(settleTurn, worker.id);
             reminder = await scheduleAgentReminder(kit, {
                 agentId: worker.id,
                 chatId: channel.id,
-                description: `Re-run the four-step release checklist relay from the anchor message, step by step, and clear the release if it passes. Report the final number with the marker ${token}.`,
+                description: `Re-run release checklist ${kit.stamp} against the new release build and clear the release if it passes. The build is still being cut when this fires; the release lead posts the command that unpacks it as soon as it lands. Report the final number with the marker ${token}.`,
                 messageId: anchor.message.id,
                 title: 'Re-run the release checklist',
             });
@@ -51,10 +53,20 @@ export default defineScenario({
             expect(fireId, 'the reminder fired').toBeTruthy();
             await kit.harness.waitForAgentQuiet(worker.id, 10_000, 300_000);
 
-            log('checking gates');
             const tasks = await tasksCreatedBy(kit, worker.id, turn.startedAt);
             expect(tasks, 'Tasks the Agent created').toHaveLength(1);
             const [task] = tasks;
+
+            log('the build lands: posting it in the Task');
+            await kit.trackChat(task.chatId);
+            await kit.harness.send(
+                task.chatId,
+                `@${worker.handle} the release build landed. The checklist against it is a four-step relay, each step sealed in the one before; start with \`${puzzle.command}\``
+            );
+            expectSettled(expect, await settleTurn(worker.id), 'build turn');
+            await kit.harness.waitForAgentQuiet(worker.id, 10_000, 300_000);
+
+            log('checking gates');
             const origin = await originMessage(kit, task, {
                 agentId: worker.id,
                 chatId: channel.id,
@@ -74,15 +86,21 @@ export default defineScenario({
                 results.some((message) => message.content.includes(puzzle.answer)),
                 `a result post in the Task carries the computed ${puzzle.answer}`
             ).toBe(true);
-            const posts = await postsAcross(kit, channel.id, worker.id, head);
-            expect(
-                posts.filter((message) => message.id !== origin.id),
-                'channel posts besides the origin'
-            ).toHaveLength(0);
+            const posts = (await postsAcross(kit, channel.id, worker.id, head)).filter(
+                (message) => message.chatId === channel.id
+            );
             expect(
                 resultCopies(posts, task, puzzle.answer),
                 'channel posts, the origin included, repeating the result the Task reports'
             ).toHaveLength(0);
+            expectShortFootprint(
+                expect,
+                channelFootprint(
+                    posts.filter((message) => message.id !== origin.id),
+                    task
+                ),
+                { acknowledgments: 0 }
+            );
         } finally {
             await cancelReminder(kit, reminder, worker.id);
             await cancelTasksBy(kit, [worker.id]);

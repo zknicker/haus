@@ -191,7 +191,7 @@ Live scenarios that exercise each Manual card or managed skill, as of 2026-10-20
 
 | Card or skill | Scenarios |
 | --- | --- |
-| `task-claim-lock`, `discuss-then-assign` | `task-intake-peer-quick-claim`, `room-task-claimed-by-peer` |
+| `task-claim-lock`, `discuss-then-assign` | `room-task-claimed-by-peer` |
 | `evidence-handoff` | `room-peer-handoff-with-evidence` |
 | `when-to-ask-human`, `sent-zero` | `human-ask-reply-wakes`, `room-pending-ask-peer-guesses` |
 | `reminder-cron` | `reminder-schedule-and-fire`, `room-reminder-fires-mid-conversation` |

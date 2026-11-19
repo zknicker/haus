@@ -2,12 +2,12 @@ import { withRoutingEvidence } from '../routing-evidence.mjs';
 import { defineScenario } from '../scenario.mjs';
 import {
     cancelTasksBy,
+    channelFootprint,
     expectSettled,
+    expectShortFootprint,
     originMessage,
     postsAcross,
-    referencesTask,
     relayPuzzle,
-    resultCopies,
     taskPosts,
     tasksCreatedBy,
 } from '../task-intake.mjs';
@@ -17,7 +17,7 @@ const puzzle = relayPuzzle({ divisor: 7, limit: 400, modulus: 97 });
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'Investigate-and-fix work asked in a channel that cannot finish in the reply, because its input arrives later, becomes exactly one Task started from a message in that channel, answered by one brief inline reply that references it; once the input arrives in the Task the result is reported there, with no further top-level posts in the channel and no copy of the result there.',
+        'Investigate-and-fix work asked in a channel that cannot finish in the reply, because its input arrives later, becomes exactly one Task started from a message in that channel; the channel carries at most a one-line acknowledgment plus one brief inline reply that references the Task, and once the input arrives in the Task the result is reported there, with no copy of it in the channel.',
     name: 'task-intake-multi-step-opens-task',
     run: withRoutingEvidence(async ({ agents, expect, kit, log, marker, settleTurn }) => {
         const [worker] = agents;
@@ -54,26 +54,14 @@ export default defineScenario({
 
             const posts = await postsAcross(kit, channel.id, worker.id, head);
             const topLevel = posts.filter((message) => message.chatId === channel.id);
-            const pointers = topLevel.filter(
-                (message) =>
-                    message.reply?.rootMessageId === request.message.id &&
-                    referencesTask(message, task)
-            );
-            expect(pointers, 'one inline reply to the request names the Task').toHaveLength(1);
+            const footprint = channelFootprint(topLevel, task, { answer: puzzle.answer });
+            expectShortFootprint(expect, footprint, { references: [1, 1] });
             expect(
-                pointers[0].content.trim().includes('\n'),
-                'the inline reply is one brief line'
-            ).toBe(false);
-            expect(
-                topLevel.filter(
-                    (message) => message.id !== pointers[0].id && message.id !== origin.id
+                footprint.references.some(
+                    (message) => message.reply?.rootMessageId === request.message.id
                 ),
-                'top-level channel posts besides the origin and the pointer'
-            ).toHaveLength(0);
-            expect(
-                resultCopies(topLevel, task, puzzle.answer),
-                'channel posts repeating the result the Task reports'
-            ).toHaveLength(0);
+                'the Task reference is an inline reply to the request'
+            ).toBe(true);
 
             const inTask = await taskPosts(kit, task, worker.id);
             expect(

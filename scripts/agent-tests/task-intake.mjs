@@ -31,6 +31,39 @@ export function resultCopies(posts, task, answer) {
     );
 }
 
+export function channelFootprint(posts, task, { answer = null } = {}) {
+    const references = posts.filter((message) => referencesTask(message, task));
+    return {
+        copies: answer === null ? [] : resultCopies(posts, task, answer),
+        multiline: posts.filter((message) =>
+            String(message.content ?? '')
+                .trim()
+                .includes('\n')
+        ),
+        others: posts.filter((message) => !referencesTask(message, task)),
+        references,
+    };
+}
+
+export function expectShortFootprint(
+    expect,
+    footprint,
+    { acknowledgments = 1, references = [0, 1] } = {}
+) {
+    const [fewest, most] = references;
+    const count = footprint.references.length;
+    expect(
+        count >= fewest && count <= most,
+        `channel posts referencing the Task (${count}, allowed ${fewest} to ${most})`
+    ).toBe(true);
+    expect(
+        footprint.others.length <= acknowledgments,
+        `channel posts besides the Task reference (${footprint.others.length}, allowed ${acknowledgments})`
+    ).toBe(true);
+    expect(footprint.multiline, 'channel posts longer than one brief line').toHaveLength(0);
+    expect(footprint.copies, 'channel posts repeating the result the Task reports').toHaveLength(0);
+}
+
 export async function originMessage(kit, task, { agentId, chatId }) {
     if (task.origin?.chatId !== chatId) {
         return null;
