@@ -63,14 +63,14 @@ Sharing a file is two steps. \`haus attachment upload --path <file> [--mime-type
 
 Received messages list their attachments. \`haus attachment view <id> [--output <path>]\` downloads one, by default into the current directory under its filename.
 
-An attachment is a snapshot that lives in the conversation it was sent to. The \`files\` topic covers where else files live and when sharing in Files (\`haus files push\`) fits better.
+An attachment is a snapshot that lives in the conversation it was sent to. The \`drive\` topic covers where else files live and when sharing in Drive (your \`drive/\` folder) fits better.
 
 To share an image you generated, see images. For feedback anchored to a file or page, see recipes/technique/attachment-comments and recipes/technique/html-artifact-discussion.`,
         id: 'attachment',
         kind: 'overview',
         related: [
             'message',
-            'files',
+            'drive',
             'images',
             'recipes/technique/attachment-comments',
             'recipes/technique/html-artifact-discussion',

@@ -10,7 +10,7 @@ export const cliFamilyTopics = {
     claim: 'claims',
     'cloud-agent': 'cloud-agents',
     connection: 'connection',
-    files: 'files',
+    drive: 'drive',
     image: 'images',
     inbox: 'inbox',
     manual: 'index',

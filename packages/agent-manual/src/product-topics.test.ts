@@ -262,8 +262,8 @@ test('image guidance teaches haus image, links, and stays runtime-neutral', () =
     expect(topic?.body).toContain('its model, and its cost; that is the result');
     expect(topic?.body).not.toContain('checking quality');
     expect(topic?.body).not.toContain('follow-up');
-    expect(topic?.body).toContain('an attachment or in Files (see files)');
-    expect(topic?.related).toContain('files');
+    expect(topic?.body).toContain('an attachment or in Drive (see drive)');
+    expect(topic?.related).toContain('drive');
     expect(topic?.body).toContain('--attachment-id <id>');
     expect(topic?.body).toContain('say so plainly');
     expect(topic?.body).toContain('visuals skill');

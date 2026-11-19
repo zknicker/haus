@@ -28,7 +28,7 @@ holds; this module covers what changes. The skeleton is
   it with a bare `page` fence holding exactly one JSON object whose `path` is
   that cwd-relative path.
 - The card opens the file live, so it changes when the file does. The Manual
-  topic `files` says who can open a page and how to share it with every member
+  topic `drive` says who can open a page and how to share it with every member
   or keep a version.
 
 ## Before shipping the page

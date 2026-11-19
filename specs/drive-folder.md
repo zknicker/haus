@@ -33,8 +33,14 @@ write, such as another Agent's area, are written read-only (files `0444`, folder
 folder persists between turns.
 
 The machine keeps its bookkeeping outside the folder, in `agents/<agent-id>/runtime/drive.json`.
-It holds each area's counter and, per file, `path`, `artifact_id`, `revision_id`, `sha256`, and
-`size_bytes`. Nothing inside `drive/` is Haus bookkeeping.
+It holds each area's counter and root, the id of a push that has not closed yet, the last revision
+of each path whose record was dropped, and, per file, `path`, `artifact_id`, `revision_id`,
+`sha256`, `size_bytes`, and the `mtime_ms` the file had when it was recorded. Downloads land in `runtime/drive-scratch/` and move into place by rename. Nothing
+inside `drive/` is Haus bookkeeping. A `drive.json` whose `drive/` folder is gone, as after a full
+reset that clears the workspace, is replaced with empty bookkeeping the moment the Computer sees it,
+so a folder that reappears never pushes deletes from stale records. A file name in decomposed
+Unicode is renamed to its NFC form, the form Drive paths take.
+`apps/computer/src/drive/` owns the folder.
 
 The Agent uses `ls`, `cat`, `rg`, its edit tool, `mv`, and `rm`. There are no sync commands. D4
 deletes `haus files pull` and `haus files push`, with their `.haus-artifacts.json` manifests and
@@ -53,11 +59,16 @@ When a turn starts and the Agent's machine is online, the machine pulls while th
    recorded as that revision.
 4. A file the Agent changed locally keeps its bytes and its recorded base. The next push merges it
    on the Server, so a pull never makes a local conflict.
-5. Each file's bytes and its record are written together, one file at a time. The area counters
-   advance only after the whole pull finishes.
+5. Each file's bytes and its record are written together, one file at a time, bytes first. The
+   area counters advance only after the whole pull finishes.
+6. A local folder where Drive has a file, or a local file where Drive has a folder, blocks only
+   that change. The pull applies the rest and holds the counters, so the change comes again once
+   the push has moved the blocking path out.
 
 The pull downloads every changed file, whatever its size. Fetching large files on first use is
 deferred.
+
+A pull that fails is logged as a warning and the turn runs.
 
 Only a tool call on the machine waits for the pull. A `bash` or edit invocation that arrives during
 the pull runs once the pull ends. The model's first response, Haus actions through `execute`, and
@@ -78,14 +89,44 @@ a turn that replied, one that ended without a reply, and one that failed or was 
 is never stranded.
 
 1. Walk regular files. Skip `.git`, `node_modules`, `__pycache__`, and `.DS_Store`, as
-   `haus files push` does today. Symbolic links are not Drive content and are skipped. An empty
+   `haus files push` did. Symbolic links are not Drive content and are skipped. An empty
    folder exists only locally.
 2. Compare each file with its record, using size and modification time as a shortcut.
-3. Send every delete, then every put ([Pushes](artifact-drive.md#pushes)). A changed file goes
-   with its recorded revision as its base, and a new file goes with none. A missing file is a
-   delete with its base. A rename is a delete plus an add.
+3. Send every delete, then every put, each in path order
+   ([Pushes](artifact-drive.md#pushes)). A changed file goes with its recorded revision as its
+   base, and a new file goes with none. A missing file is a delete with its base. A rename is a
+   delete plus an add. A file whose bytes still equal its record sends nothing.
 4. Apply each outcome to the folder and its record.
 5. Close the push.
+
+A push with nothing to send makes no request at all, so a turn that left `drive/` alone costs no
+Server round trip. A push that has something to send mints its own runner credential for the
+turn's run and revokes it after the close, because a Stop revokes the run's own credential. The
+request id is `dp_` and the first 48 hex characters of the SHA-256 of the writer's Agent id, the
+path, the base revision (or, for a create, `<area>@<counter>:<last dropped revision>`), and the
+content hash. The dropped revision keeps a re-create distinct even while a counter cannot advance.
+A create's request id is stored in `drive.json` when it is first sent and reused until the create
+resolves, so a create whose answer was lost replays its stored outcome after a pull moved the
+counter, instead of making a second copy. A pull that sees a revision equal to a pending create's
+bytes records it as the file's base.
+
+A pull that keeps a locally edited file notes the newer revision it skipped. After that file's
+push outcome is applied, the folder reads the path's current head and moves to it when it differs,
+because a replayed stored outcome can name a revision older than one the pull already passed.
+
+Outcomes apply under Drive's spelling of the path. A delete's outcome never touches a file that
+only folds to its path, such as the renamed half of a case-only rename, so an edit made under the
+new spelling reaches Drive as its own put or as a conflict copy.
+
+A delete removes only a file whose name matches the path exactly, so the delete half of a
+case-only rename on a case-insensitive disk never removes the renamed file, and a folder that
+replaced a file stays. A request that fails for that one file, a local file error or a 4xx answer
+other than `PUSH_CLOSED` or 401, is logged and skipped, and the rest of the push goes on. A
+network failure, a 5xx, or a 401 stops the push. A full Drive answers 507 `STORAGE_LIMIT`,
+which stops the push like `STORAGE_UNAVAILABLE`, so the edit stays and the next push sends it. A
+409 `IDEMPOTENCY_KEY_REUSED` on a create drops its stored request id, so the next push sends the
+create under a fresh one. A push whose run already sent everything still
+closes on a relaunch. One Computer process runs a folder's pulls and pushes one at a time.
 
 | Outcome | What the folder does |
 | --- | --- |
@@ -96,11 +137,16 @@ is never stranded.
 | `refused` | Moves its own bytes to `agents/<agent-id>/workspace/drive-refused/<path>` and restores the Drive state at the path |
 
 A refused file leaves the folder, so the next push does not send it again and the conflict item
-that names it cannot repeat every turn.
+that names it cannot repeat every turn. Any download an outcome needs happens before the writer's
+own bytes move aside, so a download that fails leaves the folder as it was, and the next push
+replays the stored outcome. The writer's bytes are hard-linked aside and then the current version
+is renamed over the path, so the path is never empty at any crash point. A refused path that
+already has a different refused copy takes the next free `.2`, `.3` suffix.
 
 A push that cannot reach the Server changes nothing locally. The edits stay, the next pull keeps
 them, and the next push sends them. A machine that crashes mid-push sends the rest in its next push
-under the next run id, and the Server closes the old push then. Each request id derives from the
+under the next run id. The folder records the open push id, so that next push closes the old push
+first and its conflict item queues without waiting. Each request id derives from the
 change itself, not the run ([Pushes](artifact-drive.md#pushes)). So a request repeated after a lost
 answer gets the stored outcome, and never a second copy or a second conflict item.
 
@@ -150,3 +196,7 @@ D2 and D4 add these guards.
 | `drive.changes` from any counter returns exactly the paths changed since, tombstones included, and finishes under continuous writes | `apps/server/test/drive-changes.test.ts` |
 | A pull updates unedited files, keeps edited ones, and a pull that fails midway leaves a folder that pushes correctly | `apps/computer/src/drive/pull.test.ts` |
 | A push applies every outcome to the folder, and a refused file does not repeat | `apps/computer/src/drive/push.test.ts` |
+| Two folders editing one file merge different lines and keep both versions of the same line | `apps/computer/src/drive/two-writers.test.ts` |
+| A launch pulls before the turn and pushes the turn's edits under its run id | `apps/computer/src/drive/turn-sync.test.ts` |
+| Two Computer folders sync through the real Server routes: create, pull, merge, kept-both, refused | `apps/server/test/drive-folder-sync.test.ts` |
+| A start frame's `driveConflict` renders as the whole turn input | `apps/computer/src/harness/drive-conflict-turn.test.ts` |

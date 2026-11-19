@@ -215,7 +215,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // Lowered by exactly 704 (38,457 → 37,753) by the owner-approved Tasks rewrite: a deliberate shrink, not room-making.
     // Raised by exactly 12 (37,753 → 37,765) when the Cloud agents sentence named "a cloud agent's run" for "its run".
     // Raised by exactly 145 (37,765 → 37,910) when MEMORY.md and notes/ moved into Drive at drive/agents/<handle>/ (ADR 0054, D3).
-    expect(prompt.length).toBeLessThanOrEqual(37_910);
+    // Raised by exactly 13 (37,910 → 37,923) when the Files entry became Drive: edits happen in the drive/ folder, not haus files pull/push.
+    expect(prompt.length).toBeLessThanOrEqual(37_923);
     expect(prompt.toLowerCase()).not.toContain('thread');
 });
 

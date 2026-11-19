@@ -1,6 +1,7 @@
 import type { ConnectionChipKind } from '@haus/api';
 import type { AgentStartCommand, UnreadElsewhere } from '../agent-commands.ts';
 import type { AgentInboxItem } from '../agent-inbox-item.ts';
+import { composeDriveConflictInput } from '../inbox-drive-conflict-format.ts';
 import { composeInboxDrain, composeInboxNotice, formatUnreadElsewhere } from '../inbox-format.ts';
 import {
     consumeVisibleMessages,
@@ -22,6 +23,11 @@ export interface TurnDelivery {
     dataRoot: string;
     /** Inbox identities drainable on any start; the warm set needs a live session. */
     drainItemIds: string[];
+    /** A Drive conflict run: one push's conflicts, and the Agent's handle to tell its edits apart. */
+    driveConflict?: {
+        attention: NonNullable<AgentStartCommand['driveConflict']>;
+        ownHandle: string | null;
+    };
     /** The Server attached the new Agent's one-time greeting to this run. */
     greets?: boolean;
     homeTimezone: string;
@@ -79,6 +85,14 @@ export const subagentWakeTurnLine =
 export function turnDeliveryOf(command: AgentStartCommand) {
     return {
         connectionChips: command.connectionChips ?? [],
+        ...(command.driveConflict
+            ? {
+                  driveConflict: {
+                      attention: command.driveConflict,
+                      ownHandle: command.agentName ?? null,
+                  },
+              }
+            : {}),
         ...(command.subagentWake ? { subagentWake: command.subagentWake } : {}),
         ...(command.taskAssignments ? { taskAssignments: command.taskAssignments } : {}),
         drainItemIds: command.drainItemIds ?? [],
@@ -152,6 +166,12 @@ export function composeTurnPrompt(input: TurnDelivery, session: TurnSession): Tu
 function composeChatlessInput(input: TurnDelivery): string | null {
     if (input.taskAssignments) {
         return composeTaskAssignmentInput(input.taskAssignments);
+    }
+    if (input.driveConflict) {
+        return composeDriveConflictInput(
+            input.driveConflict.attention,
+            input.driveConflict.ownHandle
+        );
     }
     return input.subagentWake ? subagentWakeTurnLine : null;
 }

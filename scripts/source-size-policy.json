@@ -39,7 +39,6 @@
         "apps/computer/src/index.test.ts": 929,
         "apps/computer/src/index.ts": 1600,
         "apps/computer/src/launch.test.ts": 346,
-        "apps/computer/src/launch.ts": 321,
         "apps/computer/src/login.ts": 409,
         "apps/computer/src/proxy.test.ts": 748,
         "apps/computer/src/setup-resume.test.ts": 325,

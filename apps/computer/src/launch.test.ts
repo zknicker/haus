@@ -212,7 +212,7 @@ test('runs a deterministic Agent launch that lands a durable Server message', as
     // The Agent reached the Server only through the loopback proxy, which
     // swapped the local proxy token for the scoped runner credential.
     expect(state.authHeaders).toEqual([`Bearer ${runnerToken}`]);
-    expect(state.mintCount).toBe(1);
+    expect(state.mintCount).toBe(2);
     expect(state.revokedRunnerId).toBe('arc_launchtest000000');
 
     expect(turnFrames).toHaveLength(1);
