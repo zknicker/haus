@@ -1,6 +1,6 @@
 ---
 status: accepted
-summary: Haus has two kinds of place, Channels (and DMs) for conversation and Tasks for work. A Task is a Channel for one piece of work, started by an Agent from a Message in a Channel, with a state (todo, open, done, canceled), attached cloud agents and pull requests that report to it, followers who see it unread, and a key from a per-Channel ledger. Threads are migrated into inline replies and deleted; boards and custom columns go. Supersedes ADR 0013, ADR 0043, and the proposed Open Threads ADR 0051; amends ADR 0051 (Tasks), 0044, 0041, 0029, and 0026. Accepted 2026-11-17, not yet implemented.
+summary: Haus has two kinds of place, Channels (and DMs) for conversation and Tasks for work. A Task is a Channel for one piece of work, started by an Agent from a Message in a Channel, with a state (todo, open, done, canceled), attached cloud agents and pull requests that report to it, followers who see it unread, and a key from a per-Channel ledger. Threads are migrated into inline replies and deleted; boards and custom columns go. Supersedes ADR 0013, ADR 0043, and the proposed Open Threads ADR 0051; amends ADR 0051 (Tasks), 0044, 0041, 0029, and 0026. Accepted 2026-11-17, shipped in Haus 19.0.0.
 read_when:
   - deciding where an Agent posts work, progress, or a cloud agent outcome
   - changing Tasks, their states, origin Message, followers, keys, or the Tasks page
@@ -14,7 +14,7 @@ read_when:
 
 ## Status
 
-Accepted 2026-11-17. Not yet implemented. Supersedes
+Accepted 2026-11-17. Shipped in Haus 19.0.0. Supersedes
 [ADR 0013](0013-threads-are-child-conversation-containers.md),
 [ADR 0043](0043-threads-are-unread-on-their-own.md), and the proposed
 [ADR 0051 Open Threads](0051-open-threads-are-a-lens.md). Amends

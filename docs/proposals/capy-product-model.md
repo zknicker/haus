@@ -540,8 +540,8 @@ Each is marked (v2) above.
 
 ## 8. Housekeeping
 
-- **ADR numbers are settled.** 0052 is memory, and the Tasks rework landed as 0053. ADR 0053's
-  Status still reads "Not yet implemented" and should say it landed.
+- **ADR numbers are settled.** 0052 is memory, and the Tasks rework shipped as 0053 in Haus 19.0.0.
+- **The implementation plan** is [docs/plans/capy-direction-program.md](../plans/capy-direction-program.md).
 - **`specs/workers.md` uses "worker"** in an older sense, for background agent work. Reconcile it
   or rewrite it when Workers land.
 - **This proposal is split into four ADRs:**
