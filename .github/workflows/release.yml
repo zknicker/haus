@@ -305,6 +305,8 @@ jobs:
     steps:
       - name: Check out release verification helpers
         uses: actions/checkout@v4
+      - name: Record shipped target baselines
+        run: node scripts/release/record-shipped-targets.mjs
       - name: Verify selected release jobs
         run: node scripts/release/verify-release.mjs --preflight
       - name: Set up Bun for snapshot publication
