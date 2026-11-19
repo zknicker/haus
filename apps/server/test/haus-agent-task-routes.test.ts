@@ -78,6 +78,21 @@ describe('start and list', () => {
         });
     });
 
+    test('starts from the short message id the inbox shows', async () => {
+        const origin = await call('/api/agent/messages/send', {
+            content: 'Short id origin',
+            nonce: 'task_routes_short_origin',
+            target: '#product',
+        });
+        const started = await call('/api/agent/tasks/start', {
+            from: (origin.body.message.id as string).slice('msg_'.length, 'msg_'.length + 8),
+            target: '#product',
+            title: 'From a short id',
+        });
+        expect(started.status).toBe(200);
+        expect(started.body.task).toMatchObject({ title: 'From a short id' });
+    });
+
     test('lists unfinished Tasks by priority then age, filtered by assignee, key, and state', async () => {
         const low = await start({ priority: 'low', title: 'Mine later' });
         const high = await start({ priority: 'high', title: 'Mine first' });

@@ -12,6 +12,7 @@ import type { TaskWriteResult } from '../tasks/task-assignment.ts';
 import { findTask } from '../tasks/task-list.ts';
 import { setTaskState } from '../tasks/task-set-state.ts';
 import { startTask } from '../tasks/task-start.ts';
+import { resolveAgentMessage } from './message-read.ts';
 import { resolveAgentTarget } from './resolve-target.ts';
 import { agentActor, resolveTaskAssignee } from './task-refs.ts';
 import { agentTaskWrite, withImplicitVersion } from './task-route-shell.ts';
@@ -32,13 +33,14 @@ export function registerAgentTaskPlaceRoutes(
         { body: agentTaskStartInputSchema, path: '/api/agent/tasks/start' },
         async (runner, input) => {
             const originChatId = await resolveAgentTarget(db, runner, input.target);
+            const origin = await resolveAgentMessage(db, runner, input.from);
             const assignee = await resolveTaskAssignee(db, runner, input.assignee ?? 'me');
             const result = await startTask(db, agentActor(runner), agentDelivery, {
                 assignee,
                 ...(input.description === undefined ? {} : { description: input.description }),
                 ...(input.dueOn === undefined ? {} : { dueOn: input.dueOn }),
                 originChatId,
-                originMessageId: input.from,
+                originMessageId: origin.id,
                 ...(input.priority === undefined ? {} : { priority: input.priority }),
                 serverId: runner.serverId,
                 state: input.state ?? 'open',
