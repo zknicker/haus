@@ -1,0 +1,103 @@
+#!/bin/sh
+set -eu
+umask 077
+
+root=${HAUS_BACKUP_ROOT:-/Users/zknicker/srv/haus/backups}
+container=${HAUS_BACKUP_POSTGRES_CONTAINER-haus-postgres}
+database=${HAUS_BACKUP_DATABASE:-haus_production}
+role=${HAUS_BACKUP_ROLE:-haus_backup}
+runner_volume=${HAUS_BACKUP_RUNNER_VOLUME:-haus_runner_data}
+nightly_keep=${HAUS_BACKUP_NIGHTLY_KEEP:-14}
+weekly_keep=${HAUS_BACKUP_WEEKLY_KEEP:-4}
+
+log() {
+    printf '%s haus-backup %s\n' "$(/bin/date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"
+}
+
+pg() {
+    if [ -n "$container" ]; then
+        docker exec -i "$container" "$@"
+    else
+        "$@"
+    fi
+}
+
+prune() {
+    /bin/ls -1 "$1" | /usr/bin/sort -r | /usr/bin/tail -n "+$(($2 + 1))" |
+        while read -r name; do
+            /bin/rm -rf "${1:?}/${name}"
+        done
+}
+
+step=lock
+lock=
+partial=
+finish() {
+    status=$?
+    if [ "$status" -ne 0 ]; then
+        log "failed during ${step} (exit ${status})" >&2
+        if [ -n "$partial" ]; then
+            /bin/rm -rf "$partial"
+        fi
+    fi
+    if [ -n "$lock" ]; then
+        /bin/rmdir "$lock"
+    fi
+}
+trap finish EXIT
+
+/bin/mkdir -p "${root}/nightly" "${root}/weekly"
+if ! /bin/mkdir "${root}/.lock" 2>/dev/null; then
+    echo "${root}/.lock exists; another backup is running or one died holding it." >&2
+    exit 1
+fi
+lock="${root}/.lock"
+
+stamp=$(/bin/date -u +%Y%m%dT%H%M%SZ)
+week=$(/bin/date -u +%G-W%V)
+partial="${root}/nightly/.${stamp}.partial"
+/bin/mkdir "$partial"
+
+step=pg_dump
+pg pg_dump --username "$role" --dbname "$database" --format custom >"${partial}/haus.dump"
+step=dump-check
+pg pg_restore --list <"${partial}/haus.dump" >/dev/null
+
+step=runner-volume
+runner=not-applicable
+if [ -n "$container" ]; then
+    if docker volume ls --quiet | /usr/bin/grep -qx "$runner_volume"; then
+        image=$(docker inspect --format '{{.Config.Image}}' "$container")
+        docker run --rm --network none --volume "${runner_volume}:/data:ro" \
+            --entrypoint tar "$image" -C /data -czf - . >"${partial}/runner-data.tar.gz"
+        runner=copied
+    else
+        runner=absent
+    fi
+fi
+
+step=publish
+/bin/mv "$partial" "${root}/nightly/${stamp}"
+partial=
+
+step=weekly
+weekly=existing
+if [ ! -e "${root}/weekly/${week}" ]; then
+    partial="${root}/weekly/.${week}.partial"
+    /bin/mkdir "$partial"
+    for file in "${root}/nightly/${stamp}"/*; do
+        /bin/ln "$file" "${partial}/"
+    done
+    /bin/mv "$partial" "${root}/weekly/${week}"
+    partial=
+    weekly=created
+fi
+
+step=prune
+prune "${root}/nightly" "$nightly_keep"
+prune "${root}/weekly" "$weekly_keep"
+
+bytes=$(/usr/bin/wc -c <"${root}/nightly/${stamp}/haus.dump" | /usr/bin/tr -d ' ')
+nightly_count=$(/bin/ls -1 "${root}/nightly" | /usr/bin/wc -l | /usr/bin/tr -d ' ')
+weekly_count=$(/bin/ls -1 "${root}/weekly" | /usr/bin/wc -l | /usr/bin/tr -d ' ')
+log "ok nightly/${stamp} dump_bytes=${bytes} runner=${runner} weekly/${week}=${weekly} kept_nightly=${nightly_count} kept_weekly=${weekly_count}"

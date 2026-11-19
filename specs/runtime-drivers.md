@@ -62,10 +62,10 @@ The volume holds sessions and the runner's dispatch ledger. Rules, memory, and s
 canonical in Drive. The volume is backed up with the Server's data
 ([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md) decision 2):
 whatever backs up the Server's database backs up `haus_runner_data` on the same schedule, and a
-restore brings both back together. The Server host's off-machine backup is retired today
-([deploy](../docs/operations/haus-server-deploy.md#off-machine-backup)), so reintroducing it
-includes this volume. When a restore is impossible, each Agent falls back to the reset path
-below.
+restore brings both back together. Today that is the nightly local backup on the Server host
+([deploy](../docs/operations/haus-server-deploy.md#backups)), which archives this volume beside the
+database dump once the volume exists. Off-machine backup is future work and must include it too.
+When a restore is impossible, each Agent falls back to the reset path below.
 
 ### Capacity
 

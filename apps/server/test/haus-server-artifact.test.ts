@@ -71,11 +71,17 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
     expect(paths).toContain('./colima/com.merchbaseco.colima-autostart.plist');
     expect(paths).toContain('./launchd/com.haus.server.plist');
     expect(paths).toContain('./launchd/com.haus.tunnel.plist');
+    expect(paths).toContain('./launchd/com.haus.local-backup.plist');
     expect(paths).toContain('./host-services/haus-server-activation.sudoers');
     expect(paths).toContain('./operations/install-colima-boot');
     expect(paths).toContain('./operations/launchctl-service-disabled');
     expect(paths).toContain('./operations/rollback-colima-boot');
     expect(paths).toContain('./operations/run-server');
+    for (const operation of ['backup-haus', 'install-local-backup', 'verify-haus-backup']) {
+        expect(verboseArchive.stdout.toString()).toMatch(
+            new RegExp(`-rwxr-xr-x .* \\./operations/${operation}`, 'u')
+        );
+    }
     expect(paths).toContain('./config/cloudflared.yml.example');
     expect(verboseArchive.stdout.toString()).toMatch(
         /-rwxr-xr-x .* \.\/operations\/install-colima-boot/u
