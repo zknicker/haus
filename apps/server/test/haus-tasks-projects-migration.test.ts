@@ -76,7 +76,7 @@ test('0131 puts every Task in a Project, moves its origin onto it, and homes eve
         expect(await readTasks(database)).toEqual(afterOriginDelete);
 
         const migrated = await readSchemaState(database);
-        await replay(database, folder, '0129_channels-are-projects');
+        await replay(database, folder, '0130_channels-are-projects');
         await replay(database, folder, migrationTag);
         expect(await readSchemaState(database)).toEqual(migrated);
     } finally {
