@@ -36,7 +36,7 @@ test('rejects a typed attention whose envelope identity does not match it', () =
             inbox: [
                 {
                     chatId: 'cht_origin',
-                    cloudAgentWork: {
+                    worker: {
                         branches: [],
                         errorCode: null,
                         provider: 'cursor',

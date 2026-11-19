@@ -7,8 +7,8 @@ import {
 } from '@haus/api';
 import * as z from 'zod';
 import { chatMessageReplyResponseSchema } from '../chat-message-reply-response-schema.ts';
-import { agentCloudAgentReceiptResponseSchema } from './cloud-agent-work-response-schema.ts';
-import { messageCloudAgentWorkSchema } from './message-cloud-agent-work-schema.ts';
+import { messageWorkerSchema } from './message-worker-schema.ts';
+import { agentWorkerReceiptResponseSchema } from './worker-response-schema.ts';
 
 /**
  * Loosened at its own level so a newer Server's automation event field
@@ -45,9 +45,8 @@ const messageAgentCreatedSchema = z.object({
 
 export const agentMessageSchema = z.object({
     agent_created: messageAgentCreatedSchema.nullable().optional(),
-    cloud_agent_work: messageCloudAgentWorkSchema.nullable().optional(),
-    /** Every work the Message links, in link order (ADR 0044); `cloud_agent_work` is the first. */
-    cloud_agent_works: z.array(messageCloudAgentWorkSchema).optional(),
+    /** Every Worker the Message links, in link order (ADR 0044). */
+    workers: z.array(messageWorkerSchema).optional(),
     attachments: z.array(jsonObjectSchema),
     author: z.object({
         id: z.string().min(1),
@@ -113,9 +112,9 @@ export const agentSendResponseSchema: z.ZodType<HausAgentSendResponse> = z.discr
     ]
 );
 
-/** `haus cloud-agent start`: the started receipt, or a freshness hold with checked messages. */
-export const agentCloudAgentStartResponseSchema = z.discriminatedUnion('state', [
-    agentCloudAgentReceiptResponseSchema,
+/** `haus worker start`: the started receipt, or a freshness hold with checked messages. */
+export const agentWorkerStartResponseSchema = z.discriminatedUnion('state', [
+    agentWorkerReceiptResponseSchema,
     z.looseObject({
         formalMentionCount: z.number().int().nonnegative(),
         newMessageCount: z.number().int().positive(),

@@ -57,7 +57,7 @@ test('Computers reserves its sections until the first roster confirms an empty r
         for (const label of [
             'Runtimes',
             'Browser',
-            'Cloud Agents',
+            'Workers',
             'Captains on this device',
             'System Log',
             'Device management',

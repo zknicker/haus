@@ -105,7 +105,7 @@ test('an Owner picks the Cloud Agent model and its params, and a member reads th
     // Cursor's Model, Effort, and Fast rows and Claude's Model row share one
     // height whatever their control.
     const rowHeights = await page
-        .locator('.item-card-group', { has: page.getByRole('heading', { name: 'Cloud Agents' }) })
+        .locator('.item-card-group', { has: page.getByRole('heading', { name: 'Workers' }) })
         .locator('.item-card')
         .evaluateAll((rows) => rows.map((row) => row.getBoundingClientRect().height));
     expect(rowHeights).toHaveLength(4);

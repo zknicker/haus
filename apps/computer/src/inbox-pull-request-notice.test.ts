@@ -32,7 +32,7 @@ test('rejects a notice with an unknown change, a cursor, or cloud work beside it
     expect(
         parseInbox([
             noticeItem({
-                cloudAgentWork: {
+                worker: {
                     branches: [],
                     errorCode: null,
                     notice: 'pull_request',

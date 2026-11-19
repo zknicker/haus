@@ -1,0 +1,90 @@
+import * as z from 'zod';
+import { idSchema } from './chat.ts';
+import { cloudAgentCapabilityStateSchema, cloudAgentProviderSchema } from './worker-shared.ts';
+import { workerObservationSchema, workerReconcileEntrySchema } from './worker.ts';
+
+/**
+ * Server-recorded cancellation riding down to the Computer that owns the
+ * provider access. The Run settles through the ordinary observation path.
+ */
+export const workerStopCommandSchema = z
+    .object({
+        provider: cloudAgentProviderSchema,
+        providerAgentId: z.string().trim().min(1).max(200).nullable(),
+        providerRunId: z.string().trim().min(1).max(200).nullable(),
+        runId: idSchema,
+        type: z.literal('worker-stop'),
+        workId: idSchema,
+    })
+    .strict();
+
+export type WorkerStopCommand = z.infer<typeof workerStopCommandSchema>;
+
+/**
+ * Every non-terminal work assigned to this Computer, sent once per reconnect.
+ * The Computer reads each Run from the provider and reports an observation, so
+ * work that settled while the socket was down still settles here.
+ */
+export const workerReconcileCommandSchema = z
+    .object({
+        type: z.literal('worker-reconcile'),
+        work: z.array(workerReconcileEntrySchema).max(200),
+    })
+    .strict();
+
+export type WorkerReconcileCommand = z.infer<typeof workerReconcileCommandSchema>;
+
+/**
+ * One authenticated Server request against this Computer's Worker
+ * provider access, shaped like the Browser request for the same reason: the
+ * App never touches a Computer socket, and provider credentials never leave
+ * the machine. `connect` returns the sign-in link while Computer waits for
+ * approval and stores the key in the provider's credential store; `disconnect`
+ * forgets it; `make-default` names this provider as the Computer's default.
+ * Haus never opens that flow during an Agent turn.
+ */
+export const cloudAgentCapabilityRequestSchema = z
+    .object({
+        operation: z.discriminatedUnion('kind', [
+            z.object({ kind: z.literal('get') }).strict(),
+            z.object({ kind: z.literal('connect') }).strict(),
+            z.object({ kind: z.literal('cancel-sign-in') }).strict(),
+            z.object({ kind: z.literal('disconnect') }).strict(),
+            z.object({ kind: z.literal('make-default') }).strict(),
+            /** Pins this Computer's Claude launches to one cloud environment; `null` unpins. */
+            z
+                .object({
+                    environmentId: z.string().trim().min(1).max(200).nullable(),
+                    kind: z.literal('set-environment'),
+                })
+                .strict(),
+        ]),
+        provider: cloudAgentProviderSchema,
+        requestId: idSchema,
+        type: z.literal('cloud-agent-capability-request'),
+    })
+    .strict();
+
+export type CloudAgentCapabilityRequest = z.infer<typeof cloudAgentCapabilityRequestSchema>;
+
+export const cloudAgentCapabilityResultSchema = z
+    .object({
+        error: z.string().trim().min(1).max(500).optional(),
+        requestId: idSchema,
+        result: cloudAgentCapabilityStateSchema.optional(),
+        type: z.literal('cloud-agent-capability-result'),
+    })
+    .strict()
+    .refine((value) => Boolean(value.error) !== Boolean(value.result));
+
+export type CloudAgentCapabilityResult = z.infer<typeof cloudAgentCapabilityResultSchema>;
+
+/** One bounded Computer observation of a provider Run, applied idempotently. */
+export const workerObservationFrameSchema = z
+    .object({
+        observation: workerObservationSchema,
+        type: z.literal('worker-observation'),
+    })
+    .strict();
+
+export type WorkerObservationFrame = z.infer<typeof workerObservationFrameSchema>;

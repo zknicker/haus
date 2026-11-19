@@ -1,8 +1,6 @@
 import type { TraceCarrier } from '@haus/effect';
 import type { AgentActivityRun } from './agent-activity-run.ts';
 import { createArtifactProxy } from './artifacts/proxy.ts';
-import { handleCloudAgentStart } from './cloud-agents/proxy-route.ts';
-import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import { classifyHausProxyBoundary } from './harness/haus-proxy-boundary.ts';
 import { consumeServedAutomations } from './inbox-store.ts';
 import { serveLocalAgentEvents } from './proxy-inbox.ts';
@@ -19,6 +17,8 @@ import {
 import { handleSkillRequest } from './proxy-skills.ts';
 import { agentInboxLocation, awaitBestEffortAttestation, isAuthorized } from './proxy-support.ts';
 import { recordProxyVisibility } from './proxy-visibility.ts';
+import { handleWorkerStart } from './workers/proxy-route.ts';
+import type { WorkerSupervisor } from './workers/work-runner.ts';
 
 export interface LoopbackProxy {
     clearRunnerToken(): void;
@@ -38,7 +38,7 @@ export interface LoopbackProxy {
 /** Per-launch proxy that keeps scoped Server authority outside the Agent process. */
 export function startLoopbackProxy(input: {
     agentId?: string;
-    cloudAgents?: CloudAgentWorkSupervisor;
+    workers?: WorkerSupervisor;
     dataRoot?: string;
     proxyToken: string;
     runnerToken: string;
@@ -140,7 +140,7 @@ async function handleAuthorizedProxyRequest(
     url: URL,
     input: {
         agentId?: string;
-        cloudAgents?: CloudAgentWorkSupervisor;
+        workers?: WorkerSupervisor;
         dataRoot?: string;
         proxyToken: string;
         runId?: string;
@@ -176,28 +176,28 @@ async function handleAuthorizedProxyRequest(
     if (artifact) {
         return artifact;
     }
-    const cloudAgent = await handleCloudAgentStart(request, url, {
+    const worker = await handleWorkerStart(request, url, {
         dataRoot: input.dataRoot,
-        supervisor: input.cloudAgents,
+        supervisor: input.workers,
         runnerToken,
         serverId: input.serverId,
         serverOrigin: input.serverOrigin,
     });
     const location = agentInboxLocation(input);
-    if (cloudAgent) {
+    if (worker) {
         // A held launch showed the model newer messages, exactly as a held send does.
-        const launchBody = await cloudAgent.text();
+        const launchBody = await worker.text();
         await recordProxyVisibility({
             activeRunId: state.getRunId(),
             location,
             mutation: true,
             runnerToken,
             serverOrigin: input.serverOrigin,
-            visible: cloudAgent.ok ? extractVisibleMessageIds(url.pathname, launchBody) : [],
+            visible: worker.ok ? extractVisibleMessageIds(url.pathname, launchBody) : [],
         });
         return new Response(launchBody, {
             headers: { 'content-type': 'application/json' },
-            status: cloudAgent.status,
+            status: worker.status,
         });
     }
     if (request.method === 'GET' && url.pathname === '/api/agent/events' && location) {

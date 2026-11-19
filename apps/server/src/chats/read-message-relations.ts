@@ -1,12 +1,12 @@
 import type { AttachmentMetadata, ChatMessage } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
-import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-work.ts';
 import { readMessageDriveCitations } from '../drive/citations.ts';
 import { readLinkedImageGenerations } from '../image-generation/linked-image-generations.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
 import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
+import { readLinkedWorker } from '../workers/linked-worker.ts';
 import { readChatMessageReactions } from './message-reactions.ts';
 import { readInlineReplyContext } from './reply-context.ts';
 
@@ -16,7 +16,7 @@ export async function readMessageRelations(
     messageId: string
 ): Promise<{
     attachments: AttachmentMetadata[];
-    cloudAgentWork: ChatMessage['cloudAgentWork'];
+    worker: ChatMessage['worker'];
     driveCitations: ChatMessage['driveCitations'];
     imageGenerations: ChatMessage['imageGenerations'];
     reactions: ChatMessage['reactions'] | undefined;
@@ -25,7 +25,7 @@ export async function readMessageRelations(
 }> {
     // The caller may hold a transaction connection, so keep these reads sequential.
     const attachments = await readMessageAttachments(db, serverId, [messageId]);
-    const works = await readLinkedCloudAgentWork(db, serverId, [messageId]);
+    const works = await readLinkedWorker(db, serverId, [messageId]);
     const images = await readLinkedImageGenerations(db, serverId, [messageId]);
     const reactions = await readChatMessageReactions(db, serverId, [messageId]);
     const taskLinks = await readMessageTaskLinks(db, serverId, [messageId]);
@@ -41,7 +41,7 @@ export async function readMessageRelations(
         .limit(1);
     return {
         attachments: attachments.get(messageId) ?? [],
-        cloudAgentWork: works.get(messageId) ?? [],
+        worker: works.get(messageId) ?? [],
         driveCitations: citations.get(messageId) ?? [],
         imageGenerations: images.get(messageId) ?? [],
         reactions: reactions.get(messageId),

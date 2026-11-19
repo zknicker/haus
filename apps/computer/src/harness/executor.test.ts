@@ -420,7 +420,7 @@ test('projects a concrete typed attention into the first prompt by its own ident
             inbox: [
                 {
                     chatId: 'cht_origin',
-                    cloudAgentWork: {
+                    worker: {
                         branches: [],
                         errorCode: null,
                         notice: 'settled',
@@ -458,7 +458,7 @@ test('projects a concrete fire and a claim assignment into the first prompt', as
         content: [
             '🔔 Reminder: Check the deploy',
             'fire=rmf_9a8b7c6d',
-            'reply with: --cause rmf_9a8b7c6d on the command that posts (haus message send or haus cloud-agent start)',
+            'reply with: --cause rmf_9a8b7c6d on the command that posts (haus message send or haus worker start)',
         ].join('\n'),
         createdAt: '2026-07-27T00:00:00.000Z',
         id: 'rmf_9a8b7c6d',

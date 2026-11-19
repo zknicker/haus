@@ -1,6 +1,6 @@
 import { and, eq, inArray, or } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { cloudAgentWorkTable, tasksTable } from '../postgres/schema.ts';
+import { workersTable, tasksTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { retireTaskAssignments } from './task-agent-delivery.ts';
 import { prepareTaskUpdatedEvent } from './task-events.ts';
@@ -35,13 +35,10 @@ export async function deleteTasksOfRemovedChats(
     }
     const taskIds = tasks.map(({ id }) => id);
     await tx
-        .update(cloudAgentWorkTable)
+        .update(workersTable)
         .set({ taskId: null })
         .where(
-            and(
-                eq(cloudAgentWorkTable.serverId, input.serverId),
-                inArray(cloudAgentWorkTable.taskId, taskIds)
-            )
+            and(eq(workersTable.serverId, input.serverId), inArray(workersTable.taskId, taskIds))
         );
     for (const task of tasks) {
         if (task.assigneeAgentId) {

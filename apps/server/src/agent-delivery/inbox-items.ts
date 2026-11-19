@@ -1,8 +1,8 @@
 import type {
     AgentInboxItem,
     AgentTaskContext,
-    CloudAgentPullRequestChange,
-    CloudAgentWorkAttention,
+    WorkerPullRequestChange,
+    WorkerAttention,
     HausAgentMessage,
 } from '@haus/api';
 import { and, eq, inArray } from 'drizzle-orm';
@@ -12,13 +12,13 @@ import {
     toAgentMessages,
 } from '../agent-api/message-view.ts';
 import { listMessageClaimMap } from '../claims/claim-shape.ts';
-import {
-    type CloudAgentRunAttention,
-    readCloudAgentWorkAttentions,
-} from '../cloud-agents/read-cloud-agent-work-attentions.ts';
 import { parsePullRequestChangeKey } from '../github/pull-request-change.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
+import {
+    type WorkerTurnAttention,
+    readWorkerAttentions,
+} from '../workers/read-worker-attentions.ts';
 import { chatOf } from './inbox-lanes.ts';
 import { inboxSender } from './inbox-sender.ts';
 import type * as store from './store.ts';
@@ -52,14 +52,14 @@ export async function buildInboxItems(
             : [];
     const apiMessages = serverId ? await toAgentMessages(db, serverId, messageRows) : [];
     const apiMessageById = new Map(apiMessages.map((message) => [message.id, message]));
-    const cloudAgentWorkByRun =
+    const workerByRun =
         serverId && rows.some((row) => row.source === 'cloud_agent_work')
-            ? await readCloudAgentWorkAttentions(
+            ? await readWorkerAttentions(
                   db,
                   serverId,
-                  rows.flatMap((row) => (row.cloudAgentRunId ? [row.cloudAgentRunId] : []))
+                  rows.flatMap((row) => (row.workerTurnId ? [row.workerTurnId] : []))
               )
-            : new Map<string, CloudAgentRunAttention>();
+            : new Map<string, WorkerTurnAttention>();
     const sequenceByMessageId = new Map(
         messageRows.map((message) => [message.id, message.sequence])
     );
@@ -87,12 +87,12 @@ export async function buildInboxItems(
     return rows.map((row) =>
         toInboxItem(row, {
             apiMessage: apiMessageById.get(row.dedupeKey),
-            cloudAgentWork:
-                row.source === 'cloud_agent_work' && row.cloudAgentRunId
-                    ? requireAttention(row, cloudAgentWorkByRun)
+            worker:
+                row.source === 'cloud_agent_work' && row.workerTurnId
+                    ? requireAttention(row, workerByRun)
                     : undefined,
             pullRequestNotice:
-                row.source === 'cloud_agent_work' && !row.cloudAgentRunId
+                row.source === 'cloud_agent_work' && !row.workerTurnId
                     ? requirePullRequestNotice(row)
                     : undefined,
             sequence: sequenceByMessageId.get(row.dedupeKey) ?? 1,
@@ -106,16 +106,16 @@ export async function buildInboxItems(
 interface InboxItemFacets {
     apiMessage: HausAgentMessage | undefined;
     claim: AgentInboxItem['claim'];
-    cloudAgentWork: CloudAgentWorkAttention | undefined;
-    pullRequestNotice: CloudAgentPullRequestChange | undefined;
+    worker: WorkerAttention | undefined;
+    pullRequestNotice: WorkerPullRequestChange | undefined;
     sequence: number;
     target: string;
     taskContext: AgentTaskContext | undefined;
 }
 
 function toInboxItem(row: store.InboxItemRow, facets: InboxItemFacets): AgentInboxItem {
-    const { apiMessage, cloudAgentWork, pullRequestNotice, target } = facets;
-    const attention = Boolean(cloudAgentWork ?? pullRequestNotice);
+    const { apiMessage, worker, pullRequestNotice, target } = facets;
+    const attention = Boolean(worker ?? pullRequestNotice);
     const sender = inboxSender({ attention, message: apiMessage, source: row.source, target });
     // Only a human-authored envelope carries the human's saved zone; a claim
     // assignment wrapping a human's message is a system envelope.
@@ -123,7 +123,7 @@ function toInboxItem(row: store.InboxItemRow, facets: InboxItemFacets): AgentInb
     return {
         ...messageFacets(apiMessage),
         ...(row.addressedReason ? { addressed: true, addressedReason: row.addressedReason } : {}),
-        ...(cloudAgentWork ? { cloudAgentWork } : {}),
+        ...(worker ? { worker } : {}),
         ...(pullRequestNotice ? { pullRequestNotice } : {}),
         ...(row.mentioned ? { mentioned: true } : {}),
         ...(row.taskFollowReactivated ? { taskFollowReactivated: true } : {}),
@@ -132,7 +132,7 @@ function toInboxItem(row: store.InboxItemRow, facets: InboxItemFacets): AgentInb
         ...sender,
         ...(senderTimezone ? { senderTimezone } : {}),
         chatId: chatOf(row),
-        content: cloudAgentWork ? '' : row.content,
+        content: worker ? '' : row.content,
         createdAt: row.createdAt.toISOString(),
         id: row.dedupeKey,
         sequence: attention ? 0 : facets.sequence,
@@ -154,39 +154,39 @@ function messageFacets(apiMessage: HausAgentMessage | undefined) {
     };
 }
 
-/** A Cloud Agent row whose attention vanished cannot be rendered truthfully. */
+/** A Worker row whose attention vanished cannot be rendered truthfully. */
 function requireAttention(
     row: store.InboxItemRow,
-    attentions: Map<string, CloudAgentRunAttention>
-): CloudAgentWorkAttention {
-    const attention = row.cloudAgentRunId ? attentions.get(row.cloudAgentRunId) : undefined;
-    if (!(attention && row.cloudAgentNotice)) {
-        throw new CloudAgentAttentionMissingError(row.dedupeKey);
+    attentions: Map<string, WorkerTurnAttention>
+): WorkerAttention {
+    const attention = row.workerTurnId ? attentions.get(row.workerTurnId) : undefined;
+    if (!(attention && row.workerNotice)) {
+        throw new WorkerAttentionMissingError(row.dedupeKey);
     }
-    if (row.cloudAgentNotice !== 'pull_request') {
-        return { ...attention, notice: row.cloudAgentNotice };
+    if (row.workerNotice !== 'pull_request') {
+        return { ...attention, notice: row.workerNotice };
     }
     const change = parsePullRequestChangeKey(row.dedupeKey);
     if (!change) {
-        throw new CloudAgentAttentionMissingError(row.dedupeKey);
+        throw new WorkerAttentionMissingError(row.dedupeKey);
     }
     return { ...attention, notice: 'pull_request', pullRequestChange: change };
 }
 
-function requirePullRequestNotice(row: store.InboxItemRow): CloudAgentPullRequestChange {
+function requirePullRequestNotice(row: store.InboxItemRow): WorkerPullRequestChange {
     const change =
-        row.cloudAgentNotice === 'pull_request' ? parsePullRequestChangeKey(row.dedupeKey) : null;
+        row.workerNotice === 'pull_request' ? parsePullRequestChangeKey(row.dedupeKey) : null;
     if (!change) {
-        throw new CloudAgentAttentionMissingError(row.dedupeKey);
+        throw new WorkerAttentionMissingError(row.dedupeKey);
     }
     return change;
 }
 
 /** Named so a failed dispatch's log says which item stopped it. */
-class CloudAgentAttentionMissingError extends Error {
-    override readonly name = 'CloudAgentAttentionMissingError';
+class WorkerAttentionMissingError extends Error {
+    override readonly name = 'WorkerAttentionMissingError';
 
     constructor(dedupeKey: string) {
-        super(`Cloud Agent attention ${dedupeKey} is missing.`);
+        super(`Worker attention ${dedupeKey} is missing.`);
     }
 }

@@ -10,7 +10,7 @@ export function ComputerProfilePending() {
             {[
                 'Runtimes',
                 'Browser',
-                'Cloud Agents',
+                'Workers',
                 'Captains on this device',
                 'System Log',
                 'Device management',

@@ -1,9 +1,6 @@
 import type { UnreadElsewhere } from './agent-commands.ts';
 import type { AgentInboxItem } from './agent-inbox-item.ts';
-import {
-    formatCloudAgentWorkAttention,
-    formatPullRequestNotice,
-} from './inbox-attention-format.ts';
+import { formatWorkerAttention, formatPullRequestNotice } from './inbox-attention-format.ts';
 import {
     formatInboxTimeFields,
     formatSenderLabel,
@@ -110,7 +107,7 @@ export function composeInboxNotice(
         return formatInboxTargetRow({
             attention: ordered.some(isAttention),
             claimNumber: latest.claim?.number ?? null,
-            cloudAgentResult: ordered.some((item) => Boolean(item.cloudAgentWork)),
+            workerResult: ordered.some((item) => Boolean(item.worker)),
             firstShortId: shortInboxId(first.id),
             latestSender: latest.senderHandle,
             latestShortId: shortInboxId(latest.id),
@@ -137,8 +134,8 @@ function plural(count: number, singular: string): string {
 }
 
 function formatEnvelope(item: AgentInboxItem): string {
-    if (item.cloudAgentWork) {
-        return formatCloudAgentWorkAttention(item.cloudAgentWork, item.target);
+    if (item.worker) {
+        return formatWorkerAttention(item.worker, item.target);
     }
     if (item.pullRequestNotice) {
         return formatPullRequestNotice(item.pullRequestNotice, item.target);
@@ -192,7 +189,7 @@ function claimAssignee(item: AgentInboxItem): string {
 
 /** A bodiless typed attention: work to act on, not a message to read. */
 function isAttention(item: AgentInboxItem): boolean {
-    return Boolean(item.cloudAgentWork || item.pullRequestNotice);
+    return Boolean(item.worker || item.pullRequestNotice);
 }
 
 function compareItems(left: AgentInboxItem, right: AgentInboxItem): number {

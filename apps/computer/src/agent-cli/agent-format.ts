@@ -1,4 +1,4 @@
-import { cloudAgentPullRequestNumber, formatCloudAgentWorkSuffix } from '@haus/api';
+import { workerPullRequestNumber, formatWorkerSuffix } from '@haus/api';
 import { formatAttachmentSuffix } from '../inbox-format.ts';
 import {
     formatInboxTime,
@@ -76,11 +76,11 @@ export function shortMessageId(messageId: string): string {
 
 /**
  * Every product record a Message carries rides its line in one fixed order:
- * attachments, the claim metadata, delegated Cloud Agent
+ * attachments, the claim metadata, delegated Worker
  * work, the Agent this Message created, then its reactions.
  */
 function messageSuffixes(message: AgentCliMessage): string {
-    return `${formatAttachmentSuffix(message.attachments)}${claimSuffix(message)}${cloudAgentWorkSuffix(message)}${agentCreatedSuffix(message)}${formatReactionsSuffix(message.reactions)}`;
+    return `${formatAttachmentSuffix(message.attachments)}${claimSuffix(message)}${workerSuffix(message)}${agentCreatedSuffix(message)}${formatReactionsSuffix(message.reactions)}`;
 }
 
 const reactionActorLimit = 3;
@@ -116,22 +116,19 @@ function claimSuffix(message: AgentCliMessage): string {
 }
 
 /**
- * Each Cloud Agent work a Message links states what was delegated, where it
+ * Each Worker a Message links states what was delegated, where it
  * stands, and the pull request it opened once the Run reports one, so history
- * answers "which PR was that?" without a second command. A Server that predates
- * links sends only the single `cloud_agent_work`.
+ * answers "which PR was that?" without a second command.
  */
-function cloudAgentWorkSuffix(message: AgentCliMessage): string {
-    const works =
-        message.cloud_agent_works ?? (message.cloud_agent_work ? [message.cloud_agent_work] : []);
-    return works
+function workerSuffix(message: AgentCliMessage): string {
+    return (message.workers ?? [])
         .map((work) => {
-            const url = work.latest_run?.branches.find(
+            const url = work.latest_turn?.branches.find(
                 (branch) => branch.pull_request_url !== null
             )?.pull_request_url;
-            return formatCloudAgentWorkSuffix({
+            return formatWorkerSuffix({
                 ...work,
-                pullRequestNumber: url ? cloudAgentPullRequestNumber(url) : null,
+                pullRequestNumber: url ? workerPullRequestNumber(url) : null,
             });
         })
         .join('');

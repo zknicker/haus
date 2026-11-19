@@ -28,7 +28,7 @@ test('a Task starts from the asking message in a channel or DM, in a Project; a 
     expect(body).toContain('post one message and start five Tasks from it');
 });
 
-test('work reports in the Task, pull requests and cloud agents attach to it, and it ends by state', () => {
+test('work reports in the Task, pull requests and Workers attach to it, and it ends by state', () => {
     const body = getManualTopic('tasks')?.body ?? '';
     expect(body).toContain('`haus message send --target task:SEC-12`');
     expect(body).toContain('`haus task attach-pr SEC-12 <url>`');
@@ -65,7 +65,7 @@ test('no Manual topic teaches boards, columns, pickup-note threads, or work thre
     for (const topic of manualTopics) {
         expect(topic.body).not.toContain('haus thread');
     }
-    for (const id of ['tasks', 'cloud-agents', 'replies', 'claims']) {
+    for (const id of ['tasks', 'workers', 'replies', 'claims']) {
         const body = getManualTopic(id)?.body ?? '';
         expect(body).not.toContain('haus board');
         expect(body).not.toContain('haus task move');
@@ -77,10 +77,10 @@ test('no Manual topic teaches boards, columns, pickup-note threads, or work thre
     }
 });
 
-test('a cloud agent launches on a Task and wakes the Agent there', () => {
-    const body = getManualTopic('cloud-agents')?.body ?? '';
-    expect(body).toContain('`haus cloud-agent start --task <KEY-n>');
-    expect(body).toContain('`CLOUD_AGENT_TASK_REQUIRED`');
+test('a Worker launches on a Task and wakes the Agent there', () => {
+    const body = getManualTopic('workers')?.body ?? '';
+    expect(body).toContain('`haus worker start --task <KEY-n>');
+    expect(body).toContain('`WORKER_TASK_REQUIRED`');
     expect(body).toContain(
         'When its pull request later becomes ready for review, or its checks pass or fail, another attention says what changed and gives the URL.'
     );

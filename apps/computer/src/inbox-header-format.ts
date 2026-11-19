@@ -40,7 +40,7 @@ export function formatSenderLabel(handle: string, description?: string | null): 
 
 /**
  * An id that addresses no Chat message: a Trigger fire (`trf_…`), a Reminder
- * fire (`rmf_…`), or a Cloud Agent Run (`car_…`). None of them can be read,
+ * fire (`rmf_…`), or a Worker Run (`car_…`). None of them can be read,
  * replied to, reacted to, or handed to `--message-id`. Each carries the id
  * that does work on its own envelope line instead — a fire's `fire=<id>` and
  * `--cause <fireId>`, a Run's `work=` and `run=`.

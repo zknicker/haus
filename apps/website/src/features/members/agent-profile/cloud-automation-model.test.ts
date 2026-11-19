@@ -1,16 +1,16 @@
 import { expect, test } from 'bun:test';
-import type { CloudAgentAutomation } from '@haus/api';
-import { cloudAgentWorkFixture } from '../../cloud-agents/cloud-agent-work-fixture.ts';
+import type { WorkerAutomation } from '@haus/api';
+import { workerFixture } from '../../workers/worker-fixture.ts';
 import { cloudAutomationPresentation } from './cloud-automation-model.ts';
 
 const now = Date.parse('2026-10-20T19:00:00Z');
-function row(overrides: Partial<CloudAgentAutomation> = {}): CloudAgentAutomation {
+function row(overrides: Partial<WorkerAutomation> = {}): WorkerAutomation {
     return {
         computerHealth: 'healthy',
         conversationChatId: 'cht_one',
         location: { kind: 'message', chatId: 'cht_one', messageId: 'msg_one' },
         notification: 'waiting',
-        work: cloudAgentWorkFixture({ updatedAt: new Date(now).toISOString() }),
+        work: workerFixture({ updatedAt: new Date(now).toISOString() }),
         ...overrides,
     };
 }
@@ -46,7 +46,7 @@ test('lost tracking and lost notification targets explain why no wake is coming'
 });
 
 test('history keeps the provider outcome color after the handoff is delivered', () => {
-    const work = cloudAgentWorkFixture({
+    const work = workerFixture({
         status: 'failed',
         terminalAt: new Date(now).toISOString(),
     });

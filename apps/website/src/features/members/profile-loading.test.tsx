@@ -40,7 +40,7 @@ test('Computer profile reserves all its sections before its roster resolves', ()
     for (const label of [
         'Runtimes',
         'Browser',
-        'Cloud Agents',
+        'Workers',
         'Captains on this device',
         'System Log',
         'Device management',

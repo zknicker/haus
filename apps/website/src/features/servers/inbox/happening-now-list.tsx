@@ -1,15 +1,15 @@
 import { ItemCard } from '@heroui-pro/react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
-import { CloudAgentKeycap } from '../../cloud-agents/cloud-agent-provider-mark.tsx';
-import { CloudAgentStatusDisc } from '../../cloud-agents/cloud-agent-status-disc.tsx';
 import { AgentAvatar } from '../../members/agent-avatar.tsx';
+import { WorkerKeycap } from '../../workers/cloud-agent-provider-mark.tsx';
+import { WorkerStatusDisc } from '../../workers/worker-status-disc.tsx';
 import type { HappeningNowRow } from './happening-now-rows.ts';
 import { happeningNowWorkSubline } from './happening-now-work.ts';
 import { InboxListMark, InboxListRow, inboxMarkSize } from './inbox-list-row.tsx';
 import { InboxRowList } from './inbox-section-rows.tsx';
 
 /**
- * What is moving right now, as one list: the Cloud Agent work a delegation
+ * What is moving right now, as one list: the Worker a delegation
  * left running, then the Agents currently in a turn. Both rows state elapsed
  * time, which is what separates working from stuck.
  *
@@ -41,10 +41,7 @@ export function HappeningNowList({
                                 className="flex items-center justify-center"
                                 style={{ height: inboxMarkSize, width: inboxMarkSize }}
                             >
-                                <CloudAgentKeycap
-                                    provider={row.work.provider}
-                                    size={inboxMarkSize}
-                                />
+                                <WorkerKeycap provider={row.work.provider} size={inboxMarkSize} />
                             </span>
                         </InboxListMark>
                         <ItemCard.Content>
@@ -54,7 +51,7 @@ export function HappeningNowList({
                             </ItemCard.Description>
                         </ItemCard.Content>
                         <ItemCard.Action>
-                            <CloudAgentStatusDisc state={row.work.state} />
+                            <WorkerStatusDisc state={row.work.state} />
                         </ItemCard.Action>
                     </InboxListRow>
                 ) : (

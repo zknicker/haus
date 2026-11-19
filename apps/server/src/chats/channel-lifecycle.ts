@@ -1,10 +1,6 @@
 import type { ChannelDeleteReceipt, ChannelLifecycleReceipt } from '@haus/api';
 import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
-import {
-    prepareLinkedWorkEvents,
-    readWorkIdsLinkedFrom,
-} from '../cloud-agents/cloud-agent-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable, chatsTable } from '../postgres/schema.ts';
 import { refuseProjectWithHomeAgents } from '../projects/project-homes.ts';
@@ -12,6 +8,7 @@ import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
+import { prepareLinkedWorkEvents, readWorkIdsLinkedFrom } from '../workers/worker-events.ts';
 import { isOnboardingChannel, purgeDeletedChannel } from './channel-deletion.ts';
 import { prepareLifecycleEvent } from './lifecycle-events.ts';
 

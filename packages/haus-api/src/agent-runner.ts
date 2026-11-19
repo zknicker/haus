@@ -6,10 +6,10 @@ import { agentSubagentWakeResultSchema } from './agent-subagent-wake-frames.ts';
 import { agentTurnRejectedItemSchema } from './agent-turn-rejected-item.ts';
 import { browserRequestSchema } from './browser-frames.ts';
 import {
-    cloudAgentCancelCommandSchema,
+    workerStopCommandSchema,
     cloudAgentCapabilityRequestSchema,
-    cloudAgentReconcileCommandSchema,
-} from './cloud-agent-protocol.ts';
+    workerReconcileCommandSchema,
+} from './worker-protocol.ts';
 
 export * from './agent-delivery-frames.ts';
 export * from './agent-execution-journal.ts';
@@ -18,7 +18,7 @@ export * from './agent-inbox.ts';
 export * from './agent-stop-commands.ts';
 export * from './agent-subagent-wake-frames.ts';
 export * from './browser-frames.ts';
-export * from './cloud-agent-protocol.ts';
+export * from './worker-protocol.ts';
 export * from './reminder-script-frames.ts';
 
 import * as z from 'zod';
@@ -152,9 +152,9 @@ export const agentCommandSchema = z.discriminatedUnion('type', [
     computerSecretsRequestSchema,
     reminderScriptCommandSchema,
     agentNoticeCommandSchema,
-    cloudAgentCancelCommandSchema,
+    workerStopCommandSchema,
     cloudAgentCapabilityRequestSchema,
-    cloudAgentReconcileCommandSchema,
+    workerReconcileCommandSchema,
     serverDeleteCommandSchema,
     serverRuntimeSettingsCommandSchema,
     ...invocationCommandSchemas,

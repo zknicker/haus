@@ -3830,16 +3830,11 @@ components:
           oneOf:
             - $ref: '#/components/schemas/MessageClaim'
             - type: 'null'
-        cloud_agent_work:
-          description: The first linked Cloud Agent work, kept for released CLIs; read `cloud_agent_works`.
-          oneOf:
-            - $ref: '#/components/schemas/MessageCloudAgentWork'
-            - type: 'null'
-        cloud_agent_works:
-          description: Every Cloud Agent work this Message links, in link order.
+        workers:
+          description: Every Worker this Message links, in link order.
           type: array
           items:
-            $ref: '#/components/schemas/MessageCloudAgentWork'
+            $ref: '#/components/schemas/MessageWorker'
         agent_created:
           oneOf:
             - $ref: '#/components/schemas/MessageAgentCreated'
@@ -3898,7 +3893,7 @@ components:
           type: [string, 'null']
         retired:
           type: boolean
-    MessageCloudAgentWork:
+    MessageWorker:
       type: object
       additionalProperties: false
       required:
@@ -3910,7 +3905,7 @@ components:
         - starting_ref
         - provider_url
         - activity
-        - latest_run
+        - latest_turn
       properties:
         id:
           type: string
@@ -3933,21 +3928,21 @@ components:
           type: [string, 'null']
         activity:
           type: [string, 'null']
-        latest_run:
+        latest_turn:
           oneOf:
-            - $ref: '#/components/schemas/MessageCloudAgentRun'
+            - $ref: '#/components/schemas/MessageWorkerTurn'
             - type: 'null'
-    MessageCloudAgentRun:
+    MessageWorkerTurn:
       type: object
       additionalProperties: false
       required:
-        - run_id
+        - turn_id
         - status
         - summary
         - error_code
         - branches
       properties:
-        run_id:
+        turn_id:
           type: string
           minLength: 1
         status:

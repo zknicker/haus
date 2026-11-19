@@ -1,0 +1,183 @@
+import * as z from 'zod';
+import type { WorkerTurnStatus } from './worker-shared.ts';
+import type { WorkerStallCode } from './worker-stall.ts';
+
+const timestampSchema = z.iso.datetime({ offset: true });
+
+/**
+ * A follow-up Run the delegating Agent sent after the first one. `waiting`
+ * dates from when it was queued; `running` from when the provider started it;
+ * `stalled` dates from when it was queued, but means Haus already tried
+ * auto-interrupting the session to deliver it and that still didn't work —
+ * it is still queued and still retrying, not failed.
+ */
+export const workerFollowUpSchema = z.discriminatedUnion('state', [
+    z.object({ since: timestampSchema, state: z.literal('waiting') }).strict(),
+    z.object({ since: timestampSchema, state: z.literal('running') }).strict(),
+    z.object({ since: timestampSchema, state: z.literal('stalled') }).strict(),
+]);
+
+/**
+ * How the whole job reads: the provider's own status for the newest Run it has
+ * received, in Cursor's vocabulary (`done` is FINISHED, `failed` ERROR,
+ * `cancelled` CANCELLED, `expired` EXPIRED). `pending-input` is a hosted agent
+ * that stopped to ask the delegating Agent something; `question` is what it
+ * asked. A follow-up still in Haus's local
+ * queue is not a Cursor Run yet, so it never moves the job, and `queued` is
+ * never a job state: a job whose first Run has not started yet is `working`.
+ * `startedAt` is when the whole job began, so a follow-up never resets it;
+ * `settledAt` belongs to the Run the state comes from. A `failed` job carries
+ * that Run's own report.
+ */
+export const workerJobSchema = z.discriminatedUnion('state', [
+    z
+        .object({
+            followUp: workerFollowUpSchema.nullable(),
+            startedAt: timestampSchema.nullable(),
+            state: z.literal('working'),
+        })
+        .strict(),
+    z
+        .object({
+            followUp: workerFollowUpSchema.nullable(),
+            settledAt: timestampSchema.nullable(),
+            startedAt: timestampSchema.nullable(),
+            state: z.literal('done'),
+        })
+        .strict(),
+    z
+        .object({
+            errorCode: z.string().trim().min(1).max(120).nullable(),
+            followUp: workerFollowUpSchema.nullable(),
+            settledAt: timestampSchema.nullable(),
+            state: z.literal('failed'),
+            summary: z.string().trim().min(1).max(2000).nullable(),
+        })
+        .strict(),
+    z
+        .object({
+            followUp: workerFollowUpSchema.nullable(),
+            question: z.string().trim().min(1).max(2000).nullable(),
+            settledAt: timestampSchema.nullable(),
+            startedAt: timestampSchema.nullable(),
+            state: z.literal('pending-input'),
+        })
+        .strict(),
+    z
+        .object({
+            followUp: workerFollowUpSchema.nullable(),
+            settledAt: timestampSchema.nullable(),
+            state: z.literal('cancelled'),
+        })
+        .strict(),
+    z
+        .object({
+            followUp: workerFollowUpSchema.nullable(),
+            settledAt: timestampSchema.nullable(),
+            state: z.literal('expired'),
+        })
+        .strict(),
+]);
+
+export type WorkerFollowUp = z.infer<typeof workerFollowUpSchema>;
+export type WorkerJob = z.infer<typeof workerJobSchema>;
+export type WorkerJobState = WorkerJob['state'];
+
+interface JobRun {
+    createdAt: string;
+    errorCode: null | string;
+    /** Set once the provider has received the Run; null while it sits in Haus's local queue. */
+    providerRunId: null | string;
+    stall?: null | { code: WorkerStallCode };
+    startedAt: null | string;
+    status: WorkerTurnStatus;
+    summary: null | string;
+    terminalAt: null | string;
+}
+
+/**
+ * Derives the job from its Runs, newest first. The state comes from the newest
+ * Run the provider has received (it carries a `providerRunId`): a follow-up still in
+ * Haus's local queue — or cancelled there before delivery — leaves the job as
+ * that earlier Run reads. Until the provider has received any Run, the job reads from
+ * its first. A waiting or live newest Run that is not the job's first is the
+ * follow-up. A work with no Run recorded reads from its own lifecycle fields.
+ * The job dates from its oldest retained Run that started: the work's own
+ * `startedAt` resets with each follow-up, so it cannot.
+ */
+export function deriveWorkerJob(work: {
+    runs: readonly JobRun[];
+    stall?: null | { code: WorkerStallCode };
+    startedAt: null | string;
+    status: WorkerTurnStatus;
+    terminalAt: null | string;
+}): WorkerJob {
+    const [newest] = work.runs;
+    if (!newest) {
+        return jobFrom(
+            {
+                errorCode: null,
+                startedAt: work.startedAt,
+                status: work.status,
+                summary: null,
+                terminalAt: work.terminalAt,
+            },
+            null
+        );
+    }
+    const followUp = work.runs.length > 1 ? followUpOf(newest) : null;
+    const first = work.runs.at(-1) ?? newest;
+    const anchor = work.runs.find((run) => run.providerRunId !== null) ?? first;
+    const jobStart =
+        [...work.runs].reverse().find((run) => run.startedAt !== null)?.startedAt ?? null;
+    return jobFrom({ ...anchor, startedAt: jobStart }, followUp);
+}
+
+function followUpOf(run: JobRun): WorkerFollowUp | null {
+    if (run.status === 'queued') {
+        return run.stall?.code === 'followup-auto-interrupt-failed'
+            ? { since: run.createdAt, state: 'stalled' }
+            : { since: run.createdAt, state: 'waiting' };
+    }
+    if (run.status === 'running') {
+        return { since: run.startedAt ?? run.createdAt, state: 'running' };
+    }
+    return null;
+}
+
+function jobFrom(
+    run: Omit<JobRun, 'createdAt' | 'providerRunId'>,
+    followUp: WorkerFollowUp | null
+): WorkerJob {
+    switch (run.status) {
+        case 'queued':
+        case 'running':
+            return { followUp, startedAt: run.startedAt, state: 'working' };
+        case 'completed':
+            return {
+                followUp,
+                settledAt: run.terminalAt,
+                startedAt: run.startedAt,
+                state: 'done',
+            };
+        case 'failed':
+            return {
+                errorCode: run.errorCode,
+                followUp,
+                settledAt: run.terminalAt,
+                state: 'failed',
+                summary: run.summary,
+            };
+        case 'pending_input':
+            return {
+                followUp,
+                question: run.summary,
+                settledAt: run.terminalAt,
+                startedAt: run.startedAt,
+                state: 'pending-input',
+            };
+        case 'cancelled':
+        case 'expired':
+            return { followUp, settledAt: run.terminalAt, state: run.status };
+    }
+}

@@ -240,7 +240,7 @@ describe('reminder scheduler lifecycle', () => {
                 `fire=${fire?.id}`,
                 '🔔 Reminder script output:',
                 '  changed',
-                `reply with: --cause ${fire?.id} on the command that posts (haus message send or haus cloud-agent start)`,
+                `reply with: --cause ${fire?.id} on the command that posts (haus message send or haus worker start)`,
             ].join('\n')
         );
     });
@@ -345,7 +345,7 @@ describe('reminder scheduler lifecycle', () => {
             [
                 '🔔 Reminder: Recover me',
                 `fire=${fireId}`,
-                `reply with: --cause ${fireId} on the command that posts (haus message send or haus cloud-agent start)`,
+                `reply with: --cause ${fireId} on the command that posts (haus message send or haus worker start)`,
             ].join('\n')
         );
 

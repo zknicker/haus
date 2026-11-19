@@ -155,7 +155,7 @@ const workTitles: Record<
     'cloud_agent' | 'greeting' | 'onboarding' | 'reminder' | 'trigger',
     string
 > = {
-    cloud_agent: 'Cloud agent update',
+    cloud_agent: 'Worker update',
     greeting: 'Greeting',
     onboarding: 'Onboarding',
     reminder: 'Reminder',

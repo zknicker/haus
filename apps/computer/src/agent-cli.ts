@@ -2,7 +2,6 @@ import { AgentCliError, renderAgentCliError } from './agent-cli/agent-error.ts';
 import { AGENT_SUBCOMMANDS } from './agent-cli/commands/agent-agent.ts';
 import { ATTACHMENT_SUBCOMMANDS } from './agent-cli/commands/agent-attachment.ts';
 import { CLAIM_SUBCOMMANDS } from './agent-cli/commands/agent-claim.ts';
-import { CLOUD_AGENT_SUBCOMMANDS } from './agent-cli/commands/agent-cloud-agent.ts';
 import { CONNECTION_SUBCOMMANDS } from './agent-cli/commands/agent-connection.ts';
 import { CHANNEL_SUBCOMMANDS, SERVER_SUBCOMMANDS } from './agent-cli/commands/agent-directory.ts';
 import { DRIVE_SUBCOMMANDS } from './agent-cli/commands/agent-drive.ts';
@@ -15,6 +14,7 @@ import { REMINDER_SUBCOMMANDS } from './agent-cli/commands/agent-reminder.ts';
 import { SKILL_SUBCOMMANDS } from './agent-cli/commands/agent-skill.ts';
 import { TASK_SUBCOMMANDS } from './agent-cli/commands/agent-task.ts';
 import { TRIGGER_SUBCOMMANDS } from './agent-cli/commands/agent-trigger.ts';
+import { WORKER_SUBCOMMANDS } from './agent-cli/commands/agent-worker.ts';
 import { UsageError } from './agent-cli/parse.ts';
 import { dispatchSubcommand, type SubCommand } from './agent-cli/subcommand.ts';
 import { errorBlock } from './agent-cli/ui.ts';
@@ -24,7 +24,7 @@ export const commandGroups = {
     attachment: ATTACHMENT_SUBCOMMANDS,
     channel: CHANNEL_SUBCOMMANDS,
     claim: CLAIM_SUBCOMMANDS,
-    'cloud-agent': CLOUD_AGENT_SUBCOMMANDS,
+    worker: WORKER_SUBCOMMANDS,
     connection: CONNECTION_SUBCOMMANDS,
     drive: DRIVE_SUBCOMMANDS,
     image: IMAGE_SUBCOMMANDS,
@@ -135,7 +135,7 @@ function bareUsage(subcommands: SubCommand[]): string[] {
 
 /**
  * Every family has a Manual topic named after its noun (the Manual resolves
- * `cloud-agent` and `claim` to their plural ids); the Manual itself starts at
+ * `worker` and `claim` to their plural ids); the Manual itself starts at
  * its index.
  */
 function manualDetails(group: string): string {

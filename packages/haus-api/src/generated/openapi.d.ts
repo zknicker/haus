@@ -2350,10 +2350,8 @@ export interface components {
             deleted_at: components["schemas"]["Timestamp"] | null;
             metadata: components["schemas"]["JsonObject"];
             claim?: components["schemas"]["MessageClaim"] | null;
-            /** @description The first linked Cloud Agent work, kept for released CLIs; read `cloud_agent_works`. */
-            cloud_agent_work?: components["schemas"]["MessageCloudAgentWork"] | null;
-            /** @description Every Cloud Agent work this Message links, in link order. */
-            cloud_agent_works?: components["schemas"]["MessageCloudAgentWork"][];
+            /** @description Every Worker this Message links, in link order. */
+            workers?: components["schemas"]["MessageWorker"][];
             agent_created?: components["schemas"]["MessageAgentCreated"] | null;
             reactions?: components["schemas"]["MessageReaction"][];
             reply?: components["schemas"]["ChatMessageReply"] | null;
@@ -2373,7 +2371,7 @@ export interface components {
             description: string | null;
             retired: boolean;
         };
-        MessageCloudAgentWork: {
+        MessageWorker: {
             id: string;
             /** @enum {string} */
             provider: "cursor" | "claude";
@@ -2384,10 +2382,10 @@ export interface components {
             starting_ref: string | null;
             provider_url: string | null;
             activity: string | null;
-            latest_run: components["schemas"]["MessageCloudAgentRun"] | null;
+            latest_turn: components["schemas"]["MessageWorkerTurn"] | null;
         };
-        MessageCloudAgentRun: {
-            run_id: string;
+        MessageWorkerTurn: {
+            turn_id: string;
             /** @enum {string} */
             status: "queued" | "running" | "pending_input" | "completed" | "failed" | "cancelled" | "expired";
             summary: string | null;

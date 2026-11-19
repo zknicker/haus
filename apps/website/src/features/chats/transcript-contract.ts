@@ -1,6 +1,6 @@
 import type {
     ChatMessage,
-    CloudAgentWork,
+    Worker,
     ImageGeneration,
     MessageCause,
     TaskLink,
@@ -87,10 +87,10 @@ export interface TranscriptMessage {
           })
         | null;
     /**
-     * The Cloud Agent work this Message links, in link order (ADR 0044). Each
+     * The Worker this Message links, in link order (ADR 0044). Each
      * renders the same card below the Message.
      */
-    cloudAgentWork?: readonly CloudAgentWork[];
+    worker?: readonly Worker[];
     content: string;
     hausAgentId?: string | null;
     id: string;

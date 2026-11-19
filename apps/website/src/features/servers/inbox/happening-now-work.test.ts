@@ -1,10 +1,7 @@
 import { expect, test } from 'bun:test';
-import type { ActiveCloudAgentWork, Agent } from '@haus/api';
-import { activeWorkLocations } from '../../../../../../packages/haus-api/src/cloud-agent-work-fixture.ts';
-import {
-    cloudAgentRunFixture,
-    cloudAgentWorkFixture,
-} from '../../cloud-agents/cloud-agent-work-fixture.ts';
+import type { ActiveWorker, Agent } from '@haus/api';
+import { activeWorkLocations } from '../../../../../../packages/haus-api/src/worker-fixture.ts';
+import { workerTurnFixture, workerFixture } from '../../workers/worker-fixture.ts';
 import { humanDirectory } from '../human-identity.ts';
 import { happeningNowWorkSubline, toHappeningNowWork } from './happening-now-work.ts';
 
@@ -83,14 +80,14 @@ test('the Server location is where the row opens', () => {
 });
 
 test('a follow-up queued behind a finished Run reads as the waiting follow-up, not done', () => {
-    const followedUp = cloudAgentWorkFixture({
+    const followedUp = workerFixture({
         runs: [
-            cloudAgentRunFixture({
+            workerTurnFixture({
                 createdAt: '2026-09-04T12:05:00.000Z',
                 runId: 'car_two',
                 status: 'queued',
             }),
-            cloudAgentRunFixture({ status: 'completed' }),
+            workerTurnFixture({ status: 'completed' }),
         ],
         status: 'queued',
     });
@@ -100,10 +97,8 @@ test('a follow-up queued behind a finished Run reads as the waiting follow-up, n
     expect(row?.statusText).toBe('Follow-up waiting · 2m');
 });
 
-function workRecord(
-    overrides: Partial<ActiveCloudAgentWork['work']> = {}
-): ActiveCloudAgentWork['work'] {
-    return cloudAgentWorkFixture({
+function workRecord(overrides: Partial<ActiveWorker['work']> = {}): ActiveWorker['work'] {
+    return workerFixture({
         agentId: 'agent_blippy',
         chatId: 'chat_product',
         messageId: 'message_one',
@@ -112,7 +107,7 @@ function workRecord(
     });
 }
 
-function activeWork(overrides: Partial<ActiveCloudAgentWork> = {}): ActiveCloudAgentWork {
+function activeWork(overrides: Partial<ActiveWorker> = {}): ActiveWorker {
     return {
         agentName: 'Blippy',
         chatKind: 'channel',

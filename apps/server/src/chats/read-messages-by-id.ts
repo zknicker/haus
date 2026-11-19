@@ -3,7 +3,6 @@ import { and, eq, getTableColumns, inArray } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readMessageCauses } from '../automations/message-cause-read.ts';
 import { listMessageClaimMap } from '../claims/claim-shape.ts';
-import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-work.ts';
 import { readMessageDriveCitations } from '../drive/citations.ts';
 import { readLinkedImageGenerations } from '../image-generation/linked-image-generations.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -14,6 +13,7 @@ import {
     usersTable,
 } from '../postgres/schema.ts';
 import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
+import { readLinkedWorker } from '../workers/linked-worker.ts';
 import { readMessageBodies } from './message-bodies.ts';
 import { readChatMessageReactions } from './message-reactions.ts';
 import { readStoredAuthorProfile, toChatMessage } from './message-shape.ts';
@@ -23,7 +23,7 @@ import { readInlineReplyContexts } from './reply-context.ts';
  * Reads named Messages the way the Chat transcript reads a page: the same
  * author profile, typed body, cause, attachment, and claim projections. Callers
  * that already hold a Message use it to pull in one more a surface needs — the
- * anchor a Cloud Agent work row came from, for instance.
+ * anchor a Worker row came from, for instance.
  * Authorization belongs to the caller, which is why this takes explicit ids.
  */
 export async function readMessagesById(
@@ -82,7 +82,7 @@ export async function readMessagesById(
         listMessageClaimMap(db, serverId, foundIds),
         readMessageCauses(db, serverId, foundIds),
         readMessageBodies(db, serverId, foundIds),
-        readLinkedCloudAgentWork(db, serverId, foundIds),
+        readLinkedWorker(db, serverId, foundIds),
         readLinkedImageGenerations(db, serverId, foundIds),
         readChatMessageReactions(db, serverId, foundIds),
         readInlineReplyContexts(db, serverId, rows),
@@ -98,7 +98,7 @@ export async function readMessagesById(
                     authorProfile: readStoredAuthorProfile(row),
                     body: bodies.get(row.id),
                     cause: causes.get(row.id),
-                    cloudAgentWork: works.get(row.id),
+                    worker: works.get(row.id),
                     driveCitations: citations.get(row.id),
                     imageGenerations: images.get(row.id),
                     reactions: reactions.get(row.id),

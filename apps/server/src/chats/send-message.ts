@@ -7,7 +7,6 @@ import {
     attachmentMetadata,
     requireMessageAttachments,
 } from '../attachments/message-attachments.ts';
-import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-work.ts';
 import { recordDriveCitations } from '../drive/citations.ts';
 import { readLinkedImageGenerations } from '../image-generation/linked-image-generations.ts';
 import { applyMessageRouting } from '../message-routing/apply-message-routing.ts';
@@ -20,6 +19,7 @@ import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
 import type { HausUser } from '../users/haus-user.ts';
+import { readLinkedWorker } from '../workers/linked-worker.ts';
 import { requireActiveDmPeer } from './active-dm-peer.ts';
 import { requireChatWriteAccess } from './chat-access.ts';
 import { ensureAgentDmRecord } from './ensure-agent-dm.ts';
@@ -229,10 +229,9 @@ export async function sendChatMessage(
                 // A human send never creates a typed body; this Message is text.
                 message: toChatMessage(message, {
                     attachments: attachmentMetadata(attachments),
-                    cloudAgentWork:
-                        (await readLinkedCloudAgentWork(tx, input.serverId, [messageId])).get(
-                            messageId
-                        ) ?? [],
+                    worker:
+                        (await readLinkedWorker(tx, input.serverId, [messageId])).get(messageId) ??
+                        [],
                     driveCitations,
                     imageGenerations:
                         (await readLinkedImageGenerations(tx, input.serverId, [messageId])).get(

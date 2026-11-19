@@ -1,0 +1,259 @@
+import { expect, test } from 'bun:test';
+import type { AgentInboxItem } from './agent-inbox-item.ts';
+import { composeInboxDrain, composeInboxNotice } from './inbox-format.ts';
+
+test('projects a settled Worker Run with the evidence its Agent must inspect', () => {
+    const attention = item({
+        chatId: 'cht_origin',
+        worker: {
+            branches: [
+                {
+                    branch: 'cloud/fix-flake',
+                    pullRequestUrl: 'https://github.com/haus/haus/pull/12',
+                    repository: 'haus/haus',
+                },
+            ],
+            errorCode: null,
+            notice: 'settled',
+            provider: 'cursor',
+            providerUrl: 'https://cursor.com/agents/bc_one',
+            repository: 'haus/haus',
+            runId: 'car_1234567890abcdef',
+            stallCode: null,
+            status: 'completed',
+            summary: 'Opened a pull request.',
+            title: 'Fix the flaky delivery test',
+            workId: 'caw_1234567890abcdef',
+        },
+        content: '',
+        id: 'car_1234567890abcdef',
+        senderHandle: 'haus',
+        senderType: 'system',
+        sequence: 0,
+    });
+
+    const drain = composeInboxDrain([attention]);
+
+    expect(drain).toContain(
+        '[Haus Worker attention status=completed work=caw_1234567890abcdef run=car_1234567890abcdef target=#general]'
+    );
+    expect(drain).toContain('summary=Opened a pull request.');
+    expect(drain).toContain(
+        'branches=haus/haus:cloud/fix-flake pr=https://github.com/haus/haus/pull/12'
+    );
+    // No GitHub snapshot was recorded, so the branch line states the URL alone.
+    expect(drain).not.toContain('files=');
+    const notice = composeInboxNotice([attention]);
+    expect(notice).toContain('pending: 1 work item');
+    expect(notice).toContain('· Worker result');
+    expect(notice).toContain('msg=-');
+    expect(notice).not.toContain('Opened a pull request.');
+});
+
+test('a branch whose pull request was read states the diff the Agent can act on', () => {
+    const attention = item({
+        chatId: 'cht_origin',
+        worker: {
+            branches: [
+                {
+                    branch: 'cloud/fix-flake',
+                    pullRequest: {
+                        additions: 34,
+                        changedFiles: 1,
+                        deletions: 0,
+                        number: 56,
+                        observedAt: '2026-09-05T12:00:00.000Z',
+                        state: 'draft',
+                    },
+                    pullRequestUrl: 'https://github.com/haus/haus/pull/56',
+                    repository: 'haus/haus',
+                },
+            ],
+            errorCode: null,
+            notice: 'settled',
+            provider: 'cursor',
+            providerUrl: 'https://cursor.com/agents/bc_one',
+            repository: 'haus/haus',
+            runId: 'car_1234567890abcdef',
+            stallCode: null,
+            status: 'completed',
+            summary: 'Opened a pull request.',
+            title: 'Fix the flaky delivery test',
+            workId: 'caw_1234567890abcdef',
+        },
+        content: '',
+        id: 'car_1234567890abcdef',
+        senderHandle: 'haus',
+        senderType: 'system',
+        sequence: 0,
+    });
+
+    expect(composeInboxDrain([attention])).toContain(
+        'branches=haus/haus:cloud/fix-flake pr=https://github.com/haus/haus/pull/56 state=draft files=1 +34 -0'
+    );
+});
+
+test('a follow-up that never reached the provider tells its Agent why', () => {
+    const attention = item({
+        chatId: 'cht_origin',
+        worker: {
+            branches: [],
+            errorCode: 'followup-delivery-timeout',
+            notice: 'settled',
+            provider: 'cursor',
+            providerUrl: 'https://cursor.com/agents/bc_one',
+            repository: 'haus/haus',
+            runId: 'car_1234567890abcdef',
+            stallCode: null,
+            status: 'failed',
+            summary:
+                'The provider did not accept the follow-up within 30 minutes (31 attempts). Last error: Agent already has an active run in progress',
+            title: 'Fix the flaky delivery test',
+            workId: 'caw_1234567890abcdef',
+        },
+        content: '',
+        id: 'car_1234567890abcdef',
+        senderHandle: 'haus',
+        senderType: 'system',
+        sequence: 0,
+    });
+
+    const drain = composeInboxDrain([attention]);
+    expect(drain).toContain('[Haus Worker attention status=failed');
+    expect(drain).toContain('errorCode=followup-delivery-timeout');
+    expect(drain).toContain(
+        'summary=The provider did not accept the follow-up within 30 minutes (31 attempts). Last error: Agent already has an active run in progress'
+    );
+});
+
+test('a settled Run whose stored report outgrew its summary points at --report', () => {
+    const attention = item({
+        chatId: 'cht_origin',
+        worker: {
+            branches: [],
+            errorCode: null,
+            hasFullReport: true,
+            notice: 'settled',
+            provider: 'cursor',
+            providerUrl: 'https://cursor.com/agents/bc_one',
+            repository: 'haus/haus',
+            runId: 'car_1234567890abcdef',
+            stallCode: null,
+            status: 'completed',
+            summary: 'Opened a pull request.',
+            title: 'Fix the flaky delivery test',
+            workId: 'caw_1234567890abcdef',
+        },
+        content: '',
+        id: 'car_1234567890abcdef',
+        senderHandle: 'haus',
+        senderType: 'system',
+        sequence: 0,
+    });
+
+    expect(composeInboxDrain([attention])).toContain(
+        'More: haus worker inspect --work caw_1234567890abcdef --report'
+    );
+});
+
+test('a settled Run with no fuller report adds no --report pointer', () => {
+    const attention = item({
+        chatId: 'cht_origin',
+        worker: {
+            branches: [],
+            errorCode: null,
+            hasFullReport: false,
+            notice: 'settled',
+            provider: 'cursor',
+            providerUrl: 'https://cursor.com/agents/bc_one',
+            repository: 'haus/haus',
+            runId: 'car_1234567890abcdef',
+            stallCode: null,
+            status: 'completed',
+            summary: 'Opened a pull request.',
+            title: 'Fix the flaky delivery test',
+            workId: 'caw_1234567890abcdef',
+        },
+        content: '',
+        id: 'car_1234567890abcdef',
+        senderHandle: 'haus',
+        senderType: 'system',
+        sequence: 0,
+    });
+
+    expect(composeInboxDrain([attention])).not.toContain('--report');
+});
+
+test('a pending-input question keeps its own send pointer even when hasFullReport is true', () => {
+    const attention = item({
+        chatId: 'cht_origin',
+        worker: {
+            branches: [],
+            errorCode: null,
+            hasFullReport: true,
+            notice: 'settled',
+            provider: 'claude',
+            providerUrl: 'https://claude.ai/code/session_01Question',
+            repository: 'haus/haus',
+            runId: 'car_1234567890abcdef',
+            stallCode: null,
+            status: 'pending_input',
+            summary: 'Should the reminder default to 9am or 10am? (9am / 10am)',
+            title: 'Pick the reminder default',
+            workId: 'caw_1234567890abcdef',
+        },
+        content: '',
+        id: 'car_1234567890abcdef',
+        senderHandle: 'haus',
+        senderType: 'system',
+        sequence: 0,
+    });
+
+    const drain = composeInboxDrain([attention]);
+    expect(drain).toContain('haus worker send --work caw_1234567890abcdef');
+    expect(drain).not.toContain('--report');
+});
+
+test('a Worker question tells its Agent how to answer it', () => {
+    const attention = item({
+        chatId: 'cht_origin',
+        worker: {
+            branches: [],
+            errorCode: null,
+            notice: 'settled',
+            provider: 'claude',
+            providerUrl: 'https://claude.ai/code/session_01Question',
+            repository: 'haus/haus',
+            runId: 'car_1234567890abcdef',
+            stallCode: null,
+            status: 'pending_input',
+            summary: 'Should the reminder default to 9am or 10am? (9am / 10am)',
+            title: 'Pick the reminder default',
+            workId: 'caw_1234567890abcdef',
+        },
+        content: '',
+        id: 'car_1234567890abcdef',
+        senderHandle: 'haus',
+        senderType: 'system',
+        sequence: 0,
+    });
+
+    const drain = composeInboxDrain([attention]);
+    expect(drain).toContain('[Haus Worker attention status=pending_input');
+    expect(drain).toContain('summary=Should the reminder default to 9am or 10am? (9am / 10am)');
+    expect(drain).toContain('haus worker send --work caw_1234567890abcdef');
+});
+
+function item(overrides: Partial<AgentInboxItem> = {}): AgentInboxItem {
+    return {
+        chatId: 'cht_general',
+        content: 'Ship it',
+        createdAt: '2026-07-27T00:00:00.000Z',
+        id: 'msg_first',
+        senderHandle: 'zach',
+        senderType: 'human',
+        sequence: 1,
+        target: '#general',
+        ...overrides,
+    };
+}

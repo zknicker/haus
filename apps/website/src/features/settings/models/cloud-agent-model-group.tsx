@@ -6,7 +6,7 @@ import {
     useSetCloudAgentModel,
 } from '../../../hooks/servers/use-cloud-agent-settings.ts';
 import { formatRelativeTime } from '../../../lib/format.ts';
-import { cloudAgentProviderName } from '../../cloud-agents/cloud-agent-provider-presentation.ts';
+import { cloudAgentProviderName } from '../../workers/cloud-agent-provider-presentation.ts';
 import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { SettingsFact, SettingsRowError, SettingsRowWarning } from '../layout/settings-text.tsx';
 import { CloudAgentModelPicker } from './cloud-agent-model-picker.tsx';
@@ -32,7 +32,7 @@ export function CloudAgentModelGroup({
     return (
         <ItemCardGroup variant="transparent">
             <ItemCardGroup.Header>
-                <ItemCardGroup.Title>Cloud Agents</ItemCardGroup.Title>
+                <ItemCardGroup.Title>Workers</ItemCardGroup.Title>
             </ItemCardGroup.Header>
             <ItemCardGroup className="overflow-hidden">
                 {cloudAgentProviders.map((provider) => (

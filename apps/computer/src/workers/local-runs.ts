@@ -1,0 +1,184 @@
+import { Clock, Effect } from 'effect';
+import { type WorkerOperationError, foreign } from './foreign-operation.ts';
+import { abortWorkerLaunch } from './launch-attempt.ts';
+import type { CloudLaunchJournal, CloudLaunchRecord, CloudPendingSend } from './launch-journal.ts';
+import type { WorkerLaunch, CloudAgentProviderObservation, WorkerTurnRef } from './provider.ts';
+import { launchRecordGraceMs, launchRecordMissing } from './send-delivery.ts';
+import type { WorkerSendQueue } from './send-queue.ts';
+
+/** A monitored Run the provider has not addressed yet. */
+export interface LocalRun {
+    readonly cancelRequested: boolean;
+    readonly ref: WorkerTurnRef;
+    /** When resolution first found no journal record for this Run. */
+    unrecordedSince?: number;
+}
+
+export type LocalRunState =
+    | {
+          kind: 'launched';
+          launch: WorkerLaunch;
+          observedAt: string;
+          /** This follow-up only delivered after Haus auto-interrupted the session. */
+          autoInterrupted: boolean;
+      }
+    /** Not at the provider; report the observation when one is given. */
+    | { kind: 'unsent'; observation: CloudAgentProviderObservation | null };
+
+/**
+ * Resolves a Run without a provider address from this Computer's journal:
+ * advances its queued send, recovers an acknowledged launch, or reports the
+ * outcome the journal settled — refused, cancelled, or never recorded.
+ */
+export class WorkerLocalRuns {
+    constructor(
+        private readonly journal: CloudLaunchJournal,
+        private readonly serverId: string,
+        private readonly sends: WorkerSendQueue
+    ) {}
+
+    resolve(run: LocalRun): Effect.Effect<LocalRunState, WorkerOperationError> {
+        const self = this;
+        return Effect.gen(function* () {
+            const recorded = yield* self.sends.advance(run.ref, () => run.cancelRequested);
+            const nowMs = yield* Clock.currentTimeMillis;
+            const observedAt = new Date(nowMs).toISOString();
+            switch (recorded?.phase) {
+                case 'pending': {
+                    const { delivery } = recorded;
+                    return unsent(
+                        delivery?.interruptedAt
+                            ? autoInterruptFailedQueued(observedAt, delivery)
+                            : queued(observedAt, pendingActivity(recorded))
+                    );
+                }
+                case 'launched':
+                    return {
+                        autoInterrupted: recorded.autoInterrupted,
+                        kind: 'launched',
+                        launch: recorded.launch,
+                        observedAt,
+                    } as const;
+                case 'cancelled':
+                    return unsent({ observedAt, status: 'cancelled' });
+                case 'rejected':
+                    return unsent({
+                        errorCode: recorded.errorCode,
+                        observedAt,
+                        status: 'failed',
+                        ...(recorded.summary ? { summary: recorded.summary } : {}),
+                    });
+                case 'launching':
+                    if (
+                        run.cancelRequested ||
+                        !recorded.deadlineAt ||
+                        nowMs >= Date.parse(recorded.deadlineAt)
+                    ) {
+                        if (run.cancelRequested) {
+                            yield* foreign(() => self.journal.cancel(self.serverId, run.ref));
+                        } else {
+                            yield* foreign(() =>
+                                self.journal.reject(self.serverId, run.ref, {
+                                    errorCode: 'launch-timeout',
+                                    summary: 'The Worker did not start before its launch deadline.',
+                                })
+                            );
+                        }
+                        abortWorkerLaunch(run.ref.runId);
+                        return yield* self.resolve(run);
+                    }
+                    return unsent(queued(observedAt, 'Starting the Worker.'));
+                case undefined:
+                    return yield* self.settleUnrecorded(run, nowMs);
+            }
+        });
+    }
+
+    /**
+     * A Run Server recorded but this Computer never journaled — the sender
+     * timed out or crashed between the two — never reached the provider. It
+     * settles failed after a grace window that covers an in-flight sender, or
+     * cancelled at once when stopped. The exclusive claim makes a late sender
+     * lose, so the settled outcome is durable across restarts.
+     */
+    private settleUnrecorded(
+        run: LocalRun,
+        nowMs: number
+    ): Effect.Effect<LocalRunState, WorkerOperationError> {
+        const self = this;
+        return Effect.gen(function* () {
+            run.unrecordedSince ??= nowMs;
+            const settled: CloudLaunchRecord | null = run.cancelRequested
+                ? { phase: 'cancelled', workId: run.ref.workId }
+                : nowMs - run.unrecordedSince >= launchRecordGraceMs
+                  ? { phase: 'rejected', workId: run.ref.workId, ...launchRecordMissing }
+                  : null;
+            if (!settled) {
+                return unsent(
+                    queued(
+                        new Date(nowMs).toISOString(),
+                        'Waiting for this Computer to record the prompt.'
+                    )
+                );
+            }
+            yield* foreign(() => self.journal.claim(self.serverId, run.ref, settled));
+            // Claimed or not, the journal now holds a record; report what it says.
+            return yield* self.resolve(run);
+        });
+    }
+}
+
+function unsent(observation: CloudAgentProviderObservation | null): LocalRunState {
+    return { kind: 'unsent', observation };
+}
+
+/**
+ * Why a pending follow-up has not reached the provider yet, for the work card
+ * and `haus worker inspect`. Before this, a blocked follow-up reported
+ * nothing at all while waiting on a predecessor (TECH-7): the stall was
+ * invisible everywhere except this Computer's own private journal file.
+ */
+function pendingActivity(pending: CloudPendingSend): string {
+    if (pending.delivery) {
+        return `The provider has not accepted this follow-up yet (attempt ${pending.delivery.attempts}; last error: ${pending.delivery.lastError}).`;
+    }
+    return pending.predecessors.length > 0
+        ? 'Waiting for an earlier Run to finish before sending this follow-up.'
+        : 'Waiting for the provider to accept this follow-up.';
+}
+
+function queued(observedAt: string, summary: string): CloudAgentProviderObservation {
+    return { activity: { at: observedAt, summary }, observedAt, status: 'queued' };
+}
+
+/**
+ * Reported every tick once `send-queue.ts`'s auto-interrupt fallback has been
+ * tried and still didn't deliver: still queued, still retrying, but now
+ * carrying the stall Server uses to raise exactly one inbox attention
+ * (then sparse reminders) without failing the Run. TECH-7's design
+ * refinement: a busy provider never fails the follow-up on its own, and
+ * clearing the session's current work gets one automatic try before anyone
+ * is asked to decide.
+ */
+function autoInterruptFailedQueued(
+    observedAt: string,
+    delivery: NonNullable<CloudPendingSend['delivery']>
+): CloudAgentProviderObservation {
+    return {
+        activity: {
+            at: observedAt,
+            summary: 'Auto-interrupt did not clear the session; still retrying.',
+        },
+        observedAt,
+        stallCode: 'followup-auto-interrupt-failed',
+        status: 'queued',
+        summary: `Haus automatically interrupted the session to deliver this follow-up, but it still didn't go through. Last error: ${delivery.lastError}. Haus keeps retrying; stop, interrupt, or relaunch if you want to act now.`,
+    };
+}
+
+/** One-time: this Run's own monitor reports fresh activity from here on, so a later observation naturally supersedes it. */
+export function autoInterruptNote(autoInterrupted: boolean): { summary?: string } {
+    return autoInterrupted
+        ? { summary: 'Haus automatically interrupted the session to deliver this follow-up.' }
+        : {};
+}

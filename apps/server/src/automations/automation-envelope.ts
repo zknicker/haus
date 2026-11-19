@@ -7,5 +7,5 @@
  * Every fire envelope ends with this line.
  */
 export function automationReplyLine(fireId: string): string {
-    return `reply with: --cause ${fireId} on the command that posts (haus message send or haus cloud-agent start)`;
+    return `reply with: --cause ${fireId} on the command that posts (haus message send or haus worker start)`;
 }

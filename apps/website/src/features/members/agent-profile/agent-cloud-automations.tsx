@@ -1,4 +1,4 @@
-import type { Agent, CloudAgentAutomation } from '@haus/api';
+import type { Agent, WorkerAutomation } from '@haus/api';
 import { ItemCard, PressableFeedback } from '@heroui-pro/react';
 import { Button, Chip, Separator, Tooltip } from '@heroui/react';
 import { HistoryIcon } from '@hugeicons-pro/core-stroke-rounded';
@@ -7,8 +7,8 @@ import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentCloudAutomations } from '../../../hooks/members/use-agent-cloud-automations.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
-import { CloudAgentKeycapFace } from '../../cloud-agents/cloud-agent-provider-mark.tsx';
-import { useOpenCloudAgentWork } from '../../cloud-agents/use-open-cloud-agent-work.ts';
+import { WorkerKeycapFace } from '../../workers/cloud-agent-provider-mark.tsx';
+import { useOpenWorker } from '../../workers/use-open-worker.ts';
 import { AgentLoading } from './agent-loading.tsx';
 import { cloudAutomationPresentation } from './cloud-automation-model.ts';
 import { ProfileListSection } from './profile-list-section.tsx';
@@ -23,9 +23,7 @@ export function AgentCloudAutomations({ agent, server }: { agent: Agent; server:
                 action={
                     <Tooltip delay={0}>
                         <Button
-                            aria-label={
-                                history ? 'View current cloud agents' : 'View cloud agent history'
-                            }
+                            aria-label={history ? 'View current Workers' : 'View Worker history'}
                             aria-pressed={history}
                             isIconOnly
                             onPress={() => setHistory(!history)}
@@ -35,24 +33,20 @@ export function AgentCloudAutomations({ agent, server }: { agent: Agent; server:
                             <Icon aria-hidden="true" icon={HistoryIcon} size={16} />
                         </Button>
                         <Tooltip.Content>
-                            {history ? 'View current cloud agents' : 'View cloud agent history'}
+                            {history ? 'View current Workers' : 'View Worker history'}
                         </Tooltip.Content>
                     </Tooltip>
                 }
                 count={query.data?.length}
-                title={history ? 'Cloud agents · History' : 'Cloud agents'}
+                title={history ? 'Workers · History' : 'Workers'}
             >
                 {query.isPending ? (
-                    <AgentLoading label="Loading cloud agents" />
+                    <AgentLoading label="Loading Workers" />
                 ) : query.error && !query.data ? (
-                    <ProfileListSection.Empty>
-                        Unable to load cloud agents.
-                    </ProfileListSection.Empty>
+                    <ProfileListSection.Empty>Unable to load Workers.</ProfileListSection.Empty>
                 ) : query.data?.length === 0 ? (
                     <ProfileListSection.Empty>
-                        {history
-                            ? 'No cloud agent history yet.'
-                            : 'No cloud agents awaiting a result.'}
+                        {history ? 'No Worker history yet.' : 'No Workers awaiting a result.'}
                     </ProfileListSection.Empty>
                 ) : (
                     query.data?.map((row, index) => (
@@ -72,8 +66,8 @@ export function AgentCloudAutomations({ agent, server }: { agent: Agent; server:
     );
 }
 
-function CloudAutomationRow({ now, row }: { now: number; row: CloudAgentAutomation }) {
-    const openWork = useOpenCloudAgentWork();
+function CloudAutomationRow({ now, row }: { now: number; row: WorkerAutomation }) {
+    const openWork = useOpenWorker();
     const presentation = cloudAutomationPresentation(row, now);
     const open = () => openWork({ id: row.work.id, location: row.location });
     return (
@@ -84,7 +78,7 @@ function CloudAutomationRow({ now, row }: { now: number; row: CloudAgentAutomati
         >
             <PressableFeedback.Highlight />
             <ItemCard.Icon aria-hidden="true" className="automation-mark">
-                <CloudAgentKeycapFace provider={row.work.provider} size={cloudAgentRowKeySize} />
+                <WorkerKeycapFace provider={row.work.provider} size={workerRowKeySize} />
             </ItemCard.Icon>
             <ItemCard.Content>
                 <ItemCard.Title className="truncate">{row.work.title}</ItemCard.Title>
@@ -105,4 +99,4 @@ function CloudAutomationRow({ now, row }: { now: number; row: CloudAgentAutomati
 }
 
 /** The stock `size-9` icon slot, in px at the default `--spacing`. */
-const cloudAgentRowKeySize = 34;
+const workerRowKeySize = 34;

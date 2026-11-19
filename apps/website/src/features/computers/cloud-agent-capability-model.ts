@@ -4,7 +4,7 @@ import type {
     CloudAgentProvider,
     ComputerInventory,
 } from '@haus/api';
-import { cloudAgentProviderName } from '../cloud-agents/cloud-agent-provider-presentation.ts';
+import { cloudAgentProviderName } from '../workers/cloud-agent-provider-presentation.ts';
 
 export interface CloudAgentCapabilityView {
     canConnect: boolean;
@@ -40,9 +40,8 @@ const providerAccess: Record<
     cursor: {
         connectLabel: 'Connect',
         missing: 'This device cannot reach Cursor’s Cloud Agents.',
-        notConnected:
-            'Connect this device to Cursor so Captains can delegate work to Cloud Agents.',
-        plan: 'Cloud Agent work bills to that Cursor plan.',
+        notConnected: 'Connect this device to Cursor so Captains can delegate work to Workers.',
+        plan: 'Worker bills to that Cursor plan.',
     },
 };
 
@@ -72,7 +71,7 @@ export function cloudAgentCapabilityView(input: {
             ...identity,
             canConnect: false,
             canDisconnect: false,
-            description: 'Reconnect this device to manage its Cloud Agent access.',
+            description: 'Reconnect this device to manage its Worker access.',
             status: 'unavailable',
             statusLabel: 'Unavailable',
         };

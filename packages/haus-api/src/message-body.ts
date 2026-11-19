@@ -8,7 +8,7 @@ export type MessageBodyKind = (typeof messageBodyKinds)[number];
 /**
  * The Server-validated typed body one Message carries (ADR 0025). `text` is
  * every ordinary Message; `agent-created` projects the Server record its
- * Message anchors. Cloud Agent work is linked from text, never a body (ADR 0044). Unknown kinds do not exist
+ * Message anchors. Worker is linked from text, never a body (ADR 0044). Unknown kinds do not exist
  * on the wire — a client that has not learned a kind degrades through the
  * Message `content`.
  */

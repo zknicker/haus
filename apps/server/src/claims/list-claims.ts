@@ -4,13 +4,13 @@ import { visibleChats } from '../chats/chat-visibility.ts';
 import { readMessageBodies } from '../chats/message-bodies.ts';
 import { readChatMessageReactions } from '../chats/message-reactions.ts';
 import { toChatMessage } from '../chats/message-shape.ts';
-import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-work.ts';
 import { readLinkedImageGenerations } from '../image-generation/linked-image-generations.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable, messageClaimsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
 import type { HausUser } from '../users/haus-user.ts';
+import { readLinkedWorker } from '../workers/linked-worker.ts';
 import { projectMessageClaims } from './claim-shape.ts';
 
 /**
@@ -70,7 +70,7 @@ export async function listClaims(
             visible.map((row) => row.claim)
         ),
         readMessageBodies(db, input.serverId, messageIds),
-        readLinkedCloudAgentWork(db, input.serverId, messageIds),
+        readLinkedWorker(db, input.serverId, messageIds),
         readLinkedImageGenerations(db, input.serverId, messageIds),
         readChatMessageReactions(db, input.serverId, messageIds),
         readMessageTaskLinks(db, input.serverId, messageIds),
@@ -94,7 +94,7 @@ export async function listClaims(
             message: {
                 ...toChatMessage(row.message, {
                     body: bodies.get(row.message.id),
-                    cloudAgentWork: works.get(row.message.id),
+                    worker: works.get(row.message.id),
                     imageGenerations: images.get(row.message.id),
                     reactions: reactions.get(row.message.id),
                     taskLinks: taskLinks.get(row.message.id),

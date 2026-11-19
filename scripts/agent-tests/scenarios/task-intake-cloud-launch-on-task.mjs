@@ -13,7 +13,7 @@ const terminal = new Set(['completed', 'failed', 'cancelled']);
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'Coding work that needs a cloud agent gets exactly one Task, started from a message in the channel, with exactly one cloud agent attached to it.',
+        'Coding work that needs a Worker gets exactly one Task, started from a message in the channel, with exactly one Worker attached to it.',
     name: 'task-intake-cloud-launch-on-task',
     optIn: true,
     run: withRoutingEvidence(async ({ agents, expect, kit, log, settleTurn }) => {
@@ -23,7 +23,7 @@ export default defineScenario({
         try {
             await kit.harness.send(
                 channel.id,
-                `@${worker.handle} Can you get a cloud agent to tighten the getting-started section of the README in zknicker/haus on main and open a draft PR?`
+                `@${worker.handle} Can you get a Worker to tighten the getting-started section of the README in zknicker/haus on main and open a draft PR?`
             );
             const turn = await settleTurn(worker.id);
             expectSettled(expect, turn, 'launch turn');
@@ -35,12 +35,12 @@ export default defineScenario({
             const origin = await originMessage(kit, task, { agentId: null, chatId: channel.id });
             expect(Boolean(origin), 'the Task starts from a message in the channel').toBe(true);
             works = await attachedWork(kit, task);
-            expect(works, 'cloud agent work attached to the Task').toHaveLength(1);
+            expect(works, 'Worker attached to the Task').toHaveLength(1);
         } finally {
             for (const work of works) {
                 if (!terminal.has(work.status)) {
                     await kit
-                        .trpc('cloudAgentWork.cancel', { serverId: kit.serverId, workId: work.id })
+                        .trpc('worker.cancel', { serverId: kit.serverId, workId: work.id })
                         .catch(() => undefined);
                 }
             }

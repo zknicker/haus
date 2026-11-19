@@ -1,12 +1,12 @@
 import { expect, test } from 'bun:test';
 import {
-    agentCloudAgentReceiptSchema,
-    agentCloudAgentSendReceiptSchema,
+    agentWorkerReceiptSchema,
+    agentWorkerSendReceiptSchema,
     type CloudAgentModelCatalog,
 } from '@haus/api';
-import { cloudAgentFixture } from './cloud-agent-fixture.ts';
+import { workerRecordFixture } from './worker-record-fixture.ts';
 
-const fixture = cloudAgentFixture();
+const fixture = workerRecordFixture();
 
 const nano = {
     description: null,
@@ -52,7 +52,7 @@ async function startWork(nonce: string) {
     const runner = await fixture.mintRunner(`run_${nonce}`);
     const response = await fixture.postStart(runner, fixture.startBody({ nonce }));
     expect(response.status).toBe(200);
-    return { receipt: agentCloudAgentReceiptSchema.parse(response.body), runner };
+    return { receipt: agentWorkerReceiptSchema.parse(response.body), runner };
 }
 
 test('a Server starts on Auto with no catalog until a Computer reports one', async () => {
@@ -185,7 +185,7 @@ test('every Run records the model and params it asked for, falling back to Auto 
         update cloud_agent_work set provider_agent_id = 'cursor_model_agent'
         where id = ${chosen.receipt.work.id}
     `;
-    const followUp = await fetch(new URL('/api/agent/cloud-agents/send', fixture.harness.url), {
+    const followUp = await fetch(new URL('/api/agent/workers/send', fixture.harness.url), {
         body: JSON.stringify({ nonce: 'model-followup', workId: chosen.receipt.work.id }),
         headers: {
             authorization: `Bearer ${chosen.runner.token}`,
@@ -193,7 +193,7 @@ test('every Run records the model and params it asked for, falling back to Auto 
         },
         method: 'POST',
     });
-    const sent = agentCloudAgentSendReceiptSchema.parse(await followUp.json());
+    const sent = agentWorkerSendReceiptSchema.parse(await followUp.json());
     expect(sent.work.runs.find((run) => run.runId === sent.runId)?.model).toEqual({
         ...auto,
         fallbackFrom: nano.id,

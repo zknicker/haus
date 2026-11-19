@@ -18,7 +18,7 @@ const terminal = new Set(['completed', 'failed', 'cancelled']);
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
-        'When a cloud agent attached to a Task finishes, the Agent reports in that Task where the requester is notified (an @mention, the Task started from their message, or they follow it) and posts nothing in the channel.',
+        'When a Worker attached to a Task finishes, the Agent reports in that Task where the requester is notified (an @mention, the Task started from their message, or they follow it) and posts nothing in the channel.',
     name: 'task-intake-cloud-finish-reports-in-task',
     optIn: true,
     run: withRoutingEvidence(async ({ agents, expect, kit, log, settleTurn }) => {
@@ -28,7 +28,7 @@ export default defineScenario({
         try {
             const request = await kit.harness.send(
                 channel.id,
-                `@${worker.handle} Can you have a cloud agent read the README in zknicker/haus on main and summarize what the project does in three bullets? Review only, no code changes or PR.`
+                `@${worker.handle} Can you have a Worker read the README in zknicker/haus on main and summarize what the project does in three bullets? Review only, no code changes or PR.`
             );
             const requester = humanAuthorId(request.message);
             const launch = await settleTurn(worker.id);
@@ -39,9 +39,9 @@ export default defineScenario({
             const origin = await originMessage(kit, task, { agentId: null, chatId: channel.id });
             expect(Boolean(origin), 'the Task starts from a message in the channel').toBe(true);
 
-            log('waiting for the cloud agent to finish');
+            log('waiting for the Worker to finish');
             const work = await awaitTerminalWork(kit, task, 20 * 60_000);
-            expect(work?.status, 'the cloud agent finished').toBe('completed');
+            expect(work?.status, 'the Worker finished').toBe('completed');
             await kit.harness.waitForAgentQuiet(worker.id, 15_000, 600_000);
 
             log('checking gates');
@@ -63,14 +63,14 @@ export default defineScenario({
                 (await postsAcross(kit, channel.id, worker.id)).filter(
                     (message) => Date.parse(message.createdAt) >= settledAt
                 ),
-                'channel posts after the cloud agent finished'
+                'channel posts after the Worker finished'
             ).toHaveLength(0);
         } finally {
             const works = task ? await attachedWork(kit, task).catch(() => []) : [];
             for (const entry of works) {
                 if (!terminal.has(entry.status)) {
                     await kit
-                        .trpc('cloudAgentWork.cancel', { serverId: kit.serverId, workId: entry.id })
+                        .trpc('worker.cancel', { serverId: kit.serverId, workId: entry.id })
                         .catch(() => undefined);
                 }
             }

@@ -1,10 +1,10 @@
 import { addressedReasonSchema, humanTimezoneSchema } from '@haus/api';
 import type { UnreadElsewhere } from './agent-commands.ts';
 import {
-    cloudAgentWorkAttentionResponseSchema,
+    workerAttentionResponseSchema,
     pullRequestChangeResponseSchema,
 } from './agent-inbox-attention-response-schema.ts';
-import type { AgentCloudAgentWorkAttention, AgentInboxItem } from './agent-inbox-item.ts';
+import type { AgentWorkerAttention, AgentInboxItem } from './agent-inbox-item.ts';
 import { chatMessageReplyResponseSchema } from './chat-message-reply-response-schema.ts';
 
 /**
@@ -114,10 +114,10 @@ function parseInboxItem(item: unknown): AgentInboxItem | null {
     } as unknown as AgentInboxItem;
 }
 
-type TypedAttention = Pick<AgentInboxItem, 'cloudAgentWork' | 'pullRequestNotice'>;
+type TypedAttention = Pick<AgentInboxItem, 'worker' | 'pullRequestNotice'>;
 
 function parseTypedAttention(item: Record<string, unknown>): TypedAttention | null {
-    const work = cloudAgentWorkAttentionResponseSchema.optional().safeParse(item.cloudAgentWork);
+    const work = workerAttentionResponseSchema.optional().safeParse(item.worker);
     const notice = pullRequestChangeResponseSchema.optional().safeParse(item.pullRequestNotice);
     if (!(work.success && notice.success) || (work.data && notice.data)) {
         return null;
@@ -130,7 +130,7 @@ function parseTypedAttention(item: Record<string, unknown>): TypedAttention | nu
         return null;
     }
     return {
-        ...(work.data ? { cloudAgentWork: work.data as AgentCloudAgentWorkAttention } : {}),
+        ...(work.data ? { worker: work.data as AgentWorkerAttention } : {}),
         ...(notice.data ? { pullRequestNotice: notice.data } : {}),
     };
 }

@@ -65,7 +65,7 @@ export const evals = {
         summary:
             'Feedback in passing becomes a Standing Preference that survives a session reset; no feedback, no rule change.',
     },
-    // Work that leaves the chat: Cloud Agents, MCP connections, Triggers, and Files.
+    // Work that leaves the chat: Workers, MCP connections, Triggers, and Files.
     tools: {
         judge: null,
         profiles: {},

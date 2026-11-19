@@ -17,7 +17,7 @@ const provenance =
 
 /** Every fire envelope ends with the command that answers it with provenance. */
 const replyLine =
-    'reply with: --cause trf_fire on the command that posts (haus message send or haus cloud-agent start)';
+    'reply with: --cause trf_fire on the command that posts (haus message send or haus worker start)';
 
 describe('trigger envelope', () => {
     test('carries the heading, the provenance line, the payload, and the reply line', () => {

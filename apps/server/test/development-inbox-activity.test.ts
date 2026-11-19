@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { listComputerCloudAgentWork } from '../src/cloud-agents/list-computer-cloud-agent-work.ts';
 import { seedDevelopmentInboxActivity } from '../src/development/seed-inbox-activity.ts';
 import { seedDevelopmentServer } from '../src/development/seed-server.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
+import { listComputerWorker } from '../src/workers/list-computer-worker.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -82,16 +82,16 @@ test('Unread holds Tiny’s inline answer in the DM; the claim is on Claims', as
     expect(held[0]?.message.content).toContain('Reminders on the weekly digest fired twice');
 });
 
-// No running Cloud Agent work is seeded: Computer would reconcile a fake run
+// No running Worker is seeded: Computer would reconcile a fake run
 // against the provider every minute and wedge the Server's connection pool.
 test('Happening now shows gallery samples and settled work keeps its evidence', async () => {
-    const active = await owner.trpc.cloudAgentWork.listActive.query({ serverId });
+    const active = await owner.trpc.worker.listActive.query({ serverId });
     // Six Cursor gallery samples (one needs input), three gallery follow-ups,
     expect(active).toHaveLength(11);
 
     const chats = await owner.trpc.chat.list.query({ serverId });
     const productChatId = chats.find((chat) => chat.name === 'product')?.id ?? '';
-    const chatWork = await owner.trpc.cloudAgentWork.listForChat.query({
+    const chatWork = await owner.trpc.worker.listForChat.query({
         chatId: productChatId,
         serverId,
     });
@@ -191,7 +191,7 @@ test('UI gallery reads the attachment combinations and isolates live samples', a
     expect(
         transcript.messages.filter((message) => message.content.includes('user://'))
     ).toHaveLength(6);
-    const works = await owner.trpc.cloudAgentWork.listForChat.query({ serverId, chatId });
+    const works = await owner.trpc.worker.listForChat.query({ serverId, chatId });
     expect(works).toHaveLength(20);
     // Follow-ups read as the job they follow, never as queued.
     const followUps = works
@@ -214,7 +214,7 @@ test('UI gallery reads the attachment combinations and isolates live samples', a
     const [onboarding] =
         await harness.sql`select computer_id from server_onboarding where server_id = ${serverId}`;
     expect(
-        await listComputerCloudAgentWork(database.db, {
+        await listComputerWorker(database.db, {
             serverId,
             computerId: onboarding.computer_id,
         })

@@ -1,20 +1,20 @@
 import {
     type ClaimTier,
     type CloudAgentProvider,
-    type CloudAgentStatus,
-    formatCloudAgentWorkLink,
+    type WorkerTurnStatus,
+    formatWorkerLink,
     formatUserReferenceTarget,
-    isTerminalCloudAgentStatus,
+    isTerminalWorkerTurnStatus,
     type MessageClaim,
 } from '@haus/api';
 import { eq, sql } from 'drizzle-orm';
-import { recordCloudAgentWorkLinks } from '../chats/cloud-agent-work-links.ts';
+import { recordWorkerLinks } from '../chats/worker-links.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     chatsTable,
-    cloudAgentRunsTable,
-    cloudAgentWorkTable,
+    workerTurnsTable,
+    workersTable,
     messageClaimsTable,
 } from '../postgres/schema.ts';
 import { appendSeedMessages } from './seed-inbox-messages.ts';
@@ -130,7 +130,7 @@ export async function galleryWork(
     context: GalleryContext,
     input: {
         title: string;
-        status: CloudAgentStatus;
+        status: WorkerTurnStatus;
         cancelling?: boolean;
         /** A follow-up Run the Agent sent after the first one settled. */
         followUp?: GalleryFollowUp;
@@ -145,12 +145,12 @@ export async function galleryWork(
     const messageId = await galleryMessage(
         db,
         context,
-        `${input.title}\n\n${formatCloudAgentWorkLink(input.title, workId)}`
+        `${input.title}\n\n${formatWorkerLink(input.title, workId)}`
     );
-    const terminalAt = isTerminalCloudAgentStatus(input.status) ? context.now : null;
+    const terminalAt = isTerminalWorkerTurnStatus(input.status) ? context.now : null;
     const observedAt = new Date(context.now.getTime() - (input.stale ? 25 * 60_000 : 0));
     const followUpAt = new Date(context.now.getTime() + 1000);
-    await db.insert(cloudAgentWorkTable).values({
+    await db.insert(workersTable).values({
         id: workId,
         serverId: context.serverId,
         chatId: context.chatId,
@@ -163,7 +163,7 @@ export async function galleryWork(
         title: input.title,
         ...workLifecycle(input, context, { followUpAt, observedAt, terminalAt }),
     });
-    await db.insert(cloudAgentRunsTable).values({
+    await db.insert(workerTurnsTable).values({
         cancelRequestedAt: input.cancelling ? context.now : null,
         cancelRequestedByUserId: input.cancelling ? context.userId : null,
         id: createOpaqueId('car'),
@@ -196,7 +196,7 @@ export async function galleryWork(
               ]
             : [],
     });
-    await recordCloudAgentWorkLinks(db, {
+    await recordWorkerLinks(db, {
         chatId: context.chatId,
         links: [{ ordinal: 0, workId }],
         messageId,
@@ -216,7 +216,7 @@ async function galleryFollowUpRun(
     input: { at: Date; followUp: GalleryFollowUp; workId: string }
 ) {
     const { at, followUp } = input;
-    await db.insert(cloudAgentRunsTable).values({
+    await db.insert(workerTurnsTable).values({
         id: createOpaqueId('car'),
         serverId: context.serverId,
         workId: input.workId,
@@ -234,11 +234,11 @@ async function galleryFollowUpRun(
 const followUpStatus = {
     running: 'running',
     waiting: 'queued',
-} as const satisfies Record<GalleryFollowUp, CloudAgentStatus>;
+} as const satisfies Record<GalleryFollowUp, WorkerTurnStatus>;
 
 /** The work row projects its newest Run, which is the follow-up when there is one. */
 function workLifecycle(
-    input: { followUp?: GalleryFollowUp; status: CloudAgentStatus },
+    input: { followUp?: GalleryFollowUp; status: WorkerTurnStatus },
     context: GalleryContext,
     times: { followUpAt: Date; observedAt: Date; terminalAt: Date | null }
 ) {
@@ -265,7 +265,7 @@ function workLifecycle(
     };
 }
 
-function gallerySummary(status: CloudAgentStatus): string | null {
+function gallerySummary(status: WorkerTurnStatus): string | null {
     switch (status) {
         case 'failed':
             return 'The sample build failed. Check the branch before retrying.';

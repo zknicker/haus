@@ -119,8 +119,8 @@ export interface StoredChatMessageRelations {
     body?: MessageBody;
     /** Why an Agent wrote this: the Trigger or Reminder fire it answered. */
     cause?: MessageCause;
-    /** The linked Cloud Agent work the viewer can see, in link order. */
-    cloudAgentWork?: ChatMessage['cloudAgentWork'];
+    /** The linked Worker the viewer can see, in link order. */
+    worker?: ChatMessage['worker'];
     /** The Drive files the Message cites, in link order. */
     driveCitations?: ChatMessage['driveCitations'];
     /** The linked image generations the viewer can see, in link order. */
@@ -141,7 +141,7 @@ export function toChatMessage(
         authorProfile,
         body,
         cause,
-        cloudAgentWork = [],
+        worker = [],
         driveCitations = [],
         imageGenerations = [],
         reactions = [],
@@ -154,7 +154,7 @@ export function toChatMessage(
         body: readBody(message, body),
         ...(cause ? { cause } : {}),
         chatId: message.chatId,
-        cloudAgentWork,
+        worker,
         content: message.content,
         createdAt: message.createdAt.toISOString(),
         driveCitations,

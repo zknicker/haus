@@ -1,14 +1,14 @@
-import type { CloudAgentWork, Task, TaskActor, TaskDetail } from '@haus/api';
+import type { Worker, Task, TaskActor, TaskDetail } from '@haus/api';
 import { and, desc, eq } from 'drizzle-orm';
-import { readWorkDetails, toCloudAgentWork } from '../cloud-agents/cloud-agent-shape.ts';
-import { pullRequestKey, readPullRequestReadings } from '../cloud-agents/pull-request-readings.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentTaskFollowsTable,
     chatsTable,
-    cloudAgentWorkTable,
+    workersTable,
     taskPullRequestsTable,
 } from '../postgres/schema.ts';
+import { pullRequestKey, readPullRequestReadings } from '../workers/pull-request-readings.ts';
+import { readWorkDetails, toWorker } from '../workers/worker-shape.ts';
 import { isTaskFollowed } from './task-follows.ts';
 import { taskUnreadCount } from './task-unread.ts';
 
@@ -26,23 +26,18 @@ export async function readTaskPlaceDetail(
     };
 }
 
-async function readAttachedWork(db: Reader, task: Task): Promise<CloudAgentWork[]> {
+async function readAttachedWork(db: Reader, task: Task): Promise<Worker[]> {
     const rows = await db
         .select()
-        .from(cloudAgentWorkTable)
-        .where(
-            and(
-                eq(cloudAgentWorkTable.serverId, task.serverId),
-                eq(cloudAgentWorkTable.taskId, task.id)
-            )
-        )
-        .orderBy(desc(cloudAgentWorkTable.createdAt), desc(cloudAgentWorkTable.id));
+        .from(workersTable)
+        .where(and(eq(workersTable.serverId, task.serverId), eq(workersTable.taskId, task.id)))
+        .orderBy(desc(workersTable.createdAt), desc(workersTable.id));
     const details = await readWorkDetails(
         db,
         task.serverId,
         rows.map((row) => row.id)
     );
-    return rows.map((row) => toCloudAgentWork(row, details.get(row.id)));
+    return rows.map((row) => toWorker(row, details.get(row.id)));
 }
 
 async function readAttachedPullRequests(db: Reader, task: Task) {

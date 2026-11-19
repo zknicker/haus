@@ -7,7 +7,6 @@ import { agentPath } from './agent-path.ts';
 import { createRunPresentation } from './agent-run-frames.ts';
 import type { AgentTurnTimings } from './agent-turn-timings.ts';
 import { computerEntrypoint } from './build-identity.ts';
-import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import { createComputerTools } from './computer-tools.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
 import type { StoredNoticeReceipt } from './delivery.ts';
@@ -30,6 +29,7 @@ import { reportRuntimeOutcome } from './runtime-issues.ts';
 import type { RuntimeTurnOutcome } from './turn-failure-report.ts';
 import { type OpenTurnLedger, openTurnLedger } from './turn-ledger.ts';
 import { visibilityReceipt } from './visibility-receipt.ts';
+import type { WorkerSupervisor } from './workers/work-runner.ts';
 import { ensureAgentWorkspace } from './workspace-volumes/workspace-volume.ts';
 import { writeHausWrapper } from './wrapper.ts';
 
@@ -54,7 +54,7 @@ export type {
 
 export interface RunAgentLaunchOptions {
     attachment: Attachment;
-    cloudAgents?: CloudAgentWorkSupervisor;
+    workers?: WorkerSupervisor;
     command: AgentStartCommand;
     dataRoot: string;
     /** Commits the Server ack immediately before the runtime accepts the prompt. */
@@ -135,7 +135,7 @@ async function runLedgeredLaunch(
 
     const host = acquireAgentLaunchHost({
         agentId: command.agentId,
-        cloudAgents: options.cloudAgents,
+        workers: options.workers,
         dataRoot: options.dataRoot,
         runnerToken: runner.runnerToken,
         runId: command.runId,

@@ -1,12 +1,12 @@
-import { formatCloudAgentWorkLink } from '@haus/api';
+import { formatWorkerLink } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
-import { recordCloudAgentWorkLinks } from '../chats/cloud-agent-work-links.ts';
+import { recordWorkerLinks } from '../chats/worker-links.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     chatsTable,
-    cloudAgentRunsTable,
-    cloudAgentWorkTable,
+    workerTurnsTable,
+    workersTable,
     messageClaimsTable,
 } from '../postgres/schema.ts';
 import type { InboxSeedContext } from './seed-inbox-context.ts';
@@ -48,7 +48,7 @@ export async function seedStalledClaim(
     });
 }
 
-interface SeedCloudAgentWork {
+interface SeedWorker {
     activityAt: Date;
     activitySummary: string;
     content: string;
@@ -63,10 +63,10 @@ interface SeedCloudAgentWork {
     title: string;
 }
 
-export async function seedCloudAgentWork(
+export async function seedWorker(
     tx: HausDatabase,
     context: InboxSeedContext,
-    work: SeedCloudAgentWork
+    work: SeedWorker
 ): Promise<void> {
     const messageId = createOpaqueId('msg');
     const workId = createOpaqueId('caw');
@@ -75,7 +75,7 @@ export async function seedCloudAgentWork(
         messages: [
             {
                 authorAgentId: context.blippyId,
-                content: `${work.content}\n\n${formatCloudAgentWorkLink(work.title, workId)}`,
+                content: `${work.content}\n\n${formatWorkerLink(work.title, workId)}`,
                 createdAt: work.createdAt,
                 id: messageId,
                 nonce: work.nonce,
@@ -83,8 +83,8 @@ export async function seedCloudAgentWork(
         ],
         serverId: context.serverId,
     });
-    await insertCloudAgentWork(tx, context, work, { messageId, workId });
-    await recordCloudAgentWorkLinks(tx, {
+    await insertWorker(tx, context, work, { messageId, workId });
+    await recordWorkerLinks(tx, {
         chatId: context.productChatId,
         links: [{ ordinal: 0, workId }],
         messageId,
@@ -92,13 +92,13 @@ export async function seedCloudAgentWork(
     });
 }
 
-async function insertCloudAgentWork(
+async function insertWorker(
     tx: HausDatabase,
     context: InboxSeedContext,
-    work: SeedCloudAgentWork,
+    work: SeedWorker,
     { messageId, workId }: { messageId: string; workId: string }
 ): Promise<void> {
-    await tx.insert(cloudAgentWorkTable).values({
+    await tx.insert(workersTable).values({
         activityAt: work.activityAt,
         activitySummary: work.activitySummary,
         agentId: context.blippyId,
@@ -119,7 +119,7 @@ async function insertCloudAgentWork(
         title: work.title,
         updatedAt: work.terminalAt,
     });
-    await tx.insert(cloudAgentRunsTable).values({
+    await tx.insert(workerTurnsTable).values({
         branches: [
             {
                 branch: 'cloud/sidebar-inbox-badge',

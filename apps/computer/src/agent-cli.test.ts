@@ -6,7 +6,7 @@ const families = [
     'attachment',
     'channel',
     'claim',
-    'cloud-agent',
+    'worker',
     'drive',
     'inbox',
     'message',

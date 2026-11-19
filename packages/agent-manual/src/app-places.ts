@@ -214,12 +214,12 @@ export const appPlaces: readonly AppPlace[] = [
     {
         area: 'connections-and-computers',
         task: "Choose a Computer's default Cloud Agent provider",
-        path: ['Settings', 'Devices', '(your device)', 'Cloud Agents', 'Make default'],
+        path: ['Settings', 'Devices', '(your device)', 'Workers', 'Make default'],
         who: 'owner-or-admin',
         anchors: [
             settingsEntry(),
             computers(),
-            label('features/computers/cloud-agent-capability-card.tsx', 'Cloud Agents'),
+            label('features/computers/cloud-agent-capability-card.tsx', 'Workers'),
             label('features/computers/cloud-agent-capability-row.tsx', 'Make default'),
         ],
     },
@@ -240,13 +240,13 @@ export const appPlaces: readonly AppPlace[] = [
     {
         area: 'connections-and-computers',
         task: "Choose each Cloud Agent provider's model",
-        path: ['Settings', 'Models', 'Cloud Agents'],
+        path: ['Settings', 'Models', 'Workers'],
         who: 'owner-or-admin',
         note: 'Every member can read it.',
         anchors: [
             settingsEntry(),
             settingsSection('models'),
-            label('features/settings/models/cloud-agent-model-group.tsx', 'Cloud Agents'),
+            label('features/settings/models/cloud-agent-model-group.tsx', 'Workers'),
         ],
     },
     {

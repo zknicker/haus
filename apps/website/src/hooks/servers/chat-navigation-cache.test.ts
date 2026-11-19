@@ -113,7 +113,7 @@ function message(sequence: number): ChatMessage {
         author: { kind: 'human', userId: 'usr_navigation' },
         body: { kind: 'text' },
         chatId,
-        cloudAgentWork: [],
+        worker: [],
         imageGenerations: [],
         driveCitations: [],
         content: `Message ${sequence}`,

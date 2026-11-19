@@ -2,12 +2,12 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { buildInboxItems } from '../src/agent-delivery/inbox-items.ts';
 import { listInboxItemsByDedupeKeys } from '../src/agent-delivery/store.ts';
-import { seedPullRequestReadings } from '../src/cloud-agents/pull-request-readings.ts';
 import type { GithubApp } from '../src/github/github-app.ts';
 import { refreshPullRequestReadings } from '../src/github/pull-request-refresh.ts';
 import { attachPullRequestToTask } from '../src/github/task-pull-request-attach.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
+import { seedPullRequestReadings } from '../src/workers/pull-request-readings.ts';
 import { createFakeGithub } from './github-fake.ts';
 import { type GithubTriggerWorld, seedGithubTriggerWorld } from './github-trigger-seed.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
@@ -101,7 +101,7 @@ test('a draft turning ready after settlement wakes the Agent in the Task, once',
     });
     expect(await buildInboxItems(connection.db, rows)).toMatchObject([
         {
-            cloudAgentWork: {
+            worker: {
                 notice: 'pull_request',
                 pullRequestChange: {
                     change: 'ready_for_review',
@@ -189,7 +189,7 @@ test('a pull request on a Task with no cloud work wakes its assignee Agent, with
         dedupeKeys: [key],
         runId: 'run_unused',
     });
-    expect(rows.map((row) => ({ chatId: row.chatId, runId: row.cloudAgentRunId }))).toEqual([
+    expect(rows.map((row) => ({ chatId: row.chatId, runId: row.workerTurnId }))).toEqual([
         { chatId: bare.chatId, runId: null },
     ]);
     expect(wakes).toContainEqual({ agentId: world.agentId, serverId: world.serverId });
@@ -204,7 +204,7 @@ test('a pull request on a Task with no cloud work wakes its assignee Agent, with
         sequence: 0,
         target: `task:${bare.key}`,
     });
-    expect(item?.cloudAgentWork).toBeUndefined();
+    expect(item?.worker).toBeUndefined();
 
     await markAndRefresh();
     expect(

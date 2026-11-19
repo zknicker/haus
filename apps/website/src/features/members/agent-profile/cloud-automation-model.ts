@@ -1,12 +1,12 @@
-import type { CloudAgentAutomation } from '@haus/api';
+import type { WorkerAutomation } from '@haus/api';
 import { formatRelativeTime } from '../../../lib/format.ts';
 import {
-    cloudAgentJobChipColor,
-    cloudAgentJobLabels,
+    workerJobChipColor,
+    workerJobLabels,
     quietFor,
-} from '../../cloud-agents/cloud-agent-presentation.ts';
+} from '../../workers/worker-presentation.ts';
 
-export function cloudAutomationPresentation(row: CloudAgentAutomation, now: number) {
+export function cloudAutomationPresentation(row: WorkerAutomation, now: number) {
     const updated = `Last update ${formatRelativeTime(row.work.updatedAt, now)}`;
     switch (row.notification) {
         case 'pending':
@@ -17,9 +17,9 @@ export function cloudAutomationPresentation(row: CloudAgentAutomation, now: numb
             } as const;
         case 'delivered':
             return {
-                label: cloudAgentJobLabels[row.work.job.state],
+                label: workerJobLabels[row.work.job.state],
                 detail: 'Result delivered to the Captain',
-                color: cloudAgentJobChipColor(row.work.job.state),
+                color: workerJobChipColor(row.work.job.state),
             } as const;
         case 'computer-removed':
             return {
@@ -41,7 +41,7 @@ export function cloudAutomationPresentation(row: CloudAgentAutomation, now: numb
             } as const;
         case 'unavailable':
             return {
-                label: cloudAgentJobLabels[row.work.job.state],
+                label: workerJobLabels[row.work.job.state],
                 detail: 'No delivery record is available',
                 color: 'warning',
             } as const;

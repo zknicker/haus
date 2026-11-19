@@ -1,19 +1,19 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import type { CloudAgentWorkUpdatedEvent, TaskUpdatedEvent } from '@haus/api';
-import { cloudAgentWorkUpdatedTopic, taskUpdatedTopic } from '../src/realtime/topics.ts';
-import { cloudAgentFixture } from './cloud-agent-fixture.ts';
-import { cloudAgentLinkHelpers } from './cloud-agent-link-helpers.ts';
+import type { WorkerUpdatedEvent, TaskUpdatedEvent } from '@haus/api';
+import { workerUpdatedTopic, taskUpdatedTopic } from '../src/realtime/topics.ts';
 import { captureTopic, type TopicCapture } from './realtime-capture.ts';
 import { startTestTask } from './task-place-fixture.ts';
+import { workerLinkHelpers } from './worker-link-helpers.ts';
+import { workerRecordFixture } from './worker-record-fixture.ts';
 
-const fixture = cloudAgentFixture();
-const { agentPost } = cloudAgentLinkHelpers(fixture);
+const fixture = workerRecordFixture();
+const { agentPost } = workerLinkHelpers(fixture);
 let taskEvents: TopicCapture<TaskUpdatedEvent>;
-let workEvents: TopicCapture<CloudAgentWorkUpdatedEvent>;
+let workEvents: TopicCapture<WorkerUpdatedEvent>;
 
 beforeAll(() => {
     taskEvents = captureTopic(taskUpdatedTopic);
-    workEvents = captureTopic(cloudAgentWorkUpdatedTopic);
+    workEvents = captureTopic(workerUpdatedTopic);
 });
 
 afterAll(() => {
@@ -96,7 +96,7 @@ test('launching work on a Task announces the Task, and work events and rows name
     const workEvent = await workEvents.next((event) => event.workId === workId);
     expect(workEvent.taskId).toBe(fixture.task.id);
 
-    const rows = await fixture.owner.trpc.cloudAgentWork.listActive.query({
+    const rows = await fixture.owner.trpc.worker.listActive.query({
         serverId: fixture.serverId,
     });
     expect(rows.find((row) => row.work.id === workId)).toMatchObject({

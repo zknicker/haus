@@ -1,9 +1,5 @@
 import { expect, test } from 'bun:test';
-import {
-    agentStartCommandSchema,
-    agentTurnSummarySchema,
-    cloudAgentWorkAttentionSchema,
-} from '@haus/api';
+import { agentStartCommandSchema, agentTurnSummarySchema, workerAttentionSchema } from '@haus/api';
 import { parseStartCommand } from './agent-command-frames.ts';
 import { parseInbox, rejectedInboxItems } from './agent-inbox-input.ts';
 import { dispatchAgentStart } from './agent-start-dispatch.ts';
@@ -71,7 +67,7 @@ test('reports a terminal failure for a rejected start without leaking its payloa
 });
 
 function attentionContinuation() {
-    const cloudAgentWork = {
+    const worker = {
         branches: [],
         errorCode: null,
         notice: 'settled',
@@ -92,10 +88,10 @@ function attentionContinuation() {
         inbox: [
             {
                 chatId: 'cht_origin',
-                cloudAgentWork,
+                worker,
                 content: '',
                 createdAt: '2026-09-08T03:47:39.214Z',
-                id: cloudAgentWork.runId,
+                id: worker.runId,
                 senderHandle: 'haus',
                 senderType: 'system',
                 sequence: 0,
@@ -151,7 +147,7 @@ test("accepts a human sender's IANA zone and refuses one on any other sender", (
 });
 
 /**
- * A current Server's inline reply and settled Cloud Agent attention, each carrying a field a future Server release might
+ * A current Server's inline reply and settled Worker attention, each carrying a field a future Server release might
  * additively send at every nesting level the shape reaches. Before the
  * loosened response schemas, any one of these fields stranded the whole
  * inbox item: `parseInbox` requires every item in the frame to parse, so a
@@ -180,7 +176,7 @@ function inboxItemWithUnknownNestedFields() {
         },
         rootMessageId: 'msg_root1234567890',
     };
-    const cloudAgentWork = {
+    const worker = {
         branches: [
             {
                 branch: 'fix/flaky-delivery',
@@ -213,10 +209,10 @@ function inboxItemWithUnknownNestedFields() {
     };
     return {
         chatId: 'cht_origin',
-        cloudAgentWork,
+        worker,
         content: '',
         createdAt: '2026-09-08T03:47:39.214Z',
-        id: cloudAgentWork.runId,
+        id: worker.runId,
         reply,
         senderHandle: 'haus',
         senderType: 'system',
@@ -225,19 +221,17 @@ function inboxItemWithUnknownNestedFields() {
     };
 }
 
-test('the canonical strict cloud agent attention schema rejects a field it does not know', () => {
-    const { cloudAgentWork } = inboxItemWithUnknownNestedFields();
-    expect(() => cloudAgentWorkAttentionSchema.parse(cloudAgentWork)).toThrow(
-        /futureAttentionField/
-    );
+test('the canonical strict Worker attention schema rejects a field it does not know', () => {
+    const { worker } = inboxItemWithUnknownNestedFields();
+    expect(() => workerAttentionSchema.parse(worker)).toThrow(/futureAttentionField/);
 });
 
-test('parseInbox tolerates an inline reply and cloud agent attention carrying fields from a newer Server, at every nesting level', () => {
+test('parseInbox tolerates an inline reply and Worker attention carrying fields from a newer Server, at every nesting level', () => {
     const item = inboxItemWithUnknownNestedFields();
     const [parsed] = parseInbox([item]) ?? [];
     expect(parsed?.id).toBe(item.id);
     expect(parsed?.reply?.parentMessageId).toBe('msg_parent1234567890');
-    expect(parsed?.cloudAgentWork?.branches[0]?.pullRequest?.number).toBe(42);
+    expect(parsed?.worker?.branches[0]?.pullRequest?.number).toBe(42);
 });
 
 test('parseInbox keeps the change a pull request notice names (ADR 0053)', () => {
@@ -250,13 +244,13 @@ test('parseInbox keeps the change a pull request notice names (ADR 0053)', () =>
         parseInbox([
             {
                 ...item,
-                cloudAgentWork: {
-                    ...item.cloudAgentWork,
+                worker: {
+                    ...item.worker,
                     notice: 'pull_request',
                     pullRequestChange,
                 },
             },
         ]) ?? [];
-    expect(parsed?.cloudAgentWork?.notice).toBe('pull_request');
-    expect(parsed?.cloudAgentWork?.pullRequestChange).toEqual(pullRequestChange);
+    expect(parsed?.worker?.notice).toBe('pull_request');
+    expect(parsed?.worker?.pullRequestChange).toEqual(pullRequestChange);
 });

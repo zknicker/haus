@@ -27,7 +27,7 @@ export default defineConfig({
     rules: {
         ...landminesRules,
         // The repo's own rules (scripts/lint/haus-rules).
-        'haus/cloud-agent-status-writes': 'error',
+        'haus/worker-status-writes': 'error',
         'haus/config-env-loader': 'error',
         'haus/heroui-compound-children': 'error',
         'haus/heroui-dialog-form': 'error',

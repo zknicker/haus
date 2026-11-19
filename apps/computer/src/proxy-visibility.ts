@@ -11,7 +11,7 @@ import { attestVisibleMessages } from './visibility-receipt.ts';
  * visibility, the Server's seen receipt, and local inbox consumption, so a
  * shown message is never delivered again as news. Returns a failure Response
  * when the receipt could not be recorded, or null to return the original
- * response. Mutations (send, react, a held Cloud Agent launch) already acted
+ * response. Mutations (send, react, a held Worker launch) already acted
  * or deliberately did not, so their result is returned even when recording
  * fails.
  */

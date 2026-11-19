@@ -2,11 +2,11 @@ import type { CloudAgentProvider } from '@haus/api';
 import { toast } from '@heroui/react';
 import { useState } from 'react';
 import {
-    useCloudAgentCancelSignIn,
+    useWorkerCancelSignIn,
     useCloudAgentCapability,
-    useCloudAgentConnect,
-    useCloudAgentDisconnect,
-    useCloudAgentMakeDefault,
+    useWorkerConnect,
+    useWorkerDisconnect,
+    useWorkerMakeDefault,
     useSetClaudeEnvironment,
 } from '../../hooks/servers/use-cloud-agent-capability.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
@@ -37,11 +37,11 @@ export function CloudAgentProviderCapability({
     const computer = computers.data?.find((candidate) => candidate.id === computerId);
     const isOffline = computer ? computer.health === 'offline' : true;
     const capability = useCloudAgentCapability(target, Boolean(computer) && !isOffline);
-    const connect = useCloudAgentConnect(target);
-    const disconnect = useCloudAgentDisconnect(target);
-    const makeDefault = useCloudAgentMakeDefault(target);
+    const connect = useWorkerConnect(target);
+    const disconnect = useWorkerDisconnect(target);
+    const makeDefault = useWorkerMakeDefault(target);
     const setEnvironment = useSetClaudeEnvironment(target);
-    const cancel = useCloudAgentCancelSignIn(target);
+    const cancel = useWorkerCancelSignIn(target);
     const [signInOpen, setSignInOpen] = useState(false);
     const state =
         capability.data ??
@@ -101,9 +101,9 @@ export function CloudAgentProviderCapability({
     const handleMakeDefault = async () => {
         try {
             await makeDefault.mutateAsync(target);
-            toast.success(`${view.providerName} is now the default cloud agent`);
+            toast.success(`${view.providerName} is now the default Worker`);
         } catch (error) {
-            toast.danger('Couldn’t change the default cloud agent', {
+            toast.danger('Couldn’t change the default Worker', {
                 description: errorMessage(error),
             });
         }

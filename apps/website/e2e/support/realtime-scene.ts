@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { cloudAgentObservationFrame, seedCloudAgentWork } from './agent-cloud-agent.ts';
+import { workerObservationFrame, seedWorker } from './agent-worker.ts';
 import { createChannelAgent } from './channel-agent.ts';
 import { sendBootstrap, socketMessage, socketOpen } from './computer-socket.ts';
 import { installDesktopBrowserStub, openDesktopWindow } from './desktop-browser-stub.ts';
@@ -10,7 +10,7 @@ import { expect } from './test.ts';
 /**
  * The incident detector's scene (specs/realtime-events.md, "App e2e"): a
  * desktop window whose shown tab A is `#haus` and whose kept, hidden tab B is
- * `#product`, which holds an inline reply anchor and a Cloud Agent work Message. Two
+ * `#product`, which holds an inline reply anchor and a Worker Message. Two
  * Agents with no model write through the Agent API, and a Computer reports
  * the work's progress over its attachment.
  */
@@ -34,11 +34,11 @@ export async function createRealtimeScene(page: Page, slug: string) {
         name: 'product',
         serverId: server.id,
     });
-    const work = await seedCloudAgentWork({
+    const work = await seedWorker({
         agentHandle: 'scout',
         channelName: 'product',
         computerCredential,
-        content: 'Delegating the index rebuild to a Cloud Agent.',
+        content: 'Delegating the index rebuild to a Worker.',
         databaseUrl: session.databaseUrl,
         repository: 'haus/haus',
         serverId: server.id,
@@ -80,7 +80,7 @@ export async function createRealtimeScene(page: Page, slug: string) {
                 replyToMessageId: anchor.message.id,
                 serverId: server.id,
             }),
-        /** Change 3: the Computer reports the Cloud Agent work's progress. */
+        /** Change 3: the Computer reports the Worker's progress. */
         workUpdate: async (activity: string) => {
             const computer = new WebSocket(
                 `ws://127.0.0.1:${process.env.HAUS_SERVER_PORT}/computer/attachment`
@@ -90,7 +90,7 @@ export async function createRealtimeScene(page: Page, slug: string) {
             sendBootstrap(computer, computerCredential, 'complete');
             expect(await accepted).toMatchObject({ mode: 'ordinary' });
             computer.send(
-                cloudAgentObservationFrame({
+                workerObservationFrame({
                     activity,
                     observedAt: new Date().toISOString(),
                     runId: work.runId,
@@ -124,7 +124,7 @@ export function visibleSurface(page: Page) {
 
 /**
  * The convergence assertions: tab A shows the `#haus` reply with no reload;
- * revealing tab B shows the inline reply and the updated Cloud Agent row.
+ * revealing tab B shows the inline reply and the updated Worker row.
  */
 export async function expectConverged(
     page: Page,
@@ -143,6 +143,6 @@ export async function expectConverged(
     await expect(
         visibleSurface(page)
             .locator(`[data-message-id="${scene.work.messageId}"]`)
-            .getByTestId('cloud-agent-work-status-line')
+            .getByTestId('worker-status-line')
     ).toContainText(expected.activity, { timeout: 15_000 });
 }
