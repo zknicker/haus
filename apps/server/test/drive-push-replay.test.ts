@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { drivePushOutcomeSchema } from '@haus/api';
-import { drivePushFixture } from './drive-push.fixture.ts';
+import { drivePushFixture, expectOutcome } from './drive-push.fixture.ts';
 
 const push = drivePushFixture();
 const { fixture } = push;
@@ -58,6 +58,63 @@ test('a replayed put and delete return the stored outcome, even closed and under
     expect(await push.countRows('artifact_revisions', 'haus/replay/')).toBe(3);
     const items = await push.conflictItems(fixture.orbitAgentId);
     expect(items.map((item) => item.dedupe_key)).toEqual(['drive-conflict:run_replay_first']);
+});
+
+test('a request id reused for a different put or delete is 409, even closed and under a later push', async () => {
+    const run = await push.dispatch('run_reuse_first');
+    const route = '/api/agent/drive/push/delete';
+    const put = { path: 'haus/reuse/a.md', push_id: 'run_reuse_first', request_id: 'reuse-put' };
+    const committed = expectOutcome(await push.putOutcome(run, put, 'one\n'), 'committed');
+    const head = committed.current.revision_id;
+    const remove = {
+        base_revision_id: head,
+        path: 'haus/reuse/a.md',
+        push_id: 'run_reuse_first',
+        request_id: 'reuse-delete',
+    };
+    const reused = {
+        body: {
+            code: 'IDEMPOTENCY_KEY_REUSED',
+            message: 'That request_id was sent for a different change.',
+        },
+        status: 409,
+    };
+
+    expect(await push.put(run, put, 'two\n')).toEqual(reused);
+    expect(await push.put(run, { ...put, path: 'haus/reuse/b.md' }, 'one\n')).toEqual(reused);
+    expect(await push.put(run, { ...put, content_type: 'text/markdown' }, 'one\n')).toEqual(reused);
+    expect(await push.put(run, { ...put, base_revision_id: head }, 'one\n')).toEqual(reused);
+    expect(await push.postJson(run, route, { ...remove, request_id: 'reuse-put' })).toEqual(reused);
+    expect(await push.putOutcome(run, { ...put, path: 'haus/REUSE/a.md' }, 'one\n')).toEqual(
+        committed
+    );
+
+    const kept = await push.deleteOutcome(run, { ...remove, base_revision_id: 'rev_not_the_head' });
+    expect(kept).toEqual({
+        current: committed.current,
+        outcome: 'deleted',
+        path: 'haus/reuse/a.md',
+    });
+    expect(await push.postJson(run, route, remove)).toEqual(reused);
+    expect(await push.postJson(run, route, { ...remove, path: 'haus/reuse/c.md' })).toEqual(reused);
+    expect(await push.put(run, { ...put, request_id: 'reuse-delete' }, 'one\n')).toEqual(reused);
+    expect(await push.close(run, 'run_reuse_first')).toEqual([]);
+
+    const later = await push.dispatch('run_reuse_later');
+    const replayed = { ...put, push_id: 'run_reuse_later' };
+    expect(await push.putOutcome(later, replayed, 'one\n')).toEqual(committed);
+    expect(await push.put(later, replayed, 'three\n')).toEqual(reused);
+    expect(
+        await push.deleteOutcome(later, {
+            ...remove,
+            base_revision_id: 'rev_not_the_head',
+            push_id: 'run_reuse_later',
+        })
+    ).toEqual(kept);
+    expect(await push.postJson(later, route, { ...remove, push_id: 'run_reuse_later' })).toEqual(
+        reused
+    );
+    expect(await push.countRows('artifact_revisions', 'haus/reuse/')).toBe(1);
 });
 
 test('a new request on a closed push is 409 PUSH_CLOSED, and a push must name a run of yours', async () => {

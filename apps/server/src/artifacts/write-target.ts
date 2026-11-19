@@ -13,7 +13,7 @@ import { liveArtifactAtPath, placeArtifactPath } from './path.ts';
 
 export type ArtifactWriteExpectation =
     | { kind: 'replace' }
-    | { kind: 'head'; base: string | null }
+    | { kind: 'head'; base: string | null; merges: boolean }
     | { kind: 'revive'; base: string; path: string };
 
 export interface ArtifactWriteTarget {
@@ -26,7 +26,8 @@ export async function writeTarget(
     tx: HausDatabase,
     access: ArtifactAccess,
     input: ArtifactPublishInput,
-    origin: string
+    origin: string,
+    merges: boolean
 ) {
     const { path } = await writableDrivePath(tx, access, input.path);
     const base = input.base_revision_id ?? null;
@@ -35,8 +36,11 @@ export async function writeTarget(
         if (input.replace) {
             return target(occupant, { kind: 'replace' }, occupant.path);
         }
-        if (base && (await isMergeBase(tx, occupant, base))) {
-            return target(occupant, { base, kind: 'head' }, occupant.path);
+        if (
+            base &&
+            (merges ? await isMergeBase(tx, occupant, base) : base === occupant.currentRevisionId)
+        ) {
+            return target(occupant, { base, kind: 'head', merges }, occupant.path);
         }
         throw await revisionConflict(tx, access, origin, {
             artifactId: occupant.id,
@@ -59,7 +63,7 @@ export async function writeTarget(
     const artifact = await createArtifactAt(tx, access, path);
     return target(
         artifact,
-        input.replace ? { kind: 'replace' } : { base: null, kind: 'head' },
+        input.replace ? { kind: 'replace' } : { base: null, kind: 'head', merges },
         artifact.path
     );
 }

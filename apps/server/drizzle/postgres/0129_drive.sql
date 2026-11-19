@@ -21,12 +21,18 @@ CREATE TABLE "drive_changes" (
 --> statement-breakpoint
 CREATE TABLE "drive_push_outcomes" (
 	"author_key" text NOT NULL,
+	"base_revision_id" text,
+	"content_sha256" text,
+	"content_type" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"operation" text NOT NULL,
 	"outcome" jsonb NOT NULL,
+	"path_key" text NOT NULL,
 	"push_id" text NOT NULL,
 	"request_id" text NOT NULL,
 	"server_id" text NOT NULL,
-	CONSTRAINT "drive_push_outcomes_server_id_author_key_request_id_pk" PRIMARY KEY("server_id","author_key","request_id")
+	CONSTRAINT "drive_push_outcomes_server_id_author_key_request_id_pk" PRIMARY KEY("server_id","author_key","request_id"),
+	CONSTRAINT "drive_push_outcomes_request_shape" CHECK ("drive_push_outcomes"."operation" in ('put', 'delete') and ("drive_push_outcomes"."operation" = 'put') = ("drive_push_outcomes"."content_type" is not null) and ("drive_push_outcomes"."operation" = 'put' or ("drive_push_outcomes"."content_sha256" is null and "drive_push_outcomes"."base_revision_id" is not null)))
 );
 --> statement-breakpoint
 CREATE TABLE "drive_pushes" (
@@ -71,7 +77,11 @@ ALTER TABLE "agent_run_triggers" ADD CONSTRAINT "agent_run_triggers_chat" CHECK 
                 or ("agent_run_triggers"."chat_id" is null) = ("agent_run_triggers"."source" in ('subagent', 'drive_conflict')));--> statement-breakpoint
 -- specs/artifact-drive.md "Migration": every existing path moves into the Haus area,
 -- rewriting paths only, and the Haus counter starts at the number of its files.
-UPDATE "artifacts" SET "path" = 'haus/' || "path", "path_key" = 'haus/' || "path_key";
+-- The live-path unique index is checked per row, so `a.md` cannot become `haus/a.md` while
+-- `haus/a.md` is still live. Keys pass through `/<key>` first: no valid path starts with `/`.
+UPDATE "artifacts" SET "path_key" = '/' || "path_key";
+--> statement-breakpoint
+UPDATE "artifacts" SET "path" = 'haus/' || "path", "path_key" = 'haus/' || substr("path_key", 2);
 --> statement-breakpoint
 INSERT INTO "drive_area_counters" ("server_id", "area_id", "counter")
 SELECT "servers"."id", 'haus', count("artifacts"."id")

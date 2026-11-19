@@ -13,9 +13,12 @@ import { MemoryArtifactStorage } from './artifact-drive-fixture.ts';
 
 type Body = string | Uint8Array;
 
-export function drivePushFixture() {
+export function drivePushFixture(options: { artifactStorageBytes?: number } = {}) {
     const storage = new MemoryArtifactStorage();
-    const fixture = agentCreationFixture(undefined, storage);
+    const fixture = agentCreationFixture(undefined, {
+        artifactStorage: storage,
+        artifactStorageBytes: options.artifactStorageBytes,
+    });
     let connection: HausConnection;
     let ownerToken: string;
 
@@ -104,7 +107,11 @@ export function drivePushFixture() {
         return drivePushCloseResultSchema.parse(response.body).listed;
     }
 
-    async function publish(runner: { token: string }, query: Record<string, string>, body: Body) {
+    async function publishResponse(
+        runner: { token: string },
+        query: Record<string, string>,
+        body: Body
+    ) {
         const url = new URL('/api/agent/artifacts/publish-artifact-raw', fixture.harness.url);
         url.search = new URLSearchParams({ content_type: 'text/plain', ...query }).toString();
         const response = await fetch(url, {
@@ -115,8 +122,16 @@ export function drivePushFixture() {
             },
             method: 'POST',
         });
+        return {
+            body: (await response.json()) as Record<string, unknown>,
+            status: response.status,
+        };
+    }
+
+    async function publish(runner: { token: string }, query: Record<string, string>, body: Body) {
+        const response = await publishResponse(runner, query, body);
         expect(response.status).toBe(200);
-        return artifactPublishResultSchema.parse(await response.json()).artifact;
+        return artifactPublishResultSchema.parse(response.body).artifact;
     }
 
     async function memberPut(query: Record<string, string>, body: Body) {
@@ -189,6 +204,7 @@ export function drivePushFixture() {
         peerWriter: () => writer(fixture.peerAgentId),
         postJson,
         publish,
+        publishResponse,
         put,
         putOutcome,
         revision,

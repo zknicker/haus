@@ -3,7 +3,7 @@ import {
     artifactTextMaxBytes,
     driveDeletedRetentionDays,
 } from '@haus/api';
-import { and, eq, exists, gt, inArray, lt, notExists, or, sql } from 'drizzle-orm';
+import { and, eq, exists, gt, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { type BootSweep, type SweepTimers, startBootSweep } from '../boot-sweep.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -120,7 +120,10 @@ function claimExpiredRevisions(db: HausDatabase, now: Date, batchSize: number) {
         .returning();
 }
 
-/** Larger than text: a newer ready revision replaced it before the window, and it is not the head. */
+/**
+ * Larger than text: a newer ready revision replaced it before the window, and it is not the head
+ * of a live file. A deleted file keeps every revision until its own window ends.
+ */
 function replacedLargeRevision(db: HausDatabase, now: Date) {
     const newer = alias(revisions, 'newer_revision');
     return and(
@@ -139,7 +142,7 @@ function replacedLargeRevision(db: HausDatabase, now: Date) {
                     )
                 )
         ),
-        notExists(
+        exists(
             db
                 .select({ one: sql`1` })
                 .from(artifacts)
@@ -147,7 +150,8 @@ function replacedLargeRevision(db: HausDatabase, now: Date) {
                     and(
                         eq(artifacts.serverId, revisions.serverId),
                         eq(artifacts.id, revisions.artifactId),
-                        eq(artifacts.currentRevisionId, revisions.id)
+                        isNull(artifacts.deletedAt),
+                        sql`${artifacts.currentRevisionId} is distinct from ${revisions.id}`
                     )
                 )
         )

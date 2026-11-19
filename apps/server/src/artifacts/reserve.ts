@@ -22,7 +22,7 @@ export type ArtifactReservation =
 export async function reserveArtifact(
     db: HausDatabase,
     access: ArtifactAccess,
-    write: { input: ArtifactPublishInput; taskId: string | null },
+    write: { input: ArtifactPublishInput; merges: boolean; taskId: string | null },
     budget: number,
     origin: string
 ): Promise<ArtifactReservation> {
@@ -44,7 +44,13 @@ export async function reserveArtifact(
             return await retryOf(tx, existing, input);
         }
         await requireStorageBudget(tx, access.serverId, budget);
-        const { artifact, expect, path } = await writeTarget(tx, access, input, origin);
+        const { artifact, expect, path } = await writeTarget(
+            tx,
+            access,
+            input,
+            origin,
+            write.merges
+        );
         const revision = await insertUploadingRevision(tx, access, {
             artifact,
             base: expect.kind === 'replace' ? null : expect.base,

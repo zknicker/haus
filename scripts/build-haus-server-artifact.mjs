@@ -101,7 +101,14 @@ await fs.cp(
     path.join(stageRoot, 'operations'),
     { recursive: true }
 );
-for (const operation of ['install-colima-boot', 'rollback-colima-boot', 'run-server']) {
+for (const operation of [
+    'backup-haus',
+    'install-colima-boot',
+    'install-local-backup',
+    'rollback-colima-boot',
+    'run-server',
+    'verify-haus-backup',
+]) {
     await fs.chmod(path.join(stageRoot, 'operations', operation), 0o755);
 }
 

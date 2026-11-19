@@ -12,7 +12,7 @@ import { agentCreationFixture } from './agent-creation-fixture.ts';
 import { MemoryArtifactStorage } from './artifact-drive-fixture.ts';
 
 const storage = new MemoryArtifactStorage();
-const fixture = agentCreationFixture(undefined, storage);
+const fixture = agentCreationFixture(undefined, { artifactStorage: storage });
 let connection: Awaited<ReturnType<typeof connectHausDatabase>>;
 let owner: { kind: 'human'; member: Awaited<ReturnType<typeof findUserById>>; serverId: string };
 let requests = 0;

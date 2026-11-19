@@ -79,7 +79,10 @@ and 8 and [context management](../docs/features/context-management.md). The memo
 Everyone reads every area. People write every area. An Agent writes `haus/`, every Project, and its
 own `agents/<handle>/`. Another Agent's area is read-only to it, and a write there is `FORBIDDEN`.
 A Worker writes what its Agent writes. Deleting needs write access to the file, and a move needs
-it at both ends.
+it at both ends. A write is checked against the area when it reserves storage and again when its
+upload lands, against the path the file has then. A file moved into an area the writer cannot write
+while its bytes upload fails with `FORBIDDEN`, and a push answers `refused`. A push's area changes
+owner only when a retired Agent's handle passes to a new Agent.
 
 ## Paths
 
@@ -226,8 +229,12 @@ that shape strictly, so a merge shows as a revision whose base differs from its 
 
 The Server merges base, head, and the incoming bytes when all three are text. Text means valid
 UTF-8 with no NUL byte and at most `artifactTextMaxBytes` (1 MiB), the same test `artifact.text`
-uses. Lines split on `\n`, so a `\r` stays part of its line. Changed regions that overlap or touch
-conflict, as `git merge-file` decides. The same change made on both sides is not a conflict.
+uses. A line ends after its `\n`, so a `\r` stays part of its line and a missing final newline
+changes the last line. Changed regions that overlap or touch conflict, as `git merge-file` decides.
+The same change made on both sides is not a conflict. Each side's diff is git's Myers diff
+(`xdiff`), with its linear-space split, cost cutoffs, line cleanup, and change compaction, so hunks
+stay separate at any size up to the text limit, and a change inside a run of equal lines lands at the
+same place on both sides.
 
 A clean merge commits the merged bytes as a new revision. Its author is the writer, its base is the
 stated base, and its parent is the head. The merge runs under the row lock against the head the
@@ -269,7 +276,7 @@ or an author to fill it.
 | `deleted` | A delete whose base is the head | A tombstone |
 | `kept_both` | A put whose merge failed, or a create at a path someone else filled | The other version at the path, and the incoming bytes in a copy |
 | `kept_edit` | An edit met a delete, on either side | The edited file, live at its path |
-| `refused` | Path rules, area write access, a file and folder clash, size, content type, or storage limits | Nothing new |
+| `refused` | Path rules, area write access, a file and folder clash, size, or content type | Nothing new |
 
 The path rules apply after the request parses, so a bad path is a `refused` outcome, not a 400.
 A clean merge whose result equals the head answers `unchanged`. A create at a filled path, or a base
@@ -278,13 +285,17 @@ whose base names a file that moved to another path since creates the pushed path
 answers `committed`, because History does not follow a rename yet. A delete onto a path that holds
 another file than its base's leaves that file alone and answers `deleted` with it as `current`. A
 delete onto a path where nothing is live answers `deleted`. A transient failure, such as storage
-being unavailable or a duplicate request still uploading, answers an error and stores nothing, so
-the machine sends the file again.
+being unavailable, the storage budget being exhausted (`STORAGE_LIMIT`), or a duplicate request
+still uploading, answers an error and stores nothing, so the machine sends the file again. A stored
+`STORAGE_LIMIT` refusal would outlive the shortage, because the same bytes keep the same
+`request_id`.
 
 A copy is named `<stem>.conflict-<handle>.<ext>`, splitting the file name at its last dot. A name
 with no dot, or only a leading dot, takes the suffix at its end, so `.env` becomes
 `.env.conflict-blippy`. The handle is the pushing Agent's, or the Worker's Agent's. A taken copy
-name takes `-2`, then `-3`, before the extension. The copy is an ordinary new file in the same
+name takes `-2`, then `-3`, before the extension. A copy name that would break the path rules, such
+as a file name pushed past 255 characters, refuses the put with `INVALID_PATH`, and the item lists
+it. The copy is an ordinary new file in the same
 folder, authored by the writer with the push's Task, with no base and no parent. It takes over the
 object the push uploaded, so its R2 key keeps the prefix of the file the push first wrote to. It is
 resolved by merging into the original and deleting the copy.
@@ -299,6 +310,14 @@ new request. A lost create replayed after a later pull finds the folder already 
 and sends nothing. A request repeated after a lost answer, even under a
 later push, returns the stored outcome. It never makes a second copy or a second `drive_conflict`
 item, and it succeeds even after the push it first belonged to has closed.
+
+Each outcome stores the request it answered: put or delete, the path key, the base revision, the
+content type, and for a put the sha256 of the body. A `request_id` reused for a different request
+fails with 409 `IDEMPOTENCY_KEY_REUSED` and stores nothing. A replay's metadata is compared first,
+before its body is read. Only a put whose metadata matches reads its body, and only to hash it. A
+put refused before its body was read, such as one with a bad path, stores no body hash, so its
+replay answers without reading the body. A fresh put hashes its body in the same pass that uploads
+it.
 
 The Server records each file's outcome under the push id. A push closes on `close`, or when the
 same writer opens its next push, so a machine that crashed mid-push still reaches the Agent.
@@ -330,12 +349,15 @@ purged opens the current revision and says the cited one is gone. Attachments st
 
 The current revision is always kept. A replaced revision up to `artifactTextMaxBytes` is kept for
 the life of the file, so rule and memory history never expires. A larger replaced revision is
-deleted seven days after a newer revision took its place (`ARTIFACT_REVISION_RETENTION_DAYS`). A
-deleted file keeps every revision for 30 days (`driveDeletedRetentionDays`), then its revisions are
-purged and its tombstone stays. `delete-artifact-version` still removes one non-current revision at
-once. A delete also turns off the file's public link, so a restore never re-exposes a link the
-delete ended. `artifact.restore` on a deleted file's revision brings the file back at its last path
-on top of its last head, or fails with `PATH_TAKEN` when another file lives there now.
+deleted seven days after a newer revision took its place (`ARTIFACT_REVISION_RETENTION_DAYS`), and
+only while the file is live. A deleted file keeps every revision, large replaced ones included, for
+30 days (`driveDeletedRetentionDays`), then its revisions are purged and its tombstone stays.
+`delete-artifact-version` still removes one non-current revision at once. A delete also turns off
+the file's public link, so a restore never re-exposes a link the delete ended.
+`artifact.restore` on a deleted file's revision brings the file back at its last path on top of its
+last head, or fails with `PATH_TAKEN` when another file lives there now. A restore never merges. It
+lands only while the head it read is still the head; a restore that races another write fails with
+`REVISION_CONFLICT`.
 
 ## Moves
 

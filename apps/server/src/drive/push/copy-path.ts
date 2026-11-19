@@ -18,7 +18,7 @@ export async function freeCopyPath(
     handle: string
 ) {
     for (let n = 1; ; n += 1) {
-        const candidate = artifactPathSchema.parse(conflictCopyPath(path, handle, n));
+        const candidate = copyPathWithinRules(path, conflictCopyPath(path, handle, n));
         if (
             !(await liveArtifactAtPath(tx, serverId, candidate)) &&
             (await placeable(tx, serverId, candidate))
@@ -26,6 +26,18 @@ export async function freeCopyPath(
             return candidate;
         }
     }
+}
+
+function copyPathWithinRules(path: string, copy: string) {
+    const parsed = artifactPathSchema.safeParse(copy);
+    if (parsed.success) {
+        return parsed.data;
+    }
+    throw new ArtifactError(
+        `\`${path}\` has no room for a conflict copy beside it: ${parsed.error.issues[0]?.message ?? 'the copy breaks the path rules.'}`,
+        400,
+        'INVALID_PATH'
+    );
 }
 
 async function placeable(tx: HausDatabase, serverId: string, path: string) {

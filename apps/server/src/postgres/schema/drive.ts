@@ -88,12 +88,18 @@ export const drivePushesTable = pgTable(
     ]
 );
 
+export type DrivePushOperation = 'put' | 'delete';
 export const drivePushOutcomesTable = pgTable(
     'drive_push_outcomes',
     {
         authorKey: text('author_key').notNull(),
+        baseRevisionId: text('base_revision_id'),
+        contentSha256: text('content_sha256'),
+        contentType: text('content_type'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        operation: text('operation').notNull().$type<DrivePushOperation>(),
         outcome: jsonb('outcome').notNull().$type<DrivePushOutcome>(),
+        pathKey: text('path_key').notNull(),
         pushId: text('push_id').notNull(),
         requestId: text('request_id').notNull(),
         serverId: text('server_id').notNull(),
@@ -101,6 +107,10 @@ export const drivePushOutcomesTable = pgTable(
     (table) => [
         primaryKey({ columns: [table.serverId, table.authorKey, table.requestId] }),
         index('drive_push_outcomes_push').on(table.serverId, table.pushId),
+        check(
+            'drive_push_outcomes_request_shape',
+            sql`${table.operation} in ('put', 'delete') and (${table.operation} = 'put') = (${table.contentType} is not null) and (${table.operation} = 'put' or (${table.contentSha256} is null and ${table.baseRevisionId} is not null))`
+        ),
         foreignKey({
             columns: [table.serverId, table.pushId],
             foreignColumns: [drivePushesTable.serverId, drivePushesTable.id],

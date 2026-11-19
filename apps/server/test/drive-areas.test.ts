@@ -6,7 +6,7 @@ import { connectHausDatabase } from '../src/postgres/connection.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 import { MemoryArtifactStorage } from './artifact-drive-fixture.ts';
 
-const fixture = agentCreationFixture(undefined, new MemoryArtifactStorage());
+const fixture = agentCreationFixture(undefined, { artifactStorage: new MemoryArtifactStorage() });
 let connection: Awaited<ReturnType<typeof connectHausDatabase>>;
 let requests = 0;
 

@@ -8,16 +8,15 @@ import type { ResolvedRunner } from '../../computers/runner-credentials.ts';
 import type { HausDatabase } from '../../postgres/connection.ts';
 import { artifactUpdatedTopic } from '../../realtime/topics.ts';
 import { writableDrivePath } from '../areas.ts';
+import { headOf, isRefusal, requirePushPath, revisionOwner } from './outcomes.ts';
+import type { DrivePushOptions } from './put.ts';
 import {
-    headOf,
-    isRefusal,
+    deleteRequest,
+    type PushRequest,
     recordOutcome,
     recordRefusal,
-    requirePushPath,
-    revisionOwner,
     storedOutcome,
-} from './outcomes.ts';
-import type { DrivePushOptions } from './put.ts';
+} from './replay.ts';
 import { type DrivePush, openPush, requireOpenPush } from './session.ts';
 
 const deleteBody = drivePushDeleteInputSchema.extend({ path: z.string().min(1).max(4096) });
@@ -26,9 +25,10 @@ export async function pushDelete(options: DrivePushOptions, runner: ResolvedRunn
     const input = deleteBody.parse(body);
     const { db } = options;
     const access = await artifactAccess(db, { kind: 'agent', runner });
-    const stored = await storedOutcome(db, access, input.request_id);
+    const request = deleteRequest(input);
+    const stored = await storedOutcome(db, access, input.request_id, request);
     if (stored) {
-        return stored;
+        return stored.outcome;
     }
     const opened = await openPush(db, options.agentDelivery, access, input.push_id);
     options.wake(opened.wakes);
@@ -36,6 +36,7 @@ export async function pushDelete(options: DrivePushOptions, runner: ResolvedRunn
         base: input.base_revision_id,
         path: input.path,
         push: opened.push,
+        request,
         requestId: input.request_id,
     };
     try {
@@ -56,8 +57,10 @@ export async function pushDelete(options: DrivePushOptions, runner: ResolvedRunn
             await requireOpenPush(tx, access, opened.push.id);
             return await recordRefusal(tx, access, {
                 cause,
+                contentSha256: null,
                 path: input.path,
                 pushId: opened.push.id,
+                request,
                 requestId: input.request_id,
             });
         });
@@ -67,14 +70,20 @@ export async function pushDelete(options: DrivePushOptions, runner: ResolvedRunn
 async function deleteIn(
     db: HausDatabase,
     access: ArtifactAccess,
-    write: { base: string; path: string; push: DrivePush; requestId: string }
+    write: {
+        base: string;
+        path: string;
+        push: DrivePush;
+        request: PushRequest;
+        requestId: string;
+    }
 ) {
     return await db.transaction(async (tx) => {
         await lockLiveServer(tx, access.serverId);
         await requireOpenPush(tx, access, write.push.id);
-        const prior = await storedOutcome(tx, access, write.requestId);
+        const prior = await storedOutcome(tx, access, write.requestId, write.request);
         if (prior) {
-            return { deletedArtifactId: null, outcome: prior };
+            return { deletedArtifactId: null, outcome: prior.outcome };
         }
         const placement = await writableDrivePath(tx, access, requirePushPath(write.path));
         const occupant = await liveArtifactAtPath(tx, access.serverId, placement.path);
@@ -94,8 +103,10 @@ async function deleteIn(
         return {
             deletedArtifactId: deletes ? (occupant?.id ?? null) : null,
             outcome: await recordOutcome(tx, access, {
+                contentSha256: null,
                 outcome,
                 pushId: write.push.id,
+                request: write.request,
                 requestId: write.requestId,
             }),
         };

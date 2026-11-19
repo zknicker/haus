@@ -1,6 +1,6 @@
 import { artifactPathKey } from '@haus/api';
 import { eq } from 'drizzle-orm';
-import { driveAreaOfPath } from '../drive/areas.ts';
+import { driveAreaOfPath, writableDrivePath } from '../drive/areas.ts';
 import { recordDriveChanges } from '../drive/changes.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -36,13 +36,22 @@ export async function landArtifactRevision(
         const landed = await markUploaded(tx, artifact, landing.revision, landing.uploaded);
         const { expect } = landing;
         if (expect.kind === 'revive') {
+            await writableDrivePath(tx, access, expect.path);
             await revive(tx, access, origin, artifact, landed, expect);
             return landed;
         }
         if (artifact.deletedAt) {
             throw new ArtifactError('File was deleted during publication.', 409, 'DELETED');
         }
+        await writableDrivePath(tx, access, artifact.path);
         if (expect.kind === 'head' && artifact.currentRevisionId !== expect.base) {
+            if (!expect.merges) {
+                throw await revisionConflict(tx, access, origin, {
+                    artifactId: artifact.id,
+                    baseRevisionId: expect.base,
+                    path: artifact.path,
+                });
+            }
             const merged = await staleHead(tx, access, origin, storage, {
                 artifact,
                 base: expect.base,

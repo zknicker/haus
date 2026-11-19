@@ -15,7 +15,7 @@ import { type HausServerHarness, startHausServerHarness } from './haus-server-ha
 
 export function agentCreationFixture(
     messageRouter?: MessageRouter,
-    artifactStorage?: ArtifactStorage
+    artifacts: { artifactStorage?: ArtifactStorage; artifactStorageBytes?: number } = {}
 ) {
     let harness: HausServerHarness;
     let owner: HausClient;
@@ -53,7 +53,7 @@ export function agentCreationFixture(
 
     beforeAll(async () => {
         harness = await startHausServerHarness({
-            artifactStorage,
+            ...artifacts,
             avatarImageProvider,
             messageRouter,
         });

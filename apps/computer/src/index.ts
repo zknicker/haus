@@ -98,6 +98,7 @@ import {
 import { runInternalCommand } from './internal-commands.ts';
 import { handleInventoryRefresh } from './inventory-refresh.ts';
 import { detectInventory } from './inventory.ts';
+import { attachmentInvocations } from './invocations/attachment-invocations.ts';
 import { tracedCrashTurn } from './launch-crash-turn.ts';
 import {
     type AgentStartCommand,
@@ -796,7 +797,6 @@ async function installResidentService() {
     replaceLaunchdService(await writeResidentService());
 }
 
-/** Restarts the resident service after an update, from the CLI or from inside the job. */
 async function restartResidentService() {
     restartLaunchdService({
         ...(await writeResidentService()),
@@ -895,6 +895,7 @@ async function connect(
     const connectionWork = await AttachmentConnectionWork.make(runtime);
     const socket = new WebSocket(socketUrl);
     const journalUploads = attachmentJournalUploads(dataRoot, attachment, daemonWork, socket);
+    const invocations = attachmentInvocations(dataRoot, attachment, daemonWork);
     const { agentWork, noticeSinks, resettingAgents, retiredAgents } = daemonWork;
     let deleting = false;
     let deletionPromise: Promise<void> | null = null;
@@ -1018,7 +1019,6 @@ async function connect(
         reportStateError
     );
     let opened = false;
-    // Resolve on close; `connected` distinguishes disconnect from unreachable Server.
     return await new Promise<AttachmentConnectionOutcome>((resolve) => {
         socket.addEventListener('close', () => {
             detachSender();
@@ -1072,7 +1072,7 @@ async function connect(
                 sendFrame({ type: 'heartbeat-negotiate' });
                 if (bootstrap.mode === 'ordinary') {
                     journalUploads.connected();
-                    // Reattach observations for provider work that outlived the socket.
+                    invocations.connected();
                     daemonWork.cloudAgents?.attach((observation) => {
                         sendFrame({ observation, type: 'cloud-agent-observation' });
                     });
@@ -1280,7 +1280,7 @@ async function connect(
             ) {
                 return;
             }
-            if (journalUploads.receive(frame)) {
+            if (journalUploads.receive(frame) || invocations.receive(frame)) {
                 return;
             }
             const reset = commandFrames.parseResetCommand(frame);
