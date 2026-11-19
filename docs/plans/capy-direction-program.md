@@ -178,6 +178,8 @@ ADR 0055 decisions 1 to 11.
 - [ ] **J3. Give every Agent a home Project.** Delivery narrows to the home Project, mentions, assignments, and DMs. Migrate each Agent to the channel it is most active in. Delivery tests for each hearing rule.
 - [ ] **J4. Rebuild the sidebar and Agent page.** Agent tiles, Projects with their Agents, open Tasks, the footer, Project settings, New task, and the Agent page Overview. iPhone gets the Project and Task changes it needs to stay usable. Review-gated.
 
+The J4 UI ships early as the flagged Capy shell from the UI track. That covers the sidebar and the Home prompt, and later the Captain page and Project settings. J4 itself is data wiring, flipping the flag on, and deleting the old shell. D5 is unchanged. The UI track also decided, with Zach, that the shell has no Inbox page: Home is the prompt box, and each sidebar row carries its own unread state. The Agent inbox is unchanged.
+
 **Verify, live, for the phase.** Walkthroughs 2, 3, and 5 from the proposal on the real stack.
 
 **Verify, perf, for the phase.** Sidebar render cost with `render-budget.spec.ts`, trunk first. Fail on any budget the spec already enforces.

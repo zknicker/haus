@@ -29,7 +29,8 @@ stored in `localStorage` under `haus.capy-shell` and follows into other open win
     an unread message in it @mentions you. Waiting Tasks sort first.
   - People lists person-to-person DMs and appears only when you have any.
 - **Footer.** Your avatar menu (Settings, Sign out, the version) and icons for Tasks, Drive,
-  Automations (a menu of Captains, each opening its Automations), and Activity. The update status
+  Automations (a menu of Captains, each opening its Automations), and Activity. Drive opens the
+  Files route (`/s/<slug>/artifacts`), which D5 turns into the Drive page. The update status
   stays above them; the offline Device chip does not.
 - **Removed.** The Inbox row and page, the Direct messages section, the Files row, the top
   Settings gear, and the Device chip. `/inbox` redirects to Home. Every row carries its own
@@ -64,7 +65,9 @@ projects its own entry through `features/capy-shell/sidebar-model.ts` from a nar
 `channel-mention`, posts the ask in the Project's channel as a message that @mentions the Captain,
 through the channel composer's optimistic send (pending row, receipt, and a failed send returned
 to that channel's composer), and opens the channel. J2 switches Home to `create-task`: a Task in
-that Project assigned to that Captain.
+that Project assigned to that Captain. `planHomeTask` (`home-task-plan.ts`) already builds the
+`task.create` input; once J2's `task.create` is on main, the swap is one change to `useHomeSend`
+(`use-home-send.ts`).
 
 ## Retiring the flag
 

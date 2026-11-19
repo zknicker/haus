@@ -2,13 +2,11 @@ import type { Agent, Chat } from '@haus/api';
 import { InlineSelect, PromptInput } from '@heroui-pro/react';
 import { Label, ListBox } from '@heroui/react';
 import * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
-import { useChatMessageSend } from '../../hooks/servers/use-chat-message-send.ts';
-import { serverChatRoute } from '../servers/server-routes.ts';
 import { useHomePromptFocusRequests } from './home-prompt-focus.ts';
-import { defaultCaptainId, planHomeSend, sendHomeAsk } from './home-send.ts';
+import { defaultCaptainId } from './home-send.ts';
+import { useHomeSend } from './use-home-send.ts';
 
 type HomeProject = Pick<Chat, 'color' | 'icon' | 'id' | 'name' | 'participantAgentIds'>;
 type HomeCaptain = Pick<Agent, 'avatarUrl' | 'displayName' | 'id'>;
@@ -26,8 +24,7 @@ export function HomeComposer({
     serverId: string;
     slug: string;
 }) {
-    const navigate = useNavigate();
-    const send = useChatMessageSend();
+    const sendHome = useHomeSend(serverId, slug);
     const [text, setText] = React.useState('');
     const [projectId, setProjectId] = React.useState(initialProjectId);
     const [pickedCaptainId, setPickedCaptainId] = React.useState<string | null>(null);
@@ -43,22 +40,19 @@ export function HomeComposer({
             captains.map((captain) => captain.id)
         );
     const captain = captains.find((entry) => entry.id === captainId);
-    const plan =
-        project && captain
-            ? planHomeSend({
+    const ask =
+        project && captain && text.trim().length > 0
+            ? {
                   captain: { agentId: captain.id, name: captain.displayName },
                   projectChatId: project.id,
                   text,
-              })
+              }
             : null;
 
     const submit = () => {
-        if (!plan) {
-            return;
+        if (ask && sendHome(ask)) {
+            setText('');
         }
-        setText('');
-        navigate(serverChatRoute(slug, plan.chatId));
-        void sendHomeAsk({ plan, send, serverId });
     };
 
     return (
@@ -164,7 +158,7 @@ export function HomeComposer({
                     </PromptInput.Content>
                     <PromptInput.Toolbar>
                         <PromptInput.ToolbarEnd>
-                            <PromptInput.Send aria-label="Send" isDisabled={!plan} />
+                            <PromptInput.Send aria-label="Send" isDisabled={!ask} />
                         </PromptInput.ToolbarEnd>
                     </PromptInput.Toolbar>
                 </PromptInput.Shell>
