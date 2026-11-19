@@ -60,6 +60,7 @@ function messageEvent(
         sequence,
         serverId: 'server_one',
         taskId: null,
+        taskOriginAuthorUserId: null,
     };
 }
 

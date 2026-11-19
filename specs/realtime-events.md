@@ -304,7 +304,8 @@ that owns its subscription and its exact cache response: `useMessageCreatedStrea
 Desktop and web message notifications consume `chat.onMessageCreated` and `chat.onRead` through
 the same single subscriptions: those hooks take an optional `onEvent` callback that
 `MessageNotifications` supplies. Notifications fire on live events only, never on recovery reads.
-A Task message notifies only the Task's followers, through the same stream.
+A Task message notifies through the same stream under the same rule; `taskOriginAuthorUserId`
+lets it notify the author of the Task's origin Message without a mention.
 
 ### Normalized transcript cache
 

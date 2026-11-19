@@ -5,7 +5,8 @@
  *
  * A human is notified about a message they did not write when it is in a DM
  * they belong to — every message — or, in a Channel or Task, when it
- * @mentions them or inline-replies to their message. Notifications are
+ * @mentions them or inline-replies to their message, or sits in a Task that
+ * started from their message. Notifications are
  * decoupled from the Inbox: the Inbox is unread state, and reading a Chat
  * clears it without touching this rule.
  *
@@ -23,6 +24,8 @@ export interface MessageNotificationFacts {
     mentionedUserIds: readonly string[];
     /** The human author of the message this one inline-replies to. */
     replyToAuthorUserId: string | null;
+    /** The human author of the origin Message of the Task this message is in. */
+    taskOriginAuthorUserId: string | null;
 }
 
 /**
@@ -42,7 +45,7 @@ export function messageNotificationReason(
     if (message.mentionedUserIds.includes(userId)) {
         return 'mention';
     }
-    if (message.replyToAuthorUserId === userId) {
+    if (message.replyToAuthorUserId === userId || message.taskOriginAuthorUserId === userId) {
         return 'reply';
     }
     return null;
@@ -57,6 +60,7 @@ export function messageNotificationCandidates(message: MessageNotificationFacts)
     const named = new Set([
         ...message.mentionedUserIds,
         ...(message.replyToAuthorUserId ? [message.replyToAuthorUserId] : []),
+        ...(message.taskOriginAuthorUserId ? [message.taskOriginAuthorUserId] : []),
     ]);
     return [...named].filter((userId) => messageNotificationReason(message, userId) !== null);
 }

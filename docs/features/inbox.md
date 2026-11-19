@@ -281,7 +281,8 @@ Inbox badge counts the same rows
 One rule decides who a new message notifies, and it is independent of the Inbox
 ([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)). A human is notified about a message
 they did not write when it is in a DM they belong to — every message — or, in a Channel or Task,
-when it @mentions them or inline-replies to their message. `messageNotificationReason` in
+when it @mentions them or inline-replies to their message, or sits in a Task that started from
+their message. `messageNotificationReason` in
 `packages/haus-api/src/message-notification.ts` is that rule, over the facts `message.created`
 carries; the Server and the App both call it. Reading a Chat clears it from the Inbox but never
 stops the next notification; only a message already read is not notified.

@@ -10,6 +10,7 @@ const channel: MessageNotificationFacts = {
     conversationKind: 'channel',
     mentionedUserIds: [],
     replyToAuthorUserId: null,
+    taskOriginAuthorUserId: null,
 };
 
 test('every DM message notifies its other member, whoever it names', () => {
@@ -40,12 +41,21 @@ test('a Channel message notifies only the humans it mentions or answers', () => 
     );
 });
 
+test('a message in a Task notifies the author of its origin Message without a mention', () => {
+    const inTask = { ...channel, taskOriginAuthorUserId: 'usr_ada' };
+    expect(messageNotificationReason(inTask, 'usr_ada')).toBe('reply');
+    expect(messageNotificationReason(inTask, 'usr_bo')).toBeNull();
+    expect(messageNotificationReason({ ...inTask, authorUserId: 'usr_ada' }, 'usr_ada')).toBeNull();
+    expect(messageNotificationCandidates(inTask)).toEqual(['usr_ada']);
+});
+
 test('a human is never notified about their own message', () => {
     const own = {
         ...channel,
         authorUserId: 'usr_ada',
         mentionedUserIds: ['usr_ada'],
         replyToAuthorUserId: 'usr_ada',
+        taskOriginAuthorUserId: 'usr_ada',
     };
     expect(messageNotificationReason(own, 'usr_ada')).toBeNull();
     expect(messageNotificationReason({ ...own, conversationKind: 'dm' }, 'usr_ada')).toBeNull();

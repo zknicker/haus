@@ -1,7 +1,10 @@
 import { beforeAll, describe, expect, test } from 'bun:test';
+import { messageNotificationReason } from '@haus/api';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
+import { messageCreatedTopic } from '../src/realtime/topics.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 import type { HausClient } from './haus-client.ts';
+import { captureTopic } from './realtime-capture.ts';
 
 const fixture = agentCreationFixture();
 let runner: { token: string };
@@ -144,6 +147,19 @@ describe('followers and unread', () => {
         expect(agents.map((row: { agent_id: string }) => row.agent_id)).toEqual([
             fixture.orbitAgentId,
         ]);
+    });
+
+    test('a message in a Task names its origin author, whom it notifies without a mention', async () => {
+        const created = captureTopic(messageCreatedTopic);
+        const sent = await send(cal, second.chatId, 'Health check is green again.');
+        const event = await created.next((candidate) => candidate.messageId === sent.message.id);
+        created.stop();
+        expect(event).toMatchObject({
+            messageId: sent.message.id,
+            taskId: second.taskId,
+            taskOriginAuthorUserId: fixture.ownerUserId,
+        });
+        expect(messageNotificationReason(event, fixture.ownerUserId)).toBe('reply');
     });
 
     test('a Task is unread only for its followers, and posting follows', async () => {

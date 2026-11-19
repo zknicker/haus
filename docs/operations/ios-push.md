@@ -12,7 +12,8 @@ read_when:
 The Haus Server pushes an iPhone alert for every message that notifies a human under the shared
 message notification rule ([Inbox](../features/inbox.md#notifications),
 [ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)): every message from someone else in
-their DMs, and in a Channel or Task one that @mentions them or inline-replies to their message.
+their DMs, and in a Channel or Task one that @mentions them or inline-replies to their message,
+or sits in a Task that started from their message.
 Reading a Chat never stops the next push, but a push waits a
 short grace period and is skipped if you have already read that message anywhere.
 Haus Server owns the device registrations and the APNs connection; the iPhone only registers.

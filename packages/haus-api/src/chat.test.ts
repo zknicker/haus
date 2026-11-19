@@ -118,6 +118,7 @@ test('Server messages and durable events keep stable Server and Chat identity', 
         sequence: message.sequence,
         serverId: message.serverId,
         taskId: null,
+        taskOriginAuthorUserId: null,
     });
     expect(created).toMatchObject({ messageId: 'msg_one', sequence: 1 });
     // Events carry ids and facts only: the App reads the row, never a payload copy.
@@ -164,11 +165,13 @@ test('A Task message and a Task read name the Task, and nothing names a parent a
         sequence: 3,
         serverId: 'srv_main',
         taskId: 'tsk_one',
+        taskOriginAuthorUserId: 'usr_owner',
     };
     expect(messageCreatedEventSchema.parse(created)).toEqual(created);
     expect(() =>
         messageCreatedEventSchema.parse({ ...created, parentChatId: 'cht_all' })
     ).toThrow();
+    expect(() => messageCreatedEventSchema.parse({ ...created, taskId: null })).toThrow();
     const read = { chatId: 'cht_task', sequence: 3, serverId: 'srv_main', taskId: 'tsk_one' };
     expect(chatReadEventSchema.parse(read)).toEqual(read);
     expect(() => chatReadEventSchema.parse({ ...read, parentChatId: 'cht_all' })).toThrow();

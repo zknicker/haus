@@ -11,8 +11,8 @@ import { idSchema } from './chat-contract-primitives.ts';
 
 /**
  * `chat.onMessageCreated`: a message committed. `sequence` lets the App skip
- * a tail read its cache already covers. The author, kind, and reply author are
- * the facts `messageNotificationReason` reads.
+ * a tail read its cache already covers. The author, kind, reply author, and
+ * Task origin author are the facts `messageNotificationReason` reads.
  */
 export const messageCreatedEventSchema = z
     .object({
@@ -25,8 +25,14 @@ export const messageCreatedEventSchema = z
         sequence: z.number().int().positive(),
         serverId: idSchema,
         taskId: idSchema.nullable(),
+        /** The human author of the Task's origin Message; null outside a Task or for an Agent's. */
+        taskOriginAuthorUserId: idSchema.nullable(),
     })
-    .strict();
+    .strict()
+    .refine((event) => event.taskId !== null || event.taskOriginAuthorUserId === null, {
+        message: 'Only a message in a Task names a Task origin author.',
+        path: ['taskOriginAuthorUserId'],
+    });
 
 export type MessageCreatedEvent = z.infer<typeof messageCreatedEventSchema>;
 

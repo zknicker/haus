@@ -24,6 +24,7 @@ test('prepare rejects a malformed event before anything is published', () => {
             sequence: 0,
             serverId: 'srv_one',
             taskId: null,
+            taskOriginAuthorUserId: null,
         })
     ).toThrow();
 });
