@@ -226,7 +226,7 @@ function getGroupLabel(option: MentionOption) {
     }
 
     if (option.kind === 'agent') {
-        return 'Agents';
+        return 'Captains';
     }
 
     if (option.kind === 'user') {
@@ -234,7 +234,7 @@ function getGroupLabel(option: MentionOption) {
     }
 
     if (option.kind === 'chat') {
-        return 'Channels';
+        return 'Projects';
     }
 
     if (option.kind === 'app') {

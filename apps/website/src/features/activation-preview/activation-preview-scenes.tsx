@@ -10,7 +10,7 @@ export const activationPreviewBasePath = '/prototype/activation';
 
 export interface ActivationPreviewScene {
     description: string;
-    group: 'Sign in' | 'Servers' | 'Invitation' | 'Computer login' | 'Cove onboarding';
+    group: 'Sign in' | 'Servers' | 'Invitation' | 'Device login' | 'Cove onboarding';
     id: string;
     /** Path under the preview base; defaults to the scene id. */
     path?: string;
@@ -99,20 +99,20 @@ export const activationPreviewScenes: ActivationPreviewScene[] = [
     },
     {
         description: 'No code yet: enter the code from `haus-computer login`.',
-        group: 'Computer login',
+        group: 'Device login',
         id: 'computer-login',
         render: () => <SignedInComputerLogin />,
     },
     {
         description: 'A pending code, signed in. Approve plays the full arc live.',
-        group: 'Computer login',
+        group: 'Device login',
         id: 'computer-login-pending',
         path: 'computer-login-pending?code=GROT-DEMO',
         render: () => <SignedInComputerLogin />,
     },
     {
         description: 'A pending code while signed out.',
-        group: 'Computer login',
+        group: 'Device login',
         id: 'computer-login-signed-out',
         path: 'computer-login-signed-out?code=GROT-DEMO',
         render: () => (
@@ -126,14 +126,14 @@ export const activationPreviewScenes: ActivationPreviewScene[] = [
     },
     {
         description: 'Setup finished; the page invites you to close it.',
-        group: 'Computer login',
+        group: 'Device login',
         id: 'computer-login-done',
         path: 'computer-login-done?code=GROT-DONE',
         render: () => <SignedInComputerLogin />,
     },
     {
         description: 'An expired login code.',
-        group: 'Computer login',
+        group: 'Device login',
         id: 'computer-login-expired',
         path: 'computer-login-expired?code=GROT-EXPD',
         render: () => <SignedInComputerLogin />,
@@ -157,7 +157,7 @@ export const activationPreviewScenes: ActivationPreviewScene[] = [
         path: 'onboarding/preview-admin',
     },
     {
-        description: 'The Computer connected and is reporting runtimes.',
+        description: 'The device connected and is reporting runtimes.',
         group: 'Cove onboarding',
         id: 'onboarding-detecting',
         path: 'onboarding/preview-detecting',
@@ -175,19 +175,19 @@ export const activationPreviewScenes: ActivationPreviewScene[] = [
         path: 'onboarding/preview-meet-cove',
     },
     {
-        description: 'Cove is being created on the Computer.',
+        description: 'Cove is being created on the device.',
         group: 'Cove onboarding',
         id: 'onboarding-applying',
         path: 'onboarding/preview-applying',
     },
     {
-        description: 'The Computer went offline mid-creation; reconnect recovers.',
+        description: 'The device went offline mid-creation; reconnect recovers.',
         group: 'Cove onboarding',
         id: 'onboarding-apply-failed',
         path: 'onboarding/preview-apply-failed',
     },
     {
-        description: 'Cove’s setup errored on a live Computer; retry with logs hint.',
+        description: 'Cove’s setup errored on a live device; retry with logs hint.',
         group: 'Cove onboarding',
         id: 'onboarding-apply-error',
         path: 'onboarding/preview-apply-error',

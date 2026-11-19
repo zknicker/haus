@@ -132,7 +132,7 @@ function modelTitle(provider: CloudAgentProvider): string {
 function modelInfo(view: CloudAgentModelView) {
     const name = cloudAgentProviderName(view.provider);
     if (view.catalogMissing) {
-        return `Models appear once a Computer with ${name} connected reports them.`;
+        return `Models appear once a device with ${name} connected reports them.`;
     }
     const about =
         view.provider === 'claude'

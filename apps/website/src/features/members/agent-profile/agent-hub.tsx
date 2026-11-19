@@ -62,7 +62,7 @@ export function AgentHub({
                 loaded ? (
                     <loaded.AgentHubContent {...content} />
                 ) : (
-                    <React.Suspense fallback={<AgentLoading label="Loading Agent activity" />}>
+                    <React.Suspense fallback={<AgentLoading label="Loading Captain activity" />}>
                         <LazyAgentHubContent {...content} />
                     </React.Suspense>
                 )

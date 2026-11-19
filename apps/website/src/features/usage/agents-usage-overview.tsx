@@ -88,7 +88,7 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
         // 3rem band fits compact chrome only (Select has no compact size).
         <PageColumn>
             <SettingsPageHeader
-                description="Processed tokens across this Server's Agents."
+                description="Processed tokens across this Server's Captains."
                 title="Usage"
             />
             {filterChips.length > 0 ? (
@@ -126,8 +126,8 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
                 />
             ) : usage.data ? (
                 <UsageEmptyCard
-                    description="Usage will appear after an Agent completes a model turn."
-                    title="No Agent Usage Yet"
+                    description="Usage will appear after a Captain completes a model turn."
+                    title="No Captain usage yet"
                 />
             ) : usage.error ? (
                 <UsageEmptyCard description={usage.error.message} title="Usage Unavailable" />

@@ -29,7 +29,7 @@ test('presents every Computer update phase', () => {
         'Downloading Haus Computer',
         'Verifying signature and integrity',
         'Installing update',
-        'Waiting for active Agents…',
+        'Waiting for active Captains…',
         'Restarting Haus Computer',
         'Update complete',
         'Update failed',

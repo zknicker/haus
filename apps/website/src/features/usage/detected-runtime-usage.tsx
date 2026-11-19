@@ -23,7 +23,7 @@ export function DetectedRuntimeUsage({
     detectedRuntimeIds,
     usage,
     runtimeIssues = [],
-    computerName = 'this Computer',
+    computerName = 'this device',
 }: {
     detectedRuntimeIds: ComputerRuntimeId[];
     usage: UsageOverview;
@@ -47,7 +47,7 @@ export function DetectedRuntimeUsage({
 
     return (
         <DataGrid
-            aria-label="Runtimes on this Computer"
+            aria-label="Runtimes on this device"
             columns={runtimeColumns(Date.now(), computerName)}
             contentClassName="min-w-160"
             data={rows}

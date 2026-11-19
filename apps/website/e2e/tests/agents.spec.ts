@@ -38,15 +38,15 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await reportInventory();
 
     await page.goto('/s/agent-hq/members');
-    await page.getByRole('button', { name: 'Create Agent' }).click();
-    const createDialog = page.getByRole('dialog', { name: 'Create Agent' });
+    await page.getByRole('button', { name: 'Create Captain' }).click();
+    const createDialog = page.getByRole('dialog', { name: 'Create Captain' });
     await expect(createDialog.getByLabel('Runtime')).toContainText('Codex');
     await expect(createDialog.getByLabel('Model')).toContainText('GPT-5.6 Sol');
     await createDialog.getByRole('textbox', { name: 'Name' }).fill('Scout');
     // The signature emoji is optional at creation and starts on the 👀 default.
     await createDialog.getByRole('button', { name: '👀 Signature emoji' }).click();
     await page.getByRole('option', { name: '🎉', exact: true }).click();
-    await createDialog.getByRole('button', { name: 'Create Agent' }).click();
+    await createDialog.getByRole('button', { name: 'Create Captain' }).click();
 
     await expect(page.getByRole('heading', { level: 1, name: 'Scout' })).toBeVisible();
     // A new Agent lands on its own page outside Settings, on the profile hub.
@@ -70,7 +70,7 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     // The one profile editor carries the private conversation style and signature emoji beside
     // the role line, and the description's 280-character budget blocks Save rather than truncating.
     await page.getByRole('button', { name: 'Edit Profile', exact: true }).click();
-    const editor = page.getByRole('dialog', { name: 'Agent profile' });
+    const editor = page.getByRole('dialog', { name: 'Captain profile' });
     const description = editor.getByRole('textbox', { name: 'Description', exact: true });
     await description.fill('x'.repeat(281));
     await expect(editor.getByText('Keep it to 280 characters.')).toBeVisible();
@@ -88,7 +88,7 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await expect(editor).toBeHidden();
     await page.reload();
     await page.getByRole('button', { name: 'Edit Profile', exact: true }).click();
-    const reopened = page.getByRole('dialog', { name: 'Agent profile' });
+    const reopened = page.getByRole('dialog', { name: 'Captain profile' });
     await expect(
         reopened.getByRole('textbox', { name: 'Conversation style', exact: true })
     ).toHaveValue('Dry and deadpan.');
@@ -98,7 +98,7 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
 
     // Every lifecycle verb is a menu item on the header now. Stop is the one
     // that needs something to stop, so it is inert on an idle Agent.
-    await page.getByRole('button', { name: 'Scout — Agent actions' }).click();
+    await page.getByRole('button', { name: 'Scout — Captain actions' }).click();
     await expect(page.getByRole('menuitem', { exact: true, name: 'Stop' })).toBeDisabled();
     await expect(
         page.getByRole('menuitem', { exact: true, name: 'Start fresh session' })
@@ -116,7 +116,7 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await page.getByRole('button', { name: /^Runs on/u }).click();
     await expect(page).toHaveURL(/\/agents\/[^/]+\/runtime$/u);
     await expect(page.getByRole('link', { exact: true, name: 'Scout' })).toBeVisible();
-    await expect(page.getByText('Applies when Computer reconnects')).toBeVisible();
+    await expect(page.getByText('Applies when device reconnects')).toBeVisible();
     await page.getByRole('button', { name: 'Edit', exact: true }).click();
     const runtimeDialog = page.getByRole('dialog', { name: 'Runtime Config' });
     await expect(runtimeDialog.getByLabel('Reasoning effort')).toContainText('Medium');
@@ -135,10 +135,10 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
 
     // Deletion requires the exact Agent name. Cancel leaves this isolated
     // e2e Agent intact for the adjacent DM and contract assertions.
-    await runAgentAction(page, 'Scout', 'Delete Agent');
+    await runAgentAction(page, 'Scout', 'Delete Captain');
     const confirmation = page.getByRole('alertdialog');
     await expect(confirmation).toContainText('permanently destroys');
-    const deleteButton = confirmation.getByRole('button', { name: 'Delete Agent' });
+    const deleteButton = confirmation.getByRole('button', { name: 'Delete Captain' });
     const nameField = confirmation.getByLabel(/Type Scout to confirm/iu);
     await expect(deleteButton).toBeDisabled();
     await nameField.fill('cove');

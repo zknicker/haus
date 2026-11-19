@@ -139,8 +139,8 @@ public struct SettingsAgentRuntimeConfiguration: Hashable, Sendable {
     public var statusLabel: String {
         if status == .applied { return "Current" }
         if status == .degraded { return "Needs attention" }
-        if computerHealth == .offline { return "Applies when Computer reconnects" }
-        if computerHealth == .updateRequired { return "Waiting for Computer update" }
+        if computerHealth == .offline { return "Applies when device reconnects" }
+        if computerHealth == .updateRequired { return "Waiting for device update" }
         return "Applying on next turn"
     }
 }

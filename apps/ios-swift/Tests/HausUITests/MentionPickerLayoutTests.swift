@@ -14,7 +14,7 @@ struct MentionPickerLayoutTests {
         ])
 
         #expect(sections.map(\.kind) == [.agent, .human, .channel, .skill])
-        #expect(sections.map(\.title) == ["Agents", "Humans", "Channels", "Skills"])
+        #expect(sections.map(\.title) == ["Captains", "Humans", "Projects", "Skills"])
     }
 
     @Test("A kind with nothing to offer gets no header")

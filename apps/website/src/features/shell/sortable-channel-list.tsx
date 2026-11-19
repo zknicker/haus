@@ -28,7 +28,7 @@ import './sortable-channel-list.css';
 
 const screenReaderInstructions = {
     draggable:
-        'To reorder a focused channel, press space. Use the arrow keys to move it, then press space to drop. Press escape to cancel.',
+        'To reorder a focused project, press space. Use the arrow keys to move it, then press space to drop. Press escape to cancel.',
 };
 const announcements: Announcements = {
     onDragCancel: ({ active }) => `Cancelled reordering ${sortableName(active)}.`,
@@ -103,7 +103,7 @@ export const SortableChannelList = React.memo(function SortableChannelList({
     const runKeyboardCommand = (channel: SortableChannel, command: KeyboardCommand) => {
         if (command === 'pick-up') {
             setKeyboardDrag({ ...channel, originalIds: orderedIds });
-            setKeyboardAnnouncement(`Picked up channel ${channel.name}.`);
+            setKeyboardAnnouncement(`Picked up project ${channel.name}.`);
             return;
         }
         if (!keyboardDrag || keyboardDrag.id !== channel.id) {
@@ -112,7 +112,7 @@ export const SortableChannelList = React.memo(function SortableChannelList({
         if (command === 'cancel') {
             setStoredIds(keyboardDrag.originalIds);
             setKeyboardDrag(null);
-            setKeyboardAnnouncement(`Cancelled reordering channel ${keyboardDrag.name}.`);
+            setKeyboardAnnouncement(`Cancelled reordering project ${keyboardDrag.name}.`);
             return;
         }
         if (command === 'drop') {
@@ -120,7 +120,7 @@ export const SortableChannelList = React.memo(function SortableChannelList({
                 writeChannelOrder(storage, storageKey, orderedIds);
             }
             setKeyboardDrag(null);
-            setKeyboardAnnouncement(`Dropped channel ${keyboardDrag.name}.`);
+            setKeyboardAnnouncement(`Dropped project ${keyboardDrag.name}.`);
             return;
         }
 
@@ -135,7 +135,7 @@ export const SortableChannelList = React.memo(function SortableChannelList({
         const nextIds = arrayMove(orderedIds, currentIndex, nextIndex);
         setStoredIds(nextIds);
         setKeyboardAnnouncement(
-            `Moved channel ${keyboardDrag.name} to position ${nextIndex + 1} of ${nextIds.length}.`
+            `Moved project ${keyboardDrag.name} to position ${nextIndex + 1} of ${nextIds.length}.`
         );
     };
     // Rows take one stable command function, so a keyboard drag or a reorder
@@ -157,7 +157,7 @@ export const SortableChannelList = React.memo(function SortableChannelList({
         if (!channelIds.includes(keyboardDrag.id)) {
             setStoredIds(keyboardDrag.originalIds);
             setKeyboardDrag(null);
-            setKeyboardAnnouncement(`Cancelled reordering channel ${keyboardDrag.name}.`);
+            setKeyboardAnnouncement(`Cancelled reordering project ${keyboardDrag.name}.`);
             return;
         }
         const handleActiveDragKey = (event: KeyboardEvent) => {
@@ -195,7 +195,7 @@ export const SortableChannelList = React.memo(function SortableChannelList({
             sensors={sensors}
         >
             <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
-                <Sidebar.Menu aria-label="Channels">
+                <Sidebar.Menu aria-label="Projects">
                     {orderedIds.map((chatId) => (
                         <SortableChannelRow
                             chatId={chatId}

@@ -205,7 +205,7 @@ function statusTitle(view: CloudAgentSignInView): string {
         case 'failed':
             return 'Sign-in incomplete';
         case 'offline':
-            return 'Computer offline';
+            return 'Device offline';
     }
 }
 
@@ -218,10 +218,10 @@ function statusDescription(view: CloudAgentSignInView): string {
         case 'connected':
             return view.email
                 ? `Connected as ${view.email}.`
-                : 'This Computer can now start Cloud Agents.';
+                : 'This device can now start Cloud Agents.';
         case 'failed':
             return 'Try again for a new sign-in link.';
         case 'offline':
-            return 'Your Computer needs to reconnect.';
+            return 'Your device needs to reconnect.';
     }
 }

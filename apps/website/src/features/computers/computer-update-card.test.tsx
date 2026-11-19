@@ -83,7 +83,7 @@ test('a connected Computer that stops reporting no longer shows endless progress
         updateUpdatedAt: '2020-01-01T00:00:00.000Z',
     });
 
-    expect(html).toContain('This Computer stopped reporting update progress.');
+    expect(html).toContain('This device stopped reporting update progress.');
     expect(html).toContain('Update to v1.5.0');
     expect(html).not.toContain('progress-bar');
 });

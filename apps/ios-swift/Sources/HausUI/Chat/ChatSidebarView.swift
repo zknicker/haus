@@ -91,7 +91,7 @@ public struct ChatSidebarView: View {
                             onOpen: onOpenInbox
                         )
 
-                        sectionHeader("Channels", trailingAction: onOpenNewChannel)
+                        sectionHeader("Projects", trailingAction: onOpenNewChannel)
                             .padding(.top, 6)
                         ForEach(channels) { row($0) }
 
@@ -182,7 +182,7 @@ public struct ChatSidebarView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.pressable)
-                .accessibilityLabel("New channel")
+                .accessibilityLabel("New project")
             }
         }
         .padding(.leading, Self.rowCapsuleBleed)

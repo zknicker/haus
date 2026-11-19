@@ -11,11 +11,11 @@ test('system events name Computer lifecycle and Server connection changes direct
     ).toBe('Connected to Server');
 
     const commands = [
-        ['start', 'Computer started'],
-        ['stop', 'Computer stopped'],
-        ['restart', 'Computer restarted'],
-        ['upgrade', 'Computer upgraded'],
-        ['rollback', 'Computer rolled back'],
+        ['start', 'Device started'],
+        ['stop', 'Device stopped'],
+        ['restart', 'Device restarted'],
+        ['upgrade', 'Device upgraded'],
+        ['rollback', 'Device rolled back'],
     ] as const;
 
     expect(

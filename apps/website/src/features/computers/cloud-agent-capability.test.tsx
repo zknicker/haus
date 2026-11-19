@@ -111,7 +111,7 @@ test('an offline Computer says so instead of claiming a readiness it cannot read
         state: connected,
     });
     expect(view.status).toBe('unavailable');
-    expect(view.description).toContain('Reconnect this Computer');
+    expect(view.description).toContain('Reconnect this device');
 });
 
 test('the row reads as connecting while the Computer runs Cursor’s browser sign-in', () => {

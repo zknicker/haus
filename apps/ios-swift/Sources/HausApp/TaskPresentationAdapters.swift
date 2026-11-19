@@ -25,7 +25,7 @@ extension HausStore {
     func conversationLabel(chatID: String) -> String {
         guard let chat = chatsByID[chatID] else { return "Chat" }
         switch chat.kind {
-        case .channel: return chat.name.map { "#\($0)" } ?? "Channel"
+        case .channel: return chat.name.map { "#\($0)" } ?? "Project"
         case .dm: return "DM"
         case .task: return "Task"
         case .unknown: return "Chat"

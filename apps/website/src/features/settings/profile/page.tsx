@@ -25,7 +25,7 @@ export function ProfileSettings({ serverId }: { serverId: string }) {
     return (
         <PageColumn>
             <SettingsPageHeader
-                description="How you appear to the people and Agents you work with."
+                description="How you appear to the people and Captains you work with."
                 title="Profile"
             />
             <ItemCardGroup variant="transparent">

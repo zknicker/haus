@@ -183,7 +183,7 @@ export function getTurnJournalPresentation(
     if (result.status === 'missing') {
         return {
             description:
-                'The Server has no execution record for this turn yet. Its Computer syncs it when online.',
+                'The Server has no execution record for this turn yet. Its device syncs it when online.',
             kind: 'missing',
             title: 'Turn details unavailable',
         };

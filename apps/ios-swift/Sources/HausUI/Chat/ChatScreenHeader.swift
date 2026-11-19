@@ -37,7 +37,7 @@ struct ChatScreenHeader: View {
         } trailing: {
             HStack(spacing: 8) {
                 if let onCall {
-                    GlassChromeButton(.system("phone"), label: "Call Agent", action: onCall)
+                    GlassChromeButton(.system("phone"), label: "Call Captain", action: onCall)
                 }
                 GlassChromeButton(.icon(.search), label: "Search messages", action: onOpenSearch)
             }

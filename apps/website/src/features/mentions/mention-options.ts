@@ -14,7 +14,7 @@ export function buildAgentMentionOption({
     const primaryColor = agent?.effectivePrimaryColor ?? null;
 
     return {
-        description: 'Agent in this chat',
+        description: 'Captain in this chat',
         id: formatAgentReferenceTarget(agentId),
         insertText: label.startsWith('@') ? label : `@${label}`,
         kind: 'agent',
@@ -24,7 +24,7 @@ export function buildAgentMentionOption({
                 ? { agentAvatarUrl: avatarUrl, agentColor: primaryColor }
                 : undefined,
         projection: 'agent-reference',
-        sourceLabel: 'Agents',
+        sourceLabel: 'Captains',
     };
 }
 

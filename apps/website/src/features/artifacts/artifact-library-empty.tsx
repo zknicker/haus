@@ -41,7 +41,7 @@ export function ArtifactLibraryEmpty({
                 <EmptyState.Description>
                     {filtered
                         ? 'Try another file type, creator, or search.'
-                        : 'Files Agents and members publish to this Server appear here. Drop files anywhere to upload.'}
+                        : 'Files Captains and members publish to this Server appear here. Drop files anywhere to upload.'}
                 </EmptyState.Description>
             </EmptyState.Header>
             {filtered ? null : (

@@ -57,10 +57,10 @@ export function SkillDialog({
                                 <Icon className="size-5" icon={SparklesIcon} />
                             </Modal.Icon>
                             <Modal.Heading>
-                                {skill ? formatSkillName(skill.name) : 'Agent Skill'}
+                                {skill ? formatSkillName(skill.name) : 'Captain skill'}
                             </Modal.Heading>
                             <p className="text-muted mt-1.5 text-sm leading-5">
-                                Edit this Agent’s own copy of SKILL.md.
+                                Edit this Captain’s own copy of SKILL.md.
                             </p>
                         </Modal.Header>
                         <Modal.Body>
@@ -141,8 +141,8 @@ export function SkillDialog({
                                 </AlertDialog.Heading>
                             </AlertDialog.Header>
                             <AlertDialog.Body>
-                                This permanently removes this Agent’s independent skill bundle. The
-                                original host skill is not changed.
+                                This permanently removes this Captain’s independent skill bundle.
+                                The original host skill is not changed.
                             </AlertDialog.Body>
                             <AlertDialog.Footer>
                                 <Button slot="close" variant="secondary">

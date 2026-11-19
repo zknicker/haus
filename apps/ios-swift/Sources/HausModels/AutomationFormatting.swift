@@ -47,7 +47,7 @@ public enum AutomationFormatting {
         case "installation_suspended": "Installation suspended"
         case "repositories_unavailable": "Repositories unavailable"
         case "permissions_missing": "Permissions missing"
-        case "agent_access_revoked": "Agent access revoked"
+        case "agent_access_revoked": "Captain access revoked"
         case "sign_in_required": "Sign in required"
         default: "Not firing"
         }

@@ -9,7 +9,7 @@ import HausModels
 public enum InboxConversationLabel {
     public static func text(kind: HausModels.ChatKind, name: String?) -> String {
         switch kind {
-        case .channel: "#\(name ?? "channel")"
+        case .channel: "#\(name ?? "project")"
         case .dm: "DM"
         case .task: "Task"
         case .unknown: "Chat"
@@ -24,7 +24,7 @@ public enum InboxActorName {
     public static func stored(_ author: ChatAuthor) -> String {
         switch author {
         case .agent(let agentID, let profile):
-            profile?.displayName ?? "Agent \(String(agentID.suffix(6)))"
+            profile?.displayName ?? "Captain \(String(agentID.suffix(6)))"
         case .human(let profile, _):
             profile?.displayName ?? "Haus member"
         case .system:

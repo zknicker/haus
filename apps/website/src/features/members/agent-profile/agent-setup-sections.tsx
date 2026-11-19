@@ -33,16 +33,14 @@ export function AgentRuntimeSection({ agent, server }: { agent: Agent; server: S
 
     return (
         <>
-            <SectionShell title="Computer">
+            <SectionShell title="Device">
                 {computers.error && !computers.data ? (
                     <SectionError message={computers.error.message} />
                 ) : computers.data ? (
                     <ItemCard>
                         <ItemCard.Content>
                             <ItemCard.Title>
-                                {computer
-                                    ? computerLabel(computer)
-                                    : 'Assigned Computer unavailable'}
+                                {computer ? computerLabel(computer) : 'Assigned device unavailable'}
                             </ItemCard.Title>
                         </ItemCard.Content>
                         <ItemCard.Action className="flex items-center gap-2">
@@ -71,7 +69,7 @@ export function AgentRuntimeSection({ agent, server }: { agent: Agent; server: S
                         </ItemCard.Action>
                     </ItemCard>
                 ) : (
-                    <SectionPending label="Loading Computer" />
+                    <SectionPending label="Loading device" />
                 )}
             </SectionShell>
             <AgentRuntime

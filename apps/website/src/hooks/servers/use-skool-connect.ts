@@ -52,7 +52,7 @@ export function useSkoolConnect(serverId: string) {
                 return;
             }
             const connection = await mutation.mutateAsync({ serverId, connectionId, session });
-            toast.success('Skool connected. Choose which Agents can use it.');
+            toast.success('Skool connected. Choose which Captains can use it.');
             return connection;
         } catch (error) {
             const canceled =

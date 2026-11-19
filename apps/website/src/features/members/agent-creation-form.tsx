@@ -123,14 +123,14 @@ export function AgentCreationForm({
                     <div className="flex items-center gap-3">
                         <AvatarPicker
                             label="avatar"
-                            name={name || 'New Agent'}
+                            name={name || 'New Captain'}
                             onError={setAvatarError}
                             onSelect={setAvatar}
                             size={72}
                             src={avatarSrc}
                         />
                         <div className="min-w-0">
-                            <p className="text-sm font-medium">Agent avatar</p>
+                            <p className="text-sm font-medium">Captain avatar</p>
                             <p className="text-muted text-sm">
                                 {avatar
                                     ? 'New image selected.'
@@ -141,11 +141,11 @@ export function AgentCreationForm({
                     <InventorySelect
                         description={
                             reported.length === 0
-                                ? 'Connect a Computer before you can create this Agent.'
+                                ? 'Connect a device before you can create this Captain.'
                                 : undefined
                         }
                         disabled={reported.length === 0}
-                        label="Computer"
+                        label="Device"
                         onChange={(nextId) => {
                             const next = reported.find((entry) => entry.id === nextId);
                             const firstRuntime = next?.inventory.runtimes[0];
@@ -155,7 +155,7 @@ export function AgentCreationForm({
                         }}
                         options={reported}
                         placeholder={
-                            reported.length === 0 ? 'No Computers available' : 'Select a Computer'
+                            reported.length === 0 ? 'No devices available' : 'Select a device'
                         }
                         value={computer?.id ?? ''}
                     />
@@ -177,7 +177,7 @@ export function AgentCreationForm({
                         <Label>Description</Label>
                         <TextArea
                             maxLength={AGENT_DESCRIPTION_MAX_LENGTH}
-                            placeholder="Leave blank for a general-purpose Agent, or describe a role…"
+                            placeholder="Leave blank for a general-purpose Captain, or describe a role…"
                             rows={4}
                         />
                         <Description>Optional</Description>
@@ -234,7 +234,7 @@ export function AgentCreationForm({
                     Cancel
                 </Button>
                 <Button form={formId} isDisabled={!canSubmit} isPending={isPending} type="submit">
-                    Create Agent
+                    Create Captain
                 </Button>
             </Modal.Footer>
         </>

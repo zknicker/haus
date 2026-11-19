@@ -40,10 +40,10 @@ export function runtimeConfigStatusLabel(
         return 'Needs attention';
     }
     if (computerHealth === 'offline') {
-        return 'Applies when Computer reconnects';
+        return 'Applies when device reconnects';
     }
     if (computerHealth === 'update-required') {
-        return 'Waiting for Computer update';
+        return 'Waiting for device update';
     }
     return 'Applying';
 }

@@ -9,7 +9,7 @@ import SwiftUI
 /// its own answer. Off unless it is asked for.
 public enum ShowClaimsInChat {
     public static let storageKey = "haus.chat.showClaims"
-    public static let footer = "Claims agents take for themselves also appear in chat."
+    public static let footer = "Claims Captains take for themselves also appear in chat."
 }
 
 /// The Preferences row that turns the claims back on. Its explanation is the

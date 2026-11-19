@@ -28,7 +28,7 @@ export function ChannelActionsMenu({
     return (
         <Dropdown.Menu onAction={onAction}>
             <Dropdown.Section>
-                <Header>Channel</Header>
+                <Header>Project</Header>
                 <Dropdown.Item
                     id="rename"
                     isDisabled={Boolean(chat.archivedAt)}
@@ -45,9 +45,13 @@ export function ChannelActionsMenu({
                     <Icon aria-hidden="true" icon={PaintBrush03Icon} size={16} />
                     <Label>Icon &amp; color</Label>
                 </Dropdown.Item>
-                <Dropdown.Item id="agents" isDisabled={Boolean(chat.archivedAt)} textValue="Agents">
+                <Dropdown.Item
+                    id="agents"
+                    isDisabled={Boolean(chat.archivedAt)}
+                    textValue="Captains"
+                >
                     <Icon aria-hidden="true" icon={UserMultiple02Icon} size={16} />
-                    <Label>Agents</Label>
+                    <Label>Captains</Label>
                     <span className="text-muted ms-auto shrink-0 text-xs tabular-nums">
                         {count}
                     </span>
@@ -66,22 +70,22 @@ export function ChannelActionsMenu({
                         <Dropdown.Item
                             id={chat.archivedAt ? 'restore' : 'archive'}
                             isDisabled={lifecyclePending}
-                            textValue={chat.archivedAt ? 'Restore channel' : 'Archive channel'}
+                            textValue={chat.archivedAt ? 'Restore project' : 'Archive project'}
                         >
                             <Icon
                                 icon={chat.archivedAt ? ArchiveRestoreIcon : ArchiveIcon}
                                 size={16}
                             />
-                            <Label>{chat.archivedAt ? 'Restore channel' : 'Archive channel'}</Label>
+                            <Label>{chat.archivedAt ? 'Restore project' : 'Archive project'}</Label>
                         </Dropdown.Item>
                         <Dropdown.Item
                             id="delete"
                             isDisabled={lifecyclePending}
-                            textValue="Delete channel"
+                            textValue="Delete project"
                             variant="danger"
                         >
                             <Icon icon={Delete02Icon} size={16} />
-                            <Label>Delete channel</Label>
+                            <Label>Delete project</Label>
                         </Dropdown.Item>
                     </Dropdown.Section>
                 </>

@@ -113,7 +113,7 @@ export function WorkspaceBrowserContent({
     if (!agentId) {
         return (
             <WorkspaceArtifactEmpty
-                detail="No active agent workspace is available."
+                detail="No active Captain workspace is available."
                 title="Workspace"
             />
         );

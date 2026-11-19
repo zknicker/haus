@@ -51,17 +51,17 @@ export function AgentActionsMenu({
             <Dropdown>
                 <Tooltip>
                     <Button
-                        aria-label={`${props.agent.displayName} — Agent actions`}
+                        aria-label={`${props.agent.displayName} — Captain actions`}
                         isIconOnly
                         size="sm"
                         variant={variant}
                     >
                         <Icon aria-hidden="true" icon={MoreHorizontalIcon} size={menuIconSize} />
                     </Button>
-                    <Tooltip.Content>Agent actions</Tooltip.Content>
+                    <Tooltip.Content>Captain actions</Tooltip.Content>
                 </Tooltip>
                 <Dropdown.Popover placement="bottom end">
-                    <Dropdown.Menu aria-label="Agent actions">
+                    <Dropdown.Menu aria-label="Captain actions">
                         <AgentActionsSections />
                     </Dropdown.Menu>
                 </Dropdown.Popover>
@@ -174,7 +174,7 @@ export function AgentActions({
             {deleteOpen ? (
                 <DeleteDialog
                     confirmation={agent.displayName}
-                    description="This permanently destroys the Agent’s local workspace, skills, runtime state, queues, and vault when its Computer can be reached. Its authored collaboration history remains."
+                    description="This permanently destroys the Captain’s local workspace, skills, runtime state, queues, and vault when its device can be reached. Its authored collaboration history remains."
                     onConfirm={() =>
                         remove.mutate({
                             agentId: agent.id,
@@ -184,7 +184,7 @@ export function AgentActions({
                     }
                     onOpenChange={(open) => !open && setDeleteOpen(false)}
                     pending={remove.isPending}
-                    title="Delete Agent"
+                    title="Delete Captain"
                 />
             ) : null}
         </AgentActionsContext.Provider>
@@ -241,9 +241,9 @@ export function AgentActionsSections() {
                     <Icon aria-hidden="true" icon={ArrowReloadHorizontalIcon} size={menuIconSize} />
                     <Label>Full reset</Label>
                 </Dropdown.Item>
-                <Dropdown.Item {...item('delete')} textValue="Delete Agent" variant="danger">
+                <Dropdown.Item {...item('delete')} textValue="Delete Captain" variant="danger">
                     <Icon aria-hidden="true" icon={Delete02Icon} size={menuIconSize} />
-                    <Label>Delete Agent</Label>
+                    <Label>Delete Captain</Label>
                 </Dropdown.Item>
             </Dropdown.Section>
         </>

@@ -72,7 +72,7 @@ function ComputerDiskNotice({
                     {warning.label}. {computerDiskWarningDescription}
                 </Alert.Description>
                 <Button onPress={() => navigate(destination)} size="sm" variant="tertiary">
-                    View Computer
+                    View device
                 </Button>
             </Alert.Content>
             <Tooltip>

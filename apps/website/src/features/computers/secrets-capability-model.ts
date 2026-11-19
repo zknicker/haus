@@ -32,7 +32,7 @@ export function secretsCapabilityView(input: {
         if (status.issue === 'runtime-missing') {
             return {
                 ...actions,
-                description: `Connected to “${status.vault.name}”, but this Computer could not set up Varlock, so Agents cannot use it yet. Refresh items to try again.`,
+                description: `Connected to “${status.vault.name}”, but this device could not set up Varlock, so Captains cannot use it yet. Refresh items to try again.`,
                 status: 'needs-attention',
                 statusLabel: 'Needs attention',
             };
@@ -40,15 +40,14 @@ export function secretsCapabilityView(input: {
         if (status.issue === 'keychain-locked') {
             return {
                 ...actions,
-                description:
-                    "This Computer's Keychain is locked. Log in on the Computer to unlock it.",
+                description: "This device's Keychain is locked. Log in on the device to unlock it.",
                 status: 'needs-attention',
                 statusLabel: 'Keychain locked',
             };
         }
         return {
             ...actions,
-            description: `Agents on this Computer can read “${status.vault.name}” (${items}) with haus-secrets.`,
+            description: `Captains on this device can read “${status.vault.name}” (${items}) with haus-secrets.`,
             status: 'ready',
             statusLabel: 'Connected',
         };
@@ -58,8 +57,8 @@ export function secretsCapabilityView(input: {
         return {
             ...none,
             description: input.isOffline
-                ? 'Reconnect this Computer to manage its secrets.'
-                : 'Update this Computer to connect a 1Password vault.',
+                ? 'Reconnect this device to manage its secrets.'
+                : 'Update this device to connect a 1Password vault.',
             status: 'unavailable',
             statusLabel: 'Unavailable',
         };
@@ -75,7 +74,7 @@ export function secretsCapabilityView(input: {
     return {
         ...none,
         canConnect: true,
-        description: 'Give Agents on this Computer read-only access to one 1Password vault.',
+        description: 'Give Captains on this device read-only access to one 1Password vault.',
         status: 'not-connected',
         statusLabel: 'Not connected',
     };

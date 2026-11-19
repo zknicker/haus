@@ -120,7 +120,7 @@ function OfflineComputersButton({
     computers: readonly OfflineComputerNotice[];
     onOpenComputer?: (computerId: string) => void;
 }) {
-    const noun = computers.length === 1 ? 'Computer is' : 'Computers are';
+    const noun = computers.length === 1 ? 'device is' : 'devices are';
     return (
         <Tooltip closeDelay={0} delay={0}>
             <Tooltip.Trigger role="presentation" tabIndex={-1}>

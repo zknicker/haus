@@ -91,7 +91,7 @@ function ComputerBandMenu({
 
     return (
         <Dropdown>
-            <Button aria-label="Computer actions" size="sm" variant="ghost">
+            <Button aria-label="Device actions" size="sm" variant="ghost">
                 <Icon aria-hidden="true" icon={MoreHorizontalIcon} />
             </Button>
             <Dropdown.Popover placement="bottom end">
@@ -100,17 +100,17 @@ function ComputerBandMenu({
                         <Dropdown.Item
                             id="remove"
                             onAction={onRemove}
-                            textValue="Remove Computer"
+                            textValue="Remove device"
                             variant="danger"
                         >
-                            <Label>Remove Computer</Label>
+                            <Label>Remove device</Label>
                         </Dropdown.Item>
                     ) : (
                         // A disabled menu item takes no pointer events, so a tooltip
                         // here would never fire and the reason would be unreachable.
                         // The blocking reason rides in the item itself instead.
-                        <Dropdown.Item id="remove" isDisabled textValue="Remove Computer">
-                            <Label>Remove Computer</Label>
+                        <Dropdown.Item id="remove" isDisabled textValue="Remove device">
+                            <Label>Remove device</Label>
                             <Description>{computerRemovalDescription(availability)}</Description>
                         </Dropdown.Item>
                     )}
@@ -124,7 +124,7 @@ function ComputerUnavailable() {
     return (
         <div className="flex min-h-full items-center justify-center p-6 text-center">
             <div>
-                <h2 className="text-foreground text-sm font-medium">Computers unavailable</h2>
+                <h2 className="text-foreground text-sm font-medium">Devices unavailable</h2>
                 <p className="text-muted mt-1 text-sm">Try opening this page again.</p>
             </div>
         </div>
@@ -139,14 +139,14 @@ function ComputerEmpty({ onAdd }: { onAdd: () => void }) {
                     <EmptyState.Media variant="icon">
                         <Icon icon={ComputerIcon} />
                     </EmptyState.Media>
-                    <EmptyState.Title>Attach a Computer</EmptyState.Title>
+                    <EmptyState.Title>Attach a device</EmptyState.Title>
                     <EmptyState.Description>
-                        Computers run Agents and keep their workspaces, runtime access, and
+                        Devices run Captains and keep their workspaces, runtime access, and
                         execution state on your machine.
                     </EmptyState.Description>
                 </EmptyState.Header>
                 <EmptyState.Content>
-                    <Button onPress={onAdd}>Add Computer</Button>
+                    <Button onPress={onAdd}>Add device</Button>
                 </EmptyState.Content>
             </EmptyState>
         </div>
@@ -161,10 +161,10 @@ function ComputerNotFound() {
                     <EmptyState.Media variant="icon">
                         <Icon icon={ComputerIcon} />
                     </EmptyState.Media>
-                    <EmptyState.Title>Computer unavailable</EmptyState.Title>
+                    <EmptyState.Title>Device unavailable</EmptyState.Title>
                     <EmptyState.Description>
-                        This Computer is no longer attached to the Server. Choose an attached
-                        Computer from the list; Haus will not redirect you to another machine.
+                        This device is no longer attached to the Server. Choose an attached device
+                        from the list; Haus will not redirect you to another machine.
                     </EmptyState.Description>
                 </EmptyState.Header>
             </EmptyState>

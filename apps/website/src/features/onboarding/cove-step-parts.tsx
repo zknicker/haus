@@ -5,7 +5,7 @@ import { cn } from '../../lib/utils.ts';
 import type { CoveStatusLine } from './cove-onboarding-model.ts';
 import './cove-onboarding.css';
 
-const setupStepLabels = ['Connect a Computer', 'Meet Cove', 'Onboarding Chat'];
+const setupStepLabels = ['Connect a device', 'Meet Cove', 'Onboarding Chat'];
 
 export type CoveSetupStage = 'connect-computer' | 'meet-cove';
 

@@ -33,7 +33,7 @@ export function ComputerUpdateControls({
 
     const handleCheck = async () => {
         if (isPreview) {
-            toast.info('Preview only', { description: 'No request was sent to this Computer.' });
+            toast.info('Preview only', { description: 'No request was sent to this device.' });
             return;
         }
         try {

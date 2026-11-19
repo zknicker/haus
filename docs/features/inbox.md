@@ -76,7 +76,7 @@ usage grammar and the one the strip already had.
 
 ## Sections
 
-**Agents** — the full list behind the strip's `+N` — ranks every Agent that processed tokens in
+**Captains** — the full list behind the strip's `+N` — ranks every Agent that processed tokens in
 the last seven days or is in a turn now:
 spiking first, then working, then the busiest week, then the name, with no cap. Each row is the
 Agent's avatar and name, its seven-day processed tokens (`Tokens · 7d` trails the label), a meter

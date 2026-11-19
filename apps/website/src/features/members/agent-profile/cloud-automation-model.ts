@@ -12,19 +12,19 @@ export function cloudAutomationPresentation(row: CloudAgentAutomation, now: numb
         case 'pending':
             return {
                 label: 'Result queued',
-                detail: 'Waiting for the agent to receive the result',
+                detail: 'Waiting for the Captain to receive the result',
                 color: 'accent',
             } as const;
         case 'delivered':
             return {
                 label: cloudAgentJobLabels[row.work.job.state],
-                detail: 'Result delivered to the agent',
+                detail: 'Result delivered to the Captain',
                 color: cloudAgentJobChipColor(row.work.job.state),
             } as const;
         case 'computer-removed':
             return {
                 label: 'Tracking unavailable',
-                detail: 'The Computer was removed; automatic notification is unavailable',
+                detail: 'The device was removed; automatic notification is unavailable',
                 color: 'warning',
             } as const;
         case 'chat-removed':
@@ -36,7 +36,7 @@ export function cloudAutomationPresentation(row: CloudAgentAutomation, now: numb
         case 'agent-retired':
             return {
                 label: 'Notification unavailable',
-                detail: 'The delegating agent was retired',
+                detail: 'The delegating Captain was retired',
                 color: 'warning',
             } as const;
         case 'unavailable':
@@ -55,7 +55,7 @@ export function cloudAutomationPresentation(row: CloudAgentAutomation, now: numb
             }
             return {
                 label: row.work.cancelRequestedAt ? 'Stopping' : 'Working',
-                detail: 'Will notify the agent when this run finishes or needs input',
+                detail: 'Will notify the Captain when this run finishes or needs input',
                 color: 'accent',
             } as const;
     }

@@ -50,7 +50,7 @@ public struct ArchivedChannelsView: View {
     public var body: some View {
         NavigationStack {
             content
-                .navigationTitle("Archived channels")
+                .navigationTitle("Archived projects")
                 .hausInlineNavigationTitle()
                 .toolbar {
                     ToolbarItem(placement: .confirmationAction) {
@@ -80,9 +80,9 @@ public struct ArchivedChannelsView: View {
         case let .loaded(channels):
             if channels.isEmpty {
                 ContentUnavailableView(
-                    "No archived channels",
+                    "No archived projects",
                     systemImage: "archivebox",
-                    description: Text("Channels you archive will appear here.")
+                    description: Text("Projects you archive will appear here.")
                 )
             } else {
                 VStack(spacing: 0) {
@@ -109,7 +109,7 @@ public struct ArchivedChannelsView: View {
             }
         case let .failed(message):
             ContentUnavailableView {
-                Label("Archived channels unavailable", systemImage: "exclamationmark.triangle")
+                Label("Archived projects unavailable", systemImage: "exclamationmark.triangle")
             } description: {
                 Text(message)
             } actions: {

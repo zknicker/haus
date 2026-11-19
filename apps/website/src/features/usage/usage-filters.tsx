@@ -37,11 +37,11 @@ export function usageFilterChips(inputs: UsageFilterInputs): UsageFilterChip[] {
     if (inputs.requestedComputerId) {
         chips.push({
             key: 'computer',
-            label: `Computer: ${inputs.computerLabel ?? (inputs.computersPending ? 'Loading…' : 'Unavailable')}`,
+            label: `Device: ${inputs.computerLabel ?? (inputs.computersPending ? 'Loading…' : 'Unavailable')}`,
         });
     }
     if (inputs.requestedAgentId && !(inputs.resolvedAgent || inputs.agentsPending)) {
-        chips.push({ key: 'agent', label: 'Agent: Unavailable' });
+        chips.push({ key: 'agent', label: 'Captain: Unavailable' });
     }
     if (inputs.runtimeId) {
         chips.push({ key: 'runtime', label: `Runtime: ${runtimeLabel(inputs.runtimeId)}` });

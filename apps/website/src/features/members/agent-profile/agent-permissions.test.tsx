@@ -31,7 +31,7 @@ test('an Owner or Admin sees the Permissions list with the Manage connections ro
     const markup = render(true);
     expect(markup).toContain('Permissions');
     expect(markup).toContain('Manage connections');
-    expect(markup).toContain('Can turn connection access on and off for any agent');
+    expect(markup).toContain('Can turn connection access on and off for any Captain');
     expect(markup).toContain('aria-label="Let Fen manage connections"');
 });
 

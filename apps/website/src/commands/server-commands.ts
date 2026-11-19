@@ -135,7 +135,7 @@ function buildChatGroups(context: CommandContext): AppCommandGroup[] {
             : null;
         const title =
             chat.kind === 'channel'
-                ? (chat.name ?? 'channel')
+                ? (chat.name ?? 'project')
                 : (agent?.displayName ?? shortPeerLabel(chat));
 
         return {
@@ -150,7 +150,7 @@ function buildChatGroups(context: CommandContext): AppCommandGroup[] {
             id: `chat.${chat.id}`,
             keywords: [
                 'chat',
-                chat.kind === 'channel' ? 'channel room' : 'direct message dm',
+                chat.kind === 'channel' ? 'project channel room' : 'direct message dm',
                 title,
                 agent?.handle ?? '',
             ],
@@ -164,7 +164,7 @@ function buildChatGroups(context: CommandContext): AppCommandGroup[] {
         {
             commands: context.chats.filter((chat) => chat.kind === 'channel').map(toCommand),
             id: 'channels',
-            title: 'Channels',
+            title: 'Projects',
         },
         {
             commands: context.chats
@@ -209,10 +209,10 @@ function buildCurrentChatGroup(context: CommandContext, currentChat: Chat): AppC
                       {
                           icon: UserCircleIcon,
                           id: 'current-chat.open-agent-profile',
-                          keywords: ['chat', 'agent', 'profile', 'assistant'],
+                          keywords: ['chat', 'captain', 'agent', 'profile', 'assistant'],
                           opensPage: true,
                           run: () => context.openAgentProfile(agent.id),
-                          title: 'Agent Profile',
+                          title: 'Captain Profile',
                       } satisfies AppCommand,
                   ]
                 : []),
@@ -253,10 +253,10 @@ function buildDeveloperGroup(context: CommandContext): AppCommandGroup {
                       {
                           icon: ComputerIcon,
                           id: 'developer.computers',
-                          keywords: ['developer', 'computer', 'execution', 'health'],
+                          keywords: ['developer', 'device', 'computer', 'execution', 'health'],
                           opensPage: true,
                           run: () => context.navigate(serverComputersRoute(context.serverSlug)),
-                          title: 'Computers',
+                          title: 'Devices',
                       } satisfies AppCommand,
                   ]),
         ],

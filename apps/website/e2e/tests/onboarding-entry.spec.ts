@@ -41,7 +41,7 @@ test('fresh owner reload keeps a neutral frame until setup resolves and can swit
     );
     expect(animationStarts.length).toBeGreaterThan(0);
     release();
-    await expect(page.getByRole('heading', { name: 'Connect a Computer' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Connect a device' })).toBeVisible();
     await expect.poll(async () => (await brand.boundingBox())?.y).toBeLessThan(before.y);
     expect(
         await page
@@ -58,12 +58,12 @@ test('fresh owner reload keeps a neutral frame until setup resolves and can swit
         )
     ).toEqual(animationStarts);
     await expect(
-        page.getByText('Connect a Computer to run the Agents in Opening demo.')
+        page.getByText('Connect a device to run the Captains in Opening demo.')
     ).toBeVisible();
     await page.goto('/');
     await expect(page).toHaveURL(/\/s\/opening-demo$/u);
     await page.reload();
-    await expect(page.getByRole('heading', { name: 'Connect a Computer' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Connect a device' })).toBeVisible();
     await expect(page.getByRole('textbox', { name: 'Message all' })).toHaveCount(0);
     const setupGhost = await mark.elementHandle();
     if (!setupGhost) {
@@ -76,7 +76,7 @@ test('fresh owner reload keeps a neutral frame until setup resolves and can swit
         await setupGhost.evaluate((node) => node === document.querySelector('.activation-mark'))
     ).toBe(true);
     await page.getByRole('link', { name: /Opening demo/ }).click();
-    await expect(page.getByRole('heading', { name: 'Connect a Computer' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Connect a device' })).toBeVisible();
     expect(
         await setupGhost.evaluate((node) => node === document.querySelector('.activation-mark'))
     ).toBe(true);
@@ -113,7 +113,7 @@ for (const role of ['member', 'admin'] as const) {
         await expect(page.getByText(waitingCopy)).toBeVisible();
         await page.reload();
         await expect(page.getByText(waitingCopy)).toBeVisible();
-        await expect(page.getByRole('heading', { name: 'Connect a Computer' })).toHaveCount(0);
+        await expect(page.getByRole('heading', { name: 'Connect a device' })).toHaveCount(0);
         await expect(
             page.getByRole('navigation', { name: 'Breadcrumb' }).getByText('Tasks', { exact: true })
         ).toHaveCount(0);

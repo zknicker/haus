@@ -233,7 +233,7 @@ test('Agent-authored typed references render as interactive Agent and Chat chips
     await blippyChip.click();
     await expect(page).toHaveURL(/\/s\/hosted-messages\/agents\/[^/]+\/home$/u);
     await expect(page.getByText('Blippy', { exact: true }).first()).toBeVisible();
-    await expect(page.getByRole('complementary', { name: 'Agent profile' })).toHaveCount(0);
+    await expect(page.getByRole('complementary', { name: 'Captain profile' })).toHaveCount(0);
 
     await page.goBack();
     await expect(message).toBeVisible();

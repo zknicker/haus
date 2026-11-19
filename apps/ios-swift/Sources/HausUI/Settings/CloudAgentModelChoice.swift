@@ -182,7 +182,7 @@ public struct CloudAgentModelChoice: Equatable, Sendable {
                 sentences.append("Model list updated \(formatter.localizedString(for: catalog.refreshedAt, relativeTo: now)).")
             }
         } else {
-            sentences.append("The model list appears once a Computer connected to Cursor reports it.")
+            sentences.append("The model list appears once a device connected to Cursor reports it.")
         }
         if !canManage {
             sentences.append("Only an owner or admin can change the model.")

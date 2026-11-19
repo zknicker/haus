@@ -118,7 +118,7 @@ test('a channel row opens on press and still drags to reorder', async ({ page },
     `
     );
     await page.goto(`/s/channel-press-${run}/chats/${productId}`);
-    const channels = page.getByRole('treegrid', { name: 'Channels' });
+    const channels = page.getByRole('treegrid', { name: 'Projects' });
     const order = async () => {
         const names = await channels.getByRole('row').allTextContents();
         return names.indexOf('all') < names.indexOf('product') ? 'all first' : 'product first';

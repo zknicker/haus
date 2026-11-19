@@ -30,7 +30,7 @@ export function ConnectionsPage({ embedded = false }: { embedded?: boolean }) {
                     </Link>
                 )}
                 <SettingsPageHeader
-                    description="Connect the services your Agents work in, then choose which Agents can use each one."
+                    description="Connect the services your Captains work in, then choose which Captains can use each one."
                     title="Connections"
                 />
                 <ConnectionPresetSection serverId={server.id} />

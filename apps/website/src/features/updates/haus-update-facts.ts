@@ -68,10 +68,10 @@ function statusForStep(step: ComputerUpdateStep | DesktopUpdateStep): HausCompon
 
 function computerFailureRemedy(failedPhase: string | null) {
     if (failedPhase === 'waiting-for-agents') {
-        return 'Finish or stop active Agent work, then try again.';
+        return 'Finish or stop active Captain work, then try again.';
     }
     if (failedPhase === 'restarting' || failedPhase === 'installing') {
-        return 'Open this Computer in Settings for recovery steps.';
+        return 'Open this device in Settings for recovery steps.';
     }
-    return 'Check this Computer’s connection, then try again.';
+    return 'Check this device’s connection, then try again.';
 }

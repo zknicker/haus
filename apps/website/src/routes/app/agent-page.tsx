@@ -37,7 +37,7 @@ export function AgentProfileRoute() {
     if (agent.isPending && !record) {
         return (
             <div className="mx-auto w-full max-w-3xl px-6 pt-8">
-                <AgentLoading label="Loading Agent" />
+                <AgentLoading label="Loading Captain" />
             </div>
         );
     }

@@ -268,9 +268,9 @@ extension MentionPresentationKind {
     /// How a reference names itself to VoiceOver.
     var referenceKindLabel: String {
         switch self {
-        case .agent: "Agent"
+        case .agent: "Captain"
         case .app: "App"
-        case .channel: "Channel"
+        case .channel: "Project"
         case .cloudAgentWork: "Cloud Agent work"
         case .directory: "Directory"
         case .file: "File"

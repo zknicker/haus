@@ -87,7 +87,7 @@ export function updateStageLine(step: HausUpdateStep) {
         case 'installing':
             return `Installing the update on ${step.name}`;
         case 'waiting-for-agents':
-            return `Waiting for Agents to finish on ${step.name}`;
+            return `Waiting for Captains to finish on ${step.name}`;
         case 'restarting':
             return `Restarting ${step.name}`;
         default:

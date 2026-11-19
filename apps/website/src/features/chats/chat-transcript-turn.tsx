@@ -331,7 +331,7 @@ function AgentTurnPresentation({
 }: AgentTurnProps & { actorProfile: TranscriptActorProfile | null }) {
     const actorId = entry.actor?.id ?? null;
     const items = entry.items;
-    const displayName = actorProfile?.name ?? getTurnFallbackName(entry) ?? 'Agent';
+    const displayName = actorProfile?.name ?? getTurnFallbackName(entry) ?? 'Captain';
     const lastMessageRow = getLastMessageRow(items);
     const lastMessage = lastMessageRow?.message ?? null;
     const turnCompletedAt = lastMessage?.timestamp ?? null;

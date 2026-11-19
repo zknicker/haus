@@ -31,7 +31,7 @@ test('MentionPicker honors option group labels', () => {
 
 test('MentionPicker groups agent mentions separately from skills', () => {
     const agentOption: MentionOption = {
-        description: 'Agent in this chat',
+        description: 'Captain in this chat',
         id: 'agt_primary',
         insertText: '@Haus',
         kind: 'agent',
@@ -57,8 +57,8 @@ test('MentionPicker groups agent mentions separately from skills', () => {
         />
     );
 
-    assert.match(markup, /Agents/);
+    assert.match(markup, /Captains/);
     assert.match(markup, /Skills/);
-    assert.ok(markup.indexOf('Agents') < markup.indexOf('Haus'));
+    assert.ok(markup.indexOf('Captains') < markup.indexOf('Haus'));
     assert.ok(markup.indexOf('Skills') < markup.indexOf('Haus Agent'));
 });

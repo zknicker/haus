@@ -126,7 +126,7 @@ export function ChatNavigation({
                 <ChatGroup
                     action={
                         <Button
-                            aria-label="New channel"
+                            aria-label="New project"
                             isIconOnly
                             onPress={onCreateChannel}
                             size="sm"
@@ -135,7 +135,7 @@ export function ChatNavigation({
                             <Icon aria-hidden="true" icon={Plus} size={sidebarActionIconSize} />
                         </Button>
                     }
-                    label="Channels"
+                    label="Projects"
                 >
                     <SortableChannelList
                         channelIds={layout.channelIds}
@@ -149,7 +149,7 @@ export function ChatNavigation({
                     action={
                         onCreateAgent ? (
                             <Button
-                                aria-label="New agent"
+                                aria-label="New Captain"
                                 isIconOnly
                                 onPress={onCreateAgent}
                                 size="sm"

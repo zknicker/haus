@@ -33,7 +33,7 @@ export function ChannelAgentsDialog({ chat, onClose }: { chat: Chat; onClose: ()
                 name: chat.name ?? '',
                 serverId: chat.serverId,
             });
-            toast.success('Channel agents updated');
+            toast.success('Project Captains updated');
             onClose();
         } catch {
             // The dialog stays open and shows the failure inline.
@@ -46,7 +46,7 @@ export function ChannelAgentsDialog({ chat, onClose }: { chat: Chat; onClose: ()
                 <Modal.Dialog>
                     <Modal.CloseTrigger />
                     <Modal.Header>
-                        <Modal.Heading>Channel agents</Modal.Heading>
+                        <Modal.Heading>Project Captains</Modal.Heading>
                         <p className="text-muted text-sm leading-5">Who works in #{chat.name}.</p>
                     </Modal.Header>
                     <Modal.Body>

@@ -19,7 +19,7 @@ export function ServerDefaultPage() {
                 <div>
                     <h1 className="text-foreground text-lg font-semibold">No Chats yet</h1>
                     <p className="text-muted mt-1 text-sm">
-                        Create a Channel from the sidebar to begin.
+                        Create a project from the sidebar to begin.
                     </p>
                 </div>
             </main>

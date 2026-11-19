@@ -84,7 +84,7 @@ function ProviderGroup({
             <ItemCard>
                 <ItemCard.Content>
                     <SettingsRowTitle
-                        info={`Agents use your ${name} API key to generate images. The key stays on the Server and is never shown again.`}
+                        info={`Captains use your ${name} API key to generate images. The key stays on the Server and is never shown again.`}
                     >
                         {name}
                     </SettingsRowTitle>

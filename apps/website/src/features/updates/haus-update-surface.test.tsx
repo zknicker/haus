@@ -82,7 +82,7 @@ describe('Haus update surfaces', () => {
     test('shows only surfaces that still need attention and always names Computers', () => {
         const tooltip = renderToStaticMarkup(<UpdateTooltipContent view={oneComputerUpdateView} />);
 
-        expect(tooltip).toContain('Computer · Zach&#x27;s MacBook Pro');
+        expect(tooltip).toContain('Device · Zach&#x27;s MacBook Pro');
         expect(tooltip).not.toContain('Haus App');
         expect(tooltip).not.toContain('up to date');
     });
@@ -96,7 +96,7 @@ describe('Haus update surfaces', () => {
         expect(html).toContain('haus-update-button');
         expect(html).toContain('role="presentation" tabindex="-1"');
         expect(tooltip).toContain('Updating');
-        expect(tooltip).toContain('Computer · Zach&#x27;s MacBook Pro');
+        expect(tooltip).toContain('Device · Zach&#x27;s MacBook Pro');
         expect(tooltip).toContain('Downloading Haus Computer');
         expect(tooltip).toContain('aria-valuenow="42"');
     });
@@ -121,10 +121,10 @@ describe('Haus update surfaces', () => {
         );
         const status = updateDonutStatus(view, sequence);
 
-        expect(status.label).toBe('Updating Computer · Home (2 of 3)');
+        expect(status.label).toBe('Updating Device · Home (2 of 3)');
         // The App's slice is full; Home has filled 0.05 + 0.55 × 0.5 of its own.
         expect(status.progress).toBeCloseTo((1 + 0.325) / 3);
-        expect(html).toContain('aria-label="Updating Computer · Home (2 of 3)"');
+        expect(html).toContain('aria-label="Updating Device · Home (2 of 3)"');
         expect(html).toContain('aria-valuenow="44"');
         expect(html.match(/stroke-dasharray=/gu)).toHaveLength(1);
         expect(html).not.toContain('animate-spin');
@@ -141,11 +141,11 @@ describe('Haus update surfaces', () => {
         const tooltip = renderToStaticMarkup(<UpdateTooltipContent view={view} />);
 
         expect(updateDonutStatus(view, null)).toMatchObject({
-            label: 'Updating Computer · Home',
+            label: 'Updating Device · Home',
             progress: 0.8,
         });
         expect(html).toContain('aria-valuenow="80"');
-        expect(tooltip).toContain('Waiting for Agents to finish on Home');
+        expect(tooltip).toContain('Waiting for Captains to finish on Home');
         expect(tooltip).not.toContain('role="progressbar"');
     });
 
@@ -175,8 +175,8 @@ describe('Haus update surfaces', () => {
         );
 
         expect(html).toContain('Haus App');
-        expect(html).toContain('Computer · Zach&#x27;s MacBook Pro');
-        expect(html).toContain('Computer · Office');
+        expect(html).toContain('Device · Zach&#x27;s MacBook Pro');
+        expect(html).toContain('Device · Office');
         expect(html).not.toContain('>MacBook</dt>');
         expect(html).not.toContain('>Agent</dt>');
         expect(html).not.toContain('Server');
@@ -220,8 +220,8 @@ describe('Haus update surfaces', () => {
             <OfflineComputersTooltipContent computers={offlineComputers} />
         );
 
-        expect(html).toContain('1 Computer is offline');
-        expect(tooltip).toContain('Computer offline');
+        expect(html).toContain('1 device is offline');
+        expect(tooltip).toContain('Device offline');
         expect(tooltip).toContain('Last connected:');
         expect(tooltip).toContain('Home');
         expect(html).not.toContain('Download');
