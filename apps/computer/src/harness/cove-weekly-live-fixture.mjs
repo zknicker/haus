@@ -200,8 +200,8 @@ export async function withWeeklyCove(
             const context = ordinary
                 ? null
                 : refresh
-                  ? (await import('./cove-guidance-refresh.ts')).coveGuidanceRefreshNotice
-                  : coveTurnGuidanceNotice('cove');
+                  ? (await import('./cove-guidance-refresh.ts')).coveGuidanceRefreshNotice('cove')
+                  : coveTurnGuidanceNotice('cove', 'cove');
             return await streamTurn(
                 [context, composed(frame.inbox, frame.runId, frame)].filter(Boolean).join('\n\n')
             );
@@ -263,8 +263,8 @@ export async function withWeeklyCove(
                 bootstrap.legacy || ordinary
                     ? null
                     : conflict
-                      ? coveGuidanceConflictNotice(['notes/onboarding_playbook.md'])
-                      : coveTurnGuidanceNotice('cove');
+                      ? coveGuidanceConflictNotice(['notes/onboarding_playbook.md'], 'cove')
+                      : coveTurnGuidanceNotice('cove', 'cove');
             const item = {
                 addressed: true,
                 chatId: fixture.channelId,

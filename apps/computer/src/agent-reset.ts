@@ -1,8 +1,5 @@
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import { seedCoveWorkspace } from '@haus/agent-workspace';
-import { readAgentSeedConfiguration, seedOrdinaryWorkspace } from './agent-configuration.ts';
-import { seedAgentManagedSkills } from './managed-skill-changes.ts';
 import {
     ensureAgentWorkspace,
     exists,
@@ -10,7 +7,11 @@ import {
     workspaceVolumePaths,
 } from './workspace-volumes/workspace-volume.ts';
 
-/** Applies reset semantics inside exactly one Server/Agent filesystem partition. */
+/**
+ * Applies reset semantics inside exactly one Server/Agent filesystem partition. A full reset
+ * keeps the Drive folder: memory, notes and skills live in Drive, and the next launch finds
+ * them there instead of reseeding.
+ */
 export async function resetAgentState(input: {
     agentId: string;
     dataRoot: string;
@@ -19,7 +20,6 @@ export async function resetAgentState(input: {
 }): Promise<void> {
     const agentRoot = join(input.dataRoot, 'servers', input.serverId, 'agents', input.agentId);
     if (input.kind === 'full') {
-        const seed = await readAgentSeedConfiguration(agentRoot);
         if (await exists(workspaceVolumePaths(agentRoot).manifest)) {
             await ensureAgentWorkspace({ agentRoot, dataRoot: input.dataRoot });
         }
@@ -29,14 +29,6 @@ export async function resetAgentState(input: {
                 rm(join(agentRoot, entry), { force: true, recursive: true })
             )
         );
-        if (seed) {
-            await Promise.all([
-                seed.factoryKind === 'cove'
-                    ? seedCoveWorkspace(join(agentRoot, 'workspace'))
-                    : seedOrdinaryWorkspace(seed, join(agentRoot, 'workspace')),
-                seedAgentManagedSkills(agentRoot),
-            ]);
-        }
         return;
     }
     await Promise.all([

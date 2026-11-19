@@ -56,13 +56,23 @@ export async function resetWorkspaceContents(
         if (await exists(workspaceVolumePaths(agentRoot).image)) {
             throw new Error('Workspace image is unverified; recover it before reset.');
         }
-        await rm(path, { force: true, recursive: true });
+        await clearExceptDrive(path);
         return;
     }
     if ((await mountUuid(requireCappedDisk(disk), path)) !== record.volumeUuid) {
         throw new Error('Cannot reset an unmounted capped workspace.');
     }
-    for (const entry of await readdir(path)) {
+    await clearExceptDrive(path);
+}
+
+async function clearExceptDrive(path: string) {
+    const entries = await readdir(path).catch((error: unknown) => {
+        if (isMissing(error)) {
+            return [];
+        }
+        throw error;
+    });
+    for (const entry of entries.filter((name) => name !== 'drive')) {
         await rm(join(path, entry), { force: true, recursive: true });
     }
 }

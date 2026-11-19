@@ -1,11 +1,16 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parseResetCommand } from './agent-command-frames.ts';
 import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
 import { resetAgentState } from './agent-reset.ts';
-import { applyCoveConfiguration } from './cove-configuration.ts';
+import { prepareAgentDrive } from './drive-migration/prepare-agent-drive.ts';
+import { createDriveRoutes, serveDrive } from './drive-migration/testing/drive-server.ts';
+import { agentDrive } from './drive/agent-drive.ts';
+
+const agentId = 'agt_resetxxxxxxxxxxx';
+const memory = '# Durable memory\n\nBluebird remains active.\n';
 
 let dataRoot: string;
 beforeEach(async () => {
@@ -16,7 +21,7 @@ afterEach(async () => {
 });
 
 test('session reset rotates harness context while preserving Agent-owned state', async () => {
-    const { agentRoot, configuration, configurationJson } = await seedResetFixture();
+    const { agentRoot, configurationJson, drive } = await seedResetFixture();
 
     expect(
         parseResetCommand({
@@ -40,113 +45,63 @@ test('session reset rotates harness context while preserving Agent-owned state',
         })
     ).toBe(null);
 
-    await resetAgentState({
-        agentId: configuration.agentId,
-        dataRoot,
-        kind: 'session',
-        serverId: 'srv_reset',
-    });
+    await resetAgentState({ agentId, dataRoot, kind: 'session', serverId: 'srv_reset' });
 
     await expect(stat(join(agentRoot, 'session.json'))).rejects.toThrow();
     await expect(stat(join(agentRoot, '.agent-runs'))).rejects.toThrow();
     await expect(stat(join(agentRoot, 'runtime', 'inbox'))).rejects.toThrow();
     await expect(stat(join(agentRoot, 'runtime', 'pending-notice.json'))).rejects.toThrow();
-    expect(await readFile(join(agentRoot, 'workspace', 'MEMORY.md'), 'utf8')).toBe(
-        '# Durable memory\n\nBluebird remains active.\n'
-    );
+    expect(await readFile(drive.memory, 'utf8')).toBe(memory);
     expect(await readFile(join(agentRoot, 'workspace', 'kept.txt'), 'utf8')).toBe('kept');
-    expect(await readFile(join(agentRoot, 'skills', 'custom-skill', 'SKILL.md'), 'utf8')).toBe(
+    expect(await readFile(join(drive.skills, 'custom-skill', 'SKILL.md'), 'utf8')).toBe(
         'name: custom-skill\n'
     );
     expect(await readFile(join(agentRoot, 'configuration.json'), 'utf8')).toBe(configurationJson);
 });
 
-test('full reset independently clears harness context and restores the ordinary factory state', async () => {
-    const { agentRoot, configuration, configurationJson } = await seedResetFixture();
+test('full reset keeps Drive and the next launch reseeds nothing over it', async () => {
+    const { agentRoot, configurationJson, drive } = await seedResetFixture();
 
-    await resetAgentState({
-        agentId: configuration.agentId,
-        dataRoot,
-        kind: 'full',
-        serverId: 'srv_reset',
-    });
+    await resetAgentState({ agentId, dataRoot, kind: 'full', serverId: 'srv_reset' });
 
     await expect(stat(join(agentRoot, 'session.json'))).rejects.toThrow();
     await expect(stat(join(agentRoot, '.agent-runs'))).rejects.toThrow();
+    await expect(stat(join(agentRoot, 'runtime'))).rejects.toThrow();
+    await expect(stat(join(agentRoot, 'home'))).rejects.toThrow();
     await expect(stat(join(agentRoot, 'workspace', 'kept.txt'))).rejects.toThrow();
-    await expect(stat(join(agentRoot, 'skills', 'custom-skill'))).rejects.toThrow();
     expect(await readFile(join(agentRoot, 'configuration.json'), 'utf8')).toBe(configurationJson);
-    expect(await readFile(join(agentRoot, 'workspace', 'MEMORY.md'), 'utf8')).toContain(
-        'Onboarding guide'
+    expect(await readFile(drive.memory, 'utf8')).toBe(memory);
+    expect(await readFile(join(drive.skills, 'custom-skill', 'SKILL.md'), 'utf8')).toBe(
+        'name: custom-skill\n'
     );
-    expect(await readdir(join(agentRoot, 'workspace', 'notes'))).toEqual([]);
-    await expect(
-        readFile(join(agentRoot, 'skills', 'haus-agent', 'SKILL.md'), 'utf8')
-    ).rejects.toThrow();
-    await expect(
-        readFile(join(agentRoot, 'skills', 'visuals', 'SKILL.md'), 'utf8')
-    ).resolves.toContain('name: visuals');
-});
 
-test('Cove full reset restores its exact factory workspace and only visuals', async () => {
-    const agentId = 'agt_coveresetxxxxxxx';
-    const serverId = 'srv_cove_reset';
-    const command = {
-        agentDescription: 'Onboarding Assistant' as const,
-        agentId,
-        agentName: 'Cove' as const,
-        applicationId: 'cap_coveresetxxxxxx',
-        factoryKind: 'cove' as const,
-        modelId: 'gpt-5.6-sol',
-        runtimeId: 'codex',
-        sessionGeneration: 1,
-        type: 'cove-apply' as const,
-    };
-    await applyCoveConfiguration({
-        command,
-        dataRoot,
-        inventory: {
-            runtimes: [
-                {
-                    id: 'codex',
-                    label: 'Codex',
-                    models: [{ id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' }],
-                },
-            ],
-        },
-        serverId,
-    });
-    const agentRoot = join(dataRoot, 'servers', serverId, 'agents', agentId);
-    await Promise.all([
-        writeFile(join(agentRoot, 'workspace', 'MEMORY.md'), '# Changed\n'),
-        writeFile(join(agentRoot, 'workspace', 'extra.md'), 'remove me\n'),
-        mkdir(join(agentRoot, 'skills', 'custom-skill'), { recursive: true }).then(() =>
-            writeFile(join(agentRoot, 'skills', 'custom-skill', 'SKILL.md'), 'name: custom-skill\n')
-        ),
-    ]);
+    const routes = createDriveRoutes({ agentId, runnerToken: 'runner-reset' });
+    routes.put('agents/scout/MEMORY.md', memory);
+    const server = serveDrive(routes);
+    try {
+        await prepareAgentDrive({
+            agentId,
+            agentRoot,
+            handle: 'scout',
+            runnerToken: 'runner-reset',
+            seed: {
+                agentDescription: 'Onboarding guide',
+                agentName: 'Scout',
+                brief: null,
+                briefAuthorHandle: null,
+                factoryKind: 'ordinary',
+            },
+            serverOrigin: `http://127.0.0.1:${server.port}`,
+        });
+    } finally {
+        server.stop(true);
+    }
 
-    await resetAgentState({ agentId, dataRoot, kind: 'full', serverId });
-
-    expect((await readdir(join(agentRoot, 'workspace'))).sort()).toEqual(['MEMORY.md', 'notes']);
-    expect((await readdir(join(agentRoot, 'workspace', 'notes'))).sort()).toEqual([
-        'onboarding_knowledge_faq.md',
-        'onboarding_objectives.md',
-        'onboarding_playbook.md',
-    ]);
-    const objectives = await readFile(
-        join(agentRoot, 'workspace', 'notes', 'onboarding_objectives.md'),
-        'utf8'
-    );
-    expect(objectives.match(/^### recipes\//gmu)).toHaveLength(12);
-    expect(objectives).not.toMatch(/save-as-a-skill|haus-agent|recipes\/archetype\//u);
-    expect(await readdir(join(agentRoot, 'skills'))).toEqual(['visuals']);
-    await expect(
-        readFile(join(agentRoot, 'skills', 'visuals', 'SKILL.md'), 'utf8')
-    ).resolves.toContain('name: visuals');
+    expect(routes.revisionCount()).toBe(1);
+    expect(await readFile(drive.memory, 'utf8')).toBe(memory);
 });
 
 async function seedResetFixture() {
-    const agentId = 'agt_resetxxxxxxxxxxx';
     const agentRoot = join(dataRoot, 'servers', 'srv_reset', 'agents', agentId);
     const configuration = parseAgentConfigureCommand({
         agentDescription: 'Onboarding guide',
@@ -177,15 +132,13 @@ async function seedResetFixture() {
         serverId: 'srv_reset',
     });
     const configurationJson = await readFile(join(agentRoot, 'configuration.json'), 'utf8');
+    const drive = agentDrive(agentRoot, 'scout');
     await Promise.all(
         [
             'home',
-            'skills',
-            'skills/custom-skill',
-            'workspace',
-            'runtime',
-            'runtime/inbox',
+            join('runtime', 'inbox'),
             '.agent-runs',
+            join('workspace', 'drive', 'agents', 'scout', 'skills', 'custom-skill'),
         ].map((dir) => mkdir(join(agentRoot, dir), { recursive: true }))
     );
     await Promise.all([
@@ -201,12 +154,10 @@ async function seedResetFixture() {
         writeFile(join(agentRoot, '.agent-runs', 'old-run'), 'state'),
         writeFile(join(agentRoot, 'runtime', 'inbox', 'pending.json'), '[]'),
         writeFile(join(agentRoot, 'runtime', 'pending-notice.json'), '{"notice":"pending"}'),
-        writeFile(
-            join(agentRoot, 'workspace', 'MEMORY.md'),
-            '# Durable memory\n\nBluebird remains active.\n'
-        ),
+        writeFile(join(agentRoot, 'runtime', 'drive-seed.json'), '{"version":1}\n'),
+        writeFile(drive.memory, memory),
         writeFile(join(agentRoot, 'workspace', 'kept.txt'), 'kept'),
-        writeFile(join(agentRoot, 'skills', 'custom-skill', 'SKILL.md'), 'name: custom-skill\n'),
+        writeFile(join(drive.skills, 'custom-skill', 'SKILL.md'), 'name: custom-skill\n'),
     ]);
-    return { agentRoot, configuration, configurationJson };
+    return { agentRoot, configurationJson, drive };
 }

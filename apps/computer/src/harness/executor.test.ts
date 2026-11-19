@@ -800,7 +800,7 @@ test('Cove guidance drift migrates a warm session once and is current when the r
     );
     expect(streamedCovePlaybooks[1]).toContain('haus agent create');
     expect(streamedCoveFaqs[1]).toContain('haus agent create');
-    expect(streamedPrompts[1]).toContain('re-read notes/onboarding_playbook.md');
+    expect(streamedPrompts[1]).toContain('re-read onboarding_playbook.md');
     expect(updateActivity).toEqual([
         { category: 'updating_instructions', phase: 'started' },
         { category: 'thinking', phase: 'started' },
@@ -821,7 +821,7 @@ test('Cove guidance drift migrates a warm session once and is current when the r
     );
 
     expect(createSessionCalls).toHaveLength(3);
-    expect(streamedPrompts[2]).not.toContain('re-read notes/onboarding_playbook.md');
+    expect(streamedPrompts[2]).not.toContain('re-read onboarding_playbook.md');
     expect(streamedPrompts[2]).toContain('one optional weekly review offer');
     expect(settledActivity).toEqual([
         { category: 'thinking', phase: 'started' },
@@ -854,7 +854,7 @@ test('an aborted warm Cove guidance refresh keeps its receipt and rereads on ret
         hausAgentVersion,
         runtimeSessionId: 'engine_session_1',
     });
-    expect(streamedPrompts[1]).toContain('re-read notes/onboarding_playbook.md');
+    expect(streamedPrompts[1]).toContain('re-read onboarding_playbook.md');
     expect(abortedActivity).toEqual([
         { category: 'updating_instructions', phase: 'started' },
         { category: 'thinking', phase: 'started' },
@@ -878,7 +878,7 @@ test('an aborted warm Cove guidance refresh keeps its receipt and rereads on ret
         resumeFrom: abortedSession.resumeState,
         sessionId: 'engine_session_1',
     });
-    expect(streamedPrompts[2]).toContain('re-read notes/onboarding_playbook.md');
+    expect(streamedPrompts[2]).toContain('re-read onboarding_playbook.md');
     expect(retryActivity).toEqual([
         { category: 'updating_instructions', phase: 'started' },
         { category: 'thinking', phase: 'started' },
@@ -956,7 +956,7 @@ test('retries Cove guidance consumption after a refreshed turn fails', async () 
         })
     );
 
-    expect(streamedPrompts[1]).toContain('re-read notes/onboarding_playbook.md');
+    expect(streamedPrompts[1]).toContain('re-read onboarding_playbook.md');
     expect(retryActivity).toContainEqual({
         category: 'updating_instructions',
         phase: 'completed',

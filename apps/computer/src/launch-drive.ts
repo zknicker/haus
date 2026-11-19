@@ -5,6 +5,7 @@ import { ensureNativeSkillLinks } from './harness/native-skill-links.ts';
 import { driveFolderFailureReport } from './launch-failure-turns.ts';
 import { messageOf, writeTrace } from './launch-trace.ts';
 import type { RunAgentLaunchOptions } from './launch.ts';
+import { seedAgentManagedSkills } from './managed-skill-changes.ts';
 import { revokeRunner } from './runner-authority.ts';
 
 export async function prepareLaunchDrive(input: {
@@ -35,6 +36,7 @@ export async function prepareLaunchDrive(input: {
             await writeTrace(trace, driveMemoryTraceLine(prepared.drive, prepared.memory));
         }
         await mkdir(prepared.drive.skills, { mode: 0o755, recursive: true });
+        await seedAgentManagedSkills(input.agentRoot, prepared.drive.skills);
         await ensureNativeSkillLinks(input.dirs.home, prepared.drive.skills);
         return { drive: prepared.drive, ok: true } as const;
     } catch (error) {

@@ -1,11 +1,16 @@
 import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { factoryManagedSkillHashes, seedFactoryManagedSkills } from '@haus/agent-workspace';
+import {
+    factoryManagedSkillHashes,
+    factoryManagedSkillMatches,
+    seedFactoryManagedSkills,
+} from '@haus/agent-workspace';
 
 /** The release-owned skills one seed writes, and the content hash of each. */
 export interface ManagedSkillFactory {
     hashes(): Record<string, string>;
+    matches(skillsDir: string, skillId: string): Promise<boolean>;
     seed(skillsDir: string): Promise<void>;
 }
 
@@ -17,24 +22,29 @@ export interface ManagedSkillChangeNotice {
 
 const releaseFactory: ManagedSkillFactory = {
     hashes: factoryManagedSkillHashes,
+    matches: factoryManagedSkillMatches,
     seed: seedFactoryManagedSkills,
 };
 
 /**
  * Seeds the factory-managed skills into one Agent's library and queues a one-turn notice for every
  * managed skill whose content changed since this Agent's last seed. An identical reseed, a
- * brand-new Agent, and a managed skill this Agent never had queue nothing. An Agent seeded before
- * this record existed but already holding the skill is notified once, since nothing proves its
- * copy matched. Agent-authored and imported skills never participate.
+ * brand-new Agent, and a managed skill this Agent never had queue nothing, and an unchanged release
+ * writes nothing, so edits made in Drive stand. An Agent with no record (never seeded, or fully
+ * reset) is notified once for a skill it holds whose bytes differ from the release.
+ * Agent-authored and imported skills never participate.
  */
 export async function seedAgentManagedSkills(
     agentRoot: string,
+    skillsDir: string,
     factory: ManagedSkillFactory = releaseFactory
 ): Promise<void> {
-    const skillsDir = join(agentRoot, 'skills');
     const current = factory.hashes();
     const prior = await readRecord(agentRoot);
-    const heldBeforeSeed = prior ? null : await existingSkillDirs(skillsDir, Object.keys(current));
+    if (prior && sameMap(prior.seeded, current)) {
+        return;
+    }
+    const heldBeforeSeed = prior ? null : await differingHeldSkills(skillsDir, factory, current);
     await factory.seed(skillsDir);
     const changed = Object.keys(current).filter((skillId) =>
         prior
@@ -135,11 +145,18 @@ async function writeRecord(agentRoot: string, record: ManagedSkillRecord): Promi
     await rename(temporary, destination);
 }
 
-async function existingSkillDirs(skillsDir: string, skillIds: string[]): Promise<Set<string>> {
+async function differingHeldSkills(
+    skillsDir: string,
+    factory: ManagedSkillFactory,
+    current: Record<string, string>
+): Promise<Set<string>> {
     const held = new Set<string>();
-    for (const skillId of skillIds) {
+    for (const skillId of Object.keys(current)) {
         try {
-            if ((await stat(join(skillsDir, skillId))).isDirectory()) {
+            if (
+                (await stat(join(skillsDir, skillId))).isDirectory() &&
+                !(await factory.matches(skillsDir, skillId))
+            ) {
                 held.add(skillId);
             }
         } catch (error) {

@@ -194,3 +194,16 @@ test('Cove is seeded with its four onboarding files', async () => {
         'onboarding_playbook.md',
     ]);
 });
+
+test('the launch seed renders the standing brief its creator wrote', async () => {
+    const result = await prepare({
+        brief: 'Own competitor intel. Post a Friday digest in #product.',
+        briefAuthorHandle: 'cove',
+    });
+
+    const seeded = await readFile(result.drive.memory, 'utf8');
+    expect(seeded).toContain(
+        '## Standing brief from @cove\n\nOwn competitor intel. Post a Friday digest in #product.\n'
+    );
+    expect(seeded).not.toContain('self-introduction');
+});

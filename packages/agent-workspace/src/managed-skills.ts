@@ -61,6 +61,28 @@ export async function seedFactoryManagedSkills(skillsDir: string): Promise<void>
     }
 }
 
+/** Whether an Agent's copy of a factory-managed skill holds exactly the shipped files' bytes. */
+export async function factoryManagedSkillMatches(skillsDir: string, skillId: string) {
+    const files = factoryManagedSkillFiles[skillId];
+    if (!files) {
+        return false;
+    }
+    for (const [relativePath, content] of Object.entries(files)) {
+        const held = await fs
+            .readFile(path.join(skillsDir, skillId, ...relativePath.split('/')), 'utf8')
+            .catch((error: NodeJS.ErrnoException) => {
+                if (error.code === 'ENOENT' || error.code === 'ENOTDIR') {
+                    return null;
+                }
+                throw error;
+            });
+        if (held !== content) {
+            return false;
+        }
+    }
+    return true;
+}
+
 /**
  * One content hash per factory-managed skill over every file it ships, in sorted path order, so
  * a Computer can tell a changed skill from an identical reseed.

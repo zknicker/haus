@@ -30,6 +30,7 @@ let restore: () => void;
 
 const release = (visuals: string): ManagedSkillFactory => ({
     hashes: () => ({ visuals }),
+    matches: async () => true,
     seed: async () => undefined,
 });
 const notice = managedSkillChangeText(['visuals']);
@@ -39,8 +40,8 @@ beforeEach(async () => {
     failStream = false;
     prompts = [];
     restore = setRuntimeDriverFactoryForTesting(fakeDriver);
-    await seedAgentManagedSkills(agentRoot, release('v1'));
-    await seedAgentManagedSkills(agentRoot, release('v2'));
+    await seedAgentManagedSkills(agentRoot, agentDrive(agentRoot, 'agent').skills, release('v1'));
+    await seedAgentManagedSkills(agentRoot, agentDrive(agentRoot, 'agent').skills, release('v2'));
 });
 
 afterEach(async () => {
