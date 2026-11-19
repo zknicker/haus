@@ -1,6 +1,6 @@
 ---
 status: accepted
-summary: An Agent's loop runs on the Server in a sandboxed runner, on the Claude Agent SDK for Claude plans and Pi Durable for every other model, with sessions in Postgres. The Agent has one machine where its tools run and can move between turns; v1 machines are Computers. Its tools are bash and edit on that machine plus the one execute tool. Every invocation has an id and a Computer-side result ledger. The Server holds the Agent's model logins. Workers keep native harnesses on machines. User-configured local MCP is descoped. Accepted 2026-11-19, not yet implemented.
+summary: An Agent's loop runs on the Server in a sandboxed runner, on the Claude Agent SDK for Claude plans and Pi Durable for every other model, with sessions on the runner's persistent volume. The Agent has one machine where its tools run and can move between turns; v1 machines are Computers. Its tools are bash and edit on that machine plus the one execute tool. Every invocation has an id and a Computer-side result ledger. The Server holds the Agent's model logins. Workers keep native harnesses on machines. User-configured local MCP is descoped. Accepted 2026-11-19, not yet implemented.
 read_when:
   - changing where an Agent's loop runs, its harnesses, or where its session is stored
   - changing the Agent's machine, moving an Agent, or what an Agent can do while its machine is offline
@@ -43,10 +43,9 @@ loops.
 
 2. **Two harnesses.** The Claude Agent SDK runs Claude plans, with a setup-token, its native tools
    off, and Haus tools bridged in. Pi Durable runs every other model, including ChatGPT plans and
-   other providers. Both store the full session in Postgres, not just an id: Pi through a Haus
-   storage backend that commits every turn, the SDK through its session storage adapter. The
-   SDK mirrors on a best-effort basis, so a crash mid-turn can lose the turn in flight; the runner
-   resumes from the last stored turn, and rebuilds from Drive and recent history if that fails.
+   other providers. Each keeps its sessions in its own native storage on the runner's persistent
+   volume, which is backed up with the Server's data. The session never moves: only the Agent's
+   machine does, so it only has to survive the runner restarting.
 
 3. **One endless session per Agent.** ADR 0011 stands. The session now lives on the Server, not on
    a Computer.
@@ -84,6 +83,10 @@ loops.
     Projects, then Workers. No Agent stays on a Computer after the move.
 
 ## Considered and rejected
+
+- **Sessions in Postgres** (Pi through a Haus storage backend, the SDK through its session storage
+  adapter). It only pays off with several runners sharing storage. The SDK adapter mirrors on a
+  best-effort basis, and both need adapter code. Revisit if Haus runs more than one runner.
 
 - **The harness on the Agent's machine.** A machine that sleeps, crashes or runs out of memory
   takes the Agent with it. Amp moved away from this in its rebuild, and Capy's team describes an

@@ -361,7 +361,7 @@ report, cited files and PR, and has its own composer.
 [ADR 0057](../adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md) settles where
 Agents run, following Capy and Amp:
 - **The loop runs on the Server,** in a sandboxed runner. Claude plans use the Claude Agent SDK and
-  every other model uses Pi Durable. The session is stored in Postgres.
+  every other model uses Pi Durable. Sessions stay on the runner's persistent volume.
 - **Each Agent has one machine where its tools run:** `bash` and an edit tool, plus the one
   `execute` tool. It can move between turns. v1 machines are Computers.
 - **The Agent keeps working with its machine offline.** Only its machine work waits.
