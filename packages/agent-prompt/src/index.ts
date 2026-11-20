@@ -50,3 +50,4 @@ export {
     type TurnOpening,
     type TurnSessionFacts,
 } from './turn-opening.ts';
+export * from './rich-reference-projection.ts';

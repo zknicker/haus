@@ -1,9 +1,10 @@
-import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { afterAll, afterEach, beforeAll, expect, test } from 'bun:test';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TRPCClientError } from '@trpc/client';
 import { createTRPCQueryUtils } from '@trpc/react-query';
 import { observable } from '@trpc/server/observable';
 import * as React from 'react';
+import type { Root } from 'react-dom/client';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { ActivationFrame } from '../../components/activation/activation-frame.tsx';
 import { hausTrpc } from '../../lib/haus-server.tsx';
@@ -11,9 +12,18 @@ import { installFakeDom } from '../../test-support/fake-dom.ts';
 import { ServerRouteGate } from './server-route-gate.tsx';
 
 let restore: () => void = () => undefined;
+const mounted: Root[] = [];
 
 beforeAll(() => {
     restore = installFakeDom();
+});
+
+afterEach(async () => {
+    await React.act(async () => {
+        for (const root of mounted.splice(0)) {
+            root.unmount();
+        }
+    });
 });
 
 afterAll(() => {
@@ -83,6 +93,7 @@ async function mountServerRoute(slug: 'dev' | 'gone' | 'opening') {
     const { createRoot } = await import('react-dom/client');
     const container = document.createElement('div');
     const root = createRoot(container);
+    mounted.push(root);
     await React.act(async () => {
         root.render(
             <QueryClientProvider client={queryClient}>

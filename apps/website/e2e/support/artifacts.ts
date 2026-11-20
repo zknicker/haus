@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
 import type { Locator, Page } from '@playwright/test';
 import { libraryFileTransport, routeFileTransport } from './artifact-transport.ts';
-import { assertOpaqueId, runPsql } from './server.ts';
+import { captainsProjectId } from './project.ts';
+import { assertOpaqueId, createClient, runPsql } from './server.ts';
 
 interface SeededFile {
     agent?: boolean;
@@ -111,8 +112,14 @@ export function libraryRows(section: Locator): Locator {
     return section.getByRole('row').filter({ has: section.page().getByRole('gridcell') });
 }
 
-export async function seedArtifactLibrary(page: Page, databaseUrl: string, serverId: string) {
+export async function seedArtifactLibrary(
+    page: Page,
+    session: { accessToken: string; databaseUrl: string },
+    serverId: string
+) {
     assertOpaqueId(serverId);
+    const { databaseUrl } = session;
+    const homeProjectId = await captainsProjectId(createClient(session.accessToken), serverId);
     const userId = seedMember(databaseUrl, serverId);
     const agentId = `agt_${serverId}_drive`;
     const computerId = `cmp_${createHash('sha256').update(serverId).digest('hex').slice(0, 16)}`;
@@ -123,7 +130,7 @@ export async function seedArtifactLibrary(page: Page, databaseUrl: string, serve
          values ('${computerId}', '${serverId}', '${userId}', md5(random()::text) || md5(random()::text), 'offline');
          insert into agents (id, server_id, computer_id, handle, display_name, home_timezone, desired_runtime_id, desired_model_id, home_project_id)
          values ('${agentId}', '${serverId}', '${computerId}', 'drive-helper', '${seededArtifactAgent}', 'America/New_York', 'codex', 'gpt-5.6-sol',
-             (select id from chats where server_id = '${serverId}' and is_all))`
+             '${homeProjectId}')`
     );
     for (const file of seededFiles) {
         const id = `art_${serverId}_${file.key}`;

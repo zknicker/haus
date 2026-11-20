@@ -12,6 +12,7 @@ import {
 } from './model-connection.fixture.ts';
 import {
     connectRunner,
+    reportRunnerModels,
     frameOfType,
     type RunnerClient,
     type RunnerFrame,
@@ -32,6 +33,7 @@ beforeAll(async () => {
     ids.zach = (await addClaudeConnection(seed, 'Zach plan', 'sk-ant-oat01-zach-token')).id;
     ids.team = (await addClaudeConnection(seed, 'Team plan', 'sk-ant-oat01-team-token')).id;
     ids.spare = (await addClaudeConnection(seed, 'Spare plan', 'sk-ant-oat01-spare-token')).id;
+    await reportRunnerModels(harness);
     agents.fallback = await createAgent(seed, 'opus-default', 'claude');
     agents.pinned = await createAgent(seed, 'opus-pinned', 'claude');
     await seed.owner.trpc.modelConnections.assignAgent.mutate({

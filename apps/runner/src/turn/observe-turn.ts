@@ -23,6 +23,7 @@ export async function observeTurn(
     events: AsyncIterable<TurnEvent>,
     input: {
         activity: ReturnType<typeof createRunActivity>;
+        thoughts?: { observe(event: TurnEvent): void };
         gate: ToolGate;
         noProgress: typeof turnNoProgress;
         onNoProgress: () => void;
@@ -46,6 +47,7 @@ export async function observeTurn(
         for await (const event of events) {
             lastEventAt = Date.now();
             input.activity.observe(event);
+            input.thoughts?.observe(event);
             switch (event.type) {
                 case 'tool-call':
                     compacted ||= event.toolName === compactionToolName;

@@ -1,5 +1,6 @@
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
+import { projectMessageForAgent } from '@haus/agent-prompt';
 import { type AgentReasoningEffort, hausAgentVersion } from '@haus/api';
 import type { ClaudeUsageSnapshot } from '@haus/claude-usage';
 import { settle } from '@haus/effect';
@@ -32,7 +33,6 @@ import { planInstructionsUpdate, withInstructionsUpdate } from './instructions-u
 import { composeAgentInstructions } from './instructions.ts';
 import { journalError, journalOutcome } from './journal-outcome.ts';
 import { AgentSessionResumeRejectedError } from './resume-rejection.ts';
-import { projectMessageForAgent } from './rich-reference-projection.ts';
 import { type HarnessSessionLease, harnessSessionOwner } from './session-lifecycle.ts';
 import { clearSessionRestartRequest, isSessionRestartRequested } from './session-restart.ts';
 import { startHarnessSession } from './session-start.ts';

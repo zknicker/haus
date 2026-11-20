@@ -20,7 +20,12 @@ import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { AgentConfigDeniedError } from './agent-config-errors.ts';
-import { assertRuntimeModelReported, resolveAssignedComputer } from './agent-inventory.ts';
+import { resolveAssignedComputer } from './agent-inventory.ts';
+import {
+    type AgentModelCatalog,
+    assertModelAvailable,
+    computerModelCatalog,
+} from './agent-model-catalog.ts';
 import { type ConfiguredAgentRow, toAgent } from './agent-shape.ts';
 
 export interface AgentConfigurationRotation {
@@ -47,7 +52,8 @@ export interface ConfigureAgentResult {
 export async function configureAgent(
     db: HausDatabase,
     member: HausUser | null,
-    input: ConfigureAgentInput
+    input: ConfigureAgentInput,
+    catalog: AgentModelCatalog = computerModelCatalog
 ): Promise<ConfigureAgentResult> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
@@ -85,12 +91,12 @@ export async function configureAgent(
             serverId: input.serverId,
         });
         const desiredReasoningEffort = input.reasoningEffort ?? agent.desiredReasoningEffort;
-        assertRuntimeModelReported(
-            inventory,
-            input.runtimeId,
-            input.modelId,
-            desiredReasoningEffort
-        );
+        await assertModelAvailable(tx, catalog, inventory, {
+            modelId: input.modelId,
+            reasoningEffort: desiredReasoningEffort,
+            runtimeId: input.runtimeId,
+            serverId: input.serverId,
+        });
         const changed =
             agent.desiredRuntimeId !== input.runtimeId ||
             agent.desiredModelId !== input.modelId ||

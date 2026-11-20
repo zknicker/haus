@@ -10,7 +10,12 @@ export const configureAgentProcedure = memberProcedure
     .output(agentSchema)
     .mutation(async ({ ctx, input }) => {
         try {
-            const result = await configureAgent(ctx.hausDb, ctx.member, input);
+            const result = await configureAgent(
+                ctx.hausDb,
+                ctx.member,
+                input,
+                ctx.modelConnections.catalog
+            );
             await ctx.agentDelivery.applyAgentConfiguration({
                 agent: result.agent,
                 rotation: result.rotation,

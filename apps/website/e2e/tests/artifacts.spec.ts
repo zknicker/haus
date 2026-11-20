@@ -58,7 +58,7 @@ test('members browse folders in Drive, filter by kind and creator, search, and o
         displayName: 'Media Library',
         slug,
     });
-    const { conceptId } = await seedArtifactLibrary(page, session.databaseUrl, server.id);
+    const { conceptId } = await seedArtifactLibrary(page, session, server.id);
     // The seeded Agent joins the shell's Agent list on a fresh load.
     await page.reload();
     await openSection(page, 'Drive');
@@ -173,7 +173,7 @@ test('members browse folders in Drive, filter by kind and creator, search, and o
 test('a viewer names the file by its path in Drive, each folder a way back', async ({ page }) => {
     const slug = 'artifact-viewer-path';
     const { server, session } = await createTestServer(page, { displayName: 'Viewer Path', slug });
-    await seedArtifactLibrary(page, session.databaseUrl, server.id);
+    await seedArtifactLibrary(page, session, server.id);
     await page.goto(`/s/${slug}/artifacts/art_${server.id}_tmcheck`);
     const trail = page.getByRole('navigation', { name: 'Breadcrumb' });
     await expect(page.getByRole('heading', { name: 'tm_check.py', exact: true })).toBeVisible();
@@ -189,7 +189,7 @@ test('members upload files and folders into the open folder, replace, and rename
     await page.setViewportSize({ width: 1440, height: 1000 });
     const slug = 'artifact-uploads';
     const { server, session } = await createTestServer(page, { displayName: 'Uploads', slug });
-    await seedArtifactLibrary(page, session.databaseUrl, server.id);
+    await seedArtifactLibrary(page, session, server.id);
     await routeArtifactUploads(page, session.databaseUrl, server.id);
     await page.goto(`/s/${slug}/artifacts?folder=haus%2Fstarter-kit%2Fscripts`);
     const today = librarySection(page, 'Today');
@@ -260,7 +260,7 @@ test('text artifacts render inline like workspace files, and oversize text offer
         displayName: 'Text Viewer',
         slug,
     });
-    await seedArtifactLibrary(page, session.databaseUrl, server.id);
+    await seedArtifactLibrary(page, session, server.id);
     await openSection(page, 'Drive');
     await librarySection(page, 'Folders').getByRole('row', { name: 'Haus' }).dblclick();
     const today = librarySection(page, 'Today');

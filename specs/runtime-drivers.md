@@ -168,10 +168,15 @@ cold-starts once.
 
 R3 left these Computer turn features unported, and R4 ports each before it moves an Agent:
 execution journal upload (including journaling dispatches the ledger recovers as `unknown`),
-thoughts, idle compaction, rich-reference projection of message content, Claude plan usage after a
-turn, and `haus worker start`, which the Computer's proxy handled.
+and idle compaction.
+Claude plan usage needs no port: the runner's connection capacity reader (R6) reads each Claude
+connection's plan windows on its own schedule, and nothing reads `turn-finish.claudePlanUsage`.
+`haus worker start` already runs on the runner since W2: it is a
+Server route, and the runner's `haus` proxy records the messages a held start showed.
 
-R4b already moved these: `drive-pull` when a runner run starts and `drive-push` when it settles
+R4b already moved these: thoughts (the runner narrates reasoning titles, started tool actions,
+and their findings as `agent-thought` frames, with the Computer's narrator and scrubbing); the
+skill-reference projection, from `@haus/agent-prompt`; `drive-pull` when a runner run starts and `drive-push` when it settles
 (Drive folder below); voice calls that no longer need a healthy Computer; and restart, session
 reset, and full reset on the runner. `agent-restart`, `agent-reset`, and `agent-retire` ride the
 runner socket. Restart and a session reset close the Agent's warm harness process, so the next
@@ -888,8 +893,18 @@ device-code sign-ins for the App, and sends refreshed tokens back for the Server
 that fails mid-turn is a fatal `session-failure` with category `access`, and it marks the
 connection failed.
 
-`runner-inventory` reports harnesses only. The Agent model picker moves from Computer inventory to
-the runner's model catalog in R4.
+`runner-inventory` reports the harnesses and the runner's model catalog as `runtimes`, in the
+Computer inventory's shape: one runtime per model family (`claude-code`, `codex`, `grok-build`,
+`gemini`, `openrouter`), each model with its label, context window, and reasoning efforts. The
+catalog's model ids are curated in `apps/runner/src/model-catalog.ts`; labels, context windows, and
+efforts come from Pi's model registry. On the runner loop the Server validates an Agent's runtime,
+model, and effort against the last catalog the runner reported, kept in memory across a runner
+reconnect, and `modelConnections.list` returns it as `runnerModels` for the App picker. A model
+whose provider has no connection is still accepted; its turns fail with the connection message
+until one is added. An Agent that creates another Agent passes on its own model; when the catalog no
+longer offers it, the new Agent takes the first catalog model from the same provider, and the Server
+logs the mapping. At the R4d flip the Server applies the same mapping to every Agent whose model the
+catalog drops, logged per Agent.
 
 ## Protocol frames
 

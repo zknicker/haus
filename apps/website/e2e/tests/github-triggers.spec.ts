@@ -1,3 +1,4 @@
+import { captainsProjectId } from '../support/project.ts';
 import { attachComputer, createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -18,6 +19,7 @@ test('an Owner wires a GitHub Trigger and sees its installation and problem', as
         slug: 'github-triggers',
     });
     seedGithubState({
+        homeProjectId: await captainsProjectId(client, server.id),
         computerId: computer.computerId,
         databaseUrl: session.databaseUrl,
         serverId: server.id,
@@ -73,7 +75,12 @@ test('an Owner wires a GitHub Trigger and sees its installation and problem', as
 const agentId = 'agt_e2e_github';
 const connectionId = 'mcp_e2eGithubConn001';
 
-function seedGithubState(input: { computerId: string; databaseUrl: string; serverId: string }) {
+function seedGithubState(input: {
+    computerId: string;
+    databaseUrl: string;
+    homeProjectId: string;
+    serverId: string;
+}) {
     runPsql(
         input.databaseUrl,
         `begin;
@@ -83,7 +90,7 @@ function seedGithubState(input: { computerId: string; databaseUrl: string; serve
          ) values (
            '${agentId}', '${input.serverId}', '${input.computerId}', 'octo', 'Octo',
            'America/New_York', 'codex', 'gpt-5.6-sol',
-           (select id from chats where server_id = '${input.serverId}' and is_all)
+           '${input.homeProjectId}'
          );
          insert into mcp_connections (
            id, server_id, name, url, auth, preset, connected, account_label, header_names, tools

@@ -222,6 +222,14 @@ export const runnerModelConnectionUpFrameSchemas = [
 ] as const;
 
 /** Which provider's connection a model needs. The Server resolves an Agent's connection with it, and the runner opens that provider. */
+export const modelProviderNames: Record<ModelProvider, string> = {
+    chatgpt: 'ChatGPT',
+    claude: 'Claude',
+    gemini: 'Gemini',
+    openrouter: 'OpenRouter',
+    xai: 'xAI',
+};
+
 export function modelProviderFor(modelId: string) {
     if (modelId.includes('/')) {
         return 'openrouter' satisfies ModelProvider;
