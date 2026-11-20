@@ -25,10 +25,22 @@ export async function readPdf<T>(
     view: (pdf: PdfPages) => Promise<T>
 ) {
     signal.throwIfAborted();
-    const stopped = new Promise<never>((_, reject) => {
-        signal.addEventListener('abort', () => reject(signal.reason), { once: true });
-    });
+    const { promise: stopped, reject } = Promise.withResolvers<never>();
     stopped.catch(() => undefined);
+    const stop = () => reject(signal.reason);
+    signal.addEventListener('abort', stop, { once: true });
+    try {
+        return await viewOpened(bytes, stopped, view);
+    } finally {
+        signal.removeEventListener('abort', stop);
+    }
+}
+
+async function viewOpened<T>(
+    bytes: Uint8Array,
+    stopped: Promise<never>,
+    view: (pdf: PdfPages) => Promise<T>
+) {
     const opening = getDocumentProxy(bytes, {
         maxImageSize: maxImagePixels,
         standardFontDataUrl,

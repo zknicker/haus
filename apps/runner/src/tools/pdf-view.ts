@@ -51,19 +51,22 @@ export async function viewPdf(
     options: { signal: AbortSignal; timeoutMs?: number }
 ) {
     const timeoutMs = options.timeoutMs ?? pdfLimits.timeoutMs;
-    const timeout = AbortSignal.timeout(timeoutMs);
+    const timeout = new AbortController();
+    const timer = setTimeout(() => timeout.abort(), timeoutMs);
     try {
-        return await readPdf(bytes, AbortSignal.any([options.signal, timeout]), (pdf) =>
+        return await readPdf(bytes, AbortSignal.any([options.signal, timeout.signal]), (pdf) =>
             pdfView(pdf, range)
         );
     } catch (error) {
         options.signal.throwIfAborted();
-        if (timeout.aborted) {
+        if (timeout.signal.aborted) {
             return refusal(composePdfTimedOut(timeoutMs / 1000));
         }
         return refusal(
             composePdfUnreadable(error instanceof Error ? error.message : String(error))
         );
+    } finally {
+        clearTimeout(timer);
     }
 }
 

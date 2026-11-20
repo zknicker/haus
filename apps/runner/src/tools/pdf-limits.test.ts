@@ -1,4 +1,5 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, jest, test } from 'bun:test';
+import { getEventListeners } from 'node:events';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { readPdf } from './pdf-pages.ts';
@@ -57,6 +58,27 @@ describe('a PDF view bounds its work', () => {
             isError: true,
         });
         expect(performance.now() - cutStarted).toBeLessThan(wholeMs * 0.75);
+    });
+
+    test('a finished read leaves no abort listener on its signal', async () => {
+        const signal = new AbortController().signal;
+
+        expect(await readPdf(manyPagePdf(2), signal, (pdf) => pdf.text(1))).toBe('Page 1 text');
+        expect(getEventListeners(signal, 'abort')).toEqual([]);
+    });
+
+    test('a finished view leaves no timeout timer running', async () => {
+        jest.useFakeTimers();
+        try {
+            const viewed = await viewPdf(manyPagePdf(2), [1, 1], {
+                signal: new AbortController().signal,
+            });
+
+            expect(viewed.isError).toBe(false);
+            expect(jest.getTimerCount()).toBe(0);
+        } finally {
+            jest.useRealTimers();
+        }
     });
 
     test('a stop mid-render rejects with the stop instead of finishing the pages', async () => {

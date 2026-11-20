@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from 'bun:test';
+import { afterEach, describe, expect, jest, test } from 'bun:test';
 import { cleanups, drainCleanups } from '../../../runner-test-server.ts';
 import { isGroundingRedirect, resolveRedirects } from './grounding-redirects.ts';
 
@@ -60,6 +60,24 @@ describe('grounding redirects', () => {
         });
 
         expect(Object.fromEntries(resolved)).toEqual({ [`${origin}/moved`]: `${origin}/page` });
+    });
+
+    test('a finished search leaves no redirect timer running', async () => {
+        const origin = redirectServer();
+        jest.useFakeTimers();
+        try {
+            const resolved = await resolveRedirects(
+                [`${origin}/moved`, `${origin}/stays`],
+                new AbortController().signal
+            );
+
+            expect(Object.fromEntries(resolved)).toEqual({
+                [`${origin}/moved`]: `${origin}/page`,
+            });
+            expect(jest.getTimerCount()).toBe(0);
+        } finally {
+            jest.useRealTimers();
+        }
     });
 
     test('an aborted search stops instead of keeping its redirects', async () => {

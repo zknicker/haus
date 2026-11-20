@@ -15,15 +15,23 @@ export async function resolveRedirects(
     const unique = [...new Set(urls)].slice(0, maxResolved);
     const settled = await Promise.allSettled(
         unique.map(async (url) => {
-            const timeout = AbortSignal.timeout(options.timeoutMs ?? redirectTimeoutMs);
-            const response = await fetch(url, {
-                method: 'HEAD',
-                redirect: 'manual',
-                signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
-            });
-            const location = response.headers.get('location');
-            const isRedirect = response.status >= 300 && response.status < 400;
-            return { target: isRedirect && location ? new URL(location, url).href : null, url };
+            const timeout = new AbortController();
+            const timer = setTimeout(
+                () => timeout.abort(),
+                options.timeoutMs ?? redirectTimeoutMs
+            );
+            try {
+                const response = await fetch(url, {
+                    method: 'HEAD',
+                    redirect: 'manual',
+                    signal: signal ? AbortSignal.any([signal, timeout.signal]) : timeout.signal,
+                });
+                const location = response.headers.get('location');
+                const isRedirect = response.status >= 300 && response.status < 400;
+                return { target: isRedirect && location ? new URL(location, url).href : null, url };
+            } finally {
+                clearTimeout(timer);
+            }
         })
     );
     signal?.throwIfAborted();
