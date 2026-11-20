@@ -1,4 +1,4 @@
-import { workerNotJournaledErrorCode } from '@haus/api';
+import { type WorkerLaunchRefusedErrorCode, workerNotJournaledErrorCode } from '@haus/api';
 import { Clock, Effect } from 'effect';
 import { type WorkerOperationError, foreign } from './foreign-operation.ts';
 import { abortWorkerLaunch } from './launch-attempt.ts';
@@ -90,7 +90,8 @@ export class WorkerLocalRuns {
                         } else {
                             yield* foreign(() =>
                                 self.journal.reject(self.serverId, run.ref, {
-                                    errorCode: 'launch-timeout',
+                                    errorCode:
+                                        'launch-timeout' satisfies WorkerLaunchRefusedErrorCode,
                                     summary: 'The Worker did not start before its launch deadline.',
                                 })
                             );

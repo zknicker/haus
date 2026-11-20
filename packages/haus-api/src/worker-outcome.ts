@@ -107,6 +107,20 @@ export interface WorkerOutcomeInput {
 /** The carrier's `errorCode` for a turn it never journaled, so it never reached the provider. */
 export const workerNotJournaledErrorCode = 'turn-not-journaled';
 
+/**
+ * The carrier's `errorCode`s for a turn the provider definitely refused or never
+ * received; each settles `launch-refused` (specs/cloud-agents.md "Follow-up delivery").
+ */
+export const workerLaunchRefusedErrorCodes = [
+    'provider-launch-rejected',
+    'followup-delivery-rejected',
+    'launch-timeout',
+    workerNotJournaledErrorCode,
+] as const;
+export type WorkerLaunchRefusedErrorCode = (typeof workerLaunchRefusedErrorCodes)[number];
+
+const launchRefused = new Set<string>(workerLaunchRefusedErrorCodes);
+
 const outcomeByStatus: Record<SettledTurnStatus, (input: WorkerOutcomeInput) => WorkerOutcome> = {
     cancelled: () => ({ kind: 'stopped' }),
     completed: (input) =>
@@ -118,7 +132,7 @@ const outcomeByStatus: Record<SettledTurnStatus, (input: WorkerOutcomeInput) => 
         if (input.result?.text) {
             return report(input, 'failed');
         }
-        return input.errorCode === workerNotJournaledErrorCode
+        return input.errorCode && launchRefused.has(input.errorCode)
             ? failed('launch-refused', input.errorCode)
             : failed('provider-error', input.errorCode);
     },

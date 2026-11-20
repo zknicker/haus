@@ -1,3 +1,4 @@
+import type { WorkerLaunchRefusedErrorCode } from '@haus/api';
 import { WorkerLaunchRejectedError } from './provider.ts';
 import type { WorkerSendingTurn, WorkerTurnRejection } from './turn-record.ts';
 
@@ -18,7 +19,7 @@ export const workerDeliveryFailure = {
     launchRejected: 'provider-launch-rejected',
     /** The provider definitely refused the follow-up. */
     followUpRejected: 'followup-delivery-rejected',
-} as const;
+} as const satisfies Record<string, WorkerLaunchRefusedErrorCode>;
 
 export type SendOutcome =
     | { kind: 'reject'; rejection: WorkerTurnRejection }

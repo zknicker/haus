@@ -1,4 +1,4 @@
-import type { WorkerTurnStartFrame } from '@haus/api';
+import type { WorkerLaunchRefusedErrorCode, WorkerTurnStartFrame } from '@haus/api';
 import { launchWorker } from './launch-attempt.ts';
 import {
     type CloudAgentProvider,
@@ -57,7 +57,9 @@ async function failLaunch(accepted: AcceptedLaunch, cause: unknown) {
         cause instanceof WorkerLaunchRejectedError
             ? launchRejection(cause)
             : {
-                  errorCode: timedOut ? 'launch-timeout' : 'provider-launch-failed',
+                  errorCode: timedOut
+                      ? ('launch-timeout' satisfies WorkerLaunchRefusedErrorCode)
+                      : 'provider-launch-failed',
                   summary: timedOut
                       ? 'The Worker did not start within five minutes.'
                       : 'The Worker launch failed before the provider confirmed it started.',

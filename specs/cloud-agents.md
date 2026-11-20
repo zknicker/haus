@@ -34,8 +34,8 @@ local execution, not carrying.
 
 The carrier journals launch intent and acknowledged provider ids in its private data directory,
 without credentials. Reconnect recovers acknowledged ids even when their report to the Server was
-lost. An intent without an acknowledgement stops at its five-minute launch deadline, or at once on
-stop. Disconnecting joins local monitoring without stopping the hosted run. While the carrier is
+lost. An intent without an acknowledgement stops at its five-minute launch deadline and settles
+failed `launch-refused` (`errorCode: launch-timeout`), or at once on stop. Disconnecting joins local monitoring without stopping the hosted run. While the carrier is
 offline the Worker reads **Status unconfirmed**. On reconnect the Server pushes reconcile frames, at
 most 200 entries each, naming every unsettled turn the carrier holds and any stop recorded while it
 was offline. A turn the Server settled `stopped` while the hosted run was live, as a deleted

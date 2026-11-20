@@ -149,6 +149,21 @@ test.each<[string, WorkerOutcome, WorkerOutcome]>([
         { detail: 'boom', kind: 'failed', reason: 'provider-error' },
     ],
     [
+        'a launch the provider definitely refused is launch-refused',
+        settle({ errorCode: 'provider-launch-rejected', status: 'failed' }),
+        { detail: 'provider-launch-rejected', kind: 'failed', reason: 'launch-refused' },
+    ],
+    [
+        'a follow-up the provider definitely refused is launch-refused',
+        settle({ errorCode: 'followup-delivery-rejected', status: 'failed' }),
+        { detail: 'followup-delivery-rejected', kind: 'failed', reason: 'launch-refused' },
+    ],
+    [
+        'a launch past its deadline is launch-refused',
+        settle({ errorCode: 'launch-timeout', status: 'failed' }),
+        { detail: 'launch-timeout', kind: 'failed', reason: 'launch-refused' },
+    ],
+    [
         'a turn its carrier never journaled never reached the provider',
         settle({ errorCode: 'turn-not-journaled', status: 'failed' }),
         { detail: 'turn-not-journaled', kind: 'failed', reason: 'launch-refused' },
