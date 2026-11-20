@@ -5,6 +5,7 @@ import type { TranscriptActor } from '../../chats/chat-transcript-model.ts';
 import type { TranscriptMessageRow } from '../../chats/transcript-contract.ts';
 import { messageImageGenerations } from '../../image-generation/message-image-generations.ts';
 import { messageWorker } from '../../workers/message-worker.ts';
+import { workerMessageBody } from '../../workers/worker-message-body.ts';
 
 export type ProjectedChatMessageRow = TranscriptMessageRow;
 
@@ -32,7 +33,7 @@ export function projectChatMessage(
     directories: ChatMessageDirectories
 ): ProjectedChatMessageRow {
     const actor = messageActor(message);
-    const senderType = message.author.kind === 'agent' ? ('agent' as const) : ('user' as const);
+    const senderType = messageSenderType(message);
     const agentId = message.author.kind === 'agent' ? message.author.agentId : null;
 
     return {
@@ -46,6 +47,7 @@ export function projectChatMessage(
             actor,
             ...(message.cause ? { cause: message.cause } : {}),
             worker: messageWorker(message),
+            workerBody: workerMessageBody(message.body),
             content: message.content,
             driveCitations: message.driveCitations,
             id: message.id,
@@ -119,7 +121,11 @@ export function projectChatMessageLayout(
         actor,
         connectsToNext: false,
         connectsToPrevious: false,
-        entity: { attachedWork, chatId: layout.chatId, serverId: layout.serverId },
+        entity: {
+            attachedWork: attachedWork || workerMessageBody(layout.body) !== null,
+            chatId: layout.chatId,
+            serverId: layout.serverId,
+        },
         id: layout.id,
         isFirstInGroup: true,
         kind: 'message',
@@ -130,11 +136,12 @@ export function projectChatMessageLayout(
             id: layout.id,
             reply: layout.reply,
             sender: messageSender(layout),
-            senderType: layout.author.kind === 'agent' ? 'agent' : 'user',
+            senderType: messageSenderType(layout),
             sendNonce: layout.nonce,
             sourceSessionId: null,
             sourceSessionKey: `hosted:${agentId ?? layout.author.kind}`,
             timestamp: layout.createdAt,
+            workerBody: workerMessageBody(layout.body),
         },
         responseId: agentId ? layout.id : undefined,
         runId: layout.author.kind === 'agent' ? layout.runId : null,
@@ -151,4 +158,11 @@ function messageActor(message: Pick<ChatMessage, 'author'>): TranscriptActor {
     return message.author.kind === 'agent'
         ? { id: message.author.agentId, kind: 'agent' }
         : { id: message.author.userId, kind: 'participant' };
+}
+
+function messageSenderType(message: Pick<ChatMessage, 'author' | 'body'>) {
+    if (message.body.kind === 'worker-report') {
+        return 'system' as const;
+    }
+    return message.author.kind === 'agent' ? ('agent' as const) : ('user' as const);
 }
