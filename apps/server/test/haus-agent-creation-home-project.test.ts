@@ -52,7 +52,15 @@ test('the App homes a new Agent in an open Project and refuses #all, archived an
 
 test('an Agent-created Agent lives in its creator’s home, and creation refuses when that home is closed', async () => {
     const runner = await fixture.mintRunner('run_create_home_project');
-    const creatorHome = await homeOf(fixture.orbitAgentId);
+    const creatorHome = (
+        await fixture.owner.trpc.project.create.mutate({
+            name: 'lodge',
+            serverId: fixture.serverId,
+        })
+    ).chat.id;
+    await fixture.harness.sql`
+        update agents set home_project_id = ${creatorHome} where id = ${fixture.orbitAgentId}
+    `;
     const created = await fixture.postCreate(
         runner,
         fixture.createBody({ displayName: 'Lodger', nonce: 'create-home-project' })
@@ -68,6 +76,9 @@ test('an Agent-created Agent lives in its creator’s home, and creation refuses
     );
     await fixture.harness
         .sql`update chats set archived_at = null, archived_by_user_id = null where id = ${creatorHome}`;
+    await fixture.harness.sql`
+        update agents set home_project_id = ${fixture.channelId} where id = ${fixture.orbitAgentId}
+    `;
     expect(refused.status).not.toBe(200);
     expect(JSON.stringify(refused.body)).toContain('Your home is not an open Project');
 });

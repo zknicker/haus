@@ -158,6 +158,8 @@ starts with a digit is prefixed with `P` before step 2.
 - Reading or posting elsewhere does not change what reaches the Agent. Only its home, mentions,
   assignments, followed Tasks, and followed reply chains do ([inbox.md](inbox.md#hearing)).
 - Every non-retired Agent is offered as a mention in every Project.
+- A Task started from a message in `#all` or a DM goes to the starting Agent's home Project
+  unless `--project` names another.
 - A non-generalist Agent starts Tasks only in its home Project. Elsewhere the Server refuses with
   `TASK_PROJECT_NOT_HOME`, whose next action is to @mention that Project's Agent in that Project's
   channel. A generalist is never refused.
