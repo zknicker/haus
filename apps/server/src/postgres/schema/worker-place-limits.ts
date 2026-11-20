@@ -18,16 +18,3 @@ export const workerPlaceLimitsTable = pgTable(
         check('worker_place_limits_limit', sql`${table.workerLimit} between 1 and 50`),
     ]
 );
-
-export const pendingDefaultWorkerPlacesTable = pgTable(
-    'pending_default_worker_places',
-    {
-        place: text('place').notNull().$type<WorkerPlace>(),
-        serverId: text('server_id')
-            .primaryKey()
-            .references(() => serversTable.id, { onDelete: 'cascade' }),
-    },
-    (table) => [
-        check('pending_default_worker_places_place', sql`${table.place} in ('cursor', 'claude')`),
-    ]
-);

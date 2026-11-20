@@ -173,10 +173,10 @@ test('0132 turns cloud agent work into Workers, and running it again changes not
             { run_id: 'run_one', source: 'worker_report' },
             { run_id: 'run_two', source: 'human' },
         ]);
-        expect(migrated.defaults).toEqual([{ place: 'claude', server_id: 'srv_one' }]);
+        expect(migrated.stash).toEqual([{ stash: null }]);
         expect(migrated.inventories).toEqual([
-            { defaults: 0, id: 'cmp_new0000000000000', providers: 2 },
-            { defaults: 0, id: 'cmp_old0000000000000', providers: 2 },
+            { default_provider: 'claude', id: 'cmp_new0000000000000', providers: 2 },
+            { default_provider: 'cursor', id: 'cmp_old0000000000000', providers: 2 },
         ]);
 
         const statements = (await readFile(migration, 'utf8')).split('--> statement-breakpoint');
@@ -199,16 +199,16 @@ async function readMigrated(database: SQL) {
                 coalesce(closed_at = terminal_at, false) AS closed_at_terminal,
                 coalesce(terminal_at IS NULL AND closed_at = updated_at, false) AS closed_at_updated
             FROM workers ORDER BY id`,
-        defaults: await database`SELECT server_id, place FROM pending_default_worker_places`,
         historyLinks: await database`SELECT message_id, worker_id, ordinal
             FROM worker_history_links ORDER BY ordinal`,
         inbox: await database`SELECT id, source, worker_turn_id FROM agent_inbox ORDER BY id`,
         inventories: await database`SELECT id,
                 jsonb_array_length(reported_inventory->'cloudAgentProviders') AS providers,
-                (SELECT count(*)::int FROM jsonb_array_elements(reported_inventory->'cloudAgentProviders') AS entry
-                    WHERE entry->'isDefault' IS NOT NULL) AS defaults
+                (SELECT entry->>'provider' FROM jsonb_array_elements(reported_inventory->'cloudAgentProviders') AS entry
+                    WHERE entry->>'isDefault' = 'true') AS default_provider
             FROM computers ORDER BY id`,
         messages: await database`SELECT id, content FROM chat_messages ORDER BY id`,
+        stash: await database`SELECT to_regclass('pending_default_worker_places') AS stash`,
         taskLinks: await database`SELECT message_id, task_id, ordinal, text
             FROM task_message_links ORDER BY ordinal`,
         triggers: await database`SELECT run_id, source FROM agent_run_triggers ORDER BY run_id`,

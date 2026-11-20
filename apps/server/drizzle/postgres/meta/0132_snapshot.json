@@ -9276,50 +9276,6 @@
       },
       "isRLSEnabled": false
     },
-    "public.pending_default_worker_places": {
-      "name": "pending_default_worker_places",
-      "schema": "",
-      "columns": {
-        "place": {
-          "name": "place",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "server_id": {
-          "name": "server_id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "pending_default_worker_places_server_id_servers_id_fk": {
-          "name": "pending_default_worker_places_server_id_servers_id_fk",
-          "tableFrom": "pending_default_worker_places",
-          "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "pending_default_worker_places_place": {
-          "name": "pending_default_worker_places_place",
-          "value": "\"pending_default_worker_places\".\"place\" in ('cursor', 'claude')"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.projects": {
       "name": "projects",
       "schema": "",

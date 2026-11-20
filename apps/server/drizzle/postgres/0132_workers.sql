@@ -213,42 +213,4 @@ CREATE TABLE IF NOT EXISTS "worker_place_limits" (
     CONSTRAINT "worker_place_limits_place" CHECK ("worker_place_limits"."place" in ('cursor', 'claude')),
     CONSTRAINT "worker_place_limits_limit" CHECK ("worker_place_limits"."worker_limit" between 1 and 50),
     CONSTRAINT "worker_place_limits_server_id_servers_id_fk" FOREIGN KEY ("server_id") REFERENCES "public"."servers"("id") ON DELETE cascade ON UPDATE no action
-);--> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "pending_default_worker_places" (
-    "place" text NOT NULL,
-    "server_id" text PRIMARY KEY NOT NULL,
-    CONSTRAINT "pending_default_worker_places_place" CHECK ("pending_default_worker_places"."place" in ('cursor', 'claude')),
-    CONSTRAINT "pending_default_worker_places_server_id_servers_id_fk" FOREIGN KEY ("server_id") REFERENCES "public"."servers"("id") ON DELETE cascade ON UPDATE no action
-);--> statement-breakpoint
--- Each Server keeps the default provider of the Computer behind its newest work until W3
--- moves it onto Projects; then no Computer reports a default again.
-INSERT INTO "pending_default_worker_places" ("server_id", "place")
-SELECT newest."server_id", entry->>'provider'
-FROM (
-    SELECT DISTINCT ON ("server_id") "server_id", "carrier_computer_id"
-    FROM "workers"
-    ORDER BY "server_id", "created_at" DESC, "id" DESC
-) AS newest
-JOIN "computers" AS computer ON computer."id" = newest."carrier_computer_id"
-CROSS JOIN LATERAL jsonb_array_elements(
-    CASE WHEN jsonb_typeof(computer."reported_inventory"->'cloudAgentProviders') = 'array'
-        THEN computer."reported_inventory"->'cloudAgentProviders'
-        ELSE '[]'::jsonb
-    END
-) AS entry
-WHERE entry->>'isDefault' = 'true' AND entry->>'provider' IN ('cursor', 'claude')
-ON CONFLICT ("server_id") DO NOTHING;--> statement-breakpoint
-UPDATE "computers" SET "reported_inventory" = jsonb_set(
-    "reported_inventory",
-    '{cloudAgentProviders}',
-    (
-        SELECT jsonb_agg(entry - 'isDefault' ORDER BY position)
-        FROM jsonb_array_elements("reported_inventory"->'cloudAgentProviders')
-            WITH ORDINALITY AS provider(entry, position)
-    )
-)
-WHERE jsonb_typeof("reported_inventory"->'cloudAgentProviders') = 'array'
-    AND EXISTS (
-        SELECT 1 FROM jsonb_array_elements("reported_inventory"->'cloudAgentProviders') AS entry
-        WHERE entry->'isDefault' IS NOT NULL
-    );
+);
