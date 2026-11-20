@@ -68,7 +68,7 @@ import {
     startOf,
 } from './loop-host.ts';
 import { consumeNoticeAck } from './notice-ack.ts';
-import { resetInTransaction } from './reset-transaction.ts';
+import { type AgentResetRequest, resetInTransaction } from './reset-transaction.ts';
 import { isBackedOff } from './retry-policy.ts';
 import * as store from './store.ts';
 import { recoverSessionResume, settleRun } from './turn-settlement.ts';
@@ -231,7 +231,7 @@ export class AgentDelivery {
     }
 
     /** Rotates session identity; full reset also recreates Computer-local Agent state. */
-    async reset(input: { agentId: string; kind: 'full' | 'session'; serverId: string }) {
+    async reset(input: AgentResetRequest) {
         const result = await resetInTransaction(this.db, input);
         if (result.deletedArtifacts > 0) {
             artifactUpdatedTopic.announce({ artifactId: null, serverId: input.serverId });

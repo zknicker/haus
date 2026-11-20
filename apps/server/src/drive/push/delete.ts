@@ -91,7 +91,12 @@ async function deleteIn(
         const current = occupant ? await headOf(tx, occupant) : null;
         const deletes = occupant?.currentRevisionId === write.base;
         if (occupant && deletes) {
-            await softDeleteArtifacts(tx, access.serverId, [{ artifact: occupant, placement }]);
+            await softDeleteArtifacts(
+                tx,
+                access.serverId,
+                [{ artifact: occupant, placement }],
+                access.authorKey
+            );
         }
         const keepsEdit =
             !deletes &&

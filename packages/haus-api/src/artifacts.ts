@@ -162,9 +162,13 @@ export type ArtifactCreatorSummary = z.infer<typeof artifactCreatorSummarySchema
 export const artifactCreatorsResultSchema = z
     .object({ creators: z.array(artifactCreatorSummarySchema) })
     .strict();
-/** A deleted file: its last head and when it was deleted. Restorable until purged. */
+/** A deleted file: its last head, when and by whom it was deleted. Restorable until purged. */
 export const artifactDeletedRecordSchema = z
-    .object({ artifact: artifactRecordSchema, deleted_at: z.string() })
+    .object({
+        artifact: artifactRecordSchema,
+        deleted_at: z.string(),
+        deleted_by: artifactAuthorSchema.nullable(),
+    })
     .strict();
 export type ArtifactDeletedRecord = z.infer<typeof artifactDeletedRecordSchema>;
 export const artifactListDeletedResultSchema = z

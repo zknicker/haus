@@ -52,6 +52,13 @@ test('full reset deletes every live file in the area, each restorable from Recen
         'agents/scout/notes/session.md',
         'agents/scout/skills/digest/SKILL.md',
     ]);
+    const deleted = await state.owner.trpc.artifact.listDeleted.query({
+        prefix: 'agents/scout',
+        serverId: state.serverId,
+    });
+    expect(new Set(deleted.deleted.map((item) => JSON.stringify(item.deleted_by)))).toEqual(
+        new Set([JSON.stringify({ type: 'user', user_id: state.actor.member?.id })])
+    );
 
     const seeded = await publish({ body: '# Scout\n', path: 'agents/scout/MEMORY.md' });
     expect(seeded.artifact.artifact_id).not.toBe(memory.artifact.artifact_id);

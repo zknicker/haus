@@ -1,5 +1,6 @@
 import { agentDeliveryStateSchema, agentResetInputSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
+import { artifactAccess } from '../../artifacts/access.ts';
 import { agentUpdatedTopic } from '../../realtime/topics.ts';
 import { AgentConfigDeniedError } from '../../server-agents/agent-config-errors.ts';
 import {
@@ -14,7 +15,21 @@ export const resetAgentProcedure = artifactProcedure
     .mutation(async ({ ctx, input }) => {
         try {
             await assertAgentResetAccess(ctx.hausDb, ctx.member, input);
-            await ctx.agentDelivery.reset(input);
+            await ctx.agentDelivery.reset(
+                input.kind === 'full'
+                    ? {
+                          ...input,
+                          kind: 'full',
+                          resetBy: (
+                              await artifactAccess(ctx.hausDb, {
+                                  kind: 'human',
+                                  member: ctx.member,
+                                  serverId: input.serverId,
+                              })
+                          ).authorKey,
+                      }
+                    : { ...input, kind: 'session' }
+            );
             agentUpdatedTopic.announce({
                 agentId: input.agentId,
                 serverId: input.serverId,

@@ -16,10 +16,12 @@ import { recordSessionRotation } from './session-rotation.ts';
 import * as store from './store.ts';
 import { retireQueuedSubagentWakes } from './subagent-wake-request.ts';
 
-export async function resetInTransaction(
-    db: HausDatabase,
-    input: { agentId: string; kind: 'full' | 'session'; serverId: string }
-) {
+export type AgentResetRequest = { agentId: string; serverId: string } & (
+    | { kind: 'session' }
+    | { kind: 'full'; resetBy: string }
+);
+
+export async function resetInTransaction(db: HausDatabase, input: AgentResetRequest) {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const state = await store.readDeliveryState(tx, input.agentId);

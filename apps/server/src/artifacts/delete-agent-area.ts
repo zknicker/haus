@@ -8,7 +8,7 @@ import { ArtifactError } from './storage.ts';
 
 export async function deleteAgentAreaIn(
     tx: HausDatabase,
-    input: { agentId: string; serverId: string }
+    input: { agentId: string; resetBy: string; serverId: string }
 ) {
     await lockLiveServer(tx, input.serverId);
     const [agent] = await tx
@@ -30,7 +30,8 @@ export async function deleteAgentAreaIn(
         rows.map((artifact) => ({
             artifact,
             placement: { area: `agent:${agent.id}`, path: artifact.path, root },
-        }))
+        })),
+        input.resetBy
     );
     return rows.length;
 }

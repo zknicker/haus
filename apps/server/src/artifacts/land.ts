@@ -188,6 +188,7 @@ export async function reviveAt(
         .set({
             currentRevisionId: revision.id,
             deletedAt: null,
+            deletedBy: null,
             path,
             pathKey: artifactPathKey(path),
         })

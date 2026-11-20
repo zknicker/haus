@@ -355,6 +355,10 @@ the life of the file, so rule and memory history never expires. A larger replace
 deleted seven days after a newer revision took its place (`ARTIFACT_REVISION_RETENTION_DAYS`), and
 only while the file is live. A deleted file keeps every revision, large replaced ones included, for
 30 days (`driveDeletedRetentionDays`), then its revisions are purged and its tombstone stays.
+Every soft delete (a single delete, `deleteMany`, a push delete, and a full reset's area delete)
+records `artifacts.deleted_by`, the deleter's author key (`agent:<id>` or `user:<id>`), and a
+revive or restore clears it. `artifact.listDeleted` returns it as `deleted_by`, an author or null
+for files deleted before the column existed.
 `delete-artifact-version` still removes one non-current revision at once. A delete also turns off
 the file's public link, so a restore never re-exposes a link the delete ended.
 `artifact.restore` on a deleted file's revision brings the file back at its last path on top of its
