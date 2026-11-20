@@ -9,7 +9,7 @@ import {
 import { WorkerKeycap } from './cloud-agent-provider-mark.tsx';
 import { useOpenWorkerView } from './use-open-worker-view.ts';
 import type { WorkerMessageBody } from './worker-message-body.ts';
-import { workerPlaceName } from './worker-place.ts';
+import { workerPlaceName, workerPlaceProvider } from './worker-place.ts';
 import { useKnownWorker } from './worker-summaries.tsx';
 
 export function WorkerMessageContext({
@@ -39,7 +39,10 @@ export function WorkerMessageContext({
                 type="button"
                 {...opensPlace}
             >
-                <WorkerKeycap provider={work.place} size={turnContextMarkSize} />
+                <WorkerKeycap
+                    provider={workerPlaceProvider(work.place)}
+                    size={turnContextMarkSize}
+                />
                 <span className="text-muted min-w-0 truncate font-medium">
                     {`To Worker on ${workerPlaceName(work)}`}
                 </span>

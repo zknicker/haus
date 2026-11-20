@@ -3,12 +3,13 @@ import { workerTurnModelSchema } from './cloud-agent-model.ts';
 import { workerJobSchema } from './worker-job.ts';
 import {
     workerOutcomeSchema,
-    workerPlaceSchema,
     workerStatusSchema,
     workerTurnInputSchema,
 } from './worker-outcome.ts';
+import { workerPlaceViewSchema } from './worker-place.ts';
 import { workerProviderResultSchema } from './worker-provider-result.ts';
 import { pullRequestReadingSchema, workerPullRequestSchema } from './worker-pull-request.ts';
+import { workerModelSchema, workerRuntimeSchema } from './worker-runtime.ts';
 import { workerStallCodeSchema } from './worker-stall.ts';
 import { workerStepsSchema } from './worker-steps.ts';
 import { workerTimestampSchema } from './worker-time.ts';
@@ -96,6 +97,8 @@ export const workerRepositorySchema = z
 
 export const workerRefSchema = z.string().trim().min(1).max(200);
 
+export const workerBranchNameSchema = z.string().trim().min(1).max(300);
+
 export const workerTitleSchema = z.string().trim().min(1).max(workerTitleMaxLength);
 
 /** One bounded line of current state, never a transcript. */
@@ -130,7 +133,7 @@ export const workerBranchRepositorySchema = z
  */
 export const workerBranchSchema = z
     .object({
-        branch: z.string().trim().min(1).max(300),
+        branch: workerBranchNameSchema,
         pullRequest: workerPullRequestSchema.nullable().optional(),
         pullRequestUrl: z.url().max(2000).nullable(),
         repository: workerBranchRepositorySchema,
@@ -200,6 +203,8 @@ export const workerSchema = z
     .object({
         activity: workerActivitySchema.nullable(),
         agentId: workerIdSchema,
+        /** The branch the Worker or its provider reported, or a Computer place's checkout branch. */
+        branch: workerBranchNameSchema.nullable(),
         carrierComputerId: workerIdSchema,
         closedAt: workerTimestampSchema.nullable(),
         closingAt: workerTimestampSchema.nullable(),
@@ -212,13 +217,16 @@ export const workerSchema = z
         /** The Server's reading of the whole job across its turns (`deriveWorkerJob`). */
         job: workerJobSchema,
         launchMessageId: workerIdSchema.nullable(),
+        /** As requested; null is the runtime's own default. Computer places only. */
+        model: workerModelSchema.nullable(),
         originChatId: workerIdSchema.nullable(),
-        place: workerPlaceSchema,
+        place: workerPlaceViewSchema,
         providerAgentId: z.string().trim().min(1).max(200).nullable(),
         providerUrl: z.url().max(2000).nullable(),
         /** The live reading of the pull request the newest reporting turn named. */
         pullRequest: pullRequestReadingSchema.nullable(),
         repository: workerRepositorySchema,
+        runtime: workerRuntimeSchema.nullable(),
         startedAt: workerTimestampSchema.nullable(),
         startingRef: workerRefSchema.nullable(),
         status: workerStatusSchema,
@@ -227,6 +235,8 @@ export const workerSchema = z
         title: workerTitleSchema,
         turns: z.array(workerTurnSchema).max(workerTurnsRetained),
         updatedAt: workerTimestampSchema,
+        /** The `agents/<handle>/WORKER.md` revision the place last acknowledged receiving. */
+        workerMdRevisionId: workerIdSchema.nullable(),
     })
     .strict();
 

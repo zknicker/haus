@@ -83,6 +83,7 @@ test('inspect lists the Agent’s Workers or shows one in full', async () => {
     expect(seen[0]?.query).toEqual({ workerId: work.id });
     expect(JSON.parse(detail.join(''))).toEqual([work]);
     expect(WORKER_SUBCOMMANDS.map((command) => command.name)).toEqual([
+        'places',
         'start',
         'send',
         'inspect',

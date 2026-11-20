@@ -2,6 +2,9 @@ import type { WorkerReconcileEntry } from '@haus/api';
 import { and, asc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { workerTurnsTable, workersTable } from '../postgres/schema.ts';
+import { owesHarnessStop } from './harness-stop.ts';
+import { workerPlaceOf } from './worker-row-place.ts';
+import { currentTurnAttempt } from './worker-turn-attempt.ts';
 
 const carriedTurn = and(
     eq(workerTurnsTable.serverId, workersTable.serverId),
@@ -15,11 +18,14 @@ export async function listComputerWorker(
 ): Promise<WorkerReconcileEntry[]> {
     const rows = await db
         .select({
+            acceptedAttempt: workerTurnsTable.acceptedAttempt,
+            carrierComputerId: workersTable.carrierComputerId,
+            dispatchAttempt: workerTurnsTable.dispatchAttempt,
             place: workersTable.place,
             providerAgentId: workersTable.providerAgentId,
             providerRunId: workerTurnsTable.providerRunId,
             status: workerTurnsTable.status,
-            stopRequested: stopPending,
+            stopRequested: sql<boolean>`(${stopPending} or ${owesHarnessStop(workerTurnsTable)})`,
             turnId: workerTurnsTable.id,
             workerId: workersTable.id,
         })
@@ -29,16 +35,25 @@ export async function listComputerWorker(
             and(
                 eq(workersTable.serverId, input.serverId),
                 eq(workersTable.carrierComputerId, input.computerId),
-                inArray(workerTurnsTable.status, ['queued', 'running']),
                 or(
-                    isNotNull(workerTurnsTable.acknowledgedAt),
-                    and(isNull(workerTurnsTable.input), isNull(workerTurnsTable.outcome)),
-                    and(isNotNull(workerTurnsTable.dispatchedAt), stopPending)
+                    and(
+                        inArray(workerTurnsTable.status, ['queued', 'running']),
+                        or(
+                            isNotNull(workerTurnsTable.acknowledgedAt),
+                            and(isNull(workerTurnsTable.input), isNull(workerTurnsTable.outcome)),
+                            and(isNotNull(workerTurnsTable.dispatchedAt), stopPending)
+                        )
+                    ),
+                    owesHarnessStop(workerTurnsTable)
                 )
             )
         )
         .orderBy(asc(workerTurnsTable.createdAt), asc(workerTurnsTable.id));
-    return rows;
+    return rows.map(({ acceptedAttempt, carrierComputerId, dispatchAttempt, place, ...entry }) => ({
+        ...entry,
+        attempt: currentTurnAttempt({ acceptedAttempt, dispatchAttempt }) || null,
+        place: workerPlaceOf({ carrierComputerId, place }),
+    }));
 }
 
 export async function listUnacknowledgedTurns(

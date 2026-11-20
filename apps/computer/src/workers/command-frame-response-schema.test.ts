@@ -6,9 +6,11 @@ import {
     workerStopCommandResponseSchema,
     workerTurnStartResponseSchema,
 } from './command-frame-response-schema.ts';
+import { parseWorkerTurnStart } from './frames.ts';
+import { turnStartFrame } from './worker-supervisor.fixture.ts';
 
 const stop = {
-    place: 'cursor',
+    place: { kind: 'cursor' },
     providerAgentId: 'bc_abc',
     providerRunId: 'run_abc',
     turnId: 'wkt_1234567890abcdef',
@@ -33,8 +35,9 @@ test('the Computer response schema tolerates an unknown field on a reconcile com
         type: 'worker-reconcile',
         workers: [
             {
+                attempt: null,
                 futureEntryField: true,
-                place: 'cursor',
+                place: { kind: 'cursor' },
                 providerAgentId: 'bc_abc',
                 providerRunId: 'run_abc',
                 status: 'running',
@@ -49,6 +52,15 @@ test('the Computer response schema tolerates an unknown field on a reconcile com
 
 test('the Computer response schema tolerates an unknown field on a turn start, at every nesting level', () => {
     const parsed = workerTurnStartResponseSchema.parse({
+        agentId: 'agt_1234567890abcdef',
+        attempt: 1,
+        checkout: {
+            branch: 'haus/sec-12-wkr_1234567890abcdef',
+            checkoutPath: null,
+            futureCheckoutField: true,
+            repository: 'haus/haus',
+            startingRef: null,
+        },
         futureStartField: true,
         input: 'Fix the flaky delivery test.',
         model: {
@@ -58,17 +70,27 @@ test('the Computer response schema tolerates an unknown field on a turn start, a
             id: null,
             params: [],
         },
-        place: 'claude',
+        place: { futurePlaceField: true, kind: 'claude' },
         predecessorTurnIds: [],
         providerAgentId: null,
         repository: 'haus/haus',
+        resumeSessionId: null,
+        runtime: null,
         startingRef: null,
         title: 'Fix the flaky delivery test',
         turnId: 'wkt_1234567890abcdef',
         type: 'worker-turn-start',
         workerId: 'wkr_1234567890abcdef',
+        workerMdRevisionId: null,
     });
     expect(parsed.input).toBe('Fix the flaky delivery test.');
+    expect(parsed.checkout?.branch).toBe('haus/sec-12-wkr_1234567890abcdef');
+});
+
+test('a turn start that names no delegating Agent does not parse', () => {
+    const { agentId: _missing, ...start } = turnStartFrame();
+    expect(parseWorkerTurnStart(start)).toBeNull();
+    expect(parseWorkerTurnStart(turnStartFrame())?.agentId).toBe('agt_1234567890abcdef');
 });
 
 test('the Computer response schema tolerates an unknown field on a capability request, at every nesting level', () => {

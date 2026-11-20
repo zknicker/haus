@@ -12,6 +12,7 @@ import { driveReconcileFrames } from '../agent-delivery/drive-reconcile.ts';
 import { clearStartRejectedHolds } from '../agent-delivery/failure-hold.ts';
 import { onAgentLifecycle } from '../agent-delivery/lifecycle.ts';
 import type { InvocationRouter } from '../agent-invocations/invocation-router.ts';
+import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computerUpdatedTopic } from '../realtime/topics.ts';
 import type { ThoughtSummarizer } from '../server-agents/agent-thought-summarizer.ts';
@@ -50,6 +51,7 @@ export function startComputerAttachmentSocket(
     postCommitWork: ServerPostCommitWork,
     thoughtSummarizer: ThoughtSummarizer | null,
     invocations: InvocationRouter,
+    storage: ArtifactStorage | null,
     liveness: ComputerSocketLivenessTiming = defaultComputerSocketLiveness
 ) {
     const thoughts = createAgentThoughts({ summarizer: thoughtSummarizer });
@@ -210,7 +212,11 @@ export function startComputerAttachmentSocket(
                 .then(() => delivery.onComputerReconnect(computer.id))
                 .catch(() => undefined);
             void postCommitWork.run('worker.reconcile-on-connect', () =>
-                reconnectWorkerCarrier(db, { connections, delivery, postCommitWork }, computer)
+                reconnectWorkerCarrier(
+                    db,
+                    { connections, delivery, postCommitWork, storage },
+                    computer
+                )
             );
         };
         socket.on('message', (raw) => {
@@ -235,7 +241,8 @@ export function startComputerAttachmentSocket(
                             rawString,
                             postCommitWork,
                             thoughts,
-                            invocations
+                            invocations,
+                            storage
                         );
                         return;
                     }

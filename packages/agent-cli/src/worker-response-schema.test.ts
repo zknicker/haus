@@ -13,6 +13,7 @@ import {
 const workerWithUnknownFields = {
     activity: { at: '2026-09-04T12:01:00.000Z', summary: 'Reading the failing test.' },
     agentId: 'agt_orbit',
+    branch: null,
     carrierComputerId: 'cmp_studio',
     closedAt: null,
     closingAt: null,
@@ -28,12 +29,14 @@ const workerWithUnknownFields = {
         state: 'working',
     },
     launchMessageId: null,
+    model: null,
     originChatId: null,
-    place: 'claude',
+    place: { kind: 'claude' },
     providerAgentId: 'cse_abc',
     providerUrl: 'https://claude.ai/code',
     pullRequest: null,
     repository: 'haus/haus',
+    runtime: null,
     startedAt: '2026-09-04T12:00:30.000Z',
     startingRef: 'main',
     status: 'done',
@@ -95,6 +98,7 @@ const workerWithUnknownFields = {
         },
     ],
     updatedAt: '2026-09-04T12:01:00.000Z',
+    workerMdRevisionId: null,
 };
 
 test('the canonical strict Worker schema rejects a field it does not know', () => {

@@ -2,7 +2,7 @@ import { artifactPathBasename, drivePushPutInputSchema } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import * as z from 'zod';
 import type { AgentDelivery } from '../../agent-delivery/delivery.ts';
-import { type ArtifactAccess, artifactAccess } from '../../artifacts/access.ts';
+import { type ArtifactAccess, type ArtifactActor, artifactAccess } from '../../artifacts/access.ts';
 import { lockLiveServer } from '../../artifacts/move.ts';
 import { liveArtifactAtPath, placeArtifactPath } from '../../artifacts/path.ts';
 import { abandonUpload, dropUploadedBytes } from '../../artifacts/publish.ts';
@@ -15,7 +15,6 @@ import {
 } from '../../artifacts/storage.ts';
 import type { ArtifactThumbnails } from '../../artifacts/thumbnails.ts';
 import { createArtifactAt, deletedArtifactOwning } from '../../artifacts/write-target.ts';
-import type { ResolvedRunner } from '../../computers/runner-credentials.ts';
 import type { HausDatabase } from '../../postgres/connection.ts';
 import { agentsTable, artifactRevisionsTable as revisions } from '../../postgres/schema.ts';
 import { artifactUpdatedTopic } from '../../realtime/topics.ts';
@@ -40,12 +39,12 @@ const putQuery = drivePushPutInputSchema.extend({
 
 export async function pushPut(
     options: DrivePushOptions,
-    runner: ResolvedRunner,
+    actor: ArtifactActor,
     request: { contentType: string | undefined; query: unknown; stream: AsyncIterable<Uint8Array> }
 ) {
     const input = putQuery.parse(request.query);
     const { db } = options;
-    const access = await artifactAccess(db, { kind: 'agent', runner });
+    const access = await artifactAccess(db, actor);
     const pushRequest = putRequest(input);
     const stored = await storedOutcome(db, access, input.request_id, pushRequest);
     if (stored) {

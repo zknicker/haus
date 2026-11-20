@@ -117,9 +117,7 @@ test('actual disk reports reach authorized readers and clear on failure or disco
     ).toEqual(disk);
     const computer = (await owner.trpc.computer.list.query({ serverId }))[0];
     expect(computer?.attachedByCurrentUser).toBe(true);
-    await expect(member.trpc.computer.list.query({ serverId })).rejects.toThrow(
-        'Only a Server Owner or Admin'
-    );
+    expect(await member.trpc.computer.list.query({ serverId })).toEqual([]);
     socket.send(JSON.stringify({ type: 'disk-report', disk: null }));
     await expectEventually(
         async () => (await owner.trpc.computer.list.query({ serverId }))[0]?.diskStatus

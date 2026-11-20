@@ -1,6 +1,7 @@
 import type { WorkerTurnInput } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import type { ArtifactStorage } from '../artifacts/storage.ts';
 import { sendChatMessage } from '../chats/send-message.ts';
 import type { MessageRouter } from '../message-routing/jev.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -11,7 +12,7 @@ import { withDispatch } from './dispatch-worker-turns.ts';
 import { WorkerNotFoundError } from './errors.ts';
 import { queueWorkerFollowUp } from './queue-worker-follow-up.ts';
 import { lockWorker, requireOpenWorker } from './stop-worker-turns.ts';
-import type { WorkerFrame } from './worker-effects.ts';
+import type { WorkerEffects, WorkerFrame } from './worker-effects.ts';
 import { requireWorker } from './worker-shape.ts';
 import { canSeeWorker } from './worker-visibility.ts';
 
@@ -20,6 +21,7 @@ export async function sendPersonFollowUp(
     member: HausUser,
     input: { nonce: string; serverId: string; text: string; workerId: string },
     agentDelivery: AgentDelivery,
+    storage: ArtifactStorage | null,
     messageRouter?: MessageRouter
 ) {
     const viewer = { kind: 'user', userId: member.id } as const;
@@ -30,6 +32,7 @@ export async function sendPersonFollowUp(
     const taskChatId = await readTaskChatId(db, input.serverId, worker.taskId ?? '');
     const frames: WorkerFrame[] = [];
     const workerEvents: PreparedRealtimeEvent[] = [];
+    const workerWakes: WorkerEffects['wakes'] = [];
     const sent = await sendChatMessage(
         db,
         member,
@@ -58,19 +61,22 @@ export async function sendPersonFollowUp(
                     nonce: null,
                     worker: requireOpenWorker(await lockWorker(tx, input.serverId, worker.id)),
                 });
-                const dispatched = await withDispatch(tx, input.serverId, {
-                    events: [],
-                    frames: queued.frames,
-                    wakes: [],
+                const dispatched = await withDispatch(tx, storage, input.serverId, {
+                    ...queued.effects,
                     workerIds: [worker.id],
                 });
                 frames.push(...dispatched.frames);
                 workerEvents.push(...dispatched.events);
+                workerWakes.push(...dispatched.wakes);
             },
         }
     );
     return {
-        effects: { events: [...sent.events, ...workerEvents], frames, wakes: sent.wakes },
+        effects: {
+            events: [...sent.events, ...workerEvents],
+            frames,
+            wakes: [...sent.wakes, ...workerWakes],
+        },
         messageId: sent.receipt.message.id,
         worker: await requireWorker(db, input.serverId, worker.id),
     };

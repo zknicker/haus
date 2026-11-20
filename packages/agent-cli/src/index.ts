@@ -1,4 +1,10 @@
 export { commandGroups, runAgentCli } from './agent-cli.ts';
+export { AgentApiClient, type AgentApiRequester } from './agent-api-client.ts';
+export { AgentCliError, renderAgentCliError } from './agent-error.ts';
+export { type ParsedArgs, UsageError } from './parse.ts';
+export { readAgentStdin } from './stdin.ts';
+export { dispatchSubcommand, type SubCommand } from './subcommand.ts';
+export { errorBlock } from './ui.ts';
 export {
     agentHistoryResponseSchema,
     agentMessageCheckResponseSchema,
@@ -14,6 +20,7 @@ export { chatMessageReplyResponseSchema } from './chat-message-reply-response-sc
 export {
     workerBranchResponseSchema,
     workerOutcomeResponseSchema,
+    workerPlaceResponseSchema,
     workerReconcileEntryResponseSchema,
     workerTurnModelResponseSchema,
 } from './worker-response-schema.ts';

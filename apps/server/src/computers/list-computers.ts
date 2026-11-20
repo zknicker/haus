@@ -1,11 +1,12 @@
-import { desc, eq } from 'drizzle-orm';
+import type { ComputerWorkerSettings } from '@haus/api';
+import { and, desc, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computersTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { presentComputer } from './computer-presence.ts';
+import { isComputerSteward } from './computer-steward.ts';
 import type { ComputerConnections } from './connections.ts';
-import { ComputerSetupDeniedError } from './service.ts';
 
 export async function listServerComputers(
     db: HausDatabase,
@@ -14,9 +15,7 @@ export async function listServerComputers(
     serverId: string
 ) {
     const server = await requireServerMembership(db, member, serverId);
-    if (server.role !== 'owner' && server.role !== 'admin') {
-        throw new ComputerSetupDeniedError('Only a Server Owner or Admin can view Computers.');
-    }
+    const seesEvery = server.role === 'owner' || server.role === 'admin';
     const computers = await db
         .select({
             attachedByUserId: computersTable.attachedByUserId,
@@ -38,14 +37,29 @@ export async function listServerComputers(
             updateTargetVersion: computersTable.updateTargetVersion,
             updateTotalBytes: computersTable.updateTotalBytes,
             updateUpdatedAt: computersTable.updateUpdatedAt,
+            workerLimit: computersTable.workerLimit,
+            workersEnabled: computersTable.workersEnabled,
         })
         .from(computersTable)
-        .where(eq(computersTable.serverId, serverId))
+        .where(
+            and(
+                eq(computersTable.serverId, serverId),
+                seesEvery ? undefined : eq(computersTable.attachedByUserId, member?.id ?? '')
+            )
+        )
         .orderBy(desc(computersTable.createdAt));
-    return computers.map(({ attachedByUserId, ...computer }) => ({
-        ...presentComputer(computer, connections),
-        name: computer.reportedInventory?.name ?? null,
-        attachedByCurrentUser: attachedByUserId === member?.id,
-        diskStatus: connections.diskStatus(computer.id),
-    }));
+    return computers.map(({ attachedByUserId, workerLimit, workersEnabled, ...computer }) => {
+        const workers: ComputerWorkerSettings = {
+            canChangeWorkers: isComputerSteward(server.role, attachedByUserId, member?.id),
+            workerLimit,
+            workersEnabled,
+        };
+        return {
+            ...presentComputer(computer, connections),
+            ...workers,
+            name: computer.reportedInventory?.name ?? null,
+            attachedByCurrentUser: attachedByUserId === member?.id,
+            diskStatus: connections.diskStatus(computer.id),
+        };
+    });
 }

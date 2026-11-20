@@ -1,6 +1,12 @@
-import { workerReconcileEntryResponseSchema, workerTurnModelResponseSchema } from '@haus/agent-cli';
+import {
+    workerPlaceResponseSchema,
+    workerReconcileEntryResponseSchema,
+    workerTurnModelResponseSchema,
+} from '@haus/agent-cli';
 import {
     cloudAgentCapabilityRequestSchema,
+    workerCheckoutSchema,
+    workerCloseCommandSchema,
     workerFollowUpDrainAckFrameSchema,
     workerReconcileCommandSchema,
     workerStopCommandSchema,
@@ -14,7 +20,10 @@ import * as z from 'zod';
  * tolerates a field a newer Server added instead of failing the frame closed.
  */
 
-export const workerStopCommandResponseSchema = z.looseObject(workerStopCommandSchema.shape);
+export const workerStopCommandResponseSchema = z.looseObject({
+    ...workerStopCommandSchema.shape,
+    place: workerPlaceResponseSchema,
+});
 
 export const workerReconcileCommandResponseSchema = z.looseObject({
     ...workerReconcileCommandSchema.shape,
@@ -23,12 +32,16 @@ export const workerReconcileCommandResponseSchema = z.looseObject({
 
 export const workerTurnStartResponseSchema = z.looseObject({
     ...workerTurnStartFrameSchema.shape,
+    checkout: z.looseObject(workerCheckoutSchema.shape).nullable(),
     model: workerTurnModelResponseSchema,
+    place: workerPlaceResponseSchema,
 });
 
 export const workerFollowUpDrainAckResponseSchema = z.looseObject(
     workerFollowUpDrainAckFrameSchema.shape
 );
+
+export const workerCloseCommandResponseSchema = z.looseObject(workerCloseCommandSchema.shape);
 
 const [
     getOperation,

@@ -1,6 +1,17 @@
+import type { WorkerPlaceKind } from '@haus/api';
 import { sql } from 'drizzle-orm';
-import { boolean, check, foreignKey, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import {
+    boolean,
+    check,
+    foreignKey,
+    pgTable,
+    text,
+    timestamp,
+    type UpdateDeleteAction,
+    unique,
+} from 'drizzle-orm/pg-core';
 import { chatsTable } from './chats.ts';
+import { computersTable } from './computers.ts';
 import { taskKeysTable } from './task-keys.ts';
 
 export const projectsTable = pgTable(
@@ -10,6 +21,8 @@ export const projectsTable = pgTable(
         chatIsAll: boolean('chat_is_all').notNull().default(false),
         chatKind: text('chat_kind').notNull().default('channel'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        defaultWorkerComputerId: text('default_worker_computer_id'),
+        defaultWorkerPlace: text('default_worker_place').$type<WorkerPlaceKind>(),
         serverId: text('server_id').notNull(),
         taskKeyId: text('task_key_id').notNull(),
     },
@@ -26,7 +39,22 @@ export const projectsTable = pgTable(
             foreignColumns: [taskKeysTable.serverId, taskKeysTable.id],
             name: 'projects_task_key_fk',
         }),
+        foreignKey({
+            columns: [table.serverId, table.defaultWorkerComputerId],
+            foreignColumns: [computersTable.serverId, computersTable.id],
+            name: 'projects_default_worker_computer_fk',
+        }).onDelete('set null (default_worker_computer_id)' as UpdateDeleteAction),
         check('projects_chat_kind', sql`${table.chatKind} = 'channel'`),
         check('projects_chat_not_all', sql`${table.chatIsAll} = false`),
+        check(
+            'projects_default_worker_place',
+            sql`${table.defaultWorkerPlace} is null
+                or ${table.defaultWorkerPlace} in ('cursor', 'claude', 'computer')`
+        ),
+        check(
+            'projects_default_worker_computer',
+            sql`coalesce(${table.defaultWorkerPlace} = 'computer', false)
+                = (${table.defaultWorkerComputerId} is not null)`
+        ),
     ]
 );

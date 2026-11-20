@@ -3,8 +3,8 @@ import { compactionToolName, type TurnEvent } from '../turn-event.ts';
 import type { CodexItem } from './protocol.ts';
 
 export interface ToolItemContext {
-    /** The host-tool MCP server's name; its calls are Haus host tools, not builtins. */
-    readonly hostToolServer: string;
+    /** The host-tool MCP server's name; its calls are Haus host tools. A Worker has none. */
+    readonly hostToolServer: string | null;
     readonly workspaceDir: string;
 }
 
