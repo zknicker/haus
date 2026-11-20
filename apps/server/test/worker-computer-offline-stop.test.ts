@@ -4,23 +4,24 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import {
     agentInboxTable,
     chatMessagesTable,
-    computersTable,
     messageDriveCitationsTable,
     taskPullRequestsTable,
     workerTurnsTable,
 } from '../src/postgres/schema.ts';
 import { acceptWorkerTurn, planCarrierReconnect } from '../src/workers/carrier-frames.ts';
 import { failOfflineComputerTurns } from '../src/workers/fail-offline-computer-turns.ts';
-import { mintWorkerTurnCredential } from '../src/workers/worker-credentials.ts';
 import { sendAgentFollowUp, stopAgentWorker } from '../src/workers/worker-operations.ts';
 import { offlineDelivery } from './agent-inbox-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { type WorkerBoard, closeTask } from './worker-board.fixture.ts';
 import {
+    bringComputerOnline,
     computerPlaceBoard,
     endTurn,
+    mintTurnCredential,
     readTurn,
     startComputerWorker,
+    takeComputerOffline,
 } from './worker-computer-turn.fixture.ts';
 
 let cluster: TestDatabase;
@@ -42,7 +43,7 @@ test('stopping a Worker whose Computer is offline settles its recorded draft as 
     const board = await computerPlaceBoard(connection.db);
     const { turnId, workerId } = await startComputerWorker(connection.db, board);
     const path = await recordDraft(board, turnId, workerId);
-    await takeComputerOffline(board);
+    await takeComputerOffline(connection.db, board);
 
     await stopAgentWorker(connection.db, board.runner, workerId);
 
@@ -59,7 +60,7 @@ test('closing the Task of a Worker whose Computer is offline settles its draft a
     const { delivery } = offlineDelivery(connection.db, board.seed);
     const { turnId, workerId } = await startComputerWorker(connection.db, board);
     const path = await recordDraft(board, turnId, workerId);
-    await takeComputerOffline(board);
+    await takeComputerOffline(connection.db, board);
 
     await closeTask(connection.db, board, delivery);
 
@@ -74,7 +75,7 @@ test('closing the Task of a Worker whose Computer is offline settles its draft a
 test('stopping an offline Worker with no draft settles it stopped and posts nothing', async () => {
     const board = await computerPlaceBoard(connection.db);
     const { turnId, workerId } = await startComputerWorker(connection.db, board);
-    await takeComputerOffline(board);
+    await takeComputerOffline(connection.db, board);
 
     await stopAgentWorker(connection.db, board.runner, workerId);
 
@@ -86,9 +87,11 @@ test('an offline stop stays owed to the harness, and the next turn waits for its
     const { delivery } = offlineDelivery(connection.db, board.seed);
     const { turnId, workerId } = await startComputerWorker(connection.db, board);
     await acceptWorkerTurn(connection.db, { ...scope(board), attempt: 1, turnId }, null);
-    expect(await mintTurnCredential(board, turnId)).toMatchObject({ state: 'minted' });
+    expect(await mintTurnCredential(connection.db, board, turnId)).toMatchObject({
+        state: 'minted',
+    });
     await recordDraft(board, turnId, workerId);
-    await takeComputerOffline(board);
+    await takeComputerOffline(connection.db, board);
     await stopAgentWorker(connection.db, board.runner, workerId, null);
     const followUp = await sendAgentFollowUp(
         connection.db,
@@ -96,7 +99,7 @@ test('an offline stop stays owed to the harness, and the next turn waits for its
         { interrupt: false, nonce: null, text: 'Now add the test.', workerId },
         null
     );
-    await bringComputerOnline(board);
+    await bringComputerOnline(connection.db, board);
 
     const reconnect = await planCarrierReconnect(
         connection.db,
@@ -110,6 +113,7 @@ test('an offline stop stays owed to the harness, and the next turn waits for its
             type: 'worker-reconcile',
             workers: [
                 {
+                    attempt: 1,
                     place: { computerId: board.seed.computerId, kind: 'computer' },
                     providerAgentId: null,
                     providerRunId: null,
@@ -134,8 +138,8 @@ test('the launch fence refuses a later turn until the stopped one is reported en
     const board = await computerPlaceBoard(connection.db);
     const { delivery } = offlineDelivery(connection.db, board.seed);
     const { turnId, workerId } = await startComputerWorker(connection.db, board);
-    await mintTurnCredential(board, turnId);
-    await takeComputerOffline(board);
+    await mintTurnCredential(connection.db, board, turnId);
+    await takeComputerOffline(connection.db, board);
     await stopAgentWorker(connection.db, board.runner, workerId, null);
     const followUp = await sendAgentFollowUp(
         connection.db,
@@ -146,9 +150,9 @@ test('the launch fence refuses a later turn until the stopped one is reported en
     await connection.db.execute(sql`update worker_turns
         set dispatched_at = now(), dispatch_attempt = 1 where id = ${followUp.receipt.turnId}`);
 
-    const held = await mintTurnCredential(board, followUp.receipt.turnId);
+    const held = await mintTurnCredential(connection.db, board, followUp.receipt.turnId);
     await endTurn(connection.db, delivery, board, { exit: 'stopped', turnId });
-    const released = await mintTurnCredential(board, followUp.receipt.turnId);
+    const released = await mintTurnCredential(connection.db, board, followUp.receipt.turnId);
 
     expect(held).toEqual({
         reason: 'earlier-turn-stopping',
@@ -192,12 +196,14 @@ test('a launched turn failed machine-offline is stopped on the Computer when it 
     const { delivery } = offlineDelivery(connection.db, board.seed);
     const { turnId, workerId } = await startComputerWorker(connection.db, board);
     await acceptWorkerTurn(connection.db, { ...scope(board), attempt: 1, turnId }, null);
-    expect(await mintTurnCredential(board, turnId)).toMatchObject({ state: 'minted' });
+    expect(await mintTurnCredential(connection.db, board, turnId)).toMatchObject({
+        state: 'minted',
+    });
     await connection.db.execute(sql`update computers
         set health = 'offline', disconnected_at = '2026-11-19T10:00:00Z'
         where id = ${board.seed.computerId}`);
     await failOfflineComputerTurns(connection.db, delivery, new Date('2026-11-19T10:30:00Z'));
-    await bringComputerOnline(board);
+    await bringComputerOnline(connection.db, board);
 
     const reconnect = await planCarrierReconnect(
         connection.db,
@@ -209,28 +215,6 @@ test('a launched turn failed machine-offline is stopped on the Computer when it 
         { type: 'worker-reconcile', workers: [{ stopRequested: true, turnId, workerId }] },
     ]);
 });
-
-async function takeComputerOffline(board: WorkerBoard) {
-    await connection.db.execute(sql`update computers
-        set health = 'offline', disconnected_at = now() where id = ${board.seed.computerId}`);
-}
-
-async function bringComputerOnline(board: WorkerBoard) {
-    await connection.db.execute(sql`update computers
-        set health = 'healthy', disconnected_at = null where id = ${board.seed.computerId}`);
-}
-
-async function mintTurnCredential(board: WorkerBoard, turnId: string) {
-    const [computer] = await connection.db
-        .select({ credentialHash: computersTable.credentialHash })
-        .from(computersTable)
-        .where(eq(computersTable.id, board.seed.computerId));
-    return await mintWorkerTurnCredential(connection.db, {
-        attempt: 1,
-        credentialHash: computer?.credentialHash ?? '',
-        turnId,
-    });
-}
 
 function scope(board: WorkerBoard) {
     return { computerId: board.seed.computerId, serverId: board.seed.serverId };

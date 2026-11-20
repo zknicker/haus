@@ -32,6 +32,7 @@ test('a launch that outlasts its deadline stops once and survives restart', asyn
         }
     });
     const entry = {
+        attempt: null,
         place: { kind: 'claude' as const },
         providerAgentId: null,
         providerRunId: null,

@@ -13,6 +13,7 @@ import { WorkerSupervisor } from './work-runner.ts';
 import { computerServer } from './worker-supervisor.fixture.ts';
 
 const turn = {
+    attempt: null,
     place: { kind: 'cursor' as const },
     providerAgentId: null,
     providerRunId: null,

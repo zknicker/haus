@@ -123,6 +123,7 @@ test('a stop while the carrier is offline settles on the Server, and reconnect s
         })
     ).toEqual([
         {
+            attempt: 1,
             place: { kind: 'cursor' },
             providerAgentId: null,
             providerRunId: null,

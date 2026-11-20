@@ -2,8 +2,9 @@ import type { WorkerTurnEndedFrame } from '@haus/api';
 import { eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import type { HausDatabase } from '../src/postgres/connection.ts';
-import { workerTurnsTable } from '../src/postgres/schema.ts';
+import { computersTable, workerTurnsTable } from '../src/postgres/schema.ts';
 import { settleComputerTurn } from '../src/workers/settle-computer-turn.ts';
+import { mintWorkerTurnCredential } from '../src/workers/worker-credentials.ts';
 import { type WorkerBoard, readTurns, seedWorkerBoard, startOn } from './worker-board.fixture.ts';
 import { addLinkedRepo, setComputerPlace } from './worker-computer-place.fixture.ts';
 
@@ -59,6 +60,28 @@ export async function requestStop(db: HausDatabase, board: WorkerBoard, turnId: 
     await db.execute(sql`update worker_turns
         set stop_requested_at = now(), stop_requested_by_agent_id = ${board.seed.agentId}
         where id = ${turnId}`);
+}
+
+export async function takeComputerOffline(db: HausDatabase, board: WorkerBoard) {
+    await db.execute(sql`update computers
+        set health = 'offline', disconnected_at = now() where id = ${board.seed.computerId}`);
+}
+
+export async function bringComputerOnline(db: HausDatabase, board: WorkerBoard) {
+    await db.execute(sql`update computers
+        set health = 'healthy', disconnected_at = null where id = ${board.seed.computerId}`);
+}
+
+export async function mintTurnCredential(db: HausDatabase, board: WorkerBoard, turnId: string) {
+    const [computer] = await db
+        .select({ credentialHash: computersTable.credentialHash })
+        .from(computersTable)
+        .where(eq(computersTable.id, board.seed.computerId));
+    return await mintWorkerTurnCredential(db, {
+        attempt: 1,
+        credentialHash: computer?.credentialHash ?? '',
+        turnId,
+    });
 }
 
 export async function readTurn(db: HausDatabase, turnId: string) {

@@ -4,6 +4,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { workerTurnsTable, workersTable } from '../postgres/schema.ts';
 import { owesHarnessStop } from './harness-stop.ts';
 import { workerPlaceOf } from './worker-row-place.ts';
+import { currentTurnAttempt } from './worker-turn-attempt.ts';
 
 const carriedTurn = and(
     eq(workerTurnsTable.serverId, workersTable.serverId),
@@ -17,7 +18,9 @@ export async function listComputerWorker(
 ): Promise<WorkerReconcileEntry[]> {
     const rows = await db
         .select({
+            acceptedAttempt: workerTurnsTable.acceptedAttempt,
             carrierComputerId: workersTable.carrierComputerId,
+            dispatchAttempt: workerTurnsTable.dispatchAttempt,
             place: workersTable.place,
             providerAgentId: workersTable.providerAgentId,
             providerRunId: workerTurnsTable.providerRunId,
@@ -46,8 +49,9 @@ export async function listComputerWorker(
             )
         )
         .orderBy(asc(workerTurnsTable.createdAt), asc(workerTurnsTable.id));
-    return rows.map(({ carrierComputerId, place, ...entry }) => ({
+    return rows.map(({ acceptedAttempt, carrierComputerId, dispatchAttempt, place, ...entry }) => ({
         ...entry,
+        attempt: currentTurnAttempt({ acceptedAttempt, dispatchAttempt }) || null,
         place: workerPlaceOf({ carrierComputerId, place }),
     }));
 }

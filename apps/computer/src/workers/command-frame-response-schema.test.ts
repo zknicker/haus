@@ -35,6 +35,7 @@ test('the Computer response schema tolerates an unknown field on a reconcile com
         type: 'worker-reconcile',
         workers: [
             {
+                attempt: null,
                 futureEntryField: true,
                 place: { kind: 'cursor' },
                 providerAgentId: 'bc_abc',

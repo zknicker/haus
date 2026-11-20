@@ -457,6 +457,12 @@ The Computer journals each turn's phase, `accepted`, `credentialed`, `running`, 
 | `running`, no live process | Pushes, then ends it `uncertain` |
 | `pushing` | Finishes the push, then reports the exit it recorded |
 
+A Computer that lost its journal still answers reconcile. Each entry carries the turn's current
+attempt, and a Computer-place turn the Computer holds no record of and runs no process for is
+reported ended `uncertain` with detail `journal-missing`. A turn the Server already settled
+records its end, so the turns behind it dispatch; an unsettled one settles through the table
+below. A turn whose process is still live is never reported missing.
+
 Settlement is one locked transaction through one table:
 
 | Exit | Report draft | Stop requested | Outcome |
@@ -470,6 +476,8 @@ Settlement is one locked transaction through one table:
 | `refused` | any | any | failed `launch-refused` |
 | `stopped` (the Computer killed it on `worker-stop`) | yes | yes | the report |
 | `stopped` | no | yes | `stopped` |
+
+A failed outcome keeps the ended frame's detail, so the turn shows why it failed.
 
 A Computer-place turn whose Computer stays disconnected for 30 minutes settles as failed
 `machine-offline`. A dead machine is a failed turn, not a moved Worker.

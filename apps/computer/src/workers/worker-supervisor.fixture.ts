@@ -41,6 +41,7 @@ export function turnStartFrame(overrides: Partial<WorkerTurnStartFrame> = {}) {
 
 export function reconcileEntry(frame: WorkerTurnStartFrame, stopRequested = false) {
     return {
+        attempt: null,
         place: frame.place,
         providerAgentId: frame.providerAgentId,
         providerRunId: null,

@@ -4,15 +4,15 @@ type Decided =
     | { draft: WorkerReportDraft; kind: 'report' }
     | Exclude<WorkerOutcome, { kind: 'report' }>;
 
-const failed = (reason: 'harness-error' | 'launch-refused' | 'no-report') =>
-    ({ detail: null, kind: 'failed', reason }) as const;
-
 export function decideComputerTurn(input: {
+    detail: string | null;
     draft: WorkerReportDraft | null;
     exit: WorkerTurnExit;
     stopRequested: boolean;
 }) {
-    const { draft, exit, stopRequested } = input;
+    const { detail, draft, exit, stopRequested } = input;
+    const failed = (reason: 'harness-error' | 'launch-refused' | 'no-report') =>
+        ({ detail, kind: 'failed', reason }) as const;
     switch (exit) {
         case 'crashed-before-launch':
             return failed('harness-error');

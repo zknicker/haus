@@ -123,10 +123,13 @@ export class ComputerWorkerPlace {
         }
     }
 
-    async reconcile(entries: Array<ComputerTurnRef & { stopRequested: boolean }>) {
+    async reconcile(
+        entries: Array<ComputerTurnRef & { attempt: number | null; stopRequested: boolean }>
+    ) {
         for (const entry of entries) {
             const turn = await this.journal.turn(entry);
             if (!turn) {
+                this.reportLost(entry);
                 continue;
             }
             if (turn.sessionId) {
@@ -193,6 +196,22 @@ export class ComputerWorkerPlace {
         } else if (turn.phase === 'pushing') {
             await this.own(ref, () => finishTurn(this.context, ref, null));
         }
+    }
+
+    private reportLost(entry: ComputerTurnRef & { attempt: number | null }) {
+        if (entry.attempt === null || this.active.has(entry.turnId)) {
+            return;
+        }
+        this.context.send({
+            attempt: entry.attempt,
+            branch: null,
+            branches: [],
+            detail: 'journal-missing',
+            exit: 'uncertain',
+            sessionId: null,
+            turnId: entry.turnId,
+            type: 'worker-turn-ended',
+        });
     }
 
     private launch(frame: WorkerTurnStartFrame) {

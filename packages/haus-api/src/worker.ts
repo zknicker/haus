@@ -2,6 +2,7 @@ import * as z from 'zod';
 import { idSchema } from './chat.ts';
 import type { components } from './generated/openapi.d.ts';
 import { taskKeySchema } from './task-key.ts';
+import { workerTurnAttemptSchema } from './worker-computer-frames.ts';
 import { workerObservedResultSchema, workerTurnInputTextMaxLength } from './worker-outcome.ts';
 import { workerPlaceInputSchema, workerPlaceSchema } from './worker-place.ts';
 import { workerModelSchema, workerRuntimeSchema } from './worker-runtime.ts';
@@ -182,9 +183,13 @@ export type WorkerObservation = z.infer<typeof workerObservationSchema>;
  * One dispatched, unsettled turn the carrier must reconcile with the provider
  * after a reconnect, plus whether to stop it: a stop was recorded while it
  * was offline, or the Server already settled it stopped (a purged Task).
+ * `attempt` is the turn's current start attempt, null when no start was sent;
+ * a Computer holding no record of an attempted turn reports it ended
+ * `uncertain` with that attempt.
  */
 export const workerReconcileEntrySchema = z
     .object({
+        attempt: workerTurnAttemptSchema.nullable(),
         place: workerPlaceSchema,
         providerAgentId: z.string().trim().min(1).max(200).nullable(),
         providerRunId: z.string().trim().min(1).max(200).nullable(),

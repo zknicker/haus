@@ -12,6 +12,7 @@ import { WorkerSupervisor } from './work-runner.ts';
 import { computerServer } from './worker-supervisor.fixture.ts';
 
 const entry = {
+    attempt: null,
     place: { kind: 'cursor' as const },
     providerAgentId: 'bc_one',
     providerRunId: 'run_one',

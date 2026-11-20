@@ -61,6 +61,7 @@ export async function settleComputerTurn(
         const effects = await applyComputerOutcome(tx, agentDelivery, {
             branches: frame.branches,
             decided: decideComputerTurn({
+                detail: frame.detail,
                 draft: turn.reportDraft,
                 exit: frame.exit,
                 stopRequested: turn.stopRequestedAt !== null,

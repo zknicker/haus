@@ -144,6 +144,7 @@ async function settleStoppedOnServer(tx: HausDatabase, worker: WorkerRow, turns:
         const reported = await applyComputerOutcome(tx, inboxWork, {
             branches: [],
             decided: decideComputerTurn({
+                detail: null,
                 draft: turn.reportDraft,
                 exit: 'stopped',
                 stopRequested: true,

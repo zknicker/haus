@@ -107,6 +107,7 @@ test('an observation is bounded and its frames ride the command union', () => {
             type: 'worker-reconcile',
             workers: [
                 {
+                    attempt: null,
                     place: { kind: 'cursor' },
                     providerAgentId: null,
                     providerRunId: null,
