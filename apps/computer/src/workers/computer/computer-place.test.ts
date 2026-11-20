@@ -102,9 +102,11 @@ describe('a Worker turn on a Computer', () => {
         const workerRoot = join(computer.root, 'data', 'servers', 'srv_1', 'workers', 'wrk_1');
         const tmp = join(workerRoot, 'runtime', 'tmp');
         const [launch] = fake.record.launches;
-        expect([launch?.input.env.TMPDIR, launch?.input.env.TMP, launch?.input.env.TEMP]).toEqual(
-            [tmp, tmp, tmp]
-        );
+        expect([launch?.input.env.TMPDIR, launch?.input.env.TMP, launch?.input.env.TEMP]).toEqual([
+            tmp,
+            tmp,
+            tmp,
+        ]);
         expect(launch?.input.writableRoots.slice(0, 3)).toEqual([
             join(workerRoot, 'drive'),
             join(workerRoot, 'runtime', 'report'),

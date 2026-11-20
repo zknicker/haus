@@ -63,11 +63,14 @@ export async function finishTurn(
     }
     const file = await context.journal.read(ref.workerId);
     const layout = context.journal.layout(ref.workerId);
-    if (file) {
-        await pushWorkerDrive(
-            { agentId: file.agentId, layout, server: context.server },
-            ref.turnId
-        );
+    const pushed = file
+        ? await pushWorkerDrive(
+              { agentId: file.agentId, layout, server: context.server },
+              ref.turnId
+          )
+        : 'finished';
+    if (pushed === 'retry') {
+        return;
     }
     const branches = await reportedBranches({
         branch: pushing.ending.branch,

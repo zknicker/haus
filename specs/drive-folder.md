@@ -194,6 +194,12 @@ Task, and its conflicts go to the Agent's inbox as `drive_conflict` naming the W
   credential it mints itself, which never enters the harness environment, then closes the push
   before it reports the turn ended. A Worker push never closes the Agent's own run push or another
   Worker's, because open pushes are keyed by source (`drive_pushes.worker_id`).
+- **Push before end.** A push that cannot finish, from a network failure, a 5xx or 401, or a
+  failed mint, leaves the turn `pushing` and sends no end. The next connect or restart pushes again
+  under the same turn id, then ends the turn. A per-file `refused` outcome is a result, not a
+  failure, and does not hold the end. A refused mint means the turn is no longer this Computer's,
+  so the turn ends without a push. `worker-close` leaves a Worker whose turn is `pushing` in place,
+  and the next `worker-held` round closes it.
 
 A cloud Worker has no folder ([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md)).
 

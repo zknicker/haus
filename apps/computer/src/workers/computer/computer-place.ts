@@ -146,6 +146,9 @@ export class ComputerWorkerPlace {
         );
         const layout = this.journal.layout(workerId);
         const file = await this.journal.read(workerId).catch(() => null);
+        if (Object.values(file?.turns ?? {}).some((turn) => turn.phase === 'pushing')) {
+            return;
+        }
         await removeWorkerWorktree({ checkout: layout.checkout, repoPath: file?.repoPath ?? null });
         await removeTree(layout.root);
     }

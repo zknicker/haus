@@ -24,6 +24,8 @@ export function pullWorkerDrive(folder: WorkerDriveFolder, token: string) {
     }).catch((error: unknown) => warn('worker.drive-pull-failed', folder, messageOf(error)));
 }
 
+export type WorkerPushResult = 'finished' | 'retry';
+
 export function pushWorkerDrive(folder: WorkerDriveFolder, turnId: string) {
     const layout = folder.layout.driveFolder(folder.agentId);
     return serialized(`drive:${layout.folder}`, async () => {
@@ -36,17 +38,22 @@ export function pushWorkerDrive(folder: WorkerDriveFolder, turnId: string) {
             plan = await planDrivePush(layout);
         }
         if (plan.isEmpty) {
-            return;
+            return 'finished' satisfies WorkerPushResult;
         }
         const minted = await mintPushCredential(folder.server, turnId);
         if (minted.state === 'refused') {
-            throw new Error(`The Server refused the push credential: ${minted.reason}.`);
+            warn('worker.drive-push-refused', folder, minted.reason);
+            return 'finished' satisfies WorkerPushResult;
         }
         const pushed = await sendDrivePush(plan, remoteOf(folder, minted.token), turnId);
         for (const file of pushed.failed) {
             warn('worker.drive-push-file-failed', folder, `${file.path}: ${file.message}`);
         }
-    }).catch((error: unknown) => warn('worker.drive-push-failed', folder, messageOf(error)));
+        return 'finished' satisfies WorkerPushResult;
+    }).catch((error: unknown) => {
+        warn('worker.drive-push-failed', folder, messageOf(error));
+        return 'retry' satisfies WorkerPushResult;
+    });
 }
 
 async function closeStalePush(folder: WorkerDriveFolder, pushId: string) {

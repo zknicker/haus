@@ -2,12 +2,15 @@ import { describe, expect, test } from 'bun:test';
 import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { FakeTurnContext } from '../../runtime/testing/fake-runtime-driver.ts';
+import type { TurnEvent } from '../../runtime/turn-event.ts';
 import {
     branch,
     computerStart,
     registerComputerPlaces,
     turnToken,
 } from './computer-place.fixture.ts';
+import type { WorkerHarnessLaunch } from './harness.ts';
 import { sharedOf } from './turn-finish.ts';
 import { ComputerTurnJournal, type ComputerTurnRef } from './turn-journal.ts';
 
@@ -101,6 +104,49 @@ describe('a Computer that restarts', () => {
     });
 });
 
+describe('a drive push that fails', () => {
+    test('keeps the turn pushing with no end, and the next connect pushes, ends, then closes', async () => {
+        const computer = computerPlaces();
+        computer.drive.loseNextAnswers(1);
+        const { frames, place, sent } = computer.place({
+            sessionId: 'thread-9',
+            turn: writeThenWait,
+        });
+        await place.accept(computerStart());
+        await sent('worker-turn-input-accepted');
+        await place.close('wrk_1');
+
+        expect(frames.map((frame) => frame.type)).toEqual([
+            'worker-turn-accepted',
+            'worker-turn-session',
+            'worker-turn-input-accepted',
+        ]);
+        expect((await place.journal.turn({ turnId: 'wkt_1', workerId: 'wrk_1' }))?.phase).toBe(
+            'pushing'
+        );
+        expect(existsSync(join(place.journal.layout('wrk_1').drive, 'agents', 'alpha'))).toBe(true);
+
+        await place.connected();
+
+        expect(computer.drive.text('agents/alpha/notes.md')).toBe('Written before the stop.');
+        expect(frames.slice(3)).toEqual([
+            {
+                attempt: 1,
+                branch,
+                branches: [],
+                detail: null,
+                exit: 'stopped',
+                sessionId: 'thread-9',
+                turnId: 'wkt_1',
+                type: 'worker-turn-ended',
+            },
+            { type: 'worker-held', workerIds: ['wrk_1'] },
+        ]);
+        await place.close('wrk_1');
+        expect(existsSync(place.journal.layout('wrk_1').root)).toBe(false);
+    });
+});
+
 describe('closing a Worker', () => {
     test('removes its worktree and folder, twice over, and keeps its branch', async () => {
         const computer = computerPlaces();
@@ -118,3 +164,16 @@ describe('closing a Worker', () => {
         expect(frames.at(-1)).toEqual({ type: 'worker-held', workerIds: [] });
     });
 });
+
+async function* writeThenWait(context: FakeTurnContext<WorkerHarnessLaunch>) {
+    const [drive] = context.input.writableRoots;
+    await mkdir(join(drive ?? '', 'agents', 'alpha'), { recursive: true });
+    await writeFile(join(drive ?? '', 'agents', 'alpha', 'notes.md'), 'Written before the stop.');
+    yield { nativeType: 'turn/started', type: 'progress' } satisfies TurnEvent;
+    if (!context.signal.aborted) {
+        await new Promise((resolve) =>
+            context.signal.addEventListener('abort', resolve, { once: true })
+        );
+    }
+    yield { type: 'abort' } satisfies TurnEvent;
+}
