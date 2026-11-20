@@ -38,7 +38,7 @@ export const modelConnectionListSchema = z
     .strict();
 export type ModelConnectionList = z.infer<typeof modelConnectionListSchema>;
 
-/** Where every Agent's loop runs on this Server (`HAUS_AGENT_LOOP`). Only the runner reads these connections. */
+/** Every Agent runs on the runner, which reads these connections. */
 export const agentLoopSchema = z.enum(['computer', 'runner']);
 export type AgentLoop = z.infer<typeof agentLoopSchema>;
 

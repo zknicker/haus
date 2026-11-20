@@ -7,62 +7,37 @@ import { agentsTable } from '../postgres/schema.ts';
 import type { DeliveryTransport, DispatchPlan } from './delivery.ts';
 import { readDeliveryState } from './store.ts';
 
-export type AgentLoopHost =
-    | { computerId: string; kind: 'computer' }
-    | { kind: 'runner'; machineId?: string };
+export type AgentLoopHost = { kind: 'runner'; machineId?: string };
 
 export interface RunnerWire {
     isOnline(): boolean;
     send(frame: RunnerDownFrame): boolean;
 }
 
-export type AgentLoopWiring = { kind: 'computer' } | { kind: 'runner'; runner: RunnerWire };
-
 export type LoopFrame = AgentCommand | RunnerStartFrame;
 
-export type AgentLoop = AgentLoopHost['kind'];
-
-export function agentLoopWiring(loop: AgentLoop | undefined, runner: RunnerWire) {
-    const wiring: AgentLoopWiring =
-        loop === 'runner' ? { kind: 'runner', runner } : { kind: 'computer' };
-    return wiring;
-}
+export const offlineRunner: RunnerWire = { isOnline: () => false, send: () => false };
 
 export class AgentLoopRoute {
     constructor(
         private readonly transport: DeliveryTransport,
-        private readonly wiring: AgentLoopWiring
+        private readonly runner: RunnerWire
     ) {}
 
     hostOf(computerId: string) {
-        const host: AgentLoopHost =
-            this.wiring.kind === 'runner'
-                ? { kind: 'runner', machineId: computerId }
-                : { computerId, kind: 'computer' };
+        const host: AgentLoopHost = { kind: 'runner', machineId: computerId };
         return host;
     }
 
     hosts(runComputerId: string | null, reporter: AgentLoopHost) {
-        if (runComputerId === null) {
-            return false;
-        }
-        const host = this.hostOf(runComputerId);
-        return host.kind === 'runner'
-            ? reporter.kind === 'runner'
-            : reporter.kind === 'computer' && reporter.computerId === host.computerId;
+        return runComputerId !== null && reporter.kind === 'runner';
     }
 
-    isOnline(host: AgentLoopHost) {
-        if (host.kind === 'computer') {
-            return this.transport.isOnline(host.computerId);
-        }
-        return this.wiring.kind === 'runner' && this.wiring.runner.isOnline();
+    isOnline(_host: AgentLoopHost) {
+        return this.runner.isOnline();
     }
 
     send(host: AgentLoopHost, frame: LoopFrame) {
-        if (host.kind === 'computer') {
-            return frame.type !== 'runner-start' && this.transport.send(host.computerId, frame);
-        }
         const sent = this.toRunner(frame);
         if (sent && frame.type === 'runner-start' && host.machineId) {
             this.pullDrive(host.machineId, frame.start);
@@ -72,9 +47,7 @@ export class AgentLoopRoute {
 
     toRunner(frame: LoopFrame) {
         const runnerFrame = toRunnerFrame(frame);
-        return Boolean(
-            runnerFrame && this.wiring.kind === 'runner' && this.wiring.runner.send(runnerFrame)
-        );
+        return Boolean(runnerFrame && this.runner.send(runnerFrame));
     }
 
     private pullDrive(
@@ -92,7 +65,7 @@ export class AgentLoopRoute {
     }
 
     async bindRunCredential(tx: HausDatabase, plan: DispatchPlan) {
-        if (this.wiring.kind !== 'runner' || plan.suppressSend || plan.frame.type !== 'start') {
+        if (plan.suppressSend || plan.frame.type !== 'start') {
             return plan;
         }
         const start = plan.frame;
@@ -133,10 +106,6 @@ export class AgentLoopRoute {
         };
         return bound;
     }
-}
-
-export function hostName(host: AgentLoopHost | null) {
-    return host?.kind === 'runner' ? 'runner' : 'assigned Computer';
 }
 
 export function startOf(frame: LoopFrame) {

@@ -20,7 +20,7 @@ let runner: RunnerClient;
 let connectionId: string;
 
 beforeAll(async () => {
-    harness = await startHausServerHarness({ agentLoop: 'runner', runnerToken: testRunnerToken });
+    harness = await startHausServerHarness({ runnerToken: testRunnerToken });
     seed = await seedConnectionServer(harness, 'runner-rotation');
     runner = connectRunner(harness, testRunnerToken);
     await runner.next(frameOfType('runner-model-connections'));

@@ -20,7 +20,6 @@ import {
 } from '@haus/api';
 import { z } from 'zod';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import { settleTurn } from '../agent-delivery/settle-turn.ts';
 import type { InvocationRouter } from '../agent-invocations/invocation-router.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computerUpdatedTopic } from '../realtime/topics.ts';
@@ -103,25 +102,6 @@ export async function ingestReport(
         )) ||
         (await ingestAgentIdleCompaction(db, computerId, frame))
     ) {
-        return;
-    }
-
-    const ack = agentDeliveryAckSchema.safeParse(frame);
-    if (ack.success) {
-        await delivery.onAck(ack.data);
-        return;
-    }
-    const noticeAck = agentNoticeAckSchema.safeParse(frame);
-    if (noticeAck.success) {
-        await delivery.onNoticeAck(noticeAck.data);
-        return;
-    }
-
-    const turn = agentTurnSummarySchema.safeParse(frame);
-    if (turn.success) {
-        // Delivery records the durable summary and drains the next turn; a
-        // duplicate frame for an already-settled run is a no-op.
-        await settleTurn(db, delivery, computerId, turn.data);
         return;
     }
 

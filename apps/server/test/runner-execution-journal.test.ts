@@ -20,7 +20,7 @@ let agentId: string;
 let runId: string;
 
 beforeAll(async () => {
-    harness = await startHausServerHarness({ agentLoop: 'runner', runnerToken: testRunnerToken });
+    harness = await startHausServerHarness({ runnerToken: testRunnerToken });
     harness.humans.setVerifiedEmails('user_journal_owner', ['grace@haus.test']);
     owner = createHausClient(harness, await harness.humans.mintSessionToken('user_journal_owner'));
     serverId = (

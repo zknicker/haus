@@ -3,7 +3,6 @@ import { settle, tracePromise } from '@haus/effect';
 import { Exit, Scope } from 'effect';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { AgentDelivery } from './agent-delivery/delivery.ts';
-import { agentLoopWiring } from './agent-delivery/loop-host.ts';
 import { prepareAgentHosts } from './agent-delivery/runner-cutover.ts';
 import { openInvocationRouter } from './agent-invocations/invocation-router.ts';
 import { openArtifactStorage } from './artifacts/startup.ts';
@@ -106,7 +105,7 @@ export async function createHausServerApplication(
             connectedHaus.db,
             computerConnections,
             runtime,
-            agentLoopWiring(options.agentLoop, runnerLink)
+            runnerLink
         );
         const startedPostCommitWork = new ServerPostCommitWork(runtime);
         handles.postCommitWork = startedPostCommitWork;

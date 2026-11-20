@@ -64,7 +64,6 @@ export const testSecretsKey = parseSecretsKey(Buffer.alloc(32, 11).toString('bas
 
 export async function startHausServerHarness(
     options: {
-        agentLoop?: 'computer' | 'runner';
         runnerToken?: string;
         appOrigin?: string;
         artifactStorage?: ArtifactStorage;
@@ -127,7 +126,6 @@ export async function startHausServerHarness(
 
         const startApplication = async () => {
             const next = await createHausServerApplication({
-                agentLoop: options.agentLoop,
                 runnerToken: options.runnerToken,
                 secretsKey: options.secretsKey === undefined ? testSecretsKey : options.secretsKey,
                 appOrigin,

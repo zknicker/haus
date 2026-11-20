@@ -24,7 +24,7 @@ let seed: ConnectionServer;
 let runner: RunnerClient;
 
 beforeAll(async () => {
-    harness = await startHausServerHarness({ agentLoop: 'runner', runnerToken: testRunnerToken });
+    harness = await startHausServerHarness({ runnerToken: testRunnerToken });
     seed = await seedConnectionServer(harness, 'runner-sign-in');
 });
 

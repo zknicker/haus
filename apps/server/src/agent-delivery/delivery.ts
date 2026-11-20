@@ -63,9 +63,9 @@ import { publishAgentLifecycle } from './lifecycle.ts';
 import {
     type AgentLoopHost,
     AgentLoopRoute,
-    hostName,
-    type AgentLoopWiring,
     type LoopFrame,
+    offlineRunner,
+    type RunnerWire,
     startOf,
 } from './loop-host.ts';
 import { consumeNoticeAck } from './notice-ack.ts';
@@ -114,9 +114,9 @@ export class AgentDelivery {
         private readonly db: HausDatabase,
         private readonly transport: DeliveryTransport,
         readonly runtime?: EffectRuntime<never>,
-        wiring: AgentLoopWiring = { kind: 'computer' }
+        runner: RunnerWire = offlineRunner
     ) {
-        this.route = new AgentLoopRoute(transport, wiring);
+        this.route = new AgentLoopRoute(transport, runner);
     }
 
     /**
@@ -215,14 +215,14 @@ export class AgentDelivery {
         const config = await readAgentDispatchConfig(this.db, input.agentId);
         const host = config?.computerId ? this.route.hostOf(config.computerId) : null;
         if (!(host && this.route.isOnline(host))) {
-            throw new Error(`The ${hostName(host)} must be online to restart this Agent.`);
+            throw new Error('The runner must be online to restart this Agent.');
         }
         const interrupted = await interruptActiveRun(this.db, input);
         if (interrupted) {
             this.announceKilledRun(input, interrupted);
         }
         if (!this.route.send(host, { agentId: input.agentId, type: 'agent-restart' })) {
-            throw new Error(`The ${hostName(host)} disconnected before the Agent could restart.`);
+            throw new Error('The runner disconnected before the Agent could restart.');
         }
         await this.start(input);
     }
@@ -313,9 +313,9 @@ export class AgentDelivery {
         await consumeNoticeAck(this.db, this.runtime, input);
     }
 
-    /** A run settled on a Computer. */
+    /** A run settled on the runner, for the Agent's machine `computerId`. */
     async onTurnSettled(computerId: string, summary: AgentTurnSummary): Promise<void> {
-        await this.onHostedTurnSettled({ computerId, kind: 'computer' }, summary);
+        await this.onHostedTurnSettled({ kind: 'runner', machineId: computerId }, summary);
     }
 
     /**
@@ -324,9 +324,7 @@ export class AgentDelivery {
      */
     async onHostedTurnSettled(host: AgentLoopHost, summary: AgentTurnSummary): Promise<void> {
         const recordingComputerId =
-            host.kind === 'computer'
-                ? host.computerId
-                : (await readAgentDispatchConfig(this.db, summary.agentId))?.computerId;
+            host.machineId ?? (await readAgentDispatchConfig(this.db, summary.agentId))?.computerId;
         if (recordingComputerId) {
             await recordAgentTurnSummary(this.db, recordingComputerId, summary);
         }
@@ -440,7 +438,7 @@ export class AgentDelivery {
                 );
             }
             await this.dispatchAgent(agent.agentId, agent.serverId, {
-                resendActive: this.route.hostOf(computerId).kind === 'computer',
+                resendActive: false,
             });
         }
     }

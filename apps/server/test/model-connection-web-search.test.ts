@@ -24,7 +24,7 @@ let runner: RunnerClient;
 let geminiId: string;
 
 beforeAll(async () => {
-    harness = await startHausServerHarness({ agentLoop: 'runner', runnerToken: testRunnerToken });
+    harness = await startHausServerHarness({ runnerToken: testRunnerToken });
     seed = await seedConnectionServer(harness, 'web-search');
     member = await addMember(harness, seed, 'user_web_search_member');
     const gemini = await seed.owner.trpc.modelConnections.add.mutate({

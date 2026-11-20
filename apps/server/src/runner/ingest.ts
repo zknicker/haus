@@ -19,7 +19,6 @@ export interface RunnerIngest {
     computers: Pick<ComputerConnections, 'isOnline' | 'send'>;
     db: HausDatabase;
     delivery: AgentDelivery;
-    hostsLoops: boolean;
     invocations: InvocationRouter;
     link: RunnerLink;
     modelConnections: ModelConnectionRelay;
@@ -78,9 +77,7 @@ export async function ingestRunnerFrame(ingest: RunnerIngest, raw: string) {
             await ingest.modelConnections.ingest(frame);
             return;
         default:
-            if (ingest.hostsLoops) {
-                await ingestLoopReport(ingest, frame);
-            }
+            await ingestLoopReport(ingest, frame);
     }
 }
 

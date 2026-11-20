@@ -8,7 +8,7 @@ import type {
     RunnerSignInCodeFrame,
     RunnerSignInFinishedFrame,
 } from '@haus/api';
-import type { AgentLoop, RunnerWire } from '../agent-delivery/loop-host.ts';
+import type { RunnerWire } from '../agent-delivery/loop-host.ts';
 import type { HausServerApplicationOptions } from '../haus-server-options.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { modelConnectionsUpdatedTopic } from '../realtime/topics.ts';
@@ -45,20 +45,16 @@ export class ModelConnectionRelay {
     private readonly signIns = new ModelSignIns();
     private reportedMissingKey = false;
 
-    readonly agentLoop: AgentLoop;
+    readonly agentLoop = 'runner' as const;
     readonly catalog: AgentModelCatalog;
     readonly secretsKey: SecretsKey | null;
 
     constructor(
         private readonly db: HausDatabase,
         private readonly runner: RunnerWire & { readonly inventory: RunnerInventoryFrame | null },
-        settings: Pick<HausServerApplicationOptions, 'agentLoop' | 'secretsKey'>
+        settings: Pick<HausServerApplicationOptions, 'secretsKey'>
     ) {
-        this.agentLoop = settings.agentLoop ?? 'computer';
-        this.catalog =
-            this.agentLoop === 'runner'
-                ? { kind: 'runner', runtimes: () => runner.inventory?.runtimes ?? null }
-                : computerModelCatalog;
+        this.catalog = { kind: 'runner', runtimes: () => runner.inventory?.runtimes ?? null };
         this.secretsKey = settings.secretsKey ?? null;
     }
 

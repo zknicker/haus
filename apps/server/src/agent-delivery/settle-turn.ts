@@ -6,16 +6,6 @@ import type { AgentLoopHost } from './loop-host.ts';
 import { readAgentServerId } from './store.ts';
 import { markItemsUndeliverable } from './undeliverable-items.ts';
 
-/** Settles a turn a Computer reported. */
-export async function settleTurn(
-    db: HausDatabase,
-    delivery: Pick<AgentDelivery, 'dispatchAgent' | 'onHostedTurnSettled'>,
-    computerId: string,
-    summary: AgentTurnSummary
-): Promise<void> {
-    await settleHostedTurn(db, delivery, { computerId, kind: 'computer' }, summary);
-}
-
 /**
  * Settles a turn `host` reported. A start the host rejected because of specific
  * items is the items' fault, not the Agent's: they leave the queue, the turn's

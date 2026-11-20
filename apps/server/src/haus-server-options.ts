@@ -17,8 +17,6 @@ import type { ThoughtSummarizer } from './server-agents/agent-thought-summarizer
 
 /** PostgreSQL- and Cloudflare-authenticated Haus Server HTTP and WebSocket application. */
 export interface HausServerApplicationOptions {
-    /** Where every Agent's loop runs, from `HAUS_AGENT_LOOP`; Computers when absent. */
-    agentLoop?: 'computer' | 'runner';
     appOrigin: string;
     artifactR2?: ArtifactR2Config;
     artifactStorage?: ArtifactStorage;
