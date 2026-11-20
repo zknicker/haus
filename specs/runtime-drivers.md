@@ -188,9 +188,8 @@ applies a reset the runner missed while it was offline. Restart and retire abort
 Managed skills are ported. The Server seeds the factory-managed skills into each Agent's Drive
 area as Haus-authored revisions at creation, after a full reset, and at Server start
 ([Skills](skills.md#managed-skills)), so no launch has to. The runner delivers the skill update
-notice (Instructions below). The Computer's own launch seeding stays until R4d deletes Computer
-Agent paths. It writes the same release bytes, so a push of them is an `unchanged` outcome and adds
-no revision.
+notice (Instructions below). R4d deleted the Computer's own launch seeding with the rest of its
+Agent paths.
 
 R5 lands Pi Durable before R4, so the cutover has both harnesses and every Agent has one for
 its model. R4 moves every Agent at once and resets every session. No native session is copied from a
@@ -968,6 +967,14 @@ minutes, runs D4's pull or push under the Agent's folder lock, and revokes the
 credential. Its invocations for that Agent run under the same folder lock, so a machine tool never sees a
 half-pulled folder and a sync never runs beside a tool; a cancelled invocation stops waiting.
 
+**Computer protocol 45 (R4d-4).** The Computer no longer handles any frame below, and a Computer
+that still does attaches update-required. The Computer report carries `agents: []`, and it no
+longer sends `haus-agent-report`, since nothing on the machine owns Agent state.
+The Computer keeps `agent-skill-import`, `agent-skill-file-request`, and
+`agent-workspace-request`, which read an Agent's directory on that machine. D3 retires them where Drive replaces them. The Computer keeps
+`apps/computer/src/harness/execution-journal*.ts`, `execution-journal-upload/`, and
+`execution-journal-outline.ts` because the runner imports them until they move into the runner.
+
 **Computer protocol, removed by R4:** `start`, `notice`, `stop`, `ack`, `notice-ack`, `turn`,
 `agent-activity`, `agent-thought`, `agent-execution-journal-records`,
 `agent-execution-journal-ack`, `agent-restart`, `agent-configure`, `agent-background-work`,
@@ -991,15 +998,16 @@ protocol has no version of its own, since the runner ships with the Server.
 
 ## Workers
 
-Computers keep only the Claude Code and Codex native drivers for Workers, with their
-launch isolation, process groups, fixtures, and ported Raft tests as they stand at `cc8a8cd18`.
-A Worker runs a fresh native session in a worktree with that machine's logins
+Computers keep what Workers import: `workers/` (the Claude Code and Cursor providers), the
+Claude credential and install helpers, `codex-executable`, and process-group liveness. R4d-4
+deleted the Agent halves of the `runtime/claude-code` and `runtime/codex` drivers, with their
+fixtures and tests. A Worker runs a fresh native session in a worktree with that machine's logins
 ([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md) decision 7). The Workers
 contract (W1) owns what changes for them: their CLI scope, reports, and drive folder.
 Workers do not use Grok Build in v1, so R4 deletes the Grok Build driver with the Agent runtime
 ([specs/workers.md](workers.md#deferred)).
 
-R4 deletes from Computers what only served Agent sessions: the Agent executor and turn runner,
+R4d-4 deleted from Computers what only served Agent sessions: the Agent executor and turn runner,
 `session.json` and resume state, the Agent warm pool, idle compaction, the background-work
 reporter, the sub-agent wake, the inbox store, the `haus` wrapper injection and loopback proxy,
 the host-tool MCP server, the Computer's copy of `execute`, prompt composition, and Agent runtime

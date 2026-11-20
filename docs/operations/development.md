@@ -79,12 +79,7 @@ does, so a model id the runtime rejects fails there rather than in front of a
 user. That is a real model turn and costs money — see [Testing](testing.md),
 "Visuals Lab".
 
-For a focused model and conversation-continuity smoke without a visual, run the runtime
-end-to-end test with that model:
-`HAUS_RUN_LIVE_RUNTIME_E2E_TEST=1 HAUS_LIVE_RUNTIMES=claude-code HAUS_LIVE_CLAUDE_MODEL=claude-opus-5-5 bun test apps/computer/src/harness/runtime-driver-e2e-live.test.ts`
-(`HAUS_LIVE_CODEX_MODEL` and `HAUS_LIVE_GROK_MODEL` pick the other runtimes' models). It uses the
-host's sign-in and runs two real turns on one session through the executor, with a busy notice
-steered into the first. The driver-level live tests are in [Testing](testing.md#live-runtime-tests).
+The runner's live test is in [Testing](testing.md#live-runtime-tests).
 
 ## Local Stack
 

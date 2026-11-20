@@ -56,7 +56,7 @@ Each package gate includes its tests and typecheck:
 | `packages/haus-api` | `@haus/api check`, plus typecheck of the consuming apps you touched |
 | `packages/haus-sdk` | `@haus/sdk test` + `typecheck` |
 | Browser-level contracts (navigation, reload, websocket, chat flows, layout) | `bun run test:app`, scoped to the affected spec file when possible |
-| Execution runtimes, runtime drivers, provider auth wiring, or a runtime CLI pin bump | `@haus/computer test` + `typecheck`, which replay each driver against its recorded CLI fixtures; add the affected [live runtime test](#live-runtime-tests), and a scoped `bun run test:agents` scenario when deterministic proof is insufficient |
+| Execution runtimes, runtime drivers, provider auth wiring, or a runtime CLI pin bump | `@haus/runner test` + `typecheck`, plus `@haus/computer test` + `typecheck` when Workers or the Computer's logins change; add the affected [live runtime test](#live-runtime-tests), and a scoped `bun run test:agents` scenario when deterministic proof is insufficient |
 
 Rules that keep runs cheap and honest:
 
@@ -283,49 +283,18 @@ Server's Haus project to a new `#general` with its key, members and open Tasks, 
 homed in `#all` by activity, clears retired Agents' homes, renames `#all` back to `all` after moving
 any other channel named `all`, refuses a `projects` row on `#all` in Postgres, and changes nothing on
 replay.
-`apps/computer/src/agent-configuration.test.ts` proves a former Cove's stored `configuration.json`,
-with its `seed.factoryKind`, still loads and reapplies as an ordinary Agent without touching its
-Drive files.
-
 ## Execution Runtime Driver Contracts
 
-When changing executor routes, event projection, chat behavior, or delivery
+When changing runner routes, event projection, chat behavior, or delivery
 semantics, verify against deterministic service fixtures, hosted Browser E2E,
-or an opt-in live runtime test when a concrete ambiguity remains.
-
-Add raw-frame or fixture-backed tests for behavior Haus depends on: each driver replays
-recorded CLI streams from `apps/computer/src/runtime/<runtime>/fixtures/`, and executor and
-launch tests script `TurnEvent`s through the in-memory driver in
-`apps/computer/src/runtime/testing/fake-runtime-driver.ts`.
+or an opt-in live runtime test when a concrete ambiguity remains. The Computer no longer hosts
+Agent sessions, so it has no Agent driver fixtures or live driver tests.
 
 ## Live Runtime Tests
 
-Each runtime driver has an opt-in live test against the real CLI and the host's sign-in. They
-spend real quota and never run in a default lane:
-
-```sh
-HAUS_RUN_LIVE_CLAUDE_CODE_TEST=1 bun test apps/computer/src/runtime/claude-code
-HAUS_RUN_LIVE_CODEX_DRIVER_TEST=1 bun test apps/computer/src/runtime/codex
-HAUS_RUN_LIVE_GROK_DRIVER_TEST=1 bun test apps/computer/src/runtime/grok
-HAUS_RUN_LIVE_RUNTIME_E2E_TEST=1 bun test apps/computer/src/harness/runtime-driver-e2e-live.test.ts
-HAUS_RUN_LIVE_INSTRUCTIONS_UPDATE_TEST=1 bun test apps/computer/src/harness/instructions-update-live.test.ts
-```
-
-The driver tests run a session through its lifecycle: turns, a steer mid-tool, a host-tool call,
-a warm detach, and a cold resume; Claude Code and Codex also prove context isolation (no
-operator `CLAUDE.md`, project docs, or operator MCP servers reach the Agent). The Codex test
-checks `codex login status` first and the Grok test needs `grok` on `PATH`. The end-to-end test
-drives every installed runtime through the real executor, driver factory, and runtime context:
-two turns on one session with a busy notice steered into the first, printing the
-`AgentTurnTimings` per turn. `HAUS_LIVE_RUNTIMES` narrows it (comma-separated runtime ids), and
-`HAUS_LIVE_CLAUDE_MODEL`, `HAUS_LIVE_CODEX_MODEL`, and `HAUS_LIVE_GROK_MODEL` pick models (for
-example `grok-4.7` or `grok-4.7-build-fast`; Grok defaults to `grok-4.6`). The instructions-update
-canary uses the same runtime and model variables: it starts a session on instructions carrying
-`CANARY-ALPHA`, resumes it with `CANARY-BRAVO`, and expects the Agent to report `BRAVO`, which only
-the re-delivered `<haus-instructions-update>` block can make it do (specs/sessions.md).
-
-The runner has one more live test. It drives the Claude Agent SDK with native tools off and Haus
-tools bridged, on the Claude login the runner holds:
+The runner has an opt-in live test. It spends real quota and never runs in a default lane. It
+drives the Claude Agent SDK with native tools off and Haus tools bridged, on the Claude login the
+runner holds:
 
 ```sh
 HAUS_RUN_LIVE_RUNNER_CLAUDE_TEST=1 bun test --timeout 120000 apps/runner/src/claude
