@@ -1,6 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import {
+    workerHeldFrameSchema,
+    workerTurnAcceptedFrameSchema,
+    workerTurnActivityFrameSchema,
+    workerTurnEndedFrameSchema,
+    workerTurnInputAcceptedFrameSchema,
+    workerTurnSessionFrameSchema,
+} from '@haus/api';
 import type { FakeTurnContext } from '../../runtime/testing/fake-runtime-driver.ts';
 import { finishedTurn } from '../../runtime/testing/fake-runtime-driver.ts';
 import type { TurnEvent } from '../../runtime/turn-event.ts';
@@ -14,6 +22,14 @@ import {
 import type { WorkerHarnessLaunch } from './harness.ts';
 
 const computerPlaces = registerComputerPlaces();
+const wireSchemas = {
+    'worker-held': workerHeldFrameSchema,
+    'worker-turn-accepted': workerTurnAcceptedFrameSchema,
+    'worker-turn-activity': workerTurnActivityFrameSchema,
+    'worker-turn-ended': workerTurnEndedFrameSchema,
+    'worker-turn-input-accepted': workerTurnInputAcceptedFrameSchema,
+    'worker-turn-session': workerTurnSessionFrameSchema,
+};
 const ref = { turnId: 'wkt_1', workerId: 'wrk_1' };
 const git = (cwd: string, ...args: string[]) =>
     Bun.spawnSync(['git', ...args], { cwd })
@@ -65,6 +81,7 @@ describe('a Worker turn on a Computer', () => {
                 type: 'worker-turn-ended',
             },
         ]);
+        expect(frames.map((frame) => wireSchemas[frame.type].parse(frame))).toEqual(frames);
         expect(seen).toEqual({ branch, rules: 'House rules' });
         expect(computer.drive.text('agents/alpha/reports/SEC-12/summary.md')).toBe('Done.');
         expect(computer.mints).toEqual(['turn-credential wkt_1', 'push-credential wkt_1']);

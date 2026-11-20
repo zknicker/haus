@@ -115,5 +115,8 @@ export function sharedOf(turn: ComputerTurnRecord) {
 
 export function bounded(detail: string) {
     const line = detail.replaceAll(/\s+/gu, ' ').trim();
+    if (!line) {
+        return null;
+    }
     return line.length <= 500 ? line : `${line.slice(0, 499)}…`;
 }
