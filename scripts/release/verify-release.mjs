@@ -57,6 +57,14 @@ export function assertSelectedJobResults({ results, targets }) {
     }
 }
 
+export function preflightRelease({ results, targets, releaseVersion, sourceRevision, cwd }) {
+    if (iosUploadFailed({ results, targets })) {
+        console.log(iosUploadWarning({ results, releaseVersion }));
+        recordUnshippedIOS({ version: releaseVersion, sourceRevision, cwd });
+    }
+    assertSelectedJobResults({ results, targets });
+}
+
 export function iosUploadWarning({ results, releaseVersion }) {
     return (
         `::warning title=iOS did not ship::Upload iOS ended ${results.upload_ios?.result ?? 'missing'}. ` +
@@ -195,16 +203,13 @@ async function main() {
     } catch {
         throw new Error('RELEASE_JOB_RESULTS must be valid JSON');
     }
-    assertSelectedJobResults({ results: jobResults, targets });
     const releaseVersion = requiredEnvironment('RELEASE_VERSION');
     if (process.argv.includes('--preflight')) {
-        if (iosUploadFailed({ results: jobResults, targets })) {
-            console.log(iosUploadWarning({ results: jobResults, releaseVersion }));
-            recordUnshippedIOS({ version: releaseVersion, sourceRevision });
-        }
+        preflightRelease({ results: jobResults, targets, releaseVersion, sourceRevision });
         console.log('Selected release jobs required for this release succeeded.');
         return;
     }
+    assertSelectedJobResults({ results: jobResults, targets });
     ensureProductRelease({ repository, sourceRevision, releaseVersion, runGh });
     const productVerification = await verifyProductRelease({
         repository,

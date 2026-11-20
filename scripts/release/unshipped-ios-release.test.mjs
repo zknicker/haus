@@ -1,13 +1,16 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { calculateReleaseImpact } from './release-impact.mjs';
+import { readUnshippedIOSVersions } from './unshipped-ios.mjs';
 import {
     assertSelectedJobResults,
     iosUploadWarning,
+    preflightRelease,
     writeReleaseSummary,
 } from './verify-release.mjs';
 
@@ -113,3 +116,67 @@ test('Server publication does not wait for or require the iOS upload', () => {
     assert.doesNotMatch(publishServer, /upload_ios|publish_ios|ios-build-status/);
     assert.match(workflow, /finalize_release:[\s\S]*?needs:[\s\S]*?- upload_ios/);
 });
+
+test('preflight records unshipped iOS even when another selected job also failed', () => {
+    const directory = mkdtempSync(path.join(tmpdir(), 'haus-release-preflight-'));
+    try {
+        const remote = path.join(directory, 'remote.git');
+        const checkout = path.join(directory, 'checkout');
+        git(directory, ['init', '--bare', '--quiet', remote]);
+        git(directory, ['init', '--quiet', checkout]);
+        git(checkout, [
+            '-c',
+            'user.name=Release Test',
+            '-c',
+            'user.email=release-test@example.invalid',
+            'commit',
+            '--allow-empty',
+            '--quiet',
+            '--message',
+            'release source',
+        ]);
+        git(checkout, ['remote', 'add', 'origin', remote]);
+        const sourceRevision = git(checkout, ['rev-parse', 'HEAD']).trim();
+        const targets = { computer: false, agent: false, app: true, ios: true, server: true };
+
+        assert.throws(
+            () =>
+                preflightRelease({
+                    targets,
+                    results: {
+                        publish_app: { result: 'failure' },
+                        upload_ios: { result: 'failure' },
+                        publish_server: { result: 'skipped' },
+                        promote_server: { result: 'skipped' },
+                    },
+                    releaseVersion: '20.0.0',
+                    sourceRevision,
+                    cwd: checkout,
+                }),
+            /selected release job publish_app ended failure/
+        );
+        assert.deepEqual(readUnshippedIOSVersions({ cwd: checkout }), ['20.0.0']);
+
+        assert.doesNotThrow(() =>
+            preflightRelease({
+                targets,
+                results: {
+                    publish_app: { result: 'success' },
+                    upload_ios: { result: 'failure' },
+                    publish_server: { result: 'success' },
+                    promote_server: { result: 'success' },
+                },
+                releaseVersion: '20.0.0',
+                sourceRevision,
+                cwd: checkout,
+            })
+        );
+        assert.deepEqual(readUnshippedIOSVersions({ cwd: checkout }), ['20.0.0']);
+    } finally {
+        rmSync(directory, { force: true, recursive: true });
+    }
+});
+
+function git(cwd, args) {
+    return execFileSync('git', args, { cwd, encoding: 'utf8' });
+}
