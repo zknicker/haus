@@ -1,3 +1,4 @@
+import type { AgentInboxItem } from '@haus/agent-prompt';
 import type {
     AgentTaskAssignment,
     AgentTaskAssignmentNotice,
@@ -7,7 +8,6 @@ import type {
     DriveConflictAttention,
     WorkerReportsNotice,
 } from '@haus/api';
-import type { AgentInboxItem } from './agent-inbox-item.ts';
 import type { RuntimeFailureKind } from './runtime-failure.ts';
 
 /** Server→Computer launch command kept local so the Computer artifact is self-contained. */

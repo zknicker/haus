@@ -7,9 +7,9 @@ import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { startEmptyDatabase } from './postgres-cluster.ts';
 import { seedPreWorkerRows } from './workers-migration-seed.ts';
 
-const migration = join(import.meta.dir, '../drizzle/postgres/0132_workers.sql');
+const migration = join(import.meta.dir, '../drizzle/postgres/0134_workers.sql');
 
-test('0132 turns cloud agent work into Workers, and running it again changes nothing', async () => {
+test('0134 turns cloud agent work into Workers, and running it again changes nothing', async () => {
     const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), 'haus-workers-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
@@ -22,13 +22,13 @@ test('0132 turns cloud agent work into Workers, and running it again changes not
                 ...journal,
                 entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= idx),
             });
-        await writeFile(journalPath, through(131));
+        await writeFile(journalPath, through(133));
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
         await seedPreWorkerRows(database);
 
-        await writeFile(journalPath, through(132));
+        await writeFile(journalPath, through(134));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
-            '0132_workers',
+            '0134_workers',
         ]);
         const migrated = await readMigrated(database);
         expect(migrated.workers).toEqual([

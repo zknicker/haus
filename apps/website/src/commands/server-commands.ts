@@ -19,7 +19,7 @@ import {
     serverSettingsSectionRoute,
     tasksRoute,
 } from '../features/servers/server-routes.ts';
-import { staticSettingsNavItems } from '../features/settings/layout/navigation.ts';
+import { settingsPages } from '../features/settings/layout/navigation.ts';
 import { getRouteTabIcon } from '../features/shell/route-tab-presentation.tsx';
 import { writeClipboardText } from '../lib/clipboard.ts';
 import { requestChatComposerFocus } from './chat-composer-focus.ts';
@@ -224,14 +224,17 @@ function buildCurrentChatGroup(context: CommandContext, currentChat: Chat): AppC
 
 function buildSettingsGroup(context: CommandContext): AppCommandGroup {
     return {
-        commands: staticSettingsNavItems.map((item) => ({
-            icon: item.icon,
-            id: `settings.${item.id}`,
-            keywords: ['settings', 'preferences', item.id, item.label],
-            opensPage: true,
-            run: () => context.navigate(serverSettingsSectionRoute(context.serverSlug, item.id)),
-            title: item.label,
-        })),
+        commands: settingsPages
+            .filter((item) => item.access === 'everyone')
+            .map((item) => ({
+                icon: item.icon,
+                id: `settings.${item.id}`,
+                keywords: ['settings', 'preferences', item.id, item.label],
+                opensPage: true,
+                run: () =>
+                    context.navigate(serverSettingsSectionRoute(context.serverSlug, item.id)),
+                title: item.label,
+            })),
         id: 'settings',
         title: 'Settings',
     };

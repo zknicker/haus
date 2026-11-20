@@ -1,12 +1,12 @@
-import { workerPullRequestNumber, formatWorkerSuffix } from '@haus/api';
-import { formatAttachmentSuffix } from '../inbox-format.ts';
 import {
+    formatAttachmentSuffix,
     formatInboxTime,
+    formatInlineReplyContext,
     formatSenderLabel,
     indentContinuationLines,
     shortInboxId,
-} from '../inbox-header-format.ts';
-import { formatInlineReplyContext } from '../inline-reply-format.ts';
+} from '@haus/agent-prompt';
+import { workerPullRequestNumber, formatWorkerSuffix } from '@haus/api';
 import type { AgentCliAutomationEvent, AgentCliMessage } from './agent-api-schemas.ts';
 import { AgentCliError } from './agent-error.ts';
 

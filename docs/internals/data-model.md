@@ -123,7 +123,7 @@ Task its Project (its Task Chat's channel, else the Project holding its key, els
 every Agent in the Haus project.
 
 `workers` is the Worker record ([Workers](../../specs/workers.md#record)), renamed from
-`cloud_agent_work` by migration 0132. It carries the delegating Agent, its Task (`task_id`, null
+`cloud_agent_work` by migration 0134. It carries the delegating Agent, its Task (`task_id`, null
 only on read-only history, which `closed_at` must then mark: Workers from before Tasks, and Workers
 whose Task a Project purge deleted, whose unsettled turns settle `stopped`), its `place`, its
 `carrier_computer_id`, the title, repository, and starting ref, the provider agent id and URL, the
@@ -134,7 +134,7 @@ new Workers write null. `worker_history_links` keeps one row per Message link to
 `(server_id, message_id, worker_id)` with its `ordinal`; a Message never links a Worker with a
 Task. `worker_turns` holds one row per turn: its `input` (`WorkerTurnInput[]`, null only on a
 migrated turn whose follow-up still sits on its Computer until the drain fills it),
-`follow_up_nonces` (the Agent send nonces it holds, from migration 0133), `dispatched_at` and
+`follow_up_nonces` (the Agent send nonces it holds, from migration 0135), `dispatched_at` and
 `acknowledged_at`, `outcome` (`WorkerOutcome`, set exactly when Haus settles the turn), the
 provider status and raw status, the stop request with exactly one requester, the model it
 requested (`model_id`, `default` for Auto or `null` when none was sent, with `model_params`,

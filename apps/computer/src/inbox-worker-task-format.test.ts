@@ -1,8 +1,12 @@
 import { expect, test } from 'bun:test';
+import {
+    type AgentInboxItem,
+    type AgentWorkerAttention,
+    composeInboxDrain,
+    composeInboxNotice,
+} from '@haus/agent-prompt';
 import { agentInboxItemSchema } from '@haus/api';
 import { parseInbox } from './agent-inbox-input.ts';
-import type { AgentInboxItem, AgentWorkerAttention } from './agent-inbox-item.ts';
-import { composeInboxDrain, composeInboxNotice } from './inbox-format.ts';
 
 const workerId = 'wkr_1234567890abcdef';
 const pullRequest = 'https://github.com/haus/haus/pull/12';

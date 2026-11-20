@@ -1,3 +1,4 @@
+import type { AgentInboxItem, AgentWorkerAttention } from '@haus/agent-prompt';
 import { addressedReasonSchema, humanTimezoneSchema, type WorkerReportAttention } from '@haus/api';
 import type { UnreadElsewhere } from './agent-commands.ts';
 import {
@@ -5,7 +6,6 @@ import {
     workerAttentionResponseSchema,
     workerReportAttentionResponseSchema,
 } from './agent-inbox-attention-response-schema.ts';
-import type { AgentWorkerAttention, AgentInboxItem } from './agent-inbox-item.ts';
 import { chatMessageReplyResponseSchema } from './chat-message-reply-response-schema.ts';
 
 /**

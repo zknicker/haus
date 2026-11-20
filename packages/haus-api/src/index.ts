@@ -158,6 +158,7 @@ export * from './reaction-emoji.ts';
 export * from './realtime-events.ts';
 export * from './reminders.ts';
 export * from './rich-references.ts';
+export * from './runner-protocol.ts';
 export * from './runtime/contracts.ts';
 export * from './runtime/identity.ts';
 export * from './runtime/mcp.ts';

@@ -1,10 +1,8 @@
 import { mkdir, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { AgentInboxItem } from './agent-inbox-item.ts';
+import { type AgentInboxItem, composeInboxNotice, type PendingCounts } from '@haus/agent-prompt';
 import { noticePath, type StoredNoticeReceipt, writePendingNotice } from './delivery.ts';
-import { composeInboxNotice } from './inbox-format.ts';
 import {
-    type PendingCounts,
     type PendingInboxState,
     readPendingState,
     writePendingState,
@@ -17,7 +15,7 @@ import {
     writeJsonAtomic,
 } from './inbox-store-io.ts';
 
-export type { PendingCounts, PendingInboxState } from './inbox-pending-state.ts';
+export type { PendingInboxState } from './inbox-pending-state.ts';
 export type { AgentInboxLocation } from './inbox-store-io.ts';
 
 export interface VisibleMessageIdentity {

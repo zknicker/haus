@@ -4,6 +4,12 @@ import type { FastifyInstance } from 'fastify';
 import type { HostedMcpAccess } from './hosted-mcp/supervisor.ts';
 import type { ReminderSchedulerHealth } from './reminders/reminder-scheduler.ts';
 
+export const unstartedReminderHealth: ReminderSchedulerHealth = {
+    consecutiveFailures: 1,
+    lastSuccessfulTickAt: null,
+    status: 'degraded',
+};
+
 export function registerHausHealth(
     app: FastifyInstance,
     runtime: EffectRuntime<never>,

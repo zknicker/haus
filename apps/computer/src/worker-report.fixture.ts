@@ -1,5 +1,5 @@
+import type { AgentInboxItem } from '@haus/agent-prompt';
 import type { WorkerReportAttention } from '@haus/api';
-import type { AgentInboxItem } from './agent-inbox-item.ts';
 
 export function workerReportAttention(overrides: Partial<WorkerReportAttention> = {}) {
     const report: WorkerReportAttention = {

@@ -28,6 +28,7 @@ export const agentTurnFailureCodeSchema = z.enum([
     'provider-error',
     'provider-unavailable',
     'rate-limited',
+    'runner-crashed',
     'runner-credential-failed',
     'runtime-not-installed',
     'session-resume-rejected',

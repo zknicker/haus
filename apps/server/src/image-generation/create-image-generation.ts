@@ -7,7 +7,7 @@ import type {
 import { and, eq } from 'drizzle-orm';
 import type * as z from 'zod';
 import { AgentAttachmentError, requireVisibleAgentAttachment } from '../agent-api/attachments.ts';
-import type { ResolvedRunner } from '../computers/runner-credentials.ts';
+import { type ResolvedRunner, readRunnerMachineId } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { imageGenerationsTable } from '../postgres/schema.ts';
@@ -54,7 +54,7 @@ export async function createImageGeneration(
         .insert(imageGenerationsTable)
         .values({
             agentId: runner.agentId,
-            computerId: runner.computerId,
+            computerId: await readRunnerMachineId(db, runner),
             id: createOpaqueId('img'),
             model: model.id,
             modelDisplayName: model.displayName,

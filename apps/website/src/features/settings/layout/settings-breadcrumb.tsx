@@ -1,6 +1,8 @@
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useMember } from '../../../hooks/members/use-member.ts';
+import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import { useConnection } from '../../../hooks/servers/use-connection.ts';
+import { computerLabel } from '../../computers/presentation.ts';
 import { humanDisplayName } from '../../servers/human-identity.ts';
 import { serverSettingsRoute, serverSettingsSectionRoute } from '../../servers/server-routes.ts';
 import type { BandCrumb } from '../../shell/band-trail.ts';
@@ -14,8 +16,8 @@ import { type SettingsRouteTab, settingsNavItems } from './navigation.ts';
  * `PageBand` (on desktop, the band inside the Settings tab).
  *
  * The trail is the product, then Settings, then the page:
- * "Haus › Settings › Profile". The rail's group headings (Preferences,
- * Server) are not crumbs — they are headings in the rail, not places — and
+ * "Haus › Settings › Profile". The rail's group headings (You, Captains,
+ * Devices, Haus) are not crumbs — they are headings in the rail, not places — and
  * naming them here made the trail read as a path through pages that do not
  * exist.
  *
@@ -70,11 +72,11 @@ function leafCrumb(leaf: LeafCrumb): BandCrumb {
 
 type LeafCrumb =
     | { avatarUrl: string | null; kind: 'human'; name: string }
-    | { kind: 'connection'; name: string };
+    | { kind: 'connection' | 'device'; name: string };
 
 /**
- * The record a section sub-route is showing: a human in Members, or one MCP
- * connection in Connections. Agents have their own page outside Settings.
+ * The record a section sub-route is showing: a human in Members, one MCP
+ * connection in Connections, or one device in Devices. Agents have their own page outside Settings.
  *
  * Read here rather than pushed up from the detail page: these are the queries
  * those pages already run, so React Query serves them from the same cache
@@ -83,8 +85,12 @@ type LeafCrumb =
 function useLeafCrumb(pathname: string, serverId: string): LeafCrumb | undefined {
     const userId = matchRecordId(pathname, '/settings/members/humans/');
     const connectionId = matchRecordId(pathname, '/settings/connections/');
+    const computerId = matchRecordId(pathname, '/settings/computers/');
     const member = useMember(serverId, userId);
     const connection = useConnection(serverId, connectionId).data;
+    const computer = useComputers(serverId, { enabled: computerId !== undefined }).data?.find(
+        (candidate) => candidate.id === computerId
+    );
 
     if (userId && member.data) {
         return {
@@ -95,6 +101,9 @@ function useLeafCrumb(pathname: string, serverId: string): LeafCrumb | undefined
     }
     if (connectionId && connection) {
         return { kind: 'connection', name: connection.name };
+    }
+    if (computerId && computer) {
+        return { kind: 'device', name: computerLabel(computer) };
     }
     return undefined;
 }
@@ -108,20 +117,7 @@ function matchRecordId(pathname: string, marker: string): string | undefined {
     return id ? decodeURIComponent(id) : undefined;
 }
 
-/**
- * Computers is not in the nav item list — its rows come from the roster — so
- * it names its own place in Settings.
- */
-const computersCrumb = {
-    id: 'computers',
-    label: 'Devices',
-} as const;
-
 function resolveCrumb(section: SettingsRouteTab) {
-    if (section === computersCrumb.id) {
-        return computersCrumb;
-    }
-
     const item = settingsNavItems.find((candidate) => candidate.id === section);
     if (!item) {
         return undefined;

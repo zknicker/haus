@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useReloadWebsite } from '../../hooks/updates/use-reload-website.ts';
-import { serverComputersRoute } from '../servers/server-routes.ts';
+import { serverComputerRoute } from '../servers/server-routes.ts';
 import { performHausUpdateAction } from './haus-update-action.ts';
 import { HausUpdateFooter } from './haus-update-footer.tsx';
 import { HausUpdateRestartDialog } from './haus-update-restart-dialog.tsx';
@@ -26,9 +26,7 @@ export function HausUpdateFooterContainer({ slug }: { slug: string }) {
                     })
                 }
                 onOpenComputer={(computerId) => {
-                    navigate(
-                        `${serverComputersRoute(slug)}?computer=${encodeURIComponent(computerId)}`
-                    );
+                    navigate(serverComputerRoute(slug, computerId));
                 }}
                 sequence={update.sequence}
                 view={update.view}

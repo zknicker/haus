@@ -15,13 +15,14 @@ export const theme = {
     warning: ansi.yellow,
 };
 
-const processOrder = ['postgres', 'storage', 'haus', 'computer', 'website', 'desktop'];
+const processOrder = ['postgres', 'storage', 'haus', 'runner', 'computer', 'website', 'desktop'];
 
 const sourceMeta = {
     desktop: { color: theme.accent, icon: '🪟', label: 'desktop' },
     computer: { color: theme.warning, icon: '🖥️', label: 'computer' },
     haus: { color: theme.warning, icon: '🏠', label: 'server' },
     postgres: { color: theme.warning, icon: '🐘', label: 'postgres' },
+    runner: { color: theme.warning, icon: '🏃', label: 'runner' },
     storage: { color: theme.warning, icon: '🪣', label: 'files' },
     website: { color: theme.accent, icon: '🌐', label: 'website' },
 };
@@ -108,12 +109,14 @@ export function getSnapshotChangeLines(previous, next, snapshot, { colorize = fa
 }
 
 export function formatReadyBlock(snapshot, { colorize = false } = {}) {
+    const runnerEnabled = !['disabled', undefined].includes(snapshot.processes.runner?.status);
     const lines = [
         colorizeText('╭─ 🎰 HAUS', theme.accent, colorize),
         `${dim('│', colorize)}  ${colorizeText('Ready to go', theme.ok, colorize)}`,
         colorizeText('├─ Services', theme.accent, colorize),
         readyServiceLine('Server', snapshot.config.hausServerUrl, colorize),
         readyServiceLine('Computer', 'running', colorize),
+        ...(runnerEnabled ? [readyServiceLine('Runner', 'running', colorize)] : []),
         readyServiceLine('Website', snapshot.config.websiteUrl, colorize),
         readyServiceLine('Files', snapshot.config.objectStorageUrl ?? 'disabled', colorize),
         readyServiceLine(

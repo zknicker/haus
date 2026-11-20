@@ -51,7 +51,7 @@ showed the description alone lost `--done` and `--reply-to`.
 - Owner: [ADR 0029](../adr/0029-inline-replies-preserve-conversation.md) and its 2026-10-02,
   2026-10-06, and 2026-10-14 amendments; `sendingMessagesSection` (the visibility paragraphs) and
   the pickup and "When done" bullets of `communicationStyleSection` in
-  `apps/computer/src/harness/managed-instructions.ts`; Manual topic `replies` in
+  `packages/agent-prompt/src/managed-instructions.ts`; Manual topic `replies` in
   `packages/agent-manual/src/product-topics.ts`.
 - Guards: the `side-work` eval (`side-work-stays-beside-channel` and its one-off control), the
   `placement` eval (`placement-quick-fact`, `placement-recommendation`,
@@ -165,7 +165,7 @@ Agents follow the current Raft prompt by default, pinned at Raft `v1.21.2-source
 can steer as an inbox notice, so the settled reply reflects it.
 
 - Owner: [Prompt divergences](../../specs/raft-alignment/prompt-divergences.md);
-  `apps/computer/src/harness/steer-inbox-notice.ts`, `apps/computer/src/inbox-format.ts`.
+  `apps/computer/src/harness/steer-inbox-notice.ts`, `packages/agent-prompt/src/inbox-format.ts`.
 - Guards: `bun run test:prompt-contract` (size cap ratchet in `managed-instructions.test.ts`);
   `steer-inbox-notice.test.ts`; the `freshness` case in `bun run eval:sessions`.
 

@@ -22,6 +22,7 @@ import {
 import { z } from 'zod';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { settleTurn } from '../agent-delivery/settle-turn.ts';
+import type { InvocationRouter } from '../agent-invocations/invocation-router.ts';
 import { recordCoveApplyResult } from '../onboarding/create-cove.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentUpdatedTopic, computerUpdatedTopic } from '../realtime/topics.ts';
@@ -57,7 +58,8 @@ export async function ingestReport(
     ordinary: boolean,
     raw: string,
     postCommitWork: ServerPostCommitWork,
-    thoughts: AgentThoughts
+    thoughts: AgentThoughts,
+    invocations: InvocationRouter
 ) {
     let frame: unknown;
     try {
@@ -80,6 +82,7 @@ export async function ingestReport(
     }
 
     if (
+        (await invocations.ingestComputerFrame(computerId, frame)) ||
         (await ingestWorkerReport({
             db,
             connections,

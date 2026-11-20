@@ -1,14 +1,20 @@
+import {
+    type AgentInboxItem,
+    composeDriveConflictInput,
+    composeInboxDrain,
+    composeInboxNotice,
+    composeTaskAssignmentInput,
+    composeTurnContent,
+    subagentWakeTurnLine,
+    type TurnSessionFacts,
+} from '@haus/agent-prompt';
 import type { ConnectionChipKind } from '@haus/api';
 import type { AgentStartCommand, UnreadElsewhere } from '../agent-commands.ts';
-import type { AgentInboxItem } from '../agent-inbox-item.ts';
-import { composeDriveConflictInput } from '../inbox-drive-conflict-format.ts';
-import { composeInboxDrain, composeInboxNotice, formatUnreadElsewhere } from '../inbox-format.ts';
 import {
     consumeVisibleMessages,
     recordRunVisibleMessages,
     type VisibleMessageIdentity,
 } from '../inbox-store.ts';
-import { composeTaskAssignmentInput } from '../inbox-task-assignment-format.ts';
 
 /** What the frame offers this turn, independent of how the turn was started. */
 export interface TurnDelivery {
@@ -43,43 +49,6 @@ export interface TurnDelivery {
     unreadElsewhere: UnreadElsewhere[];
     warmDrainItemIds: string[];
 }
-
-/**
- * Haus interrupted the previous turn. Claude Code records the cancelled tool call as the user
- * declining it, so without this the Agent tells the requester its work was refused.
- */
-const interruptedTurnLine =
-    'Your previous turn was interrupted by Haus (a Stop, a restart, or a stalled-turn timeout), not by anyone in the conversation. A tool call it cancelled may read as declined or rejected by the user; nobody declined it, and its side effects may be partial. Any work that turn left unfinished is offered again here.';
-
-interface TurnSession {
-    isColdStart: boolean;
-    /** The resumed conversation ends in a turn Haus interrupted. */
-    resumesInterruptedTurn?: boolean;
-    sessionGeneration: number;
-}
-
-const resetContextLine =
-    'Fresh session: your previous conversation context is gone. Your workspace and MEMORY.md are intact; MEMORY.md is your recovery point.';
-
-/**
- * Raft's new-Agent greeting is a private one-time instruction, so it rides the
- * input of the run that carries it instead of becoming permanent memory. It is the new Agent's
- * only introduction: its creator does not post one (ADR 0028, amended 2026-11-03).
- * The lines are Raft db5e399's `buildAllChannelAgenticGreetingInstruction`.
- */
-const firstTurnGreetingLine = [
-    'Post one short, natural self-introduction to #haus so the team knows who you are and what you can help with.',
-    'Write it in your own voice, one or two sentences. Do NOT paste a fixed template. If a conversation is already going there, read the room and keep it brief.',
-    'This is a one-time greeting; after you post it, go back to normal work.',
-].join('\n');
-
-/**
- * The input of a sub-agent wake run when no turn of the runtime's own is there to adopt: the
- * report landed while nothing could act on it (its turn already ended, or the Computer
- * restarted and the work was lost). The runtime's own notice is already in the conversation.
- */
-export const subagentWakeTurnLine =
-    '[Haus sub-agent turn] Haus started this turn because background work you started (a sub-agent or a background command) finished or stopped; its notice is above in your conversation. If you have not reported it yet, report the result where it was asked for, or say it stopped before finishing. Otherwise stop. If new messages arrive meanwhile, handle them normally.';
 
 /** The delivery facets of a start command, exactly as one turn composes them. */
 export function turnDeliveryOf(command: AgentStartCommand) {
@@ -120,18 +89,17 @@ export interface TurnPrompt {
  * alive-idle wake; a cold start drains only the items addressed to this Agent
  * and notices the rest, which is Raft's hybrid shape (specs/inbox.md).
  */
-export function composeTurnPrompt(input: TurnDelivery, session: TurnSession): TurnPrompt {
+export function composeTurnPrompt(input: TurnDelivery, session: TurnSessionFacts): TurnPrompt {
     const chatlessLine = composeChatlessInput(input);
     if (chatlessLine) {
         return {
             drained: [],
             notice: null,
-            turnContent: [
-                session.resumesInterruptedTurn ? interruptedTurnLine : null,
-                openingPrompt(session, chatlessLine, false),
-            ]
-                .filter(Boolean)
-                .join('\n\n'),
+            turnContent: composeTurnContent(session, {
+                body: chatlessLine,
+                greets: false,
+                unreadElsewhere: [],
+            }),
         };
     }
     const drainable = new Set(
@@ -152,13 +120,11 @@ export function composeTurnPrompt(input: TurnDelivery, session: TurnSession): Tu
     return {
         drained,
         notice,
-        turnContent: [
-            session.resumesInterruptedTurn ? interruptedTurnLine : null,
-            openingPrompt(session, body, input.greets === true),
-            formatUnreadElsewhere(input.unreadElsewhere),
-        ]
-            .filter(Boolean)
-            .join('\n\n'),
+        turnContent: composeTurnContent(session, {
+            body,
+            greets: input.greets === true,
+            unreadElsewhere: input.unreadElsewhere,
+        }),
     };
 }
 
@@ -174,25 +140,6 @@ function composeChatlessInput(input: TurnDelivery): string | null {
         );
     }
     return input.subagentWake ? subagentWakeTurnLine : null;
-}
-
-/**
- * `Start.` is reserved for a cold session with nothing pending; a later
- * generation's cold start also gets the reset line. The greeting shows on every
- * run the Server attached it to, warm or cold, because the Server consumes it
- * with that run: a greeting requeued after a Stop rides a resumed session.
- */
-function openingPrompt(session: TurnSession, body: string | null, greets: boolean): string {
-    const greeting = greets ? firstTurnGreetingLine : null;
-    if (!session.isColdStart) {
-        return [greeting, body].filter(Boolean).join('\n\n') || 'Resume the interrupted turn.';
-    }
-    const resetNote = session.sessionGeneration === 1 ? null : resetContextLine;
-    const coldNote = [resetNote, greeting].filter(Boolean).join('\n\n');
-    if (body) {
-        return [coldNote, body].filter(Boolean).join('\n\n');
-    }
-    return coldNote ? `Start.\n${coldNote}` : 'Start.';
 }
 
 /**

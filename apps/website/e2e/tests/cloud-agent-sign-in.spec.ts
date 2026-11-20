@@ -10,7 +10,7 @@ test('an Owner connects a Computer to Cursor Cloud Agents from Settings', async 
         slug: 'worker-hq',
     });
     const credential = 'computer-worker-credential-123456789';
-    await attachComputer(owner, { credential, slug: 'worker-hq' });
+    const { computerId } = await attachComputer(owner, { credential, slug: 'worker-hq' });
 
     const computer = new WebSocket(
         `ws://127.0.0.1:${process.env.HAUS_SERVER_PORT}/computer/attachment`
@@ -22,7 +22,7 @@ test('an Owner connects a Computer to Cursor Cloud Agents from Settings', async 
     sendWorkerReport(computer, { ready: false, reason: 'not-connected' });
     const signIn = answerCloudAgentCapability(computer);
 
-    await page.goto('/s/worker-hq/computers');
+    await page.goto(`/s/worker-hq/settings/computers/${computerId}`);
     const detail = page.getByRole('main', { name: 'Scrollable main content' });
     await expect(detail.getByText('Cursor Cloud Agents')).toBeVisible();
     // Each provider has its own row; this test drives Cursor's.

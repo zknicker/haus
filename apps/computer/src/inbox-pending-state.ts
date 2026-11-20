@@ -1,18 +1,12 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { AgentTaskAssignmentNotice, WorkerReportsNotice } from '@haus/api';
-import type { AgentInboxItem } from './agent-inbox-item.ts';
+import type { AgentInboxItem, PendingCounts } from '@haus/agent-prompt';
 import {
     type AgentInboxLocation,
     inboxRoot,
     isMissingFile,
     writeJsonAtomic,
 } from './inbox-store-io.ts';
-
-export interface PendingCounts {
-    taskAssignments?: AgentTaskAssignmentNotice;
-    workerReports?: WorkerReportsNotice;
-}
 
 export interface PendingInboxState extends PendingCounts {
     consumedMessageIds: string[];

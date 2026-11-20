@@ -7,9 +7,9 @@ import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { startEmptyDatabase } from './postgres-cluster.ts';
 import { seedPreWorkerRows } from './workers-migration-seed.ts';
 
-const migration = join(import.meta.dir, '../drizzle/postgres/0133_worker-follow-up-nonces.sql');
+const migration = join(import.meta.dir, '../drizzle/postgres/0135_worker-follow-up-nonces.sql');
 
-test('0133 gives every Worker turn an empty follow-up nonce list, and running it again changes nothing', async () => {
+test('0135 gives every Worker turn an empty follow-up nonce list, and running it again changes nothing', async () => {
     const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), 'haus-follow-up-nonces-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
@@ -22,15 +22,15 @@ test('0133 gives every Worker turn an empty follow-up nonce list, and running it
                 ...journal,
                 entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= idx),
             });
-        await writeFile(journalPath, through(131));
+        await writeFile(journalPath, through(133));
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
         await seedPreWorkerRows(database);
-        await writeFile(journalPath, through(132));
+        await writeFile(journalPath, through(134));
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
 
-        await writeFile(journalPath, through(133));
+        await writeFile(journalPath, through(135));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
-            '0133_worker-follow-up-nonces',
+            '0135_worker-follow-up-nonces',
         ]);
         const migrated = await readNonces(database);
         expect(migrated.length).toBeGreaterThan(0);

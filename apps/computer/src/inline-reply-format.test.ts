@@ -1,9 +1,12 @@
 import { expect, test } from 'bun:test';
+import {
+    type AgentInboxItem,
+    composeInboxDrain,
+    composeInboxNotice,
+    formatInlineReplyContext,
+} from '@haus/agent-prompt';
 import type { ChatMessageReply } from '@haus/api';
 import { parseInbox } from './agent-inbox-input.ts';
-import type { AgentInboxItem } from './agent-inbox-item.ts';
-import { composeInboxDrain, composeInboxNotice } from './inbox-format.ts';
-import { formatInlineReplyContext } from './inline-reply-format.ts';
 
 const root = {
     author: { kind: 'human' as const, userId: 'usr_zach' },

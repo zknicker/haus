@@ -1,8 +1,10 @@
 import { type EffectRuntime, settle } from '@haus/effect';
 import { Scope } from 'effect';
 import type { AgentDelivery } from './agent-delivery/delivery.ts';
+import { startInvocationRetentionSweep } from './agent-invocations/invocation-retention.ts';
 import { startArtifactRetentionSweep } from './artifacts/retention.ts';
 import type { ArtifactStorage } from './artifacts/storage.ts';
+import type { AttachmentRoot } from './attachments/attachment-root.ts';
 import type { BootSweep, SweepTimers } from './boot-sweep.ts';
 import { startStaleClaimSweep } from './claims/close-stale-claims.ts';
 import type { GithubDelivery, GithubIngestOutcome } from './github/delivery-ingest.ts';
@@ -30,6 +32,7 @@ interface ServerSweepsInput {
     appOrigin: string;
     /** Private R2; revision retention runs only when it is configured. */
     artifactStorage: ArtifactStorage | null;
+    attachmentRoot: AttachmentRoot;
     clock: ReminderClock;
     db: HausDatabase;
     /** The Haus GitHub App; its sweeps run only when configured. */
@@ -85,6 +88,16 @@ export async function startServerSweeps(
         [
             'execution-journal-retention',
             () => startExecutionJournalRetentionSweep(input.db, input.clock, input.timers),
+        ],
+        [
+            'invocation-retention',
+            () =>
+                startInvocationRetentionSweep(
+                    input.db,
+                    input.attachmentRoot,
+                    input.clock,
+                    input.timers
+                ),
         ],
         ['stale-claims', () => startStaleClaimSweep(input.db, input.clock, input.timers)],
         ...(pushSender
