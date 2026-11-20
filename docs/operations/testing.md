@@ -409,12 +409,12 @@ the scenario:
 
 ```sh
 HAUS_AGENT_E2E_AVATAR_FIXTURE=1 \
-HAUS_AGENT_E2E_AVATAR_FIXTURE_PATH="$PWD/apps/website/public/prototypes/cove-avatar.png" \
+HAUS_AGENT_E2E_AVATAR_FIXTURE_PATH="$PWD/apps/website/public/prototypes/agent-avatar.png" \
 HAUS_AGENT_E2E_AVATAR_REQUEST_LOG=/tmp/haus-agent-avatar-requests.jsonl \
 bun run dev
 
 HAUS_AGENT_E2E_AVATAR_FIXTURE=1 \
-HAUS_AGENT_E2E_AVATAR_FIXTURE_PATH="$PWD/apps/website/public/prototypes/cove-avatar.png" \
+HAUS_AGENT_E2E_AVATAR_FIXTURE_PATH="$PWD/apps/website/public/prototypes/agent-avatar.png" \
 HAUS_AGENT_E2E_AVATAR_REQUEST_LOG=/tmp/haus-agent-avatar-requests.jsonl \
 bun run test:agents --include-opt-in --only agent-composes-agent-creation --lanes 1
 ```

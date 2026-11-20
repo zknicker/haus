@@ -210,12 +210,12 @@ async function routeFileTransport(page: Page) {
 
 const fileTransport: Record<string, (page: Page, request: string) => unknown> = {
     'artifact.download': (page) => ({
-        download_url: new URL('/prototypes/cove-avatar.png', page.url()).href,
+        download_url: new URL('/prototypes/agent-avatar.png', page.url()).href,
     }),
     'artifact.thumbnail': (page) => ({
         expires_at: new Date(Date.now() + 300_000).toISOString(),
         status: 'ready',
-        thumbnail_url: new URL('/prototypes/cove-avatar.png', page.url()).href,
+        thumbnail_url: new URL('/prototypes/agent-avatar.png', page.url()).href,
     }),
     'artifact.text': (_page, request) => ({
         status: 'text',
