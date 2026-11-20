@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import { visualsSkillFiles } from '@haus/agent-workspace';
 import { parseResetCommand } from './agent-command-frames.ts';
 import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
 import { resetAgentState } from './agent-reset.ts';
@@ -59,7 +60,7 @@ test('session reset rotates harness context while preserving Agent-owned state',
     expect(await readFile(join(agentRoot, 'configuration.json'), 'utf8')).toBe(configurationJson);
 });
 
-test('full reset keeps Drive and the next launch reseeds nothing over it', async () => {
+test('full reset clears the Drive folder and the next launch seeds the factory area', async () => {
     const { agentRoot, configurationJson, drive } = await seedResetFixture();
 
     await resetAgentState({ agentId, dataRoot, kind: 'full', serverId: 'srv_reset' });
@@ -69,14 +70,10 @@ test('full reset keeps Drive and the next launch reseeds nothing over it', async
     await expect(stat(join(agentRoot, 'runtime'))).rejects.toThrow();
     await expect(stat(join(agentRoot, 'home'))).rejects.toThrow();
     await expect(stat(join(agentRoot, 'workspace', 'kept.txt'))).rejects.toThrow();
+    await expect(stat(drive.folder)).rejects.toThrow();
     expect(await readFile(join(agentRoot, 'configuration.json'), 'utf8')).toBe(configurationJson);
-    expect(await readFile(drive.memory, 'utf8')).toBe(memory);
-    expect(await readFile(join(drive.skills, 'custom-skill', 'SKILL.md'), 'utf8')).toBe(
-        'name: custom-skill\n'
-    );
 
     const routes = createDriveRoutes({ agentId, runnerToken: 'runner-reset' });
-    routes.put('agents/scout/MEMORY.md', memory);
     const server = serveDrive(routes);
     try {
         await prepareAgentDrive({
@@ -98,8 +95,16 @@ test('full reset keeps Drive and the next launch reseeds nothing over it', async
         server.stop(true);
     }
 
-    expect(routes.revisionCount()).toBe(1);
-    expect(await readFile(drive.memory, 'utf8')).toBe(memory);
+    expect([...routes.heads.keys()].sort()).toEqual(
+        [
+            'agents/scout/MEMORY.md',
+            'agents/scout/skills/visuals/SKILL.md',
+            ...Object.keys(visualsSkillFiles).map((path) => `agents/scout/skills/visuals/${path}`),
+        ].sort()
+    );
+    const seeded = await readFile(drive.memory, 'utf8');
+    expect(seeded.startsWith('# Scout\n\n## Role\n\nOnboarding guide\n')).toBe(true);
+    await expect(stat(join(drive.skills, 'custom-skill'))).rejects.toThrow();
 });
 
 test('full reset of an unmigrated Agent keeps every legacy source for the next launch', async () => {

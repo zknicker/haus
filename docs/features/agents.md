@@ -301,9 +301,12 @@ One resident Computer execution host serves each assigned Agent. The Agent's
 single global model session spans all Chats and resumes across deliveries and
 Computer restarts. Stop, Restart, Start fresh session, and Full reset all run from the profile
 header's actions menu. Session reset creates fresh model context while preserving
-the workspace and skills. Full reset keeps the Agent's Drive folder (memory, notes and
-skills) and clears the rest of its local state; it reseeds nothing. Today the only
-factory-managed skill is `visuals`.
+the workspace and skills. Full reset deletes every file in the Agent's Drive area
+(`agents/<handle>/`: memory, notes, skills and rules) as the person who pressed it, clears its
+local state, and the next launch seeds a starter `MEMORY.md` and the factory-managed skills as new
+files. Each deleted file stays in Recently deleted in Drive for 30 days. Restoring the old
+`MEMORY.md` or a factory skill means moving or deleting the seeded file at that path first. Today
+the only factory-managed skill is `visuals`.
 
 See [Context management](context-management.md) and
 [Agent daemon and delivery](../internals/agent-daemon-delivery.md).

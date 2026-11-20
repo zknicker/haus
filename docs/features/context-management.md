@@ -97,8 +97,9 @@ model session. Per-turn message delivery is an inbox concern; see
   Its next delivery uses the same refresh path without rotating the session generation or
   replaying `Start.`.
 - Session reset preserves workspace, memory, skills, identity, and Server
-  history. Full reset keeps the Agent's Drive folder (memory, notes and skills) and clears the
-  rest of its local state without reseeding.
+  history. Full reset deletes the Agent's Drive area (restorable from Recently deleted for 30
+  days), clears its local state, and the next launch seeds a starter `MEMORY.md` and the
+  factory-managed skills.
 
 The composed instructions are bounded by a size cap asserted in
 `packages/agent-prompt/src/managed-instructions.test.ts`. It is a ratchet that forces a deliberate

@@ -7,6 +7,7 @@ import type { HarnessTurnInput } from '../harness/executor.ts';
 import { runAgentLaunch } from '../launch.ts';
 import { fakeRuntimeDriver, finishedTurn } from '../runtime/testing/fake-runtime-driver.ts';
 import { type DriveServer, startDriveServer } from './drive-server.fixture.ts';
+import { discardDrivePushes } from './turn-sync.ts';
 
 const runtime = makeDaemonRuntime();
 afterAll(() => runtime.dispose());
@@ -23,6 +24,48 @@ afterEach(async () => {
 test('a turn starts on a pulled folder and its edits are pushed under its run id', async () => {
     drive = startDriveServer();
     drive.write('haus/AGENTS.md', 'be kind', 'usr');
+    const credentials = serveFront();
+    let seenAtTurnStart = '';
+    const turn = await launch(async (workspaceDir) => {
+        seenAtTurnStart = await readFile(join(workspaceDir, 'drive', 'haus', 'AGENTS.md'), 'utf8');
+        await writeFile(join(workspaceDir, 'drive', 'haus', 'notes.md'), 'from the turn');
+    });
+
+    expect(turn.status).toBe('completed');
+    expect(seenAtTurnStart).toBe('be kind');
+    expect(drive.text('haus/notes.md')).toBe('from the turn');
+    expect(credentials).toEqual([
+        'mint run_drive_turn',
+        'revoke arc_1',
+        'mint run_drive_turn',
+        'revoke arc_2',
+    ]);
+    expect(drive.requests.filter((request) => request.includes('/push/'))).toEqual([
+        'POST /api/agent/drive/push/put',
+        'POST /api/agent/drive/push/close',
+    ]);
+});
+
+test('a turn a full reset interrupts pushes nothing back over the reset', async () => {
+    drive = startDriveServer();
+    drive.write('haus/AGENTS.md', 'be kind', 'usr');
+    const credentials = serveFront();
+    let release: (() => void) | undefined;
+    const turn = await launch(async (workspaceDir) => {
+        release = discardDrivePushes(join(workspaceDir, '..'));
+        await writeFile(join(workspaceDir, 'drive', 'haus', 'AGENTS.md'), 'stale edit');
+        await writeFile(join(workspaceDir, 'drive', 'haus', 'notes.md'), 'from the turn');
+    });
+    release?.();
+
+    expect(turn.status).toBe('completed');
+    expect(drive.text('haus/AGENTS.md')).toBe('be kind');
+    expect(drive.text('haus/notes.md')).toBe(null);
+    expect(credentials).toEqual(['mint run_drive_turn', 'revoke arc_1']);
+    expect(drive.requests.filter((request) => request.includes('/push/'))).toEqual([]);
+});
+
+function serveFront() {
     const credentials: string[] = [];
     front = Bun.serve({
         port: 0,
@@ -58,20 +101,18 @@ test('a turn starts on a pulled folder and its edits are pushed under its run id
             });
         },
     });
+    return credentials;
+}
+
+async function launch(during: (workspaceDir: string) => Promise<void>) {
     dataRoot = await mkdtemp(join(tmpdir(), 'haus-drive-launch-'));
-    let seenAtTurnStart = '';
     const driver = fakeRuntimeDriver<HarnessTurnInput>({
         async *turn({ input }) {
-            seenAtTurnStart = await readFile(
-                join(input.workspaceDir, 'drive', 'haus', 'AGENTS.md'),
-                'utf8'
-            );
-            await writeFile(join(input.workspaceDir, 'drive', 'haus', 'notes.md'), 'from the turn');
+            await during(input.workspaceDir);
             yield* finishedTurn();
         },
     });
-
-    const turn = await runAgentLaunch({
+    return await runAgentLaunch({
         attachment: {
             computerId: 'cmp_drive',
             credential: 'computer-credential',
@@ -98,18 +139,4 @@ test('a turn starts on a pulled folder and its edits are pushed under its run id
         sendFrame: () => undefined,
         serverOrigin: `http://127.0.0.1:${front.port}`,
     });
-
-    expect(turn.status).toBe('completed');
-    expect(seenAtTurnStart).toBe('be kind');
-    expect(drive.text('haus/notes.md')).toBe('from the turn');
-    expect(credentials).toEqual([
-        'mint run_drive_turn',
-        'revoke arc_1',
-        'mint run_drive_turn',
-        'revoke arc_2',
-    ]);
-    expect(drive.requests.filter((request) => request.includes('/push/'))).toEqual([
-        'POST /api/agent/drive/push/put',
-        'POST /api/agent/drive/push/close',
-    ]);
-});
+}

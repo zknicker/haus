@@ -8,6 +8,14 @@ import { pullDrive } from './pull.ts';
 import { planDrivePush, sendDrivePush } from './push.ts';
 
 const folderTurns = new Map<string, Promise<unknown>>();
+const discardedFolders = new Set<string>();
+
+export function discardDrivePushes(agentRoot: string) {
+    discardedFolders.add(agentRoot);
+    return () => {
+        discardedFolders.delete(agentRoot);
+    };
+}
 
 export function pullDriveBeforeTurn(
     options: RunAgentLaunchOptions,
@@ -53,6 +61,9 @@ async function pullBeforeTurn(
 }
 
 async function pushAfterTurn(options: RunAgentLaunchOptions, agentRoot: string) {
+    if (discardedFolders.has(agentRoot)) {
+        return;
+    }
     try {
         const plan = await planDrivePush(driveFolderLayout(agentRoot, options.command.agentId));
         if (plan.isEmpty) {
