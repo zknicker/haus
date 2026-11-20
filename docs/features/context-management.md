@@ -58,10 +58,6 @@ model session. Per-turn message delivery is an inbox concern; see
   runtime CLI pin) or Restart parks the session at the turn boundary, refreshes the driver's
   install, and resumes that conversation. Activity History records the
   update as started, completed, or failed without prompt text, local paths, commands, or hashes.
-- Before Cove turns, Computer also reconciles recognized prior factory revisions of the playbook
-  and FAQ. It never replaces Cove's memory, objectives, missing files, or edited guidance. A
-  successful reconciliation gives the current session a one-turn private re-read notice; conflicts
-  remain visible as failed instruction-update activity while the turn continues.
 - Fingerprints advance only after the refreshed turn successfully detaches with new resume state,
   and the instruction receipt only on a turn that launched on or carried the current instructions
   (a sub-agent wake defers the update to the next ordinary turn). A turn the runtime compacted sets

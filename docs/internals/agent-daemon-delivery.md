@@ -42,7 +42,7 @@ Server queued work
   -> accepted ACK
   -> content-free notice (ordinary Chat work)
   -> Agent-chosen local message check (ordinary Chat work)
-  -> concrete typed attention (Cove, committed action, fire, claim assignment)
+  -> concrete typed attention (greeting, committed action, fire, claim assignment)
   -> exact visibility receipt where applicable
   -> settled proof
   -> Server exact seen evidence + consumption
@@ -164,12 +164,12 @@ run-scoped visibility evidence: Computer attempts an immediate Server receipt
 for freshness and repeats the identities in the turn summary. Server remains
 canonical and advances `seen` only on settlement.
 
-System attention that is not itself a Chat message, including Cove's one-shot
-first-greeting request and a committed action terminal attention, uses the same
+System attention that is not itself a Chat message, including a new Agent's
+one-shot greeting and a committed action terminal attention, uses the same
 structured run inbox and exact-identity Computer replay. It is intentionally
-absent from Chat cursor accounting. Cove's owning Server record prevents
-recreation after settlement; a committed action's `(Server, action)` identity
-does the same. The Computer suppresses a consumed action on same-run replay and
+absent from Chat cursor accounting. A greeting is queued once per Agent; a
+committed action's `(Server, action)` identity prevents recreation after
+settlement. The Computer suppresses a consumed action on same-run replay and
 only reoffers it when a failed new run is explicitly materialized.
 
 Claim messages use the same exact inbox path as ordinary messages and carry their
@@ -221,9 +221,8 @@ recovers durable context from its unchanged `MEMORY.md`, notes, and canonical
 Server history.
 
 Session reset preserves workspace, skills, identity, and Server history. Full
-reset restores the persisted Agent kind's factory workspace—minimal
-`MEMORY.md` for ordinary Agents or Cove's exact onboarding seed—and only the
-current factory-managed skills. Retirement is the only normal lifecycle
+reset restores the factory workspace—minimal `MEMORY.md`, the same for every
+Agent—and only the current factory-managed skills. Retirement is the only normal lifecycle
 operation that removes the Agent execution host.
 
 Human Restart is distinct from session reset. Server requires the assigned
@@ -239,10 +238,7 @@ native instruction layer, which only a fresh session reads, so a resumed session
 instruction fingerprint differs or is missing gets them re-delivered at the front of its next
 ordinary turn and keeps the session ([sessions spec](../../specs/sessions.md#instruction-updates)).
 Bootstrap drift or Restart
-parks the session, refreshes the driver's install, and resumes the same native conversation. Before a
-Cove turn, Computer also replaces exact recognized prior playbook and FAQ revisions and privately
-asks the same session to re-read them; edited or missing files are preserved and reported as a
-conflict. The receipt advances only after the turn completes and returns valid resume state. Failure
+parks the session, refreshes the driver's install, and resumes the same native conversation. The receipt advances only after the turn completes and returns valid resume state. Failure
 or interruption remains stale and preserves the generation for retry. Only rejection of the stored native resume state is reported
 as resume rejection, so only Server-authorized recovery may advance the session generation.
 
@@ -252,8 +248,7 @@ When it differs from the session receipt, the next accepted turn enters the same
 is a sub-agent wake deferring a due instruction update: that turn neither shows the activity nor
 applies the version, which stays pending for the next ordinary turn
 ([sessions spec](../../specs/sessions.md#instruction-updates)). Success stores the new version and
-application time; failure or a Cove factory-guidance conflict preserves the old version and reports
-failed. Computer includes that receipt in effective state so Server and
+application time; failure preserves the old version and reports failed. Computer includes that receipt in effective state so Server and
 the App can distinguish pending, current, and failed application.
 
 Reminders are canonical Server schedules anchored to an Agent and Chat
@@ -387,7 +382,7 @@ activity journal: Computer maps known runtime and product boundaries into safe c
 persists them, and the Inbox projects the latest category for each unsettled Agent. Unknown
 and MCP tools remain generic. Neither lifecycle nor semantic activity carries arguments, command
 contents, model reasoning, draft messages, tool outputs, or private file contents.
-A re-delivered instruction update, Cove factory-guidance drift, bootstrap drift, or Restart adds an
+A re-delivered instruction update, bootstrap drift, or Restart adds an
 explicit `updating_instructions` activity lifecycle. Its rows contain no prompt text, paths, commands, hashes, file contents, or raw
 bootstrap errors.
 

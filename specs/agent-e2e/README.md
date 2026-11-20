@@ -154,7 +154,7 @@ Status values:
 
 | ID | Haus behavior | Coverage | Status |
 | --- | --- | --- | --- |
-| P6 | Cove answers a natural Agent proposal in its parent DM without creating anything, then a separate creation request creates exactly one Agent inheriting Cove's runtime, model, reasoning effort, and Computer, announced by one `agent-created` Message in that same DM; repeating the request creates no second Agent. | `test:agents --include-opt-in --only cove-composes-agent-creation` + factory-playbook/Manual/tool contracts | opt-in |
+| P6 | An ordinary Agent answers a natural Agent proposal in the asking channel without creating anything, then a separate creation request creates exactly one Agent inheriting the creator's runtime, model, reasoning effort, and Computer, which the creator names by handle in that channel; repeating the request creates no second Agent. | `test:agents --include-opt-in --only agent-composes-agent-creation` + Manual/tool contracts | opt-in |
 
 ## Existing executable lanes
 
@@ -179,9 +179,9 @@ coupling; `test:tracer` retains the one browser proof that the wire works end to
 end. The observations below remain historical records of what those runs saw and
 are not maintained against the current lanes.
 
-The Cove creation scenario is deliberately excluded from the default lane. Run
-it only with `--include-opt-in` against a dev stack that has an active Cove,
-healthy attached Computer reporting Terra, and
+The Agent-creation scenario is deliberately excluded from the default lane. Run
+it only with `--include-opt-in` against a dev stack that has the seeded Blippy on a
+healthy attached Computer, and
 `HAUS_AGENT_E2E_AVATAR_FIXTURE=1` with absolute fixture and request-log paths. It writes
 the normal transcript/report under `.context/agent-tests/<run>/` and performs
 exact-id Agent cleanup through the shared crash ledger.

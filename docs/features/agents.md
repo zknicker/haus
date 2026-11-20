@@ -132,7 +132,7 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
 
 Computer retains an internal per-Agent **Haus Agent** version receipt for release evidence and
 diagnostics. That version covers Haus-managed behavior delivered through instructions, actions,
-recipes and Manual content, Harness bootstrap, and factory guidance; it does not version
+recipes and Manual content, and Harness bootstrap; it does not version
 Agent-owned memory, skills, or workspace edits. The ordinary App does not present the receipt as an
 update state because an Agent has no independent update action. Instruction refresh attempts remain
 available in Activity History without exposing prompt text, local paths, content hashes, or file
@@ -278,7 +278,7 @@ Manual topic teaches this flow and tells Agents without the capability to say so
 an SVG or inline visual instead.
 
 Haus Agent releases do not force fresh model context. Computer supplies the current managed
-instructions on the next accepted turn and applies any release-owned bootstrap or factory guidance
+instructions on the next accepted turn and applies any release-owned bootstrap
 at that same boundary. The public version receipt advances only after that turn succeeds.
 
 Avatar generation is a Server-owned service. The Server owns the prompt, provider call,

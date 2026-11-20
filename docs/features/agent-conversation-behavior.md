@@ -197,7 +197,7 @@ Live scenarios that exercise each Manual card or managed skill, as of 2026-10-20
 | `reminder-cron` | `reminder-schedule-and-fire`, `room-reminder-fires-mid-conversation` |
 | `trigger-webhook` | `webhook-secret-stays-out-of-chat`, the `triggers` eval |
 | Memory (`MEMORY.md`) | `memory-feedback-*` (Standing Preferences only) |
-| `one-or-many` | `cove-composes-agent-creation` (opt-in) |
+| `one-or-many` | `agent-composes-agent-creation` (opt-in) |
 | Visuals skill | `room-visual-not-caption-only` |
 | Not covered | `coordinator-synthesis`, `interview-fanout`, `shard-and-merge`, `gate-chain`, `lane-design`, `stake-strictness`, `proof-of-work-receipts`, `acceptance-surface`, `attachment-comments`, `group-chat-debug`, `html-artifact-discussion`, `preview-env`, `recurring-recovery`, `video-review`, `video-review-loop`, the playbooks, and the archetypes |
 
