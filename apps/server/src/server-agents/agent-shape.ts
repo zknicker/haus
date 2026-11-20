@@ -44,6 +44,7 @@ export interface ConfiguredAgentRow extends Pick<
     factoryKind: 'cove' | 'ordinary';
     handle: string;
     id: string;
+    modelConnectionId: string | null;
     serverId: string;
     stopped: boolean;
 }
@@ -128,6 +129,7 @@ export function toAgent(row: ConfiguredAgentRow): Agent {
         handle: row.handle,
         id: row.id,
         missingResources: row.effectiveMissing ?? [],
+        modelConnectionId: row.modelConnectionId,
         serverId: row.serverId,
         status: deriveAgentStatus(row),
         wakePause: toWakePause(row),

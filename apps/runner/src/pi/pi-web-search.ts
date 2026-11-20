@@ -1,4 +1,5 @@
 import type { Api, Model, Models } from '@earendil-works/pi-ai';
+import type { RunnerModelConnection } from '@haus/api';
 import * as z from 'zod';
 import type { SearchBackend, SearchResult } from '../web/web-search.ts';
 import {
@@ -7,9 +8,9 @@ import {
 } from './vendor/pi-web-search/grounding-redirects.ts';
 import { normalizeSearchUrl } from './vendor/pi-web-search/search-url.ts';
 
-export const webSearchProviders = ['openai-codex', 'xai', 'google', 'openrouter'] as const;
+const webSearchProviders = ['openai-codex', 'xai', 'google', 'openrouter'] as const;
 
-export type WebSearchProvider = (typeof webSearchProviders)[number];
+type WebSearchProvider = (typeof webSearchProviders)[number];
 
 export type WebSearchRoute = 'grounded' | 'hosted' | 'off';
 
@@ -22,8 +23,10 @@ const searches = {
     xai: { route: 'hosted', tool: { type: 'web_search' } },
 } as const satisfies Record<WebSearchProvider, ProviderSearch>;
 
-export function webSearchOn(provider: string, enabled: readonly WebSearchProvider[]) {
-    return enabled.find((candidate) => candidate === provider) ?? null;
+export function webSearchOn(connection: Pick<RunnerModelConnection, 'webSearch'>, provider: string) {
+    return connection.webSearch
+        ? (webSearchProviders.find((candidate) => candidate === provider) ?? null)
+        : null;
 }
 
 export function webSearchRoute(provider: WebSearchProvider | null) {

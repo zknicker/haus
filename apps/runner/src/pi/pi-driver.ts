@@ -3,7 +3,6 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BACKGROUND_CONTEXT } from '@earendil-works/chord/context';
-import type { Models } from '@earendil-works/pi-ai';
 import type { AgentReasoningEffort } from '@haus/api';
 import type {
     OpenSessionOptions,
@@ -12,6 +11,7 @@ import type {
 } from '../turn/runtime-driver.ts';
 import { WarmPool, warmIdleMs } from '../turn/warm-pool.ts';
 import {
+    type PiConnectionModels,
     PiModelUnavailableError,
     type PiToolFamily,
     piModelRef,
@@ -22,7 +22,6 @@ import { openPiSessionHandle, type PiSessionHandle, piSession, piSettings } from
 import { PiToolBinding, piTools } from './pi-tools.ts';
 import {
     groundedSearch,
-    type WebSearchProvider,
     type WebSearchRoute,
     webSearchOn,
     webSearchRoute,
@@ -33,8 +32,7 @@ const expiryIntervalMs = 60_000;
 export function createPiHarness(options: {
     log: (line: string) => void;
     maxWarm: number;
-    models: Models;
-    webSearch: readonly WebSearchProvider[];
+    models: (launch: RuntimeLaunch) => PiConnectionModels;
 }) {
     const pool = new WarmPool<PiSessionHandle>({ idleMs: warmIdleMs, maxWarm: options.maxWarm });
     const closeAll = async (handles: readonly PiSessionHandle[]) => {
@@ -53,10 +51,11 @@ export function createPiHarness(options: {
 
     const connect = async (
         launch: RuntimeLaunch,
-        toolset: { family: PiToolFamily; search: WebSearchRoute },
+        opened: PiConnectionModels,
+        toolset: PiToolset,
         resumeFrom: string | undefined
     ) => {
-        const launchKey = piLaunchKey(await piBootstrapFingerprint(toolset), launch.modelId);
+        const launchKey = piLaunchKey(await piBootstrapFingerprint(toolset), launch);
         if (resumeFrom) {
             const claim = pool.claim(
                 launch.agentId,
@@ -75,7 +74,7 @@ export function createPiHarness(options: {
             family: toolset.family,
             launchKey,
             log: options.log,
-            models: options.models,
+            models: opened.models,
             nativeSessionId: resumeFrom ?? crypto.randomUUID(),
             resume: resumeFrom !== undefined,
             search: toolset.search,
@@ -83,10 +82,10 @@ export function createPiHarness(options: {
     };
 
     const driver = (launch: RuntimeLaunch) => {
-        const ref = piModelRef(options.models, launch.modelId);
-        const toolset: { family: PiToolFamily; search: WebSearchRoute } = {
+        const opened = options.models(launch);
+        const toolset: PiToolset = {
             family: piToolFamily(launch.modelId),
-            search: webSearchRoute(webSearchOn(ref?.provider ?? '', options.webSearch)),
+            search: webSearchRoute(webSearchOn(launch.connection, opened.providerId)),
         };
         return {
             bootstrapFingerprint: () => piBootstrapFingerprint(toolset),
@@ -94,15 +93,16 @@ export function createPiHarness(options: {
             instructionsOnResume: 'current' as const,
             async openSession({ resumeFrom, signal }: OpenSessionOptions) {
                 signal?.throwIfAborted();
-                const model = ref && options.models.getModel(ref.provider, ref.modelId);
+                const ref = piModelRef(opened, launch.modelId);
+                const model = ref && opened.models.getModel(ref.provider, ref.modelId);
                 if (!(ref && model)) {
-                    throw new PiModelUnavailableError(launch.modelId);
+                    throw new PiModelUnavailableError(launch.modelId, opened.providerId);
                 }
-                const handle = await connect(launch, toolset, resumeFrom);
+                const handle = await connect(launch, opened, toolset, resumeFrom);
                 handle.prompt.instructions = launch.instructions;
                 handle.binding.bind(
                     launch.tools,
-                    toolset.search === 'grounded' ? groundedSearch(options.models, model) : null
+                    toolset.search === 'grounded' ? groundedSearch(opened.models, model) : null
                 );
                 await handle.root.configure(
                     { model: ref, thinkingLevel: thinkingLevelOf(launch.reasoningEffort) },
@@ -143,10 +143,7 @@ export function createPiHarness(options: {
     };
 }
 
-export async function piBootstrapFingerprint(toolset: {
-    family: PiToolFamily;
-    search: WebSearchRoute;
-}) {
+export async function piBootstrapFingerprint(toolset: PiToolset) {
     packageVersion ??= readPiDurableVersion();
     const tools = piTools(toolset.family, toolset.search, new PiToolBinding()).map((tool) => [
         tool.name,
@@ -168,10 +165,15 @@ export async function piBootstrapFingerprint(toolset: {
         .digest('hex');
 }
 
-function piLaunchKey(bootstrapFingerprint: string, modelId: string) {
+function piLaunchKey(bootstrapFingerprint: string, launch: RuntimeLaunch) {
     return createHash('sha256')
-        .update(JSON.stringify([bootstrapFingerprint, modelId]))
+        .update(JSON.stringify([bootstrapFingerprint, launch.modelId, launch.connection.id]))
         .digest('hex');
+}
+
+interface PiToolset {
+    readonly family: PiToolFamily;
+    readonly search: WebSearchRoute;
 }
 
 function thinkingLevelOf(effort: AgentReasoningEffort) {

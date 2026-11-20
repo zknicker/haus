@@ -2,7 +2,12 @@ import { join } from 'node:path';
 import type { AgentTurnSummary } from '@haus/api';
 import type { RunnerConfig } from '../config.ts';
 import type { DispatchLedger, RecoveredDispatch } from '../dispatch/ledger.ts';
-import type { LoginConfig } from '../logins.ts';
+import {
+    type ConnectionBook,
+    connectionForRun,
+    missingConnectionMessage,
+} from '../model-connections/connection-book.ts';
+import { createConnectionStatus } from '../model-connections/connection-status.ts';
 import type { RunnerLink, RunStart, TurnHost } from '../run-context.ts';
 import { createHarnesses } from './harnesses.ts';
 import { inboxStore } from './inbox-store.ts';
@@ -10,7 +15,7 @@ import { createRunActivity } from './run-activity.ts';
 import { runRecords } from './run-records.ts';
 import { type NoticeSink, type RunTurnResult, runTurn } from './run-turn.ts';
 import type { RuntimeDriverFactory } from './runtime-driver.ts';
-import { RunnerCrashedError } from './turn-failure.ts';
+import { RunnerCrashedError, SessionFailureError } from './turn-failure.ts';
 import { turnSummary } from './turn-summary.ts';
 import { unknownToolCalls } from './unknown-tool-calls.ts';
 
@@ -21,14 +26,21 @@ interface ActiveRun {
 }
 
 export function createTurnHost(input: {
-    config: LoginConfig & Pick<RunnerConfig, 'maxWarm' | 'webSearch'>;
+    book: ConnectionBook;
+    config: Pick<RunnerConfig, 'dataDir' | 'maxWarm'>;
     ledger: DispatchLedger;
     link: RunnerLink;
     log?: (line: string) => void;
 }) {
     const log = input.log ?? ((line: string) => process.stderr.write(`${line}\n`));
-    const harnesses = createHarnesses(input.config, log);
+    const harnesses = createHarnesses({
+        book: input.book,
+        link: input.link,
+        log,
+        maxWarm: input.config.maxWarm,
+    });
     const host = createTurnHostWith({
+        book: input.book,
         dataDir: input.config.dataDir,
         factory: harnesses.factory,
         ledger: input.ledger,
@@ -39,12 +51,14 @@ export function createTurnHost(input: {
 }
 
 export function createTurnHostWith(input: {
+    book: ConnectionBook;
     dataDir: string;
     factory: RuntimeDriverFactory;
     ledger: DispatchLedger;
     link: RunnerLink;
     log: (line: string) => void;
 }) {
+    const status = createConnectionStatus(input.link);
     const active = new Map<string, ActiveRun>();
     const queues = new Map<string, Promise<unknown>>();
     const paths = (agentId: string) => {
@@ -84,12 +98,22 @@ export function createTurnHostWith(input: {
             runId: start.runId,
             send: (frame) => input.link.send(frame),
         });
+        const connection = connectionForRun(input.book, run.modelConnectionId, start.modelId);
         let result: RunTurnResult;
         try {
+            if (!connection) {
+                throw new SessionFailureError({
+                    category: 'access',
+                    severity: 'error',
+                    title: missingConnectionMessage(start.modelId),
+                    type: 'session-failure',
+                });
+            }
             result = await runTurn({
                 activity,
                 agentDir,
                 authority: run.authority,
+                connection,
                 factory: input.factory,
                 link: input.link,
                 log: input.log,
@@ -115,6 +139,9 @@ export function createTurnHostWith(input: {
             }
         }
         activity.close(result.status === 'completed' ? 'completed' : result.status);
+        if (connection) {
+            status.afterTurn(connection, result);
+        }
         const visibility = await run.tools.settle();
         await store.consume([
             ...visibility.visibleMessages.map((message) => message.id),

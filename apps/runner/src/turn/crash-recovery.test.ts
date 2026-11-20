@@ -3,11 +3,11 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDispatchLedger } from '../dispatch/ledger.ts';
+import { createConnectionBook } from '../model-connections/connection-book.ts';
 import type { RunnerLink } from '../run-context.ts';
 import {
     cleanups,
     drainCleanups,
-    noLogins,
     runnerToken,
     type ServerStandIn,
     serverStandIn,
@@ -83,14 +83,17 @@ async function restartRunner(server: ServerStandIn, dataDir: string) {
     let attached: ReturnType<typeof openServerLink> | null = null;
     const link: RunnerLink = { send: (frame) => attached?.link.send(frame) };
     await ledger.recover();
+    const book = createConnectionBook();
     const turnHost = createTurnHost({
-        config: { ...noLogins(dataDir), maxWarm: 1, webSearch: [] },
+        book,
+        config: { dataDir, maxWarm: 1 },
         ledger,
         link,
         log: () => undefined,
     });
     attached = openServerLink({
-        config: { ...noLogins(dataDir), runnerToken, serverUrl: server.url },
+        book,
+        config: { runnerToken, serverUrl: server.url },
         ledger,
         log: () => undefined,
         turnHost,

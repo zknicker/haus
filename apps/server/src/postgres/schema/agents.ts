@@ -17,6 +17,7 @@ import { avatarsTable } from './avatars.ts';
 import { bunJsonb } from './bun-jsonb.ts';
 import { chatMessagesTable } from './chat-messages.ts';
 import { computersTable } from './computers.ts';
+import { modelConnectionsTable } from './model-connections.ts';
 import { serversTable } from './servers.ts';
 
 /**
@@ -89,6 +90,8 @@ export const agentsTable = pgTable(
          */
         // Server 7.1.0 reads and writes this column during application rollback.
         conversationStyle: text('personality'),
+        /** The model connection a human chose; null runs on the default for its model's provider. */
+        modelConnectionId: text('model_connection_id'),
         retiredAt: timestamp('retired_at', { withTimezone: true }),
         /** One fully qualified emoji: the Agent's pickup reaction. Null means the default. */
         signatureEmoji: text('signature_emoji'),
@@ -129,6 +132,11 @@ export const agentsTable = pgTable(
             name: 'agents_creation_message_fk',
         }).onDelete('set null (creation_message_id)' as UpdateDeleteAction),
         unique('agents_creation_message_key').on(table.serverId, table.creationMessageId),
+        foreignKey({
+            columns: [table.serverId, table.modelConnectionId],
+            foreignColumns: [modelConnectionsTable.serverId, modelConnectionsTable.id],
+            name: 'agents_model_connection_fk',
+        }).onDelete('set null (model_connection_id)' as UpdateDeleteAction),
         unique('agents_creation_nonce_key').on(
             table.serverId,
             table.createdByAgentId,

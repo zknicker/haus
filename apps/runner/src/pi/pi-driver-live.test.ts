@@ -1,39 +1,81 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { modelOAuthCredentialSchema, type RunnerModelConnection } from '@haus/api';
+import { createConnectionBook } from '../model-connections/connection-book.ts';
 import type { RunTools } from '../run-context.ts';
 import { cleanups, drainCleanups, live, startedRun } from '../runner-test-server.ts';
 import type { TurnEvent } from '../turn/turn-event.ts';
-import { openFileCredentialStore, piLoginsDir } from './pi-credentials.ts';
 import { createPiHarness } from './pi-driver.ts';
-import { createPiModels } from './pi-models.ts';
+import { connectionModels, piProviderFor } from './pi-models.ts';
 
-const liveTest = process.env.HAUS_RUN_LIVE_RUNNER_PI_TEST === '1' ? test : test.skip;
-const xaiApiKey = process.env.HAUS_RUNNER_XAI_API_KEY ?? null;
+const xaiApiKey = process.env.HAUS_RUNNER_TEST_XAI_API_KEY;
+const chatgptFile = process.env.HAUS_RUNNER_TEST_CHATGPT_CREDENTIAL_FILE;
+const liveTest =
+    process.env.HAUS_RUN_LIVE_RUNNER_PI_TEST === '1' && (xaiApiKey || chatgptFile)
+        ? test
+        : test.skip;
 const modelId = process.env.HAUS_RUNNER_PI_LIVE_MODEL ?? (xaiApiKey ? 'grok-4.7' : 'gpt-5.6-sol');
-const dataDir = process.env.HAUS_RUNNER_DATA_DIR ?? '/data';
 
 afterEach(drainCleanups);
 
-function liveHarness() {
+async function liveConnection() {
+    const base = {
+        credentialVersion: 1,
+        id: 'mc_live',
+        label: 'Live',
+        serverId: 'srv_live',
+        webSearch: true,
+    };
+    if (xaiApiKey) {
+        const connection: RunnerModelConnection = {
+            ...base,
+            credential: { key: xaiApiKey, kind: 'api-key' },
+            provider: 'xai',
+        };
+        return connection;
+    }
+    const credential = modelOAuthCredentialSchema.parse(
+        JSON.parse(await readFile(chatgptFile ?? '', 'utf8'))
+    );
+    const connection: RunnerModelConnection = {
+        ...base,
+        credential: { credential, kind: 'oauth' },
+        provider: 'chatgpt',
+    };
+    return connection;
+}
+
+async function liveHarness() {
+    const connection = await liveConnection();
+    const book = createConnectionBook();
+    await book.replace([connection]);
     const harness = createPiHarness({
         log: (line) => process.stderr.write(`${line}\n`),
         maxWarm: 1,
-        models: createPiModels({
-            apiKeys: { geminiApiKey: null, openrouterApiKey: null, xaiApiKey },
-            credentials: openFileCredentialStore(piLoginsDir(dataDir)),
-        }),
-        webSearch: [],
+        models: () =>
+            connectionModels({
+                book,
+                connectionId: connection.id,
+                link: {
+                    send: (frame) =>
+                        frame.type === 'runner-connection-credential' && chatgptFile
+                            ? void writeFile(chatgptFile, `${JSON.stringify(frame.credential)}\n`)
+                            : undefined,
+                },
+                provider: piProviderFor(connection.provider),
+            }),
     });
     cleanups.push(() => harness.close());
-    return harness;
+    return { connection, harness };
 }
 
-function launch(agentDir: string, tools: RunTools) {
+function launch(connection: RunnerModelConnection, agentDir: string, tools: RunTools) {
     return {
         agentDir,
         agentId: 'agt_1',
+        connection,
         instructions:
             'You are a terse test Agent. Use your shell tool when asked to look at files, then answer in one sentence.\n',
         modelId,
@@ -61,9 +103,9 @@ describe('Pi Durable driver against a live provider', () => {
             const { run, server } = await startedRun();
             const agentDir = await mkdtemp(join(tmpdir(), 'haus-pi-live-'));
             cleanups.push(() => rm(agentDir, { force: true, recursive: true }));
-            const first = liveHarness();
+            const { connection, harness: first } = await liveHarness();
             const session = await first
-                .factory(launch(agentDir, run.tools))
+                .factory(launch(connection, agentDir, run.tools))
                 .openSession({ resumeFrom: undefined, sessionId: 'agt_1-1' });
 
             const turn = await session.startTurn({
@@ -91,7 +133,7 @@ describe('Pi Durable driver against a live provider', () => {
             const sessionId = await session.detach();
 
             const warm = await first
-                .factory(launch(agentDir, run.tools))
+                .factory(launch(connection, agentDir, run.tools))
                 .openSession({ resumeFrom: sessionId, sessionId: 'agt_1-1' });
             const second = await collect(
                 (
@@ -107,8 +149,10 @@ describe('Pi Durable driver against a live provider', () => {
             await warm.detach();
             await first.close();
 
-            const cold = await liveHarness()
-                .factory(launch(agentDir, run.tools))
+            const cold = await (
+                await liveHarness()
+            ).harness
+                .factory(launch(connection, agentDir, run.tools))
                 .openSession({ resumeFrom: sessionId, sessionId: 'agt_1-1' });
             const resumed = await collect(
                 (
