@@ -23,7 +23,7 @@ export function hears(place: HearingPlace, hearer: Hearer) {
     return hearingRules[place](hearer);
 }
 
-export function hearersOf<Agent extends { homeProjectId: string }>(
+export function hearersOf<Agent extends { homeProjectId: string | null }>(
     agents: readonly Agent[],
     place: { isAll: boolean; projectId: string }
 ) {

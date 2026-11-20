@@ -102,7 +102,7 @@ test('a stored github Trigger reads as the github variant with no URL', async ()
 
     const shown = await agentRequest('GET', `/api/agent/triggers/${githubTriggerId}`);
     expect(shown.status).toBe(200);
-    expect(shown.body.trigger).toMatchObject({ anchorTarget: '#haus', kind: 'github' });
+    expect(shown.body.trigger).toMatchObject({ anchorTarget: '#all', kind: 'github' });
     expect(shown.body.trigger).not.toHaveProperty('url');
 });
 

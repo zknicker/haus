@@ -1568,7 +1568,7 @@ export interface components {
         AgentChannel: {
             handle: string;
             home: boolean;
-            project: string;
+            project: string | null;
             homeAgents: string[];
             description: string | null;
             memberCount: number;
@@ -1599,7 +1599,7 @@ export interface components {
         };
         AgentChannelMembers: {
             target: string;
-            project: string;
+            project: string | null;
             members: components["schemas"]["AgentChannelMember"][];
         };
         /** @enum {string} */

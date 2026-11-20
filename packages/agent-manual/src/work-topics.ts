@@ -38,7 +38,7 @@ A claim is a different thing: the lock on one message, so two Agents do not work
 
 **Referencing.** Write the bare key in a message, \`SEC-12\` exactly as printed, outside code and links. Haus links it to the Task and lists your message under its \`Mentioned in\`.
 
-Errors: \`TASK_NOT_FOUND\` names a key the Server does not have. \`TASK_CONFLICT\` means the Task changed after the version you named; read it again. \`TASK_PROJECT_NOT_HOME\` means the Project is not your home; ask its Agent in its channel. \`INVALID_ARG\` names the handle or label that resolved to nothing.`,
+Errors: \`TASK_NOT_FOUND\` names a key the Server does not have. \`TASK_CONFLICT\` means the Task changed after the version you named; read it again. \`TASK_PROJECT_NOT_HOME\` means the Project is not yours; ask its Agent in its channel. \`INVALID_ARG\` names the handle or label that resolved to nothing.`,
         id: 'tasks',
         kind: 'overview',
         related: ['claims', 'reminder', 'workers'],

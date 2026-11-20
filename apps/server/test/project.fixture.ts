@@ -3,7 +3,11 @@ import type { HausClient } from './haus-client.ts';
 
 export async function createTestProject(
     owner: Pick<HausClient, 'trpc'>,
-    { agentIds, ...input }: ProjectCreateInput & { agentIds: readonly string[] }
+    {
+        agentIds = [],
+        homeAgentIds = [],
+        ...input
+    }: ProjectCreateInput & { agentIds?: readonly string[]; homeAgentIds?: readonly string[] }
 ) {
     const { chat } = await owner.trpc.project.create.mutate(input);
     for (const agentId of agentIds) {

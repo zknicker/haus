@@ -1,19 +1,20 @@
+import type { Chat } from '@haus/api';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 
-export function useChannelUpdate() {
+export function useChannelUpdate(target: Pick<Chat, 'isAll'>) {
     const utils = hausTrpc.useUtils();
+    // The chat.lifecycle `updated` and `project.onUpdated` events own list
+    // invalidation; the Project read gets the editor's un-awaited ack fallback.
+    // Mention options have no event coverage, so this mutation stays their owner.
+    const onSuccess = ({ chat }: { chat: Chat }) => {
+        void utils.chat.mentionOptions.invalidate({
+            chatId: chat.id,
+            serverId: chat.serverId,
+        });
+        void utils.project.list.invalidate({ serverId: chat.serverId });
+    };
+    const project = hausTrpc.project.update.useMutation({ onSuccess });
+    const everyone = hausTrpc.chat.updateAllChannel.useMutation({ onSuccess });
 
-    return hausTrpc.project.update.useMutation({
-        // The chat.lifecycle `updated` and `project.onUpdated` events own list
-        // invalidation; the Project read gets the editor's un-awaited ack
-        // fallback. Mention options have no event coverage, so this mutation
-        // stays their owner.
-        onSuccess: ({ chat }) => {
-            void utils.chat.mentionOptions.invalidate({
-                chatId: chat.id,
-                serverId: chat.serverId,
-            });
-            void utils.project.list.invalidate({ serverId: chat.serverId });
-        },
-    });
+    return target.isAll ? everyone : project;
 }

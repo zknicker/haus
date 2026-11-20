@@ -5,6 +5,7 @@ import { buildClaimConflict } from '../src/claims/claim-conflict.ts';
 import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { messageClaimsTable } from '../src/postgres/schema.ts';
+import { testSqlAgentHome } from './agent-home.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -127,7 +128,7 @@ async function seedAgentRunner(
     const agentId = `agt_${handle}${server.id.slice(4, 12)}`;
     await harness.sql`
         insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
-        values (${agentId}, ${server.id}, ${handle}, ${handle}, 'UTC', (select id from chats where server_id = ${server.id} and is_all))
+        values (${agentId}, ${server.id}, ${handle}, ${handle}, 'UTC', ${await testSqlAgentHome(harness.sql, server.id)})
     `;
     return {
         agentId,
@@ -186,7 +187,7 @@ async function seedAgentClaim(
     const [agent] = (await harness.sql`
         insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
         values (
-            ${`agt_${messageId.slice(4)}`}, ${server.id}, 'sage', 'Sage', 'UTC', (select id from chats where server_id = ${server.id} and is_all)
+            ${`agt_${messageId.slice(4)}`}, ${server.id}, 'sage', 'Sage', 'UTC', ${await testSqlAgentHome(harness.sql, server.id)}
         )
         returning id
     `) as Array<{ id: string }>;

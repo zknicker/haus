@@ -10,6 +10,7 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
+import { channelNoun } from '../../chats/channel-noun.ts';
 import { ChatSurfaceItems } from './chat-surface-items.tsx';
 
 export function ChannelActionsMenu({
@@ -26,7 +27,7 @@ export function ChannelActionsMenu({
     return (
         <Dropdown.Menu onAction={onAction}>
             <Dropdown.Section>
-                <Header>Project</Header>
+                <Header>{channelNoun(chat).label}</Header>
                 <Dropdown.Item
                     id="rename"
                     isDisabled={Boolean(chat.archivedAt)}

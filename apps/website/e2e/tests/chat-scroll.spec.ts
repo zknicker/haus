@@ -1,4 +1,5 @@
 import type { Locator } from '@playwright/test';
+import { createHomedAgent } from '../support/project.ts';
 import { assertOpaqueId, createTestServer, openChannel, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -40,7 +41,7 @@ test('human sends jump to latest; agent messages preserve following across backg
         displayName: 'Chat scrolling',
         slug: 'chat-scrolling',
     });
-    const chatId = server.channels.find((channel) => channel.name === 'haus')?.id;
+    const chatId = server.channels.find((channel) => channel.name === 'all')?.id;
     assertOpaqueId(chatId);
     for (let index = 0; index < 24; index += 1) {
         await client.chat.send.mutate({
@@ -51,7 +52,7 @@ test('human sends jump to latest; agent messages preserve following across backg
         });
     }
     const sendAgent = await agentSender();
-    await openChannel(page, 'haus');
+    await openChannel(page, 'all');
     // Recently opened Chats stay mounted hidden; target the one on screen.
     const viewport = page
         .locator('[data-slot="message-scroller-viewport"]')
@@ -62,7 +63,7 @@ test('human sends jump to latest; agent messages preserve following across backg
         .toBeGreaterThan(700);
     await atBottom(viewport);
     await scrollUp(viewport);
-    const composer = page.getByRole('textbox', { name: 'Message haus' });
+    const composer = page.getByRole('textbox', { name: 'Message all' });
     await composer.fill('My send returns to the bottom');
     await page.getByRole('button', { name: 'Send', exact: true }).click();
     await atBottom(viewport);
@@ -134,10 +135,7 @@ test('human sends jump to latest; agent messages preserve following across backg
             `insert into computers (id, server_id, attached_by_user_id, credential_hash, reported_inventory, health)
             values ('cmp_scrolltest000000', '${server.id}', '${userId}', '${credentialHash}', '${JSON.stringify(inventory)}'::jsonb, 'healthy')`
         );
-        const { agent } = await client.agent.create.mutate({
-            homeProjectId: (
-                await client.project.create.mutate({ name: 'scrolling', serverId: server.id })
-            ).chat.id,
+        const { agent } = await createHomedAgent(client, {
             computerId: 'cmp_scrolltest000000',
             displayName: 'Scroll agent',
             handle: 'scroll-agent',
@@ -185,7 +183,7 @@ test('human sends jump to latest; agent messages preserve following across backg
                     authorization: `Bearer ${payload.runnerToken}`,
                     'content-type': 'application/json',
                 },
-                body: JSON.stringify({ content, nonce: crypto.randomUUID(), target: '#haus' }),
+                body: JSON.stringify({ content, nonce: crypto.randomUUID(), target: '#all' }),
             });
             expect(await response.json()).toMatchObject({ state: 'sent' });
             expect(response.ok).toBe(true);
@@ -201,7 +199,7 @@ test('a Message link holds the oldest loaded message while the older page it rea
         displayName: 'Chat jumps',
         slug: 'chat-jumps',
     });
-    const chatId = server.channels.find((channel) => channel.name === 'haus')?.id;
+    const chatId = server.channels.find((channel) => channel.name === 'all')?.id;
     assertOpaqueId(chatId);
     // Ten minutes apart, so each message is its own transcript row.
     runPsql(

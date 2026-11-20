@@ -136,7 +136,7 @@ async function findCreatorHome(db: Pick<HausDatabase, 'select'>, runner: Resolve
         .from(agentsTable)
         .where(and(eq(agentsTable.serverId, runner.serverId), eq(agentsTable.id, runner.agentId)))
         .limit(1);
-    if (!creator) {
+    if (!creator?.homeProjectId) {
         return null;
     }
     return (await isLiveProject(db, {

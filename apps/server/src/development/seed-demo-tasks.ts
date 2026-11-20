@@ -58,6 +58,7 @@ export async function seedServerDemoTasks(
     const inAll = (messageId: string) => ({ chatId: channels.allId, messageId });
     const [ship] = await seedDemoTasks(tx, {
         keyId: input.keyId,
+        projectId: channels.demoId,
         serverId: input.serverId,
         tasks: [
             {
@@ -111,7 +112,7 @@ export async function seedServerDemoTasks(
             {
                 assignee: tiny,
                 conversation: [
-                    { author: tiny, content: 'Drafted the welcome copy and posted it in #haus.' },
+                    { author: tiny, content: 'Drafted the welcome copy and posted it in #all.' },
                     { author: owner, content: 'Reads well. Ship it.' },
                     { author: tiny, content: 'Shipped. Marking this done.' },
                 ],
@@ -137,9 +138,9 @@ export async function seedServerDemoTasks(
 
 export async function seedDemoTasks(
     tx: Tx,
-    input: { keyId: string; serverId: string; tasks: readonly DemoTask[] }
+    input: { keyId: string; projectId: string; serverId: string; tasks: readonly DemoTask[] }
 ): Promise<SeededDemoTask[]> {
-    const { keyId, serverId } = input;
+    const { keyId, projectId, serverId } = input;
     const now = new Date();
     const rows = input.tasks.map((task, index) => ({
         chatId: createOpaqueId('cht'),
@@ -153,7 +154,7 @@ export async function seedDemoTasks(
             kind: 'task' as const,
             lastActivityAt: task.conversation?.length ? now : null,
             lastMessageSequence: task.conversation?.length ?? 0,
-            parentChatId: task.origin.chatId,
+            parentChatId: projectId,
             parentChatKind: 'channel' as const,
             serverId,
         }))
@@ -172,7 +173,7 @@ export async function seedDemoTasks(
             originChatId: task.origin.chatId,
             originMessageId: task.origin.messageId,
             priority: task.priority,
-            projectId: task.origin.chatId,
+            projectId,
             serverId,
             state: task.state,
             title: task.title,

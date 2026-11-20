@@ -6,6 +6,7 @@ import type * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
+import { channelNoun } from '../../chats/channel-noun.ts';
 import { serverRoute } from '../server-routes.ts';
 import { ChannelActionsMenu } from './channel-actions-menu.tsx';
 import { ChannelContextMenuItems } from './chat-context-menu-items.tsx';
@@ -41,7 +42,7 @@ export function ChannelActions({
                     <Dropdown>
                         <Tooltip>
                             <Button
-                                aria-label={`${chatName} — project actions`}
+                                aria-label={`${chatName} — ${channelNoun(chat).lower} actions`}
                                 isIconOnly
                                 size="sm"
                                 variant="ghost"

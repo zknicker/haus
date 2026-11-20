@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { scheduleReminder, tickReminders } from '../src/reminders/reminders.ts';
+import { testSqlAgentHome } from './agent-home.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { createTestProject } from './project.fixture.ts';
@@ -51,8 +52,8 @@ beforeAll(async () => {
     await harness.sql`
         insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
         values
-            (${agentId}, ${serverId}, 'history-cove', 'Cove', 'America/New_York', (select id from chats where server_id = ${serverId} and is_all)),
-            (${otherAgentId}, ${serverId}, 'history-moss', 'Moss', 'America/New_York', (select id from chats where server_id = ${serverId} and is_all))
+            (${agentId}, ${serverId}, 'history-cove', 'Cove', 'America/New_York', ${await testSqlAgentHome(harness.sql, serverId)}),
+            (${otherAgentId}, ${serverId}, 'history-moss', 'Moss', 'America/New_York', ${await testSqlAgentHome(harness.sql, serverId)})
     `;
 
     // Fires, in order: the other Agent's reminder, a plain one-shot, a script

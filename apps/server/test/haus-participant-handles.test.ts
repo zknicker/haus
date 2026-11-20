@@ -221,11 +221,11 @@ test('channel autocomplete offers visible channels with chat-reference metadata'
         serverId,
     });
 
-    const channelOption = options.options.find((option) => option.label === 'haus');
+    const channelOption = options.options.find((option) => option.label === 'all');
     expect(channelOption).toMatchObject({
-        insertText: '#haus',
+        insertText: '#all',
         kind: 'chat',
-        label: 'haus',
+        label: 'all',
         projection: 'chat-reference',
         sourceLabel: 'Channels',
     });

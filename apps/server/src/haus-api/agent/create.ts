@@ -13,7 +13,9 @@ export const createAgentProcedure = memberProcedure
     .mutation(async ({ ctx, input }) => {
         try {
             const { events, ...created } = await createAgent(ctx.hausDb, ctx.member, input);
-            publishRealtime(events);
+            for (const event of events) {
+                publishRealtime(event);
+            }
             await ctx.agentDelivery.configureAgent({
                 agentDescription: created.agent.description,
                 agentId: created.agent.id,

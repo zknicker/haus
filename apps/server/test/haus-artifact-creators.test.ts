@@ -6,6 +6,7 @@ import { artifactCreator } from '../src/artifacts/read.ts';
 import type { ArtifactStorage } from '../src/artifacts/storage.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';
 import { findUserById } from '../src/users/haus-user.ts';
+import { testSqlAgentHome } from './agent-home.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -52,7 +53,7 @@ beforeAll(async () => {
     userCreator = { type: 'user', user_id: member.id };
     await harness.sql`
         insert into agents (id, server_id, display_name, handle, home_timezone, home_project_id)
-        values (${agentId}, ${serverId}, 'Wren', 'creator-wren', 'UTC', (select id from chats where server_id = ${serverId} and is_all))
+        values (${agentId}, ${serverId}, 'Wren', 'creator-wren', 'UTC', ${await testSqlAgentHome(harness.sql, serverId)})
     `;
     const actor = { kind: 'human', member, serverId } as const;
     // Updated order (newest first): agent-d, user-c, user-b, user-a, user-f, agent-e.

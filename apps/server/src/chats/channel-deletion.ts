@@ -8,7 +8,6 @@ import {
     remindersTable,
     triggersTable,
 } from '../postgres/schema.ts';
-import { requireHausProjectId } from '../projects/haus-project.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import { remindersAnchoredIn } from '../reminders/anchored-reminders.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
@@ -134,7 +133,7 @@ export async function purgeDeletedChannel(
     return purged.workerFrames;
 }
 
-/** Deletion refuses a Project with home Agents; a retired Agent homed here moves to Haus. */
+/** Deletion refuses a Project with home Agents; a retired Agent homed here keeps no home. */
 async function rehomeRetiredAgents(tx: HausDatabase, input: DeletedChannelTarget) {
     const homedHere = and(
         eq(agentsTable.serverId, input.serverId),
@@ -146,9 +145,6 @@ async function rehomeRetiredAgents(tx: HausDatabase, input: DeletedChannelTarget
         .where(homedHere)
         .limit(1);
     if (homed) {
-        await tx
-            .update(agentsTable)
-            .set({ homeProjectId: await requireHausProjectId(tx, input.serverId) })
-            .where(homedHere);
+        await tx.update(agentsTable).set({ homeProjectId: null }).where(homedHere);
     }
 }

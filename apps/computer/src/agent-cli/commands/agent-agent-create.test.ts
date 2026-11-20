@@ -121,9 +121,9 @@ test('create says the new Agent introduces itself, without sending a message', a
     );
     // One introduction per new Agent: its own first-turn greeting, never a second from the creator.
     expect(printed).toContain(
-        '@orbit introduces itself in #haus on its first turn; do not post an introduction for it. Answer the human in #product.'
+        '@orbit introduces itself in #all on its first turn; do not post an introduction for it. Answer the human in #product.'
     );
-    expect(printed).not.toMatch(/Next: introduce|haus message send --target "#haus"/u);
+    expect(printed).not.toMatch(/Next: introduce|haus message send --target "#all"/u);
     expect(printed).not.toContain('Message ID:');
     expect(printed).toContain("Project: PRD. It hears that Project's channel and Tasks.");
 });
@@ -193,7 +193,7 @@ test('creation from a DM points the creator back to that DM', async () => {
         })
     );
 
-    expect(output.join('')).toContain('@orbit introduces itself in #haus on its first turn');
+    expect(output.join('')).toContain('@orbit introduces itself in #all on its first turn');
     expect(output.join('')).toContain('Answer the human in dm:@zach.');
     expect(output.join('')).not.toContain('discussion continues');
 });
@@ -257,5 +257,5 @@ test('the introduction line uses the confirmed handle rather than predicting it 
             write: (text) => output.push(text),
         })
     );
-    expect(output.join('')).toContain('@orbit-2 introduces itself in #haus');
+    expect(output.join('')).toContain('@orbit-2 introduces itself in #all');
 });

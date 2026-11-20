@@ -222,7 +222,7 @@ test('the create nonce is the request itself, so an identical re-issue replays',
         { ...request, description: 'Keeps the changelog current.' },
         { ...request, displayName: 'Orbit II' },
         { ...request, signatureEmoji: '🦊' },
-        { ...request, target: '#haus' },
+        { ...request, target: '#all' },
     ];
     for (const request_ of changed) {
         expect(deriveAgentCreateNonce('agt_caller', request_)).not.toBe(nonce);

@@ -1,8 +1,14 @@
 import { TRPCError } from '@trpc/server';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull, notInArray } from 'drizzle-orm';
 import { z } from 'zod';
-import { agentsTable, chatsTable, remindersTable, triggersTable } from '../../postgres/schema.ts';
-import { requireHausProjectId } from '../../projects/haus-project.ts';
+import type { HausDatabase } from '../../postgres/connection.ts';
+import {
+    agentsTable,
+    chatsTable,
+    projectsTable,
+    remindersTable,
+    triggersTable,
+} from '../../postgres/schema.ts';
 import { publishRealtime } from '../../realtime/topic.ts';
 import { remindersAnchoredIn } from '../../reminders/anchored-reminders.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
@@ -55,15 +61,23 @@ export function createCleanupEvalChatsProcedure(
                         inArray(triggersTable.anchorChatId, chatIds)
                     )
                 );
-            await tx
-                .update(agentsTable)
-                .set({ homeProjectId: await requireHausProjectId(tx, input.serverId) })
-                .where(
-                    and(
-                        eq(agentsTable.serverId, input.serverId),
-                        inArray(agentsTable.homeProjectId, requestedChatIds)
-                    )
-                );
+            const homed = and(
+                eq(agentsTable.serverId, input.serverId),
+                inArray(agentsTable.homeProjectId, requestedChatIds)
+            );
+            const [resident] = await tx
+                .select({ id: agentsTable.id })
+                .from(agentsTable)
+                .where(homed)
+                .limit(1);
+            if (resident) {
+                await tx
+                    .update(agentsTable)
+                    .set({
+                        homeProjectId: await requireOtherProjectId(tx, input.serverId, chatIds),
+                    })
+                    .where(homed);
+            }
             const deletedTasks = await deleteTasksOfRemovedChats(tx, {
                 chatIds,
                 serverId: input.serverId,
@@ -121,4 +135,39 @@ export function assertEvalCleanupAllowed(
             message: 'Agent eval cleanup is available only from localhost.',
         });
     }
+}
+
+async function requireOtherProjectId(
+    db: Pick<HausDatabase, 'select'>,
+    serverId: string,
+    removedChatIds: readonly string[]
+) {
+    const [project] = await db
+        .select({ id: projectsTable.chatId })
+        .from(projectsTable)
+        .innerJoin(
+            chatsTable,
+            and(
+                eq(chatsTable.serverId, projectsTable.serverId),
+                eq(chatsTable.id, projectsTable.chatId)
+            )
+        )
+        .where(
+            and(
+                eq(projectsTable.serverId, serverId),
+                notInArray(projectsTable.chatId, [...removedChatIds]),
+                isNull(chatsTable.archivedAt),
+                isNull(chatsTable.deletedAt)
+            )
+        )
+        .orderBy(asc(projectsTable.createdAt), asc(projectsTable.chatId))
+        .limit(1);
+    if (!project) {
+        throw new TRPCError({
+            code: 'CONFLICT',
+            message:
+                'An Agent lives in a cleaned channel and the Server has no other open Project.',
+        });
+    }
+    return project.id;
 }

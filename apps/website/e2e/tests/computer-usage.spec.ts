@@ -4,6 +4,7 @@ import {
     type UsageOverview,
 } from '@haus/api';
 import { sendBootstrap, socketMessage, socketOpen } from '../support/computer-socket.ts';
+import { createHomedAgent } from '../support/project.ts';
 import { attachComputer, createTestServer } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -145,10 +146,7 @@ test('manual runtime refresh updates capacity and Agent model choices without re
         ).toBeVisible();
         await expect(page.getByText('Not detected: Claude Code')).toBeVisible();
         await page.screenshot({ path: test.info().outputPath('refreshed-runtimes.png') });
-        const { agent } = await owner.agent.create.mutate({
-            homeProjectId: (
-                await owner.project.create.mutate({ name: 'refreshing', serverId: server.id })
-            ).chat.id,
+        const { agent } = await createHomedAgent(owner, {
             serverId: server.id,
             computerId: attachment.computerId,
             displayName: 'Refresh Scout',

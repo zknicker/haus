@@ -11,6 +11,7 @@ import type { MessageRouter } from '../src/message-routing/jev.ts';
 import { type AvatarProviderMode, deterministicPng } from './agent-creation-avatar-fixture.ts';
 import { readCreationGuidance } from './agent-creation-guidance-fixture.ts';
 import { createHomedAgent } from './agent-home.fixture.ts';
+import { testSqlAgentHome } from './agent-home.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { createTestProject } from './project.fixture.ts';
@@ -234,7 +235,7 @@ export function agentCreationFixture(
                 desired_model_id, desired_runtime_id, home_project_id)
             values (
                 ${agentId}, ${otherServerId}, ${offsiteComputerId}, 'Offsite', ${handle}, 'UTC',
-                'gpt-5.6-sol', 'codex', (select id from chats where server_id = ${otherServerId} and is_all)
+                'gpt-5.6-sol', 'codex', ${await testSqlAgentHome(harness.sql, otherServerId)}
             )
         `;
         return agentId;
@@ -279,7 +280,7 @@ export function agentCreationFixture(
                 desired_model_id, desired_runtime_id, description, home_project_id)
             values (
                 ${agentId}, ${serverId}, ${computerId}, 'Cove', 'cove', 'UTC',
-                'gpt-5.6-sol', 'codex', 'Field guide', (select id from chats where server_id = ${serverId} and is_all)
+                'gpt-5.6-sol', 'codex', 'Field guide', ${await testSqlAgentHome(harness.sql, serverId)}
             )
         `;
         return agentId;

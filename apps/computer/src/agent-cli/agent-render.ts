@@ -91,7 +91,7 @@ export function renderServerInfo(
             '## Server Channels',
             ...response.channels.map(
                 (channel) =>
-                    `#${channel.handle} [${channel.project}${channel.home ? ', your Project' : ''}] Agents: ${handleList(channel.homeAgents)}${descriptionSuffix(channel.description)}`
+                    `#${channel.handle} [${channel.project ?? 'team room'}${channel.home ? ', your Project' : ''}] Agents: ${channel.project ? handleList(channel.homeAgents) : 'everyone'}${descriptionSuffix(channel.description)}`
             )
         );
     }
@@ -119,7 +119,7 @@ export function renderServerInfo(
 export function renderChannelInfo(channel: AgentChannel): string {
     return [
         `## Channel #${channel.handle}`,
-        `Project: ${channel.project}`,
+        `Project: ${channel.project ?? 'none (the team room)'}`,
         `Agents: ${handleList(channel.homeAgents)}`,
         `Your Project: ${channel.home ? 'yes' : 'no'}`,
         `Description: ${channel.description ?? 'No description.'}`,
@@ -141,7 +141,7 @@ export function renderChannelMembers(response: AgentChannelMembers): string {
         return `@${handle} [${role}]${zone}${descriptionSuffix(member.description)}`;
     });
     return [
-        `## Channel Members for ${response.target}, Project ${response.project} (${members.length} members)`,
+        `## Channel Members for ${response.target}${response.project ? `, Project ${response.project}` : ''} (${members.length} members)`,
         ...members,
         '',
     ].join('\n');

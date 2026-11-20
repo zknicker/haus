@@ -35,26 +35,6 @@ test('an Agent created with no --project lives in its creator’s home Project',
     expect(await readHome(created.body.agent?.agentId ?? '')).toBe(fixture.channelId);
 });
 
-test('no --project is refused when the creator lives in #all, which is no Project', async () => {
-    const creator = await fixture.createAgent('Hermit', 'hermit');
-    await fixture.harness.sql`
-        update agents set home_project_id = ${await readAllChannelId()} where id = ${creator}
-    `;
-    const runner = await fixture.mintRunner('run_create_from_all', creator);
-
-    const created = await fixture.postCreate(
-        runner,
-        fixture.createBody({ displayName: 'Wisp', nonce: 'create-from-all' })
-    );
-
-    expect(created.status).toBe(404);
-    expect(created.body).toMatchObject({
-        code: 'INVALID_TARGET',
-        message: 'Your Project is not open, so the new Agent cannot join it. Pass --project <KEY>.',
-    });
-    expect(await readAgentIdByHandle('wisp')).toBeNull();
-});
-
 test('agent.create without a home Project is refused by input validation', async () => {
     await expect(
         fixture.owner.trpc.agent.create.mutate({

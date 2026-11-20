@@ -10,7 +10,7 @@ test.beforeAll(async () => {
     const owner = createClient(accessToken);
     await owner.server.create.mutate({ displayName: 'Composer Drops', slug: 'composer-drops' });
     const server = await owner.server.bySlug.query({ slug: 'composer-drops' });
-    const allChatId = server.channels.find((channel) => channel.name === 'haus')?.id;
+    const allChatId = server.channels.find((channel) => channel.name === 'all')?.id;
     assertOpaqueId(server.id);
     assertOpaqueId(allChatId);
     await owner.chat.send.mutate({
@@ -26,7 +26,7 @@ test('files dropped on a chat attach to its composer, an inline reply included',
 }) => {
     await signInAsAppHuman(page);
     await page.goto('/s/composer-drops');
-    await openChannel(page, 'haus');
+    await openChannel(page, 'all');
 
     const anchor = page.getByText(anchorText, { exact: true });
     const overlay = page.getByTestId('composer-file-drop-overlay');
@@ -47,7 +47,7 @@ test('files dropped on a chat attach to its composer, an inline reply included',
 test('the drop overlay tracks a file drag across children and only for files', async ({ page }) => {
     await signInAsAppHuman(page);
     await page.goto('/s/composer-drops');
-    await openChannel(page, 'haus');
+    await openChannel(page, 'all');
     const overlay = page.getByTestId('composer-file-drop-overlay');
     const drag = (steps: DragStep[]) =>
         page.evaluate((sequence) => {

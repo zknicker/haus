@@ -2287,11 +2287,11 @@ components:
       required: [handle, home, project, homeAgents, description, memberCount]
       properties:
         handle: { type: string }
-        # True when this channel is the calling Agent's home Project.
+        # True when this channel is the calling Agent's Project.
         home: { type: boolean }
-        # The Project key this channel is.
-        project: { type: string }
-        # Handles of the non-retired Agents whose home this Project is.
+        # The Project key this channel is; null for #all, the team room, which is no Project.
+        project: { type: [string, 'null'] }
+        # Handles of the non-retired Agents whose Project this is; empty for #all.
         homeAgents:
           type: array
           items: { type: string }
@@ -2348,7 +2348,7 @@ components:
       required: [target, project, members]
       properties:
         target: { type: string }
-        project: { type: string }
+        project: { type: [string, 'null'] }
         members:
           type: array
           items:

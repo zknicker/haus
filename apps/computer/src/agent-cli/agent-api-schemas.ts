@@ -169,7 +169,7 @@ export const agentChannelSchema = z.object({
     home: z.boolean(),
     homeAgents: z.array(z.string().min(1)),
     memberCount: z.number().int().nonnegative(),
-    project: z.string().min(1),
+    project: z.string().min(1).nullable(),
 });
 
 export const agentServerInfoSchema = z.object({
@@ -196,7 +196,7 @@ export const agentChannelMembersSchema = z.object({
             timezone: z.string().nullable().optional(),
         })
     ),
-    project: z.string().min(1),
+    project: z.string().min(1).nullable(),
     target: z.string().min(1),
 });
 

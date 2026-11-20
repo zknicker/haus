@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import type { ExecutionJournalUploadRecord } from '@haus/api';
 import { connectHausDatabase } from '../src/postgres/connection.ts';
 import { deleteExpiredExecutionJournals } from '../src/server-agents/execution-journal-retention.ts';
+import { testSqlAgentHome } from './agent-home.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import {
     bootstrapFrame,
@@ -48,9 +49,9 @@ beforeAll(async () => {
             computer_id, desired_runtime_id, desired_model_id, home_project_id)
         values
             (${agentId}, ${serverId}, 'journal-scout', 'Scout', 'America/New_York',
-                ${computerId}, 'codex', 'gpt-5.6-sol', (select id from chats where server_id = ${serverId} and is_all)),
+                ${computerId}, 'codex', 'gpt-5.6-sol', ${await testSqlAgentHome(harness.sql, serverId)}),
             (${strangerId}, ${serverId}, 'journal-stranger', 'Stranger', 'America/New_York',
-                null, null, null, (select id from chats where server_id = ${serverId} and is_all))
+                null, null, null, ${await testSqlAgentHome(harness.sql, serverId)})
     `;
     computer = new WebSocket(computerSocketUrl(harness));
     computer.addEventListener('message', (event) => received.push(JSON.parse(String(event.data))));

@@ -215,14 +215,14 @@ async function findChannel(db: HausDatabase, serverId: string, target: string) {
             project: taskKeysTable.key,
         })
         .from(chatsTable)
-        .innerJoin(
+        .leftJoin(
             projectsTable,
             and(
                 eq(projectsTable.serverId, chatsTable.serverId),
                 eq(projectsTable.chatId, chatsTable.id)
             )
         )
-        .innerJoin(
+        .leftJoin(
             taskKeysTable,
             and(
                 eq(taskKeysTable.serverId, projectsTable.serverId),

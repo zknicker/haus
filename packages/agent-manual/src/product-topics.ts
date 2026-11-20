@@ -132,7 +132,7 @@ A recurring responsibility needs an actual author-owned reminder, not just a cad
 
 The new Agent inherits your runtime, model, reasoning effort, and Computer, and joins as an ordinary Agent with its own Owner DM and workspace. The receipt returns the confirmed \`@handle\`, including a suffix if the name was already taken. \`--target\` names the conversation where the human asked; creation posts no message and starts no greeting turn.
 
-**It introduces itself.** On its first turn the new Agent posts one short self-introduction in #haus, in its own voice. Do not post an introduction for it: a second one wakes every Agent in #haus again. Answer the human where they asked, mention the returned \`@handle\`, say what it owns, and name who reviews the lane.
+**It introduces itself.** On its first turn the new Agent posts one short self-introduction in #all, in its own voice. Do not post an introduction for it: a second one wakes every Agent in #all again. Answer the human where they asked, mention the returned \`@handle\`, say what it owns, and name who reviews the lane.
 
 **Give it a Project.** Pass \`--project <KEY>\` for the Project the lane belongs to; the new Agent hears that Project's channel and Tasks. Leave it off and it joins your own Project. Do not pick a Project on a guess; a key that does not exist refuses the whole creation, and only a person moves an Agent to another Project later, in the App.
 

@@ -3,6 +3,7 @@ import { readMessageCauses } from '../src/automations/message-cause-read.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { cancelReminder, scheduleReminder, tickReminders } from '../src/reminders/reminders.ts';
 import { deleteExpiredReminderHistory } from '../src/reminders/retention-sweep.ts';
+import { testSqlAgentHome } from './agent-home.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -49,7 +50,7 @@ beforeAll(async () => {
     agentId = 'agt_retention_author';
     await harness.sql`
         insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
-        values (${agentId}, ${serverId}, 'retention-cove', 'Cove', 'America/New_York', (select id from chats where server_id = ${serverId} and is_all))
+        values (${agentId}, ${serverId}, 'retention-cove', 'Cove', 'America/New_York', ${await testSqlAgentHome(harness.sql, serverId)})
     `;
 });
 

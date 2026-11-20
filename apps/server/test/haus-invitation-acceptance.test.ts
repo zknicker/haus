@@ -6,7 +6,7 @@ import { collectStream } from './realtime-stream.ts';
 /**
  * Acceptance is one PostgreSQL transaction: the invitation is validated and
  * consumed, the verified Cloudflare email must match, and the human lands as a
- * Member joined to exactly `#haus`. The token is single-use under concurrency.
+ * Member joined to exactly `#all`. The token is single-use under concurrency.
  */
 let harness: HausServerHarness;
 let owner: HausClient;
@@ -29,7 +29,7 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('a matching verified email accepts once and lands in #haus only', async () => {
+test('a matching verified email accepts once and lands in #all only', async () => {
     const invitee = await signIn('user_accept_joiner', ['joiner@haus.test']);
     const { token } = await owner.trpc.invitation.create.mutate({
         email: 'joiner@haus.test',
@@ -51,7 +51,7 @@ test('a matching verified email accepts once and lands in #haus only', async () 
 
     const chats = await invitee.trpc.chat.list.query({ serverId });
     expect(chats).toHaveLength(1);
-    expect(chats[0]).toMatchObject({ isAll: true, name: 'haus' });
+    expect(chats[0]).toMatchObject({ isAll: true, name: 'all' });
 
     const listed = await owner.trpc.invitation.list.query({ serverId });
     expect(listed.find((invitation) => invitation.email === 'joiner@haus.test')?.status).toBe(

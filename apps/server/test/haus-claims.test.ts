@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
+import { testSqlAgentHome } from './agent-home.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { captureAllTopics, publishedKinds } from './realtime-capture.ts';
@@ -621,7 +622,7 @@ test('assigns a claim to an Agent, wakes it with typed work, and writes no messa
     `) as { content: string; dedupe_key: string; mentioned: boolean; source: string }[];
     expect([...deliveries].filter((row) => row.source === 'claim_assignment')).toEqual([
         {
-            content: `[Haus claim assignment claim=#${assigned.claim.number} target=#haus assignedBy=@claim-owner] Hand this to an Agent`,
+            content: `[Haus claim assignment claim=#${assigned.claim.number} target=#all assignedBy=@claim-owner] Hand this to an Agent`,
             dedupe_key: `claim-assign:${created.claim.messageId}:${assigned.claim.version}`,
             mentioned: true,
             source: 'claim_assignment',
@@ -711,7 +712,7 @@ async function addClaimAgent(serverId: string) {
         insert into agents (id, server_id, computer_id, handle, display_name,
             desired_model_id, desired_runtime_id, home_timezone, home_project_id)
         values (${agentId}, ${serverId}, ${computerId}, ${handle}, 'Ada',
-            'fake-model', 'fake', 'UTC', (select id from chats where server_id = ${serverId} and is_all))
+            'fake-model', 'fake', 'UTC', ${await testSqlAgentHome(harness.sql, serverId)})
     `;
     return { agentId, handle };
 }

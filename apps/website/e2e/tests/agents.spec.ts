@@ -1,5 +1,6 @@
 import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@haus/api';
 import { WebSocket } from 'ws';
+import { createHomedAgent } from '../support/project.ts';
 import { attachComputer, createTestServer, runAgentAction } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -157,10 +158,7 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     // Cross-Computer / unreported references fail closed at the contract.
     const [computer] = await owner.computer.list.query({ serverId: attachment.serverId });
     await expect(
-        owner.agent.create.mutate({
-            homeProjectId: (
-                await owner.project.create.mutate({ name: 'ghosts', serverId: attachment.serverId })
-            ).chat.id,
+        createHomedAgent(owner, {
             computerId: computer.id,
             displayName: 'Ghost',
             handle: 'ghost',

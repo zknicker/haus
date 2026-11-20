@@ -9,7 +9,7 @@ import { expect } from './test.ts';
 
 /**
  * The incident detector's scene (specs/realtime-events.md, "App e2e"): a
- * desktop window whose shown tab A is `#haus` and whose kept, hidden tab B is
+ * desktop window whose shown tab A is `#all` and whose kept, hidden tab B is
  * `#product`, which holds an inline reply anchor and a Worker Message. Two
  * Agents with no model write through the Agent API, and a Computer reports
  * the work's progress over its attachment.
@@ -22,7 +22,7 @@ export async function createRealtimeScene(page: Page, slug: string) {
     });
     const computerCredential = `computer-${slug}-credential-0001`;
     const orbit = await createChannelAgent({
-        channelName: 'haus',
+        channelName: 'all',
         databaseUrl: session.databaseUrl,
         serverId: server.id,
         slug,
@@ -56,9 +56,9 @@ export async function createRealtimeScene(page: Page, slug: string) {
     await openChannel(page, 'product');
     await expect(composer(page, 'product')).toBeVisible();
     await expect(visibleSurface(page).getByText('Product anchor for inline replies')).toBeVisible();
-    await page.getByRole('row', { exact: true, name: 'haus' }).click({ modifiers: ['Meta'] });
+    await page.getByRole('row', { exact: true, name: 'all' }).click({ modifiers: ['Meta'] });
     await expect(tabs(page)).toHaveCount(2);
-    await showTab(page, 'haus');
+    await showTab(page, 'all');
 
     // Changes 1 and 2 come from the human's other device; `agentReply` is a
     // real Agent send. An Agent send also announces a `sending` lifecycle, which
@@ -68,7 +68,7 @@ export async function createRealtimeScene(page: Page, slug: string) {
     const changes = {
         /** An Agent reply in `#product` (the kept tab) through the Agent API. */
         agentReply: (content: string, nonce: string) => orbit.send(content, nonce, '#product'),
-        /** Change 1: a reply in `#haus`. */
+        /** Change 1: a reply in `#all`. */
         allReply: (content: string, nonce: string) =>
             device.chat.send.mutate({ chatId: orbit.chatId, content, nonce, serverId: server.id }),
         inlineReply: (content: string, nonce: string) =>
@@ -122,7 +122,7 @@ export function visibleSurface(page: Page) {
 }
 
 /**
- * The convergence assertions: tab A shows the `#haus` reply with no reload;
+ * The convergence assertions: tab A shows the `#all` reply with no reload;
  * revealing tab B shows the inline reply and the updated Worker row.
  */
 export async function expectConverged(

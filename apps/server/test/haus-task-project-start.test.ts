@@ -120,31 +120,6 @@ test('an #all origin starts a Task in the Agent’s home Project, and #all previ
     ]);
 });
 
-test('an Agent the migration left in #all starting a Task in another Project is TASK_PROJECT_NOT_HOME', async () => {
-    await fixture.harness.sql`
-        update agents set home_project_id = ${allId} where id = ${fixture.orbitAgentId}
-    `;
-    const origin = await send(fixture.channelId, 'The ops pager is noisy');
-
-    expect(
-        await startTask({
-            from: origin.message.id,
-            project: 'OPS',
-            target: '#product',
-            title: 'Quiet the ops pager',
-        })
-    ).toEqual({
-        body: {
-            code: 'TASK_PROJECT_NOT_HOME',
-            message:
-                'You start Tasks only in your Project, and #ops is another Project. Its Agent starts Tasks there.',
-            nextAction:
-                "@mention that Project's Agent in #ops with the request; it starts the Task.",
-        },
-        status: 403,
-    });
-});
-
 test('--project files a channel origin in another Project; the origin channel previews it', async () => {
     const { serverId } = fixture;
     await fixture.owner.trpc.agent.setHome.mutate({

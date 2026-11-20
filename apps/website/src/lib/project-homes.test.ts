@@ -14,6 +14,7 @@ import {
 
 const project = (chatId: string, name: string, homeAgentIds: string[], isHaus = false) =>
     ({
+        archived: false,
         chatId,
         homeAgentIds,
         isHaus,

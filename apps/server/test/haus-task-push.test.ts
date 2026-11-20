@@ -94,7 +94,7 @@ test('a message in a Task carries the Task, so a tap opens it', async () => {
     expect(pushes.map((push) => push.device.token)).toEqual([adaToken]);
     expect(pushes[0]?.payload).toMatchObject({
         chatId: task.chatId,
-        conversationChatId: channelId,
+        conversationChatId: task.projectId,
         taskId: task.id,
         taskKey: task.key,
     });

@@ -128,7 +128,7 @@ export async function createAgentInTransaction(
     }
 
     await openAgentHomeReads(db, { agentId, projectId: homeProjectId, serverId: input.serverId });
-    // The new Agent introduces itself once in `#haus`, as soon as it can run,
+    // The new Agent introduces itself once in `#all`, as soon as it can run,
     // rather than waiting for its first delivery. The caller dispatches after commit.
     await enqueueAgentGreeting(db, {
         agentId,

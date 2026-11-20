@@ -18,7 +18,7 @@ test('Automations exposes automatic cloud handoffs and keeps delivered work in h
     const credential = 'cloud-automations-computer-credential-12';
     const seeded = await seedWorker({
         agentHandle: 'forge',
-        channelName: 'haus',
+        channelName: 'all',
         computerCredential: credential,
         content: 'I’m adding worker wake visibility to Automations.',
         databaseUrl: session.databaseUrl,

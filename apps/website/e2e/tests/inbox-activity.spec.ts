@@ -1,4 +1,5 @@
 import { sendBootstrap, socketMessage, socketOpen } from '../support/computer-socket.ts';
+import { createHomedAgent } from '../support/project.ts';
 import {
     assertOpaqueId,
     attachComputer,
@@ -32,10 +33,7 @@ test('Inbox elapsed time ticks through activity changes and reloads', async ({ p
             session.databaseUrl,
             `update computers set reported_inventory = '${JSON.stringify(inventory)}'::jsonb where id = '${computerId}'`
         );
-        const { agent } = await client.agent.create.mutate({
-            homeProjectId: (
-                await client.project.create.mutate({ name: 'scouting', serverId: server.id })
-            ).chat.id,
+        const { agent } = await createHomedAgent(client, {
             serverId: server.id,
             computerId,
             displayName: 'Scout',
@@ -43,7 +41,7 @@ test('Inbox elapsed time ticks through activity changes and reloads', async ({ p
             runtimeId: 'codex',
             modelId: 'gpt-5.6-sol',
         });
-        const chatId = server.channels.find((channel) => channel.name === 'haus')?.id;
+        const chatId = server.channels.find((channel) => channel.name === 'all')?.id;
         assertOpaqueId(chatId);
         const now = new Date();
         const startedAt = new Date(now.getTime() - 83_000).toISOString();

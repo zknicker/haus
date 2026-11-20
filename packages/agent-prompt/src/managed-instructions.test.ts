@@ -222,12 +222,10 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // rules, delivered on change) and WORKER.md beside MEMORY.md (ADR 0054 decisions 7 and 10, +208);
     // the Standing Preferences placeholder says "preferences people show in passing: terse imperative
     // lines; the rules people set live in AGENTS.md and WORKER.md" (+24).
-    // Lowered by exactly 265 (37,963 → 37,698) when Agents came to hear their home Project (ADR 0055,
-    // J3): channel join/leave/mute/unmute went from the attention family (-87), Discovering's
-    // membership paragraph became the hearing description (-437), and Tasks gained placement (+259).
-    // Raised by exactly 130 (37,698 → 37,828) for generalists hearing ownerless Projects (+98) and placement (+32);
-    // lowered by exactly 232 (37,828 → 37,596) when generalists retired, then by 6 (→ 37,590) when "home" left the prose (2026-11-20).
-    expect(prompt.length).toBeLessThanOrEqual(37_590);
+    // J3 (ADR 0055): -265 (37,963 → 37,698) for hearing by Project, +130 (→ 37,828) then -232 (→ 37,596) as generalists came and went, -6 (→ 37,590) when "home" left the prose.
+    // E2d (ADR 0059): -1 when the welcome rule said #all again, +37 for "You always hear #all, the team room." Measured after both: 37,626.
+    expect(prompt.length).toBeLessThanOrEqual(37_626);
+    expect(prompt).toContain('You always hear #all, the team room.');
     expect(prompt.toLowerCase()).not.toContain('thread');
 });
 

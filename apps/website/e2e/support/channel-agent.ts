@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { createHomedAgent } from './project.ts';
 import { assertOpaqueId, createClient, runPsql } from './server.ts';
 
 /**
@@ -37,7 +38,7 @@ export async function createChannelAgent(input: {
          values ('${agentComputerId}', '${input.serverId}', '${ownerUserId}', '${agentCredentialHash}', '${JSON.stringify(inventory)}'::jsonb, 'healthy')
          on conflict (id) do nothing`
     );
-    const created = await owner.agent.create.mutate({
+    const created = await createHomedAgent(owner, {
         computerId: agentComputerId,
         displayName: 'Orbit',
         handle: 'orbit',

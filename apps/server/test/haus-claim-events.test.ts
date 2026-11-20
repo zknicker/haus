@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
 import { claimChangedTopic } from '../src/realtime/topics.ts';
+import { testSqlAgentHome } from './agent-home.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { captureTopic } from './realtime-capture.ts';
@@ -95,7 +96,7 @@ async function addChannelAgent(serverId: string) {
         insert into agents (id, server_id, computer_id, handle, display_name,
             desired_model_id, desired_runtime_id, home_timezone, home_project_id)
         values (${agentId}, ${serverId}, ${computerId}, 'ada', 'Ada',
-            'fake-model', 'fake', 'UTC', (select id from chats where server_id = ${serverId} and is_all))
+            'fake-model', 'fake', 'UTC', ${await testSqlAgentHome(harness.sql, serverId)})
     `;
     return agentId;
 }

@@ -155,7 +155,7 @@ test('relabels title and description together and hands the description to the f
         cause: fire.id,
         content: 'Two campaigns need lower bids.',
         nonce: `labels-answer-${fire.id}`,
-        target: '#haus',
+        target: '#all',
     });
     const messageId = sent.body.message?.id ?? '';
     const transcript = await owner.trpc.chat.messages.query({

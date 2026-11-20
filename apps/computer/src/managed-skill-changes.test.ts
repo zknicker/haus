@@ -181,9 +181,9 @@ test('the release seed records the shipped skill hashes', async () => {
     expect(await readManagedSkillChangeNotice(agentRoot)).toBeNull();
 });
 
-test('the notice text is generic and points shared changes at #haus', () => {
+test('the notice text is generic and points shared changes at #all', () => {
     expect(managedSkillChangeText(['visuals'])).toBe(
-        '[Haus skill update: these Haus skills were updated: visuals.] Re-read each before you next use it, and rebuild any scripts, notes, memory, or recipes you derived from it. If that changed something you rely on, post one short note in #haus saying what you updated; otherwise do not post.'
+        '[Haus skill update: these Haus skills were updated: visuals.] Re-read each before you next use it, and rebuild any scripts, notes, memory, or recipes you derived from it. If that changed something you rely on, post one short note in #all saying what you updated; otherwise do not post.'
     );
 });
 

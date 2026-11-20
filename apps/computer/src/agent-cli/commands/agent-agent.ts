@@ -21,7 +21,7 @@ const maxConceptLength = 280;
 const maxBriefLength = 4000;
 const handlePattern = /^@?[a-z0-9][a-z0-9-]{1,30}$/u;
 
-const CREATE_RECIPE = `haus agent create --target "#haus" --name "Orbit" \\
+const CREATE_RECIPE = `haus agent create --target "#all" --name "Orbit" \\
   --description "Keeps release notes current and chases missing changelog entries." \\
   --project PRD \\
   --brief "You own release notes. Draft them from merged PRs, post a digest in #product every Friday, and ask the owner before changing the format." \\
@@ -152,7 +152,7 @@ export async function runAgentCreate(args: ParsedArgs, deps: AgentAgentDeps): Pr
         `Runtime ${receipt.runtimeId} · model ${receipt.modelId} · reasoning ${receipt.reasoningEffort} · Computer ${receipt.computerId} — inherited from you.`,
         `Project: ${receipt.project}. It hears that Project's channel and Tasks.`,
         'Its brief is in its memory; it reads it on every startup.',
-        `@${agent.handle} introduces itself in #haus on its first turn; do not post an introduction for it. Answer the human in ${receipt.target}.`,
+        `@${agent.handle} introduces itself in #all on its first turn; do not post an introduction for it. Answer the human in ${receipt.target}.`,
     ];
     if (receipt.avatar.status === 'unavailable') {
         lines.push(`No avatar: ${receipt.avatar.note}`);

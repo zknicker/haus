@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { testSqlAgentHome } from './agent-home.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { createTestProject } from './project.fixture.ts';
@@ -18,7 +19,7 @@ beforeAll(async () => {
     });
     serverId = server.id;
     await harness.sql`INSERT INTO agents (id, server_id, handle, display_name, home_timezone, home_project_id)
-        VALUES (${agentId}, ${serverId}, 'dependents-agent', 'Dependents Agent', 'UTC', (select id from chats where server_id = ${serverId} and is_all))`;
+        VALUES (${agentId}, ${serverId}, 'dependents-agent', 'Dependents Agent', 'UTC', ${await testSqlAgentHome(harness.sql, serverId)})`;
 });
 
 afterAll(async () => {
@@ -190,6 +191,30 @@ test('purging a Project deletes a reminder anchored there from a Task in another
                 (select count(*)::int from reminders where id = 'rem_origin_goes') as reminders
         `
     ).toEqual([{ origin: 0, reminders: 0, task: 1 }]);
+});
+
+test('deleting a Project leaves a retired Agent homed there with no home', async () => {
+    const channel = await createTestProject(owner, {
+        agentIds: [],
+        name: 'retirees',
+        serverId,
+    });
+    await harness.sql`INSERT INTO agents
+        (id, server_id, handle, display_name, home_timezone, home_project_id, retired_at)
+        VALUES ('agt_delete_retired', ${serverId}, 'retired-one', 'Retired', 'UTC', ${channel.id},
+            now())`;
+
+    await expect(
+        owner.trpc.chat.deleteChannel.mutate({
+            chatId: channel.id,
+            confirmation: 'retirees',
+            serverId,
+        })
+    ).resolves.toEqual({ chatId: channel.id, serverId });
+
+    expect(
+        await harness.sql`select home_project_id from agents where id = 'agt_delete_retired'`
+    ).toEqual([{ home_project_id: null }]);
 });
 
 async function insertTrigger(id: string, anchorChatId: string, removedAt: Date | null) {

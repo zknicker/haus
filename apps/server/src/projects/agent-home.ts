@@ -29,8 +29,8 @@ export async function setAgentHome(
         if (!agent) {
             throw new AgentConfigDeniedError('That Agent does not exist on this Server.');
         }
-        if (agent.retiredAt) {
-            throw new AgentConfigDeniedError('A retired Agent has no home to move.');
+        if (agent.retiredAt || agent.homeProjectId === null) {
+            throw new AgentConfigDeniedError('A retired Agent has no Project to move.');
         }
         if (agent.homeProjectId !== input.projectId) {
             await moveAgentHome(tx, input);

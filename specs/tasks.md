@@ -57,9 +57,9 @@ they wake an Agent, which decides. There is no Convert to Task.
   the Task from it. A request made in a DM gets a reply there carrying the Task chip.
   `TASK_ORIGIN_DM` is deleted.
 - `haus task start --project <key>` names the Project. Without it the Project is the one the
-  origin Message is in, or the Agent's home Project when the origin is a DM or `#all`, which is
+  origin Message is in, or the Agent's Project when the origin is a DM or `#all`, which is
   no Project.
-- An Agent starts Tasks only in its home Project; any other Project is refused with
+- An Agent starts Tasks only in its Project; any other Project is refused with
   `TASK_PROJECT_NOT_HOME`, which says to @mention that Project's Agent in its channel.
   Generalists, who were exempt, are retired ([projects.md](projects.md#generalists)).
 - An Agent starts a Task when its reply will not finish the work: more steps, more time, or a
@@ -72,7 +72,7 @@ they wake an Agent, which decides. There is no Convert to Task.
 - "New task" asks for a Project, a title, an optional description, and an Agent, and files the
   Task with no origin (`task.create`). The person is its creator.
 - The Agent defaults to the Project's Agent when it has exactly one home Agent. With several or
-  none, the person picks. Any non-retired Agent on the Server may be picked, generalists included.
+  none, the person picks. Any non-retired Agent on the Server may be picked.
 - A filed Task starts `open` and assigned to that Agent. The assignment queues a
   `task_assignment` item exactly as a reassignment does ([Assignment](#assignment)), so the Agent
   picks it up like any assignment. Nothing posts in the Project channel.
@@ -117,7 +117,7 @@ the Task gets no join context quoting it.
   is a quiet row with its state and never reaches their Inbox. There is no attention tier
   ([ADR 0038](../docs/adr/0038-inbox-is-unread-not-attention.md)).
 - Following is human unread. What reaches an Agent is [inbox.md](inbox.md#hearing): an Agent hears
-  every Task of its home Project and every Task it follows anywhere.
+  every Task of its Project and every Task it follows anywhere.
 
 ## Where Tasks show
 
