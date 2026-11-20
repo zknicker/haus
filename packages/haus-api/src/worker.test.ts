@@ -68,9 +68,18 @@ test('the Agent start input carries the brief and the place, never provider inst
         false
     );
     expect(agentWorkerStartInputSchema.safeParse({ ...input, brief: '' }).success).toBe(false);
-    expect(agentWorkerStartInputSchema.safeParse({ ...input, place: 'computer' }).success).toBe(
-        false
+    expect(agentWorkerStartInputSchema.parse({ ...input, place: 'computer:mini' }).place).toBe(
+        'computer:mini'
     );
+    expect(
+        agentWorkerStartInputSchema.parse({
+            ...input,
+            place: { computerId: 'cmp_abcdefghijklmnop', kind: 'computer' },
+        }).place
+    ).toEqual({ computerId: 'cmp_abcdefghijklmnop', kind: 'computer' });
+    expect(
+        agentWorkerStartInputSchema.safeParse({ ...input, place: { kind: 'computer' } }).success
+    ).toBe(false);
 });
 
 test('an observation is bounded and its frames ride the command union', () => {
@@ -85,7 +94,7 @@ test('an observation is bounded and its frames ride the command union', () => {
     ).toBe('completed');
     expect(
         agentCommandSchema.safeParse({
-            place: 'cursor',
+            place: { kind: 'cursor' },
             providerAgentId: 'bc_abc',
             providerRunId: 'run_abc',
             turnId: 'car_1234567890abcdef',
@@ -98,7 +107,8 @@ test('an observation is bounded and its frames ride the command union', () => {
             type: 'worker-reconcile',
             workers: [
                 {
-                    place: 'cursor',
+                    attempt: null,
+                    place: { kind: 'cursor' },
                     providerAgentId: null,
                     providerRunId: null,
                     status: 'queued',
@@ -122,7 +132,7 @@ test('a Worker stall is a bodiless inbox item keyed by its turn', () => {
         ],
         errorCode: null,
         notice: 'stall',
-        place: 'cursor',
+        place: { kind: 'cursor' },
         providerUrl: 'https://cursor.com/agents/bc_abc',
         repository: 'haus/haus',
         turnId: 'car_1234567890abcdef',

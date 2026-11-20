@@ -13,6 +13,7 @@ import {
 } from '../postgres/schema.ts';
 import { readTasks } from '../tasks/task-read.ts';
 import { pullRequestKey, readPullRequestReadings } from './pull-request-readings.ts';
+import { workerPlaceOf } from './worker-row-place.ts';
 
 export async function readWorkerReportAttentions(
     db: HausDatabase,
@@ -24,6 +25,7 @@ export async function readWorkerReportAttentions(
     }
     const rows = await db
         .select({
+            carrierComputerId: workersTable.carrierComputerId,
             outcome: workerTurnsTable.outcome,
             place: workersTable.place,
             taskId: workersTable.taskId,
@@ -79,7 +81,7 @@ export async function readWorkerReportAttentions(
                     citedFiles: [],
                     outcome: row.outcome,
                     person: personId && handle ? { handle, id: personId } : null,
-                    place: row.place,
+                    place: workerPlaceOf(row),
                     pullRequests: (report?.pullRequestUrls ?? []).flatMap((url) => {
                         const key = parseGithubPullRequestUrl(url);
                         const reading = key ? readings.get(pullRequestKey(key)) : undefined;

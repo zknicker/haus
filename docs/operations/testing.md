@@ -288,13 +288,21 @@ replay.
 When changing runner routes, event projection, chat behavior, or delivery
 semantics, verify against deterministic service fixtures, hosted Browser E2E,
 or an opt-in live runtime test when a concrete ambiguity remains. The Computer no longer hosts
-Agent sessions, so it has no Agent driver fixtures or live driver tests.
+Agent sessions. Its Claude Code and Codex drivers serve Workers, and their tests replay recorded
+CLI streams from `apps/computer/src/runtime/<runtime>/fixtures/`.
 
 ## Live Runtime Tests
 
-The runner has an opt-in live test. It spends real quota and never runs in a default lane. It
-drives the Claude Agent SDK with native tools off and Haus tools bridged, on the Claude login the
-runner holds:
+Live tests spend real quota and never run in a default lane. The Computer's driver tests run
+against the real CLI and the host's sign-in:
+
+```sh
+HAUS_RUN_LIVE_CLAUDE_CODE_TEST=1 bun test apps/computer/src/runtime/claude-code
+HAUS_RUN_LIVE_CODEX_DRIVER_TEST=1 bun test apps/computer/src/runtime/codex
+```
+
+The runner has one more live test. It drives the Claude Agent SDK with native tools off and Haus
+tools bridged, on the Claude login the runner holds:
 
 ```sh
 HAUS_RUN_LIVE_RUNNER_CLAUDE_TEST=1 bun test --timeout 120000 apps/runner/src/claude

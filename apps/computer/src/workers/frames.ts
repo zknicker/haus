@@ -5,6 +5,7 @@ import type {
     WorkerTurnStartFrame,
 } from '@haus/api';
 import {
+    workerCloseCommandResponseSchema,
     workerFollowUpDrainAckResponseSchema,
     workerReconcileCommandResponseSchema,
     workerStopCommandResponseSchema,
@@ -26,6 +27,11 @@ export function parseWorkerReconcileCommand(frame: unknown): WorkerReconcileComm
 /** Validates the Server's start of one turn. Fails closed to null. */
 export function parseWorkerTurnStart(frame: unknown): WorkerTurnStartFrame | null {
     const parsed = workerTurnStartResponseSchema.safeParse(frame);
+    return parsed.success ? parsed.data : null;
+}
+
+export function parseWorkerCloseCommand(frame: unknown) {
+    const parsed = workerCloseCommandResponseSchema.safeParse(frame);
     return parsed.success ? parsed.data : null;
 }
 

@@ -1,5 +1,6 @@
 import { type WorkerStopCommand, type WorkerStopRequestedBy, projectWorker } from '@haus/api';
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { inboxWork } from '../agent-delivery/inbox-work.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentInboxTable,
@@ -7,8 +8,15 @@ import {
     workerTurnsTable,
     workersTable,
 } from '../postgres/schema.ts';
+import { decideComputerTurn } from './computer-turn-outcome.ts';
+import { applyComputerOutcome } from './computer-turn-settlement.ts';
 import { WorkerClosedError, WorkerHistoryReadOnlyError, WorkerNotFoundError } from './errors.ts';
+import { revokeTurnCredentials } from './worker-credentials.ts';
+import type { WorkerEffects } from './worker-effects.ts';
+import { syncWorkerLifecycle } from './worker-lifecycle.ts';
+import { workerPlaceOf } from './worker-row-place.ts';
 
+type TurnRow = typeof workerTurnsTable.$inferSelect;
 type WorkerRow = typeof workersTable.$inferSelect;
 
 export async function lockWorker(tx: HausDatabase, serverId: string, workerId: string) {
@@ -51,7 +59,8 @@ export async function stopWorkerTurns(
         )
         .orderBy(asc(workerTurnsTable.createdAt), asc(workerTurnsTable.id));
     if (live.length === 0) {
-        return { frames: [], stoppedTurnIds: [], stopped: false };
+        const none: WorkerEffects = { events: [], frames: [], wakes: [] };
+        return { effects: none, stoppedTurnIds: [], stopped: false };
     }
     const carrierOnline = await isCarrierOnline(tx, worker);
     await tx
@@ -74,14 +83,20 @@ export async function stopWorkerTurns(
     const undispatched = live.filter((turn) => !turn.dispatchedAt).map((turn) => turn.id);
     const dispatched = live.filter((turn) => turn.dispatchedAt);
     await settleUnsentAsStopped(tx, worker, undispatched);
-    const settledNow = carrierOnline ? [] : dispatched.map((turn) => turn.id);
-    await settleStoppedOnServer(tx, worker, settledNow);
+    const settledNow = carrierOnline ? [] : dispatched;
+    const effects = await settleStoppedOnServer(tx, worker, settledNow);
     await tx
         .update(workersTable)
         .set({ updatedAt: sql`now()` })
         .where(and(eq(workersTable.serverId, worker.serverId), eq(workersTable.id, worker.id)));
-    const frames = carrierOnline ? dispatched.map((turn) => workerStopFrame(worker, turn)) : [];
-    return { frames, stoppedTurnIds: [...undispatched, ...settledNow], stopped: true };
+    if (carrierOnline) {
+        effects.frames.push(...dispatched.map((turn) => workerStopFrame(worker, turn)));
+    }
+    return {
+        effects,
+        stoppedTurnIds: [...undispatched, ...settledNow.map((turn) => turn.id)],
+        stopped: true,
+    };
 }
 
 export function workerStopFrame(
@@ -91,7 +106,7 @@ export function workerStopFrame(
     return {
         computerId: worker.carrierComputerId,
         frame: {
-            place: worker.place,
+            place: workerPlaceOf(worker),
             providerAgentId: worker.providerAgentId,
             providerRunId: turn.providerRunId,
             turnId: turn.id,
@@ -105,6 +120,7 @@ async function settleUnsentAsStopped(tx: HausDatabase, worker: WorkerRow, turnId
     if (turnIds.length === 0) {
         return;
     }
+    await revokeTurnCredentials(tx, worker.serverId, turnIds);
     await tx
         .update(workerTurnsTable)
         .set({
@@ -122,26 +138,28 @@ async function settleUnsentAsStopped(tx: HausDatabase, worker: WorkerRow, turnId
     await syncWorkerLifecycle(tx, worker.serverId, worker.id);
 }
 
-export async function syncWorkerLifecycle(tx: HausDatabase, serverId: string, workerId: string) {
-    await tx.execute(sql`
-        update workers set
-            status = newest.status,
-            started_at = newest.started_at,
-            terminal_at = newest.terminal_at
-        from (
-            select status, started_at, terminal_at from worker_turns
-            where server_id = ${serverId} and worker_id = ${workerId}
-            order by created_at desc, id desc
-            limit 1
-        ) as newest
-        where workers.server_id = ${serverId} and workers.id = ${workerId}
-    `);
-}
-
-async function settleStoppedOnServer(tx: HausDatabase, worker: WorkerRow, turnIds: string[]) {
-    if (turnIds.length === 0) {
-        return;
+async function settleStoppedOnServer(tx: HausDatabase, worker: WorkerRow, turns: TurnRow[]) {
+    const effects: WorkerEffects = { events: [], frames: [], wakes: [] };
+    for (const turn of turns.filter((candidate) => candidate.reportDraft)) {
+        const reported = await applyComputerOutcome(tx, inboxWork, {
+            branches: [],
+            decided: decideComputerTurn({
+                detail: null,
+                draft: turn.reportDraft,
+                exit: 'stopped',
+                stopRequested: true,
+            }),
+            turn,
+            worker,
+        });
+        effects.events.push(...reported.events);
+        effects.wakes.push(...reported.wakes);
     }
+    const turnIds = turns.filter((turn) => !turn.reportDraft).map((turn) => turn.id);
+    if (turnIds.length === 0) {
+        return effects;
+    }
+    await revokeTurnCredentials(tx, worker.serverId, turnIds);
     await tx
         .update(workerTurnsTable)
         .set({ outcome: { kind: 'stopped' }, stallCode: null, stallSince: null })
@@ -161,6 +179,7 @@ async function settleStoppedOnServer(tx: HausDatabase, worker: WorkerRow, turnId
                 eq(agentInboxTable.state, 'queued')
             )
         );
+    return effects;
 }
 
 export async function isCarrierOnline(tx: HausDatabase, worker: WorkerRow) {

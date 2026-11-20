@@ -6,6 +6,7 @@ read_when:
   - changing the push after a turn, deletes, renames, or how a machine applies push outcomes
   - changing how instruction composition, MEMORY.md delivery, or rule delivery reads the drive/ folder before the runner
   - retiring or replacing haus files pull and push
+  - changing a Worker's drive/ folder on a Computer, its pull, or its daemon push
 ---
 
 # Drive folder
@@ -18,7 +19,8 @@ turn starts and a push after the turn settles. Nothing runs between turns.
 
 Each Agent keeps its own `drive/` folder in its working directory on its machine
 (`agents/<agent-id>/workspace/drive/`, per [workspace](workspace.md)). Each Worker on a Computer
-keeps its own folder outside its checkout, and the Workers contract (W1) names where. Two writers
+keeps its own folder outside its checkout, at `servers/<serverId>/workers/<worker-id>/drive/`
+([Workers](workers.md#layout)). Two writers
 never share a folder. So every change in a push belongs to one writer, and two turns never edit
 one folder at once.
 
@@ -180,10 +182,30 @@ starts a machine's pull.
 
 ## Workers
 
-A Worker on a Computer pulls when it launches and when each follow-up turn starts, and pushes after
-each turn under its run id. Its revisions name the Worker as author, and its conflicts go to its
-Agent's inbox. A cloud Worker has no folder
-([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md)).
+A Worker on a Computer keeps its own folder, with its bookkeeping in that Worker's
+`runtime/drive.json` and refused files in its `drive-refused/`
+([Workers](workers.md#layout)). The folder's writer is the delegating Agent, so it reads and
+writes exactly what that Agent does. Each revision it pushes names the Worker as author with its
+Task, and its conflicts go to the Agent's inbox as `drive_conflict` naming the Worker.
+
+- **Full pull.** A new Worker folder pulls in full. Seeding it from a copy of another folder on the
+  machine is deferred ([Workers](workers.md#w3-transitional-decisions)).
+- **Pull before launch.** Each turn pulls after its worktree is ready and before the harness
+  starts, with the turn credential, so the Worker's first tool call sees the pulled folder.
+- **Daemon push.** When the harness process ends, the daemon pushes under the turn id with a push
+  credential it mints itself, which never enters the harness environment, then closes the push
+  before it reports the turn ended. A Worker push never closes the Agent's own run push or another
+  Worker's, because open pushes are keyed by source (`drive_pushes.worker_id`).
+- **Push before end.** A push that cannot finish, from a network failure, a 5xx or 401, or a
+  failed mint, leaves the turn `pushing` and sends no end. The Computer keeps the turn and pushes
+  again under the same turn id after 5 seconds, 30 seconds, 2 minutes, then every 10 minutes, and
+  a connect, restart, or `worker-stop` pushes at once. The first push that finishes ends the turn.
+  `worker-close` and shutdown cancel the wait and leave the turn for the next connect or restart. A per-file `refused` outcome is a result, not a
+  failure, and does not hold the end. A refused mint means the turn is no longer this Computer's,
+  so the turn ends without a push. `worker-close` leaves a Worker whose turn is `pushing` in place,
+  and the next `worker-held` round closes it.
+
+A cloud Worker has no folder ([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md)).
 
 ## Regression guards
 

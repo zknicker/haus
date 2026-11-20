@@ -11,6 +11,7 @@ import {
 } from '@haus/api';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable, tasksTable, workerTurnsTable, workersTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
@@ -24,6 +25,12 @@ import type { WorkerEffects } from './worker-effects.ts';
 type RecordedTurnStep = Extract<WorkerTurnStep, { kind: 'recorded' }>;
 type SettledStatus = Exclude<WorkerTurnStatus, 'queued' | 'running'>;
 
+const providerAcceptedStatuses: ReadonlySet<WorkerTurnStatus> = new Set([
+    'running',
+    'pending_input',
+    'completed',
+]);
+
 /**
  * Applies one bounded carrier observation to its turn and Worker. A duplicate,
  * out-of-order, or post-terminal observation is a no-op: the first terminal
@@ -36,7 +43,8 @@ type SettledStatus = Exclude<WorkerTurnStatus, 'queued' | 'running'>;
 export async function applyWorkerObservation(
     db: HausDatabase,
     input: { computerId: string; observation: WorkerObservation; serverId: string },
-    agentDelivery: AgentDelivery
+    agentDelivery: AgentDelivery,
+    storage: ArtifactStorage | null
 ): Promise<WorkerEffects | null> {
     const { observation } = input;
     return await db.transaction(async (tx) => {
@@ -119,6 +127,18 @@ export async function applyWorkerObservation(
                     eq(workersTable.id, observation.workerId)
                 )
             );
+        if (
+            turn.status === 'queued' &&
+            turn.workerMdRevisionId &&
+            providerAcceptedStatuses.has(step.status)
+        ) {
+            await tx
+                .update(workersTable)
+                .set({ workerMdRevisionId: turn.workerMdRevisionId })
+                .where(
+                    and(eq(workersTable.serverId, input.serverId), eq(workersTable.id, worker.id))
+                );
+        }
         const effects: WorkerEffects = { events: [], frames: [], wakes: [] };
         if (step.settled && !settledByHaus) {
             await deleteQueuedStallNotices(tx, input.serverId, observation.turnId);
@@ -140,7 +160,10 @@ export async function applyWorkerObservation(
                 effects.wakes.push(queued);
             }
         }
-        return await withDispatch(tx, input.serverId, { ...effects, workerIds: [worker.id] });
+        return await withDispatch(tx, storage, input.serverId, {
+            ...effects,
+            workerIds: [worker.id],
+        });
     });
 }
 

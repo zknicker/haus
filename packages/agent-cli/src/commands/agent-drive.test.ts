@@ -32,10 +32,8 @@ async function withDrive(run: (client: AgentApiClient, lookups: string[]) => Pro
     });
     try {
         const client = new AgentApiClient({
-            agentId: 'agt_wren',
             serverUrl: `http://127.0.0.1:${server.port}`,
             token: `grta_${'a'.repeat(43)}`,
-            tokenFile: '/tmp/token',
         });
         await run(client, lookups);
     } finally {

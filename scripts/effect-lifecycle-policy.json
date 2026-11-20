@@ -177,12 +177,12 @@
         },
         "apps/computer/src/workers/turn-journal.ts": {
             "disposition": "finite-cleanup",
-            "reason": "Finite journal writes close their file handles and remove only their own temporary file. Exclusive creation records a Worker turn before any provider call and survives process restarts. A finite per-turn write lock serializes acceptance, settlement, late acknowledgements, and drain removal across journal instances; the lock is released before the Promise returns.",
+            "reason": "Exclusive creation closes its file handle and records a Worker turn before any provider call, surviving process restarts. Durable replacement and the per-turn write lock live in durable-json.ts and serialized.ts.",
             "risks": {
                 "abortController": 0,
                 "catchAndIgnore": 0,
-                "finallyBlock": 3,
-                "manualPromise": 1,
+                "finallyBlock": 1,
+                "manualPromise": 0,
                 "timer": 0
             }
         },
@@ -967,6 +967,105 @@
                 "timer": 0
             }
         },
+        "apps/computer/src/host-tools/mcp-server.ts": {
+            "disposition": "external-adapter",
+            "reason": "Loopback MCP adapter: each tools/call owns one cancel controller removed in lexical finally; session close and server stop abort a per-session controller. The Computer owner stops the Bun server.",
+            "risks": {
+                "abortController": 4,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/process-group.ts": {
+            "disposition": "external-adapter",
+            "reason": "Ends a foreign runtime child's whole process group: SIGTERM then SIGKILL grace periods whose timers clear in finally, a bounded liveness poll, and a registry entry held until no member is left; a failed termination resets so Computer shutdown retries it.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 1,
+                "timer": 2
+            }
+        },
+        "apps/computer/src/runtime/handshake-deadline.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "One controller per runtime handshake, aborted by the caller's signal or a timeout; every caller clears the timer and the parent listener in finally.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 1
+            }
+        },
+        "apps/computer/src/runtime/testing/process-group-testing.ts": {
+            "disposition": "test-support",
+            "reason": "A test process registry resolves one promise when its last registered stop is removed.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/warm-pool.ts": {
+            "disposition": "external-adapter",
+            "reason": "Parks foreign runtime processes between turns. Each parked process holds one unref'd idle timer, re-armed while the process holds background work and cleared whenever the entry leaves the pool (claim, evict, exit, close); a process that exits while parked is still closed, and idle or exit close failures go to the daemon logger through onCloseError.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 3
+            }
+        },
+        "apps/computer/src/runtime/json-rpc-connection.ts": {
+            "disposition": "external-adapter",
+            "reason": "One resolver per JSON-RPC request, settled by its response, a local abort, a failed write, or close(). A reply to a peer that already closed is dropped because close() owns and reports that failure.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 1,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/claude-code/claude-compaction.ts": {
+            "disposition": "external-adapter",
+            "reason": "One /compact on a parked foreign claude process: a sink promise settled by its own result or the process exit, raced against one hung-compaction timer cleared in finally, where the sink also detaches. The sink's rejection is pre-observed so a failed write cannot surface it unhandled; the awaited race still reports it.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 1,
+                "finallyBlock": 1,
+                "manualPromise": 2,
+                "timer": 2
+            }
+        },
+        "apps/computer/src/runtime/idle-compaction-scheduler.ts": {
+            "disposition": "external-adapter",
+            "reason": "One unref'd timer per parked Agent session while the Server setting is on, cleared when the entry leaves the warm pool or the setting turns off. A fired compaction is tracked until it settles so the pool can wait for it; its outcome goes to the daemon's report or failed hook, never dropped.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 2
+            }
+        },
+        "apps/computer/src/runtime/claude-code/claude-connection.ts": {
+            "disposition": "external-adapter",
+            "reason": "Each control request to the foreign claude process races its answer against one timeout timer cleared in finally; pending controls are rejected when the process exits.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 2,
+                "timer": 2
+            }
+        },
         "apps/computer/src/runtime/claude-code/claude-install.ts": {
             "disposition": "finite-cleanup",
             "reason": "One awaited pinned-binary install unpacks into a staging directory that finally always removes; concurrent callers share the same install promise.",
@@ -976,6 +1075,193 @@
                 "finallyBlock": 1,
                 "manualPromise": 0,
                 "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/claude-code/claude-process.ts": {
+            "disposition": "external-adapter",
+            "reason": "The foreign claude child's exit promise settles on close, error, or an unref'd post-exit grace timer; its process group is owned by process-group.ts, which stays in the Computer process registry until the group is gone.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 2,
+                "timer": 1
+            }
+        },
+        "apps/computer/src/runtime/claude-code/claude-turn-steers.ts": {
+            "disposition": "external-adapter",
+            "reason": "A turn's steers on the foreign claude process: each acknowledgement Promise settles on Claude Code's queued, started, cancelled, or discarded receipt and is raced against claude-steer-receipt.ts's bounded timeout.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/claude-code/claude-turn.ts": {
+            "disposition": "external-adapter",
+            "reason": "One turn on the foreign claude process: its settle resolver ends with the turn (steer acknowledgements live in claude-turn-steers.ts, the receipt timeout in claude-steer-receipt.ts), and the interrupt's hard-kill timer clears on settle. A kill that fails leaves the turn unsettled for the executor's settle deadline.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 1,
+                "finallyBlock": 1,
+                "manualPromise": 1,
+                "timer": 1
+            }
+        },
+        "apps/computer/src/runtime/claude-code/claude-steer-receipt.ts": {
+            "disposition": "external-adapter",
+            "reason": "Races one written steer's lifecycle receipt from the foreign claude process against a timeout whose timer clears in finally; the receipt promise itself is owned by the turn.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 1,
+                "timer": 2
+            }
+        },
+        "apps/computer/src/runtime/event-queue.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A single-consumer event queue: at most one pending wake resolver, resolved by the next push or by end(), which every Claude Code and Grok Build turn reaches on settlement or its consumer reaches by stopping early.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/claude-code/fixtures/fake-driver.ts": {
+            "disposition": "test-support",
+            "reason": "Test harness for the Claude Code driver over a stand-in CLI; the controller only builds a never-aborted signal for test opens.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/claude-code/fixtures/fixture-replay.ts": {
+            "disposition": "test-support",
+            "reason": "Replays a recorded stream as a fake process; its exit resolver settles when the fixture ends or the test stops it.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/codex/app-server.ts": {
+            "disposition": "external-adapter",
+            "reason": "The host-tool readiness resolver settles on the app-server's MCP status or its exit, and the bounded wait for it clears its timer in finally.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 2,
+                "timer": 2
+            }
+        },
+        "apps/computer/src/runtime/codex/codex-transport.ts": {
+            "disposition": "external-adapter",
+            "reason": "The foreign app-server's exit promise settles on close or spawn error; its whole process group is terminated through process-group.ts, also after the leader exits on its own.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 2,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/codex/codex-driver.ts": {
+            "disposition": "external-adapter",
+            "reason": "Opens one foreign app-server per session; the handshake deadline clears in finally, and a failed open releases the process and its host-tool scope before rethrowing.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/codex/testing/fake-app-server.ts": {
+            "disposition": "test-support",
+            "reason": "In-memory app-server for tests; its exit resolver settles when a test crashes or kills it.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/codex/testing/replay-driver.ts": {
+            "disposition": "test-support",
+            "reason": "Test driver over recorded transports; the controller aborts one replayed step the way the capture script did.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/testing/fake-runtime-driver.ts": {
+            "disposition": "test-support",
+            "reason": "In-memory runtime driver for executor tests; each turn's drain resolver settles when the test consumes or abandons its scripted events.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/codex/testing/replay-transport.ts": {
+            "disposition": "test-support",
+            "reason": "Replays a recorded app-server stream; its resolvers settle as the fixture advances, ends, or the test kills the transport.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 4,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/codex/testing/session-harness.ts": {
+            "disposition": "test-support",
+            "reason": "Test helpers that start fake turns with their own abort controllers and flush queued fake replies with zero-delay timers.",
+            "risks": {
+                "abortController": 2,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 1
+            }
+        },
+        "apps/computer/src/runtime/codex/turn-router.ts": {
+            "disposition": "external-adapter",
+            "reason": "A thread systemError gets one grace timer, replaced by the next, before it ends the run; ending a run is idempotent, so a timer firing after settlement does nothing.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 2
+            }
+        },
+        "apps/computer/src/runtime/codex/turn-run.ts": {
+            "disposition": "external-adapter",
+            "reason": "One Codex turn's state: its idle resolver settles when the run ends, steer-gate waits are bounded by a timer cleared on resolution, and event and turn-id waits wake on every state change including the end.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 4,
+                "timer": 1
             }
         },
         "apps/computer/src/drive/pull.ts": {
@@ -1008,6 +1294,94 @@
                 "catchAndIgnore": 0,
                 "finallyBlock": 1,
                 "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/workers/computer/push-retry.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A failed Worker drive push waits for one scheduled retry at a time on a capped backoff; the release AbortController cancels the pending timer and settles the wait, and a nudge runs it early.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 1
+            }
+        },
+        "apps/computer/src/workers/serialized.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A finite per-key lock serializes Worker journal writes and per-repo git work; each lock releases before its Promise returns and the key is dropped once no successor waits.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/codex/codex-worker-driver.ts": {
+            "disposition": "external-adapter",
+            "reason": "A Worker's Codex app-server is registered with the Computer's process registry and released once, on stop, destroy, or a failed handshake; the handshake deadline is cleared either way.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/workers/computer/turn-launch.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A harness that failed mid-turn is destroyed before the turn ends; a session that already ended is ignored, and the turn still pushes and reports. The turn's AbortController is the one its place aborts on stop.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 1,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/workers/computer/repos.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A first clone lands in a temporary sibling that is removed after the rename into place, whether the clone finished or failed.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/workers/computer/computer-place.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Each Computer-place turn owns one AbortController that a stop, close, or shutdown aborts before it ends the harness session and awaits the turn; a session that already ended is ignored on destroy. A turn whose drive push failed stays owned until its push retry lands or a close or shutdown releases it.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 1,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/workers/durable-json.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A durable JSON write closes its file handle and removes only its own temporary file after the rename, whether or not the write finished.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/workers/computer/computer-place.fixture.ts": {
+            "disposition": "test-support",
+            "reason": "The Computer-place test harness resolves frame waiters as frames arrive and removes its temporary data root and fake Server after each test.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
                 "timer": 0
             }
         }

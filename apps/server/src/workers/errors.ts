@@ -1,4 +1,4 @@
-import type { WorkerPlace } from '@haus/api';
+import { type WorkerPlace, formatWorkerPlace } from '@haus/api';
 
 export class WorkerConflictError extends Error {
     constructor() {
@@ -78,7 +78,7 @@ export class WorkerPlaceRequiredError extends Error {
     constructor(readyPlaces: readonly WorkerPlace[]) {
         super(
             readyPlaces.length > 0
-                ? `Your Computer has no ready default place, so say where the Worker runs with --on. Ready places: ${readyPlaces.join(', ')}.`
+                ? `Your Computer has no ready default place, so say where the Worker runs with --on. Ready places: ${readyPlaces.map(formatWorkerPlace).join(', ')}.`
                 : 'Your Computer has no ready default place, and no place is ready: a Computer must connect Cursor or Claude first.'
         );
         this.name = 'WorkerPlaceRequiredError';
@@ -86,10 +86,19 @@ export class WorkerPlaceRequiredError extends Error {
 }
 
 export class WorkerPlaceUnavailableError extends Error {
-    constructor(place: WorkerPlace) {
+    constructor(place: string) {
         super(
             `No online Computer has ${place} ready. Ask a person to connect it on a Computer, or pick another place.`
         );
         this.name = 'WorkerPlaceUnavailableError';
+    }
+}
+
+export class WorkerOptionCloudError extends Error {
+    constructor(place: string) {
+        super(
+            `--runtime and --model are for Computer places; ${place} runs the Server's cloud model setting. Drop them.`
+        );
+        this.name = 'WorkerOptionCloudError';
     }
 }

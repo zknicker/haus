@@ -1,4 +1,8 @@
-import { type WorkerPlace, cloudAgentProviderReadinessSchema, workerPlaces } from '@haus/api';
+import {
+    type CloudAgentProvider,
+    cloudAgentProviderReadinessSchema,
+    cloudAgentProviders,
+} from '@haus/api';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, computersTable } from '../postgres/schema.ts';
@@ -8,7 +12,9 @@ type Reader = Pick<HausDatabase, 'select'>;
 
 export async function readReadyPlaces(db: Reader, serverId: string) {
     const carriers = await readReadyCarriers(db, serverId);
-    return workerPlaces.filter((place) => carriers.some((carrier) => carrier.places.has(place)));
+    return cloudAgentProviders
+        .filter((place) => carriers.some((carrier) => carrier.places.has(place)))
+        .map((kind) => ({ kind }));
 }
 
 export async function readDefaultPlace(db: Reader, input: { agentId: string; serverId: string }) {
@@ -21,7 +27,7 @@ export async function readDefaultPlace(db: Reader, input: { agentId: string; ser
 
 export async function chooseCarrier(
     db: Reader,
-    input: { agentId: string; place: WorkerPlace; serverId: string }
+    input: { agentId: string; place: CloudAgentProvider; serverId: string }
 ) {
     const carriers = (await readReadyCarriers(db, input.serverId)).filter((carrier) =>
         carrier.places.has(input.place)

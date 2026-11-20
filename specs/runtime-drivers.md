@@ -998,20 +998,24 @@ protocol has no version of its own, since the runner ships with the Server.
 
 ## Workers
 
-Computers keep what Workers import: `workers/` (the Claude Code and Cursor providers), the
-Claude credential and install helpers, `codex-executable`, and process-group liveness. R4d-4
-deleted the Agent halves of the `runtime/claude-code` and `runtime/codex` drivers, with their
-fixtures and tests. A Worker runs a fresh native session in a worktree with that machine's logins
+Computers keep what Workers import: `workers/` (including the Claude Code and Codex Worker
+drivers in `runtime/claude-code/claude-worker-driver.ts` and `runtime/codex/codex-worker-driver.ts`),
+and the shared connection, session, normalizer, launch, install and credential code under
+`runtime/` those drivers build on. R4d-4 deleted the Claude Code Agent driver, the driver factory,
+runtime prewarm and the runtime context. Their warm-pool and idle-compaction types stay because
+`ClaudeConnection` and `CodexSession` still implement them; separating them is a follow-up. A
+Worker runs a fresh native session in a worktree with that machine's logins
 ([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md) decision 7). The Workers
 contract (W1) owns what changes for them: their CLI scope, reports, and drive folder.
 Workers do not use Grok Build in v1, so R4 deletes the Grok Build driver with the Agent runtime
 ([specs/workers.md](workers.md#deferred)).
 
 R4d-4 deleted from Computers what only served Agent sessions: the Agent executor and turn runner,
-`session.json` and resume state, the Agent warm pool, idle compaction, the background-work
+`session.json` and the session store, the idle compaction reporter, the background-work
 reporter, the sub-agent wake, the inbox store, the `haus` wrapper injection and loopback proxy,
-the host-tool MCP server, the Computer's copy of `execute`, prompt composition, and Agent runtime
-and model discovery.
+the Server MCP client, managed-skill seeding, prompt composition, Agent configuration and
+effective state, and the Grok Build driver. The host-tool MCP server and the warm-pool and
+idle-compaction code stay for now, with the shared Claude Code and Codex driver stack above.
 
 Computers keep the invocation handler and ledger, the `drive/` folders, agent-browser and Browser
 settings, reminder scripts, host skill discovery, inventory, updates, and Workers.

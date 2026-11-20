@@ -1,6 +1,7 @@
 import { runAgentCli } from '@haus/agent-cli';
 import { validateMcpExecutor } from './mcp-executor-release.ts';
 import { validateComputerRuntimeAssets } from './runtime/runtime-assets.ts';
+import { runWorkerCli } from './worker-cli/worker-cli.ts';
 
 export async function runInternalCommand(args: string[]): Promise<boolean> {
     switch (args[0]) {
@@ -9,6 +10,9 @@ export async function runInternalCommand(args: string[]): Promise<boolean> {
             return true;
         case '__agent':
             process.exitCode = await runAgentCli(args.slice(1));
+            return true;
+        case '__worker':
+            process.exitCode = await runWorkerCli(args.slice(1));
             return true;
         case '__release-check':
             validateComputerRuntimeAssets();
