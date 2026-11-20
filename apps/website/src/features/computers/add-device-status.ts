@@ -1,6 +1,7 @@
 import type { ComputerInventory } from '@haus/api';
 
 export interface AddedDevice {
+    attachedByCurrentUser: boolean;
     createdAt: string | Date;
     health: 'degraded' | 'healthy' | 'offline' | 'update-required';
     id: string;
@@ -15,12 +16,15 @@ export type AddDeviceStatus =
     | { kind: 'repair'; command: string | null; message: string; title: string };
 
 export function addDeviceStatus(
-    baselineIds: ReadonlySet<string>,
+    baselineIds: ReadonlySet<string> | null,
     devices: readonly AddedDevice[],
     serverSlug: string
 ) {
+    if (!baselineIds) {
+        return { kind: 'waiting' } satisfies AddDeviceStatus;
+    }
     const device = devices
-        .filter((entry) => !baselineIds.has(entry.id))
+        .filter((entry) => entry.attachedByCurrentUser && !baselineIds.has(entry.id))
         .sort((left, right) => time(right.createdAt) - time(left.createdAt))[0];
     if (!device) {
         return { kind: 'waiting' } satisfies AddDeviceStatus;

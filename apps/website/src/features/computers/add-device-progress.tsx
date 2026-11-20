@@ -12,9 +12,25 @@ export function AddDeviceProgress({
     serverSlug: string;
 }) {
     const computers = useComputers(serverId);
-    const [baselineIds] = React.useState(
-        () => new Set((computers.data ?? []).map((computer) => computer.id))
-    );
+    const [baselineIds, setBaselineIds] = React.useState<ReadonlySet<string> | null>(null);
+    const settledIds =
+        computers.data && !computers.isFetching
+            ? computers.data.map((computer) => computer.id).join(',')
+            : null;
+    if (baselineIds === null && settledIds !== null) {
+        setBaselineIds(new Set(settledIds.split(',').filter(Boolean)));
+    }
+    if (computers.error && !computers.data) {
+        return (
+            <Alert status="danger">
+                <Alert.Indicator />
+                <Alert.Content>
+                    <Alert.Title>Devices could not load</Alert.Title>
+                    <Alert.Description>{computers.error.message}</Alert.Description>
+                </Alert.Content>
+            </Alert>
+        );
+    }
     const status = addDeviceStatus(baselineIds, computers.data ?? [], serverSlug);
 
     if (status.kind === 'waiting' || status.kind === 'detecting') {

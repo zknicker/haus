@@ -46,6 +46,16 @@ describe('addDeviceStatus', () => {
         });
     });
 
+    test('waits while the device list has not settled', () => {
+        expect(addDeviceStatus(null, [device({})], 'haus-hq')).toEqual({ kind: 'waiting' });
+    });
+
+    test('ignores a device someone else attached', () => {
+        expect(
+            addDeviceStatus(known, [device({ attachedByCurrentUser: false })], 'haus-hq')
+        ).toEqual({ kind: 'waiting' });
+    });
+
     test('follows the newest new device', () => {
         expect(
             addDeviceStatus(
@@ -62,6 +72,7 @@ describe('addDeviceStatus', () => {
 
 function device(overrides: Partial<AddedDevice>) {
     return {
+        attachedByCurrentUser: true,
         createdAt: '2026-11-20T00:00:00Z',
         health: 'healthy',
         id: 'cmp_new',

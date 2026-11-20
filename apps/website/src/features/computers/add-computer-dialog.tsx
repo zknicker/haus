@@ -33,7 +33,11 @@ export function AddComputerDialog({
                         <div className="flex flex-col gap-4 pt-2">
                             <ComputerSetupCommands serverSlug={serverSlug} />
                             {open ? (
-                                <AddDeviceProgress serverId={serverId} serverSlug={serverSlug} />
+                                <AddDeviceProgress
+                                    key={serverId}
+                                    serverId={serverId}
+                                    serverSlug={serverSlug}
+                                />
                             ) : null}
                         </div>
                     </Modal.Body>
