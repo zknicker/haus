@@ -3,7 +3,9 @@ import { DataGrid, ItemCardGroup } from '@heroui-pro/react';
 import { Button, Dropdown, Label } from '@heroui/react';
 import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../../components/ui/icon.tsx';
+import { useComputers } from '../../../../hooks/servers/use-computers.ts';
 import { useModelConnections } from '../../../../hooks/servers/use-model-connections.ts';
+import { useUsage } from '../../../../hooks/servers/use-usage.ts';
 import { SettingsRowError } from '../../layout/settings-text.tsx';
 import { ConnectDialog } from './connect-dialog.tsx';
 import { connectionColumns, expandColumnId } from './connection-columns.tsx';
@@ -14,6 +16,7 @@ import {
     failedConnectionIds,
     rowChildren,
 } from './connections-table-model.ts';
+import { deviceRows } from './device-usage-rows.ts';
 import { connectionErrorMessage, modelProviderNames } from './model-connection-model.ts';
 import { RenameConnectionDialog } from './rename-connection-dialog.tsx';
 import { useConnectionTableActions } from './use-connection-table-actions.ts';
@@ -26,8 +29,13 @@ export function ModelConnectionsGroup({
     serverId: string;
 }) {
     const connections = useModelConnections(serverId);
+    const usage = useUsage(serverId);
+    const computers = useComputers(serverId);
+    const onDevices = connections.data?.agentLoop === 'computer';
+    const devicesSettled =
+        !onDevices || ((usage.data || usage.error) && (computers.data || computers.error));
 
-    if (!connections.data) {
+    if (!(connections.data && devicesSettled)) {
         return connections.error ? (
             <SettingsRowError>{connections.error.message}</SettingsRowError>
         ) : (
@@ -36,13 +44,24 @@ export function ModelConnectionsGroup({
             </div>
         );
     }
+    const devicesError = onDevices ? (usage.error ?? computers.error) : null;
     return (
-        <ModelConnectionsTable
-            connections={connections.data.connections}
-            isOwner={isOwner}
-            rows={connectionRows(connections.data.connections)}
-            serverId={serverId}
-        />
+        <>
+            <ModelConnectionsTable
+                connections={connections.data.connections}
+                isOwner={isOwner}
+                rows={[
+                    ...connectionRows(connections.data.connections),
+                    ...(onDevices
+                        ? deviceRows(computers.data ?? [], usage.data?.computers ?? [])
+                        : []),
+                ]}
+                serverId={serverId}
+            />
+            <SettingsRowError>
+                {devicesError ? `Device usage unavailable: ${devicesError.message}` : null}
+            </SettingsRowError>
+        </>
     );
 }
 

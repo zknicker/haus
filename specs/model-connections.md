@@ -124,6 +124,9 @@ connection, or with one the runner doesn't hold, fails before any model call as 
   expand chevron. Its details hold how it signed in, the failure detail, and the Web search switch.
   A failed connection opens on its details. Members see the switches but cannot change them, and
   get no menu or +.
+- While the Server's Captains run on Devices (`agentLoop: 'computer'`), the table also lists each
+  Device's detected runtime logins, labeled by runtime and Device, with the plan windows that
+  Device reports. They only read: no switch, menu or details.
 - Reconnect replaces the credential in place: `modelConnections.replaceCredential` for a pasted
   setup-token or API key, and a sign-in with `replaceConnectionId` for ChatGPT and SuperGrok. The
   connection keeps its id, label, order, web search switch and every Agent's choice of it. Its
