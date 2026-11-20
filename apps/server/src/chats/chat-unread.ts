@@ -9,15 +9,6 @@ export function listedChats(userId: string, archive: ChatListArchive): SQL {
         ${chatsTable.kind} in ('channel', 'dm')
         and ${chatsTable.deletedAt} is null
         ${archiveFilter(archive)}
-        and exists (
-            select 1
-            from server_onboarding onboarding
-            where onboarding.server_id = ${chatsTable.serverId}
-                and (
-                    ${chatsTable.id} <> onboarding.channel_id
-                    or onboarding.phase = 'complete'
-                )
-        )
         and (
             ${chatsTable.kind} <> 'dm'
             or ${chatsTable.dmAgentId} is null

@@ -499,9 +499,6 @@ export class AgentDelivery {
                 });
                 continue;
             }
-            if (agent.factoryKind === 'cove' && !agent.factoryAppliedAt) {
-                continue;
-            }
             const state = await store.readDeliveryState(this.db, agent.agentId);
             const activeConfigurationChanged =
                 Boolean(state?.activeRunId) &&
@@ -610,7 +607,7 @@ export class AgentDelivery {
             runtimeId: input.runtimeId,
             sessionGeneration: config.sessionGeneration,
             sessionResetKind: config.sessionResetKind,
-            factoryKind: config.factoryKind,
+            factoryKind: 'ordinary',
             type: 'agent-configure',
         });
     }

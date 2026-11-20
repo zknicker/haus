@@ -7,7 +7,7 @@ const fixture = agentCreationFixture();
 test('a persisted review command survives concurrency, Server restart, correction, and opt-out', async () => {
     await fixture.harness.sql`
         insert into channel_agent_participants (server_id,chat_id,agent_id)
-        values (${fixture.serverId},${fixture.channelId},${fixture.coveAgentId})
+        values (${fixture.serverId},${fixture.channelId},${fixture.peerAgentId})
         on conflict do nothing
     `;
     const anchor = await fixture.owner.trpc.chat.send.mutate({
@@ -17,7 +17,7 @@ test('a persisted review command survives concurrency, Server restart, correctio
         serverId: fixture.serverId,
     });
     const savedInput = {
-        commandId: `cove-review-${anchor.message.id}-1`,
+        commandId: `review-${anchor.message.id}-1`,
         fireAt: new Date(Date.now() + 86_400_000).toISOString(),
         messageId: anchor.message.id,
         repeat: 'every:1d',
@@ -26,7 +26,7 @@ test('a persisted review command survives concurrency, Server restart, correctio
     };
     const runner = await fixture.mintRunner(
         'run_review_schedule',
-        fixture.coveAgentId,
+        fixture.peerAgentId,
         undefined,
         false
     );
@@ -40,7 +40,7 @@ test('a persisted review command survives concurrency, Server restart, correctio
     await fixture.harness.restart();
     const resumed = await fixture.mintRunner(
         'run_review_resume',
-        fixture.coveAgentId,
+        fixture.peerAgentId,
         undefined,
         false
     );
@@ -57,12 +57,11 @@ test('a persisted review command survives concurrency, Server restart, correctio
         expectedVersion: corrected.reminder.version,
         id,
     });
-    // Replaying a saved creation receipt is never permission to resurrect its canceled row.
     const replay = await mutation(resumed.token, 'schedule', savedInput);
     expect(replay.reminder).toMatchObject({ status: 'canceled', repeat: 'every:7d' });
     const rows = await fixture.harness.sql`
         select id,status,repeat from reminders
-        where server_id=${fixture.serverId} and owner_agent_id=${fixture.coveAgentId}
+        where server_id=${fixture.serverId} and owner_agent_id=${fixture.peerAgentId}
     `;
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ id, status: 'canceled', repeat: 'every:7d' });
@@ -92,7 +91,7 @@ test('explicit recurrence timezone is durable, DST-aware, validated and part of 
     refreshedOwner.close();
     const runner = await fixture.mintRunner(
         'run_review_zone',
-        fixture.coveAgentId,
+        fixture.peerAgentId,
         undefined,
         false
     );
@@ -107,7 +106,7 @@ test('explicit recurrence timezone is durable, DST-aware, validated and part of 
     await fixture.harness.restart();
     const resumed = await fixture.mintRunner(
         'run_review_zone_resume',
-        fixture.coveAgentId,
+        fixture.peerAgentId,
         undefined,
         false
     );
@@ -127,7 +126,7 @@ test('explicit recurrence timezone is durable, DST-aware, validated and part of 
         ).toISOString()
     ).toBe('2026-11-06T14:00:00.000Z');
     const [author] = await fixture.harness
-        .sql`select home_timezone from agents where id=${fixture.coveAgentId}`;
+        .sql`select home_timezone from agents where id=${fixture.peerAgentId}`;
     expect(author.home_timezone).toBe('UTC');
     for (const [commandId, timezone, code] of [
         [body.commandId, 'UTC', AGENT_IDEMPOTENCY_KEY_REUSED],
@@ -155,15 +154,14 @@ test('explicit recurrence timezone is durable, DST-aware, validated and part of 
 test('timezone capability discovery does not inspect inaccessible historical reminder anchors', async () => {
     const runner = await fixture.mintRunner(
         'run_review_capabilities',
-        fixture.coveAgentId,
+        fixture.peerAgentId,
         undefined,
         false
     );
     await fixture.harness
-        .sql`delete from channel_agent_participants where chat_id=${fixture.channelId} and agent_id=${fixture.coveAgentId}`;
+        .sql`delete from channel_agent_participants where chat_id=${fixture.channelId} and agent_id=${fixture.peerAgentId}`;
     try {
         const options = { headers: { authorization: `Bearer ${runner.token}` } };
-        // One inaccessible reminder never fails the list; a still-scheduled one stays, marked.
         const list = await fetch(new URL('/api/agent/reminders', fixture.harness.url), options);
         expect(list.status).toBe(200);
         expect(await list.json()).toMatchObject({
@@ -177,6 +175,6 @@ test('timezone capability discovery does not inspect inaccessible historical rem
         expect(await capabilities.json()).toEqual({ supportsReminderTimezone: true });
     } finally {
         await fixture.harness
-            .sql`insert into channel_agent_participants(server_id,chat_id,agent_id) values (${fixture.serverId},${fixture.channelId},${fixture.coveAgentId}) on conflict do nothing`;
+            .sql`insert into channel_agent_participants(server_id,chat_id,agent_id) values (${fixture.serverId},${fixture.channelId},${fixture.peerAgentId}) on conflict do nothing`;
     }
 });

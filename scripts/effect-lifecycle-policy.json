@@ -738,10 +738,10 @@
         },
         "apps/server/src/computers/socket.ts": {
             "disposition": "external-adapter",
-            "reason": "ServerPostCommitWork owns reconnect work; the remaining Promise only adapts WebSocketServer close callbacks. Best-effort attach sends (pending Cove application, Server runtime settings) ignore a failure because the next attach resends them.",
+            "reason": "ServerPostCommitWork owns reconnect work; the remaining Promise only adapts WebSocketServer close callbacks. Best-effort attach sends (Server runtime settings) ignore a failure because the next attach resends them.",
             "risks": {
                 "abortController": 0,
-                "catchAndIgnore": 3,
+                "catchAndIgnore": 2,
                 "finallyBlock": 0,
                 "manualPromise": 0,
                 "timer": 2

@@ -1,24 +1,18 @@
 import type { Locator } from '@playwright/test';
 import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
-import {
-    assertOpaqueId,
-    completeOnboarding,
-    createClient,
-    openChannel,
-} from '../support/server.ts';
+import { assertOpaqueId, createClient, openChannel } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 const anchorText = 'Drop target anchor message';
 
 test.beforeAll(async () => {
-    const { accessToken, databaseUrl } = await createAppTestFixture();
+    const { accessToken } = await createAppTestFixture();
     const owner = createClient(accessToken);
     await owner.server.create.mutate({ displayName: 'Composer Drops', slug: 'composer-drops' });
     const server = await owner.server.bySlug.query({ slug: 'composer-drops' });
     const allChatId = server.channels.find((channel) => channel.name === 'haus')?.id;
     assertOpaqueId(server.id);
     assertOpaqueId(allChatId);
-    completeOnboarding(databaseUrl, server.id);
     await owner.chat.send.mutate({
         chatId: allChatId,
         content: anchorText,

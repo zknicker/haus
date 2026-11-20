@@ -57,14 +57,13 @@ test('an unknown channel or Agent is an invalid target and changes nothing', asy
     expect(await readChannelAgentHandles(fixture.channelId)).not.toContain('nobody');
 });
 
-test('Cove’s channel membership stays product-owned', async () => {
+test('a former Cove joins a channel like any Agent', async () => {
     const runner = await fixture.mintRunner('run_channel_add_cove');
 
-    const refused = await addToChannel(runner, { agent: '@cove', target: '#product' });
+    const added = await addToChannel(runner, { agent: '@cove', target: '#product' });
 
-    expect(refused.status).toBe(403);
-    expect(refused.body.code).toBe('AGENT_IDENTITY_PROTECTED');
-    expect(await readChannelAgentHandles(fixture.channelId)).not.toContain('cove');
+    expect(added.status).toBe(200);
+    expect(await readChannelAgentHandles(fixture.channelId)).toContain('cove');
 });
 
 test('the route needs a runner credential', async () => {

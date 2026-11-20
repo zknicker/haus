@@ -9,7 +9,7 @@ export function createAgentHandle(name: string, agents: readonly Pick<Agent, 'ha
             .replace(/^-+|-+$/gu, '')
             .slice(0, 31) || 'agent';
     const base = normalized.length === 1 ? `${normalized}-agent` : normalized;
-    const taken = new Set(['cove', ...agents.map((agent) => agent.handle)]);
+    const taken = new Set(agents.map((agent) => agent.handle));
 
     if (!taken.has(base)) {
         return base;

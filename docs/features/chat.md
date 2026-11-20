@@ -328,9 +328,9 @@ and [Agent Inbox](../../specs/inbox.md).
   from a Task in another Project), Triggers anchored in it (with their fire
   history), delivery rows, search state, attachment metadata, and attachment
   bytes. The committed deletion is the outcome: a failed cleanup is retried by
-  the Server's startup sweep, never reported as a failed delete. The
-  onboarding channel (`#onboarding-owner`) can be archived but not deleted,
-  because the durable onboarding record names it. `#all`, DMs, and Tasks
+  the Server's startup sweep, never reported as a failed delete. An existing
+  `#onboarding-owner` from the retired onboarding flow is an ordinary channel
+  and archives or deletes like any other. `#all`, DMs, and Tasks
   have no independent archive/delete action. New workspaces
   start with no user channels. Each active Agent has one implicit sidebar DM
   per human Server member and Agents address those pairs by the human's Server

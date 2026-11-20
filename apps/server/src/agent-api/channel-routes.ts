@@ -5,7 +5,6 @@ import { findLiveChannel } from '../chats/channel-agent-membership.ts';
 import { prepareLifecycleEvent } from '../chats/lifecycle-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { publishRealtime } from '../realtime/topic.ts';
-import { AgentIdentityProtectedError } from '../server-agents/errors.ts';
 import { changeAgentChannelMute } from './attention.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
 import { addAgentToChannel } from './channel-membership.ts';
@@ -60,9 +59,6 @@ export function registerAgentChannelRoutes(app: FastifyInstance, options: { db: 
             }
             return receipt;
         } catch (cause) {
-            if (cause instanceof AgentIdentityProtectedError) {
-                return sendAgentApiError(reply, 403, 'AGENT_IDENTITY_PROTECTED', cause.message);
-            }
             return sendAgentReadError(reply, cause);
         }
     });

@@ -1,7 +1,6 @@
 import { Description, Label, ListBox, Select } from '@heroui/react';
 import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { AcceptInvitationPage } from '../../routes/app/accept-invitation-page.tsx';
-import { CoveOnboardingRoute } from '../onboarding/cove-onboarding-route.tsx';
 import {
     activationPreviewScenes,
     activationScenePath,
@@ -12,7 +11,7 @@ import { ActivationPreviewServer } from './activation-preview-server.tsx';
 
 /**
  * Design-iteration preview for every activation surface: sign-in, Server
- * choice and creation, invitations, Computer approval, and Cove onboarding.
+ * choice and creation, invitations, and Computer approval.
  * Each scene is the real component fed by fixtures; the URL selects the scene.
  */
 export function ActivationPreviewRoute() {
@@ -22,7 +21,6 @@ export function ActivationPreviewRoute() {
             <Routes>
                 <Route element={<SceneRedirect />} index />
                 <Route element={<AcceptInvitationPage />} path="invite/:token" />
-                <Route element={<CoveOnboardingRoute />} path="onboarding/:slug" />
                 <Route element={<RenderedScene />} path=":sceneId" />
             </Routes>
         </ActivationPreviewServer>

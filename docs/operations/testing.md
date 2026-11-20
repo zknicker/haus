@@ -267,31 +267,16 @@ fixtures or public runner contracts; no model runs. The membership spec still
 drives the real invitation round trip across two test identities. Actual
 App-to-Computer-to-model behavior belongs to the agent-test lanes below.
 
-### Fresh-Server onboarding proof
+### Fresh-Server proof
 
-`apps/website/e2e/tests/onboarding-entry.spec.ts` covers the short opening path without a Computer:
-neutral delayed loading with a persistent mark and uninterrupted animation clock, reduced-motion
-behavior, owner reload and Server switching, invitation
-acceptance by a member, member/admin gating, and automatic entry at the retained destination when
-setup completes. It also checks that a completed Server with no Computer remains accessible.
-
-`apps/website/e2e/tests/servers.spec.ts` is the one browser tracer for a fresh
-Server. It drives the real App, hosted Server, throwaway PostgreSQL and AppSession
-fixtures, deterministic Computer protocol, and public Agent runner contract.
-It proves the route gate, actionable inventory/application repair, reload and
-Computer reconnect, replay convergence, immediate unlock before the delayed
-greeting, ordinary failed-turn repair, exact hosted Cove identity/avatar, one
-canonical Agent-authored greeting, and permanent post-onboarding Cove deletion.
-It makes no provider calls.
-
-The browser cannot observe Computer-local files and must not pretend to.
-Pair that tracer with `packages/agent-workspace/src/starter-kit.test.ts` and
-`cove-starter-kit.test.ts` for the minimal ordinary workspace and exact Cove
-four-file/12-summary seed under root `MEMORY.md` and `notes/`,
-`apps/computer/src/agent-configuration.test.ts` and
-`launch.test.ts` for durable application plus Agent-kind reset, and
-`apps/server/test/haus-agent-manual.test.ts` for authenticated Manual overview,
-full-card access, and audit metadata.
+A new Server starts empty ([ADR 0059](../adr/0059-haus-starts-empty-without-cove.md)).
+`apps/server/test/haus-server-create.test.ts` proves it has its first Owner, the Haus project and
+nothing else: zero Agents, zero Computers, and no onboarding field on `server.bySlug`.
+`apps/website/e2e/tests/servers.spec.ts` creates a Server in the real App and proves it opens
+straight into the Server with no setup gate, and that a non-member cannot open it.
+`apps/server/test/haus-cove-removal-migration.test.ts` proves migration 0138 keeps an existing Cove
+as an ordinary editable Agent, keeps `#onboarding-owner` with its members, settles unsettled
+`onboarding` inbox items, and keeps past onboarding turn causes.
 
 ## Execution Runtime Driver Contracts
 

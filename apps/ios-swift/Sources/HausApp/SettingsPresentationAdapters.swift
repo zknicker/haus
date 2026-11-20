@@ -116,7 +116,6 @@ extension HausStore {
                     status: availability(for: agent).rawValue.capitalized,
                     avatarURL: resolvedAvatarURL(agent.avatarURL),
                     presence: settingsPresence(availability(for: agent)),
-                    canGenerateAvatar: agent.factoryKind == .ordinary,
                     runtimeConfiguration: runtimeConfiguration
                 )
             },
