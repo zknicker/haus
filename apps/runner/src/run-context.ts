@@ -4,7 +4,7 @@ import type {
     AgentStartCommand,
     InvocationOutcome,
     RunnerUpFrame,
-    ServerRuntimeSettingsCommand,
+    RunnerRuntimeSettingsFrame,
 } from '@haus/api';
 
 export interface RunAuthority {
@@ -90,6 +90,7 @@ export interface RunStart {
     readonly authority: RunAuthority;
     readonly modelConnectionId: string | null;
     readonly reasoningEffort: AgentReasoningEffort;
+    readonly serverId: string;
     readonly sessionResetKind: 'full' | 'session';
     readonly start: AgentStartCommand;
     readonly tools: RunTools;
@@ -100,7 +101,7 @@ export interface TurnHost {
     notice(notice: AgentNoticeCommand): Promise<void>;
     stop(agentId: string, runId: string): Promise<void>;
     resetAgent(agentId: string, reset: AgentReset): Promise<void>;
-    runtimeSettings(settings: ServerRuntimeSettingsCommand): void;
+    runtimeSettings(settings: RunnerRuntimeSettingsFrame): void;
 }
 
 export type AgentReset =

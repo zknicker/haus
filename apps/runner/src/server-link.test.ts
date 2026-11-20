@@ -210,11 +210,11 @@ describe('runner server link', () => {
         const server = serverStandIn();
         const runner = await attachRunner(server);
         await server.frame('runner-inventory');
-        server.send({ idleCompaction: true, type: 'server-runtime-settings' });
-        server.send({ idleCompaction: false, type: 'server-runtime-settings' });
+        server.send({ idleCompactionServerIds: ['srv_1'], type: 'runner-runtime-settings' });
+        server.send({ idleCompactionServerIds: [], type: 'runner-runtime-settings' });
         server.start();
         await runner.host.started;
-        expect(runner.host.settings).toEqual([true, false]);
+        expect(runner.host.settings).toEqual([['srv_1'], []]);
 
         const report = {
             agentId: 'agt_1',

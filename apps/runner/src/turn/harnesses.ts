@@ -1,5 +1,6 @@
 import { createClaudeHarness } from '../claude/claude-driver.ts';
 import { createIdleCompactionReporter } from '../claude/idle-compaction-reporter.ts';
+import type { IdleCompactionGate } from '../claude/idle-compaction-scheduler.ts';
 import type { ConnectionBook } from '../model-connections/connection-book.ts';
 import { createPiHarness } from '../pi/pi-driver.ts';
 import { connectionModels, piProviderFor } from '../pi/pi-models.ts';
@@ -40,8 +41,8 @@ export function createHarnesses(input: {
             return pi.close();
         },
         factory,
-        setIdleCompaction(enabled: boolean) {
-            claude.setIdleCompaction(enabled);
+        setIdleCompaction(gate: IdleCompactionGate) {
+            claude.setIdleCompaction(gate);
         },
         release(agentId: string) {
             return Promise.all([claude.release(agentId), pi.release(agentId)]);

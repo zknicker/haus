@@ -40,10 +40,12 @@ const unrefClock: InvocationClock = {
     },
 };
 
+export type IdleCompactionGate = boolean | ((agentId: string) => boolean);
+
 export class IdleCompactionScheduler<Process extends IdleCompactable> {
     private readonly armed = new Map<string, Armed<Process>>();
     private readonly clock: InvocationClock;
-    private enabled = false;
+    private allows: (agentId: string) => boolean = () => false;
     private readonly now: () => number;
     private readonly running = new Map<string, Promise<void>>();
 
@@ -55,20 +57,17 @@ export class IdleCompactionScheduler<Process extends IdleCompactable> {
         this.now = options.now ?? Date.now;
     }
 
-    get isEnabled() {
-        return this.enabled;
-    }
-
-    setEnabled(enabled: boolean, parked: Iterable<readonly [string, Process, number]>) {
-        this.enabled = enabled;
-        if (!enabled) {
-            for (const agentId of [...this.armed.keys()]) {
+    setGate(gate: IdleCompactionGate, parked: Iterable<readonly [string, Process, number]>) {
+        this.allows = typeof gate === 'boolean' ? () => gate : gate;
+        for (const agentId of [...this.armed.keys()]) {
+            if (!this.allows(agentId)) {
                 this.disarm(agentId);
             }
-            return;
         }
         for (const [agentId, process, closesAt] of parked) {
-            this.arm(agentId, process, closesAt);
+            if (this.allows(agentId) && !this.armed.has(agentId)) {
+                this.arm(agentId, process, closesAt);
+            }
         }
     }
 
@@ -83,7 +82,7 @@ export class IdleCompactionScheduler<Process extends IdleCompactable> {
             });
             return;
         }
-        if (!this.enabled) {
+        if (!this.allows(agentId)) {
             return;
         }
         const snapshot = process.idleCompactionSnapshot();
@@ -123,7 +122,7 @@ export class IdleCompactionScheduler<Process extends IdleCompactable> {
             this.armed.delete(agentId);
         }
         if (
-            !(this.enabled && this.parked.isParked(agentId, process) && process.alive) ||
+            !(this.allows(agentId) && this.parked.isParked(agentId, process) && process.alive) ||
             this.running.has(agentId)
         ) {
             return;

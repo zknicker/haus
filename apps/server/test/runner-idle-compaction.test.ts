@@ -28,10 +28,10 @@ test('every runner attach hears the stored setting, and every change reaches the
     const first = await attachRunner();
     try {
         await settingsCount(first, 1);
-        expect(settings(first)).toEqual([false]);
+        expect(settings(first)).toEqual([[]]);
         await setting(true);
         await settingsCount(first, 2);
-        expect(settings(first)).toEqual([false, true]);
+        expect(settings(first)).toEqual([[], [setup.serverId]]);
     } finally {
         first.close();
         await first.closed;
@@ -39,10 +39,10 @@ test('every runner attach hears the stored setting, and every change reaches the
     const second = await attachRunner();
     try {
         await settingsCount(second, 1);
-        expect(settings(second)).toEqual([true]);
+        expect(settings(second)).toEqual([[setup.serverId]]);
         await setting(false);
         await settingsCount(second, 2);
-        expect(settings(second)).toEqual([true, false]);
+        expect(settings(second)).toEqual([[setup.serverId], []]);
     } finally {
         second.close();
         await second.closed;
@@ -99,6 +99,28 @@ test('a runner idle compaction is the Agent’s completed turn, counted once in 
     }
 });
 
+test('two Servers that disagree: the runner hears only the Server that turned idle compaction on', async () => {
+    const other = (
+        await setup.owner.trpc.server.create.mutate({ displayName: 'Other', slug: 'idle-other' })
+    ).id;
+    await setup.owner.trpc.server.setIdleCompaction.mutate({
+        idleCompaction: true,
+        serverId: other,
+    });
+    await setup.owner.trpc.server.setIdleCompaction.mutate({
+        idleCompaction: false,
+        serverId: setup.serverId,
+    });
+    const runner = await attachRunner();
+    try {
+        await settingsCount(runner, 1);
+        expect(settings(runner).at(-1)).toEqual([other]);
+    } finally {
+        runner.close();
+        await runner.closed;
+    }
+});
+
 async function attachRunner() {
     const runner: RunnerClient = connectRunner(setup.harness, testRunnerToken);
     await runner.next(frameOfType('runner-hello-accepted'));
@@ -107,8 +129,8 @@ async function attachRunner() {
 
 function settings(runner: RunnerClient) {
     return runner.frames
-        .filter((frame) => frame.type === 'server-runtime-settings')
-        .map((frame) => frame.idleCompaction);
+        .filter((frame) => frame.type === 'runner-runtime-settings')
+        .map((frame) => frame.idleCompactionServerIds);
 }
 
 function settingsCount(runner: RunnerClient, count: number) {

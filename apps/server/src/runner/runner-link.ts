@@ -1,8 +1,4 @@
-import type {
-    RunnerDownFrame,
-    RunnerInventoryFrame,
-    ServerRuntimeSettingsCommand,
-} from '@haus/api';
+import type { RunnerDownFrame, RunnerInventoryFrame, RunnerRuntimeSettingsFrame } from '@haus/api';
 
 export interface RunnerAttachment {
     close(code: number, reason: string): void;
@@ -43,7 +39,7 @@ export class RunnerLink {
         this.reportedInventory = frame;
     }
 
-    sendRuntimeSettings(read: () => Promise<ServerRuntimeSettingsCommand>) {
+    sendRuntimeSettings(read: () => Promise<RunnerRuntimeSettingsFrame>) {
         const run = this.settingsSends.then(async () => {
             this.send(await read());
         });

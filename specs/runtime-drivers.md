@@ -299,17 +299,18 @@ next turn carries the notice again. A notice the runner could not read is left f
 Idle compaction moves to the runner's Claude Agent SDK harness with every rule unchanged: the
 gate, arming at 90 percent of the one-hour cache, the skips, `/compact` on the parked session,
 the races, the spend reading, and the `agent-idle-compaction` record. The Server sends
-`server-runtime-settings` to the runner instead of to Computers. Pi Durable has no idle
+`runner-runtime-settings` to the runner instead of `server-runtime-settings` to Computers. Pi Durable has no idle
 compaction, and the setting has no effect on its Agents.
 
 What the runner does:
 
-- **Gate.** The runner holds `idleCompaction` in memory, off until a `server-runtime-settings`
-  frame says otherwise. The Server sends the stored setting on every runner attach, on or off,
+- **Gate.** One runner serves every Server of a deployment, so the setting is per Server. The
+  `runner-runtime-settings` frame lists the live Servers with idle compaction on, and every
+  `runner-start` names its Agent's Server. An Agent compacts only while its own Server is in the
+  list; nothing compacts until the first frame. The Server sends the list on every runner attach
   and on every change, in order, so an attach read that began before a change can never land
-  after it. One runner serves every Server and a start names no Server, so the frame is on while
-  any live Server has the setting on. Turning it on arms every parked session, and turning it off
-  cancels every armed timer.
+  after it. A change arms the parked sessions of Agents whose Server turned it on and cancels the
+  timers of Agents whose Server turned it off.
 - **Arming.** When a Claude session parks after a turn, the warm pool arms one timer per Agent at
   90 percent of the way from the last main request to the end of the one-hour prompt cache, 54
   minutes. Nothing is armed when the setting is off, before the session's first request, when its

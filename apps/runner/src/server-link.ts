@@ -93,7 +93,7 @@ export function openServerLink(input: {
                 return resetAgent(frame.agentId, { scope: 'retire' });
             case 'agent-execution-journal-ack':
                 return;
-            case 'server-runtime-settings':
+            case 'runner-runtime-settings':
                 return input.turnHost.runtimeSettings(frame);
             case 'runner-model-connections':
                 return void input.book.replace(frame.connections);
@@ -112,6 +112,7 @@ export function openServerLink(input: {
         modelConnectionId,
         reasoningEffort,
         runCredential,
+        serverId,
         sessionResetKind,
         start,
     }: RunnerStartFrame) => {
@@ -144,6 +145,7 @@ export function openServerLink(input: {
                 authority,
                 modelConnectionId,
                 reasoningEffort: reasoningEffort ?? 'default',
+                serverId,
                 sessionResetKind,
                 start,
                 tools,

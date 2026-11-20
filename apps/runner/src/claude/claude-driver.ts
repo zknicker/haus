@@ -16,7 +16,7 @@ import {
 } from './claude-launch.ts';
 import { ClaudeTurn } from './claude-turn.ts';
 import { CompactingPool } from './compacting-pool.ts';
-import type { IdleCompactionHooks } from './idle-compaction-scheduler.ts';
+import type { IdleCompactionGate, IdleCompactionHooks } from './idle-compaction-scheduler.ts';
 import { type IdleCompactionOwner, idleCompactionMinTokens } from './idle-compaction.ts';
 
 const expiryIntervalMs = 60_000;
@@ -118,8 +118,8 @@ export function createClaudeHarness(options: {
         },
         driver,
         factory,
-        setIdleCompaction(enabled: boolean) {
-            pool.setIdleCompaction(enabled);
+        setIdleCompaction(gate: IdleCompactionGate) {
+            pool.setIdleCompaction(gate);
         },
         get warm() {
             return pool.size;

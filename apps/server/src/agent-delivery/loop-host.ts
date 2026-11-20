@@ -126,6 +126,7 @@ export class AgentLoopRoute {
                 ...(reasoningEffort ? { reasoningEffort } : {}),
                 modelConnectionId,
                 runCredential,
+                serverId: plan.serverId,
                 sessionResetKind: agent.sessionResetKind,
                 start,
                 type: 'runner-start',

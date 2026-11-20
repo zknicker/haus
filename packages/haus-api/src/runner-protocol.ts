@@ -30,7 +30,6 @@ import {
     runnerModelConnectionDownFrameSchemas,
     runnerModelConnectionUpFrameSchemas,
 } from './model-connections.ts';
-import { serverRuntimeSettingsCommandSchema } from './server-commands.ts';
 
 export const runnerSocketPath = '/runner/attachment';
 
@@ -49,6 +48,8 @@ export const runnerStartFrameSchema = z
         /** The connection the Server chose for this run; null when the Agent's provider has none. */
         modelConnectionId: idSchema.nullable(),
         runCredential: runnerTokenSchema,
+        /** The Server the Agent belongs to; one runner serves every Server of a deployment. */
+        serverId: idSchema,
         /** How the Agent's session last reset, applied once when the runner first sees its generation. */
         sessionResetKind: z.enum(['full', 'session']),
         start: agentStartCommandSchema,
@@ -57,6 +58,16 @@ export const runnerStartFrameSchema = z
     .strict();
 
 export type RunnerStartFrame = z.infer<typeof runnerStartFrameSchema>;
+
+/** The Servers whose Agents may idle-compact; each Agent follows its own Server. */
+export const runnerRuntimeSettingsFrameSchema = z
+    .object({
+        idleCompactionServerIds: z.array(idSchema).max(10_000),
+        type: z.literal('runner-runtime-settings'),
+    })
+    .strict();
+
+export type RunnerRuntimeSettingsFrame = z.infer<typeof runnerRuntimeSettingsFrameSchema>;
 
 export const dispatchKeySchema = z
     .object({
@@ -121,7 +132,7 @@ export const runnerDownFrameSchema = z.union([
     agentRetireCommandSchema,
     agentExecutionJournalAckSchema,
     invocationResultFrameSchema,
-    serverRuntimeSettingsCommandSchema,
+    runnerRuntimeSettingsFrameSchema,
     ...runnerModelConnectionDownFrameSchemas,
 ]);
 

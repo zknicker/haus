@@ -1,5 +1,6 @@
 import { type WarmIdentity, WarmPool } from '../turn/warm-pool.ts';
 import {
+    type IdleCompactionGate,
     type IdleCompactionHooks,
     type IdleCompactionOptions,
     IdleCompactionScheduler,
@@ -29,8 +30,8 @@ export class CompactingPool<Process extends IdleCompactable> {
         return this.pool.size;
     }
 
-    setIdleCompaction(enabled: boolean) {
-        this.scheduler.setEnabled(enabled, this.pool.closingTimes());
+    setIdleCompaction(gate: IdleCompactionGate) {
+        this.scheduler.setGate(gate, this.pool.closingTimes());
     }
 
     park(agentId: string, identity: WarmIdentity, process: Process, now: number) {
@@ -57,7 +58,7 @@ export class CompactingPool<Process extends IdleCompactable> {
     }
 
     drain() {
-        this.scheduler.setEnabled(false, []);
+        this.scheduler.setGate(false, []);
         return this.closed(this.pool.drain());
     }
 

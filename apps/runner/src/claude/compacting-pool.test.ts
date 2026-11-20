@@ -118,3 +118,21 @@ test('a session with no one-hour cache, or one the idle close would reach first,
     expect([five.compactions, early.compactions]).toEqual([0, 0]);
     expect([shortCache.skips, closing.skips]).toEqual([[], []]);
 });
+
+test('each Agent follows its own Server: only Agents of a Server with the setting on compact', () => {
+    const { newSession, pool, time } = setup();
+    const servers = new Map([
+        ['agent-on', 'srv_on'],
+        ['agent-off', 'srv_off'],
+    ]);
+    const enabled = new Set(['srv_on']);
+    pool.setIdleCompaction((agentId) => enabled.has(servers.get(agentId) ?? ''));
+    const on = newSession();
+    const off = newSession();
+    pool.park('agent-on', identity, on, time.now());
+    pool.park('agent-off', identity, off, time.now());
+
+    time.advance(dueMs);
+
+    expect([on.compactions, off.compactions]).toEqual([1, 0]);
+});
