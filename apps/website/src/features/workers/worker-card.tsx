@@ -1,32 +1,46 @@
-import type { WorkerBranch, PullRequestReading, Worker } from '@haus/api';
-import { Chip } from '@heroui/react';
+import type { PullRequestReading, Worker, WorkerBranch, WorkerTurnInput } from '@haus/api';
+import { Chip, Link, toast } from '@heroui/react';
 import { GitPullRequestIcon } from '@hugeicons-pro/core-stroke-rounded';
-import type * as React from 'react';
+import { useParams } from 'react-router-dom';
 import { ActionCard } from '../../components/chats/action-card.tsx';
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
+import { useHumanDirectory } from '../../hooks/servers/use-human-directory.ts';
+import { useServer } from '../../hooks/servers/use-server.ts';
+import { openExternalLink } from '../../lib/open-external-link.ts';
 import { WorkerKeycap } from './cloud-agent-provider-mark.tsx';
 import { useWorkerAgentName } from './use-worker-agent-name.ts';
-import { WorkerActions } from './worker-actions.tsx';
 import {
-    workerBranchPullRequestNumber,
-    workerJobChipColor,
-    workerBranch,
-    workerText,
-} from './worker-presentation.ts';
+    canFollowUpWorker,
+    isWorkerTurnLive,
+    newestWorkerReport,
+    workerCardLine,
+    workerStatusChipColors,
+    workerStatusDiscStates,
+    workerStatusText,
+} from './worker-card-model.ts';
+import { WorkerFollowUpComposer } from './worker-follow-up-composer.tsx';
+import { WorkerPlace } from './worker-place.tsx';
+import { workerBranch, workerBranchPullRequestNumber } from './worker-presentation.ts';
+import { WorkerReport } from './worker-report.tsx';
 import { WorkerStatusDisc } from './worker-status-disc.tsx';
-import { workerStatusLine } from './worker-status-line.ts';
 
-export function WorkerCard({ children, work }: { children?: React.ReactNode; work: Worker }) {
+export function WorkerCard({ chatId = null, work }: { chatId?: null | string; work: Worker }) {
+    const { slug = '' } = useParams();
+    const server = useServer(slug, Boolean(slug)).data;
     const agentName = useWorkerAgentName(work);
-    const now = useRelativeNow(work.job.state === 'working' || work.job.followUp ? 5000 : 60_000);
+    const humans = useHumanDirectory(server?.id);
+    const now = useRelativeNow(isWorkerTurnLive(work) ? 5000 : 60_000);
+    const report = newestWorkerReport(work);
+    const name = (author: WorkerTurnInput['author']) =>
+        author.kind === 'agent' ? agentName : humans.name(author.id);
+    const line = workerCardLine(work, { name, now });
     const branch = workerBranch(work);
-    const line = workerStatusLine(work, { agentName, now });
 
     return (
         <ActionCard
             actionKind="worker"
-            actionStatus={work.job.state}
+            actionStatus={work.status}
             aria-label={`Worker: ${work.title}`}
             data-testid="worker-card"
         >
@@ -43,67 +57,63 @@ export function WorkerCard({ children, work }: { children?: React.ReactNode; wor
                         {work.title}
                         <ActionCard.Status>
                             <Chip
-                                color={workerJobChipColor(work.job.state)}
+                                color={workerStatusChipColors[work.status]}
                                 size="sm"
                                 variant="soft"
                             >
                                 <WorkerStatusDisc
                                     className="size-3 text-current"
-                                    state={work.job.state}
+                                    state={workerStatusDiscStates[work.status]}
                                 />
-                                <Chip.Label>{workerText(work, now)}</Chip.Label>
+                                <Chip.Label>{workerStatusText(work)}</Chip.Label>
                             </Chip>
                         </ActionCard.Status>
                     </ActionCard.Title>
-                    {/* The mark already names the provider, so the line under
-                        the title carries only what the mark cannot: where. */}
-                    <ActionCard.Description>{work.repository}</ActionCard.Description>
+                    <ActionCard.Description>
+                        <WorkerPlace work={work} />
+                        {` · ${work.repository}`}
+                    </ActionCard.Description>
                 </ActionCard.Content>
             </ActionCard.Header>
-            <div className="flex min-w-0 flex-col gap-1">
-                {branch ? (
-                    <WorkerPullRequestRow branch={branch} reading={work.pullRequest} />
-                ) : null}
+            <WorkerPullRequestRow branch={branch} reading={work.pullRequest} />
+            {report && server ? (
+                <WorkerReport chatId={chatId} report={report} server={server} />
+            ) : null}
+            {line ? (
                 <ActionCard.Meta data-testid="worker-status-line" tone={line.tone}>
                     {line.text}
                 </ActionCard.Meta>
-            </div>
-            <ActionCard.Actions>
-                <WorkerActions pullRequestUrl={branch?.pullRequestUrl ?? null} work={work} />
-            </ActionCard.Actions>
-            {children}
+            ) : null}
+            {server && canFollowUpWorker(work) ? (
+                <WorkerFollowUpComposer serverId={server.id} work={work} />
+            ) : null}
         </ActionCard>
     );
 }
 
-/**
- * The result, once there is one: the pull request's number, its own state when
- * the Computer's GitHub reading has it, and the size of the change. Added and
- * removed are the one pair a reader scans without reading, so they keep color.
- */
 export function WorkerPullRequestRow({
     branch,
     reading = null,
 }: {
-    branch: WorkerBranch;
-    /** The live reading, which outlives the Run's frozen snapshot. */
-    reading?: PullRequestReading | null;
+    branch: null | WorkerBranch;
+    reading?: null | PullRequestReading;
 }) {
-    const number = workerBranchPullRequestNumber(branch);
-    const pullRequest = reading ?? branch.pullRequest ?? null;
-    if (number === null) {
+    const url = reading?.url ?? branch?.pullRequestUrl ?? null;
+    const number = reading?.number ?? (branch ? workerBranchPullRequestNumber(branch) : null);
+    const facts = reading ?? branch?.pullRequest ?? null;
+    if (url === null || number === null) {
         return null;
     }
     return (
         <ActionCard.Meta data-testid="worker-pull-request">
             <Icon aria-hidden="true" icon={GitPullRequestIcon} />
-            <span className="text-foreground font-medium">{`PR #${number}`}</span>
-            {pullRequest ? (
+            <Link onPress={() => openPullRequest(url)}>{`PR #${number}`}</Link>
+            {facts ? (
                 <>
-                    {` · ${pullRequestStateLabels[pullRequest.state]} · `}
-                    {`${pullRequest.changedFiles} ${pullRequest.changedFiles === 1 ? 'file' : 'files'}`}
-                    <span className="text-success"> +{pullRequest.additions}</span>
-                    <span className="text-danger"> −{pullRequest.deletions}</span>
+                    {` · ${pullRequestStateLabels[facts.state]} · `}
+                    {`${facts.changedFiles} ${facts.changedFiles === 1 ? 'file' : 'files'}`}
+                    <span className="text-success"> +{facts.additions}</span>
+                    <span className="text-danger"> −{facts.deletions}</span>
                 </>
             ) : null}
         </ActionCard.Meta>
@@ -116,3 +126,7 @@ const pullRequestStateLabels = {
     merged: 'Merged',
     open: 'Open',
 } as const;
+
+function openPullRequest(url: string) {
+    openExternalLink(url).catch(() => toast.danger('Could not open the pull request'));
+}

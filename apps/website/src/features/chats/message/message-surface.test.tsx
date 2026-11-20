@@ -8,6 +8,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { linkedWork } from '../../../../../../packages/haus-api/src/worker-fixture.ts';
 import { hausTrpc } from '../../../lib/haus-server.tsx';
 import { testAgent } from '../../members/agent-fixtures.ts';
+import { workerTurnFixture } from '../../workers/worker-fixture.ts';
 import type { TranscriptMessageRow } from '../transcript-contract.ts';
 import { MessageSurface } from './message-surface.tsx';
 
@@ -29,12 +30,18 @@ test('a Message that links no work renders no card', () => {
 });
 
 test('the card names the delegator from the work, never the linking author', () => {
-    const followUp = { since: linkedWork.createdAt, state: 'waiting' as const };
-    const job = { followUp, settledAt: null, startedAt: null, state: 'done' as const };
-    const asked = { ...blippy, job, updatedAt: new Date().toISOString() };
+    const followUp = {
+        at: linkedWork.createdAt,
+        author: { id: 'agt_blippy', kind: 'agent' as const },
+        kind: 'follow-up' as const,
+        messageId: null,
+        text: 'Narrow it down.',
+    };
+    const turns = [workerTurnFixture({ input: [followUp], status: 'running' })];
+    const asked = { ...blippy, turns, updatedAt: new Date().toISOString() };
     const html = render(row([asked]));
 
-    expect(html).toContain('Blippy asked for changes');
+    expect(html).toContain('On Blippy&#x27;s follow-up');
     expect(html).not.toContain('Forge');
 });
 

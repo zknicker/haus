@@ -1,7 +1,59 @@
 import { expect, test } from 'bun:test';
-import type { WorkerBranch } from '@haus/api';
+import type { Worker, WorkerBranch, WorkerReport } from '@haus/api';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { createTRPCQueryUtils } from '@trpc/react-query';
+import { observable } from '@trpc/server/observable';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { WorkerPullRequestRow } from './worker-card.tsx';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { hausTrpc } from '../../lib/haus-server.tsx';
+import { WorkerCard, WorkerPullRequestRow } from './worker-card.tsx';
+import { workerTurnFixture as turn, workerFixture as work } from './worker-fixture.ts';
+
+const serverId = 'srv_cards';
+const askReport: WorkerReport = {
+    ask: 'Does the iPad baseline move 2px on purpose?',
+    messageId: null,
+    outcome: 'needs-you',
+    personId: 'usr_zach',
+    personRefused: null,
+    pullRequestUrls: [],
+    source: 'worker',
+    text: 'Fixed five of six.',
+};
+
+test('a live turn with an empty composer offers Stop, and a typed follow-up would Send', () => {
+    const html = renderCard(work({ updatedAt: new Date().toISOString() }));
+
+    expect(html).toContain('aria-label="Stop Worker"');
+    expect(html).toContain('placeholder="Goes in when this turn ends"');
+});
+
+test('a needs-you report shows its text and the ask with its person, and invites an answer', () => {
+    const html = renderCard(
+        work({
+            turns: [
+                turn({
+                    outcome: { kind: 'report', report: askReport },
+                    status: 'pending_input',
+                }),
+            ],
+        })
+    );
+
+    expect(html).toContain('Fixed five of six.');
+    expect(html).toContain('@Zach ');
+    expect(html).toContain('Does the iPad baseline move 2px on purpose?');
+    expect(html).toContain('placeholder="Answer this Worker"');
+    expect(html).toContain('aria-label="Send follow-up"');
+    expect(html).not.toContain('worker-status-line');
+});
+
+test('a closed Worker shows its record with no composer', () => {
+    const html = renderCard(work({ closedAt: '2026-09-04T12:03:00.000Z', status: 'completed' }));
+
+    expect(html).toContain('data-testid="worker-card"');
+    expect(html).not.toContain('prompt-input');
+});
 
 const pullRequestBranch: WorkerBranch = {
     branch: 'cursor/test',
@@ -71,3 +123,54 @@ test('a branch that opened no pull request renders no row', () => {
         )
     ).toBe('');
 });
+
+function renderCard(worker: Worker) {
+    const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false, staleTime: Number.POSITIVE_INFINITY } },
+    });
+    const client = hausTrpc.createClient({
+        links: [() => () => observable(() => () => undefined)],
+    });
+    const utils = createTRPCQueryUtils({ client, queryClient });
+    utils.server.bySlug.setData({ slug: 'cards' }, {
+        id: serverId,
+        onboarding: { phase: 'complete' },
+        role: 'member',
+        slug: 'cards',
+    } as never);
+    utils.agent.list.setData({ serverId }, []);
+    utils.member.list.setData(
+        { serverId },
+        {
+            members: [
+                {
+                    avatarUrl: null,
+                    description: null,
+                    displayName: 'Zach',
+                    email: null,
+                    handle: null,
+                    joinedAt: '2026-09-04T12:00:00.000Z',
+                    role: 'owner',
+                    timezone: null,
+                    userId: 'usr_zach',
+                },
+            ],
+            viewerRole: 'owner',
+            viewerUserId: 'usr_zach',
+        }
+    );
+    return renderToStaticMarkup(
+        <QueryClientProvider client={queryClient}>
+            <hausTrpc.Provider client={client} queryClient={queryClient}>
+                <MemoryRouter initialEntries={['/s/cards']}>
+                    <Routes>
+                        <Route
+                            element={<WorkerCard chatId="cht_task" work={worker} />}
+                            path="/s/:slug"
+                        />
+                    </Routes>
+                </MemoryRouter>
+            </hausTrpc.Provider>
+        </QueryClientProvider>
+    );
+}

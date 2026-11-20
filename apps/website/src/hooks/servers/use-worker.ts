@@ -28,12 +28,21 @@ export function useActiveWorker(serverId: string | undefined) {
     );
 }
 
-/**
- * An Owner or Admin asking the provider to stop. The request is recorded even
- * while the Computer is offline, and the work settles through the ordinary
- * observation path — so this mutation invalidates nothing itself and the
- * surface reads as cancelling until `worker.updated` arrives.
- */
-export function useWorkerCancel() {
+export function useWorker(
+    serverId: string,
+    workerId: string,
+    { enabled = true }: { enabled?: boolean } = {}
+) {
+    return hausTrpc.worker.get.useQuery(
+        { serverId, workerId },
+        { ...queryPolicy.syncedSnapshot, enabled }
+    );
+}
+
+export function useWorkerStop() {
     return hausTrpc.worker.stop.useMutation();
+}
+
+export function useWorkerSendFollowUp() {
+    return hausTrpc.worker.sendFollowUp.useMutation();
 }

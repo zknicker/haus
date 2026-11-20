@@ -7,6 +7,7 @@ import type {
     TaskPreview,
 } from '@haus/api';
 import type { ClaimOrigin, MessageClaim } from '../claims/claim-presentation.ts';
+import type { WorkerMessageBody } from '../workers/worker-message-body.ts';
 import type { TranscriptSystemRow } from './transcript-system-row.ts';
 
 export type { TranscriptDelivery, TranscriptSystemRow } from './transcript-system-row.ts';
@@ -91,6 +92,8 @@ export interface TranscriptMessage {
      * renders the same card below the Message.
      */
     worker?: readonly Worker[];
+    /** The Worker a report or a person's follow-up names, shown on the context line above it. */
+    workerBody?: WorkerMessageBody | null;
     content: string;
     hausAgentId?: string | null;
     id: string;

@@ -39,6 +39,10 @@ export function DockedWorkerProvider({
     return <DockedWorkerContext.Provider value={value}>{children}</DockedWorkerContext.Provider>;
 }
 
+export function useDockedWorker() {
+    return React.use(DockedWorkerContext);
+}
+
 export function MessageWorker({ work }: { work: Worker }) {
     const docked = React.use(DockedWorkerContext);
     if (docked?.isDocked(work.id)) {

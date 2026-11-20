@@ -43,7 +43,11 @@ import {
 } from './chat-transcript-render-context.tsx';
 import type { SessionNoticeRow } from './chat-transcript-row-model.ts';
 import { RuntimeNoticeEntry, SessionNoticeAction } from './chat-transcript-system-step.tsx';
-import { getTurnCause, TurnContext } from './chat-transcript-turn-context.tsx';
+import {
+    continuesPreviousTurn,
+    getTurnCause,
+    TurnContext,
+} from './chat-transcript-turn-context.tsx';
 import { transcriptTurnGeometry } from './chat-transcript-turn-geometry.ts';
 import { resolveMentionAgentId, TurnHeader } from './chat-transcript-turn-header.tsx';
 import { UserTurnItem } from './chat-transcript-user-turn-item.tsx';
@@ -198,7 +202,7 @@ function UserTurnPresentation({
     // absolute and invisible until hover, so confirmation moves nothing.
     const actionsRow = hasPendingMessage ? null : lastMessageRow;
     const inlineReplyHover = useInlineReplyHoverState(entry.items, lastMessageRow);
-    const continues = entry.continuesPrevious;
+    const continues = continuesPreviousTurn(entry, null);
 
     return (
         <InlineReplyHoverProvider state={inlineReplyHover}>
@@ -346,7 +350,7 @@ function AgentTurnPresentation({
     } = context;
     const cause = getTurnCause(items);
     // A follow-up with a cause line keeps its header: the cause is why it was said.
-    const continues = entry.continuesPrevious && !cause;
+    const continues = continuesPreviousTurn(entry, cause);
     const showIdentity = layout.showAgentIdentity && !continues;
     const segments = groupAgentItems(items);
     const visibleSegments = filterPaneSegments(segments, repliedRunIds);

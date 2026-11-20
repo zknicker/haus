@@ -5,6 +5,7 @@ import type { TranscriptActor } from '../../chats/chat-transcript-model.ts';
 import type { TranscriptMessageRow } from '../../chats/transcript-contract.ts';
 import { messageImageGenerations } from '../../image-generation/message-image-generations.ts';
 import { messageWorker } from '../../workers/message-worker.ts';
+import { workerMessageBody } from '../../workers/worker-message-body.ts';
 
 export type ProjectedChatMessageRow = TranscriptMessageRow;
 
@@ -46,6 +47,7 @@ export function projectChatMessage(
             actor,
             ...(message.cause ? { cause: message.cause } : {}),
             worker: messageWorker(message),
+            workerBody: workerMessageBody(message.body),
             content: message.content,
             id: message.id,
             imageGenerations: messageImageGenerations(message),
