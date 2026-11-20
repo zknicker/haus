@@ -1,0 +1,117 @@
+import type { OpenSessionOptions, RuntimeDriver } from '../driver.ts';
+import { handshakeDeadline } from '../handshake-deadline.ts';
+import type { RuntimeProcessRegistry } from '../process-registry.ts';
+import { openAppServer } from './app-server.ts';
+import { resumeThreadId } from './codex-driver.ts';
+import {
+    type CodexExecutable,
+    codexPinFingerprint,
+    resolvePinnedCodex,
+} from './codex-executable.ts';
+import { CodexSession } from './codex-session.ts';
+import {
+    type CodexProcessLaunch,
+    type CodexTransport,
+    spawnCodexProcess,
+} from './codex-transport.ts';
+
+export interface CodexWorkerDriverOptions {
+    readonly cwd: string;
+    readonly env: Readonly<Record<string, string>>;
+    readonly handshakeTimeoutMs?: number;
+    readonly homeDir: string;
+    readonly modelId: string | null;
+    readonly processes?: RuntimeProcessRegistry;
+    readonly resolveExecutable?: (signal?: AbortSignal) => Promise<CodexExecutable>;
+    readonly spawn?: (launch: CodexProcessLaunch) => CodexTransport;
+    readonly writableRoots: readonly string[];
+}
+
+export function createCodexWorkerDriver(options: CodexWorkerDriverOptions) {
+    const resolveExecutable = options.resolveExecutable ?? resolvePinnedCodex;
+    return {
+        bootstrapFingerprint: () => Promise.resolve(codexPinFingerprint),
+        openSession: (open) => openWorkerSession(options, resolveExecutable, open),
+        refreshBootstrap: async ({ signal }) => {
+            await resolveExecutable(signal);
+        },
+        runtimeId: 'codex',
+    } satisfies RuntimeDriver;
+}
+
+export function codexWorkerThreadParams(
+    options: Pick<CodexWorkerDriverOptions, 'cwd' | 'modelId' | 'writableRoots'>
+) {
+    return {
+        approvalPolicy: 'never',
+        config: {
+            sandbox_workspace_write: {
+                exclude_slash_tmp: false,
+                exclude_tmpdir_env_var: false,
+                network_access: true,
+                writable_roots: [...options.writableRoots],
+            },
+        },
+        cwd: options.cwd,
+        ...(options.modelId ? { model: options.modelId } : {}),
+        sandbox: 'workspace-write',
+    };
+}
+
+export function codexWorkerEnv(
+    options: Pick<CodexWorkerDriverOptions, 'env' | 'homeDir'>,
+    managed: Readonly<Record<string, string>>,
+    base: NodeJS.ProcessEnv = process.env
+) {
+    const env: Record<string, string> = {};
+    for (const [key, value] of Object.entries(base)) {
+        if (value !== undefined && !key.startsWith('CODEX_MANAGED_')) {
+            env[key] = value;
+        }
+    }
+    return Object.assign(env, managed, options.env, { HOME: options.homeDir, NO_BROWSER: '1' });
+}
+
+async function openWorkerSession(
+    options: CodexWorkerDriverOptions,
+    resolveExecutable: (signal?: AbortSignal) => Promise<CodexExecutable>,
+    open: OpenSessionOptions
+) {
+    const executable = await resolveExecutable(open.signal);
+    open.signal?.throwIfAborted();
+    options.processes?.assertOpen();
+    const transport = (options.spawn ?? spawnCodexProcess)({
+        args: ['app-server', '--listen', 'stdio://'],
+        cwd: options.cwd,
+        env: codexWorkerEnv(options, executable.env),
+        executable: executable.path,
+    });
+    const stop = () => transport.kill();
+    options.processes?.add(stop);
+    let released: Promise<void> | null = null;
+    const release = () => {
+        released ??= transport.kill().then(() => options.processes?.remove(stop));
+        return released;
+    };
+    const deadline = handshakeDeadline(
+        'The Codex app-server',
+        open.signal,
+        options.handshakeTimeoutMs
+    );
+    try {
+        const server = await openAppServer({
+            cwd: options.cwd,
+            hostTools: null,
+            resumeThreadId: resumeThreadId(open.resumeFrom),
+            signal: deadline.signal,
+            threadParams: () => codexWorkerThreadParams(options),
+            transport,
+        });
+        return new CodexSession(server, { park: release, release }, options.cwd);
+    } catch (error) {
+        await release();
+        throw error;
+    } finally {
+        deadline.clear();
+    }
+}

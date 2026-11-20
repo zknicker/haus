@@ -76,7 +76,7 @@ export class ClaudeConnection implements WarmProcess, IdleCompactable {
     constructor(
         readonly process: ClaudeProcess,
         readonly normalizer: ClaudeEventNormalizer,
-        readonly hostTools: HostToolSession,
+        readonly hostTools: HostToolSession | null,
         readonly launchKey: string,
         public sessionId: string,
         private readonly background?: ClaudeBackgroundHooks,
@@ -89,7 +89,7 @@ export class ClaudeConnection implements WarmProcess, IdleCompactable {
         process.onLine((line) => this.dispatch(line));
         void process.exited.then((exit) => {
             // The host-tool scope lives exactly as long as the process that calls it.
-            hostTools.close();
+            hostTools?.close();
             for (const pending of this.controls.values()) {
                 pending.reject(new Error('Claude Code exited before answering a control request.'));
             }

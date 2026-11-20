@@ -44,7 +44,7 @@ export class CodexSession implements RuntimeSession, WarmProcess {
         this.router = new CodexTurnRouter(
             server.threadId,
             new CodexTurnNormalizer(
-                { hostToolServer: server.hostTools.mcp.name, workspaceDir },
+                { hostToolServer: server.hostTools?.mcp.name ?? null, workspaceDir },
                 new CodexUsageLedger()
             )
         );
