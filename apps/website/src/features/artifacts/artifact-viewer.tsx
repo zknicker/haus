@@ -11,6 +11,7 @@ import { parseRevisionView, type RevisionView, revisionViewHref } from './artifa
 import { ArtifactCompare } from './artifact-compare.tsx';
 import { ArtifactInspector } from './artifact-inspector.tsx';
 import { ArtifactPreview } from './artifact-preview.tsx';
+import { useArtifactTextDraftBase } from './artifact-text-drafts.ts';
 import { artifactTextEditable } from './artifact-text-edit.ts';
 import { ArtifactTextEditor } from './artifact-text-editor.tsx';
 import { artifactTextRenderer } from './artifact-text.ts';
@@ -30,7 +31,8 @@ import { useViewerStepKeys, useViewerSteps } from './use-viewer-steps.ts';
  * follows the current one. `?compare=` puts a text file's preview in
  * Compare mode, from that revision to the one on screen. Edit swaps a
  * current text file's preview and details for a plain-text editor, and
- * holds previous/next until it closes. Opened from the
+ * holds previous/next until it closes; an unsaved draft reopens it on the
+ * draft's own base. Opened from the
  * library, the URL carries that folder view (`?in=`), and previous/next
  * (buttons, ← →, and the zoom viewer's arrows) step through its files in
  * place.
@@ -73,9 +75,12 @@ export function ArtifactViewer({
             : undefined;
     const [editing, setEditing] = React.useState<EditTarget | null>(null);
     const pinned = pinnedRevisionId !== undefined;
-    // Stepping to another file or pinning a revision leaves the editor.
-    const editRevisionId =
-        editing?.artifactId === artifactId && !pinned ? editing.revisionId : null;
+    const draftBase = useArtifactTextDraftBase(artifact ? { path: artifact.path, serverId } : null);
+    const editRevisionId = pinned
+        ? null
+        : editing?.artifactId === artifactId
+          ? editing.revisionId
+          : draftBase;
     const stepper = (zoomed: boolean) =>
         context && !editRevisionId
             ? { onNext: stepTo(steps.next, zoomed), onPrevious: stepTo(steps.previous, zoomed) }

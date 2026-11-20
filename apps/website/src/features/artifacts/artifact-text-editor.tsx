@@ -1,11 +1,18 @@
-import type { ArtifactMetadata, ArtifactRecord } from '@haus/api';
+import type { ArtifactRecord } from '@haus/api';
 import { Button, TextArea, toast } from '@heroui/react';
 import * as React from 'react';
 import { useArtifactTextSave } from '../../hooks/artifacts/use-artifact-text-save.ts';
 import { useArtifactText } from '../../hooks/artifacts/use-artifact-text.ts';
 import { ArtifactTextConflict } from './artifact-text-conflict.tsx';
+import {
+    type ArtifactTextRefusal,
+    discardArtifactTextDraft,
+    findArtifactTextDraft,
+    readArtifactTextDraft,
+    settleArtifactTextDraft,
+    writeArtifactTextDraft,
+} from './artifact-text-drafts.ts';
 import { artifactTextSaveInput } from './artifact-text-edit.ts';
-import { UnsavedEditGuard } from './unsaved-edit-guard.tsx';
 
 export function ArtifactTextEditor({
     artifact,
@@ -35,6 +42,7 @@ export function ArtifactTextEditor({
         : read.data
           ? 'This file is not readable as text.'
           : null;
+    const file = { path: artifact.path, serverId };
     return (
         <section aria-busy={!failure} aria-label="Edit file" className="flex flex-col gap-3">
             {failure ? (
@@ -42,18 +50,21 @@ export function ArtifactTextEditor({
                     <p className="text-muted text-sm" role="alert">
                         {failure}
                     </p>
-                    <Button className="self-start" onPress={onClose} size="sm" variant="secondary">
-                        Cancel
+                    <Button
+                        className="self-start"
+                        onPress={() => {
+                            discardArtifactTextDraft(file);
+                            onClose();
+                        }}
+                        size="sm"
+                        variant="secondary"
+                    >
+                        {findArtifactTextDraft(file) ? 'Discard changes' : 'Cancel'}
                     </Button>
                 </>
             ) : null}
         </section>
     );
-}
-
-interface Refusal {
-    current: ArtifactMetadata | null;
-    message: string;
 }
 
 function TextDraft({
@@ -70,19 +81,39 @@ function TextDraft({
     serverId: string;
 }) {
     const save = useArtifactTextSave(serverId, artifact.artifact_id);
-    const [text, setText] = React.useState(original);
+    const [file] = React.useState(() => ({ path: artifact.path, serverId }));
+    const [restored] = React.useState(() =>
+        readArtifactTextDraft({ ...file, baseRevisionId: revisionId })
+    );
+    const [text, setText] = React.useState(restored?.text ?? original);
     const [base, setBase] = React.useState(revisionId);
-    const [refusal, setRefusal] = React.useState<Refusal | null>(null);
-    const dirty = text !== original;
-    const canSave = (dirty || refusal !== null) && !save.isPending;
+    const [refusal, setRefusal] = React.useState<ArtifactTextRefusal | null>(
+        restored?.refusal ?? null
+    );
+    const changed = text !== original || refusal !== null;
+    const canSave = changed && !save.isPending;
 
+    const edit = (next: string) => {
+        setText(next);
+        if (next === original && refusal === null) {
+            discardArtifactTextDraft(file);
+        } else {
+            writeArtifactTextDraft({ ...file, baseRevisionId: base }, { refusal, text: next });
+        }
+    };
+    const discard = () => {
+        discardArtifactTextDraft(file);
+        onClose();
+    };
     const submit = () => {
         if (!canSave) {
             return;
         }
+        const target = { ...file, baseRevisionId: base };
         save.mutate(artifactTextSaveInput(artifact, base, text), {
             onError: (error) => toast.danger('Could not save', { description: error.message }),
             onSuccess: (outcome) => {
+                settleArtifactTextDraft(target, text, outcome);
                 if (outcome.kind === 'refused') {
                     setRefusal({ current: outcome.current, message: outcome.message });
                     if (outcome.current) {
@@ -106,8 +137,8 @@ function TextDraft({
     return (
         <section aria-label="Edit file" className="flex min-w-0 flex-col gap-3">
             <div className="flex items-center justify-end gap-2">
-                <Button isDisabled={save.isPending} onPress={onClose} size="sm" variant="secondary">
-                    Cancel
+                <Button isDisabled={save.isPending} onPress={discard} size="sm" variant="secondary">
+                    {changed ? 'Discard changes' : 'Cancel'}
                 </Button>
                 <Button
                     isDisabled={!canSave}
@@ -132,7 +163,7 @@ function TextDraft({
                 autoFocus
                 className="min-h-96 resize-y font-mono"
                 fullWidth
-                onChange={(event) => setText(event.target.value)}
+                onChange={(event) => edit(event.target.value)}
                 onKeyDown={(event) => {
                     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
                         event.preventDefault();
@@ -143,7 +174,6 @@ function TextDraft({
                 value={text}
                 variant="secondary"
             />
-            <UnsavedEditGuard dirty={dirty} />
         </section>
     );
 }
