@@ -1,6 +1,7 @@
 import type { Agent, Chat } from '@haus/api';
 import * as React from 'react';
 import { useChatListSelection } from '../../hooks/servers/use-chats.ts';
+import { ComputerDiskNotices } from '../computers/computer-disk-notices.tsx';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
@@ -50,7 +51,8 @@ export function CapyHomePage({
                 <PageBand.Trail current="Home" />
             </PageBand>
             <div className="relative isolate flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 pb-[8vh]">
-                <div className="relative w-full max-w-xl">
+                <div className="relative flex w-full max-w-xl flex-col gap-4">
+                    <ComputerDiskNotices />
                     {state.kind === 'ready' ? (
                         <HomeComposer
                             captains={state.captains}

@@ -47,7 +47,8 @@ stored in `localStorage` under `haus.capy-shell` and follows into other open win
   Send: `task.create` carries no files, so there is no attachment action, and there is no model
   picker or mic. The Captain defaults to the Project's first Captain. The page keeps the theme's
   plain background; its content area is a positioned, isolated layer, so a full-bleed Home
-  background can sit behind the composer.
+  background can sit behind the composer. A Device's low-disk warning, which the Inbox carried,
+  sits above the composer for the Owner or Admin who attached it.
 - **First run.** A new Haus starts with no Captains and no Projects. Until both exist, Home shows a
   stock `EmptyState` in place of the composer that names what is missing and offers "Create a
   project" and, for Owners and Admins, "New Captain"; a Member reads that an Owner or Admin adds

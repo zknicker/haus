@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { Outlet, Route, Routes } from 'react-router-dom';
 import { installKeptChatViewTestDom } from '../../test-support/kept-chat-views-harness.tsx';
 import {
     chat,
@@ -36,8 +37,16 @@ const person = (unreadCount: number) =>
 test('a message anywhere on the Server leaves Home and its composer unrendered', async () => {
     const harness = createTranscriptHarness();
     harness.setChats([project(), person(0)]);
+    const server = { id: 'srv_render', role: 'member', slug: 'render' };
     const view = await harness.mount(
-        <CapyHomePage canManage={false} serverId="srv_render" slug="render" />
+        <Routes>
+            <Route element={<Outlet context={{ server }} />}>
+                <Route
+                    element={<CapyHomePage canManage={false} serverId="srv_render" slug="render" />}
+                    path="*"
+                />
+            </Route>
+        </Routes>
     );
     expect(view.container.textContent).toContain('cht_eng');
 
@@ -54,6 +63,35 @@ test('a message anywhere on the Server leaves Home and its composer unrendered',
 
     expect(census.count('CapyHomePage')).toBe(0);
     expect(census.count('HomeComposer')).toBe(0);
+
+    await view.unmount();
+});
+
+test('Home warns the Owner who attached a Device that is low on disk', async () => {
+    const harness = createTranscriptHarness();
+    harness.setChats([project()]);
+    harness.utils.computer.list.setData({ serverId: 'srv_render' }, [
+        {
+            attachedByCurrentUser: true,
+            diskStatus: { availableBytes: 2 * 1024 ** 3, totalBytes: 100 * 1024 ** 3 },
+            health: 'online',
+            id: 'cmp_mini',
+            name: 'Mini',
+        },
+    ] as never);
+    const server = { id: 'srv_render', role: 'owner', slug: 'render' };
+    const view = await harness.mount(
+        <Routes>
+            <Route element={<Outlet context={{ server }} />}>
+                <Route
+                    element={<CapyHomePage canManage serverId="srv_render" slug="render" />}
+                    path="*"
+                />
+            </Route>
+        </Routes>
+    );
+
+    expect(view.container.textContent).toContain('Mini is low on disk space');
 
     await view.unmount();
 });
