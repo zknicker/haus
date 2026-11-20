@@ -2,7 +2,6 @@ import { expect, test } from 'bun:test';
 import {
     formatWorkerPlace,
     parseWorkerPlace,
-    requireCloudWorkerPlace,
     workerPlaceSchema,
     workerPlaceViewSchema,
 } from './worker-place.ts';
@@ -65,11 +64,4 @@ test('the record view carries the Computer name, or null when it reported none',
             .success
     ).toBe(false);
     expect(workerPlaceViewSchema.parse({ kind: 'claude' })).toEqual({ kind: 'claude' });
-});
-
-test('only a cloud place yields a provider', () => {
-    expect(requireCloudWorkerPlace({ kind: 'cursor' })).toBe('cursor');
-    expect(() =>
-        requireCloudWorkerPlace({ computerId: 'cmp_abcdefghijklmnop', kind: 'computer' })
-    ).toThrow('Worker place computer:cmp_abcdefghijklmnop is not a cloud place.');
 });

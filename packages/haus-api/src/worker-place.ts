@@ -71,11 +71,3 @@ export function isCloudWorkerPlace(
 ): place is Extract<WorkerPlace, { kind: CloudAgentProvider }> {
     return place.kind !== 'computer';
 }
-
-/** The provider of a cloud place, for the paths only cloud Workers reach. */
-export function requireCloudWorkerPlace(place: WorkerPlace) {
-    if (!isCloudWorkerPlace(place)) {
-        throw new Error(`Worker place ${formatWorkerPlace(place)} is not a cloud place.`);
-    }
-    return place.kind;
-}
