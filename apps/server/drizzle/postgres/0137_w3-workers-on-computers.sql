@@ -1,7 +1,8 @@
 -- W3: Workers run on Computers (specs/workers.md "Workers on a Computer", specs/projects.md "Repos"
 -- and "Default place for Workers"). Every step converges, so running this file again changes nothing.
--- Existing rows: every Computer is off with a limit of 4, no Project has repos, and each Project's
--- default place comes from the Server's newest cloud Worker's carrier.
+-- Existing rows: every Computer is off with a limit of 4, each Project's repos are the repositories
+-- its Tasks' Workers ran in, and each Project's default place comes from the Server's newest cloud
+-- Worker's carrier.
 CREATE TABLE IF NOT EXISTS "worker_turn_credentials" (
 	"attempt" integer NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
@@ -65,6 +66,7 @@ ALTER TABLE "project_repo_links" ADD CONSTRAINT "project_repo_links_linker_membe
 ALTER TABLE "project_repos" DROP CONSTRAINT IF EXISTS "project_repos_project_fk";--> statement-breakpoint
 ALTER TABLE "project_repos" ADD CONSTRAINT "project_repos_project_fk" FOREIGN KEY ("server_id","project_id") REFERENCES "public"."projects"("server_id","chat_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "worker_turn_credentials_turn_idx" ON "worker_turn_credentials" USING btree ("server_id","turn_id");--> statement-breakpoint
+CREATE UNIQUE INDEX IF NOT EXISTS "worker_turn_credentials_live" ON "worker_turn_credentials" USING btree ("server_id","turn_id","kind","attempt") WHERE "worker_turn_credentials"."revoked_at" is null;--> statement-breakpoint
 ALTER TABLE "drive_pushes" DROP CONSTRAINT IF EXISTS "drive_pushes_worker_fk";--> statement-breakpoint
 ALTER TABLE "drive_pushes" ADD CONSTRAINT "drive_pushes_worker_fk" FOREIGN KEY ("server_id","worker_id") REFERENCES "public"."workers"("server_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "projects" DROP CONSTRAINT IF EXISTS "projects_default_worker_computer_fk";--> statement-breakpoint
@@ -115,4 +117,20 @@ FROM (
     ORDER BY w."server_id", w."created_at" DESC, w."id" DESC
 ) AS d
 WHERE p."server_id" = d."server_id" AND d."provider" IS NOT NULL
-    AND p."default_worker_place" IS NULL;
+    AND p."default_worker_place" IS NULL;--> statement-breakpoint
+-- Each Project's repos start as the repositories its Tasks' Workers ran in (W3 decision R15).
+-- Taskless history names no Project and adds nothing.
+INSERT INTO "project_repos" ("id", "server_id", "project_id", "repository")
+SELECT
+    'prp_' || translate(encode(substring(uuid_send(gen_random_uuid()) from 1 for 12), 'base64'), '+/', '-_'),
+    used."server_id",
+    used."project_id",
+    used."repository"
+FROM (
+    SELECT DISTINCT t."server_id", t."project_id", w."repository"
+    FROM "workers" AS w
+    JOIN "tasks" AS t ON t."server_id" = w."server_id" AND t."id" = w."task_id"
+    WHERE w."repository" ~ '^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$'
+        AND char_length(w."repository") <= 200
+) AS used
+ON CONFLICT ("server_id", "project_id", "repository") DO NOTHING;

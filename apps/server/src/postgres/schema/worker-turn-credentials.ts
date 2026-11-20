@@ -1,5 +1,14 @@
 import { sql } from 'drizzle-orm';
-import { check, foreignKey, index, integer, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import {
+    check,
+    foreignKey,
+    index,
+    integer,
+    pgTable,
+    text,
+    timestamp,
+    uniqueIndex,
+} from 'drizzle-orm/pg-core';
 import { workerTurnsTable } from './worker-turns.ts';
 
 export type WorkerTurnCredentialKind = 'push' | 'turn';
@@ -23,6 +32,9 @@ export const workerTurnCredentialsTable = pgTable(
             name: 'worker_turn_credentials_turn_fk',
         }).onDelete('cascade'),
         index('worker_turn_credentials_turn_idx').on(table.serverId, table.turnId),
+        uniqueIndex('worker_turn_credentials_live')
+            .on(table.serverId, table.turnId, table.kind, table.attempt)
+            .where(sql`${table.revokedAt} is null`),
         check('worker_turn_credentials_kind', sql`${table.kind} in ('turn', 'push')`),
         check('worker_turn_credentials_attempt', sql`${table.attempt} >= 1`),
         check(
