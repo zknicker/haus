@@ -1,7 +1,7 @@
 import { codeRangeAt, readCodeRanges } from './markdown-code-ranges.ts';
 
 export function readMarkdownLinkAt(text: string, start: number) {
-    if (text[start] !== '[') {
+    if (text[start] !== '[' || text[start - 1] === '!') {
         return null;
     }
     const labelEnd = text.indexOf(']', start + 1);

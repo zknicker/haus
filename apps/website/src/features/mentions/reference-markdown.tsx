@@ -119,9 +119,6 @@ export function prepareMarkdownReferences(content: string, suppliedMentions?: re
 function linkEdits(content: string, mentions: readonly Mention[]): MarkdownReferenceEdit[] {
     const mentionsByStart = new Map(mentions.map((mention) => [mention.start, mention]));
     return readMarkdownLinks(content).flatMap(({ end, start, target, targetStart }) => {
-        if (content[start - 1] === '!') {
-            return [];
-        }
         const reference = mentionsByStart.get(start);
         // react-markdown's URL sanitizer empties custom schemes, so `haus://` and `drive://` ride a token.
         const resource = parseHausResourceLink(target) || isDriveCitationHref(target);

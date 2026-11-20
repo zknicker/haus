@@ -59,6 +59,15 @@ test('a streaming drive citation opens its cited revision too', () => {
     expect(markup).toContain('>WORKER.md</a>');
 });
 
+test('image syntax around a drive citation is not a link in either renderer', () => {
+    const content = 'Look ![WORKER.md](drive://agents/blippy/WORKER.md) here.';
+
+    for (const markup of [renderSettled(content), renderStreaming(content)]) {
+        expect(markup).not.toContain('<a');
+        expect(markup).not.toContain('art_worker');
+    }
+});
+
 test('a drive link inside code stays the code as written when settled', () => {
     const inline = renderSettled('Write `[WORKER.md](drive://agents/blippy/WORKER.md)` to cite.');
     const fenced = renderSettled(
