@@ -34,8 +34,8 @@ describe('Codex Worker driver', () => {
             approvalPolicy: 'never',
             config: {
                 sandbox_workspace_write: {
-                    exclude_slash_tmp: false,
-                    exclude_tmpdir_env_var: false,
+                    exclude_slash_tmp: true,
+                    exclude_tmpdir_env_var: true,
                     network_access: true,
                     writable_roots: roots,
                 },

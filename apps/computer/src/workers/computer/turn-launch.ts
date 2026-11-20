@@ -125,7 +125,12 @@ async function prepare(
         env: await prepareWorkerCli(layout, context.server.serverOrigin, token),
         modelId: frame.model.id,
         runtimeId: frame.runtime,
-        writableRoots: [layout.drive, layout.report, ...(await worktreeGitRoots(layout.checkout))],
+        writableRoots: [
+            layout.drive,
+            layout.report,
+            layout.tmp,
+            ...(await worktreeGitRoots(layout.checkout)),
+        ],
     };
 }
 

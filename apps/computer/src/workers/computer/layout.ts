@@ -20,6 +20,7 @@ export function workerLayout(dataRoot: string, serverId: string, workerId: strin
         report: join(runtime, 'report'),
         reportFile: join(runtime, 'report', 'receipt.json'),
         root,
+        tmp: join(runtime, 'tmp'),
         turnsFile: join(runtime, 'turns.json'),
         workerId,
         driveFolder: (writer: string) =>

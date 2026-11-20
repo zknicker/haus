@@ -44,6 +44,7 @@ export function workerResumeState(runtime: WorkerRuntime, sessionId: string | nu
 export async function prepareWorkerCli(layout: WorkerLayout, serverOrigin: string, token: string) {
     await mkdir(layout.bin, { mode: 0o700, recursive: true });
     await mkdir(layout.report, { mode: 0o700, recursive: true });
+    await mkdir(layout.tmp, { mode: 0o700, recursive: true });
     const entrypoint = computerEntrypoint();
     const command = [entrypoint.executable, ...entrypoint.args, '__worker'].map(shellQuote);
     const wrapper = join(layout.bin, 'haus');
@@ -63,6 +64,9 @@ export async function prepareWorkerCli(layout: WorkerLayout, serverOrigin: strin
         HAUS_SERVER_URL: serverOrigin,
         HAUS_WORKER_TOKEN: token,
         PATH: [layout.bin, runtimeSearchPath({ homeDirectory: machineHome() })].join(':'),
+        TEMP: layout.tmp,
+        TMP: layout.tmp,
+        TMPDIR: layout.tmp,
     };
 }
 

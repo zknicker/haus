@@ -381,6 +381,7 @@ servers/<serverId>/workers/<worker-id>/runtime/drive.json   the folder's bookkee
 servers/<serverId>/workers/<worker-id>/runtime/turns.json   the turn journal
 servers/<serverId>/workers/<worker-id>/runtime/report/      the last report receipt
 servers/<serverId>/workers/<worker-id>/runtime/bin/         the Worker's haus wrapper
+servers/<serverId>/workers/<worker-id>/runtime/tmp/         the harness's TMPDIR
 ```
 
 The checkout is a `git worktree` of the repo's linked clone on that Computer (the link's
@@ -417,9 +418,10 @@ and the Computer has a free slot under its `worker_limit`.
    session. Later turns resume it. Claude Code runs with `bypassPermissions`, the machine user's
    HOME, every settings layer, and no Haus MCP or system prompt. Codex runs with its
    `workspace-write` sandbox and network access, the user's `CODEX_HOME`, native `AGENTS.md`
-   loading, and the checkout, the drive folder, the report folder, and the worktree's git dirs as
-   writable roots. Both run unattended and use none of the Agent host tools, warm pool, or
-   background work.
+   loading, and the checkout, the drive folder, the report folder, `runtime/tmp`, and the
+   worktree's git dirs as writable roots. `/tmp` and the inherited `$TMPDIR` are excluded. Both
+   harnesses get `TMPDIR`, `TMP`, and `TEMP` pointed at the Worker's `runtime/tmp`. Both run
+   unattended and use none of the Agent host tools, warm pool, or background work.
 6. The harness gets `haus` on `PATH` and the turn credential in `HAUS_WORKER_TOKEN`. That `haus`
    runs only `haus worker report` and the Drive read commands, and the credential reaches only
    `POST /api/worker/report` for this turn and the Drive reads (changes, by-path, download). It

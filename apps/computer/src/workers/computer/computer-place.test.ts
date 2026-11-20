@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
     workerHeldFrameSchema,
@@ -91,6 +91,26 @@ describe('a Worker turn on a Computer', () => {
         expect(launch?.input.env.PATH.split(':')[0]).toEndWith('/workers/wrk_1/runtime/bin');
         expect(fake.record.prompts).toEqual(['Write the report.']);
         expect(fake.record.opens).toEqual([{ resumeFrom: undefined, sessionId: 'wrk_1' }]);
+    });
+
+    test('the harness temp folder is the Worker runtime/tmp, and it is a writable root', async () => {
+        const computer = computerPlaces();
+        const { fake, place, sent } = computer.place();
+        await place.accept(computerStart());
+        await sent('worker-turn-ended');
+
+        const workerRoot = join(computer.root, 'data', 'servers', 'srv_1', 'workers', 'wrk_1');
+        const tmp = join(workerRoot, 'runtime', 'tmp');
+        const [launch] = fake.record.launches;
+        expect([launch?.input.env.TMPDIR, launch?.input.env.TMP, launch?.input.env.TEMP]).toEqual(
+            [tmp, tmp, tmp]
+        );
+        expect(launch?.input.writableRoots.slice(0, 3)).toEqual([
+            join(workerRoot, 'drive'),
+            join(workerRoot, 'runtime', 'report'),
+            tmp,
+        ]);
+        expect((await stat(tmp)).isDirectory()).toBe(true);
     });
 
     test('a later turn resumes the native session it was given', async () => {
