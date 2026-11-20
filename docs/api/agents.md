@@ -500,8 +500,9 @@ settled queues a `pull_request` item ([Workers](../../specs/workers.md#pull-requ
 
 **Workers on a Computer.** After journaling a turn the Computer calls
 `POST /computer/workers/turn-credential { attempt, credentialHash, turnId }`. This launch fence
-refuses with `not-dispatched-here`, `settled`, `stop-requested`, `stale-attempt`, `closing`, or
-`place-off`; a re-mint for the same attempt revokes the earlier token. The minted token is the
+refuses with `not-dispatched-here`, `settled`, `stop-requested`, `stale-attempt`,
+`earlier-turn-stopping` (an earlier stopped turn has not been reported ended), `closing`,
+`place-off`, or `repo-unlinked`; a re-mint for the same attempt revokes the earlier token. The minted token is the
 Worker's `HAUS_WORKER_TOKEN` and reaches only `POST /api/worker/report` and the Drive reads
 (`/api/agent/drive/changes`, `/api/agent/artifacts/by-path`, `/api/agent/artifacts/:id/download`).
 `POST /computer/workers/push-credential { credentialHash, turnId }` mints the daemon's push token
@@ -529,7 +530,9 @@ and answers `{ idempotent, turnId, worker }`. It queues the text into the Worker
 turn, or a new one, and posts nothing; `interrupt` first stops the working turn and drops queued
 follow-ups. `POST /api/agent/workers/stop` takes `{ workerId }` and answers `{ worker }`.
 Undispatched turns settle `stopped` at once; dispatched ones get `worker-stop`, or settle on the
-Server at once while the carrier is offline (reconcile still carries the stop). Both routes are the
+Server at once while the carrier is offline. A Computer-place turn settled that way after its turn
+credential was minted stays in reconcile with `stopRequested` until its `worker-turn-ended`
+arrives, and the Worker's later turns wait for it. Both routes are the
 delegating Agent's own (`WORKER_STOP_DENIED`), refuse a closing Worker (`WORKER_CLOSED`), send
 refuses a Worker whose carrier Computer was removed (`WORKER_CARRIER_REMOVED`) or whose Computer
 place switched Workers off (`WORKER_PLACE_OFF`), and stop

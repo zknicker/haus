@@ -35,6 +35,7 @@ export const workerTurnCredentialRefusals = [
     'settled',
     'stop-requested',
     'stale-attempt',
+    'earlier-turn-stopping',
     'closing',
     'place-off',
     'repo-unlinked',

@@ -47,7 +47,15 @@ export async function settleComputerTurn(
         }
         const { turn, worker } = row;
         await recordEnd(tx, { frame, turn, worker });
-        if (turn.outcome || currentTurnAttempt(turn) !== frame.attempt) {
+        if (turn.outcome) {
+            return await withDispatch(tx, storage, worker.serverId, {
+                events: [],
+                frames: [],
+                wakes: [],
+                workerIds: [],
+            });
+        }
+        if (currentTurnAttempt(turn) !== frame.attempt) {
             return null;
         }
         const effects = await applyComputerOutcome(tx, agentDelivery, {

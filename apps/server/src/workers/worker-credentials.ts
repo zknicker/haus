@@ -15,6 +15,7 @@ import {
     workersTable,
 } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { hasEarlierHarnessStop } from './harness-stop.ts';
 import { readWorkerRepoLink } from './read-worker-repo-link.ts';
 import { currentTurnAttempt } from './worker-turn-attempt.ts';
 
@@ -51,6 +52,9 @@ export async function mintWorkerTurnCredential(
         }
         if (currentTurnAttempt(turn) !== input.attempt) {
             return refuse('stale-attempt');
+        }
+        if (await hasEarlierHarnessStop(tx, turn)) {
+            return refuse('earlier-turn-stopping');
         }
         if (worker.closingAt || worker.closedAt) {
             return refuse('closing');

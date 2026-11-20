@@ -2,6 +2,7 @@ import type { WorkerReconcileEntry } from '@haus/api';
 import { and, asc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { workerTurnsTable, workersTable } from '../postgres/schema.ts';
+import { owesHarnessStop } from './harness-stop.ts';
 import { workerPlaceOf } from './worker-row-place.ts';
 
 const carriedTurn = and(
@@ -31,11 +32,16 @@ export async function listComputerWorker(
             and(
                 eq(workersTable.serverId, input.serverId),
                 eq(workersTable.carrierComputerId, input.computerId),
-                inArray(workerTurnsTable.status, ['queued', 'running']),
                 or(
-                    isNotNull(workerTurnsTable.acknowledgedAt),
-                    and(isNull(workerTurnsTable.input), isNull(workerTurnsTable.outcome)),
-                    and(isNotNull(workerTurnsTable.dispatchedAt), stopPending)
+                    and(
+                        inArray(workerTurnsTable.status, ['queued', 'running']),
+                        or(
+                            isNotNull(workerTurnsTable.acknowledgedAt),
+                            and(isNull(workerTurnsTable.input), isNull(workerTurnsTable.outcome)),
+                            and(isNotNull(workerTurnsTable.dispatchedAt), stopPending)
+                        )
+                    ),
+                    owesHarnessStop(workerTurnsTable)
                 )
             )
         )

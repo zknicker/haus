@@ -360,7 +360,8 @@ answer as its next turn.
 `stop` asks the place to end the working turn, or drops a queued one, and drops queued follow-ups.
 The turn records who asked and reads **Stopping** until it settles as `stopped`. A stopped Worker
 takes later follow-ups. A stop while the place is offline settles the turn on the Server at once,
-and the Computer ends the process when it reconnects.
+and the Computer ends the process when it reconnects. Until that Computer reports the turn ended,
+reconcile keeps carrying the stop and no later turn of the Worker dispatches or launches.
 
 ## Workers on a Computer
 

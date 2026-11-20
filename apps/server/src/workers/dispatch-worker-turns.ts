@@ -21,6 +21,7 @@ import {
     workerTurnsTable,
     workersTable,
 } from '../postgres/schema.ts';
+import { owesHarnessStop } from './harness-stop.ts';
 import { readWorkerRepoLink } from './read-worker-repo-link.ts';
 import { workerCloseFrames } from './worker-close-frames.ts';
 import type { WorkerEffects, WorkerFrame } from './worker-effects.ts';
@@ -163,7 +164,7 @@ async function readDispatchCandidates(tx: HausDatabase, serverId: string) {
                                 eq(earlierTurns.serverId, workerTurnsTable.serverId),
                                 eq(earlierTurns.workerId, workerTurnsTable.workerId),
                                 lt(earlierTurns.createdAt, workerTurnsTable.createdAt),
-                                isNull(earlierTurns.outcome)
+                                or(isNull(earlierTurns.outcome), owesHarnessStop(earlierTurns))
                             )
                         )
                 )

@@ -4,16 +4,20 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import {
     agentInboxTable,
     chatMessagesTable,
+    computersTable,
     messageDriveCitationsTable,
     taskPullRequestsTable,
     workerTurnsTable,
 } from '../src/postgres/schema.ts';
-import { stopAgentWorker } from '../src/workers/worker-operations.ts';
+import { acceptWorkerTurn, planCarrierReconnect } from '../src/workers/carrier-frames.ts';
+import { mintWorkerTurnCredential } from '../src/workers/worker-credentials.ts';
+import { sendAgentFollowUp, stopAgentWorker } from '../src/workers/worker-operations.ts';
 import { offlineDelivery } from './agent-inbox-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { type WorkerBoard, closeTask } from './worker-board.fixture.ts';
 import {
     computerPlaceBoard,
+    endTurn,
     readTurn,
     startComputerWorker,
 } from './worker-computer-turn.fixture.ts';
@@ -76,6 +80,83 @@ test('stopping an offline Worker with no draft settles it stopped and posts noth
     expect((await readTurn(connection.db, turnId))?.outcome).toEqual({ kind: 'stopped' });
 });
 
+test('an offline stop stays owed to the harness, and the next turn waits for its ended frame', async () => {
+    const board = await computerPlaceBoard(connection.db);
+    const { delivery } = offlineDelivery(connection.db, board.seed);
+    const { turnId, workerId } = await startComputerWorker(connection.db, board);
+    await acceptWorkerTurn(connection.db, { ...scope(board), attempt: 1, turnId }, null);
+    expect(await mintTurnCredential(board, turnId)).toMatchObject({ state: 'minted' });
+    await recordDraft(board, turnId, workerId);
+    await takeComputerOffline(board);
+    await stopAgentWorker(connection.db, board.runner, workerId, null);
+    const followUp = await sendAgentFollowUp(
+        connection.db,
+        board.runner,
+        { interrupt: false, nonce: null, text: 'Now add the test.', workerId },
+        null
+    );
+    await bringComputerOnline(board);
+
+    const reconnect = await planCarrierReconnect(
+        connection.db,
+        { id: board.seed.computerId, serverId: board.seed.serverId },
+        null
+    );
+
+    expect((await readTurn(connection.db, turnId))?.outcome?.kind).toBe('report');
+    expect(reconnect.frames.map(({ frame }) => frame)).toEqual([
+        {
+            type: 'worker-reconcile',
+            workers: [
+                {
+                    place: { computerId: board.seed.computerId, kind: 'computer' },
+                    providerAgentId: null,
+                    providerRunId: null,
+                    status: 'completed',
+                    stopRequested: true,
+                    turnId,
+                    workerId,
+                },
+            ],
+        },
+    ]);
+    expect((await readTurn(connection.db, followUp.receipt.turnId))?.dispatchedAt).toBeNull();
+
+    const ended = await endTurn(connection.db, delivery, board, { exit: 'stopped', turnId });
+
+    expect(
+        ended?.frames.map(({ frame }) => frame.type === 'worker-turn-start' && frame.turnId)
+    ).toEqual([followUp.receipt.turnId]);
+});
+
+test('the launch fence refuses a later turn until the stopped one is reported ended', async () => {
+    const board = await computerPlaceBoard(connection.db);
+    const { delivery } = offlineDelivery(connection.db, board.seed);
+    const { turnId, workerId } = await startComputerWorker(connection.db, board);
+    await mintTurnCredential(board, turnId);
+    await takeComputerOffline(board);
+    await stopAgentWorker(connection.db, board.runner, workerId, null);
+    const followUp = await sendAgentFollowUp(
+        connection.db,
+        board.runner,
+        { interrupt: false, nonce: null, text: 'Now add the test.', workerId },
+        null
+    );
+    await connection.db.execute(sql`update worker_turns
+        set dispatched_at = now(), dispatch_attempt = 1 where id = ${followUp.receipt.turnId}`);
+
+    const held = await mintTurnCredential(board, followUp.receipt.turnId);
+    await endTurn(connection.db, delivery, board, { exit: 'stopped', turnId });
+    const released = await mintTurnCredential(board, followUp.receipt.turnId);
+
+    expect(held).toEqual({
+        reason: 'earlier-turn-stopping',
+        state: 'refused',
+        turnId: followUp.receipt.turnId,
+    });
+    expect(released).toMatchObject({ state: 'minted', turnId: followUp.receipt.turnId });
+});
+
 async function recordDraft(board: WorkerBoard, turnId: string, workerId: string) {
     const path = `agents/a/reports/${board.task.key}/r.md`;
     await connection.db.execute(sql`
@@ -108,6 +189,27 @@ async function recordDraft(board: WorkerBoard, turnId: string, workerId: string)
 async function takeComputerOffline(board: WorkerBoard) {
     await connection.db.execute(sql`update computers
         set health = 'offline', disconnected_at = now() where id = ${board.seed.computerId}`);
+}
+
+async function bringComputerOnline(board: WorkerBoard) {
+    await connection.db.execute(sql`update computers
+        set health = 'healthy', disconnected_at = null where id = ${board.seed.computerId}`);
+}
+
+async function mintTurnCredential(board: WorkerBoard, turnId: string) {
+    const [computer] = await connection.db
+        .select({ credentialHash: computersTable.credentialHash })
+        .from(computersTable)
+        .where(eq(computersTable.id, board.seed.computerId));
+    return await mintWorkerTurnCredential(connection.db, {
+        attempt: 1,
+        credentialHash: computer?.credentialHash ?? '',
+        turnId,
+    });
+}
+
+function scope(board: WorkerBoard) {
+    return { computerId: board.seed.computerId, serverId: board.seed.serverId };
 }
 
 async function readPosted(board: WorkerBoard, turnId: string) {
