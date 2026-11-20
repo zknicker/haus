@@ -179,7 +179,7 @@ async function addMember(board: WorkerBoard, role: 'member') {
         .insert(usersTable)
         .values({ authSubject: createOpaqueId('clk'), id: userId });
     await connection.db.insert(serverMembershipsTable).values({
-        handle: `member-${userId.slice(-6).toLowerCase()}`,
+        handle: `member-${crypto.randomUUID().slice(0, 6)}`,
         id: createOpaqueId('mem'),
         role,
         serverId: board.seed.serverId,
