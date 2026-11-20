@@ -5,6 +5,7 @@ import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';
 import type { HausDatabase } from '../src/postgres/connection.ts';
 import { computersTable, tasksTable, workerTurnsTable } from '../src/postgres/schema.ts';
 import { readTask } from '../src/tasks/task-read.ts';
+import { setTaskState } from '../src/tasks/task-set-state.ts';
 import { applyWorkerObservation } from '../src/workers/apply-worker-observation.ts';
 import { startWorker } from '../src/workers/start-worker.ts';
 import { insertTaskPlace, seedTaskBoard } from './task-delivery-fixture.ts';
@@ -133,4 +134,14 @@ export async function readTaskState(db: HausDatabase, taskId: string) {
         .from(tasksTable)
         .where(eq(tasksTable.id, taskId));
     return task;
+}
+
+export async function closeTask(db: HausDatabase, board: WorkerBoard, delivery: AgentDelivery) {
+    const current = await readTaskState(db, board.task.id);
+    return await setTaskState(db, { kind: 'user', userId: board.seed.userId }, delivery, {
+        expectedVersion: current?.version ?? 1,
+        serverId: board.seed.serverId,
+        state: 'done',
+        taskId: board.task.id,
+    });
 }

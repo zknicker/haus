@@ -12,6 +12,7 @@ import {
 import { offlineDelivery } from './agent-inbox-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import {
+    closeTask,
     observe,
     readTurns,
     seedWorkerBoard,
@@ -207,6 +208,73 @@ test('a Project purge while the carrier is offline stops the hosted run when the
             stopRequested: true,
             turnId,
             workerId: worker.id,
+        },
+    ]);
+});
+
+test('a Task closed while its carrier is offline stops an unaccepted start when the carrier reconnects', async () => {
+    const board = await seedWorkerBoard(connection.db);
+    const { delivery } = offlineDelivery(connection.db, board.seed);
+    const { worker } = (await startOn(connection.db, board)).receipt;
+    const turnId = worker.turns[0]?.turnId ?? '';
+    await setReadyPlaces(connection.db, board.seed.serverId, board.seed.computerId, [], 'offline');
+
+    const closed = await closeTask(connection.db, board, delivery);
+    const reconnect = await planCarrierReconnect(connection.db, {
+        id: board.seed.computerId,
+        serverId: board.seed.serverId,
+    });
+
+    expect(closed.workerFrames).toEqual([]);
+    expect((await readTurns(connection.db, worker.id)).map((turn) => turn.outcome)).toEqual([
+        { kind: 'stopped' },
+    ]);
+    expect(reconnect.frames.map(({ frame }) => frame)).toEqual([
+        {
+            type: 'worker-reconcile',
+            workers: [
+                {
+                    place: 'cursor',
+                    providerAgentId: null,
+                    providerRunId: null,
+                    status: 'queued',
+                    stopRequested: true,
+                    turnId,
+                    workerId: worker.id,
+                },
+            ],
+        },
+    ]);
+});
+
+test('a stop whose frame the carrier missed is reconciled, not started again, on reconnect', async () => {
+    const board = await seedWorkerBoard(connection.db);
+    const { delivery } = offlineDelivery(connection.db, board.seed);
+    const { worker } = (await startOn(connection.db, board)).receipt;
+    const turnId = worker.turns[0]?.turnId ?? '';
+
+    const closed = await closeTask(connection.db, board, delivery);
+    const reconnect = await planCarrierReconnect(connection.db, {
+        id: board.seed.computerId,
+        serverId: board.seed.serverId,
+    });
+
+    expect(closed.workerFrames?.map(({ frame }) => frame.type)).toEqual(['worker-stop']);
+    expect((await readTurns(connection.db, worker.id)).map((turn) => turn.outcome)).toEqual([null]);
+    expect(reconnect.frames.map(({ frame }) => frame)).toEqual([
+        {
+            type: 'worker-reconcile',
+            workers: [
+                {
+                    place: 'cursor',
+                    providerAgentId: null,
+                    providerRunId: null,
+                    status: 'queued',
+                    stopRequested: true,
+                    turnId,
+                    workerId: worker.id,
+                },
+            ],
         },
     ]);
 });

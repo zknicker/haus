@@ -2,18 +2,17 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentInboxTable, workersTable } from '../src/postgres/schema.ts';
-import { setTaskState } from '../src/tasks/task-set-state.ts';
 import { sendAgentFollowUp } from '../src/workers/worker-operations.ts';
 import { offlineDelivery } from './agent-inbox-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import {
+    closeTask,
     observe,
     readTaskState,
     readTurns,
     seedWorkerBoard,
     setReadyPlaces,
     startOn,
-    type WorkerBoard,
 } from './worker-board.fixture.ts';
 
 let cluster: TestDatabase;
@@ -46,7 +45,7 @@ test('closing a Task stops a working Worker, delivers its outcome once it settle
         workerId: worker.id,
     });
 
-    const closed = await closeTask(board, delivery);
+    const closed = await closeTask(connection.db, board, delivery);
 
     expect(
         closed.workerFrames?.map(({ frame }) => [frame.type, 'turnId' in frame && frame.turnId])
@@ -97,7 +96,7 @@ test('closing a Task with an offline carrier settles its Worker stopped and deli
         'offline'
     );
 
-    const closed = await closeTask(board, delivery);
+    const closed = await closeTask(connection.db, board, delivery);
 
     expect(closed.workerFrames).toEqual([]);
     expect(closed.wakes).toEqual([{ agentId: board.seed.agentId, serverId: board.seed.serverId }]);
@@ -117,30 +116,12 @@ test('closing a Task leaves an idle Worker closed without a second report', asyn
         workerId: worker.id,
     });
 
-    const closed = await closeTask(board, delivery);
+    const closed = await closeTask(connection.db, board, delivery);
 
     expect(closed.workerFrames).toEqual([]);
     expect(await reportItems(board.seed.agentId)).toHaveLength(1);
     expect(await readClosing(worker.id)).toEqual({ closed: true, closing: true });
 });
-
-async function closeTask(
-    board: WorkerBoard,
-    delivery: ReturnType<typeof offlineDelivery>['delivery']
-) {
-    const current = await readTaskState(connection.db, board.task.id);
-    return await setTaskState(
-        connection.db,
-        { kind: 'user', userId: board.seed.userId },
-        delivery,
-        {
-            expectedVersion: current?.version ?? 1,
-            serverId: board.seed.serverId,
-            state: 'done',
-            taskId: board.task.id,
-        }
-    );
-}
 
 async function readClosing(workerId: string) {
     const [row] = await connection.db
