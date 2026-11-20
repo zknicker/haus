@@ -4,7 +4,7 @@ import { MarkdownCodeBlock } from '../../components/code/markdown-code-block.tsx
 import { escapeBareOrderedMarkers } from '../chats/bare-ordered-marker.ts';
 import { isDriveCitationHref } from '../chats/drive-citation-link.ts';
 import { parseHausResourceLink } from '../chats/haus-resource-link.ts';
-import { codeRangeAt, readCodeRanges } from '../chats/markdown-code-ranges.ts';
+import { readMarkdownLinks } from '../chats/markdown-link-syntax.ts';
 import { amazonMarkdownComponents } from './amazon-markdown-components.tsx';
 import { areMentionsEqual, readMentionsFromMarkdown } from './mention-metadata.ts';
 import type { Mention, ReferenceActivation } from './mention-types.ts';
@@ -16,7 +16,6 @@ import {
 } from './reference-link.tsx';
 
 const referenceOrigin = 'https://references.haus.invalid';
-const markdownLinkPattern = /\[([^\]\n]+)\]\(([^)\n]+)\)/gu;
 
 interface ReferenceMarkdownProps {
     chatId?: string;
@@ -119,12 +118,8 @@ export function prepareMarkdownReferences(content: string, suppliedMentions?: re
 /** The source's own reference and resource links, retargeted at a token. */
 function linkEdits(content: string, mentions: readonly Mention[]): MarkdownReferenceEdit[] {
     const mentionsByStart = new Map(mentions.map((mention) => [mention.start, mention]));
-    const code = readCodeRanges(content);
-    return [...content.matchAll(markdownLinkPattern)].flatMap((match) => {
-        const start = match.index;
-        const text = match[0];
-        const target = match[2]?.trim();
-        if (!(text && target) || content[start - 1] === '!' || codeRangeAt(code, start)) {
+    return readMarkdownLinks(content).flatMap(({ end, start, target, targetStart }) => {
+        if (content[start - 1] === '!') {
             return [];
         }
         const reference = mentionsByStart.get(start);
@@ -133,14 +128,13 @@ function linkEdits(content: string, mentions: readonly Mention[]): MarkdownRefer
         if (!(reference || resource)) {
             return [];
         }
-        const targetStart = text.indexOf('](') + 2;
         return [
             {
-                end: start + text.length,
+                end,
                 link: reference
                     ? ({ kind: 'reference', reference } as const)
                     : ({ href: target, kind: 'resource' } as const),
-                linkText: (token: string) => `${text.slice(0, targetStart)}${token})`,
+                linkText: (token: string) => `${content.slice(start, targetStart)}${token})`,
                 start,
             },
         ];

@@ -3,6 +3,7 @@ import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useArtifactPanelOpen } from './artifact-panel-context.tsx';
 import { isDriveCitationHref } from './drive-citation-link.ts';
 import { parseHausResourceLink } from './haus-resource-link.ts';
+import { readMarkdownLinkAt } from './markdown-link-syntax.ts';
 import { SharedArtifactChip } from './shared-artifact-chip.tsx';
 import { useSharedArtifactScope, useSharedArtifactTarget } from './shared-artifact-scope.tsx';
 
@@ -53,33 +54,14 @@ export function MarkdownLink({ children, href }: { children: React.ReactNode; hr
 }
 
 export function matchMarkdownLink(text: string, cursor: number) {
-    if (text[cursor] !== '[') {
+    const link = readMarkdownLinkAt(text, cursor);
+    const href = link ? sanitizeUrl(link.target) : null;
+
+    if (!(link && href)) {
         return null;
     }
 
-    const labelEnd = text.indexOf(']', cursor + 1);
-
-    if (labelEnd <= cursor + 1 || text[labelEnd + 1] !== '(') {
-        return null;
-    }
-
-    const hrefEnd = text.indexOf(')', labelEnd + 2);
-
-    if (hrefEnd <= labelEnd + 2) {
-        return null;
-    }
-
-    const href = sanitizeUrl(text.slice(labelEnd + 2, hrefEnd).trim());
-
-    if (!href) {
-        return null;
-    }
-
-    return {
-        end: hrefEnd + 1,
-        href,
-        label: text.slice(cursor + 1, labelEnd),
-    };
+    return { end: link.end, href, label: link.label };
 }
 
 export function matchBareUrl(text: string) {

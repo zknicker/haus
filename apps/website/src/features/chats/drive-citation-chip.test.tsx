@@ -13,7 +13,22 @@ import { SharedArtifactScopeProvider } from './shared-artifact-scope.tsx';
 const citations: DriveCitation[] = [
     { artifactId: 'art_worker', path: 'agents/blippy/WORKER.md', revisionId: 'rev_3' },
     { artifactId: null, path: 'notes/later.md', revisionId: null },
+    { artifactId: 'art_plan', path: 'plans/Q4 plan.md', revisionId: 'rev_9' },
+    { artifactId: 'art_draft', path: 'plans/Q4 (draft).md', revisionId: 'rev_2' },
 ];
+
+test('an angle-bracket destination and a path with parentheses resolve in both renderers', () => {
+    const content =
+        'See [Q4 plan](<drive://plans/Q4 plan.md>) and [Q4 draft](drive://plans/Q4%20(draft).md).';
+
+    for (const markup of [renderSettled(content), renderStreaming(content)]) {
+        expect(markup).toContain('href="/s/acme/artifacts/art_plan?revision=rev_9"');
+        expect(markup).toContain('>Q4 plan</a>');
+        expect(markup).toContain('href="/s/acme/artifacts/art_draft?revision=rev_2"');
+        expect(markup).toContain('>Q4 draft</a>');
+        expect(markup).not.toContain('drive://');
+    }
+});
 
 test('a resolved drive citation opens its cited revision in the App', () => {
     const markup = renderSettled('I added it to [WORKER.md](drive://agents/blippy/WORKER.md).');
