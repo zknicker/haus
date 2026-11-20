@@ -384,6 +384,17 @@
                 "timer": 0
             }
         },
+        "apps/computer/src/invocations/editor-pdf.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A PDF view closes the one file handle it opened in lexical finally after a bounded read; it owns no detached work.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
         "apps/computer/src/invocations/handler-run.ts": {
             "disposition": "finite-cleanup",
             "reason": "The invocation timeout timer aborts the run's controller and is cleared in lexical finally when the operation returns or throws.",

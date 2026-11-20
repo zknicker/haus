@@ -329,6 +329,25 @@ page. A view shows whole pages until the next would pass 2,000 lines or 50 KiB, 
 `view_range` that continues, in pages. A first page over that cap shows its first 50 KiB and says
 it was cut. The text carries no line numbers, because no PDF line is a `view_range` target.
 
+A view reads only the pages it shows: text is extracted page by page from the selection's first
+page until the cap stops it, never the whole document first, and each page's parsed content is
+released after use. The runner decodes the payload once and hands those bytes to PDF.js without
+copying them. Three limits bound the work, in `pdfLimits` and `maxImagePixels` under
+`apps/runner/src/tools/`:
+
+- **2,000 pages.** A longer PDF is refused before any page is read, with "PDF has <n> pages; the
+  limit is 2000."
+- **16,777,216 pixels per embedded image** (PDF.js `maxImageSize`, 2^24, a 4,096 px square).
+  PDF.js skips a larger image instead of decoding it, so a scan at 300 dpi on Letter or A4 still
+  renders and one hostile image cannot claim gigabytes.
+- **60 seconds.** Reading, extracting, and rendering run under the invocation's stop signal and
+  this timeout. A stop rejects at once, as other tools do. The timeout destroys the document and
+  answers "Reading this PDF took longer than 60 seconds, so view stopped."
+
+The Computer opens the file once without blocking, refuses anything but a regular file (a FIFO or
+a device says it is not a regular file before any read), and reads at most 25 MiB plus one byte
+from that handle, so a file that grows past the limit after its size check is still refused.
+
 The runner renders a page as an image when:
 
 - **It has no text layer.** Its extracted text is empty, as a scanned page's is.
@@ -921,8 +940,8 @@ settings, reminder scripts, host skill discovery, inventory, updates, and Worker
 | A payload is stored and read only under its invocation and Computer, its digest and size match, a run reads only its own invocations' payloads, and no general attachment route reads or attaches one | `apps/server/test/agent-invocation-payloads.test.ts`, `apps/runner/src/invocations/invocation-results.test.ts` | R3 |
 | A result or write over 1 MiB moves as an attachment reference, and no frame exceeds 1 MiB | `apps/computer/src/invocations/large-payload.test.ts` | R2 |
 | A runner upload binds to its dispatch key, a 2 MiB `haus` write reaches the machine through the Computer download with a matching digest, and another run, tool call, or Agent can neither bind nor read it | `apps/server/test/agent-invocation-uploads.test.ts`, `apps/runner/src/haus/haus-cli.test.ts` | R3c |
-| `view` of a PDF returns `application/pdf` bytes by its magic bytes, streams one over 5 MiB, and refuses one over 25 MiB | `apps/computer/src/invocations/editor-pdf.test.ts` | R3c |
-| The runner gives Pi and Claude models a PDF's paged text plus images of exactly its scanned and figure pages, `view_range` selects pages and returns each one's image, and the image bound names the pages it left out | `apps/runner/src/tools/pdf-view.test.ts`, `apps/runner/src/tools/pdf-view-bounds.test.ts` | R3c |
+| `view` of a PDF returns `application/pdf` bytes by its magic bytes, streams one over 5 MiB, refuses one over 25 MiB or grown past it after its stat, and refuses a FIFO without waiting | `apps/computer/src/invocations/editor-pdf.test.ts` | R3c |
+| The runner gives Pi and Claude models a PDF's paged text plus images of exactly its scanned and figure pages, `view_range` selects pages and returns each one's image, and the image bound names the pages it left out, a range reads only its pages, the page cap refuses, and the timeout and a stop settle a render promptly | `apps/runner/src/tools/pdf-view.test.ts`, `pdf-view-bounds.test.ts`, `pdf-limits.test.ts` | R3c |
 | A page image draws text set in a standard font the PDF does not embed from PDF.js's own font data, not the host's | `apps/runner/src/tools/pdf-view.test.ts` | R3c |
 | An SDK MCP tool result cannot carry a PDF to Claude, so Claude gets text and page images | `apps/runner/src/claude/claude-pdf-live.test.ts` (live) | R3c |
 | A lone `haus` command runs on the runner, and a composed one is refused with `HAUS_NOT_ALONE` | `apps/runner/src/haus/haus-command.test.ts` | R3 |

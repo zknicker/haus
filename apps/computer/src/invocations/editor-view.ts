@@ -2,7 +2,7 @@ import type { Dirent } from 'node:fs';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { EditorCommand } from '@haus/api';
-import { isPdf, viewPdf } from './editor-pdf.ts';
+import { isPdf, notRegularFile, viewPdf } from './editor-pdf.ts';
 import { filesystemFailure, imageMediaType, readFileHead, viewImage } from './files.ts';
 import { type OperationContext, textResult } from './operation.ts';
 import { resolveReadPath } from './paths.ts';
@@ -15,8 +15,12 @@ const listingDepth = 2;
 export async function viewPath(command: ViewCommand, context: OperationContext) {
     const absolutePath = await resolveReadPath(command.path, context);
     try {
-        if ((await stat(absolutePath)).isDirectory()) {
+        const info = await stat(absolutePath);
+        if (info.isDirectory()) {
             return await viewDirectory(command.path, absolutePath);
+        }
+        if (!info.isFile()) {
+            return notRegularFile(command.path);
         }
         const head = await readFileHead(absolutePath);
         if (isPdf(head)) {

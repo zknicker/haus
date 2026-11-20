@@ -2,7 +2,9 @@ import { expect, test } from 'bun:test';
 import { renderAgentInstructions } from './managed-instructions.ts';
 import {
     composePdfPage,
+    composePdfTimedOut,
     composePdfTooLarge,
+    composePdfTooManyPages,
     composePdfUnreadable,
     composeUnknownToolCalls,
     pdfViewNotes,
@@ -74,6 +76,10 @@ test("a PDF's view marks each page, and says when a page has no text", () => {
     expect(composePdfPage(1, 3, 'First page text\n')).toBe('[Page 1 of 3]\nFirst page text');
     expect(composePdfPage(2, 3, ' \n')).toBe('[Page 2 of 3]\n(No text on this page.)');
     expect(composePdfTooLarge('26.0MB')).toBe('PDF is 26.0MB; the limit is 25 MiB.');
+    expect(composePdfTooManyPages(2001, 2000)).toBe('PDF has 2001 pages; the limit is 2000.');
+    expect(composePdfTimedOut(60)).toBe(
+        'Reading this PDF took longer than 60 seconds, so view stopped.'
+    );
     expect(composePdfUnreadable('Invalid PDF structure.')).toBe(
         'Could not read the text of this PDF. Invalid PDF structure.'
     );

@@ -73,6 +73,16 @@ export function composePdfTooLarge(size: string) {
     return `PDF is ${size}; the limit is 25 MiB.`;
 }
 
+/** The runner's refusal of a PDF with more pages than `view` reads. */
+export function composePdfTooManyPages(pages: number, limit: number) {
+    return `PDF has ${pages} pages; the limit is ${limit}.`;
+}
+
+/** What `view` shows when reading a PDF outlasts its time limit, given in seconds. */
+export function composePdfTimedOut(seconds: number) {
+    return `Reading this PDF took longer than ${seconds} seconds, so view stopped.`;
+}
+
 /** What `view` shows when a PDF's text cannot be extracted. */
 export function composePdfUnreadable(reason: string) {
     return `Could not read the text of this PDF. ${reason}`;

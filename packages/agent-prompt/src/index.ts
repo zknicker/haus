@@ -29,6 +29,8 @@ export { formatRulesBlock, type RulesChange } from './rules-block.ts';
 export {
     composePdfPage,
     composePdfTooLarge,
+    composePdfTimedOut,
+    composePdfTooManyPages,
     composePdfUnreadable,
     composeUnknownToolCalls,
     pdfViewNotes,

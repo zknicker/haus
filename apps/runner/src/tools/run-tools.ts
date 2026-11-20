@@ -104,7 +104,8 @@ export function createRunTools(input: {
                     { edit: command.command, kind: 'edit' },
                     { signal }
                 ),
-                command.command
+                command.command,
+                signal
             );
         },
         async execute(toolCallId, execute, signal) {

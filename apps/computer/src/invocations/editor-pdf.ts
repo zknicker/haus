@@ -1,4 +1,5 @@
-import { readFile, stat } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { type FileHandle, open } from 'node:fs/promises';
 import { composePdfTooLarge } from '@haus/agent-prompt';
 import { filesystemFailure, stoppedBeforeReturn } from './files.ts';
 import { type OperationContext, textResult } from './operation.ts';
@@ -12,21 +13,53 @@ export function isPdf(head: Uint8Array) {
 }
 
 export async function viewPdf(path: string, absolutePath: string, context: OperationContext) {
+    let handle: FileHandle | null = null;
     try {
-        const { size } = await stat(absolutePath);
-        if (size > pdfByteLimit) {
-            return textResult('failed', composePdfTooLarge(formatSize(size)));
+        handle = await open(absolutePath, constants.O_RDONLY | (constants.O_NONBLOCK ?? 0));
+        const info = await handle.stat();
+        if (!info.isFile()) {
+            return notRegularFile(path);
         }
-        const output = await context.payloads.store(
-            await readFile(absolutePath),
-            'application/pdf',
-            context.signal
-        );
+        if (info.size > pdfByteLimit) {
+            return textResult('failed', composePdfTooLarge(formatSize(info.size)));
+        }
+        const read = await readPdfBytes(handle, pdfByteLimit, context.signal);
+        if (read.kind === 'too-large') {
+            return textResult('failed', composePdfTooLarge(`over ${formatSize(read.limit)}`));
+        }
+        const output = await context.payloads.store(read.bytes, 'application/pdf', context.signal);
         return { outcome: 'completed' as const, output, truncated: false };
     } catch (error) {
         return (
             stoppedBeforeReturn(context.signal, path) ??
             filesystemFailure(error, `Could not read file: ${path}.`)
         );
+    } finally {
+        await handle?.close();
     }
+}
+
+export async function readPdfBytes(handle: FileHandle, limit: number, signal: AbortSignal) {
+    const chunks: Uint8Array[] = [];
+    let total = 0;
+    for await (const chunk of handle.createReadStream({
+        autoClose: false,
+        end: limit,
+        signal,
+        start: 0,
+    })) {
+        chunks.push(chunk);
+        total += chunk.byteLength;
+    }
+    if (total > limit) {
+        return { kind: 'too-large', limit } as const;
+    }
+    return {
+        bytes: chunks.length === 1 && chunks[0] ? chunks[0] : Buffer.concat(chunks, total),
+        kind: 'bytes',
+    } as const;
+}
+
+export function notRegularFile(path: string) {
+    return textResult('failed', `${path} is not a regular file, so view cannot read it.`);
 }

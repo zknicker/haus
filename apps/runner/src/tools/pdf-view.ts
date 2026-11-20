@@ -1,4 +1,10 @@
-import { composePdfPage, composePdfUnreadable, pdfViewNotes } from '@haus/agent-prompt';
+import {
+    composePdfPage,
+    composePdfTimedOut,
+    composePdfTooManyPages,
+    composePdfUnreadable,
+    pdfViewNotes,
+} from '@haus/agent-prompt';
 import type { EditorCommand } from '@haus/api';
 import {
     DEFAULT_MAX_BYTES,
@@ -14,7 +20,13 @@ type ViewRange = readonly [number, number];
 
 const pageImageBound = { range: 10, whole: 5 } as const;
 
-export async function editOutcome(answer: InvocationAnswer, command: EditorCommand) {
+export const pdfLimits = { maxPages: 2000, timeoutMs: 60_000 } as const;
+
+export async function editOutcome(
+    answer: InvocationAnswer,
+    command: EditorCommand,
+    signal: AbortSignal
+) {
     const { frame } = answer;
     const { output } = frame;
     if (
@@ -27,21 +39,39 @@ export async function editOutcome(answer: InvocationAnswer, command: EditorComma
     ) {
         return invocationToolOutcome(answer);
     }
-    const viewed = await viewPdf(Buffer.from(output.base64, 'base64'), command.view_range);
+    const viewed = await viewPdf(Uint8Array.fromBase64(output.base64), command.view_range, {
+        signal,
+    });
     return { ...viewed, invocation: frame.outcome } satisfies ToolOutcome;
 }
 
-async function viewPdf(bytes: Uint8Array, range: ViewRange | undefined) {
+export async function viewPdf(
+    bytes: Uint8Array,
+    range: ViewRange | undefined,
+    options: { signal: AbortSignal; timeoutMs?: number }
+) {
+    const timeoutMs = options.timeoutMs ?? pdfLimits.timeoutMs;
+    const timeout = AbortSignal.timeout(timeoutMs);
     try {
-        return await readPdf(bytes, (pdf) => pdfView(pdf, range));
+        return await readPdf(bytes, AbortSignal.any([options.signal, timeout]), (pdf) =>
+            pdfView(pdf, range)
+        );
     } catch (error) {
-        const reason = error instanceof Error ? error.message : String(error);
-        return { content: [textPart(composePdfUnreadable(reason))], isError: true };
+        options.signal.throwIfAborted();
+        if (timeout.aborted) {
+            return refusal(composePdfTimedOut(timeoutMs / 1000));
+        }
+        return refusal(
+            composePdfUnreadable(error instanceof Error ? error.message : String(error))
+        );
     }
 }
 
-async function pdfView(pdf: PdfPages, range: ViewRange | undefined) {
-    const total = pdf.texts.length;
+export async function pdfView(pdf: PdfPages, range: ViewRange | undefined) {
+    const { total } = pdf;
+    if (total > pdfLimits.maxPages) {
+        return refusal(composePdfTooManyPages(total, pdfLimits.maxPages));
+    }
     const selected = selectPages(range, total);
     if (selected.kind === 'invalid') {
         return {
@@ -49,7 +79,7 @@ async function pdfView(pdf: PdfPages, range: ViewRange | undefined) {
             isError: true,
         };
     }
-    const shown = fitPages(pdf.texts, selected);
+    const shown = await fitPages(pdf, selected);
     const looks = new Map<number, PageLook>();
     for (const page of shown.pages) {
         if (!range) {
@@ -101,12 +131,12 @@ function selectPages(range: ViewRange | undefined, total: number) {
         : ({ kind: 'invalid', range } as const);
 }
 
-function fitPages(texts: readonly string[], selected: { end: number; start: number }) {
+async function fitPages(pdf: PdfPages, selected: { end: number; start: number }) {
     const pages: { block: string; cut: boolean; number: number }[] = [];
     let lines = 0;
     let bytes = 0;
     for (let number = selected.start; number <= selected.end; number++) {
-        const block = composePdfPage(number, texts.length, texts[number - 1] ?? '');
+        const block = composePdfPage(number, pdf.total, await pdf.text(number));
         const blockLines = block.split('\n').length + (pages.length > 0 ? 1 : 0);
         const blockBytes = Buffer.byteLength(block, 'utf-8') + (pages.length > 0 ? 2 : 0);
         if (lines + blockLines > DEFAULT_MAX_LINES || bytes + blockBytes > DEFAULT_MAX_BYTES) {
@@ -153,6 +183,10 @@ function partsBuilder() {
         },
         text,
     };
+}
+
+function refusal(text: string) {
+    return { content: [textPart(text)], isError: true };
 }
 
 function textPart(text: string) {

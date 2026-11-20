@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import { copyFile, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { appendFile, copyFile, mkdtemp, open, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { EditorCommand } from '@haus/api';
+import { readPdfBytes } from './editor-pdf.ts';
 import { editRunner } from './editor.ts';
 import { type InvocationPayloads, inlinePayloads } from './operation.ts';
 import { digest, serveInvocationPayloads } from './payload-server.test-support.ts';
@@ -74,6 +75,30 @@ test('a PDF over 700 KiB streams to the Server and one over 25 MiB is refused', 
         truncated: false,
     });
     expect(server.uploads.map((upload) => upload.contentType)).toEqual(['application/pdf']);
+});
+
+test('a FIFO is refused without waiting for a writer', async () => {
+    expect(Bun.spawnSync(['mkfifo', join(root, 'pipe.pdf')]).exitCode).toBe(0);
+
+    expect(await view('pipe.pdf')).toEqual({
+        outcome: 'failed',
+        output: { kind: 'text', text: 'pipe.pdf is not a regular file, so view cannot read it.' },
+        truncated: false,
+    });
+});
+
+test('a PDF that grows past the limit between its stat and its read is refused', async () => {
+    const path = join(root, 'growing.pdf');
+    await writeFile(path, pdfOfSize(16));
+    const handle = await open(path);
+    const before = await handle.stat();
+    await appendFile(path, new Uint8Array(32));
+
+    const read = await readPdfBytes(handle, 24, new AbortController().signal);
+    await handle.close();
+
+    expect(before.size).toBe(16);
+    expect(read).toEqual({ kind: 'too-large', limit: 24 });
 });
 
 function view(path: string, payloads: InvocationPayloads = inlinePayloads) {

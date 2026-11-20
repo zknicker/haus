@@ -1,7 +1,9 @@
 import { fileURLToPath } from 'node:url';
-import { extractText, getDocumentProxy, getResolvedPDFJS, renderPageAsImage } from 'unpdf';
+import { getDocumentProxy, getResolvedPDFJS, renderPageAsImage } from 'unpdf';
 
-export type PdfPages = Awaited<ReturnType<typeof openedPages>>;
+export type PdfPages = ReturnType<typeof openedPages>;
+
+export const maxImagePixels = 2 ** 24;
 
 export interface PageLook {
     readonly kind: 'figure' | 'scanned' | 'text';
@@ -17,25 +19,61 @@ const standardFontDataUrl = fileURLToPath(
     new URL('standard_fonts/', import.meta.resolve('pdfjs-dist/package.json'))
 );
 
-export async function readPdf<T>(bytes: Uint8Array, view: (pdf: PdfPages) => Promise<T>) {
-    const document = await getDocumentProxy(new Uint8Array(bytes), {
+export async function readPdf<T>(
+    bytes: Uint8Array,
+    signal: AbortSignal,
+    view: (pdf: PdfPages) => Promise<T>
+) {
+    signal.throwIfAborted();
+    const stopped = new Promise<never>((_, reject) => {
+        signal.addEventListener('abort', () => reject(signal.reason), { once: true });
+    });
+    stopped.catch(() => undefined);
+    const opening = getDocumentProxy(bytes, {
+        maxImageSize: maxImagePixels,
         standardFontDataUrl,
         useSystemFonts: false,
         verbosity: 0,
     });
+    const document = await Promise.race([opening, stopped]).catch((error: unknown) => {
+        opening.then(
+            (opened) => opened.loadingTask.destroy(),
+            () => undefined
+        );
+        throw error;
+    });
     try {
-        return await view(await openedPages(document));
+        const viewing = view(openedPages(document));
+        viewing.catch(() => undefined);
+        return await Promise.race([viewing, stopped]);
     } finally {
         await document.loadingTask.destroy();
     }
 }
 
-async function openedPages(document: Awaited<ReturnType<typeof getDocumentProxy>>) {
-    const { text } = await extractText(document, { mergePages: false });
+function openedPages(document: PdfDocument) {
+    const texts = new Map<number, Promise<string>>();
+    const text = (page: number) => {
+        const known = texts.get(page);
+        if (known) {
+            return known;
+        }
+        const extracted = withPage(document, page, async (proxy) =>
+            (await proxy.getTextContent()).items
+                .map((item) => ('str' in item ? item.str + (item.hasEOL ? '\n' : '') : ''))
+                .join('')
+        );
+        texts.set(page, extracted);
+        return extracted;
+    };
     return {
-        texts: text,
+        get extracted() {
+            return [...texts.keys()].sort((a, b) => a - b);
+        },
+        text,
+        total: document.numPages,
         async look(page: number) {
-            if ((text[page - 1] ?? '').trim().length === 0) {
+            if ((await text(page)).trim().length === 0) {
                 return { kind: 'scanned', photographic: true } satisfies PageLook;
             }
             const marks = await pageMarks(document, page);
@@ -47,29 +85,52 @@ async function openedPages(document: Awaited<ReturnType<typeof getDocumentProxy>
                 photographic: marks.imageCoverage >= photographicImageCoverage,
             } satisfies PageLook;
         },
-        async render(page: number, look: PageLook) {
-            const viewport = (await document.getPage(page)).getViewport({ scale: 1 });
-            const format = look.photographic ? 'jpeg' : 'png';
-            const bytes = await renderPageAsImage(document, page, {
-                canvasImport: () => import('@napi-rs/canvas'),
-                format,
-                quality: jpegQuality,
-                ...(viewport.width >= viewport.height
-                    ? { width: imageLongSidePx }
-                    : { height: imageLongSidePx }),
+        render(page: number, look: PageLook) {
+            return withPage(document, page, async (proxy) => {
+                const viewport = proxy.getViewport({ scale: 1 });
+                const format = look.photographic ? 'jpeg' : 'png';
+                const bytes = await renderPageAsImage(document, page, {
+                    canvasImport: () => import('@napi-rs/canvas'),
+                    format,
+                    quality: jpegQuality,
+                    ...(viewport.width >= viewport.height
+                        ? { width: imageLongSidePx }
+                        : { height: imageLongSidePx }),
+                });
+                return {
+                    data: Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength).toString(
+                        'base64'
+                    ),
+                    mimeType: `image/${format}`,
+                    type: 'image',
+                } as const;
             });
-            return {
-                data: Buffer.from(bytes).toString('base64'),
-                mimeType: `image/${format}`,
-                type: 'image',
-            } as const;
         },
     };
 }
 
-async function pageMarks(document: Awaited<ReturnType<typeof getDocumentProxy>>, number: number) {
-    const { OPS } = await getResolvedPDFJS();
+type PdfDocument = Awaited<ReturnType<typeof getDocumentProxy>>;
+type PdfPage = Awaited<ReturnType<PdfDocument['getPage']>>;
+
+async function withPage<T>(
+    document: PdfDocument,
+    number: number,
+    read: (page: PdfPage) => Promise<T>
+) {
     const page = await document.getPage(number);
+    try {
+        return await read(page);
+    } finally {
+        page.cleanup();
+    }
+}
+
+function pageMarks(document: PdfDocument, number: number) {
+    return withPage(document, number, (page) => marksOf(page));
+}
+
+async function marksOf(page: PdfPage) {
+    const { OPS } = await getResolvedPDFJS();
     const [x0, y0, x1, y1] = page.view;
     const { argsArray, fnArray } = await page.getOperatorList();
     const painting = new Set<number>([
