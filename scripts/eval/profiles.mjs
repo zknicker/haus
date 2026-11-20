@@ -116,9 +116,25 @@ export const githubTriggerProfiles = {
  * a rule in MEMORY.md, a rule in the wrong file, a second post, a question back,
  * or an offer to do more.
  */
+/** When the human first speaks outside the root chat: a scenario's own probe, which it judges. */
+export function probeStart(messages, rootChatId) {
+    return (
+        messages
+            .filter((message) => message.author.kind === 'human' && message.chatId !== rootChatId)
+            .map((message) => message.createdAt)
+            .sort()[0] ?? null
+    );
+}
+
 export const ruleFileProfiles = {
     'rule-files-worker': { cap: 40, channel: [1, 1], maxQuestions: 0, spec: 'M7' },
-    'rule-files-agent': { cap: 40, channel: [1, 1], maxQuestions: 0, spec: 'M8' },
+    'rule-files-agent': {
+        cap: 40,
+        channel: [1, 1],
+        maxQuestions: 0,
+        spec: 'M8',
+        until: probeStart,
+    },
 };
 
 /** Jev judge question for the placement eval; its yes-probability maps to 1-5 (pass bar 4). */

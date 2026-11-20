@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 import { sleep } from '../eval-harness.mjs';
+import { authoredInChannel } from './channel-messages.mjs';
+import { waitForAgentReady } from './memory-feedback.mjs';
 
 const pushDeadlineMs = 60_000;
 
@@ -72,6 +74,41 @@ export async function runRuleFile(variant, { agents, expect, kit, log, settleTur
     if (variant === 'worker') {
         expect(memoryAfter, 'MEMORY.md unchanged').toBe(memoryBefore);
     }
+    if (variant === 'agent') {
+        await expectRuleSurvivesReset({ agent, expect, kit, log, settleTurn });
+    }
+}
+
+const probeQuestion =
+    'How does DNS resolution work, from typing a URL into the browser to getting an IP address?';
+
+async function expectRuleSurvivesReset({ agent, expect, kit, log, settleTurn }) {
+    log('resetting the session');
+    await kit.trpc('agent.reset', { agentId: agent.id, kind: 'session', serverId: kit.serverId });
+    await waitForAgentReady(kit, agent.id);
+    const probe = await kit.createChannel({ agentIds: [agent.id] });
+    const head = await kit.readHead(probe.id);
+    await kit.harness.send(probe.id, `@${agent.handle} ${probeQuestion}`);
+    const turn = await settleTurn(agent.id);
+    expect(turn.status, 'probe turn completed').toBe('completed');
+    const replies = await authoredInChannel(kit, probe.id, agent.id, head);
+    const sentences = replies.flatMap(sentencesOf);
+    log(`probe reply: ${sentences.length} sentence(s)`);
+    expect(replies.length > 0, 'probe answered after the session reset').toBe(true);
+    expect(sentences.length <= 3, 'probe reply keeps to three sentences').toBe(true);
+}
+
+const sentenceSegmenter = new Intl.Segmenter('en', { granularity: 'sentence' });
+
+export function sentencesOf(text) {
+    return text
+        .replace(/\[([^\]]*)\]\([^)]*\)/gu, ' $1 ')
+        .split(/\n+/u)
+        .map((line) => line.replace(/^[\s*>#-]+/u, ''))
+        .flatMap((line) =>
+            [...sentenceSegmenter.segment(line)].map(({ segment }) => segment.trim())
+        )
+        .filter((part) => /\p{L}/u.test(part));
 }
 
 function drivePath({ handle }, file) {

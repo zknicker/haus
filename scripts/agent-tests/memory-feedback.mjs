@@ -179,7 +179,7 @@ async function writeEvidence(evidence) {
     await writeFile(file, `${JSON.stringify(evidence, null, 2)}\n`);
 }
 
-async function waitForAgentReady(kit, agentId, timeoutMs = 120_000) {
+export async function waitForAgentReady(kit, agentId, timeoutMs = 120_000) {
     const deadline = Date.now() + timeoutMs;
     while (Date.now() < deadline) {
         const agents = await kit.trpc('agent.list', { serverId: kit.serverId });
