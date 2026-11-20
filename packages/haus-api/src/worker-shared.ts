@@ -10,6 +10,7 @@ import {
 import { workerProviderResultSchema } from './worker-provider-result.ts';
 import { pullRequestReadingSchema, workerPullRequestSchema } from './worker-pull-request.ts';
 import { workerStallCodeSchema } from './worker-stall.ts';
+import { workerStepsSchema } from './worker-steps.ts';
 import { workerTimestampSchema } from './worker-time.ts';
 
 const workerIdSchema = z.string().trim().min(1);
@@ -177,6 +178,8 @@ export const workerTurnSchema = z
             .strict()
             .nullable(),
         status: workerTurnStatusSchema,
+        /** The carrier's step summary; absent until the carrier reports one (W3). */
+        steps: workerStepsSchema.optional(),
         stopRequestedAt: workerTimestampSchema.nullable(),
         stopRequestedBy: workerStopRequestedBySchema.nullable(),
         summary: z.string().trim().min(1).max(workerSummaryMaxLength).nullable(),

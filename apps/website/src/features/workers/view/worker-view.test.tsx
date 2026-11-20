@@ -20,7 +20,7 @@ const followUp: WorkerTurnInput = {
     text: 'Match iPhone.',
 };
 
-test('the Worker view is a chat transcript: the brief first, the Worker\u2019s report once, and the composer', () => {
+test('the Worker page is a session log: the brief first, the report once, and the docked composer', () => {
     const worker = work({
         turns: [
             turn({ input: [followUp], status: 'running', turnId: 'wkt_two' }),
@@ -39,9 +39,8 @@ test('the Worker view is a chat transcript: the brief first, the Worker\u2019s r
     expect(html).toContain('Forge');
     expect(html).toContain('Zach');
     expect(html.match(/Fixed five of six\./gu)).toHaveLength(1);
-    expect(html).toContain('Needs you, worked for');
+    expect(html).toContain('Needs you · worked for');
     expect(html).toContain('aria-label="Stop Worker"');
-    expect(html).toContain('Worker on Cursor');
 });
 
 test('a Worker on a chatless legacy Task reads its summary and takes no follow-ups', () => {
@@ -69,6 +68,32 @@ test('a turn that ended without a report says why', () => {
     });
 
     expect(renderWorkerSurface(<WorkerView workerId={worker.id} />, { task, worker })).toContain(
-        'Failed: Ended without a report'
+        'Failed · Ended without a report'
     );
+});
+
+test('step summaries render as one monospace line per kind, and the log works without them', () => {
+    const steps = [
+        {
+            additions: null,
+            deletions: null,
+            kind: 'read' as const,
+            label: 'src/PromptInput.tsx',
+            ok: null,
+        },
+        {
+            additions: 6,
+            deletions: 4,
+            kind: 'edit' as const,
+            label: 'styles/default-theme.css',
+            ok: null,
+        },
+    ];
+    const worker = work({ turns: [turn({ input: [brief], status: 'completed', steps })] });
+    const html = renderWorkerSurface(<WorkerView workerId={worker.id} />, { task, worker });
+
+    expect(html).toContain('› Read PromptInput.tsx');
+    expect(html).toContain('› Edited default-theme.css');
+    expect(html).toContain('+6');
+    expect(html.match(/data-testid="worker-step-line"/gu)).toHaveLength(2);
 });

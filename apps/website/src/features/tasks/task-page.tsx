@@ -2,12 +2,15 @@ import type { TaskDetail } from '@haus/api';
 import { EmptyState } from '@heroui-pro/react';
 import { Button } from '@heroui/react';
 import { Alert02Icon, Task01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import { useNavigate } from 'react-router-dom';
+import * as React from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useTask } from '../../hooks/tasks/use-task.ts';
 import { useServerContext } from '../servers/server-context.ts';
-import { tasksRoute } from '../servers/server-routes.ts';
+import { tasksRoute, workerRoute } from '../servers/server-routes.ts';
 import { PageColumn } from '../shell/page-column.tsx';
+import { WorkerPane } from '../workers/log/worker-pane.tsx';
+import { WorkerOpenContext } from '../workers/worker-open-context.tsx';
 import { WorkerSummariesProvider } from '../workers/worker-summaries.tsx';
 import { TaskConversation } from './conversation/task-conversation.tsx';
 import { TaskDetailsCard } from './details/task-details-card.tsx';
@@ -47,29 +50,61 @@ function TaskDetailView({
     panelShown: boolean;
     task: TaskDetail;
 }) {
+    const [params, setParams] = useSearchParams();
+    const navigate = useNavigate();
+    const { server } = useServerContext();
+    const openWorkerId = panelShown ? params.get('worker') : null;
+    const openWorker = React.useCallback(
+        (workerId: string) => {
+            if (panelShown) {
+                setParams((current) => withWorker(current, workerId));
+            } else {
+                navigate(workerRoute(server.slug, workerId));
+            }
+        },
+        [navigate, panelShown, server.slug, setParams]
+    );
+    const closeWorker = () => setParams((current) => withWorker(current, null));
+
     return (
         <WorkerSummariesProvider workers={task.attachedWork}>
-            <div
-                className={
-                    panelShown
-                        ? 'grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_18rem] gap-8 pe-5'
-                        : 'flex min-h-0 flex-1'
-                }
-            >
-                <TaskConversation
-                    chatId={chatId}
-                    origin={task.origin}
-                    title={`${task.key} ${task.title}`}
-                />
-                {panelShown ? (
-                    <div className="flex min-h-0 flex-col gap-3 overflow-y-auto pt-4 pb-6">
-                        <TaskDetailsCard task={task} />
-                        <TaskWorkPanel task={task} />
-                    </div>
-                ) : null}
-            </div>
+            <WorkerOpenContext value={openWorker}>
+                <div
+                    className={
+                        openWorkerId
+                            ? 'grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(22rem,32rem)]'
+                            : panelShown
+                              ? 'grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_18rem] gap-8 pe-5'
+                              : 'flex min-h-0 flex-1'
+                    }
+                >
+                    <TaskConversation
+                        chatId={chatId}
+                        origin={task.origin}
+                        title={`${task.key} ${task.title}`}
+                    />
+                    {openWorkerId ? (
+                        <WorkerPane onClose={closeWorker} workerId={openWorkerId} />
+                    ) : panelShown ? (
+                        <div className="flex min-h-0 flex-col gap-3 overflow-y-auto pt-4 pb-6">
+                            <TaskDetailsCard task={task} />
+                            <TaskWorkPanel task={task} />
+                        </div>
+                    ) : null}
+                </div>
+            </WorkerOpenContext>
         </WorkerSummariesProvider>
     );
+}
+
+function withWorker(params: URLSearchParams, workerId: null | string) {
+    const next = new URLSearchParams(params);
+    if (workerId) {
+        next.set('worker', workerId);
+    } else {
+        next.delete('worker');
+    }
+    return next;
 }
 
 function TaskHistoryView({ task }: { task: TaskDetail }) {

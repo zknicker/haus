@@ -36,7 +36,11 @@ export function renderWorkerSurface(
         links: [() => () => observable(() => () => undefined)],
     });
     const utils = createTRPCQueryUtils({ client, queryClient });
-    utils.server.bySlug.setData({ slug: 'cards' }, { ...server, role: 'member' } as never);
+    utils.server.bySlug.setData({ slug: 'cards' }, {
+        ...server,
+        onboarding: { phase: 'complete' },
+        role: 'member',
+    } as never);
     utils.agent.list.setData({ serverId }, [
         testAgent({ displayName: 'Forge', id: 'agt_one', serverId }),
         testAgent({ displayName: 'Tiny', id: 'agt_tiny', serverId }),

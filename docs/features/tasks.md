@@ -42,17 +42,17 @@ the Task's Details (state, assignee, priority, labels, due date) and its attache
 per Worker, each attached pull request no card names with its state, checks, and review, and any
 reminder the Agent set on the Task, such as "checks back at 7:35".
 
-A counted **Workers** section lists one two-line row per Worker, as Capy lists a parent's children:
-a place icon and the title, then its status, its needs-you question or place, and its age. A counted
-**Pull requests** section lists the Task's pull requests as two-line rows (`repo#n` and title, then
-state and checks with the diff size). Opening a Worker opens its own page beside the Task, read like
-a thread: the brief as the first message, follow-ups from whoever sent them, the Worker's report
-once with its ask and cited Drive files (each opening at the cited revision), a centered line as
-each turn ends ("Needs you, worked for 17m"), its pull request in an Overview pane, and the composer
-at the bottom, whose send button is Stop while a turn is live and the field is empty. Open in the
-provider and Copy link sit behind the page's ••• menu. In the conversation, a report is a centered
-muted line ("Fix iPad composer baseline needs you, worked for 17m") and a person's follow-up
-carries a "To Worker on Cursor" context line. Both open the Worker's page.
+A counted **Workers** section lists one two-line row per Worker: a status glyph and the title, then
+its needs-you question or place, and its age. Expanding a row shows its latest step or activity, its
+report in a line, its question, **Open full log**, and a compact composer to answer from the row. A
+counted **Pull requests** section lists the Task's pull requests. Opening a Worker replaces the
+panel with the Worker's pane beside the Task chat, so the Task never leaves the screen; ← and ✕
+return to the panel. The pane is a session log, not a chat: tinted prompt blocks, one monospace line
+per kind of step when the Worker reported its steps, the report behind a rule with its question,
+cited Drive files and pull requests, and a docked composer whose send button is Stop while a turn is
+live and the field is empty. In the conversation, a report is a centered muted line ("Fix iPad
+composer baseline needs you, worked for 17m") and a person's follow-up carries a "To Worker on
+Cursor" context line. Both open the Worker's pane.
 
 **Mentioned in** lists the messages that reference the Task. A section with nothing to list is
 absent. **Copy reference** copies the bare key, which is what a message references.
