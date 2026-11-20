@@ -139,9 +139,11 @@ about the session.
 - Pi has no event stream. The harness builds `TurnEvent`s by observing each commit to the
   conversation (`pi.live` partials, tool slots and run failures) and its committed entries, with
   partials committed every 50 ms. Usage comes from each committed assistant entry.
-- Busy delivery uses Pi's steering queue, which places a steer at the next tool boundary. Pi starts
-  a successor run for any steer still queued when a run answers, so a Pi turn lasts until the
-  conversation is idle, and `unconsumedSteers()` is always empty: nothing comes back to the inbox.
+- Busy delivery uses Pi's steering queue, which places a steer at the next tool boundary. A steer
+  counts as delivered only once Pi has placed it in conversation history, not when Pi queues it.
+  Pi starts a successor run for any steer still queued when a run answers, so a Pi turn lasts until
+  the conversation is idle. On abort, the harness withdraws every steer Pi has not placed and
+  returns it through `unconsumedSteers()`, so the executor redelivers it as it does for Claude.
 - A turn left running by a crash is aborted when its store reopens, not resumed into a turn no one
   observes. The interrupted-turn input reports it, as for Claude.
 - Providers come from Pi: `openai-codex` (ChatGPT plans), `xai`, `google` and `openrouter`. A
@@ -298,7 +300,8 @@ the GPT tools with Pi Durable, the first harness that serves GPT models. `apply_
 `edit` operation's `{ command: 'apply_patch', input, cwd? }` variant, applied by the Codex parser
 ported to `apps/computer/src/invocations/codex/` (Computer protocol 40). Every hunk is checked in
 memory before any write, so a refused patch changes nothing, and Add File over an existing file
-or Move to onto one is refused where Codex would overwrite. `shell` quotes its argv into one
+or Move to onto one is refused where Codex would overwrite. Every destination write commits
+before any source is removed, so a failed write never loses a moved or deleted file. `shell` quotes its argv into one
 `bash` command. When the argv is a `bash`, `sh` or `zsh` `-c`/`-lc` wrapper, the lone-`haus` check
 reads the inner script, because GPT models wrap nearly every command that way.
 
