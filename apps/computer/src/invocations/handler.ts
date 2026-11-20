@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import {
+    agentPathSegment,
     type InvokeCommand,
     invocationOutcomeNotices,
     invokeCancelCommandSchema,
@@ -58,7 +59,9 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
             queue.run(command.agentId, async () => {
                 const record = await accepted;
                 if (record) {
-                    await settleDriveFolder(join(input.agentsRoot, command.agentId));
+                    await settleDriveFolder(
+                        join(input.agentsRoot, agentPathSegment(command.agentId))
+                    );
                     await run(command, record, controller);
                 }
             })

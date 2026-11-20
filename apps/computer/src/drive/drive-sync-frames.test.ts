@@ -50,6 +50,10 @@ test('drive-pull and drive-push frames sync the Agent folder under a run credent
         { credentialHash, runnerId: 'arc_1' },
         { credentialHash, runnerId: 'arc_2' },
     ]);
+    expect(sync.receive({ agentId: '../agt_alpha', runId: 'run_2', type: 'drive-pull' })).toBe(
+        true
+    );
+    expect(authority.minted).toHaveLength(2);
     expect(sync.receive({ invocationId: 'inv_1', type: 'invoke-cancel' })).toBe(false);
 });
 

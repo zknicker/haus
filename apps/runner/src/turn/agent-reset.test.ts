@@ -29,6 +29,12 @@ test('a full reset deletes the Agent data on the volume, and a restart or sessio
     await turnHost.resetAgent('agt_kept', 'restart');
     await turnHost.resetAgent('agt_kept', 'session');
     await turnHost.resetAgent('agt_reset', 'full');
+    await expect(turnHost.resetAgent('../agt_kept', 'full')).rejects.toThrow(
+        'is not an Agent id that can name a directory.'
+    );
+    await expect(turnHost.resetAgent('..', 'full')).rejects.toThrow(
+        'is not an Agent id that can name a directory.'
+    );
     await turnHost.close();
 
     expect(await readdir(join(dataDir, 'agents'))).toEqual(['agt_kept']);

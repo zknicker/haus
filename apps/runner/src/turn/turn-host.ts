@@ -1,6 +1,6 @@
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { AgentTurnSummary } from '@haus/api';
+import { type AgentTurnSummary, agentPathSegment } from '@haus/api';
 import type { RunnerConfig } from '../config.ts';
 import type { DispatchLedger, RecoveredDispatch } from '../dispatch/ledger.ts';
 import {
@@ -69,7 +69,7 @@ export function createTurnHostWith(input: {
     const active = new Map<string, ActiveRun>();
     const queues = new Map<string, Promise<unknown>>();
     const paths = (agentId: string) => {
-        const agentDir = join(input.dataDir, 'agents', agentId);
+        const agentDir = join(input.dataDir, 'agents', agentPathSegment(agentId));
         return { agentDir, runtimeDir: join(agentDir, 'runtime') };
     };
 
