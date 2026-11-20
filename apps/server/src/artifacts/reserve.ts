@@ -80,7 +80,7 @@ export async function requireStorageBudget(tx: HausDatabase, serverId: string, b
 
 export async function insertUploadingRevision(
     tx: HausDatabase,
-    access: Pick<ArtifactAccess, 'agentId' | 'authorKey' | 'serverId' | 'userId'>,
+    access: Pick<ArtifactAccess, 'agentId' | 'authorKey' | 'serverId' | 'userId' | 'worker'>,
     write: {
         artifact: Artifact;
         base: string | null;
@@ -100,6 +100,7 @@ export async function insertUploadingRevision(
             authorAgentId: access.agentId,
             authorKey: access.authorKey,
             authorUserId: access.userId,
+            authorWorkerId: access.worker?.workerId ?? null,
             baseRevisionId: write.base,
             contentType: write.contentType,
             filename: artifactPathBasename(write.path),

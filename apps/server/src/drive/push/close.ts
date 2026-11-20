@@ -1,4 +1,9 @@
-import type { DriveConflictFile, DrivePushOutcome, DriveRevision } from '@haus/api';
+import type {
+    DriveConflictAttention,
+    DriveConflictFile,
+    DrivePushOutcome,
+    DriveRevision,
+} from '@haus/api';
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import type { AgentDelivery } from '../../agent-delivery/delivery.ts';
 import type { HausDatabase } from '../../postgres/connection.ts';
@@ -36,7 +41,7 @@ export async function closePushIn(
                           files: listed,
                           id: driveConflictKey(push.id),
                           pushId: push.id,
-                          writer: { agentId: push.agentId, type: 'agent' },
+                          writer: pushWriter(push),
                       },
                       recipientAgentId: push.agentId,
                       serverId: push.serverId,
@@ -50,6 +55,19 @@ export async function closePushIn(
         serverId: push.serverId,
     });
     return { listed, wakes };
+}
+
+function pushWriter(push: DrivePush) {
+    return (
+        push.workerId && push.taskId
+            ? {
+                  agentId: push.agentId,
+                  taskId: push.taskId,
+                  type: 'worker',
+                  workerId: push.workerId,
+              }
+            : { agentId: push.agentId, type: 'agent' }
+    ) satisfies DriveConflictAttention['writer'];
 }
 
 async function pushOutcomes(tx: HausDatabase, push: DrivePush) {

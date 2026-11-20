@@ -71,7 +71,6 @@ export async function reportComputerHandshake(
                 ...facts,
                 connectionGeneration,
                 health: compatible ? handshake.health : 'update-required',
-                disconnectedAt: null,
                 lastConnectedAt: connectedAt,
                 ...(await handshakeUpdateColumns(tx, computer.id, update, connectedAt)),
             })

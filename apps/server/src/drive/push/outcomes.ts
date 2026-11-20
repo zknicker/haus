@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { type ArtifactErrorCode, artifactPathSchema, type DriveRevision } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { liveArtifactAtPath } from '../../artifacts/path.ts';
-import { artifactCreator } from '../../artifacts/read.ts';
+import { revisionAuthor } from '../../artifacts/read.ts';
 import { ArtifactError } from '../../artifacts/storage.ts';
 import type { HausDatabase } from '../../postgres/connection.ts';
 import {
@@ -48,10 +48,7 @@ export function driveRevisionOf(artifact: Pick<Artifact, 'id' | 'path'>, revisio
     }
     return {
         artifact_id: artifact.id,
-        author: artifactCreator({
-            creatorAgentId: revision.authorAgentId,
-            creatorUserId: revision.authorUserId,
-        }),
+        author: revisionAuthor(revision),
         content_type: revision.contentType,
         path: artifact.path,
         revision_id: revision.id,

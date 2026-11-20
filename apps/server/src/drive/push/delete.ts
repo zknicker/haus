@@ -1,10 +1,9 @@
 import { drivePushDeleteInputSchema, type DrivePushOutcome } from '@haus/api';
 import * as z from 'zod';
-import { type ArtifactAccess, artifactAccess } from '../../artifacts/access.ts';
+import { type ArtifactAccess, type ArtifactActor, artifactAccess } from '../../artifacts/access.ts';
 import { softDeleteArtifacts } from '../../artifacts/delete.ts';
 import { lockLiveServer } from '../../artifacts/move.ts';
 import { liveArtifactAtPath } from '../../artifacts/path.ts';
-import type { ResolvedRunner } from '../../computers/runner-credentials.ts';
 import type { HausDatabase } from '../../postgres/connection.ts';
 import { artifactUpdatedTopic } from '../../realtime/topics.ts';
 import { writableDrivePath } from '../areas.ts';
@@ -21,10 +20,10 @@ import { type DrivePush, openPush, requireOpenPush } from './session.ts';
 
 const deleteBody = drivePushDeleteInputSchema.extend({ path: z.string().min(1).max(4096) });
 
-export async function pushDelete(options: DrivePushOptions, runner: ResolvedRunner, body: unknown) {
+export async function pushDelete(options: DrivePushOptions, actor: ArtifactActor, body: unknown) {
     const input = deleteBody.parse(body);
     const { db } = options;
-    const access = await artifactAccess(db, { kind: 'agent', runner });
+    const access = await artifactAccess(db, actor);
     const request = deleteRequest(input);
     const stored = await storedOutcome(db, access, input.request_id, request);
     if (stored) {

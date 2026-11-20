@@ -18,6 +18,7 @@ import {
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { readTask } from '../tasks/task-read.ts';
 import { isLiveChat } from './worker-attention.ts';
+import { revokeTurnCredentials } from './worker-credentials.ts';
 import { resolveWorkerPerson } from './worker-person.ts';
 import { postWorkerReportMessage, workerReportContent } from './worker-report-message.ts';
 
@@ -179,6 +180,7 @@ async function recordOutcome(
     input: { outcome: WorkerOutcome; turnId: string; worker: WorkerRow }
 ) {
     const { worker } = input;
+    await revokeTurnCredentials(tx, worker.serverId, [input.turnId]);
     await tx
         .update(workerTurnsTable)
         .set({ outcome: input.outcome, stallCode: null, stallSince: null })

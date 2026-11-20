@@ -1,4 +1,5 @@
 import {
+    type ArtifactAuthor,
     type ArtifactCreator,
     type ArtifactMetadata,
     type ArtifactRecord,
@@ -226,10 +227,19 @@ export function toArtifactMetadata(record: ArtifactRecord): ArtifactMetadata {
     return metadata;
 }
 
-/** `artifact_revision_author_shape` guarantees exactly one author column. */
-function revisionAuthor(
-    revision: Pick<typeof revisions.$inferSelect, 'authorAgentId' | 'authorUserId'>
-): ArtifactCreator {
+export function revisionAuthor(
+    revision: Pick<
+        typeof revisions.$inferSelect,
+        'authorAgentId' | 'authorUserId' | 'authorWorkerId'
+    >
+): ArtifactAuthor {
+    if (revision.authorWorkerId && revision.authorAgentId) {
+        return {
+            agent_id: revision.authorAgentId,
+            type: 'worker',
+            worker_id: revision.authorWorkerId,
+        };
+    }
     return artifactCreator({
         creatorAgentId: revision.authorAgentId,
         creatorUserId: revision.authorUserId,

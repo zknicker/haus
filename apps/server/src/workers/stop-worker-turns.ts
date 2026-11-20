@@ -8,6 +8,7 @@ import {
     workersTable,
 } from '../postgres/schema.ts';
 import { WorkerClosedError, WorkerHistoryReadOnlyError, WorkerNotFoundError } from './errors.ts';
+import { revokeTurnCredentials } from './worker-credentials.ts';
 import { workerPlaceOf } from './worker-row-place.ts';
 
 type WorkerRow = typeof workersTable.$inferSelect;
@@ -106,6 +107,7 @@ async function settleUnsentAsStopped(tx: HausDatabase, worker: WorkerRow, turnId
     if (turnIds.length === 0) {
         return;
     }
+    await revokeTurnCredentials(tx, worker.serverId, turnIds);
     await tx
         .update(workerTurnsTable)
         .set({
@@ -143,6 +145,7 @@ async function settleStoppedOnServer(tx: HausDatabase, worker: WorkerRow, turnId
     if (turnIds.length === 0) {
         return;
     }
+    await revokeTurnCredentials(tx, worker.serverId, turnIds);
     await tx
         .update(workerTurnsTable)
         .set({ outcome: { kind: 'stopped' }, stallCode: null, stallSince: null })
