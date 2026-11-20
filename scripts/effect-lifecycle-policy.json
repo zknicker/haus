@@ -384,9 +384,9 @@
                 "timer": 0
             }
         },
-        "apps/computer/src/invocations/editor-pdf.ts": {
+        "apps/computer/src/invocations/editor-view.ts": {
             "disposition": "finite-cleanup",
-            "reason": "A PDF view closes the one file handle it opened in lexical finally after a bounded read; it owns no detached work.",
+            "reason": "A view closes the one non-blocking file handle it opened in lexical finally after a bounded read; it owns no detached work.",
             "risks": {
                 "abortController": 0,
                 "catchAndIgnore": 0,

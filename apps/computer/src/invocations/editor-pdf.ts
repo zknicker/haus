@@ -1,5 +1,4 @@
-import { constants } from 'node:fs';
-import { type FileHandle, open } from 'node:fs/promises';
+import type { FileHandle } from 'node:fs/promises';
 import { composePdfTooLarge } from '@haus/agent-prompt';
 import { filesystemFailure, stoppedBeforeReturn } from './files.ts';
 import { type OperationContext, textResult } from './operation.ts';
@@ -12,18 +11,16 @@ export function isPdf(head: Uint8Array) {
     return pdfMagic.every((byte, index) => head[index] === byte);
 }
 
-export async function viewPdf(path: string, absolutePath: string, context: OperationContext) {
-    let handle: FileHandle | null = null;
+export async function viewPdf(
+    path: string,
+    file: { handle: FileHandle; size: number },
+    context: OperationContext
+) {
+    if (file.size > pdfByteLimit) {
+        return textResult('failed', composePdfTooLarge(formatSize(file.size)));
+    }
     try {
-        handle = await open(absolutePath, constants.O_RDONLY | (constants.O_NONBLOCK ?? 0));
-        const info = await handle.stat();
-        if (!info.isFile()) {
-            return notRegularFile(path);
-        }
-        if (info.size > pdfByteLimit) {
-            return textResult('failed', composePdfTooLarge(formatSize(info.size)));
-        }
-        const read = await readPdfBytes(handle, pdfByteLimit, context.signal);
+        const read = await readPdfBytes(file.handle, pdfByteLimit, context.signal);
         if (read.kind === 'too-large') {
             return textResult('failed', composePdfTooLarge(`over ${formatSize(read.limit)}`));
         }
@@ -34,8 +31,6 @@ export async function viewPdf(path: string, absolutePath: string, context: Opera
             stoppedBeforeReturn(context.signal, path) ??
             filesystemFailure(error, `Could not read file: ${path}.`)
         );
-    } finally {
-        await handle?.close();
     }
 }
 
