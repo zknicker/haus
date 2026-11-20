@@ -205,4 +205,28 @@ describe('runner server link', () => {
             isError: true,
         });
     });
+
+    test('restart, resets, and retire reach the turn host with the right scope, in order', async () => {
+        const server = serverStandIn();
+        const runner = await attachRunner(server);
+        await server.frame('runner-inventory');
+        server.send({ agentId: 'agt_1', type: 'agent-restart' });
+        server.send({
+            agentId: 'agt_1',
+            kind: 'session',
+            sessionGeneration: 2,
+            type: 'agent-reset',
+        });
+        server.send({ agentId: 'agt_1', kind: 'full', sessionGeneration: 3, type: 'agent-reset' });
+        server.send({ agentId: 'agt_2', type: 'agent-retire' });
+        server.start();
+        await runner.host.started;
+
+        expect(runner.host.resets).toEqual([
+            { agentId: 'agt_1', scope: 'restart' },
+            { agentId: 'agt_1', scope: 'session', sessionGeneration: 2 },
+            { agentId: 'agt_1', scope: 'full', sessionGeneration: 3 },
+            { agentId: 'agt_2', scope: 'retire' },
+        ]);
+    });
 });

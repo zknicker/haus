@@ -41,6 +41,14 @@ export function useAgentIds(serverId: string): readonly string[] {
     return query.data ?? noIds;
 }
 
+/** Whether the Server has any Captain; undefined until `agent.list` settles. */
+export function useHasAgents(serverId: string): boolean | undefined {
+    return hausTrpc.agent.list.useQuery(
+        { serverId },
+        { ...queryPolicy.syncedSnapshot, select: selectHasAgents }
+    ).data;
+}
+
 /** What an Agent's mark shows: who it is, never its runtime state, which churns. */
 export interface AgentMark {
     avatarUrl: Agent['avatarUrl'];
@@ -90,6 +98,10 @@ const noIds: readonly string[] = [];
 const offline: AgentPresence = { availability: 'offline', paused: false };
 
 // A selected result is shared structurally: equal id lists keep the previous array.
+function selectHasAgents(agents: Agent[]) {
+    return agents.length > 0;
+}
+
 function selectAgentIds(agents: Agent[]): string[] {
     return agents.map((agent) => agent.id);
 }

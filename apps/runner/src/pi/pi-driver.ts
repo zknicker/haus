@@ -135,6 +135,9 @@ export function createPiHarness(options: {
             clearInterval(expiry);
             return closeAll(pool.drain());
         },
+        release(agentId: string) {
+            return closeAll(pool.take(agentId));
+        },
         driver,
         factory,
         get warm() {

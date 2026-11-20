@@ -12,9 +12,13 @@ export const runnerMintRequestSchema = z
         agentId: idSchema,
         chatId: idSchema.nullable(),
         credentialHash: z.string().regex(/^[a-f0-9]{64}$/u),
+        /** A drive-sync credential reaches only the Drive sync routes and lives 15 minutes. */
+        purpose: z.enum(['run', 'drive-sync']).default('run'),
         runId: idSchema,
     })
     .strict();
+
+export const driveSyncRunnerCapability = 'drive-sync' as const;
 
 export type RunnerMintRequest = z.infer<typeof runnerMintRequestSchema>;
 

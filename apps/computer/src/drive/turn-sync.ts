@@ -1,3 +1,4 @@
+import { once } from 'node:events';
 import { settle } from '@haus/effect';
 import { Effect } from 'effect';
 import type { RunAgentLaunchOptions } from '../launch.ts';
@@ -23,6 +24,10 @@ export async function settleDriveFolder(agentRoot: string) {
     await folderTurns.get(agentRoot);
 }
 
+export function holdDriveFolder(agentRoot: string, signal: AbortSignal, work: () => Promise<void>) {
+    return inFolderTurn(agentRoot, work, signal);
+}
+
 export function pullDriveBeforeTurn(
     options: RunAgentLaunchOptions,
     agentRoot: string,
@@ -35,17 +40,94 @@ export function pushDriveAfterTurn(options: RunAgentLaunchOptions, agentRoot: st
     return inFolderTurn(agentRoot, () => pushAfterTurn(options, agentRoot));
 }
 
-async function inFolderTurn(agentRoot: string, run: () => Promise<void>) {
-    const previous = folderTurns.get(agentRoot) ?? Promise.resolve();
-    const next = previous.then(run);
-    folderTurns.set(agentRoot, next);
+export interface DriveRun {
+    agentId: string;
+    current: () => boolean;
+    now: () => number;
+    mint: () => Promise<{ runnerId: string; runnerToken: string }>;
+    revoke: (runnerId: string) => Promise<unknown>;
+    runId: string;
+    serverOrigin: string;
+    warn: (event: string, detail: string) => void;
+}
+
+export function pullDriveForRun(agentRoot: string, run: DriveRun) {
+    return inFolderTurn(agentRoot, async () => {
+        if (!run.current() || discardedFolders.has(agentRoot)) {
+            return;
+        }
+        await withRunToken(run, 'drive-pull-failed', async (token) => {
+            const pulled = await pullDrive({
+                layout: driveFolderLayout(agentRoot, run.agentId),
+                remote: driveRemote({ serverOrigin: run.serverOrigin, token }),
+            });
+            if (!pulled.advanced) {
+                run.warn('drive-pull-blocked', `${pulled.blocked} local paths blocked`);
+            }
+        });
+    });
+}
+
+export function pushDriveForRun(agentRoot: string, run: DriveRun) {
+    return inFolderTurn(agentRoot, async () => {
+        if (!run.current() || discardedFolders.has(agentRoot)) {
+            return;
+        }
+        const plan = await planDrivePush(driveFolderLayout(agentRoot, run.agentId));
+        if (plan.isEmpty) {
+            return;
+        }
+        await withRunToken(run, 'drive-push-failed', async (token) => {
+            const remote = driveRemote({ serverOrigin: run.serverOrigin, token });
+            const pushed = await sendDrivePush(plan, remote, run.runId);
+            for (const file of pushed.failed) {
+                run.warn('drive-push-file-failed', `${file.path}: ${file.message}`);
+            }
+        });
+    });
+}
+
+async function withRunToken(
+    run: DriveRun,
+    failure: string,
+    work: (token: () => Promise<string>) => Promise<void>
+) {
+    const minted: string[] = [];
+    let held: { at: number; token: string } | null = null;
+    const token = async () => {
+        if (!held || run.now() - held.at >= tokenRenewMs) {
+            const runner = await run.mint();
+            minted.push(runner.runnerId);
+            held = { at: run.now(), token: runner.runnerToken };
+        }
+        return held.token;
+    };
     try {
-        await next;
+        await work(token);
+    } catch (error) {
+        run.warn(failure, messageOf(error));
     } finally {
-        if (folderTurns.get(agentRoot) === next) {
-            folderTurns.delete(agentRoot);
+        for (const runnerId of minted) {
+            await run
+                .revoke(runnerId)
+                .catch((error: unknown) => run.warn('drive-revoke-failed', messageOf(error)));
         }
     }
+}
+
+const tokenRenewMs = 10 * 60 * 1000;
+
+async function inFolderTurn(agentRoot: string, run: () => Promise<void>, signal?: AbortSignal) {
+    const previous = folderTurns.get(agentRoot) ?? Promise.resolve();
+    const next = (signal ? Promise.race([previous, abortOf(signal)]) : previous).then(run);
+    const tail = Promise.allSettled([previous, next]);
+    folderTurns.set(agentRoot, tail);
+    void tail.then(() => {
+        if (folderTurns.get(agentRoot) === tail) {
+            folderTurns.delete(agentRoot);
+        }
+    });
+    await next;
 }
 
 async function pullBeforeTurn(
@@ -110,6 +192,12 @@ async function warn(options: RunAgentLaunchOptions, event: string, detail: strin
             })
         )
     );
+}
+
+async function abortOf(signal: AbortSignal) {
+    if (!signal.aborted) {
+        await once(signal, 'abort');
+    }
 }
 
 function messageOf(error: unknown) {

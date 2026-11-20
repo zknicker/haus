@@ -10,7 +10,12 @@ import type { HausUser } from '../users/haus-user.ts';
 import { liveEventSchema } from './live-events.ts';
 import { createVoiceAgentBridge } from './voice-agent-bridge.ts';
 import { readVoiceAudioCommand } from './voice-audio-command.ts';
-import { type VoiceChatScope, type VoiceTarget, voiceInstructions } from './voice-context.ts';
+import {
+    type VoiceChatScope,
+    type VoiceLoopHost,
+    type VoiceTarget,
+    voiceInstructions,
+} from './voice-context.ts';
 import { liveHistory, voiceTextChunks } from './voice-text.ts';
 
 export interface VoiceCallOptions {
@@ -19,6 +24,7 @@ export interface VoiceCallOptions {
     connectLive?: () => WebSocket;
     db: HausDatabase;
     delivery: AgentDelivery;
+    host: VoiceLoopHost;
     member: HausUser;
     postCommitWork: ServerPostCommitWork;
     runtime: EffectRuntime<never>;

@@ -3,10 +3,10 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { planRulesDelivery } from '@haus/agent-prompt';
+import { driveRoutes } from '../runner-drive-routes.ts';
 import {
     cleanups,
     drainCleanups,
-    driveRoutes,
     runCredential,
     type ServerStandIn,
     serverStandIn,

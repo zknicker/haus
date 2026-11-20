@@ -15,6 +15,9 @@ import {
 import {
     agentDeliveryAckSchema,
     agentNoticeAckSchema,
+    agentResetCommandSchema,
+    agentRestartCommandSchema,
+    agentRetireCommandSchema,
     agentTurnSummarySchema,
     runnerTokenSchema,
 } from './agent-runner.ts';
@@ -44,6 +47,8 @@ export const runnerStartFrameSchema = z
         /** The connection the Server chose for this run; null when the Agent's provider has none. */
         modelConnectionId: idSchema.nullable(),
         runCredential: runnerTokenSchema,
+        /** How the Agent's session last reset, applied once when the runner first sees its generation. */
+        sessionResetKind: z.enum(['full', 'session']),
         start: agentStartCommandSchema,
         type: z.literal('runner-start'),
     })
@@ -109,6 +114,9 @@ export const runnerDownFrameSchema = z.union([
     runnerStartFrameSchema,
     agentNoticeCommandSchema,
     agentStopCommandSchema,
+    agentRestartCommandSchema,
+    agentResetCommandSchema,
+    agentRetireCommandSchema,
     agentExecutionJournalAckSchema,
     invocationResultFrameSchema,
     ...runnerModelConnectionDownFrameSchemas,

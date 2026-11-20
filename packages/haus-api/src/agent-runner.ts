@@ -1,4 +1,5 @@
 import { agentNoticeCommandSchema, agentStartCommandSchema } from './agent-delivery-frames.ts';
+import { driveSyncCommandSchemas } from './agent-drive-sync.ts';
 import { agentExecutionJournalAckSchema } from './agent-execution-journal-upload.ts';
 import { invocationCommandSchemas } from './agent-invocations.ts';
 import { agentStopBackgroundCommandSchema, agentStopCommandSchema } from './agent-stop-commands.ts';
@@ -133,6 +134,7 @@ export const agentCommandSchema = z.discriminatedUnion('type', [
     serverDeleteCommandSchema,
     serverRuntimeSettingsCommandSchema,
     ...invocationCommandSchemas,
+    ...driveSyncCommandSchemas,
 ]);
 
 export type AgentCommand = z.infer<typeof agentCommandSchema>;
