@@ -4,7 +4,7 @@ import {
     type CloudAgentSettingsTarget,
     useSetCloudAgentModel,
 } from '../../../hooks/servers/use-cloud-agent-settings.ts';
-import { cloudAgentProviderName } from '../../cloud-agents/cloud-agent-provider-presentation.ts';
+import { cloudAgentProviderName } from '../../workers/cloud-agent-provider-presentation.ts';
 import { SettingsFact, SettingsRowError } from '../layout/settings-text.tsx';
 import { type CloudAgentModelParamsView, settingWithParam } from './cloud-agent-params.ts';
 

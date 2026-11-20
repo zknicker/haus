@@ -10,7 +10,7 @@ final class RealtimeStreamRestartsTests: XCTestCase {
     func testTheIPhoneSubscribesToEveryFocusedChatStream() {
         XCTAssertEqual(Set(RealtimeStream.allCases.map(\.path)), [
             "chat.onMessageCreated", "chat.onMessageReactionUpdated", "chat.onRead",
-            "chat.onLifecycle", "cloudAgentWork.onUpdated",
+            "chat.onLifecycle", "worker.onUpdated",
             "claim.onChanged", "taskLabel.onUpdated", "task.onCreated",
             "task.onUpdated", "task.onFollowUpdated", "agent.onLifecycle", "agent.onActivity",
             "computer.onUpdated", "server.onUpdated",

@@ -184,11 +184,11 @@ export async function inspectAgentInbox(db: HausDatabase, runner: ResolvedRunner
         return [
             {
                 chatId,
-                cloudAgentResult: group.some((item) => item.cloudAgentWork !== undefined),
+                workerResult: group.some((item) => item.worker !== undefined),
                 // Released Computers still read these two; current ones derive them from `target`.
                 dm: latest.target.startsWith('dm:'),
                 // Where `message read --after` starts to show the pending messages;
-                // null when only fires, assignments, or Cloud Agent results wait.
+                // null when only fires, assignments, or Worker results wait.
                 firstSequence: firstMessageSequence(group),
                 firstShortId: shortId(first.id),
                 latestSender: latest.senderHandle,
@@ -223,7 +223,7 @@ function typedSenderHandle(source: string): AgentAutomationEvent['senderHandle']
 /**
  * The short id `haus inbox check` prints in a target's `first msg=`/`latest
  * msg=` slot, by the rule the notice's `shortInboxId` applies to the same item.
- * A Trigger or Reminder fire and a Cloud Agent Run have no Chat message behind
+ * A Trigger or Reminder fire and a Worker Run have no Chat message behind
  * them, so they print `-`; a claim assignment prints the claim message it hands
  * over, which is the id the Agent can actually address.
  */

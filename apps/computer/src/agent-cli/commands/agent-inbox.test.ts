@@ -30,7 +30,7 @@ const pendingBody = {
     rows: [
         {
             chatId: 'cht_richard',
-            cloudAgentResult: false,
+            workerResult: false,
             firstSequence: 1201,
             firstShortId: 'first',
             latestSender: 'richard',

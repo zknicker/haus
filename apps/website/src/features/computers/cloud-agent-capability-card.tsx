@@ -7,7 +7,7 @@ import { CloudAgentProviderCapability } from './cloud-agent-provider-capability.
  * beside its runtimes, not a runtime itself. The two stay separate because a
  * provider's cloud credential and its runtime CLI can live in different
  * stores even for one account. One row per provider; the default is the one
- * `haus cloud-agent start` uses when an Agent names none.
+ * `haus worker start` uses when an Agent names none.
  */
 export function CloudAgentCapabilityCard({
     computerId,

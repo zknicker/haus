@@ -101,9 +101,9 @@ export function CloudAgentProviderCapability({
     const handleMakeDefault = async () => {
         try {
             await makeDefault.mutateAsync(target);
-            toast.success(`${view.providerName} is now the default cloud agent`);
+            toast.success(`${view.providerName} is now the default place for Workers`);
         } catch (error) {
-            toast.danger('Couldn’t change the default cloud agent', {
+            toast.danger('Couldn’t change the default place for Workers', {
                 description: errorMessage(error),
             });
         }

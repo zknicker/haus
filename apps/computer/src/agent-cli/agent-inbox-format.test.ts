@@ -200,14 +200,14 @@ test('the mentions view leads only with mentioned pending rows', () => {
     expect(output).not.toContain('#quiet');
 });
 
-test('Cloud Agent results fold into one row that points at message check', () => {
+test('Worker results fold into one row that points at message check', () => {
     const output = render({
         list: list({ items: [dmRow], totals: { conversations: 1, dms: 1, mentions: 0 } }),
         pendingRows: [
-            pending({ cloudAgentResult: true, latestSender: 'haus', pendingCount: 2 }),
+            pending({ workerResult: true, latestSender: 'haus', pendingCount: 2 }),
             pending({
                 chatId: 'cht_richard',
-                cloudAgentResult: true,
+                workerResult: true,
                 latestSender: 'haus',
                 target: 'dm:@richard',
             }),
@@ -217,11 +217,11 @@ test('Cloud Agent results fold into one row that points at message check', () =>
         [
             'Inbox: 1 unread conversation (1 DM, 0 with mentions). Newest activity first.',
             '',
-            'Cloud Agent results · 3 pending · fetch with haus message check',
+            'Worker results · 3 pending · fetch with haus message check',
             'dm:@richard · 3 unread · latest @richard 12m ago',
             '  open: haus message read --target "dm:@richard" --after 1200',
             '',
-            'Next: fetch the Cloud Agent results above: haus message check',
+            'Next: fetch the Worker results above: haus message check',
         ].join('\n')
     );
 });
@@ -255,7 +255,7 @@ function list(overrides: Partial<AgentInboxConversations> = {}): AgentInboxConve
 function pending(overrides: Partial<AgentInboxPendingRow>): AgentInboxPendingRow {
     return {
         chatId: 'cht_ops',
-        cloudAgentResult: false,
+        workerResult: false,
         firstShortId: 'first',
         latestSender: 'zach',
         latestShortId: 'first',

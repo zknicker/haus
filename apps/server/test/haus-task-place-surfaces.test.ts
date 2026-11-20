@@ -1,19 +1,19 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import type { CloudAgentWorkUpdatedEvent, TaskUpdatedEvent } from '@haus/api';
-import { cloudAgentWorkUpdatedTopic, taskUpdatedTopic } from '../src/realtime/topics.ts';
-import { cloudAgentFixture } from './cloud-agent-fixture.ts';
-import { cloudAgentLinkHelpers } from './cloud-agent-link-helpers.ts';
+import type { WorkerUpdatedEvent, TaskUpdatedEvent } from '@haus/api';
+import { workerUpdatedTopic, taskUpdatedTopic } from '../src/realtime/topics.ts';
 import { captureTopic, type TopicCapture } from './realtime-capture.ts';
 import { startTestTask } from './task-place-fixture.ts';
+import { workerLinkHelpers } from './worker-link-helpers.ts';
+import { workerRecordFixture } from './worker-record-fixture.ts';
 
-const fixture = cloudAgentFixture();
-const { agentPost } = cloudAgentLinkHelpers(fixture);
+const fixture = workerRecordFixture();
+const { agentPost } = workerLinkHelpers(fixture);
 let taskEvents: TopicCapture<TaskUpdatedEvent>;
-let workEvents: TopicCapture<CloudAgentWorkUpdatedEvent>;
+let workEvents: TopicCapture<WorkerUpdatedEvent>;
 
 beforeAll(() => {
     taskEvents = captureTopic(taskUpdatedTopic);
-    workEvents = captureTopic(cloudAgentWorkUpdatedTopic);
+    workEvents = captureTopic(workerUpdatedTopic);
 });
 
 afterAll(() => {
@@ -82,7 +82,7 @@ test('a reminder set on a Task shows on it, naming the Agent that set it', async
     ]);
 });
 
-test('launching work on a Task announces the Task, and work events and rows name it', async () => {
+test('starting a Worker on a Task names the Task in its event and its Happening now row', async () => {
     const runner = await fixture.mintRunner('run_surfaces_launch');
     await fixture.readTarget(runner, `task:${fixture.task.key}`);
     const started = await fixture.postStart(
@@ -90,16 +90,15 @@ test('launching work on a Task announces the Task, and work events and rows name
         fixture.startBody({ nonce: 'surfaces-launch' })
     );
     expect(started.status).toBe(200);
-    const workId = started.body.work?.id ?? '';
+    const workerId = started.body.worker?.id ?? '';
 
-    await taskEvents.next((event) => event.taskId === fixture.task.id);
-    const workEvent = await workEvents.next((event) => event.workId === workId);
+    const workEvent = await workEvents.next((event) => event.workerId === workerId);
     expect(workEvent.taskId).toBe(fixture.task.id);
 
-    const rows = await fixture.owner.trpc.cloudAgentWork.listActive.query({
+    const rows = await fixture.owner.trpc.worker.listActive.query({
         serverId: fixture.serverId,
     });
-    expect(rows.find((row) => row.work.id === workId)).toMatchObject({
+    expect(rows.find((row) => row.worker.id === workerId)).toMatchObject({
         taskId: fixture.task.id,
         taskKey: fixture.task.key,
     });

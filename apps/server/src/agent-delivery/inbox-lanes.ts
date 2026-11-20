@@ -14,7 +14,9 @@ import { chatlessInboxSources } from '@haus/api';
  */
 export const concreteInboxSources = [
     'onboarding',
-    'cloud_agent_work',
+    'worker_report',
+    'worker_stall',
+    'pull_request',
     'trigger',
     'trigger_problem',
     'image_generation_failed',
@@ -38,7 +40,9 @@ export function isConcreteInboxSource(source: string): boolean {
 export const bodilessInboxSources = [
     'onboarding',
     'greeting',
-    'cloud_agent_work',
+    'worker_report',
+    'worker_stall',
+    'pull_request',
     'trigger_problem',
     'image_generation_failed',
     'delivery_problem',

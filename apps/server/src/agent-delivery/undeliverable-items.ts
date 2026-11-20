@@ -3,6 +3,7 @@ import { and, asc, eq, inArray, ne } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { isWorkerAttentionSource } from '../workers/worker-inbox-sources.ts';
 import { chatlessAttention } from './chatless-run.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import * as store from './store.ts';
@@ -17,7 +18,7 @@ interface AgentScope {
 /**
  * Settles items that can never reach the model, so they stop failing every
  * batch they join, and tells the Agent about each one with an ordinary inbox
- * item of its own (specs/cloud-agent-run-lifecycle.md). The note is built from
+ * item of its own (specs/worker-turn-lifecycle.md). The note is built from
  * plain row fields, never the item's content, so it cannot fail the same way.
  * Rows settle `seen` because every other reader treats anything unseen as live.
  */
@@ -102,8 +103,8 @@ async function renderAlone(db: HausDatabase, row: store.InboxItemRow): Promise<v
 }
 
 function itemLabel(row: { dedupeKey: string; source: string }): string {
-    if (row.source === 'cloud_agent_work') {
-        return `cloud agent notice ${row.dedupeKey}`;
+    if (isWorkerAttentionSource(row.source) || row.source === 'worker_report') {
+        return `Worker notice ${row.dedupeKey}`;
     }
     return row.source === 'human'
         ? `message ${row.dedupeKey} from a person`

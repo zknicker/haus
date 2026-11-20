@@ -31,8 +31,8 @@ test('pending profile lists keep headings and actions without premature empty st
     );
     expect(markup).toContain('Reminders</h');
     expect(markup).toContain('Triggers</h');
-    expect(markup).toContain('Cloud agents</h');
-    expect(markup).not.toContain('No cloud agents awaiting');
+    expect(markup).toContain('Workers</h');
+    expect(markup).not.toContain('No Workers awaiting');
     expect(markup).toContain('aria-label="New Trigger"');
     expect(markup).toContain('aria-label="View reminder history"');
     expect(markup).not.toContain('Nothing scheduled');

@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, test } from 'bun:test';
+import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
+import { openDispatchLedger } from '../dispatch/ledger.ts';
 import type { ToolOutcome } from '../run-context.ts';
-import { drainCleanups, live, startedRun } from '../runner-test-server.ts';
+import { drainCleanups, live, runCredential, startedRun } from '../runner-test-server.ts';
 
 afterEach(drainCleanups);
 
@@ -27,6 +29,121 @@ describe('haus on the runner', () => {
 
         expect([absolute, relative]).toEqual([workspaceRefusal, workspaceRefusal]);
         expect(server.requests).toEqual([]);
+    });
+
+    test('a 2 MiB attachment view uploads first and the file-write carries its reference', async () => {
+        const photo = randomBytes(2 * 1024 * 1024);
+        const sha256 = createHash('sha256').update(photo).digest('hex');
+        const { run, server } = await startedRun({
+            '/api/agent/attachments/att_photo': () =>
+                Response.json({
+                    attachment: {
+                        byteSize: photo.byteLength,
+                        dataBase64: photo.toString('base64'),
+                        filename: 'photo.jpg',
+                        id: 'att_photo',
+                        mediaType: 'image/jpeg',
+                    },
+                }),
+            '/api/agent/invocation-payloads': (body) =>
+                Response.json({
+                    ...(body as object),
+                    attachmentId: 'att_upload0000000001',
+                    mediaType: 'application/octet-stream',
+                }),
+        });
+
+        const viewed = run.tools.bash(
+            'toolu_1',
+            { command: 'haus attachment view att_photo --output ./photo.jpg' },
+            live()
+        );
+
+        expect(await server.frame('invocation-request')).toEqual({
+            agentId: 'agt_1',
+            operation: {
+                bytes: {
+                    attachmentId: 'att_upload0000000001',
+                    kind: 'attachment',
+                    mediaType: 'application/octet-stream',
+                    sha256,
+                    sizeBytes: 2_097_152,
+                },
+                kind: 'file-write',
+                mode: 0o600,
+                path: './photo.jpg',
+            },
+            runId: 'run_1',
+            seq: 0,
+            timeoutMs: 60_000,
+            toolCallId: 'toolu_1',
+            type: 'invocation-request',
+        });
+        server.answer({
+            outcome: 'completed',
+            output: { kind: 'text', text: 'Wrote 2097152 bytes to ./photo.jpg.' },
+            runId: 'run_1',
+            seq: 0,
+            toolCallId: 'toolu_1',
+        });
+        expect(await viewed).toEqual({
+            content: [{ text: 'Saved attachment to ./photo.jpg.', type: 'text' }],
+            isError: false,
+        });
+        expect(server.requests.map(({ body, method, path }) => ({ body, method, path }))).toEqual([
+            { body: null, method: 'GET', path: '/api/agent/attachments/att_photo' },
+            {
+                body: { sha256, sizeBytes: 2_097_152 },
+                method: 'PUT',
+                path: '/api/agent/invocation-payloads?toolCallId=toolu_1&seq=0',
+            },
+        ]);
+        expect(server.requests[1]?.authorization).toBe(`Bearer ${runCredential}`);
+    });
+
+    test('a refused upload sends no invocation, writes nothing, and settles the dispatch failed', async () => {
+        const photo = randomBytes(800 * 1024);
+        const { run, runner } = await startedRun({
+            '/api/agent/attachments/att_photo': () =>
+                Response.json({
+                    attachment: {
+                        byteSize: photo.byteLength,
+                        dataBase64: photo.toString('base64'),
+                        filename: 'photo.jpg',
+                        id: 'att_photo',
+                        mediaType: 'image/jpeg',
+                    },
+                }),
+            '/api/agent/invocation-payloads': () =>
+                Response.json({ error: 'Too large.' }, { status: 413 }),
+        });
+
+        expect(
+            await run.tools.bash(
+                'toolu_1',
+                { command: 'haus attachment view att_photo --output ./photo.jpg' },
+                live()
+            )
+        ).toEqual({
+            content: [
+                {
+                    text: [
+                        'Saved attachment to ./photo.jpg.',
+                        './photo.jpg was not written to the machine.',
+                        'The bytes could not reach the Server, so nothing was written. The Server refused the payload upload (HTTP 413).',
+                    ].join('\n'),
+                    type: 'text',
+                },
+            ],
+            isError: true,
+        });
+        expect(
+            await openDispatchLedger(runner.dataDir).read('agt_1', {
+                runId: 'run_1',
+                seq: 0,
+                toolCallId: 'toolu_1',
+            })
+        ).toMatchObject({ kind: 'invocation', outcome: 'failed', state: 'finished' });
     });
 
     test("a trigger payload file is read from the Agent's machine, not the runner's disk", async () => {

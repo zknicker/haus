@@ -18,7 +18,7 @@ is a different thing: an Agent's lock on a message ([Claims](claims.md)).
 ## Where a Task comes from
 
 An Agent starts a Task when its reply will not finish the work: the work needs more steps, more
-time, or a cloud agent. A person asks an Agent; there is no button to create a Task. The Task
+time, or a Worker. A person asks an Agent; there is no button to create a Task. The Task
 starts from a message in a Channel and takes that Channel's key, so the first Task from
 `#security` might be `SEC-12`. One message can carry several Tasks.
 
@@ -39,7 +39,7 @@ composer.
 
 On a wide enough pane, a right-hand panel on the page background, with no dividing border, holds
 the Task's Details (state, assignee, priority, labels, due date) and its attached work: one card
-per cloud agent with the newest Run's summary in full, each attached pull request with its state,
+per Worker with its newest turn's summary in full, each attached pull request with its state,
 checks, and review, and any reminder the Agent set on the Task, such as "checks back at 7:35".
 On a narrower pane, the band's Details control opens the same Details.
 

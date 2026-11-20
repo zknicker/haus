@@ -1,6 +1,7 @@
 import type { MessageBody } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { readCreatedAgentsForMessages } from '../server-agents/agent-created-shape.ts';
+import { readWorkerMessageBodies } from '../workers/worker-message-bodies.ts';
 
 /**
  * Projects every typed Message body for one page of Messages. This is the one
@@ -13,10 +14,12 @@ export async function readMessageBodies(
     messageIds: string[]
 ): Promise<Map<string, MessageBody>> {
     const createdAgents = await readCreatedAgentsForMessages(db, serverId, messageIds);
-    return new Map<string, MessageBody>(
-        [...createdAgents].map(
+    const workerBodies = await readWorkerMessageBodies(db, serverId, messageIds);
+    return new Map<string, MessageBody>([
+        ...[...createdAgents].map(
             ([messageId, agent]) =>
                 [messageId, { agent, kind: 'agent-created' }] as [string, MessageBody]
-        )
-    );
+        ),
+        ...workerBodies,
+    ]);
 }

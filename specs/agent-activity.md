@@ -30,7 +30,7 @@ the category is current.
 | `checking_messages` | `Checking messages…` | A structured Haus message check/read/search boundary runs |
 | `received_message` | `Received a new message…` | Server consumes a notice-ack that marks new queued work noticed by the run |
 | `thinking` | `Thinking…` | Runtime reasoning starts; text stays out of Activity |
-| `updating_instructions` | `Updating instructions…` | A managed instruction or factory-guidance refresh runs |
+| `updating_instructions` | `Updating instructions…` | A managed instruction or factory-managed skill refresh runs |
 | `browsing` | `Browsing…` | A known Browser capability runs |
 | `searching_web` | `Searching the web…` | A known provider or Haus web-search capability runs |
 | `reading_files` | `Reading files…` | A known file-read capability runs |

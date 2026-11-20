@@ -1,0 +1,293 @@
+import { isTerminalWorkerTurnStatus } from '@haus/api';
+import { resolveRuntimeExecutable } from '../../runtime-discovery.ts';
+import {
+    type WorkerLaunch,
+    WorkerLaunchRejectedError,
+    type CloudAgentProvider,
+    type CloudAgentProviderObservation,
+    CloudAgentProviderUnavailableError,
+    type CloudAgentReadiness,
+    type WorkerTurnRef,
+    cloudAgentUnreadyMessage,
+} from '../provider.ts';
+import { withClaudeCheckout } from './checkout.ts';
+import {
+    type ClaudeController,
+    type ClaudeSessionEvent,
+    createClaudeController,
+} from './controller.ts';
+import {
+    ClaudeCloudEnvironmentUnavailableError,
+    cloudAgentEnvironmentsOf,
+    listClaudeCloudEnvironments,
+    listClaudeCloudEnvironmentsAutoPinning,
+} from './environments.ts';
+import { readClaudeNativeAccount } from './native-auth.ts';
+import { launchNativeClaudeCloud, sendNativeClaudeCloud } from './native-commands.ts';
+import { claudeRunObservation } from './observation.ts';
+import { claudeRunTag, isRunPrompt, logEntriesOf } from './session-events.ts';
+
+/** Claude's own model aliases; each follows Claude's newest model of that tier. */
+const claudeModels = [
+    { description: 'Balanced speed and capability.', displayName: 'Claude Sonnet', id: 'sonnet' },
+    { description: 'Claude’s most capable model.', displayName: 'Claude Opus', id: 'opus' },
+    { description: 'The fastest Claude model.', displayName: 'Claude Haiku', id: 'haiku' },
+];
+const pollInterval = 10_000;
+const answerSettleTimeout = 30_000;
+
+/**
+ * Claude Code's cloud sessions, behind `CloudAgentProvider`. Launches and
+ * follow-ups go through this Computer's own `claude` CLI; readings come from
+ * the hosted session's state and event log. Nothing Haus-specific runs inside
+ * Claude's environment: a question surfaces because the session itself stops
+ * on `requires_action`, and the delegating Agent answers with a follow-up.
+ */
+export function createClaudeCloudAgentProvider(
+    dataRoot: string,
+    controller: ClaudeController = createClaudeController(),
+    resolveExecutable: typeof resolveRuntimeExecutable = resolveRuntimeExecutable
+): CloudAgentProvider {
+    // The chronological window since this Run's own tagged prompt, once found.
+    // A later tick resumes from its newest event instead of rescanning the
+    // whole backward history again, so a long, busy session never has to pay
+    // for the very scan that first found it (TECH-7).
+    const windows = new Map<string, ClaudeSessionEvent[]>();
+    const read = async (
+        ref: WorkerTurnRef,
+        signal?: AbortSignal
+    ): Promise<CloudAgentProviderObservation> => {
+        const sessionId = requireSession(ref);
+        const tag = claudeRunTag(ref);
+        const cached = windows.get(ref.turnId) ?? null;
+        const newest = cached?.[0]?.sequence;
+        const stop = newest
+            ? (event: ClaudeSessionEvent) => compareSequence(event.sequence, newest) <= 0
+            : (event: ClaudeSessionEvent) => isRunPrompt(event, tag);
+        const [session, page] = await Promise.all([
+            controller.session(sessionId, signal),
+            controller.events(sessionId, stop, signal),
+        ]);
+        const events = cached ? resumedWindow(page.events, cached, newest as string) : page.events;
+        const observation = claudeRunObservation({
+            cancelRequestId: cancelRequestId(ref),
+            events,
+            observedAt: new Date().toISOString(),
+            ref,
+            session,
+            truncated: !cached && page.truncated,
+        });
+        if (isTerminalWorkerTurnStatus(observation.status)) {
+            windows.delete(ref.turnId);
+        } else if (cached || !page.truncated || ref.providerRunId) {
+            windows.set(ref.turnId, events);
+        }
+        return observation;
+    };
+    const readiness = async (): Promise<CloudAgentReadiness> => {
+        if (!resolveExecutable('claude')) {
+            return { ready: false, reason: 'provider-unavailable' };
+        }
+        const account = await readClaudeNativeAccount();
+        return account.signedIn
+            ? { account: { email: account.email, expiresAt: null }, ready: true }
+            : { ready: false, reason: 'not-connected' };
+    };
+    return {
+        async cancel(ref, signal) {
+            const sessionId = requireSession(ref);
+            const tag = claudeRunTag(ref);
+            const entries = (
+                await controller.events(sessionId, (event) => isRunPrompt(event, tag), signal)
+            ).events.flatMap(logEntriesOf);
+            const requestId = cancelRequestId(ref);
+            if (
+                entries.some(
+                    (entry) => entry.kind === 'control-response' && entry.requestId === requestId
+                )
+            ) {
+                return;
+            }
+            // An interrupt halts the foreground turn; each background task needs its own stop.
+            for (const taskId of openTaskIds(entries)) {
+                await controller.stopTask(
+                    sessionId,
+                    { requestId: `haus-stop-${ref.turnId}-${taskId}`, taskId },
+                    signal
+                );
+            }
+            await controller.interrupt(sessionId, requestId, signal);
+        },
+        // Claude Cloud uses the Computer's own Claude Code sign-in; Haus starts none of its own.
+        connect: readiness,
+        disconnect: readiness,
+        listEnvironments: () => listClaudeCloudEnvironments().then(cloudAgentEnvironmentsOf),
+        listModels: () => Promise.resolve(claudeModels),
+        provider: 'claude',
+        read,
+        readiness,
+        async send(input): Promise<WorkerLaunch> {
+            const sessionId = input.providerAgentId;
+            const tag = claudeRunTag({ turnId: input.idempotencyKey, workerId: input.workerId });
+            const delivered = (
+                await controller.events(sessionId, (event) => isRunPrompt(event, tag))
+            ).events.find((event) => isRunPrompt(event, tag));
+            if (!delivered) {
+                await settleQuestion(controller, sessionId, input.idempotencyKey);
+                await sendNativeClaudeCloud({
+                    modelId: input.model?.id ?? null,
+                    prompt: `${tag}\n\n${input.instructions}`,
+                    sessionId,
+                });
+            }
+            return {
+                // A follow-up targets a session Claude already placed; it resolves no environment anew.
+                environmentId: null,
+                environmentName: null,
+                providerAgentId: sessionId,
+                providerRunId: null,
+                providerUrl: sessionUrl(sessionId),
+                status: 'queued',
+            };
+        },
+        async start(input, signal): Promise<WorkerLaunch> {
+            await requireReady(readiness);
+            const environment = await resolveClaudeEnvironment(dataRoot, signal);
+            const prompt = `${claudeRunTag({ turnId: input.idempotencyKey, workerId: input.workerId })}\n\n${input.instructions}`;
+            const receipt = await withClaudeCheckout({ ...input, signal }, (cwd) =>
+                launchNativeClaudeCloud({
+                    cwd,
+                    environmentId: environment.id,
+                    modelId: input.model?.id ?? null,
+                    prompt,
+                    signal,
+                })
+            );
+            return {
+                environmentId: environment.id,
+                environmentName: environment.name,
+                providerAgentId: receipt.sessionId,
+                providerRunId: null,
+                providerUrl: receipt.url,
+                status: 'queued',
+            };
+        },
+        async subscribe(ref, onObservation, signal) {
+            // Claude's session stream is not part of this adapter; a bounded poll is the live edge.
+            while (!signal.aborted) {
+                await Bun.sleep(pollInterval);
+                if (signal.aborted) {
+                    return;
+                }
+                const observation = await read(ref, signal);
+                onObservation(observation);
+                if (isTerminalWorkerTurnStatus(observation.status)) {
+                    return;
+                }
+            }
+        },
+    };
+}
+
+/**
+ * A session waiting on a question takes no new prompt as an answer until the
+ * question is withdrawn, so the follow-up first interrupts it and waits for
+ * the worker to come to rest.
+ */
+async function settleQuestion(
+    controller: ClaudeController,
+    sessionId: string,
+    turnId: string
+): Promise<void> {
+    const session = await controller.session(sessionId);
+    if (session.workerStatus !== 'requires_action') {
+        return;
+    }
+    await controller.interrupt(sessionId, `haus-answer-${turnId}`);
+    const deadline = Date.now() + answerSettleTimeout;
+    while (Date.now() < deadline) {
+        await Bun.sleep(1000);
+        if ((await controller.session(sessionId)).workerStatus === 'idle') {
+            return;
+        }
+    }
+    throw new Error('Claude did not set its question aside in time; the answer will retry.');
+}
+
+/** This tick's events newer than the cached window, placed ahead of it. */
+function resumedWindow(
+    freshPage: ClaudeSessionEvent[],
+    cached: ClaudeSessionEvent[],
+    newest: string
+): ClaudeSessionEvent[] {
+    return [...freshPage.filter((event) => compareSequence(event.sequence, newest) > 0), ...cached];
+}
+
+/** Claude's event sequence numbers are decimal strings, so compare them numerically. */
+function compareSequence(a: string, b: string): number {
+    const diff = BigInt(a) - BigInt(b);
+    return diff > 0n ? 1 : diff < 0n ? -1 : 0;
+}
+
+function openTaskIds(entries: ReturnType<typeof logEntriesOf>): string[] {
+    const tasks = new Map<string, boolean>();
+    for (const entry of [...entries].reverse()) {
+        if (entry.kind === 'task') {
+            tasks.set(entry.id, entry.terminal || tasks.get(entry.id) === true);
+        }
+    }
+    return [...tasks].flatMap(([id, terminal]) => (terminal ? [] : [id]));
+}
+
+/**
+ * The environment this launch pins to. Auto-pins once, permanently, on first
+ * use, so no later launch re-evaluates the choice; refuses only when the
+ * account has no environment to pin to at all, or a pinned environment no
+ * longer exists or is archived. Checked fresh on every launch so a Computer
+ * never falls back to Claude Code's own default silently.
+ */
+export async function resolveClaudeEnvironment(
+    dataRoot: string,
+    signal?: AbortSignal
+): Promise<{ id: string; name: string }> {
+    const { environmentId, environments } = await listClaudeCloudEnvironmentsAutoPinning(
+        dataRoot,
+        signal
+    );
+    if (!environmentId) {
+        throw new WorkerLaunchRejectedError(
+            'This Computer’s Claude account has no cloud environment to launch on.'
+        );
+    }
+    const match = environments.find((environment) => environment.id === environmentId);
+    if (!match || match.state.toLowerCase() === 'archived') {
+        throw new WorkerLaunchRejectedError(
+            new ClaudeCloudEnvironmentUnavailableError(environmentId).message
+        );
+    }
+    return { id: match.id, name: match.name };
+}
+
+async function requireReady(readiness: () => Promise<CloudAgentReadiness>): Promise<void> {
+    const state = await readiness();
+    if (!state.ready) {
+        // Nothing reached Claude, so the launch is definitely refused rather than unconfirmed.
+        throw new WorkerLaunchRejectedError(cloudAgentUnreadyMessage(state.reason));
+    }
+}
+
+function requireSession(ref: WorkerTurnRef): string {
+    if (!ref.providerAgentId) {
+        throw new CloudAgentProviderUnavailableError('not-connected');
+    }
+    return ref.providerAgentId;
+}
+
+/** One deterministic id per Run, so a reading can tell Haus's own interrupt from any other. */
+function cancelRequestId(ref: { turnId: string }): string {
+    return `haus-cancel-${ref.turnId}`;
+}
+
+function sessionUrl(sessionId: string): string {
+    return `https://claude.ai/code/${sessionId}`;
+}

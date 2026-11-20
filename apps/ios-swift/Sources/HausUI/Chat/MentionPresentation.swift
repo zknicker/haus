@@ -12,7 +12,7 @@ public enum MentionPresentationKind: CaseIterable, Hashable, Sendable {
     case agent
     case app
     case channel
-    /// Cloud Agent work, by its id (`cloud-agent://<workId>`); see
+    /// Cloud Agent work, by its id (`worker://<workerId>`); see
     /// `CloudAgentWorkLink`. A quiet chip: the live card sits below the Message.
     case cloudAgentWork
     case directory

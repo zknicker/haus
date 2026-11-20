@@ -6,13 +6,15 @@ import { serverRoute, settingsConnectionRoute } from '../../servers/server-route
 import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { ConnectionAddDrawer } from './connection-add-drawer.tsx';
+import { ConnectionExploreDialog } from './connection-explore-dialog.tsx';
 import { ConnectionListSection } from './connection-list-section.tsx';
-import { ConnectionPresetSection } from './connection-preset-section.tsx';
+
+type ConnectionsOverlay = 'add-custom' | 'explore' | null;
 
 export function ConnectionsPage({ embedded = false }: { embedded?: boolean }) {
     const { slug = '' } = useParams();
     const { server } = useServerContext();
-    const [isAddOpen, setIsAddOpen] = React.useState(false);
+    const [overlay, setOverlay] = React.useState<ConnectionsOverlay>(null);
     const navigate = useNavigate();
 
     return (
@@ -20,7 +22,7 @@ export function ConnectionsPage({ embedded = false }: { embedded?: boolean }) {
             description="Connections are managed by Server operators."
             role={server.role}
         >
-            <SettingsPageColumn width="table">
+            <SettingsPageColumn>
                 {embedded ? null : (
                     <Link
                         className="text-muted hover:text-foreground text-sm"
@@ -30,17 +32,22 @@ export function ConnectionsPage({ embedded = false }: { embedded?: boolean }) {
                     </Link>
                 )}
                 <SettingsPageHeader title="Connections" />
-                <ConnectionPresetSection serverId={server.id} />
                 <ConnectionListSection
-                    onAdd={() => setIsAddOpen(true)}
+                    onExplore={() => setOverlay('explore')}
                     onSelect={(connectionId) =>
                         navigate(settingsConnectionRoute(slug, connectionId))
                     }
                     serverId={server.id}
                 />
+                <ConnectionExploreDialog
+                    onAddCustom={() => setOverlay('add-custom')}
+                    onOpenChange={(open) => setOverlay(open ? 'explore' : null)}
+                    open={overlay === 'explore'}
+                    serverId={server.id}
+                />
                 <ConnectionAddDrawer
-                    onOpenChange={setIsAddOpen}
-                    open={isAddOpen}
+                    onOpenChange={(open) => setOverlay(open ? 'add-custom' : null)}
+                    open={overlay === 'add-custom'}
                     serverId={server.id}
                 />
             </SettingsPageColumn>

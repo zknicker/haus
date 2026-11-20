@@ -5,7 +5,6 @@ import { useArtifactUpdateStream } from '../../hooks/realtime/use-artifact-updat
 import { useChatLifecycleStream } from '../../hooks/realtime/use-chat-lifecycle-stream.ts';
 import { useClaimChangeStream } from '../../hooks/realtime/use-claim-change-stream.ts';
 import { useCloudAgentSettingsStream } from '../../hooks/realtime/use-cloud-agent-settings-stream.ts';
-import { useCloudAgentWorkStream } from '../../hooks/realtime/use-cloud-agent-work-stream.ts';
 import { useComputerUpdateStream } from '../../hooks/realtime/use-computer-update-stream.ts';
 import { useImageGenerationStream } from '../../hooks/realtime/use-image-generation-stream.ts';
 import { useInvitationUpdateStream } from '../../hooks/realtime/use-invitation-update-stream.ts';
@@ -17,6 +16,7 @@ import { useTaskCreatedStream } from '../../hooks/realtime/use-task-created-stre
 import { useTaskFollowStream } from '../../hooks/realtime/use-task-follow-stream.ts';
 import { useTaskLabelStream } from '../../hooks/realtime/use-task-label-stream.ts';
 import { useTaskUpdatedStream } from '../../hooks/realtime/use-task-updated-stream.ts';
+import { useWorkerStream } from '../../hooks/realtime/use-worker-stream.ts';
 import { MessageNotifications } from '../notifications/message-notifications.tsx';
 
 /**
@@ -45,7 +45,7 @@ export const ServerRealtimeListeners = React.memo(function ServerRealtimeListene
             <TaskCreatedStream serverId={serverId} />
             <TaskUpdatedStream serverId={serverId} />
             <TaskFollowStream serverId={serverId} />
-            <CloudAgentWorkStream serverId={serverId} />
+            <WorkerStream serverId={serverId} />
             <ImageGenerationStream serverId={serverId} />
             <AgentUpdateStream server={server} />
             <ComputerUpdateStream server={server} />
@@ -98,8 +98,8 @@ function TaskFollowStream({ serverId }: StreamProps) {
     return null;
 }
 
-function CloudAgentWorkStream({ serverId }: StreamProps) {
-    useCloudAgentWorkStream(serverId);
+function WorkerStream({ serverId }: StreamProps) {
+    useWorkerStream(serverId);
     return null;
 }
 

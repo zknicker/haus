@@ -65,7 +65,7 @@ export function registerAgentTaskPlaceRoutes(
                 input.expectedVersion,
                 async () => (await findTask(db, { key: input.key, serverId })).version,
                 (expectedVersion) =>
-                    setTaskState(db, agentActor(runner), {
+                    setTaskState(db, agentActor(runner), agentDelivery, {
                         expectedVersion,
                         serverId,
                         state: input.state,

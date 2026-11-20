@@ -108,7 +108,7 @@ async function seedProductConversation(tx: HausDatabase, context: InboxSeedConte
         messages: [
             {
                 authorAgentId: context.tinyId,
-                content: `${mention} one correction on the flaky specs. Last week's runs show why they're not the release blocker:\n\n- **render-budget:** over its limit in 2 of 6 runs on this branch, 0 of 6 on main. Same noise either way.\n- **cloud-agent-work-links:** fails on main too. It still expects "Working" for queued work that now reads "Starting".\n\nSo the branch is clean. The real blocker is the migration check, which has failed **3 runs in a row** since Tuesday.`,
+                content: `${mention} one correction on the flaky specs. Last week's runs show why they're not the release blocker:\n\n- **render-budget:** over its limit in 2 of 6 runs on this branch, 0 of 6 on main. Same noise either way.\n- **worker-links:** fails on main too. It still expects "Working" for queued work that now reads "Starting".\n\nSo the branch is clean. The real blocker is the migration check, which has failed **3 runs in a row** since Tuesday.`,
                 createdAt: before(now, 22 * minute),
                 nonce: 'dev-inbox-showcase-product-tiny',
                 reply,

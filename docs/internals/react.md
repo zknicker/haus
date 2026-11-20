@@ -118,7 +118,7 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   first commit (`readLoadedAgentProfileContent`); the lazy boundary is only a cold fallback,
   decided once per mount so it never remounts.
   Channel and existing DM rows also warm Chat detail, paginated history,
-  engagements, and Cloud Agent work on hover, keyboard focus, or press; once
+  engagements, and linked Workers on hover, keyboard focus, or press; once
   the shell is idle it warms the first paint of unread and recently active
   Chats, two at a time and only when uncached (`use-idle-chat-warming.ts`).
   `AgentProfileLink` warms the Agent profile's reads the same way
@@ -319,11 +319,11 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   each exception's reason). Neither sees a `className`
   built through `cn()` or a variable, so read the component's anatomy before
   reaching for a wrapper.
-* One Settings page separates **Preferences** (Profile, Preferences, Servers)
-  from **Server** (Server, Members, Connections, Models, Skills, Usage, then
-  Archived chats), followed by the roster-driven **Computers**. Agent
-  capabilities belong to the shared Server scope, not a separate settings
-  category. Which Servers you belong to is about you, so switching, creating,
+* One Settings page groups its rail as **You** (Profile, Preferences, Appearance,
+  Notifications, Shortcuts, Servers), **Captains** (Models, Skills,
+  Connections), and **Haus** (General, Members, Devices, Usage, then Archived
+  chats). Shortcuts is generated from `features/shortcuts/shortcut-registry.ts`,
+  which its test holds to the real key handlers. Which Servers you belong to is about you, so switching, creating,
   and joining sit in the personal scope. Archived chats is a
   link-out, not a settings page: it keeps its own standalone route and the
   rail hands off to it (`settingsNavLinkItems`, resolved by
@@ -577,7 +577,7 @@ holds whole-App renders per interaction to the ratchet in
   that rows read through `useEntityTranscriptEntry` / `useChatMessage`. The
   root builds a row skeleton from layout facts
   (`features/servers/chat/chat-message-projection.ts`), so a reaction, task,
-  Cloud Agent work, or Task preview change re-renders only the row whose
+  Worker, or Task preview change re-renders only the row whose
   entity changed. Hidden kept views read entities with `subscribed: false`.
   `lib/targeted-read-coalescer.ts` owns tail reads, entity invalidation, and
   transcript recovery; nothing else patches lists or entities.

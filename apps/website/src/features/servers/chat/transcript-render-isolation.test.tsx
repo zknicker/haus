@@ -50,7 +50,7 @@ async function mountTwoChats({ hidden = false }: { hidden?: boolean } = {}) {
     harness.setChats([chat('cht_a'), chat('cht_b')]);
     for (const chatId of ['cht_a', 'cht_b']) {
         harness.setMessages(chatId, history(chatId, 6));
-        harness.setCloudAgentWork(chatId);
+        harness.setWorker(chatId);
     }
     const view = await harness.mount(
         <>

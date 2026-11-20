@@ -2,7 +2,6 @@ import type { AgentCreateAgentRequest } from '@haus/api';
 import type { AvatarImageService } from '../avatar-generation/service.ts';
 import { AvatarGenerationUnavailableError } from '../avatar-generation/service.ts';
 import { hashAvatarBytes } from '../avatars/avatar-bytes.ts';
-import { AgentAuthorNotFoundError } from '../chats/agent-authored-message.ts';
 import { ChatArchivedError } from '../chats/chat-access.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import { AgentConfigDeniedError } from '../server-agents/agent-config-errors.ts';
@@ -110,7 +109,7 @@ export function sendAgentRouteFailure(
     if (cause instanceof AgentIdentityProtectedError) {
         return sendAgentApiError(reply, 403, 'AGENT_IDENTITY_PROTECTED', cause.message);
     }
-    if (cause instanceof AgentTargetNotFoundError || cause instanceof AgentAuthorNotFoundError) {
+    if (cause instanceof AgentTargetNotFoundError) {
         return sendAgentApiError(reply, 404, 'AGENT_NOT_FOUND', cause.message);
     }
     if (cause instanceof AgentTargetError) {

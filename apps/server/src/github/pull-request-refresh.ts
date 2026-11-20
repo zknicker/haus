@@ -1,15 +1,15 @@
 import { and, asc, eq, isNotNull, lte, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { type BootSweep, type SweepTimers, startBootSweep } from '../boot-sweep.ts';
-import { prepareLinkedWorkEvents } from '../cloud-agents/cloud-agent-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
-    cloudAgentPullRequestsTable,
-    cloudAgentRunsTable,
+    pullRequestReadingsTable,
+    workerTurnsTable,
     githubInstallationsTable,
 } from '../postgres/schema.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { prepareWorkerEvents } from '../workers/worker-events.ts';
 import { GithubApiError } from './github-api.ts';
 import type { GithubApp } from './github-app.ts';
 import { createInstallationTokens } from './github-bot.ts';
@@ -20,7 +20,7 @@ import { enqueuePullRequestWakes, pullRequestTransitions } from './pull-request-
 const coalesceMs = 5000;
 const rowsPerPass = 25;
 
-type ReadingRow = typeof cloudAgentPullRequestsTable.$inferSelect;
+type ReadingRow = typeof pullRequestReadingsTable.$inferSelect;
 type InstallationTokens = ReturnType<typeof createInstallationTokens>;
 
 export interface PullRequestRefreshDependencies {
@@ -59,17 +59,17 @@ export async function refreshPullRequestReadings(
     const tokens = options.tokens ?? createInstallationTokens(dependencies.app);
     const rows = await db
         .select()
-        .from(cloudAgentPullRequestsTable)
+        .from(pullRequestReadingsTable)
         .where(
             and(
-                isNotNull(cloudAgentPullRequestsTable.refreshRequestedAt),
+                isNotNull(pullRequestReadingsTable.refreshRequestedAt),
                 lte(
-                    cloudAgentPullRequestsTable.refreshRequestedAt,
+                    pullRequestReadingsTable.refreshRequestedAt,
                     new Date(now.getTime() - coalesceMs)
                 )
             )
         )
-        .orderBy(asc(cloudAgentPullRequestsTable.refreshRequestedAt))
+        .orderBy(asc(pullRequestReadingsTable.refreshRequestedAt))
         .limit(rowsPerPass);
     for (const row of rows) {
         if (options.closing?.aborted) {
@@ -131,7 +131,7 @@ async function writeReading(
     const { events, wakes } = await dependencies.db.transaction(async (tx) => {
         await lockServerRow(tx, row.serverId);
         await tx
-            .update(cloudAgentPullRequestsTable)
+            .update(pullRequestReadingsTable)
             .set({ ...facts, observedAt: now, source: 'github' })
             .where(rowKey(row));
         await clearMark(tx, row);
@@ -139,9 +139,9 @@ async function writeReading(
             return { events: [], wakes: [] };
         }
         return {
-            events: await prepareLinkedWorkEvents(tx, {
+            events: await prepareWorkerEvents(tx, {
                 serverId: row.serverId,
-                workIds: await reportingWorkIds(tx, row),
+                workerIds: await reportingWorkIds(tx, row),
             }),
             wakes: await enqueuePullRequestWakes(tx, dependencies.delivery, {
                 reading: { ...row, headSha: facts.headSha },
@@ -164,21 +164,21 @@ async function writeReading(
  */
 async function clearMark(db: Pick<HausDatabase, 'update'>, row: ReadingRow): Promise<void> {
     await db
-        .update(cloudAgentPullRequestsTable)
+        .update(pullRequestReadingsTable)
         .set({ refreshRequestedAt: null })
         .where(
             and(
                 rowKey(row),
-                sql`date_trunc('milliseconds', ${cloudAgentPullRequestsTable.refreshRequestedAt}) = ${row.refreshRequestedAt}`
+                sql`date_trunc('milliseconds', ${pullRequestReadingsTable.refreshRequestedAt}) = ${row.refreshRequestedAt}`
             )
         );
 }
 
 function rowKey(row: ReadingRow) {
     return and(
-        eq(cloudAgentPullRequestsTable.serverId, row.serverId),
-        eq(cloudAgentPullRequestsTable.repository, row.repository),
-        eq(cloudAgentPullRequestsTable.number, row.number)
+        eq(pullRequestReadingsTable.serverId, row.serverId),
+        eq(pullRequestReadingsTable.repository, row.repository),
+        eq(pullRequestReadingsTable.number, row.number)
     );
 }
 
@@ -203,13 +203,13 @@ export async function reportingWorkIds(
     row: ReadingRow
 ): Promise<string[]> {
     const runs = await db
-        .selectDistinct({ workId: cloudAgentRunsTable.workId })
-        .from(cloudAgentRunsTable)
+        .selectDistinct({ workId: workerTurnsTable.workerId })
+        .from(workerTurnsTable)
         .where(
             and(
-                eq(cloudAgentRunsTable.serverId, row.serverId),
+                eq(workerTurnsTable.serverId, row.serverId),
                 sql`exists (
-                    select 1 from jsonb_array_elements(${cloudAgentRunsTable.branches}) branch
+                    select 1 from jsonb_array_elements(${workerTurnsTable.branches}) branch
                     where branch->>'pullRequestUrl' = ${row.url}
                 )`
             )

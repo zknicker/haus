@@ -10,8 +10,8 @@ let member: HausClient;
 let serverId: string;
 let socket: WebSocket;
 
-const computerId = 'cmp_cloudagent000000';
-const credential = 'cloud-agent-computer-credential-0000';
+const computerId = 'cmp_worker0000000000';
+const credential = 'worker-computer-credential-000000000';
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
@@ -19,20 +19,20 @@ beforeAll(async () => {
     member = await signIn('cf_cloud_agent_member');
     serverId = (
         await owner.trpc.server.create.mutate({
-            displayName: 'Cloud Agent HQ',
-            slug: 'cloud-agent-hq',
+            displayName: 'Worker HQ',
+            slug: 'worker-hq',
         })
     ).id;
     await member.trpc.server.create.mutate({
         displayName: 'Member Root',
-        slug: 'cloud-agent-member-root',
+        slug: 'worker-member-root',
     });
     const memberRows = (await harness.sql`
         select id from users where auth_subject = 'cf_cloud_agent_member'
     `) as { id: string }[];
     await harness.sql`
         insert into server_memberships (id, server_id, user_id, role)
-        values ('mem_cloudagent000000', ${serverId}, ${memberRows[0]?.id}, 'member')
+        values ('mem_worker0000000000', ${serverId}, ${memberRows[0]?.id}, 'member')
     `;
     const ownerRows = (await harness.sql`
         select id from users where auth_subject = 'cf_cloud_agent_owner'
