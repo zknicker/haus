@@ -238,8 +238,8 @@ Chat E2E should prove identity and recovery, not styling details:
 * Agent-authored effects use the public runner contract rather than a real model
 
 The App test wrapper runs preflight before Playwright starts service readiness
-timers. Preflight verifies Playwright Chromium and builds the SDK with visible
-terminal progress.
+timers. Preflight verifies Playwright Chromium and WebKit and builds the SDK with
+visible terminal progress.
 
 The hosted Server starts the Server-owned Skool connector, so App E2E needs its package built
 first. `bun run dev` builds it on boot; a checkout that has not run the dev stack builds it once by

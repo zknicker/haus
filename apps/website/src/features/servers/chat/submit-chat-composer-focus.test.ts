@@ -38,7 +38,7 @@ test('a successful send focuses the composer so the next message is ready', asyn
     expect(focuses).toEqual(['focus']);
 });
 
-test('a failed send focuses the composer so the person can retry', async () => {
+test('a failed send focuses after take and again after restoring the draft', async () => {
     updateChatDraftContent(draftKey, 'Try again');
     const focuses: string[] = [];
 
@@ -60,5 +60,5 @@ test('a failed send focuses the composer so the person can retry', async () => {
         upload: { mutateAsync: async () => ({ id: 'unused' }) } as never,
     });
 
-    expect(focuses).toEqual(['focus']);
+    expect(focuses).toEqual(['focus', 'focus']);
 });
