@@ -1,21 +1,16 @@
 import type { Agent } from '@haus/api';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { Label, ListBox, Select } from '@heroui/react';
 import { useAgentHomeMove } from '../../../hooks/projects/use-agent-home-move.ts';
 import { useProjects } from '../../../hooks/projects/use-projects.ts';
-import { useChatNavigationLayout } from '../../../hooks/servers/use-chats.ts';
 import { agentHomeProject, homeIsFixed } from '../../../lib/project-homes.ts';
+import { ProjectSelect } from '../../chats/project-select.tsx';
 import { SettingsRowError } from '../../settings/layout/settings-text.tsx';
 
 export function AgentHomeProject({ agent }: { agent: Agent }) {
     const projects = useProjects(agent.serverId);
-    const { channelIds } = useChatNavigationLayout(agent.serverId);
     const move = useAgentHomeMove();
     const home = agentHomeProject(projects.data ?? [], agent.id);
     const fixed = homeIsFixed(agent);
-    const choices = (projects.data ?? []).filter(
-        (project) => project === home || channelIds.includes(project.chatId)
-    );
 
     return (
         <ItemCardGroup variant="transparent">
@@ -36,41 +31,20 @@ export function AgentHomeProject({ agent }: { agent: Agent }) {
                         </SettingsRowError>
                     </ItemCard.Content>
                     <ItemCard.Action>
-                        <Select
+                        <ProjectSelect
                             aria-label="Home Project"
-                            className="w-48"
-                            isDisabled={fixed || !home || move.isPending}
-                            onChange={(projectId) => {
-                                if (typeof projectId === 'string' && projectId !== home?.chatId) {
-                                    move.mutate({
-                                        agentId: agent.id,
-                                        projectId,
-                                        serverId: agent.serverId,
-                                    });
-                                }
-                            }}
+                            className="w-56"
+                            isDisabled={fixed || !projects.data || move.isPending}
+                            onSelect={(projectId) =>
+                                move.mutate({
+                                    agentId: agent.id,
+                                    projectId,
+                                    serverId: agent.serverId,
+                                })
+                            }
+                            serverId={agent.serverId}
                             value={home?.chatId ?? null}
-                            variant="secondary"
-                        >
-                            <Select.Trigger>
-                                <Select.Value />
-                                <Select.Indicator />
-                            </Select.Trigger>
-                            <Select.Popover>
-                                <ListBox>
-                                    {choices.map((project) => (
-                                        <ListBox.Item
-                                            id={project.chatId}
-                                            key={project.chatId}
-                                            textValue={`#${project.name}`}
-                                        >
-                                            <Label>#{project.name}</Label>
-                                            <ListBox.ItemIndicator />
-                                        </ListBox.Item>
-                                    ))}
-                                </ListBox>
-                            </Select.Popover>
-                        </Select>
+                        />
                     </ItemCard.Action>
                 </ItemCard>
             </ItemCardGroup>

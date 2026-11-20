@@ -303,10 +303,14 @@ and [Agent Inbox](../../specs/inbox.md).
   (both save through `project.update`). Name & description also shows the
   Project's key, editable until a Task carries it; a taken or fixed key is
   refused on the field. Captains in this Project lists the Agents whose home
-  it is: Add moves another Agent's home here (each choice names the Project it
-  lives in now), and Send to #haus moves one home to the Haus project, both
-  through `agent.setHome`. An Agent's profile hub carries the same choice as
-  its Home Project row. The description (at most 500
+  it is: Add moves another Agent's home here (each choice shows its avatar and
+  the Project it lives in now), and Move to… moves one home to another Project,
+  both through `agent.setHome`. Every Project choice is one searchable picker
+  whose rows carry the Project's icon and color, leaves out `#all`, and ends in
+  New project, which creates a Project and picks it. An Agent's profile hub
+  carries the same picker as its Home Project row, New Captain requires one, and
+  archiving or deleting a Project that is still home to Captains asks where they
+  move first. The description (at most 500
   characters, blank clears it) tells people and Agents what the channel is for;
   Agents read it in `haus server info` and `haus channel info`, and the iPhone
   shows it read-only in the channel's details sheet. `#haus`, the Haus project, keeps its

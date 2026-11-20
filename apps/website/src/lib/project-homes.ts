@@ -1,4 +1,4 @@
-import { type Agent, type Project, projectErrorCodeSchema } from '@haus/api';
+import { type Agent, type Chat, type Project, projectErrorCodeSchema } from '@haus/api';
 
 export interface CaptainCandidate {
     agent: Agent;
@@ -13,8 +13,30 @@ export function homeIsFixed(agent: Agent) {
     return agent.factoryKind === 'cove';
 }
 
-export function hausProject(projects: readonly Project[]) {
-    return projects.find((project) => project.isHaus);
+export function projectChoice(project: Project, chat: Chat | undefined) {
+    if (!chat || chat.archivedAt) {
+        return null;
+    }
+    return { chatId: project.chatId, color: chat.color, icon: chat.icon, name: project.name };
+}
+
+export function projectChoices(
+    projects: readonly Project[],
+    chats: ReadonlyMap<string, Chat>,
+    except?: string
+) {
+    return projects.flatMap((project) => {
+        const chat = chats.get(project.chatId);
+        if (project.isHaus || chat?.isAll || project.chatId === except) {
+            return [];
+        }
+        const choice = projectChoice(project, chat);
+        return choice ? [choice] : [];
+    });
+}
+
+export function matchesProjectSearch(name: string, input: string) {
+    return name.toLowerCase().includes(input.trim().toLowerCase());
 }
 
 export function projectCaptains(

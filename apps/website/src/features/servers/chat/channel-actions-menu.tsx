@@ -43,14 +43,16 @@ export function ChannelActionsMenu({
                     <Icon aria-hidden="true" icon={PaintBrush03Icon} size={16} />
                     <Label>Icon &amp; color</Label>
                 </Dropdown.Item>
-                <Dropdown.Item
-                    id="captains"
-                    isDisabled={Boolean(chat.archivedAt)}
-                    textValue="Captains in this Project"
-                >
-                    <Icon aria-hidden="true" icon={UserMultipleIcon} size={16} />
-                    <Label>Captains in this Project…</Label>
-                </Dropdown.Item>
+                {chat.isAll ? null : (
+                    <Dropdown.Item
+                        id="captains"
+                        isDisabled={Boolean(chat.archivedAt)}
+                        textValue="Captains in this Project"
+                    >
+                        <Icon aria-hidden="true" icon={UserMultipleIcon} size={16} />
+                        <Label>Captains in this Project…</Label>
+                    </Dropdown.Item>
+                )}
             </Dropdown.Section>
             <Separator />
             <Dropdown.Section>

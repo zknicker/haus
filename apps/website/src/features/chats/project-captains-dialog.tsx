@@ -2,11 +2,14 @@ import type { Chat } from '@haus/api';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Button, Description, Dropdown, Label, Modal, Separator } from '@heroui/react';
 import * as React from 'react';
+import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
+import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useAgentHomeMove } from '../../hooks/projects/use-agent-home-move.ts';
 import { useProjects } from '../../hooks/projects/use-projects.ts';
-import { hausProject, projectCaptains } from '../../lib/project-homes.ts';
+import { homeIsFixed, projectCaptains } from '../../lib/project-homes.ts';
 import { SettingsRowError } from '../settings/layout/settings-text.tsx';
+import { ProjectSelect } from './project-select.tsx';
 
 export function ProjectCaptainsDialog({ chat, onClose }: { chat: Chat; onClose: () => void }) {
     const projects = useProjects(chat.serverId);
@@ -17,7 +20,6 @@ export function ProjectCaptainsDialog({ chat, onClose }: { chat: Chat; onClose: 
         agents.data ?? [],
         chat.id
     );
-    const haus = hausProject(projects.data ?? []);
     const loaded = projects.data !== undefined && agents.data !== undefined;
     const moveHome = (agentId: string, projectId: string) =>
         move.mutate({ agentId, projectId, serverId: chat.serverId });
@@ -28,6 +30,9 @@ export function ProjectCaptainsDialog({ chat, onClose }: { chat: Chat; onClose: 
                 <Modal.Dialog>
                     <Modal.CloseTrigger />
                     <Modal.Header>
+                        <Modal.Icon>
+                            <ChannelIconBox color={chat.color} icon={chat.icon} size="modal" />
+                        </Modal.Icon>
                         <Modal.Heading>Captains in #{chat.name}</Modal.Heading>
                         <p className="text-muted text-sm leading-5">
                             Captains hear the Project they live in and start their Tasks there.
@@ -57,8 +62,17 @@ export function ProjectCaptainsDialog({ chat, onClose }: { chat: Chat; onClose: 
                                                     key={agent.id}
                                                     textValue={agent.displayName}
                                                 >
-                                                    <Label>{agent.displayName}</Label>
-                                                    <Description>Lives in #{home.name}</Description>
+                                                    <EntityAvatar
+                                                        name={agent.displayName}
+                                                        size="sm"
+                                                        src={agent.avatarUrl}
+                                                    />
+                                                    <div className="flex flex-col">
+                                                        <Label>{agent.displayName}</Label>
+                                                        <Description>
+                                                            Lives in #{home.name}
+                                                        </Description>
+                                                    </div>
                                                 </Dropdown.Item>
                                             ))}
                                         </Dropdown.Menu>
@@ -79,26 +93,33 @@ export function ProjectCaptainsDialog({ chat, onClose }: { chat: Chat; onClose: 
                                     <React.Fragment key={agent.id}>
                                         {index > 0 ? <Separator /> : null}
                                         <ItemCard>
+                                            <EntityAvatar
+                                                name={agent.displayName}
+                                                size="sm"
+                                                src={agent.avatarUrl}
+                                            />
                                             <ItemCard.Content>
                                                 <ItemCard.Title>{agent.displayName}</ItemCard.Title>
                                                 <ItemCard.Description>
                                                     @{agent.handle}
                                                 </ItemCard.Description>
                                             </ItemCard.Content>
-                                            {haus && !chat.isAll ? (
+                                            {homeIsFixed(agent) ? null : (
                                                 <ItemCard.Action>
-                                                    <Button
+                                                    <ProjectSelect
+                                                        aria-label={`Move ${agent.displayName} to`}
+                                                        className="w-44"
+                                                        except={chat.id}
                                                         isDisabled={move.isPending}
-                                                        onPress={() =>
-                                                            moveHome(agent.id, haus.chatId)
+                                                        onSelect={(projectId) =>
+                                                            moveHome(agent.id, projectId)
                                                         }
-                                                        size="sm"
-                                                        variant="secondary"
-                                                    >
-                                                        Send to #{haus.name}
-                                                    </Button>
+                                                        placeholder="Move to…"
+                                                        serverId={chat.serverId}
+                                                        value={null}
+                                                    />
                                                 </ItemCard.Action>
-                                            ) : null}
+                                            )}
                                         </ItemCard>
                                     </React.Fragment>
                                 ))}

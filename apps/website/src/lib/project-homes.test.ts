@@ -1,12 +1,15 @@
 import { describe, expect, test } from 'bun:test';
 import type { Project } from '@haus/api';
 import { TRPCClientError } from '@trpc/client';
+import { testChat } from '../features/chats/chat-fixtures.ts';
 import { testAgent } from '../features/members/agent-fixtures.ts';
 import {
     agentHomeProject,
-    hausProject,
     homeIsFixed,
+    matchesProjectSearch,
     projectCaptains,
+    projectChoice,
+    projectChoices,
     projectRefusalCode,
 } from './project-homes.ts';
 
@@ -37,7 +40,38 @@ describe('Project homes', () => {
     test('an Agent lives in the Project that lists it', () => {
         expect(agentHomeProject(projects, 'agt_tiny')?.name).toBe('ops');
         expect(agentHomeProject(projects, 'agt_gone')).toBeUndefined();
-        expect(hausProject(projects)?.chatId).toBe('cht_haus');
+    });
+
+    test('a picker offers listed Projects with their marks, never the everyone-channel', () => {
+        const all = project('cht_all', 'all', []);
+        const archived = project('cht_old', 'old', []);
+        const chats = new Map(
+            [
+                testChat({ id: 'cht_haus', name: 'haus' }),
+                testChat({ color: 'teal', icon: 'Rocket01Icon', id: 'cht_ops', name: 'ops' }),
+                testChat({ id: 'cht_new', name: 'new' }),
+                testChat({ id: 'cht_all', isAll: true, name: 'all' }),
+                testChat({ archivedAt: '2026-11-01T00:00:00.000Z', id: 'cht_old', name: 'old' }),
+            ].map((chat) => [chat.id, chat])
+        );
+        const unlisted = project('cht_gone', 'gone', []);
+        const everything = [...projects, all, archived, unlisted];
+
+        expect(projectChoices(everything, chats)).toEqual([
+            { chatId: 'cht_ops', color: 'teal', icon: 'Rocket01Icon', name: 'ops' },
+            { chatId: 'cht_new', color: null, icon: null, name: 'new' },
+        ]);
+        expect(projectChoices(everything, chats, 'cht_ops').map(({ name }) => name)).toEqual([
+            'new',
+        ]);
+        expect(projectChoice(haus, chats.get('cht_haus'))?.name).toBe('haus');
+        expect(projectChoice(unlisted, undefined)).toBeNull();
+    });
+
+    test('Project search matches any part of the name, ignoring case', () => {
+        expect(matchesProjectSearch('onboarding-owner', ' OWN')).toBe(true);
+        expect(matchesProjectSearch('ops', 'product')).toBe(false);
+        expect(matchesProjectSearch('ops', '')).toBe(true);
     });
 
     test("a Project's Captains keep its order and every other homed Agent can move in", () => {
