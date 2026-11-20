@@ -1,5 +1,5 @@
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { Switch } from '@heroui/react';
+import { Button, Separator, Switch } from '@heroui/react';
 import * as React from 'react';
 import {
     enableMessageNotifications,
@@ -8,11 +8,10 @@ import {
     setMessageNotificationsPreference,
     useMessageNotificationsPreference,
 } from '../../notifications/message-notifications-preference.ts';
+import { sendTestNotification } from '../../notifications/test-notification.ts';
+import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
+import { SettingsRowError, SettingsRowWarning } from '../layout/settings-text.tsx';
 
-/**
- * The one place Haus asks for notification permission. Turning the switch on
- * requests it; the switch reads on only once the platform granted it.
- */
 export function NotificationsSection() {
     const preference = useMessageNotificationsPreference();
     const [permission, setPermission] =
@@ -35,16 +34,15 @@ export function NotificationsSection() {
     return (
         <ItemCardGroup variant="transparent">
             <ItemCardGroup.Header>
-                <ItemCardGroup.Title>Notifications</ItemCardGroup.Title>
+                <ItemCardGroup.Title>System notifications</ItemCardGroup.Title>
             </ItemCardGroup.Header>
             <ItemCardGroup className="overflow-hidden">
                 <ItemCard>
                     <ItemCard.Content>
-                        <ItemCard.Title>Notify me when I'm needed</ItemCard.Title>
-                        <ItemCard.Description>
-                            {blocked ??
-                                'DMs, @mentions, and replies while Haus is in the background.'}
-                        </ItemCard.Description>
+                        <SettingsRowTitle info="DMs, @mentions, and replies while Haus is in the background.">
+                            Notify me when I'm needed
+                        </SettingsRowTitle>
+                        <SettingsRowWarning>{blocked}</SettingsRowWarning>
                     </ItemCard.Content>
                     <ItemCard.Action>
                         <Switch
@@ -61,17 +59,51 @@ export function NotificationsSection() {
                         </Switch>
                     </ItemCard.Action>
                 </ItemCard>
+                <Separator />
+                <TestNotificationRow isOn={isOn} />
             </ItemCardGroup>
         </ItemCardGroup>
     );
 }
 
-function blockedReason(permission: NotificationPermissionState): null | string {
+export function TestNotificationRow({ isOn }: { isOn: boolean }) {
+    const [error, setError] = React.useState<string | null>(null);
+
+    const send = () => {
+        try {
+            const result = sendTestNotification();
+            setError(result === 'sent' ? null : testFailure[result]);
+        } catch (cause) {
+            setError(cause instanceof Error ? cause.message : 'The notification did not show.');
+        }
+    };
+
+    return (
+        <ItemCard>
+            <ItemCard.Content>
+                <ItemCard.Title>Test notification</ItemCard.Title>
+                <SettingsRowError>{error}</SettingsRowError>
+            </ItemCard.Content>
+            <ItemCard.Action>
+                <Button isDisabled={!isOn} onPress={send} size="sm" variant="secondary">
+                    Send
+                </Button>
+            </ItemCard.Action>
+        </ItemCard>
+    );
+}
+
+const testFailure = {
+    blocked: 'Notifications are blocked for Haus. Allow them in your system or browser settings.',
+    unsupported: 'This browser cannot show notifications.',
+};
+
+function blockedReason(permission: NotificationPermissionState) {
     if (permission === 'unsupported') {
-        return 'This browser cannot show notifications.';
+        return testFailure.unsupported;
     }
     if (permission === 'denied') {
-        return 'Notifications are blocked for Haus. Allow them in your system or browser settings.';
+        return testFailure.blocked;
     }
     return null;
 }

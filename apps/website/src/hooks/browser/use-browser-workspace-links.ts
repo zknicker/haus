@@ -2,6 +2,7 @@ import * as React from 'react';
 import { clickTabId } from '../../features/shell/desktop-open-clicks.ts';
 import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import { type OpenGesture, openIntentFromEvent } from '../desktop-tabs/tab-open-gesture.ts';
+import { getOpenLinksIn } from './open-links-preference.ts';
 
 /** An App web link click: its URL, gesture, and the tab it was clicked in (null in window chrome). */
 export interface WebLinkOpen {
@@ -14,19 +15,27 @@ export interface WebLinkOpen {
  * Web links clicked in the App (an off-origin anchor, or any `target=_blank` web anchor: message
  * links, website and pull request chips) open as web tabs instead of navigating the App:
  * `open(request)`, with Chrome's dispositions (`tab-open-gesture.ts`). The source is the
- * link's own tab, not the focused one. Desktop only.
+ * link's own tab, not the focused one. With Settings → Preferences → Open links in set to the
+ * default browser they open there instead, falling back to a tab if the system refuses. Desktop
+ * only.
  */
 export function useBrowserWorkspaceLinks(open: (request: WebLinkOpen) => void) {
     React.useEffect(() => {
-        if (!getDesktopBridge()?.browserCommand) {
+        const bridge = getDesktopBridge();
+        if (!bridge?.browserCommand) {
             return;
         }
         const onClick = (event: MouseEvent) => {
             const request = webLinkOpen(event, document.baseURI);
-            if (request) {
-                event.preventDefault();
-                open(request);
+            if (!request) {
+                return;
             }
+            event.preventDefault();
+            if (getOpenLinksIn() === 'browser') {
+                bridge.openExternal(request.url).catch(() => open(request));
+                return;
+            }
+            open(request);
         };
         document.addEventListener('click', onClick);
         document.addEventListener('auxclick', onClick);

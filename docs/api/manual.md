@@ -136,6 +136,6 @@ holds UI labels exactly as rendered; a segment in parentheses, such as
 against App source: a Settings section id and its label in the settings
 navigation, an Agent profile section and its label, a route in the Server's
 page routes, or a source file that renders the label. It also fails when any
-Manual topic or Cove guidance writes an App path (`A → B`) that is not a prefix
+Manual topic writes an App path (`A → B`) that is not a prefix
 of a mapped path, so a new place starts in `appPlaces` and other topics point
 at it. The iPhone app has its own layout and is not mapped.
