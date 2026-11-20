@@ -70,7 +70,7 @@ function ProviderCard({
     provider: ModelProvider;
     serverId: string;
 }) {
-    const [connecting, setConnecting] = React.useState(false);
+    const [dialog, setDialog] = React.useState<{ replacing?: ModelConnection } | null>(null);
     const name = modelProviderNames[provider];
 
     return (
@@ -80,7 +80,7 @@ function ProviderCard({
                 {isOwner ? (
                     <Button
                         aria-label={`Connect ${name}`}
-                        onPress={() => setConnecting(true)}
+                        onPress={() => setDialog({})}
                         size="sm"
                         variant="secondary"
                     >
@@ -94,15 +94,16 @@ function ProviderCard({
                     <ModelConnectionRow
                         connection={connection}
                         isOwner={isOwner}
+                        onReconnect={() => setDialog({ replacing: connection })}
                         serverId={serverId}
-                        siblingLabels={labelsOf(connections)}
                     />
                 </React.Fragment>
             ))}
-            {connecting ? (
+            {dialog ? (
                 <ConnectDialog
-                    onClose={() => setConnecting(false)}
+                    onClose={() => setDialog(null)}
                     provider={provider}
+                    {...dialog}
                     serverId={serverId}
                     takenLabels={labelsOf(connections)}
                 />

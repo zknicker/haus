@@ -12,8 +12,8 @@ import {
     connectFlows,
     connectionErrorMessage,
     connectionName,
+    connectLabel,
     modelProviderNames,
-    nextConnectionLabel,
     signInCloseStep,
 } from './model-connection-model.ts';
 import { PastedCredentialForm } from './pasted-credential-form.tsx';
@@ -44,7 +44,7 @@ export function ConnectDialog({
         return null;
     }
     const name = connectionName({ authKind: flow.kind, provider });
-    const defaultLabel = nextConnectionLabel(replacing?.label ?? flow.defaultLabel, takenLabels);
+    const defaultLabel = connectLabel(flow, replacing, takenLabels);
 
     const requestClose = async () => {
         const step = signInId ? signInCloseStep(signIn.data) : 'close';

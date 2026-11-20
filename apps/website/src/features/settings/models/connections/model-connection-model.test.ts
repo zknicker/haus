@@ -3,6 +3,7 @@ import { modelProviderAuthKinds } from '@haus/api';
 import { TRPCClientError } from '@trpc/client';
 import {
     connectFlows,
+    connectLabel,
     connectionActions,
     connectionErrorMessage,
     connectionFact,
@@ -82,6 +83,20 @@ test('a second connection offers the next free name', () => {
     expect(nextConnectionLabel('Claude plan', ['claude plan', 'Claude plan 2'])).toBe(
         'Claude plan 3'
     );
+});
+
+test('Connect suggests a free name; Reconnect keeps the connection its own name', () => {
+    const [plan] = connectFlows.chatgpt;
+    if (!plan) {
+        throw new Error('ChatGPT has a sign-in flow.');
+    }
+    expect(connectLabel(plan, undefined, ['ChatGPT plan'])).toBe('ChatGPT plan 2');
+    expect(
+        connectLabel(plan, testConnection({ label: 'ChatGPT plan', provider: 'chatgpt' }), [
+            'ChatGPT plan',
+            'Work plan',
+        ])
+    ).toBe('ChatGPT plan');
 });
 
 test('a pasted secret becomes the credential of its kind, or a hint', () => {

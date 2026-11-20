@@ -8,7 +8,6 @@ import { useModelConnectionEdits } from '../../../../hooks/servers/use-model-con
 import { UsageMeter } from '../../../usage/detected-runtime-usage.tsx';
 import { SettingsRowTitle } from '../../layout/settings-row-title.tsx';
 import { SettingsFact, SettingsRowError } from '../../layout/settings-text.tsx';
-import { ConnectDialog } from './connect-dialog.tsx';
 import {
     type ConnectionAction,
     connectionActionLabels,
@@ -23,15 +22,15 @@ import { RenameConnectionDialog } from './rename-connection-dialog.tsx';
 export function ModelConnectionRow({
     connection,
     isOwner,
+    onReconnect,
     serverId,
-    siblingLabels,
 }: {
     connection: ModelConnection;
     isOwner: boolean;
+    onReconnect: () => void;
     serverId: string;
-    siblingLabels: readonly string[];
 }) {
-    const [dialog, setDialog] = React.useState<'reconnect' | 'rename' | null>(null);
+    const [renaming, setRenaming] = React.useState(false);
     const edits = useModelConnectionEdits(serverId);
     const target = { connectionId: connection.id, serverId };
     const failedEdit = [edits.makeDefault, edits.remove, edits.setWebSearch].find(
@@ -43,8 +42,10 @@ export function ModelConnectionRow({
             edits.makeDefault.mutate(target);
         } else if (action === 'remove') {
             edits.remove.mutate(target);
+        } else if (action === 'reconnect') {
+            onReconnect();
         } else {
-            setDialog(action);
+            setRenaming(true);
         }
     };
 
@@ -90,20 +91,11 @@ export function ModelConnectionRow({
                     />
                 ) : null}
             </ItemCard.Action>
-            {dialog === 'rename' ? (
+            {renaming ? (
                 <RenameConnectionDialog
                     connection={connection}
-                    onClose={() => setDialog(null)}
+                    onClose={() => setRenaming(false)}
                     serverId={serverId}
-                />
-            ) : null}
-            {dialog === 'reconnect' ? (
-                <ConnectDialog
-                    onClose={() => setDialog(null)}
-                    provider={connection.provider}
-                    replacing={connection}
-                    serverId={serverId}
-                    takenLabels={siblingLabels}
                 />
             ) : null}
         </ItemCard>

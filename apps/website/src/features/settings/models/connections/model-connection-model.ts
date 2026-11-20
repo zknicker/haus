@@ -127,6 +127,14 @@ export function nextConnectionLabel(base: string, taken: readonly string[]) {
     return candidate;
 }
 
+export function connectLabel(
+    flow: Pick<ConnectFlow, 'defaultLabel'>,
+    replacing: Pick<ModelConnection, 'label'> | undefined,
+    taken: readonly string[]
+) {
+    return replacing ? replacing.label : nextConnectionLabel(flow.defaultLabel, taken);
+}
+
 export function pastedCredential(kind: PastedCredentialKind, secret: string) {
     const parsed = modelConnectionCredentialSchema.safeParse(
         kind === 'setup-token' ? { kind, token: secret } : { key: secret, kind }
