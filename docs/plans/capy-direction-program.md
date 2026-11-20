@@ -71,6 +71,7 @@ and this list only.
   - [ ] J1 after R4 merges. Then J2. Then J3 and J4 in parallel.
   - [ ] W1 after J2 merges. Then W2. Then W3 and W4 in parallel.
   - [ ] C1 and C2 after W3 merges. Both are independent.
+  - [ ] E1 first among the Cove removals. E2 after J3 (PR 327) merges. E3 and E5 after E2. E4 after E2 and the Capy shell (PR 324).
 - [ ] Hold the file boundaries. Server PRs touch `apps/server/**` and `packages/haus-api/**`. Computer PRs touch `apps/computer/**`. App PRs touch `apps/website/**` and `apps/ios-swift/**`. Spec PRs touch `specs/**` and `docs/**` only. A PR that must cross a boundary says so in its brief.
 - [ ] Hold the review gate. D5, J4, W4, and C2 change an interaction. They wait for the operator's review in chat with screenshots and a video before merge.
 
@@ -185,6 +186,19 @@ ADR 0055 decisions 1 to 11.
 **Verify, live, for the phase.** Walkthroughs 2, 3, and 5 from the proposal on the real stack.
 
 **Verify, perf, for the phase.** Sidebar render cost with `render-budget.spec.ts`, trunk first. Fail on any budget the spec already enforces.
+
+## Start empty, without Cove (E1 to E5)
+
+ADR 0059 decisions 1 to 9. Each slice deletes its Cove and onboarding code and the docs that
+describe it in the same PR. Existing Coves and `#onboarding-owner` channels stay as ordinary data.
+
+- [ ] **E1. Land the decision.** ADR 0059 with its capability table, the status notes on ADR 0021 and ADR 0055, and these rows. Evidence is the merged docs PR.
+- [ ] **E2. Delete Cove from the Server and API.** `server.createCove`, the onboarding record, gate and phases, `#onboarding-owner` creation, the onboarding wake and `onboarding` inbox source, identity locks, the reserved `cove` handle, `factory_kind` and `factory_applied_at`, the `cove-apply` frames with a protocol bump, and J3's `COVE_HOME_FIXED`. One migration keeps every existing Cove and onboarding channel as ordinary data. The dev seed keeps Blippy, Tiny, `#haus` and `#product`, and re-anchors its inbox, showcase and automation seeds. Server gate plus a fresh-Server test that asserts zero Agents.
+- [ ] **E3. Delete Cove from the Computer and agent packages.** The `cove-apply` handler and receipt, the Cove factory workspace, guidance refresh and per-turn notices, the Manual's Cove lines, Cove-only live harnesses and scenarios, and the divergence register rows that cite Cove. `bun run test:prompt-contract`; the cap does not move.
+- [ ] **E4. Delete onboarding from the App.** The setup route and steps, `use-create-cove`, Cove copy and locks, the `onboarding` turn cause for new turns, and e2e `completeOnboarding`. Add device gains live progress and repair copy; New Captain links to Settings → Devices when none is connected. The first-run Home ships in the Capy shell. Website gate plus scoped App e2e for a fresh Server. Review-gated.
+- [ ] **E5. Delete Cove from the iPhone app.** The `cove` factory kind, avatar gating, reserved handle and fixtures. iOS gate.
+
+**Verify, live, for the phase.** Create a Server on the real stack: it opens into an empty Home with zero Captains, connecting a Device from Settings and creating a Captain works, and the dev seed still shows Blippy and Tiny with inbox activity.
 
 ## Turn cloud agents into Workers (W1 to W4)
 
