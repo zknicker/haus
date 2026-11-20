@@ -1,45 +1,23 @@
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Switch } from '@heroui/react';
 import { setShowClaimsInChat, useShowClaimsInChat } from '../../claims/show-claims-in-chat.ts';
-import { PageColumn } from '../../shell/page-column.tsx';
 import { HausVersionSummary } from '../../updates/haus-version-summary.tsx';
 import { useHausUpdate } from '../../updates/use-haus-update.ts';
+import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
-import { ColorThemeRow } from './color-theme-row.tsx';
-import { ModeRow } from './mode-row.tsx';
 import { NotificationsSection } from './notifications-section.tsx';
-import { SnowRow } from './snow-row.tsx';
 import { WindowLayoutRow } from './window-layout-row.tsx';
 
 export function PreferencesSettings() {
     const update = useHausUpdate();
     return (
-        <PageColumn>
-            <SettingsPageHeader
-                description="How Haus looks and behaves on this device."
-                title="Preferences"
-            />
-            <AppearanceSection />
+        <SettingsPageColumn>
+            <SettingsPageHeader title="Preferences" />
+            <WindowLayoutRow />
             <ChatSection />
             <NotificationsSection />
             <HausVersionSummary view={update.view} />
-        </PageColumn>
-    );
-}
-
-function AppearanceSection() {
-    return (
-        <ItemCardGroup variant="transparent">
-            <ItemCardGroup.Header>
-                <ItemCardGroup.Title>Appearance</ItemCardGroup.Title>
-            </ItemCardGroup.Header>
-            <ItemCardGroup className="overflow-hidden">
-                <ModeRow />
-                <ColorThemeRow />
-                <SnowRow />
-                <WindowLayoutRow />
-            </ItemCardGroup>
-        </ItemCardGroup>
+        </SettingsPageColumn>
     );
 }
 

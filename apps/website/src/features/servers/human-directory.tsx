@@ -10,8 +10,8 @@ import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.t
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useMembershipActions } from '../../hooks/servers/use-membership-actions.ts';
 import { CreateAgentDialog } from '../members/create-agent-dialog.tsx';
+import { SettingsPageColumn } from '../settings/layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../settings/layout/settings-page-header.tsx';
-import { PageColumn } from '../shell/page-column.tsx';
 import { ServerAgentList } from './server-agent-list.tsx';
 import { ServerInvitationsSection } from './server-invitations.tsx';
 import { memberChangeDescription, type ServerMemberRowAction } from './server-member-actions.ts';
@@ -60,11 +60,8 @@ export function HumanDirectory({
 
     return (
         <>
-            <PageColumn>
-                <SettingsPageHeader
-                    description="The people on this Server, their roles, and open invitations."
-                    title="Members"
-                />
+            <SettingsPageColumn width="table">
+                <SettingsPageHeader title="Members" />
                 <AgentsSection
                     agents={agents.data}
                     canManage={canManage}
@@ -91,7 +88,7 @@ export function HumanDirectory({
                     ) : null}
                 </ItemCardGroup>
                 {canInvite ? <ServerInvitationsSection serverId={serverId} /> : null}
-            </PageColumn>
+            </SettingsPageColumn>
             <ServerMemberConfirmDialog
                 onOpenChange={(open) => {
                     if (!open) {

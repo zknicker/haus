@@ -1,0 +1,132 @@
+import type { Context } from '@earendil-works/chord/context';
+import { defineTool, type ToolRegistration } from '@earendil-works/pi-durable';
+import { arr, int, obj, oneOf, opt, str, tuple } from '@earendil-works/pi-schema';
+import { runnerToolDescriptions } from '@haus/agent-prompt';
+import type { InvocationOutcome } from '@haus/api';
+import type { RunTools, ToolOutcome } from '../run-context.ts';
+import type { PiToolFamily } from './pi-models.ts';
+
+export const piToolNames = {
+    gpt: ['shell', 'apply_patch', 'view_image', 'execute'],
+    'text-editor': ['bash', 'str_replace_based_edit_tool', 'execute'],
+} as const satisfies Record<PiToolFamily, readonly (keyof typeof runnerToolDescriptions)[]>;
+
+export class PiToolBinding {
+    readonly invocations = new Map<string, InvocationOutcome>();
+    tools: RunTools | null = null;
+
+    bind(tools: RunTools | null) {
+        this.tools = tools;
+        this.invocations.clear();
+    }
+
+    async run(
+        callId: string,
+        context: Context,
+        call: (tools: RunTools, signal: AbortSignal) => Promise<ToolOutcome>
+    ) {
+        const tools = this.tools;
+        if (!tools) {
+            return {
+                isError: true,
+                output: [
+                    { text: 'No Haus run is active for this tool call.', type: 'text' as const },
+                ],
+            };
+        }
+        const outcome = await call(tools, context.abortSignal ?? new AbortController().signal);
+        if (outcome.invocation) {
+            this.invocations.set(callId, outcome.invocation);
+        }
+        return {
+            isError: outcome.isError,
+            output: outcome.content.map((part) =>
+                part.type === 'text'
+                    ? { text: part.text, type: 'text' as const }
+                    : { data: part.data, mimeType: part.mimeType, type: 'image' as const }
+            ),
+        };
+    }
+}
+
+export function piTools(family: PiToolFamily, binding: PiToolBinding) {
+    const all = {
+        apply_patch: defineTool({
+            ...shared('apply_patch'),
+            execute: (args, api, context) =>
+                binding.run(api.callId, context, (tools, signal) =>
+                    tools.applyPatch(api.callId, args, signal)
+                ),
+            parameters: obj({ input: str({ minLength: 1 }) }),
+        }),
+        bash: defineTool({
+            ...shared('bash'),
+            execute: (args, api, context) =>
+                binding.run(api.callId, context, (tools, signal) =>
+                    tools.bash(api.callId, args, signal)
+                ),
+            parameters: obj({
+                command: str({ minLength: 1 }),
+                description: opt(str()),
+                timeout: opt(int({ maximum: 600_000, minimum: 1 })),
+            }),
+        }),
+        execute: defineTool({
+            ...shared('execute'),
+            execute: (args, api, context) =>
+                binding.run(api.callId, context, (tools, signal) =>
+                    tools.execute(api.callId, args, signal)
+                ),
+            parameters: obj({ code: str({ minLength: 1 }) }),
+        }),
+        shell: defineTool({
+            ...shared('shell'),
+            execute: (args, api, context) =>
+                binding.run(api.callId, context, (tools, signal) =>
+                    tools.shell(api.callId, args, signal)
+                ),
+            parameters: obj({
+                command: arr(str(), { minItems: 1 }),
+                timeout_ms: opt(int({ maximum: 600_000, minimum: 1 })),
+                workdir: opt(str({ minLength: 1 })),
+            }),
+        }),
+        str_replace_based_edit_tool: defineTool({
+            ...shared('str_replace_based_edit_tool'),
+            execute: (args, api, context) =>
+                binding.run(api.callId, context, (tools, signal) =>
+                    tools.edit(api.callId, args, signal)
+                ),
+            parameters: obj({
+                command: oneOf(['view', 'create', 'str_replace', 'insert']),
+                file_text: opt(str()),
+                insert_line: opt(int({ minimum: 0 })),
+                new_str: opt(str()),
+                old_str: opt(str()),
+                path: str({ minLength: 1 }),
+                view_range: opt(tuple([int(), int()])),
+            }),
+        }),
+        view_image: defineTool({
+            ...shared('view_image'),
+            execute: (args, api, context) =>
+                binding.run(api.callId, context, (tools, signal) =>
+                    tools.viewImage(api.callId, args, signal)
+                ),
+            parameters: obj({ path: str({ minLength: 1 }) }),
+        }),
+    } satisfies Record<keyof typeof runnerToolDescriptions, ToolRegistration>;
+    return piToolNames[family].map((name) => {
+        const tool: ToolRegistration = all[name];
+        return tool;
+    });
+}
+
+function shared(name: keyof typeof runnerToolDescriptions) {
+    return {
+        description: runnerToolDescriptions[name],
+        name,
+        outputLimits: { maxBytes: 64 * 1024, maxLines: 2200, retain: 'tail' },
+        replay: 'unsafe',
+    } as const;
+}

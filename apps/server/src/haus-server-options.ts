@@ -15,6 +15,8 @@ import type { ThoughtSummarizer } from './server-agents/agent-thought-summarizer
 
 /** PostgreSQL- and Cloudflare-authenticated Haus Server HTTP and WebSocket application. */
 export interface HausServerApplicationOptions {
+    /** Where every Agent's loop runs, from `HAUS_AGENT_LOOP`; Computers when absent. */
+    agentLoop?: 'computer' | 'runner';
     appOrigin: string;
     artifactR2?: ArtifactR2Config;
     artifactStorage?: ArtifactStorage;
@@ -61,6 +63,8 @@ export interface HausServerApplicationOptions {
     releaseIdentity?: HausReleaseIdentity | null;
     /** Controlled time seam for deterministic reminder and sweep lifecycle tests. */
     reminderClock?: ReminderClock;
+    /** Opens the runner socket, from `HAUS_RUNNER_TOKEN`; absent refuses every runner. */
+    runnerToken?: string;
     /** Built Haus App assets. Omit only when another process serves the App in development. */
     staticAppRoot?: string;
     /** Interval seam for the boot sweeps; tests pass inert timers. */

@@ -1,6 +1,7 @@
 import { constants } from 'node:fs';
 import { access, readFile } from 'node:fs/promises';
 import type { EditorCommand } from '@haus/api';
+import { applyPatch } from './codex/apply-patch.ts';
 import { viewPath } from './editor-view.ts';
 import {
     existingFile,
@@ -25,6 +26,8 @@ export const editRunner: OperationRunner<'edit'> = (operation, context) => {
             return replaceText(edit, context);
         case 'insert':
             return insertText(edit, context);
+        case 'apply_patch':
+            return applyPatch(edit, context);
     }
 };
 

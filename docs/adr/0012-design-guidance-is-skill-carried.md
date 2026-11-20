@@ -49,7 +49,7 @@ guidance into the shared prompt.
 
 Two suites guard both sides: `packages/agent-workspace/src/managed-skills.test.ts`
 pins the skill text and the vocabulary it teaches, and
-`apps/computer/src/harness/managed-instructions.test.ts` pins the prompt
+`packages/agent-prompt/src/managed-instructions.test.ts` pins the prompt
 pointer. Skill sources are real markdown files under
 `packages/agent-workspace/src/visuals-skill/`, inlined at build time, so
 the design-tuning loop (`bun run eval:design`) edits markdown and reseeds.

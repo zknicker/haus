@@ -1,4 +1,4 @@
-import type { ColorTheme } from './color-theme.ts';
+import { type ColorTheme, isCustomTheme, type PresetTheme } from './color-theme.ts';
 
 /**
  * Every color theme as one definition (.design/guidelines.md "Color themes"). Consumers
@@ -12,7 +12,10 @@ export interface ColorThemeDefinition {
     readonly forcedMode: 'dark' | 'light' | null;
     /** The Inbox greeting pools; `null` keeps the standard "Good morning, Name". */
     readonly greetings: GreetingSet | null;
-    readonly id: ColorTheme;
+    /** `haus` layers over the default ladder; `palette` sets base colors and lets
+        `palette-ground.css` derive the rest of the ladder from them. */
+    readonly ground: 'haus' | 'palette';
+    readonly id: PresetTheme;
     readonly label: string;
     /** The costume `HausMascot` wears. */
     readonly mascot: 'ghost' | 'pumpkin' | 'santa';
@@ -51,19 +54,19 @@ const innkeeperGreetings: GreetingSet = {
     ],
 };
 
-const colorThemeDefinitions: Readonly<Record<ColorTheme, ColorThemeDefinition>> = {
-    default: {
-        appIcon: 'ghost',
-        forcedMode: null,
-        greetings: null,
-        id: 'default',
-        label: 'Default',
-        mascot: 'ghost',
-        scene: 'none',
-    },
+const colorThemeDefinitions: Readonly<Record<PresetTheme, ColorThemeDefinition>> = {
+    default: plainTheme('default', 'Haus', 'haus'),
+    oled: plainTheme('oled', 'OLED', 'haus'),
+    catppuccin: plainTheme('catppuccin', 'Catppuccin', 'palette'),
+    gruvbox: plainTheme('gruvbox', 'Gruvbox', 'palette'),
+    everforest: plainTheme('everforest', 'Everforest', 'palette'),
+    nord: plainTheme('nord', 'Nord', 'palette'),
+    one: plainTheme('one', 'One', 'palette'),
+    mauve: plainTheme('mauve', 'Mauve', 'palette'),
     halloween: {
         appIcon: 'pumpkin',
         forcedMode: 'dark',
+        ground: 'haus',
         // A haunted-house host: elegant, gently sinister, theatrical.
         greetings: {
             afternoon: [
@@ -94,6 +97,7 @@ const colorThemeDefinitions: Readonly<Record<ColorTheme, ColorThemeDefinition>> 
         appIcon: 'santa',
         forcedMode: 'dark',
         greetings: innkeeperGreetings,
+        ground: 'haus',
         id: 'christmas-eve',
         label: 'Christmas Eve',
         mascot: 'santa',
@@ -103,6 +107,7 @@ const colorThemeDefinitions: Readonly<Record<ColorTheme, ColorThemeDefinition>> 
         appIcon: 'santa',
         forcedMode: 'light',
         greetings: innkeeperGreetings,
+        ground: 'haus',
         id: 'christmas-morning',
         label: 'Christmas Morning',
         mascot: 'santa',
@@ -111,13 +116,27 @@ const colorThemeDefinitions: Readonly<Record<ColorTheme, ColorThemeDefinition>> 
 };
 
 /** Picker order for Settings and Cmd+K. */
-export const colorThemes: readonly ColorThemeDefinition[] = [
-    colorThemeDefinitions.default,
-    colorThemeDefinitions.halloween,
-    colorThemeDefinitions['christmas-eve'],
-    colorThemeDefinitions['christmas-morning'],
-];
+export const colorThemes: readonly ColorThemeDefinition[] = Object.values(colorThemeDefinitions);
+
+/** A custom theme wears nothing but its colors, which are always a palette. */
+const customThemeDefinition: ColorThemeDefinition = {
+    ...colorThemeDefinitions.default,
+    ground: 'palette',
+};
 
 export function colorThemeDefinition(theme: ColorTheme): ColorThemeDefinition {
-    return colorThemeDefinitions[theme];
+    return isCustomTheme(theme) ? customThemeDefinition : colorThemeDefinitions[theme];
+}
+
+function plainTheme(id: PresetTheme, label: string, ground: ColorThemeDefinition['ground']) {
+    return {
+        appIcon: 'ghost',
+        forcedMode: null,
+        greetings: null,
+        ground,
+        id,
+        label,
+        mascot: 'ghost',
+        scene: 'none',
+    } as const satisfies ColorThemeDefinition;
 }

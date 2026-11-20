@@ -3,6 +3,7 @@ import {
     Analytics01Icon,
     ArchiveIcon,
     Exchange01Icon,
+    PaintBoardIcon,
     Plug01Icon,
     PreferenceHorizontalIcon,
     ServerStack01Icon,
@@ -29,6 +30,12 @@ export const staticSettingsNavItems = [
         id: 'preferences',
         label: 'Preferences',
         to: appRoutes.settingsPreferences,
+    },
+    {
+        icon: PaintBoardIcon,
+        id: 'appearance',
+        label: 'Appearance',
+        to: appRoutes.settingsAppearance,
     },
     {
         icon: Exchange01Icon,
@@ -116,7 +123,7 @@ export const settingsNavSections = [
     {
         // Which Servers you belong to is about you, not about this Server.
         id: 'personal',
-        itemIds: ['profile', 'preferences', 'servers'],
+        itemIds: ['profile', 'preferences', 'appearance', 'servers'],
         label: 'Preferences',
     },
     {

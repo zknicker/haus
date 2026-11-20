@@ -81,7 +81,7 @@ export function TokenConfigurationGrid({ rows }: { rows: ConfigurationUsage[] })
                 <DataGrid
                     aria-label="Token usage by Captain, runtime, and model"
                     columns={columns}
-                    contentClassName="min-w-[800px]"
+                    contentClassName="min-w-[720px]"
                     data={rows}
                     defaultSortDescriptor={{ column: 'totalTokens', direction: 'descending' }}
                     getRowId={(item) => item.id}

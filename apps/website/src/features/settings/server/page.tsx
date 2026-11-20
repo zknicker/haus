@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import type { ServerSummary } from '../../../lib/haus-server.tsx';
 import { hausTrpc } from '../../../lib/haus-server.tsx';
 import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
-import { PageColumn } from '../../shell/page-column.tsx';
+import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { SettingsFact, SettingsRowError } from '../layout/settings-text.tsx';
@@ -24,11 +24,8 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
     });
 
     return (
-        <PageColumn>
-            <SettingsPageHeader
-                description="Identity, Captain settings, and permanent actions for this Server."
-                title="Server"
-            />
+        <SettingsPageColumn>
+            <SettingsPageHeader title="Server" />
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>
                     <ItemCardGroup.Title>Identity</ItemCardGroup.Title>
@@ -99,6 +96,6 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
                     ) : null}
                 </ItemCardGroup>
             ) : null}
-        </PageColumn>
+        </SettingsPageColumn>
     );
 }

@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from 'bun:test';
+import { formatInstructionsUpdate } from '@haus/agent-prompt';
 import {
     deliveredInstructionReceipt,
-    formatInstructionsUpdate,
     type InstructionsUpdatePlan,
     planInstructionsUpdate,
     withInstructionsUpdate,

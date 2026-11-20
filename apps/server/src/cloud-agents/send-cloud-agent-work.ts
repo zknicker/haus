@@ -43,8 +43,10 @@ export async function sendCloudAgentWork(
                     eq(cloudAgentWorkTable.serverId, runner.serverId),
                     eq(cloudAgentWorkTable.id, input.workId),
                     eq(cloudAgentWorkTable.agentId, runner.agentId),
-                    eq(cloudAgentWorkTable.computerId, runner.computerId),
-                    eq(agentsTable.computerId, runner.computerId)
+                    eq(cloudAgentWorkTable.computerId, agentsTable.computerId),
+                    runner.computerId === null
+                        ? undefined
+                        : eq(agentsTable.computerId, runner.computerId)
                 )
             )
             .limit(1);
@@ -85,7 +87,7 @@ export async function sendCloudAgentWork(
         let events: PreparedRealtimeEvent[] = [];
         if (!existing) {
             const model = await resolveRunModel(tx, {
-                computerId: runner.computerId,
+                computerId: row.work.computerId,
                 provider: row.work.provider,
                 serverId: runner.serverId,
             });
@@ -123,7 +125,7 @@ export async function sendCloudAgentWork(
             });
         }
         const predecessors = await listComputerCloudAgentWork(tx, {
-            computerId: runner.computerId,
+            computerId: row.work.computerId,
             serverId: runner.serverId,
             workId: input.workId,
         });

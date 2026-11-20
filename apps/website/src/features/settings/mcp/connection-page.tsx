@@ -8,8 +8,8 @@ import { useConnection } from '../../../hooks/servers/use-connection.ts';
 import { useSkoolConnect } from '../../../hooks/servers/use-skool-connect.ts';
 import { useServerContext } from '../../servers/server-context.ts';
 import { settingsConnectionRoute } from '../../servers/server-routes.ts';
-import { PageColumn } from '../../shell/page-column.tsx';
 import { BuiltInConnectionSections } from '../connections/built-in/built-in-connection-sections.tsx';
+import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { ConnectionChipsSection } from './connection-chips-section.tsx';
 import { ConnectionDetailHeader } from './connection-detail-header.tsx';
 import { ConnectionTrustDialog, toConnectionView } from './connection-view.tsx';
@@ -75,10 +75,8 @@ export function ConnectionPage({
     const skoolEditor = resolveSkoolEditor(credentials.editor);
 
     return (
-        <PageColumn>
-            {/* A product page reads at a measure, not across the full
-                settings column; the page still scrolls with the frame. */}
-            <div className="mx-auto flex w-full max-w-2xl flex-col gap-10">
+        <SettingsPageColumn>
+            <div className="flex flex-col gap-10">
                 <ConnectionDetailHeader
                     connection={connection}
                     onAddCredentials={credentials.editCredentials}
@@ -179,7 +177,7 @@ export function ConnectionPage({
                 onConfirm={signIn.confirmTrust}
                 request={signIn.trustRequest}
             />
-        </PageColumn>
+        </SettingsPageColumn>
     );
 }
 

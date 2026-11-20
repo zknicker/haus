@@ -9,7 +9,7 @@ import { useMembers } from '../../../hooks/servers/use-members.ts';
 import { useSignOut } from '../../auth/use-sign-out.ts';
 import { AvatarPicker } from '../../avatars/avatar-picker.tsx';
 import { humanDisplayName } from '../../servers/human-identity.ts';
-import { PageColumn } from '../../shell/page-column.tsx';
+import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { SettingsRowError } from '../layout/settings-text.tsx';
@@ -23,11 +23,8 @@ export function ProfileSettings({ serverId }: { serverId: string }) {
     );
 
     return (
-        <PageColumn>
-            <SettingsPageHeader
-                description="How you appear to the people and Captains you work with."
-                title="Profile"
-            />
+        <SettingsPageColumn>
+            <SettingsPageHeader title="Profile" />
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>
                     <ItemCardGroup.Title>Identity</ItemCardGroup.Title>
@@ -48,7 +45,7 @@ export function ProfileSettings({ serverId }: { serverId: string }) {
                 )}
             </ItemCardGroup>
             <AccountSection />
-        </PageColumn>
+        </SettingsPageColumn>
     );
 }
 

@@ -1,6 +1,6 @@
 /**
  * The snow the Christmas themes' roofline wears (`scene: 'snowy-roofline'`),
- * picked in Settings > Preferences > Appearance > Snow. App-local
+ * picked in Settings > Appearance > Snow. App-local
  * presentation: persisted per device, never synced, and only read while a
  * theme with a roofline is on.
  */

@@ -10,6 +10,7 @@ import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.t
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useColorThemeDefinition } from '../../hooks/shell/use-color-theme.ts';
+import { useCustomThemes } from '../../hooks/shell/use-custom-themes.ts';
 import type { ServerSummary } from '../../lib/haus-server.tsx';
 import { setCapyShell, useCapyShell } from '../capy-shell/capy-shell-preference.ts';
 import { setShowClaimsInChat, useShowClaimsInChat } from '../claims/show-claims-in-chat.ts';
@@ -24,6 +25,7 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
     const { forcedTheme, setTheme } = useTheme();
     const modeLocked = forcedTheme !== null;
     const { scene } = useColorThemeDefinition();
+    const customThemes = useCustomThemes();
     const showClaimsInChat = useShowClaimsInChat();
     const capyShell = useCapyShell();
     const openAgentProfile = useOpenAgentProfile();
@@ -51,13 +53,14 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
                 setDevMode,
             }),
             buildClaimCommandGroup({ setShowClaimsInChat, showClaimsInChat }),
-            buildThemeCommandGroup({ modeLocked, scene, setTheme }),
+            buildThemeCommandGroup({ customThemes, modeLocked, scene, setTheme }),
             buildCapyShellCommandGroup({ capyShell, setCapyShell }),
         ],
         [
             agentItems,
             capyShell,
             chatItems,
+            customThemes,
             devMode,
             modeLocked,
             navigate,

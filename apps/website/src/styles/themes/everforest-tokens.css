@@ -1,0 +1,27 @@
+/*
+ * Everforest: the medium light and dark grounds, green accent. Base colors
+ * only; `palette-ground.css` derives the ladder. Palette by Sainnhe Park
+ * (MIT), https://github.com/sainnhe/everforest.
+ */
+[data-color-theme="everforest"][data-palette][data-theme="light"] {
+    --accent: #8da101;
+    --accent-foreground: #2d353b;
+    --background: #fdf6e3;
+    --foreground: #5c6a72;
+    --sidebar-surface: #f4f0d9;
+    --default: #e6e2cc;
+    --muted: #829181;
+    --border: #e0dcc7;
+}
+
+[data-color-theme="everforest"][data-palette][data-theme="dark"] {
+    --accent: #a7c080;
+    --accent-foreground: #2d353b;
+    --background: #2d353b;
+    --foreground: #d3c6aa;
+    --sidebar-surface: #232a2e;
+    --surface: #343f44;
+    --default: #3d484d;
+    --muted: #859289;
+    --border: #475258;
+}

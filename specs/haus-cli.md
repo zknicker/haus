@@ -165,7 +165,7 @@ Rules:
   `claim=#N:status:assignee` (`unassigned` when nobody owns it), then
   `mentioned=true`. The attachment suffix is not a work fact and
   stays a trailing suffix on the drain envelope too. Suffix and marker grammars
-  share one formatting owner (`apps/computer/src/inbox-format.ts`), except the
+  share one formatting owner (`packages/agent-prompt/src/inbox-format.ts`), except the
   Cloud Agent suffix, which is owned beside its schema in `@haus/api` because
   every layer prints it.
 - Every message also carries `body_kind` (`text | agent-created`) on the wire.
