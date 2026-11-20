@@ -1,8 +1,8 @@
 ---
-summary: The Capy shell preview — a per-device flag (off by default, toggled from Cmd+K) that swaps the App's sidebar for Captain tiles, Projects, open Tasks and People, and makes Home a prompt box; what is live data, what is placeholder, and which program PR replaces each placeholder.
+summary: The Capy shell preview — a per-device flag (off by default, toggled from Cmd+K) that swaps the App's sidebar for Captain tiles, Projects, open Tasks and People, and makes Home a prompt box; where each sidebar fact comes from.
 read_when:
   - changing the Capy shell flag, its sidebar, its footer, or Home
-  - replacing a Capy shell placeholder with real data (J2, J3, W2)
+  - changing what a Capy shell sidebar row reads or shows
   - flipping the flag on for everyone or deleting the old shell (J4)
 ---
 
@@ -25,8 +25,9 @@ stored in `localStorage` under `haus.capy-shell` and follows into other open win
   - A Captain tile shows a dot while the Captain works and a badge for unread DM messages. A
     click opens your DM with that Captain. Owners and Admins get a + that opens New Captain.
   - A Project row is its mark, its name and its unread badge. The + opens New project.
-  - Each open Task row has a second line: Captain · workers · places, or "waiting on <you>" when
-    an unread message in it @mentions you. Waiting Tasks sort first.
+  - An open Task row is one line: the state disc, the key, the title and the unread badge. When
+    an unread message in it @mentions you, the key turns accent with a small accent dot and the
+    row reads and tooltips "Waiting on you". Waiting Tasks sort first.
   - People lists person-to-person DMs and appears only when you have any.
   - Alt+Down and Alt+Up open the next or previous row with unread messages, in sidebar order
     across Captains, Projects, open Tasks and People, wrapping at the ends.
@@ -43,24 +44,21 @@ stored in `localStorage` under `haus.capy-shell` and follows into other open win
 - **Activity.** The Inbox's Captain activity strip (each Captain's 7-day tokens with the spike
   flag, and "N running" with its popover) heads the Activity page.
 
-## Live and placeholder data
+## Where the sidebar reads from
 
-Every sidebar field is typed `Sourced<T>` when it can be a placeholder
-(`features/capy-shell/placeholders.ts`): `{ source: 'live' }` or
-`{ source: 'placeholder', replacedBy }`. The sidebar's structure (which sections, which ids,
+Everything the sidebar shows is live Server data; nothing is a placeholder. The sidebar's structure (which sections, which ids,
 in what order) is `capySidebarSections` in `features/capy-shell/sidebar-layout.ts`; each row
 projects its own entry through `features/capy-shell/sidebar-model.ts` from a narrow `select`
 (`use-capy-sidebar-rows.ts`), so a message re-renders only the row it changes
 (`capy-sidebar-render-isolation.test.tsx`).
 
-| Field | Source today | Replaced by |
-| --- | --- | --- |
-| Captains, their working state, DM unread | Live (`agent.list`, `chat.list`) | — |
-| Projects and their unread counts | Live (channels in `chat.list`) | — |
-| Open Tasks and their assignee | Live (`task.listOpen`) | — |
-| "Waiting on you" | Live: an unread @mention of you in the Task (`chat.unreadPreviews`) | — |
-| Worker counts and places | Placeholder, stable per Task (`previewTaskWorkers`) | W2, Workers |
-| People | Live (person DMs in `chat.list`, names from `member.list`) | — |
+| Field | Source |
+| --- | --- |
+| Captains, their working state, DM unread | Live (`agent.list`, `chat.list`) |
+| Projects and their unread counts | Live (channels in `chat.list`) |
+| Open Tasks | Live (`task.listOpen`) |
+| "Waiting on you" | Live: an unread @mention of you in the Task (`chat.unreadPreviews`) |
+| People | Live (person DMs in `chat.list`, names from `member.list`) |
 
 ## Home's send path
 

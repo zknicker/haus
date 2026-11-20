@@ -163,7 +163,7 @@ test('an @mention of you in a Task renders that Task’s row and moves it first'
     expect(census.count('OpenTaskNavigationRow', 'tsk_1')).toBe(1);
     expect(census.count('ProjectNavigationRow')).toBe(0);
     expect(census.count('CaptainTileLink')).toBe(0);
-    expect(harness.container.textContent).toContain('waiting on');
+    expect(harness.container.textContent).toContain('Waiting on you');
 
     await harness.unmount();
 });

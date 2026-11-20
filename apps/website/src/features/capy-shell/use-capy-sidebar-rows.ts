@@ -4,15 +4,7 @@ import * as React from 'react';
 import { useAgentDmEntry, useChatListSelection } from '../../hooks/servers/use-chats.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
-import {
-    assigneeName,
-    captainTile,
-    openTaskRow,
-    personRow,
-    projectRow,
-    taskUnread,
-    viewerName,
-} from './sidebar-model.ts';
+import { captainTile, openTaskRow, personRow, projectRow, taskUnread } from './sidebar-model.ts';
 
 export function useCaptainTile(serverId: string, agentId: string) {
     const select = React.useCallback(
@@ -69,7 +61,6 @@ export function useOpenTaskRow(serverId: string, taskId: string) {
             const task = tasks.find((entry) => entry.id === taskId);
             return task
                 ? {
-                      assignee: task.assignee,
                       chatId: task.chatId,
                       id: task.id,
                       key: task.key,
@@ -98,14 +89,8 @@ export function useOpenTaskRow(serverId: string, taskId: string) {
         { serverId },
         { ...queryPolicy.syncedSnapshot, select: selectUnread }
     ).data;
-    const assignee = useAssigneeName(serverId, task?.assignee ?? null);
     return task
-        ? openTaskRow({
-              assignee,
-              task,
-              unread: unread ?? { mentionsViewer: false, unreadCount: 0 },
-              viewerName: viewer.name,
-          })
+        ? openTaskRow({ task, unread: unread ?? { mentionsViewer: false, unreadCount: 0 } })
         : undefined;
 }
 
@@ -136,27 +121,8 @@ function useMember(serverId: string, userId: string | null) {
         .data;
 }
 
-function useAssigneeName(serverId: string, assignee: Task['assignee']) {
-    const agentId = assignee?.kind === 'agent' ? assignee.agentId : null;
-    const userId = assignee?.kind === 'user' ? assignee.userId : null;
-    const selectAgent = React.useCallback(
-        (agents: Agent[]) =>
-            agentId ? assigneeName({ agentId, kind: 'agent' }, agents, []) : null,
-        [agentId]
-    );
-    const agentName = hausTrpc.agent.list.useQuery(
-        { serverId },
-        { ...queryPolicy.syncedSnapshot, select: selectAgent }
-    ).data;
-    const member = useMember(serverId, userId);
-    return (
-        agentName ??
-        (userId && member ? assigneeName({ kind: 'user', userId }, [], [member]) : null)
-    );
-}
-
 function selectViewer(list: ServerMemberDirectory) {
-    return { name: viewerName(list.members, list.viewerUserId), viewerUserId: list.viewerUserId };
+    return { viewerUserId: list.viewerUserId };
 }
 
-const noViewer: { name: string; viewerUserId: string | null } = { name: 'you', viewerUserId: null };
+const noViewer: { viewerUserId: string | null } = { viewerUserId: null };
