@@ -1,5 +1,13 @@
 import { sql } from 'drizzle-orm';
-import { check, foreignKey, pgTable, primaryKey, text, timestamp } from 'drizzle-orm/pg-core';
+import {
+    check,
+    foreignKey,
+    integer,
+    pgTable,
+    primaryKey,
+    text,
+    timestamp,
+} from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
 import { chatsTable } from './chats.ts';
 import { serversTable } from './servers.ts';
@@ -16,6 +24,8 @@ export const agentRunTriggersTable = pgTable(
         agentId: text('agent_id').notNull(),
         chatId: text('chat_id'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        /** The Agent's reset generation when the run was dispatched. */
+        resetGeneration: integer('reset_generation').notNull().default(0),
         runId: text('run_id').notNull(),
         serverId: text('server_id')
             .notNull()

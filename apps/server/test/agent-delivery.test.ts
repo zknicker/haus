@@ -1467,7 +1467,7 @@ test('offline reset reconnects with authoritative configuration before redeliver
         dedupeKey: 'msg-offline-reset',
         serverId: seed.serverId,
     });
-    await delivery.reset({ agentId: seed.agentId, kind: 'full', serverId: seed.serverId });
+    await delivery.reset({ ...seed, kind: 'full', resetBy: `user:${seed.userId}` });
     expect(transport.sent).toEqual([]);
 
     transport.online.add(seed.computerId);
@@ -2139,7 +2139,7 @@ test('applies deferred configuration with one strongest Reset generation', async
     );
     await delivery.applyAgentConfiguration(configured);
 
-    await delivery.reset({ agentId: seed.agentId, kind: 'full', serverId: seed.serverId });
+    await delivery.reset({ ...seed, kind: 'full', resetBy: `user:${seed.userId}` });
 
     expect(transport.sent.map(({ frame }) => frame.type)).toEqual([
         'start',

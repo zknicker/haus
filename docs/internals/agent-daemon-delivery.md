@@ -405,7 +405,7 @@ composition bubble remains tied only to an explicit in-flight message and its co
 | A resumed session receives changed instructions exactly once, never on a host-facts-only release | `apps/computer/src/harness/instructions-update.test.ts`, `apps/computer/src/harness/executor-instructions-update.test.ts`; live: `instructions-update-live.test.ts` |
 | Known tools map through the semantic registry; unknown and MCP tools remain generic | `apps/computer/src/harness/executor.test.ts` |
 | Runtime/model switch and rejected resume start exactly one fresh generation | `apps/computer/src/harness/executor.test.ts` |
-| Session reset preserves workspace and skills; full reset restores the Agent-kind workspace and only factory-managed skills | `apps/computer/src/launch.test.ts` |
+| Session reset preserves workspace and skills; full reset restores the factory workspace, the same for every Agent, and only factory-managed skills | `apps/computer/src/launch.test.ts` |
 | Stable local proxy; per-turn Server authority rotates | `apps/computer/src/proxy.test.ts` |
 | Exact message envelopes and content-free notices | `packages/agent-prompt/src/inbox-format.test.ts` |
 | Session continuity picks the drain lane; a composed drain attests and consumes itself | `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/executor.test.ts` |

@@ -76,6 +76,7 @@ import {
     readComputerLogs,
     readComputerStatus,
 } from './diagnostics.ts';
+import { discardDrivePushes } from './drive/turn-sync.ts';
 import { attachmentJournalUploads } from './execution-journal-upload/attachment-journal-uploads.ts';
 import { handleHostSkillFileRequest } from './host-skill-file.ts';
 import {
@@ -1257,6 +1258,9 @@ async function connect(
                     return;
                 }
                 resettingAgents.add(reset.agentId);
+                const agentRoot = join(agentsDir, reset.agentId);
+                const resumePushes =
+                    reset.kind === 'full' ? discardDrivePushes(agentRoot) : () => undefined;
                 const runId = agentWork.activeRunId(reset.agentId);
                 if (runId) {
                     agentWork.abortRun(runId);
@@ -1267,13 +1271,7 @@ async function connect(
                         .then(() => agentWork.waitForRun(reset.agentId))
                         .then(async () => {
                             await applyAuthoritativeSession({
-                                agentRoot: join(
-                                    dataRoot,
-                                    'servers',
-                                    attachment.serverId,
-                                    'agents',
-                                    reset.agentId
-                                ),
+                                agentRoot,
                                 generation: reset.sessionGeneration,
                                 reset: async () => {
                                     await resetOwnedAgentState({
@@ -1292,6 +1290,7 @@ async function connect(
                         })
                         .finally(() => {
                             resettingAgents.delete(reset.agentId);
+                            resumePushes();
                         })
                 );
                 return;

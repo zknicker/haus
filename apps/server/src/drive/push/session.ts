@@ -4,7 +4,7 @@ import type { ArtifactAccess } from '../../artifacts/access.ts';
 import { lockLiveServer } from '../../artifacts/move.ts';
 import { ArtifactError } from '../../artifacts/storage.ts';
 import type { HausDatabase } from '../../postgres/connection.ts';
-import { agentRunTriggersTable, drivePushesTable } from '../../postgres/schema.ts';
+import { agentRunTriggersTable, agentsTable, drivePushesTable } from '../../postgres/schema.ts';
 import { taskIdOfAssignmentKey } from '../../tasks/task-assignment-envelope.ts';
 import { findTaskByChatId } from '../../tasks/task-chat.ts';
 import { closePushIn } from './close.ts';
@@ -51,6 +51,21 @@ export async function requireOpenPush(tx: HausDatabase, access: PushAgentAccess,
         throw pushClosed(pushId);
     }
     return push;
+}
+
+export async function requireRunSinceReset(tx: HausDatabase, push: DrivePush) {
+    const [agent] = await tx
+        .select({ resetGeneration: agentsTable.resetGeneration })
+        .from(agentsTable)
+        .where(and(eq(agentsTable.serverId, push.serverId), eq(agentsTable.id, push.agentId)))
+        .limit(1);
+    if (agent && agent.resetGeneration !== push.resetGeneration) {
+        throw new ArtifactError(
+            `A full reset replaced run \`${push.id}\`, so its push writes nothing.`,
+            409,
+            'AGENT_RESET'
+        );
+    }
 }
 
 async function openPushIn(
@@ -101,6 +116,7 @@ async function openPushIn(
         .values({
             agentId,
             id: pushId,
+            resetGeneration: trigger.resetGeneration,
             serverId: access.serverId,
             taskId: await runTask(tx, trigger),
         })
