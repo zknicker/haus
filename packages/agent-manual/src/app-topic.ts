@@ -24,11 +24,19 @@ const commonQuestions = `## Common questions
 - An Agent that does not respond: it may be busy, its Computer may be offline, or its runtime may have failed to start. Ask the person to mention it. Its Captain profile shows the last error, with Restart for an Owner or Admin, and sending it a message also retries. Captain profile → Runs on shows its Computer's health and model status. Do not blame the person or guess at a local process.`;
 
 export const appTopic: ManualNavigationTopic = {
+    aliases: [
+        'privacy',
+        'security',
+        'what agents can see',
+        'agent not responding',
+        'iphone app',
+        'mobile app',
+    ],
     id: 'app',
     kind: 'overview',
     title: 'Where things are in Haus App',
     summary:
-        'Find where a setting or control lives in the App, who can use it, and what has no App screen, to guide a person who asks "where is" or "how do I change" something.',
+        'Find where a setting or control lives in the App, who can use it, and what has no App screen. Also answers common questions: what a Computer gives an Agent, what Agents can see, an Agent that does not respond, and the iPhone app.',
     related: ['index', 'secrets', 'agent', 'reminder', 'trigger'],
     body: `# Where things are in Haus App
 
