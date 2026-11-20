@@ -2,135 +2,110 @@ import { expect, test } from 'bun:test';
 import type { AgentApiRequest } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
-import { args, requester } from './agent-worker-fixture.ts';
+import { args, requester, work } from './agent-worker-fixture.ts';
 import { runWorkerStart } from './agent-worker.ts';
 
-test('starts one Worker with the stdin instructions and the Agent’s own words', async () => {
+const brief = 'Reproduce the flake and open a pull request.\n';
+
+function deps(seen: AgentApiRequest[], output: string[] = [], stdin = brief) {
+    return {
+        client: requester(seen),
+        mintNonce: () => 'worker-nonce',
+        readStdin: () => Promise.resolve(stdin),
+        stdinIsTty: false,
+        write: (text: string) => output.push(text),
+    };
+}
+
+test('starts one Worker on a Task with the stdin brief and posts nothing', async () => {
     const seen: AgentApiRequest[] = [];
-    const routes: string[] = [];
     const output: string[] = [];
 
-    const exitCode = await runWorkerStart(args(), {
-        client: requester(seen, routes),
-        mintNonce: () => 'worker-nonce',
-        readStdin: () => Promise.resolve('Reproduce the flake and open a pull request.\n'),
-        stdinIsTty: false,
-        write: (text) => output.push(text),
-    });
-
-    expect(exitCode).toBe(0);
-    expect(routes).toEqual(['/api/agent/workers']);
+    expect(await runWorkerStart(args(), deps(seen, output))).toBe(0);
     expect(seen[0]?.body).toEqual({
-        content: 'Handing the flaky delivery test to a Worker.',
-        instructions: 'Reproduce the flake and open a pull request.',
+        brief: 'Reproduce the flake and open a pull request.',
         nonce: 'worker-nonce',
-        provider: 'cursor',
+        place: 'cursor',
         repository: 'haus/haus',
         startingRef: 'main',
-        target: 'task:SEC-12',
         task: 'SEC-12',
         title: 'Fix the flaky delivery test',
     });
-    const printed = output.join('');
-    expect(printed).toContain('Work ID: caw_1234567890abcdef');
-    expect(printed).toContain('Posted to task:SEC-12.');
-    expect(printed).toContain('Haus wakes you on task:SEC-12 when the run settles');
-    expect(printed).toContain('when its pull request becomes ready or its checks finish');
-    expect(printed).not.toContain('Work thread');
+    expect(output.join('')).toBe(
+        [
+            `Worker ${work.id} started on cursor for SEC-12: Fix the flaky delivery test (haus/haus@main).`,
+            'Its report posts in SEC-12 and reaches you as an inbox item when the turn ends; a launch that fails reaches you the same way.',
+            `Follow up with haus worker send --worker ${work.id}; stop it with haus worker stop --worker ${work.id}.`,
+            '',
+        ].join('\n')
+    );
 });
 
-test('a launch with no Task is refused before anything is sent, naming the next step', async () => {
+test('a queued start says it waits for a free slot on its place', async () => {
+    const output: string[] = [];
+    await runWorkerStart(args(), {
+        ...deps([], output),
+        client: {
+            request: (_path, schema) =>
+                Promise.resolve(schema.parse({ state: 'queued', worker: work })),
+        },
+    });
+    expect(output.join('')).toStartWith(
+        `Worker ${work.id} queued on cursor for SEC-12: Fix the flaky delivery test (haus/haus@main). It starts when cursor has a free slot.\n`
+    );
+});
+
+test('a start with no Task is refused before anything is sent, naming the next step', async () => {
     const seen: AgentApiRequest[] = [];
-    await expect(
-        runWorkerStart(args({ '--task': '' }), {
-            client: requester(seen),
-            mintNonce: () => 'no-task-nonce',
-            readStdin: () => Promise.resolve('Fix the reported failure.'),
-            stdinIsTty: false,
-            write: () => undefined,
-        })
-    ).rejects.toMatchObject({
+    await expect(runWorkerStart(args({ '--task': '' }), deps(seen))).rejects.toMatchObject({
         code: 'WORKER_TASK_REQUIRED',
         options: { nextAction: expect.stringContaining('haus task start') },
     });
     expect(seen).toHaveLength(0);
 });
 
-test('a start without --on is refused before anything is sent', async () => {
+test('a start without --on leaves the place to the Server, which lists the ready ones', async () => {
     const seen: AgentApiRequest[] = [];
-    const deps = {
-        client: requester(seen),
-        mintNonce: () => 'no-place-nonce',
-        readStdin: () => Promise.resolve('Fix the reported failure.'),
-        stdinIsTty: false,
-        write: () => undefined,
-    };
-    await expect(runWorkerStart(args({ '--on': '' }), deps)).rejects.toMatchObject({
-        code: 'WORKER_PLACE_REQUIRED',
-        options: { nextAction: 'Add --on cursor or --on claude.' },
-    });
-    await expect(runWorkerStart(args({ '--on': 'mini' }), deps)).rejects.toMatchObject({
+    await runWorkerStart(args({ '--on': '' }), deps(seen));
+    expect(seen[0]?.body).not.toHaveProperty('place');
+    await expect(runWorkerStart(args({ '--on': 'mini' }), deps(seen))).rejects.toMatchObject({
         code: 'INVALID_ARG',
         message: 'Invalid Worker place "mini".',
     });
-    expect(seen).toHaveLength(0);
+    expect(seen).toHaveLength(1);
 });
 
 test('a Server WORKER_TASK_REQUIRED refusal gains the start-a-Task step', async () => {
     await expect(
         runWorkerStart(args(), {
+            ...deps([]),
             client: {
                 request: () =>
                     Promise.reject(
-                        new AgentCliError('WORKER_TASK_REQUIRED', 'Cloud work needs a Task.')
+                        new AgentCliError('WORKER_TASK_REQUIRED', 'A Worker needs a Task.')
                     ),
             },
-            mintNonce: () => 'refused-nonce',
-            readStdin: () => Promise.resolve('Fix the reported failure.'),
-            stdinIsTty: false,
-            write: () => undefined,
         })
     ).rejects.toMatchObject({
         code: 'WORKER_TASK_REQUIRED',
-        message: 'Cloud work needs a Task.',
+        message: 'A Worker needs a Task.',
         options: { nextAction: expect.stringContaining('--task <KEY-n>') },
     });
 });
 
 test('--task accepts the Task target form too', async () => {
     const seen: AgentApiRequest[] = [];
-    await runWorkerStart(args({ '--task': 'task:SEC-12' }), {
-        client: requester(seen),
-        mintNonce: () => 'target-form-nonce',
-        readStdin: () => Promise.resolve('Fix the reported failure.'),
-        stdinIsTty: false,
-        write: () => undefined,
-    });
-    expect(seen[0]?.body).toMatchObject({ target: 'task:SEC-12', task: 'SEC-12' });
+    await runWorkerStart(args({ '--task': 'task:SEC-12' }), deps(seen));
+    expect(seen[0]?.body).toMatchObject({ task: 'SEC-12' });
 });
 
-test('--cause rides the --say post as on haus message send, and a blank one is refused', async () => {
-    const seen: AgentApiRequest[] = [];
-    const deps = {
-        client: requester(seen),
-        mintNonce: () => 'caused-cloud-nonce',
-        readStdin: () => Promise.resolve('Fold the dependency PRs into one.'),
-        stdinIsTty: false,
-        write: () => undefined,
-    };
-    await runWorkerStart(args({ '--cause': ' rmf_9a8b7c6d ' }), deps);
-    expect(seen[0]?.body).toMatchObject({ cause: 'rmf_9a8b7c6d' });
-    await expect(runWorkerStart(args({ '--cause': ' ' }), deps)).rejects.toThrow('fire id');
-    expect(seen).toHaveLength(1);
-});
-
-test('a held start shows the newer messages and says nothing was launched', async () => {
+test('a held start shows the newer messages and says nothing was recorded', async () => {
     const output: string[] = [];
     const newer = {
         attachments: [],
         author: { id: 'usr_zach', kind: 'user', label: 'Zach', metadata: {} },
         body_kind: 'text',
-        chat_id: 'cht_product',
+        chat_id: 'cht_task',
         content: 'own it in tech ops though not here',
         created_at: '2026-09-04T12:00:07.000Z',
         deleted_at: null,
@@ -142,7 +117,8 @@ test('a held start shows the newer messages and says nothing was launched', asyn
         sender: { description: null, handle: 'zach', type: 'human' },
         sequence: 107,
     };
-    const exitCode = await runWorkerStart(args(), {
+    await runWorkerStart(args(), {
+        ...deps([], output),
         client: {
             request: (_path, schema) =>
                 Promise.resolve(
@@ -155,47 +131,27 @@ test('a held start shows the newer messages and says nothing was launched', asyn
                     })
                 ),
         },
-        mintNonce: () => 'worker-nonce',
-        readStdin: () => Promise.resolve('Do the work.'),
-        stdinIsTty: false,
-        write: (text) => output.push(text),
     });
 
-    expect(exitCode).toBe(0);
     const printed = output.join('');
     expect(printed).toContain('Freshness hold: showing latest 1 of 1 newer messages.');
-    expect(printed).toContain('The Worker was not started');
+    expect(printed).toContain('The Worker was not started: nothing was recorded.');
     expect(printed).toContain('own it in tech ops though not here');
     expect(printed).toContain('run the same haus worker start command again');
-    expect(printed).not.toContain('Work ID');
 });
 
-test('a start with no instructions, a bad repository, or no ref fails or omits truthfully', async () => {
-    const deps = {
-        client: requester([]),
-        mintNonce: () => 'worker-nonce',
-        readStdin: () => Promise.resolve('   '),
-        stdinIsTty: false,
-        write: () => undefined,
-    };
-    await expect(runWorkerStart(args(), deps)).rejects.toThrow(AgentCliError);
-
+test('a start with no brief or a bad repository fails before asking, and no ref sends none', async () => {
     const seen: AgentApiRequest[] = [];
-    await expect(
-        runWorkerStart(args({ '--repo': 'haus' }), {
-            ...deps,
-            client: requester(seen),
-            readStdin: () => Promise.resolve('Do the work.'),
-        })
-    ).rejects.toThrow(/Invalid repository/);
+    await expect(runWorkerStart(args(), deps(seen, [], '   '))).rejects.toThrow(
+        'The brief for the Worker is required on stdin.'
+    );
+    await expect(runWorkerStart(args({ '--repo': 'haus' }), deps(seen))).rejects.toThrow(
+        /Invalid repository/
+    );
     expect(seen).toHaveLength(0);
 
     const withoutRef: ParsedArgs = args();
     withoutRef.values['--ref'] = '';
-    await runWorkerStart(withoutRef, {
-        ...deps,
-        client: requester(seen),
-        readStdin: () => Promise.resolve('Do the work.'),
-    });
+    await runWorkerStart(withoutRef, deps(seen));
     expect((seen[0]?.body as { startingRef: string | null }).startingRef).toBeNull();
 });

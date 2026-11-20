@@ -1,15 +1,19 @@
 import {
-    workerBranchSchema,
     pullRequestReadingSchema,
+    workerBranchSchema,
+    workerOutcomeSchema,
+    workerProviderResultSchema,
     workerPullRequestSchema,
     workerReconcileEntrySchema,
-    workerProviderResultSchema,
+    workerReportSchema,
+    workerSchema,
+    workerStopRequestedBySchema,
+    workerTurnInputSchema,
     workerTurnModelParamSchema,
     workerTurnModelSchema,
     workerTurnSchema,
     workerTurnsRetained,
     workerUsageSchema,
-    workerSchema,
 } from '@haus/api';
 import * as z from 'zod';
 
@@ -33,9 +37,16 @@ export const workerBranchResponseSchema = z.looseObject({
     pullRequest: workerPullRequestResponseSchema.nullable().optional(),
 });
 
+const [reportOutcome, stoppedOutcome, failedOutcome] = workerOutcomeSchema.options;
+
+export const workerOutcomeResponseSchema = z.discriminatedUnion('kind', [
+    z.looseObject({ ...reportOutcome.shape, report: z.looseObject(workerReportSchema.shape) }),
+    z.looseObject(stoppedOutcome.shape),
+    z.looseObject(failedOutcome.shape),
+]);
+
 const workerUsageResponseSchema = z.looseObject(workerUsageSchema.shape);
 
-/** The full report `summary` is cut from (TECH-8); loosened like every other nested object here. */
 const workerProviderResultResponseSchema = z.looseObject(workerProviderResultSchema.shape);
 
 const workerTurnModelParamResponseSchema = z.looseObject(workerTurnModelParamSchema.shape);
@@ -45,19 +56,28 @@ export const workerTurnModelResponseSchema = z.looseObject({
     params: z.array(workerTurnModelParamResponseSchema).max(2),
 });
 
+const [agentStopper, userStopper] = workerStopRequestedBySchema.options;
+
+const workerTurnInputResponseSchema = z.looseObject({
+    ...workerTurnInputSchema.shape,
+    author: z.looseObject(workerTurnInputSchema.shape.author.shape),
+});
+
 const workerTurnResponseSchema = z.looseObject({
     ...workerTurnSchema.shape,
     branches: z.array(workerBranchResponseSchema).max(50),
+    input: z.array(workerTurnInputResponseSchema).nullable(),
     model: workerTurnModelResponseSchema,
-    // A Server older than this Computer sends no report.
-    report: workerProviderResultResponseSchema.nullable().default(null),
+    outcome: workerOutcomeResponseSchema.nullable(),
+    report: workerProviderResultResponseSchema.nullable(),
+    stopRequestedBy: z
+        .discriminatedUnion('kind', [
+            z.looseObject(agentStopper.shape),
+            z.looseObject(userStopper.shape),
+        ])
+        .nullable(),
     usage: workerUsageResponseSchema.nullable(),
 });
-
-const workerCancelRequestedByResponseSchema = z.discriminatedUnion('kind', [
-    z.looseObject({ id: z.string().trim().min(1), kind: z.literal('agent') }),
-    z.looseObject({ id: z.string().trim().min(1), kind: z.literal('user') }),
-]);
 
 const workerActivityResponseSchema = z.looseObject({
     at: timestampSchema,
@@ -111,30 +131,21 @@ const workerJobResponseSchema = z.discriminatedUnion('state', [
 export const workerResponseSchema = z.looseObject({
     ...workerSchema.shape,
     activity: workerActivityResponseSchema.nullable(),
-    cancelRequestedBy: workerCancelRequestedByResponseSchema.nullable(),
     job: workerJobResponseSchema,
-    // A Server older than this Computer sends no reading.
-    pullRequest: pullRequestReadingResponseSchema.nullable().default(null),
+    pullRequest: pullRequestReadingResponseSchema.nullable(),
     turns: z.array(workerTurnResponseSchema).max(workerTurnsRetained),
 });
 
 export const workerReconcileEntryResponseSchema = z.looseObject(workerReconcileEntrySchema.shape);
 
-/** `haus worker start`'s `started` branch; the held branch adds its own message schema. */
+/** `haus worker start`'s recorded branch; the held branch adds its own message schema. */
 export const agentWorkerReceiptResponseSchema = z.looseObject({
-    chatId: z.string().trim().min(1),
-    idempotent: z.boolean(),
-    messageId: z.string().trim().min(1),
-    turnId: z.string().trim().min(1),
-    sequence: z.number().int().positive(),
-    state: z.literal('started'),
-    target: z.string().trim().min(1),
+    state: z.enum(['started', 'queued']),
     worker: workerResponseSchema,
 });
 
 export const agentWorkerSendReceiptResponseSchema = z.looseObject({
     idempotent: z.boolean(),
-    predecessors: z.array(workerReconcileEntryResponseSchema),
     turnId: z.string().trim().min(1),
     worker: workerResponseSchema,
 });
@@ -143,6 +154,6 @@ export const agentWorkerListReceiptResponseSchema = z.looseObject({
     workers: z.array(workerResponseSchema),
 });
 
-export const agentWorkerCancelReceiptResponseSchema = z.looseObject({
+export const agentWorkerStopReceiptResponseSchema = z.looseObject({
     worker: workerResponseSchema,
 });

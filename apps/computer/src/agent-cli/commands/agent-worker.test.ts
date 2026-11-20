@@ -1,93 +1,87 @@
 import { expect, test } from 'bun:test';
-import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts';
+import type { AgentApiRequest } from '../agent-api-client.ts';
+import { AgentCliError, renderAgentCliError } from '../agent-error.ts';
 import { args, requester, work } from './agent-worker-fixture.ts';
 import {
-    WORKER_SUBCOMMANDS,
-    runWorkerStop,
     runWorkerInspect,
     runWorkerSend,
+    runWorkerStop,
+    WORKER_SUBCOMMANDS,
 } from './agent-worker.ts';
 
-test('cancel names the work it asked the provider to stop', async () => {
-    const routes: string[] = [];
-    const output: string[] = [];
-    const exitCode = await runWorkerStop(
-        {
-            flags: {},
-            help: false,
-            positionals: [],
-            valueLists: {},
-            values: { '--worker': work.id },
-        },
-        {
-            client: requester([], routes),
-            mintNonce: () => 'unused',
-            readStdin: () => Promise.resolve(''),
-            stdinIsTty: true,
-            write: (text) => output.push(text),
-        }
-    );
-
-    expect(exitCode).toBe(0);
-    expect(routes).toEqual(['/api/agent/workers/cancel']);
-    expect(output.join('')).toContain('Cancel requested for Fix the flaky delivery test');
+const deps = (seen: AgentApiRequest[], routes: string[], output: string[], stdin = '') => ({
+    client: requester(seen, routes),
+    mintNonce: () => 'follow-up-nonce',
+    readStdin: () => Promise.resolve(stdin),
+    stdinIsTty: stdin === '',
+    write: (text: string) => output.push(text),
 });
 
-test('send reuses the work identity and defaults to queued delivery with optional interruption', async () => {
+test('stop names the Worker and says what settles', async () => {
+    const routes: string[] = [];
+    const output: string[] = [];
+    const exitCode = await runWorkerStop(args({ '--worker': work.id }), deps([], routes, output));
+
+    expect(exitCode).toBe(0);
+    expect(routes).toEqual(['/api/agent/workers/stop']);
+    expect(output.join('')).toBe(
+        [
+            `Stop requested for Fix the flaky delivery test (${work.id}).`,
+            'Its working or queued turn settles as stopped, and queued follow-ups are dropped. Nothing posts in the Task.',
+            `It takes later follow-ups: haus worker send --worker ${work.id}`,
+            '',
+        ].join('\n')
+    );
+});
+
+test('send queues the stdin follow-up, and --interrupt stops the working turn first', async () => {
     for (const interrupt of [false, true]) {
         const seen: AgentApiRequest[] = [];
         const routes: string[] = [];
         const output: string[] = [];
         const input = args({ '--worker': work.id });
         input.flags['--interrupt'] = interrupt;
-        await runWorkerSend(input, {
-            client: requester(seen, routes),
-            mintNonce: () => 'follow-up-nonce',
-            readStdin: () => Promise.resolve('Address the review comments.\n'),
-            stdinIsTty: false,
-            write: (text) => output.push(text),
-        });
+        await runWorkerSend(input, deps(seen, routes, output, 'Address the review comments.\n'));
         expect(routes).toEqual(['/api/agent/workers/send']);
         expect(seen[0]?.body).toEqual({
-            workerId: work.id,
-            instructions: 'Address the review comments.',
             interrupt,
             nonce: 'follow-up-nonce',
+            text: 'Address the review comments.',
+            workerId: work.id,
         });
-        expect(output.join('')).toContain(`Work ID: ${work.id}`);
-        expect(output.join('')).toContain('reaches your inbox');
+        expect(output.join('')).toBe(
+            [
+                `Follow-up queued for Fix the flaky delivery test (${work.id}) as turn wkt_followup12345678.`,
+                interrupt
+                    ? 'The working turn is stopping and older queued follow-ups were dropped; this one runs next.'
+                    : 'It runs when the working turn ends, or now if the Worker is idle.',
+                'Its report posts in the Task and reaches you as an inbox item.',
+                '',
+            ].join('\n')
+        );
     }
 });
 
-test('send rejects missing instructions before accepting work', async () => {
+test('send refuses an empty follow-up before asking the Server', async () => {
     const seen: AgentApiRequest[] = [];
     await expect(
-        runWorkerSend(args({ '--worker': work.id }), {
-            client: requester(seen),
-            mintNonce: () => 'unused',
-            readStdin: () => Promise.resolve(' '),
-            stdinIsTty: false,
-            write: () => undefined,
-        })
+        runWorkerSend(args({ '--worker': work.id }), deps(seen, [], [], ' '))
     ).rejects.toThrow(/required on stdin/);
     expect(seen).toHaveLength(0);
 });
 
-test('inspect lists owned work or requests recorded details for one work', async () => {
-    for (const workerId of [undefined, work.id]) {
-        const seen: AgentApiRequest[] = [];
-        const output: string[] = [];
-        await runWorkerInspect(args(workerId ? { '--worker': workerId } : {}), {
-            client: requester(seen),
-            mintNonce: () => 'unused',
-            readStdin: () => Promise.resolve(''),
-            stdinIsTty: true,
-            write: (text) => output.push(text),
-        });
-        expect(seen[0]?.query).toEqual({ workerId });
-        expect(output.join('')).toContain(work.id);
-        expect(output.join('')).toContain(work.title);
-    }
+test('inspect lists the Agent’s Workers or shows one in full', async () => {
+    const listed: string[] = [];
+    await runWorkerInspect(args(), deps([], [], listed));
+    expect(listed.join('')).toBe(
+        `${work.id} [queued] on cursor Fix the flaky delivery test (haus/haus)\n`
+    );
+
+    const seen: AgentApiRequest[] = [];
+    const detail: string[] = [];
+    await runWorkerInspect(args({ '--worker': work.id }), deps(seen, [], detail));
+    expect(seen[0]?.query).toEqual({ workerId: work.id });
+    expect(JSON.parse(detail.join(''))).toEqual([work]);
     expect(WORKER_SUBCOMMANDS.map((command) => command.name)).toEqual([
         'start',
         'send',
@@ -99,114 +93,70 @@ test('inspect lists owned work or requests recorded details for one work', async
 test('--report requires --worker, with a clear usage error otherwise', async () => {
     const input = args();
     input.flags['--report'] = true;
-    await expect(
-        runWorkerInspect(input, {
-            client: requester([]),
-            mintNonce: () => 'unused',
-            readStdin: () => Promise.resolve(''),
-            stdinIsTty: true,
-            write: () => undefined,
-        })
-    ).rejects.toThrow(/--report only works alongside --worker/);
+    await expect(runWorkerInspect(input, deps([], [], []))).rejects.toThrow(
+        /--report only works alongside --worker/
+    );
 });
 
-/** A work carrying one Run with a full report, for the `--report` tests below. */
-function requesterWithReport(report: { clipped: boolean; text: string } | null): AgentApiRequester {
-    const workWithReport = {
-        ...work,
-        turns: [
-            {
-                branches: [],
-                createdAt: work.createdAt,
-                errorCode: null,
-                model: { droppedParams: [], fallbackFrom: null, id: null, params: [] },
-                providerRunId: 'run_abc',
-                rawStatus: 'FINISHED',
-                report,
-                turnId: 'car_1234567890abcdef',
-                stall: null,
-                startedAt: work.createdAt,
-                status: 'completed',
-                summary: 'Opened a pull request.',
-                terminalAt: work.createdAt,
-                usage: null,
-            },
-        ],
+test('--report prints the newest turn’s full provider result, with a clip marker only when clipped', async () => {
+    const turn = {
+        acknowledgedAt: work.createdAt,
+        branches: [],
+        createdAt: work.createdAt,
+        dispatchedAt: work.createdAt,
+        errorCode: null,
+        input: [],
+        model: { droppedParams: [], fallbackFrom: null, id: null, params: [] },
+        outcome: null,
+        providerRunId: 'run_abc',
+        rawStatus: 'FINISHED',
+        report: { clipped: true, text: 'Opened a pull request.' },
+        stall: null,
+        startedAt: work.createdAt,
+        status: 'completed',
+        stopRequestedAt: null,
+        stopRequestedBy: null,
+        summary: 'Opened a pull request.',
+        terminalAt: work.createdAt,
+        turnId: 'wkt_1234567890abcdef',
+        usage: null,
     };
-    return {
-        request(_path, schema) {
-            return Promise.resolve(schema.parse({ workers: [workWithReport] }));
-        },
-    };
-}
-
-test('--report prints the full report text, with a clip marker only when clipped', async () => {
     const output: string[] = [];
     const input = args({ '--worker': work.id });
     input.flags['--report'] = true;
     await runWorkerInspect(input, {
-        client: requesterWithReport({ clipped: true, text: 'Opened a pull request.' }),
-        mintNonce: () => 'unused',
-        readStdin: () => Promise.resolve(''),
-        stdinIsTty: true,
-        write: (text) => output.push(text),
+        ...deps([], [], output),
+        client: requester([], [], { ...work, turns: [turn] }),
     });
     expect(output.join('')).toBe('Opened a pull request.\n[clipped at 64 KiB]\n');
-});
 
-test('--report fails clearly when the work has no Run carrying a report', async () => {
-    const input = args({ '--worker': work.id });
-    input.flags['--report'] = true;
     await expect(
         runWorkerInspect(input, {
-            client: requesterWithReport(null),
-            mintNonce: () => 'unused',
-            readStdin: () => Promise.resolve(''),
-            stdinIsTty: true,
-            write: () => undefined,
+            ...deps([], [], []),
+            client: requester([], [], { ...work, turns: [{ ...turn, report: null }] }),
         })
-    ).rejects.toThrow(/has no Run with a recorded report/);
+    ).rejects.toThrow(`Worker ${work.id} has no turn with a recorded provider result.`);
 });
 
-/** A newer Server's `work`, carrying a field this Computer build predates. */
-function requesterFromNewerServer(): AgentApiRequester {
-    const workFromNewerServer = { ...work, aFieldThisBuildPredates: 'added by a later release' };
-    return {
-        request(path, schema, input) {
-            const response =
-                input?.method !== 'POST'
-                    ? { workers: [workFromNewerServer] }
-                    : path.endsWith('/send')
-                      ? {
-                            worker: workFromNewerServer,
-                            turnId: 'car_follow_up',
-                            idempotent: false,
-                            predecessors: [],
-                        }
-                      : { worker: workFromNewerServer };
-            return Promise.resolve(schema.parse(response));
-        },
-    };
-}
-
-test('inspect and send read a newer Server response carrying a field this Computer build predates', async () => {
-    const inspectOutput: string[] = [];
-    await runWorkerInspect(args({ '--worker': work.id }), {
-        client: requesterFromNewerServer(),
-        mintNonce: () => 'unused',
-        readStdin: () => Promise.resolve(''),
-        stdinIsTty: true,
-        write: (text) => inspectOutput.push(text),
-    });
-    expect(inspectOutput.join('')).toContain(work.id);
-
-    const sendOutput: string[] = [];
+test('a newer Server field on the Worker is tolerated by send and inspect', async () => {
+    const newer = { ...work, aFieldThisBuildPredates: 'added later' };
+    const output: string[] = [];
     await runWorkerSend(args({ '--worker': work.id }), {
-        client: requesterFromNewerServer(),
-        mintNonce: () => 'unused',
-        readStdin: () => Promise.resolve('Address the review comments.\n'),
-        stdinIsTty: false,
-        write: (text) => sendOutput.push(text),
+        ...deps([], [], output, 'Address the review comments.'),
+        client: requester([], [], newer),
     });
-    expect(sendOutput.join('')).toContain(`Work ID: ${work.id}`);
+    expect(output.join('')).toContain(work.id);
+});
+
+test('a WORKER_ refusal from the Server renders plainly with its code', () => {
+    expect(
+        renderAgentCliError(
+            new AgentCliError(
+                'WORKER_PLACE_UNAVAILABLE',
+                'No online Computer has claude ready. Ready places: cursor.'
+            )
+        )
+    ).toBe(
+        'Error: No online Computer has claude ready. Ready places: cursor.\nCode: WORKER_PLACE_UNAVAILABLE\n'
+    );
 });

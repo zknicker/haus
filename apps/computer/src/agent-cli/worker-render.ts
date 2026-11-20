@@ -1,77 +1,90 @@
-import { formatWorkerLink } from '@haus/api';
 import type { z } from 'zod';
 import type { agentWorkerStartResponseSchema } from './agent-api-schemas.ts';
 import { formatHistoryLine } from './agent-format.ts';
 
 type WorkerStartResponse = z.infer<typeof agentWorkerStartResponseSchema>;
+type WorkerRecorded = Exclude<WorkerStartResponse, { state: 'held' }>;
+
+interface WorkerSummary {
+    id: string;
+    place: string;
+    title: string;
+}
 
 export function renderWorkerStart(
     response: WorkerStartResponse,
-    request: { repository: string; startingRef: string | null; target: string }
-): string {
+    request: { repository: string; startingRef: string | null; task: string; target: string }
+) {
     return response.state === 'held'
         ? renderHeld(request.target, response)
-        : renderStarted(response, request);
+        : renderRecorded(response, request);
 }
 
-/** `haus worker inspect` without `--worker`: one line per work, each with its link. */
-export function renderWorkerList(workers: readonly WorkerLinkSource[]): string {
+export function renderWorkerSend(
+    receipt: { turnId: string; worker: WorkerSummary },
+    interrupt: boolean
+) {
+    const { worker } = receipt;
+    const when = interrupt
+        ? 'The working turn is stopping and older queued follow-ups were dropped; this one runs next.'
+        : 'It runs when the working turn ends, or now if the Worker is idle.';
+    return `${[
+        `Follow-up queued for ${worker.title} (${worker.id}) as turn ${receipt.turnId}.`,
+        when,
+        'Its report posts in the Task and reaches you as an inbox item.',
+    ].join('\n')}\n`;
+}
+
+export function renderWorkerStop(worker: WorkerSummary) {
+    return `${[
+        `Stop requested for ${worker.title} (${worker.id}).`,
+        'Its working or queued turn settles as stopped, and queued follow-ups are dropped. Nothing posts in the Task.',
+        `It takes later follow-ups: haus worker send --worker ${worker.id}`,
+    ].join('\n')}\n`;
+}
+
+export function renderWorkerList(workers: readonly WorkerListSource[]) {
     if (workers.length === 0) {
         return 'No Worker found.\n';
     }
-    const rows = workers.map((work) => {
-        // Only a pinned Claude launch carries a name; every other provider is null.
-        const environment = work.environmentName ? ` [${work.environmentName}]` : '';
-        return `${work.id} [${work.status}]${environment} ${work.title} (${work.repository})\n  Link: ${formatWorkerLink(work.title, work.id)}`;
+    const rows = workers.map((worker) => {
+        const environment = worker.environmentName ? ` [${worker.environmentName}]` : '';
+        return `${worker.id} [${worker.status}] on ${worker.place}${environment} ${worker.title} (${worker.repository})`;
     });
-    return `${rows.join('\n')}\n${linkSentence}\n`;
+    return `${rows.join('\n')}\n`;
 }
 
-/** `haus worker inspect --worker <id>`: the recorded work, then its link. */
-export function renderWorkerDetail(workers: readonly WorkerLinkSource[]): string {
-    const links = workers.map((work) => `Link: ${formatWorkerLink(work.title, work.id)}`);
-    const reportPointers = workers
-        // One pointer per work, not per Run: `--report` always reads the newest
-        // Run with one, so a second identical line would add nothing (TECH-8).
-        .filter((work) => work.turns.some(runHasMoreReport))
-        .map((work) => reportPointerLine(work.id));
-    const trailer = [...links, ...reportPointers, ...(links.length ? [linkSentence] : [])];
-    return `${JSON.stringify(workers, null, 2)}\n${trailer.length ? `${trailer.join('\n')}\n` : ''}`;
+export function renderWorkerDetail(workers: readonly WorkerReportSource[]) {
+    const pointers = workers
+        .filter((worker) => worker.turns.some(turnHasMoreResult))
+        .map((worker) => `More: haus worker inspect --worker ${worker.id} --report`);
+    return `${JSON.stringify(workers, null, 2)}\n${pointers.map((line) => `${line}\n`).join('')}`;
 }
 
-/**
- * The Run `haus worker inspect --worker <id> --report` shows: the one
- * named by `--run`, or else the newest Run on that work carrying a report.
- */
-export function findWorkerReportRun(
+export function findWorkerReportTurn(
     workers: readonly WorkerReportSource[],
     workerId: string,
     turnId?: string
-): WorkerTurnReportSource | undefined {
-    const work = workers.find((candidate) => candidate.id === workerId);
-    const turns = work?.turns ?? [];
-    return turnId ? turns.find((run) => run.turnId === turnId) : turns.find((run) => run.report);
+) {
+    const turns = workers.find((candidate) => candidate.id === workerId)?.turns ?? [];
+    return turnId
+        ? turns.find((turn) => turn.turnId === turnId)
+        : turns.find((turn) => turn.report);
 }
 
-/** The plain-text block `--report` prints for one resolved Run. */
-export function renderWorkerReportText(run: WorkerTurnReportSource): string {
-    const clippedLine = run.report?.clipped ? '\n[clipped at 64 KiB]' : '';
-    return `${run.report?.text ?? ''}${clippedLine}\n`;
+export function renderWorkerReportText(turn: WorkerTurnReportSource) {
+    const clippedLine = turn.report?.clipped ? '\n[clipped at 64 KiB]' : '';
+    return `${turn.report?.text ?? ''}${clippedLine}\n`;
 }
 
-function reportPointerLine(workerId: string): string {
-    return `More: haus worker inspect --worker ${workerId} --report`;
-}
-
-/** Mirrors `hasFullReport`: the full report outgrew the capped `summary` already shown. */
-function runHasMoreReport(run: WorkerTurnReportSource): boolean {
-    return Boolean(run.report) && (run.report?.text.length ?? 0) > (run.summary?.length ?? 0);
+function turnHasMoreResult(turn: WorkerTurnReportSource) {
+    return Boolean(turn.report) && (turn.report?.text.length ?? 0) > (turn.summary?.length ?? 0);
 }
 
 export interface WorkerTurnReportSource {
     report: { clipped: boolean; text: string } | null;
-    turnId: string;
     summary?: string | null;
+    turnId: string;
 }
 
 interface WorkerReportSource {
@@ -79,37 +92,34 @@ interface WorkerReportSource {
     turns: readonly WorkerTurnReportSource[];
 }
 
-interface WorkerLinkSource extends WorkerReportSource {
+interface WorkerListSource {
     environmentName?: string | null;
+    id: string;
+    place: string;
     repository: string;
     status: string;
     title: string;
 }
 
-const linkSentence =
-    'To show this work in another conversation, paste its Link line into haus message send.';
-
-function renderStarted(
-    receipt: Extract<WorkerStartResponse, { state: 'started' }>,
-    request: { repository: string; startingRef: string | null }
-): string {
+function renderRecorded(
+    receipt: WorkerRecorded,
+    request: { repository: string; startingRef: string | null; task: string }
+) {
+    const { worker } = receipt;
     const ref = request.startingRef ? `@${request.startingRef}` : '';
-    const lines = [
-        `Worker launching for ${request.repository}${ref}. Work ID: ${receipt.worker.id}`,
-        `Posted to ${receipt.target}. Message ID: ${receipt.messageId}`,
-        `Haus wakes you on ${receipt.target} when the run settles, a failed launch included, and when its pull request becomes ready or its checks finish; post what you learn yourself.`,
-        // Agents paste this line; they never build a work link themselves.
-        `Link: ${formatWorkerLink(receipt.worker.title, receipt.worker.id)}`,
-        linkSentence,
-    ];
-    return `${lines.join('\n')}\n`;
+    const lead =
+        receipt.state === 'started'
+            ? `Worker ${worker.id} started on ${worker.place} for ${request.task}: ${worker.title} (${request.repository}${ref}).`
+            : `Worker ${worker.id} queued on ${worker.place} for ${request.task}: ${worker.title} (${request.repository}${ref}). It starts when ${worker.place} has a free slot.`;
+    return `${[
+        lead,
+        `Its report posts in ${request.task} and reaches you as an inbox item when the turn ends; a launch that fails reaches you the same way.`,
+        `Follow up with haus worker send --worker ${worker.id}; stop it with haus worker stop --worker ${worker.id}.`,
+    ].join('\n')}\n`;
 }
 
 /** Mirrors the `haus message send` hold so the Agent reads the same shape. */
-function renderHeld(
-    target: string,
-    response: Extract<WorkerStartResponse, { state: 'held' }>
-): string {
+function renderHeld(target: string, response: Extract<WorkerStartResponse, { state: 'held' }>) {
     const shown = response.shownMessages.length;
     const lines = [
         `Freshness hold: showing latest ${shown} of ${response.newMessageCount} newer messages.`,
@@ -119,9 +129,7 @@ function renderHeld(
             `${response.omittedMessageCount} earlier newer messages were omitted. Use haus message read --target "${target}" to review them.`
         );
     }
-    lines.push(
-        'The Worker was not started: no card was posted and nothing was launched. Review this context.'
-    );
+    lines.push('The Worker was not started: nothing was recorded. Review this context.');
     if (response.formalMentionCount > 0) {
         lines.push(
             `You were formally mentioned in ${response.formalMentionCount} of these newer messages.`
@@ -131,7 +139,7 @@ function renderHeld(
         '',
         ...response.shownMessages.map(formatHistoryLine),
         '',
-        `If the launch still belongs in ${target}, run the same haus worker start command again. If the newer messages change where or whether it belongs, launch it there or skip it.`
+        `If the Worker is still right for ${target}, run the same haus worker start command again. If the newer messages change the brief, start it with the new brief or skip it.`
     );
     return `${lines.join('\n')}\n`;
 }

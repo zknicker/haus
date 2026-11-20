@@ -2,10 +2,10 @@ import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
 import {
-    findWorkerReportRun,
-    renderWorkerReportText,
+    findWorkerReportTurn,
     renderWorkerDetail,
     renderWorkerList,
+    renderWorkerReportText,
 } from '../worker-render.ts';
 import { agentWorkerListReceiptResponseSchema } from '../worker-response-schema.ts';
 import { type WorkerDeps, defaultDeps } from './agent-worker-deps.ts';
@@ -13,33 +13,33 @@ import { type WorkerDeps, defaultDeps } from './agent-worker-deps.ts';
 export const INSPECT_COMMAND: SubCommand = {
     examples: [
         'haus worker inspect',
-        'haus worker inspect --worker caw_9f2c1a0b7d4e6f81',
-        'haus worker inspect --worker caw_9f2c1a0b7d4e6f81 --report',
+        'haus worker inspect --worker wkr_9f2c1a0b7d4e6f81',
+        'haus worker inspect --worker wkr_9f2c1a0b7d4e6f81 --report',
     ],
     flags: [
         {
-            description: 'Work to inspect; omit to list your work',
+            description: 'The Worker to inspect; omit to list your Workers',
             name: '--worker',
             valueName: '<workerId>',
         },
         {
-            description: "Print one Run's full report instead of the JSON detail; needs --worker",
+            description: "Print one turn's full provider result instead of the JSON detail",
             name: '--report',
         },
         {
-            description: 'With --report, the Run to show; omit for the newest with a report',
-            name: '--run',
+            description: 'With --report, the turn to show; omit for the newest with a result',
+            name: '--turn',
             valueName: '<turnId>',
         },
     ],
     name: 'inspect',
     positionals: [],
     run: (args) => runWorkerInspect(args, defaultDeps()),
-    summary: 'Inspect your Worker and its recorded results',
-    usage: 'haus worker inspect [--worker <workerId>] [--report [--run <turnId>]]',
+    summary: 'List your Workers, or show one with its turns, inputs, reports, and pull requests',
+    usage: 'haus worker inspect [--worker <workerId> [--report [--turn <turnId>]]]',
 };
 
-export async function runWorkerInspect(args: ParsedArgs, deps: WorkerDeps): Promise<number> {
+export async function runWorkerInspect(args: ParsedArgs, deps: WorkerDeps) {
     const workerId = args.values['--worker']?.trim();
     const wantsReport = args.flags['--report'] === true;
     if (wantsReport && !workerId) {
@@ -53,7 +53,7 @@ export async function runWorkerInspect(args: ParsedArgs, deps: WorkerDeps): Prom
         { query: { workerId } }
     );
     if (wantsReport && workerId) {
-        deps.write(renderReport(workers, workerId, args.values['--run']?.trim()));
+        deps.write(renderReport(workers, workerId, args.values['--turn']?.trim()));
         return 0;
     }
     deps.write(workerId ? renderWorkerDetail(workers) : renderWorkerList(workers));
@@ -61,19 +61,19 @@ export async function runWorkerInspect(args: ParsedArgs, deps: WorkerDeps): Prom
 }
 
 function renderReport(
-    workers: Parameters<typeof findWorkerReportRun>[0],
+    workers: Parameters<typeof findWorkerReportTurn>[0],
     workerId: string,
     turnId: string | undefined
-): string {
-    const run = findWorkerReportRun(workers, workerId, turnId);
-    if (!run) {
+) {
+    const turn = findWorkerReportTurn(workers, workerId, turnId);
+    if (!turn) {
         throw new AgentCliError(
             'WORKER_REPORT_NOT_FOUND',
             turnId
-                ? `Run ${turnId} on work ${workerId} has no recorded report.`
-                : `Work ${workerId} has no Run with a recorded report.`,
+                ? `Turn ${turnId} of Worker ${workerId} has no recorded provider result.`
+                : `Worker ${workerId} has no turn with a recorded provider result.`,
             { nextAction: `haus worker inspect --worker ${workerId}` }
         );
     }
-    return renderWorkerReportText(run);
+    return renderWorkerReportText(turn);
 }

@@ -1,156 +1,70 @@
 import { expect, test } from 'bun:test';
 import {
-    findWorkerReportRun,
-    renderWorkerReportText,
-    renderWorkerStart,
+    findWorkerReportTurn,
     renderWorkerDetail,
     renderWorkerList,
+    renderWorkerReportText,
 } from './worker-render.ts';
 
-const work = {
-    activity: null,
-    agentId: 'agt_orbit',
-    cancelRequestedAt: null,
-    cancelRequestedBy: null,
-    chatId: 'cht_product',
-    computerId: 'cmp_studio',
-    createdAt: '2026-09-04T12:00:00.000Z',
-    environmentId: null,
+const worker = {
     environmentName: null,
-    id: 'caw_1234567890abcdef',
-    job: { followUp: null, startedAt: null, state: 'working' as const },
-    messageId: 'msg_1a2b3c4d5e6f7890',
-    provider: 'cursor' as const,
-    pullRequest: null,
-    providerAgentId: null,
-    providerUrl: null,
+    id: 'wkr_1234567890abcdef',
+    place: 'cursor',
     repository: 'haus/haus',
-    turns: [],
-    startedAt: null,
-    startingRef: 'main',
-    status: 'queued' as const,
-    terminalAt: null,
+    status: 'working',
     title: 'Fix the flaky delivery test',
-    updatedAt: '2026-09-04T12:00:00.000Z',
+    turns: [],
 };
 
-function receipt(target: string) {
-    return {
-        chatId: 'cht_product',
-        idempotent: false,
-        messageId: work.messageId,
-        turnId: 'car_1234567890abcdef',
-        sequence: 7,
-        state: 'started' as const,
-        target,
-        worker: work,
-    };
-}
-
-const request = { repository: 'haus/haus', startingRef: 'main', target: 'task:SEC-12' };
-
-test('the start receipt names the Task it reports to and adds the link to paste elsewhere', () => {
-    expect(renderWorkerStart(receipt('task:SEC-12'), request)).toBe(
+test('the list names each Worker with its status, place, and pinned Claude environment', () => {
+    const pinned = { ...worker, environmentName: 'Fast', id: 'wkr_pinned', place: 'claude' };
+    expect(renderWorkerList([worker, pinned])).toBe(
         [
-            'Worker launching for haus/haus@main. Work ID: caw_1234567890abcdef',
-            'Posted to task:SEC-12. Message ID: msg_1a2b3c4d5e6f7890',
-            'Haus wakes you on task:SEC-12 when the run settles, a failed launch included, and when its pull request becomes ready or its checks finish; post what you learn yourself.',
-            'Link: [Fix the flaky delivery test](worker://caw_1234567890abcdef)',
-            'To show this work in another conversation, paste its Link line into haus message send.',
+            'wkr_1234567890abcdef [working] on cursor Fix the flaky delivery test (haus/haus)',
+            'wkr_pinned [working] on claude [Fast] Fix the flaky delivery test (haus/haus)',
             '',
         ].join('\n')
     );
-});
-
-test('inspect prints each work with its link, escaping titles the link grammar cannot hold', () => {
-    const awkward = { ...work, id: 'caw_2', title: 'Fix [flaky] test\nnow' };
-    const listed = renderWorkerList([work, awkward]);
-
-    expect(listed).toContain(
-        'caw_1234567890abcdef [queued] Fix the flaky delivery test (haus/haus)\n  Link: [Fix the flaky delivery test](worker://caw_1234567890abcdef)'
-    );
-    expect(listed).toContain('  Link: [Fix \\[flaky test now](worker://caw_2)');
-    expect(listed).toEndWith('paste its Link line into haus message send.\n');
     expect(renderWorkerList([])).toBe('No Worker found.\n');
-
-    const detail = renderWorkerDetail([work]);
-    expect(JSON.parse(detail.slice(0, detail.indexOf('\nLink: ')))).toEqual([work]);
-    expect(detail).toContain(
-        '\nLink: [Fix the flaky delivery test](worker://caw_1234567890abcdef)\n'
-    );
-    expect(renderWorkerDetail([])).toBe('[]\n');
 });
 
-test('the detail dump points to --report only for a Run whose stored report outgrew its summary', () => {
+test('the detail dump points to --report only for a turn whose result outgrew its summary', () => {
     const outgrown = {
-        ...work,
-        id: 'caw_outgrown',
+        ...worker,
+        id: 'wkr_outgrown',
         turns: [
             {
                 report: { clipped: false, text: 'Opened a pull request. Also ran the full suite.' },
-                turnId: 'car_outgrown',
                 summary: 'Opened a pull request.',
+                turnId: 'wkt_outgrown',
             },
         ],
     };
-    const noMore = {
-        ...work,
-        id: 'caw_no_more',
+    const settled = {
+        ...worker,
+        id: 'wkr_settled',
         turns: [
-            { report: { clipped: false, text: 'Done.' }, turnId: 'car_no_more', summary: 'Done.' },
+            { report: { clipped: false, text: 'Done.' }, summary: 'Done.', turnId: 'wkt_done' },
         ],
     };
-    const noReport = {
-        ...work,
-        id: 'caw_no_report',
-        turns: [{ report: null, turnId: 'car_no_report', summary: 'Done.' }],
-    };
-
-    const detail = renderWorkerDetail([outgrown, noMore, noReport]);
-    expect(detail).toContain('More: haus worker inspect --worker caw_outgrown --report');
-    expect(detail).not.toContain('--worker caw_no_more --report');
-    expect(detail).not.toContain('--worker caw_no_report --report');
+    const detail = renderWorkerDetail([outgrown, settled]);
+    expect(detail).toEndWith('\nMore: haus worker inspect --worker wkr_outgrown --report\n');
+    expect(detail).not.toContain('--worker wkr_settled --report');
+    expect(renderWorkerDetail([])).toBe('[]\n');
 });
 
-test('findWorkerReportRun resolves the newest Run with a report by default, or one named by id', () => {
-    const olderWithReport = {
-        report: { clipped: false, text: 'Older report.' },
-        turnId: 'car_older',
+test('the --report turn is the newest with a result by default, or the one named', () => {
+    const older = {
+        report: { clipped: false, text: 'Older result.' },
         summary: null,
+        turnId: 'wkt_older',
     };
-    const newestWithoutReport = { report: null, turnId: 'car_newest', summary: null };
-    // Runs are newest-first, matching the stored shape `workerTurnSchema` documents.
-    const workers = [{ id: 'caw_1', turns: [newestWithoutReport, olderWithReport] }];
+    const newest = { report: null, summary: null, turnId: 'wkt_newest' };
+    const workers = [{ id: 'wkr_1', turns: [newest, older] }];
 
-    expect(findWorkerReportRun(workers, 'caw_1')).toEqual(olderWithReport);
-    expect(findWorkerReportRun(workers, 'caw_1', 'car_newest')).toEqual(newestWithoutReport);
-    expect(findWorkerReportRun(workers, 'caw_1', 'car_missing')).toBeUndefined();
-    expect(findWorkerReportRun(workers, 'caw_missing')).toBeUndefined();
-});
-
-test('renderWorkerReportText prints the full text, with a clip marker only when clipped', () => {
-    expect(
-        renderWorkerReportText({
-            report: { clipped: false, text: 'Opened a pull request.' },
-            turnId: 'car_1',
-        })
-    ).toBe('Opened a pull request.\n');
-    expect(
-        renderWorkerReportText({
-            report: { clipped: true, text: 'Opened a pull request.' },
-            turnId: 'car_1',
-        })
-    ).toBe('Opened a pull request.\n[clipped at 64 KiB]\n');
-});
-
-test('a pinned Claude environment shows as a short marker on its list line, never on an unpinned one', () => {
-    const pinned = { ...work, environmentName: 'Fast', provider: 'claude' as const };
-    const listed = renderWorkerList([work, pinned]);
-
-    expect(listed).toContain(
-        'caw_1234567890abcdef [queued] Fix the flaky delivery test (haus/haus)'
-    );
-    expect(listed).toContain(
-        'caw_1234567890abcdef [queued] [Fast] Fix the flaky delivery test (haus/haus)'
-    );
+    expect(findWorkerReportTurn(workers, 'wkr_1')).toEqual(older);
+    expect(findWorkerReportTurn(workers, 'wkr_1', 'wkt_newest')).toEqual(newest);
+    expect(findWorkerReportTurn(workers, 'wkr_1', 'wkt_missing')).toBeUndefined();
+    expect(findWorkerReportTurn(workers, 'wkr_missing')).toBeUndefined();
+    expect(renderWorkerReportText(older)).toBe('Older result.\n');
 });
