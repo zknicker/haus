@@ -1,7 +1,8 @@
 ---
-summary: Settings > Appearance — Mode tiles (System/Light/Dark), the Theme gallery (Haus, OLED, open-license palettes, seasonal themes), custom themes with per-mode colors, and the Christmas roofline's Snow, per device.
+summary: Settings > Appearance — Mode tiles (System/Light/Dark), the Theme gallery (Haus, OLED, open-license palettes, seasonal themes), custom themes with per-mode colors, each theme's Home background (patterns, uploads, effects, sliders), and the Christmas roofline's Snow, per device.
 read_when:
-  - changing Settings > Appearance, the Mode tiles, the Theme gallery, custom themes, or the Snow row, or their Cmd+K commands
+  - changing Settings > Appearance, the Mode tiles, the Theme gallery, custom themes, the Background section, or the Snow row, or their Cmd+K commands
+  - changing a Home background pattern, effect, slider, upload, or a preset's default background
   - adding or changing a color theme or a theme preview
 ---
 
@@ -31,6 +32,8 @@ the default palette.
   shows the derived value as its placeholder; clearing a field hands the color back to
   derivation. Deleting the selected theme returns to Haus.
 - **Snow** (only while a Christmas theme is on), under the gallery.
+- **Background**, last: what Home draws behind its composer under the selected theme. See
+  [Home backgrounds](#home-backgrounds).
 - **Window layout** (desktop only) stays in Settings > Preferences: see
   [Desktop Window Layout](desktop-window-layout.md).
 
@@ -107,5 +110,61 @@ greeting pools. A custom theme wears Haus's definition with a palette ground. Ev
 reads the active definition, never the theme's name, so Haus stays exactly the plain app (the
 ghost, no scene, "Good morning, Name", your own mode) and adding a preset is one definition plus
 its token CSS.
+
+## Home backgrounds
+
+Every theme carries a Home background (`lib/home-background.ts`): a **source**, an **effect**, and
+six **adjustments**. The Background section edits the selected theme's:
+
+- A live preview of Home's composer over the background, drawn from the real tokens.
+- Source tiles: **None**, five built-in patterns, and **Image**. Picking Image with no upload
+  opens the file picker. An upload stays with the theme while a pattern is picked, so switching
+  back restores it; **Replace** and **Remove** manage it.
+- **Effect**: None, Dither (a 4px ordered checker in soft light), Grain (SVG fractal noise in
+  overlay), or Vignette (edges sink into the theme's background).
+- Sliders: **Brightness** (50 to 150%), **Blur** (0 to 100%, up to 32px), **Image opacity**,
+  **Bottom fade** (a mask that fades the layer into the page toward the bottom), **Overlay
+  opacity** (a wash of the theme's background color), and **Input opacity** (the composer
+  surface, 20 to 100%).
+- **Reset to defaults** restores the effect and sliders and keeps the source.
+
+The patterns are drawn in CSS from the live tokens (`features/home-background/home-background.css`),
+so each recolors with every theme in both modes, and nothing animates:
+
+- **Dot grid**: a 22px grid of 1px dots in the foreground at 20%.
+- **Contours**: topographic rings radiating from the lower-left corner, with a faint accent glow
+  there.
+- **Aurora**: three soft accent blobs, the accent and two hue-shifted neighbors, at the top
+  corners and the bottom.
+- **Horizon**: an accent glow rising from the bottom edge.
+- **Ghosts**: the Haus ghost silhouette (eyes cut out) tiled sparsely at a slight tilt, in the
+  foreground at 7%.
+
+Preset defaults: Haus and OLED keep Home plain, since Haus is the plain app and OLED exists for
+true black. The other presets are already opt-in looks, so each brings a pattern that suits it:
+Catppuccin and Mauve Aurora, Gruvbox and One Dot grid, Everforest Contours, Nord and both
+Christmas themes Horizon, and Halloween Ghosts. A new custom theme copies the background of the
+theme it was created from.
+
+Storage, per device like every Appearance choice:
+
+- A preset stays read-only. A change under it is this device's override for that preset, kept
+  in `haus.preset-backgrounds` (`lib/preset-backgrounds.ts`), so picking the preset again
+  later shows the same background and nothing forks into a custom theme.
+- A custom theme stores its background on its own record in `haus.custom-themes`.
+- Both are validated with zod on read: a broken field falls back to its default, adjustments
+  clamp to their range, and an Image source with no upload reads as None.
+- Uploads are PNG, JPEG, GIF, WebP or AVIF up to 8 MB, stored as blobs in IndexedDB
+  (`haus-backgrounds`, `lib/background-images.ts`); the theme keeps only the id, name and type.
+  A larger or other file is refused with an inline message and the background is unchanged. A
+  failed save says so the same way. Blobs no theme points at are pruned after Replace and Remove.
+- At runtime an upload is an object URL, revoked when it changes. While it loads Home draws
+  nothing, and a missing blob draws nothing and shows "Missing on this device" on the Image row.
+  Under Reduce Motion a GIF shows its first frame.
+
+`HomeBackground` (`features/home-background/home-background.tsx`) renders the active theme's
+background full bleed behind Home. It takes no props and reads only theme stores, so chat
+activity never re-renders it (`home-background-render-isolation.test.tsx`). It sets
+`--home-input-opacity` on Home's container, which the theme layer's `.home-composer` rule reads.
 
 Design contract: [.design/guidelines.md → Color themes](../../.design/guidelines.md#color-themes).

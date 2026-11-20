@@ -5,6 +5,7 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { useAgentAppearances } from '../../hooks/members/use-agents.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
+import { HomeBackground } from '../home-background/home-background.tsx';
 import { readLastChatId } from '../servers/server-choice.ts';
 import { orderChannelIds } from '../shell/channel-order.ts';
 import { PageBand } from '../shell/page-band.tsx';
@@ -34,6 +35,7 @@ export function CapyHomePage({ serverId, slug }: { serverId: string; slug: strin
             <PageBand>
                 <PageBand.Trail current="Home" />
             </PageBand>
+            <HomeBackground />
             <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 pb-[16vh]">
                 <div className="w-full max-w-2xl">
                     {chats && initialProject ? (

@@ -1,7 +1,7 @@
 ---
 summary: The Capy shell preview — a per-device flag (off by default, toggled from Cmd+K) that swaps the App's sidebar for Captain tiles, Projects, open Tasks and People, and makes Home a prompt box; what is live data, what is placeholder, and which program PR replaces each placeholder.
 read_when:
-  - changing the Capy shell flag, its sidebar, its footer, or Home
+  - changing the Capy shell flag, its sidebar, its footer, or Home (Home's background is in appearance.md)
   - replacing a Capy shell placeholder with real data (J2, J3, W2)
   - flipping the flag on for everyone or deleting the old shell (J4)
 ---
@@ -38,8 +38,9 @@ stored in `localStorage` under `haus.capy-shell` and follows into other open win
   Settings gear. `/inbox` redirects to Home. Every row carries its own
   unread state, so ADR 0038's unread-only rule still holds.
 - **Home.** The Server's default route renders Home: a Project chip and a Captain chip above a
-  composer. The Captain defaults to the Project's first Captain. The background is the theme's
-  plain background; wallpapers come later.
+  composer. The Captain defaults to the Project's first Captain. Behind it sits the theme's
+  Home background, a built-in pattern or an uploaded image picked in Settings > Appearance >
+  Background (see [Appearance](appearance.md#home-backgrounds)).
 - **Activity.** The Inbox's Captain activity strip (each Captain's 7-day tokens with the spike
   flag, and "N running" with its popover) heads the Activity page.
 

@@ -4,6 +4,7 @@ import { useCustomTheme } from '../../../hooks/shell/use-custom-themes.ts';
 import { isCustomTheme } from '../../../lib/color-theme.ts';
 import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
+import { BackgroundSection } from './background-section.tsx';
 import { CustomThemeColors } from './custom-theme-colors.tsx';
 import { CustomThemeDetails } from './custom-theme-details.tsx';
 import { ModeRow } from './mode-row.tsx';
@@ -28,6 +29,7 @@ export function AppearanceSettings() {
                     <CustomThemeColors key={`${customTheme.id}-colors`} theme={customTheme} />
                 </>
             ) : null}
+            <BackgroundSection theme={theme} />
         </SettingsPageColumn>
     );
 }
