@@ -206,6 +206,33 @@ describe('runner server link', () => {
         });
     });
 
+    test('server runtime settings reach the turn host in order, and an idle compaction report goes up', async () => {
+        const server = serverStandIn();
+        const runner = await attachRunner(server);
+        await server.frame('runner-inventory');
+        server.send({ idleCompaction: true, type: 'server-runtime-settings' });
+        server.send({ idleCompaction: false, type: 'server-runtime-settings' });
+        server.start();
+        await runner.host.started;
+        expect(runner.host.settings).toEqual([true, false]);
+
+        const report = {
+            agentId: 'agt_1',
+            compactionId: 'compaction-0f3a9c1e-runner',
+            costUsd: null,
+            endedAt: '2026-11-20T10:01:00.000Z',
+            modelId: 'claude-opus-4-5',
+            runtimeId: 'claude-agent-sdk',
+            startedAt: '2026-11-20T10:00:00.000Z',
+            tokenUsage: null,
+            tokensAfter: 30_000,
+            tokensBefore: 400_000,
+            type: 'agent-idle-compaction',
+        } as const;
+        runner.link.send(report);
+        expect(await server.frame('agent-idle-compaction')).toEqual(report);
+    });
+
     test('restart, resets, and retire reach the turn host with the right scope, in order', async () => {
         const server = serverStandIn();
         const runner = await attachRunner(server);

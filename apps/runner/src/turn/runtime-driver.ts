@@ -18,6 +18,7 @@ export interface RuntimeLaunch {
     readonly instructions: string;
     readonly modelId: string;
     readonly reasoningEffort: AgentReasoningEffort;
+    readonly runtimeId?: string;
     readonly tools: RunTools;
 }
 

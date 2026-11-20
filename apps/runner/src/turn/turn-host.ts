@@ -10,6 +10,7 @@ import {
 import type { CapacityReader } from '../model-connections/connection-capacity.ts';
 import { createConnectionStatus } from '../model-connections/connection-status.ts';
 import type { RunnerLink, RunStart, TurnHost } from '../run-context.ts';
+import { agentQueues } from './agent-queues.ts';
 import { agentSessions } from './agent-sessions.ts';
 import { createHarnesses } from './harnesses.ts';
 import { inboxStore } from './inbox-store.ts';
@@ -38,6 +39,7 @@ export function createTurnHost(input: {
 }) {
     const log = input.log ?? ((line: string) => process.stderr.write(`${line}\n`));
     const harnesses = createHarnesses({
+        agentBusy: (agentId) => host.busy(agentId),
         book: input.book,
         link: input.link,
         log,
@@ -52,6 +54,7 @@ export function createTurnHost(input: {
         link: input.link,
         log,
         release: harnesses.release,
+        setIdleCompaction: harnesses.setIdleCompaction,
     });
     return { ...host, close: harnesses.close };
 }
@@ -65,10 +68,11 @@ export function createTurnHostWith(input: {
     link: RunnerLink;
     log: (line: string) => void;
     release: (agentId: string) => unknown;
+    setIdleCompaction?: (enabled: boolean) => void;
 }) {
     const status = createConnectionStatus(input.link);
     const active = new Map<string, ActiveRun>();
-    const queues = new Map<string, Promise<unknown>>();
+    const { busy, enqueue } = agentQueues();
     const paths = (agentId: string) => {
         const agentDir = join(input.dataDir, 'agents', agentPathSegment(agentId));
         return { agentDir, runtimeDir: join(agentDir, 'runtime') };
@@ -79,16 +83,6 @@ export function createTurnHostWith(input: {
         dataDir: input.dataDir,
         release: input.release,
     });
-
-    const enqueue = (agentId: string, work: () => Promise<void>) => {
-        const previous = queues.get(agentId) ?? Promise.resolve();
-        const next = previous.then(work);
-        queues.set(
-            agentId,
-            next.catch(() => undefined)
-        );
-        return next;
-    };
 
     const skipStale = async (run: RunStart) => {
         const { start } = run;
@@ -250,7 +244,9 @@ export function createTurnHostWith(input: {
             runtimeDir: (agentId) => paths(agentId).runtimeDir,
         });
 
-    const host: TurnHost = {
+    const host: TurnHost & { busy(agentId: string): boolean } = {
+        busy,
+        runtimeSettings: (settings) => input.setIdleCompaction?.(settings.idleCompaction),
         async notice(notice) {
             const { runtimeDir } = paths(notice.agentId);
             const receipt = {

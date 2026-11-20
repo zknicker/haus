@@ -6,6 +6,7 @@ import {
     agentExecutionJournalRecordsFrameSchema,
 } from './agent-execution-journal-upload.ts';
 import { agentReasoningEffortSchema } from './agent-execution.ts';
+import { agentIdleCompactionReportSchema } from './agent-idle-compaction.ts';
 import {
     invocationOperationSchema,
     invocationOutcomeSchema,
@@ -29,6 +30,7 @@ import {
     runnerModelConnectionDownFrameSchemas,
     runnerModelConnectionUpFrameSchemas,
 } from './model-connections.ts';
+import { serverRuntimeSettingsCommandSchema } from './server-commands.ts';
 
 export const runnerSocketPath = '/runner/attachment';
 
@@ -119,6 +121,7 @@ export const runnerDownFrameSchema = z.union([
     agentRetireCommandSchema,
     agentExecutionJournalAckSchema,
     invocationResultFrameSchema,
+    serverRuntimeSettingsCommandSchema,
     ...runnerModelConnectionDownFrameSchemas,
 ]);
 
@@ -133,6 +136,7 @@ export const runnerUpFrameSchema = z.union([
     agentActivityFrameSchema,
     agentThoughtFrameSchema,
     agentExecutionJournalRecordsFrameSchema,
+    agentIdleCompactionReportSchema,
     invocationRequestFrameSchema,
     invocationCancelFrameSchema,
     ...runnerModelConnectionUpFrameSchemas,

@@ -3,7 +3,7 @@ import type {
     ServerSettings,
     ServerSettingsSetIdleCompactionInput,
 } from '@haus/api';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { serversTable } from '../postgres/schema.ts';
 import type { HausUser } from '../users/haus-user.ts';
@@ -51,6 +51,21 @@ export async function readServerRuntimeSettingsCommand(
 ): Promise<ServerRuntimeSettingsCommand> {
     const settings = await readStoredSettings(db, serverId);
     return { idleCompaction: settings.idleCompaction, type: 'server-runtime-settings' };
+}
+
+/**
+ * The frame the runner applies. One runner serves every Server and its starts name no Server, so
+ * idle compaction is on while any live Server has it on.
+ */
+export async function readRunnerRuntimeSettingsCommand(
+    db: Pick<HausDatabase, 'select'>
+): Promise<ServerRuntimeSettingsCommand> {
+    const [on] = await db
+        .select({ id: serversTable.id })
+        .from(serversTable)
+        .where(and(isNull(serversTable.deletedAt), eq(serversTable.idleCompaction, true)))
+        .limit(1);
+    return { idleCompaction: on !== undefined, type: 'server-runtime-settings' };
 }
 
 async function readStoredSettings(

@@ -4,6 +4,7 @@ import type {
     AgentStartCommand,
     InvocationOutcome,
     RunnerUpFrame,
+    ServerRuntimeSettingsCommand,
 } from '@haus/api';
 
 export interface RunAuthority {
@@ -99,6 +100,7 @@ export interface TurnHost {
     notice(notice: AgentNoticeCommand): Promise<void>;
     stop(agentId: string, runId: string): Promise<void>;
     resetAgent(agentId: string, reset: AgentReset): Promise<void>;
+    runtimeSettings(settings: ServerRuntimeSettingsCommand): void;
 }
 
 export type AgentReset =

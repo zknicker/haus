@@ -93,6 +93,8 @@ export function openServerLink(input: {
                 return resetAgent(frame.agentId, { scope: 'retire' });
             case 'agent-execution-journal-ack':
                 return;
+            case 'server-runtime-settings':
+                return input.turnHost.runtimeSettings(frame);
             case 'runner-model-connections':
                 return void input.book.replace(frame.connections);
             case 'runner-connection-credential-ack':
