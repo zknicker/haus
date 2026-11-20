@@ -1,7 +1,7 @@
 ---
 summary: The Capy shell preview — a per-device flag (off by default, toggled from Cmd+K) that swaps the App's sidebar for Captain tiles, Projects, open Tasks and People, and makes Home a prompt box; where each sidebar fact comes from.
 read_when:
-  - changing the Capy shell flag, its sidebar, its footer, or Home
+  - changing the Capy shell flag, its sidebar, its footer, or Home (Home's background is in appearance.md)
   - changing what a Capy shell sidebar row reads or shows
   - flipping the flag on for everyone or deleting the old shell (J4)
 ---
@@ -55,19 +55,21 @@ stored in `localStorage` under `haus.capy-shell` and follows into other open win
   above a compact stock `PromptInput` (size `sm`, a `max-w-xl` measure) placed a little above the
   middle, as in Capy. The placeholder is "Ask <Captain> anything", and the bottom row holds only
   Send: `task.create` carries no files, so there is no attachment action, and there is no model
-  picker or mic. The Captain defaults to the Project's first Captain. The page keeps the theme's
-  plain background; its content area is a positioned, isolated layer, so a full-bleed Home
-  background can sit behind the composer. A Device's low-disk warning, which the Inbox carried,
+  picker or mic. The Captain defaults to the Project's first Captain. Behind the composer sits the
+  theme's Home background, a built-in pattern or an uploaded image picked in Settings >
+  Appearance > Background (see [Appearance](appearance.md#home-backgrounds)); the content area
+  is a positioned, isolated layer above it. A Device's low-disk warning, which the Inbox carried,
   sits above the composer for the Owner or Admin who attached it.
 - **First run.** A new Haus starts with no Captains and no Projects. Until both exist, Home shows a
   stock `EmptyState` in place of the composer that names what is missing and offers "Create a
   project" and, for Owners and Admins, "New Captain"; a Member reads that an Owner or Admin adds
   Captains. A Captain needs a device, so with no Captains and no Devices an Owner or Admin is led
   to "Add a device" (Settings › Devices) and "New Captain" waits, with a line saying why; a Member
-  reads that an Owner or Admin connects a device and adds Captains. Home draws nothing while the
-  Captain or Project list loads. It reads the Device list (`computer.list`) only for an Owner or
-  Admin with no Captains, waits for it only then, and treats a failed read as no Device. The sidebar keeps the Captains and
-  Projects headers with their "+" and nothing below them (`home-state.ts`).
+  reads that an Owner or Admin connects a device and adds Captains. The theme's Home background
+  sits behind it as it does behind the composer. Home draws nothing while the Captain or Project
+  list loads. It reads the Device list (`computer.list`) only for an Owner or Admin with no
+  Captains, waits for it only then, and treats a failed read as no Device. The sidebar keeps the
+  Captains and Projects headers with their "+" and nothing below them (`home-state.ts`).
 - **Activity.** The Inbox's Captain activity strip (each Captain's 7-day tokens with the spike
   flag, and "N running" with its popover) heads the Activity page.
 

@@ -548,6 +548,17 @@ the shown tab) stay white: L 100% carries no chroma. Its `--accent` is candy-can
 (`oklch(57% 0.21 27)`, white ink on it). Both themes' decorations share
 `christmas-decorations.css`.
 
+### Home backgrounds
+
+A theme's Home background (`lib/home-background.ts`) is presentation, not tokens: built-in
+patterns are CSS drawn from `--foreground`, `--accent` and `--background` in
+`features/home-background/home-background.css`, so they recolor with every theme and mode and
+never ship raster art. The layer sits at `z-index: -1` in an isolated Home container. Input
+opacity reaches the composer only as `--home-input-opacity` on that container, read by the
+theme layer's `.home-composer` rule; nothing restyles the composer at a call site. Settings
+tiles and the preview reuse the same layers at half pattern scale (`--home-pattern-scale`).
+See [Appearance](../docs/features/appearance.md#home-backgrounds).
+
 ## Typography
 Use the generated font and text scale through HeroUI components and Tailwind text utilities. The raw values below are normalized to px for design handoff.
 | Token | Font family | Font size | Line height | HeroUI variable | Tailwind equivalent |

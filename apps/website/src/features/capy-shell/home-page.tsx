@@ -5,6 +5,7 @@ import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 import { ComputerDiskNotices } from '../computers/computer-disk-notices.tsx';
+import { HomeBackground } from '../home-background/home-background.tsx';
 import { readLastChatId } from '../servers/server-choice.ts';
 import { orderChannelIds } from '../shell/channel-order.ts';
 import { PageBand } from '../shell/page-band.tsx';
@@ -50,6 +51,7 @@ export function CapyHomePage({
             <PageBand>
                 <PageBand.Trail current="Home" />
             </PageBand>
+            <HomeBackground />
             <div className="relative isolate flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 pb-[8vh]">
                 <div className="relative flex w-full max-w-xl flex-col gap-4">
                     <ComputerDiskNotices />
