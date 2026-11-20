@@ -515,12 +515,12 @@ effort, fast }], refreshedAt }`, or `null`; `autoAvailable` says Cursor listed i
 `cloudAgentSettings.get({ serverId, provider })` (`provider` defaults to `cursor`; each provider
 keeps its own Server-wide model) answers any member with
 `{ model, catalog, savedModelUnavailable }`. `model` is `{ kind: "auto" }`, shown as Auto
-(Haus sends Cursor's `default` id, so Cursor picks a model for each Run), or
+(Haus sends Cursor's `default` id, so Cursor picks a model for each turn), or
 `{ kind: "model", id, params: { effort?, fast? } }`, where an absent param is the model's default.
 `catalog` is the freshest catalog any of the Server's Computers reported (or `null`).
 `cloudAgentSettings.setModel({ serverId, model })` is Owner/Admin only (`FORBIDDEN` otherwise),
 refuses an unlisted id or a param value that model does not offer with `BAD_REQUEST`, returns the
-same shape, and emits a `server` scope update. Each Run in `cloudAgentWork` carries
+same shape, and emits a `server` scope update. Each turn in a `Worker` carries
 `model: { id, params, fallbackFrom, droppedParams }`: the model id sent to the provider (`default`
 for Auto, or `null` when the launching Computer's catalog lacked Auto and Haus sent none), the params
 sent with a catalog model (`[{ name, providerParamId, value }]`), the saved model that fell back to

@@ -80,7 +80,7 @@ mints, delivers, or stores it: the Computer settings **Connect** action runs Cur
 sign-in on the machine, and the key stays in Cursor's store. Nothing in this contract resolves it,
 so it has no 1Password item and no schema arm.
 
-The local `gh` CLI token is absent for the same reason. A Computer reads a Cloud Agent Run's pull
+The local `gh` CLI token is absent for the same reason. A Computer reads a Worker turn's pull
 request from GitHub using whatever token `gh auth token` already resolves on that machine, held in
 memory for the life of the process and never logged, stored, or reported to Server. It is a
 host-native credential, not a Haus variable: it has no 1Password item, no schema arm, and a

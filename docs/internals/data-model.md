@@ -124,7 +124,8 @@ every Agent in the Haus project.
 
 `workers` is the Worker record ([Workers](../../specs/workers.md#record)), renamed from
 `cloud_agent_work` by migration 0132. It carries the delegating Agent, its Task (`task_id`, null
-only on read-only history from before Tasks, which `closed_at` must then mark), its `place`, its
+only on read-only history, which `closed_at` must then mark: Workers from before Tasks, and Workers
+whose Task a Project purge deleted, whose unsettled turns settle `stopped`), its `place`, its
 `carrier_computer_id`, the title, repository, and starting ref, the provider agent id and URL, the
 newest turn's provider lifecycle with its timestamps, the bounded one-line `activity`,
 `start_nonce` (unique per Server and Agent, for start idempotency), and `closing_at` and

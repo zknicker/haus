@@ -51,7 +51,7 @@ renders the result.
   English plurals singularized. There are no synonyms.
 * **Get** resolves the exact id first, then a normalized id, a recipe id
   without its `recipes/` prefix, a title, or an alias. `reminders`,
-  `Cloud Agents`, and `technique/task-claim-lock` all resolve. Lookup keys must
+  `Workers`, and `technique/task-claim-lock` all resolve. Lookup keys must
   stay unique across topics (tested).
 * **Search** is ranked, not all-terms. Each query term scores its strongest
   field: id 8, alias 7, title 6, recipe trigger 5, summary 4, recipe metadata 2,
