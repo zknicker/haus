@@ -178,7 +178,7 @@ function runtimeColumns(now: number, computerName: string): DataGridColumn<Runti
     ];
 }
 
-function UsageMeter({ label, window }: { label: string; window: DisplayPlanWindow }) {
+export function UsageMeter({ label, window }: { label: string; window: DisplayPlanWindow }) {
     return (
         <div className="flex w-full min-w-0 items-center gap-3">
             <ProgressBar
