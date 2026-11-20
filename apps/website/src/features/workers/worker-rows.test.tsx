@@ -12,7 +12,7 @@ const followUp: WorkerTurnInput = {
     text: 'Match iPhone.',
 };
 
-test('a row is two lines: title, then status, place and age, with no composer or report text', () => {
+test('a row is a status glyph and title, then place and age, with no composer or report text', () => {
     const html = renderWorkerSurface(
         <WorkerRows
             label="Workers"
@@ -38,8 +38,8 @@ test('a row is two lines: title, then status, place and age, with no composer or
     );
 
     expect(html).toContain('Fix the failing migration');
-    expect(html).toContain('Done');
-    expect(html).toContain(' · Cursor · ');
+    expect(html).toContain('aria-label="Done"');
+    expect(html).toContain('Cursor · ');
     expect(html).not.toContain('Fixed five of six.');
     expect(html).not.toContain('prompt-input');
 });
@@ -61,7 +61,7 @@ test('a needs-you row puts its question on a second line', () => {
         />
     );
 
-    expect(html).toContain('Needs you');
+    expect(html).toContain('aria-label="Needs you"');
     expect(html).toContain('Does the iPad baseline move 2px on purpose?');
 });
 
@@ -80,6 +80,6 @@ test('a follow-up waiting behind a working turn reads Working, not Queued', () =
         />
     );
 
-    expect(html).toContain('Working');
+    expect(html).toContain('aria-label="Working"');
     expect(html).not.toContain('Queued');
 });
