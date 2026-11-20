@@ -71,6 +71,31 @@ test('web: idle, realtime messages, a warm switch, and a profile stay within bud
     });
 });
 
+test('web Capy shell: idle, realtime messages, and a warm switch stay within the web budgets', async ({
+    page,
+}, testInfo) => {
+    test.setTimeout(180_000);
+    const budget = await installRenderBudget(page, testInfo, 'web');
+    const app = await openKeptChannels(page, 'render-budget-capy', { capyShell: true });
+    await expect(page.getByRole('list', { exact: true, name: 'Captains' })).toBeVisible();
+
+    await budget.measure('idle-30s', async () => {
+        await page.clock.fastForward(30_000);
+    });
+    await budget.measure('message-in-kept-chat', async () => {
+        await app.agent.send('An Agent note in a kept channel', 'render-budget-capy-kept');
+        await realtimeDelivery(page);
+    });
+    await budget.measure('message-in-open-chat', async () => {
+        await app.sendAsPeerDevice('design', 'A note in the open channel');
+        await expect(visibleSurface(page).getByText('A note in the open channel')).toBeVisible();
+    });
+    await budget.measure('warm-channel-switch', async () => {
+        await openChannel(page, 'ops');
+        await expect(composer(page, 'ops')).toBeVisible();
+    });
+});
+
 test('desktop: a warm tab switch stays within budget', async ({ page }, testInfo) => {
     test.setTimeout(180_000);
     const budget = await installRenderBudget(page, testInfo, 'desktop');
@@ -136,8 +161,15 @@ function trackTailReads(page: Page) {
  * A Server with an Agent and three channels holding history, visited in turn
  * so #haus and #ops are kept views behind the shown #design.
  */
-async function openKeptChannels(page: Page, slug: string, options: { desktop?: boolean } = {}) {
+async function openKeptChannels(
+    page: Page,
+    slug: string,
+    options: { capyShell?: boolean; desktop?: boolean } = {}
+) {
     await page.clock.install();
+    if (options.capyShell) {
+        await page.addInitScript(() => window.localStorage.setItem('haus.capy-shell', 'on'));
+    }
     const { client, server, session } = await createTestServer(page, { displayName: slug, slug });
     const agent = await createChannelAgent({
         channelName: 'haus',

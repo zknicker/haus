@@ -24,6 +24,7 @@
 @import "../features/chats/chat.css";
 @import "../features/chats/reactions/reaction-stickers.css";
 @import "../features/shell/shell.css";
+@import "../features/home-background/home-background.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 

@@ -3,6 +3,7 @@ import { Button, Input, Separator } from '@heroui/react';
 import { useState } from 'react';
 import { selectColorTheme } from '../../../hooks/shell/use-color-theme.ts';
 import { deleteCustomTheme, updateCustomTheme } from '../../../hooks/shell/use-custom-themes.ts';
+import { pruneUnusedBackgroundImages } from '../../../hooks/shell/use-theme-background.ts';
 import type { CustomTheme } from '../../../lib/custom-themes.ts';
 
 export function CustomThemeDetails({ theme }: { theme: CustomTheme }) {
@@ -17,6 +18,7 @@ export function CustomThemeDetails({ theme }: { theme: CustomTheme }) {
     const remove = () => {
         selectColorTheme('default');
         deleteCustomTheme(theme.id);
+        void pruneUnusedBackgroundImages();
     };
 
     return (

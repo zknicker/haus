@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { Locator, Page } from '@playwright/test';
-import { routeFileTransport } from './artifact-transport.ts';
+import { libraryFileTransport, routeFileTransport } from './artifact-transport.ts';
 import { assertOpaqueId, runPsql } from './server.ts';
 
 interface SeededFile {
@@ -139,7 +139,7 @@ export async function seedArtifactLibrary(page: Page, databaseUrl: string, serve
             select '${id}_r' || n, '${id}', '${serverId}', ${author}, ${file.size}, '${file.type}', '${file.path.split('/').at(-1)}', 'test/${id}/' || n, '${id}_request_' || n, 0, n, repeat('a', 64), 'ready', '${file.title}' from generate_series(1, 2) n;`
         );
     }
-    await routeFileTransport({ databaseUrl, page, userId });
+    await routeFileTransport(page, libraryFileTransport({ databaseUrl, page, userId }));
     return { conceptId: `art_${serverId}_concept`, notesId: `art_${serverId}_report` };
 }
 
@@ -205,6 +205,27 @@ export async function routeArtifactUploads(page: Page, databaseUrl: string, serv
             },
         });
     });
+}
+
+/**
+ * An Agent's page in Drive at `path`, with two HTML revisions (`<id>_r1`, and
+ * the current `<id>_r2`); `routeAgentPageText` serves their bytes.
+ */
+export function seedAgentPage(
+    databaseUrl: string,
+    input: { agentId: string; id: string; path: string; serverId: string }
+) {
+    assertOpaqueId(input.serverId);
+    assertOpaqueId(input.agentId);
+    assertOpaqueId(input.id);
+    const name = input.path.split('/').at(-1);
+    runPsql(
+        databaseUrl,
+        `insert into artifacts (id, server_id, path, path_key, creator_agent_id, creator_user_id, current_revision_id, next_revision)
+        values ('${input.id}', '${input.serverId}', '${input.path}', lower('${input.path}'), '${input.agentId}', null, '${input.id}_r2', 3);
+        insert into artifact_revisions (id, artifact_id, server_id, author_agent_id, author_user_id, author_key, byte_size, content_type, filename, object_key, request_id, reserved_bytes, revision_number, sha256, state, title)
+        select '${input.id}_r' || n, '${input.id}', '${input.serverId}', '${input.agentId}', null, 'agent:${input.agentId}', 512, 'text/html', '${name}', 'test/${input.id}/' || n, '${input.id}_request_' || n, 0, n, repeat('c', 64), 'ready', '${name}' from generate_series(1, 2) n;`
+    );
 }
 
 function seedMember(databaseUrl: string, serverId: string) {

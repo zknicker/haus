@@ -1,4 +1,5 @@
 import { createRouter } from '../trpc.ts';
+import { byPathArtifactProcedure } from './by-path.ts';
 import { creatorsArtifactProcedure } from './creators.ts';
 import { deleteManyArtifactProcedure } from './delete-many.ts';
 import { deleteVersionArtifactProcedure } from './delete-version.ts';
@@ -23,6 +24,7 @@ export const artifactRouter = createRouter({
     listDeleted: listDeletedArtifactProcedure,
     creators: creatorsArtifactProcedure,
     get: getArtifactProcedure,
+    byPath: byPathArtifactProcedure,
     versions: versionsArtifactProcedure,
     download: downloadArtifactProcedure,
     text: textArtifactProcedure,
