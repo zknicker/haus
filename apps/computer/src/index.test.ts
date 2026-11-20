@@ -1,17 +1,21 @@
-import { expect, test } from 'bun:test';
-import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { afterEach, expect, test } from 'bun:test';
+import { mkdir, mkdtemp, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { computerProtocolVersion } from '@haus/api';
 import type { ServerWebSocket } from 'bun';
 import { computerVersion } from './build-identity.ts';
+import { dataRoots, firstOf, releaseSpawned, spawned } from './index-processes.test-support.ts';
 import { launchdPlist } from './index.ts';
 
 const entrypoint = fileURLToPath(new URL('./index.ts', import.meta.url));
 
+afterEach(releaseSpawned);
+
 test('setup signs in, stores only a Server credential, and reruns by validation', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-test-'));
+    dataRoots.add(dataRoot);
     const browserBin = join(dataRoot, 'browser-bin');
     const browserMarker = join(dataRoot, 'browser-opened.txt');
     await mkdir(browserBin, { recursive: true });
@@ -179,12 +183,12 @@ test('setup signs in, stores only a Server credential, and reruns by validation'
         expect(requests.filter((request) => request === 'POST /computer/validate')).toHaveLength(3);
     } finally {
         peer.stop(true);
-        await rm(dataRoot, { force: true, recursive: true });
     }
-}, 15_000);
+});
 
 test('login exchanges a device grant and atomically stores an origin-bound session', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-login-test-'));
+    dataRoots.add(dataRoot);
     const requests: string[] = [];
     let polls = 0;
     const peer = Bun.serve({
@@ -240,6 +244,7 @@ test('login exchanges a device grant and atomically stores an origin-bound sessi
             stderr: 'pipe',
             stdout: 'pipe',
         });
+        spawned.add(child);
         const [exitCode, stdout, stderr] = await Promise.all([
             child.exited,
             new Response(child.stdout).text(),
@@ -274,12 +279,12 @@ test('login exchanges a device grant and atomically stores an origin-bound sessi
         expect((await stat(sessionPath)).mode & 0o777).toBe(0o600);
     } finally {
         peer.stop(true);
-        await rm(dataRoot, { force: true, recursive: true });
     }
-}, 15_000);
+});
 
 test('setup preserves an unlinked attachment when replacement attachment fails', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-test-'));
+    dataRoots.add(dataRoot);
     const serverId = 'srv_oldoldoldoldold1';
     const attachmentRoot = join(dataRoot, 'servers', serverId);
     await mkdir(attachmentRoot, { recursive: true });
@@ -351,6 +356,7 @@ test('setup preserves an unlinked attachment when replacement attachment fails',
             stderr: 'pipe',
             stdout: 'pipe',
         });
+        spawned.add(child);
         const stdout = new Response(child.stdout).text();
         expect(await child.exited).toBe(1);
         expect(await stdout).toContain('Open the URL above and enter the code if needed.');
@@ -361,12 +367,12 @@ test('setup preserves an unlinked attachment when replacement attachment fails',
         );
     } finally {
         peer.stop(true);
-        await rm(dataRoot, { force: true, recursive: true });
     }
 });
 
 test('setup archives an unlinked attachment before connecting a recreated Server', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-test-'));
+    dataRoots.add(dataRoot);
     const oldServerId = 'srv_oldoldoldoldold1';
     const newServerId = 'srv_newnewnewnewnew1';
     const oldRoot = join(dataRoot, 'servers', oldServerId);
@@ -481,12 +487,12 @@ test('setup archives an unlinked attachment before connecting a recreated Server
         });
     } finally {
         peer.stop(true);
-        await rm(dataRoot, { force: true, recursive: true });
     }
-}, 15_000);
+});
 
 test('resident start parks a terminally unlinked attachment instead of retrying', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-test-'));
+    dataRoots.add(dataRoot);
     const serverId = 'srv_oldoldoldoldold1';
     const attachmentRoot = join(dataRoot, 'servers', serverId);
     await mkdir(attachmentRoot, { recursive: true });
@@ -529,6 +535,7 @@ test('resident start parks a terminally unlinked attachment instead of retrying'
         stderr: 'pipe',
         stdout: 'pipe',
     });
+    spawned.add(child);
     try {
         await rejected.promise;
         await Bun.sleep(1200);
@@ -543,12 +550,12 @@ test('resident start parks a terminally unlinked attachment instead of retrying'
     } finally {
         child.kill();
         peer.stop(true);
-        await rm(dataRoot, { force: true, recursive: true });
     }
-}, 5000);
+});
 
 test('the Server attachment daemon stays connected until the Server closes it', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-test-'));
+    dataRoots.add(dataRoot);
     const connected = Promise.withResolvers<void>();
     const sockets = new Set<ServerWebSocket<undefined>>();
     const peer = Bun.serve({
@@ -593,6 +600,7 @@ test('the Server attachment daemon stays connected until the Server closes it', 
         stderr: 'pipe',
         stdout: 'pipe',
     });
+    spawned.add(child);
     try {
         await Promise.race([
             connected.promise,
@@ -610,12 +618,12 @@ test('the Server attachment daemon stays connected until the Server closes it', 
         }
         child.kill();
         peer.stop(true);
-        await rm(dataRoot, { force: true, recursive: true });
     }
 });
 
 test('a watch-mode attachment daemon reconnects instead of idling in the watcher', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-test-'));
+    dataRoots.add(dataRoot);
     const reconnected = Promise.withResolvers<void>();
     const sockets = new Set<ServerWebSocket<undefined>>();
     let connections = 0;
@@ -676,22 +684,22 @@ test('a watch-mode attachment daemon reconnects instead of idling in the watcher
         stderr: 'pipe',
         stdout: 'pipe',
     });
+    spawned.add(child);
     try {
-        expect(await firstOf(reconnected.promise, child, 9_000)).toBe('reconnected');
+        expect(await firstOf(reconnected.promise, child, 4000)).toBe('reconnected');
         expect(connections).toBe(2);
     } finally {
         for (const socket of sockets) {
             socket.close();
         }
         child.kill();
-        await killAttachmentDaemon(attachmentRoot);
         peer.stop(true);
-        await rm(dataRoot, { force: true, recursive: true });
     }
-}, 12_000);
+});
 
 test('resident start reconnects an attachment after the Server closes it', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-test-'));
+    dataRoots.add(dataRoot);
     const reconnected = Promise.withResolvers<void>();
     const sockets = new Set<ServerWebSocket<undefined>>();
     let connections = 0;
@@ -748,22 +756,22 @@ test('resident start reconnects an attachment after the Server closes it', async
         stderr: 'pipe',
         stdout: 'pipe',
     });
+    spawned.add(child);
     try {
-        expect(await firstOf(reconnected.promise, child, 5_000)).toBe('reconnected');
+        expect(await firstOf(reconnected.promise, child, 4000)).toBe('reconnected');
         expect(connections).toBe(2);
     } finally {
         for (const socket of sockets) {
             socket.close();
         }
         child.kill();
-        await killAttachmentDaemon(attachmentRoot);
         peer.stop(true);
-        await rm(dataRoot, { force: true, recursive: true });
     }
-}, 8000);
+});
 
 test('resident start reconnects an attachment when Server heartbeats silently stop', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-test-'));
+    dataRoots.add(dataRoot);
     const reconnected = Promise.withResolvers<void>();
     const sockets = new Set<ServerWebSocket<undefined>>();
     let connections = 0;
@@ -837,8 +845,9 @@ test('resident start reconnects an attachment when Server heartbeats silently st
         stderr: 'pipe',
         stdout: 'pipe',
     });
+    spawned.add(child);
     try {
-        expect(await firstOf(reconnected.promise, child, 5_000)).toBe('reconnected');
+        expect(await firstOf(reconnected.promise, child, 4000)).toBe('reconnected');
         expect(heartbeats).toBeGreaterThan(1);
         expect(connections).toBe(2);
     } finally {
@@ -846,11 +855,9 @@ test('resident start reconnects an attachment when Server heartbeats silently st
             socket.close();
         }
         child.kill();
-        await killAttachmentDaemon(attachmentRoot);
         peer.stop(true);
-        await rm(dataRoot, { force: true, recursive: true });
     }
-}, 7000);
+});
 
 test('the resident service keeps its state root outside executable code', () => {
     const plist = launchdPlist({
@@ -874,30 +881,6 @@ test('the resident service keeps its state root outside executable code', () => 
  * running must kill it by its durable pid marker; killing the resident child
  * alone leaks the daemon past the test.
  */
-async function killAttachmentDaemon(attachmentRoot: string) {
-    try {
-        const marker = JSON.parse(
-            await readFile(join(attachmentRoot, 'attachment-daemon.pid'), 'utf8')
-        ) as { pid?: number };
-        if (typeof marker.pid === 'number') {
-            process.kill(marker.pid, 'SIGKILL');
-        }
-    } catch {
-        // The daemon already exited or never started.
-    }
-}
-
-function firstOf(
-    reconnected: Promise<void>,
-    resident: { exited: Promise<number> },
-    deadlineMs: number
-) {
-    return Promise.race([
-        reconnected.then(() => 'reconnected'),
-        resident.exited.then((code) => `the resident exited ${code} before reconnecting`),
-        Bun.sleep(deadlineMs).then(() => `no reconnect within ${deadlineMs}ms`),
-    ]);
-}
 
 async function runCli(environment: Record<string, string | undefined>) {
     const child = Bun.spawn(['bun', entrypoint, 'setup', '/hq'], {
@@ -905,6 +888,7 @@ async function runCli(environment: Record<string, string | undefined>) {
         stderr: 'pipe',
         stdout: 'pipe',
     });
+    spawned.add(child);
     const exitCode = await child.exited;
     expect(exitCode, await new Response(child.stderr).text()).toBe(0);
 }

@@ -61,7 +61,6 @@
             "apps/computer/src/attachment-reconnect.test.ts": 1,
             "apps/computer/src/attachment-shutdown-telemetry.test.ts": 1,
             "apps/computer/src/workers/cursor/live-smoke.test.ts": 1,
-            "apps/computer/src/index.test.ts": 6,
             "apps/computer/src/login-session.test.ts": 5,
             "apps/computer/src/logout.test.ts": 2,
             "apps/computer/src/server-mcp-tools.test.ts": 1,
