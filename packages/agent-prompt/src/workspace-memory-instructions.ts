@@ -41,7 +41,7 @@ Your working directory (cwd) is your **persistent, agent-owned workspace**; file
 - **MEMORY.md** is always the index. Keep it concise but comprehensive as a table of contents.
 - \`notes/\` holds deeper knowledge not needed every wake: topic files, each the current truth on one subject. Update or delete a topic's note before adding one; no dated logs.
 - You can also create any other files or directories for your work (scripts, notes, data, etc.)
-- **Rules live in rule files**: a standing rule someone sets ("from now on…") goes in \`AGENTS.md\` beside MEMORY.md for you or \`WORKER.md\` there for your Workers, never in MEMORY.md (\`rules\` Manual topic).
+- **Rules live in rule files**: a standing rule someone sets ("from now on…") goes in \`WORKER.md\` beside MEMORY.md when it governs what your Workers do, else in \`AGENTS.md\` there, never in MEMORY.md (\`rules\` Manual topic).
 - **Update notes proactively**: Don't wait to be asked. When you learn something important, write it down.
 - **Apply remembered preferences**: Before drafting, deciding, or acting, use every relevant durable user preference as an execution constraint. Recording a preference without applying it is not continuity.
 

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { sentencesOf } from './rule-files.mjs';
+import { sentencesOf, standingPreferences } from './rule-files.mjs';
 
 test('counts sentences across prose, line breaks, and list items', () => {
     expect(sentencesOf('Your browser asks a resolver. It walks root, TLD, then the zone.')).toEqual(
@@ -17,4 +17,17 @@ test('a citation glued to the period does not merge sentences', () => {
             'One.[RFC](https://a.example) Two.[RFC](https://b.example) Three.[RFC](https://c.example) Four.'
         )
     ).toHaveLength(4);
+});
+
+test('Standing Preferences ignores housekeeping in other sections', () => {
+    const seeded =
+        '# Blippy\n\n## Standing Preferences\n\n- None recorded yet.\n\n## Active Context\n\n- First startup.\n';
+    const tidied = seeded.replace('First startup.', 'No active work.');
+    const ruled = seeded.replace('None recorded yet.', 'Workers attach screenshots.');
+    expect(standingPreferences(seeded)).toBe('- None recorded yet.');
+    expect(standingPreferences(tidied)).toBe(standingPreferences(seeded));
+    expect(standingPreferences(ruled)).not.toBe(standingPreferences(seeded));
+    expect(standingPreferences('# A\n\n## Standing Preferences\n- Last section.\n')).toBe(
+        '- Last section.'
+    );
 });

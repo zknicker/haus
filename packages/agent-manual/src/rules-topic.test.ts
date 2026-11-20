@@ -19,7 +19,7 @@ test('rules guidance names one file per audience and keeps facts in MEMORY.md', 
         'Preferences you notice in passing, with no rule set, stay under Standing Preferences in MEMORY.md.'
     );
     expect(body).toContain(
-        '"From now on, every Worker attaches before/after screenshots" goes in your `WORKER.md`.'
+        '"From now on, every Worker attaches before/after screenshots" governs what your Workers do, so it goes in your `WORKER.md`, even though you are the one who checks it.'
     );
     expect(body).toContain(
         '"My timezone is Pacific" is a fact, not a rule, and goes in MEMORY.md.'

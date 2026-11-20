@@ -18,7 +18,7 @@ A rule is a standing instruction someone sets for future work, usually with "fro
 - \`drive/projects/<key>/AGENTS.md\` holds the rules for everyone working in that Project. Drive does not accept files under \`projects/\` yet, so say that a Project rule cannot be saved there.
 - \`drive/haus/AGENTS.md\` holds the team's rules. People own it; edit it only when asked.
 
-The rule's audience picks the file. "From now on, every Worker attaches before/after screenshots" goes in your \`WORKER.md\`. "From now on, keep replies under three sentences" goes in your \`AGENTS.md\`. "My timezone is Pacific" is a fact, not a rule, and goes in MEMORY.md.
+The audience the rule governs picks the file. "From now on, every Worker attaches before/after screenshots" governs what your Workers do, so it goes in your \`WORKER.md\`, even though you are the one who checks it. "From now on, keep replies under three sentences" goes in your \`AGENTS.md\`. "My timezone is Pacific" is a fact, not a rule, and goes in MEMORY.md.
 
 ## Edit it
 

@@ -117,7 +117,7 @@ Status values:
 | M4 | An Agent creates a workspace file and can read it from a fresh model session. | Deterministic workspace state (`workspace-survives-fresh-session` retired 2026-10-15) | passing |
 | M5 | A workspace artifact shared in Chat opens the correct Agent-owned file in the App. | App E2E + `managed-instructions-artifacts.test.ts` (`artifact-authoring` retired 2026-10-15) | passing |
 | M6 | Unavailable MCP connections, bounded skill traversal, and stale edits fail independently and safely. | Deterministic | mapped |
-| M7 | Told "from now on, every Worker attaches before/after screenshots", an Agent writes the rule to its `WORKER.md` in Drive, leaves `MEMORY.md` unchanged, and confirms once inline. | `test:agents rule-files-worker` (`rules` eval) | mapped |
+| M7 | Told "from now on, every Worker attaches before/after screenshots", an Agent writes the rule to its `WORKER.md` in Drive, keeps it out of `MEMORY.md` and its Standing Preferences, and confirms once inline. | `test:agents rule-files-worker` (`rules` eval) | mapped |
 | M8 | Told "from now on, keep replies under three sentences", an Agent writes the rule to its own `AGENTS.md` in Drive, not `MEMORY.md`, and confirms once inline. | `test:agents rule-files-agent` (`rules` eval) | mapped |
 | M9 | Told a plain fact ("my timezone is Pacific"), an Agent records it in `MEMORY.md` and makes no rule file. | `test:agents rule-files-fact` (`rules` eval) | mapped |
 

@@ -71,9 +71,9 @@ export async function runRuleFile(variant, { agents, expect, kit, log, settleTur
         expect(drive.has(drivePath(agent, other)), `no ${other} for this rule`).toBe(false);
     }
     expect(pattern.test(memoryAfter), 'MEMORY.md does not hold the rule').toBe(false);
-    if (variant === 'worker') {
-        expect(memoryAfter, 'MEMORY.md unchanged').toBe(memoryBefore);
-    }
+    expect(standingPreferences(memoryAfter), 'MEMORY.md Standing Preferences unchanged').toBe(
+        standingPreferences(memoryBefore)
+    );
     if (variant === 'agent') {
         await expectRuleSurvivesReset({ agent, expect, kit, log, settleTurn });
     }
@@ -96,6 +96,12 @@ async function expectRuleSurvivesReset({ agent, expect, kit, log, settleTurn }) 
     log(`probe reply: ${sentences.length} sentence(s)`);
     expect(replies.length > 0, 'probe answered after the session reset').toBe(true);
     expect(sentences.length <= 3, 'probe reply keeps to three sentences').toBe(true);
+}
+
+export function standingPreferences(memory) {
+    return (
+        /^## Standing Preferences\n([\s\S]*?)(?=^## |(?![\s\S]))/mu.exec(memory)?.[1].trim() ?? ''
+    );
 }
 
 const sentenceSegmenter = new Intl.Segmenter('en', { granularity: 'sentence' });
