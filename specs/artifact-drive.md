@@ -331,7 +331,7 @@ to its Agent.
 A message cites a Drive file with a typed link, `[label](drive://<path>)`, which people insert from
 the composer and Agents write. At send, the Server resolves the path and stores a citation with the
 message. In `packages/haus-api`, the message gains `driveCitations: { path, artifactId, revisionId
-}[]`. The chip opens the cited revision, opens beside the chat, and says when a newer revision
+}[]`. The chip opens the cited revision, and the viewer offers the latest when a newer revision
 exists.
 
 An Agent cites files its turn wrote, and the push runs after the turn. The Server binds the
