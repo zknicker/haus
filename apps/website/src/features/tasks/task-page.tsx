@@ -2,19 +2,16 @@ import type { TaskDetail } from '@haus/api';
 import { EmptyState } from '@heroui-pro/react';
 import { Button } from '@heroui/react';
 import { Alert02Icon, Task01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import * as React from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useTask } from '../../hooks/tasks/use-task.ts';
-import { cn } from '../../lib/utils.ts';
 import { useServerContext } from '../servers/server-context.ts';
-import { tasksRoute, workerRoute } from '../servers/server-routes.ts';
+import { tasksRoute } from '../servers/server-routes.ts';
 import { PageColumn } from '../shell/page-column.tsx';
-import { WorkerOpenContext } from '../workers/worker-open-context.tsx';
 import { WorkerSummariesProvider } from '../workers/worker-summaries.tsx';
 import { TaskConversation } from './conversation/task-conversation.tsx';
+import { TaskDetailsCard } from './details/task-details-card.tsx';
 import { TaskHistoryDetails } from './details/task-history-details.tsx';
-import { overviewTab, TaskSidePane } from './task-side-pane.tsx';
 import { TaskWorkPanel } from './work/task-work-panel.tsx';
 
 export { TaskBandControls } from './task-band-controls.tsx';
@@ -50,88 +47,29 @@ function TaskDetailView({
     panelShown: boolean;
     task: TaskDetail;
 }) {
-    const [params, setParams] = useSearchParams();
-    const navigate = useNavigate();
-    const { server } = useServerContext();
-    const openWorkerIds = params.getAll('worker');
-    const selected = panelShown ? (params.get('tab') ?? overviewTab) : overviewTab;
-    const openWorker = React.useCallback(
-        (workerId: string) => {
-            if (panelShown) {
-                setParams((current) => withTab(withWorkerOpen(current, workerId), workerId));
-            } else {
-                navigate(workerRoute(server.slug, workerId));
-            }
-        },
-        [navigate, panelShown, server.slug, setParams]
-    );
-    const workerWide = selected !== overviewTab;
-
     return (
         <WorkerSummariesProvider workers={task.attachedWork}>
-            <WorkerOpenContext value={openWorker}>
-                <div
-                    className={
-                        panelShown
-                            ? cn(
-                                  'grid min-h-0 flex-1 gap-6 pe-5',
-                                  workerWide
-                                      ? 'grid-cols-[minmax(0,1fr)_minmax(22rem,32rem)]'
-                                      : 'grid-cols-[minmax(0,1fr)_18rem]'
-                              )
-                            : 'flex min-h-0 flex-1'
-                    }
-                >
-                    <TaskConversation
-                        chatId={chatId}
-                        origin={task.origin}
-                        title={`${task.key} ${task.title}`}
-                    />
-                    {panelShown ? (
-                        <TaskSidePane
-                            onClose={(workerId) =>
-                                setParams((current) =>
-                                    withTab(withWorkerClosed(current, workerId), overviewTab)
-                                )
-                            }
-                            onSelect={(tab) => setParams((current) => withTab(current, tab))}
-                            openWorkerIds={openWorkerIds}
-                            selected={selected}
-                            task={task}
-                        />
-                    ) : null}
-                </div>
-            </WorkerOpenContext>
+            <div
+                className={
+                    panelShown
+                        ? 'grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_18rem] gap-8 pe-5'
+                        : 'flex min-h-0 flex-1'
+                }
+            >
+                <TaskConversation
+                    chatId={chatId}
+                    origin={task.origin}
+                    title={`${task.key} ${task.title}`}
+                />
+                {panelShown ? (
+                    <div className="flex min-h-0 flex-col gap-3 overflow-y-auto pt-4 pb-6">
+                        <TaskDetailsCard task={task} />
+                        <TaskWorkPanel task={task} />
+                    </div>
+                ) : null}
+            </div>
         </WorkerSummariesProvider>
     );
-}
-
-function withWorkerOpen(params: URLSearchParams, workerId: string) {
-    const next = new URLSearchParams(params);
-    if (!next.getAll('worker').includes(workerId)) {
-        next.append('worker', workerId);
-    }
-    return next;
-}
-
-function withWorkerClosed(params: URLSearchParams, workerId: string) {
-    const next = new URLSearchParams(params);
-    const rest = next.getAll('worker').filter((id) => id !== workerId);
-    next.delete('worker');
-    for (const id of rest) {
-        next.append('worker', id);
-    }
-    return next;
-}
-
-function withTab(params: URLSearchParams, tab: string) {
-    const next = new URLSearchParams(params);
-    if (tab === overviewTab) {
-        next.delete('tab');
-    } else {
-        next.set('tab', tab);
-    }
-    return next;
 }
 
 function TaskHistoryView({ task }: { task: TaskDetail }) {

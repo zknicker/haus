@@ -475,12 +475,12 @@ names, then pending reminders. W4 builds it, following how a Capy parent shows i
   the title, then the needs-you ask or the place, and the age. A Worker reads Working while any turn
   runs. Expanding a row shows its tail (the last step line or activity), its report in a line, its
   ask, **Open full log**, and a compact composer. Pull requests sit in their own counted section.
-- **Opening a Worker** (Open full log, or a Worker link in the Task chat) opens it as a tab in the
-  Task's right pane beside **Overview**, as Capy opens a subagent, so the Task chat stays on
-  screen. Several Workers can each have a tab. ✕ closes the selected Worker's tab, ••• beside it
-  holds **Open in `<provider>`** and **Copy link**, and the open tabs ride the Task URL
-  (`?worker=<id>&tab=<id>`). On a pane too narrow for the side pane it opens the Worker page
-  (`/s/<slug>/workers/<workerId>`) instead.
+- **Opening a Worker** (a Worker row's Open full log, a Worker link in the Task chat) opens its
+  place, `/s/<slug>/workers/<workerId>`, through the same Open path as an Agent profile or a Drive
+  file ([ADR 0046](../docs/adr/0046-the-sidebar-goes-pages-open-to-the-right.md)): on desktop a tab
+  in the right pane, titled with the Worker's title, with that pane's own tab strip; on the web it
+  navigates like any other place. The Task page and its Overview panel stay as they are. The
+  Worker page's band holds **Open in `<provider>`** and **Copy link** behind •••.
 - **The Worker's conversation** uses Haus channel message rows, left-aligned: the brief as a
   Message from the Agent that started it, follow-ups from their authors, and the Worker's output as
   a Message from the Worker (its place name, its provider logo as the avatar). Centered system rows

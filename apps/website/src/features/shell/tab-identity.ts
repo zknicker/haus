@@ -90,6 +90,8 @@ export interface TabIdentityRecords {
     agents: readonly Pick<Agent, 'avatarUrl' | 'displayName' | 'id'>[] | null;
     /** A shared artifact page's title, once its record loads. */
     artifactTitle: string | null;
+    /** A Worker page's title, once its record loads. */
+    workerTitle?: string | null;
     /** The live web view's state, when Electron has reported it. */
     browserTab: Pick<BrowserTab, 'faviconUrl' | 'loading' | 'title' | 'url'> | null;
     chats: readonly TabChat[] | null;
@@ -128,8 +130,13 @@ export function resolveTabIdentity(page: TabPage, records: TabIdentityRecords): 
         case 'task':
             return { label: page.taskKey, mark: { kind: 'glyph', glyph: 'task' }, place: null };
         case 'worker':
+            return {
+                label: records.workerTitle ?? '',
+                mark: { kind: 'glyph', glyph: 'task' },
+                place: null,
+            };
         case 'newTab':
-            return fixedIdentities[page.kind];
+            return fixedIdentities.newTab;
         case 'section':
             return {
                 label: sectionLabels[page.section],
@@ -156,8 +163,7 @@ function browserIdentity(page: Extract<TabPage, { kind: 'browser' }>, records: T
 
 const fixedIdentities = {
     newTab: { label: 'New tab', mark: { kind: 'glyph', glyph: 'newTab' }, place: null },
-    worker: { label: 'Worker', mark: { kind: 'glyph', glyph: 'task' }, place: null },
-} as const satisfies Record<'newTab' | 'worker', TabIdentity>;
+} as const satisfies Record<'newTab', TabIdentity>;
 
 const pending: TabIdentity = { label: '', mark: { kind: 'none' }, place: null };
 
