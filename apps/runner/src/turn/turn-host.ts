@@ -100,7 +100,7 @@ export function createTurnHostWith(input: {
         await input.ledger.settled(start.agentId, start.runId);
     };
 
-    const execute = async (run: RunStart) => {
+    const execute = async (run: RunStart, restartEpoch: number) => {
         const current: ActiveRun = {
             controller: new AbortController(),
             generation: run.start.sessionGeneration,
@@ -109,7 +109,7 @@ export function createTurnHostWith(input: {
         };
         active.set(run.start.agentId, current);
         try {
-            await executeRun(run, current);
+            await executeRun(run, current, restartEpoch);
         } finally {
             if (active.get(run.start.agentId) === current) {
                 active.delete(run.start.agentId);
@@ -117,9 +117,9 @@ export function createTurnHostWith(input: {
         }
     };
 
-    const executeRun = async (run: RunStart, current: ActiveRun) => {
+    const executeRun = async (run: RunStart, current: ActiveRun, restartEpoch: number) => {
         const { start } = run;
-        if (!(await sessions.enter(run))) {
+        if (!(await sessions.enter(run, restartEpoch))) {
             await skipStale(run);
             return;
         }
@@ -283,7 +283,8 @@ export function createTurnHostWith(input: {
             await enqueue(agentId, () => sessions.apply(agentId, reset));
         },
         start(run) {
-            return enqueue(run.start.agentId, () => execute(run));
+            const restartEpoch = sessions.restartEpoch(run.start.agentId);
+            return enqueue(run.start.agentId, () => execute(run, restartEpoch));
         },
         stop(agentId, runId) {
             const run = active.get(agentId);

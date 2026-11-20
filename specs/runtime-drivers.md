@@ -179,9 +179,9 @@ turn resumes cold or, after a generation change, starts fresh. A full reset and 
 delete `/data/agents/<agent-id>/`. The runner records the session generation it last applied in
 `/data/agent-sessions/<agent-id>.json`, outside the Agent's directory. A reset applies only when
 its generation is newer, aborts a turn from an older generation, and refuses queued runs that a
-reset replaced. `runner-start` carries `sessionResetKind`, so the first run of a newer generation
-applies a reset the runner missed while it was offline. Retire aborts the turn in progress; the
-other controls run after it. The Server sends
+reset replaced. A restart also refuses the runs queued before it, since the Server interrupts
+the Agent's active run before it restarts. `runner-start` carries `sessionResetKind`, so the first run of a newer generation
+applies a reset the runner missed while it was offline. Restart and retire abort the turn in progress; resets abort a turn from an older generation. The Server sends
 `agent-retire` to the runner from R4d, when the Computer path that sends it today is deleted.
 
 Managed skills are ported. The Server seeds the factory-managed skills into each Agent's Drive
