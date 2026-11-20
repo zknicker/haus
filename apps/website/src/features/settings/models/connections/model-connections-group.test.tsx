@@ -105,6 +105,20 @@ describe('the connections table', () => {
         expect(expanded).toContain('A pasted API key. The Server keeps it encrypted');
     });
 
+    test("each row's chevron is named by its row", () => {
+        const html = render([team, gemini]);
+        for (const id of ['mcn_team', 'mcn_gemini']) {
+            const chevron = html.match(
+                new RegExp(
+                    `<button[^>]*aria-labelledby="([^" ]+) ([^"]+-${id}-account)"[^>]*slot="chevron"`,
+                    'u'
+                )
+            );
+            expect(chevron?.[2]).toBeDefined();
+            expect(html).toContain(`id="${chevron?.[2]}" role="rowheader"`);
+        }
+    });
+
     test('the Owner gets Add connection, a switch and a menu on each row', () => {
         const html = render([team, gemini]);
         expect(count(html, 'aria-label="Add connection"')).toBe(1);

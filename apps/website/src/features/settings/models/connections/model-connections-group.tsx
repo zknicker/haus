@@ -17,6 +17,7 @@ import {
     rowChildren,
 } from './connections-table-model.ts';
 import { deviceRows } from './device-usage-rows.ts';
+import { ModelAccountLogo } from './model-account-mark.tsx';
 import { connectionErrorMessage, modelProviderNames } from './model-connection-model.ts';
 import { RenameConnectionDialog } from './rename-connection-dialog.tsx';
 import { useConnectionTableActions } from './use-connection-table-actions.ts';
@@ -140,6 +141,7 @@ function ProviderPicker({ onPick }: { onPick: (provider: ModelProvider) => void 
                             onAction={() => onPick(provider)}
                             textValue={modelProviderNames[provider]}
                         >
+                            <ModelAccountLogo account={provider} />
                             <Label>{modelProviderNames[provider]}</Label>
                         </Dropdown.Item>
                     ))}

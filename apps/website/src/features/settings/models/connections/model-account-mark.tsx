@@ -25,6 +25,19 @@ export function ModelAccountMark({ account }: { account: ModelAccountMarkId }) {
     );
 }
 
+export function ModelAccountLogo({ account }: { account: ModelAccountMarkId }) {
+    const provider = getModelProviderConfig(providerConfigIds[account]);
+    return (
+        <ModelProviderLogo
+            className="size-4 bg-transparent"
+            color={provider.color}
+            fallbackIcon={provider.icon}
+            iconClassName="size-4"
+            logo={provider.logo}
+        />
+    );
+}
+
 const providerConfigIds: Record<ModelAccountMarkId, string> = {
     chatgpt: 'openai',
     'claude-code': 'claude-code',

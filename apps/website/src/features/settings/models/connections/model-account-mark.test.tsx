@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ModelAccountMark } from './model-account-mark.tsx';
+import { ModelAccountLogo, ModelAccountMark } from './model-account-mark.tsx';
 
 function sources(html: string) {
     return [...html.matchAll(/src="([^"]+)"/gu)].map((match) => match[1]);
@@ -36,4 +36,10 @@ test('the tile pairs its radius with its 32px box', () => {
     expect(renderToStaticMarkup(<ModelAccountMark account="xai" />)).toContain(
         'border-radius:calc(var(--radius) * 2);height:32px;width:32px'
     );
+});
+
+test('the menu logo is the same company logo, bare at 16px', () => {
+    const html = renderToStaticMarkup(<ModelAccountLogo account="gemini" />);
+    expect(sources(html)).toEqual(['https://svgl.app/library/gemini.svg']);
+    expect(html).toContain('size-4 bg-transparent');
 });
