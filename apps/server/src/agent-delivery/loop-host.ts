@@ -75,11 +75,15 @@ export class AgentLoopRoute {
         );
     }
 
-    private pullDrive(machineId: string, start: { agentId: string; runId: string }) {
+    private pullDrive(
+        machineId: string,
+        start: { agentId: string; runId: string; sessionGeneration: number }
+    ) {
         if (this.transport.isOnline(machineId)) {
             this.transport.send(machineId, {
                 agentId: start.agentId,
                 runId: start.runId,
+                sessionGeneration: start.sessionGeneration,
                 type: 'drive-pull',
             });
         }

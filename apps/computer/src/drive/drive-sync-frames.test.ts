@@ -31,7 +31,7 @@ test('drive-pull and drive-push frames sync the Agent folder under a run credent
         serverOrigin: `http://127.0.0.1:${front.port}`,
     });
 
-    expect(sync.receive({ agentId: 'agt_alpha', runId: 'run_1', type: 'drive-pull' })).toBe(true);
+    expect(sync.receive({ agentId: 'agt_alpha', runId: 'run_1', sessionGeneration: 2, type: 'drive-pull' })).toBe(true);
     await settleDriveFolder(agentRoot);
     expect(await readFile(join(folder, 'agents', 'alpha', 'MEMORY.md'), 'utf8')).toBe(
         'remember the otter'
@@ -39,7 +39,7 @@ test('drive-pull and drive-push frames sync the Agent folder under a run credent
 
     await mkdir(join(folder, 'agents', 'alpha', 'notes'), { recursive: true });
     await writeFile(join(folder, 'agents', 'alpha', 'notes', 'heron.md'), 'copper heron');
-    expect(sync.receive({ agentId: 'agt_alpha', runId: 'run_1', type: 'drive-push' })).toBe(true);
+    expect(sync.receive({ agentId: 'agt_alpha', runId: 'run_1', sessionGeneration: 2, type: 'drive-push' })).toBe(true);
     await settleDriveFolder(agentRoot);
     expect(server.text('agents/alpha/notes/heron.md')).toBe('copper heron');
 
@@ -50,9 +50,19 @@ test('drive-pull and drive-push frames sync the Agent folder under a run credent
         { credentialHash, runnerId: 'arc_1' },
         { credentialHash, runnerId: 'arc_2' },
     ]);
-    expect(sync.receive({ agentId: '../agt_alpha', runId: 'run_2', type: 'drive-pull' })).toBe(
+    expect(sync.receive({ agentId: '../agt_alpha', runId: 'run_2', sessionGeneration: 2, type: 'drive-pull' })).toBe(
         true
     );
+    expect(authority.minted).toHaveLength(2);
+    expect(
+        sync.receive({
+            agentId: 'agt_alpha',
+            runId: 'run_0',
+            sessionGeneration: 1,
+            type: 'drive-push',
+        })
+    ).toBe(true);
+    await settleDriveFolder(agentRoot);
     expect(authority.minted).toHaveLength(2);
     expect(sync.receive({ invocationId: 'inv_1', type: 'invoke-cancel' })).toBe(false);
 });

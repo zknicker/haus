@@ -2,13 +2,23 @@ import * as z from 'zod';
 import { idSchema } from './chat.ts';
 
 export const drivePullCommandSchema = z
-    .object({ agentId: idSchema, runId: idSchema, type: z.literal('drive-pull') })
+    .object({
+        agentId: idSchema,
+        runId: idSchema,
+        sessionGeneration: z.number().int().positive(),
+        type: z.literal('drive-pull'),
+    })
     .strict();
 
 export type DrivePullCommand = z.infer<typeof drivePullCommandSchema>;
 
 export const drivePushCommandSchema = z
-    .object({ agentId: idSchema, runId: idSchema, type: z.literal('drive-push') })
+    .object({
+        agentId: idSchema,
+        runId: idSchema,
+        sessionGeneration: z.number().int().positive(),
+        type: z.literal('drive-push'),
+    })
     .strict();
 
 export type DrivePushCommand = z.infer<typeof drivePushCommandSchema>;

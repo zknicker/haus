@@ -42,14 +42,28 @@ test('a runner run pulls the Agent drive folder on its machine when it starts an
     });
 
     const start = await runner.next(frameOfType('runner-start'));
-    const { runId } = start.start as { runId: string };
+    const { runId, sessionGeneration } = start.start as {
+        runId: string;
+        sessionGeneration: number;
+    };
     const pull = await computer.next((frame) => frame.type === 'drive-pull');
-    expect(pull).toEqual({ agentId: setup.agentId, runId, type: 'drive-pull' });
+    expect(pull).toEqual({
+        agentId: setup.agentId,
+        runId,
+        sessionGeneration,
+        type: 'drive-pull',
+    });
 
     runner.send({ agentId: setup.agentId, runId, type: 'ack' });
+    runner.send(settledTurn('run_stale'));
     runner.send(settledTurn(runId));
     const push = await computer.next((frame) => frame.type === 'drive-push');
-    expect(push).toEqual({ agentId: setup.agentId, runId, type: 'drive-push' });
+    expect(push).toEqual({
+        agentId: setup.agentId,
+        runId,
+        sessionGeneration,
+        type: 'drive-push',
+    });
 });
 
 function settledTurn(runId: string) {

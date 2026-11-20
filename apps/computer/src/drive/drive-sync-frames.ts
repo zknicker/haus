@@ -12,6 +12,7 @@ export function driveSyncFrames(
     agentsRoot: string,
     attachment: { credential: string; serverOrigin: string }
 ) {
+    const generations = new Map<string, number>();
     return {
         receive(frame: unknown) {
             const command = parseDriveSync(frame);
@@ -24,6 +25,15 @@ export function driveSyncFrames(
                 });
                 return true;
             }
+            if (command.sessionGeneration < (generations.get(command.agentId) ?? 0)) {
+                console.warn('Ignored a drive sync frame from an earlier Agent session.', {
+                    agentId: command.agentId,
+                    runId: command.runId,
+                    sessionGeneration: command.sessionGeneration,
+                });
+                return true;
+            }
+            generations.set(command.agentId, command.sessionGeneration);
             const run: DriveRun = {
                 agentId: command.agentId,
                 mint: () =>
