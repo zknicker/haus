@@ -4,7 +4,7 @@ read_when:
   - changing the drive/ folder on a Computer, its layout, its location, or its state file
   - changing turn-start pull, what waits for it, or what a failed pull leaves behind
   - changing the push after a turn, deletes, renames, or how a machine applies push outcomes
-  - changing how instruction composition or MEMORY.md delivery reads the drive/ folder before the runner
+  - changing how instruction composition, MEMORY.md delivery, or rule delivery reads the drive/ folder before the runner
   - retiring or replacing haus files pull and push
 ---
 
@@ -157,8 +157,8 @@ Edits that a failed push left on the old machine stay there.
 ## Before the runner
 
 Until the runner ships (R3 and R4), an Agent's loop runs on its Computer. The Computer finishes the
-pull before the turn starts, then composes the instructions and delivers `MEMORY.md` from the
-folder (D3). That is one `drive.changes` round trip, and it is usually empty.
+pull before the turn starts, then composes the instructions and delivers `MEMORY.md` (D3) and
+the rule layers `haus/AGENTS.md` and `agents/<handle>/AGENTS.md` (D6) from the folder. That is one `drive.changes` round trip, and it is usually empty.
 
 D3 runs first at launch: it moves a legacy workspace into the Agent's area, or seeds a fresh one
 ([workspace](workspace.md#migration)), and places those files in the folder with no record in

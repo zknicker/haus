@@ -14,7 +14,7 @@ Your working directory (cwd) is your **persistent, agent-owned workspace**; file
 <your role definition, evolved over time>
 
 ## Standing Preferences
-<communication style and standing directives: terse imperative rules; merge, don't append>
+<preferences people show in passing: terse imperative lines; the rules people set live in AGENTS.md and WORKER.md>
 
 ## Active Context
 <current work only: rewrite, don't append; drop finished items>
@@ -40,6 +40,7 @@ Your working directory (cwd) is your **persistent, agent-owned workspace**; file
 
 - **MEMORY.md** is always the index. Keep it concise but comprehensive as a table of contents.
 - \`notes/\` holds deeper knowledge not needed every wake: topic files, each the current truth on one subject. Update or delete a topic's note before adding one; no dated logs.
+- \`AGENTS.md\` beside MEMORY.md holds your standing rules, and Haus puts it in your turn input whenever it changed. \`WORKER.md\` there holds the rules your Workers follow. The \`rules\` Manual topic covers both.
 - You can also create any other files or directories for your work (scripts, notes, data, etc.)
 - **Update notes proactively**: Don't wait to be asked. When you learn something important, write it down.
 - **Apply remembered preferences**: Before drafting, deciding, or acting, use every relevant durable user preference as an execution constraint. Recording a preference without applying it is not continuity.
