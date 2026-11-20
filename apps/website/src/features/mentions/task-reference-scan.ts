@@ -4,6 +4,7 @@ import {
     parseTaskReferenceTarget,
     type TaskLink,
 } from '@haus/api';
+import { readCodeRanges } from '../chats/markdown-code-ranges.ts';
 import { normalizeMentions } from './mention-text.ts';
 import type { Mention } from './mention-types.ts';
 
@@ -100,59 +101,4 @@ function readMarkdownLinkRanges(content: string): TextRange[] {
         end: match.index + match[0].length,
         start: match.index,
     }));
-}
-
-/** Fenced blocks and inline code spans: prose that never resolves a reference. */
-function readCodeRanges(content: string): TextRange[] {
-    const fences = readFenceRanges(content);
-    return [...fences, ...readInlineCodeRanges(content, fences)];
-}
-
-function readFenceRanges(content: string): TextRange[] {
-    const ranges: TextRange[] = [];
-    let open: { marker: string; start: number } | null = null;
-    let lineStart = 0;
-    for (const line of content.split('\n')) {
-        const marker = /^[ \t]{0,3}(`{3,}|~{3,})/u.exec(line)?.[1];
-        const lineEnd = lineStart + line.length + 1;
-        if (marker && !open) {
-            open = { marker, start: lineStart };
-        } else if (marker && open && closesFence(marker, open.marker)) {
-            ranges.push({ end: Math.min(lineEnd, content.length), start: open.start });
-            open = null;
-        }
-        lineStart = lineEnd;
-    }
-    return open ? [...ranges, { end: content.length, start: open.start }] : ranges;
-}
-
-function closesFence(marker: string, opening: string) {
-    return marker[0] === opening[0] && marker.length >= opening.length;
-}
-
-function readInlineCodeRanges(content: string, fences: readonly TextRange[]): TextRange[] {
-    const ranges: TextRange[] = [];
-    for (const match of content.matchAll(/`+/gu)) {
-        const start = match.index;
-        const inFence = fences.some((range) => start >= range.start && start < range.end);
-        const covered = ranges.some((range) => start < range.end);
-        if (inFence || covered) {
-            continue;
-        }
-        const end = inlineCodeEnd(content, start + match[0].length, match[0]);
-        if (end !== null) {
-            ranges.push({ end, start });
-        }
-    }
-    return ranges;
-}
-
-/** Where a span's closing ticks end; a span never crosses a line. */
-function inlineCodeEnd(content: string, from: number, ticks: string) {
-    const closing = content.indexOf(ticks, from);
-    const lineEnd = content.indexOf('\n', from);
-    if (closing === -1 || (lineEnd !== -1 && closing > lineEnd)) {
-        return null;
-    }
-    return closing + ticks.length;
 }

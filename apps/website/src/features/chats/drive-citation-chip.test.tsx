@@ -38,21 +38,45 @@ test('a drive link the message did not cite renders its label as plain text', ()
 });
 
 test('a streaming drive citation opens its cited revision too', () => {
-    const markup = render(
-        <>
-            {renderInlineMarkdown('[WORKER.md](drive://agents/blippy/WORKER.md)', 'prose', 0, {
-                animatedRanges: [],
-                sourceOffset: 0,
-            })}
-        </>
-    );
+    const markup = renderStreaming('[WORKER.md](drive://agents/blippy/WORKER.md)');
 
     expect(markup).toContain('href="/s/acme/artifacts/art_worker?revision=rev_3"');
     expect(markup).toContain('>WORKER.md</a>');
 });
 
+test('a drive link inside code stays the code as written when settled', () => {
+    const inline = renderSettled('Write `[WORKER.md](drive://agents/blippy/WORKER.md)` to cite.');
+    const fenced = renderSettled(
+        'Like this:\n\n```md\n[WORKER.md](drive://agents/blippy/WORKER.md)\n```\n'
+    );
+
+    for (const markup of [inline, fenced]) {
+        expect(markup).toContain('[WORKER.md](drive://agents/blippy/WORKER.md)');
+        expect(markup).not.toContain('references.haus.invalid');
+        expect(markup).not.toContain('<a');
+    }
+});
+
+test('a drive link inside code stays the code as written while streaming', () => {
+    const doubled = renderStreaming('Write ``a ` [WORKER.md](drive://agents/blippy/WORKER.md)``.');
+    const fenced = renderStreaming(
+        '```\nuse ` and [WORKER.md](drive://agents/blippy/WORKER.md)\n```'
+    );
+
+    for (const markup of [doubled, fenced]) {
+        expect(markup).toContain('[WORKER.md](drive://agents/blippy/WORKER.md)');
+        expect(markup).not.toContain('<a');
+    }
+});
+
 function renderSettled(content: string) {
     return render(<ReferenceMarkdown content={content} />);
+}
+
+function renderStreaming(content: string) {
+    return render(
+        <>{renderInlineMarkdown(content, 'prose', 0, { animatedRanges: [], sourceOffset: 0 })}</>
+    );
 }
 
 function render(children: React.ReactNode) {

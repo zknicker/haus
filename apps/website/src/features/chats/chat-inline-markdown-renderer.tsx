@@ -4,6 +4,7 @@ import {
     type ChatTextAnimationRange,
     renderTextWithAnimatedRanges,
 } from './chat-inline-text-animation.tsx';
+import { codeRangeAt, readCodeRanges } from './markdown-code-ranges.ts';
 
 const maxParseDepth = 6;
 
@@ -29,6 +30,7 @@ export function renderInlineMarkdown(
         );
     }
 
+    const code = readCodeRanges(text);
     const nodes: React.ReactNode[] = [];
     let buffer = '';
     let bufferStart: number | null = null;
@@ -70,27 +72,35 @@ export function renderInlineMarkdown(
             continue;
         }
 
-        if (text[cursor] === '`') {
-            const end = text.indexOf('`', cursor + 1);
+        const codeRange = codeRangeAt(code, cursor);
 
-            if (end > cursor + 1) {
-                flushBuffer();
-                nodes.push(
-                    <code
-                        className="bg-surface-secondary rounded px-1 py-0.5 font-mono text-[0.92em] [overflow-wrap:anywhere] break-words"
-                        key={`${keyPrefix}:code:${cursor}`}
-                    >
-                        {renderTextWithAnimatedRanges(
-                            text.slice(cursor + 1, end),
-                            options.sourceOffset + cursor + 1,
-                            `${keyPrefix}:code-text:${cursor}`,
-                            options.animatedRanges
-                        )}
-                    </code>
-                );
-                cursor = end + 1;
-                continue;
+        if (codeRange?.kind === 'fence') {
+            if (buffer.length === 0) {
+                bufferStart = cursor;
             }
+            buffer += text.slice(cursor, codeRange.end);
+            cursor = codeRange.end;
+            continue;
+        }
+
+        if (codeRange) {
+            const contentStart = codeRange.start + codeRange.ticks;
+            flushBuffer();
+            nodes.push(
+                <code
+                    className="bg-surface-secondary rounded px-1 py-0.5 font-mono text-[0.92em] [overflow-wrap:anywhere] break-words"
+                    key={`${keyPrefix}:code:${cursor}`}
+                >
+                    {renderTextWithAnimatedRanges(
+                        text.slice(contentStart, codeRange.end - codeRange.ticks),
+                        options.sourceOffset + contentStart,
+                        `${keyPrefix}:code-text:${cursor}`,
+                        options.animatedRanges
+                    )}
+                </code>
+            );
+            cursor = codeRange.end;
+            continue;
         }
 
         const link = matchMarkdownLink(text, cursor);
