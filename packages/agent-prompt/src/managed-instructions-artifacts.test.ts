@@ -7,7 +7,7 @@ import { renderAgentInstructions } from './managed-instructions.ts';
 test('the Drive family entry points at the drive/ folder and the drive Manual topic', () => {
     const prompt = renderAgentInstructions({
         agentId: 'agt_prompt_test',
-        agentName: 'Cove',
+        agentName: 'Wren',
         homeTimezone: 'UTC',
         hostname: 'computer.test',
         initialRole: null,

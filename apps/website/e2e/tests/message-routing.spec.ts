@@ -25,7 +25,7 @@ test('Dev Mode shows saved routing, persists on reload, and hides it when disabl
     });
     await expect(page.getByText('Please investigate the export path too.')).toBeVisible();
     await expect(routing).toHaveCount(0);
-    const composer = page.getByRole('textbox', { name: 'Message all', exact: true });
+    const composer = page.getByRole('textbox', { name: 'Message haus', exact: true });
     await composer.press('ControlOrMeta+k');
     await page.getByRole('menuitem', { name: 'Turn Dev Mode On', exact: true }).click();
     await routing.click();

@@ -23,5 +23,5 @@ Rules are the standing instructions people give for future work. They live in Dr
 
 You edit these files in your \`drive/\` folder with your edit tool, and create one when it is missing. Each rule is one terse imperative line, and a changed rule replaces its old line.
 
-Haus sends your edit when your turn ends and keeps it as a revision with you as its author, so anyone can read the file and its history (\`haus drive versions <path>\`). A citation such as \`[WORKER.md](drive://agents/<your handle>/WORKER.md)\` in your reply opens the file beside the chat. The \`drive\` topic covers the folder, conflicts, and citations.`,
+Haus sends your edit when your turn ends and keeps it as a revision with you as its author, so anyone can read the file and its history (\`haus drive versions <path>\`). A citation such as \`[WORKER.md](drive://agents/<your handle>/WORKER.md)\` in your reply opens that revision of the file. The \`drive\` topic covers the folder, conflicts, and citations.`,
 };

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Outlet, useParams } from 'react-router-dom';
 import { ConnectionNotice } from '../../features/servers/connection-notice.tsx';
+import { rememberLastServerSlug } from '../../features/servers/server-choice.ts';
 import { CommandMenuProvider } from '../../features/shell/command-menu-provider.tsx';
 import { ShellFrame, SidePaneProvider } from '../../features/shell/shell-side-pane.tsx';
 import { TopbarProvider } from '../../features/shell/shell-topbar.tsx';
@@ -35,6 +36,12 @@ export function ServerLayout() {
     const topbarInWindow = useShellVariantSync() !== null;
 
     React.useEffect(() => {
+        if (currentServerSlug === slug) {
+            rememberLastServerSlug(slug);
+        }
+    }, [currentServerSlug, slug]);
+
+    React.useEffect(() => {
         if (!currentServerSlug) {
             return;
         }
@@ -46,15 +53,6 @@ export function ServerLayout() {
         const timeoutId = window.setTimeout(preloadServerRoutes, 250);
         return () => window.clearTimeout(timeoutId);
     }, [currentServerSlug]);
-
-    if (server.error && !server.data) {
-        return (
-            <main className="flex h-dvh flex-col items-center justify-center gap-2 px-6 text-center">
-                <h1 className="text-foreground text-lg font-semibold">Server unavailable</h1>
-                <p className="text-muted max-w-sm text-sm">{server.error.message}</p>
-            </main>
-        );
-    }
 
     if (!server.data) {
         return null;

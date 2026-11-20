@@ -9,10 +9,6 @@ export function agentHomeProject(projects: readonly Project[], agentId: string) 
     return projects.find((project) => project.homeAgentIds.includes(agentId));
 }
 
-export function homeIsFixed(agent: Agent) {
-    return agent.factoryKind === 'cove';
-}
-
 export function projectChoice(project: Project, chat: Chat | undefined) {
     if (!chat || chat.archivedAt) {
         return null;
@@ -48,7 +44,7 @@ export function projectCaptains(
         .flatMap((home) =>
             home.homeAgentIds.flatMap((agentId) => {
                 const agent = agentsById.get(agentId);
-                return agent && !homeIsFixed(agent) ? [{ agent, home }] : [];
+                return agent ? [{ agent, home }] : [];
             })
         );
     const captains: Agent[] = (project?.homeAgentIds ?? []).flatMap((agentId) => {

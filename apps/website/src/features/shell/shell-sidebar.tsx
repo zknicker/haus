@@ -43,6 +43,7 @@ export function useSidebarSurface(): SidebarSurface {
 interface ShellSidebarPageProps {
     ariaLabel: string;
     children: React.ReactNode;
+    header?: React.ReactNode;
     value: ShellSidebarPageId;
 }
 
@@ -51,6 +52,7 @@ export function ShellSidebar({
     activePage,
     children,
     footer,
+    markHref,
     settingsAction,
     settingsSlot = 'titlebar',
     slug,
@@ -58,6 +60,7 @@ export function ShellSidebar({
     activePage: ShellSidebarPageId;
     children: React.ReactNode;
     footer?: React.ReactNode;
+    markHref?: string;
     /** The sidebar's one piece of chrome; `settingsSlot` places it. */
     settingsAction?: React.ReactNode;
     /**
@@ -117,9 +120,11 @@ export function ShellSidebar({
                     the strip carries nothing of ours. */}
                 <SidebarTitlebarStrip
                     leadsWithMark={surface === 'web'}
+                    markHref={markHref}
                     settingsAction={settingsSlot === 'titlebar' ? settingsAction : null}
                     slug={slug}
                 />
+                {activePageContent.header}
                 {/* `contents` carries the scale to every navigation row without adding a box. */}
                 <div
                     className="contents"

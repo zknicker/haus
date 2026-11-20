@@ -150,7 +150,7 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await confirmation.getByRole('button', { name: 'Cancel' }).click();
     await expect(confirmation).toBeHidden();
 
-    // The DM appears as an ordinary Agent DM, not a special onboarding Channel.
+    // The DM appears as an ordinary Agent DM.
     await page.goto('/s/agent-hq');
     await expect(page.getByRole('row', { name: 'Scout' })).toBeVisible();
 

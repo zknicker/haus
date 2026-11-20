@@ -7,12 +7,12 @@ import { composeAgentInstructions } from './instructions.ts';
 // whole (operator-approved) template.
 
 const facts = {
-    agentId: 'agt_cove',
-    agentName: 'Cove',
+    agentId: 'agt_harbor',
+    agentName: 'Harbor',
     homeTimezone: 'America/Los_Angeles',
     initialRole: 'the operator’s right hand',
     runtimeId: 'codex',
-    workspacePath: '/home/agt_cove/workspace',
+    workspacePath: '/home/agt_harbor/workspace',
 } as const;
 
 test('composes the CLI-only Haus collaboration contract', () => {
@@ -154,8 +154,8 @@ test('composes the CLI-only Haus collaboration contract', () => {
     expect(instructions.indexOf('### Triggers')).toBeLessThan(instructions.indexOf('### Workers'));
 
     // Identity + authoritative runtime context are personalized per Agent.
-    expect(instructions).toContain('You are "Cove"');
-    expect(instructions).toContain('- Agent: @Cove (agt_cove)');
+    expect(instructions).toContain('You are "Harbor"');
+    expect(instructions).toContain('- Agent: @Harbor (agt_harbor)');
     expect(instructions).toContain('- Home timezone: America/Los_Angeles');
 
     // The description is the role line (ruling W2); voice lives in Personality and Conversation style.
@@ -167,7 +167,7 @@ test('advertises the Agent family without inventing an Agent-creation policy', (
     const { instructions } = composeAgentInstructions(facts);
 
     // The prompt names the verbs and routes creation policy to the Manual. Consent,
-    // inheritance, the avatar fallback, and Cove's protected identity live in the
+    // inheritance, and the avatar fallback live in the
     // `agent` topic, so the prompt must not restate — or contradict — them.
     expect(instructions).toContain(
         '**Agents**: `haus agent create`, `haus agent update`, `haus agent avatar`. Read the `agent` Manual topic before the first one.'

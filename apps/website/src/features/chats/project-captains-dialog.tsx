@@ -7,7 +7,7 @@ import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useAgentHomeMove } from '../../hooks/projects/use-agent-home-move.ts';
 import { useProjects } from '../../hooks/projects/use-projects.ts';
-import { homeIsFixed, projectCaptains } from '../../lib/project-homes.ts';
+import { projectCaptains } from '../../lib/project-homes.ts';
 import { SettingsRowError } from '../settings/layout/settings-text.tsx';
 import { ProjectSelect } from './project-select.tsx';
 
@@ -104,22 +104,20 @@ export function ProjectCaptainsDialog({ chat, onClose }: { chat: Chat; onClose: 
                                                     @{agent.handle}
                                                 </ItemCard.Description>
                                             </ItemCard.Content>
-                                            {homeIsFixed(agent) ? null : (
-                                                <ItemCard.Action>
-                                                    <ProjectSelect
-                                                        aria-label={`Move ${agent.displayName} to`}
-                                                        className="w-44"
-                                                        except={chat.id}
-                                                        isDisabled={move.isPending}
-                                                        onSelect={(projectId) =>
-                                                            moveHome(agent.id, projectId)
-                                                        }
-                                                        placeholder="Move to…"
-                                                        serverId={chat.serverId}
-                                                        value={null}
-                                                    />
-                                                </ItemCard.Action>
-                                            )}
+                                            <ItemCard.Action>
+                                                <ProjectSelect
+                                                    aria-label={`Move ${agent.displayName} to`}
+                                                    className="w-44"
+                                                    except={chat.id}
+                                                    isDisabled={move.isPending}
+                                                    onSelect={(projectId) =>
+                                                        moveHome(agent.id, projectId)
+                                                    }
+                                                    placeholder="Move to…"
+                                                    serverId={chat.serverId}
+                                                    value={null}
+                                                />
+                                            </ItemCard.Action>
                                         </ItemCard>
                                     </React.Fragment>
                                 ))}

@@ -1,13 +1,16 @@
+import { isDeepStrictEqual } from 'node:util';
 import type {
+    RunnerConnectionCapacityFrame,
     RunnerConnectionCredentialFrame,
     RunnerConnectionStatusFrame,
     RunnerModelConnection,
 } from '@haus/api';
-import { and, eq, isNull, ne, or, sql } from 'drizzle-orm';
+import { and, eq, isNull, lte, ne, or, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { modelConnectionsTable, serversTable } from '../postgres/schema.ts';
 import type { SecretsKey } from '../secrets/sealed-secret.ts';
 import { openCredential, sealCredential } from './connection-credential.ts';
+import { shownCapacity } from './read-model-connections.ts';
 
 export async function readRunnerConnections(db: HausDatabase, key: SecretsKey) {
     const rows = await db
@@ -22,7 +25,7 @@ export async function readRunnerConnections(db: HausDatabase, key: SecretsKey) {
         })
         .from(modelConnectionsTable)
         .innerJoin(serversTable, eq(serversTable.id, modelConnectionsTable.serverId))
-        .where(isNull(serversTable.deletedAt))
+        .where(and(isNull(serversTable.deletedAt), eq(modelConnectionsTable.enabled, true)))
         .orderBy(
             modelConnectionsTable.serverId,
             modelConnectionsTable.provider,
@@ -98,6 +101,45 @@ export async function recordConnectionStatus(db: HausDatabase, frame: RunnerConn
         )
         .returning({ serverId: modelConnectionsTable.serverId });
     return changed?.serverId ?? null;
+}
+
+export async function recordConnectionCapacity(
+    db: HausDatabase,
+    frame: RunnerConnectionCapacityFrame
+) {
+    const readAt = new Date(frame.readAt);
+    return await db.transaction(async (tx) => {
+        const [row] = await tx
+            .select({
+                capacity: modelConnectionsTable.capacity,
+                capacityReadAt: modelConnectionsTable.capacityReadAt,
+                serverId: modelConnectionsTable.serverId,
+            })
+            .from(modelConnectionsTable)
+            .where(
+                and(
+                    eq(modelConnectionsTable.id, frame.connectionId),
+                    eq(modelConnectionsTable.credentialVersion, frame.credentialVersion),
+                    or(
+                        isNull(modelConnectionsTable.capacityReadAt),
+                        lte(modelConnectionsTable.capacityReadAt, readAt)
+                    )
+                )
+            )
+            .for('update');
+        if (!row) {
+            return null;
+        }
+        await tx
+            .update(modelConnectionsTable)
+            .set({ capacity: sql`${sql.param(frame.windows)}::jsonb`, capacityReadAt: readAt })
+            .where(eq(modelConnectionsTable.id, frame.connectionId));
+        const at = Date.now();
+        const shown = shownCapacity(frame.windows, readAt, at);
+        return isDeepStrictEqual(shownCapacity(row.capacity, row.capacityReadAt, at), shown)
+            ? null
+            : row.serverId;
+    });
 }
 
 function rotation(

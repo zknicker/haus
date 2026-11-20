@@ -169,7 +169,6 @@ export async function createAgentInTransaction(
             effectiveReasoningEffort: null,
             effectiveReportedAt: null,
             effectiveRuntimeId: null,
-            factoryKind: 'ordinary',
             handle: input.handle,
             id: agentId,
             serverId: input.serverId,

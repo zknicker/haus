@@ -22,7 +22,6 @@ const base: ConfiguredAgentRow = {
     effectiveReasoningEffort: 'medium',
     effectiveReportedAt: new Date('2026-07-28T00:00:00Z'),
     effectiveRuntimeId: 'codex',
-    factoryKind: 'ordinary',
     handle: 'sage',
     id: 'agt_1234567890123456',
     modelConnectionId: null,

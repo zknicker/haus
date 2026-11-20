@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { type CustomThemeId, parseCustomThemeId } from './color-theme.ts';
+import { noBackground, type ThemeBackground, themeBackgroundSchema } from './home-background.ts';
 
 export const themeColorRoles = [
     { id: 'accent', label: 'Accent', tier: 'core', token: '--accent' },
@@ -34,6 +35,7 @@ export type ThemeColors = Readonly<Record<CoreRoleId, HexColor>> &
 export type ThemeMode = 'dark' | 'light';
 
 export interface CustomTheme {
+    readonly background: ThemeBackground;
     readonly dark: ThemeColors;
     readonly id: CustomThemeId;
     readonly light: ThemeColors;
@@ -71,6 +73,7 @@ const colorsSchema = z.object(
 );
 
 const customThemeSchema = z.object({
+    background: themeBackgroundSchema.catch(noBackground),
     dark: colorsSchema,
     id: z.string().transform((value, context) => {
         const id = parseCustomThemeId(value);

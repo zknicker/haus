@@ -10,7 +10,6 @@ import {
     computersTable,
     mcpConnectionsTable,
     serverMembershipsTable,
-    serverOnboardingTable,
     serversTable,
     usersTable,
 } from '../postgres/schema.ts';
@@ -55,7 +54,6 @@ export async function seedDevelopmentServer(
         const membershipId = createOpaqueId('mem');
         const channelId = createOpaqueId('cht');
         const demoChannelId = createOpaqueId('cht');
-        const onboardingChannelId = createOpaqueId('cht');
         const blippyDmId = createOpaqueId('cht');
         const tinyDmId = createOpaqueId('cht');
         const computerId = createOpaqueId('cmp');
@@ -98,11 +96,6 @@ export async function seedDevelopmentServer(
             userIds: [userId],
         });
         await insertProject(tx, {
-            chat: { id: onboardingChannelId, name: 'onboarding-owner' },
-            serverId,
-            userIds: [userId],
-        });
-        await insertProject(tx, {
             chat: {
                 id: demoChannelId,
                 lastActivityAt: now,
@@ -124,9 +117,6 @@ export async function seedDevelopmentServer(
             reportedInventory: demoInventory,
             serverId,
         });
-        await tx
-            .insert(serverOnboardingTable)
-            .values({ channelId: onboardingChannelId, computerId, phase: 'complete', serverId });
         await tx.insert(agentsTable).values([
             demoAgent({
                 avatarId: avatarIds.blippy,

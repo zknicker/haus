@@ -1,5 +1,6 @@
 import type {
     ChatMessage,
+    DriveCitation,
     Worker,
     ImageGeneration,
     MessageCause,
@@ -92,6 +93,8 @@ export interface TranscriptMessage {
      */
     worker?: readonly Worker[];
     content: string;
+    /** The Drive files this Message cites, each bound to a revision at send. */
+    driveCitations?: readonly DriveCitation[];
     hausAgentId?: string | null;
     id: string;
     /**

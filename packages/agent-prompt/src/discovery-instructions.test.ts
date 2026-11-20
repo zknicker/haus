@@ -7,7 +7,7 @@ import { renderAgentInstructions } from './managed-instructions.ts';
 test('teaches CLI-version suspicion and paged server listings', () => {
     const prompt = renderAgentInstructions({
         agentId: 'agt_prompt_test',
-        agentName: 'Cove',
+        agentName: 'Wren',
         homeTimezone: 'UTC',
         hostname: 'computer.test',
         initialRole: null,

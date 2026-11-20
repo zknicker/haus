@@ -425,91 +425,6 @@ test('projects a trigger fire as its own sender type from @trigger', async () =>
     });
 });
 
-test('pending Cove work cannot start before the durable factory acknowledgement', async () => {
-    const seed = await seedAgent();
-    await connection.db
-        .update(agentsTable)
-        .set({ factoryAppliedAt: null, factoryKind: 'cove' })
-        .where(eq(agentsTable.id, seed.agentId));
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
-
-    await delivery.deliver({
-        agentId: seed.agentId,
-        chatId: seed.chatId,
-        content: 'arrived during setup',
-        dedupeKey: 'pending-cove',
-        serverId: seed.serverId,
-    });
-
-    expect(transport.framesOfType('start')).toHaveLength(0);
-    expect(await countQueuedInboxItems(connection.db, seed.agentId)).toBe(1);
-});
-
-test('delivers non-Chat onboarding attention concretely without entering message check', async () => {
-    const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
-
-    await delivery.deliver({
-        agentId: seed.agentId,
-        chatId: seed.chatId,
-        content: 'Introduce yourself once.',
-        dedupeKey: createOpaqueId('app'),
-        serverId: seed.serverId,
-        source: 'onboarding',
-    });
-    const start = transport.framesOfType('start')[0];
-    expect(start?.inboxDelivery).toBe('concrete');
-    expect(start?.inbox[0]?.message).toBeUndefined();
-    await delivery.onAck({ agentId: seed.agentId, runId: start?.runId ?? '' });
-    await delivery.onTurnSettled(
-        seed.computerId,
-        turnSummary(seed.agentId, start?.runId ?? '', 'completed')
-    );
-    expect(await countUnsettledPending(seed.agentId)).toBe(0);
-});
-
-test('keeps onboarding attention out of message check while an ordinary turn is live', async () => {
-    const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
-    const messageId = await insertHumanMessage(seed, 'ordinary', 1);
-    await delivery.deliver({
-        agentId: seed.agentId,
-        chatId: seed.chatId,
-        content: 'ordinary',
-        dedupeKey: messageId,
-        serverId: seed.serverId,
-    });
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
-    await delivery.onAck({ agentId: seed.agentId, runId });
-    await delivery.deliver({
-        agentId: seed.agentId,
-        chatId: seed.chatId,
-        content: 'Introduce yourself once.',
-        dedupeKey: createOpaqueId('app'),
-        serverId: seed.serverId,
-        source: 'onboarding',
-    });
-
-    const pulled = await pullAgentEvents(connection.db, {
-        agentId: seed.agentId,
-        chatId: seed.chatId,
-        computerId: seed.computerId,
-        runId,
-        runnerId: createOpaqueId('arc'),
-        serverId: seed.serverId,
-    });
-    expect(pulled.messages.map((row) => row.message.id)).toEqual([messageId]);
-    await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, runId, 'completed'));
-    expect(transport.framesOfType('start')[1]?.inboxDelivery).toBe('concrete');
-    expect(transport.framesOfType('start')[1]?.inbox[0]?.senderType).toBe('system');
-});
-
 test('resends an unacknowledged delivery idempotently on the retry sweep', async () => {
     const seed = await seedAgent();
     const transport = new FakeTransport();
@@ -566,7 +481,6 @@ test('ignores a duplicate delivery of the same message', async () => {
             // A human-created Agent carries no standing brief, stated not omitted.
             brief: null,
             briefAuthorHandle: null,
-            factoryKind: 'ordinary',
             modelId: 'fake-model',
             reasoningEffort: 'medium',
             runtimeId: 'fake',
@@ -604,23 +518,6 @@ test('replays durable Agent retirement tombstones on Computer reconnect', async 
     ]);
     expect(transport.framesOfType('agent-configure')).toEqual([]);
     expect(transport.framesOfType('start')).toEqual([]);
-});
-
-test('reconnect configuration preserves Cove factory identity', async () => {
-    const seed = await seedAgent();
-    await connection.db
-        .update(agentsTable)
-        .set({ factoryAppliedAt: new Date(), factoryKind: 'cove' })
-        .where(eq(agentsTable.id, seed.agentId));
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
-
-    await delivery.onComputerReconnect(seed.computerId);
-
-    expect(transport.framesOfType('agent-configure')).toEqual([
-        expect.objectContaining({ agentId: seed.agentId, factoryKind: 'cove' }),
-    ]);
 });
 
 test.each([false, true])('busy notice acknowledgment=%s', async (acknowledged) => {
@@ -1149,7 +1046,7 @@ test('repeated reconnects settle one durable result for one delivery', async () 
         content: 'buffered once',
         dedupeKey: 'msg-reconnect-once',
         serverId: seed.serverId,
-        source: 'onboarding',
+        source: 'delivery_problem',
     });
 
     transport.online.add(seed.computerId);
@@ -1262,7 +1159,7 @@ test('an expired backoff redrives and settles the queued work once', async () =>
         content: 'retry me',
         dedupeKey: 'msg-backoff-expiry',
         serverId: seed.serverId,
-        source: 'onboarding',
+        source: 'delivery_problem',
     });
     const firstRunId = transport.framesOfType('start')[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId: firstRunId });
@@ -1367,7 +1264,7 @@ test('Stop revokes the run credential so it holds even without the socket', asyn
         content: 'work',
         dedupeKey: 'msg-1',
         serverId: seed.serverId,
-        source: 'onboarding',
+        source: 'delivery_problem',
     });
     const runId = transport.framesOfType('start')[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
@@ -1566,7 +1463,7 @@ test('offline reset reconnects with authoritative configuration before redeliver
         dedupeKey: 'msg-offline-reset',
         serverId: seed.serverId,
     });
-    await delivery.reset({ agentId: seed.agentId, kind: 'full', serverId: seed.serverId });
+    await delivery.reset({ ...seed, kind: 'full', resetBy: `user:${seed.userId}` });
     expect(transport.sent).toEqual([]);
 
     transport.online.add(seed.computerId);
@@ -1741,7 +1638,7 @@ test('a resent run stays frozen and the next delivery uses the changed runtime a
         content: 'work',
         dedupeKey: 'msg-1',
         serverId: seed.serverId,
-        source: 'onboarding',
+        source: 'delivery_problem',
     });
     const first = transport.framesOfType('start')[0];
     expect(first).toMatchObject({ modelId: 'fake-model', runtimeId: 'fake' });
@@ -1768,7 +1665,7 @@ test('a resent run stays frozen and the next delivery uses the changed runtime a
         content: 'next work',
         dedupeKey: 'msg-2',
         serverId: seed.serverId,
-        source: 'onboarding',
+        source: 'delivery_problem',
     });
 
     const next = transport.framesOfType('start')[2];
@@ -1814,7 +1711,7 @@ test('defers a public Agent configuration change until the active run settles', 
         content: 'finish this before switching models',
         dedupeKey: 'config-switch-active-run',
         serverId: seed.serverId,
-        source: 'onboarding',
+        source: 'delivery_problem',
     });
     const first = transport.framesOfType('start')[0];
     if (!first) {
@@ -1923,7 +1820,7 @@ test('defers a public Agent configuration change until the active run settles', 
         content: 'use the new model for this',
         dedupeKey: 'config-switch-next-run',
         serverId: seed.serverId,
-        source: 'onboarding',
+        source: 'delivery_problem',
     });
     const starts = transport.framesOfType('start');
     expect(starts).toHaveLength(3);
@@ -1965,7 +1862,7 @@ test.each(['fake', 'grok-build'])(
             content: 'finish this before changing effort',
             dedupeKey: 'effort-switch-active-run',
             serverId: seed.serverId,
-            source: 'onboarding',
+            source: 'delivery_problem',
         });
         const first = transport.framesOfType('start')[0];
         if (!first) {
@@ -2045,7 +1942,7 @@ test('applies deferred configuration at Stop without auto-starting, then starts 
         content: 'finish before stopping',
         dedupeKey: 'config-stop-active-run',
         serverId: seed.serverId,
-        source: 'onboarding',
+        source: 'delivery_problem',
     });
     const first = transport.framesOfType('start')[0];
     if (!first) {
@@ -2131,7 +2028,7 @@ test('applies deferred configuration before Restart redrives pending work', asyn
         content: 'finish before restarting',
         dedupeKey: 'config-restart-active-run',
         serverId: seed.serverId,
-        source: 'onboarding',
+        source: 'delivery_problem',
     });
     const first = transport.framesOfType('start')[0];
     if (!first) {
@@ -2215,7 +2112,7 @@ test('applies deferred configuration with one strongest Reset generation', async
         content: 'finish before resetting',
         dedupeKey: 'config-reset-active-run',
         serverId: seed.serverId,
-        source: 'onboarding',
+        source: 'delivery_problem',
     });
     const first = transport.framesOfType('start')[0];
     if (!first) {
@@ -2238,7 +2135,7 @@ test('applies deferred configuration with one strongest Reset generation', async
     );
     await delivery.applyAgentConfiguration(configured);
 
-    await delivery.reset({ agentId: seed.agentId, kind: 'full', serverId: seed.serverId });
+    await delivery.reset({ ...seed, kind: 'full', resetBy: `user:${seed.userId}` });
 
     expect(transport.sent.map(({ frame }) => frame.type)).toEqual([
         'start',
@@ -2365,7 +2262,7 @@ test('bounds one drain and carries the overflow in a later run', async () => {
             dedupeKey: `msg-${index}`,
             id: createOpaqueId('inb'),
             serverId: seed.serverId,
-            source: 'onboarding',
+            source: 'delivery_problem',
         });
     }
     await connection.db

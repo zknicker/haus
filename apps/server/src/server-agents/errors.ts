@@ -24,13 +24,6 @@ export class AgentTargetNotFoundError extends Error {
     }
 }
 
-/** Cove's identity is product-owned; nothing an Agent does may rewrite it. */
-export class AgentIdentityProtectedError extends Error {
-    constructor(message: string) {
-        super(message);
-        this.name = 'AgentIdentityProtectedError';
-    }
-}
 /** A changed description exceeds the role-line cap; an unchanged stored one never trips this. */
 export class AgentDescriptionTooLongError extends Error {
     constructor() {

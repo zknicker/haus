@@ -58,7 +58,7 @@ test('an Agent reading a message types until its reply lands', async ({ page }) 
     // Recently opened Chats stay mounted hidden; target the one on screen.
     const typing = page.locator('[data-slot="chat-typing"]').filter({ visible: true });
     await expect(typing).toBeEmpty();
-    const composer = page.getByRole('textbox', { name: 'Message all' });
+    const composer = page.getByRole('textbox', { name: 'Message haus' });
     await composer.fill('Scout, can you check the build?');
     await composer.press('Enter');
     await expect(page.getByText('Scout, can you check the build?')).toBeVisible();

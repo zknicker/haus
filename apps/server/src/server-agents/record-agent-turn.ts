@@ -1,5 +1,5 @@
 import type { AgentTurnSummary } from '@haus/api';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentRunTriggersTable, agentsTable, agentTurnsTable } from '../postgres/schema.ts';
@@ -83,6 +83,13 @@ export async function recordRunTrigger(
 ): Promise<void> {
     await db
         .insert(agentRunTriggersTable)
-        .values({ ...run, chatId: first.chatId, source: first.source, workId: first.dedupeKey })
+        .values({
+            ...run,
+            chatId: first.chatId,
+            resetGeneration: sql`(select ${agentsTable.resetGeneration} from ${agentsTable}
+                where ${agentsTable.serverId} = ${run.serverId} and ${agentsTable.id} = ${run.agentId})`,
+            source: first.source,
+            workId: first.dedupeKey,
+        })
         .onConflictDoNothing();
 }

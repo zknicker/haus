@@ -11,6 +11,7 @@ import {
 import { getColorTheme, useColorThemeSync } from '../hooks/shell/use-color-theme.ts';
 import { getCustomThemes, useCustomThemesSync } from '../hooks/shell/use-custom-themes.ts';
 import { useThemeAppIcon } from '../hooks/shell/use-theme-app-icon.ts';
+import { usePresetBackgroundsSync } from '../hooks/shell/use-theme-background.ts';
 import {
     installCustomThemeStyles,
     resolveColorTheme,
@@ -46,6 +47,7 @@ export function ThemeProvider({ children }: PropsWithChildren) {
     const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(() => getSystemTheme());
     const colorTheme = useColorThemeSync();
     useCustomThemesSync();
+    usePresetBackgroundsSync();
     useThemeAppIcon();
     const forcedTheme = colorThemeDefinition(colorTheme).forcedMode;
     const resolvedTheme = resolveTheme(theme, colorTheme, systemTheme);

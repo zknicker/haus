@@ -57,11 +57,8 @@ export function AgentHeader({
         updateVoice.error?.message ??
         null;
     const canEdit = server.role === 'owner' || server.role === 'admin';
-    // Factory Agents (Cove) carry a product-owned identity the Server refuses
-    // to change, so no editor rather than a guaranteed error. Profile says why.
-    const canEditIdentity = canEdit && agent.factoryKind === 'ordinary';
     // Read up front for the people who can edit it, so the editor opens filled.
-    const voice = useAgentConversationStyle(server.id, agent.id, canEditIdentity);
+    const voice = useAgentConversationStyle(server.id, agent.id, canEdit);
     const voiceField: ProfileAgentVoice = voice.data
         ? {
               conversationStyle: voice.data.conversationStyle ?? '',
@@ -81,15 +78,15 @@ export function AgentHeader({
             ])
         ).then(() => undefined);
     };
-    // The menu always offers Generate for an ordinary Agent; without the
-    // Server capability the item renders disabled with the reason inline.
-    const canGenerate = canEditIdentity;
+    // The menu always offers Generate to an editor; without the Server
+    // capability the item renders disabled with the reason inline.
+    const canGenerate = canEdit;
 
     return (
         <MemberProfileHeader
             action={
                 <div className="flex items-center gap-2">
-                    {canEditIdentity ? (
+                    {canEdit ? (
                         <ProfileEdit
                             description={agent.description ?? ''}
                             descriptionInfo="Its role in one or two sentences. Other Captains see it on every message this Captain sends."

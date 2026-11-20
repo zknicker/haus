@@ -1,9 +1,5 @@
 import { expect, test } from 'bun:test';
-import {
-    agentCommandSchema,
-    agentTurnSummarySchema,
-    coveApplyResultSchema,
-} from './agent-runner.ts';
+import { agentCommandSchema, agentTurnSummarySchema } from './agent-runner.ts';
 
 test('Agent restart carries only the Agent identity', () => {
     expect(
@@ -61,44 +57,36 @@ test('turn summaries carry durable activity and explicit interruption', () => {
     expect(agentTurnSummarySchema.parse(legacyTurn).activity).toEqual({ operations: [] });
 });
 
-test('Cove application uses one explicit factory command and durable result', () => {
+test('Agent configuration carries no factory kind', () => {
     const command = {
-        agentDescription: 'Onboarding Assistant',
-        agentId: 'agt_cove',
-        agentName: 'Cove',
-        applicationId: 'cap_application',
-        factoryKind: 'cove',
+        agentDescription: 'Release notes',
+        agentId: 'agt_harbor',
+        agentName: 'Harbor',
         modelId: 'gpt-5.6-sol',
+        reasoningEffort: 'medium',
         runtimeId: 'codex',
         sessionGeneration: 1,
-        type: 'cove-apply',
+        sessionResetKind: 'session',
+        type: 'agent-configure',
     } as const;
-    expect(agentCommandSchema.parse(command)).toEqual(command);
-    expect(agentCommandSchema.safeParse({ ...command, archetype: 'operator' }).success).toBe(false);
-    expect(
-        coveApplyResultSchema.parse({
-            agentId: command.agentId,
-            applicationId: command.applicationId,
-            factoryKind: 'cove',
-            status: 'applied',
-            type: 'cove-apply-result',
-        })
-    ).toMatchObject({ status: 'applied' });
+    expect(agentCommandSchema.parse(command)).toMatchObject({ type: 'agent-configure' });
+    expect(agentCommandSchema.safeParse({ ...command, factoryKind: 'ordinary' }).success).toBe(
+        false
+    );
 });
 
-test('ordinary configuration replay preserves Cove factory identity', () => {
+test('the Computer protocol has no Cove application frame', () => {
     expect(
-        agentCommandSchema.parse({
+        agentCommandSchema.safeParse({
             agentDescription: 'Onboarding Assistant',
-            agentId: 'agt_cove',
+            agentId: 'agt_harbor',
             agentName: 'Cove',
+            applicationId: 'cap_application',
             factoryKind: 'cove',
             modelId: 'gpt-5.6-sol',
-            reasoningEffort: 'medium',
             runtimeId: 'codex',
             sessionGeneration: 1,
-            sessionResetKind: 'session',
-            type: 'agent-configure',
-        })
-    ).toMatchObject({ factoryKind: 'cove', type: 'agent-configure' });
+            type: 'cove-apply',
+        }).success
+    ).toBe(false);
 });

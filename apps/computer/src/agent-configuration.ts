@@ -6,7 +6,6 @@ import {
     agentConfigureCommandSchema,
     agentReasoningEffortSchema,
     type ComputerInventory,
-    type CoveApplyCommand,
 } from '@haus/api';
 
 export interface AppliedAgentConfiguration {
@@ -22,7 +21,6 @@ export interface AgentSeedConfiguration {
     /** The standing brief the Server holds for this Agent, and whose it is. */
     brief: string | null;
     briefAuthorHandle: string | null;
-    factoryKind: 'cove' | 'ordinary';
 }
 export function parseAgentConfigureCommand(frame: unknown): AgentConfigureCommand | null {
     const parsed = agentConfigureCommandSchema.safeParse(frame);
@@ -104,7 +102,6 @@ async function writeAppliedConfiguration(
                 agentName: command.agentName,
                 brief: command.brief,
                 briefAuthorHandle: command.briefAuthorHandle,
-                factoryKind: command.factoryKind,
             },
         })}\n`,
         { mode: 0o600 }
@@ -146,7 +143,6 @@ export async function readAgentSeedConfiguration(
                   agentName: value.seed.agentName,
                   brief: value.seed.brief ?? null,
                   briefAuthorHandle: value.seed.briefAuthorHandle ?? null,
-                  factoryKind: value.seed.factoryKind === 'cove' ? 'cove' : 'ordinary',
               }
             : null;
     } catch {
@@ -155,7 +151,7 @@ export async function readAgentSeedConfiguration(
 }
 
 export function resolveConfiguration(
-    command: AgentConfigureCommand | CoveApplyCommand,
+    command: AgentConfigureCommand,
     inventory: ComputerInventory
 ): AppliedAgentConfiguration {
     const runtime = inventory.runtimes.find((candidate) => candidate.id === command.runtimeId);
@@ -183,10 +179,8 @@ export function resolveConfiguration(
     };
 }
 
-function reasoningEffortFor(
-    command: AgentConfigureCommand | CoveApplyCommand
-): AgentReasoningEffort {
-    return 'reasoningEffort' in command ? command.reasoningEffort : 'medium';
+function reasoningEffortFor(command: AgentConfigureCommand) {
+    return command.reasoningEffort;
 }
 
 function isAppliedConfiguration(value: unknown): value is AppliedAgentConfiguration {
@@ -210,9 +204,6 @@ function isAgentSeedConfiguration(value: unknown): value is AgentSeedConfigurati
         typeof value.agentName === 'string' &&
         value.agentName.length > 0 &&
         value.agentName.length <= 80 &&
-        (value.factoryKind === undefined ||
-            value.factoryKind === 'cove' ||
-            value.factoryKind === 'ordinary') &&
         (value.agentDescription === null ||
             (typeof value.agentDescription === 'string' &&
                 value.agentDescription.length > 0 &&

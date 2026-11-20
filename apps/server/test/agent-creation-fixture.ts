@@ -270,16 +270,16 @@ export function agentCreationFixture(
         return created.agent.id;
     }
 
-    /** Cove is product-owned, so it is seeded rather than created through the API. */
+    /** Seeded rather than created through the API, so it has no greeting. */
     async function seedCove() {
         const agentId = `agt_${'c'.repeat(16)}`;
         await harness.sql`
             insert into agents (
                 id, server_id, computer_id, display_name, handle, home_timezone,
-                desired_model_id, desired_runtime_id, factory_kind, description, home_project_id)
+                desired_model_id, desired_runtime_id, description, home_project_id)
             values (
                 ${agentId}, ${serverId}, ${computerId}, 'Cove', 'cove', 'UTC',
-                'gpt-5.6-sol', 'codex', 'cove', 'Onboarding Assistant', (select id from chats where server_id = ${serverId} and is_all)
+                'gpt-5.6-sol', 'codex', 'Field guide', (select id from chats where server_id = ${serverId} and is_all)
             )
         `;
         return agentId;

@@ -4,13 +4,14 @@ import { ArrowRight01Icon, MoreHorizontalIcon } from '@hugeicons-pro/core-stroke
 import type { ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
-import { inboxRoute } from '../servers/server-routes.ts';
+import { useCapyShell } from '../capy-shell/capy-shell-preference.ts';
+import { inboxRoute, serverRoute } from '../servers/server-routes.ts';
 import { type BandCrumb, collapseTrail, crumbKey } from './band-trail.ts';
 import { CrumbDropTarget } from './crumb-drop-target.tsx';
 
 /**
  * Where you are, as one trail that always starts at the product: "Haus" (the
- * Inbox, the app's front page), then the section, then each step down to the
+ * app's front page: the Inbox, or Home under the Capy shell), then the section, then each step down to the
  * current page, which is the unlinked last crumb. A deep trail folds its
  * middle into one ellipsis menu (`collapseTrail`).
  *
@@ -30,11 +31,12 @@ export function BandBreadcrumbs({
     current?: BandCrumb;
 }) {
     const { slug = '' } = useParams();
+    const home = useCapyShell() ? serverRoute(slug) : inboxRoute(slug);
     const trail = collapseTrail(crumbs);
     return (
         <nav aria-label="Breadcrumb" className="min-w-0 overflow-hidden">
             <Breadcrumbs separator={separator}>
-                <Breadcrumbs.Item href={inboxRoute(slug)}>Haus</Breadcrumbs.Item>
+                <Breadcrumbs.Item href={home}>Haus</Breadcrumbs.Item>
                 {trail.leading.map(linkedCrumb)}
                 {trail.hidden.length > 0 ? <FoldedCrumbs crumbs={trail.hidden} /> : null}
                 {trail.trailing.map(linkedCrumb)}

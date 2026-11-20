@@ -27,7 +27,7 @@ afterAll(async () => {
 
 test('the same failure three times pauses; the sweep skips it until a human lifts it', async () => {
     const { delivery, seed, transport } = await onlineAgent();
-    await delivery.deliver(work(seed, 'summarize the thread', 'onboarding'));
+    await delivery.deliver(work(seed, 'summarize the thread', 'delivery_problem'));
     for (let attempt = 1; attempt <= 3; attempt += 1) {
         await failLatestRun(delivery, transport, seed, attempt);
         if (attempt < 3) {

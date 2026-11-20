@@ -4,10 +4,10 @@ import { ActivationFrame } from './activation-frame.tsx';
 import { ActivationLoading } from './activation-loading.tsx';
 import { ActivationShell } from './activation-shell.tsx';
 
-test('the persistent frame owns one animated mark even when a scene hides it', () => {
+test('the persistent frame owns one animated mark', () => {
     const markup = renderToStaticMarkup(
         <ActivationFrame>
-            <ActivationShell mark={null}>Cove</ActivationShell>
+            <ActivationShell>Haus</ActivationShell>
         </ActivationFrame>
     );
     expect(markup).toContain(

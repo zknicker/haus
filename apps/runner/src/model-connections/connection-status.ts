@@ -12,13 +12,13 @@ export function createConnectionStatus(link: RunnerLink) {
         afterTurn(connection: RunnerModelConnection, result: RunTurnResult) {
             const report = statusOf(result);
             if (!report) {
-                return;
+                return null;
             }
             const sent = createHash('sha256')
                 .update(JSON.stringify([report, connection.credential]))
                 .digest('hex');
             if (lastSent.get(connection.id) === sent) {
-                return;
+                return null;
             }
             lastSent.set(connection.id, sent);
             const frame: RunnerConnectionStatusFrame = {
@@ -27,6 +27,7 @@ export function createConnectionStatus(link: RunnerLink) {
                 type: 'runner-connection-status',
             };
             link.send(frame);
+            return frame.status;
         },
     };
 }

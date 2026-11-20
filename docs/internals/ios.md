@@ -191,11 +191,8 @@ insertion, so rows awaiting one URL receive one image instance. `AvatarImageDeco
 to at most 384 pixels on the concurrent executor, covering the 84pt profile avatar at 3x without
 retaining a full-resolution source for every small identity mark. Synchronous recovery after decoded
 cache eviction uses the same bounded decoder over cached bytes.
-An ordinary Agent's profile may call the same Server-owned `avatar.generate` procedure as the desktop
-App with one short concept, from a capsule directly under the avatar it changes. A factory Agent does
-not offer it: the Server refuses to replace Cove's product-owned artwork, so `SettingsAgent` carries
-`canGenerateAvatar` from the Agent's `factoryKind` and the App and the phone gate the entry the same
-way. Each returned image joins an `AvatarGenerationSession` that `SettingsSheet` keeps per Agent,
+An Agent's profile may call the same Server-owned `avatar.generate` procedure as the desktop
+App with one short concept, from a capsule directly under the avatar it changes. Each returned image joins an `AvatarGenerationSession` that `SettingsSheet` keeps per Agent,
 not the generation sheet: closing the sheet keeps the concept, every variant, and any run in flight,
 and reopening resumes it. Tapping Save applies the variant on stage through the ordinary `avatar.set`
 contract, and the session resets the next time the sheet opens after that save. Run ids never repeat,

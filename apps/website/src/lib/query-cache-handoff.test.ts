@@ -40,6 +40,22 @@ describe('packQueryCacheHandoff', () => {
         ]);
     });
 
+    test('keeps a model sign-in and its device code in the window that started it', () => {
+        const client = sourceClient();
+        const signIn = [
+            ['modelConnections', 'signIn'],
+            { input: { serverId: 's1', signInId: 'msi_1' }, type: 'query' },
+        ];
+        const list = [['modelConnections', 'list'], { input: { serverId: 's1' }, type: 'query' }];
+        client.setQueryData(signIn, { state: 'code', userCode: 'ABCD-1234' });
+        client.setQueryData(list, { agentLoop: 'runner', connections: [] });
+        expect(packedKeys(client)).toEqual([
+            chatList,
+            [['server', 'list'], { type: 'query' }],
+            list,
+        ]);
+    });
+
     test('skips failed and pending reads', async () => {
         const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
         await client

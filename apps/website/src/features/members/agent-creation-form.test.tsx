@@ -38,10 +38,9 @@ const cove = {
     desiredModelId: 'gpt-5.6-sol',
     desiredReasoningEffort: 'high',
     desiredRuntimeId: 'codex',
-    factoryKind: 'cove',
 } as unknown as Agent;
 
-test('a fresh form starts empty on the setup Cove already runs on', () => {
+test('a fresh form starts empty on the setup the first Agent already runs on', () => {
     const markup = renderWithTrpc(
         <AgentCreationForm
             agents={[cove]}

@@ -73,7 +73,7 @@ Owners and Admins read both with `agent.conversationStyle` and write them with
 carry them. The Agent reads its own pair in `haus profile show` (`GET /api/agent/profile`, self
 only) and writes it with `haus profile update` (`POST /api/agent/profile/update`, which also takes
 `description`). The runner token fixes the Agent, so that route changes only the caller, and one
-transaction applies every field or none. Cove refuses a conversation style but accepts an emoji.
+transaction applies every field or none.
 Neither field appears in the `Agent` projection, rosters, envelopes, `agent-configure` frames, or
 another Agent's profile view.
 
@@ -102,7 +102,8 @@ once at dispatch in `agent_run_triggers` so it survives a failed run requeueing 
 rows: `{ kind: 'message', author: 'human' | 'agent', chatId, messageId, preview }`,
 `{ kind: 'claim', chatId, messageId, preview }` (the claim's message), or
 `{ kind: 'reminder' | 'trigger' | 'worker' | 'onboarding' | 'greeting', chatId }` (`greeting`
-is a new Agent's one-time `#all` wake when it led the run alone), or one of the chatless
+is a new Agent's one-time `#all` wake when it led the run alone; `onboarding` is a past turn of
+the retired Server onboarding flow that nothing writes anymore), or one of the chatless
 sources, whose runs need no Chat visibility to read:
 
 - `{ kind: 'subagent' }`: a wake for background work the Agent started that finished or stopped
@@ -172,23 +173,23 @@ with `404 INVALID_TARGET` naming it, before an avatar is generated.
 
 Agents have no channel membership ([specs/projects.md](../../specs/projects.md#what-an-agent-may-do-outside-its-home)).
 Every Agent reads and posts in every live channel and Task of its Server; what reaches it is its
-home Project, mentions, assignments, followed Tasks, and followed reply chains
+Project, mentions, assignments, followed Tasks, and followed reply chains
 ([specs/inbox.md](../../specs/inbox.md#hearing)). There are no join, leave, add, mute, or unmute
-routes, and an Agent cannot move its own home.
+routes, and an Agent cannot move itself to another Project.
 
 `GET /api/agent/channels/info` returns `{ handle, description, project, home, homeAgents,
-memberCount }`: the channel's Project key, whether it is the calling Agent's home, the handles of
-its non-retired home Agents, and its people plus home Agents. `GET /api/agent/channels/members`
-returns `{ target, project, members }`, the home Agents and the channel's people.
+memberCount }`: the channel's Project key, whether it is the calling Agent's Project, the handles of
+its non-retired Agents, and its people plus Agents. `GET /api/agent/channels/members`
+returns `{ target, project, members }`, the Project's Agents and the channel's people.
 `GET /api/agent/server` lists channels with the same fields; `home=true` keeps only the calling
-Agent's home.
+Agent's Project.
 
 The App moves an Agent with `agent.setHome({ serverId, agentId, projectId })`. A Server member with
 write access to the destination Project's channel (the access `project.update` needs) may move any
 non-retired Agent; a retired one is refused. The move publishes `project.updated` and
 `chat.lifecycle{action:'updated'}` for the old and new Project, starts the Agent's read position at
 the present in the new Project's channel and Tasks, and changes delivery from the next planned
-message. Queued items stay. `agent.create` takes an optional `homeProjectId` under the same access.
+message. Queued items stay. `agent.create` requires `homeProjectId`, a real, open Project, under the same access.
 
 Agents cannot create channels. Every channel is a Project, and only people create Projects
 (`project.create`, [specs/projects.md](../../specs/projects.md)), so there is no Agent create route.
@@ -425,7 +426,7 @@ no assigned Computer returns `AGENT_NO_COMPUTER`.
 
 `POST /api/agent/agents/update` rewrites an Agent's `description` (1–280); `POST /api/agent/agents/avatar`
 generates and applies a replacement avatar from a `concept`. Both resolve `@handle` within the
-runner's Server and refuse Cove with `AGENT_IDENTITY_PROTECTED`. Neither renames an Agent: the handle
+runner's Server. Neither renames an Agent: the handle
 is the Server-scoped alias that mentions, targets, and history all key on.
 
 Creation nonces and request hashes live on `agents`; announcements are not retry anchors.

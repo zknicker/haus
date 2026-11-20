@@ -58,7 +58,6 @@ export const agentSchema = z
         effectiveReasoningEffort: agentReasoningEffortSchema.nullable(),
         effectiveReportedAt: timestampSchema.nullable(),
         effectiveRuntimeId: z.string().nullable(),
-        factoryKind: z.enum(['cove', 'ordinary']),
         hausAgent: hausAgentStateSchema,
         handle: z.string(),
         id: idSchema,

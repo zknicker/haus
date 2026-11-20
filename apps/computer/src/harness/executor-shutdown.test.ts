@@ -174,7 +174,6 @@ function turnInput(
         agentRoot: root,
         dataRoot: root,
         env: {},
-        factoryKind: 'ordinary',
         homeDir: join(root, 'home'),
         homeTimezone: 'UTC',
         initialRole: null,

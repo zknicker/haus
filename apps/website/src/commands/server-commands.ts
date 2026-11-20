@@ -6,6 +6,7 @@ import {
     ComputerIcon,
     CopyLinkIcon,
     CursorTextIcon,
+    Home01Icon,
     UserCircleIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import {
@@ -28,6 +29,8 @@ import { filterCommandGroups } from './types.ts';
 
 export interface CommandContext {
     agents: Agent[];
+    /** The Capy shell swaps Chat and Inbox for Home. */
+    capyShell?: boolean;
     chats: Chat[];
     devMode: boolean;
     navigate: (path: string) => void;
@@ -69,20 +72,31 @@ function buildNavigationGroup(context: CommandContext, currentChat: Chat | null)
             route: serverSearchRoute(context.serverSlug),
             title: 'Search',
         },
-        {
-            icon: getRouteTabIcon('chat'),
-            id: 'chat',
-            route: currentChat
-                ? serverChatRoute(context.serverSlug, currentChat.id)
-                : serverRoute(context.serverSlug),
-            title: 'Chat',
-        },
-        {
-            icon: getRouteTabIcon('inbox'),
-            id: 'inbox',
-            route: inboxRoute(context.serverSlug),
-            title: 'Inbox',
-        },
+        ...(context.capyShell
+            ? [
+                  {
+                      icon: Home01Icon,
+                      id: 'home',
+                      route: serverRoute(context.serverSlug),
+                      title: 'Home',
+                  },
+              ]
+            : [
+                  {
+                      icon: getRouteTabIcon('chat'),
+                      id: 'chat',
+                      route: currentChat
+                          ? serverChatRoute(context.serverSlug, currentChat.id)
+                          : serverRoute(context.serverSlug),
+                      title: 'Chat',
+                  },
+                  {
+                      icon: getRouteTabIcon('inbox'),
+                      id: 'inbox',
+                      route: inboxRoute(context.serverSlug),
+                      title: 'Inbox',
+                  },
+              ]),
         {
             icon: getRouteTabIcon('tasks'),
             id: 'tasks',

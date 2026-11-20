@@ -175,6 +175,17 @@ export const appPlaces: readonly AppPlace[] = [
     },
     {
         area: 'agent-setup',
+        task: "Add a skill from a Computer to an Agent's library",
+        path: ['Captain profile', 'Skills', 'Add Skills'],
+        who: 'owner-or-admin',
+        anchors: [
+            ...agentProfile(),
+            agentSection('skills'),
+            label('features/members/agent-profile/skill-list.tsx', 'Add Skills'),
+        ],
+    },
+    {
+        area: 'agent-setup',
         task: 'Choose which connections an Agent can use',
         path: ['Captain profile', 'Connections'],
         who: 'owner-or-admin',
@@ -221,6 +232,20 @@ export const appPlaces: readonly AppPlace[] = [
             computers(),
             label('features/computers/cloud-agent-capability-card.tsx', 'Cloud Agents'),
             label('features/computers/cloud-agent-capability-row.tsx', 'Make default'),
+        ],
+    },
+    {
+        area: 'connections-and-computers',
+        task: "Connect a Captain's model account (Claude, ChatGPT, SuperGrok or an API key)",
+        path: ['Settings', 'Models', 'Add connection'],
+        who: 'owner',
+        anchors: [
+            settingsEntry(),
+            settingsSection('models'),
+            label(
+                'features/settings/models/connections/model-connections-group.tsx',
+                'Add connection'
+            ),
         ],
     },
     {

@@ -1,7 +1,6 @@
 import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
 import {
     assertOpaqueId,
-    completeOnboarding,
     createClient,
     openChannel,
     openSection,
@@ -29,7 +28,6 @@ test.beforeAll(async () => {
     assertOpaqueId(serverId);
     assertOpaqueId(allChatId);
     assertOpaqueId(peerUserId);
-    completeOnboarding(databaseUrl, serverId);
     runPsql(
         databaseUrl,
         `insert into server_memberships (id, server_id, user_id, role)
@@ -68,7 +66,7 @@ test('a human messages in #haus with only the hosted Server online', async ({ pa
     await page.goto('/s/hosted-messages');
     await openChannel(page, 'haus');
 
-    const composer = page.getByRole('textbox', { name: 'Message all' });
+    const composer = page.getByRole('textbox', { name: 'Message haus' });
     await composer.fill('/status check');
     await expect(page.getByRole('listbox')).toHaveCount(0);
     await expect(composer).toHaveText('/status check');
@@ -126,7 +124,7 @@ test('signing out closes authenticated routes and returns to sign in', async ({ 
     await page.getByRole('button', { name: 'Sign out' }).click();
 
     await expect(page.getByRole('button', { name: 'Continue with Google' })).toBeVisible();
-    await expect(page.getByRole('textbox', { name: 'Message all' })).toHaveCount(0);
+    await expect(page.getByRole('textbox', { name: 'Message haus' })).toHaveCount(0);
 });
 
 test('an Agent-authored page fence in an inline reply opens the chat Workspace pane', async ({
@@ -137,7 +135,7 @@ test('an Agent-authored page fence in an inline reply opens the chat Workspace p
     await openChannel(page, 'haus');
     await page.setViewportSize({ height: 720, width: 800 });
 
-    const composer = page.getByRole('textbox', { name: 'Message all' });
+    const composer = page.getByRole('textbox', { name: 'Message haus' });
     await expect(page.getByText('```page', { exact: false })).toHaveCount(0);
     await composer.fill('Preserved draft');
     await page.getByTestId('artifact-card').press('Enter');
@@ -145,7 +143,7 @@ test('an Agent-authored page fence in an inline reply opens the chat Workspace p
     const artifacts = page.getByRole('complementary', { name: 'Workspace' });
     await expect(artifacts).toBeVisible();
     await expect(artifacts.getByRole('tab', { name: 'deterministic.html' })).toBeVisible();
-    await expect(artifacts.getByText('Unable to browse this workspace.')).toBeVisible();
+    await expect(artifacts.getByText('This page was moved or deleted.')).toBeVisible();
 
     await artifacts.getByRole('button', { name: 'Hide workspace' }).click();
     await expect(composer).toHaveText('Preserved draft');
@@ -162,7 +160,7 @@ test('inline replies reach an open Channel live and catch up after reconnect', a
         .locator('xpath=ancestor::div[@data-message-id][1]');
     await anchorRow.hover();
     await page.getByRole('button', { name: 'Reply', exact: true }).first().click();
-    const composer = page.getByRole('textbox', { name: 'Message all' });
+    const composer = page.getByRole('textbox', { name: 'Message haus' });
     await expect(composer).toBeFocused();
     await composer.fill('First inline reply');
     await page.getByRole('button', { name: 'Send' }).click();
@@ -250,7 +248,7 @@ function seedArtifactReply(input: { chatId: string; databaseUrl: string; serverI
            id, server_id, handle, display_name, home_timezone, home_project_id
          ) values (
            'agt_e2e_artifact', '${input.serverId}', 'artifact-auditor',
-           'Artifact Auditor', 'America/New_York', '${input.chatId}'
+           'Artifact Auditor', 'America/New_York', (select id from chats where server_id = '${input.serverId}' and is_all)
          );
          insert into chat_messages (
            id, server_id, chat_id, sequence, author_user_id, content, nonce
@@ -308,11 +306,11 @@ function seedReferenceFixture(input: { chatId: string; databaseUrl: string; serv
          ) values
            (
              'agt_e2e_blippy', '${input.serverId}', 'cmp_e2e_ref_blippy00',
-             'blippy', 'Blippy', 'America/New_York', 'codex', 'gpt-5.6-sol', '${input.chatId}'
+             'blippy', 'Blippy', 'America/New_York', 'codex', 'gpt-5.6-sol', (select id from chats where server_id = '${input.serverId}' and is_all)
            ),
            (
              'agt_e2e_tiny', '${input.serverId}', 'cmp_e2e_ref_tiny0000',
-             'tiny', 'Tiny', 'America/New_York', 'codex', 'gpt-5.6-sol', '${input.chatId}'
+             'tiny', 'Tiny', 'America/New_York', 'codex', 'gpt-5.6-sol', (select id from chats where server_id = '${input.serverId}' and is_all)
            );
          insert into chats (id, server_id, kind, is_all, name)
          values ('cht_e2e_product', '${input.serverId}', 'channel', false, 'product');
@@ -357,6 +355,6 @@ test('Haus App never requests a retired local product endpoint', async ({ page }
     await signInAsAppHuman(page);
     await page.goto('/s/hosted-messages');
     await openChannel(page, 'haus');
-    await expect(page.getByText('First durable human message')).toBeVisible();
+    await expect(page.getByText('First durable human message').first()).toBeVisible();
     expect(localRequests).toEqual([]);
 });

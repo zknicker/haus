@@ -103,24 +103,21 @@ test('updating another Agent rewrites only its description', async () => {
     });
 });
 
-test("Cove's product-owned identity refuses both update and avatar", async () => {
+test('a former Cove takes a new description and avatar like any Agent', async () => {
     const runner = await fixture.mintRunner('run_access_cove');
 
     const updated = await fixture.post('/api/agent/agents/update', runner, {
         agent: '@cove',
-        description: 'Rewriting the onboarding guide.',
+        description: 'Keeps the release lane tidy.',
     });
-    expect(updated.status).toBe(403);
-    expect(updated.body).toMatchObject({ code: 'AGENT_IDENTITY_PROTECTED' });
+    expect(updated.status).toBe(200);
 
     const avatar = await fixture.post('/api/agent/agents/avatar', runner, {
         agent: '@cove',
         concept: 'a tidal pool',
     });
-    expect(avatar.status).toBe(403);
-    expect(avatar.body).toMatchObject({ code: 'AGENT_IDENTITY_PROTECTED' });
-    expect(await fixture.readAgentRow(fixture.coveAgentId)).toMatchObject({
-        avatar_id: null,
-        description: 'Onboarding Assistant',
-    });
+    expect(avatar.status).toBe(200);
+    const row = await fixture.readAgentRow(fixture.coveAgentId);
+    expect(row?.description).toBe('Keeps the release lane tidy.');
+    expect(row?.avatar_id).not.toBeNull();
 });

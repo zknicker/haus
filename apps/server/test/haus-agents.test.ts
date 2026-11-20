@@ -65,20 +65,6 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('reserves the Cove identity from ordinary Agent creation', async () => {
-    await expect(
-        createHomedAgent(owner, {
-            computerId: computerA,
-            description: 'Not the onboarding factory Agent.',
-            displayName: 'Cove',
-            handle: 'cove',
-            modelId: 'gpt-5.6-sol',
-            runtimeId: 'codex',
-            serverId,
-        })
-    ).rejects.toThrow(/reserved by Haus/i);
-});
-
 test('provisions an ordinary Agent without pre-creating an Owner DM', async () => {
     const created = await createHomedAgent(owner, {
         computerId: computerA,
@@ -97,7 +83,6 @@ test('provisions an ordinary Agent without pre-creating an Owner DM', async () =
         desiredModelId: 'gpt-5.6-sol',
         desiredRuntimeId: 'codex',
         displayName: 'Scout',
-        factoryKind: 'ordinary',
         hausAgent: {
             appliedAt: null,
             appliedVersion: null,
@@ -108,6 +93,7 @@ test('provisions an ordinary Agent without pre-creating an Owner DM', async () =
         status: 'pending',
     });
     expect(created.agent).not.toHaveProperty('archetype');
+    expect(created.agent).not.toHaveProperty('factoryKind');
     const chats = await owner.trpc.chat.list.query({ serverId });
     expect(chats.some((chat) => chat.peerAgentId === created.agent.id)).toBe(false);
 

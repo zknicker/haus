@@ -1,5 +1,5 @@
 import { type ModelConnection, modelProviderSchema } from '@haus/api';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { modelConnectionsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
@@ -11,8 +11,13 @@ import {
 
 type Reader = Pick<HausDatabase, 'select'>;
 
+const capacityShownMs = 6 * 60 * 60 * 1000;
+
 const statusColumns = {
     authKind: modelConnectionsTable.authKind,
+    capacity: modelConnectionsTable.capacity,
+    capacityReadAt: modelConnectionsTable.capacityReadAt,
+    enabled: modelConnectionsTable.enabled,
     id: modelConnectionsTable.id,
     label: modelConnectionsTable.label,
     position: modelConnectionsTable.position,
@@ -34,30 +39,28 @@ export async function listModelConnections(db: Reader, serverId: string) {
         .from(modelConnectionsTable)
         .where(eq(modelConnectionsTable.serverId, serverId));
     const providerOrder = modelProviderSchema.options;
-    return rows
-        .sort(
-            (left, right) =>
-                providerOrder.indexOf(left.provider) - providerOrder.indexOf(right.provider) ||
-                left.position - right.position
-        )
-        .map(toModelConnection);
+    const sorted = rows.sort(
+        (left, right) =>
+            providerOrder.indexOf(left.provider) - providerOrder.indexOf(right.provider) ||
+            left.position - right.position
+    );
+    const defaults = new Set(
+        modelProviderSchema.options.flatMap((provider) => {
+            const first = sorted.find((row) => row.provider === provider && row.enabled);
+            return first ? [first.id] : [];
+        })
+    );
+    return sorted.map((row) => toModelConnection(row, defaults.has(row.id)));
 }
 
 export async function readModelConnection(db: Reader, serverId: string, connectionId: string) {
-    const [row] = await db
-        .select(statusColumns)
-        .from(modelConnectionsTable)
-        .where(
-            and(
-                eq(modelConnectionsTable.serverId, serverId),
-                eq(modelConnectionsTable.id, connectionId)
-            )
-        )
-        .limit(1);
-    if (!row) {
+    const connection = (await listModelConnections(db, serverId)).find(
+        (row) => row.id === connectionId
+    );
+    if (!connection) {
         throw new ModelConnectionNotFoundError();
     }
-    return toModelConnection(row);
+    return connection;
 }
 
 export async function requireConnectionsOwner(
@@ -71,20 +74,44 @@ export async function requireConnectionsOwner(
     }
 }
 
-function toModelConnection(row: {
-    authKind: ModelConnection['authKind'];
-    id: string;
-    label: string;
-    position: number;
-    provider: ModelConnection['provider'];
-    status: ModelConnection['status'];
-    statusDetail: string | null;
-    updatedAt: Date;
-    webSearch: boolean;
-}) {
+export function shownCapacity(
+    capacity: ModelConnection['capacity'],
+    readAt: Date | null,
+    at: number
+) {
+    if (!(capacity && readAt) || at - readAt.getTime() > capacityShownMs) {
+        return null;
+    }
+    return capacity.filter(
+        (window) => window.resetsAt === null || Date.parse(window.resetsAt) > at
+    );
+}
+
+function toModelConnection(
+    {
+        capacity,
+        capacityReadAt,
+        ...row
+    }: {
+        authKind: ModelConnection['authKind'];
+        capacity: ModelConnection['capacity'];
+        capacityReadAt: Date | null;
+        enabled: boolean;
+        id: string;
+        label: string;
+        position: number;
+        provider: ModelConnection['provider'];
+        status: ModelConnection['status'];
+        statusDetail: string | null;
+        updatedAt: Date;
+        webSearch: boolean;
+    },
+    isDefault: boolean
+) {
     const connection: ModelConnection = {
         ...row,
-        isDefault: row.position === 0,
+        capacity: shownCapacity(capacity, capacityReadAt, Date.now()),
+        isDefault,
         updatedAt: row.updatedAt.toISOString(),
     };
     return connection;

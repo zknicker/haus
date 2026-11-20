@@ -86,7 +86,7 @@ test('a resumed session hears changed instructions at the front of its next turn
     expect(updated).not.toContain('Own the original lane.');
     expect(updated).toContain('This may evolve.\n</haus-instructions-update>\n\n');
     expect(updated.indexOf('</haus-instructions-update>')).toBeLessThan(
-        updated.indexOf('Hello Cove')
+        updated.indexOf('Hello Harbor')
     );
     // The same native conversation resumed; nothing parked or rotated it.
     expect(fake.record.opens[1]).toEqual({

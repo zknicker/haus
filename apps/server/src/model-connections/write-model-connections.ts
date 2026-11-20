@@ -34,10 +34,10 @@ export async function addModelConnection(
     key: SecretsKey | null,
     input: ModelConnectionAddInput
 ) {
-    const sealedCredential = sealCredential(key, input.credential);
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         await requireConnectionsOwner(tx, member, input.serverId);
+        const sealedCredential = sealCredential(key, input.credential);
         const position = (await providerOrder(tx, input.serverId, input.provider)).length;
         const id = createOpaqueId('mcn');
         try {

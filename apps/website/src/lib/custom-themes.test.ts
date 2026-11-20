@@ -13,6 +13,7 @@ import {
     withThemeColor,
     writeStoredCustomThemes,
 } from './custom-themes.ts';
+import { defaultBackgroundAdjustments, noBackground } from './home-background.ts';
 
 const light = { accent: '#3b5de8', background: '#f2f2f4', foreground: '#1e1e20' };
 const dark = { accent: '#7c93ff', background: '#101012', foreground: '#ededf0', card: '#1c1c20' };
@@ -47,9 +48,24 @@ describe('custom themes', () => {
             'junk',
         ]);
         expect(themes.map((theme) => theme.id)).toEqual(['custom-abc123', 'custom-def456']);
-        expect(themes[0]).toEqual(stored as never);
+        expect(themes[0]).toEqual({ ...stored, background: noBackground } as never);
         expect(themes[1]?.light).toEqual(light as never);
         expect(parseCustomThemes({ themes: [] })).toEqual([]);
+    });
+
+    test('a theme keeps its own background; a missing or broken one reads as none', () => {
+        const background = {
+            adjustments: { ...defaultBackgroundAdjustments, blur: 40 },
+            effect: 'grain',
+            image: null,
+            source: 'aurora',
+        };
+        const [kept, broken] = parseCustomThemes([
+            { ...stored, background },
+            { ...stored, background: 'aurora', id: 'custom-def456' },
+        ]);
+        expect(kept?.background).toEqual(background as never);
+        expect(broken?.background).toEqual(noBackground);
     });
 
     test('round-trips through storage, and unreadable storage reads as none', () => {

@@ -5,7 +5,6 @@ import { testChat } from '../features/chats/chat-fixtures.ts';
 import { testAgent } from '../features/members/agent-fixtures.ts';
 import {
     agentHomeProject,
-    homeIsFixed,
     matchesProjectSearch,
     projectCaptains,
     projectChoice,
@@ -30,7 +29,7 @@ const ops = project('cht_ops', 'ops', ['agt_tiny', 'agt_nova']);
 const empty = project('cht_new', 'new', []);
 const projects = [haus, ops, empty];
 const blippy = testAgent({ handle: 'blippy', id: 'agt_blippy' });
-const cove = testAgent({ factoryKind: 'cove', handle: 'cove', id: 'agt_cove' });
+const cove = testAgent({ handle: 'cove', id: 'agt_cove' });
 const tiny = testAgent({ handle: 'tiny', id: 'agt_tiny' });
 const nova = testAgent({ handle: 'nova', id: 'agt_nova' });
 const retired = testAgent({ handle: 'gone', id: 'agt_gone' });
@@ -78,18 +77,19 @@ describe('Project homes', () => {
         expect(captains.map((agent) => agent.handle)).toEqual(['tiny', 'nova']);
         expect(candidates.map(({ agent, home }) => `${agent.handle}@${home.name}`)).toEqual([
             'blippy@haus',
+            'cove@haus',
         ]);
     });
 
     test('a new Project has no Captains and everyone homed is a candidate', () => {
         const { candidates, captains } = projectCaptains(projects, agents, 'cht_new');
         expect(captains).toEqual([]);
-        expect(candidates.map(({ agent }) => agent.handle)).toEqual(['blippy', 'tiny', 'nova']);
-    });
-
-    test("only Cove's home is fixed, so it is never a candidate elsewhere", () => {
-        expect(homeIsFixed(cove)).toBe(true);
-        expect(homeIsFixed(blippy)).toBe(false);
+        expect(candidates.map(({ agent }) => agent.handle)).toEqual([
+            'blippy',
+            'cove',
+            'tiny',
+            'nova',
+        ]);
     });
 
     test('a refusal reads its Project code from the Server error data', () => {

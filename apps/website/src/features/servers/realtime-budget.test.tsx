@@ -29,7 +29,7 @@ function answer(path: string): unknown {
         case 'server.list':
             return servers;
         case 'server.bySlug':
-            return { ...servers[0], onboarding: { phase: 'complete' } };
+            return servers[0];
         case 'member.list':
             return { members: [], viewerUserId: 'usr_viewer' };
         case 'chat.engagements':
@@ -98,6 +98,7 @@ function expectedStreams(role: 'admin' | 'member') {
         'computer.onUpdated',
         'imageGeneration.onUpdated',
         'mcp.onUpdated',
+        'modelConnections.onUpdated',
         'claim.onChanged',
         'task.onCreated',
         'task.onFollowUpdated',
@@ -119,13 +120,13 @@ function expectedStreams(role: 'admin' | 'member') {
 
 /**
  * The per-window subscription budget (specs/realtime-events.md, "Topology"):
- * 2 × accessible Servers, 16 active-Server streams, 2 role-gated streams for
+ * 2 × accessible Servers, 17 active-Server streams, 2 role-gated streams for
  * Owners and Admins, the 2 hoisted Agent streams, and 3 per mounted Chat view.
  */
 describe('realtime subscription budget', () => {
     for (const [role, expected] of [
-        ['member', 30],
-        ['admin', 32],
+        ['member', 31],
+        ['admin', 33],
     ] as const) {
         test(`three Servers, one shown and one kept Chat view, as ${role}: ${expected} streams`, async () => {
             const harness = createRealtimeHarness(answer);

@@ -1,15 +1,13 @@
 import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
-import { completeOnboarding, createClient } from '../support/server.ts';
+import { createClient } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 const slug = 'appearance-hq';
 
 test.beforeAll(async () => {
-    const { accessToken, databaseUrl } = await createAppTestFixture();
+    const { accessToken } = await createAppTestFixture();
     const owner = createClient(accessToken);
     await owner.server.create.mutate({ displayName: 'Appearance HQ', slug });
-    const server = await owner.server.bySlug.query({ slug });
-    completeOnboarding(databaseUrl, server.id);
 });
 
 test('a preset theme applies at once and survives a reload', async ({ page }) => {

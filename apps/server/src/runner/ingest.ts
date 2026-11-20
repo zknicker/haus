@@ -29,6 +29,7 @@ type LoopReport = Exclude<
         type:
             | 'invocation-cancel'
             | 'invocation-request'
+            | 'runner-connection-capacity'
             | 'runner-connection-credential'
             | 'runner-connection-status'
             | 'runner-hello'
@@ -56,6 +57,7 @@ export async function ingestRunnerFrame(ingest: RunnerIngest, raw: string) {
         case 'invocation-request':
             await ingest.invocations.request(frame);
             return;
+        case 'runner-connection-capacity':
         case 'runner-connection-credential':
         case 'runner-connection-status':
         case 'runner-sign-in-code':
