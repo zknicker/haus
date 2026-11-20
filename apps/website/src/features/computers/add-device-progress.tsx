@@ -1,17 +1,12 @@
-import { Alert, Button, Spinner } from '@heroui/react';
+import { Button, Spinner } from '@heroui/react';
 import * as React from 'react';
 import { CodeSnippet } from '../../components/code-snippet.tsx';
 import { useComputerInventoryRefresh } from '../../hooks/servers/use-computer-inventory-refresh.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
+import { cn } from '../../lib/utils.ts';
 import { type AddDeviceStatus, addDeviceStatus } from './add-device-status.ts';
 
-export function AddDeviceProgress({
-    serverId,
-    serverSlug,
-}: {
-    serverId: string;
-    serverSlug: string;
-}) {
+export function AddDeviceProgress({ serverId }: { serverId: string }) {
     const computers = useComputers(serverId);
     const [baselineIds, setBaselineIds] = React.useState<ReadonlySet<string> | null>(null);
     const settledIds =
@@ -23,68 +18,54 @@ export function AddDeviceProgress({
     }
 
     return (
-        <div aria-live="polite">
+        <div aria-live="polite" className="grid min-w-0 gap-3">
             {computers.error && !computers.data ? (
-                <Alert role="alert" status="danger">
-                    <Alert.Indicator />
-                    <Alert.Content>
-                        <Alert.Title>Devices could not load</Alert.Title>
-                        <Alert.Description>{computers.error.message}</Alert.Description>
-                    </Alert.Content>
-                </Alert>
+                <p className="text-danger text-sm" role="alert">
+                    Couldn’t load devices.
+                </p>
             ) : (
-                <AddDeviceStatusView
+                <AddDeviceStatusLine
                     serverId={serverId}
-                    status={addDeviceStatus(baselineIds, computers.data ?? [], serverSlug)}
+                    status={addDeviceStatus(baselineIds, computers.data ?? [])}
                 />
             )}
         </div>
     );
 }
 
-function AddDeviceStatusView({ serverId, status }: { serverId: string; status: AddDeviceStatus }) {
+function AddDeviceStatusLine({ serverId, status }: { serverId: string; status: AddDeviceStatus }) {
     const refresh = useComputerInventoryRefresh();
-    if (status.kind === 'waiting' || status.kind === 'detecting') {
-        return (
-            <p className="text-muted flex items-center gap-2 text-sm">
-                <Spinner size="sm" />
-                {status.kind === 'waiting'
-                    ? 'Waiting for the device to connect…'
-                    : 'Device connected. Checking what it can run…'}
-            </p>
-        );
-    }
-    if (status.kind === 'ready') {
-        return (
-            <Alert status="success">
-                <Alert.Indicator />
-                <Alert.Content>
-                    <Alert.Title>Device ready</Alert.Title>
-                    <Alert.Description>It can run Captains now.</Alert.Description>
-                </Alert.Content>
-            </Alert>
-        );
-    }
+    const recheckComputerId = status.recheckComputerId;
     return (
-        <div className="grid min-w-0 gap-3">
-            <Alert role="alert" status="warning">
-                <Alert.Indicator />
-                <Alert.Content>
-                    <Alert.Title>{status.title}</Alert.Title>
-                    <Alert.Description>{status.message}</Alert.Description>
-                </Alert.Content>
-                {status.recheck ? (
+        <>
+            <div className="flex min-h-8 items-center gap-2 text-sm">
+                {status.tone === 'pending' ? (
+                    <Spinner size="sm" />
+                ) : (
+                    <span
+                        aria-hidden="true"
+                        className={cn(
+                            'size-2 shrink-0 rounded-full',
+                            status.tone === 'success' ? 'bg-success' : 'bg-warning'
+                        )}
+                    />
+                )}
+                <span className={status.tone === 'pending' ? 'text-muted' : undefined}>
+                    {status.label}
+                </span>
+                {recheckComputerId ? (
                     <Button
+                        className="ms-auto"
                         isPending={refresh.isPending}
-                        onPress={() => refresh.mutate({ computerId: status.computerId, serverId })}
+                        onPress={() => refresh.mutate({ computerId: recheckComputerId, serverId })}
                         size="sm"
-                        variant="secondary"
+                        variant="ghost"
                     >
                         Check again
                     </Button>
                 ) : null}
-            </Alert>
+            </div>
             {status.command ? <CodeSnippet lines={status.command} wrap /> : null}
-        </div>
+        </>
     );
 }

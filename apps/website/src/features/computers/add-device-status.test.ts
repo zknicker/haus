@@ -5,84 +5,68 @@ import { type AddedDevice, addDeviceStatus } from './add-device-status.ts';
 const known = new Set(['cmp_old']);
 
 describe('addDeviceStatus', () => {
-    test('waits until a device the dialog has not seen connects', () => {
-        expect(addDeviceStatus(known, [device({ id: 'cmp_old' })], 'haus-hq')).toEqual({
-            kind: 'waiting',
-        });
-    });
-
-    test('detects runtimes, then reports the device ready', () => {
-        expect(addDeviceStatus(known, [device({ reportedInventory: null })], 'haus-hq')).toEqual({
-            kind: 'detecting',
-        });
-        expect(addDeviceStatus(known, [device({})], 'haus-hq')).toEqual({
-            kind: 'ready',
-            runtimeCount: 1,
-        });
-    });
-
-    test('asks for a sign-in when no runtime has a model', () => {
-        expect(
-            addDeviceStatus(known, [device({ reportedInventory: inventory([]) })], 'haus-hq')
-        ).toMatchObject({
-            command: null,
-            computerId: 'cmp_new',
-            kind: 'repair',
-            recheck: true,
-            title: 'Sign in to Claude Code or Codex',
-        });
-    });
-
-    test('asks for an update when the device is too old or its report is unreadable', () => {
-        for (const entry of [
-            device({ health: 'update-required' }),
-            device({ inventoryInvalidAt: '2026-11-20T00:00:00Z' }),
-        ]) {
-            expect(addDeviceStatus(known, [entry], 'haus-hq')).toMatchObject({
-                command: '$HOME/.local/bin/haus-computer upgrade',
-                title: 'Update needed',
-            });
-        }
+    test('waits while the device list has not settled or no new device is here', () => {
+        expect(addDeviceStatus(null, [device({})]).label).toBe('Waiting for the device…');
+        expect(addDeviceStatus(known, [device({ id: 'cmp_old' })]).label).toBe(
+            'Waiting for the device…'
+        );
+        expect(addDeviceStatus(known, [device({ attachedByCurrentUser: false })]).label).toBe(
+            'Waiting for the device…'
+        );
     });
 
     test('keeps waiting while an attached device has never connected', () => {
         expect(
-            addDeviceStatus(
-                known,
-                [device({ health: 'offline', lastConnectedAt: null })],
-                'haus-hq'
-            )
-        ).toEqual({ kind: 'waiting' });
+            addDeviceStatus(known, [device({ health: 'offline', lastConnectedAt: null })]).tone
+        ).toBe('pending');
     });
 
-    test('tells a disconnected device to run setup again for this Server', () => {
-        expect(addDeviceStatus(known, [device({ health: 'offline' })], 'haus-hq')).toMatchObject({
-            command: '$HOME/.local/bin/haus-computer setup /haus-hq',
-            title: 'Device disconnected',
+    test('connects, then reports the device connected', () => {
+        expect(addDeviceStatus(known, [device({ reportedInventory: null })]).label).toBe(
+            'Connecting…'
+        );
+        expect(addDeviceStatus(known, [device({})])).toEqual({
+            command: null,
+            label: 'Connected',
+            recheckComputerId: null,
+            tone: 'success',
         });
     });
 
-    test('waits while the device list has not settled', () => {
-        expect(addDeviceStatus(null, [device({})], 'haus-hq')).toEqual({ kind: 'waiting' });
+    test('asks for a sign-in on the Mac and offers a recheck', () => {
+        expect(addDeviceStatus(known, [device({ reportedInventory: inventory([]) })])).toEqual({
+            command: null,
+            label: 'Sign in to Claude Code or Codex on this Mac',
+            recheckComputerId: 'cmp_new',
+            tone: 'warning',
+        });
     });
 
-    test('ignores a device someone else attached', () => {
-        expect(
-            addDeviceStatus(known, [device({ attachedByCurrentUser: false })], 'haus-hq')
-        ).toEqual({ kind: 'waiting' });
+    test('asks for an update with the full-path command', () => {
+        for (const entry of [
+            device({ health: 'update-required' }),
+            device({ inventoryInvalidAt: '2026-11-20T00:00:00Z' }),
+        ]) {
+            expect(addDeviceStatus(known, [entry])).toMatchObject({
+                command: '$HOME/.local/bin/haus-computer upgrade',
+                label: 'Update needed',
+            });
+        }
+    });
+
+    test('points a disconnected device back to Setup', () => {
+        expect(addDeviceStatus(known, [device({ health: 'offline' })]).label).toBe(
+            'Disconnected. Run Setup again.'
+        );
     });
 
     test('follows the newest new device', () => {
         expect(
-            addDeviceStatus(
-                known,
-                [
-                    device({ createdAt: '2026-11-20T00:00:00Z', health: 'offline', id: 'cmp_a' }),
-                    device({ createdAt: '2026-11-20T00:01:00Z', id: 'cmp_b' }),
-                ],
-                'haus-hq'
-            )
-        ).toEqual({ kind: 'ready', runtimeCount: 1 });
+            addDeviceStatus(known, [
+                device({ createdAt: '2026-11-20T00:00:00Z', health: 'offline', id: 'cmp_a' }),
+                device({ createdAt: '2026-11-20T00:01:00Z', id: 'cmp_b' }),
+            ]).label
+        ).toBe('Connected');
     });
 });
 

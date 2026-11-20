@@ -26,10 +26,10 @@ test('Add device keeps waiting for a device that attached but has not connected 
     await page.goto('/s/device-hq/settings/computers');
     await page.getByRole('button', { name: 'Add device' }).first().click();
     const dialog = page.getByRole('dialog', { name: 'Add device' });
-    await expect(dialog.getByText('Waiting for the device to connect…')).toBeVisible();
+    await expect(dialog.getByText('Waiting for the device…')).toBeVisible();
 
     await attachComputer(client, { credential: 'add-device-credential', slug: 'device-hq' });
 
-    await expect(dialog.getByText('Waiting for the device to connect…')).toBeVisible();
-    await expect(dialog.getByText('Device disconnected')).toHaveCount(0);
+    await expect(dialog.getByText('Waiting for the device…')).toBeVisible();
+    await expect(dialog.getByText('Disconnected. Run Setup again.')).toHaveCount(0);
 });
