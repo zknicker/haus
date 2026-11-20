@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## v21.0.0 - 2026-11-20
+
+- The Haus Server deploy that v20.0.0 started now completes, so everything in v20.0.0 reaches the hosted Server and web App with this release: Projects, Drive, Workers, Settings → Models, and #all as a chat. Database migration 0142 had failed against existing data, and the deploy rolled back without changing production.
+- Adding a device shows its progress, from waiting to connected to ready. When a device needs an update, has disconnected, or has no Captain runtime, the dialog names the fix and the command to run. New Captain links to Add a device when no device is connected.
+- Pressing a sidebar row for the page that's already open no longer adds a duplicate history entry, so Back works the first time.
+- A failed Server migration now logs PostgreSQL's error code, constraint, and detail.
+- The Server deploy applies database migrations 0129 through 0143 together in one step. Rolling back the Server does not reverse them.
+- Update Haus Computer to 19.0.0 right after the Server deploys (`haus-computer upgrade`). The Server requires Computer protocol 43, so an older Computer runs no Captains until it upgrades. Haus Agent 15.0.1 ships with it. Haus for Desktop and Haus for iPhone are unchanged.
+
 ## v20.0.0 - 2026-11-20
 
 - Channels are now Projects. Each Project has its own Tasks and its own area in Drive, and #all is the Server's team room: a plain chat that belongs to no Project. The App, Haus for iPhone 12.0.0, and the Agent CLI say Captain, Project, and Device.
