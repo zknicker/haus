@@ -24,16 +24,6 @@ export const workerJobLabels: Record<WorkerJobState, string> = {
     working: 'Working',
 };
 
-export const workerTurnStatusLabels: Record<WorkerTurnStatus, string> = {
-    cancelled: 'Stopped',
-    completed: 'Completed',
-    expired: 'Expired',
-    failed: 'Failed',
-    pending_input: 'Waiting on you',
-    queued: 'Queued',
-    running: 'Running',
-};
-
 export function newestWorkerTurn(work: { turns: readonly WorkerTurn[] }): WorkerTurn | null {
     return work.turns[0] ?? null;
 }
@@ -175,19 +165,6 @@ export function workerBranchPullRequestNumber(branch: WorkerBranch): null | numb
 /** A delegating Agent the viewer's Agent list no longer has, named by the tail of its id. */
 export function workerAgentFallbackName(agentId: string): string {
     return `Captain ${agentId.slice(-6)}`;
-}
-
-/** Owners and Admins may cancel; a settled Run has nothing left to stop. */
-export function canCancelWorker(input: {
-    cancelRequestedAt: string | null;
-    role: string;
-    status: WorkerTurnStatus;
-}): boolean {
-    return (
-        (input.role === 'owner' || input.role === 'admin') &&
-        !isTerminalWorkerTurnStatus(input.status) &&
-        input.cancelRequestedAt === null
-    );
 }
 
 /** Coarse by design: a work surface states minutes, not a stopwatch. */

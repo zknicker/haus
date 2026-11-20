@@ -1,13 +1,10 @@
 import { expect, test } from 'bun:test';
-import type { WorkerTurnStatus } from '@haus/api';
 import { workerTurnFixture as run, workerFixture as work } from './worker-fixture.ts';
 import {
-    canCancelWorker,
     workerBranchPullRequestNumber,
     workerJobChipColor,
     workerJobText,
     workerJobTone,
-    workerTurnStatusLabels,
     workerBranch,
     workerText,
     formatWorkerDuration,
@@ -84,16 +81,6 @@ test('any live Run that has not reported for ten minutes reads as stale', () => 
     expect(quietFor({ ...quiet, updatedAt: '2026-09-04T12:03:00.000Z' }, now)).toBeNull();
     // A settled work is not quiet; it is finished.
     expect(quietFor(work({ status: 'completed', updatedAt: quiet.updatedAt }), now)).toBeNull();
-});
-
-test('only an Owner or Admin may cancel, and only a live, uncancelled Run', () => {
-    const live = { cancelRequestedAt: null, status: 'running' as WorkerTurnStatus };
-
-    expect(canCancelWorker({ ...live, role: 'owner' })).toBe(true);
-    expect(canCancelWorker({ ...live, role: 'admin' })).toBe(true);
-    expect(canCancelWorker({ ...live, role: 'member' })).toBe(false);
-    expect(canCancelWorker({ ...live, role: 'owner', status: 'completed' })).toBe(false);
-    expect(canCancelWorker({ ...live, cancelRequestedAt: startedAt, role: 'owner' })).toBe(false);
 });
 
 test('durations read coarsely, in the units a work surface states', () => {
@@ -207,12 +194,4 @@ test('launching reads Starting, a failed launch reads Stopped, and a requested s
     expect(workerText(work({ stopRequestedAt: new Date(now).toISOString() }), now)).toBe(
         'Stopping'
     );
-});
-
-test('every Run status reads as a person would say it, never the wire enum', () => {
-    expect(workerTurnStatusLabels.pending_input).toBe('Waiting on you');
-    for (const label of Object.values(workerTurnStatusLabels)) {
-        expect(label).not.toMatch(/_/u);
-        expect(label.charAt(0)).toBe(label.charAt(0).toUpperCase());
-    }
 });

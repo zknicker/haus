@@ -18,6 +18,7 @@ export function useWorkerStream(serverId: string | undefined) {
             coalescer.invalidate({
                 queryKey: getQueryKey(hausTrpc.worker.listForChat, { serverId }),
             });
+            coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.worker.get, { serverId }) });
             invalidateActiveWork(coalescer, serverId);
             coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.task.get, { serverId }) });
         }
