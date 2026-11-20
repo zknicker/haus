@@ -1,9 +1,12 @@
 import * as React from 'react';
+import { Navigate, useParams } from 'react-router-dom';
+import { useCapyShell } from '../../features/capy-shell/capy-shell-preference.ts';
 import { ComputerDiskNotices } from '../../features/computers/computer-disk-notices.tsx';
 import { InboxHeader } from '../../features/servers/inbox/inbox-header.tsx';
 import { inboxLayout } from '../../features/servers/inbox/inbox-layout.ts';
 import { InboxSection, InboxSectionPending } from '../../features/servers/inbox/inbox-section.tsx';
 import { unreadTriageKeyHint } from '../../features/servers/inbox/use-unread-triage-keys.ts';
+import { serverRoute } from '../../features/servers/server-routes.ts';
 import { PageBand } from '../../features/shell/page-band.tsx';
 import { PageColumn } from '../../features/shell/page-column.tsx';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
@@ -33,6 +36,11 @@ const InboxUnread = React.lazy(async () => ({
  * tried there and read as a fact torn from the greeting it belongs to.
  */
 export function InboxPage() {
+    const { slug = '' } = useParams();
+    return useCapyShell() ? <Navigate replace to={serverRoute(slug)} /> : <InboxContent />;
+}
+
+function InboxContent() {
     useWindowTitle('Inbox');
 
     return (

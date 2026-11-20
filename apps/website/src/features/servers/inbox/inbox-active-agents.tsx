@@ -13,7 +13,7 @@ import { useHappeningNowRows, useOpenHappeningNowRow } from './use-happening-now
  * The meter is not a roster. It carries only the Agents that processed tokens
  * this week or are in a turn now; the full directory is the sidebar's job.
  */
-export function InboxActiveAgents() {
+export function InboxActiveAgents({ className }: { className?: string }) {
     const entries = useActiveAgentRows();
     const happeningNow = useHappeningNowRows();
     const openAgent = useOpenActiveAgent();
@@ -21,6 +21,7 @@ export function InboxActiveAgents() {
 
     return (
         <InboxStrip
+            className={className}
             entries={entries}
             happeningNow={happeningNow}
             onOpenAgent={openAgent}

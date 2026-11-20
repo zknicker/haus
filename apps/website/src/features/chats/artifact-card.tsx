@@ -6,6 +6,7 @@ import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { ArtifactFileIcon } from '../artifacts/icons/artifact-file-icon.tsx';
 import { artifactFileKind } from '../artifacts/icons/artifact-file-kind.ts';
 import { useArtifactPanelOpen } from './artifact-panel-context.tsx';
+import type { DrivePageTarget } from './haus-resource-link.ts';
 
 /**
  * The stock ItemCard every page or file card under a message uses: the in-chat column
@@ -17,7 +18,7 @@ export const messageObjectCardClassName =
 
 /**
  * Transcript card for an Agent's `page` fence. The card reads nothing;
- * pressing it opens the workspace page in the Workspace pane (its own tab on
+ * pressing it opens the page from Drive beside the chat (its own tab on
  * desktop). Outside a panel context (static render, tests) it is inert.
  */
 export function WidgetArtifactCard({ props }: { props: WidgetArtifactProps }) {
@@ -54,9 +55,7 @@ export function WidgetArtifactCard({ props }: { props: WidgetArtifactProps }) {
                     {...cardProps}
                     {...opensPlace}
                     aria-label={`Open ${title}`}
-                    onClick={() =>
-                        openArtifactPanel({ kind: 'workspaceFile', path: props.path }, title)
-                    }
+                    onClick={() => openArtifactPanel(pageCardTarget(props), title)}
                     type="button"
                 />
             )}
@@ -68,4 +67,11 @@ export function WidgetArtifactCard({ props }: { props: WidgetArtifactProps }) {
             </ItemCard.Action>
         </ItemCard>
     );
+}
+
+export function pageCardTarget(props: WidgetArtifactProps) {
+    const target: DrivePageTarget = props.revision
+        ? { kind: 'drivePage', path: props.path, revisionId: props.revision }
+        : { kind: 'drivePage', path: props.path };
+    return target;
 }
