@@ -5,11 +5,14 @@ import {
     type InvocationOutcome,
     type InvocationOutput,
     type InvocationResultFrame,
+    invocationGraceMs,
     invocationOutcomeNotices,
+    invocationRunnerMarginMs,
     invocationTimeoutsMs,
 } from '@haus/api';
 import type { RunDispatches } from '../dispatch/dispatch-id.ts';
 import type { RunAuthority, RunnerLink, ToolOutcome, ToolResultContent } from '../run-context.ts';
+import type { InvocationClock } from './invocation-clock.ts';
 import { inlineInvocationPayload } from './invocation-payload.ts';
 
 export type InvocationClient = ReturnType<typeof createInvocationClient>;
@@ -30,8 +33,8 @@ interface OpenInvocation {
 export function createInvocationClient(input: {
     agentId: string;
     authority: RunAuthority;
+    clock: InvocationClock;
     dispatches: RunDispatches;
-    graceMs: number;
     link: RunnerLink;
 }) {
     const open = new Map<string, OpenInvocation>();
@@ -83,19 +86,22 @@ export function createInvocationClient(input: {
                             answer,
                             pending.reading.signal
                         ).then((read) => {
-                            clearTimeout(deadline);
+                            deadline.cancel();
                             open.delete(id);
                             resolve(read);
                         });
                     },
                 };
-                const deadline = setTimeout(() => {
-                    pending.reading.abort();
-                    if (!pending.answered) {
-                        open.delete(id);
-                        resolve(unknown(key));
-                    }
-                }, timeoutMs + input.graceMs);
+                const deadline = input.clock.schedule(
+                    () => {
+                        pending.reading.abort();
+                        if (!pending.answered) {
+                            open.delete(id);
+                            resolve(unknown(key));
+                        }
+                    },
+                    timeoutMs + invocationGraceMs + invocationRunnerMarginMs
+                );
                 open.set(id, pending);
                 options.signal.addEventListener('abort', onAbort, { once: true });
                 input.link.send({

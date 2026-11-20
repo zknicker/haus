@@ -26,6 +26,9 @@ export const invocationTimeoutsMs = {
 /** Past its timeout plus this grace, the runner and the Server both settle an invocation `unknown`. */
 export const invocationGraceMs = 30_000;
 
+/** The runner waits this much past the Server's window, so the Server decides `unknown` first. */
+export const invocationRunnerMarginMs = 5000;
+
 /** Bytes that would push a frame past the limit, streamed through the attachment upload. */
 export const invocationPayloadReferenceSchema = z
     .object({

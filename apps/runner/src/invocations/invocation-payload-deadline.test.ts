@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
+import { invocationGraceMs, invocationRunnerMarginMs } from '@haus/api';
+import { manualClock } from '../manual-clock.ts';
 import { drainCleanups, live, startedRun } from '../runner-test-server.ts';
 
 afterEach(drainCleanups);
@@ -18,9 +20,10 @@ const unread =
 describe('a payload download stays under its invocation', () => {
     test('the deadline ends a download that never finishes, keeping the outcome the Server recorded', async () => {
         const payload = stalledPayload();
+        const timers = manualClock();
         const { run, server } = await startedRun(
             { '/api/agent/invocation-payloads/att_stall': payload.route },
-            { invocationGraceMs: 0 }
+            { invocationClock: timers.clock }
         );
 
         const pending = run.tools.bash('toolu_1', { command: 'cat big.bin', timeout: 300 }, live());
@@ -34,6 +37,7 @@ describe('a payload download stays under its invocation', () => {
             toolCallId: 'toolu_1',
         });
         await payload.opened;
+        timers.advance(300 + invocationGraceMs + invocationRunnerMarginMs);
 
         expect(await pending).toEqual({
             content: [{ text: unread, type: 'text' }],

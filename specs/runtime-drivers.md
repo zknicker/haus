@@ -484,9 +484,10 @@ does not deliver it to the model or change the outcome the model saw. Runner run
 execution journal yet, so the invocation record is the only place a late result lands; the
 journal gains it when runner runs start uploading one.
 
-**Grace.** Each invocation gets its timeout plus 30 seconds (`invocationGraceMs`), the same
-window the runner waits, so the record never disagrees with what the model saw. The window is a
-timer per open invocation, armed when the Server sends `invoke`. Past it the invocation turns
+**Grace.** Each invocation gets its timeout plus 30 seconds (`invocationGraceMs`). The Server is
+canonical: it decides `unknown`, and the runner relays that answer, so the record never disagrees
+with what the model saw. The window is a timer per open invocation, armed when the Server sends
+`invoke`. Past it the invocation turns
 `unknown` and the runner gets that answer, whether the Computer stayed connected or not; a result
 after that is late. A dropped socket neither shortens nor extends the window. It only adds the
 reconnect resend: a reconnect inside the window resends unaccepted `invoke` frames and receives
@@ -497,10 +498,14 @@ so exactly one of them answers the runner. A Server that starts turns every invo
 `accepted` `unknown`, because it keeps no operation to resend. An answer the runner socket cannot
 take waits in memory and goes out when the runner attaches again.
 
-The runner holds the same bound on its side. A drop of its own Server socket abandons nothing: a
-start the Server resends for a run already running only re-acknowledges it, so the run keeps its
-tools and its open invocations still receive their results. Each open invocation resolves
-`unknown` at its timeout plus 30 seconds if no result arrives, so no tool call waits forever.
+The runner holds a backstop past that bound on its side. A drop of its own Server socket abandons
+nothing: a start the Server resends for a run already running only re-acknowledges it, so the run
+keeps its tools and its open invocations still receive their results. Each open invocation
+resolves `unknown` on its own at its timeout plus the grace plus 5 seconds
+(`invocationRunnerMarginMs`), counted from its request. The margin covers the time between the
+runner sending the request and the Server arming its window. While the runner socket is up, the
+Server's answer always arrives first, so the runner's timer fires only when no answer can arrive,
+and no tool call waits forever.
 `haus` commands and `execute` programs end at their own timeouts, and their machine paths and
 `browser` calls are invocations under the same bound.
 
@@ -718,7 +723,8 @@ settings, reminder scripts, host skill discovery, inventory, updates, and Worker
 | A repeated `Haus-Dispatch-Id` on a mutating Agent API route returns the stored result and mutates nothing; one with a different body is refused with `IDEMPOTENCY_KEY_REUSED` | `apps/server/test/agent-api-dispatch-id.test.ts` | R3 |
 | A repeated MCP dispatch id never calls upstream twice | `apps/server/test/mcp-dispatch-id.test.ts` | R3 |
 | A turn stuck on an open tool call trips the no-progress deadline | `apps/runner/src/turn/observe-turn.test.ts` | R3 |
-| A start resent after a runner reconnect reattaches the running run, its open invocation still resolves, and an invocation never answered resolves `unknown` at its timeout plus the grace | `apps/runner/src/server-link.test.ts` | R3 |
+| A start resent after a runner reconnect reattaches the running run, its open invocation still resolves, and an invocation never answered resolves `unknown` at its timeout plus the grace and margin | `apps/runner/src/server-link.test.ts` | R3 |
+| While the runner socket is up, the Server's answer at or just past the timeout plus the grace is what the model sees, never a runner-decided `unknown` | `apps/runner/src/invocations/invocation-window.test.ts` | R3 |
 | The runner socket refuses a wrong token, a start reaches the runner with a working run credential while the Computer is offline, and settle, Stop, and reconnect behave as on Computers | `apps/server/test/runner-socket-auth.test.ts`, `runner-delivery.test.ts`, `agent-invocations-offline.test.ts` | R3 |
 | The runner cannot import Server or PostgreSQL modules, and Computer code makes no model calls | `scripts/lint/haus-rules/runner-boundary.cases.mjs`, `computer-no-model-calls.cases.mjs` | R3 |
 | The SDK runs with native tools off and only `mcp__haus__*` tools reachable | `apps/runner/src/claude/claude-tools-live.test.ts`, `claude-driver-live.test.ts` | R3 |

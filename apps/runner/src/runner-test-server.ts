@@ -9,6 +9,7 @@ import {
     runnerUpFrameSchema,
 } from '@haus/api';
 import { openDispatchLedger } from './dispatch/ledger.ts';
+import type { InvocationClock } from './invocations/invocation-clock.ts';
 import type { RunStart, TurnHost } from './run-context.ts';
 import { openServerLink } from './server-link.ts';
 
@@ -41,7 +42,7 @@ export async function drainCleanups() {
 
 export async function attachRunner(
     server: ServerStandIn,
-    options: { invocationGraceMs?: number } = {}
+    options: { invocationClock?: InvocationClock } = {}
 ) {
     const dataDir = await mkdtemp(join(tmpdir(), 'haus-runner-link-'));
     const host = turnHostDriver();
@@ -63,7 +64,7 @@ export async function attachRunner(
 
 export async function startedRun(
     routes: StandInRoutes = {},
-    options: { invocationGraceMs?: number } = {}
+    options: { invocationClock?: InvocationClock } = {}
 ) {
     const server = serverStandIn(routes);
     const runner = await attachRunner(server, options);

@@ -1,5 +1,4 @@
 import {
-    invocationGraceMs,
     type RunnerDownFrame,
     type RunnerStartFrame,
     type RunnerUpFrame,
@@ -8,6 +7,7 @@ import {
 } from '@haus/api';
 import type { RunnerConfig } from './config.ts';
 import type { DispatchLedger } from './dispatch/ledger.ts';
+import { type InvocationClock, systemInvocationClock } from './invocations/invocation-clock.ts';
 import { runnerInventory } from './logins.ts';
 import type { RunnerLink, TurnHost } from './run-context.ts';
 import { createRunTools, type RunToolset } from './tools/run-tools.ts';
@@ -17,7 +17,7 @@ const queuedFramesMax = 1000;
 
 export function openServerLink(input: {
     config: Pick<RunnerConfig, 'claudeSetupToken' | 'runnerToken' | 'serverUrl'>;
-    invocationGraceMs?: number;
+    invocationClock?: InvocationClock;
     ledger: DispatchLedger;
     log?: (line: string) => void;
     reconnectDelaysMs?: readonly number[];
@@ -87,7 +87,7 @@ export function openServerLink(input: {
         };
         const toolset = createRunTools({
             authority,
-            invocationGraceMs: input.invocationGraceMs ?? invocationGraceMs,
+            invocationClock: input.invocationClock ?? systemInvocationClock,
             ledger: input.ledger,
             link,
         });
