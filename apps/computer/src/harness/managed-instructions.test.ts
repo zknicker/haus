@@ -218,7 +218,10 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // Raised by exactly 13 (37,910 → 37,923) when the Files entry became Drive: edits happen in the drive/ folder, not haus files pull/push.
     // Lowered by exactly 79 (37,923 → 37,844): only people create Projects, so `haus channel create`
     // and its Manual pointer went (-80), and the welcome rule names #haus for #all (+1).
-    expect(prompt.length).toBeLessThanOrEqual(37_844);
+    // Raised by exactly 209 (37,844 → 38,053): a "from now on" rule goes in AGENTS.md or WORKER.md,
+    // not MEMORY.md (ADR 0054 decision 10); the Standing Preferences
+    // placeholder says preferences shown in passing for "standing directives".
+    expect(prompt.length).toBeLessThanOrEqual(38_053);
     expect(prompt.toLowerCase()).not.toContain('thread');
 });
 
