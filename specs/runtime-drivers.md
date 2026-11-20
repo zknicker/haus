@@ -871,7 +871,10 @@ efforts come from Pi's model registry. On the runner loop the Server validates a
 model, and effort against the last catalog the runner reported, kept in memory across a runner
 reconnect, and `modelConnections.list` returns it as `runnerModels` for the App picker. A model
 whose provider has no connection is still accepted; its turns fail with the connection message
-until one is added.
+until one is added. An Agent that creates another Agent passes on its own model; when the catalog no
+longer offers it, the new Agent takes the first catalog model from the same provider, and the Server
+logs the mapping. At the R4d flip the Server applies the same mapping to every Agent whose model the
+catalog drops, logged per Agent.
 
 ## Protocol frames
 

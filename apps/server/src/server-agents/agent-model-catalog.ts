@@ -2,6 +2,8 @@ import {
     type AgentReasoningEffort,
     type ComputerInventory,
     type ComputerRuntime,
+    modelDefaultReasoningEffort,
+    modelProviderFor,
     modelReasoningEfforts,
 } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -55,4 +57,40 @@ export async function assertModelAvailable(
             `The model "${choice.modelId}" does not support reasoning effort "${choice.reasoningEffort}".`
         );
     }
+}
+
+export function inheritedModel<Execution extends Omit<ModelChoice, 'serverId'>>(
+    catalog: AgentModelCatalog,
+    execution: Execution
+) {
+    if (catalog.kind === 'computer') {
+        return execution;
+    }
+    const runtimes = catalog.runtimes() ?? [];
+    const offered = runtimes.some(
+        (runtime) =>
+            runtime.id === execution.runtimeId &&
+            runtime.models.some((model) => model.id === execution.modelId)
+    );
+    if (offered) {
+        return execution;
+    }
+    const provider = modelProviderFor(execution.modelId);
+    for (const runtime of runtimes) {
+        const successor = runtime.models.find((model) => modelProviderFor(model.id) === provider);
+        if (successor) {
+            const efforts = modelReasoningEfforts(successor);
+            const mapped: Execution = {
+                ...execution,
+                modelId: successor.id,
+                reasoningEffort:
+                    execution.reasoningEffort && efforts.includes(execution.reasoningEffort)
+                        ? execution.reasoningEffort
+                        : modelDefaultReasoningEffort(successor),
+                runtimeId: runtime.id,
+            };
+            return mapped;
+        }
+    }
+    return execution;
 }
