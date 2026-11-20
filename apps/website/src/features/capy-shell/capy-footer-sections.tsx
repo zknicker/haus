@@ -58,8 +58,14 @@ function AutomationsMenu({ serverId }: { serverId: string }) {
             <Dropdown.Popover placement="top end">
                 <Dropdown.Menu
                     aria-label="Automations"
+                    disabledKeys={['none']}
                     onAction={(key) => openAgentProfile(String(key), { section: 'automations' })}
                 >
+                    {captains.length === 0 ? (
+                        <Dropdown.Item id="none" textValue="No Captains yet">
+                            <Label>No Captains yet</Label>
+                        </Dropdown.Item>
+                    ) : null}
                     {captains.map((captain) => (
                         <Dropdown.Item
                             id={captain.id}
