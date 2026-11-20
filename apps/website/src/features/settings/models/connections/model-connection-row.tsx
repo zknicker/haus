@@ -67,11 +67,7 @@ export function ModelConnectionRow({
                     <Switch
                         aria-label={`Web search for ${connection.label}`}
                         isDisabled={!isOwner || edits.setWebSearch.isPending}
-                        isSelected={
-                            edits.setWebSearch.isPending
-                                ? edits.setWebSearch.variables.enabled
-                                : connection.webSearch
-                        }
+                        isSelected={connection.webSearch}
                         onChange={(enabled) => edits.setWebSearch.mutate({ ...target, enabled })}
                         size="sm"
                     >

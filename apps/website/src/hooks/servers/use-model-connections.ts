@@ -1,4 +1,9 @@
-import type { ModelConnectionAddInput, ModelConnectionReplaceCredentialInput } from '@haus/api';
+import type {
+    ModelConnection,
+    ModelConnectionAddInput,
+    ModelConnectionReplaceCredentialInput,
+    ModelConnectionsRead,
+} from '@haus/api';
 import * as React from 'react';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
@@ -20,7 +25,32 @@ export function useModelConnectionEdits(serverId: string) {
         makeDefault: hausTrpc.modelConnections.makeDefault.useMutation({ onSuccess: refresh }),
         remove: hausTrpc.modelConnections.remove.useMutation({ onSuccess: refresh }),
         rename: hausTrpc.modelConnections.rename.useMutation({ onSuccess: refresh }),
-        setWebSearch: hausTrpc.modelConnections.setWebSearch.useMutation({ onSuccess: refresh }),
+        setWebSearch: hausTrpc.modelConnections.setWebSearch.useMutation({
+            onMutate: async ({ connectionId, enabled }) => {
+                await utils.modelConnections.list.cancel({ serverId });
+                const previous = utils.modelConnections.list.getData({ serverId });
+                utils.modelConnections.list.setData({ serverId }, (read) =>
+                    read
+                        ? withConnection(read, connectionId, (connection) => ({
+                              ...connection,
+                              webSearch: enabled,
+                          }))
+                        : read
+                );
+                return { previous };
+            },
+            onError: (_error, _variables, context) => {
+                if (context?.previous) {
+                    utils.modelConnections.list.setData({ serverId }, context.previous);
+                }
+                refresh();
+            },
+            onSuccess: (saved) => {
+                utils.modelConnections.list.setData({ serverId }, (read) =>
+                    read ? withConnection(read, saved.id, () => saved) : read
+                );
+            },
+        }),
     };
 }
 
@@ -48,4 +78,17 @@ export function useSaveModelCredential(serverId: string) {
     };
 
     return { isPending, save };
+}
+
+function withConnection(
+    read: ModelConnectionsRead,
+    connectionId: string,
+    change: (connection: ModelConnection) => ModelConnection
+) {
+    return {
+        ...read,
+        connections: read.connections.map((connection) =>
+            connection.id === connectionId ? change(connection) : connection
+        ),
+    };
 }

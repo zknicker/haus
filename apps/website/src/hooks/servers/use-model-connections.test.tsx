@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { ModelSignIn } from '@haus/api';
+import type { ModelConnectionsRead, ModelSignIn } from '@haus/api';
 import { getQueryKey } from '@trpc/react-query';
 import * as React from 'react';
 import { testConnection } from '../../features/settings/models/connections/model-connection.fixture.ts';
@@ -84,6 +84,42 @@ describe('model connection edits', () => {
             mutation('modelConnections.remove', target),
         ]);
         expect(harness.queryClient.getQueryState(listKey)?.isInvalidated).toBe(true);
+        await mounted.unmount();
+    });
+});
+
+describe('web search', () => {
+    test('the switch shows the pick at once and a refusal puts the old value back', async () => {
+        const gemini = testConnection({
+            authKind: 'api-key',
+            id: 'mcn_gemini',
+            label: 'Gemini key',
+            provider: 'gemini',
+            webSearch: true,
+        });
+        let refuse: (cause: Error) => void = () => undefined;
+        const { harness, hook, mounted } = await mountHook(
+            () => useModelConnectionEdits(serverId),
+            () =>
+                new Promise((_resolve, reject) => {
+                    refuse = reject;
+                })
+        );
+        const webSearch = () =>
+            harness.queryClient
+                .getQueryData<ModelConnectionsRead>(listKey)
+                ?.connections.map((connection) => connection.webSearch);
+        harness.queryClient.setQueryData(listKey, { agentLoop: 'runner', connections: [gemini] });
+        const saving = hook().setWebSearch.mutateAsync({
+            connectionId: 'mcn_gemini',
+            enabled: false,
+            serverId,
+        });
+        await harness.act(() => Promise.resolve());
+        expect(webSearch()).toEqual([false]);
+        refuse(new Error('The Server refused.'));
+        await harness.act(() => saving.catch(() => undefined));
+        expect(webSearch()).toEqual([true]);
         await mounted.unmount();
     });
 });
