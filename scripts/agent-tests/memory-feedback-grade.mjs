@@ -3,8 +3,9 @@
 //
 //   bun scripts/agent-tests/memory-feedback-grade.mjs [--since <stamp>] [--max-words <n>] [--json]
 //
-// captured: each feedback reached Standing Preferences (brevity rule rewritten
-//           or added; an autonomy rule present). Control expects no change.
+// captured: each feedback reached Standing Preferences or the Agent's own AGENTS.md
+//           (brevity rule rewritten or added; an autonomy rule present). Control
+//           expects no change.
 // grammar:  every new or changed line is one terse imperative rule: <= 20 words,
 //           not two rules joined, no delta words, no sources/dates/handles, no caveats.
 // merge:    exactly one brevity rule and at most one net new line.
@@ -38,6 +39,18 @@ export function standingPreferences(memory) {
         .map((line) => line.replace(/^\s*[-*]\s+/, '').trim());
 }
 
+/** The Agent's rule lines from its own AGENTS.md, where a standing directive can land instead. */
+export function agentRuleLines(rules) {
+    return (rules ?? '')
+        .split('\n')
+        .filter((line) => /^\s*[-*]\s+/.test(line))
+        .map((line) => line.replace(/^\s*[-*]\s+/, '').trim());
+}
+
+function withAgentRules(preferences, rules) {
+    return preferences === null ? null : [...preferences, ...agentRuleLines(rules)];
+}
+
 export function gradeRule(rule) {
     const problems = [];
     const words = rule.split(/\s+/).filter(Boolean).length;
@@ -63,8 +76,14 @@ export function gradeRule(rule) {
 
 export function gradeEvidence(evidence, { maxWords = 150 } = {}) {
     const before = standingPreferences(evidence.memory.seeded) ?? [];
-    const after = standingPreferences(evidence.memory.afterFeedback);
-    const final = standingPreferences(evidence.memory.afterProbe);
+    const after = withAgentRules(
+        standingPreferences(evidence.memory.afterFeedback),
+        evidence.agentRules?.afterFeedback
+    );
+    const final = withAgentRules(
+        standingPreferences(evidence.memory.afterProbe),
+        evidence.agentRules?.afterProbe
+    );
     const changed = (after ?? []).filter((line) => !before.includes(line));
     const isControl = evidence.variant === 'control';
     const brevityLines = (after ?? []).filter((line) => brevity.test(line));

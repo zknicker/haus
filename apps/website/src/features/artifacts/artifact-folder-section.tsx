@@ -1,4 +1,4 @@
-import type { ArtifactFolderEntry, ArtifactMetadata } from '@haus/api';
+import type { ArtifactMetadata } from '@haus/api';
 import { Tooltip } from '@heroui/react';
 import { GridListItem, GridListSection } from 'react-aria-components';
 import { useArtifactThumbnailUrls } from '../../hooks/artifacts/use-artifact-thumbnails.ts';
@@ -6,6 +6,7 @@ import { useArtifactActionsContext } from './artifact-actions-context.ts';
 import { hasLibraryPreview } from './artifact-format.ts';
 import { ArtifactInlineRename } from './artifact-inline-rename.tsx';
 import { artifactFolderTone, artifactFolderWithin, middleTruncatedName } from './drive-folders.ts';
+import type { DriveFolder } from './drive-places.ts';
 import { artifactFileKind } from './icons/artifact-file-kind.ts';
 import { ArtifactFolderIcon } from './icons/artifact-folder-icon.tsx';
 import { useOpenInTabPress } from './library-selection.ts';
@@ -31,7 +32,7 @@ export function ArtifactFolderSection({
     dropTarget: string | null;
     /** The open folder, so a search hit deeper down names where it sits. */
     folder: string;
-    folders: readonly ArtifactFolderEntry[];
+    folders: readonly DriveFolder[];
     onOpen: (path: string) => void;
     previews: ReadonlyMap<string, ArtifactMetadata[]>;
     serverId: string;
@@ -66,7 +67,7 @@ function ArtifactFolderTile({
     serverId,
     within,
 }: {
-    folder: ArtifactFolderEntry;
+    folder: DriveFolder;
     previews: readonly ArtifactMetadata[];
     serverId: string;
     /** Where a search hit sits relative to the open folder; `''` when directly in it. */

@@ -49,6 +49,7 @@
         "@internationalized/date": "3.12.4",
         "@internationalized/number": "3.6.8",
         "@number-flow/react": "0.6.2",
+        "@pierre/diffs": "1.6.4",
         "@react-aria/interactions": "3.28.1",
         "@react-aria/utils": "3.34.1",
         "@react-stately/utils": "3.12.1",

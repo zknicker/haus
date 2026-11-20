@@ -1,9 +1,10 @@
-import type { ArtifactFolderEntry, ArtifactMetadata, ArtifactRecord } from '@haus/api';
+import type { ArtifactMetadata, ArtifactRecord } from '@haus/api';
 import { ListView } from '@heroui-pro/react';
 import type { ReactNode } from 'react';
 import { type DragAndDropHooks, GridList, type Key } from 'react-aria-components';
 import { type ArtifactFileRun, ArtifactFileSection } from './artifact-files.tsx';
 import { ArtifactFolderSection } from './artifact-folder-section.tsx';
+import type { DriveFolder } from './drive-places.ts';
 import type { ArtifactLibraryLayout } from './library-layout.ts';
 import { type LibrarySelection, librarySelectionProps } from './library-selection.ts';
 
@@ -32,7 +33,7 @@ export function ArtifactLibraryCollection({
     /** The folder tile a drag of library items is over. */
     dropTarget: string | null;
     folder: string;
-    folders: readonly ArtifactFolderEntry[];
+    folders: readonly DriveFolder[];
     layout: ArtifactLibraryLayout;
     onOpenFile: (artifact: ArtifactMetadata) => void;
     onOpenFolder: (path: string) => void;
@@ -45,7 +46,7 @@ export function ArtifactLibraryCollection({
         runs.flatMap((run) => run.rows.map((row) => [row.artifact.artifact_id, row.artifact]))
     );
     const shared = {
-        'aria-label': 'Files',
+        'aria-label': 'Drive',
         dragAndDropHooks,
         onAction: (key: Key) => {
             const file = files.get(key);
