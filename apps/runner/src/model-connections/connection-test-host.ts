@@ -1,0 +1,59 @@
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import type { Provider } from '@earendil-works/pi-ai';
+import type { RunnerUpFrame } from '@haus/api';
+import { openDispatchLedger } from '../dispatch/ledger.ts';
+import { createPiHarness } from '../pi/pi-driver.ts';
+import { connectionModels } from '../pi/pi-models.ts';
+import type { RunnerLink } from '../run-context.ts';
+import { cleanups, runnerToken, serverStandIn } from '../runner-test-server.ts';
+import { openServerLink } from '../server-link.ts';
+import { createTurnHostWith } from '../turn/turn-host.ts';
+import { createConnectionBook } from './connection-book.ts';
+
+export async function connectedRunner(provider: Provider) {
+    const server = serverStandIn();
+    const dataDir = await mkdtemp(join(tmpdir(), 'haus-runner-connections-'));
+    cleanups.push(() => rm(dataDir, { force: true, recursive: true }));
+    const book = createConnectionBook();
+    let attached: ReturnType<typeof openServerLink> | null = null;
+    const link: RunnerLink = { send: (frame) => attached?.link.send(frame) };
+    const pi = createPiHarness({
+        log: () => undefined,
+        maxWarm: 1,
+        models: (launch) =>
+            connectionModels({ book, connectionId: launch.connection.id, link, provider }),
+    });
+    const ledger = openDispatchLedger(dataDir);
+    const turnHost = createTurnHostWith({
+        book,
+        dataDir,
+        factory: pi.factory,
+        ledger,
+        link,
+        log: () => undefined,
+    });
+    const opened = openServerLink({
+        book,
+        config: { runnerToken, serverUrl: server.url },
+        ledger,
+        log: () => undefined,
+        reconnectDelaysMs: [0],
+        turnHost,
+    });
+    attached = opened;
+    cleanups.push(async () => {
+        opened.close();
+        await pi.close();
+    });
+    await opened.ready;
+    await server.frame('runner-inventory');
+    return {
+        book,
+        server,
+        unread(type: RunnerUpFrame['type']) {
+            return server.received.filter((frame) => frame.type === type);
+        },
+    };
+}

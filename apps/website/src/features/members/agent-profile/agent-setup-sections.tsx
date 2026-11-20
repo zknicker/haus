@@ -12,7 +12,7 @@ import {
     computerHealthLabel,
     computerLabel,
 } from '../../computers/presentation.ts';
-import { serverComputersRoute } from '../../servers/server-routes.ts';
+import { serverComputerRoute } from '../../servers/server-routes.ts';
 import { AgentPermissions } from './agent-permissions.tsx';
 import { AgentRuntime } from './agent-runtime.tsx';
 import { canOpenAgentSection } from './agent-sections.ts';
@@ -56,9 +56,7 @@ export function AgentRuntimeSection({ agent, server }: { agent: Agent; server: S
                             {canView ? (
                                 <Button
                                     onPress={() =>
-                                        navigate(
-                                            `${serverComputersRoute(server.slug)}?computer=${encodeURIComponent(agent.computerId)}`
-                                        )
+                                        navigate(serverComputerRoute(server.slug, agent.computerId))
                                     }
                                     size="sm"
                                     variant="secondary"

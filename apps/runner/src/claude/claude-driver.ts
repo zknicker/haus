@@ -8,8 +8,8 @@ import type {
 import { WarmPool, warmIdleMs } from '../turn/warm-pool.ts';
 import { ClaudeConnection } from './claude-connection.ts';
 import {
-    type ClaudeEnvironment,
     claudeBootstrapFingerprint,
+    claudeLaunchFacts,
     claudeLaunchKey,
     claudePaths,
     claudeQueryOptions,
@@ -18,7 +18,7 @@ import { ClaudeTurn } from './claude-turn.ts';
 
 const expiryIntervalMs = 60_000;
 
-export function createClaudeHarness(options: { environment: ClaudeEnvironment; maxWarm: number }) {
+export function createClaudeHarness(options: { maxWarm: number }) {
     const pool = new WarmPool<ClaudeConnection>({ idleMs: warmIdleMs, maxWarm: options.maxWarm });
     const closeAll = (connections: readonly ClaudeConnection[]) => {
         for (const connection of connections) {
@@ -35,13 +35,7 @@ export function createClaudeHarness(options: { environment: ClaudeEnvironment; m
 
     const connect = async (launch: RuntimeLaunch, resumeFrom: string | undefined) => {
         const paths = claudePaths(launch.agentDir);
-        const facts = {
-            bootstrapFingerprint: await bootstrapFingerprint(),
-            environment: options.environment(paths),
-            instructions: launch.instructions,
-            modelId: launch.modelId,
-            reasoningEffort: launch.reasoningEffort,
-        };
+        const facts = claudeLaunchFacts(launch, await bootstrapFingerprint());
         const launchKey = claudeLaunchKey(facts);
         if (resumeFrom) {
             const claim = pool.claim(

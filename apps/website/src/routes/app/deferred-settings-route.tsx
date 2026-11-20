@@ -39,3 +39,16 @@ export function DeferredSettingsConnectionRoute() {
         </React.Suspense>
     );
 }
+
+const SettingsDeviceRoute = React.lazy(async () => ({
+    default: (await serverRouteModules.settingsSection()).SettingsDeviceRoute,
+}));
+
+export function DeferredSettingsDeviceRoute() {
+    const { pathname } = useLocation();
+    return (
+        <React.Suspense fallback={<div aria-busy="true" />} key={pathname}>
+            <SettingsDeviceRoute />
+        </React.Suspense>
+    );
+}

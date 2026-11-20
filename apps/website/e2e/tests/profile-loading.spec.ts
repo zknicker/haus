@@ -43,9 +43,7 @@ test('Human profile keeps its structure while identity is unresolved', async ({ 
     await expect(page.getByRole('button', { name: 'Edit Profile', exact: true })).toBeVisible();
 });
 
-test('Computers reserves its sections until the first roster confirms an empty result', async ({
-    page,
-}) => {
+test('Devices waits for the first roster before offering to attach one', async ({ page }) => {
     const { server } = await createTestServer(page, {
         displayName: 'Computer loading',
         slug: 'computer-loading',
@@ -54,16 +52,7 @@ test('Computers reserves its sections until the first roster confirms an empty r
     try {
         await page.goto(`/s/${server.slug}/settings/computers`);
         await held.requested;
-        for (const label of [
-            'Runtimes',
-            'Browser',
-            'Cloud Agents',
-            'Captains on this device',
-            'System Log',
-            'Device management',
-        ]) {
-            await expect(page.getByRole('heading', { name: label, exact: true })).toBeVisible();
-        }
+        await expect(page.getByRole('heading', { name: 'Devices', exact: true })).toBeVisible();
         await expect(page.getByText('Attach a device', { exact: true })).toBeHidden();
     } finally {
         held.release();

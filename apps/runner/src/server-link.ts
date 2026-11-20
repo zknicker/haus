@@ -1,5 +1,8 @@
+import type { Provider } from '@earendil-works/pi-ai';
 import {
+    type ModelSignInProvider,
     type RunnerDownFrame,
+    type RunnerInventoryFrame,
     type RunnerStartFrame,
     type RunnerUpFrame,
     runnerDownFrameSchema,
@@ -7,20 +10,24 @@ import {
 } from '@haus/api';
 import type { RunnerConfig } from './config.ts';
 import type { DispatchLedger } from './dispatch/ledger.ts';
-import { invocationGraceMs } from './invocations/invocation-client.ts';
-import { type LoginConfig, runnerInventory } from './logins.ts';
+import { type InvocationClock, systemInvocationClock } from './invocations/invocation-clock.ts';
+import type { ConnectionBook } from './model-connections/connection-book.ts';
+import { createSignIns } from './pi/pi-sign-ins.ts';
 import type { RunnerLink, TurnHost } from './run-context.ts';
 import { createRunTools, type RunToolset } from './tools/run-tools.ts';
+import { harnessIds } from './turn/runtime-driver.ts';
 
 const backoffMs = [500, 1000, 2000, 5000, 10_000, 30_000];
 const queuedFramesMax = 1000;
 
 export function openServerLink(input: {
-    config: LoginConfig & Pick<RunnerConfig, 'runnerToken' | 'serverUrl'>;
-    invocationGraceMs?: number;
+    book: ConnectionBook;
+    config: Pick<RunnerConfig, 'runnerToken' | 'serverUrl'>;
+    invocationClock?: InvocationClock;
     ledger: DispatchLedger;
     log?: (line: string) => void;
     reconnectDelaysMs?: readonly number[];
+    signInProvider?: (provider: ModelSignInProvider) => Provider;
     turnHost: TurnHost;
 }) {
     const log = input.log ?? ((line: string) => process.stderr.write(`${line}\n`));
@@ -48,6 +55,10 @@ export function openServerLink(input: {
             }
         },
     };
+    const signIns = createSignIns({
+        link,
+        ...(input.signInProvider ? { provider: input.signInProvider } : {}),
+    });
 
     const handle = (frame: RunnerDownFrame) => {
         switch (frame.type) {
@@ -69,12 +80,25 @@ export function openServerLink(input: {
                 return;
             case 'agent-execution-journal-ack':
                 return;
+            case 'runner-model-connections':
+                return void input.book.replace(frame.connections);
+            case 'runner-connection-credential-ack':
+                return void input.book.acknowledge(frame, link);
+            case 'runner-sign-in-start':
+                return signIns.start(frame);
+            case 'runner-sign-in-cancel':
+                return signIns.cancel(frame);
             default:
                 return frame satisfies never;
         }
     };
 
-    const startRun = ({ reasoningEffort, runCredential, start }: RunnerStartFrame) => {
+    const startRun = ({
+        modelConnectionId,
+        reasoningEffort,
+        runCredential,
+        start,
+    }: RunnerStartFrame) => {
         if (runs.has(start.runId)) {
             link.send({ agentId: start.agentId, runId: start.runId, type: 'ack' });
             return;
@@ -87,7 +111,7 @@ export function openServerLink(input: {
         };
         const toolset = createRunTools({
             authority,
-            invocationGraceMs: input.invocationGraceMs ?? invocationGraceMs,
+            invocationClock: input.invocationClock ?? systemInvocationClock,
             ledger: input.ledger,
             link,
         });
@@ -100,7 +124,13 @@ export function openServerLink(input: {
             },
         };
         void input.turnHost
-            .start({ authority, reasoningEffort: reasoningEffort ?? 'default', start, tools })
+            .start({
+                authority,
+                modelConnectionId,
+                reasoningEffort: reasoningEffort ?? 'default',
+                start,
+                tools,
+            })
             .catch(report('start'));
     };
 
@@ -130,10 +160,11 @@ export function openServerLink(input: {
                 }
                 accepted = true;
                 attempt = 0;
-                current.send(JSON.stringify(runnerInventory(input.config)));
+                current.send(JSON.stringify(inventory));
                 for (const frame of queued.splice(0)) {
                     current.send(JSON.stringify(frame));
                 }
+                void input.book.resend(link);
                 markReady();
                 return;
             }
@@ -166,6 +197,8 @@ export function openServerLink(input: {
         ready,
     };
 }
+
+const inventory: RunnerInventoryFrame = { harnesses: [...harnessIds], type: 'runner-inventory' };
 
 function parseJson(text: string) {
     try {

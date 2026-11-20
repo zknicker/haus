@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { useServerContext } from '../servers/server-context.ts';
-import { serverComputersRoute } from '../servers/server-routes.ts';
+import { serverComputerRoute } from '../servers/server-routes.ts';
 import {
     computerDiskWarning,
     computerDiskWarningDescription,
@@ -27,7 +27,7 @@ export function ComputerDiskNotices() {
                     const warning = computerDiskWarning(computer);
                     return warning ? (
                         <ComputerDiskNotice
-                            destination={`${serverComputersRoute(server.slug)}?computer=${encodeURIComponent(computer.id)}`}
+                            destination={serverComputerRoute(server.slug, computer.id)}
                             key={computer.id}
                             name={computerLabel(computer)}
                             storageKey={`haus:disk-warning:${server.id}:${computer.id}`}

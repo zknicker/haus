@@ -1,5 +1,5 @@
 import { planRulesDelivery } from '@haus/agent-prompt';
-import type { AgentReasoningEffort, AgentStartCommand } from '@haus/api';
+import type { AgentReasoningEffort, AgentStartCommand, RunnerModelConnection } from '@haus/api';
 import type { RunAuthority, RunnerLink, RunTools } from '../run-context.ts';
 import { readAgentContext } from './agent-context.ts';
 import { attestComposedDrain } from './composed-drain.ts';
@@ -43,6 +43,7 @@ export interface RunTurnInput {
     readonly activity: ReturnType<typeof createRunActivity>;
     readonly agentDir: string;
     readonly authority: RunAuthority;
+    readonly connection: RunnerModelConnection;
     readonly factory: RuntimeDriverFactory;
     readonly link: RunnerLink;
     readonly log: (line: string) => void;
@@ -69,6 +70,7 @@ export async function runTurn(input: RunTurnInput) {
     const driver = input.factory({
         agentDir: input.agentDir,
         agentId: start.agentId,
+        connection: input.connection,
         instructions: composed.instructions,
         modelId: start.modelId,
         reasoningEffort: input.reasoningEffort,

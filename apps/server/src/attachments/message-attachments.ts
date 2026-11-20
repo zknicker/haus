@@ -1,5 +1,6 @@
 import type { AttachmentMetadata } from '@haus/api';
 import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
+import { notInvocationPayload } from '../agent-invocations/payload-attachments.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { attachmentsTable } from '../postgres/schema.ts';
 import type { HausUser } from '../users/haus-user.ts';
@@ -70,7 +71,8 @@ export async function requireAgentMessageAttachments(
         .where(
             and(
                 eq(attachmentsTable.serverId, input.serverId),
-                inArray(attachmentsTable.id, input.attachmentIds)
+                inArray(attachmentsTable.id, input.attachmentIds),
+                notInvocationPayload
             )
         );
     const byId = new Map(rows.map((row) => [row.id, row]));

@@ -165,7 +165,7 @@ same conversation in a new process.
 
 Claude Code's idle compaction (2.1.299+, a session over 200K tokens idle for about 54 minutes)
 never arms for the `sdk-ts` entrypoint Haus launches, so Haus runs it: with the Owner's Server
-setting **Idle compaction** on (Settings → Server → Agents; off by default), the Computer
+setting **Idle compaction** on (Settings → General → Captains; off by default), the Computer
 compacts a parked Claude Code session at Claude Code's own time and thresholds, with Claude Code's
 own `/compact`, so the next turn resumes a short summary instead of re-writing a cold 200K-950K
 token prefix. Because Claude Code records its system prompt once (`--system-prompt-snapshot on`)

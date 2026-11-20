@@ -4,6 +4,7 @@ import { Exit, Scope } from 'effect';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { AgentDelivery } from './agent-delivery/delivery.ts';
 import { agentLoopWiring } from './agent-delivery/loop-host.ts';
+import { openInvocationRouter } from './agent-invocations/invocation-router.ts';
 import { openArtifactStorage } from './artifacts/startup.ts';
 import { openAttachmentRoot } from './attachments/attachment-root.ts';
 import { reconcileAttachments } from './attachments/reconcile-attachments.ts';
@@ -19,7 +20,7 @@ import { githubSignedInHook } from './github/installation-sweep.ts';
 import { createHausContextFactory, type HausContextDependencies } from './haus-api/context.ts';
 import { startHausWebSocketServer } from './haus-api/ws.ts';
 import { hausFastifyOptions } from './haus-fastify-options.ts';
-import { registerHausHealth } from './haus-health.ts';
+import { registerHausHealth, unstartedReminderHealth } from './haus-health.ts';
 import type { HausServerApplicationOptions } from './haus-server-options.ts';
 import { registerHausServerRoutes } from './haus-server-routes.ts';
 import {
@@ -33,6 +34,7 @@ import { createCloudflareAdmissions } from './identity/cloudflare-access.ts';
 import { ensureDevelopmentAuthUser } from './identity/development-auth.ts';
 import { createHausSessions } from './identity/haus-sessions.ts';
 import { SessionConnections } from './identity/session-connections.ts';
+import { ModelConnectionRelay } from './model-connections/model-connection-relay.ts';
 import { isAllowedAppOrigin } from './origin.ts';
 import { connectHausDatabase } from './postgres/connection.ts';
 import { startServerRecurringWork } from './recurring-work.ts';
@@ -93,6 +95,13 @@ export async function createHausServerApplication(
             : null;
         const computerConnections = new ComputerConnections(runtime);
         const runnerLink = new RunnerLink();
+        const modelConnections = new ModelConnectionRelay(connectedHaus.db, runnerLink, options);
+        const invocations = await openInvocationRouter({
+            clock: options.invocationClock,
+            computers: computerConnections,
+            db: connectedHaus.db,
+            runner: runnerLink,
+        });
         const agentDelivery = new AgentDelivery(
             connectedHaus.db,
             computerConnections,
@@ -152,7 +161,9 @@ export async function createHausServerApplication(
             mcpIconResolver,
             mcpOAuthRelay,
             mcpRuntime: startedMcpRuntime,
+            modelConnections,
             postCommitWork: startedPostCommitWork,
+            runnerLink,
             runtime,
             triggerRateLimiter,
         } satisfies HausContextDependencies;
@@ -201,26 +212,26 @@ export async function createHausServerApplication(
             createContext,
             isAllowedOrigin,
         });
-        const startedComputerSocket = startComputerAttachmentSocket(
+        handles.computerSocket = startComputerAttachmentSocket(
             startedApp.server,
             connectedHaus.db,
             computerConnections,
             agentDelivery,
             startedPostCommitWork,
             options.thoughtSummarizer ?? null,
+            invocations,
             options.computerSocketLiveness
         );
-        handles.computerSocket = startedComputerSocket;
-        handles.runnerSocket = startRunnerSocket(startedApp.server, runnerLink, options, {
-            db: connectedHaus.db,
-            delivery: agentDelivery,
-            postCommitWork: startedPostCommitWork,
+        handles.runnerSocket = startRunnerSocket(startedApp.server, options, {
+            ...contextDependencies,
+            invocations,
         });
         const reminderClock = options.reminderClock ?? { now: () => new Date() };
         await startServerSweeps(runtime, scope, shutdown, {
             agentDelivery,
             appOrigin: options.appOrigin,
             artifactStorage,
+            attachmentRoot,
             clock: reminderClock,
             db: connectedHaus.db,
             githubApp: options.githubApp ?? null,
@@ -242,15 +253,7 @@ export async function createHausServerApplication(
             runtime,
             connectedHaus.health,
             5000,
-            () => {
-                return (
-                    handles.recurringWork?.reminderHealth() ?? {
-                        consecutiveFailures: 1,
-                        lastSuccessfulTickAt: null,
-                        status: 'degraded' as const,
-                    }
-                );
-            },
+            () => handles.recurringWork?.reminderHealth() ?? unstartedReminderHealth,
             hostedMcps?.health
         );
 

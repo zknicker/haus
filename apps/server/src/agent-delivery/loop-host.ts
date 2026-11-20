@@ -1,5 +1,6 @@
 import type { AgentCommand, RunnerDownFrame, RunnerStartFrame } from '@haus/api';
 import { mintServerRunCredential } from '../computers/runner-credentials.ts';
+import { resolveModelConnection } from '../model-connections/agent-model-connection.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { DeliveryTransport, DispatchPlan } from './delivery.ts';
 import { readDeliveryState } from './store.ts';
@@ -77,10 +78,16 @@ export class AgentLoopRoute {
         const state = await readDeliveryState(tx, start.agentId);
         const reasoningEffort =
             state?.activeRunId === start.runId ? state.activeRunReasoningEffort : null;
+        const modelConnectionId = await resolveModelConnection(tx, {
+            agentId: start.agentId,
+            modelId: start.modelId,
+            serverId: plan.serverId,
+        });
         const bound: DispatchPlan = {
             ...plan,
             frame: {
                 ...(reasoningEffort ? { reasoningEffort } : {}),
+                modelConnectionId,
                 runCredential,
                 start,
                 type: 'runner-start',

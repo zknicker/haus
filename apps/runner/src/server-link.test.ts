@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test';
+import { invocationGraceMs, invocationRunnerMarginMs } from '@haus/api';
 import { openDispatchLedger } from './dispatch/ledger.ts';
+import { manualClock } from './manual-clock.ts';
 import {
     attachRunner,
     drainCleanups,
@@ -11,21 +13,14 @@ import {
 afterEach(drainCleanups);
 
 describe('runner server link', () => {
-    test('attaches, reports logins, and runs a start through machine, refused, and lone haus tools', async () => {
+    test('attaches, reports its harnesses, and runs a start through machine, refused, and lone haus tools', async () => {
         const server = serverStandIn();
         const runner = await attachRunner(server);
         expect(await server.frame('runner-inventory')).toEqual({
             harnesses: ['claude-agent-sdk', 'pi-durable'],
-            logins: [
-                { provider: 'claude', state: 'missing' },
-                { provider: 'chatgpt', state: 'missing' },
-                { provider: 'xai', state: 'missing' },
-                { provider: 'gemini', state: 'missing' },
-                { provider: 'openrouter', state: 'missing' },
-            ],
             type: 'runner-inventory',
         });
-        server.start({ reasoningEffort: 'xhigh' });
+        server.start({ modelConnectionId: 'mc_claude', reasoningEffort: 'xhigh' });
         const run = await runner.host.started;
         expect(run.authority).toEqual({
             agentId: 'agt_1',
@@ -34,6 +29,7 @@ describe('runner server link', () => {
             serverUrl: server.url,
         });
         expect(run.reasoningEffort).toBe('xhigh');
+        expect(run.modelConnectionId).toBe('mc_claude');
 
         const machine = run.tools.bash('toolu_1', { command: 'ls -la', timeout: 900_000 }, live());
         expect(await server.frame('invocation-request')).toEqual({
@@ -144,9 +140,10 @@ describe('runner server link', () => {
         expect(runner.host.starts).toEqual(['run_1']);
     });
 
-    test('an invocation the Server never answers resolves unknown at its timeout plus the grace', async () => {
+    test('an invocation the Server never answers resolves unknown at its timeout plus the grace and margin', async () => {
+        const timers = manualClock();
         const server = serverStandIn();
-        const runner = await attachRunner(server, { invocationGraceMs: 0 });
+        const runner = await attachRunner(server, { invocationClock: timers.clock });
         await server.frame('runner-inventory');
         server.start();
         const run = await runner.host.started;
@@ -154,6 +151,7 @@ describe('runner server link', () => {
         const pending = run.tools.bash('toolu_1', { command: 'make build', timeout: 1 }, live());
 
         expect(await server.frame('invocation-request')).toMatchObject({ timeoutMs: 1 });
+        timers.advance(1 + invocationGraceMs + invocationRunnerMarginMs);
         expect(await pending).toEqual({
             content: [
                 {

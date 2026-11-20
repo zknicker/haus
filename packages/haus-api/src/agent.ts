@@ -63,6 +63,8 @@ export const agentSchema = z
         handle: z.string(),
         id: idSchema,
         missingResources: z.array(z.string()),
+        /** The model connection a human chose; null runs on the default for the model's provider. */
+        modelConnectionId: idSchema.nullable().default(null),
         serverId: idSchema,
         status: agentStatusSchema,
         wakePause: agentWakePauseSchema.nullable().default(null),

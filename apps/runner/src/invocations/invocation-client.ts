@@ -5,11 +5,15 @@ import {
     type InvocationOutcome,
     type InvocationOutput,
     type InvocationResultFrame,
+    invocationGraceMs,
     invocationOutcomeNotices,
+    invocationRunnerMarginMs,
     invocationTimeoutsMs,
 } from '@haus/api';
 import type { RunDispatches } from '../dispatch/dispatch-id.ts';
-import type { RunnerLink, ToolOutcome, ToolResultContent } from '../run-context.ts';
+import type { RunAuthority, RunnerLink, ToolOutcome, ToolResultContent } from '../run-context.ts';
+import type { InvocationClock } from './invocation-clock.ts';
+import { inlineInvocationPayload } from './invocation-payload.ts';
 
 export type InvocationClient = ReturnType<typeof createInvocationClient>;
 
@@ -19,20 +23,27 @@ export interface InvocationAnswer {
     readonly timeoutMs: number;
 }
 
-export const invocationGraceMs = 30_000;
+interface OpenInvocation {
+    answered: boolean;
+    readonly key: DispatchKey;
+    readonly reading: AbortController;
+    settle(frame: InvocationResultFrame): void;
+}
 
 export function createInvocationClient(input: {
     agentId: string;
+    authority: RunAuthority;
+    clock: InvocationClock;
     dispatches: RunDispatches;
-    graceMs: number;
     link: RunnerLink;
 }) {
-    const open = new Map<
-        string,
-        { key: DispatchKey; settle(frame: InvocationResultFrame): void }
-    >();
-    const cancel = (key: DispatchKey) =>
-        input.link.send({ ...key, agentId: input.agentId, type: 'invocation-cancel' });
+    const open = new Map<string, OpenInvocation>();
+    const halt = (pending: OpenInvocation) => {
+        if (!pending.answered) {
+            input.link.send({ ...pending.key, agentId: input.agentId, type: 'invocation-cancel' });
+        }
+        pending.reading.abort();
+    };
     const unknown = (key: DispatchKey) => {
         const frame: InvocationResultFrame = {
             ...key,
@@ -56,20 +67,42 @@ export function createInvocationClient(input: {
             );
             options.signal.throwIfAborted();
             const key = await input.dispatches.open(toolCallId, 'invocation');
-            const onAbort = () => cancel(key);
+            const id = dispatchIdOf(key);
+            const onAbort = () => {
+                const pending = open.get(id);
+                if (pending) {
+                    halt(pending);
+                }
+            };
             const frame = await new Promise<InvocationResultFrame>((resolve) => {
-                const id = dispatchIdOf(key);
-                const deadline = setTimeout(() => {
-                    open.delete(id);
-                    resolve(unknown(key));
-                }, timeoutMs + input.graceMs);
-                open.set(id, {
+                const pending: OpenInvocation = {
+                    answered: false,
                     key,
+                    reading: new AbortController(),
                     settle: (answer) => {
-                        clearTimeout(deadline);
-                        resolve(answer);
+                        pending.answered = true;
+                        void inlineInvocationPayload(
+                            input.authority,
+                            answer,
+                            pending.reading.signal
+                        ).then((read) => {
+                            deadline.cancel();
+                            open.delete(id);
+                            resolve(read);
+                        });
                     },
-                });
+                };
+                const deadline = input.clock.schedule(
+                    () => {
+                        pending.reading.abort();
+                        if (!pending.answered) {
+                            open.delete(id);
+                            resolve(unknown(key));
+                        }
+                    },
+                    timeoutMs + invocationGraceMs + invocationRunnerMarginMs
+                );
+                open.set(id, pending);
                 options.signal.addEventListener('abort', onAbort, { once: true });
                 input.link.send({
                     ...key,
@@ -84,15 +117,16 @@ export function createInvocationClient(input: {
             return { frame, timeoutMs, timeoutNote } satisfies InvocationAnswer;
         },
         receive(frame: InvocationResultFrame) {
-            const id = dispatchIdOf(frame);
-            const pending = open.get(id);
-            open.delete(id);
-            pending?.settle(frame);
-            return pending !== undefined;
+            const pending = open.get(dispatchIdOf(frame));
+            if (!pending || pending.answered) {
+                return false;
+            }
+            pending.settle(frame);
+            return true;
         },
         cancelOpen() {
-            for (const { key } of open.values()) {
-                cancel(key);
+            for (const pending of open.values()) {
+                halt(pending);
             }
         },
     };
@@ -127,7 +161,7 @@ export function invocationOutputText(output: InvocationOutput) {
         case 'inline':
             return `The machine returned ${Buffer.from(output.base64, 'base64').byteLength} bytes of ${output.mediaType}.`;
         case 'attachment':
-            return `The result arrived as attachment ${output.attachmentId} (${output.mediaType}, ${output.sizeBytes} bytes), which this runner cannot read yet.`;
+            return `The result arrived as attachment ${output.attachmentId} (${output.mediaType}, ${output.sizeBytes} bytes).`;
         default:
             return output satisfies never;
     }
