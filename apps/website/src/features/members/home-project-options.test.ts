@@ -12,7 +12,7 @@ test('New Captain offers only live Projects, never #all or an archived one', () 
     ).toEqual([{ id: 'cht_product', label: '#product' }]);
 });
 
-function project(overrides: Partial<Project> & Pick<Project, 'chatId' | 'name'>): Project {
+function project(overrides: Partial<Project> & Pick<Project, 'chatId' | 'name'>) {
     return {
         archived: false,
         homeAgentIds: [],
@@ -22,5 +22,5 @@ function project(overrides: Partial<Project> & Pick<Project, 'chatId' | 'name'>)
         serverId: 'srv_one',
         taskKeyId: 'tky_one',
         ...overrides,
-    };
+    } satisfies Project;
 }
