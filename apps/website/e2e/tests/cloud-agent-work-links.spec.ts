@@ -32,7 +32,6 @@ test('linked Cloud Agent work reads as the same card wherever it is linked', asy
     const channel = (name: string) =>
         createProjectWithAgents(client, {
             agentIds: [seeded.agentId],
-            databaseUrl: session.databaseUrl,
             name,
             serverId: server.id,
         });

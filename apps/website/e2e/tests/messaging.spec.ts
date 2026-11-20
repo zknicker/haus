@@ -247,13 +247,11 @@ function seedArtifactReply(input: { chatId: string; databaseUrl: string; serverI
         input.databaseUrl,
         `begin;
          insert into agents (
-           id, server_id, handle, display_name, home_timezone
+           id, server_id, handle, display_name, home_timezone, home_project_id
          ) values (
            'agt_e2e_artifact', '${input.serverId}', 'artifact-auditor',
-           'Artifact Auditor', 'America/New_York'
+           'Artifact Auditor', 'America/New_York', '${input.chatId}'
          );
-         insert into channel_agent_participants (server_id, chat_id, agent_id)
-         values ('${input.serverId}', '${input.chatId}', 'agt_e2e_artifact');
          insert into chat_messages (
            id, server_id, chat_id, sequence, author_user_id, content, nonce
          )
@@ -306,15 +304,15 @@ function seedReferenceFixture(input: { chatId: string; databaseUrl: string; serv
            );
          insert into agents (
            id, server_id, computer_id, handle, display_name, home_timezone,
-           desired_runtime_id, desired_model_id
+           desired_runtime_id, desired_model_id, home_project_id
          ) values
            (
              'agt_e2e_blippy', '${input.serverId}', 'cmp_e2e_ref_blippy00',
-             'blippy', 'Blippy', 'America/New_York', 'codex', 'gpt-5.6-sol'
+             'blippy', 'Blippy', 'America/New_York', 'codex', 'gpt-5.6-sol', '${input.chatId}'
            ),
            (
              'agt_e2e_tiny', '${input.serverId}', 'cmp_e2e_ref_tiny0000',
-             'tiny', 'Tiny', 'America/New_York', 'codex', 'gpt-5.6-sol'
+             'tiny', 'Tiny', 'America/New_York', 'codex', 'gpt-5.6-sol', '${input.chatId}'
            );
          insert into chats (id, server_id, kind, is_all, name)
          values ('cht_e2e_product', '${input.serverId}', 'channel', false, 'product');
@@ -322,12 +320,6 @@ function seedReferenceFixture(input: { chatId: string; databaseUrl: string; serv
          select '${input.serverId}', 'cht_e2e_product', user_id
          from server_memberships
          where server_id = '${input.serverId}' and role = 'owner';
-         insert into channel_agent_participants (server_id, chat_id, agent_id)
-         values
-           ('${input.serverId}', '${input.chatId}', 'agt_e2e_blippy'),
-           ('${input.serverId}', '${input.chatId}', 'agt_e2e_tiny'),
-           ('${input.serverId}', 'cht_e2e_product', 'agt_e2e_blippy'),
-           ('${input.serverId}', 'cht_e2e_product', 'agt_e2e_tiny');
          insert into chat_messages (
            id, server_id, chat_id, sequence, author_agent_id, content, nonce
          )

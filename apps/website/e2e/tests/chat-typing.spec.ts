@@ -29,6 +29,7 @@ test('an Agent reading a message types until its reply lands', async ({ page }) 
         computerId,
         displayName: 'Scout',
         handle: 'scout',
+        homeProjectId: chatId,
         modelId: 'gpt-5.6-sol',
         runtimeId: 'codex',
         serverId: server.id,
@@ -38,9 +39,7 @@ test('an Agent reading a message types until its reply lands', async ({ page }) 
     const acceptedAt = new Date().toISOString();
     runPsql(
         session.databaseUrl,
-        `insert into channel_agent_participants (server_id, chat_id, agent_id)
-         values ('${server.id}', '${chatId}', '${agent.id}') on conflict do nothing;
-         insert into agent_delivery (agent_id, server_id, active_run_id, active_run_chat_id,
+        `insert into agent_delivery (agent_id, server_id, active_run_id, active_run_chat_id,
              active_run_computer_id, active_run_runtime_id, active_run_model_id,
              active_run_reasoning_effort, accepted_at, dispatched_at)
          values ('${agent.id}', '${server.id}', '${runId}', '${chatId}', '${computerId}',

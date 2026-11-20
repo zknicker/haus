@@ -20,7 +20,7 @@ import {
 
 export default defineScenario({
     contract:
-        'Cove answers a natural Agent proposal request from its Owner without creating anything, then a separate creation request creates exactly one Agent inheriting Cove’s runtime and model, named by handle in Cove’s answer in the asking chat with the same session generation and with no introduction from Cove in #haus, joined to #haus and the requested #product, and carrying its standing brief in the workspace MEMORY.md on the Computer; repeating the request creates no second Agent.',
+        'Cove answers a natural Agent proposal request from its Owner without creating anything, then a separate creation request creates exactly one Agent inheriting Cove’s runtime and model, named by handle in Cove’s answer in the asking chat with the same session generation and with no introduction from Cove in #haus, homed in the requested #product Project, and carrying its standing brief in the workspace MEMORY.md on the Computer; repeating the request creates no second Agent.',
     name: 'cove-composes-agent-creation',
     optIn: true,
     async run({ expect, kit, log, marker, settleTurn }) {
@@ -166,14 +166,15 @@ export default defineScenario({
                     0
                 );
 
-                // #haus is the Server's guarantee; #product is what the request named.
+                // A channel's participantAgentIds are its Project's home Agents, so the
+                // Project the request named is the new Agent's one home.
                 const membership = await kit.trpc('chat.list', { serverId: kit.serverId });
-                const memberOf = (chatId) =>
+                const homeOf = (chatId) =>
                     membership
                         .find((chat) => chat.id === chatId)
                         ?.participantAgentIds.includes(createdAgent.id) ?? false;
-                expect(memberOf(allChannel.id), 'the new Agent is in #haus').toBe(true);
-                expect(memberOf(productChannel.id), 'the new Agent is in #product').toBe(true);
+                expect(homeOf(productChannel.id), 'the new Agent is homed in #product').toBe(true);
+                expect(homeOf(allChannel.id), 'the new Agent is not homed in #haus').toBe(false);
 
                 // The brief is memory on the Computer, not a message: it reaches the
                 // new Agent through the workspace its configure seeded.
