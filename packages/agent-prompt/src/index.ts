@@ -1,7 +1,7 @@
 export type {
-    AgentCloudAgentWorkAttention,
     AgentInboxItem,
-    CloudAgentPullRequestChange,
+    AgentWorkerAttention,
+    WorkerPullRequestChange,
 } from './agent-inbox-item.ts';
 export { composeDriveConflictInput } from './inbox-drive-conflict-format.ts';
 export {
@@ -9,6 +9,7 @@ export {
     composeInboxNotice,
     formatAttachmentSuffix,
     formatUnreadElsewhere,
+    type PendingCounts,
 } from './inbox-format.ts';
 export {
     formatInboxTime,

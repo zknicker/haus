@@ -36,7 +36,7 @@ Several findings become one message and one Task each, all started from that mes
 
 - `haus task state <key> <todo|open|done|canceled>` moves a Task; done and canceled cancel its
   pending reminders, and a post in it reopens it.
-- `haus task attach-pr <key> <url>` attaches a pull request opened outside a cloud agent; its
+- `haus task attach-pr <key> <url>` attaches a pull request opened outside a Worker; its
   changes wake the assignee on the Task.
 - Report progress and results in the Task with `haus message send --target task:<key>`.
 

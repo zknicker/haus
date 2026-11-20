@@ -25,18 +25,18 @@ export function applyChatDeletion({
 }) {
     void runChatLoss({ chatId, coalescer, queryClient, serverId });
     invalidateChatLifecycleReads(coalescer, serverId, chatId);
-    invalidateLinkedCloudAgentWork(coalescer, serverId);
+    invalidateLinkedWorker(coalescer, serverId);
 }
 
-function invalidateLinkedCloudAgentWork(coalescer: ChatReadsCoalescer, serverId: string) {
+function invalidateLinkedWorker(coalescer: ChatReadsCoalescer, serverId: string) {
     coalescer.invalidate({
-        queryKey: getQueryKey(hausTrpc.cloudAgentWork.listAutomations, { serverId }),
+        queryKey: getQueryKey(hausTrpc.worker.listAutomations, { serverId }),
     });
     coalescer.invalidate({
-        queryKey: getQueryKey(hausTrpc.cloudAgentWork.listActive, { serverId }),
+        queryKey: getQueryKey(hausTrpc.worker.listActive, { serverId }),
     });
     coalescer.invalidate({
-        queryKey: getQueryKey(hausTrpc.cloudAgentWork.listForChat, { serverId }),
+        queryKey: getQueryKey(hausTrpc.worker.listForChat, { serverId }),
     });
 }
 

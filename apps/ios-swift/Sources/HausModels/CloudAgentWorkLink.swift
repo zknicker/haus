@@ -1,14 +1,13 @@
 import Foundation
 
-/// The Cloud Agent work link, `[<label>](cloud-agent://<workId>)` (ADR 0044).
+/// The Worker link, `[<label>](worker://<workerId>)` (ADR 0044).
 ///
-/// The phone's half of `packages/haus-api/src/cloud-agent-work-link.ts` and
-/// the `cloud-agent-work` arm of `parseHausRichReferences`: the label is the
-/// work title with line breaks as spaces, `]` dropped, and `\` and `[`
-/// escaped, falling back to "Cloud Agent work" when nothing is left. Change
-/// both sides together.
+/// The phone's half of `packages/haus-api/src/worker-link.ts` and the
+/// `worker` arm of `parseHausRichReferences`: the label is the work title
+/// with line breaks as spaces, `]` dropped, and `\` and `[` escaped, falling
+/// back to "Worker" when nothing is left. Change both sides together.
 public enum CloudAgentWorkLink {
-    public static let fallbackLabel = "Cloud Agent work"
+    public static let fallbackLabel = "Worker"
     /// `cloudAgentTitleMaxLength`: a label keeps at most this many characters.
     public static let titleMaxLength = 120
 
@@ -20,7 +19,7 @@ public enum CloudAgentWorkLink {
         public let label: String
     }
 
-    /// The work id a `cloud-agent://` target names, or nil for any other target.
+    /// The work id a `worker://` target names, or nil for any other target.
     public static func workID(target rawTarget: String) -> String? {
         let target = rawTarget.trimmingCharacters(in: .whitespaces)
         guard target.hasPrefix(prefix) else { return nil }
@@ -126,7 +125,7 @@ public enum CloudAgentWorkLink {
         return String(content[..<paragraphStart]).trimmingTrailingWhitespace
     }
 
-    private static let prefix = "cloud-agent://"
+    private static let prefix = "worker://"
     private static let linkExpression = try? NSRegularExpression(pattern: #"\[([^\]\n]+)\]\(([^\)\n]+)\)"#)
     /// `encodeURIComponent`'s unreserved set.
     private static let uriComponentAllowed = CharacterSet(

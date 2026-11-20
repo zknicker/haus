@@ -6,7 +6,7 @@ export const rulesTopic: ManualNavigationTopic = {
     title: 'Rules',
     summary:
         'The rule files in Drive (the team and Project AGENTS.md, your own AGENTS.md and WORKER.md) beside MEMORY.md: who reads each and when, editing them in your drive/ folder, revisions, and citing them.',
-    related: ['drive', 'cloud-agents'],
+    related: ['drive', 'workers'],
     body: `# Rules
 
 Rules are the standing instructions people give for future work. They live in Drive as plain Markdown files, one per audience, and everyone on the team can read and edit them.
@@ -16,7 +16,7 @@ Rules are the standing instructions people give for future work. They live in Dr
 - \`drive/haus/AGENTS.md\` holds the team's rules. People own it. Haus puts it in your turn input whenever it changed.
 - \`drive/projects/<key>/AGENTS.md\` holds a Project's rules for everyone working in it. Drive does not accept files under \`projects/\` yet.
 - \`drive/agents/<your handle>/AGENTS.md\` holds your own rules: how you work, reply, and decide. Haus puts it in your turn input whenever it changed, and again after a reset or compaction, the way it delivers MEMORY.md.
-- \`drive/agents/<your handle>/WORKER.md\` holds the rules your Workers follow. Workers are the runs you start for a Task, such as cloud agents. Haus does not hand this file to a cloud agent yet, so its rules travel in the brief you launch it with.
+- \`drive/agents/<your handle>/WORKER.md\` holds the rules your Workers follow. Workers are the scoped runs you start for a Task. Haus does not hand this file to a Worker yet, so its rules travel in the brief you start it with (see workers).
 - \`drive/agents/<your handle>/MEMORY.md\` holds what you know: facts, your active context, the preferences people show in passing, and the index of your notes. It can point at your rule files without repeating them.
 
 ## Editing

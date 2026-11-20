@@ -19,7 +19,6 @@ import { applyAuthoritativeSession } from './agent-session-authority.ts';
 import { handleAgentSkillFileRequest } from './agent-skill-files.ts';
 import { dispatchAgentStart } from './agent-start-dispatch.ts';
 import { traceAgentTurn } from './agent-turn-telemetry.ts';
-import { handleCloudAgentFrame } from './attachment-cloud-agents.ts';
 import { AttachmentConnectionWork } from './attachment-connection-work.ts';
 import { type AttachmentConnectionOutcome, runAttachmentDaemon } from './attachment-daemon-loop.ts';
 import {
@@ -52,6 +51,7 @@ import {
 import { createAttachmentStore } from './attachment-store.ts';
 import { recordAttachmentManagementEvent } from './attachment-system-event-outbox.ts';
 import { runAttachmentUpdate } from './attachment-update.ts';
+import { handleWorkerFrame } from './attachment-workers.ts';
 import { handleBrowserRequest } from './browser/requests.ts';
 import { reconcileComputerBrowser } from './browser/settings.ts';
 import {
@@ -63,8 +63,6 @@ import {
 import { printComputerHeader, printComputerHelpPage } from './cli/chrome.ts';
 import { findComputerCommandHelp, resolveComputerHelpRequest } from './cli/help.ts';
 import { cliColorsEnabled, createCliRenderer, stdoutRenderer } from './cli/render.ts';
-import { startCloudAgentModelCatalogRefresh } from './cloud-agents/model-catalog.ts';
-import { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import { sendComputerDiskReport } from './computer-disk.ts';
 import { readComputerName } from './computer-name.ts';
 import { startComputerReportSchedule } from './computer-report-schedule.ts';
@@ -145,6 +143,8 @@ import {
 import { createUpgradeRenderer, describeConcurrentUpdate } from './upgrade-render.ts';
 import { saveOpenRouterManagementKey } from './usage/openrouter-settings.ts';
 import { createUsageReporter } from './usage/report.ts';
+import { startCloudAgentModelCatalogRefresh } from './workers/model-catalog.ts';
+import { WorkerSupervisor } from './workers/work-runner.ts';
 import { handleAgentWorkspaceRequest } from './workspace-files.ts';
 import { runWorkspaceMaintenance } from './workspace-volumes/command.ts';
 
@@ -407,8 +407,8 @@ async function main(args: string[]) {
         process.exitCode = await withDaemonRuntime(
             async (runtime) => {
                 const partition = { dataRoot, serverId: attachment.serverId };
-                const cloudAgents = new CloudAgentWorkSupervisor(runtime, partition);
-                const daemonWork = new AttachmentDaemonWork(runtime, cloudAgents, partition);
+                const workers = new WorkerSupervisor(runtime, partition);
+                const daemonWork = new AttachmentDaemonWork(runtime, workers, partition);
                 return withAttachmentShutdown(daemonWork, runtime, partition, () =>
                     runAttachmentDaemon(runtime, {
                         attachmentExists: async () => (await readAttachment(target)) !== null,
@@ -931,7 +931,6 @@ async function connect(
                     }
                     return handleStartCommand({
                         attachment,
-                        cloudAgents: daemonWork.cloudAgents,
                         clearActiveRun,
                         command,
                         computerName,
@@ -1025,7 +1024,7 @@ async function connect(
             heartbeat?.dispose();
             void Promise.allSettled([
                 connectionWork.close(),
-                daemonWork.cloudAgents?.detach(),
+                daemonWork.workers?.detach(),
                 deletionPromise ?? Promise.resolve(),
             ]).finally(() => {
                 resolve({ connected: opened, deleted: deleting });
@@ -1073,9 +1072,7 @@ async function connect(
                 if (bootstrap.mode === 'ordinary') {
                     journalUploads.connected();
                     invocations.connected();
-                    daemonWork.cloudAgents?.attach((observation) => {
-                        sendFrame({ observation, type: 'cloud-agent-observation' });
-                    });
+                    daemonWork.workers?.attach(sendFrame);
                     const initialReport = Promise.resolve().then(async () => {
                         await Promise.all([
                             sendComputerReport(sendFrame, attachment.serverId, computerName, true),
@@ -1135,10 +1132,10 @@ async function connect(
                 return;
             }
             if (
-                handleCloudAgentFrame(frame, {
+                handleWorkerFrame(frame, {
                     runtime,
                     dataRoot,
-                    cloudAgents: daemonWork.cloudAgents,
+                    workers: daemonWork.workers,
                     track: trackWriter,
                     send: sendFrame,
                     refresh: () => sendComputerReport(sendFrame, attachment.serverId, computerName),
@@ -1369,7 +1366,7 @@ async function connect(
                             }
                         },
                         receipt,
-                        notice.taskAssignments
+                        notice
                     )
                         .then(() => {
                             if (injected) {
@@ -1450,7 +1447,6 @@ function safeSkillImportError(error: unknown) {
  */
 async function handleStartCommand(input: {
     attachment: Attachment;
-    cloudAgents?: CloudAgentWorkSupervisor;
     command: AgentStartCommand;
     computerName: string;
     controller: AbortController;
@@ -1507,7 +1503,6 @@ async function handleStartCommand(input: {
                 runAgentLaunch({
                     turnTimings,
                     attachment,
-                    cloudAgents: input.cloudAgents,
                     command: launchCommand,
                     dataRoot,
                     onRuntimeReady: async () => {

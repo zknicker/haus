@@ -56,7 +56,7 @@ model session. Per-turn message delivery is an inbox concern; see
   searches do not establish Server-owned MCP access. General capability selection still considers
   other authorized execution methods, and requested setup troubleshooting can inspect local state.
 - Ordinary requests continue in the Chat where they were asked, from acknowledgment to result,
-  following the human's lead across turns. Work that outlasts a reply, cloud agent work included,
+  following the human's lead across turns. Work that outlasts a reply, delegated Worker work included,
   goes in a Task, which holds its progress and result
   ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md)). Questions to a person are @mentions where the work lives, and automation placement follows its own contract.
 - Sessions never rotate because of age or idle time.

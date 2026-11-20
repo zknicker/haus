@@ -1,23 +1,23 @@
 import type {
-    ActiveCloudAgentWork,
-    ActiveCloudAgentWorkLocation,
+    ActiveWorker,
+    ActiveWorkerLocation,
     Agent,
-    CloudAgentJobState,
+    WorkerJobState,
     CloudAgentProvider,
 } from '@haus/api';
-import { cloudAgentWorkText, elapsedSince } from '../../cloud-agents/cloud-agent-presentation.ts';
+import { workerText, elapsedSince } from '../../workers/worker-presentation.ts';
 import { conversationLabel } from '../conversation-label.ts';
 import type { HumanDirectory } from '../human-identity.ts';
 
-/** One queued or running Cloud Agent work as the Inbox reads it. */
+/** One queued or running Worker as the Inbox reads it. */
 export interface HappeningNowWork {
     agentName: string;
     chatLabel: string;
     /** The work id, which is also the `?work=` deep link. */
     id: string;
-    location: ActiveCloudAgentWorkLocation;
+    location: ActiveWorkerLocation;
     provider: CloudAgentProvider;
-    state: CloudAgentJobState;
+    state: WorkerJobState;
     statusText: string;
     task: { id: string; key: string } | null;
     title: string;
@@ -30,7 +30,7 @@ export interface HappeningNowWork {
  * Agent name standing in for a retired Agent.
  */
 export function toHappeningNowWork(
-    items: readonly ActiveCloudAgentWork[],
+    items: readonly ActiveWorker[],
     humans: HumanDirectory,
     agents: readonly Agent[] = [],
     now: number = Date.now()
@@ -40,16 +40,16 @@ export function toHappeningNowWork(
     return items.map((item) => ({
         agentName: workAgentName(item, agentsById),
         chatLabel: conversationLabel(item, humans),
-        id: item.work.id,
+        id: item.worker.id,
         location: item.location,
-        provider: item.work.provider,
-        ...liveStatus(item.work, now),
+        provider: item.worker.place,
+        ...liveStatus(item.worker, now),
         task: workTask(item),
-        title: item.work.title,
+        title: item.worker.title,
     }));
 }
 
-function workTask({ taskId, taskKey }: ActiveCloudAgentWork): HappeningNowWork['task'] {
+function workTask({ taskId, taskKey }: ActiveWorker): HappeningNowWork['task'] {
     return taskId !== null && taskKey !== null ? { id: taskId, key: taskKey } : null;
 }
 
@@ -63,18 +63,18 @@ export function happeningNowWorkSubline(work: HappeningNowWork): string {
  * is live reads as that follow-up, not as the settled job behind it.
  */
 function liveStatus(
-    work: ActiveCloudAgentWork['work'],
+    work: ActiveWorker['worker'],
     now: number
 ): Pick<HappeningNowWork, 'state' | 'statusText'> {
     const { job } = work;
     if (job.state === 'working' || !job.followUp) {
-        return { state: job.state, statusText: cloudAgentWorkText(work, now) };
+        return { state: job.state, statusText: workerText(work, now) };
     }
     const elapsed = elapsedSince(job.followUp.since, now);
     const label = `Follow-up ${job.followUp.state}`;
     return { state: 'working', statusText: elapsed === null ? label : `${label} · ${elapsed}` };
 }
 
-function workAgentName(item: ActiveCloudAgentWork, agentsById: ReadonlyMap<string, Agent>): string {
-    return agentsById.get(item.work.agentId)?.displayName ?? item.agentName;
+function workAgentName(item: ActiveWorker, agentsById: ReadonlyMap<string, Agent>): string {
+    return agentsById.get(item.worker.agentId)?.displayName ?? item.agentName;
 }

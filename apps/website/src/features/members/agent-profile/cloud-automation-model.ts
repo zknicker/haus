@@ -1,13 +1,13 @@
-import type { CloudAgentAutomation } from '@haus/api';
+import type { WorkerAutomation } from '@haus/api';
 import { formatRelativeTime } from '../../../lib/format.ts';
 import {
-    cloudAgentJobChipColor,
-    cloudAgentJobLabels,
+    workerJobChipColor,
+    workerJobLabels,
     quietFor,
-} from '../../cloud-agents/cloud-agent-presentation.ts';
+} from '../../workers/worker-presentation.ts';
 
-export function cloudAutomationPresentation(row: CloudAgentAutomation, now: number) {
-    const updated = `Last update ${formatRelativeTime(row.work.updatedAt, now)}`;
+export function cloudAutomationPresentation(row: WorkerAutomation, now: number) {
+    const updated = `Last update ${formatRelativeTime(row.worker.updatedAt, now)}`;
     switch (row.notification) {
         case 'pending':
             return {
@@ -17,9 +17,9 @@ export function cloudAutomationPresentation(row: CloudAgentAutomation, now: numb
             } as const;
         case 'delivered':
             return {
-                label: cloudAgentJobLabels[row.work.job.state],
+                label: workerJobLabels[row.worker.job.state],
                 detail: 'Result delivered to the Captain',
-                color: cloudAgentJobChipColor(row.work.job.state),
+                color: workerJobChipColor(row.worker.job.state),
             } as const;
         case 'computer-removed':
             return {
@@ -41,12 +41,12 @@ export function cloudAutomationPresentation(row: CloudAgentAutomation, now: numb
             } as const;
         case 'unavailable':
             return {
-                label: cloudAgentJobLabels[row.work.job.state],
+                label: workerJobLabels[row.worker.job.state],
                 detail: 'No delivery record is available',
                 color: 'warning',
             } as const;
         case 'waiting':
-            if (row.computerHealth !== 'healthy' || quietFor(row.work, now) !== null) {
+            if (row.computerHealth !== 'healthy' || quietFor(row.worker, now) !== null) {
                 return {
                     label: 'Status unconfirmed',
                     detail: `${updated} · Notification resumes when tracking recovers`,
@@ -54,7 +54,7 @@ export function cloudAutomationPresentation(row: CloudAgentAutomation, now: numb
                 } as const;
             }
             return {
-                label: row.work.cancelRequestedAt ? 'Stopping' : 'Working',
+                label: row.worker.turns[0]?.stopRequestedAt ? 'Stopping' : 'Working',
                 detail: 'Will notify the Captain when this run finishes or needs input',
                 color: 'accent',
             } as const;

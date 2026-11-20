@@ -45,7 +45,7 @@ export function applyComputerUpdate(
 ) {
     const invalidate = (queryKey: ReturnType<typeof getQueryKey>) =>
         coalescer.invalidate({ queryKey });
-    invalidate(getQueryKey(hausTrpc.cloudAgentWork.listAutomations, { serverId }));
+    invalidate(getQueryKey(hausTrpc.worker.listAutomations, { serverId }));
     invalidate(getQueryKey(hausTrpc.server.bySlug, { slug: server.slug }));
     invalidate(getQueryKey(hausTrpc.computer.list, { serverId }));
     invalidate(

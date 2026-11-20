@@ -2,8 +2,8 @@ import * as z from 'zod';
 import { agentReasoningEffortSchema } from './agent-execution.ts';
 import { idSchema } from './chat.ts';
 import { cloudAgentModelCatalogSchema } from './cloud-agent-model.ts';
-import { cloudAgentProviderSchema, cloudAgentUnreadyReasonSchema } from './cloud-agent-shared.ts';
 import { computerSecretsStatusSchema } from './computer-secrets.ts';
+import { cloudAgentProviderSchema, cloudAgentUnreadyReasonSchema } from './worker-shared.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 

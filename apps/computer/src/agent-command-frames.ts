@@ -3,6 +3,7 @@ import {
     agentTaskAssignmentNoticeResponseSchema,
     agentTaskAssignmentsResponseSchema,
     driveConflictAttentionResponseSchema,
+    workerReportsNoticeResponseSchema,
 } from './agent-command-frames-response-schema.ts';
 import type {
     AgentNoticeCommand,
@@ -164,10 +165,11 @@ export function parseNoticeCommand(frame: unknown): AgentNoticeCommand | null {
     const tasks = agentTaskAssignmentNoticeResponseSchema
         .optional()
         .safeParse(frame.taskAssignments);
-    if (!(inbox && unreadElsewhere && tasks.success)) {
+    const reports = workerReportsNoticeResponseSchema.optional().safeParse(frame.workerReports);
+    if (!(inbox && unreadElsewhere && tasks.success && reports.success)) {
         return null;
     }
-    if (!tasks.data && (inbox.length === 0 || frame.totalPending < 1)) {
+    if (!(tasks.data || reports.data) && (inbox.length === 0 || frame.totalPending < 1)) {
         return null;
     }
     return {
@@ -178,6 +180,7 @@ export function parseNoticeCommand(frame: unknown): AgentNoticeCommand | null {
         totalPending: frame.totalPending,
         type: 'notice',
         unreadElsewhere,
+        ...(reports.data ? { workerReports: reports.data } : {}),
     };
 }
 
@@ -185,7 +188,11 @@ export function parseNoticeCommand(frame: unknown): AgentNoticeCommand | null {
 export function noticeReceipt(notice: AgentNoticeCommand) {
     return {
         runId: notice.runId,
-        workIds: [...notice.inbox.map((item) => item.id), ...(notice.taskAssignments?.ids ?? [])],
+        workIds: [
+            ...notice.inbox.map((item) => item.id),
+            ...(notice.taskAssignments?.ids ?? []),
+            ...(notice.workerReports?.ids ?? []),
+        ],
     };
 }
 

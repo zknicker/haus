@@ -4,8 +4,8 @@ import type {
     CloudAgentModelParamName,
     CloudAgentModelParams,
     CloudAgentModelSetting,
-    CloudAgentRunModel,
-    CloudAgentRunModelParam,
+    WorkerTurnModel,
+    WorkerTurnModelParam,
 } from './cloud-agent-model.ts';
 import { cursorAutoModelId } from './cloud-agent-model.ts';
 
@@ -20,10 +20,10 @@ export const cursorFastParamId = 'fast';
  * parameter the listed model no longer offers with the saved value is dropped,
  * so that Run takes the model's default for it, and the drop is recorded.
  */
-export function resolveCloudAgentRunModel(
+export function resolveWorkerTurnModel(
     setting: CloudAgentModelSetting,
     catalog: CloudAgentModelCatalog | null
-): CloudAgentRunModel {
+): WorkerTurnModel {
     const autoId = catalog?.autoAvailable ? cursorAutoModelId : null;
     if (setting.kind === 'auto') {
         return { droppedParams: [], fallbackFrom: null, id: autoId, params: [] };
@@ -32,7 +32,7 @@ export function resolveCloudAgentRunModel(
     if (!model) {
         return { droppedParams: [], fallbackFrom: setting.id, id: autoId, params: [] };
     }
-    const params: CloudAgentRunModelParam[] = [];
+    const params: WorkerTurnModelParam[] = [];
     const { effort, fast } = setting.params;
     if (effort !== undefined && model.effort && offersEffort(model, effort)) {
         params.push({

@@ -1,6 +1,6 @@
-import { type CloudAgentPullRequestChange, cloudAgentPullRequestChangeSchema } from '@haus/api';
+import { type WorkerPullRequestChange, workerPullRequestChangeSchema } from '@haus/api';
 
-export type PullRequestTransition = CloudAgentPullRequestChange['change'];
+export type PullRequestTransition = WorkerPullRequestChange['change'];
 
 const changeKeyPattern = /^([^#\s]+\/[^#\s]+)#([1-9][0-9]*):([a-z_]+):([^:\s]+)$/u;
 
@@ -11,12 +11,12 @@ export function pullRequestChangeKey(
     return `${pull.repository}#${pull.number}:${change}:${pull.headSha}`;
 }
 
-export function parsePullRequestChangeKey(key: string): CloudAgentPullRequestChange | null {
+export function parsePullRequestChangeKey(key: string): WorkerPullRequestChange | null {
     const matched = changeKeyPattern.exec(key);
     if (!matched) {
         return null;
     }
-    const parsed = cloudAgentPullRequestChangeSchema.safeParse({
+    const parsed = workerPullRequestChangeSchema.safeParse({
         change: matched[3],
         url: `https://github.com/${matched[1]}/pull/${matched[2]}`,
     });

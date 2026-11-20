@@ -3,7 +3,6 @@ import { and, eq, gte, isNull, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readMessageCauses } from '../automations/message-cause-read.ts';
-import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-work.ts';
 import { readMessageDriveCitations } from '../drive/citations.ts';
 import { readLinkedImageGenerations } from '../image-generation/linked-image-generations.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -17,6 +16,7 @@ import {
 import { requireServerMembership } from '../servers/server-access.ts';
 import { readMessageTaskLinks } from '../tasks/task-reference-links.ts';
 import type { HausUser } from '../users/haus-user.ts';
+import { readLinkedWorker } from '../workers/linked-worker.ts';
 import { requireChatAccess } from './chat-access.ts';
 import { visibleChats } from './chat-visibility.ts';
 import { readMessageBodies } from './message-bodies.ts';
@@ -140,7 +140,7 @@ export async function searchChatMessages(
             readMessageAttachments(db, input.serverId, messageIds),
             readMessageCauses(db, input.serverId, messageIds),
             readMessageBodies(db, input.serverId, messageIds),
-            readLinkedCloudAgentWork(db, input.serverId, messageIds),
+            readLinkedWorker(db, input.serverId, messageIds),
             readLinkedImageGenerations(db, input.serverId, messageIds),
             readChatMessageReactions(db, input.serverId, messageIds),
             readInlineReplyContexts(db, input.serverId, rows),
@@ -154,7 +154,7 @@ export async function searchChatMessages(
             authorProfile: readStoredAuthorProfile(message),
             body: bodies.get(message.id),
             cause: causes.get(message.id),
-            cloudAgentWork: works.get(message.id),
+            workers: works.get(message.id),
             driveCitations: citations.get(message.id),
             imageGenerations: images.get(message.id),
             reactions: reactions.get(message.id),

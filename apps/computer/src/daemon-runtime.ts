@@ -5,8 +5,8 @@ import {
 } from '@haus/effect';
 import { Layer, ManagedRuntime } from 'effect';
 import { computerSourceRevision, computerVersion } from './build-identity.ts';
-import { closeProviderSignIns } from './cloud-agents/provider-sign-in.ts';
 import { KeyedSerialWork } from './keyed-serial-work.ts';
+import { closeProviderSignIns } from './workers/provider-sign-in.ts';
 
 export type DaemonRuntime = EffectRuntime<never>;
 

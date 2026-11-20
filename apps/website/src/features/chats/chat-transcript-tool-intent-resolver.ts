@@ -13,11 +13,11 @@ export function getToolIntent(item: ActivityItem): ToolIntent | null {
         return item.row.systemKind === 'thinking' ? { kind: 'thinking' } : null;
     }
 
-    if (item.row.kind === 'worker') {
+    if (item.row.kind === 'subagent') {
         return {
-            kind: 'worker',
-            ...(item.row.worker.title
-                ? { subject: item.row.worker.title, subjectVisibility: 'header' }
+            kind: 'subagent',
+            ...(item.row.subagent.title
+                ? { subject: item.row.subagent.title, subjectVisibility: 'header' }
                 : {}),
         };
     }
@@ -177,7 +177,7 @@ function resolveSubjectVisibility(subject: string, kind: ToolIntentKind = 'tool'
             kind !== 'file-edit' &&
             kind !== 'file-list' &&
             kind !== 'file-read' &&
-            kind !== 'worker'
+            kind !== 'subagent'
         ) {
             return 'drawer';
         }

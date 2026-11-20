@@ -113,11 +113,12 @@ test('a failed run keeps its assignment when the Task only changed state meanwhi
     await delivery.dispatchAgent(seed.agentId, seed.serverId);
     const runId = transport.framesOfType('start')[0]?.runId ?? '';
 
-    await setTaskState(
-        connection.db,
-        { kind: 'user', userId: seed.userId },
-        { expectedVersion: 2, serverId: seed.serverId, state: 'open', taskId: task.id }
-    );
+    await setTaskState(connection.db, { kind: 'user', userId: seed.userId }, delivery, {
+        expectedVersion: 2,
+        serverId: seed.serverId,
+        state: 'open',
+        taskId: task.id,
+    });
     await delivery.onTurnSettled(seed.computerId, {
         ...settledTurn(seed, runId),
         status: 'failed',

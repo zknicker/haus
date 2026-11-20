@@ -1,12 +1,12 @@
 import { cloudAgentSettingsSchema, cloudAgentSettingsSetModelInputSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
+import { cloudAgentSettingsUpdatedTopic } from '../../realtime/topics.ts';
 import {
     CloudAgentModelParamUnofferedError,
     CloudAgentModelUnlistedError,
     CloudAgentSettingsDeniedError,
     setCloudAgentModel,
-} from '../../cloud-agents/cloud-agent-model.ts';
-import { cloudAgentSettingsUpdatedTopic } from '../../realtime/topics.ts';
+} from '../../workers/cloud-agent-model.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
 /**

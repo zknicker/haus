@@ -153,7 +153,7 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
     expect(prompt).toContain(
         "- When you need a human's decision or action, @mention them where the work lives. Ask one question, a default only if reversible, and what you prepared. Their reply wakes you. Irreversible acts wait for an explicit yes."
     );
-    expect(prompt).toContain('13. **Cloud agents**');
+    expect(prompt).toContain('13. **Workers**');
     expect(prompt).toMatch(/14\. \*\*Images\*\*: `haus image models`.*\n15\. \*\*Tasks\*\*/);
 
     // These Raft-only surfaces must not leak into the Haus prompt.
@@ -183,13 +183,13 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // inline reply to a human's message came to address them like a mention, so the
     // "even when replying to whoever asked" clause was cut. Lowered (32,281 → 32,220) when step 4 and the
     // DM silence rule came to require one acknowledgement reaction whose emoji fits the message,
-    // paid for by relocating the Cloud agents section's `cloud-agent send` and work-thread
-    // sentences to the `cloud-agents` Manual topic. Raised by operator decision (32,220 → 32,444)
+    // paid for by relocating the Workers section's `worker send` and work-thread
+    // sentences to the `workers` Manual topic. Raised by operator decision (32,220 → 32,444)
     // when the Formatting section gained a chat-register rule against bold-as-emphasis and
     // structure-only lists, headings, and tables. Lowered (32,444 → 32,416) when Sending messages
     // moved solo step-by-step progress into a thread on the acknowledgment (ADR 0029 amendment,
-    // 2026-10-02), paid for by relocating the Cloud agents section's requester-update and
-    // work-thread sentences to the `cloud-agents` Manual topic and shortening the Tasks
+    // 2026-10-02), paid for by relocating the Workers section's requester-update and
+    // work-thread sentences to the `workers` Manual topic and shortening the Tasks
     // conversation rule. Lowered (32,416 → 32,399) when the Haus-only `## Personality` section
     // arrived (measured here with a one-word personality), paid for by shortening the Cloud
     // agents section's delivery sentences. Raised (32,399 → 32,529) for reminder title guidance:
@@ -213,16 +213,18 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // terse imperative rules, merged not appended, after live Agents wrote verbose preferences.
     // Lowered (37,338 → 37,035) when the Haus-only `## Web access` section went: Agents get their runtime's native web tools with no gate and no prompt text, as in Raft.
     // Lowered by exactly 704 (38,457 → 37,753) by the owner-approved Tasks rewrite: a deliberate shrink, not room-making.
-    // Raised by exactly 12 (37,753 → 37,765) when the Cloud agents sentence named "a cloud agent's run" for "its run".
+    // Raised by exactly 12 (37,753 → 37,765) when the Workers sentence named "a Worker's run" for "its run".
     // Raised by exactly 145 (37,765 → 37,910) when MEMORY.md and notes/ moved into Drive at drive/agents/<handle>/ (ADR 0054, D3).
     // Raised by exactly 13 (37,910 → 37,923) when the Files entry became Drive: edits happen in the drive/ folder, not haus files pull/push.
     // Lowered by exactly 79 (37,923 → 37,844): only people create Projects, so `haus channel create`
     // and its Manual pointer went (-80), and the welcome rule names #haus for #all (+1).
-    // Raised by exactly 199 (37,844 → 38,043): How to organize memory describes AGENTS.md (standing
+    // Lowered by exactly 100 (37,844 → 37,744) when cloud agents became Workers (ADR 0056, W2): reports post in the Task and reach the Agent as inbox items, and `start` names `--on`.
+    // Lowered by exactly 13 (37,744 → 37,731) when `--on` became optional again: a start without it runs on the Computer's default place.
+    // Raised by exactly 199 (37,731 → 37,930): How to organize memory describes AGENTS.md (standing
     // rules, delivered on change) and WORKER.md beside MEMORY.md (ADR 0054 decisions 7 and 10, +208);
     // the Standing Preferences placeholder says "preferences people show in passing: terse imperative
     // lines" for "communication style and standing directives: terse imperative rules" (-9).
-    expect(prompt.length).toBeLessThanOrEqual(38_043);
+    expect(prompt.length).toBeLessThanOrEqual(37_930);
     expect(prompt.toLowerCase()).not.toContain('thread');
 });
 

@@ -1,9 +1,6 @@
-import type { UnreadElsewhere } from '@haus/api';
+import type { AgentTaskAssignmentNotice, UnreadElsewhere, WorkerReportsNotice } from '@haus/api';
 import type { AgentInboxItem } from './agent-inbox-item.ts';
-import {
-    formatCloudAgentWorkAttention,
-    formatPullRequestNotice,
-} from './inbox-attention-format.ts';
+import { formatWorkerAttention, formatPullRequestNotice } from './inbox-attention-format.ts';
 import {
     formatInboxTimeFields,
     formatSenderLabel,
@@ -11,8 +8,14 @@ import {
     shortInboxId,
 } from './inbox-header-format.ts';
 import { formatInboxTargetRow } from './inbox-target-row.ts';
-import { taskAssignmentNoticeGuidance } from './inbox-task-assignment-format.ts';
+import { nextTurnNoticeGuidance } from './inbox-task-assignment-format.ts';
+import { formatWorkerReport, formatWorkerReportsNotice } from './inbox-worker-report-format.ts';
 import { formatInlineReplyContext } from './inline-reply-format.ts';
+
+export interface PendingCounts {
+    taskAssignments?: AgentTaskAssignmentNotice;
+    workerReports?: WorkerReportsNotice;
+}
 
 const deliveryTrailer = [
     'Respond as appropriate. Complete all your work before stopping.',
@@ -77,20 +80,22 @@ export function formatUnreadElsewhere(entries: readonly UnreadElsewhere[]): stri
 
 /**
  * Content-free, target-level notice, closed by its handling guidance. Bodies never enter this
- * projection. Queued Task assignments, which have no target to list under, add one count line.
+ * projection. Queued Task assignments and one Task's queued Worker reports, which arrive in the
+ * next turn rather than as rows, each add one count line.
  */
 export function composeInboxNotice(
     items: AgentInboxItem[],
     totalPending = items.length,
-    taskAssignments = 0
+    counts: PendingCounts = {}
 ): string | null {
-    const taskLines =
-        taskAssignments > 0
-            ? [`${taskAssignments} ${plural(taskAssignments, 'task')} assigned to you`]
-            : [];
+    const assigned = counts.taskAssignments?.total ?? 0;
+    const countLines = [
+        ...(assigned > 0 ? [`${assigned} ${plural(assigned, 'task')} assigned to you`] : []),
+        ...(counts.workerReports ? [formatWorkerReportsNotice(counts.workerReports)] : []),
+    ];
     if (items.length === 0) {
-        return taskLines.length > 0
-            ? ['[Haus inbox notice:', ...taskLines, ']', taskAssignmentNoticeGuidance].join('\n')
+        return countLines.length > 0
+            ? ['[Haus inbox notice:', ...countLines, ']', nextTurnNoticeGuidance].join('\n')
             : null;
     }
     const hasAttention = items.some(isAttention);
@@ -110,7 +115,7 @@ export function composeInboxNotice(
         return formatInboxTargetRow({
             attention: ordered.some(isAttention),
             claimNumber: latest.claim?.number ?? null,
-            cloudAgentResult: ordered.some((item) => Boolean(item.cloudAgentWork)),
+            workerResult: ordered.some((item) => Boolean(item.worker || item.workerReport)),
             firstShortId: shortInboxId(first.id),
             latestSender: latest.senderHandle,
             latestShortId: shortInboxId(latest.id),
@@ -125,10 +130,10 @@ export function composeInboxNotice(
             ? `Inbox update: ${totalPending} pending ${plural(totalPending, 'work item')} total; ${targets.size} changed ${plural(targets.size, 'target')}`
             : `Inbox update: ${totalPending} unread ${plural(totalPending, 'message')} total; ${targets.size} changed ${plural(targets.size, 'target')}`,
         ...lines,
-        ...taskLines,
+        ...countLines,
         ']',
         noticeGuidance,
-        ...(taskLines.length > 0 ? [taskAssignmentNoticeGuidance] : []),
+        ...(countLines.length > 0 ? [nextTurnNoticeGuidance] : []),
     ].join('\n');
 }
 
@@ -137,8 +142,11 @@ function plural(count: number, singular: string): string {
 }
 
 function formatEnvelope(item: AgentInboxItem): string {
-    if (item.cloudAgentWork) {
-        return formatCloudAgentWorkAttention(item.cloudAgentWork, item.target);
+    if (item.workerReport) {
+        return formatWorkerReport(item.workerReport);
+    }
+    if (item.worker) {
+        return formatWorkerAttention(item.worker, item.target);
     }
     if (item.pullRequestNotice) {
         return formatPullRequestNotice(item.pullRequestNotice, item.target);
@@ -192,7 +200,7 @@ function claimAssignee(item: AgentInboxItem): string {
 
 /** A bodiless typed attention: work to act on, not a message to read. */
 function isAttention(item: AgentInboxItem): boolean {
-    return Boolean(item.cloudAgentWork || item.pullRequestNotice);
+    return Boolean(item.worker || item.pullRequestNotice || item.workerReport);
 }
 
 function compareItems(left: AgentInboxItem, right: AgentInboxItem): number {

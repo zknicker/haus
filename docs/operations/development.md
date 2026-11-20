@@ -131,7 +131,7 @@ both Agent DMs (Tiny's DM ends on its unanswered stale-copy question; Blippy's D
 your reply), and Cove @mentioning you with its rename question in `#onboarding-owner`. It also
 seeds one claim Blippy left stalled (shown
 on Blippy's profile under **Stopped before finishing**), one
-settled Cloud Agent work, and seven days of Agent turns. That activity is idempotent and separate,
+settled Worker, and seven days of Agent turns. That activity is idempotent and separate,
 in `apps/server/src/development/seed-inbox-activity.ts`.
 
 Another idempotent seed (`seed-artifact-message.ts`) gives fresh and existing demo workspaces a
@@ -142,8 +142,8 @@ card, the link, and desktop workspace tabs have real files to open.
 
 A separate idempotent seed adds **#ui-gallery** to fresh and existing demo workspaces. Its
 messages cover human @mentions in Channels and Tasks, every Task state, hidden claims, claims
-with replies, every cloud-work status, cancelling and stale work, follow-ups waiting or running
-behind a finished Run and waiting behind a failed one, and a Task holding several cloud agents
+with replies, every Worker status, cancelling and stale work, follow-ups waiting or running
+behind a finished Run and waiting behind a failed one, and a Task holding several Workers
 and an inline human @mention. Toggle **Show tasks in chat** to compare hidden claims. Cloud branch and diff evidence is synthetic; its pull request link points at a nonexistent
 `demo/ui-gallery` repository. The gallery's queued/running work appears in Inbox too.
 

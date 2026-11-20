@@ -151,9 +151,7 @@ test('composes the CLI-only Haus collaboration contract', () => {
     expect(instructions.indexOf('### Reminders')).toBeLessThan(
         instructions.indexOf('### Triggers')
     );
-    expect(instructions.indexOf('### Triggers')).toBeLessThan(
-        instructions.indexOf('### Cloud agents')
-    );
+    expect(instructions.indexOf('### Triggers')).toBeLessThan(instructions.indexOf('### Workers'));
 
     // Identity + authoritative runtime context are personalized per Agent.
     expect(instructions).toContain('You are "Cove"');

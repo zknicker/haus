@@ -18,7 +18,7 @@ import {
 export type HausProxy = ReturnType<typeof startHausProxy>;
 
 const mutationPaths = new Set([
-    '/api/agent/cloud-agents',
+    '/api/agent/workers',
     '/api/agent/messages/react',
     '/api/agent/messages/send',
 ]);

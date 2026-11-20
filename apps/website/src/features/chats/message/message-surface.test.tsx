@@ -5,7 +5,7 @@ import { observable } from '@trpc/server/observable';
 import type * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { linkedWork } from '../../../../../../packages/haus-api/src/cloud-agent-work-fixture.ts';
+import { linkedWork } from '../../../../../../packages/haus-api/src/worker-fixture.ts';
 import { hausTrpc } from '../../../lib/haus-server.tsx';
 import { testAgent } from '../../members/agent-fixtures.ts';
 import type { TranscriptMessageRow } from '../transcript-contract.ts';
@@ -18,14 +18,14 @@ const tiny = { ...linkedWork, agentId: 'agt_tiny', id: 'caw_tiny', title: 'Tiny 
 test('every linked work renders its own card, named after its delegating Agent', () => {
     const html = render(row([blippy, tiny]));
 
-    expect(html.match(/data-testid="cloud-agent-work-card"/g)).toHaveLength(2);
-    expect(html).toContain('Cloud Agent work: Blippy job');
-    expect(html).toContain('Cloud Agent work: Tiny job');
+    expect(html.match(/data-testid="worker-card"/g)).toHaveLength(2);
+    expect(html).toContain('Worker: Blippy job');
+    expect(html).toContain('Worker: Tiny job');
     expect(html.indexOf('Blippy job')).toBeLessThan(html.indexOf('Tiny job'));
 });
 
 test('a Message that links no work renders no card', () => {
-    expect(render(row([]))).not.toContain('cloud-agent-work-card');
+    expect(render(row([]))).not.toContain('worker-card');
 });
 
 test('the card names the delegator from the work, never the linking author', () => {
@@ -47,7 +47,7 @@ function row(works: readonly (typeof linkedWork)[]): TranscriptMessageRow {
         isFirstInGroup: true,
         kind: 'message',
         message: {
-            cloudAgentWork: works,
+            worker: works,
             content: 'Tracking this here.',
             id: 'msg_link',
             sender: 'Forge',

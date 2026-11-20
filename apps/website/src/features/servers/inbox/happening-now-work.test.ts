@@ -1,10 +1,7 @@
 import { expect, test } from 'bun:test';
-import type { ActiveCloudAgentWork, Agent } from '@haus/api';
-import { activeWorkLocations } from '../../../../../../packages/haus-api/src/cloud-agent-work-fixture.ts';
-import {
-    cloudAgentRunFixture,
-    cloudAgentWorkFixture,
-} from '../../cloud-agents/cloud-agent-work-fixture.ts';
+import type { ActiveWorker, Agent } from '@haus/api';
+import { activeWorkLocations } from '../../../../../../packages/haus-api/src/worker-fixture.ts';
+import { workerTurnFixture, workerFixture } from '../../workers/worker-fixture.ts';
 import { humanDirectory } from '../human-identity.ts';
 import { happeningNowWorkSubline, toHappeningNowWork } from './happening-now-work.ts';
 
@@ -21,34 +18,23 @@ test('a channel work reads its title, ticking status, Chat, and live Agent name'
             agentName: 'Blippy',
             chatLabel: '#product',
             id: 'caw_one',
-            location: {
-                chatId: 'chat_product',
-                kind: 'message',
-                messageId: 'message_one',
-            },
+            location: { chatId: 'chat_task', kind: 'task', taskId: 'tsk_12' },
             provider: 'cursor',
             state: 'working',
             statusText: 'Working · 7m',
-            task: null,
+            task: { id: 'tsk_12', key: 'SEC-12' },
             title: 'Fix the failing migration',
         },
     ]);
 });
 
-test('work on a Task carries the Task, and its subline leads with the key', () => {
-    const [onTask] = toHappeningNowWork(
-        [activeWork({ taskId: 'tsk_12', taskKey: 'SEC-12' })],
-        humans,
-        agents,
-        now
-    );
-    const [loose] = toHappeningNowWork([activeWork()], humans, agents, now);
+test('a Worker carries its Task, and its subline leads with the key', () => {
+    const [onTask] = toHappeningNowWork([activeWork()], humans, agents, now);
 
     expect(onTask?.task).toEqual({ id: 'tsk_12', key: 'SEC-12' });
     expect(onTask && happeningNowWorkSubline(onTask)).toBe(
         'Working · 7m · SEC-12 · #product · Blippy'
     );
-    expect(loose && happeningNowWorkSubline(loose)).toBe('Working · 7m · #product · Blippy');
 });
 
 test('a DM work names the human peer, and an Agent DM names neither', () => {
@@ -83,50 +69,42 @@ test('the Server location is where the row opens', () => {
 });
 
 test('a follow-up queued behind a finished Run reads as the waiting follow-up, not done', () => {
-    const followedUp = cloudAgentWorkFixture({
-        runs: [
-            cloudAgentRunFixture({
+    const followedUp = workerFixture({
+        turns: [
+            workerTurnFixture({
                 createdAt: '2026-09-04T12:05:00.000Z',
-                runId: 'car_two',
+                turnId: 'car_two',
                 status: 'queued',
             }),
-            cloudAgentRunFixture({ status: 'completed' }),
+            workerTurnFixture({ status: 'completed' }),
         ],
         status: 'queued',
     });
-    const [row] = toHappeningNowWork([activeWork({ work: followedUp })], humans, agents, now);
+    const [row] = toHappeningNowWork([activeWork({ worker: followedUp })], humans, agents, now);
 
     expect(row?.state).toBe('working');
     expect(row?.statusText).toBe('Follow-up waiting · 2m');
 });
 
-function workRecord(
-    overrides: Partial<ActiveCloudAgentWork['work']> = {}
-): ActiveCloudAgentWork['work'] {
-    return cloudAgentWorkFixture({
+function workRecord(overrides: Parameters<typeof workerFixture>[0] = {}): ActiveWorker['worker'] {
+    return workerFixture({
         agentId: 'agent_blippy',
-        chatId: 'chat_product',
-        messageId: 'message_one',
         updatedAt: '2026-09-04T12:06:00.000Z',
         ...overrides,
     });
 }
 
-function activeWork(overrides: Partial<ActiveCloudAgentWork> = {}): ActiveCloudAgentWork {
+function activeWork(overrides: Partial<ActiveWorker> = {}): ActiveWorker {
     return {
         agentName: 'Blippy',
         chatKind: 'channel',
         chatName: 'product',
         chatPeerUserId: null,
         conversationChatId: 'chat_product',
-        location: {
-            chatId: 'chat_product',
-            kind: 'message',
-            messageId: 'message_one',
-        },
-        taskId: null,
-        taskKey: null,
-        work: workRecord(),
+        location: { chatId: 'chat_task', kind: 'task', taskId: 'tsk_12' },
+        taskId: 'tsk_12',
+        taskKey: 'SEC-12',
+        worker: workRecord(),
         ...overrides,
     };
 }

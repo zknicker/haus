@@ -121,7 +121,7 @@ export const intentCopy: Record<ToolIntentKind, ToolIntentCopy> = {
         completed: 'Checked wiki',
         priority: 6,
     },
-    worker: {
+    subagent: {
         active: 'Working with agents',
         completed: 'Worked with agents',
         priority: 7,
@@ -176,7 +176,7 @@ export function activeVerb(kind: ToolIntentKind) {
             return 'Searching';
         case 'wiki':
             return 'Checking';
-        case 'worker':
+        case 'subagent':
             return 'Working on';
     }
 }
@@ -229,7 +229,7 @@ export function completedVerb(kind: ToolIntentKind) {
             return 'Searched';
         case 'wiki':
             return 'Checked';
-        case 'worker':
+        case 'subagent':
             return 'Worked on';
     }
 }

@@ -35,7 +35,7 @@ export function formatInboxCheck(input: InboxCheckInput): string {
     const { list, view } = input;
     const pendingRows = input.pendingRows ?? [];
     const pendingByChat = new Map(
-        pendingRows.filter((row) => !row.cloudAgentResult).map((row) => [row.chatId, row])
+        pendingRows.filter((row) => !row.workerResult).map((row) => [row.chatId, row])
     );
     const listed = new Set(list.items.map((item) => item.chatId));
     // Pending targets the durable list does not show yet lead the first page:
@@ -44,7 +44,7 @@ export function formatInboxCheck(input: InboxCheckInput): string {
         input.before === undefined
             ? pendingRows.filter(
                   (row) =>
-                      (row.cloudAgentResult || !listed.has(row.chatId)) &&
+                      (row.workerResult || !listed.has(row.chatId)) &&
                       (view === 'unread' || row.mentioned)
               )
             : [];
@@ -137,18 +137,18 @@ function renderConversation(
 }
 
 /**
- * Pending-only rows, in queue order. Cloud Agent results are bodiless work
+ * Pending-only rows, in queue order. Worker results are bodiless work
  * items, not a conversation to open, so they fold into one row fetched with
  * `haus message check` (Raft's grouped third-party app events row).
  */
 function renderPendingOnly(rows: readonly AgentInboxPendingRow[]): RenderedRow[] {
     const cloudCount = rows
-        .filter((row) => row.cloudAgentResult)
+        .filter((row) => row.workerResult)
         .reduce((sum, row) => sum + row.pendingCount, 0);
     const rendered: RenderedRow[] = [];
     let cloudShown = false;
     for (const row of rows) {
-        if (!row.cloudAgentResult) {
+        if (!row.workerResult) {
             const parts = [row.target, `${row.pendingCount} new, not yet delivered`];
             if (row.mentioned) {
                 parts.push('mentions you');
@@ -160,10 +160,8 @@ function renderPendingOnly(rows: readonly AgentInboxPendingRow[]): RenderedRow[]
         } else if (!cloudShown) {
             cloudShown = true;
             rendered.push({
-                lines: [
-                    `Cloud Agent results · ${cloudCount} pending · fetch with haus message check`,
-                ],
-                next: 'fetch the Cloud Agent results above: haus message check',
+                lines: [`Worker results · ${cloudCount} pending · fetch with haus message check`],
+                next: 'fetch the Worker results above: haus message check',
             });
         }
     }
