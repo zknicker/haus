@@ -79,10 +79,11 @@ function seedGithubState(input: { computerId: string; databaseUrl: string; serve
         `begin;
          insert into agents (
            id, server_id, computer_id, handle, display_name, home_timezone,
-           desired_runtime_id, desired_model_id
+           desired_runtime_id, desired_model_id, home_project_id
          ) values (
            '${agentId}', '${input.serverId}', '${input.computerId}', 'octo', 'Octo',
-           'America/New_York', 'codex', 'gpt-5.6-sol'
+           'America/New_York', 'codex', 'gpt-5.6-sol',
+           (select id from chats where server_id = '${input.serverId}' and is_all)
          );
          insert into mcp_connections (
            id, server_id, name, url, auth, preset, connected, account_label, header_names, tools

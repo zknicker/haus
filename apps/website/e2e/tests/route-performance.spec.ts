@@ -177,11 +177,11 @@ test('cold channel navigation shows the selected identity while conversation cod
             'aria-busy',
             'true'
         );
-        await expect(page.getByRole('textbox', { name: 'Message all', exact: true })).toHaveCount(
+        await expect(page.getByRole('textbox', { name: 'Message haus', exact: true })).toHaveCount(
             0
         );
     } finally {
         release();
     }
-    await expect(page.getByRole('textbox', { name: 'Message all', exact: true })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Message haus', exact: true })).toBeVisible();
 });

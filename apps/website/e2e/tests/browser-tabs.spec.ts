@@ -20,7 +20,7 @@ test('web links open browser tabs on the right, and the sidebar keeps to the lef
         content: '[Amazon listing](https://www.amazon.com/dp/B012345678)',
     });
     await openDesktopWindow(page, `/s/${server.slug}/chats/${chatId}`);
-    const composer = page.getByRole('textbox', { name: 'Message all' });
+    const composer = page.getByRole('textbox', { name: 'Message haus' });
     const left = tabRow(page, 'Left pane tabs').locator('.workspace-tab');
     const right = tabRow(page, 'Right pane tabs').locator('.workspace-tab');
     const address = page.getByRole('combobox', { name: 'Page address', exact: true });
