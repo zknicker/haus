@@ -165,7 +165,7 @@ export async function markComputerOffline(
     await db.transaction(async (tx) => {
         const [computer] = await tx
             .update(computersTable)
-            .set({ connectionGeneration: null, health: 'offline' })
+            .set({ connectionGeneration: null, disconnectedAt: sql`now()`, health: 'offline' })
             .where(
                 and(
                     eq(computersTable.id, computerId),
@@ -212,7 +212,7 @@ export async function markAllComputersOffline(db: HausDatabase) {
     await db.transaction(async (tx) => {
         const connected = await tx
             .update(computersTable)
-            .set({ connectionGeneration: null, health: 'offline' })
+            .set({ connectionGeneration: null, disconnectedAt: sql`now()`, health: 'offline' })
             .where(ne(computersTable.health, 'offline'))
             .returning({ id: computersTable.id, serverId: computersTable.serverId });
         if (connected.length > 0) {

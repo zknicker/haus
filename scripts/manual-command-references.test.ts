@@ -1,10 +1,18 @@
 import { expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
-import { commandGroups } from '../apps/computer/src/agent-cli.ts';
+import { workerCommandGroups } from '../apps/computer/src/worker-cli/worker-cli.ts';
+import { commandGroups } from '../packages/agent-cli/src/agent-cli.ts';
+import type { SubCommand } from '../packages/agent-cli/src/subcommand.ts';
 import { manualTopics, resolveManualTopic } from '../packages/agent-manual/src/index.ts';
 import { renderAgentInstructions } from '../packages/agent-prompt/src/index.ts';
 
-// Validate executable references against the same registry that dispatches Agent commands.
+// A Worker turn's `haus` is its own scope (`haus worker report`), and guidance names both.
+const workerGroups: Record<string, SubCommand[]> = workerCommandGroups(() => {
+    throw new Error('The reference check never runs a command.');
+});
+const scopes: Record<string, SubCommand[]>[] = [commandGroups, workerGroups];
+
+// Validate executable references against the registries that dispatch Agent and Worker commands.
 test('Manual and prompt guidance reference registered Haus subcommands and flags', () => {
     const texts = [
         ...manualTopics.map((topic) => topic.body),
@@ -39,12 +47,11 @@ test('Manual and prompt guidance reference registered Haus subcommands and flags
         for (const [, group, verb, tail] of text.matchAll(
             /\bhaus ([a-z-]+) ([a-z-]+)([^\n`]*)/gu
         )) {
-            const commands = commandGroups[group as keyof typeof commandGroups];
             // A flag in verb position addresses the group's bare action (`haus claim --target …`).
             const bare = verb!.startsWith('-');
-            const command = commands?.find((entry) =>
-                bare ? entry.bare : !entry.bare && entry.name === verb
-            );
+            const command = scopes
+                .flatMap((scope) => scope[group!] ?? [])
+                .find((entry) => (bare ? entry.bare : !entry.bare && entry.name === verb));
             expect(command, `haus ${group} ${verb}`).toBeDefined();
             const flags = new Set(['--help', ...(command?.flags ?? []).map((flag) => flag.name)]);
             const flagText = bare ? `${verb}${tail}` : tail!;

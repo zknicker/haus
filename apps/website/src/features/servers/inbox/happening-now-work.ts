@@ -2,8 +2,8 @@ import type {
     ActiveWorker,
     ActiveWorkerLocation,
     Agent,
-    WorkerJobState,
     CloudAgentProvider,
+    WorkerJobState,
 } from '@haus/api';
 import { workerText, elapsedSince } from '../../workers/worker-presentation.ts';
 import { conversationLabel } from '../conversation-label.ts';
@@ -16,7 +16,7 @@ export interface HappeningNowWork {
     /** The work id, which is also the `?work=` deep link. */
     id: string;
     location: ActiveWorkerLocation;
-    provider: CloudAgentProvider;
+    provider: CloudAgentProvider | null;
     state: WorkerJobState;
     statusText: string;
     task: { id: string; key: string } | null;
@@ -42,7 +42,7 @@ export function toHappeningNowWork(
         chatLabel: conversationLabel(item, humans),
         id: item.worker.id,
         location: item.location,
-        provider: item.worker.place,
+        provider: item.worker.place.kind === 'computer' ? null : item.worker.place.kind,
         ...liveStatus(item.worker, now),
         task: workTask(item),
         title: item.worker.title,

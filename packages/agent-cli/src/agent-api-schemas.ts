@@ -1,0 +1,260 @@
+import {
+    agentAutomationEventSchema,
+    claimOrigins,
+    type HausAgentMessage,
+    type HausAgentSendResponse,
+    humanTimezoneSchema,
+    messageBodyKinds,
+} from '@haus/api';
+import * as z from 'zod';
+import { chatMessageReplyResponseSchema } from './chat-message-reply-response-schema.ts';
+import { messageWorkerSchema } from './message-worker-schema.ts';
+import { agentWorkerReceiptResponseSchema } from './worker-response-schema.ts';
+
+/**
+ * Loosened at its own level so a newer Server's automation event field
+ * (a Trigger or Reminder fire, or a claim assignment) does not strand an
+ * older Computer reading `haus message check`.
+ */
+const agentAutomationEventResponseSchema = z.looseObject(agentAutomationEventSchema.shape);
+
+const jsonObjectSchema = z.record(z.string(), z.unknown());
+
+export const claimActorSchema = z.object({
+    handle: z.string().nullable(),
+    id: z.string(),
+});
+
+const messageClaimSchema = z.object({
+    assignee: claimActorSchema.nullable(),
+    claimed_at: z.string().nullable(),
+    created_at: z.string(),
+    number: z.number().int().positive(),
+    origin: z.enum(claimOrigins),
+    status: z.enum(['todo', 'in_progress', 'in_review', 'done', 'closed']),
+    updated_at: z.string(),
+});
+
+/** The Agent one Agent created, as the creating Message carries it. */
+const messageAgentCreatedSchema = z.object({
+    agent_id: z.string(),
+    description: z.string().nullable(),
+    display_name: z.string(),
+    handle: z.string(),
+    retired: z.boolean(),
+});
+
+export const agentMessageSchema = z.object({
+    agent_created: messageAgentCreatedSchema.nullable().optional(),
+    /** Every Worker the Message links, in link order (ADR 0044). */
+    workers: z.array(messageWorkerSchema).optional(),
+    attachments: z.array(jsonObjectSchema),
+    author: z.object({
+        id: z.string().min(1),
+        kind: z.enum(['user', 'agent', 'system', 'external', 'plugin']),
+        label: z.string().nullable(),
+        metadata: jsonObjectSchema,
+    }),
+    body_kind: z.enum(messageBodyKinds),
+    chat_id: z.string().min(1),
+    claim: messageClaimSchema.nullable().optional(),
+    content: z.string(),
+    created_at: z.string().min(1),
+    deleted_at: z.string().nullable(),
+    delivery_id: z.string().nullable(),
+    id: z.string().min(1),
+    metadata: jsonObjectSchema,
+    nonce: z.string().nullable(),
+    reactions: z
+        .array(z.object({ actors: z.array(claimActorSchema), emoji: z.string() }))
+        .optional(),
+    reply: chatMessageReplyResponseSchema.nullable().optional(),
+    role: z.enum(['user', 'assistant', 'system']),
+    sender: z.object({
+        description: z.string().nullable(),
+        handle: z.string().nullable(),
+        timezone: humanTimezoneSchema.optional(),
+        type: z.enum(['human', 'agent', 'system']),
+    }),
+    sequence: z.number().int().positive(),
+}) satisfies z.ZodType<HausAgentMessage>;
+
+export type AgentCliMessage = HausAgentMessage;
+
+export const agentSendResponseSchema: z.ZodType<HausAgentSendResponse> = z.discriminatedUnion(
+    'state',
+    [
+        z.object({
+            /** Absent on an older Server. */
+            failedImageGenerations: z
+                .array(
+                    z.object({
+                        id: z.string().min(1),
+                        modelDisplayName: z.string().min(1),
+                        reason: z.string().min(1),
+                    })
+                )
+                .optional(),
+            message: agentMessageSchema,
+            recentUnread: z.array(
+                z.object({ message: agentMessageSchema, target: z.string().min(1) })
+            ),
+            state: z.literal('sent'),
+        }),
+        z.object({
+            continueAnywaySuggested: z.boolean(),
+            formalMentionCount: z.number().int().nonnegative(),
+            newMessageCount: z.number().int().positive(),
+            omittedMessageCount: z.number().int().nonnegative(),
+            reholdCount: z.number().int().positive(),
+            shownMessages: z.array(agentMessageSchema).max(12),
+            state: z.literal('held'),
+        }),
+    ]
+);
+
+/** `haus worker start`: the started receipt, or a freshness hold with checked messages. */
+export const agentWorkerStartResponseSchema = z.discriminatedUnion('state', [
+    agentWorkerReceiptResponseSchema,
+    z.looseObject({
+        formalMentionCount: z.number().int().nonnegative(),
+        newMessageCount: z.number().int().positive(),
+        omittedMessageCount: z.number().int().nonnegative(),
+        shownMessages: z.array(agentMessageSchema).max(12),
+        state: z.literal('held'),
+    }),
+]);
+
+export const agentMessageCheckResponseSchema = z.object({
+    /**
+     * Bodiless inbox items served on the same pull: Trigger and Reminder fires,
+     * and claim assignments. None writes a Chat message, so they ride their own
+     * array and carry their own envelope bodies.
+     */
+    automations: z.array(agentAutomationEventResponseSchema).default([]),
+    messages: z.array(
+        z.object({
+            message: agentMessageSchema,
+            target: z.string().min(1),
+        })
+    ),
+    more: z.boolean(),
+});
+
+export type AgentCliAutomationEvent = z.infer<typeof agentAutomationEventSchema>;
+
+export const agentHistoryResponseSchema = z.object({
+    has_more: z.boolean(),
+    has_newer: z.boolean(),
+    has_older: z.boolean(),
+    last_read: z.object({ after: z.number().int().nonnegative(), unread_after: z.number().int() }),
+    messages: z.array(agentMessageSchema),
+    target: z.string().min(1),
+    /** `--unread` only: the read position after this read. */
+    read_through_seq: z.number().int().nonnegative().nullable().optional(),
+    /** `--unread` only: the read position the window starts after. Absent on an older Server. */
+    unread_after_seq: z.number().int().nonnegative().nullable().optional(),
+});
+const directoryPersonSchema = z.object({
+    description: z.string().nullable(),
+    handle: z.string().min(1),
+    id: z.string().min(1),
+    /** Humans only: their IANA zone, null when unknown. Absent on an older Server. */
+    timezone: z.string().nullable().optional(),
+});
+
+export const agentChannelSchema = z.object({
+    description: z.string().nullable(),
+    handle: z.string().min(1),
+    home: z.boolean(),
+    homeAgents: z.array(z.string().min(1)),
+    memberCount: z.number().int().nonnegative(),
+    project: z.string().min(1).nullable(),
+});
+
+export const agentServerInfoSchema = z.object({
+    agents: z.array(directoryPersonSchema),
+    channels: z.array(agentChannelSchema),
+    hasMore: z.object({ agents: z.boolean(), channels: z.boolean(), humans: z.boolean() }),
+    humans: z.array(directoryPersonSchema),
+    limit: z.number().int().positive(),
+    offset: z.number().int().nonnegative(),
+    total: z.object({
+        agents: z.number().int().nonnegative(),
+        channels: z.number().int().nonnegative(),
+        humans: z.number().int().nonnegative(),
+    }),
+});
+
+export const agentChannelMembersSchema = z.object({
+    members: z.array(
+        z.object({
+            description: z.string().nullable(),
+            handle: z.string().nullable(),
+            role: z.enum(['human', 'agent']),
+            /** Humans only: their IANA zone, null when unknown. Absent on an older Server. */
+            timezone: z.string().nullable().optional(),
+        })
+    ),
+    project: z.string().min(1).nullable(),
+    target: z.string().min(1),
+});
+
+export const resolvedAgentMessageSchema = z.object({ message: agentMessageSchema });
+export const agentSearchResponseSchema = z.object({
+    messages: z.array(agentMessageSchema.extend({ target: z.string().min(1) })),
+});
+
+export const agentReactionResponseSchema = z.object({ message: agentMessageSchema });
+
+export const agentProfileSchema = z.object({
+    /** Present only on the caller's own profile. */
+    conversationStyle: z.string().nullable().optional(),
+    description: z.string().nullable(),
+    handle: z.string().min(1),
+    isSelf: z.boolean(),
+    /** Present only on the caller's own profile; null means the default pickup reaction. */
+    signatureEmoji: z.string().nullable().optional(),
+});
+
+export const agentProfileResponseSchema = z.object({ profile: agentProfileSchema });
+
+export const agentAttachmentSchema = z.object({
+    byteSize: z.number().int().nonnegative(),
+    filename: z.string().min(1),
+    id: z.string().min(1),
+    mediaType: z.string().nullable(),
+});
+
+export const agentAttachmentUploadResponseSchema = z.object({
+    attachment: agentAttachmentSchema,
+});
+
+export const agentAttachmentViewResponseSchema = z.object({
+    attachment: agentAttachmentSchema.extend({ dataBase64: z.string() }),
+});
+
+export const agentSkillSummarySchema = z.object({
+    description: z.string(),
+    id: z.string(),
+    name: z.string(),
+});
+
+export const agentSkillListResponseSchema = z.object({ skills: z.array(agentSkillSummarySchema) });
+export const agentSkillViewResponseSchema = agentSkillSummarySchema.extend({
+    content: z.string(),
+    hash: z.string(),
+    supportFiles: z.array(z.object({ hash: z.string(), path: z.string() })),
+});
+export const agentSkillCreateResponseSchema = z.object({ skill: agentSkillSummarySchema });
+export const agentSkillChangeResponseSchema = z.object({
+    change: z.object({
+        afterHash: z.string(),
+        beforeHash: z.string().nullable(),
+        path: z.string(),
+        skillId: z.string(),
+    }),
+});
+export const agentSkillDeleteResponseSchema = z.object({
+    deleted: z.object({ agentId: z.string(), skillId: z.string() }),
+});

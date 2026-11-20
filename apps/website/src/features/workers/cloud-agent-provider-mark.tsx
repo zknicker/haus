@@ -23,14 +23,14 @@ export function WorkerKeycap({
     size,
 }: {
     environmentName?: string | null;
-    provider: CloudAgentProvider;
+    provider: CloudAgentProvider | null;
     size: number;
 }) {
     const key = (
         <span
             aria-hidden="true"
             className="relative flex shrink-0 flex-col overflow-hidden bg-(image:--automation-keycap-face) shadow-(--automation-keycap-shadow)"
-            data-worker-keycap={provider}
+            data-worker-keycap={provider ?? 'computer'}
             style={{ borderRadius: identityMarkRadius(size), height: size, width: size }}
         >
             <WorkerKeycapFace provider={provider} size={size} />
@@ -59,10 +59,10 @@ export function WorkerKeycapFace({
     provider,
     size,
 }: {
-    provider: CloudAgentProvider;
+    provider: CloudAgentProvider | null;
     size: number;
 }) {
-    const presentation = cloudAgentProviderPresentation[provider];
+    const presentation = provider ? cloudAgentProviderPresentation[provider] : null;
     const glyph = Math.round(size * 0.59);
     const badge = Math.round(size * 0.41);
 
@@ -74,7 +74,7 @@ export function WorkerKeycapFace({
             >
                 <Icon icon={CommandLineIcon} size={glyph} style={{ height: glyph, width: glyph }} />
             </span>
-            {size >= badgeMinKeySize ? (
+            {presentation && size >= badgeMinKeySize ? (
                 <ModelProviderLogo
                     className="bg-background absolute shadow-(--automation-keycap-shadow)"
                     color={presentation.color}

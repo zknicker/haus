@@ -13,7 +13,9 @@ read_when:
 
 ## Status
 
-Accepted 2026-11-19. Not yet implemented. Amended 2026-11-19 by the Workers contract
+Accepted 2026-11-19. Not yet implemented. Amended 2026-11-20 in decision 7: Workers on a Computer run with the
+machine user's full local access, including the Computer's Haus credential, until OS isolation
+lands. Amended 2026-11-19 by the Workers contract
 ([specs/workers.md](../../specs/workers.md), [specs/cloud-agents.md](../../specs/cloud-agents.md))
 in decisions 2, 4, 7 and 8: a Computer carries each cloud place, a report ends each turn and only
 a written report posts, starting a Worker posts nothing, v1 runtimes are Claude Code and Codex,
@@ -83,6 +85,17 @@ runs silent until they finish or are blocked.
    and a dead machine is a failed Worker. The Agent itself runs on the Server
    ([ADR 0057](0057-agents-run-on-the-server-and-machines-run-their-tools.md)). Moving a running
    Worker between machines is out of scope.
+
+   **The trust this grants (amended 2026-11-20).** A Worker runs as the machine user, and a Claude
+   Code Worker runs with no sandbox. So it can read and run anything that user can: the machine's
+   GitHub and model logins, its SSH keys, and the Computer's own Haus credential. With that
+   credential, a Worker can act as the Computer and as every Agent it hosts, not only within its
+   Task. The turn credential limits what a Worker is handed; it is not a boundary against the
+   machine user. Turning on **Workers can run here** therefore gives that Server's Agents the
+   machine user's full local access. That is the same trust as handing them the machine's GitHub
+   and model logins, and only the person who attached the Computer, an Owner, or an Admin can turn
+   it on. A real boundary needs OS isolation (a separate macOS user, a VM, or a container), which
+   is a follow-up.
 
 8. **People talk to a Worker between turns.** Each Worker card has its own composer. What you type
    goes into that Worker as a follow-up when its turn ends, and also posts in the Task marked with
@@ -171,3 +184,6 @@ Follow-up:
   `specs/cloud-agents.md` carries the cloud places. The Worker credential, the per-Computer switch,
   and worktree runs on a Computer are in `specs/workers.md`.
 - The prompt's delegation and report text goes through the guarded prompt contract.
+- OS isolation for Workers on a Computer: run them as a separate macOS user, in a VM, or in a
+  container with their own logins, so a Worker can reach neither the Computer's Haus credential
+  nor another Agent. Until then decision 7's trust stands.

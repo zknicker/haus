@@ -10,7 +10,7 @@ test('rules guidance describes each file, who reads it, and when', () => {
         '`drive/agents/<your handle>/AGENTS.md` holds your own rules',
         'Haus puts it in your turn input whenever it changed, and again after a reset or compaction',
         '`drive/agents/<your handle>/WORKER.md` holds the rules your Workers follow.',
-        'Haus does not hand this file to a Worker yet, so its rules travel in the brief you start it with (see workers).',
+        'Haus hands it to each of your Workers in its first turn and again after it changes, so your brief does not repeat it (see workers).',
         'the preferences people show in passing, and the index of your notes. It can point at your rule files without repeating them.',
     ]) {
         expect(body).toContain(line);

@@ -4,6 +4,8 @@ import { channelDescriptionInputSchema } from './channel-description.ts';
 import { idSchema } from './chat-contract-primitives.ts';
 import { chatSchema } from './chat.ts';
 import { taskKeyPrefixSchema } from './task-key-ledger.ts';
+import { workerPlaceViewSchema } from './worker-place.ts';
+import { projectRepoSchema } from './worker-settings.ts';
 
 export const projectNameSchema = z
     .string()
@@ -16,12 +18,15 @@ export const projectSchema = z
     .object({
         archived: z.boolean(),
         chatId: idSchema,
+        /** Where the Project's Workers run when the Agent names no place; null asks for one. */
+        defaultWorkerPlace: workerPlaceViewSchema.nullable(),
         /** The non-retired Agents whose home this Project is. */
         homeAgentIds: z.array(idSchema),
         isHaus: z.boolean(),
         key: taskKeyPrefixSchema,
         keyEditable: z.boolean(),
         name: projectNameSchema,
+        repos: z.array(projectRepoSchema),
         serverId: idSchema,
         taskKeyId: idSchema,
     })
@@ -86,12 +91,14 @@ export const projectListSchema = z.array(projectSchema);
  * - `PROJECT_HAS_AGENTS`: archiving or deleting a Project that is still some
  *   Agent's home; move them first.
  * - `PROJECT_NAME_FIXED`: renaming `#all`, whose name is always `all`.
+ * - `WORKER_PLACE_OFF`: a Computer default place whose "Workers can run here" switch is off.
  */
 export const projectErrorCodeSchema = z.enum([
     'PROJECT_HAS_AGENTS',
     'PROJECT_KEY_FIXED',
     'PROJECT_NAME_FIXED',
     'TASK_KEY_TAKEN',
+    'WORKER_PLACE_OFF',
 ]);
 
 export type ProjectErrorCode = z.infer<typeof projectErrorCodeSchema>;

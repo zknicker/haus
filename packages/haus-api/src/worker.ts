@@ -2,11 +2,10 @@ import * as z from 'zod';
 import { idSchema } from './chat.ts';
 import type { components } from './generated/openapi.d.ts';
 import { taskKeySchema } from './task-key.ts';
-import {
-    workerObservedResultSchema,
-    workerPlaceSchema,
-    workerTurnInputTextMaxLength,
-} from './worker-outcome.ts';
+import { workerTurnAttemptSchema } from './worker-computer-frames.ts';
+import { workerObservedResultSchema, workerTurnInputTextMaxLength } from './worker-outcome.ts';
+import { workerPlaceInputSchema, workerPlaceSchema } from './worker-place.ts';
+import { workerModelSchema, workerRuntimeSchema } from './worker-runtime.ts';
 import {
     workerActivitySchema,
     workerBranchSchema,
@@ -68,17 +67,21 @@ export const workerUpdatedEventSchema = z
 export type WorkerUpdatedEvent = z.infer<typeof workerUpdatedEventSchema>;
 
 /**
- * `haus worker start`: the brief and where it runs. A start without `place` or
- * `task` is refused with `WORKER_PLACE_REQUIRED` or `WORKER_TASK_REQUIRED`
- * before anything is written. `nonce` makes a retried start return the same
- * Worker.
+ * `haus worker start`: the brief and where it runs. `place` takes the object
+ * or any string form, a Computer name included; without it the Task's Project
+ * default applies. `repository` defaults to the Project's only repo. `runtime`
+ * and `model` are for Computer places and refuse `WORKER_OPTION_CLOUD`
+ * elsewhere. Every refusal comes before anything is written. `nonce` makes a
+ * retried start return the same Worker.
  */
 export const agentWorkerStartInputSchema = z
     .object({
         brief: workerTextSchema,
+        model: workerModelSchema.optional(),
         nonce: nonceSchema,
-        place: workerPlaceSchema.optional(),
-        repository: workerRepositorySchema,
+        place: workerPlaceInputSchema.optional(),
+        repository: workerRepositorySchema.optional(),
+        runtime: workerRuntimeSchema.optional(),
         startingRef: workerRefSchema.nullable().default(null),
         task: taskKeySchema.optional(),
         title: workerTitleSchema,
@@ -180,9 +183,13 @@ export type WorkerObservation = z.infer<typeof workerObservationSchema>;
  * One dispatched, unsettled turn the carrier must reconcile with the provider
  * after a reconnect, plus whether to stop it: a stop was recorded while it
  * was offline, or the Server already settled it stopped (a purged Task).
+ * `attempt` is the turn's current start attempt, null when no start was sent;
+ * a Computer holding no record of an attempted turn reports it ended
+ * `uncertain` with that attempt.
  */
 export const workerReconcileEntrySchema = z
     .object({
+        attempt: workerTurnAttemptSchema.nullable(),
         place: workerPlaceSchema,
         providerAgentId: z.string().trim().min(1).max(200).nullable(),
         providerRunId: z.string().trim().min(1).max(200).nullable(),

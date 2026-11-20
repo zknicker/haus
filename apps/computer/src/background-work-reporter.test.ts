@@ -82,7 +82,6 @@ const result = (wakeId: unknown, outcome: 'accepted' | 'refused') => ({
 const markers = async () =>
     (await readdir(join(agentRoot, 'runtime'))).filter((name) => name === 'background-work.json');
 
-const settled = () => Bun.sleep(20);
 const wakes = () => frames.filter((frame) => frame.type === 'agent-subagent-wake');
 const counts = () => frames.filter((frame) => frame.type === 'agent-background-work');
 
@@ -119,8 +118,9 @@ test('each Agent’s running sub-agents and tasks reach the Server on change and
 });
 
 test('a turn Claude Code starts on its own asks the Server for a wake and holds the Agent’s calls', async () => {
-    reporter().wake(agentRoot);
-    await settled();
+    const work = reporter();
+    work.wake(agentRoot);
+    await work.settled(agentRoot);
     expect(holds).toEqual([['agt_one', wakeHoldMs]]);
     expect(wakes()).toEqual([
         {
@@ -136,18 +136,18 @@ test('a turn Claude Code starts on its own asks the Server for a wake and holds 
 test('work a process took with it wakes the Agent as stopped; deliberate ends wake nobody', async () => {
     const work = reporter();
     work.changed(agentRoot, { subagents: 1, tasks: 1 });
-    await settled();
+    await work.settled(agentRoot);
     expect(await markers()).toEqual(['background-work.json']);
 
     work.lost(agentRoot, true);
-    await settled();
+    await work.settled(agentRoot);
     expect(wakes()).toEqual([]);
     expect(await markers()).toEqual([]);
 
     work.changed(agentRoot, { subagents: 1, tasks: 2 });
-    await settled();
+    await work.settled(agentRoot);
     work.lost(agentRoot, false);
-    await settled();
+    await work.settled(agentRoot);
     expect(wakes()).toMatchObject([{ reason: 'stopped', sessionGeneration: 3 }]);
     expect(await markers()).toEqual([]);
 });
@@ -155,10 +155,10 @@ test('work a process took with it wakes the Agent as stopped; deliberate ends wa
 test('work lost to a shutdown is reported once by the next daemon', async () => {
     const before = reporter();
     before.changed(agentRoot, { subagents: 2, tasks: 2 });
-    await settled();
+    await before.settled(agentRoot);
     closing = true;
     before.lost(agentRoot, false);
-    await settled();
+    await before.settled(agentRoot);
     expect(wakes()).toEqual([]);
     expect(await markers()).toEqual(['background-work.json']);
 
@@ -265,9 +265,9 @@ test('a deliberate end retires pending wakes and lost-work markers', async () =>
 test('finished background work clears its marker', async () => {
     const work = reporter();
     work.changed(agentRoot, { subagents: 1, tasks: 1 });
-    await settled();
+    await work.settled(agentRoot);
     work.changed(agentRoot, { subagents: 0, tasks: 0 });
-    await settled();
+    await work.settled(agentRoot);
     expect(await markers()).toEqual([]);
     await work.recoverLostWork();
     expect(wakes()).toEqual([]);

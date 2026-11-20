@@ -3,7 +3,7 @@ import { chatMessageReplySchema, idSchema } from './chat.ts';
 import { messageClaimSchema } from './claim-shared.ts';
 import { driveConflictFileSchema } from './drive.ts';
 import { humanTimezoneSchema } from './membership.ts';
-import { workerPlaceSchema } from './worker-outcome.ts';
+import { workerPlaceSchema } from './worker-place.ts';
 import { workerReportAttentionSchema } from './worker-report-attention.ts';
 import {
     workerBranchSchema,

@@ -1,4 +1,4 @@
-export const requiredPrefixes = {
+export const ownedPrefixes = {
     server: [
         'apps/server/src/',
         'apps/hosted-mcp/',
@@ -29,6 +29,8 @@ export const requiredPrefixes = {
     computer: [
         'apps/computer/src/',
         'apps/computer/package.json',
+        'packages/agent-cli/src/',
+        'packages/agent-cli/package.json',
         'packages/agent-prompt/src/',
         'packages/agent-prompt/package.json',
         'packages/agent-manual/src/',
@@ -41,8 +43,7 @@ export const requiredPrefixes = {
         'packages/codex-usage/package.json',
     ],
     agent: [
-        'apps/computer/src/agent-cli.ts',
-        'apps/computer/src/agent-cli/',
+        'packages/agent-cli/src/',
         'apps/computer/src/harness/',
         'apps/computer/src/runtime/',
         'packages/agent-prompt/src/',

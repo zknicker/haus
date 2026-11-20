@@ -22,6 +22,7 @@ flowchart LR
 | Haus App | React presentation in browsers and Electron, local settings, cache, optimistic UI, and direct Server interaction. |
 | Haus Computer | Server attachments on a physical machine, Agent workspaces, queues, runtime/model discovery, effective execution state, and Agent turns. |
 | `@haus/api` | Typed contracts shared across those boundaries and the Agent CLI. |
+| `@haus/agent-cli` | The Agent CLI (`haus`) that Agents run. The runner runs it per call; the Computer embeds it behind `__agent`. |
 
 The App never connects directly to Computer. Server sends typed delivery and control messages to
 the Agent's assigned Computer. Computer reports availability, state, progress, and bounded turn

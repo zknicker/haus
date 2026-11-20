@@ -3,16 +3,19 @@ import {
     agentWorkerSendInputSchema,
     agentWorkerStartInputSchema,
     agentWorkerStopInputSchema,
+    workerPlacesInputSchema,
 } from '@haus/api';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { z } from 'zod';
 import { announceRunEngagements } from '../agent-delivery/chat-engagement-events.ts';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { listAgentWorker } from '../workers/list-agent-worker.ts';
+import { listWorkerPlaces } from '../workers/list-worker-places.ts';
 import { startWorker } from '../workers/start-worker.ts';
 import { commitWorkerEffects } from '../workers/worker-effects.ts';
 import { sendAgentFollowUp, stopAgentWorker } from '../workers/worker-operations.ts';
@@ -31,9 +34,10 @@ export function registerAgentWorkerRoutes(
         computers: ComputerConnections;
         db: HausDatabase;
         postCommitWork: ServerPostCommitWork;
+        storage: ArtifactStorage | null;
     }
 ) {
-    const { db } = dependencies;
+    const { db, storage } = dependencies;
     const sinks = {
         agentDelivery: dependencies.agentDelivery,
         connections: dependencies.computers,
@@ -81,13 +85,21 @@ export function registerAgentWorkerRoutes(
             })
         )
     );
+    app.get(
+        '/api/agent/workers/places',
+        route(
+            workerPlacesInputSchema,
+            (request) => request.query,
+            async (runner, input) => await listWorkerPlaces(db, runner, input.task)
+        )
+    );
     app.post(
         '/api/agent/workers',
         route(
             agentWorkerStartInputSchema,
             (request) => request.body,
             async (runner, input) => {
-                const started = await startWorker(db, runner, input);
+                const started = await startWorker(db, runner, input, storage);
                 if (started.kind === 'held') {
                     void dependencies.postCommitWork.run('chat.engagement.announce', () =>
                         announceRunEngagements(db, runner)
@@ -105,7 +117,7 @@ export function registerAgentWorkerRoutes(
             agentWorkerSendInputSchema,
             (request) => request.body,
             async (runner, input) => {
-                const sent = await sendAgentFollowUp(db, runner, input);
+                const sent = await sendAgentFollowUp(db, runner, input, storage);
                 await commitWorkerEffects(sent.effects, sinks);
                 return sent.receipt;
             }
@@ -117,7 +129,7 @@ export function registerAgentWorkerRoutes(
             agentWorkerStopInputSchema,
             (request) => request.body,
             async (runner, input) => {
-                const stopped = await stopAgentWorker(db, runner, input.workerId);
+                const stopped = await stopAgentWorker(db, runner, input.workerId, storage);
                 await commitWorkerEffects(stopped.effects, sinks);
                 return { worker: stopped.worker };
             }

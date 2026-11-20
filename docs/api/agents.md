@@ -314,7 +314,7 @@ Claim results (1 claimed, 1 refused):
 
 It exits non-zero only when no row was granted. A lone refused claim with a `claimConflict`
 renders the structured block in place of the generic error line —
-`apps/computer/src/agent-cli/agent-claim-conflict.ts` is the only place that prose is composed —
+`packages/agent-cli/src/agent-claim-conflict.ts` is the only place that prose is composed —
 and a batch refusal repeats one line per refused claim. A granted row names the inline reply to
 the claim's message as a fact of the claim; the receipt carries no routing advice. Where posts
 are seen is taught once by the Manual `replies` topic (ADR 0029).
@@ -464,11 +464,19 @@ Reproduce the flake in delivery.test.ts, make it deterministic, and open a pull 
 BRIEF
 ```
 
-`POST /api/agent/workers` takes `{ brief, nonce, place?, repository, startingRef, task?, title }`
-(`agentWorkerStartInputSchema`). The Server refuses before writing anything:
-`WORKER_TASK_REQUIRED` (no Task, or one the Agent cannot reach), `WORKER_TASK_CLOSED`,
-`WORKER_PLACE_REQUIRED` (no `place`, and the Agent's assigned Computer has no ready default place to use instead; the message lists the ready places), and
-`WORKER_PLACE_UNAVAILABLE` (no online Computer reports that place ready). A start then passes the
+`POST /api/agent/workers` takes `{ brief, nonce, place?, repository?, runtime?, model?, startingRef,
+task?, title }` (`agentWorkerStartInputSchema`). `place` is the object form or a string:
+`computer:<id>`, `cursor`, `claude`, or a Computer name, bare or after `computer:`. Without `place`
+the start uses the Task's Project default, then the Agent's Computer's ready cloud default (W3
+decision). The Server refuses before writing anything: `WORKER_TASK_REQUIRED` (no Task, or one the
+Agent cannot reach), `WORKER_TASK_CLOSED`, `WORKER_PLACE_REQUIRED` (no usable place, or a Project
+default that cannot take one now; the message lists the usable places), `WORKER_PLACE_UNAVAILABLE`
+(an unknown or offline place, or no online carrier with it ready), `WORKER_PLACE_OFF` (the
+Computer's switch is off), `WORKER_PLACE_AMBIGUOUS` (two Computers share the name; the message lists
+their `computer:<id>` forms), `WORKER_REPO_UNKNOWN` (no `repository` while the Project has none or
+several), `WORKER_REPO_NOT_LINKED` (the Computer has no link for it), `WORKER_RUNTIME_UNAVAILABLE`,
+and `WORKER_OPTION_CLOUD` (`runtime` or `model` on a cloud place). A named `repository` the Project
+lacks joins its repos at start (R15, until Project settings ship repos). A start then passes the
 Task Chat's freshness hold like `haus message send` and answers `held` with the newer messages.
 Otherwise it records the Worker (`wkr_`) and its first turn (`wkt_`, input `[{ kind: 'brief' }]`),
 follows the Task for the Agent, posts no Message, and answers
@@ -477,15 +485,27 @@ means it waits for a slot. A retried start with the same `nonce` returns the sam
 different start under that nonce is `WORKER_IDEMPOTENCY_CONFLICT`. The carrier is the Agent's own
 Computer when it reports the place ready and is online, else the online one attached longest.
 
+`GET /api/agent/workers/places?task=<KEY-n>` answers `workerPlacesResponseSchema`: every cloud
+place and every Computer, usable or not, with its switch, online state, runtimes, linked repos,
+limit, free slots, and whether it is the Task's Project default.
+
 **Dispatch.** A turn goes to its carrier when every earlier turn of its Worker has settled, its
-input is recorded, and its place has a free slot: `worker_place_limits` per Server and place,
-default 10, counting dispatched unsettled turns, first come first served. The Server composes the
-input (`apps/server/src/workers/worker-instructions.ts`, then each input labelled by author) and
-sends `worker-turn-start`, idempotent by `turnId`; `worker-turn-accepted` records the
-acknowledgement. Dispatch runs after start, follow-up, settle, stop, accept, drain, and reconnect.
+input is recorded, and its place has a free slot: `worker_place_limits` per Server and cloud place,
+default 10, and each Computer's `worker_limit`, counting dispatched unsettled turns, first come
+first served. A Computer place dispatches only while its switch is on and it is online. The Server
+composes the input at dispatch (`compose-worker-input.ts`): the Worker instructions (a Computer
+variant that reports with `haus worker report`), then on the first turn `haus/AGENTS.md`,
+`projects/<key>/AGENTS.md`, and `agents/<handle>/WORKER.md` read from Drive, each with its path and
+revision; a later turn carries `WORKER.md` only when its revision differs from the one the Worker
+last received. It sends `worker-turn-start` with `agentId`, `attempt` (bumped on every send),
+`workerMdRevisionId`, and for a Computer place the `runtime`, the `checkout` (the link's path or
+null, the `haus/<worker-id>/<key>-<n>` branch, the starting ref), and `resumeSessionId`;
+`worker-turn-accepted` records the acknowledgement. Dispatch runs after start, follow-up, settle, stop, accept, drain, and reconnect.
 On reconnect the Server resends every unaccepted start, then `worker-reconcile` frames (at most 200
 entries) for accepted unsettled turns and migrated turns whose input still sits on the Computer,
-with `stopRequested`. A `worker-follow-up-drain` frame fills or creates its turn by id and is
+with `stopRequested` and the turn's current `attempt` (null when no start was sent). A Computer
+that holds no journal record and no live process for an attempted Computer-place turn answers
+its entry with `worker-turn-ended` `uncertain`, detail `journal-missing`. A `worker-follow-up-drain` frame fills or creates its turn by id and is
 answered with `worker-follow-up-drain-ack`.
 
 **Settlement.** A `worker-observation` applies idempotently (a stale, duplicate, or
@@ -501,14 +521,44 @@ the Worker is closing. Reports of one Task ride one run, up to 20, as inbox item
 queues one `worker_stall` item per window, and a pull request change after the newest turn
 settled queues a `pull_request` item ([Workers](../../specs/workers.md#pull-request-readings)).
 
+**Workers on a Computer.** After journaling a turn the Computer calls
+`POST /computer/workers/turn-credential { attempt, credentialHash, turnId }`. This launch fence
+refuses with `not-dispatched-here`, `settled`, `stop-requested`, `stale-attempt`,
+`earlier-turn-stopping` (an earlier turn the Server settled after launch, stopped or failed `machine-offline`, has not been reported ended), `closing`,
+`place-off`, or `repo-unlinked`; a re-mint for the same attempt revokes the earlier token. The minted token is the
+Worker's `HAUS_WORKER_TOKEN` and reaches only `POST /api/worker/report` and the Drive reads
+(`/api/agent/drive/changes`, `/api/agent/artifacts/by-path`, `/api/agent/artifacts/:id/download`).
+`POST /computer/workers/push-credential { credentialHash, turnId }` mints the daemon's push token
+for `/api/agent/drive/push/*` with `push_id` = the turn id; it also reads Drive. A Worker push
+closes only that Worker's earlier open pushes, writes revisions authored
+`{ type: 'worker', worker_id, agent_id }` with the Worker's Task, and sends its conflicts to the
+Agent as `drive_conflict`. `POST /api/worker/report` (`workerReportInputSchema`) replaces the turn's
+draft; it refuses a needs-you report without an ask, a `person` who is not a human member who can
+read the Task (`WORKER_PERSON_UNKNOWN`, listing the Task's followers), a closing Worker
+(`WORKER_CLOSED`), and a settled turn (`WORKER_TURN_SETTLED`). Settling revokes both tokens.
+`worker-turn-input-accepted` marks the turn working and delivers its `WORKER.md` revision only
+for the current attempt; `worker-turn-session` stores the native session once;
+`worker-turn-activity` updates the Worker at most every 5 seconds and posts nothing.
+`worker-turn-ended` settles the current attempt from its exit, draft, and any stop (`exited` with a
+draft is the report, with a stop and no draft `stopped`, else `no-report`; `crashed-before-launch`
+is `harness-error`; `uncertain` is the draft or `no-report`; `refused` is `launch-refused`;
+`stopped` is the draft or `stopped`; a failure keeps the frame's `detail`), posts the report with citations
+bound to the turn's own push outcomes, attaches pull requests, seeds readings from `branches`, and
+queues `worker_report`. `worker-held` is answered with `worker-close` for each closed or unknown
+Worker, and a Worker that closes gets `worker-close`. A Computer-place turn whose Computer has
+been disconnected for 30 minutes fails `machine-offline`.
+
 **Follow-ups and stop.** `POST /api/agent/workers/send` takes `{ workerId, nonce, text, interrupt }`
 and answers `{ idempotent, turnId, worker }`. It queues the text into the Worker's waiting next
 turn, or a new one, and posts nothing; `interrupt` first stops the working turn and drops queued
 follow-ups. `POST /api/agent/workers/stop` takes `{ workerId }` and answers `{ worker }`.
 Undispatched turns settle `stopped` at once; dispatched ones get `worker-stop`, or settle on the
-Server at once while the carrier is offline (reconcile still carries the stop). Both routes are the
+Server at once while the carrier is offline. A Computer-place turn settled that way after its turn
+credential was minted stays in reconcile with `stopRequested` until its `worker-turn-ended`
+arrives, and the Worker's later turns wait for it. Both routes are the
 delegating Agent's own (`WORKER_STOP_DENIED`), refuse a closing Worker (`WORKER_CLOSED`), send
-refuses a Worker whose carrier Computer was removed (`WORKER_CARRIER_REMOVED`), and stop
+refuses a Worker whose carrier Computer was removed (`WORKER_CARRIER_REMOVED`) or whose Computer
+place switched Workers off (`WORKER_PLACE_OFF`), and stop
 answers `WORKER_NOT_LIVE` when nothing is queued or working. A Worker with no Task is read-only
 history: every write answers `WORKER_HISTORY_READ_ONLY`.
 
@@ -609,7 +659,7 @@ and `apps/server/src/haus-api/agent/`; Computer proxy and launch behavior live i
 
 Hosted Agent execution detail is a separate, explicit `agent.executionJournal` query. It accepts
 one `serverId`, `agentId`, and `runId`; Server authorizes only Owners/Admins and answers from the
-journal the Agent's Computer synced
+journal the Agent's Computer, or the runner for a runner run, synced
 ([ADR 0048](../adr/0048-execution-journals-sync-to-the-server.md)): `{ status: 'available',
 agentId, runId, journal }`, or `{ status: 'missing', agentId, runId }` when nothing is stored yet
 or the run is past the 30-day retention. The Server never asks a Computer for evidence, so the

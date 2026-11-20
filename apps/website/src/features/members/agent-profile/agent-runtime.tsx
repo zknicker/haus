@@ -3,6 +3,7 @@ import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Button, Chip, Separator } from '@heroui/react';
 import * as React from 'react';
 import { useAgentRuntime } from '../../../hooks/members/use-agent-runtime.ts';
+import { useModelConnections } from '../../../hooks/servers/use-model-connections.ts';
 import { AgentModelConnectionRow } from './agent-model-connection-row.tsx';
 import { RuntimeDialog } from './runtime-dialog.tsx';
 import { resolveRuntimeConfig, runtimeConfigStatusLabel } from './runtime-model.ts';
@@ -25,7 +26,10 @@ export function AgentRuntime({
 }) {
     const [open, setOpen] = React.useState(false);
     const configure = useAgentRuntime(serverId, agent.id);
-    const execution = resolveRuntimeConfig(agent, runtimes);
+    const modelConnections = useModelConnections(serverId).data;
+    const onRunner = modelConnections?.agentLoop === 'runner';
+    const catalog = onRunner ? (modelConnections?.runnerModels ?? []) : runtimes;
+    const execution = resolveRuntimeConfig(agent, catalog);
 
     return (
         <>
@@ -79,6 +83,7 @@ export function AgentRuntime({
             </ItemCardGroup>
             <RuntimeDialog
                 agent={agent}
+                connections={onRunner ? (modelConnections?.connections ?? []) : null}
                 error={configure.error?.message ?? null}
                 onOpenChange={setOpen}
                 onSave={async (draft) => {
@@ -87,7 +92,7 @@ export function AgentRuntime({
                 }}
                 open={open}
                 pending={configure.isPending}
-                runtimes={runtimes}
+                runtimes={catalog}
             />
         </>
     );

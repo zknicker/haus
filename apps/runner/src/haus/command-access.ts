@@ -98,7 +98,13 @@ const commandTable: Readonly<Record<string, Readonly<Record<string, CommandAcces
         show: serverOnly,
         update: serverOnly,
     },
-    worker: { inspect: serverOnly, send: serverOnly, start: serverOnly, stop: serverOnly },
+    worker: {
+        inspect: serverOnly,
+        places: serverOnly,
+        send: serverOnly,
+        start: serverOnly,
+        stop: serverOnly,
+    },
 };
 
 const topLevelHelp = new Set(['--help', '--version', '-h', '-v', 'help']);

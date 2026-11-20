@@ -99,3 +99,21 @@ test('keeps the form mounted with a recoverable creation error', () => {
     expect(markup).toContain('The Computer no longer reports this model.');
     expect(markup).toContain('Create Captain');
 });
+
+test('with no device, New Captain offers a way to add one', () => {
+    const markup = renderWithTrpc(
+        <AgentCreationForm
+            agents={[]}
+            error={null}
+            isPending={false}
+            onAddDevice={() => undefined}
+            onCreated={() => undefined}
+            onSubmit={async () => ({ agentId: 'agt_1234567890abcdef' })}
+            reported={[]}
+            serverId="srv_1"
+        />
+    );
+
+    expect(markup).toContain('Connect a device before you can create this Captain.');
+    expect(markup).toContain('Add a device');
+});

@@ -19,6 +19,7 @@ import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { suggestAvailableParticipantHandle } from '../servers/participant-handles.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { readCreatedAgent } from './agent-created-shape.ts';
+import { type AgentModelCatalog, inheritedModel } from './agent-model-catalog.ts';
 import { createAgentInTransaction } from './create-agent.ts';
 import { requireAgentCreationGuidance } from './creation-guidance.ts';
 import {
@@ -57,7 +58,8 @@ export async function createAgentFromAgent(
     db: HausDatabase,
     runner: ResolvedRunner,
     input: AgentCreateAgentRequest,
-    avatar: CreationAvatar
+    avatar: CreationAvatar,
+    catalog: AgentModelCatalog
 ): Promise<CreateAgentFromAgentResult> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
@@ -73,7 +75,18 @@ export async function createAgentFromAgent(
         // Nothing is written until the requested Project is there to live in, so
         // a typo in `--project` creates nothing.
         const homeProjectId = await requireCreationHome(tx, runner, input.project);
-        const execution = await requireCallerExecution(tx, runner);
+        const caller = await requireCallerExecution(tx, runner);
+        const execution = inheritedModel(catalog, caller);
+        if (execution.modelId !== caller.modelId) {
+            console.info(
+                '[haus] a new Agent took the successor of its creator model the runner retired',
+                {
+                    creatorAgentId: runner.agentId,
+                    from: caller.modelId,
+                    to: execution.modelId,
+                }
+            );
+        }
         const handle = await suggestAvailableParticipantHandle(
             tx,
             runner.serverId,
@@ -96,7 +109,8 @@ export async function createAgentFromAgent(
                 serverId: runner.serverId,
                 signatureEmoji: input.signatureEmoji,
             },
-            avatar.bytes
+            avatar.bytes,
+            catalog
         );
 
         // No human created this Agent, so nothing else can name the human its

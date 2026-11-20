@@ -425,7 +425,7 @@ turn starts when its creator sends the working brief.
 | --- | --- |
 | Pending work is the first notice prompt; no `Start.` race or duplicate injection | `apps/computer/src/harness/executor.test.ts` |
 | Notices contain no bodies and exact envelopes retain target/message identity | `packages/agent-prompt/src/inbox-format.test.ts` |
-| `haus inbox check` lists unread conversations from the durable read position, pending rows first, with one `Next:`; listing advances nothing | `apps/computer/src/agent-cli/commands/agent-inbox.test.ts`, `apps/server/test/agent-inbox-check.test.ts` |
+| `haus inbox check` lists unread conversations from the durable read position, pending rows first, with one `Next:`; listing advances nothing | `packages/agent-cli/src/commands/agent-inbox.test.ts`, `apps/server/test/agent-inbox-check.test.ts` |
 | Local-first pull, exact visibility receipts, history/read consumption, and Server fallback | `apps/computer/src/proxy.test.ts` |
 | Stale notices cannot resurrect identities already made visible | `apps/computer/src/inbox-store.test.ts` |
 | Accepted work and pull evidence survive reconnect or replay correctly | `apps/computer/src/delivery.test.ts`, `apps/server/test/agent-delivery.test.ts` |

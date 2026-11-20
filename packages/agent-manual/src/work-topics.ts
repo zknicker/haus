@@ -53,15 +53,19 @@ A Worker is a quiet, scoped run you hand bounded development work to. It belongs
 
 Use one when the work is a real coding change someone else's machine can build (reproduce a failure, make the change, open a pull request) and you would otherwise sit and wait. Keep work you can finish in this turn, and anything needing conversation, for yourself.
 
-\`haus worker start --task <KEY-n> [--on <cursor|claude>] --repo <owner/name> --ref <ref> --title <text>\`
+\`haus worker start --task <KEY-n> --title <text> [--on <place>] [--repo <owner/name>] [--ref <ref>] [--runtime <claude-code|codex>] [--model <id>]\`
 
-The brief arrives on stdin. Make it complete: the repository paths, the reproduction, and what a finished result looks like, so the Worker rarely needs to ask. \`--title\` names the work for people, and \`--ref\` is the starting branch, tag, or commit. Starting posts nothing: the Worker's card shows on the Task's page, and you say what you started only when that is worth saying. The receipt says the Worker is \`started\` or \`queued\` behind its place's limit, never that it finished launching.
+The brief arrives on stdin. Make it complete: the repository paths, the reproduction, and what a finished result looks like, so the Worker rarely needs to ask. \`--title\` names the work for people, and \`--ref\` is the starting branch, tag, or commit, else the repository's default branch. \`--repo\` can be left out when the Task's Project has one repo. Starting posts nothing: the Worker's card shows on the Task's page, and you say what you started only when that is worth saying. The receipt says the Worker is \`started\` or \`queued\` behind its place's limit, never that it finished launching.
 
-**Your Worker rules travel in the brief.** \`drive/agents/<your handle>/WORKER.md\` holds the rules every Worker of yours follows. Haus does not hand that file to a Worker yet, so the brief carries its rules: read the file before you write the brief and include what applies (see rules).
+**Your Worker rules ride every turn.** \`drive/agents/<your handle>/WORKER.md\` holds the rules every Worker of yours follows. Haus puts it, with the team and Project AGENTS.md, in each Worker's first turn and sends it again after it changes, so the brief carries only the work (see rules).
 
 **It works for a Task.** Start the Task first (see tasks), then the Worker with \`--task SEC-12\`. A start without an open Task you can reach is refused with \`WORKER_TASK_REQUIRED\` or \`WORKER_TASK_CLOSED\`. A Task can hold several Workers; start another only for a genuinely separate assignment.
 
-**Place.** Without \`--on\` a Worker runs on your Computer's default place, which an Owner or Admin picks at Settings → Devices → (your device) → Cloud Agents → Make default. Add \`--on cursor\` or \`--on claude\` when the requester asks for one. When your Computer has no ready default, a start without \`--on\` is refused with \`WORKER_PLACE_REQUIRED\`, which lists the ready places. \`WORKER_PLACE_UNAVAILABLE\` means no online Computer has that place connected: ask a person to connect it. An Owner or Admin picks each place's model at Settings → Models; no flag carries one.
+**Places.** \`haus worker places --task SEC-12\` lists where a Worker can run: each Computer with its **Workers can run here** switch, runtimes, linked repos, and free slots, then \`cursor\` and \`claude\`, with the Project's default marked. \`--on\` takes a Computer by name (\`computer:mini\` or \`mini\`, or the \`computer:<id>\` that \`places\` prints when two share a name), or \`cursor\` or \`claude\` for a cloud agent. Without \`--on\` a start runs on the Task's Project default, else on your Computer's ready cloud default (Settings → Devices → (your device) → Cloud Agents → Make default). Name a place when the requester asks for one.
+
+**On a Computer.** A Worker on a Computer runs Claude Code or Codex on that machine with the machine's own logins, in its own git worktree on its own branch, and records its report with \`haus worker report\`. \`--runtime\` picks the harness, else the first ready one, and \`--model\` its model, else the runtime's default. Its deliverables land in your Drive area under \`agents/<handle>/reports/<KEY-n>/\`, \`renders/<KEY-n>/\`, or \`handoffs/<KEY-n>/\`, each revision naming the Worker, and its report cites them. A cloud agent's model is the one an Owner or Admin picks at Settings → Models.
+
+**Refusals.** A refused start writes nothing, and its message says what to do. \`WORKER_PLACE_REQUIRED\` means there is no \`--on\` and no usable default, or the Project's default cannot take a Worker now; it lists the usable places. \`WORKER_PLACE_OFF\` means that Computer's **Workers can run here** switch is off, which also refuses follow-ups there. \`WORKER_PLACE_UNAVAILABLE\` means the place cannot take a Worker now: the Computer is offline, or no online Computer has that cloud agent connected. \`WORKER_PLACE_AMBIGUOUS\` means two Computers share the name; use the \`computer:<id>\` form. \`WORKER_REPO_UNKNOWN\` means name \`--repo\`, because the Project has several repos or none yet. \`WORKER_REPO_NOT_LINKED\` means that Computer has no link to the repo. \`WORKER_RUNTIME_UNAVAILABLE\` means the runtime is not signed in there; drop \`--runtime\` or pick another place. \`WORKER_OPTION_CLOUD\` means \`--runtime\` and \`--model\` are for Computer places only. For anything a person must change, ask the person who attached that Computer, an Owner, or an Admin.
 
 **Launch approval.** A start spends provider time on someone's repository. When the Server, the requester, or your brief wants a person to approve, @mention them with the repository, ref, and a one-line brief, and wait for an explicit yes in reply before \`start\`.
 
@@ -78,7 +82,7 @@ The brief arrives on stdin. Make it complete: the repository paths, the reproduc
 \`haus worker inspect\` lists your Workers, newest first; \`--task <KEY-n>\` narrows to one Task. \`--worker <workerId>\` reads one Worker with its turns, inputs, reports, and pull requests, and \`--report\` prints a turn's full provider result (\`--turn <turnId>\` for an older one).
 
 As the coordinating Agent, keep review rounds, revision requests, and progress in the Task, and @mention the requester there only for a real state change: a pull request ready, a blocker that needs them, the work done.`,
-        aliases: ['cloud agent model', 'cursor', 'claude cloud'],
+        aliases: ['cloud agent model', 'cursor', 'claude cloud', 'workers can run here'],
         id: 'workers',
         kind: 'overview',
         related: [
@@ -89,7 +93,7 @@ As the coordinating Agent, keep review rounds, revision requests, and progress i
             'recipes/decision/when-to-ask-human',
         ],
         summary:
-            'Delegate bounded repository work for a Task to a provider-hosted agent and report the result there.',
+            'Delegate bounded repository work for a Task to a Computer or a cloud agent, and get its report there.',
         title: 'Workers',
     },
 ];

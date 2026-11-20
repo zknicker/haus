@@ -97,7 +97,7 @@ an answer. Silence is deliberate in DMs too.
 
 - Owner: Startup step 4 and the Conversation etiquette "Silence is deliberate" bullet in
   `managed-instructions.ts`; `haus message react` help in
-  `apps/computer/src/agent-cli/commands/agent-message.ts`; one-grapheme validation in
+  `packages/agent-cli/src/commands/agent-message.ts`; one-grapheme validation in
   `apps/server/src/agent-api/reaction-routes.ts`.
 - Guards: live scenarios `ack-reaction-thanks` (`bun run eval placement`) and `fyi-silence-dm`
   (`bun run eval attention`);

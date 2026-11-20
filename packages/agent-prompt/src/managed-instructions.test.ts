@@ -151,7 +151,7 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
     expect(prompt).toContain(
         "- When you need a human's decision or action, @mention them where the work lives. Ask one question, a default only if reversible, and what you prepared. Their reply wakes you. Irreversible acts wait for an explicit yes."
     );
-    expect(prompt).toContain('13. **Workers**');
+    expect(prompt).toContain('13. **Workers**: `haus worker places`, `haus worker start`,');
     expect(prompt).toMatch(/14\. \*\*Images\*\*: `haus image models`.*\n15\. \*\*Tasks\*\*/);
 
     // These Raft-only surfaces must not leak into the Haus prompt.
@@ -223,8 +223,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // the Standing Preferences placeholder says "preferences people show in passing: terse imperative
     // lines; the rules people set live in AGENTS.md and WORKER.md" (+24).
     // J3 (ADR 0055): -265 (37,963 → 37,698) for hearing by Project, +130 (→ 37,828) then -232 (→ 37,596) as generalists came and went, -6 (→ 37,590) when "home" left the prose.
-    // E2d (ADR 0059): -1 when the welcome rule said #all again, +37 for "You always hear #all, the team room." Measured after both: 37,626.
-    expect(prompt.length).toBeLessThanOrEqual(37_626);
+    // E2d (ADR 0059): -1 for the #all welcome rule, +37 for "You always hear #all, the team room."; W3: +22 for `haus worker places`. Measured after all three: 37,648.
+    expect(prompt.length).toBeLessThanOrEqual(37_648);
     expect(prompt).toContain('You always hear #all, the team room.');
     expect(prompt.toLowerCase()).not.toContain('thread');
 });

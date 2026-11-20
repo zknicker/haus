@@ -12,6 +12,7 @@ export async function driveLaunchFixture(drive: DriveServer, runtime: DaemonRunt
     let held: Promise<void> | null = null;
     let onHeld: () => void = () => undefined;
     const front = Bun.serve({
+        hostname: '127.0.0.1',
         port: 0,
         fetch: async (request) => {
             const url = new URL(request.url);

@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import { invocationCommandSchemas } from '@haus/api';
+import { driveSyncFrames } from '../drive/drive-sync-frames.ts';
 import { bashRunner } from './bash.ts';
 import { createBrowserRunner } from './browser.ts';
 import { editRunner } from './editor.ts';
@@ -31,6 +32,7 @@ export function attachmentInvocations(
         return existing;
     }
     const serverRoot = join(dataRoot, 'servers', attachment.serverId);
+    const driveSync = driveSyncFrames(join(serverRoot, 'agents'), attachment);
     let handler: InvocationHandler | null = null;
     const arrivals: Arrival[] = [];
     const deliver = (ready: InvocationHandler, arrival: Arrival) => {
@@ -49,6 +51,9 @@ export function attachmentInvocations(
             arrivals.push({ kind: 'connected' });
         },
         receive: (frame) => {
+            if (driveSync.receive(frame)) {
+                return true;
+            }
             if (!isInvocationFrame(frame)) {
                 return false;
             }

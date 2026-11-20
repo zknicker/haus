@@ -225,12 +225,14 @@ describe('model connections in turns', () => {
         const faux = fauxProviderAs('openai-codex', { oauth }, ['gpt-faux']);
         faux.core.setResponses([refused('401 Unauthorized: token revoked')]);
         const runner = await connectedRunner(faux.provider, {
-            '/backend-api/wham/usage': () =>
-                Response.json({
-                    rate_limit: {
-                        primary_window: { limit_window_seconds: 18_000, used_percent: 100 },
-                    },
-                }),
+            usageRoutes: {
+                '/backend-api/wham/usage': () =>
+                    Response.json({
+                        rate_limit: {
+                            primary_window: { limit_window_seconds: 18_000, used_percent: 100 },
+                        },
+                    }),
+            },
         });
         runner.server.send({
             connections: [chatgptPlan('access-1', 'refresh-1', farFuture)],

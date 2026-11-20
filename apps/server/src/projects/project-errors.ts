@@ -48,8 +48,8 @@ export class ChannelNameTakenError extends Error {
 }
 
 export class ProjectNotFoundError extends Error {
-    constructor() {
-        super('That Project does not exist on this Server.');
+    constructor(message = 'That Project does not exist on this Server.') {
+        super(message);
         this.name = 'ProjectNotFoundError';
     }
 }

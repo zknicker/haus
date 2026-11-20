@@ -1,6 +1,7 @@
 export const work = {
     activity: { at: '2026-09-04T12:01:00.000Z', summary: 'Reading the failing test.' },
     agentId: 'agt_orbit',
+    branch: null,
     carrierComputerId: 'cmp_studio',
     closedAt: null,
     closingAt: null,
@@ -10,12 +11,14 @@ export const work = {
     id: 'caw_1234567890abcdef',
     job: { followUp: null, startedAt: '2026-09-04T12:00:30.000Z', state: 'working' },
     launchMessageId: 'msg_1234567890abcdef',
+    model: null,
     originChatId: 'cht_product',
-    place: 'cursor',
+    place: { kind: 'cursor' },
     pullRequest: null,
     providerAgentId: 'bc_abc',
     providerUrl: 'https://cursor.com/agents/bc_abc',
     repository: 'haus/haus',
+    runtime: null,
     turns: [
         {
             acknowledgedAt: '2026-09-04T12:00:00.000Z',
@@ -55,4 +58,5 @@ export const work = {
     terminalAt: null,
     title: 'Fix the flaky delivery test',
     updatedAt: '2026-09-04T12:01:00.000Z',
+    workerMdRevisionId: null,
 };

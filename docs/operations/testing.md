@@ -51,6 +51,7 @@ Each package gate includes its tests and typecheck:
 | --- | --- |
 | `apps/server` | `@haus/server test` + `typecheck`. See [Server suite](#server-suite). Avatar generation tests inject a deterministic fake provider and never call OpenAI. |
 | `apps/computer` | `@haus/computer test` + `typecheck` |
+| `packages/agent-cli` | `@haus/agent-cli test` + `typecheck`, plus the runner's `src/haus/` tests and the Computer typecheck |
 | `apps/website` | `@haus/website test` + `typecheck` |
 | `packages/haus-api` | `@haus/api check`, plus typecheck of the consuming apps you touched |
 | `packages/haus-sdk` | `@haus/sdk test` + `typecheck` |
@@ -131,6 +132,7 @@ that matches multiple rows, run the union of their required proof.
 | React query, mutation, cache, realtime, optimistic UI, or shared state | Focused regression plus website gate (it runs `query-policy-contract` and `query-polling-contract`, which pin polls, timers, and keyless invalidation to allowlists with reasons) | Add scoped App e2e for reload, reconnect, navigation, or a complete user flow. Polls, focus or reconnect refetch, socket session, or reconnect recovery: run `idle-silence.spec.ts`. A subscription or `select` on a kept view: run `render-budget.spec.ts`. A realtime stream, its restart, or its recovery: run the incident detector `realtime-server-restart.spec.ts` (it restarts the Server child with `restartHausServer()` from `e2e/support/server.ts`) and `server-restart-harness.spec.ts`. |
 | Route tree, persistent shell, navigation, side pane, or layout-critical behavior | Website gate plus scoped App e2e | Use the full App e2e suite for broad shell or cross-flow changes. Kept views, tab switching, or router hooks: run `render-budget.spec.ts`; large App changes run the [Perf sweep](../../.agents/skills/perf-haus-app/SKILL.md#perf-sweep). |
 | Hosted Server API, authorization, PostgreSQL state, or realtime | Focused regression plus server gate | Add App e2e when the public browser flow or reconnect behavior changed. |
+| A PostgreSQL migration added or edited | Seeded migration test plus server gate, then `bun run release:rehearse-migrations -- --ref <PR head SHA>` before merge, with its result in the PR ([Migration rehearsal](haus-server-deploy.md#migration-rehearsal)) | Rehearse again when a merge from `main` brings more migration files. |
 | Computer execution, delivery, or local capability behavior | Focused regression plus computer gate | Add a scoped `test:agents` scenario when deterministic proof cannot cover the observable model-driven behavior. |
 | Computer execution-runtime mapping, delivery semantics, or agent behavior | Focused regression plus Computer gate | Add provider smoke or a `test:agents` scenario for executor/provider-boundary changes. |
 | API or SDK contract | API or SDK gate plus affected consumer typechecks | Add Server, Computer, or App coverage when behavior changed behind the contract. |
@@ -152,7 +154,7 @@ lost.
 
 | Lane | Contents | Runs in |
 | --- | --- | --- |
-| `check:fast` | `env:check`, `env:contract`, `lint`, `typecheck:fast` (api, sdk, usage packages, Server), `test:fast` (`packages` + `scripts` + `apps/website/electron`), `test:prompt-contract` (pure managed-prompt contract and budget) | Quality, and inside `check` |
+| `check:fast` | `env:check`, `env:contract`, `lint`, `typecheck:fast` (api, agent-prompt, agent-cli, sdk, usage packages, Server, runner), `test:fast` (`packages` + `scripts` + `apps/website/electron`), `test:prompt-contract` (pure managed-prompt contract and budget) | Quality, and inside `check` |
 | `check:heavy` | `typecheck:licensed` (App, Computer), `test:app-unit`, `test:server`, `test:computer`, `build` | `bun run check` only |
 | Neither | `test:app` (Playwright), `test:agents`, `eval:*`, release builds | opt-in, by hand |
 

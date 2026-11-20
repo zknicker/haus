@@ -28,10 +28,14 @@ export async function createHomedAgent(
     client: ReturnType<typeof createClient>,
     input: Omit<CreateAgentRequest, 'homeProjectId'>
 ) {
-    const projects = await client.project.list.query({ serverId: input.serverId });
-    const homeProjectId =
-        projects.find((project) => project.name === captainsProject.name)?.chatId ??
-        (await client.project.create.mutate({ ...captainsProject, serverId: input.serverId })).chat
-            .id;
+    const homeProjectId = await captainsProjectId(client, input.serverId);
     return await client.agent.create.mutate({ ...input, homeProjectId });
+}
+
+export async function captainsProjectId(client: ReturnType<typeof createClient>, serverId: string) {
+    const projects = await client.project.list.query({ serverId });
+    return (
+        projects.find((project) => project.name === captainsProject.name)?.chatId ??
+        (await client.project.create.mutate({ ...captainsProject, serverId })).chat.id
+    );
 }

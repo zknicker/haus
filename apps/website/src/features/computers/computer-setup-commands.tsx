@@ -4,15 +4,35 @@ import {
     type ComputerSetupCommands as ComputerSetupCommandValues,
 } from './computer-install-command.ts';
 
-export function ComputerSetupCommands({ serverSlug }: { serverSlug: string }) {
-    return <ComputerSetupCommandList commands={buildComputerSetupCommands(serverSlug)} />;
+export function ComputerSetupCommands({
+    serverSlug,
+    updateCommand,
+}: {
+    serverSlug: string;
+    updateCommand: string | null;
+}) {
+    return (
+        <ComputerSetupCommandList
+            commands={buildComputerSetupCommands(serverSlug)}
+            updateCommand={updateCommand}
+        />
+    );
 }
 
-export function ComputerSetupCommandList({ commands }: { commands: ComputerSetupCommandValues }) {
+export function ComputerSetupCommandList({
+    commands,
+    updateCommand,
+}: {
+    commands: ComputerSetupCommandValues;
+    updateCommand: string | null;
+}) {
     return (
         <ol className="grid min-w-0 gap-4">
             <CommandStep command={commands.install} label="Install" number={1} />
             <CommandStep command={commands.setup} label="Setup" number={2} />
+            {updateCommand ? (
+                <CommandStep command={updateCommand} label="Update" number={3} />
+            ) : null}
         </ol>
     );
 }
@@ -27,11 +47,11 @@ function CommandStep({
     number: number;
 }) {
     return (
-        <li className="grid min-w-0 gap-2">
-            <p className="text-sm font-medium">
+        <li className="grid min-w-0 gap-1.5">
+            <p className="text-foreground font-medium">
                 {number}. {label}
             </p>
-            <CodeSnippet lines={command} />
+            <CodeSnippet lines={command} wrap />
         </li>
     );
 }

@@ -1,7 +1,7 @@
 import type { ManualNavigationTopic } from '../types.ts';
 
 // Product-noun topics for the conversation command families. Each mirrors the
-// current Agent CLI source in apps/computer/src/agent-cli/commands/.
+// current Agent CLI source in packages/agent-cli/src/commands/.
 export const cliFamilyTopicsA: readonly ManualNavigationTopic[] = [
     {
         body: `# Messages

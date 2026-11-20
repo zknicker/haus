@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## v21.0.0 - 2026-11-20
+
+- The Haus Server deploy that v20.0.0 started now completes, so everything in v20.0.0 reaches the hosted Server and web App with this release: Projects, Drive, Workers, Settings → Models, and #all as a chat. Database migration 0142 had failed against existing data, and the deploy rolled back without changing production.
+- An Agent can run a Worker on a Computer: a Claude Code or Codex session in its own git worktree and branch, using that machine's logins. A Computer runs Workers only while its Workers switch is on, and every Computer starts with it off and a limit of 4. Each Project keeps its repos, their links to each Computer, and a default place for new Workers. `haus worker places` lists where a Worker can run. Settings controls for the switch and the repos come in a later release.
+- Adding a device shows its progress, from waiting to connected to ready. When a device needs an update, has disconnected, or has no Captain runtime, the dialog names the fix and the command to run. New Captain links to Add a device when no device is connected.
+- Pressing a sidebar row for the page that's already open no longer adds a duplicate history entry, so Back works the first time.
+- A failed Server migration now logs PostgreSQL's error code, constraint, and detail.
+- Haus for iPhone 12.0.1 (build 74) reads the new Worker place, so Worker cards keep loading once the Server updates. Older iPhone builds can't read them.
+- The Server deploy applies database migrations 0129 through 0144 together in one step. Rolling back the Server does not reverse them.
+- Update Haus Computer to 19.0.0 right after the Server deploys (`haus-computer upgrade`). The Server requires Computer protocol 44, so an older Computer runs no Captains until it upgrades. Haus Agent 15.1.0 ships with it. Haus for Desktop is unchanged.
+
+## v20.0.0 - 2026-11-20
+
+- Channels are now Projects. Each Project has its own Tasks and its own area in Drive, and #all is the Server's team room: a plain chat that belongs to no Project. The App, Haus for iPhone 12.0.0, and the Agent CLI say Captain, Project, and Device.
+- Files is now Drive: one drive per Server with an area for every Project and Captain. Every file keeps its History with Compare and Restore, text files edit in place and refuse to save over a newer revision, and a `drive://` citation opens the revision it cites. Visual page cards open from Drive.
+- A Captain's workspace lives in Drive. Haus Computer pulls the Captain's folder before each turn and pushes its edits after, so its notes, MEMORY.md, and skills are files you can open and edit. Standing rules live in AGENTS.md, and Workers read WORKER.md. Haus keeps the built-in skills in each Captain's Drive current and leaves a skill alone once the Captain edits it. Full reset clears the Captain's Drive area.
+- Cloud agents are now Workers. A Worker's card in its Task shows the report, takes follow-ups, and has Stop.
+- Settings → Models connects Claude, ChatGPT, xAI, Gemini, and OpenRouter accounts that the Server holds, with usage meters, and each Captain can use a specific connection.
+- Cove is gone. A new Server starts empty, and existing Servers lose the onboarding Captain.
+- Settings is one centered column grouped into You, Captains, Devices, and Haus, with search. Devices and Members each have one page, and Appearance adds a theme gallery and custom themes.
+- The Server host takes a nightly local backup of the database.
+- Every Server deploy now starts a sandboxed Agent runner and proves it can reach only the Server. Captains still run on Haus Computer in this release.
+- Haus Computer no longer reads every Claude and Codex transcript to report usage, which stops its memory from growing with transcript history.
+- Before deploying the Server, ship Haus for iPhone 12.0.0 (build 73) through TestFlight: it speaks App protocol 14, and older iPhone builds can't connect once the Server updates.
+- The Server deploy applies database migrations 0129 through 0143 in one step, covering Drive, Projects, model connections, Workers, the Cove removal, #all as a chat, and managed skills. Rolling back the Server does not reverse them.
+- Update Haus Computer to 18.0.0 with this release: the Server requires Computer protocol 42, so an older Computer runs no Captains and its usage meters stay stale until it upgrades. Haus Agent 15.0.0 and Haus for Desktop 7.2.3 ship with it.
+
 ## v19.0.0 - 2026-11-19
 
 - Haus now has two kinds of place: Channels and DMs for conversation, and Tasks for work. Threads are gone. Every existing Thread's messages now sit as inline replies under the message it started from, in the same Channel.

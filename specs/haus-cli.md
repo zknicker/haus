@@ -513,7 +513,7 @@ POST /api/agent/connections/revoke { agent, connection } → same receipt
 
 | Piece | Lands in / builds on |
 | --- | --- |
-| CLI families | `apps/computer/src/agent-cli.ts` and `apps/computer/src/agent-cli/commands/` |
+| CLI families | `packages/agent-cli/src/agent-cli.ts` and `packages/agent-cli/src/commands/` |
 | Wrapper injection | Computer launch wiring and the Agent-local proxy |
 | Auth principal | Per-launch local proxy token; scoped runner credential remains inside Computer |
 | Routes | Server `/api/agent/*` handlers and Computer proxy routing |

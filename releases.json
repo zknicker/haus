@@ -2234,5 +2234,33 @@
             "computer": "17.0.0",
             "agent": "14.0.0"
         }
+    },
+    {
+        "version": "20.0.0",
+        "date": "2026-11-20",
+        "targets": {
+            "server": "19.0.0",
+            "app": "7.2.3",
+            "ios": {
+                "version": "12.0.0",
+                "buildNumber": 73
+            },
+            "computer": "18.0.0",
+            "agent": "15.0.0"
+        }
+    },
+    {
+        "version": "21.0.0",
+        "date": "2026-11-20",
+        "targets": {
+            "server": "20.0.0",
+            "app": null,
+            "ios": {
+                "version": "12.0.1",
+                "buildNumber": 74
+            },
+            "computer": "19.0.0",
+            "agent": "15.1.0"
+        }
     }
 ]

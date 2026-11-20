@@ -35,7 +35,7 @@ test('rejects a notice with an unknown change, a cursor, or cloud work beside it
                     branches: [],
                     errorCode: null,
                     notice: 'pull_request',
-                    place: 'cursor',
+                    place: { kind: 'cursor' },
                     providerUrl: null,
                     repository: 'haus/haus',
                     turnId: 'wkt_1234567890abcdef',

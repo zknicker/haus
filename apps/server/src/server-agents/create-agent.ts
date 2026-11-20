@@ -17,7 +17,8 @@ import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { AgentConfigDeniedError } from './agent-config-errors.ts';
-import { assertRuntimeModelReported, resolveAssignedComputer } from './agent-inventory.ts';
+import { resolveAssignedComputer } from './agent-inventory.ts';
+import { type AgentModelCatalog, assertModelAvailable } from './agent-model-catalog.ts';
 import { toAgent } from './agent-shape.ts';
 
 /**
@@ -36,7 +37,8 @@ export interface CreatedAgentFromApp extends AgentCreated {
 export async function createAgent(
     db: HausDatabase,
     member: HausUser | null,
-    input: CreateAgentInput
+    input: CreateAgentInput,
+    catalog: AgentModelCatalog
 ): Promise<CreatedAgentFromApp> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
@@ -55,7 +57,8 @@ export async function createAgent(
             tx,
             { kind: 'human', user: creator },
             input,
-            avatar
+            avatar,
+            catalog
         );
         return {
             agent: created.agent,
@@ -72,7 +75,8 @@ export async function createAgentInTransaction(
         brief?: string | null;
         creationRequest?: { hash: string; nonce: string };
     },
-    avatar: (AvatarBytes & { mediaType: AvatarMediaType }) | null
+    avatar: (AvatarBytes & { mediaType: AvatarMediaType }) | null,
+    catalog: AgentModelCatalog
 ): Promise<AgentCreated & { homeProjectId: string }> {
     const createdByAgentId = creator.kind === 'agent' ? creator.agentId : null;
     const createdByUserId = creator.kind === 'human' ? creator.user.id : null;
@@ -81,7 +85,7 @@ export async function createAgentInTransaction(
         computerId: input.computerId,
         serverId: input.serverId,
     });
-    assertRuntimeModelReported(inventory, input.runtimeId, input.modelId, input.reasoningEffort);
+    await assertModelAvailable(db, catalog, inventory, input);
 
     const avatarId = avatar ? createAvatarId() : null;
     if (avatar && avatarId) {
