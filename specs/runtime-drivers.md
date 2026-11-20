@@ -475,12 +475,15 @@ same maximum again, so a bad frame cannot hold a command past it.
 
 1. **Request.** The runner records the dispatch as accepted in its ledger, then sends
    `invocation-request` with `runId`, `toolCallId`, `seq`, and the operation. The Server keys it
-   by `(runId, toolCallId, seq)`, so a resend returns the same invocation.
+   by `(runId, toolCallId, seq)`, so a resend returns the same invocation: a settled one answers
+   its outcome again (without output, which the Server never keeps), and one still in flight
+   answers once, when its result arrives.
 2. **Route.** The Server mints the invocation id and resolves the Agent's machine from its
    setting. No machine, a detached one, or one in update-required mode answers `offline` at once,
    recorded, and nothing is sent.
-3. **Send.** The Server sends `invoke` to the Computer with the id, Agent, run, operation, and
-   timeout.
+3. **Send.** The Server records the invocation `sent`, then sends `invoke` to the Computer with
+   the id, Agent, run, operation, and timeout clamped to the operation's maximum. A send the
+   socket refuses at that moment settles `offline`.
 4. **Accept.** The Computer looks the id up in its ledger. A known id answers with what the
    ledger holds and never runs again. A new id is written to the ledger as `accepted` and synced
    to disk. Only then does the Computer send `invoke-accepted` and start the operation.
@@ -499,7 +502,7 @@ same maximum again, so a bad frame cannot hold a command past it.
 | `failed` | The operation refused its input and changed nothing (no match for `old_str`, a bad patch, a missing file). | The refusal |
 | `timed-out` | The timeout fired and the process group was killed. | The partial output and the timeout |
 | `cancelled` | Stop or the turn's abort killed it. | The partial output |
-| `unknown` | Accepted or possibly accepted, with no result: the Computer crashed or disconnected past the grace. | It may or may not have run; check its effects before running it again |
+| `unknown` | Accepted or possibly accepted, with no result inside the grace: the Computer crashed, disconnected, or answered too late. | It may or may not have run; check its effects before running it again |
 | `offline` | The Server never sent `invoke`. Nothing ran. | The machine is offline; `haus` and `execute` still work |
 
 The outcome text rides the tool result, never the prompt.
@@ -514,19 +517,34 @@ a new tool call and a new invocation.
 the grace below, or the runner, no path sends its `invoke` again. That includes a resend queued
 for a reconnect: the Server drops every pending send for an invocation the moment it turns
 `unknown`. An `invocation-request` that repeats its key gets `unknown` back. A result that already
-exists still reconciles: the Server records a late `invoke-result` on the invocation and in the
-journal, confirms it with `invoke-result-ack`, and does not deliver it to the model or change the
-outcome the model saw.
+exists still reconciles: the Server records a late `invoke-result` on the invocation (its
+`late_outcome`, `late_exit_code`, and `late_result_at`), confirms it with `invoke-result-ack`, and
+does not deliver it to the model or change the outcome the model saw. Runner runs upload no
+execution journal yet, so the invocation record is the only place a late result lands; the
+journal gains it when runner runs start uploading one.
 
-**Grace.** When the Computer's socket drops with an invocation sent, the Server waits for the
-invocation's timeout plus 30 seconds for a reconnect. A reconnect inside it resends unacknowledged
-`invoke` frames and receives pending results. Past it the invocation turns `unknown` and the
-runner gets that answer.
+**Grace.** Each invocation gets its timeout plus 30 seconds (`invocationGraceMs`). The Server is
+canonical: it decides `unknown`, and the runner relays that answer, so the record never disagrees
+with what the model saw. The window is a timer per open invocation, armed when the Server sends
+`invoke`. Past it the invocation turns
+`unknown` and the runner gets that answer, whether the Computer stayed connected or not; a result
+after that is late. A dropped socket neither shortens nor extends the window. It only adds the
+reconnect resend: a reconnect inside the window resends unaccepted `invoke` frames and receives
+pending results. An unaccepted invocation that was cancelled, or whose run has settled, is not
+resent: it gets `invoke-cancel` and runs out its window, because only the Computer's ledger knows
+whether it ever arrived. The PostgreSQL record decides every race between a result and the grace,
+so exactly one of them answers the runner. A Server that starts turns every invocation still `sent` or
+`accepted` `unknown`, because it keeps no operation to resend. An answer the runner socket cannot
+take waits in memory and goes out when the runner attaches again.
 
-The runner holds the same bound on its side. A drop of its own Server socket abandons nothing: a
-start the Server resends for a run already running only re-acknowledges it, so the run keeps its
-tools and its open invocations still receive their results. Each open invocation resolves
-`unknown` at its timeout plus 30 seconds if no result arrives, so no tool call waits forever.
+The runner holds a backstop past that bound on its side. A drop of its own Server socket abandons
+nothing: a start the Server resends for a run already running only re-acknowledges it, so the run
+keeps its tools and its open invocations still receive their results. Each open invocation
+resolves `unknown` on its own at its timeout plus the grace plus 5 seconds
+(`invocationRunnerMarginMs`), counted from its request. The margin covers the time between the
+runner sending the request and the Server arming its window. While the runner socket is up, the
+Server's answer always arrives first, so the runner's timer fires only when no answer can arrive,
+and no tool call waits forever.
 `haus` commands and `execute` programs end at their own timeouts, and their machine paths and
 `browser` calls are invocations under the same bound.
 
@@ -584,8 +602,22 @@ frame carries a reference: `{ kind: 'attachment', attachmentId, mediaType, sizeB
   `GET /computer/invocations/:invocationId/payloads/:attachmentId` and checks the digest and size
   before it writes. Bytes up to 700 KiB ride the frame as base64, which keeps the frame under
   1 MiB. R2 builds the Computer side, and R3 builds both routes on the Server.
+- The runner reads a result payload with `GET /api/agent/invocation-payloads/:attachmentId`,
+  its run credential as the bearer, and checks the digest and size against the reference
+  (`readInvocationPayload` in `apps/runner/src/invocations/invocation-payload.ts`). The runner's
+  invocation client swaps every attachment reference for its bytes before a tool sees the
+  result, so `view` images and `haus` machine-path reads take one shape. The invocation stays
+  open until its payload is read, so the download runs under the same timeout plus grace, and a
+  cancel or Stop aborts it. A download cut off that way keeps the outcome the Server recorded
+  and tells the model the bytes could not be read.
+- The runner has no upload path yet. The Server mints the invocation id only when the request
+  arrives, so a payload cannot be bound to its invocation before `invoke` carries it. Until a
+  runner upload route exists, a `haus` write of a file over 700 KiB is refused, and nothing is
+  written.
 - The reference is bound to its invocation and Agent, and only that invocation's run reads it.
-  Bytes uploaded only to carry a payload expire with the invocation record. A webhook secret
+  A payload is not an attachment to anyone else: `GET /api/agent/attachments/:id` answers 404
+  for it, even for a later run of the same Agent, and an Agent cannot attach it to a message,
+  so the App's attachment routes never reach it either. Bytes uploaded only to carry a payload expire with the invocation record. A webhook secret
   written through `--output` always rides the frame, which it fits, so it is never stored.
 
 ### Computer ledger
@@ -600,9 +632,13 @@ payload are never written to the ledger, and a `file-write` result never echoes 
 webhook secret never reaches it.
 
 The Server keeps `agent_invocations`: id, Agent, run, tool call id, `seq`, Computer, operation
-kind, state, outcome, and timestamps, with no payload or output. `unknown` is a terminal state
-there. It is evidence and routing, and the
-execution journal remains the record of what the model saw.
+kind, timeout, state, outcome, exit code, and timestamps, with no payload or output, unique by
+Server, Agent, and dispatch key. Its states are `sent`, `accepted`, `finished` (with the outcome,
+`offline` included), and `unknown`; `unknown` is terminal there, and a late result fills its
+`late_*` columns only. It is evidence and routing, and the
+execution journal remains the record of what the model saw. `agent_invocation_payloads` binds
+each payload attachment to its invocation. Records keep the execution journal's 30-day window;
+the retention sweep deletes them with their payload attachments and bytes.
 
 ## Inbox delivery
 
@@ -664,8 +700,8 @@ never attaches after the cutover. An older Computer connects update-required.
 
 R2 bumps the protocol to 39 for these frames. Their schemas live in
 `packages/haus-api/src/agent-invocations.ts`, and the three Server → Computer frames are members of
-`agentCommandSchema`. Nothing sends `invoke` until R3, so until then the Server drops the two
-upstream frames like any other unknown report.
+`agentCommandSchema`. R3's invocation router (`apps/server/src/agent-invocations/`) sends
+`invoke`, and the Computer ingest chain hands it the two upstream frames.
 
 **Computer protocol, added with runner turns:** `drive-pull` and `drive-push`
 (Server → Computer, `agentId` and `runId`). They come with the PR that first sends them, when the
@@ -720,8 +756,10 @@ settings, reminder scripts, host skill discovery, inventory, updates, and Worker
 | A resent `invoke` whose acknowledgement was lost returns the ledger's answer and runs nothing | `apps/computer/src/invocations/ledger-replay.test.ts` | R2 |
 | Timeout and cancel kill the process group and return partial output | `apps/computer/src/invocations/run.test.ts` | R2 |
 | A Computer that restarts after recording `unknown` answers every resent `invoke` with `unknown` and never runs it | `apps/computer/src/invocations/ledger-crash.test.ts` | R2 |
-| An Agent with no machine or an offline one gets `offline` at once, and a turn with only `haus` calls completes | `apps/server/test/agent-invocations-offline.test.ts` | R3 |
-| After an acknowledgement is lost and the Computer reconnects, an invocation already `unknown` is never sent again, and a late result is recorded without reaching the model | `apps/server/test/agent-invocations-unknown.test.ts` | R3 |
+| An Agent with no machine, a detached one, or one in update-required mode gets `offline` at once, recorded and with nothing sent, and a turn with only `haus` calls completes | `apps/server/test/agent-invocations-offline.test.ts` | R3 |
+| After an acknowledgement is lost and the Computer reconnects, an invocation already `unknown` is never sent again, a connected Computer that answers past the grace leaves it `unknown` as the runner saw it, and a late result is recorded without reaching the model | `apps/server/test/agent-invocations-unknown.test.ts` | R3 |
+| An invocation is sent once with its clamped timeout, its result is recorded, answered, and acknowledged, a repeated key sends nothing, a cancel reaches the Computer, and a reconnect resends unaccepted `invoke` frames and cancels a settled run's | `apps/server/test/agent-invocations-routing.test.ts` | R3 |
+| A payload is stored and read only under its invocation and Computer, its digest and size match, a run reads only its own invocations' payloads, and no general attachment route reads or attaches one | `apps/server/test/agent-invocation-payloads.test.ts`, `apps/runner/src/invocations/invocation-results.test.ts` | R3 |
 | A result or write over 1 MiB moves as an attachment reference, and no frame exceeds 1 MiB | `apps/computer/src/invocations/large-payload.test.ts` | R2 |
 | A lone `haus` command runs on the runner, and a composed one is refused with `HAUS_NOT_ALONE` | `apps/runner/src/haus/haus-command.test.ts` | R3 |
 | A `haus` path argument never reads the runner's disk: workspace commands are refused, path flags read the machine, and every CLI command is classified | `apps/runner/src/haus/haus-cli.test.ts`, `command-access.test.ts` | R3 |
@@ -730,8 +768,9 @@ settings, reminder scripts, host skill discovery, inventory, updates, and Worker
 | A repeated `Haus-Dispatch-Id` on a mutating Agent API route returns the stored result and mutates nothing; one with a different body is refused with `IDEMPOTENCY_KEY_REUSED` | `apps/server/test/agent-api-dispatch-id.test.ts` | R3 |
 | A repeated MCP dispatch id never calls upstream twice | `apps/server/test/mcp-dispatch-id.test.ts` | R3 |
 | A turn stuck on an open tool call trips the no-progress deadline | `apps/runner/src/turn/observe-turn.test.ts` | R3 |
-| A start resent after a runner reconnect reattaches the running run, its open invocation still resolves, and an invocation never answered resolves `unknown` at its timeout plus the grace | `apps/runner/src/server-link.test.ts` | R3 |
-| The runner socket refuses a wrong token, a start reaches the runner with a working run credential while the Computer is offline, and settle, Stop, and reconnect behave as on Computers | `apps/server/test/runner-socket-auth.test.ts`, `runner-delivery.test.ts`, `runner-invocation-offline.test.ts` | R3 |
+| A start resent after a runner reconnect reattaches the running run, its open invocation still resolves, and an invocation never answered resolves `unknown` at its timeout plus the grace and margin | `apps/runner/src/server-link.test.ts` | R3 |
+| While the runner socket is up, the Server's answer at or just past the timeout plus the grace is what the model sees, never a runner-decided `unknown` | `apps/runner/src/invocations/invocation-window.test.ts` | R3 |
+| The runner socket refuses a wrong token, a start reaches the runner with a working run credential while the Computer is offline, and settle, Stop, and reconnect behave as on Computers | `apps/server/test/runner-socket-auth.test.ts`, `runner-delivery.test.ts`, `agent-invocations-offline.test.ts` | R3 |
 | The runner cannot import Server or PostgreSQL modules, and Computer code makes no model calls | `scripts/lint/haus-rules/runner-boundary.cases.mjs`, `computer-no-model-calls.cases.mjs` | R3 |
 | The SDK runs with native tools off and only `mcp__haus__*` tools reachable | `apps/runner/src/claude/claude-tools-live.test.ts`, `claude-driver-live.test.ts` | R3 |
 | Ported Pi tools keep their upstream behavior | Ported upstream tests, listed in `pi/PROVENANCE.md` | R2 |

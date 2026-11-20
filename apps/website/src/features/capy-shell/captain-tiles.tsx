@@ -7,11 +7,11 @@ import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.ts';
 import { cn } from '../../lib/utils.ts';
 import { serverAgentDmRoute, serverChatRoute } from '../servers/server-routes.ts';
-import { ChatGroup } from '../shell/chat-navigation-group.tsx';
+import { CapySection } from './capy-section.tsx';
 import { useCaptainTile } from './use-capy-sidebar-rows.ts';
 
-const tileAvatarSize = 34;
-const tileSize = 44;
+const tileAvatarSize = 38;
+const tileSize = 52;
 
 export function CaptainTiles({
     action,
@@ -31,8 +31,8 @@ export function CaptainTiles({
     slug: string;
 }) {
     return (
-        <ChatGroup action={action} label="Captains">
-            <ul aria-label="Captains" className="flex flex-wrap gap-x-0.5 gap-y-[2px] ps-[2px]">
+        <CapySection action={action} label="Captains">
+            <ul aria-label="Captains" className="flex flex-wrap gap-y-[2px] ps-[1px]">
                 {agentIds.map((agentId) => (
                     <li key={agentId}>
                         <CaptainTileLink
@@ -49,7 +49,7 @@ export function CaptainTiles({
                     </li>
                 ))}
             </ul>
-        </ChatGroup>
+        </CapySection>
     );
 }
 

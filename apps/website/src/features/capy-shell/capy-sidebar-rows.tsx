@@ -4,7 +4,6 @@ import * as React from 'react';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { UnreadCountChip } from '../../components/chats/unread-count-chip.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
-import { useAgentMark } from '../../hooks/members/use-agents.ts';
 import { usePreloadChat } from '../../hooks/servers/use-preload-chat.ts';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.ts';
@@ -13,10 +12,8 @@ import { serverChatRoute, taskRoute } from '../servers/server-routes.ts';
 import { ChatNavigationContextMenu } from '../shell/chat-navigation-context-menu.tsx';
 import { TaskStateDisc } from '../tasks/task-state-disc.tsx';
 import { taskStateLabels } from '../tasks/task-state.ts';
-import { type OpenTaskRow, type ProjectRow, progressLineParts } from './sidebar-model.ts';
+import type { ProjectRow } from './sidebar-model.ts';
 import { useOpenTaskRow, usePersonRow, useProjectRow } from './use-capy-sidebar-rows.ts';
-
-const projectCaptainLimit = 3;
 
 interface RowProps {
     isCurrent: boolean;
@@ -38,7 +35,6 @@ export const ProjectNavigationRow = React.memo(function ProjectNavigationRow({
     }
     return (
         <Sidebar.MenuItem
-            data-captains-source={row.captainIds.source}
             href={href}
             id={chatId}
             isCurrent={isCurrent}
@@ -63,13 +59,6 @@ export const ProjectNavigationRow = React.memo(function ProjectNavigationRow({
                     >
                         {row.name}
                     </Sidebar.MenuLabel>
-                    {row.captainIds.value.length > 0 ? (
-                        <span aria-hidden="true" className="flex shrink-0 gap-[2px]">
-                            {row.captainIds.value.slice(0, projectCaptainLimit).map((agentId) => (
-                                <CaptainFace agentId={agentId} key={agentId} serverId={serverId} />
-                            ))}
-                        </span>
-                    ) : null}
                     {row.unreadCount > 0 ? <UnreadCountChip count={row.unreadCount} /> : null}
                 </Sidebar.MenuItemContent>
             </ChatNavigationContextMenu>
@@ -97,6 +86,11 @@ export const OpenTaskNavigationRow = React.memo(function OpenTaskNavigationRow({
             onHoverStart={preload}
             ref={rowRef}
             textValue={`${row.key} ${row.title}`}
+            tooltipProps={
+                row.waitingOnYou
+                    ? { content: 'Waiting on you', delay: 400, placement: 'right' }
+                    : undefined
+            }
         >
             <Sidebar.MenuIcon>
                 <span aria-label={taskStateLabels[row.state]} role="img">
@@ -104,15 +98,28 @@ export const OpenTaskNavigationRow = React.memo(function OpenTaskNavigationRow({
                 </span>
             </Sidebar.MenuIcon>
             <Sidebar.MenuItemContent>
-                <span className="flex min-w-0 flex-1 flex-col py-1">
-                    <Sidebar.MenuLabel
-                        className={cn(row.unreadCount > 0 && 'text-foreground font-medium')}
+                <Sidebar.MenuLabel
+                    className={cn(row.unreadCount > 0 && 'text-foreground font-medium')}
+                >
+                    {row.waitingOnYou ? (
+                        <>
+                            <span className="sr-only">Waiting on you, </span>
+                            <span
+                                aria-hidden="true"
+                                className="bg-accent me-1 inline-block size-1.5 rounded-full align-middle"
+                            />
+                        </>
+                    ) : null}
+                    <span
+                        className={cn(
+                            'me-1.5 tabular-nums',
+                            row.waitingOnYou ? 'text-accent' : 'text-muted'
+                        )}
                     >
-                        <span className="text-muted me-1.5 tabular-nums">{row.key}</span>
-                        {row.title}
-                    </Sidebar.MenuLabel>
-                    <OpenTaskLineText line={row.line} />
-                </span>
+                        {row.key}
+                    </span>
+                    {row.title}
+                </Sidebar.MenuLabel>
                 {row.unreadCount > 0 ? <UnreadCountChip count={row.unreadCount} /> : null}
             </Sidebar.MenuItemContent>
         </Sidebar.MenuItem>
@@ -154,31 +161,6 @@ export const PersonNavigationRow = React.memo(function PersonNavigationRow({
         </Sidebar.MenuItem>
     );
 });
-
-const CaptainFace = React.memo(function CaptainFace({
-    agentId,
-    serverId,
-}: {
-    agentId: string;
-    serverId: string;
-}) {
-    const captain = useAgentMark(serverId, agentId);
-    return captain ? (
-        <EntityAvatar name={captain.displayName} size={16} src={captain.avatarUrl} />
-    ) : null;
-});
-
-function OpenTaskLineText({ line }: { line: OpenTaskRow['line'] }) {
-    if (line.kind === 'waiting') {
-        return <span className="text-accent truncate text-xs">waiting on {line.on}</span>;
-    }
-    const parts = progressLineParts(line);
-    return parts.length > 0 ? (
-        <span className="text-muted truncate text-xs" data-workers-source={line.workers.source}>
-            {parts.join(' · ')}
-        </span>
-    ) : null;
-}
 
 function useRowNavigation(serverId: string, chatId: string | undefined, href: string) {
     const { focusRef, preload } = usePreloadChat(serverId, chatId);

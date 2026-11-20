@@ -44,7 +44,7 @@ export function HomeComposer({
             : null;
 
     return (
-        <div className="flex w-full flex-col gap-2">
+        <div className="home-composer flex w-full flex-col gap-2">
             <div className="flex items-center gap-1">
                 <ProjectPicker
                     onChange={(id) => {
@@ -61,6 +61,7 @@ export function HomeComposer({
                 />
             </div>
             <PromptInput
+                size="sm"
                 onSubmit={() => {
                     if (ask) {
                         sendHome.send(ask, () => setText(''));
@@ -75,7 +76,7 @@ export function HomeComposer({
                         <PromptInput.TextArea
                             aria-label="Ask a Captain"
                             autoFocus
-                            placeholder={`What should ${captain?.displayName ?? 'we'} work on?`}
+                            placeholder={`Ask ${captain?.displayName ?? 'a Captain'} anything`}
                             ref={textAreaRef}
                         />
                     </PromptInput.Content>

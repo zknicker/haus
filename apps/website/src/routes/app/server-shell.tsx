@@ -161,7 +161,6 @@ export function ServerShell({
                                             }
                                             canOperate={canOperate}
                                             currentSection={settingsSection}
-                                            serverId={server.id}
                                             slug={slug}
                                         />
                                     </ShellSidebarPage>

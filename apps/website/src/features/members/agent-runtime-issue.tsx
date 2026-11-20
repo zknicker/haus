@@ -4,7 +4,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { computerLabel } from '../computers/presentation.ts';
 import { agentRuntimeIssue, runtimeIssueLabel } from '../computers/runtime-issue-model.ts';
-import { serverComputersRoute } from '../servers/server-routes.ts';
+import { serverComputerRoute } from '../servers/server-routes.ts';
 import { AgentWakePauseAlert } from './agent-wake-pause-alert.tsx';
 
 /**
@@ -38,7 +38,7 @@ export function AgentRuntimeIssue({ agent, canRestart }: { agent: Agent; canRest
                             {' '}
                             <Link
                                 className="text-accent underline"
-                                to={`${serverComputersRoute(slug)}?computer=${encodeURIComponent(computer.id)}`}
+                                to={serverComputerRoute(slug, computer.id)}
                             >
                                 View device
                             </Link>

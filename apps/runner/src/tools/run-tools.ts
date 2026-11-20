@@ -6,6 +6,7 @@ import { runHausCommand } from '../haus/haus-cli.ts';
 import { routeBashCommand } from '../haus/haus-command.ts';
 import { startHausProxy } from '../haus/haus-proxy.ts';
 import { createInvocationClient, invocationToolOutcome } from '../invocations/invocation-client.ts';
+import type { InvocationClock } from '../invocations/invocation-clock.ts';
 import type { RunAuthority, RunnerLink, RunTools, ToolOutcome } from '../run-context.ts';
 import { editorCommandOf, refusedInput } from './editor-command.ts';
 import { runExecute } from './execute-tool.ts';
@@ -19,7 +20,7 @@ const hausMaxTimeoutMs = 600_000;
 
 export function createRunTools(input: {
     authority: RunAuthority;
-    invocationGraceMs: number;
+    invocationClock: InvocationClock;
     ledger: DispatchLedger;
     link: RunnerLink;
 }) {
@@ -31,8 +32,9 @@ export function createRunTools(input: {
     });
     const invocations = createInvocationClient({
         agentId: authority.agentId,
+        authority,
+        clock: input.invocationClock,
         dispatches,
-        graceMs: input.invocationGraceMs,
         link: input.link,
     });
     const proxy = startHausProxy({ authority, dispatches });

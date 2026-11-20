@@ -7,15 +7,7 @@ import {
     projectIds,
     waitingChatIds,
 } from './sidebar-layout.ts';
-import {
-    agentDm,
-    assigneeName,
-    captainTile,
-    openTaskRow,
-    progressLineParts,
-    projectRow,
-    taskUnread,
-} from './sidebar-model.ts';
+import { agentDm, captainTile, openTaskRow, projectRow, taskUnread } from './sidebar-model.ts';
 
 const chat = (fields: Partial<Chat> & Pick<Chat, 'id' | 'kind'>) =>
     ({
@@ -54,7 +46,6 @@ const forge = {
     displayName: 'Forge',
     id: 'forge',
 } as const;
-const members = [{ avatarUrl: null, displayName: 'Zach', userId: 'zach' }];
 
 const sources = (fields: Partial<CapySidebarSources>) =>
     ({
@@ -114,11 +105,10 @@ test('a Captain tile is working while its Agent works and counts its DM unread',
     });
 });
 
-test("Projects follow the stored order and carry their channel's Captains as live data", () => {
+test('Projects follow the stored order and carry their unread count', () => {
     const eng = chat({ id: 'eng', kind: 'channel', name: 'eng', participantAgentIds: ['forge'] });
     const sec = chat({ id: 'sec', kind: 'channel', name: 'sec', unreadCount: 4 });
     expect(projectIds([eng, sec], ['sec'])).toEqual(['sec', 'eng']);
-    expect(projectRow(eng).captainIds).toEqual({ source: 'live', value: ['forge'] });
     expect(projectRow(sec).unreadCount).toBe(4);
 });
 
@@ -137,47 +127,27 @@ test('a Task that @mentions you in an unread message waits on you and sorts firs
         'ENG-1',
         'ENG-3',
     ]);
-    const row = openTaskRow({
-        assignee: 'Forge',
+    const waiting = openTaskRow({
         task: tasks[1] as Task,
         unread: taskUnread(previews[0], 'zach'),
-        viewerName: 'Zach',
     });
-    expect([row.line, row.unreadCount]).toEqual([{ kind: 'waiting', on: 'Zach' }, 2]);
+    expect([waiting.waitingOnYou, waiting.unreadCount]).toEqual([true, 2]);
     expect(taskUnread(previews[1], 'zach')).toEqual({ mentionsViewer: false, unreadCount: 2 });
 });
 
-test('Worker counts and places are placeholders marked for W2', () => {
-    const row = openTaskRow({
-        assignee: assigneeName({ agentId: 'forge', kind: 'agent' }, [forge], members),
-        task: task('t2', 'ENG-2', '2026-11-18T12:00:00Z'),
-        unread: taskUnread(undefined, 'zach'),
-        viewerName: 'Zach',
-    });
-    expect(row.line).toEqual({
-        assignee: 'Forge',
-        kind: 'progress',
-        workers: {
-            replacedBy: 'W2',
-            source: 'placeholder',
-            value: { count: 1, places: ['cursor'] },
-        },
-    });
-});
-
-test('the progress line drops parts it has nothing for', () => {
+test('an open Task row is one line: key, title, unread, and whether it waits on you', () => {
     expect(
-        progressLineParts({
-            assignee: 'Forge',
-            kind: 'progress',
-            workers: { source: 'live', value: { count: 2, places: ['mini', 'cursor'] } },
+        openTaskRow({
+            task: task('t2', 'ENG-2', '2026-11-18T12:00:00Z', 'c2'),
+            unread: taskUnread(undefined, 'zach'),
         })
-    ).toEqual(['Forge', '2 workers', 'mini, cursor']);
-    expect(
-        progressLineParts({
-            assignee: null,
-            kind: 'progress',
-            workers: { source: 'live', value: { count: 0, places: [] } },
-        })
-    ).toEqual([]);
+    ).toEqual({
+        chatId: 'c2',
+        key: 'ENG-2',
+        state: 'open',
+        taskId: 't2',
+        title: 'Title ENG-2',
+        unreadCount: 0,
+        waitingOnYou: false,
+    });
 });

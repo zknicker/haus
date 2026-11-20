@@ -36,8 +36,8 @@ export function CapyHomePage({ serverId, slug }: { serverId: string; slug: strin
                 <PageBand.Trail current="Home" />
             </PageBand>
             <HomeBackground />
-            <div className="flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 pb-[16vh]">
-                <div className="w-full max-w-2xl">
+            <div className="relative isolate flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 pb-[8vh]">
+                <div className="relative w-full max-w-xl">
                     {chats && initialProject ? (
                         <HomeComposer
                             captains={captains}

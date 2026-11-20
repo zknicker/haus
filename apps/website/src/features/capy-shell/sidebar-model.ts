@@ -2,7 +2,6 @@ import type { Agent, Chat, ChatUnreadPreview, Task } from '@haus/api';
 import type { ServerMember } from '@haus/api/membership';
 import { parseHausRichReferences, parseUserReferenceTarget } from '@haus/api/rich-references';
 import { humanDisplayName } from '../servers/human-identity.ts';
-import { live, previewTaskWorkers, type Sourced, type TaskWorkers } from './placeholders.ts';
 
 export interface CaptainTile {
     agentId: string;
@@ -14,7 +13,6 @@ export interface CaptainTile {
 }
 
 export interface ProjectRow {
-    captainIds: Sourced<readonly string[]>;
     chatId: string;
     color: Chat['color'];
     icon: Chat['icon'];
@@ -22,14 +20,10 @@ export interface ProjectRow {
     unreadCount: number;
 }
 
-export type OpenTaskLine =
-    | { kind: 'waiting'; on: string }
-    | { assignee: string | null; kind: 'progress'; workers: Sourced<TaskWorkers> };
-
 export interface OpenTaskRow {
     chatId: string | null;
     key: string;
-    line: OpenTaskLine;
+    waitingOnYou: boolean;
     state: Task['state'];
     taskId: string;
     title: string;
@@ -68,7 +62,6 @@ export function agentDm(chats: readonly Chat[], agentId: string) {
 
 export function projectRow(chat: Chat) {
     return {
-        captainIds: live<readonly string[]>(chat.participantAgentIds),
         chatId: chat.id,
         color: chat.color,
         icon: chat.icon,
@@ -86,23 +79,16 @@ export function taskUnread(preview: ChatUnreadPreview | undefined, viewerUserId:
 }
 
 export function openTaskRow({
-    assignee,
     task,
     unread,
-    viewerName,
 }: {
-    assignee: string | null;
     task: Pick<Task, 'chatId' | 'id' | 'key' | 'state' | 'title'>;
     unread: TaskUnread;
-    viewerName: string;
 }) {
-    const line: OpenTaskLine = unread.mentionsViewer
-        ? { kind: 'waiting', on: viewerName }
-        : { assignee, kind: 'progress', workers: previewTaskWorkers(task.id) };
     return {
         chatId: task.chatId,
         key: task.key,
-        line,
+        waitingOnYou: unread.mentionsViewer,
         state: task.state,
         taskId: task.id,
         title: task.title,
@@ -121,35 +107,6 @@ export function personRow(
         name: humanDisplayName(member ?? { displayName: null, userId: peerUserId }),
         unreadCount: chat.unreadCount,
     } satisfies PersonRow;
-}
-
-export function assigneeName(
-    assignee: Task['assignee'],
-    agents: readonly CaptainSource[],
-    members: readonly MemberSource[]
-) {
-    if (assignee?.kind === 'agent') {
-        return agents.find((agent) => agent.id === assignee.agentId)?.displayName ?? null;
-    }
-    if (assignee?.kind === 'user') {
-        const member = members.find((entry) => entry.userId === assignee.userId);
-        return member ? humanDisplayName(member) : null;
-    }
-    return null;
-}
-
-export function viewerName(members: readonly MemberSource[], viewerUserId: string | null) {
-    const viewer = members.find((member) => member.userId === viewerUserId);
-    return viewer ? humanDisplayName(viewer) : 'you';
-}
-
-export function progressLineParts(line: Extract<OpenTaskLine, { kind: 'progress' }>) {
-    const { count, places } = line.workers.value;
-    return [
-        line.assignee,
-        count > 0 ? `${count} ${count === 1 ? 'worker' : 'workers'}` : null,
-        places.length > 0 ? places.join(', ') : null,
-    ].filter((part): part is string => part !== null);
 }
 
 function mentionsUser(preview: ChatUnreadPreview, userId: string) {

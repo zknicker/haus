@@ -1,4 +1,4 @@
-import { ToggleButton, ToggleButtonGroup, Toolbar } from '@heroui/react';
+import { Tabs } from '@heroui/react';
 import type { ReactNode } from 'react';
 import { TokenConfigurationGrid } from './token-configuration-grid.tsx';
 import { TokenTotalKpis } from './token-total-kpis.tsx';
@@ -30,8 +30,8 @@ export function TokenUsageDashboard({
         <>
             <div className="grid gap-3">
                 {controls ? (
-                    <div className="flex flex-wrap items-center justify-end gap-3">
-                        <Toolbar aria-label="Usage filters">{controls}</Toolbar>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        {controls}
                     </div>
                 ) : null}
                 <TokenUsageCluster view={view} />
@@ -58,23 +58,25 @@ export function TokenUsageRangePicker({
     onChange: (days: TokenUsageRange) => void;
 }) {
     return (
-        <ToggleButtonGroup
-            aria-label="Token usage range"
-            disallowEmptySelection
-            onSelectionChange={(keys) => {
-                const selected = Number([...keys][0]);
-                if (selected === 7 || selected === 30 || selected === 90) {
+        <Tabs
+            onSelectionChange={(key) => {
+                const selected = ranges.find((range) => String(range) === String(key));
+                if (selected) {
                     onChange(selected);
                 }
             }}
-            selectedKeys={new Set([String(days)])}
-            selectionMode="single"
+            selectedKey={String(days)}
         >
-            {ranges.map((range) => (
-                <ToggleButton id={String(range)} key={range}>
-                    {range} days
-                </ToggleButton>
-            ))}
-        </ToggleButtonGroup>
+            <Tabs.ListContainer>
+                <Tabs.List aria-label="Token usage range">
+                    {ranges.map((range) => (
+                        <Tabs.Tab aria-label={`${range} days`} id={String(range)} key={range}>
+                            {range}d
+                            <Tabs.Indicator />
+                        </Tabs.Tab>
+                    ))}
+                </Tabs.List>
+            </Tabs.ListContainer>
+        </Tabs>
     );
 }
