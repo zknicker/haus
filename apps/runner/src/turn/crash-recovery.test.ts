@@ -7,6 +7,7 @@ import type { RunnerLink } from '../run-context.ts';
 import {
     cleanups,
     drainCleanups,
+    noLogins,
     runnerToken,
     type ServerStandIn,
     serverStandIn,
@@ -83,13 +84,13 @@ async function restartRunner(server: ServerStandIn, dataDir: string) {
     const link: RunnerLink = { send: (frame) => attached?.link.send(frame) };
     await ledger.recover();
     const turnHost = createTurnHost({
-        config: { claudeSetupToken: null, dataDir, maxWarm: 1 },
+        config: { ...noLogins(dataDir), maxWarm: 1 },
         ledger,
         link,
         log: () => undefined,
     });
     attached = openServerLink({
-        config: { claudeSetupToken: null, runnerToken, serverUrl: server.url },
+        config: { ...noLogins(dataDir), runnerToken, serverUrl: server.url },
         ledger,
         log: () => undefined,
         turnHost,

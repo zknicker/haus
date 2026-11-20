@@ -53,7 +53,7 @@ export async function observeTurn(
                     break;
                 case 'tool-result':
                 case 'tool-error':
-                    await input.gate.toolCallSettled(event.toolCallId);
+                    input.gate.toolCallSettled(event.toolCallId);
                     break;
                 case 'step-finish':
                     contextTokens = event.contextTokens ?? contextTokens;

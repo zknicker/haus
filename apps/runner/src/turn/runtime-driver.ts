@@ -2,7 +2,14 @@ import type { AgentReasoningEffort } from '@haus/api';
 import type { RunTools } from '../run-context.ts';
 import type { TurnEvent } from './turn-event.ts';
 
-export type HarnessId = 'claude-agent-sdk';
+export const harnessIds = ['claude-agent-sdk', 'pi-durable'] as const;
+
+export type HarnessId = (typeof harnessIds)[number];
+
+export function harnessFor(modelId: string) {
+    const harness: HarnessId = modelId.startsWith('claude-') ? 'claude-agent-sdk' : 'pi-durable';
+    return harness;
+}
 
 export interface RuntimeLaunch {
     readonly agentDir: string;
@@ -18,6 +25,7 @@ export type RuntimeDriverFactory = (launch: RuntimeLaunch) => RuntimeDriver;
 export interface RuntimeDriver {
     bootstrapFingerprint(signal?: AbortSignal): Promise<string>;
     readonly harness: HarnessId;
+    readonly instructionsOnResume: 'current' | 'launched';
     openSession(options: OpenSessionOptions): Promise<RuntimeSession>;
 }
 

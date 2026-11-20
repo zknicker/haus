@@ -1,7 +1,7 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import * as z from 'zod';
-import type { HarnessId } from './runtime-driver.ts';
+import { type HarnessId, harnessIds } from './runtime-driver.ts';
 
 const fingerprint = z.string().min(1).nullable().catch(null);
 
@@ -11,7 +11,7 @@ const sessionRecordSchema = z.object({
     deliveredMemoryDigest: fingerprint,
     deliveredRuleDigests: z.record(z.string(), z.string()).catch({}),
     generation: z.number().int().positive(),
-    harness: z.literal('claude-agent-sdk'),
+    harness: z.enum(harnessIds),
     interruptedTurn: z.boolean().catch(false),
     launchedInstructionFingerprint: fingerprint,
     modelId: z.string().min(1),

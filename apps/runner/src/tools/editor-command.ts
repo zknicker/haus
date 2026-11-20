@@ -21,16 +21,17 @@ export function editorCommandOf(input: EditToolInput) {
     if (parsed.success) {
         return { command: parsed.data, kind: 'command' as const };
     }
+    return { kind: 'refused' as const, outcome: refusedInput(input.command, parsed.error) };
+}
+
+export function refusedInput(name: string, error: z.ZodError) {
     return {
-        kind: 'refused' as const,
-        outcome: {
-            content: [
-                {
-                    text: `The ${input.command} input is invalid. Nothing ran.\n${z.prettifyError(parsed.error)}`,
-                    type: 'text',
-                },
-            ],
-            isError: true,
-        } satisfies ToolOutcome,
-    };
+        content: [
+            {
+                text: `The ${name} input is invalid. Nothing ran.\n${z.prettifyError(error)}`,
+                type: 'text',
+            },
+        ],
+        isError: true,
+    } satisfies ToolOutcome;
 }
