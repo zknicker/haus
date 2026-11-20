@@ -853,6 +853,19 @@
     }
 
     /*
+     * The Capy shell's sidebar marks are its 24px identity boxes (a Project's
+     * `ChannelIconBox` at `sidebar`, a person's avatar). HeroUI's icon slot is a
+     * spacing-scaled `size-5`, 16px at the sidebar's density, so the mark spilled
+     * 4px past the row's leading edge. The slot takes the mark's box instead, so
+     * marks, section labels and Captain tiles share one left edge. The old shell
+     * keeps its own slot.
+     */
+    .capy-sidebar .sidebar__menu-icon {
+        width: 24px;
+        height: 24px;
+    }
+
+    /*
      * Home's composer is Capy's elevated card, not a field: a surface fill and
      * the resting surface shadow (hairline ring plus lift) in place of the
      * field border. `--home-input-opacity`
