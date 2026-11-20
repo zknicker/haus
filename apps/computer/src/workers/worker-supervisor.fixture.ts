@@ -94,6 +94,6 @@ export function registerSupervisorFixture() {
                     : new Promise<void>((resolve) => waiting.push({ match, resolve }));
             return { frames, observations, sent, work };
         };
-        return { journal: new WorkerTurnJournal(dataRoot), provider, runtime, start };
+        return { dataRoot, journal: new WorkerTurnJournal(dataRoot), provider, runtime, start };
     };
 }

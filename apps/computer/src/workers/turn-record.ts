@@ -25,52 +25,62 @@ const deliverySchema = z.object({
     interruptedAt: z.string().min(1).nullable().default(null),
 });
 
+export const launchingRecordSchema = z.object({
+    phase: z.literal('launching'),
+    workerId: z.string(),
+    deadlineAt: z.iso.datetime().optional(),
+});
+const sendingRecordSchema = z.object({
+    phase: z.literal('sending'),
+    workerId: z.string(),
+    input: z.string().min(1),
+    model: modelSchema,
+    providerAgentId: z.string().min(1),
+    predecessorTurnIds: z.array(z.string().min(1)),
+    delivery: deliverySchema.nullable().default(null),
+});
+export const heldFollowUpRecordSchema = z.object({
+    phase: z.literal('pending'),
+    workerId: z.string(),
+    instructions: z.string().min(1),
+    model: modelSchema,
+    providerAgentId: z.string().min(1),
+    interrupt: z.boolean(),
+    predecessors: z.array(
+        z.object({
+            provider: cloudAgentProviderSchema.default('cursor'),
+            workerId: z.string(),
+            turnId: z.string(),
+            providerAgentId: z.string().nullable(),
+            providerRunId: z.string().nullable(),
+        })
+    ),
+    delivery: deliverySchema.nullable().default(null),
+});
+export const cancelledRecordSchema = z.object({
+    phase: z.literal('cancelled'),
+    workerId: z.string(),
+});
+export const launchedRecordSchema = z.object({
+    phase: z.literal('launched'),
+    workerId: z.string(),
+    launch: launchSchema,
+    autoInterrupted: z.boolean().default(false),
+});
+export const rejectedRecordSchema = z.object({
+    phase: z.literal('rejected'),
+    workerId: z.string(),
+    errorCode: z.string().min(1).default('provider-launch-rejected'),
+    summary: z.string().min(1).nullable().default(null),
+});
+
 export const workerTurnRecordSchema = z.discriminatedUnion('phase', [
-    z.object({
-        phase: z.literal('launching'),
-        workerId: z.string(),
-        deadlineAt: z.iso.datetime().optional(),
-    }),
-    z.object({
-        phase: z.literal('sending'),
-        workerId: z.string(),
-        input: z.string().min(1),
-        model: modelSchema,
-        providerAgentId: z.string().min(1),
-        predecessorTurnIds: z.array(z.string().min(1)),
-        delivery: deliverySchema.nullable().default(null),
-    }),
-    z.object({
-        phase: z.literal('pending'),
-        workerId: z.string(),
-        instructions: z.string().min(1),
-        model: modelSchema,
-        providerAgentId: z.string().min(1),
-        interrupt: z.boolean(),
-        predecessors: z.array(
-            z.object({
-                provider: cloudAgentProviderSchema.default('cursor'),
-                workerId: z.string(),
-                turnId: z.string(),
-                providerAgentId: z.string().nullable(),
-                providerRunId: z.string().nullable(),
-            })
-        ),
-        delivery: deliverySchema.nullable().default(null),
-    }),
-    z.object({ phase: z.literal('cancelled'), workerId: z.string() }),
-    z.object({
-        phase: z.literal('launched'),
-        workerId: z.string(),
-        launch: launchSchema,
-        autoInterrupted: z.boolean().default(false),
-    }),
-    z.object({
-        phase: z.literal('rejected'),
-        workerId: z.string(),
-        errorCode: z.string().min(1).default('provider-launch-rejected'),
-        summary: z.string().min(1).nullable().default(null),
-    }),
+    launchingRecordSchema,
+    sendingRecordSchema,
+    heldFollowUpRecordSchema,
+    cancelledRecordSchema,
+    launchedRecordSchema,
+    rejectedRecordSchema,
 ]);
 export type WorkerTurnRecord = z.infer<typeof workerTurnRecordSchema>;
 export type WorkerTurnRecordInput = z.input<typeof workerTurnRecordSchema>;

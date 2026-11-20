@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { type FileHandle, mkdir, open, readFile, rename, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { workerLaunchTimeoutMs } from './launch-attempt.ts';
+import { preWorkerTurnRecordSchema } from './pre-worker-turn-record.ts';
 import type { WorkerLaunch, WorkerTurnRef } from './provider.ts';
 import {
     type WorkerSendingTurn,
@@ -119,7 +120,10 @@ export class WorkerTurnJournal {
             }
             throw cause;
         }
-        return workerTurnRecordSchema.parse(JSON.parse(contents));
+        const value = JSON.parse(contents);
+        return 'workId' in value
+            ? preWorkerTurnRecordSchema.parse(value)
+            : workerTurnRecordSchema.parse(value);
     }
 
     private async write(serverId: string, ref: WorkerTurnRef, record: WorkerTurnRecord) {
