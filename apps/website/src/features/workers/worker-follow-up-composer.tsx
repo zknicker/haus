@@ -1,9 +1,10 @@
-import type { Worker } from '@haus/api';
+import { isTerminalWorkerTurnStatus, type Worker } from '@haus/api';
 import { PromptInput } from '@heroui-pro/react';
 import { toast } from '@heroui/react';
 import * as React from 'react';
 import { useWorkerSendFollowUp, useWorkerStop } from '../../hooks/servers/use-worker.ts';
 import { isWorkerStopping, isWorkerTurnLive } from './worker-card-model.ts';
+import { workerFollowUpControls } from './worker-follow-up-controls.ts';
 
 export function WorkerFollowUpComposer({
     serverId,
@@ -13,17 +14,39 @@ export function WorkerFollowUpComposer({
     work: Pick<Worker, 'id' | 'status' | 'title' | 'turns'>;
 }) {
     const [text, setText] = React.useState('');
+    const [stopHeldFor, setStopHeldFor] = React.useState<null | string>(null);
+    const [stopSentFor, setStopSentFor] = React.useState<null | string>(null);
     const nonce = React.useRef<null | string>(null);
+    const latestText = React.useRef('');
     const send = useWorkerSendFollowUp();
     const stop = useWorkerStop();
     const live = isWorkerTurnLive(work);
-    const canStop = live && !isWorkerStopping(work) && !stop.isPending;
+    const liveTurnId =
+        work.turns.find((turn) => !isTerminalWorkerTurnStatus(turn.status))?.turnId ?? null;
     const draft = text.trim();
+    const controls = workerFollowUpControls({
+        canStop:
+            liveTurnId !== null &&
+            !isWorkerStopping(work) &&
+            !stop.isPending &&
+            stopSentFor !== liveTurnId,
+        draft,
+        sending: send.isPending,
+        stopHeld: liveTurnId !== null && stopHeldFor === liveTurnId,
+    });
+
+    const changeText = (value: string) => {
+        nonce.current = null;
+        latestText.current = value;
+        setStopHeldFor(null);
+        setText(value);
+    };
 
     const submit = () => {
         if (draft === '' || send.isPending) {
             return;
         }
+        const sent = text;
         nonce.current ??= crypto.randomUUID();
         send.mutate(
             { nonce: nonce.current, serverId, text: draft, workerId: work.id },
@@ -32,30 +55,41 @@ export function WorkerFollowUpComposer({
                     toast.danger('Could not send the follow-up', { description: error.message }),
                 onSuccess: () => {
                     nonce.current = null;
-                    setText('');
+                    setStopHeldFor(liveTurnId);
+                    if (latestText.current === sent) {
+                        latestText.current = '';
+                        setText('');
+                    }
                 },
             }
         );
     };
 
-    const requestStop = () =>
+    const requestStop = () => {
+        if (!controls.stops || liveTurnId === null) {
+            return;
+        }
+        setStopSentFor(liveTurnId);
         stop.mutate(
             { serverId, workerId: work.id },
             {
-                onError: (error) =>
-                    toast.danger('Could not stop this Worker', { description: error.message }),
+                onError: (error) => {
+                    setStopSentFor(null);
+                    toast.danger('Could not stop this Worker', { description: error.message });
+                },
             }
         );
+    };
 
     return (
         <PromptInput
             layout="compact"
             lockInputOnRun={false}
-            onStop={requestStop}
+            onStop={controls.stops ? requestStop : undefined}
             onSubmit={submit}
-            onValueChange={setText}
+            onValueChange={changeText}
             size="sm"
-            status={composerStatus({ canStop, draft, sending: send.isPending })}
+            status={controls.status}
             value={text}
             variant="secondary"
         >
@@ -69,21 +103,14 @@ export function WorkerFollowUpComposer({
                 <PromptInput.Toolbar>
                     <PromptInput.ToolbarEnd>
                         <PromptInput.Send
-                            aria-label={draft === '' && canStop ? 'Stop Worker' : 'Send follow-up'}
-                            isDisabled={draft === '' && !canStop}
+                            aria-label={controls.label}
+                            isDisabled={controls.sendDisabled}
                         />
                     </PromptInput.ToolbarEnd>
                 </PromptInput.Toolbar>
             </PromptInput.Shell>
         </PromptInput>
     );
-}
-
-function composerStatus(input: { canStop: boolean; draft: string; sending: boolean }) {
-    if (input.sending) {
-        return 'submitted';
-    }
-    return input.draft === '' && input.canStop ? 'streaming' : 'ready';
 }
 
 function composerPlaceholder(work: Pick<Worker, 'status'>, live: boolean) {
