@@ -28,10 +28,11 @@ export function CapyHomePage({
         { serverId },
         { ...queryPolicy.syncedSnapshot, select: selectCaptainChoices }
     ).data;
-    const deviceCount = hausTrpc.computer.list.useQuery(
+    const devices = hausTrpc.computer.list.useQuery(
         { serverId },
-        { ...queryPolicy.syncedSnapshot, select: countDevices }
+        { ...queryPolicy.syncedSnapshot, enabled: canManage, select: countDevices }
     ).data;
+    const deviceCount = canManage ? devices : null;
     const projects = React.useMemo(() => {
         if (!chats) {
             return undefined;

@@ -56,13 +56,14 @@
     }
 
     .home-background[data-art="contours"] .home-background__art {
-        --home-contour: color-mix(in oklab, var(--foreground) 9%, transparent);
+        --home-contour: color-mix(in oklab, var(--foreground) 10%, transparent);
+        --home-contour-gap: calc(34px * var(--home-pattern-scale));
         background-image:
             repeating-radial-gradient(
                 ellipse 150% 110% at 6% 112%,
-                transparent 0 calc(26px * var(--home-pattern-scale)),
-                var(--home-contour) calc(26px * var(--home-pattern-scale))
-                    calc(27px * var(--home-pattern-scale))
+                transparent 0 calc(var(--home-contour-gap) - 2px),
+                var(--home-contour) calc(var(--home-contour-gap) - 1px),
+                transparent var(--home-contour-gap)
             ),
             radial-gradient(
                 70% 60% at 6% 100%,
@@ -80,12 +81,12 @@
             ),
             radial-gradient(
                 45% 40% at 84% 18%,
-                oklch(from var(--accent) l c calc(h + 55) / 0.18),
+                oklch(from var(--accent) l c calc(h + 35) / 0.18),
                 transparent 72%
             ),
             radial-gradient(
                 65% 50% at 58% 98%,
-                oklch(from var(--accent) l c calc(h - 50) / 0.14),
+                oklch(from var(--accent) l c calc(h - 30) / 0.14),
                 transparent 72%
             );
     }
@@ -105,11 +106,11 @@
     }
 
     .home-background[data-art="ghosts"] .home-background__art {
-        background-color: color-mix(in oklab, var(--foreground) 7%, transparent);
+        background-color: color-mix(in oklab, var(--foreground) 5%, transparent);
         mask-image: var(--home-background-art);
         mask-position: center;
         mask-repeat: repeat;
-        mask-size: calc(240px * var(--home-pattern-scale)) calc(240px * var(--home-pattern-scale));
+        mask-size: calc(360px * var(--home-pattern-scale)) calc(360px * var(--home-pattern-scale));
     }
 
     .home-background[data-effect="grain"] .home-background__effect {
@@ -134,8 +135,16 @@
         );
     }
 
-    :is(.home-background-preview, .home-background-tile) .home-background {
-        --home-pattern-scale: 0.5;
+    .home-background-preview .home-background {
+        --home-pattern-scale: 0.6;
+    }
+
+    .home-background-tile .home-background {
+        --home-pattern-scale: 0.4;
+    }
+
+    .home-background-tile .home-background[data-art="ghosts"] .home-background__art {
+        mask-position: 29px 9px;
     }
 
     .home-background-preview {
@@ -170,7 +179,7 @@
     .home-background-preview__line {
         width: 52%;
         height: 4px;
-        border-radius: var(--radius-full, 9999px);
+        border-radius: 9999px;
         background-color: var(--muted);
         opacity: 0.6;
     }
@@ -179,7 +188,7 @@
         align-self: flex-end;
         width: 18px;
         height: 18px;
-        border-radius: var(--radius-full, 9999px);
+        border-radius: 9999px;
         background-color: var(--accent);
     }
 

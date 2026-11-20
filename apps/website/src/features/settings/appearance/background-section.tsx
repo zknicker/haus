@@ -50,7 +50,7 @@ export function BackgroundSection({ theme }: { theme: ColorTheme }) {
                 />
                 {upload.input}
                 {upload.error ? <p className="text-danger px-1 text-sm">{upload.error}</p> : null}
-                {background.image ? (
+                {background.source === 'image' && background.image ? (
                     <ImageRow image={background.image} onReplace={upload.choose} theme={theme} />
                 ) : null}
                 {background.source === 'none' ? null : (

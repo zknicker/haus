@@ -31,9 +31,10 @@ export function homeInputOpacity(background: ThemeBackground) {
 export const ghostTile = cssUrl(
     `data:image/svg+xml,${encodeURIComponent(
         [
-            '<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">',
-            ghost('translate(30 28) rotate(-8 27 29) scale(0.28)'),
-            ghost('translate(150 136) rotate(7 27 29) scale(0.28)'),
+            '<svg xmlns="http://www.w3.org/2000/svg" width="360" height="360" viewBox="0 0 360 360">',
+            ghost('translate(48 40) rotate(-14 96 102) scale(0.3)'),
+            ghost('translate(236 150) rotate(11 96 102) scale(0.22)'),
+            ghost('translate(96 250) rotate(6 96 102) scale(0.26)'),
             '</svg>',
         ].join('')
     )}`
