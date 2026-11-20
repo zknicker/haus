@@ -41,9 +41,10 @@ connection's provider.
   App, or any hint of one.
 - Without `HAUS_SECRETS_KEY` the Server refuses to store a connection and sends the runner none.
   It does not fail at boot.
-- Each connection has a web search switch. It turns on the provider's native search for Agents on
-  that connection. It can be on only for ChatGPT, xAI and Gemini, the providers with native
-  search, and starts on for those and off for the rest. The runner receives it in the snapshot, and R3c turns it into the
+- Each connection has a web search switch. It turns on the provider's own search for Agents on
+  that connection: native search for ChatGPT, xAI and Gemini, and OpenRouter's web server tool for
+  OpenRouter. It can be on only for those four, and starts on for them. Claude keeps its native
+  WebSearch outside this switch. The runner receives it in the snapshot, and R3c turns it into the
   provider's search tool.
 - An Agent stores an optional connection id. Removing that connection clears it, and the Agent
   falls back to its provider's default.
@@ -110,7 +111,8 @@ connection, or with one the runner doesn't hold, fails before any model call as 
 - A Connections group sits at the top of the page, with one card per provider.
 - Each connection is a row: its label, Connected or the failure, and its plan capacity. The row
   menu has Rename, Make default, Reconnect and Remove.
-- ChatGPT, xAI and Gemini rows have a Web search switch, starting on. Only the Owner can change it.
+- ChatGPT, xAI, Gemini and OpenRouter rows have a Web search switch, starting on. Only the Owner
+  can change it.
 - Each provider card has a Connect action:
   - Claude: paste a setup-token.
   - ChatGPT and SuperGrok: a dialog shows the link and code, and closes when the connection lands.

@@ -90,17 +90,17 @@ test('new connections start with web search only where the provider has it', asy
         [chatgpt]: true,
         [claude.id]: false,
         [geminiId]: true,
-        [openrouter.id]: false,
+        [openrouter.id]: true,
         [xai.id]: true,
     });
 
-    for (const connectionId of [claude.id, openrouter.id]) {
-        await expect(setWebSearch(connectionId, true)).rejects.toMatchObject({
-            data: { code: 'BAD_REQUEST', modelConnection: { code: 'web-search-unsupported' } },
-            message: 'Web search cannot be turned on for this provider.',
-        });
-        expect(await setWebSearch(connectionId, false)).toMatchObject({ webSearch: false });
-    }
+    await expect(setWebSearch(claude.id, true)).rejects.toMatchObject({
+        data: { code: 'BAD_REQUEST', modelConnection: { code: 'web-search-unsupported' } },
+        message: 'Web search cannot be turned on for this provider.',
+    });
+    expect(await setWebSearch(claude.id, false)).toMatchObject({ webSearch: false });
+    expect(await setWebSearch(openrouter.id, false)).toMatchObject({ webSearch: false });
+    expect(await setWebSearch(openrouter.id, true)).toMatchObject({ webSearch: true });
 });
 
 function addKey(provider: 'openrouter' | 'xai', label: string, key: string) {

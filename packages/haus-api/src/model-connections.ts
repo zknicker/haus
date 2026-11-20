@@ -16,11 +16,12 @@ export const modelProviderAuthKinds = {
     xai: ['oauth', 'api-key'],
 } as const satisfies Record<ModelProvider, readonly ModelConnectionAuthKind[]>;
 
-/** The providers whose native web search a connection can turn on. */
+/** The providers whose own search a connection can turn on: native search, or OpenRouter's web server tool. Claude keeps its native WebSearch outside this switch. */
 export const modelProvidersWithWebSearch = [
     'chatgpt',
     'xai',
     'gemini',
+    'openrouter',
 ] as const satisfies readonly ModelProvider[];
 
 export function providerSearchesWeb(provider: ModelProvider) {
