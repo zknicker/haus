@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { readBackgroundImage } from '../../lib/background-images.ts';
 import type { BackgroundImageRef, BackgroundImageType } from '../../lib/home-background.ts';
-
-export type BackgroundImageUrl =
-    | { readonly status: 'loading' }
-    | { readonly status: 'missing' }
-    | { readonly status: 'ready'; readonly url: string };
+import {
+    readBackgroundImageUrl,
+    retainBackgroundImageUrl,
+    subscribeBackgroundImageUrls,
+} from './background-image-urls.ts';
 
 const reducedMotionQuery = '(prefers-reduced-motion: reduce)';
 const animatableTypes: ReadonlySet<BackgroundImageType> = new Set([
@@ -19,7 +19,6 @@ export function showsStillFrame(type: BackgroundImageType, reducedMotion: boolea
 }
 
 export function useBackgroundImageUrl(image: BackgroundImageRef | null) {
-    const [state, setState] = React.useState<{ key: string; url: BackgroundImageUrl } | null>(null);
     const canAnimate = image ? animatableTypes.has(image.type) : false;
     const reducedMotion = React.useSyncExternalStore(
         canAnimate ? subscribeReducedMotion : subscribeNever,
@@ -34,33 +33,11 @@ export function useBackgroundImageUrl(image: BackgroundImageRef | null) {
         if (!(id && key)) {
             return;
         }
-        let url: string | null = null;
-        let live = true;
-        loadImageBlob(id, still)
-            .then((blob) => {
-                if (!live) {
-                    return;
-                }
-                url = blob ? URL.createObjectURL(blob) : null;
-                setState({ key, url: url ? { status: 'ready', url } : { status: 'missing' } });
-            })
-            .catch(() => {
-                if (live) {
-                    setState({ key, url: { status: 'missing' } });
-                }
-            });
-        return () => {
-            live = false;
-            if (url) {
-                URL.revokeObjectURL(url);
-            }
-        };
+        return retainBackgroundImageUrl(key, () => loadImageBlob(id, still));
     }, [id, key, still]);
 
-    if (!key) {
-        return null;
-    }
-    return state?.key === key ? state.url : ({ status: 'loading' } as const);
+    const read = React.useCallback(() => (key ? readBackgroundImageUrl(key) : null), [key]);
+    return React.useSyncExternalStore(subscribeBackgroundImageUrls, read, read);
 }
 
 async function loadImageBlob(id: string, still: boolean) {

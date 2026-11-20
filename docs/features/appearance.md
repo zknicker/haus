@@ -163,7 +163,9 @@ Storage, per device like every Appearance choice:
   failed save says so the same way. The message clears when the theme changes, and an upload that
   finishes after a theme switch is dropped. Blobs no theme points at are pruned after Replace,
   Remove, and deleting a custom theme.
-- At runtime an upload is an object URL, revoked when it changes. While it loads Home draws
+- At runtime an upload is one object URL shared by every reader of it (Home, the preview, the
+  source tile, the Image row; `hooks/shell/background-image-urls.ts`), so the blob is read once,
+  and revoked when the last reader lets go. While it loads Home draws
   nothing, and a missing blob draws nothing and shows "Missing on this device" on the Image row.
   Under Reduce Motion a GIF, WebP or AVIF shows its first frame, and turning Reduce Motion on
   or off applies at once.
