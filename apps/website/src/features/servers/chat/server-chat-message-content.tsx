@@ -1,4 +1,4 @@
-import type { Agent, Chat } from '@haus/api';
+import type { Agent, Chat, DriveCitation } from '@haus/api';
 import * as React from 'react';
 import type { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { ChatMarkdownText } from '../../chats/chat-markdown-text.tsx';
@@ -21,6 +21,8 @@ import { workerDisplayContent } from '../../workers/message-worker.ts';
 import { ArtifactMessage } from './artifact-message.tsx';
 
 type HumanDirectory = ReturnType<typeof useHumanDirectory>;
+
+const noDriveCitations: readonly DriveCitation[] = [];
 
 export function ServerChatMessageContent({
     agentsById,
@@ -85,8 +87,11 @@ export function ServerChatMessageContent({
         </>
     );
 
-    return mayLinkSharedArtifact(content) ? (
-        <MessageSharedArtifactScope serverId={serverId}>{body}</MessageSharedArtifactScope>
+    const driveCitations = message.driveCitations ?? noDriveCitations;
+    return mayLinkSharedArtifact(content) || driveCitations.length > 0 ? (
+        <MessageSharedArtifactScope driveCitations={driveCitations} serverId={serverId}>
+            {body}
+        </MessageSharedArtifactScope>
     ) : (
         body
     );

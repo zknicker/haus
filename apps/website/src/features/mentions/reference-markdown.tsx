@@ -2,6 +2,7 @@ import { Markdown } from '@heroui-pro/react/markdown';
 import * as React from 'react';
 import { MarkdownCodeBlock } from '../../components/code/markdown-code-block.tsx';
 import { escapeBareOrderedMarkers } from '../chats/bare-ordered-marker.ts';
+import { isDriveCitationHref } from '../chats/drive-citation-link.ts';
 import { parseHausResourceLink } from '../chats/haus-resource-link.ts';
 import { amazonMarkdownComponents } from './amazon-markdown-components.tsx';
 import { areMentionsEqual, readMentionsFromMarkdown } from './mention-metadata.ts';
@@ -125,7 +126,8 @@ function linkEdits(content: string, mentions: readonly Mention[]): MarkdownRefer
             return [];
         }
         const reference = mentionsByStart.get(start);
-        const resource = parseHausResourceLink(target);
+        // react-markdown's URL sanitizer empties custom schemes, so `haus://` and `drive://` ride a token.
+        const resource = parseHausResourceLink(target) || isDriveCitationHref(target);
         if (!(reference || resource)) {
             return [];
         }

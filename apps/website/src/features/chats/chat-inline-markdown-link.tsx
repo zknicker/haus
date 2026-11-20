@@ -1,6 +1,7 @@
 import type * as React from 'react';
 import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useArtifactPanelOpen } from './artifact-panel-context.tsx';
+import { isDriveCitationHref } from './drive-citation-link.ts';
 import { parseHausResourceLink } from './haus-resource-link.ts';
 import { SharedArtifactChip } from './shared-artifact-chip.tsx';
 import { useSharedArtifactScope, useSharedArtifactTarget } from './shared-artifact-scope.tsx';
@@ -17,6 +18,10 @@ export function MarkdownLink({ children, href }: { children: React.ReactNode; hr
                 {children}
             </SharedArtifactChip>
         );
+    }
+
+    if (isDriveCitationHref(href)) {
+        return children;
     }
 
     if (hausTarget && openArtifactPanel) {
@@ -102,7 +107,7 @@ export function matchBareUrl(text: string) {
 function sanitizeUrl(value: string) {
     const href = value.startsWith('www.') ? `https://${value}` : value;
 
-    if (parseHausResourceLink(href)) {
+    if (parseHausResourceLink(href) || isDriveCitationHref(href)) {
         return href;
     }
 
