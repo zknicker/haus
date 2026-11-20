@@ -4,7 +4,7 @@ read_when:
   - changing where an Agent's loop runs, the runner, its container, its volume, or its credentials
   - changing the Claude Agent SDK or Pi Durable harness, harness pinning, or session reset
   - changing the invocation contract, the Computer result ledger, timeouts, cancellation, output limits, or offline answers
-  - changing the Agent's tools (bash, shell, the edit tools, execute) or how the haus CLI runs for an Agent
+  - changing the Agent's tools (bash, shell, the edit tools, execute, web_fetch, web search) or how the haus CLI runs for an Agent
   - changing how inbox items, notices, steering, or turn reports move between the Server and the runner
   - changing model logins, runner settings, or which models an Agent can use
   - changing the Computer or runner protocol frames for Agents, drive pulls, or pushes
@@ -224,7 +224,8 @@ type TurnEvent =
   | { type: 'abort' };
 ```
 
-- `providerExecuted` marks `WebSearch` and `WebFetch`. Every other tool is a Haus tool.
+- `providerExecuted` marks `WebSearch`, `WebFetch`, and a Pi provider's hosted web search. Every
+  other tool is a Haus tool.
 - A `tool-result` for a machine tool carries its invocation outcome, so activity and the journal
   show `offline` and `unknown` as themselves, not as generic errors.
 - The `subagent-*` events, `tool-read-location`, and `sourceToolCallId` are deleted with the
@@ -275,8 +276,11 @@ compaction, and the setting has no effect on its Agents.
 | Model family | Machine tools | Runner tools |
 | --- | --- | --- |
 | Claude | `bash`, `str_replace_based_edit_tool` | `execute`, `WebSearch`, `WebFetch` |
-| GPT | `shell`, `apply_patch`, `view_image` | `execute` |
-| Every other Pi model | `bash`, `str_replace_based_edit_tool` | `execute` |
+| GPT | `shell`, `apply_patch`, `view_image` | `execute`, `web_fetch`, web search |
+| Every other Pi model | `bash`, `str_replace_based_edit_tool` | `execute`, `web_fetch`, web search |
+
+Web search on Pi is the provider's own search, hosted in the request or behind a `web_search`
+tool ([Web reach](#web-reach)).
 
 Each machine tool keeps the input shape its models are trained on:
 
@@ -363,6 +367,68 @@ Headless Executor in a disposable QuickJS child, `tools.search`, `tools.describe
 `tools.call`, with today's limits. Its catalog holds the Agent's granted Server MCP tools and one
 built-in, `browser`, which relays agent-browser on the machine as a `browser` invocation.
 
+### Web reach
+
+Claude Agents keep the SDK's native `WebSearch` and `WebFetch`. Pi has no web tools of its own,
+so the runner gives every Pi Agent `web_fetch` and web search. Both run on the runner and reach
+the internet, never the machine. The tool descriptions and the not-configured answer are
+`runnerToolDescriptions` and `webSearchNotConfigured` in `@haus/agent-prompt`.
+
+| Tool | Input |
+| --- | --- |
+| `web_fetch` | `{ url: string }` |
+| `web_search` | `{ query: string, count?: number }`, 1 to 20 results, 10 by default |
+
+`web_fetch` takes no `prompt`, unlike Claude's `WebFetch`: the runner has no small model to
+answer one, so it returns the page itself. It fetches one `http` or `https` URL:
+
+- It follows at most 5 redirects. Before each hop the runner resolves the host and refuses the
+  hop when any address is not public: private (RFC 1918, IPv6 unique local), loopback,
+  link-local, CGNAT (`100.64.0.0/10`), unspecified, multicast, benchmarking, or reserved, with
+  IPv4-mapped IPv6 checked as IPv4. The container's network deny stays the primary guard. This
+  check is defense in depth, and it protects development, where the runner is a local process.
+  Resolution and connection are separate steps, so a DNS answer that changes between them is
+  caught only by the container deny.
+- It reads at most 5 MiB of body, and a fetch ends after 30 seconds, redirects included.
+- HTML becomes Markdown through `turndown` 7.2.4, with scripts, styles, `noscript`, `template`,
+  and SVG removed and links made absolute. Text, Markdown, JSON, and XML pass through as text.
+  Any other type is described by its type and size, with none of its bytes.
+- The model sees the first 2,000 lines or 50 KiB, whichever is smaller, with a line naming what
+  was cut.
+
+Web search is each provider's own search; Haus calls no third-party search API. A provider
+either hosts the search inside the model's request, or Haus calls it from a `web_search` tool:
+
+| Provider | Shape | Login | Cost |
+| --- | --- | --- | --- |
+| ChatGPT plan (`openai-codex`) | Hosted: OpenAI's `web_search` tool on every generation request, as Codex's `web_search = "live"` sends it | The Codex sign-in file | Draws on the plan's Codex usage; no per-call API charge |
+| xAI | Hosted: xAI's `web_search` server-side tool on the Responses request | `HAUS_RUNNER_XAI_API_KEY` | Each search call is billed to the key, $5 per 1,000 in xAI's pricing at 2026-11 |
+| Google | `web_search` tool: one `generateContent` request to the Agent's own model with only `googleSearch`, answered with the grounded text and its sources | `HAUS_RUNNER_GEMINI_API_KEY` | Gemini 3 bills each search query after 5,000 free a month, then $14 per 1,000 |
+
+Google takes the tool shape because Gemini combines `googleSearch` with function declarations
+only under `toolConfig.includeServerSideToolInvocations`, and then needs every `toolCall` and
+`toolResponse` part sent back with its thought signature. Pi 1.5.2's Gemini adapter drops those
+parts, so a hosted search would break the next request. A separate grounded request leaves the
+Agent's own transcript as ordinary function calls.
+
+pi-ai 1.5.2 has no option for hosted tools, so each Pi session gets a thin shim over its model
+collection. On `streamSimple`, which carries generation requests, the shim appends the hosted
+tool to the request body after Pi Durable's own hooks, and reads the provider's stream events.
+Compaction's `completeSimple` request is left alone. Pi keeps no `web_search_call` item in the
+stored transcript, and with `store: false` the model is not sent its old searches. Its answer
+text carries what it learned. Each search reaches the turn's events as a `providerExecuted`
+`webSearch` tool call and result, like Claude's, with its query and its sources. The response's
+`url_citation` links join the last search's sources. An Agent with a hosted search has no
+`web_search` tool.
+
+`HAUS_RUNNER_WEB_SEARCH` names the providers whose search is on, as a comma-separated list of
+`openai-codex`, `xai`, and `google`. It is empty by default, and each provider stays off until
+the operator approves its cost. The list's effect on the Agent's tools and requests is part of
+the Pi launch fingerprint, so a change restarts warm sessions. A Pi Agent without search keeps a
+`web_search` tool that answers that web search is not configured and points at `web_fetch`. A
+keyless fallback would serve only a model whose provider has no native search, such as an
+OpenRouter model, and none ships.
+
 ### Removed
 
 These end at R4 and are named here as intentional capability removals:
@@ -379,8 +445,6 @@ These end at R4 and are named here as intentional capability removals:
 
 ### Deferred
 
-- **Provider web search for GPT models.** pi-ai 1.5.2 exposes no provider-executed web search, so
-  GPT Agents have `execute` and no web search until Pi adds one.
 - **Images to the model from an attachment reference.** `view_image` and `view` on a large image
   return a reference the runner cannot read until R3b adds the runner read path. Resizing an image
   for its model comes with that read.
@@ -773,6 +837,9 @@ settings, reminder scripts, host skill discovery, inventory, updates, and Worker
 | The runner socket refuses a wrong token, a start reaches the runner with a working run credential while the Computer is offline, and settle, Stop, and reconnect behave as on Computers | `apps/server/test/runner-socket-auth.test.ts`, `runner-delivery.test.ts`, `agent-invocations-offline.test.ts` | R3 |
 | The runner cannot import Server or PostgreSQL modules, and Computer code makes no model calls | `scripts/lint/haus-rules/runner-boundary.cases.mjs`, `computer-no-model-calls.cases.mjs` | R3 |
 | The SDK runs with native tools off and only `mcp__haus__*` tools reachable | `apps/runner/src/claude/claude-tools-live.test.ts`, `claude-driver-live.test.ts` | R3 |
+| `web_fetch` turns HTML into Markdown, caps redirects, size, and time, refuses a non-public address at every hop, and describes a non-text body without its bytes | `apps/runner/src/web/web-fetch.test.ts`, `public-address.test.ts` | R3c |
+| Hosted search reaches the ChatGPT plan and xAI requests, Gemini's grounded request carries only `googleSearch`, citations reach the turn events, and an unconfigured Agent hears that search is not configured | `apps/runner/src/pi/pi-web-search.test.ts`, `apps/runner/src/web/web-search.test.ts` | R3c |
+| Each provider's native search answers a live turn | `apps/runner/src/pi/pi-web-search-live.test.ts` (`HAUS_RUN_LIVE_RUNNER_PI_SEARCH_TEST=1`) | R3c |
 | Ported Pi tools keep their upstream behavior | Ported upstream tests, listed in `pi/PROVENANCE.md` | R2 |
 | The ported Codex patch grammar keeps its upstream behavior | Ported upstream tests | R5 |
 
