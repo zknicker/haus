@@ -1,8 +1,9 @@
-import { Alert, Spinner } from '@heroui/react';
+import { Alert, Button, Spinner } from '@heroui/react';
 import * as React from 'react';
 import { CodeSnippet } from '../../components/code-snippet.tsx';
+import { useComputerInventoryRefresh } from '../../hooks/servers/use-computer-inventory-refresh.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
-import { addDeviceStatus } from './add-device-status.ts';
+import { type AddDeviceStatus, addDeviceStatus } from './add-device-status.ts';
 
 export function AddDeviceProgress({
     serverId,
@@ -20,22 +21,32 @@ export function AddDeviceProgress({
     if (baselineIds === null && settledIds !== null) {
         setBaselineIds(new Set(settledIds.split(',').filter(Boolean)));
     }
-    if (computers.error && !computers.data) {
-        return (
-            <Alert status="danger">
-                <Alert.Indicator />
-                <Alert.Content>
-                    <Alert.Title>Devices could not load</Alert.Title>
-                    <Alert.Description>{computers.error.message}</Alert.Description>
-                </Alert.Content>
-            </Alert>
-        );
-    }
-    const status = addDeviceStatus(baselineIds, computers.data ?? [], serverSlug);
 
+    return (
+        <div aria-live="polite">
+            {computers.error && !computers.data ? (
+                <Alert role="alert" status="danger">
+                    <Alert.Indicator />
+                    <Alert.Content>
+                        <Alert.Title>Devices could not load</Alert.Title>
+                        <Alert.Description>{computers.error.message}</Alert.Description>
+                    </Alert.Content>
+                </Alert>
+            ) : (
+                <AddDeviceStatusView
+                    serverId={serverId}
+                    status={addDeviceStatus(baselineIds, computers.data ?? [], serverSlug)}
+                />
+            )}
+        </div>
+    );
+}
+
+function AddDeviceStatusView({ serverId, status }: { serverId: string; status: AddDeviceStatus }) {
+    const refresh = useComputerInventoryRefresh();
     if (status.kind === 'waiting' || status.kind === 'detecting') {
         return (
-            <p aria-live="polite" className="text-muted flex items-center gap-2 text-sm">
+            <p className="text-muted flex items-center gap-2 text-sm">
                 <Spinner size="sm" />
                 {status.kind === 'waiting'
                     ? 'Waiting for the device to connect…'
@@ -55,12 +66,22 @@ export function AddDeviceProgress({
         );
     }
     return (
-        <Alert status="warning">
+        <Alert role="alert" status="warning">
             <Alert.Indicator />
             <Alert.Content>
                 <Alert.Title>{status.title}</Alert.Title>
                 <Alert.Description>{status.message}</Alert.Description>
                 {status.command ? <CodeSnippet lines={status.command} /> : null}
+                {status.recheck ? (
+                    <Button
+                        isPending={refresh.isPending}
+                        onPress={() => refresh.mutate({ computerId: status.computerId, serverId })}
+                        size="sm"
+                        variant="secondary"
+                    >
+                        Check again
+                    </Button>
+                ) : null}
             </Alert.Content>
         </Alert>
     );

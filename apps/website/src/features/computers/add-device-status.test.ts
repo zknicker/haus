@@ -24,7 +24,13 @@ describe('addDeviceStatus', () => {
     test('asks for a sign-in when no runtime has a model', () => {
         expect(
             addDeviceStatus(known, [device({ reportedInventory: inventory([]) })], 'haus-hq')
-        ).toMatchObject({ command: null, kind: 'repair', title: 'No Captain runtime yet' });
+        ).toMatchObject({
+            command: null,
+            computerId: 'cmp_new',
+            kind: 'repair',
+            recheck: true,
+            title: 'No Captain runtime yet',
+        });
     });
 
     test('asks for an update when the device is too old or its report is unreadable', () => {

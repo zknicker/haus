@@ -17,7 +17,14 @@ export type AddDeviceStatus =
     | { kind: 'waiting' }
     | { kind: 'ready'; runtimeCount: number }
     | { kind: 'detecting' }
-    | { kind: 'repair'; command: string | null; message: string; title: string };
+    | {
+          command: string | null;
+          computerId: string;
+          kind: 'repair';
+          message: string;
+          recheck: boolean;
+          title: string;
+      };
 
 export function addDeviceStatus(
     baselineIds: ReadonlySet<string> | null,
@@ -36,16 +43,20 @@ export function addDeviceStatus(
     if (device.health === 'update-required') {
         return {
             command: upgradeCommand,
+            computerId: device.id,
             kind: 'repair',
             message: 'This device runs an older Haus Computer. Update it, and it reconnects.',
+            recheck: false,
             title: 'Update needed',
         } satisfies AddDeviceStatus;
     }
     if (device.inventoryInvalidAt) {
         return {
             command: upgradeCommand,
+            computerId: device.id,
             kind: 'repair',
             message: 'This device sent a report Haus could not read. Update Haus Computer on it.',
+            recheck: false,
             title: 'Update needed',
         } satisfies AddDeviceStatus;
     }
@@ -55,8 +66,10 @@ export function addDeviceStatus(
     if (device.health === 'offline') {
         return {
             command: buildComputerSetupCommands(serverSlug).setup,
+            computerId: device.id,
             kind: 'repair',
             message: 'This device disconnected. Run setup on it again.',
+            recheck: false,
             title: 'Device disconnected',
         } satisfies AddDeviceStatus;
     }
@@ -69,9 +82,11 @@ export function addDeviceStatus(
     if (runtimeCount === 0) {
         return {
             command: null,
+            computerId: device.id,
             kind: 'repair',
             message:
-                'Sign in to Claude Code or Codex on this device. Captains run on those, and it shows up here once one is signed in.',
+                'Sign in to Claude Code or Codex on this device, then check again. Captains run on those.',
+            recheck: true,
             title: 'No Captain runtime yet',
         } satisfies AddDeviceStatus;
     }
