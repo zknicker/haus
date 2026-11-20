@@ -30,31 +30,44 @@ shape instead of a second protocol package.
 
 ## Development
 
-Install dependencies:
+### Prerequisites
+
+* Bun `1.4.4` (root `packageManager` pin).
+* PostgreSQL 16 and [versitygw](https://github.com/versity/versitygw) on `PATH`.
+  On macOS: `brew install postgresql@16 versitygw`. Do not start a Homebrew
+  PostgreSQL service; the stack owns its own cluster.
+* 1Password desktop signed into the Development vault. Setup resolves licensed
+  registry credentials through `.env.schema`; there is no `.env` file. See
+  [docs/operations/environment.md](docs/operations/environment.md).
+
+### Setup
 
 ```bash
 bun run setup:worktree
 ```
 
-The setup keeps lifecycle scripts disabled, installs the frozen Bun dependency
-graph, and explicitly downloads the pinned HeroUI React Pro artifacts. Both
-licensed registry credentials it needs resolve from 1Password through the
-committed `.env.schema`; there is no `.env` step. See
-[docs/operations/environment.md](docs/operations/environment.md).
+Installs the frozen Bun dependency graph with lifecycle scripts disabled, then
+downloads the pinned HeroUI React Pro artifacts.
 
-Run the full local stack:
+### Run
 
 ```bash
 bun run dev
 ```
 
-`bun run dev` starts PostgreSQL, Haus Server, Haus Computer, and the App dev
-server; `bun run dev-app` adds the Electron shell.
+Starts an isolated PostgreSQL cluster, local Files storage (versitygw), Haus
+Server, Haus Computer, and the App website. When the Services banner shows
+Ready, open the Website URL. Local apps sign in through the loopback
+development session, and the first boot seeds a demo Server (Blippy, Tiny,
+`#all`, `#product`). No manual login.
 
-Dev state is isolated under the worktree-specific Haus dev root.
+Ports come from the worktree path so multiple checkouts can run at once. Use
+the banner, or `dev-port`, for the assigned port group. Dev state lives under
+`~/.haus/dev/<worktree-id>/`.
 
-Local dev ports are derived from the worktree path so multiple worktrees can run
-at once. Use `dev-port` to inspect the assigned port group.
+`bun run dev-app` runs the same stack inside the Electron shell.
+
+More detail: [docs/operations/development.md](docs/operations/development.md).
 
 ## Desktop Build
 
