@@ -4,7 +4,7 @@ read_when:
   - adding telemetry, logs, spans, metrics, or operational dashboards
   - changing Server-to-Computer commands or Effect process runtimes
   - configuring an OTLP collector
-  - confirming a run's execution journal reached the Server, or checking a Computer's journal resend pass
+  - confirming a run's execution journal reached the Server, or checking a Computer's or the runner's journal resend pass
 ---
 
 # Observability
@@ -243,7 +243,10 @@ marker is still pending. The Computer resends every unmarked journal younger tha
 each ordinary connect, newest first and one run at a time. The resend pass needs no command: it
 has caught up when every recent journal has its marker. The daemon logs a refused run, a failed
 resend pass, or a live run that overflowed while offline to stderr with
-a `[haus]` prefix. Bulk check per Agent:
+a `[haus]` prefix. The runner keeps the same markers for its runs under
+`<HAUS_RUNNER_DATA_DIR>/agents/<agentId>/runtime/execution-journal/` (default `/data`), resends
+the same way on each connect to the Server, and logs the same failures to stderr. Bulk check per
+Agent:
 
 ```sql
 select agent_id, count(*) as runs, min(run_started_at) as oldest, max(updated_at) as last_sync

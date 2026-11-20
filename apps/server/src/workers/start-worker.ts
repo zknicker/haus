@@ -1,24 +1,29 @@
-import type {
-    AgentWorkerHeld,
-    AgentWorkerReceipt,
-    AgentWorkerStartInput,
-    WorkerTurnInput,
+import {
+    type AgentWorkerHeld,
+    type AgentWorkerReceipt,
+    type AgentWorkerStartInput,
+    type WorkerPlace,
+    type WorkerTurnInput,
+    formatWorkerPlace,
 } from '@haus/api';
 import { and, asc, eq } from 'drizzle-orm';
 import { followAgentTask } from '../agent-api/attention.ts';
 import { readFreshnessHold } from '../agent-api/send-hold.ts';
+import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { workerTurnsTable, workersTable } from '../postgres/schema.ts';
+import { projectReposTable, workerTurnsTable, workersTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { resolveRunModel } from './cloud-agent-model.ts';
 import { withDispatch } from './dispatch-worker-turns.ts';
-import { WorkerConflictError, WorkerPlaceRequiredError } from './errors.ts';
-import { chooseCarrier, readDefaultPlace, readReadyPlaces } from './worker-carrier.ts';
+import { WorkerConflictError } from './errors.ts';
+import { resolveRequestedPlace } from './resolve-worker-place.ts';
+import { resolveWorkerStart } from './resolve-worker-start.ts';
 import { type WorkerEffects, noWorkerEffects } from './worker-effects.ts';
 import { requireOpenWorkerTask } from './worker-launch-task.ts';
+import { workerPlaceOf } from './worker-row-place.ts';
 import { requireWorker } from './worker-shape.ts';
+import { turnModel } from './worker-turn-model.ts';
 
 type StartWorkerResult =
     | { effects: WorkerEffects; kind: 'started'; receipt: AgentWorkerReceipt }
@@ -27,12 +32,18 @@ type StartWorkerResult =
 export async function startWorker(
     db: HausDatabase,
     runner: ResolvedRunner,
-    input: AgentWorkerStartInput
+    input: AgentWorkerStartInput,
+    storage: ArtifactStorage | null
 ) {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
         const task = await requireOpenWorkerTask(tx, runner, input.task);
-        const existing = await readStartedByNonce(tx, runner, input, task.taskId);
+        const requested = await resolveRequestedPlace(tx, runner.serverId, input.place);
+        const existing = await readStartedByNonce(tx, runner, {
+            input,
+            requested,
+            taskId: task.taskId,
+        });
         if (existing) {
             return {
                 effects: noWorkerEffects,
@@ -40,14 +51,10 @@ export async function startWorker(
                 receipt: existing,
             } satisfies StartWorkerResult;
         }
-        const place = input.place ?? (await readDefaultPlace(tx, runner));
-        if (!place) {
-            throw new WorkerPlaceRequiredError(await readReadyPlaces(tx, runner.serverId));
-        }
-        const carrierComputerId = await chooseCarrier(tx, {
-            agentId: runner.agentId,
-            place,
-            serverId: runner.serverId,
+        const plan = await resolveWorkerStart(tx, runner, {
+            ...input,
+            projectId: task.projectId,
+            requested,
         });
         const hold = await readFreshnessHold(tx, runner, task.chatId);
         if (hold) {
@@ -58,24 +65,33 @@ export async function startWorker(
             serverId: runner.serverId,
             taskChatId: task.chatId,
         });
+        if (plan.addRepository) {
+            await tx
+                .insert(projectReposTable)
+                .values({
+                    id: createOpaqueId('prp'),
+                    projectId: task.projectId,
+                    repository: plan.repository,
+                    serverId: runner.serverId,
+                })
+                .onConflictDoNothing();
+        }
         const workerId = createOpaqueId('wkr');
         await tx.insert(workersTable).values({
             agentId: runner.agentId,
-            carrierComputerId,
+            carrierComputerId: plan.carrierComputerId,
             id: workerId,
-            place,
-            repository: input.repository,
+            model: plan.model,
+            place: plan.place.kind,
+            repository: plan.repository,
+            runtime: plan.runtime,
             serverId: runner.serverId,
             startNonce: input.nonce,
             startingRef: input.startingRef,
             taskId: task.taskId,
             title: input.title,
         });
-        const model = await resolveRunModel(tx, {
-            computerId: carrierComputerId,
-            provider: place,
-            serverId: runner.serverId,
-        });
+        const model = await turnModel(tx, runner.serverId, plan);
         const brief: WorkerTurnInput = {
             at: new Date().toISOString(),
             author: { id: runner.agentId, kind: 'agent' },
@@ -94,7 +110,7 @@ export async function startWorker(
             workerId,
         });
         return {
-            effects: await withDispatch(tx, runner.serverId, {
+            effects: await withDispatch(tx, storage, runner.serverId, {
                 ...noWorkerEffects,
                 workerIds: [workerId],
             }),
@@ -107,8 +123,11 @@ export async function startWorker(
 async function readStartedByNonce(
     tx: HausDatabase,
     runner: ResolvedRunner,
-    input: AgentWorkerStartInput,
-    taskId: string
+    {
+        input,
+        requested,
+        taskId,
+    }: { input: AgentWorkerStartInput; requested: WorkerPlace | null; taskId: string }
 ) {
     const [row] = await tx
         .select({ turn: workerTurnsTable, worker: workersTable })
@@ -135,9 +154,10 @@ async function readStartedByNonce(
     const { turn, worker } = row;
     if (
         worker.taskId !== taskId ||
-        (input.place && worker.place !== input.place) ||
+        (requested && formatWorkerPlace(workerPlaceOf(worker)) !== formatWorkerPlace(requested)) ||
         worker.title !== input.title ||
-        worker.repository !== input.repository ||
+        (input.repository !== undefined &&
+            worker.repository.toLowerCase() !== input.repository.toLowerCase()) ||
         worker.startingRef !== input.startingRef ||
         turn.input?.[0]?.text !== input.brief
     ) {

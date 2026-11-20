@@ -5,7 +5,8 @@ import { ArtifactError } from '../artifacts/storage.ts';
 import { readDriveChanges } from '../drive/changes-query.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { sendArtifactError } from './artifact-errors.ts';
-import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
+import { sendAgentApiError } from './auth.ts';
+import { authorizeDriveReader } from './worker-auth.ts';
 
 const changesQuery = z.object({ since: z.string().optional(), until: z.string().optional() });
 
@@ -15,8 +16,8 @@ export function registerAgentDriveChangesRoute(
 ) {
     app.get('/api/agent/drive/changes', async (request, reply) => {
         try {
-            const runner = await authorizeAgentRunner(options.db, request);
-            if (!runner) {
+            const actor = await authorizeDriveReader(options.db, request);
+            if (!actor) {
                 return sendAgentApiError(
                     reply,
                     401,
@@ -26,11 +27,11 @@ export function registerAgentDriveChangesRoute(
             }
             const query = changesQuery.parse(request.query);
             const input = driveChangesInputSchema.parse({
-                serverId: runner.serverId,
+                serverId: actor.kind === 'agent' ? actor.runner.serverId : actor.worker.serverId,
                 since: jsonParam('since', query.since),
                 until: jsonParam('until', query.until),
             });
-            return await readDriveChanges(options.db, { kind: 'agent', runner }, input);
+            return await readDriveChanges(options.db, actor, input);
         } catch (cause) {
             return sendArtifactError(reply, cause);
         }

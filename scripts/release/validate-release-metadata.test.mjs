@@ -41,11 +41,13 @@ async function createFixture() {
     );
     await Promise.all(
         [
+            'computer-protocol-order.mjs',
             'release-impact.mjs',
             'release-impact-paths.mjs',
             'release-ledger.mjs',
             'release-utils.mjs',
             'release-version-metadata.mjs',
+            'unshipped-ios.mjs',
             'validate-release-metadata.mjs',
         ].map((file) =>
             copyFile(join(releaseScriptRoot, file), join(root, 'scripts/release', file))

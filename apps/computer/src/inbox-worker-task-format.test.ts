@@ -14,7 +14,7 @@ const stalled: AgentWorkerAttention = {
     branches: [{ branch: 'cloud/fix-flake', pullRequestUrl: pullRequest, repository: 'haus/haus' }],
     errorCode: null,
     notice: 'stall',
-    place: 'cursor',
+    place: { kind: 'cursor' },
     providerUrl: 'https://cursor.com/agents?id=bc_one',
     repository: 'haus/haus',
     stallCode: 'followup-auto-interrupt-failed',
@@ -43,7 +43,7 @@ test('a Claude turn whose prompt cannot be found says so', () => {
     const drain = composeInboxDrain([
         attentionItem({
             ...stalled,
-            place: 'claude',
+            place: { kind: 'claude' },
             stallCode: 'claude-prompt-not-found',
             summary: null,
         }),
@@ -99,7 +99,7 @@ test('a Worker attention counts as pending work on its Task and never shows its 
 test('the stall the Server contract accepts parses with its place', () => {
     const item = attentionItem(stalled);
     expect(agentInboxItemSchema.safeParse(item).success).toBe(true);
-    expect(parseInbox([item])?.[0]?.worker?.place).toBe('cursor');
+    expect(parseInbox([item])?.[0]?.worker?.place).toEqual({ kind: 'cursor' });
 });
 
 test('a message in a Task conversation carries its Task target, tagged as a Task', () => {

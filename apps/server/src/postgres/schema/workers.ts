@@ -1,4 +1,4 @@
-import type { WorkerPlace, WorkerTurnStatus } from '@haus/api';
+import type { WorkerPlaceKind, WorkerRuntime, WorkerTurnStatus } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import { check, foreignKey, index, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
@@ -24,6 +24,8 @@ export const workersTable = pgTable(
         activityAt: timestamp('activity_at', { withTimezone: true }),
         activitySummary: text('activity_summary'),
         agentId: text('agent_id').notNull(),
+        /** The branch the Worker reported, or the Computer created for its checkout. */
+        branch: text('branch'),
         carrierComputerId: text('carrier_computer_id').notNull(),
         closedAt: timestamp('closed_at', { withTimezone: true }),
         closingAt: timestamp('closing_at', { withTimezone: true }),
@@ -32,11 +34,16 @@ export const workersTable = pgTable(
         environmentName: text('environment_name'),
         id: text('id').primaryKey(),
         launchMessageId: text('launch_message_id'),
+        /** As requested; null leaves the runtime's own default. */
+        model: text('model'),
+        /** The harness session a Computer place resumes on later turns; set once. */
+        nativeSessionId: text('native_session_id'),
         originChatId: text('origin_chat_id'),
-        place: text('place').notNull().$type<WorkerPlace>(),
+        place: text('place').notNull().$type<WorkerPlaceKind>(),
         providerAgentId: text('provider_agent_id'),
         providerUrl: text('provider_url'),
         repository: text('repository').notNull(),
+        runtime: text('runtime').$type<WorkerRuntime>(),
         serverId: text('server_id').notNull(),
         /** The Agent's start idempotency key, now that a start writes no Message to carry it. */
         startNonce: text('start_nonce'),
@@ -47,6 +54,8 @@ export const workersTable = pgTable(
         terminalAt: timestamp('terminal_at', { withTimezone: true }),
         title: text('title').notNull(),
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+        /** The WORKER.md revision the place last acknowledged receiving. */
+        workerMdRevisionId: text('worker_md_revision_id'),
     },
     (table) => [
         unique('workers_server_id_key').on(table.serverId, table.id),
@@ -72,7 +81,24 @@ export const workersTable = pgTable(
             .on(table.carrierComputerId, table.createdAt)
             .where(sql`${table.status} in ('queued', 'running')`),
         check('workers_id_shape', sql`${table.id} ~ '^(caw|wkr)_[A-Za-z0-9_-]{16}$'`),
-        check('workers_place', sql`${table.place} in ('cursor', 'claude')`),
+        check('workers_place', sql`${table.place} in ('cursor', 'claude', 'computer')`),
+        check(
+            'workers_runtime',
+            sql`(${table.runtime} is not null) = (${table.place} = 'computer')
+                and (${table.runtime} is null or ${table.runtime} in ('claude-code', 'codex'))`
+        ),
+        check(
+            'workers_model_length',
+            sql`${table.model} is null or char_length(${table.model}) between 1 and 200`
+        ),
+        check(
+            'workers_branch_length',
+            sql`${table.branch} is null or char_length(${table.branch}) between 1 and 300`
+        ),
+        check(
+            'workers_native_session_length',
+            sql`${table.nativeSessionId} is null or char_length(${table.nativeSessionId}) between 1 and 200`
+        ),
         check('workers_status', sql.raw(`"workers"."status" in ${workerStatuses}`)),
         check('workers_title_length', sql`char_length(${table.title}) between 1 and 120`),
         check(

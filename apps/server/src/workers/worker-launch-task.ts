@@ -23,5 +23,5 @@ export async function requireOpenWorkerTask(
     if (isClosedTaskState(task.state)) {
         throw new WorkerTaskClosedError(task.key);
     }
-    return { chatId: reached.chatId, key: task.key, taskId: task.id };
+    return { chatId: reached.chatId, key: task.key, projectId: task.projectId, taskId: task.id };
 }

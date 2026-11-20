@@ -1,4 +1,4 @@
-import { TASK_TARGET_PATTERN, type WorkerBranch } from '@haus/api';
+import { TASK_TARGET_PATTERN, type WorkerBranch, formatWorkerPlace } from '@haus/api';
 import type { AgentWorkerAttention, WorkerPullRequestChange } from './agent-inbox-item.ts';
 import { indentContinuationLines } from './inbox-header-format.ts';
 
@@ -19,7 +19,7 @@ export function formatPullRequestNotice(notice: WorkerPullRequestChange, target:
 function formatStall(work: AgentWorkerAttention, target: string) {
     const branches = work.branches.map(formatWorkerBranch);
     return [
-        `[worker stall · ${subjectOf(target)} · Worker on ${work.place} (${work.workerId}) · turn ${work.turnId}]`,
+        `[worker stall · ${subjectOf(target)} · Worker on ${formatWorkerPlace(work.place)} (${work.workerId}) · turn ${work.turnId}]`,
         indentContinuationLines(`${work.title} — ${work.repository}`),
         work.stallCode ? stallReasons[work.stallCode] : 'The turn is stuck without settling.',
         ...(work.summary ? [indentContinuationLines(work.summary)] : []),
@@ -35,7 +35,7 @@ function formatWorkerPullRequest(work: AgentWorkerAttention, target: string) {
         change?.url ?? work.branches.find((branch) => branch.pullRequestUrl)?.pullRequestUrl;
     const what = change ? describeChange(change.change) : 'changed';
     return [
-        `[pull request · ${subjectOf(target)} · ${what} · Worker on ${work.place} (${work.workerId})]`,
+        `[pull request · ${subjectOf(target)} · ${what} · Worker on ${formatWorkerPlace(work.place)} (${work.workerId})]`,
         `The pull request from ${indentContinuationLines(work.title)} ${what} after the Worker's turn settled: ${url ?? 'URL not recorded'}`,
         reportLine(target),
     ].join('\n');

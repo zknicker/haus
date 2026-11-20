@@ -1,49 +1,54 @@
-import { agentExecutionJournalRecordsFrameSchema } from '@haus/api';
+import { type AgentExecutionJournalAck, agentExecutionJournalRecordsFrameSchema } from '@haus/api';
 import { z } from 'zod';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { publishExecutionJournalChange } from '../server-agents/execution-journal-changes.ts';
-import { ingestExecutionJournalFrame } from '../server-agents/execution-journal-ingest.ts';
-import type { ComputerConnections } from './connections.ts';
+import {
+    type ExecutionJournalWriter,
+    ingestExecutionJournalFrame,
+} from '../server-agents/execution-journal-ingest.ts';
 
 /**
- * Stores one uploaded execution-journal frame, acknowledges it to the Computer,
+ * Stores one uploaded execution-journal frame, acknowledges it to its writer,
  * and wakes this Server's open views of the run. True once consumed.
  */
 export async function ingestExecutionJournalUpload(
     db: HausDatabase,
-    connections: Pick<ComputerConnections, 'send'>,
-    input: { computerId: string; frame: unknown; serverId: string }
-): Promise<boolean> {
+    input: {
+        acknowledge(ack: AgentExecutionJournalAck): void;
+        frame: unknown;
+        writer: ExecutionJournalWriter;
+    }
+) {
     const parsed = agentExecutionJournalRecordsFrameSchema.safeParse(input.frame);
     if (!parsed.success) {
         // A frame that names its run but breaks the envelope (an invalid outline, say) is
-        // refused for good; left unanswered, it would hold the Computer's resend pass forever.
+        // refused for good; left unanswered, it would hold the writer's resend pass forever.
         const named = namedRecordsFrameSchema.safeParse(input.frame);
         if (!named.success) {
             return false;
         }
-        acknowledge(connections, input.computerId, named.data, 'refused');
+        input.acknowledge(ackFor(named.data, 'refused'));
         console.warn('[haus] refused a malformed execution journal frame', {
             agentId: named.data.agentId,
-            computerId: input.computerId,
             runId: named.data.runId,
+            writer: input.writer,
         });
         return true;
     }
     const frame = parsed.data;
-    const status = await ingestExecutionJournalFrame(db, { ...input, frame });
-    acknowledge(connections, input.computerId, frame, status);
-    if (status === 'stored') {
+    const outcome = await ingestExecutionJournalFrame(db, { frame, writer: input.writer });
+    input.acknowledge(ackFor(frame, outcome.status));
+    if (outcome.status === 'stored') {
         publishExecutionJournalChange({
             agentId: frame.agentId,
             runId: frame.runId,
-            serverId: input.serverId,
+            serverId: outcome.serverId,
         });
     } else {
         console.warn('[haus] refused execution journal records', {
             agentId: frame.agentId,
-            computerId: input.computerId,
             runId: frame.runId,
+            writer: input.writer,
         });
     }
     return true;
@@ -57,17 +62,16 @@ const namedRecordsFrameSchema = z.object({
     type: z.literal('agent-execution-journal-records'),
 });
 
-function acknowledge(
-    connections: Pick<ComputerConnections, 'send'>,
-    computerId: string,
+function ackFor(
     frame: { agentId: string; records: ReadonlyArray<{ sequence: number }>; runId: string },
-    status: 'refused' | 'stored'
-): void {
-    connections.send(computerId, {
+    status: AgentExecutionJournalAck['status']
+) {
+    const ack: AgentExecutionJournalAck = {
         agentId: frame.agentId,
         runId: frame.runId,
         status,
         throughSequence: frame.records.at(-1)?.sequence ?? 0,
         type: 'agent-execution-journal-ack',
-    });
+    };
+    return ack;
 }

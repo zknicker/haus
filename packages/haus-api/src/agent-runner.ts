@@ -5,6 +5,7 @@ import { invocationCommandSchemas } from './agent-invocations.ts';
 import { agentStopBackgroundCommandSchema, agentStopCommandSchema } from './agent-stop-commands.ts';
 import { agentSubagentWakeResultSchema } from './agent-subagent-wake-frames.ts';
 import { browserRequestSchema } from './browser-frames.ts';
+import { workerCloseCommandSchema } from './worker-computer-frames.ts';
 import {
     workerStopCommandSchema,
     cloudAgentCapabilityRequestSchema,
@@ -131,6 +132,7 @@ export const agentCommandSchema = z.discriminatedUnion('type', [
     workerReconcileCommandSchema,
     workerTurnStartFrameSchema,
     workerFollowUpDrainAckFrameSchema,
+    workerCloseCommandSchema,
     serverDeleteCommandSchema,
     serverRuntimeSettingsCommandSchema,
     ...invocationCommandSchemas,

@@ -101,12 +101,7 @@ test('a lost claim prints the structured conflict instead of a refresh notice', 
             ],
         })) as unknown as typeof fetch;
     const client = new AgentApiClient(
-        {
-            agentId: 'agt_wren',
-            serverUrl: 'http://127.0.0.1:18790',
-            token: `grta_${'a'.repeat(43)}`,
-            tokenFile: '/tmp/token',
-        },
+        { serverUrl: 'http://127.0.0.1:18790', token: `grta_${'a'.repeat(43)}` },
         fetcher
     );
     const args: ParsedArgs = {
@@ -148,12 +143,7 @@ test('a claim conflict without a structured body keeps the ordinary refusal', as
             { status: 409 }
         )) as unknown as typeof fetch;
     const client = new AgentApiClient(
-        {
-            agentId: 'agt_wren',
-            serverUrl: 'http://127.0.0.1:18790',
-            token: `grta_${'a'.repeat(43)}`,
-            tokenFile: '/tmp/token',
-        },
+        { serverUrl: 'http://127.0.0.1:18790', token: `grta_${'a'.repeat(43)}` },
         fetcher
     );
     const args: ParsedArgs = {

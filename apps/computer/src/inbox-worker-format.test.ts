@@ -26,7 +26,7 @@ test('a needs-you report asking a person reads as the spec shows it', () => {
             }
         ),
         person: { handle: 'zach', id: 'usr_zach' },
-        place: 'claude',
+        place: { kind: 'claude' },
         pullRequests: [reading()],
         turnNumber: 2,
     });

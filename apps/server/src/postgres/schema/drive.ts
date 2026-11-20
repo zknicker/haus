@@ -16,6 +16,7 @@ import { agentsTable } from './agents.ts';
 import { artifactsTable } from './artifacts.ts';
 import { chatMessagesTable } from './chat-messages.ts';
 import { serversTable } from './servers.ts';
+import { workersTable } from './workers.ts';
 
 export const driveAreaCountersTable = pgTable(
     'drive_area_counters',
@@ -75,16 +76,25 @@ export const drivePushesTable = pgTable(
         resetGeneration: integer('reset_generation').notNull().default(0),
         serverId: text('server_id').notNull(),
         taskId: text('task_id'),
+        workerId: text('worker_id'),
     },
     (table) => [
         primaryKey({ columns: [table.serverId, table.id] }),
         index('drive_pushes_open')
             .on(table.serverId, table.agentId)
             .where(sql`${table.closedAt} is null`),
+        index('drive_pushes_worker_open')
+            .on(table.serverId, table.workerId)
+            .where(sql`${table.closedAt} is null and ${table.workerId} is not null`),
         foreignKey({
             columns: [table.serverId, table.agentId],
             foreignColumns: [agentsTable.serverId, agentsTable.id],
             name: 'drive_pushes_agent_fk',
+        }).onDelete('cascade'),
+        foreignKey({
+            columns: [table.serverId, table.workerId],
+            foreignColumns: [workersTable.serverId, workersTable.id],
+            name: 'drive_pushes_worker_fk',
         }).onDelete('cascade'),
     ]
 );

@@ -15,6 +15,7 @@ import {
     openCloudAgentProvider,
     openInCloudAgentProviderLabel,
 } from '../cloud-agent-provider-presentation.ts';
+import { workerPlaceProvider } from '../worker-place.ts';
 
 export function WorkerBandMenu({
     work,
@@ -22,9 +23,10 @@ export function WorkerBandMenu({
     work: Pick<Worker, 'id' | 'place' | 'providerAgentId' | 'providerUrl' | 'title'>;
 }) {
     const { server } = useServerContext();
-    const target = { ...work, provider: work.place };
+    const provider = workerPlaceProvider(work.place);
+    const target = provider ? { ...work, provider } : null;
     const run = (key: React.Key) => {
-        if (key === 'provider') {
+        if (key === 'provider' && target) {
             openCloudAgentProvider(target);
             return;
         }
@@ -44,13 +46,13 @@ export function WorkerBandMenu({
             </Button>
             <Dropdown.Popover placement="bottom end">
                 <Dropdown.Menu onAction={run}>
-                    {canOpenCloudAgentProvider(target) ? (
+                    {target && canOpenCloudAgentProvider(target) ? (
                         <Dropdown.Item
                             id="provider"
-                            textValue={openInCloudAgentProviderLabel(work.place)}
+                            textValue={openInCloudAgentProviderLabel(target.provider)}
                         >
                             <Icon icon={ArrowUpRight01Icon} size={16} />
-                            <Label>{openInCloudAgentProviderLabel(work.place)}</Label>
+                            <Label>{openInCloudAgentProviderLabel(target.provider)}</Label>
                         </Dropdown.Item>
                     ) : null}
                     <Dropdown.Item id="link" textValue="Copy link">

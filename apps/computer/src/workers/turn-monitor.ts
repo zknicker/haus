@@ -7,6 +7,7 @@ import {
 } from '@haus/api';
 import { Deferred, type Duration, Effect, type Scope } from 'effect';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
+import type { ComputerPlaceFrame } from './computer/turn-finish.ts';
 import { followUpDrainFrame } from './follow-up-drain.ts';
 import { foreign } from './foreign-operation.ts';
 import { autoInterruptNote, type WorkerLocalRuns } from './local-runs.ts';
@@ -19,6 +20,7 @@ import {
 } from './provider.ts';
 
 export type WorkerComputerFrame =
+    | ComputerPlaceFrame
     | WorkerFollowUpDrainFrame
     | WorkerObservationFrame
     | WorkerTurnAcceptedFrame;
