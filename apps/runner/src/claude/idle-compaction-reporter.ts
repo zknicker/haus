@@ -1,4 +1,6 @@
 import type { AgentIdleCompactionReport } from '@haus/api';
+import { journalIdleCompaction } from '../journal/idle-compaction-journal.ts';
+import type { JournalUploads } from '../journal/journal-uploads.ts';
 import type { RunnerLink } from '../run-context.ts';
 import { resetReceiptsAfterCompaction } from '../turn/session-file.ts';
 import type { IdleCompactionHooks } from './idle-compaction-scheduler.ts';
@@ -8,6 +10,7 @@ export function createIdleCompactionReporter(deps: {
     agentBusy(agentId: string): boolean;
     link: RunnerLink;
     log: (line: string) => void;
+    uploads?: JournalUploads;
 }) {
     const hooks: IdleCompactionHooks<{ readonly owner: IdleCompactionOwner | null }> = {
         busy: (agentId) => deps.agentBusy(agentId),
@@ -27,16 +30,26 @@ export function createIdleCompactionReporter(deps: {
             deps.log(
                 `Runner idle compaction failed for ${agentId}; the session resumes uncompacted: ${describe(error)}`
             ),
-        report: (agentId, process, result) => {
+        report: async (agentId, process, result) => {
             if (!process.owner) {
-                return Promise.resolve();
+                return;
             }
             const report = idleCompactionReport(agentId, process.owner.runtimeId, result);
+            await journalIdleCompaction({
+                agentDir: process.owner.agentDir,
+                agentId,
+                compactionId: report.compactionId,
+                result,
+                ...(deps.uploads ? { uploads: deps.uploads } : {}),
+            }).catch((error: unknown) =>
+                deps.log(
+                    `Runner could not journal ${report.compactionId} for ${agentId}: ${describe(error)}`
+                )
+            );
             deps.link.send(report);
             deps.log(
                 `Runner compacted ${agentId} while idle (${report.compactionId}, ${report.tokensBefore} to ${report.tokensAfter} tokens).`
             );
-            return Promise.resolve();
         },
         skipped: (agentId, reason) =>
             deps.log(`Runner idle compaction for ${agentId} did not run: ${reason}.`),

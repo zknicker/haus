@@ -46,7 +46,11 @@ export function createClaudeHarness(options: {
         return bootstrap;
     };
 
-    const connect = async (launch: RuntimeLaunch, resumeFrom: string | undefined) => {
+    const connect = async (
+        launch: RuntimeLaunch,
+        resumeFrom: string | undefined,
+        signal?: AbortSignal
+    ) => {
         const paths = claudePaths(launch.agentDir);
         const facts = claudeLaunchFacts(launch, await bootstrapFingerprint());
         const launchKey = claudeLaunchKey(facts);
@@ -54,7 +58,8 @@ export function createClaudeHarness(options: {
             const claim = await pool.claim(
                 launch.agentId,
                 { launchKey, nativeSessionId: resumeFrom },
-                Date.now()
+                Date.now(),
+                signal
             );
             closeAll(claim.closing);
             if (claim.process?.alive) {
@@ -82,7 +87,7 @@ export function createClaudeHarness(options: {
         instructionsOnResume: 'launched' as const,
         async openSession({ resumeFrom, signal }: OpenSessionOptions) {
             signal?.throwIfAborted();
-            const connection = await connect(launch, resumeFrom);
+            const connection = await connect(launch, resumeFrom, signal);
             connection.binding.bind(launch.tools);
             connection.owner = owner(launch);
             return claudeSession({
@@ -97,8 +102,8 @@ export function createClaudeHarness(options: {
                             Date.now()
                         )
                     ),
-                relaunch: async (nativeSessionId) => {
-                    const next = await connect(launch, nativeSessionId);
+                relaunch: async (nativeSessionId, signal) => {
+                    const next = await connect(launch, nativeSessionId, signal);
                     next.binding.bind(launch.tools);
                     next.owner = owner(launch);
                     return next;
@@ -143,7 +148,7 @@ function claudeSession(deps: {
     connection: ClaudeConnection;
     isResume: boolean;
     park(connection: ClaudeConnection): void;
-    relaunch(nativeSessionId: string): Promise<ClaudeConnection>;
+    relaunch(nativeSessionId: string, signal: AbortSignal): Promise<ClaudeConnection>;
 }) {
     let connection = deps.connection;
     let turn: ClaudeTurn | null = null;
@@ -183,7 +188,7 @@ function claudeSession(deps: {
                 throw new Error('A Claude turn is already running.');
             }
             if (!connection.alive) {
-                connection = await deps.relaunch(connection.sessionId);
+                connection = await deps.relaunch(connection.sessionId, signal);
             }
             const next = new ClaudeTurn(connection, signal);
             turn = next;

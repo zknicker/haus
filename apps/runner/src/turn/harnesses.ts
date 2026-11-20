@@ -1,6 +1,7 @@
 import { createClaudeHarness } from '../claude/claude-driver.ts';
 import { createIdleCompactionReporter } from '../claude/idle-compaction-reporter.ts';
 import type { IdleCompactionGate } from '../claude/idle-compaction-scheduler.ts';
+import type { JournalUploads } from '../journal/journal-uploads.ts';
 import type { ConnectionBook } from '../model-connections/connection-book.ts';
 import { createPiHarness } from '../pi/pi-driver.ts';
 import { connectionModels, piProviderFor } from '../pi/pi-models.ts';
@@ -10,6 +11,7 @@ import { harnessFor, type RuntimeDriverFactory } from './runtime-driver.ts';
 export function createHarnesses(input: {
     agentBusy: (agentId: string) => boolean;
     book: ConnectionBook;
+    journal?: JournalUploads;
     link: RunnerLink;
     log: (line: string) => void;
     maxWarm: number;
@@ -19,6 +21,7 @@ export function createHarnesses(input: {
             agentBusy: input.agentBusy,
             link: input.link,
             log: input.log,
+            ...(input.journal ? { uploads: input.journal } : {}),
         }),
         maxWarm: input.maxWarm,
     });
