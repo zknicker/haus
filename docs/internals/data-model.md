@@ -149,6 +149,19 @@ pull request readings. A report's Message (`body_kind = 'worker-report'`) and a 
 transcripts, and workspace files never reach the Server. Settling a turn queues at most one
 `agent_inbox` row (`worker_report`, `worker-report:<turnId>`) for the delegating Agent in the same
 transaction; stalls queue `worker_stall` and pull request changes `pull_request`.
+Migration 0137 adds Workers on Computers. `computers` gains `workers_enabled` (off by default),
+`worker_limit` (1 to 50, default 4), and `disconnected_at`, which the `machine-offline` sweep reads.
+`project_repos` (`prp_`, unique per Project and repository) and `project_repo_links` (per Computer,
+an optional `checkout_path`, the linking member) carry repos; the migration backfills repos from
+the Workers that have a Task. `projects.default_worker_place` and `default_worker_computer_id` hold
+the default, tied by a check, so removing a Computer or switching it off clears both first.
+`workers` gains `runtime` (set exactly for a Computer place), `model`, `branch`,
+`native_session_id` (set once), and `worker_md_revision_id` (the delivered `WORKER.md`).
+`worker_turns` gains `dispatch_attempt`, `worker_md_revision_id` (what the current attempt
+inlines), `report_draft`, and `ended_at`. `worker_turn_credentials` keeps only token hashes of the
+turn and push credentials, at most one live per turn, kind, and attempt, revoked at settle.
+`drive_pushes.worker_id` keys a Worker push's source, and `artifact_revisions.author_worker_id`
+names the Worker beside its Agent in `author_agent_id`.
 `cloud_agent_model_settings`
 holds one row per Server and provider (`server_id`, `provider`, `model_id`, `model_params`) with
 the human-chosen Cloud Agent model and its effort and fast choices; no row is Auto. Migration
