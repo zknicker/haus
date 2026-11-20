@@ -10,6 +10,7 @@ import type { ManagedSkillSeeder } from '../managed-skills/seeder.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import { agentUpdatedTopic } from '../realtime/topics.ts';
+import type { AgentModelCatalog } from '../server-agents/agent-model-catalog.ts';
 import { createAgentFromAgent } from '../server-agents/create-agent-from-agent.ts';
 import { precheckAgentCreation } from '../server-agents/creation-request.ts';
 import { setAgentAvatarFromAgent } from '../server-agents/set-agent-avatar-from-agent.ts';
@@ -35,6 +36,7 @@ export function registerAgentAgentRoutes(
         avatarImageService: AvatarImageService;
         db: HausDatabase;
         managedSkills: ManagedSkillSeeder;
+        modelCatalog: AgentModelCatalog;
         postCommitWork: ServerPostCommitWork;
     }
 ) {
@@ -70,7 +72,8 @@ export function registerAgentAgentRoutes(
                 dependencies.db,
                 runner,
                 parsed.data,
-                avatar
+                avatar,
+                dependencies.modelCatalog
             );
             for (const event of created.events) {
                 publishRealtime(event);

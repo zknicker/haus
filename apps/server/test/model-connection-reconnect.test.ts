@@ -12,6 +12,7 @@ import {
 } from './model-connection.fixture.ts';
 import {
     connectRunner,
+    reportRunnerModels,
     frameOfType,
     type RunnerClient,
     type RunnerFrame,
@@ -33,6 +34,7 @@ beforeAll(async () => {
     member = await addMember(harness, seed, 'user_models_reconnect_member');
     runner = connectRunner(harness, testRunnerToken);
     await runner.next(frameOfType('runner-model-connections'));
+    await reportRunnerModels(harness, { attached: runner });
 });
 
 afterAll(async () => {
