@@ -46,9 +46,9 @@ test('a .pdf name without PDF magic bytes is viewed as text', async () => {
     });
 });
 
-test('a PDF over 700 KiB streams to the Server and one over 5 MiB is refused', async () => {
-    const large = pdfOfSize(2 * 1024 * 1024);
-    const huge = pdfOfSize(6 * 1024 * 1024);
+test('a PDF over 700 KiB streams to the Server and one over 25 MiB is refused', async () => {
+    const large = pdfOfSize(6 * 1024 * 1024);
+    const huge = pdfOfSize(26 * 1024 * 1024);
     await writeFile(join(root, 'large.pdf'), large);
     await writeFile(join(root, 'huge.pdf'), huge);
     const payloads = createInvocationPayloads({
@@ -70,7 +70,7 @@ test('a PDF over 700 KiB streams to the Server and one over 5 MiB is refused', a
     });
     expect(await view('huge.pdf', payloads)).toEqual({
         outcome: 'failed',
-        output: { kind: 'text', text: 'PDF is 6.0MB; the limit is 5 MiB.' },
+        output: { kind: 'text', text: 'PDF is 26.0MB; the limit is 25 MiB.' },
         truncated: false,
     });
     expect(server.uploads.map((upload) => upload.contentType)).toEqual(['application/pdf']);

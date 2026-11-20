@@ -74,7 +74,7 @@ test("a PDF's view marks each page, and says when there is no text to read", () 
     expect(composePdfText([''])).toBe(
         'This PDF has 1 page and no text layer, so its pages are likely scanned images that view cannot read.'
     );
-    expect(composePdfTooLarge('6.0MB')).toBe('PDF is 6.0MB; the limit is 5 MiB.');
+    expect(composePdfTooLarge('26.0MB')).toBe('PDF is 26.0MB; the limit is 25 MiB.');
     expect(composePdfUnreadable('Invalid PDF structure.')).toBe(
         'Could not read the text of this PDF. Invalid PDF structure.'
     );

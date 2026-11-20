@@ -52,7 +52,7 @@ export function composePdfText(pages: readonly string[]) {
 
 /** The machine's refusal to return a PDF over the `view` cap, given the file's formatted size. */
 export function composePdfTooLarge(size: string) {
-    return `PDF is ${size}; the limit is 5 MiB.`;
+    return `PDF is ${size}; the limit is 25 MiB.`;
 }
 
 /** What `view` shows when a PDF's text cannot be extracted. */

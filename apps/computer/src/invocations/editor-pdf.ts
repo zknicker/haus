@@ -4,7 +4,7 @@ import { filesystemFailure, stoppedBeforeReturn } from './files.ts';
 import { type OperationContext, textResult } from './operation.ts';
 import { formatSize } from './pi/truncate.ts';
 
-const pdfByteLimit = 5 * 1024 * 1024;
+const pdfByteLimit = 25 * 1024 * 1024;
 const pdfMagic = [...'%PDF-'].map((character) => character.charCodeAt(0));
 
 export function isPdf(head: Uint8Array) {
