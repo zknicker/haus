@@ -230,8 +230,9 @@ and host import) land in the folder, and the turn-end push publishes them.
 The local root survives ordinary idle periods, Computer restarts, model or
 runtime changes, and session reset. Session reset creates fresh model context
 without erasing the workspace or the area. Full reset starts on the Server: `agent.reset` deletes
-every live file under `agents/<handle>/` in one transaction, as the Owner or Admin who pressed it,
-before it rotates the session. The files stay restorable from Recently deleted for
+every live file under `agents/<handle>/` and stamps `agents.full_reset_at` in the same transaction
+that revokes the active run's credentials and rotates the session, so a reset that fails leaves
+all of it as it was. The files stay restorable from Recently deleted for
 `driveDeletedRetentionDays`. The Computer then discards the push of any turn the reset interrupted,
 so a stale folder never revives a deleted file, and clears `workspace/drive/` with the rest of the
 workspace. It keeps `workspace/drive-refused/`. An Agent without `runtime/drive-seed.json` has not
