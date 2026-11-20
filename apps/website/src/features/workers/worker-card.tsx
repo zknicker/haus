@@ -8,6 +8,7 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { useHumanDirectory } from '../../hooks/servers/use-human-directory.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { openExternalLink } from '../../lib/open-external-link.ts';
+import { useTranscriptRenderContextOptional } from '../chats/chat-transcript-render-context.tsx';
 import { WorkerKeycap } from './cloud-agent-provider-mark.tsx';
 import { useWorkerAgentName } from './use-worker-agent-name.ts';
 import {
@@ -19,13 +20,16 @@ import {
     workerStatusDiscStates,
     workerStatusText,
 } from './worker-card-model.ts';
+import { WorkerCopyLink } from './worker-copy-link.tsx';
 import { WorkerFollowUpComposer } from './worker-follow-up-composer.tsx';
 import { WorkerPlace } from './worker-place.tsx';
 import { workerBranch, workerBranchPullRequestNumber } from './worker-presentation.ts';
 import { WorkerReport } from './worker-report.tsx';
 import { WorkerStatusDisc } from './worker-status-disc.tsx';
 
-export function WorkerCard({ chatId = null, work }: { chatId?: null | string; work: Worker }) {
+export function WorkerCard({ chatId: chatIdProp, work }: { chatId?: null | string; work: Worker }) {
+    const transcriptChatId = useTranscriptRenderContextOptional()?.chatId ?? null;
+    const chatId = chatIdProp === undefined ? transcriptChatId : chatIdProp;
     const { slug = '' } = useParams();
     const server = useServer(slug, Boolean(slug)).data;
     const agentName = useWorkerAgentName(work);
@@ -86,6 +90,11 @@ export function WorkerCard({ chatId = null, work }: { chatId?: null | string; wo
             ) : null}
             {server && canFollowUpWorker(work) ? (
                 <WorkerFollowUpComposer serverId={server.id} work={work} />
+            ) : null}
+            {server && work.taskId === null && chatId ? (
+                <ActionCard.Actions>
+                    <WorkerCopyLink chatId={chatId} slug={server.slug} />
+                </ActionCard.Actions>
             ) : null}
         </ActionCard>
     );

@@ -78,6 +78,15 @@ test('a cited Drive file opens at the revision the report cited', () => {
     expect(html).toContain('notes.md');
 });
 
+test('a history Worker outside any Task keeps Copy link and has no composer', () => {
+    const html = renderCard(
+        work({ closedAt: '2026-09-04T12:03:00.000Z', status: 'completed', taskId: null })
+    );
+
+    expect(html).toContain('Copy link');
+    expect(html).not.toContain('prompt-input');
+});
+
 test('a closed Worker shows its record with no composer', () => {
     const html = renderCard(work({ closedAt: '2026-09-04T12:03:00.000Z', status: 'completed' }));
 
