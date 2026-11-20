@@ -215,6 +215,42 @@ describe('model connections in turns', () => {
         expect(refreshedFrom).toEqual(['refresh-1']);
     });
 
+    test('a turn the provider refuses reads the plan capacity right away', async () => {
+        const oauth: OAuthAuth = {
+            login: () => Promise.reject(new Error('Sign-in is not part of this test.')),
+            name: 'ChatGPT plan',
+            refresh: () => Promise.reject(new Error('Refresh is not part of this test.')),
+            toAuth: (credential) => Promise.resolve({ apiKey: credential.access }),
+        };
+        const faux = fauxProviderAs('openai-codex', { oauth }, ['gpt-faux']);
+        faux.core.setResponses([refused('401 Unauthorized: token revoked')]);
+        const runner = await connectedRunner(faux.provider, {
+            '/backend-api/wham/usage': () =>
+                Response.json({
+                    rate_limit: {
+                        primary_window: { limit_window_seconds: 18_000, used_percent: 100 },
+                    },
+                }),
+        });
+        runner.server.send({
+            connections: [chatgptPlan('access-1', 'refresh-1', farFuture)],
+            type: 'runner-model-connections',
+        });
+
+        runner.server.start({ modelConnectionId: 'mc_chatgpt', modelId: 'gpt-faux' });
+
+        expect(await runner.server.frame('runner-connection-status')).toMatchObject({
+            connectionId: 'mc_chatgpt',
+            status: 'failed',
+        });
+        expect(await runner.server.frame('runner-connection-capacity')).toEqual({
+            connectionId: 'mc_chatgpt',
+            readAt: expect.any(String),
+            type: 'runner-connection-capacity',
+            windows: [{ id: 'current-session', label: '5-hour', resetsAt: null, usedPercent: 100 }],
+        });
+    });
+
     test('a refresh the provider refuses fails the turn as access and marks the connection failed', async () => {
         const oauth: OAuthAuth = {
             login: () => Promise.reject(new Error('Sign-in is not part of this test.')),

@@ -54,6 +54,8 @@
         "@earendil-works/pi-schema": "1.5.2",
         "@haus/agent-prompt": "workspace:*",
         "@haus/api": "workspace:*",
+        "@haus/claude-usage": "workspace:*",
+        "@haus/codex-usage": "workspace:*",
         "@haus/computer": "workspace:*",
         "@haus/mcp-executor": "workspace:*",
         "sh-syntax": "0.8.7",

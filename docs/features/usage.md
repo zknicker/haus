@@ -38,6 +38,10 @@ while you read it.
   Code, and Grok Build runtimes. Supported runtimes that are absent sit in compact,
   low-contrast **Not Detected** Chips in the section header instead of occupying card-sized space.
   Computer-local token ledgers are not shown on this surface.
+* **Model connections.** Settings → Models shows a Claude or ChatGPT plan connection's 5-hour
+  and weekly capacity on its row, as the runner last read it. Nothing shows until a read lands, or
+  once the last one is six hours old. SuperGrok and API-key connections show none. See
+  [Model connections](../../specs/model-connections.md#plan-capacity).
 
 * **Cloud Agents.** Beside the runtime capacity cards, the same Computer page carries one **Cursor
   Cloud Agents** row and one **Claude Cloud Agents** row. **Make default** on a row chooses which

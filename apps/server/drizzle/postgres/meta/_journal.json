@@ -946,6 +946,13 @@
       "when": 1795138772546,
       "tag": "0134_model-connections",
       "breakpoints": true
+    },
+    {
+      "idx": 135,
+      "version": "7",
+      "when": 1795141792981,
+      "tag": "0135_model-connection-capacity",
+      "breakpoints": true
     }
   ]
 }

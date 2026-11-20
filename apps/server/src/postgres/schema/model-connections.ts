@@ -1,4 +1,9 @@
-import type { ModelConnectionAuthKind, ModelConnectionStatus, ModelProvider } from '@haus/api';
+import type {
+    ModelConnectionAuthKind,
+    ModelConnectionCapacityWindow,
+    ModelConnectionStatus,
+    ModelProvider,
+} from '@haus/api';
 import { sql } from 'drizzle-orm';
 import {
     boolean,
@@ -17,6 +22,8 @@ export const modelConnectionsTable = pgTable(
     'model_connections',
     {
         authKind: text('auth_kind').notNull().$type<ModelConnectionAuthKind>(),
+        capacity: bunJsonb('capacity').$type<ModelConnectionCapacityWindow[]>(),
+        capacityReadAt: timestamp('capacity_read_at', { withTimezone: true }),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         credentialVersion: integer('credential_version').notNull().default(1),
         id: text('id').primaryKey(),

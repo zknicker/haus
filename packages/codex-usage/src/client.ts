@@ -81,6 +81,7 @@ export async function getCodexUsage(options: CodexUsageOptions = {}): Promise<Co
         accountId: credentials.accountId,
         fetch: fetchImpl,
         signal,
+        url: options.usageUrl ?? CODEX_USAGE_URL,
     });
 
     if (usageResponse.status === 401 || usageResponse.status === 403) {
@@ -115,6 +116,7 @@ async function fetchCodexUsageResponse(options: {
     accountId: string | null;
     fetch: typeof fetch;
     signal: AbortSignal;
+    url: string;
 }): Promise<Response> {
     const headers = new Headers({
         accept: 'application/json',
@@ -125,7 +127,7 @@ async function fetchCodexUsageResponse(options: {
         headers.set('ChatGPT-Account-Id', options.accountId);
     }
 
-    return options.fetch(CODEX_USAGE_URL, {
+    return options.fetch(options.url, {
         headers,
         method: 'GET',
         signal: options.signal,

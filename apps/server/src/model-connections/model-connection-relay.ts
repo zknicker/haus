@@ -1,6 +1,7 @@
 import type {
     ModelSignInStartInput,
     ModelSignInTargetInput,
+    RunnerConnectionCapacityFrame,
     RunnerConnectionCredentialFrame,
     RunnerConnectionStatusFrame,
     RunnerSignInCodeFrame,
@@ -22,12 +23,14 @@ import { requireConnectionsOwner } from './read-model-connections.ts';
 import { replaceSignedInCredential, requireSignInTarget } from './replace-model-connection.ts';
 import {
     readRunnerConnections,
+    recordConnectionCapacity,
     recordConnectionStatus,
     storeRotatedCredential,
 } from './runner-connection-store.ts';
 import { insertSignedInConnection } from './write-model-connections.ts';
 
 export type RunnerConnectionFrame =
+    | RunnerConnectionCapacityFrame
     | RunnerConnectionCredentialFrame
     | RunnerConnectionStatusFrame
     | RunnerSignInCodeFrame
@@ -132,6 +135,9 @@ export class ModelConnectionRelay {
     async ingest(frame: RunnerConnectionFrame) {
         this.sweep();
         switch (frame.type) {
+            case 'runner-connection-capacity':
+                this.announce(await recordConnectionCapacity(this.db, frame));
+                return;
             case 'runner-connection-credential':
                 await this.storeCredential(frame);
                 return;

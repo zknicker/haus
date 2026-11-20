@@ -1,9 +1,10 @@
 import type {
+    RunnerConnectionCapacityFrame,
     RunnerConnectionCredentialFrame,
     RunnerConnectionStatusFrame,
     RunnerModelConnection,
 } from '@haus/api';
-import { and, eq, isNull, ne, or, sql } from 'drizzle-orm';
+import { and, eq, isNull, lte, ne, or, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { modelConnectionsTable, serversTable } from '../postgres/schema.ts';
 import type { SecretsKey } from '../secrets/sealed-secret.ts';
@@ -98,6 +99,40 @@ export async function recordConnectionStatus(db: HausDatabase, frame: RunnerConn
         )
         .returning({ serverId: modelConnectionsTable.serverId });
     return changed?.serverId ?? null;
+}
+
+export async function recordConnectionCapacity(
+    db: HausDatabase,
+    frame: RunnerConnectionCapacityFrame
+) {
+    const readAt = new Date(frame.readAt);
+    const windows = sql`${sql.param(frame.windows)}::jsonb`;
+    return await db.transaction(async (tx) => {
+        const [row] = await tx
+            .select({
+                changed: sql<boolean>`${modelConnectionsTable.capacity} is distinct from ${windows}`,
+                serverId: modelConnectionsTable.serverId,
+            })
+            .from(modelConnectionsTable)
+            .where(
+                and(
+                    eq(modelConnectionsTable.id, frame.connectionId),
+                    or(
+                        isNull(modelConnectionsTable.capacityReadAt),
+                        lte(modelConnectionsTable.capacityReadAt, readAt)
+                    )
+                )
+            )
+            .for('update');
+        if (!row) {
+            return null;
+        }
+        await tx
+            .update(modelConnectionsTable)
+            .set({ capacity: windows, capacityReadAt: readAt })
+            .where(eq(modelConnectionsTable.id, frame.connectionId));
+        return row.changed ? row.serverId : null;
+    });
 }
 
 function rotation(

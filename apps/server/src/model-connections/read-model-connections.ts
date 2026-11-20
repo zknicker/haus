@@ -11,8 +11,12 @@ import {
 
 type Reader = Pick<HausDatabase, 'select'>;
 
+const capacityShownMs = 6 * 60 * 60 * 1000;
+
 const statusColumns = {
     authKind: modelConnectionsTable.authKind,
+    capacity: modelConnectionsTable.capacity,
+    capacityReadAt: modelConnectionsTable.capacityReadAt,
     id: modelConnectionsTable.id,
     label: modelConnectionsTable.label,
     position: modelConnectionsTable.position,
@@ -71,8 +75,14 @@ export async function requireConnectionsOwner(
     }
 }
 
-function toModelConnection(row: {
+function toModelConnection({
+    capacity,
+    capacityReadAt,
+    ...row
+}: {
     authKind: ModelConnection['authKind'];
+    capacity: ModelConnection['capacity'];
+    capacityReadAt: Date | null;
     id: string;
     label: string;
     position: number;
@@ -84,7 +94,10 @@ function toModelConnection(row: {
 }) {
     const connection: ModelConnection = {
         ...row,
-        capacity: null,
+        capacity:
+            capacityReadAt && Date.now() - capacityReadAt.getTime() <= capacityShownMs
+                ? capacity
+                : null,
         isDefault: row.position === 0,
         updatedAt: row.updatedAt.toISOString(),
     };

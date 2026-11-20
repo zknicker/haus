@@ -98,6 +98,8 @@ async function storeReplacement(tx: Writer, connectionId: string, sealedCredenti
     await tx
         .update(modelConnectionsTable)
         .set({
+            capacity: null,
+            capacityReadAt: null,
             credentialVersion: sql`${modelConnectionsTable.credentialVersion} + 1`,
             sealedCredential,
             status: 'ready',
