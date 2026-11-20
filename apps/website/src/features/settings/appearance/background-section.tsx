@@ -15,6 +15,7 @@ import {
     withDefaultAdjustments,
 } from '../../../lib/home-background.ts';
 import { HomeBackgroundLayers } from '../../home-background/home-background-layers.tsx';
+import { SettingsRowError } from '../layout/settings-text.tsx';
 import { BackgroundAdjustments } from './background-adjustments.tsx';
 import { BackgroundSourcePicker } from './background-source-picker.tsx';
 import { removeBackgroundImage, useBackgroundUpload } from './use-background-upload.tsx';
@@ -49,7 +50,7 @@ export function BackgroundSection({ theme }: { theme: ColorTheme }) {
                     theme={theme}
                 />
                 {upload.input}
-                {upload.error ? <p className="text-danger px-1 text-sm">{upload.error}</p> : null}
+                <SettingsRowError>{upload.error}</SettingsRowError>
                 {background.source === 'image' && background.image ? (
                     <ImageRow image={background.image} onReplace={upload.choose} theme={theme} />
                 ) : null}
