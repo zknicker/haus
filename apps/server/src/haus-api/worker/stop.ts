@@ -11,11 +11,15 @@ export const stopWorkerProcedure = memberProcedure
     .mutation(async ({ ctx, input }) => {
         const member = await requireWorkerMember(ctx, input.serverId);
         try {
-            const stopped = await stopWorkerAsPerson(ctx.hausDb, {
-                serverId: input.serverId,
-                userId: member.id,
-                workerId: input.workerId,
-            });
+            const stopped = await stopWorkerAsPerson(
+                ctx.hausDb,
+                {
+                    serverId: input.serverId,
+                    userId: member.id,
+                    workerId: input.workerId,
+                },
+                ctx.artifactStorage
+            );
             await commitWorkerEffects(stopped.effects, workerSinks(ctx));
             return { worker: stopped.worker };
         } catch (cause) {

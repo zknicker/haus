@@ -85,6 +85,7 @@ export function registerAgentApiRoutes(
         imageGeneration: import('../image-generation/image-generation-service.ts').ImageGenerationService;
         mcpRuntime: import('../server-mcp/runtime.ts').McpRuntime;
         postCommitWork: ServerPostCommitWork;
+        storage: import('../artifacts/storage.ts').ArtifactStorage | null;
     }
 ) {
     registerAgentDispatchIds(app, options.db);
@@ -102,6 +103,7 @@ export function registerAgentApiRoutes(
         computers: options.computers,
         db: options.db,
         postCommitWork: options.postCommitWork,
+        storage: options.storage,
     });
     registerAgentImageGenerationRoutes(app, {
         db: options.db,

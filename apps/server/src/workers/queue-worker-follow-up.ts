@@ -1,13 +1,14 @@
-import { type WorkerTurnInput, projectWorker, requireCloudWorkerPlace } from '@haus/api';
+import { type WorkerTurnInput, projectWorker } from '@haus/api';
 import { and, arrayContains, asc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { computersTable, workerTurnsTable, workersTable } from '../postgres/schema.ts';
-import { resolveRunModel } from './cloud-agent-model.ts';
 import { WorkerCarrierRemovedError } from './errors.ts';
+import { WorkerPlaceOffError } from './place-errors.ts';
 import { requireOpenWorker, stopWorkerTurns } from './stop-worker-turns.ts';
 import type { WorkerFrame } from './worker-effects.ts';
 import { workerPlaceOf } from './worker-row-place.ts';
+import { turnModel } from './worker-turn-model.ts';
 
 type WorkerRow = typeof workersTable.$inferSelect;
 
@@ -47,10 +48,10 @@ export async function queueWorkerFollowUp(
         await touchWorker(tx, worker);
         return { frames: stopped.frames, idempotent: false, turnId: waiting.id };
     }
-    const model = await resolveRunModel(tx, {
-        computerId: worker.carrierComputerId,
-        provider: requireCloudWorkerPlace(workerPlaceOf(worker)),
-        serverId: worker.serverId,
+    const model = await turnModel(tx, worker.serverId, {
+        carrierComputerId: worker.carrierComputerId,
+        model: worker.model,
+        place: workerPlaceOf(worker),
     });
     const turnId = createOpaqueId('wkt');
     await tx.insert(workerTurnsTable).values({
@@ -116,7 +117,11 @@ async function findWaitingTurn(tx: HausDatabase, worker: WorkerRow) {
 
 async function requireCarrier(tx: HausDatabase, worker: WorkerRow) {
     const [carrier] = await tx
-        .select({ id: computersTable.id })
+        .select({
+            id: computersTable.id,
+            name: sql<string | null>`${computersTable.reportedInventory} ->> 'name'`,
+            workersEnabled: computersTable.workersEnabled,
+        })
         .from(computersTable)
         .where(
             and(
@@ -127,6 +132,9 @@ async function requireCarrier(tx: HausDatabase, worker: WorkerRow) {
         .limit(1);
     if (!carrier) {
         throw new WorkerCarrierRemovedError();
+    }
+    if (worker.place === 'computer' && !carrier.workersEnabled) {
+        throw new WorkerPlaceOffError(carrier.name ?? `computer:${carrier.id}`);
     }
 }
 

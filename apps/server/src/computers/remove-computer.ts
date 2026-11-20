@@ -1,7 +1,9 @@
 import { and, eq, isNull, ne } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, computersTable, serverOnboardingTable } from '../postgres/schema.ts';
+import { clearComputerDefaults } from '../projects/project-worker-defaults.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
@@ -16,7 +18,8 @@ export async function removeServerComputer(
     db: HausDatabase,
     agentDelivery: AgentDelivery,
     member: HausUser | null,
-    input: { computerId: string; confirmation: string; serverId: string }
+    input: { computerId: string; confirmation: string; serverId: string },
+    storage: ArtifactStorage | null
 ) {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
@@ -92,11 +95,12 @@ export async function removeServerComputer(
                     eq(agentsTable.computerId, computer.id)
                 )
             );
-        const workers = await failRemovedCarrierTurns(tx, agentDelivery, {
+        const workers = await failRemovedCarrierTurns(tx, agentDelivery, storage, {
             computerId: computer.id,
             serverId: input.serverId,
         });
+        const projectIds = await clearComputerDefaults(tx, input.serverId, computer.id);
         await tx.delete(computersTable).where(eq(computersTable.id, computer.id));
-        return { computerId: computer.id, workers };
+        return { computerId: computer.id, projectIds, workers };
     });
 }

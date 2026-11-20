@@ -220,6 +220,7 @@ export async function createHausServerApplication(
             startedPostCommitWork,
             options.thoughtSummarizer ?? null,
             invocations,
+            artifactStorage,
             options.computerSocketLiveness
         );
         handles.runnerSocket = startRunnerSocket(startedApp.server, options, {

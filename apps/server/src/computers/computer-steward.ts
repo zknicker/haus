@@ -1,0 +1,37 @@
+import { and, eq } from 'drizzle-orm';
+import type { HausDatabase } from '../postgres/connection.ts';
+import { computersTable } from '../postgres/schema.ts';
+import { requireServerMembership } from '../servers/server-access.ts';
+import type { HausUser } from '../users/haus-user.ts';
+import { ComputerSetupDeniedError } from './service.ts';
+
+export async function requireComputerSteward(
+    db: HausDatabase,
+    member: HausUser | null,
+    input: { computerId: string; serverId: string }
+) {
+    const server = await requireServerMembership(db, member, input.serverId);
+    const [computer] = await db
+        .select({ attachedByUserId: computersTable.attachedByUserId, id: computersTable.id })
+        .from(computersTable)
+        .where(
+            and(
+                eq(computersTable.serverId, input.serverId),
+                eq(computersTable.id, input.computerId)
+            )
+        )
+        .limit(1);
+    if (!computer) {
+        throw new ComputerSetupDeniedError('That Computer no longer exists.');
+    }
+    const steward =
+        server.role === 'owner' ||
+        server.role === 'admin' ||
+        computer.attachedByUserId === member?.id;
+    if (!(member && steward)) {
+        throw new ComputerSetupDeniedError(
+            'Only the person who attached this Computer, an Owner, or an Admin can change what runs on it.'
+        );
+    }
+    return { ...computer, stewardUserId: member.id };
+}

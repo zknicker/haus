@@ -109,6 +109,7 @@ export async function registerHausServerRoutes(
         imageGeneration,
         mcpRuntime: dependencies.mcpRuntime,
         postCommitWork: dependencies.postCommitWork,
+        storage: dependencies.artifactStorage,
     });
     registerMcpOAuthCallback(app, dependencies.mcpOAuthRelay);
     registerGithubSetupRoute(app, {

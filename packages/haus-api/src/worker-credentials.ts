@@ -5,7 +5,6 @@ import { workerTimestampSchema } from './worker-time.ts';
 
 const tokenSchema = z.string().min(32).max(512);
 
-/** The Computer's attachment credential hash, as `/computer/runner/mint` takes it. */
 const credentialHashSchema = z.string().regex(/^[a-f0-9]{64}$/u);
 
 const mintedShape = {

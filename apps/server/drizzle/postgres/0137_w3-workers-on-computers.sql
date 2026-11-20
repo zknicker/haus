@@ -55,6 +55,11 @@ ALTER TABLE "workers" ADD COLUMN IF NOT EXISTS "model" text;--> statement-breakp
 ALTER TABLE "workers" ADD COLUMN IF NOT EXISTS "native_session_id" text;--> statement-breakpoint
 ALTER TABLE "workers" ADD COLUMN IF NOT EXISTS "runtime" text;--> statement-breakpoint
 ALTER TABLE "workers" ADD COLUMN IF NOT EXISTS "worker_md_revision_id" text;--> statement-breakpoint
+ALTER TABLE "worker_turns" ADD COLUMN IF NOT EXISTS "worker_md_revision_id" text;--> statement-breakpoint
+ALTER TABLE "computers" ADD COLUMN IF NOT EXISTS "disconnected_at" timestamp with time zone;--> statement-breakpoint
+ALTER TABLE "artifact_revisions" ADD COLUMN IF NOT EXISTS "author_worker_id" text;--> statement-breakpoint
+ALTER TABLE "artifact_revisions" DROP CONSTRAINT IF EXISTS "artifact_revisions_author_worker_fk";--> statement-breakpoint
+ALTER TABLE "artifact_revisions" ADD CONSTRAINT "artifact_revisions_author_worker_fk" FOREIGN KEY ("server_id","author_worker_id") REFERENCES "public"."workers"("server_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "worker_turn_credentials" DROP CONSTRAINT IF EXISTS "worker_turn_credentials_turn_fk";--> statement-breakpoint
 ALTER TABLE "worker_turn_credentials" ADD CONSTRAINT "worker_turn_credentials_turn_fk" FOREIGN KEY ("server_id","turn_id") REFERENCES "public"."worker_turns"("server_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "project_repo_links" DROP CONSTRAINT IF EXISTS "project_repo_links_repo_fk";--> statement-breakpoint

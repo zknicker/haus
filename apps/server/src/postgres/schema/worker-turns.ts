@@ -88,6 +88,8 @@ export const workerTurnsTable = pgTable(
         terminalAt: timestamp('terminal_at', { withTimezone: true }),
         usage: bunJsonb('usage').$type<WorkerUsage | null>(),
         workerId: text('worker_id').notNull(),
+        /** The WORKER.md revision the current attempt's input inlines; delivered on acknowledgement. */
+        workerMdRevisionId: text('worker_md_revision_id'),
     },
     (table) => [
         unique('worker_turns_server_id_key').on(table.serverId, table.id),

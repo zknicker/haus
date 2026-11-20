@@ -1,4 +1,5 @@
 import type { AgentWorkerSendInput, WorkerStopRequestedBy } from '@haus/api';
+import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
@@ -12,7 +13,8 @@ import { type WorkerViewer, canSeeWorker } from './worker-visibility.ts';
 export async function sendAgentFollowUp(
     db: HausDatabase,
     runner: ResolvedRunner,
-    input: AgentWorkerSendInput
+    input: AgentWorkerSendInput,
+    storage: ArtifactStorage | null
 ) {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
@@ -29,7 +31,7 @@ export async function sendAgentFollowUp(
             nonce: input.nonce,
             worker,
         });
-        const effects = await withDispatch(tx, runner.serverId, {
+        const effects = await withDispatch(tx, storage, runner.serverId, {
             events: [],
             frames: queued.frames,
             wakes: [],
@@ -46,17 +48,23 @@ export async function sendAgentFollowUp(
     });
 }
 
-export async function stopAgentWorker(db: HausDatabase, runner: ResolvedRunner, workerId: string) {
+export async function stopAgentWorker(
+    db: HausDatabase,
+    runner: ResolvedRunner,
+    workerId: string,
+    storage: ArtifactStorage | null
+) {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
         const worker = await lockOwnWorker(tx, runner, workerId);
-        return await stopLockedWorker(tx, worker, { id: runner.agentId, kind: 'agent' });
+        return await stopLockedWorker(tx, storage, worker, { id: runner.agentId, kind: 'agent' });
     });
 }
 
 export async function stopWorkerAsPerson(
     db: HausDatabase,
-    input: { serverId: string; userId: string; workerId: string }
+    input: { serverId: string; userId: string; workerId: string },
+    storage: ArtifactStorage | null
 ) {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
@@ -66,7 +74,7 @@ export async function stopWorkerAsPerson(
             workerId: input.workerId,
         });
         const worker = await lockWorker(tx, input.serverId, input.workerId);
-        return await stopLockedWorker(tx, worker, { id: input.userId, kind: 'user' });
+        return await stopLockedWorker(tx, storage, worker, { id: input.userId, kind: 'user' });
     });
 }
 
@@ -82,6 +90,7 @@ export async function requireVisibleWorker(
 
 async function stopLockedWorker(
     tx: HausDatabase,
+    storage: ArtifactStorage | null,
     worker: Awaited<ReturnType<typeof lockWorker>>,
     requestedBy: WorkerStopRequestedBy
 ) {
@@ -90,7 +99,7 @@ async function stopLockedWorker(
         throw new WorkerNotLiveError();
     }
     return {
-        effects: await withDispatch(tx, worker.serverId, {
+        effects: await withDispatch(tx, storage, worker.serverId, {
             events: [],
             frames: stopped.frames,
             wakes: [],

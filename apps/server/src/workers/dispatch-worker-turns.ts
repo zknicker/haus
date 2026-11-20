@@ -1,6 +1,19 @@
-import { type WorkerPlaceKind, type WorkerTurnStartFrame, cloudAgentProviders } from '@haus/api';
-import { and, asc, count, eq, isNotNull, isNull, lt, notExists, sql } from 'drizzle-orm';
+import { cloudAgentProviders } from '@haus/api';
+import {
+    and,
+    asc,
+    count,
+    eq,
+    inArray,
+    isNotNull,
+    isNull,
+    lt,
+    notExists,
+    or,
+    sql,
+} from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
+import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     computersTable,
@@ -8,11 +21,9 @@ import {
     workerTurnsTable,
     workersTable,
 } from '../postgres/schema.ts';
-import { readTask } from '../tasks/task-read.ts';
-import { composeWorkerInput } from './compose-worker-input.ts';
 import type { WorkerEffects, WorkerFrame } from './worker-effects.ts';
 import { prepareWorkerEvents } from './worker-events.ts';
-import { workerPlaceOf } from './worker-row-place.ts';
+import { workerTurnStartFrame } from './worker-turn-start-frame.ts';
 
 export const defaultWorkerPlaceLimit = 10;
 
@@ -21,16 +32,21 @@ type WorkerRow = typeof workersTable.$inferSelect;
 
 const earlierTurns = alias(workerTurnsTable, 'earlier_turn');
 
-export async function dispatchWorkerTurns(tx: HausDatabase, serverId: string) {
+export async function dispatchWorkerTurns(
+    tx: HausDatabase,
+    storage: ArtifactStorage | null,
+    serverId: string
+) {
     const candidates = await readDispatchCandidates(tx, serverId);
     const free = await readFreeSlots(tx, serverId);
     const dispatched: Array<{ turn: TurnRow; worker: WorkerRow }> = [];
     for (const candidate of candidates) {
-        const slots = free.get(candidate.worker.place) ?? defaultWorkerPlaceLimit;
+        const key = slotKey(candidate.worker);
+        const slots = free.get(key) ?? defaultWorkerPlaceLimit;
         if (slots <= 0) {
             continue;
         }
-        free.set(candidate.worker.place, slots - 1);
+        free.set(key, slots - 1);
         await tx
             .update(workerTurnsTable)
             .set({ dispatchedAt: sql`now()` })
@@ -52,7 +68,7 @@ export async function dispatchWorkerTurns(tx: HausDatabase, serverId: string) {
     for (const { turn, worker } of dispatched) {
         frames.push({
             computerId: worker.carrierComputerId,
-            frame: await workerTurnStartFrame(tx, { turn, worker }),
+            frame: await workerTurnStartFrame(tx, storage, { turn, worker }),
         });
     }
     return { frames, workerIds: dispatched.map(({ worker }) => worker.id) };
@@ -60,10 +76,11 @@ export async function dispatchWorkerTurns(tx: HausDatabase, serverId: string) {
 
 export async function withDispatch(
     tx: HausDatabase,
+    storage: ArtifactStorage | null,
     serverId: string,
     effects: WorkerEffects & { workerIds: readonly string[] }
 ) {
-    const dispatched = await dispatchWorkerTurns(tx, serverId);
+    const dispatched = await dispatchWorkerTurns(tx, storage, serverId);
     return {
         events: [
             ...effects.events,
@@ -77,63 +94,8 @@ export async function withDispatch(
     } satisfies WorkerEffects;
 }
 
-export async function workerTurnStartFrame(
-    tx: HausDatabase,
-    input: { turn: TurnRow; worker: WorkerRow }
-) {
-    const { turn, worker } = input;
-    if (!(worker.taskId && turn.input)) {
-        throw new Error(`Worker turn ${turn.id} has no Task or input to start.`);
-    }
-    const task = await readTask(tx, worker.serverId, worker.taskId);
-    const predecessors = await tx
-        .select({ id: workerTurnsTable.id })
-        .from(workerTurnsTable)
-        .where(
-            and(
-                eq(workerTurnsTable.serverId, worker.serverId),
-                eq(workerTurnsTable.workerId, worker.id),
-                lt(workerTurnsTable.createdAt, turn.createdAt)
-            )
-        )
-        .orderBy(asc(workerTurnsTable.createdAt), asc(workerTurnsTable.id));
-    const [sent] = await tx
-        .update(workerTurnsTable)
-        .set({ dispatchAttempt: sql`${workerTurnsTable.dispatchAttempt} + 1` })
-        .where(
-            and(eq(workerTurnsTable.serverId, worker.serverId), eq(workerTurnsTable.id, turn.id))
-        )
-        .returning({ attempt: workerTurnsTable.dispatchAttempt });
-    if (!sent) {
-        throw new Error(`Worker turn ${turn.id} vanished before its start was sent.`);
-    }
-    return {
-        attempt: sent.attempt,
-        checkout: null,
-        input: await composeWorkerInput(tx, {
-            inputs: turn.input,
-            serverId: worker.serverId,
-            taskKey: task.key,
-        }),
-        model: {
-            droppedParams: turn.modelDroppedParams,
-            fallbackFrom: turn.modelFallbackFrom,
-            id: turn.modelId,
-            params: turn.modelParams,
-        },
-        place: workerPlaceOf(worker),
-        predecessorTurnIds: predecessors.map(({ id }) => id),
-        providerAgentId: worker.providerAgentId,
-        repository: worker.repository,
-        resumeSessionId: worker.nativeSessionId,
-        runtime: worker.runtime,
-        startingRef: worker.startingRef,
-        title: worker.title,
-        turnId: turn.id,
-        type: 'worker-turn-start',
-        workerId: worker.id,
-        workerMdRevisionId: null,
-    } satisfies WorkerTurnStartFrame;
+function slotKey(worker: Pick<WorkerRow, 'carrierComputerId' | 'place'>) {
+    return worker.place === 'computer' ? `computer:${worker.carrierComputerId}` : worker.place;
 }
 
 async function readDispatchCandidates(tx: HausDatabase, serverId: string) {
@@ -163,6 +125,13 @@ async function readDispatchCandidates(tx: HausDatabase, serverId: string) {
                 isNotNull(workersTable.taskId),
                 isNull(workersTable.closingAt),
                 isNull(workersTable.closedAt),
+                or(
+                    sql`${workersTable.place} <> 'computer'`,
+                    and(
+                        eq(computersTable.workersEnabled, true),
+                        inArray(computersTable.health, ['healthy', 'degraded'])
+                    )
+                ),
                 notExists(
                     tx
                         .select({ one: sql`1` })
@@ -181,13 +150,21 @@ async function readDispatchCandidates(tx: HausDatabase, serverId: string) {
         .orderBy(asc(workerTurnsTable.createdAt), asc(workerTurnsTable.id));
 }
 
-async function readFreeSlots(tx: HausDatabase, serverId: string) {
+export async function readFreeSlots(tx: Pick<HausDatabase, 'select'>, serverId: string) {
     const limits = await tx
         .select({ limit: workerPlaceLimitsTable.workerLimit, place: workerPlaceLimitsTable.place })
         .from(workerPlaceLimitsTable)
         .where(eq(workerPlaceLimitsTable.serverId, serverId));
+    const computers = await tx
+        .select({ id: computersTable.id, limit: computersTable.workerLimit })
+        .from(computersTable)
+        .where(eq(computersTable.serverId, serverId));
     const busy = await tx
-        .select({ busy: count(), place: workersTable.place })
+        .select({
+            busy: count(),
+            computerId: workersTable.carrierComputerId,
+            place: workersTable.place,
+        })
         .from(workerTurnsTable)
         .innerJoin(
             workersTable,
@@ -203,12 +180,20 @@ async function readFreeSlots(tx: HausDatabase, serverId: string) {
                 isNull(workerTurnsTable.outcome)
             )
         )
-        .groupBy(workersTable.place);
+        .groupBy(workersTable.place, workersTable.carrierComputerId);
+    const used = new Map<string, number>();
+    for (const row of busy) {
+        const key = slotKey({ carrierComputerId: row.computerId, place: row.place });
+        used.set(key, (used.get(key) ?? 0) + row.busy);
+    }
     const limitOf = new Map(limits.map(({ limit, place }) => [place, limit]));
-    const free = new Map<WorkerPlaceKind, number>();
+    const free = new Map<string, number>();
     for (const place of cloudAgentProviders) {
-        const used = busy.find((row) => row.place === place)?.busy ?? 0;
-        free.set(place, (limitOf.get(place) ?? defaultWorkerPlaceLimit) - used);
+        free.set(place, (limitOf.get(place) ?? defaultWorkerPlaceLimit) - (used.get(place) ?? 0));
+    }
+    for (const computer of computers) {
+        const key = `computer:${computer.id}`;
+        free.set(key, computer.limit - (used.get(key) ?? 0));
     }
     return free;
 }

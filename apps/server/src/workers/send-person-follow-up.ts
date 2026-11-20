@@ -1,6 +1,7 @@
 import type { WorkerTurnInput } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import type { ArtifactStorage } from '../artifacts/storage.ts';
 import { sendChatMessage } from '../chats/send-message.ts';
 import type { MessageRouter } from '../message-routing/jev.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -20,6 +21,7 @@ export async function sendPersonFollowUp(
     member: HausUser,
     input: { nonce: string; serverId: string; text: string; workerId: string },
     agentDelivery: AgentDelivery,
+    storage: ArtifactStorage | null,
     messageRouter?: MessageRouter
 ) {
     const viewer = { kind: 'user', userId: member.id } as const;
@@ -58,7 +60,7 @@ export async function sendPersonFollowUp(
                     nonce: null,
                     worker: requireOpenWorker(await lockWorker(tx, input.serverId, worker.id)),
                 });
-                const dispatched = await withDispatch(tx, input.serverId, {
+                const dispatched = await withDispatch(tx, storage, input.serverId, {
                     events: [],
                     frames: queued.frames,
                     wakes: [],

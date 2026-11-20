@@ -27,6 +27,7 @@ export const computersTable = pgTable(
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         credentialHash: text('credential_hash').notNull(),
         connectionGeneration: text('connection_generation'),
+        disconnectedAt: timestamp('disconnected_at', { withTimezone: true }),
         health: text('health').notNull().default('offline').$type<ComputerHealth>(),
         id: text('id').primaryKey(),
         lastConnectedAt: timestamp('last_connected_at', { withTimezone: true }),

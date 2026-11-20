@@ -66,12 +66,14 @@ export const projectListSchema = z.array(projectSchema);
  * - `PROJECT_HAS_AGENTS`: archiving or deleting a Project that is still some
  *   Agent's home; move them first.
  * - `PROJECT_NAME_FIXED`: renaming the Haus project's channel, which is always `haus`.
+ * - `WORKER_PLACE_OFF`: a Computer default place whose "Workers can run here" switch is off.
  */
 export const projectErrorCodeSchema = z.enum([
     'PROJECT_HAS_AGENTS',
     'PROJECT_KEY_FIXED',
     'PROJECT_NAME_FIXED',
     'TASK_KEY_TAKEN',
+    'WORKER_PLACE_OFF',
 ]);
 
 export type ProjectErrorCode = z.infer<typeof projectErrorCodeSchema>;

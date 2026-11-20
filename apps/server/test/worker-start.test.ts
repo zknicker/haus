@@ -77,7 +77,7 @@ test('a start records the Worker and its brief, posts no Message, and dispatches
     });
     const handle = await agentHandle(board.seed.agentId);
     expect(frame?.frame.type === 'worker-turn-start' && frame.frame.input).toBe(
-        `${workerInstructions(board.task.key)}\n\n## Brief from @${handle}\n\nMake it deterministic.`
+        `${workerInstructions({ agentHandle: handle ?? '', place: 'cloud', taskKey: board.task.key })}\n\n## Brief from @${handle}\n\nMake it deterministic.`
     );
     expect(started.effects.events.map((event) => event.delivery.event)).toEqual([
         {
@@ -90,7 +90,7 @@ test('a start records the Worker and its brief, posts no Message, and dispatches
 });
 
 test('the Haus Worker instructions name the Task trailer and the final lines, within their cap', () => {
-    const text = workerInstructions('ENG-41');
+    const text = workerInstructions({ agentHandle: 'forge', place: 'cloud', taskKey: 'ENG-41' });
     expect(text.length).toBeLessThanOrEqual(workerInstructionsMaxLength);
     expect(text).toContain('`Haus-Task: ENG-41`');
     expect(text).toContain('Haus-Outcome: done, needs-you, or failed');

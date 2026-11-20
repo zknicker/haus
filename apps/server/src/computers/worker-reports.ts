@@ -5,6 +5,7 @@ import {
     workerTurnAcceptedFrameSchema,
 } from '@haus/api';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { applyWorkerObservation } from '../workers/apply-worker-observation.ts';
@@ -24,6 +25,7 @@ export async function ingestWorkerReport(input: {
     connections: ComputerConnections;
     delivery: AgentDelivery;
     postCommitWork: ServerPostCommitWork;
+    storage: ArtifactStorage | null;
 }): Promise<boolean> {
     const capability = cloudAgentCapabilityResultSchema.safeParse(input.frame);
     if (capability.success) {
@@ -50,10 +52,11 @@ export async function reconnectWorkerCarrier(
         connections: ComputerConnections;
         delivery: AgentDelivery;
         postCommitWork: ServerPostCommitWork;
+        storage: ArtifactStorage | null;
     },
     computer: { id: string; serverId: string }
 ) {
-    const effects = await planCarrierReconnect(db, computer);
+    const effects = await planCarrierReconnect(db, computer, sinks.storage);
     await commitWorkerEffects(effects, {
         agentDelivery: sinks.delivery,
         connections: sinks.connections,
@@ -67,23 +70,33 @@ async function applyCarrierFrame(input: {
     delivery: AgentDelivery;
     frame: unknown;
     serverId: string;
+    storage: ArtifactStorage | null;
 }) {
-    const { computerId, db, serverId } = input;
+    const { computerId, db, serverId, storage } = input;
     const observation = workerObservationFrameSchema.safeParse(input.frame);
     if (observation.success) {
         return await applyWorkerObservation(
             db,
             { computerId, observation: observation.data.observation, serverId },
-            input.delivery
+            input.delivery,
+            storage
         );
     }
     const accepted = workerTurnAcceptedFrameSchema.safeParse(input.frame);
     if (accepted.success) {
-        return await acceptWorkerTurn(db, { computerId, serverId, turnId: accepted.data.turnId });
+        return await acceptWorkerTurn(
+            db,
+            { computerId, serverId, turnId: accepted.data.turnId },
+            storage
+        );
     }
     const drained = workerFollowUpDrainFrameSchema.safeParse(input.frame);
     if (drained.success) {
-        return await drainWorkerFollowUp(db, { computerId, frame: drained.data, serverId });
+        return await drainWorkerFollowUp(
+            db,
+            { computerId, frame: drained.data, serverId },
+            storage
+        );
     }
     return undefined;
 }

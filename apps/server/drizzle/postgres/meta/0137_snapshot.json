@@ -3984,6 +3984,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "author_worker_id": {
+          "name": "author_worker_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -4111,6 +4117,21 @@
           "columnsTo": [
             "server_id",
             "user_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "artifact_revisions_author_worker_fk": {
+          "name": "artifact_revisions_author_worker_fk",
+          "tableFrom": "artifact_revisions",
+          "tableTo": "workers",
+          "columnsFrom": [
+            "server_id",
+            "author_worker_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
@@ -6783,6 +6804,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "worker_md_revision_id": {
+          "name": "worker_md_revision_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -8117,6 +8144,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": false
+        },
+        "disconnected_at": {
+          "name": "disconnected_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {

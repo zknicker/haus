@@ -11,6 +11,7 @@ import {
 } from '@haus/api';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable, tasksTable, workerTurnsTable, workersTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
@@ -36,7 +37,8 @@ type SettledStatus = Exclude<WorkerTurnStatus, 'queued' | 'running'>;
 export async function applyWorkerObservation(
     db: HausDatabase,
     input: { computerId: string; observation: WorkerObservation; serverId: string },
-    agentDelivery: AgentDelivery
+    agentDelivery: AgentDelivery,
+    storage: ArtifactStorage | null
 ): Promise<WorkerEffects | null> {
     const { observation } = input;
     return await db.transaction(async (tx) => {
@@ -140,7 +142,10 @@ export async function applyWorkerObservation(
                 effects.wakes.push(queued);
             }
         }
-        return await withDispatch(tx, input.serverId, { ...effects, workerIds: [worker.id] });
+        return await withDispatch(tx, storage, input.serverId, {
+            ...effects,
+            workerIds: [worker.id],
+        });
     });
 }
 
