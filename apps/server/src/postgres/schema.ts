@@ -20,6 +20,7 @@ export * from './schema/agents.ts';
 export * from './schema/artifacts.ts';
 export * from './schema/attachments.ts';
 export * from './schema/avatars.ts';
+export * from './schema/boot-steps.ts';
 export * from './schema/channel-agent-participants.ts';
 export * from './schema/chat-messages.ts';
 export * from './schema/chat-reads.ts';

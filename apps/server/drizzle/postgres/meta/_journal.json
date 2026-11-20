@@ -1009,6 +1009,13 @@
       "when": 1795208784226,
       "tag": "0143_agent-managed-skills",
       "breakpoints": true
+    },
+    {
+      "idx": 144,
+      "version": "7",
+      "when": 1795213140531,
+      "tag": "0144_agents-move-to-runner",
+      "breakpoints": true
     }
   ]
 }

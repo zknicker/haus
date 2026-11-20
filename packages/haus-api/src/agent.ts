@@ -260,6 +260,7 @@ export const agentSessionRotationReasonSchema = z.enum([
     'configuration',
     'full',
     'recovery',
+    'runner',
     'session',
 ]);
 

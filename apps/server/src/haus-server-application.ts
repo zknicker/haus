@@ -4,6 +4,7 @@ import { Exit, Scope } from 'effect';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { AgentDelivery } from './agent-delivery/delivery.ts';
 import { agentLoopWiring } from './agent-delivery/loop-host.ts';
+import { moveAgentsToRunner } from './agent-delivery/runner-cutover.ts';
 import { openInvocationRouter } from './agent-invocations/invocation-router.ts';
 import { openArtifactStorage } from './artifacts/startup.ts';
 import { openAttachmentRoot } from './attachments/attachment-root.ts';
@@ -87,6 +88,7 @@ export async function createHausServerApplication(
         await purgeDeletedChannels(connectedHaus.db, attachmentRoot);
         await purgeDeletedServers(connectedHaus.db, attachmentRoot, artifactStorage);
         await markAllComputersOffline(connectedHaus.db);
+        await moveAgentsToRunner(connectedHaus.db);
         const cloudflareAdmissions = createCloudflareAdmissions(options.cloudflareAccess);
         const hausSessions = createHausSessions(connectedHaus.db);
         const sessionConnections = new SessionConnections();
