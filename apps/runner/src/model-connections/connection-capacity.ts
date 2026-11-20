@@ -10,6 +10,14 @@ import type { RunnerLink } from '../run-context.ts';
 import type { ConnectionBook } from './connection-book.ts';
 
 export const capacityReadEveryMs = 15 * 60 * 1000;
+const accessFailureGapMs = 60 * 1000;
+
+type Trigger = 'access-failure' | 'sweep';
+
+const readGapMs: Record<Trigger, number> = {
+    'access-failure': accessFailureGapMs,
+    sweep: capacityReadEveryMs,
+};
 
 export interface CapacityUsageUrls {
     readonly chatgpt?: string;
@@ -27,6 +35,7 @@ export function createCapacityReader(input: {
 }) {
     const now = input.now ?? (() => new Date());
     const lastRead = new Map<string, { at: number; credentialVersion: number }>();
+    const reading = new Set<string>();
     const queues = new Map<ModelProvider, Promise<void>>();
 
     const readOne = async (connectionId: string) => {
@@ -49,33 +58,41 @@ export function createCapacityReader(input: {
                 `Runner could not read capacity for ${connectionId}: ${error instanceof Error ? error.message : String(error)}`
             );
         }
-    };
-
-    const enqueue = (connection: RunnerModelConnection) => {
-        lastRead.set(connection.id, {
+        lastRead.set(connectionId, {
             at: now().getTime(),
             credentialVersion: connection.credentialVersion,
         });
-        const read = (queues.get(connection.provider) ?? Promise.resolve()).then(() =>
-            readOne(connection.id)
-        );
+    };
+
+    const enqueue = (connection: RunnerModelConnection) => {
+        reading.add(connection.id);
+        const read = (queues.get(connection.provider) ?? Promise.resolve())
+            .then(() => readOne(connection.id))
+            .then(() => {
+                reading.delete(connection.id);
+            });
         queues.set(connection.provider, read);
         return read;
     };
 
-    const due = (connection: RunnerModelConnection, at: number) => {
+    const due = (connection: RunnerModelConnection, trigger: Trigger, at: number) => {
+        if (reading.has(connection.id)) {
+            return false;
+        }
         const last = lastRead.get(connection.id);
         return (
             !last ||
             last.credentialVersion !== connection.credentialVersion ||
-            at - last.at >= capacityReadEveryMs
+            at - last.at >= readGapMs[trigger]
         );
     };
 
     return {
         afterAccessFailure(connectionId: string) {
             const connection = input.book.get(connectionId);
-            return connection && readsCapacity(connection)
+            return connection &&
+                readsCapacity(connection) &&
+                due(connection, 'access-failure', now().getTime())
                 ? enqueue(connection)
                 : Promise.resolve();
         },
@@ -88,7 +105,9 @@ export function createCapacityReader(input: {
                 }
             }
             const at = now().getTime();
-            await Promise.all(listed.filter((connection) => due(connection, at)).map(enqueue));
+            await Promise.all(
+                listed.filter((connection) => due(connection, 'sweep', at)).map(enqueue)
+            );
         },
     };
 }

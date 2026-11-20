@@ -137,9 +137,10 @@ connection, or with one the runner doesn't hold, fails before any model call as 
 The runner reads each plan connection's capacity and sends it up as `runner-connection-capacity
 { connectionId, windows, readAt }`. Settings → Models shows it on the connection's row.
 
-- **When.** A sweep every minute reads each plan connection whose last read is 15 minutes old, or
-  whose `credentialVersion` changed since. A turn that marks the connection `failed` reads it right
-  away. Reads run one connection at a time per provider.
+- **When.** A sweep every minute reads each plan connection whose last read finished 15 minutes
+  ago, or whose `credentialVersion` changed since. A turn that marks the connection `failed` reads
+  it right away when its last read finished at least a minute ago. Reads run one connection at a
+  time per provider, and a connection already queued or in flight is never queued again.
 - **Readers.**
   - ChatGPT plans: ChatGPT's `wham/usage` endpoint with the connection's access token and account
     id, through `@haus/codex-usage`. An expired access token is not refreshed for a read; the next
