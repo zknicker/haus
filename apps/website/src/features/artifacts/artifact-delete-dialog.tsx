@@ -1,3 +1,4 @@
+import { driveDeletedRetentionDays } from '@haus/api';
 import { AlertDialog, Button } from '@heroui/react';
 import { useArtifactDelete } from '../../hooks/artifacts/use-artifact-delete.ts';
 
@@ -46,7 +47,10 @@ export function ArtifactDeleteDialog({
                         <AlertDialog.Heading>Delete “{target?.filename}”?</AlertDialog.Heading>
                     </AlertDialog.Header>
                     <AlertDialog.Body>
-                        <p>Every revision and its links stop working for everyone right away.</p>
+                        <p>
+                            Its links stop working until someone restores it from Recently deleted,
+                            within {driveDeletedRetentionDays} days.
+                        </p>
                         {remove.error ? (
                             <p className="text-danger" role="alert">
                                 {remove.error}

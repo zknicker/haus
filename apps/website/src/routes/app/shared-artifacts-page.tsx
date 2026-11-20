@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { useParams } from 'react-router-dom';
+import { driveRootLabel } from '../../features/artifacts/drive-places.ts';
 import { useServerContext } from '../../features/servers/server-context.ts';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
 import { parseArtifactPageKey } from './desktop-page-paths.ts';
@@ -16,7 +17,7 @@ const WorkspaceArtifact = lazy(async () => ({
 }));
 
 /**
- * `artifacts` is Files, the shared library; `artifacts/<id>` one shared file. A
+ * `artifacts` is Drive, the shared library; `artifacts/<id>` one shared file. A
  * workspace target key (`workspaceFile:<agent>:<path>`) is a desktop artifact
  * page from an Agent's workspace instead.
  */
@@ -24,7 +25,7 @@ export function SharedArtifactsPage() {
     const { server } = useServerContext();
     const { artifactKey } = useParams();
     const workspacePage = artifactKey ? parseArtifactPageKey(artifactKey) !== null : false;
-    useWindowTitle(workspacePage ? 'Workspace' : 'Files');
+    useWindowTitle(workspacePage ? 'Workspace' : driveRootLabel);
     if (workspacePage) {
         return (
             <Suspense fallback={null}>
@@ -33,7 +34,7 @@ export function SharedArtifactsPage() {
         );
     }
     return (
-        <section aria-label="Files" className="flex min-h-0 flex-1 flex-col">
+        <section aria-label={driveRootLabel} className="flex min-h-0 flex-1 flex-col">
             <Suspense fallback={null}>
                 {artifactKey ? (
                     <ArtifactViewer

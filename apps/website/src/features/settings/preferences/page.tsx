@@ -5,7 +5,7 @@ import { HausVersionSummary } from '../../updates/haus-version-summary.tsx';
 import { useHausUpdate } from '../../updates/use-haus-update.ts';
 import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
-import { NotificationsSection } from './notifications-section.tsx';
+import { LinksSection } from './links-section.tsx';
 import { WindowLayoutRow } from './window-layout-row.tsx';
 
 export function PreferencesSettings() {
@@ -15,7 +15,7 @@ export function PreferencesSettings() {
             <SettingsPageHeader title="Preferences" />
             <WindowLayoutRow />
             <ChatSection />
-            <NotificationsSection />
+            <LinksSection />
             <HausVersionSummary view={update.view} />
         </SettingsPageColumn>
     );

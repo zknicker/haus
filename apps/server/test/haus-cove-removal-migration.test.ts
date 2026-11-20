@@ -11,7 +11,7 @@ import { startEmptyDatabase } from './postgres-cluster.ts';
 
 const computerId = `cmp_${'c'.repeat(16)}`;
 
-test('0139 keeps an existing Cove and its history as ordinary records', async () => {
+test('0138 keeps an existing Cove and its history as ordinary records', async () => {
     const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), 'haus-cove-removal-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
@@ -24,13 +24,13 @@ test('0139 keeps an existing Cove and its history as ordinary records', async ()
                 ...journal,
                 entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= idx),
             });
-        await writeFile(journalPath, through(138));
+        await writeFile(journalPath, through(137));
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
         await seedOnboardedServer(database);
 
-        await writeFile(journalPath, through(139));
+        await writeFile(journalPath, through(138));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
-            '0139_remove-cove-onboarding',
+            '0138_remove-cove-onboarding',
         ]);
 
         expect(await database`SELECT id, handle, display_name, description FROM agents`).toEqual([

@@ -9,7 +9,7 @@ test('website update reloads the same route only after drafts are cleared', asyn
     );
     await createTestServer(page, { displayName: 'Website Update', slug: 'website-update' });
     await openChannel(page, 'haus');
-    const composer = page.getByRole('textbox', { name: 'Message all' });
+    const composer = page.getByRole('textbox', { name: 'Message haus' });
     await composer.fill('Keep this draft');
     const reload = page.getByRole('button', {
         name: 'Update available. Reload Haus.',
@@ -40,7 +40,7 @@ test('a failed check stays quiet and a later deployed build becomes reloadable',
     await page.route('**/haus-app-build.json', (route) => route.fulfill({ status: 503 }));
     await createTestServer(page, { displayName: 'Website Check', slug: 'website-check' });
     await openChannel(page, 'haus');
-    await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Message haus' })).toBeVisible();
     const reload = page.getByRole('button', {
         name: 'Update available. Reload Haus.',
         exact: true,

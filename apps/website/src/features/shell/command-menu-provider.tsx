@@ -7,6 +7,7 @@ import {
     useMemo,
     useState,
 } from 'react';
+import { isCommandMenuKey } from './command-menu-key.ts';
 
 interface CommandMenuValue {
     close: () => void;
@@ -51,7 +52,7 @@ export function CommandMenuProvider({ children }: PropsWithChildren) {
 
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key.toLowerCase() === 'k' && (event.metaKey || event.ctrlKey)) {
+            if (isCommandMenuKey(event)) {
                 event.preventDefault();
                 setOpen(!isOpen);
             }

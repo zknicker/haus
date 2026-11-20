@@ -9,6 +9,7 @@ import {
     githubTriggerProfiles,
     placementJudge,
     placementProfiles,
+    ruleFileProfiles,
 } from './profiles.mjs';
 
 const placementScenarios = [
@@ -64,6 +65,14 @@ export const evals = {
         scenarios: ['memory-feedback-implicit', 'memory-feedback-control'],
         summary:
             'Feedback in passing becomes a Standing Preference that survives a session reset; no feedback, no rule change.',
+    },
+    // Each scenario reads its fresh Agent's Drive area on the Server.
+    rules: {
+        judge: null,
+        profiles: ruleFileProfiles,
+        scenarios: ['rule-files-worker', 'rule-files-agent', 'rule-files-fact'],
+        summary:
+            'A "from now on" rule lands in WORKER.md or AGENTS.md by its audience, never MEMORY.md, while a plain fact still lands in MEMORY.md.',
     },
     // Work that leaves the chat: Workers, MCP connections, Triggers, and Files.
     tools: {

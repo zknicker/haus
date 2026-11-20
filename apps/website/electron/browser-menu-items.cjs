@@ -6,19 +6,31 @@
  */
 function tabMenuItems(run) {
     return [
-        { accelerator: 'CmdOrCtrl+T', click: () => run('new-tab'), label: 'New Tab' },
+        {
+            accelerator: 'CmdOrCtrl+T',
+            click: () => run('new-tab'),
+            id: 'new-tab',
+            label: 'New Tab',
+        },
         {
             accelerator: 'CmdOrCtrl+Shift+T',
             click: () => run('reopen-tab'),
+            id: 'reopen-tab',
             label: 'Reopen Closed Tab',
         },
         { type: 'separator' },
         // Not role: 'close' — the renderer closes an open workspace tab first
         // and only falls back to closing the window.
-        { accelerator: 'CmdOrCtrl+W', click: () => run('close-tab'), label: 'Close' },
+        {
+            accelerator: 'CmdOrCtrl+W',
+            click: () => run('close-tab'),
+            id: 'close-tab',
+            label: 'Close',
+        },
         {
             accelerator: 'CmdOrCtrl+Shift+W',
             click: () => run('close-window'),
+            id: 'close-window',
             label: 'Close Window',
         },
     ];
@@ -38,15 +50,30 @@ function windowMenu(platform = process.platform) {
 /** Zoom the selected browser page, or the App when none is selected. */
 function zoomMenuItems(run) {
     return [
-        { accelerator: 'CmdOrCtrl+0', click: () => run('zoom-reset'), label: 'Actual Size' },
-        { accelerator: 'CmdOrCtrl+=', click: () => run('zoom-in'), label: 'Zoom In' },
+        {
+            accelerator: 'CmdOrCtrl+0',
+            click: () => run('zoom-reset'),
+            id: 'zoom-reset',
+            label: 'Actual Size',
+        },
+        {
+            accelerator: 'CmdOrCtrl+=',
+            click: () => run('zoom-in'),
+            id: 'zoom-in',
+            label: 'Zoom In',
+        },
         {
             accelerator: 'CmdOrCtrl+Plus',
             click: () => run('zoom-in'),
             label: 'Zoom In',
             visible: false,
         },
-        { accelerator: 'CmdOrCtrl+-', click: () => run('zoom-out'), label: 'Zoom Out' },
+        {
+            accelerator: 'CmdOrCtrl+-',
+            click: () => run('zoom-out'),
+            id: 'zoom-out',
+            label: 'Zoom Out',
+        },
     ];
 }
 
