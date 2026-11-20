@@ -2,19 +2,20 @@ import { type RunnerUpFrame, runnerUpFrameSchema } from '@haus/api';
 import { eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { settleHostedTurn } from '../agent-delivery/settle-turn.ts';
+import type { InvocationRouter } from '../agent-invocations/invocation-router.ts';
 import { ingestAgentRunFrame } from '../computers/ingest-agent-run-frame.ts';
 import { ingestExecutionJournalUpload } from '../computers/ingest-execution-journal.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
 import type { AgentThoughts } from '../server-agents/agent-thought.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
-import { routeAgentInvocation } from './invocations.ts';
 import type { RunnerLink } from './runner-link.ts';
 
 export interface RunnerIngest {
     db: HausDatabase;
     delivery: AgentDelivery;
     hostsLoops: boolean;
+    invocations: InvocationRouter;
     link: RunnerLink;
     postCommitWork: ServerPostCommitWork;
     thoughts: AgentThoughts;
@@ -33,13 +34,15 @@ export async function ingestRunnerFrame(ingest: RunnerIngest, raw: string) {
     }
     switch (frame.type) {
         case 'runner-hello':
+            return;
         case 'invocation-cancel':
+            ingest.invocations.cancel(frame);
             return;
         case 'runner-inventory':
             ingest.link.recordInventory(frame);
             return;
         case 'invocation-request':
-            ingest.link.send(routeAgentInvocation(frame));
+            await ingest.invocations.request(frame);
             return;
         default:
             if (ingest.hostsLoops) {
