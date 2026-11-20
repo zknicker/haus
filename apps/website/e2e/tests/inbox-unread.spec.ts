@@ -137,7 +137,7 @@ test('Unread is a feed of open cards: one selected, moved by keys and pressing, 
     await page.goto('/s/inbox-triage/inbox');
     const channelRow = page.getByRole('article', { exact: true, name: '#haus' });
     const taskRow = page.getByRole('article', { exact: true, name: `${key} Fix the flaky deploy` });
-    const channelComposer = channelRow.getByRole('textbox', { name: 'Message all' });
+    const channelComposer = channelRow.getByRole('textbox', { name: 'Message haus' });
     const taskComposer = taskRow.getByRole('textbox', {
         name: `Message ${key} Fix the flaky deploy`,
     });
