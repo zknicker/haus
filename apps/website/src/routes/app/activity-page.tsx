@@ -28,11 +28,9 @@ export function ActivityPage() {
             </PageBand>
             <div className="@container min-h-0 flex-1 overflow-y-auto pb-16 [scrollbar-gutter:stable]">
                 {capyShell ? (
-                    <div className="px-3 pt-3 pb-2">
-                        <React.Suspense fallback={null}>
-                            <CaptainActivityStrip />
-                        </React.Suspense>
-                    </div>
+                    <React.Suspense fallback={null}>
+                        <CaptainActivityStrip className="px-3 pt-3 pb-2" />
+                    </React.Suspense>
                 ) : null}
                 <React.Suspense fallback={<div aria-busy="true" className="min-h-0 flex-1" />}>
                     <ActivityPageContent />

@@ -15,30 +15,33 @@ import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.t
 import { useAgentAppearances } from '../../hooks/members/use-agents.ts';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.ts';
+import { hausTrpc } from '../../lib/haus-server.tsx';
+import { queryPolicy } from '../../lib/query-policy.ts';
 import { preloadServerSection } from '../../routes/app/server-route-modules.ts';
 import { activityRoute, tasksRoute } from '../servers/server-routes.ts';
 
 export function CapyFooterSections({ serverId, slug }: { serverId: string; slug: string }) {
+    const preloadActivity = usePreloadActivity(serverId);
     return (
         <nav aria-label="Sections" className="flex items-center">
             <FooterLink
                 href={tasksRoute(slug)}
                 icon={CheckListIcon}
                 label="Tasks"
-                section="tasks"
+                onPreload={preloadTasks}
             />
             <FooterLink
                 href={`/s/${slug}/artifacts`}
                 icon={Folder01Icon}
                 label="Drive"
-                section="artifacts"
+                onPreload={preloadDrive}
             />
             <AutomationsMenu serverId={serverId} />
             <FooterLink
                 href={activityRoute(slug)}
                 icon={Activity03Icon}
                 label="Activity"
-                section="activity"
+                onPreload={preloadActivity}
             />
         </nav>
     );
@@ -90,15 +93,14 @@ function FooterLink({
     href,
     icon,
     label,
-    section,
+    onPreload: preload,
 }: {
     href: string;
     icon: IconSvgElement;
     label: string;
-    section: 'activity' | 'artifacts' | 'tasks';
+    onPreload: () => void;
 }) {
     const { pathname } = useLocation();
-    const preload = React.useCallback(() => preloadServerSection(section), [section]);
     const pressRef = usePressNavigationWith(useSidebarNavigate(), href, preload);
     return (
         <Tooltip>
@@ -118,4 +120,21 @@ function FooterLink({
             <Tooltip.Content>{label}</Tooltip.Content>
         </Tooltip>
     );
+}
+
+function usePreloadActivity(serverId: string) {
+    const utils = hausTrpc.useUtils();
+    return React.useCallback(() => {
+        preloadServerSection('activity');
+        preloadServerSection('inbox');
+        void utils.stats.live.prefetch({ serverId }, queryPolicy.syncedSnapshot);
+    }, [serverId, utils]);
+}
+
+function preloadTasks() {
+    preloadServerSection('tasks');
+}
+
+function preloadDrive() {
+    preloadServerSection('artifacts');
 }
