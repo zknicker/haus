@@ -21,7 +21,7 @@ export function homeState<Project extends { id: string }, Captain>({
     projects,
 }: {
     captains: readonly Captain[] | undefined;
-    deviceCount: number | undefined;
+    deviceCount: number | null | undefined;
     lastChatId: string | null;
     projects: readonly Project[] | undefined;
 }) {
@@ -33,7 +33,7 @@ export function homeState<Project extends { id: string }, Captain>({
         return {
             kind: 'first-run',
             needsCaptain: captains.length === 0,
-            needsDevice: captains.length === 0 && deviceCount === 0,
+            needsDevice: captains.length === 0 && (deviceCount ?? 0) === 0,
             needsProject: projects.length === 0,
         } satisfies HomeState<Project, Captain>;
     }

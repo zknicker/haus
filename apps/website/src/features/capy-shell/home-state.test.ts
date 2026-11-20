@@ -136,3 +136,20 @@ test('Projects alone missing offers Create a project to everyone', () => {
         title: 'Create your first project',
     });
 });
+
+test('a Member, who cannot list devices, still gets Home and the first run', () => {
+    expect(homeState({ captains: [], deviceCount: null, lastChatId: null, projects: [] })).toEqual({
+        kind: 'first-run',
+        needsCaptain: true,
+        needsDevice: true,
+        needsProject: true,
+    });
+    expect(
+        homeState({
+            captains: [captain],
+            deviceCount: null,
+            lastChatId: null,
+            projects: [project('eng')],
+        }).kind
+    ).toBe('ready');
+});
