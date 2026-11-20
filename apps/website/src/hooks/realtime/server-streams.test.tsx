@@ -12,6 +12,7 @@ import { useComputerUpdateStream } from './use-computer-update-stream.ts';
 import { useInvitationUpdateStream } from './use-invitation-update-stream.ts';
 import { useMcpUpdateStream } from './use-mcp-update-stream.ts';
 import { useMemberUpdateStream } from './use-member-update-stream.ts';
+import { useProjectUpdateStream } from './use-project-update-stream.ts';
 import { useReminderStream } from './use-reminder-stream.ts';
 import { useServerUpdateStream } from './use-server-update-stream.ts';
 
@@ -194,6 +195,16 @@ describe('Server-level stream hooks', () => {
             { serverId }
         );
         expect(onEvent).toEqual([read('invitation.list', { serverId })]);
+        expect(onRecovery).toEqual(onEvent);
+    });
+
+    test('project.onUpdated refreshes the Project list and nothing else', async () => {
+        const { onEvent, onRecovery } = await drive(
+            'project.onUpdated',
+            () => useProjectUpdateStream(serverId),
+            { projectId: 'cht_ops', serverId }
+        );
+        expect(onEvent).toEqual([read('project.list', { serverId })]);
         expect(onRecovery).toEqual(onEvent);
     });
 
