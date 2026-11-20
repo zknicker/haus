@@ -5,11 +5,6 @@ import { agentCreationFixture } from './agent-creation-fixture.ts';
 const fixture = agentCreationFixture();
 
 test('a persisted review command survives concurrency, Server restart, correction, and opt-out', async () => {
-    await fixture.harness.sql`
-        insert into channel_agent_participants (server_id,chat_id,agent_id)
-        values (${fixture.serverId},${fixture.channelId},${fixture.coveAgentId})
-        on conflict do nothing
-    `;
     const anchor = await fixture.owner.trpc.chat.send.mutate({
         chatId: fixture.channelId,
         content: 'Review #product daily, quietly. Raise only new actionable findings.',
@@ -159,8 +154,9 @@ test('timezone capability discovery does not inspect inaccessible historical rem
         undefined,
         false
     );
-    await fixture.harness
-        .sql`delete from channel_agent_participants where chat_id=${fixture.channelId} and agent_id=${fixture.coveAgentId}`;
+    await fixture.harness.sql`
+        update chats set deleted_at = now(), deleted_by_user_id = ${fixture.ownerUserId}
+        where id = ${fixture.channelId}`;
     try {
         const options = { headers: { authorization: `Bearer ${runner.token}` } };
         // One inaccessible reminder never fails the list; a still-scheduled one stays, marked.
@@ -176,7 +172,8 @@ test('timezone capability discovery does not inspect inaccessible historical rem
         expect(capabilities.status).toBe(200);
         expect(await capabilities.json()).toEqual({ supportsReminderTimezone: true });
     } finally {
-        await fixture.harness
-            .sql`insert into channel_agent_participants(server_id,chat_id,agent_id) values (${fixture.serverId},${fixture.channelId},${fixture.coveAgentId}) on conflict do nothing`;
+        await fixture.harness.sql`
+            update chats set deleted_at = null, deleted_by_user_id = null
+            where id = ${fixture.channelId}`;
     }
 });

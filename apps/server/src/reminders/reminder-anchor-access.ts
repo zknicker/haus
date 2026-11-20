@@ -1,10 +1,6 @@
 import { and, eq, or, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    channelAgentParticipantsTable,
-    chatMessagesTable,
-    chatsTable,
-} from '../postgres/schema.ts';
+import { chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 
 export class ReminderAnchorAccessError extends Error {
     constructor(message: string) {
@@ -59,26 +55,8 @@ async function readAgentAnchorAccess(db: Pick<HausDatabase, 'select'>, input: Ag
     if (!anchor) {
         return { kind: 'missing' as const };
     }
-    if (anchor.chatKind === 'task') {
-        return { kind: 'ok' as const, anchor };
-    }
-    if (anchor.chatKind === 'dm') {
-        return anchor.dmAgentId === input.agentId
-            ? { kind: 'ok' as const, anchor }
-            : { kind: 'denied' as const };
-    }
-    const [access] = await db
-        .select({ agentId: channelAgentParticipantsTable.agentId })
-        .from(channelAgentParticipantsTable)
-        .where(
-            and(
-                eq(channelAgentParticipantsTable.serverId, input.serverId),
-                eq(channelAgentParticipantsTable.chatId, input.anchorChatId),
-                eq(channelAgentParticipantsTable.agentId, input.agentId)
-            )
-        )
-        .limit(1);
-    if (!access) {
+    // Projects are open, so only a deleted Chat or another Agent's DM is out of reach.
+    if (anchor.deletedAt || (anchor.chatKind === 'dm' && anchor.dmAgentId !== input.agentId)) {
         return { kind: 'denied' as const };
     }
     return { kind: 'ok' as const, anchor };
@@ -91,6 +69,7 @@ async function readMessageAnchor(
     const [anchor] = await db
         .select({
             chatKind: chatsTable.kind,
+            deletedAt: chatsTable.deletedAt,
             dmAgentId: chatsTable.dmAgentId,
             messageId: chatMessagesTable.id,
         })
@@ -127,6 +106,7 @@ async function readChatAnchor(
     const [anchor] = await db
         .select({
             chatKind: chatsTable.kind,
+            deletedAt: chatsTable.deletedAt,
             dmAgentId: chatsTable.dmAgentId,
             messageId: chatsTable.id,
         })

@@ -4,12 +4,7 @@ import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import { sendChatMessage } from '../src/chats/send-message.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
-import {
-    agentsTable,
-    channelAgentParticipantsTable,
-    channelParticipantsTable,
-    usersTable,
-} from '../src/postgres/schema.ts';
+import { agentsTable, channelParticipantsTable, usersTable } from '../src/postgres/schema.ts';
 import type { HausUser } from '../src/users/haus-user.ts';
 import {
     type BackgroundClaim,
@@ -98,11 +93,6 @@ test(
 /** A Channel both the human and the Agent belong to, the shape a send reads. */
 async function seedChannelParticipants(): Promise<BackgroundClaim> {
     const claim = await seedBackgroundClaim(connection.db);
-    await connection.db.insert(channelAgentParticipantsTable).values({
-        agentId: claim.agentId,
-        chatId: claim.chatId,
-        serverId: claim.serverId,
-    });
     await connection.db.insert(channelParticipantsTable).values({
         chatId: claim.chatId,
         serverId: claim.serverId,

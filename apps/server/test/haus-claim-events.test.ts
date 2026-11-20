@@ -30,7 +30,7 @@ test('App status and assignment changes of a top-level claim name its Channel', 
         slug: 'claim-events',
     });
     const chatId = server.channels[0].id;
-    const agentId = await addChannelAgent(server.id, chatId);
+    const agentId = await addChannelAgent(server.id);
     const created = await owner.trpc.claim.create.mutate({
         chatId,
         content: 'Name the right Chat',
@@ -80,7 +80,7 @@ test('App status and assignment changes of a top-level claim name its Channel', 
     delivered.stop();
 });
 
-async function addChannelAgent(serverId: string, chatId: string) {
+async function addChannelAgent(serverId: string) {
     const computerId = `cmp_${randomBytes(12).toString('base64url')}`;
     const agentId = `agt_${randomBytes(12).toString('base64url')}`;
     const [{ id: attachedByUserId }] = (await harness.sql`
@@ -96,10 +96,6 @@ async function addChannelAgent(serverId: string, chatId: string) {
             desired_model_id, desired_runtime_id, home_timezone, home_project_id)
         values (${agentId}, ${serverId}, ${computerId}, 'ada', 'Ada',
             'fake-model', 'fake', 'UTC', (select id from chats where server_id = ${serverId} and is_all))
-    `;
-    await harness.sql`
-        insert into channel_agent_participants (server_id, chat_id, agent_id)
-        values (${serverId}, ${chatId}, ${agentId})
     `;
     return agentId;
 }

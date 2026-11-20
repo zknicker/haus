@@ -53,7 +53,7 @@ const directoryQuerySchema = z.object({
     agents: z.coerce.boolean().default(false),
     channels: z.coerce.boolean().default(false),
     humans: z.coerce.boolean().default(false),
-    joined: z.coerce.boolean().default(false),
+    home: z.coerce.boolean().default(false),
     limit: z.coerce.number().int().min(1).max(100).default(50),
     offset: z.coerce.number().int().min(0).max(10_000).default(0),
     query: z.string().trim().min(1).max(200).optional(),

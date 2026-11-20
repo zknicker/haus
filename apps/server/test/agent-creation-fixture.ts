@@ -86,7 +86,7 @@ export function agentCreationFixture(
         peerAgentId = await createAgent('Peer', 'peer');
         coveAgentId = await seedCove();
         channelId = (
-            await createTestProject(harness, owner, {
+            await createTestProject(owner, {
                 agentIds: [orbitAgentId],
                 name: 'product',
                 serverId,

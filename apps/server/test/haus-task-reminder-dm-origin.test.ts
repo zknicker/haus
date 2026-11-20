@@ -39,6 +39,14 @@ beforeAll(async () => {
         serverId,
     });
     await bea.trpc.invitation.accept.mutate({ token });
+    const [haus] = (await fixture.harness.sql`
+        select id from chats where server_id = ${serverId} and is_all
+    `) as { id: string }[];
+    await owner.trpc.agent.setHome.mutate({
+        agentId: fixture.orbitAgentId,
+        projectId: haus?.id ?? '',
+        serverId,
+    });
     const dm = await owner.trpc.chat.send.mutate({
         agentId: fixture.orbitAgentId,
         content: dmSecret,

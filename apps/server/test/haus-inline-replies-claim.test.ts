@@ -14,9 +14,10 @@ test('inline reply claims stay isolated and nonce retries keep ancestry', async 
         fixture.peerAgentId,
         fixture.channelId
     );
-    await fixture.post('/api/agent/channels/add', orbit, {
-        agent: '@peer',
-        target: '#product',
+    await fixture.owner.trpc.agent.setHome.mutate({
+        agentId: fixture.peerAgentId,
+        projectId: fixture.channelId,
+        serverId: fixture.serverId,
     });
 
     const raceRoot = await fixture.owner.trpc.chat.send.mutate({
@@ -179,7 +180,7 @@ test('inline reply claims stay isolated and nonce retries keep ancestry', async 
             .map((agentId) => ({ agentId, followed: false }))
     );
 
-    const otherChannel = await createTestProject(fixture.harness, fixture.owner, {
+    const otherChannel = await createTestProject(fixture.owner, {
         agentIds: [fixture.orbitAgentId],
         name: 'inline-other',
         serverId: fixture.serverId,

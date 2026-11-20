@@ -39,10 +39,6 @@ beforeAll(async () => {
         insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
         values (${agentId}, ${serverId}, 'reminder-cove', 'Cove', 'America/New_York', (select id from chats where server_id = ${serverId} and is_all))
     `;
-    await harness.sql`
-        insert into channel_agent_participants (server_id, chat_id, agent_id)
-        values (${serverId}, ${chatId}, ${agentId})
-    `;
     admin = await addHuman('user_reminder_api_admin', 'admin');
     member = await addHuman('user_reminder_api_member', 'member');
     outsider = await signIn('user_reminder_api_outsider');

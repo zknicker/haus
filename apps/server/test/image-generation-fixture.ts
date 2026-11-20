@@ -114,7 +114,7 @@ export function imageGenerationFixture() {
             })
         ).agent.id;
         channelId = (
-            await createTestProject(harness, owner, {
+            await createTestProject(owner, {
                 agentIds: [orbitAgentId],
                 name: 'art',
                 serverId,

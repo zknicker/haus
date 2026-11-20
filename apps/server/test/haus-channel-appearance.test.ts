@@ -60,7 +60,7 @@ afterAll(async () => {
 });
 
 test('a created channel keeps its appearance across list and get', async () => {
-    const channel = await createTestProject(harness, owner, {
+    const channel = await createTestProject(owner, {
         agentIds: [agentId],
         color: 'violet',
         icon: 'RocketIcon',
@@ -82,7 +82,7 @@ test('a created channel keeps its appearance across list and get', async () => {
 
 test('a channel created without appearance reports null for both', async () => {
     await expect(
-        createTestProject(harness, owner, {
+        createTestProject(owner, {
             agentIds: [agentId],
             name: 'appearance-default',
             serverId,
@@ -91,7 +91,7 @@ test('a channel created without appearance reports null for both', async () => {
 });
 
 test('updating sets, preserves, and clears channel appearance', async () => {
-    const channel = await createTestProject(harness, owner, {
+    const channel = await createTestProject(owner, {
         agentIds: [agentId],
         name: 'appearance-update',
         serverId,
@@ -125,7 +125,7 @@ test('updating sets, preserves, and clears channel appearance', async () => {
 });
 
 test('an appearance-only change emits one lifecycle update and one Project update', async () => {
-    const channel = await createTestProject(harness, owner, {
+    const channel = await createTestProject(owner, {
         agentIds: [agentId],
         name: 'appearance-events',
         serverId,

@@ -3,63 +3,23 @@ import { deleteQueuedOrdinaryItems } from '../agent-delivery/store.ts';
 import { openAgentChatRead } from '../agent-reads/agent-chat-reads.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentChannelMutesTable, agentTaskFollowsTable, chatsTable } from '../postgres/schema.ts';
+import { agentsTable, agentTaskFollowsTable, chatsTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { AgentTargetError, resolveAgentTarget } from './resolve-target.ts';
-
-export async function changeAgentChannelMute(
-    db: HausDatabase,
-    runner: ResolvedRunner,
-    target: string,
-    muted: boolean
-) {
-    const chatId = await resolveAgentTarget(db, runner, target);
-    const [channel] = await db
-        .select({ kind: chatsTable.kind, name: chatsTable.name })
-        .from(chatsTable)
-        .where(
-            and(
-                eq(chatsTable.serverId, runner.serverId),
-                eq(chatsTable.id, chatId),
-                eq(chatsTable.kind, 'channel')
-            )
-        )
-        .limit(1);
-    if (!channel?.name) {
-        throw new AgentTargetError('Channel mutes require a joined channel.');
-    }
-    await db.transaction(async (tx) => {
-        await lockServerRow(tx, runner.serverId);
-        if (muted) {
-            await tx
-                .insert(agentChannelMutesTable)
-                .values({ agentId: runner.agentId, chatId, serverId: runner.serverId })
-                .onConflictDoNothing();
-            await deleteQueuedOrdinaryItems(tx, {
-                agentId: runner.agentId,
-                chatIds: [chatId],
-                serverId: runner.serverId,
-            });
-        } else {
-            await tx
-                .delete(agentChannelMutesTable)
-                .where(
-                    and(
-                        eq(agentChannelMutesTable.serverId, runner.serverId),
-                        eq(agentChannelMutesTable.agentId, runner.agentId),
-                        eq(agentChannelMutesTable.chatId, chatId)
-                    )
-                );
-        }
-    });
-    return { muted, target: `#${channel.name}` };
-}
 
 export async function unfollowAgentTask(db: HausDatabase, runner: ResolvedRunner, target: string) {
     const taskChatId = await resolveAgentTarget(db, runner, target);
     const [task] = await db
-        .select({ kind: chatsTable.kind })
+        .select({ home: agentsTable.id })
         .from(chatsTable)
+        .leftJoin(
+            agentsTable,
+            and(
+                eq(agentsTable.serverId, chatsTable.serverId),
+                eq(agentsTable.id, runner.agentId),
+                eq(agentsTable.homeProjectId, chatsTable.parentChatId)
+            )
+        )
         .where(
             and(
                 eq(chatsTable.serverId, runner.serverId),
@@ -90,11 +50,14 @@ export async function unfollowAgentTask(db: HausDatabase, runner: ResolvedRunner
                     agentTaskFollowsTable.taskChatId,
                 ],
             });
-        await deleteQueuedOrdinaryItems(tx, {
-            agentId: runner.agentId,
-            chatIds: [taskChatId],
-            serverId: runner.serverId,
-        });
+        // A home Task is heard whatever the follow says, so its queue stays.
+        if (!task.home) {
+            await deleteQueuedOrdinaryItems(tx, {
+                agentId: runner.agentId,
+                chatIds: [taskChatId],
+                serverId: runner.serverId,
+            });
+        }
     });
     return { target, unfollowed: true };
 }

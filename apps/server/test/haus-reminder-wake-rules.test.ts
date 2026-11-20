@@ -6,7 +6,6 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import {
     agentInboxTable,
     agentsTable,
-    channelAgentParticipantsTable,
     chatMessagesTable,
     chatsTable,
     computersTable,
@@ -277,7 +276,6 @@ async function seedWakeRuleReminder(
         sequence: 1,
         serverId,
     });
-    await haus.db.insert(channelAgentParticipantsTable).values({ agentId, chatId, serverId });
     await haus.db.insert(remindersTable).values({
         anchorChatId: chatId,
         anchorMessageId,

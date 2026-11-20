@@ -1,9 +1,8 @@
-import { and, asc, desc, eq, inArray, isNull, lte } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, lte, or } from 'drizzle-orm';
 import { mentionedAgentIds } from '../chats/reply-subscriptions.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
-    channelAgentParticipantsTable,
     channelParticipantsTable,
     chatMessagesTable,
     serverMembershipsTable,
@@ -11,7 +10,17 @@ import {
 } from '../postgres/schema.ts';
 import type { RoutingState } from './jev.ts';
 
-export async function readRoutingAgents(db: HausDatabase, serverId: string, chatId: string) {
+/**
+ * The Agents Jev sees in a Project's channel: its home Agents, the only ones a
+ * judgment may narrow (ADR 0030), plus any Agent the message @mentions, who
+ * receives it whatever Jev decides.
+ */
+export async function readRoutingAgents(
+    db: HausDatabase,
+    serverId: string,
+    chatId: string,
+    mentionedAgentIds: readonly string[] = []
+) {
     return await db
         .select({
             id: agentsTable.id,
@@ -19,19 +28,17 @@ export async function readRoutingAgents(db: HausDatabase, serverId: string, chat
             name: agentsTable.displayName,
             description: agentsTable.description,
         })
-        .from(channelAgentParticipantsTable)
-        .innerJoin(
-            agentsTable,
-            and(
-                eq(agentsTable.serverId, channelAgentParticipantsTable.serverId),
-                eq(agentsTable.id, channelAgentParticipantsTable.agentId)
-            )
-        )
+        .from(agentsTable)
         .where(
             and(
-                eq(channelAgentParticipantsTable.serverId, serverId),
-                eq(channelAgentParticipantsTable.chatId, chatId),
-                isNull(agentsTable.retiredAt)
+                eq(agentsTable.serverId, serverId),
+                isNull(agentsTable.retiredAt),
+                or(
+                    eq(agentsTable.homeProjectId, chatId),
+                    mentionedAgentIds.length > 0
+                        ? inArray(agentsTable.id, [...mentionedAgentIds])
+                        : undefined
+                )
             )
         )
         .orderBy(asc(agentsTable.id))

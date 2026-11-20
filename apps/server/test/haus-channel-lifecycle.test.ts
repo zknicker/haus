@@ -13,7 +13,6 @@ let owner: HausClient;
 let member: HausClient;
 let serverId: string;
 let allChatId: string;
-let agentId: string;
 const runtime = makeTestRuntime();
 
 beforeAll(async () => {
@@ -54,7 +53,7 @@ beforeAll(async () => {
             'healthy'
         )
     `;
-    const created = await owner.trpc.agent.create.mutate({
+    await owner.trpc.agent.create.mutate({
         computerId: 'cmp_lifecycle0000000',
         displayName: 'Sage',
         handle: 'sage',
@@ -62,7 +61,6 @@ beforeAll(async () => {
         runtimeId: 'codex',
         serverId,
     });
-    agentId = created.agent.id;
 });
 
 afterAll(async () => {
@@ -232,7 +230,7 @@ test('deletes the channel aggregate and announces its deletion', async () => {
 });
 
 async function createChannel(name: string) {
-    return await createTestProject(harness, owner, { agentIds: [agentId], name, serverId });
+    return await createTestProject(owner, { agentIds: [], name, serverId });
 }
 
 async function pendingWorkCount(chatId: string) {

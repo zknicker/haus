@@ -17,10 +17,6 @@ beforeAll(async () => {
         })
     ).agent.id;
     await fixture.harness.sql`
-        insert into channel_agent_participants (server_id, chat_id, agent_id)
-        values (${fixture.serverId}, ${fixture.channelId}, ${forgeAgentId})
-    `;
-    await fixture.harness.sql`
         insert into agent_task_follows (server_id, agent_id, task_chat_id, task_chat_kind)
         values (${fixture.serverId}, ${forgeAgentId}, ${fixture.task.chatId}, 'task')
     `;

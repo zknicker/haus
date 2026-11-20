@@ -29,7 +29,7 @@ test('a ready generated image loads exactly where its generation is visible', as
         })
     ).agent.id;
     const sharedId = (
-        await createTestProject(harness, owner, {
+        await createTestProject(owner, {
             agentIds: [orbitAgentId, novaAgentId],
             name: 'shared',
             serverId,

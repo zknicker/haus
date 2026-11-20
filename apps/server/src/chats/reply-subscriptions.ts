@@ -1,10 +1,10 @@
 import { parseAgentReferenceTarget, parseHausRichReferences } from '@haus/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
+import { listHearingCandidates } from '../agent-delivery/hearing.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentMessageFollowsTable,
     agentsTable,
-    channelAgentParticipantsTable,
     chatMessagesTable,
     chatsTable,
 } from '../postgres/schema.ts';
@@ -216,23 +216,7 @@ export async function listEligibleAgents(
     if (chat.kind !== 'channel') {
         return [];
     }
-    return await db
-        .select({ handle: agentsTable.handle, id: agentsTable.id })
-        .from(channelAgentParticipantsTable)
-        .innerJoin(
-            agentsTable,
-            and(
-                eq(agentsTable.serverId, channelAgentParticipantsTable.serverId),
-                eq(agentsTable.id, channelAgentParticipantsTable.agentId)
-            )
-        )
-        .where(
-            and(
-                eq(channelAgentParticipantsTable.serverId, input.serverId),
-                eq(channelAgentParticipantsTable.chatId, input.chatId),
-                isNull(agentsTable.retiredAt)
-            )
-        );
+    return await listHearingCandidates(db, input.serverId);
 }
 
 export function mentionedAgentIds(

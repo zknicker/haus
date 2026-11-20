@@ -1,12 +1,15 @@
 import type { AgentCreated, AvatarMediaType, CreateAgentInput } from '@haus/api';
 import { enqueueAgentGreeting } from '../agent-delivery/greeting.ts';
 import { type AvatarBytes, createAvatarId, readAvatarBytes } from '../avatars/avatar-bytes.ts';
-import { findAllChannel, joinChannelAgents } from '../chats/channel-agent-membership.ts';
-import { prepareLifecycleEvent } from '../chats/lifecycle-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, avatarsTable } from '../postgres/schema.ts';
+import {
+    homeChangeEvents,
+    openAgentHomeReads,
+    requireHomeProject,
+} from '../projects/agent-home.ts';
 import { requireHausProjectId } from '../projects/haus-project.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { participantHandleConstraint } from '../servers/participant-handles.ts';
@@ -25,8 +28,8 @@ import { toAgent } from './agent-shape.ts';
 export type AgentCreator = { agentId: string; kind: 'agent' } | { kind: 'human'; user: HausUser };
 
 export interface CreatedAgentFromApp extends AgentCreated {
-    /** The `#haus` membership change, for the App's channel member lists. */
-    event: PreparedRealtimeEvent | null;
+    /** The home Project's change, for the App's Project and channel reads. */
+    events: PreparedRealtimeEvent[];
 }
 
 /** Creates one Agent; its per-human DMs remain implicit until first use. */
@@ -38,6 +41,12 @@ export async function createAgent(
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const creator = await requireAgentCreationAuthority(tx, member, input.serverId);
+        if (input.homeProjectId) {
+            await requireHomeProject(tx, creator, {
+                projectId: input.homeProjectId,
+                serverId: input.serverId,
+            });
+        }
         const avatar = input.avatar
             ? {
                   ...readAvatarBytes(input.avatar.bytesBase64, input.avatar.mediaType),
@@ -52,12 +61,7 @@ export async function createAgent(
         );
         return {
             agent: created.agent,
-            event: created.allChannelId
-                ? prepareLifecycleEvent(
-                      { chatId: created.allChannelId, serverId: input.serverId },
-                      'updated'
-                  )
-                : null,
+            events: homeChangeEvents(input.serverId, [created.homeProjectId]),
         };
     });
 }
@@ -71,7 +75,7 @@ export async function createAgentInTransaction(
         creationRequest?: { hash: string; nonce: string };
     },
     avatar: (AvatarBytes & { mediaType: AvatarMediaType }) | null
-): Promise<AgentCreated & { allChannelId: string | null }> {
+): Promise<AgentCreated & { homeProjectId: string }> {
     const createdByAgentId = creator.kind === 'agent' ? creator.agentId : null;
     const createdByUserId = creator.kind === 'human' ? creator.user.id : null;
 
@@ -93,6 +97,8 @@ export async function createAgentInTransaction(
     }
 
     const agentId = createOpaqueId('agt');
+    const hausProjectId = await requireHausProjectId(db, input.serverId);
+    const homeProjectId = input.homeProjectId ?? hausProjectId;
     try {
         await db.insert(agentsTable).values({
             avatarId,
@@ -108,7 +114,7 @@ export async function createAgentInTransaction(
             desiredRuntimeId: input.runtimeId,
             displayName: input.displayName,
             handle: input.handle,
-            homeProjectId: await requireHausProjectId(db, input.serverId),
+            homeProjectId,
             homeTimezone: 'UTC',
             id: agentId,
             serverId: input.serverId,
@@ -124,27 +130,17 @@ export async function createAgentInTransaction(
         throw cause;
     }
 
-    // Every Agent belongs to `#haus`, whoever made it. The Server owns that
-    // guarantee here, at the one seam both creation paths share, rather than in
-    // the App dialog and the Agent route separately.
-    const allChannel = await findAllChannel(db, input.serverId);
-    if (allChannel) {
-        await joinChannelAgents(db, {
-            agentIds: [agentId],
-            chatId: allChannel.id,
-            serverId: input.serverId,
-        });
-        // The new Agent introduces itself once, as soon as it can run, rather
-        // than waiting for its first delivery. The caller dispatches after commit.
-        await enqueueAgentGreeting(db, {
-            agentId,
-            allChannelId: allChannel.id,
-            serverId: input.serverId,
-        });
-    }
+    await openAgentHomeReads(db, { agentId, projectId: homeProjectId, serverId: input.serverId });
+    // The new Agent introduces itself once in `#haus`, as soon as it can run,
+    // rather than waiting for its first delivery. The caller dispatches after commit.
+    await enqueueAgentGreeting(db, {
+        agentId,
+        allChannelId: hausProjectId,
+        serverId: input.serverId,
+    });
 
     return {
-        allChannelId: allChannel?.id ?? null,
+        homeProjectId,
         agent: toAgent({
             activeRunId: null,
             avatarId,

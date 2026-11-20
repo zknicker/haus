@@ -8,7 +8,6 @@ import {
     agentDeliveryTable,
     agentsTable,
     avatarsTable,
-    channelAgentParticipantsTable,
     chatsTable,
     serverMembershipsTable,
     serverOnboardingTable,
@@ -97,11 +96,6 @@ export async function ensureDevelopmentCove(
             serverId: input.serverId,
         });
         await tx.insert(agentDeliveryTable).values({ agentId, serverId: input.serverId });
-        await tx.insert(channelAgentParticipantsTable).values({
-            agentId,
-            chatId: onboarding.channelId,
-            serverId: input.serverId,
-        });
         await tx
             .update(serverOnboardingTable)
             .set({

@@ -9,7 +9,6 @@ import {
     agentDeliveryTable,
     agentsTable,
     avatarsTable,
-    channelAgentParticipantsTable,
     serverMembershipsTable,
     serverOnboardingTable,
 } from '../postgres/schema.ts';
@@ -113,11 +112,6 @@ export async function createCove(
             serverId: input.serverId,
         });
         await tx.insert(agentDeliveryTable).values({ agentId, serverId: input.serverId });
-        await tx.insert(channelAgentParticipantsTable).values({
-            agentId,
-            chatId: onboarding.channelId,
-            serverId: input.serverId,
-        });
         await openAgentChatRead(tx, {
             agentId,
             chatId: onboarding.channelId,

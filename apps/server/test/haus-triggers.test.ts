@@ -44,7 +44,6 @@ beforeAll(async () => {
         serverId,
     });
     agentId = created.agent.id;
-    await joinChannel(agentId, channelId);
     anchorMessageId = await sendAnchor(
         channelId,
         'Wire the deploy webhook to me',
@@ -346,7 +345,7 @@ test('refuses a disabled trigger without recording a fire', async () => {
 
 test('disables a trigger whose anchor Chat can no longer be written', async () => {
     const stranding = { agentIds: [agentId], name: 'stranded', serverId };
-    const strandedChannel = await createTestProject(harness, owner, stranding);
+    const strandedChannel = await createTestProject(owner, stranding);
     const stranded = await sendAnchor(strandedChannel.id, 'Watch this', 'trigger_stranded_anchor');
     const created = await createTrigger('Stranded trigger', { messageId: stranded });
     const triggerId = created.body.trigger?.id ?? '';
@@ -440,14 +439,6 @@ async function agentRequest(method: 'GET' | 'POST', path: string, body?: unknown
 async function sendAnchor(chatId: string, content: string, nonce: string) {
     const sent = await owner.trpc.chat.send.mutate({ chatId, content, nonce, serverId });
     return sent.message.id;
-}
-
-async function joinChannel(joiningAgentId: string, chatId: string) {
-    await harness.sql`
-        insert into channel_agent_participants (server_id, chat_id, agent_id)
-        values (${serverId}, ${chatId}, ${joiningAgentId})
-        on conflict do nothing
-    `;
 }
 
 async function mintRunner(runId: string) {

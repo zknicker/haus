@@ -44,13 +44,6 @@ beforeAll(async () => {
     sageAgentId = await createAgent('Sage', 'sage');
     const peerAgentId = await createAgent('Peer', 'peer');
     doomedAgentId = await createAgent('Doomed', 'doomed');
-    for (const id of [sageAgentId, peerAgentId, doomedAgentId]) {
-        await harness.sql`
-            insert into channel_agent_participants (server_id, chat_id, agent_id)
-            values (${serverId}, ${channelId}, ${id})
-            on conflict do nothing
-        `;
-    }
     sageAnchorId = await sendAnchor('Wire the alert to Sage', 'trigger_api_anchor');
     sageToken = await mintRunner(sageAgentId, 'run_trigger_api_sage');
     peerToken = await mintRunner(peerAgentId, 'run_trigger_api_peer');
@@ -98,19 +91,26 @@ test('keeps every Agent to its own triggers', async () => {
 
 test('refuses an anchor the Agent cannot reach or write', async () => {
     const room = { agentIds: [doomedAgentId], name: 'private-room', serverId };
-    const privateChannel = await createTestProject(harness, owner, room);
-    const unreachable = await owner.trpc.chat.send.mutate({
-        chatId: privateChannel.id,
+    const privateChannel = await createTestProject(owner, room);
+    const otherDm = await owner.trpc.chat.send.mutate({
+        agentId: doomedAgentId,
         content: 'Not for Sage',
-        nonce: 'trigger_api_private',
+        nonce: 'trigger_api_private_dm',
         serverId,
+        targetKind: 'agent-dm',
     });
-
     const refused = await agentRequest(sageToken, 'POST', '/api/agent/triggers', {
-        messageId: unreachable.message.id,
+        messageId: otherDm.message.id,
         title: 'Reaching too far',
     });
     expect(refused.status).toBe(404);
+
+    const unreachable = await owner.trpc.chat.send.mutate({
+        chatId: privateChannel.id,
+        content: 'Archived soon',
+        nonce: 'trigger_api_private',
+        serverId,
+    });
 
     const archiver = await readUserId('user_trigger_api_owner');
     await harness.sql`

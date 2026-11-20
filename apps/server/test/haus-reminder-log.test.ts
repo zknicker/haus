@@ -4,7 +4,6 @@ import { readAgentReminderLog } from '../src/agent-api/reminders.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import {
     agentsTable,
-    channelAgentParticipantsTable,
     chatMessagesTable,
     chatsTable,
     reminderFiresTable,
@@ -78,7 +77,6 @@ test('bounds the fire history it reads to the retention window, by real time', a
         sequence: 1,
         serverId,
     });
-    await db.insert(channelAgentParticipantsTable).values({ agentId, chatId, serverId });
     await db.insert(remindersTable).values({
         anchorChatId: chatId,
         anchorMessageId: 'msg_log',
@@ -177,7 +175,6 @@ test('a script fire the Computer has not settled yet reads as "not reported", ne
         sequence: 1,
         serverId,
     });
-    await db.insert(channelAgentParticipantsTable).values({ agentId, chatId, serverId });
     await db.insert(remindersTable).values({
         anchorChatId: chatId,
         anchorMessageId: 'msg_log',

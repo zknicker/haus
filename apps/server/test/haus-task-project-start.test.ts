@@ -55,6 +55,11 @@ beforeAll(async () => {
         select id from chats where server_id = ${serverId} and is_all
     `) as { id: string }[];
     hausId = haus?.id ?? '';
+    await owner.trpc.agent.setHome.mutate({
+        agentId: fixture.orbitAgentId,
+        projectId: hausId,
+        serverId,
+    });
     opsId = (await owner.trpc.project.create.mutate({ key: 'OPS', name: 'ops', serverId })).chat.id;
 });
 

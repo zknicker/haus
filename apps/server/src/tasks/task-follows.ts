@@ -1,13 +1,12 @@
 import type { TaskActor } from '@haus/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
+import { listHearingCandidates } from '../agent-delivery/hearing.ts';
 import { openAgentChatRead } from '../agent-reads/agent-chat-reads.ts';
 import { visibleChats } from '../chats/chat-visibility.ts';
 import { mentionedAgentIds } from '../chats/reply-subscriptions.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
-    agentsTable,
     agentTaskFollowsTable,
-    channelAgentParticipantsTable,
     chatMessagesTable,
     chatsTable,
     serverMembershipsTable,
@@ -101,13 +100,7 @@ export async function seedTaskFollowers(
     }
     const originAgents =
         origin && input.origin
-            ? mentionedAgentIds(
-                  origin.content,
-                  await readChannelAgents(tx, {
-                      channelId: input.origin.chatId,
-                      serverId: input.serverId,
-                  })
-              )
+            ? mentionedAgentIds(origin.content, await listHearingCandidates(tx, input.serverId))
             : [];
     const agents = new Set([
         ...(origin?.authorAgentId ? [origin.authorAgentId] : []),
@@ -218,27 +211,4 @@ async function canSeeChannel(
         )
         .limit(1);
     return row !== undefined;
-}
-
-async function readChannelAgents(
-    db: Pick<HausDatabase, 'select'>,
-    input: { channelId: string; serverId: string }
-) {
-    return await db
-        .select({ handle: agentsTable.handle, id: agentsTable.id })
-        .from(channelAgentParticipantsTable)
-        .innerJoin(
-            agentsTable,
-            and(
-                eq(agentsTable.serverId, channelAgentParticipantsTable.serverId),
-                eq(agentsTable.id, channelAgentParticipantsTable.agentId)
-            )
-        )
-        .where(
-            and(
-                eq(channelAgentParticipantsTable.serverId, input.serverId),
-                eq(channelAgentParticipantsTable.chatId, input.channelId),
-                isNull(agentsTable.retiredAt)
-            )
-        );
 }

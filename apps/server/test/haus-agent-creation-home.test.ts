@@ -4,68 +4,69 @@ import { createTestProject } from './project.fixture.ts';
 
 const fixture = agentCreationFixture();
 
-test('a created Agent lands in #haus plus every channel the request named', async () => {
-    const runner = await fixture.mintRunner('run_create_channels');
+test('a created Agent lives in the Project its request names', async () => {
+    const runner = await fixture.mintRunner('run_create_home');
+    const product = await readProjectKey(fixture.channelId);
 
     const created = await fixture.postCreate(
         runner,
         fixture.createBody({
-            channels: ['#product'],
             displayName: 'Compass',
-            nonce: 'create-channels',
+            nonce: 'create-home',
+            project: product.toLowerCase(),
         })
     );
 
     expect(created.status).toBe(200);
-    // `#haus` first, because that membership is the Server's own guarantee.
-    expect(created.body.channels).toEqual(['#haus', '#product']);
-    expect(await readChannelNames(created.body.agent?.agentId ?? '')).toEqual(['haus', 'product']);
+    expect(created.body.project).toBe(product);
+    expect(await readHome(created.body.agent?.agentId ?? '')).toBe(fixture.channelId);
 });
 
-test('an Agent created with no --channel still belongs to #haus', async () => {
-    const runner = await fixture.mintRunner('run_create_all_only');
+test('an Agent created with no --project is a generalist in the Haus project', async () => {
+    const runner = await fixture.mintRunner('run_create_generalist');
 
     const created = await fixture.postCreate(
         runner,
-        fixture.createBody({ displayName: 'Lantern', nonce: 'create-all-only' })
+        fixture.createBody({ displayName: 'Lantern', nonce: 'create-generalist' })
     );
 
     expect(created.status).toBe(200);
-    expect(created.body.channels).toEqual(['#haus']);
+    expect(created.body.project).toBe('GEN');
+    expect(await readHome(created.body.agent?.agentId ?? '')).toBe(await readHausProjectId());
 });
 
-test('a human-created Agent joins #haus through the same seam', async () => {
+test('a human-created Agent is a generalist unless the dialog names a home', async () => {
     const agentId = await fixture.createAgent('Ledger', 'ledger');
 
-    expect(await readChannelNames(agentId)).toEqual(['haus']);
+    expect(await readHome(agentId)).toBe(await readHausProjectId());
 });
 
-test('a channel that does not exist refuses the whole creation before generation', async () => {
+test('a Project key that names nothing refuses the whole creation before generation', async () => {
     fixture.setAvatarMode('success');
-    const runner = await fixture.mintRunner('run_create_bad_channel');
+    const runner = await fixture.mintRunner('run_create_bad_home');
     const before = fixture.avatarRequests.length;
 
     const created = await fixture.postCreate(
         runner,
         fixture.createBody({
             avatarConcept: 'a paper lantern',
-            channels: ['#nowhere'],
             displayName: 'Drift',
-            nonce: 'create-bad-channel',
+            nonce: 'create-bad-home',
+            project: 'NOPE',
         })
     );
 
     expect(created.status).toBe(404);
     expect(created.body.code).toBe('INVALID_TARGET');
-    expect(created.body.message).toContain('#nowhere');
-    // Nothing was written and no generation was spent on a request that cannot land.
+    expect(created.body.message).toContain('NOPE');
     expect(fixture.avatarRequests.length).toBe(before);
     expect(await readAgentIdByHandle('drift')).toBeNull();
 });
 
-test('an archived channel is refused the same way', async () => {
-    const channel = await createTestProject(fixture.harness, fixture.owner, {
-        agentIds: [fixture.peerAgentId],
+test('an archived Project is refused the same way', async () => {
+    const channel = await createTestProject(fixture.owner, {
+        agentIds: [],
+        key: 'RET',
         name: 'retired-lane',
         serverId: fixture.serverId,
     });
@@ -73,14 +74,14 @@ test('an archived channel is refused the same way', async () => {
         chatId: channel.id,
         serverId: fixture.serverId,
     });
-    const runner = await fixture.mintRunner('run_create_archived_channel');
+    const runner = await fixture.mintRunner('run_create_archived_home');
 
     const created = await fixture.postCreate(
         runner,
         fixture.createBody({
-            channels: ['#retired-lane'],
             displayName: 'Anchor',
-            nonce: 'create-archived-channel',
+            nonce: 'create-archived-home',
+            project: 'RET',
         })
     );
 
@@ -105,7 +106,6 @@ test('the brief is stored on the Agent row, not sent as a Message', async () => 
     `) as { brief: string | null }[];
     expect(row.brief).toBe(brief);
 
-    // The brief is memory, not conversation; creation posts nothing.
     const page = await fixture.owner.trpc.chat.messages.query({
         chatId: fixture.channelId,
         limit: 50,
@@ -130,15 +130,31 @@ test('an Agent creation without a brief is rejected before creating a row', asyn
     expect(rows).toHaveLength(0);
 });
 
-async function readChannelNames(agentId: string) {
-    const rows = (await fixture.harness.sql`
-        select c.name
-        from channel_agent_participants p
-        join chats c on c.server_id = p.server_id and c.id = p.chat_id
-        where p.server_id = ${fixture.serverId} and p.agent_id = ${agentId}
-        order by c.name
-    `) as { name: string }[];
-    return rows.map((row) => row.name);
+async function readHome(agentId: string) {
+    const [row] = (await fixture.harness.sql`
+        select home_project_id from agents where id = ${agentId}
+    `) as { home_project_id: string }[];
+    return row?.home_project_id ?? null;
+}
+
+async function readHausProjectId() {
+    const [row] = (await fixture.harness.sql`
+        select id from chats where server_id = ${fixture.serverId} and is_all
+    `) as { id: string }[];
+    return row?.id ?? null;
+}
+
+async function readProjectKey(chatId: string) {
+    const [row] = (await fixture.harness.sql`
+        select task_keys.key from projects
+        join task_keys on task_keys.server_id = projects.server_id
+            and task_keys.id = projects.task_key_id
+        where projects.chat_id = ${chatId}
+    `) as { key: string }[];
+    if (!row) {
+        throw new Error(`Chat ${chatId} is not a Project.`);
+    }
+    return row.key;
 }
 
 async function readAgentIdByHandle(handle: string) {

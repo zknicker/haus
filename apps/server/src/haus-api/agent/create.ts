@@ -12,11 +12,8 @@ export const createAgentProcedure = memberProcedure
     .output(agentCreatedSchema)
     .mutation(async ({ ctx, input }) => {
         try {
-            const { event, ...created } = await createAgent(ctx.hausDb, ctx.member, input);
-            if (event) {
-                // The new Agent is in #haus now, so that channel's member list moved.
-                publishRealtime(event);
-            }
+            const { events, ...created } = await createAgent(ctx.hausDb, ctx.member, input);
+            publishRealtime(events);
             await ctx.agentDelivery.configureAgent({
                 agentDescription: created.agent.description,
                 agentId: created.agent.id,

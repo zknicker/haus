@@ -181,7 +181,7 @@ test('a second Agent links only work it can read through a Task or a link', asyn
         })
     ).agent.id;
     const roomId = (
-        await createTestProject(fixture.harness, fixture.owner, {
+        await createTestProject(fixture.owner, {
             agentIds: [novaId],
             name: 'nova-room',
             serverId: fixture.serverId,

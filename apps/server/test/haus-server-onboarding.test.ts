@@ -492,11 +492,10 @@ test('creates and applies one immutable Cove through a replayable Computer opera
     });
     expect(Buffer.from(agentRow?.bytes as Uint8Array).byteLength).toBe(1_459_587);
 
-    const [participant] = await harness.sql`
-        select agent_id from channel_agent_participants
-        where server_id = ${created.id} and chat_id = ${created.onboarding.channelId}
-    `;
-    expect(participant?.agent_id).toBe(first.agent.id);
+    const [home] = await harness.sql`
+        select (select id from chats where server_id = ${created.id} and is_all) = home_project_id
+        as haus from agents where id = ${first.agent.id}`;
+    expect(home?.haus).toBe(true);
     await expect(
         owner.trpc.agent.updateProfile.mutate({
             agentId: first.agent.id,

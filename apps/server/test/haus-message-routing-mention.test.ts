@@ -48,7 +48,7 @@ const mentionedOnly = async (): Promise<MentionScopeDecision> => ({
 
 beforeAll(async () => {
     channelId = (
-        await createTestProject(fixture.harness, fixture.owner, {
+        await createTestProject(fixture.owner, {
             agentIds: [fixture.orbitAgentId, fixture.peerAgentId, fixture.coveAgentId],
             name: 'mentions',
             serverId: fixture.serverId,

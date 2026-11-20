@@ -54,10 +54,6 @@ beforeAll(async () => {
             (${agentId}, ${serverId}, 'history-cove', 'Cove', 'America/New_York', (select id from chats where server_id = ${serverId} and is_all)),
             (${otherAgentId}, ${serverId}, 'history-moss', 'Moss', 'America/New_York', (select id from chats where server_id = ${serverId} and is_all))
     `;
-    await harness.sql`
-        insert into channel_agent_participants (server_id, chat_id, agent_id)
-        values (${serverId}, ${chatId}, ${agentId}), (${serverId}, ${chatId}, ${otherAgentId})
-    `;
 
     // Fires, in order: the other Agent's reminder, a plain one-shot, a script
     // reminder, then two wakes of one recurring reminder.
@@ -105,7 +101,7 @@ beforeAll(async () => {
 
     // The Agent answered the recurring reminder's first wake in another
     // Channel, so the entry's Chat can only come from the message row.
-    const otherChannel = await createTestProject(harness, owner, {
+    const otherChannel = await createTestProject(owner, {
         agentIds: [agentId],
         name: 'history-answers',
         serverId,

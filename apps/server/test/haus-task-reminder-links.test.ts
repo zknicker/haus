@@ -110,6 +110,12 @@ test('a Reminder in a Channel reaches its members, and leaves with a deleted Cha
     const input = { serverId, taskId: task.id };
     const read = await peer.trpc.task.get.query(input);
     expect(read.reminders.map((row) => row.reminderId)).toEqual([reminder.id]);
+    const [haus] = (await fixture.harness.sql`
+        select id from chats where server_id = ${serverId} and is_all
+    `) as { id: string }[];
+    for (const agentId of [orbitAgentId, fixture.scoutAgentId]) {
+        await owner.trpc.agent.setHome.mutate({ agentId, projectId: haus?.id ?? '', serverId });
+    }
 
     const events = await announced(() =>
         owner.trpc.chat.deleteChannel.mutate({ chatId: channelId, confirmation: name, serverId })

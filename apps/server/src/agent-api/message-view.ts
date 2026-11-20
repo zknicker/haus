@@ -219,17 +219,9 @@ export async function targetForChat(
 
 export function visibleChatSql(runner: Pick<ResolvedRunner, 'agentId' | 'serverId'>) {
     return sql`(
-        (${chatsTable.kind} = 'dm' and ${chatsTable.dmAgentId} = ${runner.agentId})
-        or (
-            ${chatsTable.kind} = 'channel'
-            and exists (
-                select 1 from channel_agent_participants cap
-                where cap.server_id = ${runner.serverId}
-                  and cap.chat_id = ${chatsTable.id}
-                  and cap.agent_id = ${runner.agentId}
-            )
-        )
-        or (${chatsTable.kind} = 'task' and ${chatsTable.serverId} = ${runner.serverId})
+        ${chatsTable.serverId} = ${runner.serverId}
+        and ${chatsTable.deletedAt} is null
+        and (${chatsTable.kind} <> 'dm' or ${chatsTable.dmAgentId} = ${runner.agentId})
     )`;
 }
 

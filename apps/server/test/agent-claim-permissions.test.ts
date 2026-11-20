@@ -132,15 +132,14 @@ test('an Agent cannot assign a person, and loses to a stale revision', async () 
     ).rejects.toThrow(/changed \(revision 2, expected 1\)/u);
 });
 
-test('missing, retired, and out-of-chat handles answer one uniform refusal', async () => {
+test('missing and retired handles answer one uniform refusal', async () => {
     const server = await createServer('assign-uniform');
     const ada = await seedAgent(server, 'ada');
-    await seedAgent(server, 'outsider', { joinChat: false });
     const retired = await seedAgent(server, 'gone');
     await harness.sql`update agents set retired_at = now() where id = ${retired.agentId}`;
     const claim = await createClaim(server, 'Nobody odd owns this');
 
-    for (const handle of ['@ghost', '@outsider', '@gone']) {
+    for (const handle of ['@ghost', '@gone']) {
         await expect(assign(ada, claim.number, handle)).rejects.toThrow(
             `${handle} is not assignable in this chat.`
         );
@@ -190,20 +189,13 @@ async function createClaim(server: { chatId: string; id: string }, content: stri
 
 async function seedAgent(
     server: { chatId: string; id: string; target: string },
-    handle: string,
-    options: { joinChat: boolean } = { joinChat: true }
+    handle: string
 ): Promise<ResolvedRunner> {
     const agentId = `agt_${handle}${server.id.slice(4, 12)}`;
     await harness.sql`
         insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
         values (${agentId}, ${server.id}, ${handle}, ${handle}, 'UTC', (select id from chats where server_id = ${server.id} and is_all))
     `;
-    if (options.joinChat) {
-        await harness.sql`
-            insert into channel_agent_participants (server_id, chat_id, agent_id)
-            values (${server.id}, ${server.chatId}, ${agentId})
-        `;
-    }
     return {
         agentId,
         capabilities: [],

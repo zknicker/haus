@@ -66,8 +66,8 @@ test('restores a pre-refusal onboarding channel tombstone instead of purging it'
 });
 
 test('deletes Triggers anchored in the channel aggregate with the channel', async () => {
-    const channel = await createTestProject(harness, owner, {
-        agentIds: [agentId],
+    const channel = await createTestProject(owner, {
+        agentIds: [],
         name: 'automations',
         serverId,
     });
@@ -95,8 +95,8 @@ test('deletes Triggers anchored in the channel aggregate with the channel', asyn
 });
 
 test('archiving then deleting a Project deletes its Tasks and their Chats; cloud work stays', async () => {
-    const channel = await createTestProject(harness, owner, {
-        agentIds: [agentId],
+    const channel = await createTestProject(owner, {
+        agentIds: [],
         name: 'tasks-go',
         serverId,
     });
@@ -186,12 +186,12 @@ test('archiving then deleting a Project deletes its Tasks and their Chats; cloud
 });
 
 test('purging a Project deletes a reminder anchored there from a Task in another Project', async () => {
-    const origin = await createTestProject(harness, owner, {
-        agentIds: [agentId],
+    const origin = await createTestProject(owner, {
+        agentIds: [],
         name: 'origin-goes',
         serverId,
     });
-    const home = await createTestProject(harness, owner, {
+    const home = await createTestProject(owner, {
         agentIds: [agentId],
         name: 'task-stays',
         serverId,
