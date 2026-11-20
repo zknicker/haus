@@ -39,6 +39,16 @@ describe('addDeviceStatus', () => {
         }
     });
 
+    test('keeps waiting while an attached device has never connected', () => {
+        expect(
+            addDeviceStatus(
+                known,
+                [device({ health: 'offline', lastConnectedAt: null })],
+                'haus-hq'
+            )
+        ).toEqual({ kind: 'waiting' });
+    });
+
     test('tells a disconnected device to run setup again for this Server', () => {
         expect(addDeviceStatus(known, [device({ health: 'offline' })], 'haus-hq')).toMatchObject({
             command: 'haus-computer setup /haus-hq',
@@ -77,6 +87,7 @@ function device(overrides: Partial<AddedDevice>) {
         health: 'healthy',
         id: 'cmp_new',
         inventoryInvalidAt: null,
+        lastConnectedAt: '2026-11-20T00:00:00Z',
         reportedInventory: inventory([{ id: 'gpt-5.6-terra' }]),
         ...overrides,
     } satisfies AddedDevice;

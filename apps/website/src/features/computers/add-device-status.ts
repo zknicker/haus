@@ -6,6 +6,7 @@ export interface AddedDevice {
     health: 'degraded' | 'healthy' | 'offline' | 'update-required';
     id: string;
     inventoryInvalidAt: string | Date | null;
+    lastConnectedAt: string | Date | null;
     reportedInventory: ComputerInventory | null;
 }
 
@@ -44,6 +45,9 @@ export function addDeviceStatus(
             message: 'This device sent a report Haus could not read. Update Haus Computer on it.',
             title: 'Update needed',
         } satisfies AddDeviceStatus;
+    }
+    if (device.health === 'offline' && !device.lastConnectedAt) {
+        return { kind: 'waiting' } satisfies AddDeviceStatus;
     }
     if (device.health === 'offline') {
         return {
