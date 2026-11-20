@@ -1,12 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 import type { ModelSignIn } from '@haus/api';
 import { getQueryKey } from '@trpc/react-query';
+import * as React from 'react';
 import { testConnection } from '../../features/settings/models/connections/model-connection.fixture.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { installRealtimeTestDom } from '../../test-support/realtime-stream-harness.tsx';
 import { createCallHarness, type RecordedCall } from '../../test-support/trpc-call-harness.tsx';
 import { useModelConnectionEdits } from './use-model-connections.ts';
-import { useCancelModelSignIn, useStartModelSignIn } from './use-model-sign-in.ts';
+import { useCancelModelSignIn, useModelSignIn, useStartModelSignIn } from './use-model-sign-in.ts';
 
 installRealtimeTestDom();
 
@@ -157,6 +158,38 @@ describe('device sign-in', () => {
             'query'
         );
         expect(harness.queryClient.getQueryData<ModelSignIn>(key)).toEqual(signIn);
+        await mounted.unmount();
+    });
+
+    test('a code the Server sent before the start answer still shows once the sign-in opens', async () => {
+        const code: ModelSignIn = {
+            ...signIn,
+            state: 'code',
+            userCode: 'ABCD-1234',
+            verificationUri: 'https://auth.openai.com/codex/device',
+        };
+        const { harness, hook, mounted } = await mountHook(
+            () => {
+                const [signInId, setSignInId] = React.useState<string | null>(null);
+                const start = useStartModelSignIn(serverId);
+                const read = useModelSignIn(serverId, signInId);
+                return { read, setSignInId, start };
+            },
+            (call) => (call.path === 'modelConnections.startSignIn' ? signIn : code)
+        );
+        await harness.act(async () => {
+            const started = await hook().start.mutateAsync({
+                label: 'ChatGPT plan',
+                provider: 'chatgpt',
+                serverId,
+            });
+            hook().setSignInId(started.signInId);
+        });
+        expect(harness.calls.map((call) => call.path)).toEqual([
+            'modelConnections.startSignIn',
+            'modelConnections.signIn',
+        ]);
+        expect(hook().read.data).toEqual(code);
         await mounted.unmount();
     });
 

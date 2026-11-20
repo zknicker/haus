@@ -12,7 +12,9 @@ export function useStartModelSignIn(serverId: string) {
     const utils = hausTrpc.useUtils();
     return hausTrpc.modelConnections.startSignIn.useMutation({
         onSuccess: (signIn) => {
-            utils.modelConnections.signIn.setData({ serverId, signInId: signIn.signInId }, signIn);
+            const target = { serverId, signInId: signIn.signInId };
+            utils.modelConnections.signIn.setData(target, signIn);
+            void utils.modelConnections.signIn.invalidate(target);
         },
     });
 }
