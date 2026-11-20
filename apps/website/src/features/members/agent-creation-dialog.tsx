@@ -10,6 +10,7 @@ import {
     type AgentCreationSubmitValues,
     type ReportedComputer,
 } from './agent-creation-form.tsx';
+import { homeProjectOptions } from './home-project-options.ts';
 
 interface AgentCreationDialogProps {
     error: { message: string } | null;
@@ -93,6 +94,9 @@ function ServerAgentCreationForm({
     if (projectList.isPending) {
         return <DialogSpinner />;
     }
+    if (projectList.error) {
+        return <ProjectListError message={projectList.error.message} />;
+    }
     const projects = homeProjectOptions(projectList.data ?? noProjects);
     return <AgentCreationForm agents={agents} projects={projects} {...props} />;
 }
@@ -107,10 +111,18 @@ function DialogSpinner() {
     );
 }
 
-function homeProjectOptions(projects: readonly Project[]) {
-    return projects
-        .filter((project) => !project.isHaus)
-        .map((project) => ({ id: project.chatId, label: `#${project.name}` }));
+function ProjectListError({ message }: { message: string }) {
+    return (
+        <Modal.Body>
+            <Alert status="danger">
+                <Alert.Indicator />
+                <Alert.Content>
+                    <Alert.Title>Projects could not load</Alert.Title>
+                    <Alert.Description>{message}</Alert.Description>
+                </Alert.Content>
+            </Alert>
+        </Modal.Body>
+    );
 }
 
 const noAgents: readonly Agent[] = [];

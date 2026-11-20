@@ -14,6 +14,7 @@ export const projectNameSchema = z
 
 export const projectSchema = z
     .object({
+        archived: z.boolean(),
         chatId: idSchema,
         /** The non-retired Agents whose home this Project is. */
         homeAgentIds: z.array(idSchema),
