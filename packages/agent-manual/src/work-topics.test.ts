@@ -95,6 +95,14 @@ test("a Worker starts on a Task at its Computer's default place or --on, and rep
     }
 });
 
+test('a Worker brief carries the WORKER.md rules Haus does not hand it yet', () => {
+    const topic = getManualTopic('workers');
+    expect(topic?.body).toContain(
+        '`drive/agents/<your handle>/WORKER.md` holds the rules every Worker of yours follows. Haus does not hand that file to a Worker yet, so the brief carries its rules'
+    );
+    expect(topic?.related).toContain('rules');
+});
+
 test('work split for other Agents is sibling Tasks; a claim stays inside the conversation', () => {
     const body = getManualTopic('claims')?.body ?? '';
     expect(body).toContain('genuinely new work inside a conversation');

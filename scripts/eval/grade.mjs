@@ -108,7 +108,14 @@ export function gradeScenario({ entry, evidence, profile, stamp }) {
         requestId: requestIds,
         taskChatIds: evidenceTaskChatIds(evidence),
     };
-    const authored = messages.filter((message) => isAgent(message) && !seeded(message));
+    // A profile can end the window where the scenario opens its own probe, which it judges itself.
+    const until = profile.until?.(messages, rootChatId) ?? null;
+    const authored = messages.filter(
+        (message) =>
+            isAgent(message) &&
+            !seeded(message) &&
+            (until === null || Date.parse(message.createdAt) < Date.parse(until))
+    );
     // A fire-answer profile grades from the first post the fire caused, not the human's anchor.
     const since = profile.since?.(authored) ?? wake.createdAt;
     const posts = authored

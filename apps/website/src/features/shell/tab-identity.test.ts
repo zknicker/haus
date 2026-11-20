@@ -132,7 +132,7 @@ test('sections wear their glyph; web pages prefer the live title and favicon', (
         place: null,
     });
     expect(resolveTabIdentity(parseTabPage(app('/s/acme/artifacts')), records)).toEqual({
-        label: 'Files',
+        label: 'Drive',
         mark: { glyph: 'artifacts', kind: 'glyph' },
         place: null,
     });

@@ -6,7 +6,12 @@ export const driveTopic: ManualNavigationTopic = {
     title: 'Drive',
     summary:
         'Where files live in Haus (workspace, conversation, Drive), how to edit Drive through your drive/ folder, resolve conflicts, cite a Drive file in a message, and read its revisions.',
-    related: ['attachment', 'haus-cli-overview', 'recipes/technique/html-artifact-discussion'],
+    related: [
+        'attachment',
+        'haus-cli-overview',
+        'recipes/technique/html-artifact-discussion',
+        'rules',
+    ],
     body: `# Drive
 
 ## Where files live
