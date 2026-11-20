@@ -1,24 +1,23 @@
 import type { ActiveWorker } from '@haus/api';
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, exists, inArray, isNull, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, workersTable, tasksTable } from '../postgres/schema.ts';
+import {
+    agentsTable,
+    chatsTable,
+    tasksTable,
+    workerTurnsTable,
+    workersTable,
+} from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { readTasks } from '../tasks/task-read.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import {
-    chooseWorkLocation,
-    conversationChatIdOf,
-    readVisibleWorkLinks,
-    type VisibleWorkLink,
-} from './active-worker-location.ts';
-import { readWorkDetails, toWorker } from './worker-shape.ts';
+import { readWorkerDetails, toWorker } from './worker-shape.ts';
 import { workerVisibleSql } from './worker-visibility.ts';
 
-/**
- * Every queued, running, or pending-input Worker the viewer can see, oldest first
- * (ADR 0044): visible when any link lives in a Chat the viewer can read.
- * `location` says where the row opens.
- */
+const placeChats = alias(chatsTable, 'place_chat');
+
+/** Every open Worker with a queued or working turn the viewer can see, oldest first. */
 export async function listActiveWorker(
     db: HausDatabase,
     member: HausUser | null,
@@ -28,9 +27,19 @@ export async function listActiveWorker(
     if (!member) {
         return [];
     }
-    // A retired Agent keeps its row, so its stored name still names its work.
     const rows = await db
-        .select({ agentName: agentsTable.displayName, work: workersTable })
+        .select({
+            agentName: agentsTable.displayName,
+            place: {
+                dmMemberOneUserId: placeChats.dmMemberOneUserId,
+                dmMemberTwoUserId: placeChats.dmMemberTwoUserId,
+                id: placeChats.id,
+                kind: placeChats.kind,
+                name: placeChats.name,
+            },
+            taskChatId: chatsTable.id,
+            worker: workersTable,
+        })
         .from(workersTable)
         .innerJoin(
             agentsTable,
@@ -39,71 +48,78 @@ export async function listActiveWorker(
                 eq(agentsTable.id, workersTable.agentId)
             )
         )
+        .innerJoin(
+            tasksTable,
+            and(
+                eq(tasksTable.serverId, workersTable.serverId),
+                eq(tasksTable.id, workersTable.taskId)
+            )
+        )
+        .innerJoin(
+            chatsTable,
+            and(eq(chatsTable.serverId, tasksTable.serverId), eq(chatsTable.id, tasksTable.chatId))
+        )
+        .innerJoin(
+            placeChats,
+            and(
+                eq(placeChats.serverId, chatsTable.serverId),
+                eq(placeChats.id, chatsTable.parentChatId)
+            )
+        )
         .where(
             and(
                 eq(workersTable.serverId, input.serverId),
-                inArray(workersTable.status, ['queued', 'running', 'pending_input']),
+                isNull(workersTable.closedAt),
+                exists(
+                    db
+                        .select({ one: sql`1` })
+                        .from(workerTurnsTable)
+                        .where(
+                            and(
+                                eq(workerTurnsTable.serverId, workersTable.serverId),
+                                eq(workerTurnsTable.workerId, workersTable.id),
+                                isNull(workerTurnsTable.outcome)
+                            )
+                        )
+                ),
                 workerVisibleSql(db, input.serverId, { kind: 'user', userId: member.id })
             )
         )
         .orderBy(asc(workersTable.createdAt), asc(workersTable.id));
-    const workerIds = rows.map((row) => row.work.id);
-    const links = await readVisibleWorkLinks(db, {
-        serverId: input.serverId,
-        userId: member.id,
-        workerIds,
-    });
-    const chosen = rows.flatMap(({ agentName, work }) => {
-        const location = chooseWorkLocation(
-            work.launchMessageId,
-            links.filter((link) => link.workerId === work.id)
-        );
-        return location ? [{ agentName, chosen: location, work }] : [];
-    });
-    const details = await readWorkDetails(db, input.serverId, workerIds);
-    const taskKeys = await readTaskKeys(db, {
-        serverId: input.serverId,
-        taskIds: chosen.flatMap(({ work }) => (work.taskId ? [work.taskId] : [])),
-    });
-    return chosen.map(({ agentName, chosen: { link, location }, work: row }) => {
-        const taskKey = row.taskId ? (taskKeys.get(row.taskId) ?? null) : null;
-        return {
-            ...conversationFacts(link, member.id),
-            agentName,
-            location,
-            taskId: taskKey ? row.taskId : null,
-            taskKey,
-            worker: toWorker(row, details.get(row.id)),
-        };
-    });
-}
-
-async function readTaskKeys(
-    db: HausDatabase,
-    input: { serverId: string; taskIds: string[] }
-): Promise<Map<string, string>> {
-    if (input.taskIds.length === 0) {
-        return new Map();
-    }
+    const details = await readWorkerDetails(
+        db,
+        input.serverId,
+        rows.map((row) => row.worker.id)
+    );
     const tasks = await readTasks(db, {
         serverId: input.serverId,
-        where: inArray(tasksTable.id, [...new Set(input.taskIds)]),
+        where: inArray(
+            tasksTable.id,
+            rows.flatMap((row) => (row.worker.taskId ? [row.worker.taskId] : []))
+        ),
     });
-    return new Map(tasks.map((task) => [task.id, task.key]));
-}
-
-function conversationFacts(link: VisibleWorkLink, viewerUserId: string) {
-    const inTask = link.chatKind === 'task';
-    const kind = inTask ? link.parentKind : link.chatKind;
-    if (kind !== 'channel' && kind !== 'dm') {
-        throw new Error(`Worker link ${link.messageId} is not in a Channel or DM.`);
-    }
-    const one = inTask ? link.parentDmMemberOneUserId : link.chatDmMemberOneUserId;
-    const two = inTask ? link.parentDmMemberTwoUserId : link.chatDmMemberTwoUserId;
-    return {
-        chatKind: kind,
-        chatName: inTask ? link.parentName : link.chatName,
-        chatPeerUserId: kind === 'dm' ? (one === viewerUserId ? two : one) : null,
-        conversationChatId: conversationChatIdOf(link),
-    };
+    const keyByTask = new Map(tasks.map((task) => [task.id, task.key]));
+    return rows.flatMap(({ agentName, place, taskChatId, worker }) => {
+        const taskKey = worker.taskId ? keyByTask.get(worker.taskId) : undefined;
+        if (!(worker.taskId && taskKey) || (place.kind !== 'channel' && place.kind !== 'dm')) {
+            return [];
+        }
+        const peer =
+            place.dmMemberOneUserId === member.id
+                ? place.dmMemberTwoUserId
+                : place.dmMemberOneUserId;
+        return [
+            {
+                agentName,
+                chatKind: place.kind,
+                chatName: place.name,
+                chatPeerUserId: place.kind === 'dm' ? peer : null,
+                conversationChatId: place.id,
+                location: { chatId: taskChatId, kind: 'task', taskId: worker.taskId },
+                taskId: worker.taskId,
+                taskKey,
+                worker: toWorker(worker, details.get(worker.id)),
+            } satisfies ActiveWorker,
+        ];
+    });
 }

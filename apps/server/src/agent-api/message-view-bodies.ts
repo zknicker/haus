@@ -46,11 +46,11 @@ function workerBody(work: Worker): MessageWorker {
                   summary: latest.summary,
               }
             : null,
-        provider: work.provider,
+        provider: work.place,
         provider_url: work.providerUrl,
         repository: work.repository,
         starting_ref: work.startingRef,
-        status: work.status,
+        status: latest?.status ?? 'queued',
         title: work.title,
     };
 }

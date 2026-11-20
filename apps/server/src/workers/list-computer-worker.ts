@@ -1,47 +1,63 @@
 import type { WorkerReconcileEntry } from '@haus/api';
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNotNull, isNull, or } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { workerTurnsTable, workersTable } from '../postgres/schema.ts';
 
-/**
- * Every non-terminal Run assigned to one Computer, including predecessors, and any
- * cancel request recorded while that Computer was offline. Reconnect pushes
- * this list down so the Computer reads each Run from the provider and reports
- * an observation: work that settled during the outage settles here too.
- */
+const carriedTurn = and(
+    eq(workerTurnsTable.serverId, workersTable.serverId),
+    eq(workerTurnsTable.workerId, workersTable.id)
+);
+
 export async function listComputerWorker(
     db: Pick<HausDatabase, 'select'>,
-    input: { computerId: string; serverId: string; workerId?: string }
+    input: { computerId: string; serverId: string }
 ): Promise<WorkerReconcileEntry[]> {
     const rows = await db
         .select({
-            cancelRequestedAt: workerTurnsTable.stopRequestedAt,
-            workerId: workersTable.id,
-            provider: workersTable.place,
+            place: workersTable.place,
             providerAgentId: workersTable.providerAgentId,
-            status: workerTurnsTable.status,
-            turnId: workerTurnsTable.id,
             providerRunId: workerTurnsTable.providerRunId,
+            status: workerTurnsTable.status,
+            stopRequestedAt: workerTurnsTable.stopRequestedAt,
+            turnId: workerTurnsTable.id,
+            workerId: workersTable.id,
         })
         .from(workersTable)
-        .innerJoin(
-            workerTurnsTable,
-            and(
-                eq(workerTurnsTable.serverId, workersTable.serverId),
-                eq(workerTurnsTable.workerId, workersTable.id)
-            )
-        )
+        .innerJoin(workerTurnsTable, carriedTurn)
         .where(
             and(
                 eq(workersTable.serverId, input.serverId),
                 eq(workersTable.carrierComputerId, input.computerId),
-                input.workerId ? eq(workersTable.id, input.workerId) : undefined,
-                inArray(workerTurnsTable.status, ['queued', 'running'])
+                inArray(workerTurnsTable.status, ['queued', 'running']),
+                or(
+                    isNotNull(workerTurnsTable.acknowledgedAt),
+                    and(isNull(workerTurnsTable.input), isNull(workerTurnsTable.outcome))
+                )
             )
         )
-        .orderBy(asc(workerTurnsTable.createdAt));
-    return rows.map(({ cancelRequestedAt, ...row }) => ({
+        .orderBy(asc(workerTurnsTable.createdAt), asc(workerTurnsTable.id));
+    return rows.map(({ stopRequestedAt, ...row }) => ({
         ...row,
-        cancelRequested: cancelRequestedAt !== null,
+        stopRequested: stopRequestedAt !== null,
     }));
+}
+
+export async function listUnacknowledgedTurns(
+    db: Pick<HausDatabase, 'select'>,
+    input: { computerId: string; serverId: string }
+) {
+    return await db
+        .select({ turn: workerTurnsTable, worker: workersTable })
+        .from(workersTable)
+        .innerJoin(workerTurnsTable, carriedTurn)
+        .where(
+            and(
+                eq(workersTable.serverId, input.serverId),
+                eq(workersTable.carrierComputerId, input.computerId),
+                isNotNull(workerTurnsTable.dispatchedAt),
+                isNull(workerTurnsTable.acknowledgedAt),
+                isNull(workerTurnsTable.outcome)
+            )
+        )
+        .orderBy(asc(workerTurnsTable.createdAt), asc(workerTurnsTable.id));
 }

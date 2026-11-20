@@ -1,45 +1,27 @@
-import { formatTaskTarget } from '@haus/api';
-import { and, eq } from 'drizzle-orm';
+import { isClosedTaskState } from '@haus/api';
 import { resolveTaskTargetChat } from '../agent-api/resolve-task-target.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable } from '../postgres/schema.ts';
-import { WorkerAgentNotFoundError, WorkerTaskRequiredError } from './errors.ts';
+import { readTask } from '../tasks/task-read.ts';
+import { WorkerTaskClosedError, WorkerTaskRequiredError } from './errors.ts';
 
-export interface WorkerLaunchTask {
-    chatId: string;
-    target: string;
-    taskId: string;
-}
-
-export async function requireLaunchTask(
+export async function requireOpenWorkerTask(
     db: Pick<HausDatabase, 'select'>,
-    runner: ResolvedRunner,
+    runner: Pick<ResolvedRunner, 'agentId' | 'serverId'>,
     taskKey: string | undefined
-): Promise<WorkerLaunchTask> {
+) {
     if (!taskKey) {
         throw new WorkerTaskRequiredError();
     }
-    const task = await resolveTaskTargetChat(db, runner, taskKey);
-    if (!task) {
+    const reached = await resolveTaskTargetChat(db, runner, taskKey);
+    if (!reached) {
         throw new WorkerTaskRequiredError(
-            `Task ${taskKey} does not exist or has no conversation yet. Launch the Worker on a Task with a conversation.`
+            `Task ${taskKey} does not exist or has no conversation yet. Start the Worker on a Task with a conversation.`
         );
     }
-    return { chatId: task.chatId, target: formatTaskTarget(taskKey), taskId: task.taskId };
-}
-
-export async function requireAssignedComputer(
-    db: Pick<HausDatabase, 'select'>,
-    runner: ResolvedRunner
-): Promise<string> {
-    const [agent] = await db
-        .select({ computerId: agentsTable.computerId })
-        .from(agentsTable)
-        .where(and(eq(agentsTable.serverId, runner.serverId), eq(agentsTable.id, runner.agentId)))
-        .limit(1);
-    if (!agent?.computerId) {
-        throw new WorkerAgentNotFoundError();
+    const task = await readTask(db, runner.serverId, reached.taskId);
+    if (isClosedTaskState(task.state)) {
+        throw new WorkerTaskClosedError(task.key);
     }
-    return agent.computerId;
+    return { chatId: reached.chatId, key: task.key, taskId: task.id };
 }

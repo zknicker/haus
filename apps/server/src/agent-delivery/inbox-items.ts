@@ -1,9 +1,10 @@
 import type {
     AgentInboxItem,
     AgentTaskContext,
-    WorkerPullRequestChange,
-    WorkerAttention,
     HausAgentMessage,
+    WorkerAttention,
+    WorkerPullRequestChange,
+    WorkerReportAttention,
 } from '@haus/api';
 import { and, eq, inArray } from 'drizzle-orm';
 import {
@@ -19,8 +20,9 @@ import {
     type WorkerTurnAttention,
     readWorkerAttentions,
 } from '../workers/read-worker-attentions.ts';
+import { readWorkerReportAttentions } from '../workers/read-worker-report-attentions.ts';
 import {
-    isWorkerInboxSource,
+    isWorkerAttentionSource,
     workerInboxSources,
     workerNoticeOf,
 } from '../workers/worker-inbox-sources.ts';
@@ -58,13 +60,22 @@ export async function buildInboxItems(
     const apiMessages = serverId ? await toAgentMessages(db, serverId, messageRows) : [];
     const apiMessageById = new Map(apiMessages.map((message) => [message.id, message]));
     const workerByRun =
-        serverId && rows.some((row) => isWorkerInboxSource(row.source))
+        serverId && rows.some((row) => isWorkerAttentionSource(row.source))
             ? await readWorkerAttentions(
                   db,
                   serverId,
                   rows.flatMap((row) => (row.workerTurnId ? [row.workerTurnId] : []))
               )
             : new Map<string, WorkerTurnAttention>();
+    const reportByTurn = serverId
+        ? await readWorkerReportAttentions(
+              db,
+              serverId,
+              rows.flatMap((row) =>
+                  row.source === 'worker_report' && row.workerTurnId ? [row.workerTurnId] : []
+              )
+          )
+        : new Map<string, WorkerReportAttention>();
     const sequenceByMessageId = new Map(
         messageRows.map((message) => [message.id, message.sequence])
     );
@@ -93,9 +104,11 @@ export async function buildInboxItems(
         toInboxItem(row, {
             apiMessage: apiMessageById.get(row.dedupeKey),
             worker:
-                isWorkerInboxSource(row.source) && row.workerTurnId
+                isWorkerAttentionSource(row.source) && row.workerTurnId
                     ? requireAttention(row, workerByRun)
                     : undefined,
+            workerReport:
+                row.source === 'worker_report' ? requireReport(row, reportByTurn) : undefined,
             pullRequestNotice:
                 row.source === workerInboxSources.pull_request && !row.workerTurnId
                     ? requirePullRequestNotice(row)
@@ -116,11 +129,12 @@ interface InboxItemFacets {
     sequence: number;
     target: string;
     taskContext: AgentTaskContext | undefined;
+    workerReport: WorkerReportAttention | undefined;
 }
 
 function toInboxItem(row: store.InboxItemRow, facets: InboxItemFacets): AgentInboxItem {
-    const { apiMessage, worker, pullRequestNotice, target } = facets;
-    const attention = Boolean(worker ?? pullRequestNotice);
+    const { apiMessage, worker, pullRequestNotice, target, workerReport } = facets;
+    const attention = Boolean(worker ?? pullRequestNotice ?? workerReport);
     const sender = inboxSender({ attention, message: apiMessage, source: row.source, target });
     // Only a human-authored envelope carries the human's saved zone; a claim
     // assignment wrapping a human's message is a system envelope.
@@ -129,6 +143,7 @@ function toInboxItem(row: store.InboxItemRow, facets: InboxItemFacets): AgentInb
         ...messageFacets(apiMessage),
         ...(row.addressedReason ? { addressed: true, addressedReason: row.addressedReason } : {}),
         ...(worker ? { worker } : {}),
+        ...(workerReport ? { workerReport } : {}),
         ...(pullRequestNotice ? { pullRequestNotice } : {}),
         ...(row.mentioned ? { mentioned: true } : {}),
         ...(row.taskFollowReactivated ? { taskFollowReactivated: true } : {}),
@@ -137,7 +152,7 @@ function toInboxItem(row: store.InboxItemRow, facets: InboxItemFacets): AgentInb
         ...sender,
         ...(senderTimezone ? { senderTimezone } : {}),
         chatId: chatOf(row),
-        content: worker ? '' : row.content,
+        content: worker || workerReport ? '' : row.content,
         createdAt: row.createdAt.toISOString(),
         id: row.dedupeKey,
         sequence: attention ? 0 : facets.sequence,
@@ -177,6 +192,17 @@ function requireAttention(
         throw new WorkerAttentionMissingError(row.dedupeKey);
     }
     return { ...attention, notice: 'pull_request', pullRequestChange: change };
+}
+
+function requireReport(
+    row: store.InboxItemRow,
+    reports: Map<string, WorkerReportAttention>
+): WorkerReportAttention {
+    const report = row.workerTurnId ? reports.get(row.workerTurnId) : undefined;
+    if (!report) {
+        throw new WorkerAttentionMissingError(row.dedupeKey);
+    }
+    return report;
 }
 
 function requirePullRequestNotice(row: store.InboxItemRow): WorkerPullRequestChange {

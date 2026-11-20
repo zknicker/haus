@@ -2,7 +2,7 @@ import type { Worker } from '@haus/api';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { workerHistoryLinksTable, workersTable } from '../postgres/schema.ts';
-import { readWorkDetails, toWorker } from './worker-shape.ts';
+import { readWorkerDetails, toWorker } from './worker-shape.ts';
 
 /**
  * The `ChatMessage.worker` annotation for one page of Messages: each
@@ -36,7 +36,7 @@ export async function readLinkedWorker(
             )
         )
         .orderBy(asc(workerHistoryLinksTable.messageId), asc(workerHistoryLinksTable.ordinal));
-    const details = await readWorkDetails(db, serverId, [
+    const details = await readWorkerDetails(db, serverId, [
         ...new Set(rows.map(({ work }) => work.id)),
     ]);
     for (const { messageId, work } of rows) {

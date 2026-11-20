@@ -1,10 +1,19 @@
-import { cloudAgentCapabilityResultSchema, workerObservationFrameSchema } from '@haus/api';
+import {
+    cloudAgentCapabilityResultSchema,
+    workerFollowUpDrainFrameSchema,
+    workerObservationFrameSchema,
+    workerTurnAcceptedFrameSchema,
+} from '@haus/api';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { publishRealtime } from '../realtime/topic.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { applyWorkerObservation } from '../workers/apply-worker-observation.ts';
-import { listComputerWorker } from '../workers/list-computer-worker.ts';
+import {
+    acceptWorkerTurn,
+    drainWorkerFollowUp,
+    planCarrierReconnect,
+} from '../workers/carrier-frames.ts';
+import { commitWorkerEffects } from '../workers/worker-effects.ts';
 import type { ComputerConnections } from './connections.ts';
 
 export async function ingestWorkerReport(input: {
@@ -21,43 +30,60 @@ export async function ingestWorkerReport(input: {
         input.connections.acceptCloudAgentCapabilityResult(input.computerId, capability.data);
         return true;
     }
-    const parsed = workerObservationFrameSchema.safeParse(input.frame);
-    if (!parsed.success) {
+    const effects = await applyCarrierFrame(input);
+    if (effects === undefined) {
         return false;
     }
-    const applied = await applyWorkerObservation(
-        input.db,
-        {
-            computerId: input.computerId,
-            serverId: input.serverId,
-            observation: parsed.data.observation,
-        },
-        input.delivery
-    );
-    if (applied) {
-        for (const event of applied.events) {
-            publishRealtime(event);
-        }
-        if (applied.wake) {
-            await input.postCommitWork.wakeAgents(input.delivery, [applied.wake]);
-        }
+    if (effects) {
+        await commitWorkerEffects(effects, {
+            agentDelivery: input.delivery,
+            connections: input.connections,
+            postCommitWork: input.postCommitWork,
+        });
     }
     return true;
 }
 
-export async function sendWorkerReconcile(
+export async function reconnectWorkerCarrier(
     db: HausDatabase,
-    connections: ComputerConnections,
+    sinks: {
+        connections: ComputerConnections;
+        delivery: AgentDelivery;
+        postCommitWork: ServerPostCommitWork;
+    },
     computer: { id: string; serverId: string }
 ) {
-    const work = await listComputerWorker(db, {
-        computerId: computer.id,
-        serverId: computer.serverId,
+    const effects = await planCarrierReconnect(db, computer);
+    await commitWorkerEffects(effects, {
+        agentDelivery: sinks.delivery,
+        connections: sinks.connections,
+        postCommitWork: sinks.postCommitWork,
     });
-    for (let offset = 0; offset < work.length; offset += 200) {
-        connections.send(computer.id, {
-            type: 'worker-reconcile',
-            workers: work.slice(offset, offset + 200),
-        });
+}
+
+async function applyCarrierFrame(input: {
+    computerId: string;
+    db: HausDatabase;
+    delivery: AgentDelivery;
+    frame: unknown;
+    serverId: string;
+}) {
+    const { computerId, db, serverId } = input;
+    const observation = workerObservationFrameSchema.safeParse(input.frame);
+    if (observation.success) {
+        return await applyWorkerObservation(
+            db,
+            { computerId, observation: observation.data.observation, serverId },
+            input.delivery
+        );
     }
+    const accepted = workerTurnAcceptedFrameSchema.safeParse(input.frame);
+    if (accepted.success) {
+        return await acceptWorkerTurn(db, { computerId, serverId, turnId: accepted.data.turnId });
+    }
+    const drained = workerFollowUpDrainFrameSchema.safeParse(input.frame);
+    if (drained.success) {
+        return await drainWorkerFollowUp(db, { computerId, frame: drained.data, serverId });
+    }
+    return undefined;
 }

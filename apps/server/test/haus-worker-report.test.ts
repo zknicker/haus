@@ -12,7 +12,7 @@ test("a Run's full report persists and round-trips through findWorker", async ()
     const runner = await fixture.mintRunner('run_cloud_report');
     const created = await fixture.postStart(runner, fixture.startBody({ nonce: 'cloud-report' }));
     const work = created.body.worker as Worker;
-    const turnId = created.body.turnId as string;
+    const turnId = created.turnId as string;
     const report = { clipped: false, text: 'Fixed the flaky test and opened a pull request.' };
 
     const socket = await fixture.attachComputer();
@@ -50,7 +50,7 @@ test('a drained attention reads hasFullReport from whether the stored report out
         fixture.startBody({ nonce: 'cloud-report-attention' })
     );
     const work = created.body.worker as Worker;
-    const turnId = created.body.turnId as string;
+    const turnId = created.turnId as string;
 
     const socket = await fixture.attachComputer();
     socket.send(
@@ -86,7 +86,7 @@ test('a drained attention reads hasFullReport as false when the report is no lon
         fixture.startBody({ nonce: 'cloud-report-no-more' })
     );
     const work = created.body.worker as Worker;
-    const turnId = created.body.turnId as string;
+    const turnId = created.turnId as string;
     const text = 'Opened a pull request.';
 
     const socket = await fixture.attachComputer();
@@ -123,7 +123,7 @@ test('a routine list-all fetch strips report text; a single-work fetch keeps it'
         fixture.startBody({ nonce: 'cloud-report-list-strip' })
     );
     const work = created.body.worker as Worker;
-    const turnId = created.body.turnId as string;
+    const turnId = created.turnId as string;
     const report = { clipped: false, text: 'Opened a pull request. Ran the full suite too.' };
 
     const socket = await fixture.attachComputer();
@@ -173,7 +173,7 @@ test(
             fixture.startBody({ nonce: 'cloud-version-skew' })
         );
         const work = created.body.worker as Worker;
-        const turnId = created.body.turnId as string;
+        const turnId = created.turnId as string;
 
         const socket = await fixture.attachComputer();
         socket.send(

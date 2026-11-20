@@ -85,7 +85,7 @@ test('nothing wakes while the newest Run is still working', async () => {
     await harness.sql`
         update pull_request_readings set state = 'draft', checks = 'pending', refresh_requested_at = now()
     `;
-    await harness.sql`update worker_turns set status = 'completed', terminal_at = now() where id = ${runId}`;
+    await harness.sql`update worker_turns set status = 'completed', terminal_at = now(), outcome = '{"kind":"stopped"}'::jsonb where id = ${runId}`;
 });
 
 test('a draft turning ready after settlement wakes the Agent in the Task, once', async () => {

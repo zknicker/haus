@@ -3,7 +3,7 @@ import { workerRecordFixture } from './worker-record-fixture.ts';
 
 const fixture = workerRecordFixture();
 
-test('a launch into a Task with unseen newer messages is held and creates nothing', async () => {
+test('a start in a Task with unseen newer messages is held and creates nothing', async () => {
     const runner = await fixture.mintRunner('run_cloud_hold');
     const newer = await fixture.owner.trpc.chat.send.mutate({
         chatId: fixture.task.chatId,
@@ -34,18 +34,18 @@ test('a launch into a Task with unseen newer messages is held and creates nothin
     // command (same nonce: the held attempt left nothing to replay) launches.
     const retried = await fixture.postStart(runner, fixture.startBody({ nonce: 'cloud-hold' }));
     expect(retried.status).toBe(200);
-    expect(retried.body).toMatchObject({ idempotent: false, state: 'started' });
+    expect(retried.body).toMatchObject({ state: 'started' });
     expect(await fixture.countWork()).toBe(before + 1);
-    expect(await countAgentMessages()).toBe(1);
+    expect(await countAgentMessages()).toBe(0);
 });
 
-test('a launch is not held when the Agent has seen the Chat head', async () => {
+test('a start is not held when the Agent has seen the Chat head', async () => {
     // The previous launch's clean check advanced the seen cursor to the head,
     // so a later run with nothing newer launches with a fresh nonce.
     const runner = await fixture.mintRunner('run_cloud_seen');
     const started = await fixture.postStart(runner, fixture.startBody({ nonce: 'cloud-seen' }));
     expect(started.status).toBe(200);
-    expect(started.body).toMatchObject({ idempotent: false, state: 'started' });
+    expect(started.body).toMatchObject({ state: 'started' });
 
     // An Agent's own posts never hold it.
     const again = await fixture.postStart(

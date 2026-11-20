@@ -7,7 +7,6 @@ import {
     resolveTaskReferences,
     type TaskMessageLink,
 } from '../tasks/task-reference-links.ts';
-import { prepareLinkedWorkEvents } from '../workers/worker-events.ts';
 import {
     type ImageGenerationLink,
     recordImageGenerationLinks,
@@ -66,22 +65,16 @@ export async function recordMessageLinks(
 }
 
 /**
- * `worker.updated`, `imageGeneration.onUpdated`, and `task.updated` events for the
- * records a Message just linked. A Task's own record did not change, so its event repeats
- * the version: an open Task refetches its Mentioned in.
+ * `imageGeneration.onUpdated` and `task.updated` events for the records a
+ * Message just linked. A Task's own record did not change, so its event repeats
+ * the version: an open Task refetches its Mentioned in. Linked Workers are
+ * read-only history, so a link changes no Worker and publishes nothing.
  */
 export async function prepareMessageLinkEvents(
     db: Pick<HausDatabase, 'select'>,
-    input: { serverId: string } & Pick<
-        ResolvedMessageLinks,
-        'cloudLinks' | 'imageLinks' | 'taskLinks'
-    >
+    input: { serverId: string } & Pick<ResolvedMessageLinks, 'imageLinks' | 'taskLinks'>
 ): Promise<PreparedRealtimeEvent[]> {
     return [
-        ...(await prepareLinkedWorkEvents(db, {
-            serverId: input.serverId,
-            workerIds: input.cloudLinks.map((link) => link.workerId),
-        })),
         ...(await prepareImageGenerationEvents(db, {
             generationIds: input.imageLinks.map((link) => link.generationId),
             serverId: input.serverId,

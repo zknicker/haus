@@ -186,7 +186,11 @@ test('every Run records the model and params it asked for, falling back to Auto 
         where id = ${chosen.receipt.worker.id}
     `;
     const followUp = await fetch(new URL('/api/agent/workers/send', fixture.harness.url), {
-        body: JSON.stringify({ nonce: 'model-followup', workerId: chosen.receipt.worker.id }),
+        body: JSON.stringify({
+            nonce: 'model-followup',
+            text: 'Next step.',
+            workerId: chosen.receipt.worker.id,
+        }),
         headers: {
             authorization: `Bearer ${chosen.runner.token}`,
             'content-type': 'application/json',
@@ -198,9 +202,10 @@ test('every Run records the model and params it asked for, falling back to Auto 
         ...auto,
         fallbackFrom: nano.id,
     });
-    expect(sent.worker.turns.find((run) => run.turnId === chosen.receipt.turnId)?.model).toEqual(
-        nanoHigh
-    );
+    expect(
+        sent.worker.turns.find((run) => run.turnId === chosen.receipt.worker.turns.at(-1)?.turnId)
+            ?.model
+    ).toEqual(nanoHigh);
 
     await reportCatalog(null);
     const missing = await startWork('model-no-catalog');

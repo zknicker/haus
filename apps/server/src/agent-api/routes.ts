@@ -117,6 +117,7 @@ export function registerAgentApiRoutes(
     });
     registerAgentTaskRoutes(app, {
         agentDelivery: options.agentDelivery,
+        computers: options.computers,
         db: options.db,
         postCommitWork: options.postCommitWork,
     });

@@ -4,7 +4,7 @@ import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { workersTable } from '../postgres/schema.ts';
 import { WorkerNotFoundError } from './errors.ts';
-import { readWorkDetails, toWorker } from './worker-shape.ts';
+import { readWorkerDetails, toWorker } from './worker-shape.ts';
 
 export async function listAgentWorker(
     db: HausDatabase,
@@ -26,7 +26,7 @@ export async function listAgentWorker(
     if (workerId && rows.length === 0) {
         throw new WorkerNotFoundError();
     }
-    const details = await readWorkDetails(
+    const details = await readWorkerDetails(
         db,
         runner.serverId,
         rows.map((row) => row.id)

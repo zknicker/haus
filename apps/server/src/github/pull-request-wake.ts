@@ -117,7 +117,7 @@ async function readSettledWork(db: HausDatabase, reading: PullRequestWakeReading
     const settled: { agentId: string; chatId: string; runId: string }[] = [];
     for (const work of works) {
         const [newest] = await db
-            .select({ id: workerTurnsTable.id, terminalAt: workerTurnsTable.terminalAt })
+            .select({ id: workerTurnsTable.id, outcome: workerTurnsTable.outcome })
             .from(workerTurnsTable)
             .where(
                 and(
@@ -127,7 +127,7 @@ async function readSettledWork(db: HausDatabase, reading: PullRequestWakeReading
             )
             .orderBy(desc(workerTurnsTable.createdAt))
             .limit(1);
-        if (newest?.terminalAt) {
+        if (newest?.outcome) {
             settled.push({ agentId: work.agentId, chatId: work.chatId, runId: newest.id });
         }
     }
@@ -141,10 +141,13 @@ async function relatedWorkIds(db: HausDatabase, reading: PullRequestWakeReading)
         .where(
             and(
                 eq(workerTurnsTable.serverId, reading.serverId),
-                sql`exists (
+                sql`(exists (
                     select 1 from jsonb_array_elements(${workerTurnsTable.branches}) branch
                     where branch->>'pullRequestUrl' = ${reading.url}
-                )`
+                ) or jsonb_exists(
+                    coalesce(${workerTurnsTable.outcome}->'report'->'pullRequestUrls', '[]'::jsonb),
+                    ${reading.url}
+                ))`
             )
         );
     const onTask = await db

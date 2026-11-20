@@ -5,137 +5,151 @@ import { workerRecordFixture } from './worker-record-fixture.ts';
 
 const fixture = workerRecordFixture();
 
-test('one Worker writes its Message in its Task, record, first Run, and events', async () => {
-    const runner = await fixture.mintRunner('run_cloud_create');
+test('a start answers with the Worker, posts no Message, and publishes worker.updated', async () => {
+    const runner = await fixture.mintRunner('run_worker_create');
     const realtime = captureAllTopics();
-    const taskChatId = fixture.task.chatId;
 
-    const created = await fixture.postStart(
-        runner,
-        fixture.startBody({ nonce: 'cloud-create', content: 'Handing @ada the work in #product.' })
-    );
+    const created = await fixture.postStart(runner, fixture.startBody({ nonce: 'worker-create' }));
+
     expect(created.status).toBe(200);
-    const work = created.body.worker as Worker;
+    const worker = created.body.worker as Worker;
     expect(created.body).toMatchObject({
-        chatId: taskChatId,
-        idempotent: false,
-        target: `task:${fixture.task.key}`,
+        state: 'started',
         worker: {
             agentId: fixture.orbitAgentId,
-            cancelRequestedAt: null,
-            chatId: taskChatId,
-            computerId: fixture.computerId,
-            provider: 'cursor',
-            providerAgentId: null,
+            carrierComputerId: fixture.computerId,
+            launchMessageId: null,
+            originChatId: null,
+            place: 'cursor',
             repository: 'haus/haus',
             startingRef: 'main',
             status: 'queued',
-            terminalAt: null,
+            taskId: fixture.task.id,
             title: 'Fix the flaky delivery test',
         },
     });
-    expect(work.turns).toHaveLength(1);
-    expect(work.turns[0]).toMatchObject({ turnId: created.body.turnId, status: 'queued' });
-
-    const children = (await fixture.harness.sql`
-        select id from tasks where origin_message_id = ${created.body.messageId ?? ''}
-    `) as { id: string }[];
-    expect(children).toEqual([]);
-
     const events = await publishedSince(realtime, fixture.serverId);
     realtime.stop();
-    expect(events.map((event) => event.type)).toEqual([
-        'message.created',
-        'task.updated',
-        'worker.updated',
+    expect(events).toEqual([
+        {
+            chatId: fixture.task.chatId,
+            serverId: fixture.serverId,
+            taskId: fixture.task.id,
+            type: 'worker.updated',
+            workerId: worker.id,
+        },
     ]);
-    expect(events[2]).toEqual({
-        chatId: taskChatId,
-        messageId: created.body.messageId,
-        serverId: fixture.serverId,
-        taskId: fixture.task.id,
-        type: 'worker.updated',
-        workerId: work.id,
-    });
-
-    const replay = await fixture.postStart(
-        runner,
-        fixture.startBody({ nonce: 'cloud-create', content: 'Handing @ada the work in #product.' })
-    );
-    expect(replay.status).toBe(200);
-    expect(replay.body).toMatchObject({ idempotent: true, worker: { id: work.id } });
-    expect(await fixture.countWork()).toBe(1);
-
-    // The launch Message is ordinary text that links its work (ADR 0044).
     const history = await fixture.owner.trpc.chat.messages.query({
-        chatId: taskChatId,
+        chatId: fixture.task.chatId,
         serverId: fixture.serverId,
     });
-    const launch = history.messages.find((message) => message.id === created.body.messageId);
-    expect(launch).toMatchObject({
-        body: { kind: 'text' },
-        content: `Handing [@ada](user://${fixture.ownerUserId}) the work in [#product](chat://${fixture.channelId}).\n\n[Fix the flaky delivery test](worker://${work.id})`,
+    expect(history.messages).toEqual([]);
+
+    const replay = await fixture.postStart(runner, fixture.startBody({ nonce: 'worker-create' }));
+    expect(replay.body).toMatchObject({ state: 'started', worker: { id: worker.id } });
+    const read = await fixture.owner.trpc.worker.get.query({
+        serverId: fixture.serverId,
+        workerId: worker.id,
     });
-    expect(launch?.workers.map((linked) => linked.id)).toEqual([work.id]);
+    expect(read.id).toBe(worker.id);
 });
 
-test('a launch that fails validation creates nothing', async () => {
-    const runner = await fixture.mintRunner('run_cloud_invalid');
+test('each refusal names its code and writes nothing', async () => {
+    const runner = await fixture.mintRunner('run_worker_refused');
     const before = await fixture.countWork();
+    const refused = async (overrides: Record<string, string | undefined>) => {
+        const result = await fixture.postStart(runner, fixture.startBody(overrides));
+        return [result.status, result.body.code];
+    };
 
-    expect(
-        (
-            await fixture.postStart(
-                runner,
-                fixture.startBody({ nonce: 'bad-repo', repository: 'haus' })
-            )
-        ).status
-    ).toBe(400);
-    expect(
-        (
-            await fixture.postStart(
-                runner,
-                fixture.startBody({ nonce: 'bad-title', title: 'a'.repeat(121) })
-            )
-        ).status
-    ).toBe(400);
-    expect(
-        (await fixture.postStart(runner, fixture.startBody({ nonce: 'bad-say', content: '' })))
-            .status
-    ).toBe(400);
-    const unknownTask = await fixture.postStart(
-        runner,
-        fixture.startBody({ nonce: 'bad-task', task: 'ZZZ-404' })
-    );
-    expect(unknownTask.status).toBe(400);
-    expect(unknownTask.body.code).toBe('WORKER_TASK_REQUIRED');
+    expect(await refused({ nonce: 'no-task', task: undefined })).toEqual([
+        400,
+        'WORKER_TASK_REQUIRED',
+    ]);
+    expect(await refused({ nonce: 'bad-task', task: 'ZZZ-404' })).toEqual([
+        400,
+        'WORKER_TASK_REQUIRED',
+    ]);
+    expect(await refused({ nonce: 'no-place', place: undefined })).toEqual([
+        400,
+        'WORKER_PLACE_REQUIRED',
+    ]);
+    expect(await refused({ nonce: 'bad-repo', repository: 'haus' })).toEqual([400, 'INVALID_ARG']);
+    expect(await refused({ nonce: 'worker-create', title: 'Something else' })).toEqual([
+        409,
+        'WORKER_IDEMPOTENCY_CONFLICT',
+    ]);
     expect((await fixture.postStart(null, fixture.startBody({ nonce: 'no-runner' }))).status).toBe(
         401
     );
-
-    // A different work under a used nonce is a conflict, not a second Message.
-    expect(
-        (
-            await fixture.postStart(
-                runner,
-                fixture.startBody({ nonce: 'cloud-create', title: 'Something else' })
-            )
-        ).status
-    ).toBe(409);
     expect(await fixture.countWork()).toBe(before);
 });
 
-test('reference expansion rejects oversized content before creating work', async () => {
-    const runner = await fixture.mintRunner('run_cloud_expansion');
-    const before = await fixture.countWork();
-    const result = await fixture.postStart(
-        runner,
-        fixture.startBody({
-            nonce: 'cloud-expansion',
-            content: `${'x'.repeat(31_995)} @ada`,
+test('the Agent stops its own Worker, and a person who reads the Task can too', async () => {
+    const runner = await fixture.mintRunner('run_worker_stop');
+    const first = await fixture.postStart(runner, fixture.startBody({ nonce: 'worker-stop-1' }));
+    const second = await fixture.postStart(runner, fixture.startBody({ nonce: 'worker-stop-2' }));
+
+    const stopped = await fixture.postCancel(runner, first.body.worker?.id ?? '');
+    expect(stopped.status).toBe(200);
+    expect(stopped.body.worker.turns[0].stopRequestedBy).toEqual({
+        id: fixture.orbitAgentId,
+        kind: 'agent',
+    });
+
+    const byPeer = await fixture.peer.trpc.worker.stop.mutate({
+        serverId: fixture.serverId,
+        workerId: second.body.worker?.id ?? '',
+    });
+    expect(byPeer.worker.turns[0]?.stopRequestedBy).toEqual({
+        id: fixture.peerUserId,
+        kind: 'user',
+    });
+});
+
+test('Happening now lists a live Worker, opening its Task, only to people who read that Task', async () => {
+    const runner = await fixture.mintRunner('run_worker_active');
+    const created = await fixture.postStart(runner, fixture.startBody({ nonce: 'worker-active' }));
+    const workerId = created.body.worker?.id;
+
+    const forOwner = (
+        await fixture.owner.trpc.worker.listActive.query({ serverId: fixture.serverId })
+    ).find((row) => row.worker.id === workerId);
+    const forOutsider = (
+        await fixture.outsider.trpc.worker.listActive.query({ serverId: fixture.serverId })
+    ).find((row) => row.worker.id === workerId);
+
+    expect(forOwner).toMatchObject({
+        chatKind: 'channel',
+        chatName: 'product',
+        conversationChatId: fixture.channelId,
+        location: { chatId: fixture.task.chatId, kind: 'task', taskId: fixture.task.id },
+        taskKey: fixture.task.key,
+    });
+    expect(forOutsider).toBeUndefined();
+    await expect(
+        fixture.outsider.trpc.worker.get.query({
+            serverId: fixture.serverId,
+            workerId: workerId ?? '',
         })
+    ).rejects.toThrow('That Worker does not exist.');
+});
+
+test('the Agent profile lists its live Worker, opening its Task', async () => {
+    const runner = await fixture.mintRunner('run_worker_automation');
+    const created = await fixture.postStart(
+        runner,
+        fixture.startBody({ nonce: 'worker-automation' })
     );
-    expect(result.status).toBe(400);
-    expect(result.body.code).toBe('INVALID_ARG');
-    expect(await fixture.countWork()).toBe(before);
+    const rows = await fixture.owner.trpc.worker.listAutomations.query({
+        agentId: fixture.orbitAgentId,
+        history: false,
+        serverId: fixture.serverId,
+    });
+
+    expect(rows.find((row) => row.worker.id === created.body.worker?.id)).toMatchObject({
+        conversationChatId: fixture.channelId,
+        location: { chatId: fixture.task.chatId, kind: 'task', taskId: fixture.task.id },
+        notification: 'waiting',
+    });
 });

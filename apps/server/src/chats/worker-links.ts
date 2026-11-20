@@ -2,7 +2,7 @@ import { parseWorkerReferenceTarget, parseHausRichReferences } from '@haus/api';
 import { and, asc, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { workerHistoryLinksTable } from '../postgres/schema.ts';
-import { type WorkerViewer, readVisibleWorkerIds } from '../workers/worker-visibility.ts';
+import { type WorkerViewer, readLinkableWorkerIds } from '../workers/worker-visibility.ts';
 
 export interface WorkerLink {
     ordinal: number;
@@ -29,7 +29,7 @@ export async function resolveWorkerLinks(
     if (workerIds.length === 0) {
         return { content: input.content, links: [] };
     }
-    const visible = await readVisibleWorkerIds(db, {
+    const visible = await readLinkableWorkerIds(db, {
         serverId: input.serverId,
         viewer: input.author,
         workerIds,

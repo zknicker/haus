@@ -12,12 +12,12 @@ test('work reads the live reading while its Run keeps the snapshot it reported',
     await fixture.harness.sql`
         update pull_request_readings set state = 'merged', source = 'github'
     `;
-    const listed = await fixture.owner.trpc.worker.listForChat.query({
-        chatId: fixture.channelId,
+    const read = await fixture.owner.trpc.worker.get.query({
         serverId: fixture.serverId,
+        workerId: work.id,
     });
 
-    expect(listed.find((row) => row.worker.id === work.id)?.worker.pullRequest).toMatchObject({
+    expect(read.pullRequest).toMatchObject({
         checks: 'unknown',
         number: 12,
         repository: 'haus/haus',
@@ -38,7 +38,7 @@ async function reportPullRequest() {
     const runner = await fixture.mintRunner('run_cloud_pull_request');
     const created = await fixture.postStart(runner, fixture.startBody({ nonce: 'cloud-pull' }));
     const work = created.body.worker as Worker;
-    const turnId = created.body.turnId as string;
+    const turnId = created.turnId as string;
     const socket = await fixture.attachComputer();
     socket.send(
         JSON.stringify({

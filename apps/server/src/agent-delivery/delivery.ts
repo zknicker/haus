@@ -51,9 +51,9 @@ import {
 import { dispatchEach } from './dispatch-each.ts';
 import { traceAgentDispatch } from './dispatch-telemetry.ts';
 import {
-    boundedCompatibleRows,
     chatIdsOf,
     claimRunItems,
+    drainRowsFor,
     readDrainCandidates,
     startFrame,
 } from './drain-selection.ts';
@@ -861,7 +861,7 @@ export class AgentDelivery {
         }
         const chainTurns = await restartIdleAgentChain(tx, agentId, state.agentChainTurns);
         const drain = { agentId, candidates, chainTurns, lead: preferred };
-        const admitted = await admitQueuedAgentDrain(tx, drain, boundedCompatibleRows);
+        const admitted = await admitQueuedAgentDrain(tx, drain, drainRowsFor);
         if (!(admitted && mayLead(admitted.lead))) {
             return null;
         }

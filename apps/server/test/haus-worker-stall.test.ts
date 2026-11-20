@@ -8,7 +8,7 @@ test('a follow-up an auto-interrupt still could not deliver notifies once per wi
     const runner = await fixture.mintRunner('run_cloud_stalled');
     const created = await fixture.postStart(runner, fixture.startBody({ nonce: 'cloud-stalled' }));
     const work = created.body.worker as Worker;
-    const turnId = created.body.turnId as string;
+    const turnId = created.turnId as string;
     const socket = await fixture.attachComputer();
     const readStallAttentions = () =>
         fixture.harness.sql`
@@ -90,7 +90,7 @@ test('a Run already running never regresses to queued when its prompt briefly go
         fixture.startBody({ nonce: 'cloud-prompt-missing' })
     );
     const work = created.body.worker as Worker;
-    const turnId = created.body.turnId as string;
+    const turnId = created.turnId as string;
     const socket = await fixture.attachComputer();
     const readNotFoundAttentions = () =>
         fixture.harness.sql`
@@ -147,7 +147,7 @@ test('a job already cancelled raises no stall attention', async () => {
         fixture.startBody({ nonce: 'stall-cancelled' })
     );
     const work = created.body.worker as Worker;
-    const turnId = created.body.turnId as string;
+    const turnId = created.turnId as string;
     const socket = await fixture.attachComputer();
     await fixture.harness.sql`
         update workers set status = 'cancelled', terminal_at = now() where id = ${work.id}
@@ -179,14 +179,14 @@ test('a job already cancelled raises no stall attention', async () => {
     socket.close();
 });
 
-test('settling a Run replaces its unread stall notices with the one outcome', async () => {
+test('a provider cancel clears the unread stall notices and queues no report', async () => {
     const runner = await fixture.mintRunner('run_cloud_stall_settles');
     const created = await fixture.postStart(
         runner,
         fixture.startBody({ nonce: 'cloud-stall-settles' })
     );
     const work = created.body.worker as Worker;
-    const turnId = created.body.turnId as string;
+    const turnId = created.turnId as string;
     const socket = await fixture.attachComputer();
     const readNotices = () =>
         fixture.harness.sql`
@@ -219,7 +219,7 @@ test('settling a Run replaces its unread stall notices with the one outcome', as
     );
     await fixture.waitForWorkStatus(work.id, 'cancelled');
 
-    expect(await readNotices()).toEqual([{ source: 'worker_report' }]);
+    expect(await readNotices()).toEqual([]);
     socket.close();
 });
 
@@ -230,7 +230,7 @@ test('a Run being cancelled earns no stall notice', async () => {
         fixture.startBody({ nonce: 'cloud-stall-cancelling' })
     );
     const work = created.body.worker as Worker;
-    const turnId = created.body.turnId as string;
+    const turnId = created.turnId as string;
     const socket = await fixture.attachComputer();
     expect((await fixture.postCancel(runner, work.id)).status).toBe(200);
 

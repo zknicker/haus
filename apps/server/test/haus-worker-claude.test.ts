@@ -49,10 +49,10 @@ test('each provider keeps its own model, and a Claude Run sends Claude’s', asy
     const runner = await fixture.mintRunner('run_claude_model');
     const started = await fixture.postStart(
         runner,
-        fixture.startBody({ nonce: 'claude-model', provider: 'claude' })
+        fixture.startBody({ nonce: 'claude-model', place: 'claude' })
     );
     expect(started.status).toBe(200);
-    expect(started.body.worker?.provider).toBe('claude');
+    expect(started.body.worker?.place).toBe('claude');
     expect(started.body.worker?.turns[0]?.model).toEqual({
         droppedParams: [],
         fallbackFrom: null,
@@ -65,10 +65,10 @@ test('a question settles the Run as pending input, wakes the Agent once, and an 
     const runner = await fixture.mintRunner('run_claude_question');
     const created = await fixture.postStart(
         runner,
-        fixture.startBody({ nonce: 'claude-question', provider: 'claude' })
+        fixture.startBody({ nonce: 'claude-question', place: 'claude' })
     );
     const work = created.body.worker as Worker;
-    const turnId = created.body.turnId as string;
+    const turnId = created.turnId as string;
     const socket = await fixture.attachComputer();
     const question = {
         observation: {
@@ -91,17 +91,18 @@ test('a question settles the Run as pending input, wakes the Agent once, and an 
     await Bun.sleep(150);
     expect(await fixture.readAttentions(turnId)).toHaveLength(1);
 
-    const active = await fixture.owner.trpc.worker.listActive.query({
+    const read = await fixture.owner.trpc.worker.get.query({
         serverId: fixture.serverId,
+        workerId: work.id,
     });
-    const listed = active.find((entry) => entry.worker.id === work.id)?.worker;
-    expect(listed?.job).toMatchObject({
+    expect(read.status).toBe('needs-you');
+    expect(read.job).toMatchObject({
         question: 'Should the reminder default to 9am or 10am?',
         state: 'pending-input',
     });
 
     const answer = await fetch(new URL('/api/agent/workers/send', fixture.harness.url), {
-        body: JSON.stringify({ nonce: 'claude-answer', workerId: work.id }),
+        body: JSON.stringify({ nonce: 'claude-answer', text: '9am.', workerId: work.id }),
         headers: { authorization: `Bearer ${runner.token}`, 'content-type': 'application/json' },
         method: 'POST',
     });

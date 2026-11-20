@@ -8,7 +8,6 @@ import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { prepareLinkedWorkEvents, readWorkIdsLinkedFrom } from '../workers/worker-events.ts';
 import { isOnboardingChannel, purgeDeletedChannel } from './channel-deletion.ts';
 import { prepareLifecycleEvent } from './lifecycle-events.ts';
 
@@ -129,18 +128,7 @@ export async function deleteChannel(
             .set({ deletedAt, deletedByUserId: member?.id ?? null })
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
         await discardQueuedChannelWork(tx, input);
-        // Work this Channel linked stays alive; its surviving links refresh.
-        const linkedWorkIds = await readWorkIdsLinkedFrom(tx, {
-            chatIds: await readChannelChatIds(tx, input),
-            serverId: input.serverId,
-        });
-        return [
-            prepareLifecycleEvent(input, 'deleted'),
-            ...(await prepareLinkedWorkEvents(tx, {
-                serverId: input.serverId,
-                workerIds: linkedWorkIds,
-            })),
-        ];
+        return [prepareLifecycleEvent(input, 'deleted')];
     });
 
     // The committed tombstone is the deletion. A failed purge must not report

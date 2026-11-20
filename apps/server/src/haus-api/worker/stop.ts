@@ -1,53 +1,24 @@
-import { workerCancelInputSchema, hasServerAdminAuthority } from '@haus/api';
-import { TRPCError } from '@trpc/server';
+import { workerSchema, workerStopInputSchema } from '@haus/api';
 import { z } from 'zod';
-import { publishRealtime } from '../../realtime/topic.ts';
-import { requireServerMembership } from '../../servers/server-access.ts';
-import {
-    WorkerComputerRemovedError,
-    WorkerNotFoundError,
-    WorkerSettledError,
-} from '../../workers/errors.ts';
-import { requestWorkerCancel } from '../../workers/request-worker-cancel.ts';
+import { commitWorkerEffects } from '../../workers/worker-effects.ts';
+import { stopWorkerAsPerson } from '../../workers/worker-operations.ts';
 import { memberProcedure } from '../server/procedure.ts';
+import { requireWorkerMember, toWorkerTrpcError, workerSinks } from './worker-trpc.ts';
 
 export const stopWorkerProcedure = memberProcedure
-    .input(workerCancelInputSchema)
-    .output(z.object({ cancelRequested: z.literal(true) }).strict())
+    .input(workerStopInputSchema)
+    .output(z.object({ worker: workerSchema }).strict())
     .mutation(async ({ ctx, input }) => {
-        const membership = await requireServerMembership(ctx.hausDb, ctx.member, input.serverId);
-        if (!hasServerAdminAuthority(membership.role)) {
-            throw new TRPCError({
-                code: 'FORBIDDEN',
-                message: 'Only Owners and Admins can cancel Worker.',
-            });
-        }
-        if (!ctx.member) {
-            throw new TRPCError({ code: 'FORBIDDEN', message: 'Sign in to cancel this work.' });
-        }
+        const member = await requireWorkerMember(ctx, input.serverId);
         try {
-            const requested = await requestWorkerCancel(ctx.hausDb, {
-                requestedBy: { id: ctx.member.id, kind: 'user' },
+            const stopped = await stopWorkerAsPerson(ctx.hausDb, {
                 serverId: input.serverId,
+                userId: member.id,
                 workerId: input.workerId,
             });
-            for (const event of requested.events) {
-                publishRealtime(event);
-            }
-            for (const command of requested.commands) {
-                ctx.computerConnections.send(requested.computerId, command);
-            }
-            return { cancelRequested: true } as const;
+            await commitWorkerEffects(stopped.effects, workerSinks(ctx));
+            return { worker: stopped.worker };
         } catch (cause) {
-            if (cause instanceof WorkerNotFoundError) {
-                throw new TRPCError({ cause, code: 'NOT_FOUND', message: cause.message });
-            }
-            if (cause instanceof WorkerComputerRemovedError) {
-                throw new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
-            }
-            if (cause instanceof WorkerSettledError) {
-                throw new TRPCError({ cause, code: 'CONFLICT', message: cause.message });
-            }
-            throw cause;
+            throw toWorkerTrpcError(cause);
         }
     });

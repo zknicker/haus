@@ -10,7 +10,6 @@ import {
 /**
  * The cause of an Agent message: the fire its `--cause` names, refused with
  * `MessageCauseError` when unknown or another Agent's, or else the inferred one.
- * `haus message send` and `haus worker start --say` share this rule.
  */
 export async function resolveAgentMessageCause(
     db: HausDatabase,

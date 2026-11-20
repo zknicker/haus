@@ -1,15 +1,10 @@
 import { type WorkerAutomation, workerAutomationSchema } from '@haus/api';
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, workersTable, computersTable } from '../postgres/schema.ts';
+import { agentsTable, computersTable, tasksTable, workersTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import {
-    chooseWorkLocation,
-    conversationChatIdOf,
-    readVisibleWorkLinks,
-} from './active-worker-location.ts';
-import { readWorkDetails, toWorker } from './worker-shape.ts';
+import { readWorkerDetails, toWorker } from './worker-shape.ts';
 import { workerVisibleSql } from './worker-visibility.ts';
 
 /** A read-only projection: no Trigger record or cleanup job is created. */
@@ -28,6 +23,10 @@ export async function listWorkerAutomations(
         .select({
             computerHealth: computersTable.health,
             notification,
+            parentChatId: sql<
+                string | null
+            >`(select parent_chat_id from chats where server_id = ${tasksTable.serverId} and id = ${tasksTable.chatId})`,
+            taskChatId: tasksTable.chatId,
             work: workersTable,
         })
         .from(workersTable)
@@ -36,6 +35,13 @@ export async function listWorkerAutomations(
             and(
                 eq(agentsTable.serverId, workersTable.serverId),
                 eq(agentsTable.id, workersTable.agentId)
+            )
+        )
+        .innerJoin(
+            tasksTable,
+            and(
+                eq(tasksTable.serverId, workersTable.serverId),
+                eq(tasksTable.id, workersTable.taskId)
             )
         )
         .leftJoin(
@@ -59,30 +65,24 @@ export async function listWorkerAutomations(
         );
     // History is bounded independently, so old pending notifications are never crowded out.
     const rows = await (input.history ? selection.limit(100) : selection);
-    const workerIds = rows.map(({ work }) => work.id);
-    const links = await readVisibleWorkLinks(db, {
-        serverId: input.serverId,
-        userId: member.id,
-        workerIds,
-    });
-    const details = await readWorkDetails(db, input.serverId, workerIds);
-    return rows.flatMap((row) => {
-        const chosen = chooseWorkLocation(
-            row.work.launchMessageId,
-            links.filter((link) => link.workerId === row.work.id)
-        );
-        return chosen
+    const details = await readWorkerDetails(
+        db,
+        input.serverId,
+        rows.map(({ work }) => work.id)
+    );
+    return rows.flatMap((row) =>
+        row.taskChatId && row.parentChatId && row.work.taskId
             ? [
                   workerAutomationSchema.parse({
-                      conversationChatId: conversationChatIdOf(chosen.link),
+                      conversationChatId: row.parentChatId,
                       computerHealth: row.computerHealth,
-                      location: chosen.location,
+                      location: { chatId: row.taskChatId, kind: 'task', taskId: row.work.taskId },
                       notification: row.notification,
                       worker: toWorker(row.work, details.get(row.work.id)),
                   }),
               ]
-            : [];
-    });
+            : []
+    );
 }
 
 function notificationSql() {
@@ -115,7 +115,7 @@ function notificationSql() {
             select 1 from chats c left join chats p
                 on p.server_id = c.server_id and p.id = c.parent_chat_id
             where c.server_id = ${workersTable.serverId}
-                and c.id = ${workersTable.originChatId} and c.deleted_at is null
+                and c.id = ${tasksTable.chatId} and c.deleted_at is null
                 and (c.parent_chat_id is null or (p.id is not null and p.deleted_at is null))
         ) then 'chat-removed'
         when ${workersTable.status} not in ('queued', 'running') then 'unavailable'

@@ -9,7 +9,7 @@ import {
 } from '../postgres/schema.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { prepareLinkedWorkEvents } from '../workers/worker-events.ts';
+import { prepareWorkerEvents } from '../workers/worker-events.ts';
 import { GithubApiError } from './github-api.ts';
 import type { GithubApp } from './github-app.ts';
 import { createInstallationTokens } from './github-bot.ts';
@@ -139,7 +139,7 @@ async function writeReading(
             return { events: [], wakes: [] };
         }
         return {
-            events: await prepareLinkedWorkEvents(tx, {
+            events: await prepareWorkerEvents(tx, {
                 serverId: row.serverId,
                 workerIds: await reportingWorkIds(tx, row),
             }),

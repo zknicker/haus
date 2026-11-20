@@ -86,8 +86,8 @@ test('Unread holds Tiny’s inline answer in the DM; the claim is on Claims', as
 // against the provider every minute and wedge the Server's connection pool.
 test('Happening now shows gallery samples and settled work keeps its evidence', async () => {
     const active = await owner.trpc.worker.listActive.query({ serverId });
-    // Six Cursor gallery samples (one needs input), three gallery follow-ups,
-    expect(active).toHaveLength(11);
+    // Gallery samples are closed history, so only the demo Task's live Worker is happening now.
+    expect(active).toHaveLength(1);
 
     const chats = await owner.trpc.chat.list.query({ serverId });
     const productChatId = chats.find((chat) => chat.name === 'product')?.id ?? '';
@@ -99,9 +99,9 @@ test('Happening now shows gallery samples and settled work keeps its evidence', 
 
     expect(chatWork).toHaveLength(1);
     expect(settled?.worker).toMatchObject({
-        provider: 'cursor',
+        place: 'cursor',
         repository: 'zknicker/haus',
-        status: 'completed',
+        status: 'done',
     });
     expect(settled?.worker.turns[0]?.branches[0]).toMatchObject({
         branch: 'cloud/sidebar-inbox-badge',
@@ -203,13 +203,12 @@ test('UI gallery reads the attachment combinations and isolates live samples', a
         ['working', 'running'],
     ]);
     expect([...new Set(works.map((entry) => entry.worker.status))].sort()).toEqual([
-        'cancelled',
-        'completed',
-        'expired',
+        'done',
         'failed',
-        'pending_input',
+        'needs-you',
         'queued',
-        'running',
+        'stopped',
+        'working',
     ]);
     const [onboarding] =
         await harness.sql`select computer_id from server_onboarding where server_id = ${serverId}`;
@@ -220,9 +219,11 @@ test('UI gallery reads the attachment combinations and isolates live samples', a
         })
     ).toEqual([]);
     const active = works.filter(
-        (entry) => entry.worker.status === 'running' || entry.worker.status === 'queued'
+        (entry) => entry.worker.status === 'working' || entry.worker.status === 'queued'
     );
     expect(active).toHaveLength(9);
-    expect(active.every((entry) => entry.worker.computerId !== onboarding.computer_id)).toBe(true);
+    expect(active.every((entry) => entry.worker.carrierComputerId !== onboarding.computer_id)).toBe(
+        true
+    );
     expect(works.every((entry) => entry.worker.providerUrl === null)).toBe(true);
 });

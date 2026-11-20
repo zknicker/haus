@@ -4,7 +4,7 @@ import { requireChatAccess } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable, workerHistoryLinksTable, workersTable } from '../postgres/schema.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { readWorkDetails, toWorker } from './worker-shape.ts';
+import { readWorkerDetails, toWorker } from './worker-shape.ts';
 import { linkChatVisibleSql, linkParentChatsTable } from './worker-visibility.ts';
 
 export async function listChatWorker(
@@ -55,7 +55,7 @@ export async function listChatWorker(
             asc(workerHistoryLinksTable.messageId),
             asc(workerHistoryLinksTable.ordinal)
         );
-    const details = await readWorkDetails(db, input.serverId, [
+    const details = await readWorkerDetails(db, input.serverId, [
         ...new Set(rows.map(({ work }) => work.id)),
     ]);
     const seen = new Set<string>();

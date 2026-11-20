@@ -31,7 +31,7 @@ import {
     defaultComputerSocketLiveness,
     watchComputerSocketLiveness,
 } from './socket-liveness.ts';
-import { sendWorkerReconcile } from './worker-reports.ts';
+import { reconnectWorkerCarrier } from './worker-reports.ts';
 
 // The app-level heartbeat keeps Raft's cadence; transport pings detect silence sooner.
 const heartbeatConfiguration = {
@@ -197,7 +197,7 @@ export function startComputerAttachmentSocket(
                 .then(() => delivery.onComputerReconnect(computer.id))
                 .catch(() => undefined);
             void postCommitWork.run('worker.reconcile-on-connect', () =>
-                sendWorkerReconcile(db, connections, computer)
+                reconnectWorkerCarrier(db, { connections, delivery, postCommitWork }, computer)
             );
         };
         socket.on('message', (raw) => {

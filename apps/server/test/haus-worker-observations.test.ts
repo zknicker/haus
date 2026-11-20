@@ -8,7 +8,7 @@ test('observations apply idempotently and a settled Run creates one inbox attent
     const runner = await fixture.mintRunner('run_cloud_observe');
     const created = await fixture.postStart(runner, fixture.startBody({ nonce: 'cloud-observe' }));
     const work = created.body.worker as Worker;
-    const turnId = created.body.turnId as string;
+    const turnId = created.turnId as string;
 
     const socket = await fixture.attachComputer();
     socket.send(
@@ -153,7 +153,7 @@ test('a Run that never reached the provider settles with the reason its Agent re
         fixture.startBody({ nonce: 'cloud-undelivered' })
     );
     const work = created.body.worker as Worker;
-    const turnId = created.body.turnId as string;
+    const turnId = created.turnId as string;
     const summary =
         'The provider did not accept the follow-up within 30 minutes (31 attempts). Last error: Agent already has an active run in progress';
 
@@ -190,7 +190,7 @@ test('reconciliation corrects a first-observed start with the provider Run time'
     const runner = await fixture.mintRunner('run_cloud_sleep');
     const created = await fixture.postStart(runner, fixture.startBody({ nonce: 'cloud-sleep' }));
     const work = created.body.worker as Worker;
-    const turnId = created.body.turnId as string;
+    const turnId = created.turnId as string;
     const socket = await fixture.attachComputer();
     const report = (observation: Record<string, unknown>) =>
         socket.send(
@@ -227,7 +227,7 @@ test('a failed launch settles without provider ids and notifies its delegating A
         fixture.startBody({ nonce: 'launch-failed-notify' })
     );
     const work = created.body.worker as Worker;
-    const turnId = created.body.turnId as string;
+    const turnId = created.turnId as string;
     const socket = await fixture.attachComputer();
     const observation = {
         errorCode: 'provider-launch-failed',

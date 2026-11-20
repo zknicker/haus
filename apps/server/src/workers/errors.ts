@@ -1,16 +1,9 @@
-export class WorkerConflictError extends Error {
-    constructor(message = 'That Worker nonce already belongs to a different Message.') {
-        super(message);
-        this.name = 'WorkerConflictError';
-    }
-}
+import type { WorkerPlace } from '@haus/api';
 
-export class WorkerNotLaunchedError extends Error {
+export class WorkerConflictError extends Error {
     constructor() {
-        super(
-            'This Worker has no provider identity yet. Wait for its initial launch before sending a follow-up.'
-        );
-        this.name = 'WorkerNotLaunchedError';
+        super('That start nonce already started a different Worker. Use a new nonce.');
+        this.name = 'WorkerConflictError';
     }
 }
 
@@ -28,35 +21,66 @@ export class WorkerNotFoundError extends Error {
     }
 }
 
-export class WorkerSettledError extends Error {
+export class WorkerNotLiveError extends Error {
     constructor() {
-        super('That Worker has already settled.');
-        this.name = 'WorkerSettledError';
+        super('That Worker has no queued or working turn to stop.');
+        this.name = 'WorkerNotLiveError';
     }
 }
 
-export class WorkerCancelDeniedError extends Error {
+export class WorkerStopDeniedError extends Error {
     constructor() {
-        super('Only the delegating Agent, an Owner, or an Admin may cancel Worker.');
-        this.name = 'WorkerCancelDeniedError';
+        super('Only the Agent that started this Worker can stop it or send it a follow-up.');
+        this.name = 'WorkerStopDeniedError';
     }
 }
 
-/** The work outlives its removed Computer, but nothing can reach its provider now. */
-export class WorkerComputerRemovedError extends Error {
+export class WorkerHistoryReadOnlyError extends Error {
     constructor() {
-        super(
-            'The Computer that launched this Worker was removed, so Haus can no longer reach it.'
-        );
-        this.name = 'WorkerComputerRemovedError';
+        super('That Worker is read-only history from before Tasks. Start a new Worker on a Task.');
+        this.name = 'WorkerHistoryReadOnlyError';
+    }
+}
+
+export class WorkerClosedError extends Error {
+    constructor() {
+        super('That Worker closed with its Task and takes no more turns. Start a new Worker.');
+        this.name = 'WorkerClosedError';
     }
 }
 
 export class WorkerTaskRequiredError extends Error {
     constructor(
-        message = 'A Worker launch needs a Task. Start a Task for this work first, then launch the Worker on that Task by its key; the Worker reports there.'
+        message = 'A Worker needs a Task. Start a Task for this work first, then start the Worker on that Task by its key; the Worker reports there.'
     ) {
         super(message);
         this.name = 'WorkerTaskRequiredError';
+    }
+}
+
+export class WorkerTaskClosedError extends Error {
+    constructor(taskKey: string) {
+        super(`Task ${taskKey} is closed. Reopen it, or start the Worker on an open Task.`);
+        this.name = 'WorkerTaskClosedError';
+    }
+}
+
+export class WorkerPlaceRequiredError extends Error {
+    constructor(readyPlaces: readonly WorkerPlace[]) {
+        super(
+            readyPlaces.length > 0
+                ? `Say where the Worker runs with --on. Ready places: ${readyPlaces.join(', ')}.`
+                : 'Say where the Worker runs with --on. No place is ready: a Computer must connect Cursor or Claude first.'
+        );
+        this.name = 'WorkerPlaceRequiredError';
+    }
+}
+
+export class WorkerPlaceUnavailableError extends Error {
+    constructor(place: WorkerPlace) {
+        super(
+            `No online Computer has ${place} ready. Ask a person to connect it on a Computer, or pick another place.`
+        );
+        this.name = 'WorkerPlaceUnavailableError';
     }
 }

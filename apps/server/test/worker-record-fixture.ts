@@ -54,7 +54,15 @@ export function workerRecordFixture() {
         )
         values (
             ${computerId}, ${serverId}, ${ownerUserId}, ${credentialHash},
-            ${{ runtimes: [{ id: 'codex', label: 'Codex', models: [{ id: 'gpt-5.6-sol', label: 'Sol' }] }] }}::jsonb,
+            ${{
+                cloudAgentProviders: [
+                    { models: null, provider: 'cursor', ready: true, reason: null },
+                    { models: null, provider: 'claude', ready: true, reason: null },
+                ],
+                runtimes: [
+                    { id: 'codex', label: 'Codex', models: [{ id: 'gpt-5.6-sol', label: 'Sol' }] },
+                ],
+            }}::jsonb,
             'healthy'
         )
     `;
@@ -149,21 +157,24 @@ export function workerRecordFixture() {
         readUserId,
     };
 
-    function startBody(overrides: Record<string, string> = {}) {
+    function startBody(overrides: Record<string, string | undefined> = {}) {
         return {
-            content: 'Handing the flaky delivery test to a Worker.',
+            brief: 'Make the flaky delivery test deterministic.',
             nonce: 'cloud-default',
-            provider: 'cursor',
+            place: 'cursor',
             repository: 'haus/haus',
             startingRef: 'main',
-            target: '#product',
             task: task.key,
             title: 'Fix the flaky delivery test',
             ...overrides,
         };
     }
 
-    async function postStart(runner: { token: string } | null, body: Record<string, string>) {
+    async function postStart(
+        runner: { token: string } | null,
+        body: Record<string, string | undefined>
+    ) {
+        await harness.sql`update computers set health = 'healthy' where id = ${computerId}`;
         const response = await fetch(new URL('/api/agent/workers', harness.url), {
             body: JSON.stringify(body),
             headers: {
@@ -172,22 +183,21 @@ export function workerRecordFixture() {
             },
             method: 'POST',
         });
+        const parsed = (await response.json()) as {
+            code?: string;
+            message?: string;
+            state?: string;
+            worker?: Worker;
+        };
         return {
-            body: (await response.json()) as {
-                chatId?: string;
-                code?: string;
-                idempotent?: boolean;
-                messageId?: string;
-                turnId?: string;
-                target?: string;
-                worker?: Worker;
-            },
+            body: parsed,
             status: response.status,
+            turnId: parsed.worker?.turns.at(-1)?.turnId,
         };
     }
 
     async function postCancel(runner: { token: string }, workerId: string) {
-        const response = await fetch(new URL('/api/agent/workers/cancel', harness.url), {
+        const response = await fetch(new URL('/api/agent/workers/stop', harness.url), {
             body: JSON.stringify({ workerId }),
             headers: {
                 authorization: `Bearer ${runner.token}`,

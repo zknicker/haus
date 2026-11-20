@@ -1,4 +1,4 @@
-import type { ChatMessageReceipt, ChatSendInput } from '@haus/api';
+import type { ChatMessageReceipt, ChatSendInput, MessageBody } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
@@ -50,12 +50,22 @@ export interface SendChatMessageResult {
     wakes: Array<{ agentId: string; serverId: string }>;
 }
 
+/**
+ * A typed body a person's send carries, with the Server record it projects
+ * from; `record` writes that record in the send's transaction.
+ */
+export interface TypedSendBody {
+    body: MessageBody;
+    record: (tx: HausDatabase, messageId: string) => Promise<void>;
+}
+
 export async function sendChatMessage(
     db: HausDatabase,
     member: HausUser | null,
     input: ChatSendInput,
     agentDelivery: AgentDelivery,
-    messageRouter?: MessageRouter
+    messageRouter?: MessageRouter,
+    typedBody?: TypedSendBody
 ): Promise<SendChatMessageResult> {
     const preparedRouting = await prepareMessageRouting(db, member, input, messageRouter);
     return await db.transaction(async (tx) => {
@@ -139,6 +149,7 @@ export async function sendChatMessage(
             .insert(chatMessagesTable)
             .values({
                 authorUserId: member.id,
+                bodyKind: typedBody?.body.kind ?? 'text',
                 chatId: writeChatId,
                 content,
                 id: messageId,
@@ -151,6 +162,7 @@ export async function sendChatMessage(
             })
             .returning();
 
+        await typedBody?.record(tx, message.id);
         await associateMessageAttachments(tx, attachments, message.id, writeChatId);
         await recordMessageLinks(tx, {
             ...linked,
@@ -226,9 +238,9 @@ export async function sendChatMessage(
             ],
             receipt: {
                 idempotent: false,
-                // A human send never creates a typed body; this Message is text.
                 message: toChatMessage(message, {
                     attachments: attachmentMetadata(attachments),
+                    body: typedBody?.body,
                     workers:
                         (await readLinkedWorker(tx, input.serverId, [messageId])).get(messageId) ??
                         [],

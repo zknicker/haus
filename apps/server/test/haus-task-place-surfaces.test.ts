@@ -82,7 +82,7 @@ test('a reminder set on a Task shows on it, naming the Agent that set it', async
     ]);
 });
 
-test('launching work on a Task announces the Task, and work events and rows name it', async () => {
+test('starting a Worker on a Task names the Task in its event and its Happening now row', async () => {
     const runner = await fixture.mintRunner('run_surfaces_launch');
     await fixture.readTarget(runner, `task:${fixture.task.key}`);
     const started = await fixture.postStart(
@@ -92,7 +92,6 @@ test('launching work on a Task announces the Task, and work events and rows name
     expect(started.status).toBe(200);
     const workerId = started.body.worker?.id ?? '';
 
-    await taskEvents.next((event) => event.taskId === fixture.task.id);
     const workEvent = await workEvents.next((event) => event.workerId === workerId);
     expect(workEvent.taskId).toBe(fixture.task.id);
 

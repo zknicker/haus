@@ -190,7 +190,6 @@ export async function createClaim(
                 messageEvent,
                 claimEvent,
                 ...(await prepareMessageLinkEvents(tx, {
-                    cloudLinks,
                     imageLinks,
                     serverId: input.serverId,
                     taskLinks,

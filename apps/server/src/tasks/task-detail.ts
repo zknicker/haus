@@ -8,7 +8,7 @@ import {
     taskPullRequestsTable,
 } from '../postgres/schema.ts';
 import { pullRequestKey, readPullRequestReadings } from '../workers/pull-request-readings.ts';
-import { readWorkDetails, toWorker } from '../workers/worker-shape.ts';
+import { readWorkerDetails, toWorker } from '../workers/worker-shape.ts';
 import { isTaskFollowed } from './task-follows.ts';
 import { taskUnreadCount } from './task-unread.ts';
 
@@ -32,7 +32,7 @@ async function readAttachedWork(db: Reader, task: Task): Promise<Worker[]> {
         .from(workersTable)
         .where(and(eq(workersTable.serverId, task.serverId), eq(workersTable.taskId, task.id)))
         .orderBy(desc(workersTable.createdAt), desc(workersTable.id));
-    const details = await readWorkDetails(
+    const details = await readWorkerDetails(
         db,
         task.serverId,
         rows.map((row) => row.id)

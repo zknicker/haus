@@ -30,6 +30,11 @@ export const workerTurnsTable = pgTable(
         /** Set when the place took the turn; the turn counts against its place's limit until settled. */
         dispatchedAt: timestamp('dispatched_at', { withTimezone: true }),
         errorCode: text('error_code'),
+        /** The Agent send nonces this turn's follow-ups came from, so a retried send queues once. */
+        followUpNonces: text('follow_up_nonces')
+            .array()
+            .notNull()
+            .default(sql`'{}'::text[]`),
         id: text('id').primaryKey(),
         input: bunJsonb('input').$type<WorkerTurnInput[] | null>(),
         /** Saved params the sent model no longer offered, so they took its default. */

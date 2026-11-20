@@ -237,7 +237,6 @@ export async function createAgentClaims(
                     type: 'claim.created',
                 }),
                 ...(await prepareMessageLinkEvents(tx, {
-                    cloudLinks,
                     imageLinks,
                     serverId: runner.serverId,
                     taskLinks,

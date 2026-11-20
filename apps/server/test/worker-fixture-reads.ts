@@ -39,7 +39,8 @@ export function workerFixtureReads(
     async function readAttentions(turnId: string) {
         return (await harness().sql`
         select id from agent_inbox
-        where server_id = ${serverId()} and source = 'worker_report' and dedupe_key = ${turnId}
+        where server_id = ${serverId()} and source = 'worker_report'
+            and dedupe_key = ${`worker-report:${turnId}`}
     `) as { id: string }[];
     }
 
