@@ -104,7 +104,7 @@ export function ServerShell({
         />
     );
     const capyActions = topbarInWindow ? null : (
-        <CapySidebarActions serverId={server.id} slug={slug} />
+        <CapySidebarActions canOperate={canOperate} serverId={server.id} slug={slug} />
     );
     return (
         <AppShell className="w-full">
@@ -148,6 +148,7 @@ export function ServerShell({
                                             header={
                                                 capyShell && topbarInWindow ? (
                                                     <CapySidebarHeader
+                                                        canOperate={canOperate}
                                                         serverId={server.id}
                                                         slug={slug}
                                                     />
