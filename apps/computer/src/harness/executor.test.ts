@@ -435,7 +435,7 @@ test('projects a concrete fire and a claim assignment into the first prompt', as
         content: [
             '🔔 Reminder: Check the deploy',
             'fire=rmf_9a8b7c6d',
-            'reply with: --cause rmf_9a8b7c6d on the command that posts (haus message send or haus worker start)',
+            'reply with: --cause rmf_9a8b7c6d on haus message send',
         ].join('\n'),
         createdAt: '2026-07-27T00:00:00.000Z',
         id: 'rmf_9a8b7c6d',
@@ -453,7 +453,7 @@ test('projects a concrete fire and a claim assignment into the first prompt', as
     expect(streamedPrompts[0]).toContain(
         '[target=#general msg=- time=2026-07-27 00:00:00 UTC type=system] reminder: 🔔 Reminder: Check the deploy'
     );
-    expect(streamedPrompts[0]).toContain('reply with: --cause rmf_9a8b7c6d on the command');
+    expect(streamedPrompts[0]).toContain('reply with: --cause rmf_9a8b7c6d on haus message send');
 
     streamedPrompts = [];
     const assignment = {
