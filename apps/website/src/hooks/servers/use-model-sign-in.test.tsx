@@ -22,7 +22,7 @@ const signIn: ModelSignIn = {
 
 function mountHook<T>(useHook: () => T, answer?: (call: RecordedCall) => unknown) {
     return mountCallHook(useHook, answer, (queryClient) =>
-        queryClient.setQueryData(listKey, { agentLoop: 'runner', connections: [] })
+        queryClient.setQueryData(listKey, { connections: [], runnerModels: null })
     );
 }
 
@@ -153,7 +153,7 @@ describe('device sign-in', () => {
 
         const storing: ModelSignIn = { ...signIn, state: 'storing' };
         harness.queryClient.setQueryData(key, storing);
-        harness.queryClient.setQueryData(listKey, { agentLoop: 'runner', connections: [] });
+        harness.queryClient.setQueryData(listKey, { connections: [], runnerModels: null });
         answer = { cancelled: false, reason: 'finished' };
         await harness.act(() => hook().mutateAsync({ serverId, signInId: 'msi_1' }));
         expect(harness.queryClient.getQueryData<ModelSignIn>(key)).toEqual(storing);

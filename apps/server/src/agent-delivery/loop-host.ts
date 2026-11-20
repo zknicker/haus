@@ -7,7 +7,10 @@ import { agentsTable } from '../postgres/schema.ts';
 import type { DeliveryTransport, DispatchPlan } from './delivery.ts';
 import { readDeliveryState } from './store.ts';
 
-export type AgentLoopHost = { kind: 'runner'; machineId?: string };
+export interface AgentLoopHost {
+    kind: 'runner';
+    machineId?: string;
+}
 
 export interface RunnerWire {
     isOnline(): boolean;

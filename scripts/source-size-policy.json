@@ -45,7 +45,7 @@
         "apps/computer/src/update.test.ts": 340,
         "apps/ios-swift/Sources/HausUI/Chat/MessageComposerView.swift": 356,
         "apps/ios-swift/Tests/HausTransportTests/TRPCClientTests.swift": 322,
-        "apps/server/src/agent-delivery/delivery.ts": 831,
+        "apps/server/src/agent-delivery/delivery.ts": 829,
         "apps/server/src/agent-delivery/store.ts": 725,
         "apps/server/src/computers/login-service.ts": 321,
         "apps/server/src/development/seed-server.ts": 338,
@@ -78,7 +78,7 @@
         "apps/website/src/hooks/agents/current-agent-activity.test.ts": 352,
         "packages/haus-sdk/src/client.ts": 415,
         "scripts/agent-tests/kit.test.mjs": 445,
-        "scripts/dev-stack-controller.mjs": 512,
+        "scripts/dev-stack-controller.mjs": 511,
         "scripts/dev-stack-shared.mjs": 342,
         "scripts/env-contract-check.ts": 327,
         "scripts/eval-harness.mjs": 418

@@ -13,10 +13,7 @@ import type { HausServerApplicationOptions } from '../haus-server-options.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { modelConnectionsUpdatedTopic } from '../realtime/topics.ts';
 import { type SecretsKey, SecretsKeyMissingError } from '../secrets/sealed-secret.ts';
-import {
-    type AgentModelCatalog,
-    computerModelCatalog,
-} from '../server-agents/agent-model-catalog.ts';
+import type { AgentModelCatalog } from '../server-agents/agent-model-catalog.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import {
     ModelConnectionNotFoundError,
@@ -45,7 +42,6 @@ export class ModelConnectionRelay {
     private readonly signIns = new ModelSignIns();
     private reportedMissingKey = false;
 
-    readonly agentLoop = 'runner' as const;
     readonly catalog: AgentModelCatalog;
     readonly secretsKey: SecretsKey | null;
 
