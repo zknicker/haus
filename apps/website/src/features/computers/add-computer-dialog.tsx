@@ -1,15 +1,18 @@
 import { Button, Modal } from '@heroui/react';
 import { ComputerIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
+import { AddDeviceProgress } from './add-device-progress.tsx';
 import { ComputerSetupCommands } from './computer-setup-commands.tsx';
 
 export function AddComputerDialog({
     onOpenChange,
     open,
+    serverId,
     serverSlug,
 }: {
     onOpenChange: (open: boolean) => void;
     open: boolean;
+    serverId: string;
     serverSlug: string;
 }) {
     return (
@@ -27,8 +30,11 @@ export function AddComputerDialog({
                         </p>
                     </Modal.Header>
                     <Modal.Body>
-                        <div className="pt-2">
+                        <div className="flex flex-col gap-4 pt-2">
                             <ComputerSetupCommands serverSlug={serverSlug} />
+                            {open ? (
+                                <AddDeviceProgress serverId={serverId} serverSlug={serverSlug} />
+                            ) : null}
                         </div>
                     </Modal.Body>
                     <Modal.Footer>
