@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from 'bun:test';
+import { driveRoutes } from '../runner-drive-routes.ts';
 import {
     drainCleanups,
-    driveRoutes,
     runCredential,
     type ServerStandIn,
     serverStandIn,

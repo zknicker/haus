@@ -14,11 +14,7 @@ import {
     restoreMachinePaths,
 } from './machine-paths.ts';
 
-const computerEntrypoint = join(
-    dirname(fileURLToPath(import.meta.resolve('@haus/computer/package.json'))),
-    'src',
-    'index.ts'
-);
+const agentCliEntrypoint = fileURLToPath(import.meta.resolve('@haus/agent-cli/bin'));
 
 const machineFileReadMaxBytes = 256 * 1024 ** 2;
 
@@ -84,7 +80,7 @@ async function spawnAgentCli(input: {
     const timeout = AbortSignal.timeout(input.timeoutMs);
     const signal = AbortSignal.any([input.signal, timeout]);
     try {
-        const child = Bun.spawn([process.execPath, computerEntrypoint, '__agent', ...input.argv], {
+        const child = Bun.spawn([process.execPath, agentCliEntrypoint, ...input.argv], {
             cwd: input.workdir,
             env: {
                 HAUS_AGENT_ID: input.authority.agentId,

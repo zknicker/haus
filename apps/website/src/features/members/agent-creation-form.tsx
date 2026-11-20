@@ -36,6 +36,7 @@ interface AgentCreationFormProps {
     agents: readonly Agent[];
     error: { message: string } | null;
     isPending: boolean;
+    onAddDevice?: () => void;
     onCreated: (agentId: string) => void;
     onSubmit: (values: AgentCreationSubmitValues) => Promise<{ agentId: string }>;
     projects: readonly HomeProjectOption[];
@@ -46,6 +47,7 @@ export function AgentCreationForm({
     agents,
     error,
     isPending,
+    onAddDevice,
     onCreated,
     onSubmit,
     projects,
@@ -179,6 +181,11 @@ export function AgentCreationForm({
                         }
                         value={computer?.id ?? ''}
                     />
+                    {reported.length === 0 && onAddDevice ? (
+                        <Button onPress={onAddDevice} size="sm" variant="secondary">
+                            Add a device
+                        </Button>
+                    ) : null}
                     <TextField
                         fullWidth
                         onChange={setDisplayName}

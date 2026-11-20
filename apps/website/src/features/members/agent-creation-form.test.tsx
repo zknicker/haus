@@ -136,3 +136,21 @@ test('with no Project the form asks for one first and cannot create', () => {
         /<button[^>]*disabled=""[^>]*type="submit"|<button[^>]*type="submit"[^>]*disabled=""/u
     );
 });
+
+test('with no device, New Captain offers a way to add one', () => {
+    const markup = renderToStaticMarkup(
+        <AgentCreationForm
+            agents={[]}
+            error={null}
+            isPending={false}
+            onAddDevice={() => undefined}
+            onCreated={() => undefined}
+            onSubmit={async () => ({ agentId: 'agt_1234567890abcdef' })}
+            projects={projects}
+            reported={[]}
+        />
+    );
+
+    expect(markup).toContain('Connect a device before you can create this Captain.');
+    expect(markup).toContain('Add a device');
+});

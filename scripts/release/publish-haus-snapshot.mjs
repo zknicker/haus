@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { hausSnapshotKeys, resolveReleaseSnapshot } from './release-snapshot.mjs';
 import { readJson, repoRoot } from './release-utils.mjs';
+import { readUnshippedIOSVersions } from './unshipped-ios.mjs';
 import { verifyPublicHausRelease } from './verify-public-haus-release.mjs';
 
 export async function publishHausSnapshotInOrder(operations, content) {
@@ -26,7 +27,10 @@ export async function publishHausSnapshotInOrder(operations, content) {
 
 async function main() {
     const sourceRevision = process.env.GITHUB_SHA ?? gitHead();
-    const snapshot = resolveReleaseSnapshot(await readJson('releases.json'), { sourceRevision });
+    const snapshot = resolveReleaseSnapshot(await readJson('releases.json'), {
+        sourceRevision,
+        unshippedIOSVersions: readUnshippedIOSVersions(),
+    });
     const keys = hausSnapshotKeys(snapshot.version);
     const s3Root = requiredEnv('HAUS_RELEASE_S3_URI').replace(/\/+$/u, '');
     const temporaryRoot = await mkdtemp(path.join(tmpdir(), 'haus-release-snapshot-'));

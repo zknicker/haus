@@ -93,7 +93,7 @@ export function createClaudeCodeDriver(options: ClaudeCodeDriverOptions): Runtim
             await pool.evict(warmKey);
         }
         if (warm) {
-            warm.hostTools.replaceTools(options.tools);
+            warm.hostTools?.replaceTools(options.tools);
             return warm;
         }
         input.signal?.throwIfAborted();

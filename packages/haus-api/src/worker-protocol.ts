@@ -1,6 +1,6 @@
 import * as z from 'zod';
 import { idSchema } from './chat.ts';
-import { workerPlaceSchema } from './worker-outcome.ts';
+import { workerPlaceSchema } from './worker-place.ts';
 import { cloudAgentCapabilityStateSchema, cloudAgentProviderSchema } from './worker-shared.ts';
 import { workerObservationSchema, workerReconcileEntrySchema } from './worker.ts';
 

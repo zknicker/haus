@@ -7,6 +7,7 @@ import type {
 import { type ComputerRuntimeId, computerRuntimeCatalog } from '@haus/api/computer-runtime';
 import { resolveRuntimeById } from './runtime-discovery.ts';
 import { supportsSubagents } from './runtime/runtime-subagents.ts';
+import { detectWorkerRuntimes } from './workers/computer/runtime-readiness.ts';
 import { detectCloudAgentProviders } from './workers/registry.ts';
 
 type ComputerRuntime = ComputerInventory['runtimes'][number];
@@ -61,6 +62,7 @@ export async function detectFullInventory(options: {
             options.defaultCloudAgentProvider ?? 'cursor',
             options.dataRoot
         ),
+        workerRuntimes: await detectWorkerRuntimes(),
     };
 }
 

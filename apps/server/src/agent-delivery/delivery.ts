@@ -58,11 +58,13 @@ import type { EnqueueInput } from './enqueue-input.ts';
 import * as failureHold from './failure-hold.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
+import { inboxWork } from './inbox-work.ts';
 import { interruptActiveRun } from './interrupt-active-run.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
 import {
     type AgentLoopHost,
     AgentLoopRoute,
+    hostName,
     type AgentLoopWiring,
     type LoopFrame,
     startOf,
@@ -107,7 +109,7 @@ interface DispatchOptions {
  */
 export class AgentDelivery {
     private readonly wakePauseLifts = new failureHold.WakePauseLifts();
-    private readonly route: AgentLoopRoute;
+    readonly route: AgentLoopRoute;
 
     constructor(
         private readonly db: HausDatabase,
@@ -126,8 +128,7 @@ export class AgentDelivery {
      */
     async enqueue(tx: HausDatabase, input: EnqueueInput): Promise<void> {
         const source = input.source ?? 'human';
-        await store.ensureDeliveryState(tx, { agentId: input.agentId, serverId: input.serverId });
-        await store.enqueueInboxItem(tx, { ...input, source });
+        await inboxWork.enqueue(tx, { ...input, source });
         // Only human intent lifts a wake pause, releases a failure hold, or
         // releases the automation chain ceiling, even when older Agent or
         // Trigger rows precede it. Agent and automation work queues behind any hold.
@@ -212,20 +213,16 @@ export class AgentDelivery {
     /** Restarts the executor while preserving the Agent's current session. */
     async restart(input: { agentId: string; serverId: string }): Promise<void> {
         const config = await readAgentDispatchConfig(this.db, input.agentId);
-        if (!(config?.computerId && this.transport.isOnline(config.computerId))) {
-            throw new Error('The assigned Computer must be online to restart this Agent.');
+        const host = config?.computerId ? this.route.hostOf(config.computerId) : null;
+        if (!(host && this.route.isOnline(host))) {
+            throw new Error(`The ${hostName(host)} must be online to restart this Agent.`);
         }
         const interrupted = await interruptActiveRun(this.db, input);
         if (interrupted) {
             this.announceKilledRun(input, interrupted);
         }
-        if (
-            !this.transport.send(config.computerId, {
-                agentId: input.agentId,
-                type: 'agent-restart',
-            })
-        ) {
-            throw new Error('The assigned Computer disconnected before the Agent could restart.');
+        if (!this.route.send(host, { agentId: input.agentId, type: 'agent-restart' })) {
+            throw new Error(`The ${hostName(host)} disconnected before the Agent could restart.`);
         }
         await this.start(input);
     }
@@ -261,12 +258,13 @@ export class AgentDelivery {
         if (result.configuration) {
             sendDeferredConfiguration(this.transport, input.agentId, result.configuration);
         }
+        const reset = { kind: input.kind, sessionGeneration: result.sessionGeneration };
         this.transport.send(result.computerId, {
+            ...reset,
             agentId: input.agentId,
-            kind: input.kind,
-            sessionGeneration: result.sessionGeneration,
             type: 'agent-reset',
         });
+        this.route.toRunner({ ...reset, agentId: input.agentId, type: 'agent-reset' });
     }
 
     async onAck(input: { agentId: string; runId: string }): Promise<void> {

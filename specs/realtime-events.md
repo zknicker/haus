@@ -630,7 +630,7 @@ deletion between pages reorders the conversation by its next newest message with
 Agent behavior does not change. The Agent prompt (`managed-instructions.ts`), Manual
 (`agent-manual/src/corpus/cli-families-a.ts`), and `haus inbox check` help name the token
 `--before <key>`: the `More:` line prints the exact command and the Agent copies it, so the
-token's shape is invisible. The Computer CLI (`apps/computer/src/agent-cli/agent-inbox-schemas.ts`,
+token's shape is invisible. The Agent CLI (`packages/agent-cli/src/agent-inbox-schemas.ts`,
 `commands/agent-inbox.ts` `parseBefore`, `agent-inbox-format.ts`) accepts any non-empty token up
 to 200 characters and its tests use string keys.
 
@@ -846,7 +846,7 @@ Docs: `docs/operations/testing.md` names the restart control and the incident de
 | Server | `apps/server/src/realtime/` (new), every publish call site above, `haus-api/*/on-*.ts` procedures and routers, `chat.message` procedure, `server/membership-loss.ts` + tRPC `errorFormatter`, `chats/` event files, `push/`, `agent-api/inbox-conversations.ts`, send replay, schema + migration, `development/seed-message-events.ts`, `apps/server/test/*` |
 | App | `apps/website/src/hooks/realtime/`, `lib/targeted-read-coalescer.ts`, `features/servers/chat/kept-chat-views.tsx`, `lib/start-reconciliation.ts`, the transcript reshaping files above, `hooks/servers/chat-events/` (deleted), `use-server-events.ts` (split), `hooks/servers/membership-*`, notifications, `lib/query-*`, `lib/pushed-snapshot*`, server shell, desktop focus bridge |
 | App e2e | `apps/website/e2e/start-haus-server.ts`, `e2e/support/server.ts`, `e2e/tests/realtime-server-restart.spec.ts`, `e2e/tests/chat-event-recovery.spec.ts` (deleted) |
-| Computer | `apps/computer/src/agent-cli/{agent-inbox-schemas,agent-inbox-format}.ts`, `commands/agent-inbox.ts` and tests |
+| Agent CLI | `packages/agent-cli/src/{agent-inbox-schemas,agent-inbox-format}.ts`, `commands/agent-inbox.ts` and tests |
 | iPhone | `apps/ios-swift` files listed above |
 | Live tracer | `scripts/run-dev-stack.mjs`, `apps/website/agent-e2e/` |
 

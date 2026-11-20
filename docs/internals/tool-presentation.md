@@ -192,7 +192,7 @@ both pure and both proved on their own:
   the command they guard, `fi`/`done`/`[` never name a row, and a pipeline with a plainer
   name reads as its purpose (`find packages -type f | wc -l` → `Counted files in packages`).
   A real `haus`
-  command — the Agent CLI names in `apps/computer/src/agent-cli.ts` — reads as the
+  command — the Agent CLI names in `packages/agent-cli/src/agent-cli.ts` — reads as the
   product action it is, from its parsed arguments (`turn-trace-haus-command.ts`):
   `Sent a message to #product`, `Sent a message to DM` (never the peer's name),
   `Replied in DM` for `--reply-to`,

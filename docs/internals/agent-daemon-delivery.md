@@ -413,7 +413,7 @@ composition bubble remains tied only to an explicit in-flight message and its co
 | Addressed drains, warm drain candidates, and the unread digest partition | `apps/server/test/agent-inbox-lanes.test.ts`, `apps/server/test/agent-inbox-digest.test.ts` |
 | Every model-visible identity consumes one local notice contribution | `apps/computer/src/inbox-store.test.ts`, `apps/computer/src/proxy.test.ts` |
 | Live notice injection cannot race accepted-run consumption | `apps/computer/src/inbox-store.test.ts`, `apps/computer/src/harness/executor.test.ts` |
-| Pipe and redirected-file input reach the managed Agent CLI | `apps/computer/src/agent-cli/stdin.test.ts` |
+| Pipe and redirected-file input reach the managed Agent CLI | `packages/agent-cli/src/stdin.test.ts` |
 | Durable accepted inbox; accepted crash replays | `apps/computer/src/delivery.test.ts`, `apps/computer/src/inbox-store.test.ts` |
 | One concurrent turn per Agent | `apps/computer/src/delivery.test.ts` |
 | Server resends accepted in-flight work after reconnect | `apps/server/test/agent-delivery.test.ts` |

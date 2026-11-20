@@ -28,12 +28,15 @@ Workers and their places are [ADR 0056](../docs/adr/0056-agents-run-quiet-worker
   | `chat_id` | The channel's Chat id, primary key, references `chats` |
   | `server_id` | The Server |
   | `task_key_id` | The Project's key, a `task_keys` row, unique across Projects |
-  | `default_worker_place` | `computer:<computerId>`, `cursor`, `claude`, or null |
+  | `default_worker_place` | `computer`, `cursor`, `claude`, or null |
+  | `default_worker_computer_id` | The Computer when the place is `computer`, else null |
 
   The everyone channel `#all` is the chat whose `chats.is_all` is true, exactly one per Server and
   always named `all`. It has no `projects` row: `projects.chat_is_all` joins the composite
   `projects_chat_fk` to `chats.is_all` and `projects_chat_not_all` requires it false, so Postgres
-  refuses a Project on `#all` (migration `0142_all-is-a-chat`, ADR 0059 decision 5). `default_worker_place` lands with W3.
+  refuses a Project on `#all` (migration `0142_all-is-a-chat`, ADR 0059 decision 5). The default
+  place landed with W3 (migration 0144). A check keeps the Computer id set exactly when the place
+  is `computer`, and the API renders it as `computer:<computerId>`.
   Repos are `project_repos` rows ([Repos](#repos)). Home Agents are `agents.home_project_id`
   ([Agents](#agents)). Name, description, icon, color, archive, and delete stay on the channel's
   Chat row as they are today ([chats.md](chats.md#channels-are-projects)).
@@ -64,8 +67,8 @@ Settings sit behind the channel header menu. There is no Overview pane.
 | Key | `projects.task_key_id` | J2 |
 | Agents | `agents.home_project_id` | J3 |
 | `AGENTS.md` | A link that opens `projects/<key>/AGENTS.md` in Drive | J2 |
-| Repos, and which Computers link each | `project_repos` | W3 |
-| Default place for Workers | `projects.default_worker_place` | W3 |
+| Repos, and which Computers link each | `project_repos`, `project_repo_links` | W3 (API), W4 (UI) |
+| Default place for Workers | `projects.default_worker_place` | W3 (API), W4 (UI) |
 
 - Any person who can open the Project edits its settings, as channel editing works today. Agents
   never edit Project settings.
@@ -115,21 +118,31 @@ starts with a digit is prefixed with `P` before step 2.
 
 ### Repos
 
-- A repo is a `project_repos` row: the Project, a repository (`owner/name`), and per Computer an
-  optional local checkout path. A repo can be linked on several Computers and on none.
+- A repo is a `project_repos` row: the Project and a repository (`owner/name`), unique per
+  Project. A link is a `project_repo_links` row: the repo, a Computer, and an optional local
+  checkout path. A null path means the Computer clones the repo into its own data root on first
+  use. A repo can be linked on several Computers and on none.
 - Workers of the Project's Tasks run in a worktree of a linked repo
-  ([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md) decisions 6 and 7). W1 owns
-  the Worker side of this contract.
+  ([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md) decisions 6 and 7).
+  [Workers](workers.md#layout) owns the Worker side of this contract.
 - The person who attached a Computer, or an Owner or Admin, links a repo on that Computer, the
   same people who set its "Workers can run here" switch.
+- The API exists since W3: `project.addRepo`, `project.removeRepo`, `project.linkRepo`, and
+  `project.unlinkRepo`, each publishing `project.updated`. The settings UI is W4. Until it ships, a
+  Worker start that names a repo the Project lacks adds it
+  ([Workers](workers.md#w3-transitional-decisions)).
 
 ### Default place for Workers
 
 - `default_worker_place` is where a Worker of this Project's Tasks runs unless the Agent names a
   place. Null means the Agent must name one, and the Worker CLI says so.
 - A `computer:` place must name a Computer whose "Workers can run here" switch is on. Turning the
-  switch off clears every Project default that names it. This replaces the per-Computer **Make
-  default** provider setting.
+  switch off clears every Project default that names it, and removing the Computer clears them
+  first in the same transaction. This replaces the per-Computer **Make default** provider setting.
+- The API exists since W3: `project.setDefaultWorkerPlace { serverId, projectId, place | null }`,
+  publishing `project.updated`. The settings UI is W4. Until it ships, a Project with no default
+  falls back to the Agent's Computer's **Make default** cloud provider
+  ([Workers](workers.md#w3-transitional-decisions)).
 
 ## The Haus project
 

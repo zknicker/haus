@@ -1,0 +1,1 @@
+process.env.HAUS_COMPUTER_USAGE_DISABLED = '1';

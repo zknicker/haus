@@ -2,7 +2,7 @@ import { afterEach } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { WorkerTurnStartFrame } from '@haus/api';
+import { isCloudWorkerPlace, type WorkerTurnStartFrame } from '@haus/api';
 import { makeTestRuntime } from '@haus/effect';
 import type { CloudAgentProvider } from './provider.ts';
 import { WorkerTurnJournal } from './turn-journal.ts';
@@ -11,26 +11,37 @@ import { WorkerSupervisor } from './work-runner.ts';
 
 export const serverId = 'srv_cloud';
 export const workerId = 'wkr_1234567890abcdef';
+export const computerServer = {
+    credential: 'computer-credential',
+    serverOrigin: 'http://127.0.0.1:9',
+};
 
 export function turnStartFrame(overrides: Partial<WorkerTurnStartFrame> = {}) {
     return {
+        agentId: 'agt_1234567890abcdef',
+        attempt: 1,
+        checkout: null,
         input: 'Fix the flaky delivery test.',
         model: { droppedParams: [], fallbackFrom: null, id: null, params: [] },
-        place: 'cursor',
+        place: { kind: 'cursor' },
         predecessorTurnIds: [],
         providerAgentId: null,
         repository: 'haus/haus',
+        resumeSessionId: null,
+        runtime: null,
         startingRef: 'main',
         title: 'Fix the flaky delivery test',
         turnId: 'wkt_1234567890abcdef',
         type: 'worker-turn-start',
         workerId,
+        workerMdRevisionId: null,
         ...overrides,
     } satisfies WorkerTurnStartFrame;
 }
 
 export function reconcileEntry(frame: WorkerTurnStartFrame, stopRequested = false) {
     return {
+        attempt: null,
         place: frame.place,
         providerAgentId: frame.providerAgentId,
         providerRunId: null,
@@ -42,8 +53,11 @@ export function reconcileEntry(frame: WorkerTurnStartFrame, stopRequested = fals
 }
 
 export function turnRef(frame: WorkerTurnStartFrame) {
+    if (!isCloudWorkerPlace(frame.place)) {
+        throw new Error('The supervisor fixture builds cloud turns only.');
+    }
     return {
-        provider: frame.place,
+        provider: frame.place.kind,
         providerAgentId: frame.providerAgentId,
         providerRunId: null,
         turnId: frame.turnId,
@@ -67,6 +81,7 @@ export function registerSupervisorFixture() {
         });
         const start = () => {
             const work = new WorkerSupervisor(runtime, {
+                server: computerServer,
                 dataRoot,
                 enrich: async (observation) => observation,
                 provider: () => provider,

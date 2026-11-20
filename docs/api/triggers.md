@@ -314,7 +314,7 @@ routing, matching, projection, and recovery in `apps/server/src/github/`. The pu
 `apps/server/src/agent-api/trigger-routes.ts`, and the tRPC features are
 `apps/server/src/haus-api/trigger/` and
 `apps/server/src/haus-api/automation/`; the CLI verbs live in
-`apps/computer/src/agent-cli/commands/`.
+`packages/agent-cli/src/commands/`.
 
 ## Agent edits and selection preview
 

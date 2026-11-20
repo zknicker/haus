@@ -1,6 +1,6 @@
 /**
  * Reads a `haus` Agent CLI call as the product action it is. The command
- * names come from the CLI's own dispatcher (`apps/computer/src/agent-cli.ts`);
+ * names come from the CLI's own dispatcher (`packages/agent-cli/src/agent-cli.ts`);
  * targets follow its `#channel` / `dm:@peer` grammar, where a trailing
  * `:<shortId>` addresses a message thread. A display heuristic, not a shell
  * parser: anything it cannot read degrades to the generic verb.

@@ -115,7 +115,7 @@ test('Happening now shows gallery samples and settled work keeps its evidence', 
 
     expect(chatWork).toHaveLength(1);
     expect(settled?.worker).toMatchObject({
-        place: 'cursor',
+        place: { kind: 'cursor' },
         repository: 'zknicker/haus',
         status: 'done',
     });

@@ -6,6 +6,7 @@ import { getArtifactAtPath } from '../artifacts/read.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { sendArtifactError } from './artifact-errors.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
+import { authorizeDriveReader } from './worker-auth.ts';
 
 const moveBody = artifactMoveInputSchema.omit({ serverId: true });
 const resolveQuery = artifactResolveInputSchema.omit({ serverId: true });
@@ -18,7 +19,7 @@ export function registerAgentArtifactDriveRoutes(
     app.get(
         '/api/agent/artifacts/by-path',
         async (request, reply) =>
-            await withAgent(options.db, request, reply, async (actor) => ({
+            await withActor(authorizeDriveReader, options.db, request, reply, async (actor) => ({
                 artifact: await getArtifactAtPath(
                     options.db,
                     actor,
@@ -30,7 +31,7 @@ export function registerAgentArtifactDriveRoutes(
     app.post(
         '/api/agent/artifacts/move',
         async (request, reply) =>
-            await withAgent(options.db, request, reply, async (actor) =>
+            await withActor(authorizeAgentActor, options.db, request, reply, async (actor) =>
                 moveArtifacts(
                     options.db,
                     actor,
@@ -41,15 +42,16 @@ export function registerAgentArtifactDriveRoutes(
     );
 }
 
-async function withAgent(
+async function withActor(
+    authorize: (db: HausDatabase, request: FastifyRequest) => Promise<ArtifactActor | null>,
     db: HausDatabase,
     request: FastifyRequest,
     reply: FastifyReply,
     run: (actor: ArtifactActor) => Promise<unknown>
 ) {
     try {
-        const runner = await authorizeAgentRunner(db, request);
-        if (!runner) {
+        const actor = await authorize(db, request);
+        if (!actor) {
             return sendAgentApiError(
                 reply,
                 401,
@@ -57,8 +59,13 @@ async function withAgent(
                 'A valid runner credential is required.'
             );
         }
-        return await run({ kind: 'agent', runner });
+        return await run(actor);
     } catch (cause) {
         return sendArtifactError(reply, cause);
     }
+}
+
+async function authorizeAgentActor(db: HausDatabase, request: FastifyRequest) {
+    const runner = await authorizeAgentRunner(db, request);
+    return runner ? ({ kind: 'agent', runner } satisfies ArtifactActor) : null;
 }

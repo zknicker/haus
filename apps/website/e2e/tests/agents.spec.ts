@@ -26,10 +26,11 @@ const inventory = {
 test('creates an ordinary Agent after inventory is reported and fails closed on unreported config', async ({
     page,
 }) => {
-    const { client: owner } = await createTestServer(page, {
+    const { client: owner, server } = await createTestServer(page, {
         displayName: 'Agent HQ',
         slug: 'agent-hq',
     });
+    await owner.project.create.mutate({ name: 'product', serverId: server.id });
     const attachment = await attachComputer(owner, {
         credential: computerCredential,
         slug: 'agent-hq',
@@ -111,7 +112,7 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await runAgentAction(page, 'Scout', 'Full reset');
     const resetConfirmation = page.getByRole('alertdialog', { name: 'Full Reset?' });
     await expect(resetConfirmation).toContainText('MEMORY.md');
-    await expect(resetConfirmation).toContainText('kept');
+    await expect(resetConfirmation).toContainText('Recently deleted');
     await resetConfirmation.getByRole('button', { name: 'Cancel' }).click();
     await expect(resetConfirmation).toBeHidden();
 

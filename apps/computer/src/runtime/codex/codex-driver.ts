@@ -13,7 +13,13 @@ import {
     codexPinFingerprint,
     resolvePinnedCodex,
 } from './codex-executable.ts';
-import { type CodexLaunchFacts, codexProcessEnv, prepareCodexHome } from './codex-launch.ts';
+import {
+    type CodexLaunchFacts,
+    codexMcpServers,
+    codexProcessEnv,
+    codexThreadParams,
+    prepareCodexHome,
+} from './codex-launch.ts';
 import { CodexSession, type CodexSessionHooks } from './codex-session.ts';
 import {
     type CodexProcessLaunch,
@@ -73,7 +79,7 @@ async function openCodexSession(
           )
         : undefined;
     if (warm) {
-        warm.server.hostTools.replaceTools(options.tools);
+        warm.server.hostTools?.replaceTools(options.tools);
         return warm.reopen();
     }
     if (!threadId) {
@@ -120,10 +126,12 @@ async function openCodexSession(
     );
     try {
         const server = await openAppServer({
-            facts: options,
+            cwd: options.workspaceDir,
             hostTools,
             resumeThreadId: threadId,
             signal: deadline.signal,
+            threadParams: (configRead) =>
+                codexThreadParams(options, codexMcpServers(configRead, hostTools.mcp)),
             transport,
         });
         return new CodexSession(server, hooks, options.workspaceDir);

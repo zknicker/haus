@@ -16,6 +16,7 @@ export const sendWorkerFollowUpProcedure = memberProcedure
                 member,
                 input,
                 ctx.agentDelivery,
+                ctx.artifactStorage,
                 ctx.messageRouter
             );
             await commitWorkerEffects(sent.effects, workerSinks(ctx));
