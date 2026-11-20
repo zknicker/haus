@@ -5,6 +5,7 @@ import { mintTurnCredential } from './credentials.ts';
 import { pullWorkerDrive } from './drive-sync.ts';
 import { prepareWorkerCli, workerResumeState } from './harness.ts';
 import { resolveWorkerRepo } from './repos.ts';
+import { workerStepReporter } from './step-summary.ts';
 import {
     bounded,
     type ComputerPlaceContext,
@@ -174,12 +175,21 @@ async function runHarness(
             send: (line) =>
                 context.send({ ...line, turnId: frame.turnId, type: 'worker-turn-activity' }),
         });
+        const steps = workerStepReporter({
+            attempt: frame.attempt,
+            now: context.now,
+            send: context.send,
+            token: launch.env.HAUS_WORKER_TOKEN,
+            turnId: frame.turnId,
+        });
         let failure: string | null = null;
         for await (const event of turn.events) {
             await acceptInput();
             failure = failureOf(event) ?? failure;
             offer(activityLine(event));
+            steps.offer(event);
         }
+        steps.flush();
         await turn.settle();
         await session.stop().catch(() => session.destroy());
         return { branch, detail: failure, exit: exitOf(active, 'exited') };

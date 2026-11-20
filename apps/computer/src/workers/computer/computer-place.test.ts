@@ -8,6 +8,7 @@ import {
     workerTurnEndedFrameSchema,
     workerTurnInputAcceptedFrameSchema,
     workerTurnSessionFrameSchema,
+    workerTurnStepsFrameSchema,
 } from '@haus/api';
 import type { FakeTurnContext } from '../../runtime/testing/fake-runtime-driver.ts';
 import { finishedTurn } from '../../runtime/testing/fake-runtime-driver.ts';
@@ -29,6 +30,7 @@ const wireSchemas = {
     'worker-turn-ended': workerTurnEndedFrameSchema,
     'worker-turn-input-accepted': workerTurnInputAcceptedFrameSchema,
     'worker-turn-session': workerTurnSessionFrameSchema,
+    'worker-turn-steps': workerTurnStepsFrameSchema,
 };
 const ref = { turnId: 'wkt_1', workerId: 'wrk_1' };
 const git = (cwd: string, ...args: string[]) =>
@@ -62,6 +64,21 @@ describe('a Worker turn on a Computer', () => {
                 summary: 'Running git status',
                 turnId: 'wkt_1',
                 type: 'worker-turn-activity',
+            },
+            {
+                attempt: 1,
+                steps: [
+                    {
+                        additions: null,
+                        deletions: null,
+                        kind: 'run',
+                        label: 'git status',
+                        output: null,
+                        state: 'running',
+                    },
+                ],
+                turnId: 'wkt_1',
+                type: 'worker-turn-steps',
             },
             {
                 attempt: 1,
