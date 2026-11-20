@@ -63,6 +63,7 @@ export * from './agent-activity.ts';
 export * from './agent-claim-input.ts';
 export * from './agent-creation.ts';
 export * from './agent-deliveries.ts';
+export * from './agent-drive-sync.ts';
 export * from './agent-path-segment.ts';
 export * from './agent-execution.ts';
 export * from './agent-execution-journal-document.ts';

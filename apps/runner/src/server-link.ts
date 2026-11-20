@@ -14,7 +14,7 @@ import { type InvocationClock, systemInvocationClock } from './invocations/invoc
 import type { JournalUploads } from './journal/journal-uploads.ts';
 import type { ConnectionBook } from './model-connections/connection-book.ts';
 import { createSignIns } from './pi/pi-sign-ins.ts';
-import type { RunnerLink, TurnHost } from './run-context.ts';
+import type { AgentReset, RunnerLink, TurnHost } from './run-context.ts';
 import { createRunTools, type RunToolset } from './tools/run-tools.ts';
 import { harnessIds } from './turn/runtime-driver.ts';
 
@@ -62,6 +62,9 @@ export function openServerLink(input: {
         ...(input.signInProvider ? { provider: input.signInProvider } : {}),
     });
 
+    const resetAgent = (agentId: string, reset: AgentReset) =>
+        void input.turnHost.resetAgent(agentId, reset).catch(report('reset'));
+
     const handle = (frame: RunnerDownFrame) => {
         switch (frame.type) {
             case 'runner-hello-accepted':
@@ -80,6 +83,15 @@ export function openServerLink(input: {
                     );
                 }
                 return;
+            case 'agent-restart':
+                return resetAgent(frame.agentId, { scope: 'restart' });
+            case 'agent-reset':
+                return resetAgent(frame.agentId, {
+                    scope: frame.kind,
+                    sessionGeneration: frame.sessionGeneration,
+                });
+            case 'agent-retire':
+                return resetAgent(frame.agentId, { scope: 'retire' });
             case 'agent-execution-journal-ack':
                 return input.journal?.acknowledge(frame);
             case 'runner-model-connections':
@@ -99,6 +111,7 @@ export function openServerLink(input: {
         modelConnectionId,
         reasoningEffort,
         runCredential,
+        sessionResetKind,
         start,
     }: RunnerStartFrame) => {
         if (runs.has(start.runId)) {
@@ -130,6 +143,7 @@ export function openServerLink(input: {
                 authority,
                 modelConnectionId,
                 reasoningEffort: reasoningEffort ?? 'default',
+                sessionResetKind,
                 start,
                 tools,
             })

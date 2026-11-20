@@ -60,6 +60,7 @@ export async function connectedRunner(
         ledger,
         link,
         log: () => undefined,
+        release: pi.release,
     });
     const opened = openServerLink({
         book,

@@ -10,7 +10,18 @@ export async function authorizeAgentRunner(db: HausDatabase, request: FastifyReq
     const header = request.headers.authorization;
     const value = Array.isArray(header) ? header[0] : header;
     const token = typeof value === 'string' && value.startsWith('Bearer ') ? value.slice(7) : null;
-    return token ? await resolveRunnerCredential(db, token) : null;
+    return token
+        ? await resolveRunnerCredential(db, token, { driveSync: isDriveSyncRoute(request) })
+        : null;
+}
+
+function isDriveSyncRoute(request: FastifyRequest) {
+    const path = request.url.split('?')[0] ?? '';
+    return (
+        path.startsWith('/api/agent/drive/') ||
+        (request.method === 'GET' &&
+            /^\/api\/agent\/artifacts\/(?:by-path|[^/]+\/download)$/u.test(path))
+    );
 }
 
 export function sendAgentApiError(

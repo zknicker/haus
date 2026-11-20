@@ -54,7 +54,7 @@ export async function createVoiceAgentBridge(
         initialActivity,
         delegations,
         async synchronize() {
-            const current = await readVoiceTarget(db, member, scope);
+            const current = await readVoiceTarget(db, member, scope, options.host);
             if (!isActive()) {
                 return;
             }
