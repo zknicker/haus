@@ -107,6 +107,7 @@ export async function registerHausServerRoutes(
         db,
         githubApp: dependencies.githubApp,
         imageGeneration,
+        managedSkills: dependencies.managedSkills,
         mcpRuntime: dependencies.mcpRuntime,
         modelCatalog: dependencies.modelConnections.catalog,
         postCommitWork: dependencies.postCommitWork,

@@ -206,6 +206,5 @@ function usageWithCodexWindows(
             },
             status: 'ok',
         },
-        runtimeUsage: [],
     };
 }

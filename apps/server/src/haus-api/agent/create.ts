@@ -21,6 +21,10 @@ export const createAgentProcedure = memberProcedure
             for (const event of events) {
                 publishRealtime(event);
             }
+            await ctx.managedSkills.seedAgent(
+                { agentId: created.agent.id, serverId: input.serverId },
+                ctx.postCommitWork
+            );
             await ctx.agentDelivery.configureAgent({
                 agentDescription: created.agent.description,
                 agentId: created.agent.id,

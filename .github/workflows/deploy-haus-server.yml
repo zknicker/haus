@@ -232,6 +232,32 @@ jobs:
             "${HAUS_RELEASE_VERSION}" \
             "${HAUS_SOURCE_REVISION}"
 
+      # The runner image builds from the release's own tree, exported from the
+      # full-history checkout so the deploy tooling stays at the workflow
+      # revision. It builds before migration and activation, so a broken image
+      # fails the deploy while the previous Server still serves. A release that
+      # predates the runner leaves the running runner alone.
+      - name: Build the Agent runner image
+        env:
+          VARLOCK_ENV: production
+          DEPLOY_AGENT_PRODUCTION_OP_TOKEN: ${{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}
+        run: |
+          set -euo pipefail
+          if ! git cat-file -e "${HAUS_SOURCE_REVISION}:apps/runner/Dockerfile" 2>/dev/null; then
+            echo "The release predates the Agent runner; leaving the runner untouched."
+            exit 0
+          fi
+          release_tree="$(/usr/bin/mktemp -d "${RUNNER_TEMP}/haus-runner-source.XXXXXX")"
+          git archive "${HAUS_SOURCE_REVISION}" | /usr/bin/tar -x -C "${release_tree}"
+          HAUS_RUNNER_IMAGE_TAG="${HAUS_SOURCE_REVISION}" bunx varlock@1.16.1 run -- \
+            docker compose -f "${release_tree}/apps/server/compose.yml" -p haus --profile runner \
+              build haus-runner
+          previous_image="$(docker inspect --format '{{.Config.Image}}' haus-runner 2>/dev/null || true)"
+          {
+            echo "HAUS_RUNNER_SOURCE=${release_tree}"
+            echo "HAUS_RUNNER_PREVIOUS_IMAGE=${previous_image}"
+          } >>"${GITHUB_ENV}"
+
       # The delivered runtime copy. Rendered from .env.schema every deploy, so
       # a renamed or removed value can never survive in production, and mode
       # 0600 plus one ACL entry gives _haus_server exactly the read it needs
@@ -308,3 +334,65 @@ jobs:
 
       - name: Prove public Server and hosted Haus App
         run: bun scripts/release/verify-hosted-haus.mjs "${HAUS_RELEASE_VERSION#v}"
+
+      - name: Start the Agent runner
+        if: env.HAUS_RUNNER_SOURCE != ''
+        run: |
+          set -euo pipefail
+          echo "HAUS_RUNNER_REPLACED=true" >>"${GITHUB_ENV}"
+          HAUS_RUNNER_IMAGE_TAG="${HAUS_SOURCE_REVISION}" bunx varlock@1.16.1 run -- \
+            docker compose -f "${HAUS_RUNNER_SOURCE}/apps/server/compose.yml" -p haus \
+              --profile runner up -d --no-build --force-recreate --wait haus-runner
+        env:
+          VARLOCK_ENV: production
+          DEPLOY_AGENT_PRODUCTION_OP_TOKEN: ${{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}
+
+      - name: Prove the runner reaches only the Server
+        if: env.HAUS_RUNNER_SOURCE != ''
+        run: |
+          set -euo pipefail
+          docker exec -u haus-runner haus-runner \
+            /app/apps/runner/container/prove-network-deny.sh
+
+      # Keeps the running image and the one before it, the rollback target, so
+      # the host disk does not fill. A removal that fails only warns: the new
+      # runner is already proven, and a failed step here would roll it back.
+      - name: Prune old runner images
+        if: env.HAUS_RUNNER_SOURCE != ''
+        run: |
+          set -euo pipefail
+          current_image="haus-runner:${HAUS_SOURCE_REVISION}"
+          docker image ls --format '{{.Repository}}:{{.Tag}}' haus-runner |
+            while read -r image; do
+              if [[ "${image}" == "${current_image}" || "${image}" == "${HAUS_RUNNER_PREVIOUS_IMAGE}" || "${image}" == *"<none>" ]]; then
+                continue
+              fi
+              if ! docker image rm "${image}"; then
+                echo "::warning::Could not remove runner image ${image}."
+              fi
+            done
+
+      # A runner that fails to start or fails its deny proof never keeps
+      # running. The previous runner image comes back when there was one; the
+      # Server stays on the new release, which does not depend on the runner
+      # while Agents run on Computers. The haus_runner_data volume is kept.
+      - name: Roll the Agent runner back
+        if: failure() && env.HAUS_RUNNER_REPLACED == 'true'
+        env:
+          VARLOCK_ENV: production
+          DEPLOY_AGENT_PRODUCTION_OP_TOKEN: ${{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}
+        run: |
+          set -euo pipefail
+          if docker inspect haus-runner >/dev/null 2>&1; then
+            docker rm -f haus-runner
+          fi
+          previous_tag="${HAUS_RUNNER_PREVIOUS_IMAGE#haus-runner:}"
+          if [[ -z "${HAUS_RUNNER_PREVIOUS_IMAGE}" || "${previous_tag}" == "${HAUS_RUNNER_PREVIOUS_IMAGE}" ]]; then
+            echo "No previous runner image to restore; the runner stays stopped." >&2
+            exit 0
+          fi
+          HAUS_RUNNER_IMAGE_TAG="${previous_tag}" bunx varlock@1.16.1 run -- \
+            docker compose -f apps/server/compose.yml -p haus --profile runner \
+              up -d --no-build --wait haus-runner
+          docker exec -u haus-runner haus-runner \
+            /app/apps/runner/container/prove-network-deny.sh
