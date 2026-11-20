@@ -29,6 +29,7 @@ services:
     build:
       context: ../..
       dockerfile: apps/runner/Dockerfile
+    image: haus-runner:${HAUS_RUNNER_IMAGE_TAG:-local}
     container_name: haus-runner
     cap_add:
       - NET_ADMIN

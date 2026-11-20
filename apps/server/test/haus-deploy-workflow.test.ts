@@ -46,26 +46,38 @@ test('a deploy verifies, renders, migrates once, then activates, holding one pla
     expect(step('Apply database migrations')).not.toContain('until ');
 });
 
-test('a deploy starts the Agent runner from the release commit after the Server, then proves its network deny', () => {
+test('a deploy builds the runner from the release tree before activation and rolls it back on failure', () => {
     const workflow = parse(readFileSync(workflowPath, 'utf8')) as {
-        jobs: { deploy: { steps: (Step & { uses?: string; with?: Record<string, unknown> })[] } };
+        jobs: {
+            deploy: {
+                steps: (Step & { if?: string; uses?: string; with?: Record<string, unknown> })[];
+            };
+        };
     };
     const steps = workflow.jobs.deploy.steps;
     const names = steps.map((step) => step.name ?? '');
+    const named = (name: string) => steps.find((step) => step.name === name);
     const checkout = steps.find((step) => step.uses?.startsWith('actions/checkout'));
-    const start = steps.find((step) => step.name === 'Start the Agent runner')?.run ?? '';
-    const proof =
-        steps.find((step) => step.name === 'Prove the runner reaches only the Server')?.run ?? '';
+    const build = named('Build the Agent runner image')?.run ?? '';
+    const start = named('Start the Agent runner')?.run ?? '';
+    const rollback = named('Roll the Agent runner back');
 
-    expect(String(checkout?.with?.ref)).toContain('env.HAUS_SOURCE_REVISION');
+    expect(checkout?.with?.ref).toBeUndefined();
+    expect(build).toMatch(/git archive "\$\{HAUS_SOURCE_REVISION\}"/u);
+    expect(build).toContain('build haus-runner');
+    expect(names.indexOf('Build the Agent runner image')).toBeLessThan(
+        names.indexOf('Apply database migrations')
+    );
     expect(names.indexOf('Prove local Server health')).toBeLessThan(
         names.indexOf('Start the Agent runner')
     );
-    expect(names.indexOf('Start the Agent runner')).toBeLessThan(
-        names.indexOf('Prove the runner reaches only the Server')
-    );
-    expect(start).toContain('--profile runner');
-    expect(start).toContain('--wait haus-runner');
+    expect(start).toContain('HAUS_RUNNER_REPLACED=true');
+    expect(start).toContain('--no-build --force-recreate --wait haus-runner');
+    const proof = named('Prove the runner reaches only the Server')?.run ?? '';
     expect(proof).toContain('docker exec -u haus-runner haus-runner');
     expect(proof).toContain('/app/apps/runner/container/prove-network-deny.sh');
+    expect(names.at(-1)).toBe('Roll the Agent runner back');
+    expect(rollback?.if).toBe("failure() && env.HAUS_RUNNER_REPLACED == 'true'");
+    expect(rollback?.run).toContain('docker rm -f haus-runner');
+    expect(rollback?.run).toMatch(/HAUS_RUNNER_IMAGE_TAG="\$\{previous_tag\}"/u);
 });

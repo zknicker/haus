@@ -197,13 +197,17 @@ server version; do not enable a host PostgreSQL service.
 
 The Agent runner is the second Haus container, in the same Compose project `haus`. Its service is
 `haus-runner` in `apps/server/compose.yml`, behind the Compose profile `runner`, so the database
-bring-up above never builds or starts it. Every deploy starts it after the Server proves its local
-health: the workflow checks out the release's own commit, builds `apps/runner/Dockerfile` from it,
-and recreates the container under `varlock run` like the database. By hand:
+bring-up above never builds or starts it. Before migrations, the workflow exports the release's own
+tree with `git archive` (its deploy tooling stays at the workflow revision) and builds
+`apps/runner/Dockerfile` from it as `haus-runner:<release sha>`. A release that predates the runner
+skips every runner step. After the Server proves its local and public health, the workflow
+recreates the container from that image under `varlock run` like the database. By hand:
 
 ```bash
 bunx varlock@1.16.1 run -- docker compose -f apps/server/compose.yml -p haus --profile runner up -d --build --force-recreate --wait haus-runner
 ```
+
+The image tag comes from `HAUS_RUNNER_IMAGE_TAG` and defaults to `local` for a hand build.
 
 The token comes from the `Agent Runner - Haus` Production item. Model logins are not in the
 container's environment: the runner reads them from the Server's connections (Settings → Models).
@@ -231,7 +235,10 @@ Every deploy then proves the deny from inside the container, and fails if any ch
 docker exec -u haus-runner haus-runner /app/apps/runner/container/prove-network-deny.sh
 ```
 
-It prints one line per check and exits non-zero on any failure. Its first check is that the Server
+It prints one line per check and exits non-zero on any failure. When the start or the proof
+fails, the workflow's last step removes the new container and, when the previous one ran a
+`haus-runner:<sha>` image, brings that image back and proves it again. The Server stays on the new
+release, and the `haus_runner_data` volume is kept. Its first check is that the Server
 endpoint answers, which also proves the container reaches the Server at all. Development hosts
 without Docker cannot run it.
 
