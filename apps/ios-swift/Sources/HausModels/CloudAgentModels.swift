@@ -12,8 +12,7 @@ public struct CloudAgentWork: Codable, Identifiable, Hashable, Sendable {
     public let agentId: String
     /// The Task the Worker belongs to; nil only on read-only history.
     public let taskId: String?
-    /// Where the Worker runs: `cursor` or `claude`.
-    public let provider: String
+    public let place: CloudAgentPlace
     public let providerUrl: String?
     public let repository: String
     public let startingRef: String?
@@ -29,18 +28,27 @@ public struct CloudAgentWork: Codable, Identifiable, Hashable, Sendable {
     /// The Server's live reading, which outlives a Run's frozen snapshot.
     public var pullRequest: CloudAgentPullRequest? = nil
 
+    /// Where the Worker runs: `computer`, `cursor`, or `claude`.
+    public var provider: String { place.kind }
+
     /// The provider's status for the newest turn, which the card's lifecycle copy reads.
     public var status: CloudAgentStatus { runs.first?.status ?? .queued }
     /// When someone asked the newest turn to stop.
     public var cancelRequestedAt: Date? { runs.first?.stopRequestedAt }
 
     enum CodingKeys: String, CodingKey {
-        case id, agentId, taskId, providerUrl, repository, startingRef, title
-        case provider = "place"
+        case id, agentId, taskId, place, providerUrl, repository, startingRef, title
         case createdAt, updatedAt, startedAt, terminalAt, activity, job
         case runs = "turns"
         case pullRequest
     }
+}
+
+/// The record's place: a Computer place names its Computer.
+public struct CloudAgentPlace: Codable, Hashable, Sendable {
+    public let kind: String
+    public let computerId: String?
+    public let computerName: String?
 }
 
 public struct CloudAgentActivity: Codable, Hashable, Sendable {

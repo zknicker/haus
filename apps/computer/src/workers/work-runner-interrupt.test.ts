@@ -10,9 +10,11 @@ import { createFakeCloudAgentProvider } from './fake-provider.ts';
 import type { CloudAgentProvider } from './provider.ts';
 import { WorkerTurnJournal } from './turn-journal.ts';
 import { WorkerSupervisor } from './work-runner.ts';
+import { computerServer } from './worker-supervisor.fixture.ts';
 
 const turn = {
-    place: 'cursor' as const,
+    attempt: null,
+    place: { kind: 'cursor' as const },
     providerAgentId: null,
     providerRunId: null,
     status: 'queued' as const,
@@ -41,6 +43,7 @@ async function fixture(provider: CloudAgentProvider) {
     const dataRoot = await mkdtemp(join(tmpdir(), 'haus-cloud-interrupt-'));
     const runtime = makeTestRuntime();
     const work = new WorkerSupervisor(runtime, {
+        server: computerServer,
         dataRoot,
         serverId: 'srv_cloud',
         provider: () => provider,
@@ -74,7 +77,7 @@ async function fixture(provider: CloudAgentProvider) {
 
 test('a follow-up whose send keeps failing is auto-interrupted, and reports that too when it still fails', async () => {
     const followUp = { ...turn, providerAgentId: 'bc_stalled', turnId: 'car_stalledfollowup1' };
-    const ref = { ...followUp, provider: followUp.place };
+    const ref = { ...followUp, provider: followUp.place.kind };
     const alwaysBusy: CloudAgentProvider = {
         ...createFakeCloudAgentProvider(),
         send: () => Promise.reject(recordedAgentBusyError()),
@@ -95,7 +98,7 @@ test('a follow-up whose send keeps failing is auto-interrupted, and reports that
 
 test('a follow-up whose send fails but then goes through once auto-interrupted records that it did', async () => {
     const followUp = { ...turn, providerAgentId: 'bc_recovers', turnId: 'car_recoversfollowup1' };
-    const ref = { ...followUp, provider: followUp.place };
+    const ref = { ...followUp, provider: followUp.place.kind };
     let sendAttempts = 0;
     const failsUntilInterrupted: CloudAgentProvider = {
         ...createFakeCloudAgentProvider(),

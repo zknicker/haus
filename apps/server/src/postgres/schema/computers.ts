@@ -1,6 +1,7 @@
 import type { ComputerInventory, ComputerUpdatePhase, UsageOverview } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import {
+    boolean,
     check,
     foreignKey,
     index,
@@ -26,6 +27,7 @@ export const computersTable = pgTable(
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         credentialHash: text('credential_hash').notNull(),
         connectionGeneration: text('connection_generation'),
+        disconnectedAt: timestamp('disconnected_at', { withTimezone: true }),
         health: text('health').notNull().default('offline').$type<ComputerHealth>(),
         id: text('id').primaryKey(),
         inventoryInvalidAt: timestamp('inventory_invalid_at', { withTimezone: true }),
@@ -48,6 +50,8 @@ export const computersTable = pgTable(
         updateTargetVersion: text('update_target_version'),
         updateTotalBytes: integer('update_total_bytes'),
         updateUpdatedAt: timestamp('update_updated_at', { withTimezone: true }),
+        workerLimit: integer('worker_limit').notNull().default(4),
+        workersEnabled: boolean('workers_enabled').notNull().default(false),
     },
     (table) => [
         unique('computers_server_id_key').on(table.serverId, table.id),
@@ -73,6 +77,7 @@ export const computersTable = pgTable(
             'computers_attachment_idempotency_key_shape',
             sql`${table.attachmentIdempotencyKey} IS NULL OR ${table.attachmentIdempotencyKey} ~ '^cak_[A-Za-z0-9_-]{43}$'`
         ),
+        check('computers_worker_limit', sql`${table.workerLimit} between 1 and 50`),
         check(
             'computers_update_phase',
             sql`${table.updatePhase} in ('idle', 'checking', 'available', 'requested', 'downloading', 'verifying', 'installing', 'waiting-for-agents', 'restarting', 'complete', 'failed')`

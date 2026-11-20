@@ -1,9 +1,11 @@
-import { createHash, randomUUID } from 'node:crypto';
-import { type FileHandle, mkdir, open, readFile, rename, rm } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { type FileHandle, mkdir, open, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
+import { hasCode, writeDurableJson } from './durable-json.ts';
 import { workerLaunchTimeoutMs } from './launch-attempt.ts';
 import { preWorkerTurnRecordSchema } from './pre-worker-turn-record.ts';
 import type { WorkerLaunch, WorkerTurnRef } from './provider.ts';
+import { serialized } from './serialized.ts';
 import {
     type WorkerSendingTurn,
     type WorkerTurnRecord,
@@ -28,7 +30,7 @@ export class WorkerTurnJournal {
             return true;
         }
         const destination = this.path(serverId, ref.turnId);
-        return await serializeWrite(destination, async () => {
+        return await serialized(destination, async () => {
             const existing = await this.read(serverId, ref);
             if (existing && existing.phase !== 'pending') {
                 return false;
@@ -103,7 +105,7 @@ export class WorkerTurnJournal {
 
     async forgetHeldFollowUp(serverId: string, turnId: string) {
         const destination = this.path(serverId, turnId);
-        await serializeWrite(destination, async () => {
+        await serialized(destination, async () => {
             if ((await this.readRecord(serverId, turnId))?.phase === 'pending') {
                 await rm(destination);
             }
@@ -128,7 +130,7 @@ export class WorkerTurnJournal {
 
     private async write(serverId: string, ref: WorkerTurnRef, record: WorkerTurnRecord) {
         const destination = this.path(serverId, ref.turnId);
-        return await serializeWrite(destination, async () => {
+        return await serialized(destination, async () => {
             const existing = await this.read(serverId, ref);
             if (existing?.phase === 'cancelled' || existing?.phase === 'rejected') {
                 return false;
@@ -141,18 +143,8 @@ export class WorkerTurnJournal {
         });
     }
 
-    private async replace(destination: string, record: WorkerTurnRecord) {
-        const temporary = `${destination}.${randomUUID()}.tmp`;
-        const file = await open(temporary, 'wx', 0o600);
-        try {
-            await file.writeFile(JSON.stringify(record));
-            await file.sync();
-            await file.close();
-            await rename(temporary, destination);
-        } finally {
-            await file.close();
-            await rm(temporary, { force: true });
-        }
+    private replace(destination: string, record: WorkerTurnRecord) {
+        return writeDurableJson(destination, record);
     }
 
     private directory(serverId: string) {
@@ -164,26 +156,5 @@ export class WorkerTurnJournal {
     private path(serverId: string, turnId: string) {
         const key = createHash('sha256').update(turnId).digest('hex');
         return join(this.directory(serverId), `${key}.json`);
-    }
-}
-
-function hasCode(cause: unknown, code: string) {
-    return cause instanceof Error && 'code' in cause && cause.code === code;
-}
-
-const writes = new Map<string, Promise<void>>();
-
-async function serializeWrite<T>(path: string, operation: () => Promise<T>) {
-    const previous = writes.get(path) ?? Promise.resolve();
-    const ready = Promise.withResolvers<void>();
-    writes.set(path, ready.promise);
-    await previous;
-    try {
-        return await operation();
-    } finally {
-        ready.resolve();
-        if (writes.get(path) === ready.promise) {
-            writes.delete(path);
-        }
     }
 }

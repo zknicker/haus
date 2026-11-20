@@ -8,6 +8,7 @@ import { type ClaudeCodeDriverOptions, createClaudeCodeDriver } from '../claude-
 
 export interface FakeLaunch {
     args: string[];
+    cwd: string;
     env: Record<string, unknown>;
     pid: number;
 }

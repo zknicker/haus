@@ -2,6 +2,8 @@ import {
     pullRequestReadingSchema,
     workerBranchSchema,
     workerOutcomeSchema,
+    workerPlaceSchema,
+    workerPlaceViewSchema,
     workerProviderResultSchema,
     workerPullRequestSchema,
     workerReconcileEntrySchema,
@@ -79,6 +81,22 @@ const workerTurnResponseSchema = z.looseObject({
     usage: workerUsageResponseSchema.nullable(),
 });
 
+const [computerPlace, cursorPlace, claudePlace] = workerPlaceSchema.options;
+
+export const workerPlaceResponseSchema = z.discriminatedUnion('kind', [
+    z.looseObject(computerPlace.shape),
+    z.looseObject(cursorPlace.shape),
+    z.looseObject(claudePlace.shape),
+]);
+
+const [computerPlaceView, cursorPlaceView, claudePlaceView] = workerPlaceViewSchema.options;
+
+const workerPlaceViewResponseSchema = z.discriminatedUnion('kind', [
+    z.looseObject(computerPlaceView.shape),
+    z.looseObject(cursorPlaceView.shape),
+    z.looseObject(claudePlaceView.shape),
+]);
+
 const workerActivityResponseSchema = z.looseObject({
     at: timestampSchema,
     summary: z.string().trim().min(1).max(120),
@@ -132,11 +150,15 @@ export const workerResponseSchema = z.looseObject({
     ...workerSchema.shape,
     activity: workerActivityResponseSchema.nullable(),
     job: workerJobResponseSchema,
+    place: workerPlaceViewResponseSchema,
     pullRequest: pullRequestReadingResponseSchema.nullable(),
     turns: z.array(workerTurnResponseSchema).max(workerTurnsRetained),
 });
 
-export const workerReconcileEntryResponseSchema = z.looseObject(workerReconcileEntrySchema.shape);
+export const workerReconcileEntryResponseSchema = z.looseObject({
+    ...workerReconcileEntrySchema.shape,
+    place: workerPlaceResponseSchema,
+});
 
 /** `haus worker start`'s recorded branch; the held branch adds its own message schema. */
 export const agentWorkerReceiptResponseSchema = z.looseObject({

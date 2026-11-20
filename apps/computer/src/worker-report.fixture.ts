@@ -6,7 +6,7 @@ export function workerReportAttention(overrides: Partial<WorkerReportAttention> 
         citedFiles: [],
         outcome: providerReport('done', 'Fixed the race.'),
         person: null,
-        place: 'cursor',
+        place: { kind: 'cursor' },
         pullRequests: [],
         taskKey: 'ENG-41',
         title: 'Fix the flaky delivery test',

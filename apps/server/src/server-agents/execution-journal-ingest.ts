@@ -8,6 +8,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentExecutionJournalRecordsTable,
     agentExecutionJournalsTable,
+    agentRunnerCredentialsTable,
     agentsTable,
 } from '../postgres/schema.ts';
 
@@ -15,41 +16,35 @@ type RecordsEnvelope = Omit<AgentExecutionJournalRecordsFrame, 'records'> & {
     records: Array<{ record: unknown; sequence: number }>;
 };
 
-export type ExecutionJournalIngestOutcome = 'refused' | 'stored';
+export type ExecutionJournalWriter =
+    | { readonly computerId: string; readonly kind: 'computer'; readonly serverId: string }
+    | { readonly kind: 'runner' };
+
+export type ExecutionJournalIngestOutcome =
+    | { readonly serverId: string; readonly status: 'stored' }
+    | { readonly status: 'refused' };
 
 /**
- * Stores one uploaded frame of a run's execution journal (ADR 0048). Only the
- * Computer an Agent is assigned to may write its journals. Inserts are
+ * Stores one uploaded frame of a run's execution journal (ADR 0048). A Computer
+ * writes the journals of the Agents assigned to it; the runner writes the
+ * journals of runs the Server minted it a run credential for. Inserts are
  * idempotent by sequence, so a resent frame changes nothing; an `open` record
  * drops every stored record of the run sequenced before it, which it replaces.
  */
 export async function ingestExecutionJournalFrame(
     db: HausDatabase,
-    input: { computerId: string; frame: RecordsEnvelope; serverId: string }
+    input: { frame: RecordsEnvelope; writer: ExecutionJournalWriter }
 ): Promise<ExecutionJournalIngestOutcome> {
     const { frame } = input;
     const records = parseRecords(frame);
-    if (!records) {
-        return 'refused';
-    }
-    const [agent] = await db
-        .select({ id: agentsTable.id })
-        .from(agentsTable)
-        .where(
-            and(
-                eq(agentsTable.serverId, input.serverId),
-                eq(agentsTable.id, frame.agentId),
-                eq(agentsTable.computerId, input.computerId)
-            )
-        )
-        .limit(1);
-    if (!agent) {
-        return 'refused';
+    const serverId = records ? await writerServerId(db, input.writer, frame) : null;
+    if (!(records && serverId)) {
+        return { status: 'refused' };
     }
     const run = {
         agentId: frame.agentId,
         runId: frame.runId,
-        serverId: input.serverId,
+        serverId,
     };
     const opensAt = lastOpenIndex(records);
     const stored = opensAt >= 0 ? records.slice(opensAt) : records;
@@ -100,7 +95,47 @@ export async function ingestExecutionJournalFrame(
                 );
         }
     });
-    return 'stored';
+    return { serverId, status: 'stored' };
+}
+
+async function writerServerId(
+    db: HausDatabase,
+    writer: ExecutionJournalWriter,
+    frame: RecordsEnvelope
+) {
+    if (writer.kind === 'computer') {
+        const [agent] = await db
+            .select({ id: agentsTable.id })
+            .from(agentsTable)
+            .where(
+                and(
+                    eq(agentsTable.serverId, writer.serverId),
+                    eq(agentsTable.id, frame.agentId),
+                    eq(agentsTable.computerId, writer.computerId)
+                )
+            )
+            .limit(1);
+        return agent ? writer.serverId : null;
+    }
+    const [run] = await db
+        .select({ serverId: agentsTable.serverId })
+        .from(agentsTable)
+        .innerJoin(
+            agentRunnerCredentialsTable,
+            and(
+                eq(agentRunnerCredentialsTable.serverId, agentsTable.serverId),
+                eq(agentRunnerCredentialsTable.agentId, agentsTable.id)
+            )
+        )
+        .where(
+            and(
+                eq(agentsTable.id, frame.agentId),
+                eq(agentRunnerCredentialsTable.runId, frame.runId),
+                isNull(agentRunnerCredentialsTable.computerId)
+            )
+        )
+        .limit(1);
+    return run?.serverId ?? null;
 }
 
 /** Every record parsed, in sequence order, and every `open` naming this run; else null. */

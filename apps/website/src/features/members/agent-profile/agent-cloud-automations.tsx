@@ -78,7 +78,10 @@ function CloudAutomationRow({ now, row }: { now: number; row: WorkerAutomation }
         >
             <PressableFeedback.Highlight />
             <ItemCard.Icon aria-hidden="true" className="automation-mark">
-                <WorkerKeycapFace provider={row.worker.place} size={workerRowKeySize} />
+                <WorkerKeycapFace
+                    provider={row.worker.place.kind === 'computer' ? null : row.worker.place.kind}
+                    size={workerRowKeySize}
+                />
             </ItemCard.Icon>
             <ItemCard.Content>
                 <ItemCard.Title className="truncate">{row.worker.title}</ItemCard.Title>

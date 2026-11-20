@@ -22,6 +22,7 @@ import { z } from 'zod';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { settleTurn } from '../agent-delivery/settle-turn.ts';
 import type { InvocationRouter } from '../agent-invocations/invocation-router.ts';
+import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computerUpdatedTopic } from '../realtime/topics.ts';
 import type { AgentThoughts } from '../server-agents/agent-thought.ts';
@@ -57,7 +58,8 @@ export async function ingestReport(
     raw: string,
     postCommitWork: ServerPostCommitWork,
     thoughts: AgentThoughts,
-    invocations: InvocationRouter
+    invocations: InvocationRouter,
+    storage: ArtifactStorage | null
 ) {
     let frame: unknown;
     try {
@@ -89,8 +91,13 @@ export async function ingestReport(
             serverId,
             frame,
             postCommitWork,
+            storage,
         })) ||
-        (await ingestExecutionJournalUpload(db, connections, { computerId, frame, serverId })) ||
+        (await ingestExecutionJournalUpload(db, {
+            acknowledge: (ack) => connections.send(computerId, ack),
+            frame,
+            writer: { computerId, kind: 'computer', serverId },
+        })) ||
         (await ingestAgentRunFrame(
             db,
             { computerId, frame, serverId },

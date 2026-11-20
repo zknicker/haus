@@ -1,7 +1,9 @@
 import {
     formatTaskTarget,
-    workerPlaceSchema,
+    workerModelSchema,
+    workerPlaceTextSchema,
     workerRepositorySchema,
+    workerRuntimeSchema,
     workerTitleSchema,
 } from '@haus/api';
 import { agentWorkerStartResponseSchema } from '../agent-api-schemas.ts';
@@ -16,10 +18,12 @@ import {
 import { requiredValue, taskKeyArgument } from './agent-command-utils.ts';
 import { type WorkerDeps, defaultDeps } from './agent-worker-deps.ts';
 import { INSPECT_COMMAND, runWorkerInspect } from './agent-worker-inspect.ts';
+import { PLACES_COMMAND } from './agent-worker-places.ts';
+import { withRefusalStep } from './agent-worker-refusals.ts';
 
 export { runWorkerInspect };
 
-const START_RECIPE = `haus worker start --task SEC-12 --on cursor --repo haus/haus --ref main \\
+const START_RECIPE = `haus worker start --task SEC-12 --on computer:mini --repo haus/haus --ref main \\
   --title "Fix the flaky delivery test" <<'HAUSMSG'
 Reproduce apps/server/test/agent-delivery.test.ts locally, find the race, and open a pull request.
 HAUSMSG`;
@@ -32,23 +36,38 @@ const START_COMMAND: SubCommand = {
     flags: [
         { description: 'The Task this Worker is for', name: '--task', valueName: '<KEY-n>' },
         {
-            description: "Where the Worker runs; omit for your Computer's default",
+            description: "Where the Worker runs; omit for the Project's default",
             name: '--on',
-            valueName: '<cursor|claude>',
+            valueName: '<computer:<name>|<name>|cursor|claude>',
         },
-        { description: 'Repository as owner/name', name: '--repo', valueName: '<owner/name>' },
+        {
+            description: "Repository as owner/name; omit for the Project's only repo",
+            name: '--repo',
+            valueName: '<owner/name>',
+        },
         { description: 'Starting ref (branch, tag, or SHA)', name: '--ref', valueName: '<ref>' },
+        {
+            description: 'Harness on a Computer place; omit for the first ready one',
+            name: '--runtime',
+            valueName: '<claude-code|codex>',
+        },
+        {
+            description: "Model on a Computer place; omit for the runtime's default",
+            name: '--model',
+            valueName: '<id>',
+        },
         { description: 'One-line title for the Worker', name: '--title', valueName: '<text>' },
     ],
     name: 'start',
     notes: [
         'A Worker needs a Task: start one with haus task start first.',
+        'haus worker places lists where it can run. --runtime and --model are for Computer places only.',
         'Starting a Worker posts nothing. Its report posts in the Task and reaches you as an inbox item.',
     ],
     positionals: [],
     run: (args) => runWorkerStart(args, defaultDeps()),
     summary: 'Start a Worker on a Task with the brief from stdin',
-    usage: 'haus worker start --task <KEY-n> [--on <cursor|claude>] --repo <owner/name> [--ref <ref>] --title <text>',
+    usage: 'haus worker start --task <KEY-n> --title <text> [--on <place>] [--repo <owner/name>] [--ref <ref>] [--runtime <claude-code|codex>] [--model <id>]',
 };
 
 const SEND_COMMAND: SubCommand = {
@@ -80,6 +99,7 @@ const STOP_COMMAND: SubCommand = {
 };
 
 export const WORKER_SUBCOMMANDS: SubCommand[] = [
+    PLACES_COMMAND,
     START_COMMAND,
     SEND_COMMAND,
     INSPECT_COMMAND,
@@ -92,6 +112,8 @@ export async function runWorkerStart(args: ParsedArgs, deps: WorkerDeps) {
     const title = readTitle(args);
     const startingRef = args.values['--ref']?.trim() || null;
     const place = readPlace(args);
+    const runtime = readRuntime(args);
+    const model = readModel(args);
     const brief = await readStdin(
         deps,
         'The brief for the Worker is required on stdin.',
@@ -101,9 +123,11 @@ export async function runWorkerStart(args: ParsedArgs, deps: WorkerDeps) {
         .request('/api/agent/workers', agentWorkerStartResponseSchema, {
             body: {
                 brief,
+                ...(model ? { model } : {}),
                 nonce: deps.mintNonce(),
                 ...(place ? { place } : {}),
-                repository,
+                ...(repository ? { repository } : {}),
+                ...(runtime ? { runtime } : {}),
                 startingRef,
                 task,
                 title,
@@ -115,16 +139,9 @@ export async function runWorkerStart(args: ParsedArgs, deps: WorkerDeps) {
             if (error instanceof AgentCliError && error.code === 'WORKER_TASK_REQUIRED') {
                 throw taskRequired(error.message);
             }
-            throw error;
+            throw withRefusalStep(error);
         });
-    deps.write(
-        renderWorkerStart(response, {
-            repository,
-            startingRef,
-            task,
-            target: formatTaskTarget(task),
-        })
-    );
+    deps.write(renderWorkerStart(response, { startingRef, task, target: formatTaskTarget(task) }));
     return 0;
 }
 
@@ -182,7 +199,10 @@ function taskRequired(message: string) {
 }
 
 function readRepository(args: ParsedArgs) {
-    const raw = requiredValue(args, '--repo');
+    const raw = args.values['--repo']?.trim();
+    if (!raw) {
+        return null;
+    }
     const parsed = workerRepositorySchema.safeParse(raw);
     if (!parsed.success) {
         throw new AgentCliError('INVALID_ARG', `Invalid repository "${raw}".`, {
@@ -208,10 +228,38 @@ function readPlace(args: ParsedArgs) {
     if (!raw) {
         return null;
     }
-    const parsed = workerPlaceSchema.safeParse(raw);
+    const parsed = workerPlaceTextSchema.safeParse(raw);
     if (!parsed.success) {
         throw new AgentCliError('INVALID_ARG', `Invalid Worker place "${raw}".`, {
-            nextAction: 'Use --on cursor or --on claude.',
+            nextAction: 'Use --on computer:<name>, a Computer name, cursor, or claude.',
+        });
+    }
+    return parsed.data;
+}
+
+function readRuntime(args: ParsedArgs) {
+    const raw = args.values['--runtime']?.trim();
+    if (!raw) {
+        return null;
+    }
+    const parsed = workerRuntimeSchema.safeParse(raw);
+    if (!parsed.success) {
+        throw new AgentCliError('INVALID_ARG', `Invalid runtime "${raw}".`, {
+            nextAction: 'Use --runtime claude-code or --runtime codex.',
+        });
+    }
+    return parsed.data;
+}
+
+function readModel(args: ParsedArgs) {
+    const raw = args.values['--model'];
+    if (raw === undefined) {
+        return null;
+    }
+    const parsed = workerModelSchema.safeParse(raw);
+    if (!parsed.success) {
+        throw new AgentCliError('INVALID_ARG', 'The model id must be 1 to 200 characters.', {
+            nextAction: 'Leave --model out for the runtime’s default.',
         });
     }
     return parsed.data;

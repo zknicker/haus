@@ -1,5 +1,6 @@
 import { planRulesDelivery } from '@haus/agent-prompt';
 import type { AgentReasoningEffort, AgentStartCommand, RunnerModelConnection } from '@haus/api';
+import type { RunJournal } from '../journal/run-journal.ts';
 import type { RunAuthority, RunnerLink, RunTools } from '../run-context.ts';
 import { readAgentContext } from './agent-context.ts';
 import { attestComposedDrain } from './composed-drain.ts';
@@ -46,6 +47,7 @@ export interface RunTurnInput {
     readonly authority: RunAuthority;
     readonly connection: RunnerModelConnection;
     readonly factory: RuntimeDriverFactory;
+    readonly journal: RunJournal;
     readonly link: RunnerLink;
     readonly log: (line: string) => void;
     readonly reasoningEffort: AgentReasoningEffort;
@@ -169,7 +171,7 @@ export async function runTurn(input: RunTurnInput) {
     });
     const unregister = input.registerNoticeSink(notices.deliver);
     input.activity.start('thinking', 'thinking');
-    const observation = await observeTurn(turn.events, {
+    const observation = await observeTurn(input.journal.journaled(turn.events), {
         activity: input.activity,
         gate: notices.gate,
         noProgress: turnNoProgress,

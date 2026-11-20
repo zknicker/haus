@@ -42,7 +42,7 @@ enum InboxFixtures {
              "location":{"chatId":"chat_task","kind":"task","taskId":"task_1"},
              "worker":{"activity":null,"agentId":\(quoted(agentID)),
                "createdAt":"2026-09-11T09:00:00.000Z","id":"work_1",
-               "place":"cursor","providerUrl":null,
+               "place":{"kind":"cursor"},"providerUrl":null,
                "job":\(job),"repository":"zknicker/haus",
                "turns":[{"branches":[],"createdAt":"2026-09-11T09:00:00.000Z","errorCode":null,
                  "turnId":"wkt_1","startedAt":\(started),"status":"running","summary":null,

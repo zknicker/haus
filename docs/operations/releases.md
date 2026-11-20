@@ -123,25 +123,29 @@ Release preparation starts with `bun run release:collect-changelog-context`, bef
 new ledger entry are chosen. The helper resolves each target's latest recorded release source and
 compares its owned shipping inputs with the candidate. It uses target tags when available and the
 recorded release commit for legacy entries that predate reliable tagging. Direct target changes are
-`required`; shared, generated, or dependency inputs are `review`; targets without owned changes are
+`changed`; shared, generated, or dependency inputs are `review`; targets without owned changes are
 `unchanged`.
 
-Required impact is a floor, not a suggestion. `release:check` and the Release workflow reject a
-ledger entry that marks a required target `null`. For every review file, the release agent traces the
+A release ships any subset of targets. Impact is evidence for that choice, not a floor: a changed
+target may stay `null` when its change isn't ready or worth shipping yet. The one rule
+`release:check` and the Release workflow enforce is the Computer protocol pairing. The Server
+accepts only a Computer speaking its exact protocol, so when Server ships without Computer,
+`packages/haus-api/computer-protocol.json` at the candidate must equal the last published Computer's,
+and when Computer ships without Server, it must equal the last published Server's. A protocol
+change ships both, and the workflow publishes Computer before it promotes the Server. For every review file, the release agent traces the
 changed export, dependency, or generated input to each named target and records `affects` or `does
 not affect` with a reason. Files may share one disposition only when the same evidence applies. The
 agent may widen the release for compatibility or an explicit operational reason. Because every
-target uses its own published baseline, an incorrect earlier `null` cannot hide pending changes from
-later release preparation.
+target uses its own published baseline, a target left out keeps its pending changes visible to the
+next release preparation.
 
-The same target-scoped evidence feeds changelog writing. Programmatic scope determines what ships;
-agent judgment assigns versions, groups commits into user-facing outcomes, and removes internal
+The same target-scoped evidence feeds changelog writing. Agent judgment picks the targets, assigns versions, groups commits into user-facing outcomes, and removes internal
 churn and filler before the release PR.
 
 ## Prerequisites
 
-When a Server change raises the required Computer protocol, the compatible Computer artifact must
-be published and publicly verified before the Server is promoted. Use the
+When the Computer protocol changes, Server and Computer ship in the same release, and the compatible
+Computer artifact must be published and publicly verified before the Server is promoted. Use the
 [Computer release and update spec](../../specs/raft-alignment/computer-release-and-update.md) for
 the signed standalone artifact, descriptor, updater, rollback, and acceptance contract.
 
@@ -152,6 +156,29 @@ the sequence and rollback order are not replaced by ordinary target selection.
 The Channels-and-Tasks release (Computer protocol 38, App protocol 13, the Thread migration) has
 its own operator order: see
 [Shipping Channels and Tasks](haus-server-deploy.md#shipping-channels-and-tasks-adr-0053).
+
+### iOS is temporarily non-blocking
+
+For the rest of the Capy-direction epic, iPhone does not gate releases and may stay broken. A
+failed or skipped `Upload iOS` job does not block Server. `Publish Server` neither waits for the
+upload nor requires a processed build, so Server can deploy while the iPhone build still speaks
+the previous App protocol. Older iPhone installs cannot connect until a compatible TestFlight
+build ships.
+
+`Finalize release` still runs. When iOS was selected and its upload did not succeed, it prints a
+`::warning`, marks iOS `not shipped` in the run summary, and pushes the tag
+`unshipped/ios/v<haus version>`. Target impact and the public snapshot skip that release's iOS
+entry, so the snapshot keeps the last shipped iPhone build and the next release preparation
+still shows the iOS changes as pending. The marker is permanent: a later rerun of that release's upload does not clear it.
+
+To ship iOS later, cut a new release that publishes iOS with a new version and an unused build
+number. Do not rerun the old `Upload iOS` job after Finalize has recorded the marker.
+
+After the Capy-direction epic lands, make iOS blocking again: restore `upload_ios` to
+`publish_server`'s `needs` and `if:` and its "Require processed iOS before Server publication" step, return `ios` to
+`assertSelectedJobResults` in `scripts/release/verify-release.mjs`, and remove the unshipped-iOS
+recording there. Keep `scripts/release/unshipped-ios.mjs` and its readers while any
+`unshipped/ios/*` tag exists, because older ledger entries still depend on it.
 
 Use [iOS TestFlight](ios-testflight.md) for App Store Connect setup, build-number continuity,
 processing, automatic internal distribution, and real-device smoke. The release workflow records
