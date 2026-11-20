@@ -30,10 +30,10 @@ const record = (deletedBy: ArtifactDeletedRecord['deleted_by']) =>
         deleted_by: deletedBy,
     }) as ArtifactDeletedRecord;
 
-test('a deleted row names the folder, the author, and who deleted it when', () => {
+test('who deleted a file and when lead the row, ahead of the author and the folder', () => {
     expect(
         deletedRowFacts(record({ type: 'user', user_id: 'u_ada' }), 'agents/blippy', directory, now)
-    ).toBe('notes · Blippy · Deleted by Ada 2h ago');
+    ).toBe('Deleted by Ada 2h ago · Blippy · notes');
     expect(
         deletedRowFacts(
             record({ type: 'user', user_id: 'u_self' }),
@@ -41,7 +41,7 @@ test('a deleted row names the folder, the author, and who deleted it when', () =
             directory,
             now
         )
-    ).toBe('notes · Blippy · Deleted by You 2h ago');
+    ).toBe('Deleted by You 2h ago · Blippy · notes');
     expect(
         deletedRowFacts(
             record({ agent_id: 'ag_blippy', type: 'agent' }),
@@ -49,11 +49,24 @@ test('a deleted row names the folder, the author, and who deleted it when', () =
             directory,
             now
         )
-    ).toBe('Blippy · Deleted by Blippy 2h ago');
+    ).toBe('Deleted by Blippy 2h ago · Blippy');
+});
+
+test('a deep folder is shortened in the middle so its last folder survives', () => {
+    const deep = {
+        ...record({ type: 'user', user_id: 'u_self' }),
+        artifact: {
+            author: { agent_id: 'ag_blippy', type: 'agent' },
+            path: 'agents/blippy/skills/visuals/references/fragments/sparkline.md',
+        },
+    } as ArtifactDeletedRecord;
+    expect(deletedRowFacts(deep, 'agents/blippy', directory, now)).toBe(
+        'Deleted by You 2h ago · Blippy · skills/visuals…ces/fragments'
+    );
 });
 
 test('a file deleted before deleters were recorded says only when', () => {
     expect(deletedRowFacts(record(null), 'agents/blippy', directory, now)).toBe(
-        'notes · Blippy · Deleted 2h ago'
+        'Deleted 2h ago · Blippy · notes'
     );
 });
