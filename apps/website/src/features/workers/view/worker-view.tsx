@@ -20,20 +20,26 @@ export function WorkerView({ workerId }: { workerId: string }) {
 }
 
 function WorkerThread({ work }: { work: Worker }) {
-    const pullRequests = work.pullRequest ? [work.pullRequest] : [];
+    if (!work.pullRequest) {
+        return (
+            <div className="grid min-h-0 flex-1">
+                <WorkerSession work={work} />
+            </div>
+        );
+    }
     return (
-        <div className="grid min-h-0 flex-1 lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-8 lg:pe-5">
-            <WorkerSession work={work} />
-            {pullRequests.length > 0 ? (
+        <div className="@container flex min-h-0 flex-1">
+            <div className="grid min-h-0 flex-1 @4xl:grid-cols-[minmax(0,1fr)_18rem] @4xl:gap-8 @4xl:pe-5">
+                <WorkerSession work={work} />
                 <aside
                     aria-label="Overview"
-                    className="hidden min-h-0 flex-col gap-3 overflow-y-auto pt-4 pb-6 lg:flex"
+                    className="hidden min-h-0 flex-col gap-3 overflow-y-auto pt-4 pb-6 @4xl:flex"
                 >
-                    <PanelSection count={pullRequests.length} title="Pull requests">
-                        <PullRequestRows readings={pullRequests} />
+                    <PanelSection count={1} title="Pull requests">
+                        <PullRequestRows readings={[work.pullRequest]} />
                     </PanelSection>
                 </aside>
-            ) : null}
+            </div>
         </div>
     );
 }
