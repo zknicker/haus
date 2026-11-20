@@ -14,7 +14,7 @@ test('Drive selects many items Finder-style and acts on the whole selection', as
         displayName: 'Multi Select',
         slug,
     });
-    await seedArtifactLibrary(page, session.databaseUrl, server.id);
+    await seedArtifactLibrary(page, session, server.id);
     await page.goto(`/s/${slug}/artifacts?folder=haus`);
     const library = page.getByRole('grid', { name: 'Drive' });
     const items = libraryRows(library);
@@ -102,7 +102,7 @@ test('dragging items onto a folder tile or a trail crumb moves them; into itself
         displayName: 'Drag Move',
         slug,
     });
-    await seedArtifactLibrary(page, session.databaseUrl, server.id);
+    await seedArtifactLibrary(page, session, server.id);
     await page.goto(`/s/${slug}/artifacts?folder=haus`);
     const items = libraryRows(page.getByRole('grid', { name: 'Drive' }));
     const folders = librarySection(page, 'Folders');
@@ -156,7 +156,7 @@ test('bulk delete says how many of the selection this member may delete', async 
         displayName: 'Bulk Delete',
         slug,
     });
-    await seedArtifactLibrary(page, session.databaseUrl, server.id);
+    await seedArtifactLibrary(page, session, server.id);
     runPsql(
         session.databaseUrl,
         `update server_memberships set role = 'member'
@@ -181,7 +181,7 @@ test('files dropped from the system still upload when they land on a row', async
     await page.setViewportSize({ width: 1440, height: 1000 });
     const slug = 'artifact-drop-on-row';
     const { server, session } = await createTestServer(page, { displayName: 'Drop', slug });
-    await seedArtifactLibrary(page, session.databaseUrl, server.id);
+    await seedArtifactLibrary(page, session, server.id);
     await routeArtifactUploads(page, session.databaseUrl, server.id);
     await page.goto(`/s/${slug}/artifacts?folder=haus%2Fdocs`);
     const row = libraryRows(librarySection(page, 'Today')).filter({ hasText: 'guide.md' });

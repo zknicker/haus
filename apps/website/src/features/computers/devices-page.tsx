@@ -69,7 +69,12 @@ export function DevicesPage({ serverId, serverSlug }: { serverId: string; server
                     />
                 )}
             </ItemCardGroup>
-            <AddComputerDialog onOpenChange={setAdding} open={adding} serverSlug={serverSlug} />
+            <AddComputerDialog
+                onOpenChange={setAdding}
+                open={adding}
+                serverId={serverId}
+                serverSlug={serverSlug}
+            />
         </SettingsPageColumn>
     );
 }

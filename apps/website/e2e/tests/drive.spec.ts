@@ -14,7 +14,7 @@ test('a member walks Drive from its areas to a file, compares two revisions, and
     await page.setViewportSize({ width: 1440, height: 1000 });
     const slug = 'drive-page';
     const { server, session } = await createTestServer(page, { displayName: 'Drive Page', slug });
-    const { notesId } = await seedArtifactLibrary(page, session.databaseUrl, server.id);
+    const { notesId } = await seedArtifactLibrary(page, session, server.id);
     await page.reload();
     await openSection(page, 'Drive');
     const folders = librarySection(page, 'Folders');

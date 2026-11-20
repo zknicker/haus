@@ -168,12 +168,19 @@ cold-starts once.
 
 R3 left these Computer turn features unported, and R4 ports each before it moves an Agent:
 execution journal upload (including journaling dispatches the ledger recovers as `unknown`;
-ported, see [Execution journal](#execution-journal)), thoughts, idle compaction, rich-reference projection of message content, the
-managed-skill change notice, Claude plan usage after a turn, Agent restart and reset frames to
-the runner, and
+ported, see [Execution journal](#execution-journal)),
+thoughts, idle compaction, rich-reference projection of message content, Claude plan usage after a
+turn, Agent restart and reset frames to the runner, and
 `haus worker start`, which the Computer's proxy handled. R4 also sends `drive-pull` when a
 runner run starts and `drive-push` when it settles (Drive folder below), because runner-hosted
 Agents depend on their `drive/` folder from the cutover on.
+
+Managed skills are ported. The Server seeds the factory-managed skills into each Agent's Drive
+area as Haus-authored revisions at creation, after a full reset, and at Server start
+([Skills](skills.md#managed-skills)), so no launch has to. The runner delivers the skill update
+notice (Instructions below). The Computer's own launch seeding stays until R4d deletes Computer
+Agent paths. It writes the same release bytes, so a push of them is an `unchanged` outcome and adds
+no revision.
 
 R5 lands Pi Durable before R4, so the cutover has both harnesses and every Agent has one for
 its model. R4 moves every Agent at once and resets every session. No native session is copied from a
@@ -263,6 +270,15 @@ Skills load from Drive. The runner lists the Agent's skills in its instructions 
 description, from `agents/<handle>/skills/*/SKILL.md`, and the Agent opens one with
 `haus skill view`. The listing text goes through the prompt contract in R3.
 
+When the Server's seeding updated a managed skill the Agent had not edited, the next turn carries
+the skill update notice, `managedSkillChangeText` in `@haus/agent-prompt`, after the turn content,
+where the Computer puts it too. The pending updates are Server state, not session state, because a
+session reset must not drop them. The runner reads them with
+`GET /api/agent/managed-skills/notice` beside the rule and memory reads. After a completed turn it
+sends `POST /api/agent/managed-skills/notice/ack` naming the releases it announced, so an update
+that landed during the turn stays pending. An interrupted or failed turn sends no receipt, and the
+next turn carries the notice again. A notice the runner could not read is left for the next turn.
+
 ### Execution journal
 
 Each runner run writes the execution journal a Computer turn writes
@@ -274,7 +290,8 @@ result whose invocation did not complete journals as `{ invocation, output }`. T
 `agent-execution-journal-records` over its socket while the run runs, the Server answers each
 frame with `agent-execution-journal-ack`, and a `<runId>.uploaded` marker records a settled run
 the Server stored. On every connect the runner resends each unmarked run younger than 30 days
-whole from disk, so a run a restart cut off reaches the Server.
+whole from disk, so a run a restart cut off reaches the Server. A run's journal files and marker are
+deleted once the run is uploaded and older than those 30 days.
 
 The Server stores a runner frame only for a run it minted the runner a run credential for, with
 the same storage, retention, and reads as a Computer's; any other frame is refused. The runner's

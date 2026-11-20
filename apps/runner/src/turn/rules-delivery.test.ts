@@ -161,6 +161,7 @@ async function runnerTurn(server: ServerStandIn, agentDir: string, isResume: boo
         instructions: plan,
         memoryBlock: memory.block,
         rulesBlock: rules.block,
+        skillNotice: context.skillNotice,
         turnContent: 'Start.',
     });
 }

@@ -1,5 +1,6 @@
 export {
     defaultVisualsSkill,
+    factoryManagedSkillFiles,
     factoryManagedSkillHashes,
     heldManagedSkillHash,
     seedFactoryManagedSkills,

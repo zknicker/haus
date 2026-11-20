@@ -230,7 +230,7 @@ export async function createHausServerApplication(
         await startServerSweeps(runtime, scope, shutdown, {
             agentDelivery,
             appOrigin: options.appOrigin,
-            artifactStorage,
+            ...artifacts,
             attachmentRoot,
             clock: reminderClock,
             db: connectedHaus.db,

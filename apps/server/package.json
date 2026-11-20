@@ -22,6 +22,7 @@
         "@fastify/cors": "11.2.0",
         "@fastify/static": "10.1.3",
         "@haus/agent-manual": "workspace:*",
+        "@haus/agent-workspace": "workspace:*",
         "@haus/api": "workspace:*",
         "@haus/claude-usage": "workspace:*",
         "@haus/codex-usage": "workspace:*",

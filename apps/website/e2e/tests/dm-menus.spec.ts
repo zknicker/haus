@@ -1,3 +1,4 @@
+import { captainsProjectId } from '../support/project.ts';
 import { createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -8,6 +9,7 @@ test('agent DM menus work before the first message and on the selected conversat
         displayName: 'DM menus',
         slug: 'dm-menus',
     });
+    const homeProjectId = await captainsProjectId(client, server.id);
     runPsql(
         session.databaseUrl,
         `
@@ -18,7 +20,7 @@ test('agent DM menus work before the first message and on the selected conversat
             desired_runtime_id, desired_model_id, home_project_id)
         values ('agt_e2edmmenus000000', '${server.id}', 'cmp_e2edmmenus000000', 'marlow', 'Marlow',
             'America/New_York', 'codex', 'gpt-5.6-sol',
-            (select id from chats where server_id = '${server.id}' and is_all));
+            '${homeProjectId}');
     `
     );
     await page.reload();

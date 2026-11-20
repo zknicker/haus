@@ -1,5 +1,6 @@
 import { routeAgentPageText } from '../support/artifact-transport.ts';
 import { seedAgentPage } from '../support/artifacts.ts';
+import { captainsProjectId } from '../support/project.ts';
 import { createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -7,7 +8,7 @@ const pagePath = 'agents/page-author/workbench/deterministic.html';
 
 test('an Agent page card opens its Drive file beside the chat', async ({ page }) => {
     const slug = 'chat-page-cards';
-    const { server, session } = await createTestServer(page, {
+    const { client, server, session } = await createTestServer(page, {
         displayName: 'Chat Page Cards',
         slug,
     });
@@ -20,6 +21,7 @@ test('an Agent page card opens its Drive file beside the chat', async ({ page })
     seedPageMessage(session.databaseUrl, {
         agentId,
         chatId,
+        homeProjectId: await captainsProjectId(client, server.id),
         revisionId: `${artifactId}_r1`,
         serverId: server.id,
     });
@@ -61,7 +63,13 @@ test('an Agent page card opens its Drive file beside the chat', async ({ page })
 
 function seedPageMessage(
     databaseUrl: string,
-    input: { agentId: string; chatId: string; revisionId: string; serverId: string }
+    input: {
+        agentId: string;
+        chatId: string;
+        homeProjectId: string;
+        revisionId: string;
+        serverId: string;
+    }
 ) {
     const fence = (props: Record<string, string>) =>
         `\\n\\u0060\\u0060\\u0060page\\n${JSON.stringify(props).replaceAll('"', '\\"')}\\n\\u0060\\u0060\\u0060`;
@@ -76,7 +84,7 @@ function seedPageMessage(
         `begin;
          insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
          values ('${input.agentId}', '${input.serverId}', 'page-author', 'Page Author', 'America/New_York',
-           (select id from chats where server_id = '${input.serverId}' and is_all));
+           '${input.homeProjectId}');
          insert into channel_agent_participants (server_id, chat_id, agent_id)
          values ('${input.serverId}', '${input.chatId}', '${input.agentId}');
          insert into chat_messages (id, server_id, chat_id, sequence, author_agent_id, content, nonce)

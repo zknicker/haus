@@ -42,7 +42,6 @@ export const usageFixture = {
         },
         status: 'ok' as const,
     },
-    runtimeUsage: [],
 };
 
 function providerError<T extends 'claude' | 'grok'>(provider: T) {
