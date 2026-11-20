@@ -59,6 +59,30 @@ export async function listUnsyncedJournals(input: {
     return found.sort((left, right) => right.modifiedAt - left.modifiedAt);
 }
 
+/** Deletes each run the Server already holds whose upload mark is older than `before`. */
+export async function pruneSyncedJournals(input: { agentsDir: string; before: number }) {
+    const entries = await readdir(input.agentsDir, { withFileTypes: true }).catch(
+        whenMissing<Dirent[]>([])
+    );
+    for (const agentId of entries.filter((entry) => entry.isDirectory()).map(nameOf)) {
+        const directory = journalDirectoryPath(join(input.agentsDir, agentId));
+        const names = await readdir(directory).catch(whenMissing<string[]>([]));
+        for (const marker of names.filter((name) => name.endsWith(markerSuffix))) {
+            const runId = marker.slice(0, -markerSuffix.length);
+            const markedAt = await stat(join(directory, marker)).then(
+                (stats) => stats.mtimeMs,
+                whenMissing(Number.POSITIVE_INFINITY)
+            );
+            if (markedAt < input.before) {
+                const runFiles = names.filter((name) => journalName.exec(name)?.[1] === runId);
+                for (const name of [...runFiles, marker]) {
+                    await rm(join(directory, name), { force: true });
+                }
+            }
+        }
+    }
+}
+
 export async function markJournalSynced(
     agentRoot: string,
     runId: string,
