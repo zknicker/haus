@@ -208,6 +208,5 @@ function planUsage(capturedAt: string): UsageOverview {
             },
             status: 'ok',
         },
-        runtimeUsage: [],
     };
 }
