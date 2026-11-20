@@ -43,13 +43,13 @@ export const appPlaces: readonly AppPlace[] = [
     {
         area: 'you',
         task: 'Turn notifications on or off',
-        path: ['Settings', 'Preferences', "Notify me when I'm needed"],
+        path: ['Settings', 'Notifications', "Notify me when I'm needed"],
         who: 'anyone',
         anchors: [
             settingsEntry(),
-            settingsSection('preferences'),
+            settingsSection('notifications'),
             label(
-                'features/settings/preferences/notifications-section.tsx',
+                'features/settings/notifications/notifications-section.tsx',
                 "Notify me when I'm needed"
             ),
         ],

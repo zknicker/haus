@@ -852,6 +852,70 @@
         --composer-radius-duration: 180ms;
     }
 
+    /*
+     * The Capy shell's sidebar marks are its 24px identity boxes (a Project's
+     * `ChannelIconBox` at `sidebar`, a person's avatar). HeroUI's icon slot is a
+     * spacing-scaled `size-5`, 16px at the sidebar's density, so the mark spilled
+     * 4px past the row's leading edge. The slot takes the mark's box instead, so
+     * marks, section labels and Captain tiles share one left edge. The old shell
+     * keeps its own slot.
+     */
+    .capy-sidebar .sidebar__menu-icon {
+        width: 24px;
+        height: 24px;
+    }
+
+    /*
+     * Home's Project and Captain chips lead with a mark, so the trigger keeps
+     * Capy's tighter step between the mark and its name.
+     */
+    .home-composer .inline-select__trigger {
+        gap: calc(var(--spacing) * 1.5);
+    }
+
+    /*
+     * Home's composer is Capy's elevated card, not a field: a surface fill and
+     * the resting surface shadow (hairline ring plus lift) in place of the
+     * field border. `--home-input-opacity`
+     * (set by a Home background) lets a wallpaper show through the fill
+     * without fading the text. Every other composer keeps its field look.
+     */
+    .home-composer .prompt-input__shell--primary,
+    .home-composer .prompt-input__shell--primary:hover,
+    .home-composer .prompt-input:focus-within .prompt-input__shell--primary {
+        background-color: color-mix(
+            in oklab,
+            var(--surface) calc(var(--home-input-opacity, 1) * 100%),
+            transparent
+        );
+        border-color: transparent;
+    }
+
+    .home-composer .prompt-input__shell--primary {
+        box-shadow: var(--surface-shadow);
+    }
+
+    /* Dark surfaces cast no shadow, so the card keeps its edge as a border-token ring. */
+    [data-theme="dark"] .home-composer .prompt-input__shell--primary,
+    .dark .home-composer .prompt-input__shell--primary {
+        box-shadow: 0 0 0 var(--border-width) var(--border);
+    }
+
+    /*
+     * Focus is the stock field's: HeroUI's `focus-field-ring` (a 2px `--focus`
+     * ring at no offset), on any focus into the editor as on every Haus field,
+     * over the card's own shadow. Listed after the dark rim, and more specific,
+     * so it wins in both themes; dark's surface shadow is transparent, so there
+     * the ring is the whole edge.
+     */
+    .home-composer .prompt-input:focus-within .prompt-input__shell--primary,
+    [data-theme="dark"] .home-composer .prompt-input:focus-within .prompt-input__shell--primary,
+    .dark .home-composer .prompt-input:focus-within .prompt-input__shell--primary {
+        box-shadow:
+            0 0 0 2px var(--focus),
+            var(--surface-shadow);
+    }
+
     /* Reply context and the editor form one joined composer surface. */
     .prompt-input__reply {
         min-width: 0;
@@ -1939,6 +2003,15 @@
     .connection-hero-mark svg {
         width: 1.5rem;
         height: 1.5rem;
+    }
+
+    /*
+     * Dark draws no surface shadow, and a dialog's ground is `--overlay`, the
+     * same value as `--surface`: a catalog tile inside a dialog (Explore
+     * connections) lost its edge entirely. It takes the next surface step.
+     */
+    :is([data-theme="dark"], .dark) .modal__dialog .item-card-group--catalog .item-card__icon {
+        background-color: var(--surface-secondary);
     }
 
     /* Preserve brand silhouettes and leave breathing room inside the tile. */
@@ -3554,6 +3627,19 @@
         padding: 0;
         background: var(--surface);
         border: 1px solid var(--separator);
+    }
+
+    /*
+     * A Compare diff (`@pierre/diffs`) renders in its own shadow root and
+     * paints the shiki theme's page color. Its CSS-variable hooks inherit in,
+     * so the host maps that page onto the text well's surface and the code
+     * onto the app's mono face.
+     */
+    .artifact-diff {
+        --diffs-light-bg: var(--surface);
+        --diffs-dark-bg: var(--surface);
+        --diffs-font-family: var(--font-mono);
+        --diffs-header-font-family: var(--font-sans);
     }
 
     .artifact-preview__image {

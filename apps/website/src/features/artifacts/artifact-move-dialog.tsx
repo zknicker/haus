@@ -3,8 +3,16 @@ import { Breadcrumbs, Button, Label, ListBox, Modal } from '@heroui/react';
 import * as React from 'react';
 import { useArtifactFolders } from '../../hooks/artifacts/use-artifact-folders.ts';
 import { useArtifactMoveMany } from '../../hooks/artifacts/use-artifact-move-many.ts';
+import { useAgentAppearances } from '../../hooks/members/use-agents.ts';
 import type { ArtifactRenameTarget } from './artifact-rename.ts';
 import { artifactFolderCrumbs } from './drive-folders.ts';
+import {
+    driveAcceptsFiles,
+    driveAgentName,
+    driveFolderLabel,
+    driveFolderTiles,
+    driveRootLabel,
+} from './drive-places.ts';
 import { bulkMovePaths } from './library-bulk.ts';
 
 /** What Move to… moves: one item or a selection, each file guarded by its head revision. */
@@ -14,7 +22,8 @@ export type ArtifactMoveTarget = readonly ArtifactRenameTarget[];
  * Move to…: a folder picker that starts in the first item's folder. Pressing
  * a folder walks into it, the trail walks back out, and Move here moves every
  * item in one request, keeping their names. A selected folder never lists
- * itself, so nothing can move into itself.
+ * itself, so nothing can move into itself. The Drive root and its shelves
+ * list their areas to walk into but are never a destination.
  */
 export function ArtifactMoveDialog({
     onClose,
@@ -54,13 +63,17 @@ function MoveForm({
 }) {
     const [folder, setFolder] = React.useState(artifactPathParent(target[0]?.path ?? ''));
     const children = useArtifactFolders(serverId, folder);
+    const agents = useAgentAppearances(serverId);
+    const agentName = driveAgentName(agents);
     const move = useArtifactMoveMany(serverId);
     const paths = target.map((item) => item.path);
-    const moving = bulkMovePaths(paths, folder);
+    const moving = driveAcceptsFiles(folder) ? bulkMovePaths(paths, folder) : null;
     const selected = new Set(paths.map(artifactPathKey));
-    const choices = (children.folders ?? []).filter(
-        (entry) => !selected.has(artifactPathKey(entry.path))
-    );
+    const choices = children.folders
+        ? driveFolderTiles(folder, children.folders, agents).filter(
+              (entry) => !selected.has(artifactPathKey(entry.path))
+          )
+        : [];
     const browse = (next: string) => {
         move.reset();
         setFolder(next);
@@ -96,7 +109,7 @@ function MoveForm({
                 <nav aria-label="Destination folder">
                     <Breadcrumbs>
                         <Breadcrumbs.Item onPress={folder ? () => browse('') : undefined}>
-                            Files
+                            {driveRootLabel}
                         </Breadcrumbs.Item>
                         {artifactFolderCrumbs(folder).map((crumb) => (
                             <Breadcrumbs.Item
@@ -105,7 +118,7 @@ function MoveForm({
                                     crumb.path === folder ? undefined : () => browse(crumb.path)
                                 }
                             >
-                                {crumb.label}
+                                {driveFolderLabel(crumb.path, agentName)}
                             </Breadcrumbs.Item>
                         ))}
                     </Breadcrumbs>

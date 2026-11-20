@@ -69,12 +69,17 @@ revisions. Storage enforces one creator per artifact; a row without exactly one 
 than inventing a creator. `created_at` is when the artifact identity was created. `updated_at` is
 when the described revision was published, so on current metadata it is the latest revision time.
 Library lists sort by `updated_at` descending unless asked otherwise; version lists sort by
-revision number. App reads (`artifact.list`, `get`, `versions`) return records: the metadata plus
+revision number. App reads (`artifact.list`, `get`, `byPath`, `versions`) return records: the metadata plus
 `author` (who published that revision, same shape as `creator`) and `image` (`width`, `height`,
 and `dpi` from a PNG `pHYs` chunk, or null when unmeasured or not raster). Agent routes keep the
 plain metadata, which deployed CLIs parse strictly. A revision published without its own `title`
 took its file name, so its title follows the file through renames (and a restore of it); a chosen
 title stays as written.
+
+`artifact.byPath({ serverId, path, revision_id? })` reads the live file at one drive path, matched
+by its case- and NFC-folded key on the live `(server_id, path_key)` unique index, and with
+`revision_id` that revision of the same file. A path with no live file, or a revision of another
+file, is `NOT_FOUND`, as in `artifact.get`. An Agent page card opens its page this way.
 
 The native list query (`artifact.list`) browses one folder: `prefix` (`''` for the root) returns
 its immediate child folders on the first page and its own files, and `recursive` returns every file
@@ -350,8 +355,11 @@ when the Server shuts down (handing unprocessed claims back), and publishes one 
 cleanup to finish.
 
 The Server reserves the maximum file size before accepting an upload, streams directly to R2 without
-disk staging, and publishes the revision only after storage success. The current pointer advances
-by revision number, so late completion of an older upload cannot replace a newer revision. Default
+disk staging, and publishes the revision only after storage success. A revision takes its number
+when it lands, under the Server row lock: an upload in flight holds a negative placeholder, and a
+write refused at landing gives its number back, so the numbers people see have no gaps and follow
+landing order. A write from a stale base merges or fails at landing; a `replace` that lands last
+becomes the head. Default
 limits are 256 MiB per file and 100 GiB of shared storage per Server (`HAUS_ARTIFACT_STORAGE_BYTES`;
 the cap is a product guard, not a cost limit). Production uploads are
 limited to 100 MB to match Cloudflare ingress for haus.chat. Larger uploads require direct or chunked transfer before

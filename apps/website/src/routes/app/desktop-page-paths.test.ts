@@ -17,6 +17,20 @@ test('an artifact page address round-trips its Agent-bound target', () => {
     expect(parseArtifactPageKey(key)).toEqual(target);
 });
 
+test('a page card tab address round-trips its path and pinned revision', () => {
+    const pinned = {
+        agentId: 'agt_1',
+        kind: 'drivePage',
+        path: 'drive/agents/scout/workbench/a:b.html',
+        revisionId: 'rev_1',
+    } as const;
+    const live = { agentId: 'agt_1', kind: 'drivePage', path: 'workbench/plan.html' } as const;
+    const keyOf = (path: string) => decodeURIComponent(path.split('/')[4]?.split('?')[0] ?? '');
+    expect(parseArtifactPageKey(keyOf(artifactPagePath('acme', pinned)))).toEqual(pinned);
+    expect(parseArtifactPageKey(keyOf(artifactPagePath('acme', live)))).toEqual(live);
+    expect(parseArtifactPageKey('drivePage:agt_1:rev_1:')).toBeNull();
+});
+
 test('malformed artifact keys name no target', () => {
     expect(parseArtifactPageKey('workspaceFile:agt_1:')).toBeNull();
     expect(parseArtifactPageKey('bogus:agt_1:a.md')).toBeNull();

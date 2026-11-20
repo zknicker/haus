@@ -1,4 +1,4 @@
-import type { ArtifactFolderEntry, ArtifactMetadata, ArtifactRecord } from '@haus/api';
+import type { ArtifactMetadata, ArtifactRecord } from '@haus/api';
 import { Button } from '@heroui/react';
 import type { DragAndDropHooks } from 'react-aria-components';
 import { useArtifactFolderPreviews } from '../../hooks/artifacts/use-artifact-folder-previews.ts';
@@ -10,6 +10,7 @@ import { useArtifactFileRuns } from './artifact-files.tsx';
 import { ArtifactLibraryCollection } from './artifact-library-collection.tsx';
 import { ArtifactLibraryEmpty } from './artifact-library-empty.tsx';
 import { ArtifactListHeader } from './artifact-list-header.tsx';
+import type { DriveFolder } from './drive-places.ts';
 import { useArtifactLibraryLayout } from './library-layout.ts';
 import type { LibrarySelection } from './library-selection.ts';
 
@@ -38,7 +39,7 @@ export function ArtifactLibraryContent({
     filtered: boolean;
     filters: Pick<ArtifactLibraryFilters, 'creator' | 'folder' | 'kind'>;
     /** The open folder's child folders in the viewer's sort. */
-    folders: readonly ArtifactFolderEntry[];
+    folders: readonly DriveFolder[];
     library: ArtifactLibrary;
     onOpenFile: (artifact: ArtifactMetadata) => void;
     onOpenFolder: (path: string) => void;

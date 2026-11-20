@@ -5,6 +5,7 @@ import { useTheme } from '../../../components/theme-provider.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { selectColorTheme, useColorTheme } from '../../../hooks/shell/use-color-theme.ts';
 import { createCustomTheme, useCustomThemes } from '../../../hooks/shell/use-custom-themes.ts';
+import { getThemeBackground } from '../../../hooks/shell/use-theme-background.ts';
 import { type ColorTheme, parseColorTheme } from '../../../lib/color-theme.ts';
 import { colorThemes } from '../../../lib/color-themes.ts';
 import type { ThemeMode } from '../../../lib/custom-themes.ts';
@@ -63,5 +64,11 @@ function createThemeFrom(theme: ColorTheme) {
         const { accent, background, foreground } = readThemeColors(document, theme, mode);
         return { accent, background, foreground };
     };
-    selectColorTheme(createCustomTheme({ dark: seed('dark'), light: seed('light') }));
+    selectColorTheme(
+        createCustomTheme({
+            background: getThemeBackground(theme),
+            dark: seed('dark'),
+            light: seed('light'),
+        })
+    );
 }

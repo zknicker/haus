@@ -33,12 +33,16 @@ export interface ViewerStepper {
 export function ArtifactViewerHeader({
     artifact,
     latestHref,
+    onEdit,
     pinned,
     serverId,
     stepper,
 }: {
     artifact: ArtifactRecord;
-    latestHref: string;
+    /** Where the head opens, while the pinned revision is behind it. */
+    latestHref: string | null;
+    /** Null when this revision cannot be edited, or is being edited. */
+    onEdit: (() => void) | null;
     pinned: boolean;
     serverId: string;
     stepper: ViewerStepper | null;
@@ -62,7 +66,7 @@ export function ArtifactViewerHeader({
                         {directory.name(artifact.author)} ·{' '}
                         {pinned ? `Revision ${artifact.revision_number}, ` : 'Updated '}
                         {artifactTimeLabel(artifact.updated_at, now)}
-                        {pinned ? (
+                        {latestHref ? (
                             <>
                                 {' · '}
                                 <Link className="text-accent" to={latestHref}>
@@ -75,6 +79,11 @@ export function ArtifactViewerHeader({
             </div>
             {publicLink ? <PublicLinkChip /> : null}
             {stepper ? <ViewerSteps stepper={stepper} /> : null}
+            {onEdit ? (
+                <Button onPress={onEdit} size="sm" variant="secondary">
+                    Edit
+                </Button>
+            ) : null}
             <ArtifactViewerMenu artifact={artifact} publicLink={publicLink} />
         </header>
     );

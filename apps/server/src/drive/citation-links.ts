@@ -1,22 +1,15 @@
-import { artifactPathKey, parseArtifactPath } from '@haus/api';
-import { isProtectedRange, readCodeRanges } from '../chats/bare-reference-tokens.ts';
+import { artifactPathKey, parseArtifactPath, readMarkdownSpans } from '@haus/api';
 
-const linkPattern = /\[[^\]\n]+\]\(([^)\n]+)\)/gu;
 const scheme = 'drive://';
 const maxCitations = 100;
 
 export function readDriveCitationPaths(content: string) {
-    const code = readCodeRanges(content);
     const paths = new Map<string, string>();
-    for (const match of content.matchAll(linkPattern)) {
-        const target = match[1]?.trim() ?? '';
-        if (
-            !target.startsWith(scheme) ||
-            isProtectedRange(code, match.index, match.index + match[0].length)
-        ) {
+    for (const { url } of readMarkdownSpans(content).links) {
+        if (!url.startsWith(scheme)) {
             continue;
         }
-        const path = parseCitedPath(target.slice(scheme.length));
+        const path = parseCitedPath(url.slice(scheme.length));
         if (path && !paths.has(artifactPathKey(path))) {
             paths.set(artifactPathKey(path), path);
         }

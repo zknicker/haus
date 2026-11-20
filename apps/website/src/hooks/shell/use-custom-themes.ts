@@ -53,9 +53,11 @@ export function saveCustomThemes(
     }
 }
 
-export function createCustomTheme(colors: { dark: ThemeColors; light: ThemeColors }) {
+export function createCustomTheme(
+    seed: Pick<CustomTheme, 'background'> & { dark: ThemeColors; light: ThemeColors }
+) {
     const theme: CustomTheme = {
-        ...colors,
+        ...seed,
         id: newCustomThemeId(),
         name: nextCustomThemeName(customThemes),
     };

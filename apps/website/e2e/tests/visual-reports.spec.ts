@@ -16,8 +16,9 @@ test('inline reports track the reply column and grow and shrink with their docum
     runPsql(
         session.databaseUrl,
         `
-        insert into agents (id, server_id, handle, display_name, home_timezone)
-        values ('agt_visual_reports', '${server.id}', 'reporter', 'Reporter', 'UTC');
+        insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
+        values ('agt_visual_reports', '${server.id}', 'reporter', 'Reporter', 'UTC',
+            (select id from chats where server_id = '${server.id}' and is_all));
         insert into chat_messages (id, server_id, chat_id, sequence, author_agent_id, content, nonce)
         values ('msg_visual_report', '${server.id}', '${chat.id}', 1, 'agt_visual_reports',
         '${visualReportMessage.replaceAll("'", "''")}', 'visual-report');

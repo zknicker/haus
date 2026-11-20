@@ -1,7 +1,6 @@
-import { ItemCard } from '@heroui-pro/react';
-import { Button, Chip, Tooltip } from '@heroui/react';
-import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
-import type React from 'react';
+import { EmptyState, ItemCard } from '@heroui-pro/react';
+import { Button, Chip } from '@heroui/react';
+import { Plug01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
@@ -15,16 +14,16 @@ import { toConnectionView } from './connection-view.tsx';
 import { connectionStatusLabel, type McpConnection } from './mcp-server-shared.ts';
 
 /**
- * The connections this Server has, on the same grid as Recommended and as
- * Settings → Skills. Each row is name, account, and status; the server's
- * address lives on the connection page the row opens.
+ * What this Server is connected to, one row per account: the brand tile, the
+ * name over its account, and status. The catalog of services to add sits
+ * behind Explore connections, so the page leads with what is in place.
  */
 export function ConnectionListSection({
-    onAdd,
+    onExplore,
     onSelect,
     serverId,
 }: {
-    onAdd: () => void;
+    onExplore: () => void;
     onSelect: (connectionId: string) => void;
     serverId: string;
 }) {
@@ -36,25 +35,17 @@ export function ConnectionListSection({
 
     return (
         <SettingsCardGrid
-            // Adding a connection adds a row to this grid, so the control
-            // belongs to the section rather than the page.
             action={
-                <Tooltip delay={0}>
-                    <Button
-                        aria-label="Add connection"
-                        isIconOnly
-                        onPress={onAdd}
-                        size="sm"
-                        variant="secondary"
-                    >
-                        <Icon aria-hidden="true" icon={PlusSignIcon} size={16} />
+                items.length > 0 ? (
+                    <Button onPress={onExplore} size="sm" variant="secondary">
+                        Explore connections
                     </Button>
-                    <Tooltip.Content>Add connection</Tooltip.Content>
-                </Tooltip>
+                ) : null
             }
-            count={connections.data ? items.length : undefined}
-            status={connectionsStatus(connections, items.length)}
-            title="Added"
+            count={items.length > 0 ? items.length : undefined}
+            layout="list"
+            status={connectionsStatus({ connections, count: items.length, onExplore })}
+            title="Connected"
         >
             {items.map((connection) => (
                 <SettingsGridCard key={connection.id} onPress={() => onSelect(connection.id)}>
@@ -67,9 +58,6 @@ export function ConnectionListSection({
                             {connectionAccountLabel(connection)}
                         </ItemCard.Description>
                     </ItemCard.Content>
-                    {/* A ready connection needs nothing, so it takes the
-                        catalog's quiet check; only one that needs attention
-                        spells out its status. */}
                     {connection.connected ? (
                         <SettingsGridCheck label={connectionStatusLabel(connection)} />
                     ) : (
@@ -85,12 +73,16 @@ export function ConnectionListSection({
     );
 }
 
-function connectionsStatus(
-    connections: ReturnType<typeof useConnections>,
-    count: number
-): React.ReactNode {
+function connectionsStatus({
+    connections,
+    count,
+    onExplore,
+}: {
+    connections: ReturnType<typeof useConnections>;
+    count: number;
+    onExplore: () => void;
+}) {
     if (connections.isPending && !connections.data) {
-        // Blank while loading: no skeleton, no flash of empty.
         return (
             <div aria-busy="true" className="min-h-32">
                 <span className="sr-only">Loading connections</span>
@@ -105,12 +97,27 @@ function connectionsStatus(
         );
     }
     if (count === 0) {
-        return <p className="text-muted py-8 text-center text-sm">No connections.</p>;
+        return (
+            <EmptyState className="py-10">
+                <EmptyState.Header>
+                    <EmptyState.Media variant="icon">
+                        <Icon icon={Plug01Icon} />
+                    </EmptyState.Media>
+                    <EmptyState.Title>Connect a service</EmptyState.Title>
+                    <EmptyState.Description>
+                        Captains use connections to reach your tools and accounts.
+                    </EmptyState.Description>
+                </EmptyState.Header>
+                <EmptyState.Content>
+                    <Button onPress={onExplore}>Explore connections</Button>
+                </EmptyState.Content>
+            </EmptyState>
+        );
     }
     return null;
 }
 
-function connectionAccountLabel(connection: McpConnection): string {
+function connectionAccountLabel(connection: McpConnection) {
     if (connection.accountLabel) {
         return connection.accountLabel;
     }

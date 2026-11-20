@@ -117,7 +117,10 @@ worktree's data across runs. On later boots it applies any new checked-in
 PostgreSQL migrations before starting Haus Server, so an existing worktree
 database stays current with main. If that migration step fails, the database
 predates the checked-in migration baseline: move
-`~/.haus/dev/<worktree-id>/postgres` aside and rerun to bootstrap fresh. On first use, Server creates one demo Server with
+`~/.haus/dev/<worktree-id>/postgres` aside and rerun to bootstrap fresh. A dev database
+that ran a draft of migration `0129_drive.sql` before D2 merged fails every Drive push with
+`column "base_revision_id" does not exist`; move it aside once the same way. Production never
+ran the draft. On first use, Server creates one demo Server with
 the Agents Blippy and Tiny, avatars for them and for you, the `#haus` and
 `#product` Channels, starter messages with inline replies, four `GEN` Tasks started from Channel
 messages (one in flight and one waiting with the Agents, two handed to you), and one MCP

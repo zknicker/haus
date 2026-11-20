@@ -11,6 +11,15 @@ describe('artifact widget contracts', () => {
         expect(widgetArtifactPropsSchema.safeParse({ path: 'PAGE.HTML' }).success).toBe(true);
     });
 
+    test('a page may pin a Drive revision', () => {
+        const path = 'drive/agents/scout/workbench/plan.html';
+        expect(widgetArtifactPropsSchema.parse({ path, revision: ' rev_1 ' })).toEqual({
+            path,
+            revision: 'rev_1',
+        });
+        expect(widgetArtifactPropsSchema.safeParse({ path, revision: '' }).success).toBe(false);
+    });
+
     test('rejects traversal, absolute, and backslash paths', () => {
         for (const path of [
             '../outside.html',
