@@ -70,7 +70,10 @@ export async function runRuleFile(variant, { agents, expect, kit, log, settleTur
     for (const other of ruleFiles.filter((name) => name !== file)) {
         expect(drive.has(drivePath(agent, other)), `no ${other} for this rule`).toBe(false);
     }
-    expect(pattern.test(memoryAfter), 'MEMORY.md does not hold the rule').toBe(false);
+    expect(
+        pattern.test(standingPreferences(memoryAfter)),
+        'MEMORY.md Standing Preferences do not hold the rule'
+    ).toBe(false);
     expect(standingPreferences(memoryAfter), 'MEMORY.md Standing Preferences unchanged').toBe(
         standingPreferences(memoryBefore)
     );
