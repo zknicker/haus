@@ -112,7 +112,45 @@ export function workerCardLine(work: CardWorker, input: CardLineInput) {
     if (newest?.outcome?.kind === 'stopped') {
         return { text: stoppedLine(newest, input), tone: 'muted' } satisfies WorkerCardLine;
     }
-    return noLine;
+    return newest && newest.outcome === null ? legacyLine(newest, input) : noLine;
+}
+
+export function legacyWorkerSummary(work: Pick<Worker, 'turns'>) {
+    if (newestWorkerReport(work)) {
+        return null;
+    }
+    const [newest] = work.turns;
+    return newest?.outcome === null &&
+        (newest.status === 'completed' || newest.status === 'pending_input')
+        ? newest.summary
+        : null;
+}
+
+function legacyLine(turn: WorkerTurn, input: CardLineInput) {
+    const when = formatRelativeTime(turn.terminalAt ?? turn.createdAt, input.now);
+    switch (turn.status) {
+        case 'failed':
+            return {
+                text: activityLine(turn.summary) ?? errorWords(turn.errorCode) ?? 'Failed',
+                tone: 'danger',
+            } satisfies WorkerCardLine;
+        case 'expired':
+            return { text: 'Expired', tone: 'danger' } satisfies WorkerCardLine;
+        case 'cancelled':
+            return { text: stoppedLine(turn, input), tone: 'muted' } satisfies WorkerCardLine;
+        case 'completed':
+            return { text: `Finished ${when}`, tone: 'muted' } satisfies WorkerCardLine;
+        default:
+            return { text: `Updated ${when}`, tone: 'muted' } satisfies WorkerCardLine;
+    }
+}
+
+function errorWords(code: null | string) {
+    if (code === null) {
+        return null;
+    }
+    const words = code.replaceAll(/[_-]+/gu, ' ').trim();
+    return words === '' ? null : `${words.charAt(0).toUpperCase()}${words.slice(1)}`;
 }
 
 function liveTurnLine(work: CardWorker, live: WorkerTurn[], input: CardLineInput) {

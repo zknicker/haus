@@ -14,11 +14,13 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { useAgentAppearances } from '../../hooks/members/use-agents.ts';
 import { useHumanDirectory } from '../../hooks/servers/use-human-directory.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
+import { ChatMarkdownText } from '../chats/chat-markdown-text.tsx';
 import { useTranscriptRenderContextOptional } from '../chats/chat-transcript-render-context.tsx';
 import { WorkerKeycap } from './cloud-agent-provider-mark.tsx';
 import {
     canFollowUpWorker,
     isWorkerTurnLive,
+    legacyWorkerSummary,
     newestWorkerReport,
     workerCardLine,
     workerStatusChipColors,
@@ -45,6 +47,7 @@ export function WorkerCard({ chatId: chatIdProp, work }: { chatId?: null | strin
     const humans = useHumanDirectory(server?.id);
     const now = useRelativeNow(isWorkerTurnLive(work) ? 5000 : 60_000);
     const report = newestWorkerReport(work);
+    const legacySummary = legacyWorkerSummary(work);
     const name = (author: WorkerTurnInput['author']) =>
         author.kind === 'agent'
             ? (agents.find((agent) => agent.id === author.id)?.displayName ??
@@ -104,7 +107,12 @@ export function WorkerCard({ chatId: chatIdProp, work }: { chatId?: null | strin
                     {line.text}
                 </ActionCard.Meta>
             ) : null}
-            {server && canFollowUpWorker(work) ? (
+            {legacySummary ? (
+                <div className="min-w-0 break-words" data-testid="worker-legacy-summary">
+                    <ChatMarkdownText content={legacySummary} />
+                </div>
+            ) : null}
+            {server && chatId !== null && canFollowUpWorker(work) ? (
                 <WorkerFollowUpComposer serverId={server.id} work={work} />
             ) : null}
             {server && work.taskId === null && chatId ? (

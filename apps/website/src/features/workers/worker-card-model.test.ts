@@ -4,6 +4,7 @@ import {
     canFollowUpWorker,
     isWorkerStopping,
     isWorkerTurnLive,
+    legacyWorkerSummary,
     newestWorkerReport,
     workerCardLine,
     workerStatusText,
@@ -178,4 +179,51 @@ test('a Worker is live while any turn is, even after its newest turn settled', (
     });
 
     expect(isWorkerTurnLive(worker)).toBe(true);
+});
+
+test('a legacy settled turn with no typed outcome still states how it ended', () => {
+    expect(
+        line(work({ turns: [turn({ errorCode: 'provider_error', status: 'failed' })] }))
+    ).toEqual({ text: 'Provider error', tone: 'danger' });
+    expect(
+        line(work({ turns: [turn({ status: 'failed', summary: 'Tests kept failing.' })] }))
+    ).toEqual({ text: 'Tests kept failing.', tone: 'danger' });
+    expect(line(work({ turns: [turn({ status: 'expired' })] }))).toEqual({
+        text: 'Expired',
+        tone: 'danger',
+    });
+    expect(
+        line(
+            work({ turns: [turn({ status: 'cancelled', terminalAt: '2026-09-04T11:54:00.000Z' })] })
+        )
+    ).toEqual({
+        text: 'Stopped 10m ago',
+        tone: 'muted',
+    });
+    expect(
+        line(
+            work({ turns: [turn({ status: 'completed', terminalAt: '2026-09-04T11:54:00.000Z' })] })
+        )
+    ).toEqual({
+        text: 'Finished 10m ago',
+        tone: 'muted',
+    });
+});
+
+test('a legacy turn summary stands in for the report it never had', () => {
+    expect(legacyWorkerSummary(work({ turns: [turn({ summary: 'Opened PR #4.' })] }))).toBe(
+        'Opened PR #4.'
+    );
+    expect(
+        legacyWorkerSummary(
+            work({
+                turns: [
+                    turn({
+                        outcome: { kind: 'report', report: doneReport },
+                        summary: 'Opened PR #4.',
+                    }),
+                ],
+            })
+        )
+    ).toBeNull();
 });

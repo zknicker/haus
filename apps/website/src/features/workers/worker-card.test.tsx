@@ -167,6 +167,17 @@ test('the pull request and provider links are real links', () => {
     expect(html).toContain('href="https://cursor.com/agents/bc_one"');
 });
 
+test('a Worker on a chatless legacy Task shows its summary and no composer', () => {
+    const html = renderCard(
+        work({ turns: [turn({ status: 'completed', summary: 'Opened PR #4.' })] }),
+        undefined,
+        { chatId: null }
+    );
+
+    expect(html).toContain('Opened PR #4.');
+    expect(html).not.toContain('prompt-input');
+});
+
 test('a closed Worker shows its record with no composer', () => {
     const html = renderCard(work({ closedAt: '2026-09-04T12:03:00.000Z', status: 'completed' }));
 
@@ -246,7 +257,7 @@ test('a branch that opened no pull request renders no row', () => {
 function renderCard(
     worker: Worker,
     reportMessage?: typeof linkedMessage,
-    options: { inTranscript?: boolean } = {}
+    options: { chatId?: null; inTranscript?: boolean } = {}
 ) {
     const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false, staleTime: Number.POSITIVE_INFINITY } },
@@ -310,7 +321,10 @@ function renderCard(
                                         <WorkerCard work={worker} />
                                     </TranscriptRenderProvider>
                                 ) : (
-                                    <WorkerCard chatId="cht_task" work={worker} />
+                                    <WorkerCard
+                                        chatId={options.chatId === null ? null : 'cht_task'}
+                                        work={worker}
+                                    />
                                 )
                             }
                             path="/s/:slug"
