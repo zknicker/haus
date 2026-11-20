@@ -289,6 +289,12 @@ rollback does not reverse database changes. Destructive cleanup lands only in a
 later release after every deployed Server version has stopped using the old
 shape.
 
+Drizzle applies every pending migration in one transaction, so session state such as
+constraint mode carries from one migration into the next. A migration that runs
+`SET CONSTRAINTS ALL IMMEDIATE` ends with `SET CONSTRAINTS ALL DEFERRED`;
+`bun run lint` enforces this through `scripts/check-migration-constraint-mode.ts`. A
+migration failure prints PostgreSQL's code, constraint, and detail beneath the failed query.
+
 Haus 10.0.0 is an operator-approved exception: migration 0072 removes `chat_events` and
 `servers.last_chat_event_cursor` with the protocol 9 cutover. Server 8.4.0 cannot run against
 that migrated schema. Recovery after the drop requires a forward fix on the new schema;
