@@ -35,7 +35,7 @@ export function CapySidebarActions({ slug }: { slug: string }) {
 
 export function CapySidebarHeader({ slug }: { slug: string }) {
     return (
-        <div className="flex h-(--app-shell-band-height) shrink-0 items-center justify-between ps-3 pe-2">
+        <div className="flex h-(--app-shell-band-height) shrink-0 items-center justify-between ps-[calc(var(--spacing)*3+0.5rem)] pe-[calc(var(--spacing)*3)]">
             <HomeMark slug={slug} />
             <CapySidebarActions slug={slug} />
         </div>

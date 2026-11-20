@@ -11,11 +11,11 @@ import {
 } from '../../routes/app/server-route-state.ts';
 import { CreateAgentDialog } from '../members/create-agent-dialog.tsx';
 import { serverAgentDmRoute, taskRoute } from '../servers/server-routes.ts';
-import { ChatGroup } from '../shell/chat-navigation-group.tsx';
 import { NewProjectDialog } from '../shell/new-project-dialog.tsx';
 import { sidebarActionIconSize } from '../shell/section-header.tsx';
 import { ShellSidebarPageContent } from '../shell/shell-sidebar.tsx';
 import { CaptainTiles } from './captain-tiles.tsx';
+import { CapySection } from './capy-section.tsx';
 import { CapySidebarHeader } from './capy-sidebar-header.tsx';
 import {
     OpenTaskNavigationRow,
@@ -54,17 +54,19 @@ export function CapySidebar({
             {lead === 'row' ? <CapySidebarHeader slug={slug} /> : null}
             <UnreadRowWalkKeys sections={sections} serverId={serverId} slug={slug} />
             <ShellSidebarPageContent>
-                {sections?.map((section) => (
-                    <CapySidebarSectionView
-                        key={section.kind}
-                        onCreateCaptain={canManage ? openNewCaptain : undefined}
-                        onCreateProject={openNewProject}
-                        section={section}
-                        selection={selection}
-                        serverId={serverId}
-                        slug={slug}
-                    />
-                ))}
+                <div className="flex flex-col gap-6 pt-2">
+                    {sections?.map((section) => (
+                        <CapySidebarSectionView
+                            key={section.kind}
+                            onCreateCaptain={canManage ? openNewCaptain : undefined}
+                            onCreateProject={openNewProject}
+                            section={section}
+                            selection={selection}
+                            serverId={serverId}
+                            slug={slug}
+                        />
+                    ))}
+                </div>
             </ShellSidebarPageContent>
             <CreateAgentDialog
                 onCreated={(agentId) => {
@@ -123,7 +125,7 @@ function CapySidebarSectionView({
             );
         case 'projects':
             return (
-                <ChatGroup
+                <CapySection
                     action={<AddButton label="New project" onPress={onCreateProject} />}
                     label="Projects"
                 >
@@ -138,11 +140,11 @@ function CapySidebarSectionView({
                             />
                         ))}
                     </Sidebar.Menu>
-                </ChatGroup>
+                </CapySection>
             );
         case 'open-tasks':
             return (
-                <ChatGroup label="Open tasks">
+                <CapySection label="Open tasks">
                     <Sidebar.Menu aria-label="Open tasks">
                         {section.tasks.map((task) => (
                             <OpenTaskNavigationRow
@@ -154,11 +156,11 @@ function CapySidebarSectionView({
                             />
                         ))}
                     </Sidebar.Menu>
-                </ChatGroup>
+                </CapySection>
             );
         case 'people':
             return (
-                <ChatGroup label="People">
+                <CapySection label="People">
                     <Sidebar.Menu aria-label="People">
                         {section.chatIds.map((chatId) => (
                             <PersonNavigationRow
@@ -170,7 +172,7 @@ function CapySidebarSectionView({
                             />
                         ))}
                     </Sidebar.Menu>
-                </ChatGroup>
+                </CapySection>
             );
     }
 }

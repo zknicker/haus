@@ -22,8 +22,11 @@ stored in `localStorage` under `haus.capy-shell` and follows into other open win
   Captains as avatar tiles, Projects, Open tasks, and People. On the web the logo and actions ride
   the titlebar strip; on the desktop they take the sidebar's first line, since the window band
   holds the strip.
-  - A Captain tile shows a dot while the Captain works and a badge for unread DM messages. A
-    click opens your DM with that Captain. Owners and Admins get a + that opens New Captain.
+  - Section headers ("Captains", "Projects", "Open tasks", "People") are plain body-size labels
+    with their actions at the right, as in Capy. Clicking a label folds its section; there is no
+    caret. The logo, the section labels and the row icons share one left edge.
+  - Captain tiles sit under their header, the face over the name. A tile shows a dot while the
+    Captain works and a badge for unread DM messages. A click opens your DM with that Captain. Owners and Admins get a + that opens New Captain.
   - A Project row is its mark, its name and its unread badge. The + opens New project.
   - An open Task row is one line: the state disc, the key, the title and the unread badge. When
     an unread message in it @mentions you, the key turns accent with a small accent dot and the
