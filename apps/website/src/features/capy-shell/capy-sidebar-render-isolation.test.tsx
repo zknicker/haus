@@ -86,7 +86,6 @@ test('an unread count in one Project renders that Project’s row and nothing el
     expect(census.count('CapySidebar')).toBe(0);
     expect(census.count('CaptainTileLink')).toBe(0);
     expect(census.count('OpenTaskNavigationRow')).toBe(0);
-    expect(census.count('CaptainFace')).toBe(0);
 
     await harness.unmount();
 });
@@ -140,7 +139,6 @@ test('a Captain starting work renders only that Captain’s tile', async () => {
     expect(census.count('CaptainTileLink')).toBe(1);
     expect(census.count('CaptainTileLink', 'agt_blippy')).toBe(1);
     expect(census.count('ProjectNavigationRow')).toBe(0);
-    expect(census.count('CaptainFace')).toBe(0);
     expect(census.count('OpenTaskNavigationRow')).toBe(0);
     expect(census.count('CapySidebar')).toBe(0);
 

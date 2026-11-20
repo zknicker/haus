@@ -4,7 +4,6 @@ import * as React from 'react';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { UnreadCountChip } from '../../components/chats/unread-count-chip.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
-import { useAgentMark } from '../../hooks/members/use-agents.ts';
 import { usePreloadChat } from '../../hooks/servers/use-preload-chat.ts';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.ts';
@@ -15,8 +14,6 @@ import { TaskStateDisc } from '../tasks/task-state-disc.tsx';
 import { taskStateLabels } from '../tasks/task-state.ts';
 import { type OpenTaskRow, type ProjectRow, progressLineParts } from './sidebar-model.ts';
 import { useOpenTaskRow, usePersonRow, useProjectRow } from './use-capy-sidebar-rows.ts';
-
-const projectCaptainLimit = 3;
 
 interface RowProps {
     isCurrent: boolean;
@@ -38,7 +35,6 @@ export const ProjectNavigationRow = React.memo(function ProjectNavigationRow({
     }
     return (
         <Sidebar.MenuItem
-            data-captains-source={row.captainIds.source}
             href={href}
             id={chatId}
             isCurrent={isCurrent}
@@ -63,13 +59,6 @@ export const ProjectNavigationRow = React.memo(function ProjectNavigationRow({
                     >
                         {row.name}
                     </Sidebar.MenuLabel>
-                    {row.captainIds.value.length > 0 ? (
-                        <span aria-hidden="true" className="flex shrink-0 gap-[2px]">
-                            {row.captainIds.value.slice(0, projectCaptainLimit).map((agentId) => (
-                                <CaptainFace agentId={agentId} key={agentId} serverId={serverId} />
-                            ))}
-                        </span>
-                    ) : null}
                     {row.unreadCount > 0 ? <UnreadCountChip count={row.unreadCount} /> : null}
                 </Sidebar.MenuItemContent>
             </ChatNavigationContextMenu>
@@ -153,19 +142,6 @@ export const PersonNavigationRow = React.memo(function PersonNavigationRow({
             </Sidebar.MenuItemContent>
         </Sidebar.MenuItem>
     );
-});
-
-const CaptainFace = React.memo(function CaptainFace({
-    agentId,
-    serverId,
-}: {
-    agentId: string;
-    serverId: string;
-}) {
-    const captain = useAgentMark(serverId, agentId);
-    return captain ? (
-        <EntityAvatar name={captain.displayName} size={16} src={captain.avatarUrl} />
-    ) : null;
 });
 
 function OpenTaskLineText({ line }: { line: OpenTaskRow['line'] }) {

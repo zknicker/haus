@@ -114,11 +114,10 @@ test('a Captain tile is working while its Agent works and counts its DM unread',
     });
 });
 
-test("Projects follow the stored order and carry their channel's Captains as live data", () => {
+test('Projects follow the stored order and carry their unread count', () => {
     const eng = chat({ id: 'eng', kind: 'channel', name: 'eng', participantAgentIds: ['forge'] });
     const sec = chat({ id: 'sec', kind: 'channel', name: 'sec', unreadCount: 4 });
     expect(projectIds([eng, sec], ['sec'])).toEqual(['sec', 'eng']);
-    expect(projectRow(eng).captainIds).toEqual({ source: 'live', value: ['forge'] });
     expect(projectRow(sec).unreadCount).toBe(4);
 });
 

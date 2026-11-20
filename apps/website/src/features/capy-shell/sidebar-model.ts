@@ -2,7 +2,7 @@ import type { Agent, Chat, ChatUnreadPreview, Task } from '@haus/api';
 import type { ServerMember } from '@haus/api/membership';
 import { parseHausRichReferences, parseUserReferenceTarget } from '@haus/api/rich-references';
 import { humanDisplayName } from '../servers/human-identity.ts';
-import { live, previewTaskWorkers, type Sourced, type TaskWorkers } from './placeholders.ts';
+import { previewTaskWorkers, type Sourced, type TaskWorkers } from './placeholders.ts';
 
 export interface CaptainTile {
     agentId: string;
@@ -14,7 +14,6 @@ export interface CaptainTile {
 }
 
 export interface ProjectRow {
-    captainIds: Sourced<readonly string[]>;
     chatId: string;
     color: Chat['color'];
     icon: Chat['icon'];
@@ -68,7 +67,6 @@ export function agentDm(chats: readonly Chat[], agentId: string) {
 
 export function projectRow(chat: Chat) {
     return {
-        captainIds: live<readonly string[]>(chat.participantAgentIds),
         chatId: chat.id,
         color: chat.color,
         icon: chat.icon,

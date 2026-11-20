@@ -24,7 +24,7 @@ stored in `localStorage` under `haus.capy-shell` and follows into other open win
   holds the strip.
   - A Captain tile shows a dot while the Captain works and a badge for unread DM messages. A
     click opens your DM with that Captain. Owners and Admins get a + that opens New Captain.
-  - Each Project row shows its Captains' small avatars. The + opens New project.
+  - A Project row is its mark, its name and its unread badge. The + opens New project.
   - Each open Task row has a second line: Captain · workers · places, or "waiting on <you>" when
     an unread message in it @mentions you. Waiting Tasks sort first.
   - People lists person-to-person DMs and appears only when you have any.
@@ -57,7 +57,6 @@ projects its own entry through `features/capy-shell/sidebar-model.ts` from a nar
 | --- | --- | --- |
 | Captains, their working state, DM unread | Live (`agent.list`, `chat.list`) | — |
 | Projects and their unread counts | Live (channels in `chat.list`) | — |
-| A Project's Captains | Live channel membership (`participantAgentIds`) | J3, home Projects |
 | Open Tasks and their assignee | Live (`task.listOpen`) | — |
 | "Waiting on you" | Live: an unread @mention of you in the Task (`chat.unreadPreviews`) | — |
 | Worker counts and places | Placeholder, stable per Task (`previewTaskWorkers`) | W2, Workers |
