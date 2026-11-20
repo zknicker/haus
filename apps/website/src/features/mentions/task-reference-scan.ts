@@ -2,9 +2,9 @@ import {
     formatTaskReferenceTarget,
     parseTaskKey,
     parseTaskReferenceTarget,
+    readCodeRanges,
     type TaskLink,
 } from '@haus/api';
-import { readCodeRanges } from '../chats/markdown-code-ranges.ts';
 import { normalizeMentions } from './mention-text.ts';
 import type { Mention } from './mention-types.ts';
 

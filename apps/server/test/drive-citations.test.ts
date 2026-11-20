@@ -105,6 +105,28 @@ test('an Agent send binds each cited path once, to the head or to nulls', async 
     ]);
 });
 
+test('a send reads links the way the App renders them', async () => {
+    const plan = await insertFile('haus/plans/Q4 plan.md');
+    const draft = await insertFile('haus/plans/Q4 (draft).md');
+    const messageId = await agentSend(
+        'run_citations_syntax',
+        [
+            'See [plan](<drive://haus/plans/Q4 plan.md>) and [draft](drive://haus/plans/Q4%20(draft).md).',
+            'Not cited: ``[code](drive://haus/code.md)``, ![image](drive://haus/image.png),',
+            '\n```md\n[fenced](drive://haus/fenced.md)\n```\n',
+        ].join(' ')
+    );
+
+    expect(await citationsOf(notesChatId, messageId)).toEqual([
+        { artifactId: plan.artifactId, path: 'haus/plans/Q4 plan.md', revisionId: plan.revisionId },
+        {
+            artifactId: draft.artifactId,
+            path: 'haus/plans/Q4 (draft).md',
+            revisionId: draft.revisionId,
+        },
+    ]);
+});
+
 test('a human send binds to the head, and a later revision does not move it', async () => {
     const { channelId, owner, serverId } = fixture;
     const brief = await insertFile('haus/brief.md');

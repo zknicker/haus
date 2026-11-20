@@ -1,10 +1,10 @@
+import { codeRangeAt, readCodeRanges } from '@haus/api';
 import type * as React from 'react';
 import { MarkdownLink, matchBareUrl, matchMarkdownLink } from './chat-inline-markdown-link.tsx';
 import {
     type ChatTextAnimationRange,
     renderTextWithAnimatedRanges,
 } from './chat-inline-text-animation.tsx';
-import { codeRangeAt, readCodeRanges } from './markdown-code-ranges.ts';
 
 const maxParseDepth = 6;
 

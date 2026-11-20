@@ -339,7 +339,9 @@ citation to the head at send time. When the sending run's push closes, each cita
 that push changed moves to the revision the push left. When the push kept both versions, the
 citation moves to the writer's own copy, because the copy holds what the Agent meant. A path that
 does not exist at send has null ids until the push creates it. A citation that never resolves renders its label as plain text.
-The Server reads links in order, skipping inline code and code fences. It percent-decodes each
+The Server reads links in order with the same scanner the App renders with (`readMarkdownLinks` in
+`packages/haus-api`): it skips inline code, code fences and images, unwraps a `<…>` destination,
+and keeps balanced parentheses in a path. It percent-decodes each
 path, ignores one that is malformed or breaks the path rules, keeps each path once by its key, and
 reads at most 100 per message. A kept-both rebind moves the ids to the copy and keeps the path as the
 link wrote it. Citations keep artifact and revision ids, so they survive moves. A citation whose revision was

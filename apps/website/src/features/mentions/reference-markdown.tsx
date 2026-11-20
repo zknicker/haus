@@ -1,10 +1,10 @@
+import { readMarkdownLinks } from '@haus/api';
 import { Markdown } from '@heroui-pro/react/markdown';
 import * as React from 'react';
 import { MarkdownCodeBlock } from '../../components/code/markdown-code-block.tsx';
 import { escapeBareOrderedMarkers } from '../chats/bare-ordered-marker.ts';
 import { isDriveCitationHref } from '../chats/drive-citation-link.ts';
 import { parseHausResourceLink } from '../chats/haus-resource-link.ts';
-import { readMarkdownLinks } from '../chats/markdown-link-syntax.ts';
 import { amazonMarkdownComponents } from './amazon-markdown-components.tsx';
 import { areMentionsEqual, readMentionsFromMarkdown } from './mention-metadata.ts';
 import type { Mention, ReferenceActivation } from './mention-types.ts';

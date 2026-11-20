@@ -1,9 +1,9 @@
+import { readMarkdownLinkAt } from '@haus/api';
 import type * as React from 'react';
 import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useArtifactPanelOpen } from './artifact-panel-context.tsx';
 import { isDriveCitationHref } from './drive-citation-link.ts';
 import { parseHausResourceLink } from './haus-resource-link.ts';
-import { readMarkdownLinkAt } from './markdown-link-syntax.ts';
 import { SharedArtifactChip } from './shared-artifact-chip.tsx';
 import { useSharedArtifactScope, useSharedArtifactTarget } from './shared-artifact-scope.tsx';
 
