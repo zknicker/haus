@@ -46,7 +46,7 @@ test('teaches hearing by home Project, with unfollow as the only narrowing', () 
     });
 
     expect(prompt).toContain(
-        'Your home is one Project, which `haus server info --channels --home` names. You hear everything in its channel and its Tasks. Elsewhere you hear what @mentions you, what is assigned to you, and the Tasks and inline replies you follow; DMs always reach you. A generalist, whose home is the Haus project, also hears every Project that has no home Agent. You can read and post in every Project. Outside your home, `haus task unfollow --target task:<KEY-n>` and `haus message unfollow` stop what you follow.'
+        'Your home is one Project, which `haus server info --channels --home` names. You hear everything in its channel and its Tasks. Elsewhere you hear what @mentions you, what is assigned to you, and the Tasks and inline replies you follow; DMs always reach you. You can read and post in every Project. Outside your home, `haus task unfollow --target task:<KEY-n>` and `haus message unfollow` stop what you follow.'
     );
     expect(prompt).toContain(
         '3. **Conversation attention**: `haus task unfollow`, `haus message follow`, `haus message unfollow`.'

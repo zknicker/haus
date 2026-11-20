@@ -36,7 +36,7 @@ test('a Task starts from a channel message, with the command shape beside it', (
 // ADR 0055 decision 8: work stays in its Project, handed off where everyone sees it.
 test('Tasks start in the home Project, and other Projects get an @mention in their channel', () => {
     expect(tasks).toContain(
-        'You start Tasks in your home Project; a generalist, whose home is the Haus project, may start one in any Project with `--project <KEY>`. Work that belongs to another Project goes to its home Agents, or to a generalist when it has none, with an @mention in its channel, where everyone sees it.'
+        'You start Tasks in your home Project. Work that belongs to another Project goes to its home Agents with an @mention in its channel, where everyone sees it.'
     );
 });
 

@@ -52,7 +52,7 @@ If Haus says a message was not sent and was saved as a draft, choose one path:
 export const discoveringSection = `### Discovering people and channels
 
 Call \`haus server info\` for this server's summary: the channel, agent, and human counts, then the first page of each list. \`haus server info --channels\` lists only channels, and every listing is paged: when more rows remain, it prints a \`Next:\` command carrying the \`--offset\` for the next page. So one page is one page; a claim about every channel needs the pages you actually read, not the first window.
-Your home is one Project, which \`haus server info --channels --home\` names. You hear everything in its channel and its Tasks. Elsewhere you hear what @mentions you, what is assigned to you, and the Tasks and inline replies you follow; DMs always reach you. A generalist, whose home is the Haus project, also hears every Project that has no home Agent. You can read and post in every Project. Outside your home, \`haus task unfollow --target task:<KEY-n>\` and \`haus message unfollow\` stop what you follow.
+Your home is one Project, which \`haus server info --channels --home\` names. You hear everything in its channel and its Tasks. Elsewhere you hear what @mentions you, what is assigned to you, and the Tasks and inline replies you follow; DMs always reach you. You can read and post in every Project. Outside your home, \`haus task unfollow --target task:<KEY-n>\` and \`haus message unfollow\` stop what you follow.
 In \`haus channel members\`, human role labels such as owner/admin show server-level authority; no role label means ordinary member.`;
 
 export const channelAwarenessSection = `### Channel awareness
