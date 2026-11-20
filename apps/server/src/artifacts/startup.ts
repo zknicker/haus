@@ -1,5 +1,6 @@
 import { type EffectRuntime, settle } from '@haus/effect';
 import { Effect, Scope } from 'effect';
+import { managedSkillSeeder } from '../managed-skills/seeder.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { reconcileArtifacts } from './delete.ts';
 import {
@@ -20,6 +21,7 @@ export async function openArtifactStorage(
         artifactR2?: ArtifactR2Config;
         artifactStorage?: ArtifactStorage;
         artifactStorageBytes?: number;
+        seedManagedSkills?: boolean;
     },
     db: HausDatabase,
     runtime: EffectRuntime<never>,
@@ -53,6 +55,7 @@ export async function openArtifactStorage(
         artifactStorage: storage,
         artifactStorageBytes: options.artifactStorageBytes ?? artifactStorageBytes,
         artifactThumbnails: thumbnails,
+        managedSkills: managedSkillSeeder(db, options.seedManagedSkills === false ? null : storage),
     };
 }
 

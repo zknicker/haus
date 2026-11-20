@@ -1,6 +1,10 @@
 import { and, eq, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, artifactsTable as artifacts } from '../postgres/schema.ts';
+import {
+    agentManagedSkillsTable,
+    agentsTable,
+    artifactsTable as artifacts,
+} from '../postgres/schema.ts';
 import { softDeleteArtifacts } from './delete.ts';
 import { lockLiveServer } from './move.ts';
 import { insideFolder, live } from './path.ts';
@@ -19,6 +23,14 @@ export async function deleteAgentAreaIn(
     if (!agent) {
         throw new ArtifactError('Agent was not found.', 404, 'NOT_FOUND');
     }
+    await tx
+        .delete(agentManagedSkillsTable)
+        .where(
+            and(
+                eq(agentManagedSkillsTable.serverId, input.serverId),
+                eq(agentManagedSkillsTable.agentId, input.agentId)
+            )
+        );
     const root = `agents/${agent.handle}`;
     const rows = await tx
         .select()

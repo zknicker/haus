@@ -138,7 +138,7 @@ export const artifactRevisionsTable = pgTable(
         }),
         check(
             'artifact_revision_author_shape',
-            sql`num_nonnulls(${table.authorAgentId}, ${table.authorUserId}) = 1`
+            sql`num_nonnulls(${table.authorAgentId}, ${table.authorUserId}) = 1 or (${table.authorKey} = 'haus' and num_nonnulls(${table.authorAgentId}, ${table.authorUserId}) = 0)`
         ),
         check(
             'artifact_revision_size',
