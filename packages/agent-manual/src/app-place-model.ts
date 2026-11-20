@@ -37,7 +37,7 @@ export type AppPlaceAnchor =
 export const channelActionsMenu = 'features/servers/chat/channel-actions-menu.tsx';
 export const agentTriggers = 'features/members/agent-profile/agent-triggers.tsx';
 export const triggerManageGroup = 'features/members/agent-profile/trigger-manage-group.tsx';
-export const computersGroup = 'features/computers/settings-computers-group.tsx';
+export const computersGroup = 'features/computers/devices-page.tsx';
 export const secretsRow = 'features/computers/secrets-capability-row.tsx';
 
 export function label(file: string, text: string): AppPlaceAnchor {

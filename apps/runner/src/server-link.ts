@@ -10,7 +10,7 @@ import {
 } from '@haus/api';
 import type { RunnerConfig } from './config.ts';
 import type { DispatchLedger } from './dispatch/ledger.ts';
-import { invocationGraceMs } from './invocations/invocation-client.ts';
+import { type InvocationClock, systemInvocationClock } from './invocations/invocation-clock.ts';
 import type { ConnectionBook } from './model-connections/connection-book.ts';
 import { createSignIns } from './pi/pi-sign-ins.ts';
 import type { RunnerLink, TurnHost } from './run-context.ts';
@@ -23,7 +23,7 @@ const queuedFramesMax = 1000;
 export function openServerLink(input: {
     book: ConnectionBook;
     config: Pick<RunnerConfig, 'runnerToken' | 'serverUrl'>;
-    invocationGraceMs?: number;
+    invocationClock?: InvocationClock;
     ledger: DispatchLedger;
     log?: (line: string) => void;
     reconnectDelaysMs?: readonly number[];
@@ -111,7 +111,7 @@ export function openServerLink(input: {
         };
         const toolset = createRunTools({
             authority,
-            invocationGraceMs: input.invocationGraceMs ?? invocationGraceMs,
+            invocationClock: input.invocationClock ?? systemInvocationClock,
             ledger: input.ledger,
             link,
         });

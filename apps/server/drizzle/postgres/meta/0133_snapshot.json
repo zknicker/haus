@@ -1,5 +1,5 @@
 {
-  "id": "da3b9790-04aa-4773-b31c-4eab60ce5d97",
+  "id": "34aa99f1-cfb3-4f72-85ad-cb357d53d12e",
   "prevId": "048c40f6-2432-4268-b617-fe65398c4fa2",
   "version": "7",
   "dialect": "postgresql",
@@ -1964,6 +1964,312 @@
       },
       "isRLSEnabled": false
     },
+    "public.agent_invocation_payloads": {
+      "name": "agent_invocation_payloads",
+      "schema": "",
+      "columns": {
+        "attachment_id": {
+          "name": "attachment_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "invocation_id": {
+          "name": "invocation_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "server_id": {
+          "name": "server_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "agent_invocation_payloads_invocation_idx": {
+          "name": "agent_invocation_payloads_invocation_idx",
+          "columns": [
+            {
+              "expression": "invocation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "agent_invocation_payloads_invocation_id_agent_invocations_id_fk": {
+          "name": "agent_invocation_payloads_invocation_id_agent_invocations_id_fk",
+          "tableFrom": "agent_invocation_payloads",
+          "tableTo": "agent_invocations",
+          "columnsFrom": [
+            "invocation_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "agent_invocation_payloads_attachment_fk": {
+          "name": "agent_invocation_payloads_attachment_fk",
+          "tableFrom": "agent_invocation_payloads",
+          "tableTo": "attachments",
+          "columnsFrom": [
+            "server_id",
+            "attachment_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.agent_invocations": {
+      "name": "agent_invocations",
+      "schema": "",
+      "columns": {
+        "accepted_at": {
+          "name": "accepted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "agent_id": {
+          "name": "agent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "computer_id": {
+          "name": "computer_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "exit_code": {
+          "name": "exit_code",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "finished_at": {
+          "name": "finished_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "late_exit_code": {
+          "name": "late_exit_code",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "late_outcome": {
+          "name": "late_outcome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "late_result_at": {
+          "name": "late_result_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "operation_kind": {
+          "name": "operation_kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "outcome": {
+          "name": "outcome",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "requested_at": {
+          "name": "requested_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seq": {
+          "name": "seq",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "server_id": {
+          "name": "server_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "timeout_ms": {
+          "name": "timeout_ms",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tool_call_id": {
+          "name": "tool_call_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "agent_invocations_dispatch_key": {
+          "name": "agent_invocations_dispatch_key",
+          "columns": [
+            {
+              "expression": "server_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "agent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "tool_call_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "seq",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "agent_invocations_requested_idx": {
+          "name": "agent_invocations_requested_idx",
+          "columns": [
+            {
+              "expression": "requested_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "agent_invocations_server_id_servers_id_fk": {
+          "name": "agent_invocations_server_id_servers_id_fk",
+          "tableFrom": "agent_invocations",
+          "tableTo": "servers",
+          "columnsFrom": [
+            "server_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "agent_invocations_agent_fk": {
+          "name": "agent_invocations_agent_fk",
+          "tableFrom": "agent_invocations",
+          "tableTo": "agents",
+          "columnsFrom": [
+            "server_id",
+            "agent_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "agent_invocations_id_shape": {
+          "name": "agent_invocations_id_shape",
+          "value": "\"agent_invocations\".\"id\" ~ '^inv_[A-Za-z0-9_-]{16}$'"
+        },
+        "agent_invocations_state": {
+          "name": "agent_invocations_state",
+          "value": "\"agent_invocations\".\"state\" in ('sent', 'accepted', 'finished', 'unknown')"
+        },
+        "agent_invocations_settled_shape": {
+          "name": "agent_invocations_settled_shape",
+          "value": "(\"agent_invocations\".\"state\" in ('finished', 'unknown')) = (\"agent_invocations\".\"outcome\" is not null and \"agent_invocations\".\"finished_at\" is not null)"
+        },
+        "agent_invocations_unknown_shape": {
+          "name": "agent_invocations_unknown_shape",
+          "value": "(\"agent_invocations\".\"state\" = 'unknown') = (coalesce(\"agent_invocations\".\"outcome\", '') = 'unknown')"
+        },
+        "agent_invocations_late_shape": {
+          "name": "agent_invocations_late_shape",
+          "value": "(\"agent_invocations\".\"late_outcome\" is null) = (\"agent_invocations\".\"late_result_at\" is null) and (\"agent_invocations\".\"late_outcome\" is null or \"agent_invocations\".\"state\" = 'unknown')"
+        },
+        "agent_invocations_sent_shape": {
+          "name": "agent_invocations_sent_shape",
+          "value": "\"agent_invocations\".\"computer_id\" is not null or \"agent_invocations\".\"outcome\" = 'offline'"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.manual_lookup_audit": {
       "name": "manual_lookup_audit",
       "schema": "",
@@ -3293,12 +3599,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "model_connection_id": {
-          "name": "model_connection_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "retired_at": {
           "name": "retired_at",
           "type": "timestamp with time zone",
@@ -3426,21 +3726,6 @@
             "id"
           ],
           "onDelete": "set null (creation_message_id)",
-          "onUpdate": "no action"
-        },
-        "agents_model_connection_fk": {
-          "name": "agents_model_connection_fk",
-          "tableFrom": "agents",
-          "tableTo": "model_connections",
-          "columnsFrom": [
-            "server_id",
-            "model_connection_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "set null (model_connection_id)",
           "onUpdate": "no action"
         }
       },
@@ -10465,169 +10750,6 @@
         "message_reactions_actor_shape": {
           "name": "message_reactions_actor_shape",
           "value": "num_nonnulls(\"message_reactions\".\"actor_agent_id\", \"message_reactions\".\"actor_user_id\") = 1"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.model_connections": {
-      "name": "model_connections",
-      "schema": "",
-      "columns": {
-        "auth_kind": {
-          "name": "auth_kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "label": {
-          "name": "label",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "position": {
-          "name": "position",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "provider": {
-          "name": "provider",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "sealed_credential": {
-          "name": "sealed_credential",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "server_id": {
-          "name": "server_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'ready'"
-        },
-        "status_detail": {
-          "name": "status_detail",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "model_connections_order_idx": {
-          "name": "model_connections_order_idx",
-          "columns": [
-            {
-              "expression": "server_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "provider",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "position",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "model_connections_server_id_servers_id_fk": {
-          "name": "model_connections_server_id_servers_id_fk",
-          "tableFrom": "model_connections",
-          "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "model_connections_server_id_key": {
-          "name": "model_connections_server_id_key",
-          "nullsNotDistinct": false,
-          "columns": [
-            "server_id",
-            "id"
-          ]
-        },
-        "model_connections_label_key": {
-          "name": "model_connections_label_key",
-          "nullsNotDistinct": false,
-          "columns": [
-            "server_id",
-            "provider",
-            "label"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "model_connections_provider": {
-          "name": "model_connections_provider",
-          "value": "\"model_connections\".\"provider\" in ('claude', 'chatgpt', 'xai', 'gemini', 'openrouter')"
-        },
-        "model_connections_auth_kind": {
-          "name": "model_connections_auth_kind",
-          "value": "(\"model_connections\".\"provider\" = 'claude' and \"model_connections\".\"auth_kind\" = 'setup-token')\n                or (\"model_connections\".\"provider\" = 'chatgpt' and \"model_connections\".\"auth_kind\" = 'oauth')\n                or (\"model_connections\".\"provider\" = 'xai' and \"model_connections\".\"auth_kind\" in ('oauth', 'api-key'))\n                or (\"model_connections\".\"provider\" in ('gemini', 'openrouter') and \"model_connections\".\"auth_kind\" = 'api-key')"
-        },
-        "model_connections_status": {
-          "name": "model_connections_status",
-          "value": "\"model_connections\".\"status\" in ('ready', 'failed')"
-        },
-        "model_connections_position": {
-          "name": "model_connections_position",
-          "value": "\"model_connections\".\"position\" >= 0"
-        },
-        "model_connections_label_length": {
-          "name": "model_connections_label_length",
-          "value": "char_length(\"model_connections\".\"label\") between 1 and 80"
         }
       },
       "isRLSEnabled": false

@@ -8,15 +8,13 @@ import {
     Popover,
     TextField,
 } from '@heroui/react';
-import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { CopyButton } from '../../components/copy-button.tsx';
-import { Icon } from '../../components/ui/icon.tsx';
 import { useServerInvitationCommands } from '../../hooks/servers/use-server-invitations.ts';
 import { invitationLink } from './server-routes.ts';
 
 /**
- * Issuing an invitation, from the Invitations section header.
+ * Issuing an invitation, from the Members toolbar.
  *
  * Haus sends no email: the Server discloses the raw token once, in the
  * response to `create`, and the Owner or Admin passes it on however they
@@ -39,9 +37,7 @@ export function InvitePopover({ serverId }: { serverId: string }) {
 
     return (
         <Popover isOpen={open} onOpenChange={(next) => (next ? setOpen(true) : close())}>
-            <Button aria-label="Invite by email" isIconOnly size="sm" variant="ghost">
-                <Icon aria-hidden="true" icon={PlusSignIcon} size={16} />
-            </Button>
+            <Button>Invite</Button>
             <Popover.Content className="w-[min(22rem,calc(100vw-2rem))]" placement="bottom end">
                 <Popover.Dialog>
                     {issued ? (

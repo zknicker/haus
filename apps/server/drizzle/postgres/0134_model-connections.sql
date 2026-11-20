@@ -1,6 +1,7 @@
 CREATE TABLE "model_connections" (
 	"auth_kind" text NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"credential_version" integer DEFAULT 1 NOT NULL,
 	"id" text PRIMARY KEY NOT NULL,
 	"label" text NOT NULL,
 	"position" integer NOT NULL,
@@ -10,6 +11,7 @@ CREATE TABLE "model_connections" (
 	"status" text DEFAULT 'ready' NOT NULL,
 	"status_detail" text,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"web_search" boolean DEFAULT true NOT NULL,
 	CONSTRAINT "model_connections_server_id_key" UNIQUE("server_id","id"),
 	CONSTRAINT "model_connections_label_key" UNIQUE("server_id","provider","label"),
 	CONSTRAINT "model_connections_provider" CHECK ("model_connections"."provider" in ('claude', 'chatgpt', 'xai', 'gemini', 'openrouter')),

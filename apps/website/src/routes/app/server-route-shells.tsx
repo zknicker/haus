@@ -5,6 +5,7 @@ export { ArchivedChatsRoute } from './archived-chats-route.tsx';
 export { ChatRoute, ImplicitAgentDmRoute } from './chat-route.tsx';
 export {
     DeferredSettingsConnectionRoute,
+    DeferredSettingsDeviceRoute,
     DeferredSettingsHumanRoute,
     DeferredSettingsSectionRoute,
 } from './deferred-settings-route.tsx';

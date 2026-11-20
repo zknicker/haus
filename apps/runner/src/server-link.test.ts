@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test';
+import { invocationGraceMs, invocationRunnerMarginMs } from '@haus/api';
 import { openDispatchLedger } from './dispatch/ledger.ts';
+import { manualClock } from './manual-clock.ts';
 import {
     attachRunner,
     drainCleanups,
@@ -138,9 +140,10 @@ describe('runner server link', () => {
         expect(runner.host.starts).toEqual(['run_1']);
     });
 
-    test('an invocation the Server never answers resolves unknown at its timeout plus the grace', async () => {
+    test('an invocation the Server never answers resolves unknown at its timeout plus the grace and margin', async () => {
+        const timers = manualClock();
         const server = serverStandIn();
-        const runner = await attachRunner(server, { invocationGraceMs: 0 });
+        const runner = await attachRunner(server, { invocationClock: timers.clock });
         await server.frame('runner-inventory');
         server.start();
         const run = await runner.host.started;
@@ -148,6 +151,7 @@ describe('runner server link', () => {
         const pending = run.tools.bash('toolu_1', { command: 'make build', timeout: 1 }, live());
 
         expect(await server.frame('invocation-request')).toMatchObject({ timeoutMs: 1 });
+        timers.advance(1 + invocationGraceMs + invocationRunnerMarginMs);
         expect(await pending).toEqual({
             content: [
                 {
