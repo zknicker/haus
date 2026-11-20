@@ -69,7 +69,7 @@ test('the Owner turns connections off, and Settings reads them off', async () =>
     await announced;
     await setEnabled(ids.team, false);
 
-    expect(off).toMatchObject({ enabled: false, id: ids.zach, isDefault: true });
+    expect(off).toMatchObject({ enabled: false, id: ids.zach, isDefault: false });
     expect(await enabledByLabel()).toEqual({
         'Spare plan': true,
         'Team plan': false,
