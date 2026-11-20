@@ -57,6 +57,8 @@ Use one when the work is a real coding change someone else's machine can build (
 
 The brief arrives on stdin. Make it complete: the repository paths, the reproduction, and what a finished result looks like, so the Worker rarely needs to ask. \`--title\` names the work for people, and \`--ref\` is the starting branch, tag, or commit. Starting posts nothing: the Worker's card shows on the Task's page, and you say what you started only when that is worth saying. The receipt says the Worker is \`started\` or \`queued\` behind its place's limit, never that it finished launching.
 
+**Your Worker rules travel in the brief.** \`drive/agents/<your handle>/WORKER.md\` holds the rules every Worker of yours follows. Haus does not hand that file to a Worker yet, so the brief carries its rules: read the file before you write the brief and include what applies (see rules).
+
 **It works for a Task.** Start the Task first (see tasks), then the Worker with \`--task SEC-12\`. A start without an open Task you can reach is refused with \`WORKER_TASK_REQUIRED\` or \`WORKER_TASK_CLOSED\`. A Task can hold several Workers; start another only for a genuinely separate assignment.
 
 **Place.** Without \`--on\` a Worker runs on your Computer's default place, which an Owner or Admin picks at Settings → Devices → (your device) → Cloud Agents → Make default. Add \`--on cursor\` or \`--on claude\` when the requester asks for one. When your Computer has no ready default, a start without \`--on\` is refused with \`WORKER_PLACE_REQUIRED\`, which lists the ready places. \`WORKER_PLACE_UNAVAILABLE\` means no online Computer has that place connected: ask a person to connect it. An Owner or Admin picks each place's model at Settings → Models; no flag carries one.
@@ -79,7 +81,13 @@ As the coordinating Agent, keep review rounds, revision requests, and progress i
         aliases: ['cloud agent model', 'cursor', 'claude cloud'],
         id: 'workers',
         kind: 'overview',
-        related: ['agent', 'tasks', 'haus-cli-overview', 'recipes/decision/when-to-ask-human'],
+        related: [
+            'agent',
+            'tasks',
+            'rules',
+            'haus-cli-overview',
+            'recipes/decision/when-to-ask-human',
+        ],
         summary:
             'Delegate bounded repository work for a Task to a provider-hosted agent and report the result there.',
         title: 'Workers',

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import {
     formatInstructionsUpdate,
     formatMemoryBlock,
-    formatRulesBlock,
+    type planRulesDelivery,
     renderAgentInstructions,
     renderSkillListing,
     runnerMachineFacts,
@@ -10,7 +10,6 @@ import {
     type SkillListingEntry,
 } from '@haus/agent-prompt';
 import type { AgentStartCommand } from '@haus/api';
-import type { RuleFile } from './agent-context.ts';
 import type { HarnessId } from './runtime-driver.ts';
 import type { AgentSessionRecord } from './session-file.ts';
 
@@ -67,31 +66,6 @@ export function planMemoryDelivery(input: {
     const block =
         input.content === null || digest === priorReceipt ? null : formatMemoryBlock(input.content);
     return { block, digest, priorReceipt };
-}
-
-export function planRulesDelivery(input: {
-    files: readonly RuleFile[];
-    isResume: boolean;
-    receipts: Readonly<Record<string, string>>;
-}) {
-    const priorReceipts = input.isResume ? input.receipts : {};
-    const current = input.files.map((file) => ({
-        ...file,
-        digest: file.content === null ? null : sha256(file.content),
-    }));
-    const changes = current.filter((file) =>
-        file.digest === null
-            ? Object.hasOwn(priorReceipts, file.path)
-            : priorReceipts[file.path] !== file.digest
-    );
-    const unread = Object.entries(priorReceipts).filter(
-        ([path]) => !current.some((file) => file.path === path)
-    );
-    const digests = Object.fromEntries([
-        ...unread,
-        ...current.flatMap((file) => (file.digest === null ? [] : [[file.path, file.digest]])),
-    ]);
-    return { block: formatRulesBlock(changes), digests, priorReceipts };
 }
 
 export function composeTurnPrompt(input: {

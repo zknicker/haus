@@ -11,12 +11,14 @@ export const libraryDragType = 'application/x-haus-files';
  * its own (the Upload menu and Move to… are the keyboard paths).
  *
  * - Files and folders from the system upload into the open folder anywhere on
- *   the library, which lights up (`isFileTarget`).
+ *   the library, which lights up (`isFileTarget`), when that folder takes files.
  * - A drag of library items moves them into the folder tile under the pointer
  *   (`moveTarget` names it, so the tile lights up) when `canMoveInto` allows
  *   it; anywhere else, and onto a folder the selection holds, it is a no-op.
  */
 export function useLibraryDrop(input: {
+    /** The open folder takes files; the Drive root and its shelves refuse a system drop. */
+    acceptsFiles: boolean;
     canMoveInto: (folder: string) => boolean;
     /** The folder tile `target` sits in, or null outside any. */
     folderAt: (target: EventTarget | null) => string | null;
@@ -27,7 +29,8 @@ export function useLibraryDrop(input: {
     const [moveTarget, setMoveTarget] = React.useState<string | null>(null);
     // dragenter/dragleave fire for every child crossed; count to know when the pointer truly left.
     const depth = React.useRef(0);
-    const carriesFiles = (event: React.DragEvent) => event.dataTransfer.types.includes('Files');
+    const carriesFiles = (event: React.DragEvent) =>
+        input.acceptsFiles && event.dataTransfer.types.includes('Files');
     const carriesItems = (event: React.DragEvent) =>
         event.dataTransfer.types.includes(libraryDragType);
     const moveFolderAt = (event: React.DragEvent) => {

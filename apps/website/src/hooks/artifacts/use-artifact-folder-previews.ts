@@ -15,7 +15,7 @@ const previewReadLimit = 200;
 export function useArtifactFolderPreviews(
     serverId: string,
     filters: Pick<ArtifactLibraryFilters, 'creator' | 'folder' | 'kind'>,
-    folders: readonly ArtifactFolderEntry[]
+    folders: readonly Pick<ArtifactFolderEntry, 'path'>[]
 ): ReadonlyMap<string, ArtifactMetadata[]> {
     const read = hausTrpc.artifact.list.useQuery(
         {
