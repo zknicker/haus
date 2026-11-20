@@ -263,7 +263,7 @@ The runner starts after the Server with `HAUS_SERVER_URL` set to the Server orig
 `HAUS_RUNNER_DATA_DIR` under the worktree's dev state directory, beside the Computer's data root.
 It inherits only a narrow shell environment, never the Server's secrets, and it gets model logins
 only from the Server: connect them in Settings → Models ([model connections](../../specs/model-connections.md)),
-which needs `HAUS_SECRETS_KEY` from the Development `Haus Secrets Key` item. Without
+which needs `HAUS_SECRETS_KEY` from the Development `Secrets Key - Haus` item. Without
 `HAUS_AGENT_LOOP=runner`, nothing changes.
 
 The live Claude Agent SDK test spends real quota and runs only on request:
