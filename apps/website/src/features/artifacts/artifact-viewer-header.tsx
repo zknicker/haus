@@ -33,12 +33,15 @@ export interface ViewerStepper {
 export function ArtifactViewerHeader({
     artifact,
     latestHref,
+    onEdit,
     pinned,
     serverId,
     stepper,
 }: {
     artifact: ArtifactRecord;
     latestHref: string;
+    /** Null when this revision cannot be edited, or is being edited. */
+    onEdit: (() => void) | null;
     pinned: boolean;
     serverId: string;
     stepper: ViewerStepper | null;
@@ -75,6 +78,11 @@ export function ArtifactViewerHeader({
             </div>
             {publicLink ? <PublicLinkChip /> : null}
             {stepper ? <ViewerSteps stepper={stepper} /> : null}
+            {onEdit ? (
+                <Button onPress={onEdit} size="sm" variant="secondary">
+                    Edit
+                </Button>
+            ) : null}
             <ArtifactViewerMenu artifact={artifact} publicLink={publicLink} />
         </header>
     );

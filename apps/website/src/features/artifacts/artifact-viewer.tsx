@@ -11,6 +11,8 @@ import { parseRevisionView, type RevisionView, revisionViewHref } from './artifa
 import { ArtifactCompare } from './artifact-compare.tsx';
 import { ArtifactInspector } from './artifact-inspector.tsx';
 import { ArtifactPreview } from './artifact-preview.tsx';
+import { artifactTextEditable } from './artifact-text-edit.ts';
+import { ArtifactTextEditor } from './artifact-text-editor.tsx';
 import { artifactTextRenderer } from './artifact-text.ts';
 import { ArtifactViewerHeader } from './artifact-viewer-header.tsx';
 import { artifactFolderCrumbs } from './drive-folders.ts';
@@ -26,7 +28,9 @@ import { useViewerStepKeys, useViewerSteps } from './use-viewer-steps.ts';
  * a calm header, the preview, and details with History beside it (below it
  * in a narrow pane). `?revision=` pins a revision; without it the page
  * follows the current one. `?compare=` puts a text file's preview in
- * Compare mode, from that revision to the one on screen. Opened from the
+ * Compare mode, from that revision to the one on screen. Edit swaps a
+ * current text file's preview and details for a plain-text editor, and
+ * holds previous/next until it closes. Opened from the
  * library, the URL carries that folder view (`?in=`), and previous/next
  * (buttons, ← →, and the zoom viewer's arrows) step through its files in
  * place.
@@ -67,11 +71,20 @@ export function ArtifactViewer({
                   });
               }
             : undefined;
+    const [editing, setEditing] = React.useState<EditTarget | null>(null);
+    const pinned = pinnedRevisionId !== undefined;
+    // Stepping to another file or pinning a revision leaves the editor.
+    const editRevisionId =
+        editing?.artifactId === artifactId && !pinned ? editing.revisionId : null;
     const stepper = (zoomed: boolean) =>
-        context
+        context && !editRevisionId
             ? { onNext: stepTo(steps.next, zoomed), onPrevious: stepTo(steps.previous, zoomed) }
             : null;
     useViewerStepKeys(stepper(false) ?? {});
+    const onEdit =
+        artifact && !editRevisionId && artifactTextEditable(artifact, { pinned })
+            ? () => setEditing({ artifactId, revisionId: artifact.revision_id })
+            : null;
 
     return (
         <ArtifactActionsContext value={actions}>
@@ -93,36 +106,46 @@ export function ArtifactViewer({
                             <ArtifactViewerHeader
                                 artifact={artifact}
                                 latestHref={artifactViewerHref(slug, artifactId, context)}
-                                pinned={pinnedRevisionId !== undefined}
+                                onEdit={onEdit}
+                                pinned={pinned}
                                 serverId={serverId}
                                 stepper={stepper(false)}
                             />
-                            <div className="grid min-w-0 items-start gap-8 @4xl:grid-cols-[minmax(0,1fr)_18rem]">
-                                {compareFrom ? (
-                                    <ArtifactCompare
-                                        artifact={artifact}
-                                        fromRevisionId={compareFrom}
-                                        onView={(next, options) =>
-                                            navigate(viewHref(next), options)
-                                        }
-                                        serverId={serverId}
-                                    />
-                                ) : (
-                                    <ArtifactPreview
-                                        artifact={artifact}
-                                        key={artifact.revision_id}
-                                        serverId={serverId}
-                                        startZoomed={isZoomedEntry(location.state)}
-                                        stepper={stepper(true)}
-                                    />
-                                )}
-                                <ArtifactInspector
+                            {editRevisionId ? (
+                                <ArtifactTextEditor
                                     artifact={artifact}
+                                    onClose={() => setEditing(null)}
+                                    revisionId={editRevisionId}
                                     serverId={serverId}
-                                    slug={slug}
-                                    viewHref={viewHref}
                                 />
-                            </div>
+                            ) : (
+                                <div className="grid min-w-0 items-start gap-8 @4xl:grid-cols-[minmax(0,1fr)_18rem]">
+                                    {compareFrom ? (
+                                        <ArtifactCompare
+                                            artifact={artifact}
+                                            fromRevisionId={compareFrom}
+                                            onView={(next, options) =>
+                                                navigate(viewHref(next), options)
+                                            }
+                                            serverId={serverId}
+                                        />
+                                    ) : (
+                                        <ArtifactPreview
+                                            artifact={artifact}
+                                            key={artifact.revision_id}
+                                            serverId={serverId}
+                                            startZoomed={isZoomedEntry(location.state)}
+                                            stepper={stepper(true)}
+                                        />
+                                    )}
+                                    <ArtifactInspector
+                                        artifact={artifact}
+                                        serverId={serverId}
+                                        slug={slug}
+                                        viewHref={viewHref}
+                                    />
+                                </div>
+                            )}
                         </>
                     ) : (
                         <section aria-busy="true" aria-label="Loading file" className="min-h-32" />
@@ -132,6 +155,12 @@ export function ArtifactViewer({
             {dialogs}
         </ArtifactActionsContext>
     );
+}
+
+/** The revision an edit started from, kept while live updates move the head. */
+interface EditTarget {
+    artifactId: string;
+    revisionId: string;
 }
 
 function isZoomedEntry(state: unknown): boolean {
