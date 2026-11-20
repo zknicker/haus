@@ -18,7 +18,6 @@ export function agentHearingFixture() {
             ['web', 'WEB', ['ari', 'cyl']],
             ['api', 'API', ['bex', 'dov']],
             ['empty', 'EMPTY', []],
-            ['spare', 'SPARE', []],
         ] as const) {
             const chat = await createTestProject(fixture.owner, {
                 agentIds: homed.map((handle) => agents[handle] ?? ''),

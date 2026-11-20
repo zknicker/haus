@@ -78,7 +78,7 @@ export const agentsTable = pgTable(
             .default('ordinary')
             .$type<'cove' | 'ordinary'>(),
         handle: text('handle').notNull(),
-        /** The Agent's one home Project (specs/projects.md#agents); the Haus project makes it a generalist. */
+        /** The Agent's one home Project (specs/projects.md#agents). */
         // Migration 0131 adds `agents_home_project_fk`; importing `projects` here would close a schema import cycle.
         homeProjectId: text('home_project_id').notNull(),
         homeTimezone: text('home_timezone').notNull(),

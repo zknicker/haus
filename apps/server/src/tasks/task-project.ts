@@ -22,7 +22,7 @@ export async function resolveStartProject(
               projectId: input.origin.kind === 'channel' ? input.origin.chatId : home.projectId,
               serverId: input.serverId,
           }));
-    if (!(home.generalist || project.projectId === home.projectId)) {
+    if (project.projectId !== home.projectId) {
         throw new TaskProjectNotHomeError({
             channelName: project.name,
             homeAgentHandles: await readHomeAgentHandles(db, {
@@ -46,15 +46,8 @@ export async function requireFilingProject(
 
 async function readAgentHome(db: Reader, input: { agentId: string; serverId: string }) {
     const [home] = await db
-        .select({ generalist: chatsTable.isAll, projectId: agentsTable.homeProjectId })
+        .select({ projectId: agentsTable.homeProjectId })
         .from(agentsTable)
-        .innerJoin(
-            chatsTable,
-            and(
-                eq(chatsTable.serverId, agentsTable.serverId),
-                eq(chatsTable.id, agentsTable.homeProjectId)
-            )
-        )
         .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
         .limit(1);
     if (!home) {

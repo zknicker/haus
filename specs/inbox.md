@@ -89,15 +89,13 @@ only what is addressed to it or what it follows. A message reaches an Agent when
 | Another Project's channel, inline reply | It @mentions the Agent, or the Agent follows the reply chain |
 | A Task of another Project | It @mentions the Agent, or the Agent follows the Task |
 | A DM with the Agent | Always |
-| A Project with no home Agent, its channel or a Task | Always when the Agent is a generalist, as in its home |
 
-- A Project's **hearers** are its non-retired home Agents, or the Haus project's generalists
-  when it has none. Every rule that names a home below means the hearers: they hear the
-  channel, its inline replies, and the Tasks, and they are the ADR 0030 candidates. So a Project with no home Agent, such as a new Server's
-  `#onboarding-owner`, still reaches Cove and the other generalists, and it stops reaching them
-  once a person homes an Agent there.
-- A generalist's home is the Haus project, so it hears the Haus channel and its Tasks, every
-  Project with no home Agent, and mentions elsewhere.
+- A Project's **hearers** are its non-retired home Agents, and no one else. They hear the
+  channel, its inline replies, and the Tasks, and they are the ADR 0030 candidates. A Project
+  with no home Agent delivers only @mentions, assignments, follows and DMs; nothing else hears
+  it. Amended 2026-11-20 by Zach's decision that every Captain belongs to a real Project:
+  generalists are retired, so no Agent hears a Project with no home Agent on its behalf
+  ([projects.md](projects.md#generalists)).
 - An Agent follows a Task by the follower rules in [tasks.md](tasks.md#followers-and-unread):
   being its assignee, authoring or being mentioned in its origin Message, posting in it, or
   following by hand. So an assignment always reaches the Agent, in any Project, both as the
@@ -125,12 +123,12 @@ explicit mention, reply, Task, or DM rules. Jev also sees any Agent the message 
 outside the Project, but only hearers can be narrowed away. In a Project with one hearer, the
 message is addressed to it as `sole` when the author is the channel's only human member. With more
 human members, Jev judges whether the one Agent is the addressee, and recipients stay unchanged
-either way. A Project with no home Agents delivers its unaddressed messages to the generalists.
+either way. A Project with no home Agents delivers its unaddressed messages to no Agent.
 
 ADR 0030 narrowing of top-level channel messages among several hearers is the one exception to
 absolute home hearing.
 
-Hearing lands with J3. Each row of the table, and the generalist case, has a delivery test in
+Hearing lands with J3. Each row of the table, and a Project with no home Agent, has a delivery test in
 `apps/server/test/agent-hearing.test.ts`, inline replies in
 `apps/server/test/agent-reply-hearing.test.ts`, and the migration has one for each step of
 [projects.md](projects.md#migration-from-channels).
@@ -371,10 +369,9 @@ the Agent (`N new, not yet delivered`) come first, and pending Cloud Agent resul
 print as one `Cloud Agent results · N pending · fetch with haus message check` line.
 The output pages with `More: haus inbox check --before <key>` and ends with exactly
 one `Next:` line. `--view mentions` keeps only conversations that mention the Agent;
-a channel outside its home Project, or a Task there it does not follow, appears only while a
-message that reached the Agent there is unread, and counts only those. That covers a mention, a
-reply in a chain it follows, and a generalist's hearing of a Project with no home Agent, whose
-read position may predate the hearing. A 503 `INBOX_UNAVAILABLE`
+a Task outside its home Project appears only while the Agent follows it, and a channel outside
+its home Project appears only while a message that reached the Agent there, a mention or a reply
+in a chain it follows, is unread, and counts only those. A 503 `INBOX_UNAVAILABLE`
 teaches a retry, and `haus message check` still drains. Listing advances nothing.
 
 The read position advances when `haus message read --unread` returns messages, when a

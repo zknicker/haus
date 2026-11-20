@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, inArray, isNull, lte } from 'drizzle-orm';
-import { listProjectHearers } from '../agent-delivery/hearing.ts';
+import { listHomeAgents } from '../agent-delivery/hearing.ts';
 import { mentionedAgentIds } from '../chats/reply-subscriptions.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -12,7 +12,7 @@ import {
 import type { RoutingState } from './jev.ts';
 
 /**
- * The Agents Jev sees in a Project's channel: its hearers, the only ones a
+ * The Agents Jev sees in a Project's channel: its home Agents, the only ones a
  * judgment may narrow (ADR 0030), plus any Agent the message @mentions, who
  * receives it whatever Jev decides.
  */
@@ -22,8 +22,8 @@ export async function readRoutingAgents(
     chatId: string,
     mentionedAgentIds: readonly string[] = []
 ) {
-    const hearers = await listProjectHearers(db, { projectId: chatId, serverId });
-    const agentIds = [...new Set([...hearers.map((agent) => agent.id), ...mentionedAgentIds])];
+    const home = await listHomeAgents(db, { projectId: chatId, serverId });
+    const agentIds = [...new Set([...home.map((agent) => agent.id), ...mentionedAgentIds])];
     if (agentIds.length === 0) {
         return [];
     }

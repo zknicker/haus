@@ -97,8 +97,35 @@ test('a DM origin starts a Task in the Agent’s home Project, shown only to tha
     ]);
 });
 
+test('an Agent homed in the Haus project starting a Task in another Project is TASK_PROJECT_NOT_HOME', async () => {
+    const origin = await send(fixture.channelId, 'The ops pager is noisy');
+
+    expect(
+        await startTask({
+            from: origin.message.id,
+            project: 'OPS',
+            target: '#product',
+            title: 'Quiet the ops pager',
+        })
+    ).toEqual({
+        body: {
+            code: 'TASK_PROJECT_NOT_HOME',
+            message:
+                'You start Tasks only in your home Project, and #ops is another Project. Its Agent starts Tasks there.',
+            nextAction:
+                "@mention that Project's Agent in #ops with the request; it starts the Task.",
+        },
+        status: 403,
+    });
+});
+
 test('--project files a channel origin in another Project; the origin channel previews it', async () => {
     const { serverId } = fixture;
+    await fixture.owner.trpc.agent.setHome.mutate({
+        agentId: fixture.orbitAgentId,
+        projectId: opsId,
+        serverId,
+    });
     const origin = await send(fixture.channelId, 'The ops dashboard is down');
     const started = await startTask({
         from: origin.message.id,
@@ -122,7 +149,7 @@ test('--project files a channel origin in another Project; the origin channel pr
     expect(await previewKeys(opsId)).toEqual([]);
 });
 
-test('a non-generalist starts only in its home Project; elsewhere it is TASK_PROJECT_NOT_HOME', async () => {
+test('an Agent starts only in its home Project; elsewhere it is TASK_PROJECT_NOT_HOME', async () => {
     const { harness, serverId } = fixture;
     await harness.sql`
         update agents set home_project_id = ${fixture.channelId} where id = ${fixture.orbitAgentId}

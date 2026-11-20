@@ -68,9 +68,9 @@ creation operation; ordinary Agent creation cannot supply Cove's identity. One
 Server transaction locks onboarding, fixes Cove's profile and Admin role,
 stores the release-owned avatar through the normal avatar contract, binds Cove
 immutably to the Computer, homes Cove in the Haus project, reserves one
-application id, and advances to `applying`. As a generalist, Cove hears
-`#onboarding-owner`, which has no home Agent, so the Owner's top-level
-messages there reach it. An identical retry returns that
+application id, and advances to `applying`. `#onboarding-owner` is not
+Cove's home, so the Owner's top-level messages there reach Cove only when
+they @mention it. An identical retry returns that
 reservation. A different Computer/runtime/model conflicts and cannot rebind it.
 Cove appears in every human member's implicit DM roster like every Agent, but
 onboarding creates no Cove DM Chat. The first greeting remains in

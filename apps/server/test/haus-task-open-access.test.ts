@@ -101,18 +101,11 @@ test('an Agent outside #ops assigned a filed Task there reads it, posts in it, a
     ).toMatchObject({ body: { task: { key: 'OPS-1', state: 'done' } }, status: 200 });
 });
 
-test('a generalist that starts a Task in #ops posts in it, hears it, and posts in #ops', async () => {
-    const [haus] = (await fixture.harness.sql`
-        select id from chats where server_id = ${fixture.serverId} and is_all
-    `) as { id: string }[];
-    await fixture.owner.trpc.agent.setHome.mutate({
-        agentId: fixture.orbitAgentId,
-        projectId: haus?.id ?? '',
-        serverId: fixture.serverId,
-    });
+test('an Agent outside #ops that posts in a Task there hears it, and posts in #ops', async () => {
+    const opsy = await fixture.mintRunner('run_open_access_opsy', opsAgentId, opsId);
     const orbit = await fixture.mintRunner('run_open_access_orbit');
     const origin = await humanSend(fixture.channelId, 'The ops dashboard is down');
-    const started = await agentCall(orbit, '/api/agent/tasks/start', {
+    const started = await agentCall(opsy, '/api/agent/tasks/start', {
         from: origin.message.id,
         project: 'OPS',
         target: '#product',

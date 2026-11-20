@@ -1,9 +1,9 @@
 ---
-summary: The Projects contract. Humans create Projects and each Project is its channel; `#all` becomes the Haus project. A Project carries one Task key, its home Agents, repos linked per Computer, its `AGENTS.md`, and the default place for its Workers. Every Agent has exactly one home Project. Covers the data shape, settings and who edits them, the Haus project and generalists, Agent placement, and the one-time migration from channels.
+summary: The Projects contract. Humans create Projects and each Project is its channel; `#all` becomes the Haus project. A Project carries one Task key, its home Agents, repos linked per Computer, its `AGENTS.md`, and the default place for its Workers. Every Agent has exactly one home Project. Covers the data shape, settings and who edits them, the Haus project, Agent placement (generalists are retired), and the one-time migration from channels.
 read_when:
   - creating, configuring, archiving, or listing Projects or their channels
   - changing a Project's key, its Agents, its repos, its `AGENTS.md`, or its default Worker place
-  - changing an Agent's home Project, generalist Agents, or the Haus project
+  - changing an Agent's home Project, or the Haus project
   - changing what an Agent may read, post in, or start Tasks in across Projects
   - writing or running the channels-to-Projects migration
 ---
@@ -144,16 +144,12 @@ starts with a digit is prefixed with `P` before step 2.
 
 ## Generalists
 
-- An Agent whose home is the Haus project is a **generalist**. Cove is one, and every Agent created
-  without a named Project starts as one.
-- Cove always lives in the Haus project, so Haus is never unheard: `agent.setHome` refuses to move
-  it with `COVE_HOME_FIXED`, and the App never offers the move.
-- A generalist hears the Haus project the way any Agent hears its home. It also hears every
-  Project that has no non-retired home Agent, its channel and Tasks, until a person homes an
-  Agent there ([inbox.md](inbox.md#hearing)). So a new Server's `#onboarding-owner` reaches Cove,
-  and no Project goes unheard. It may start a Task in any Project. When it acts in a Project, its turn input carries that Project's `AGENTS.md` the first
-  time in a session ([ADR 0054](../docs/adr/0054-drive-holds-what-agents-know-and-follow.md)
-  decision 7).
+Retired 2026-11-20 by Zach's decision that every Captain belongs to a real Project. The `is_all`
+channel has no Haus project role for Agents: an Agent homed there is an ordinary home Agent of
+it, hears nothing else on its behalf, and starts Tasks only there. No Agent hears a Project that
+has no home Agent ([inbox.md](inbox.md#hearing)), and every Agent is refused
+`TASK_PROJECT_NOT_HOME` outside its home. `agent.setHome` still refuses to move Cove with
+`COVE_HOME_FIXED`.
 
 ## What an Agent may do outside its home
 
@@ -165,9 +161,9 @@ starts with a digit is prefixed with `P` before step 2.
 - Any active Agent may be assigned a claim in any Project; a claim in a DM goes only to that DM's
   Agent. A reminder or Trigger anchor is out of an Agent's reach only in a deleted Chat or another
   Agent's DM.
-- A non-generalist Agent starts Tasks only in its home Project. Elsewhere the Server refuses with
+- An Agent starts Tasks only in its home Project. Elsewhere the Server refuses with
   `TASK_PROJECT_NOT_HOME`, whose next action is to @mention that Project's Agent in that Project's
-  channel. A generalist is never refused.
+  channel.
 - Agent channel membership is deleted: the `channel_agent_participants` table, its single write
   seam `joinChannelAgents`, and `haus channel join`, `leave`, and `add`. Channel mutes are deleted
   with them ([inbox.md](inbox.md#hearing)). `haus channel info` and `haus channel members` stay and
@@ -202,7 +198,9 @@ second run changes nothing.
 4. **Home Projects (J3).** Each Agent's home is the unarchived Project where it authored the most
    messages in the last 30 days, counting a Task's messages toward its Project. A tie goes to the
    Project with its newest message. Archived Projects are never eligible. An Agent with no such
-   messages, and Cove, go to the Haus project.
+   messages, and Cove, go to the Haus project. That is the migration's past effect: with
+   generalists retired, an Agent it left there hears that channel as its home and nothing more,
+   until a person moves it.
 5. **Memberships (J3).** `channel_agent_participants` and `agent_channel_mutes` are dropped in the
    same migration that sets homes. Queued inbox items stay and drain under the rules they were
    planned with.
