@@ -1,4 +1,5 @@
 import { Sidebar } from '@heroui-pro/react';
+import { Tooltip } from '@heroui/react';
 import { mergeRefs } from '@react-aria/utils';
 import * as React from 'react';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
@@ -86,11 +87,6 @@ export const OpenTaskNavigationRow = React.memo(function OpenTaskNavigationRow({
             onHoverStart={preload}
             ref={rowRef}
             textValue={`${row.key} ${row.title}`}
-            tooltipProps={
-                row.waitingOnYou
-                    ? { content: 'Waiting on you', delay: 400, placement: 'right' }
-                    : undefined
-            }
         >
             <Sidebar.MenuIcon>
                 <span aria-label={taskStateLabels[row.state]} role="img">
@@ -102,22 +98,10 @@ export const OpenTaskNavigationRow = React.memo(function OpenTaskNavigationRow({
                     className={cn(row.unreadCount > 0 && 'text-foreground font-medium')}
                 >
                     {row.waitingOnYou ? (
-                        <>
-                            <span className="sr-only">Waiting on you, </span>
-                            <span
-                                aria-hidden="true"
-                                className="bg-accent me-1 inline-block size-1.5 rounded-full align-middle"
-                            />
-                        </>
-                    ) : null}
-                    <span
-                        className={cn(
-                            'me-1.5 tabular-nums',
-                            row.waitingOnYou ? 'text-accent' : 'text-muted'
-                        )}
-                    >
-                        {row.key}
-                    </span>
+                        <WaitingOnYouKey taskKey={row.key} />
+                    ) : (
+                        <span className="text-muted me-1.5 tabular-nums">{row.key}</span>
+                    )}
                     {row.title}
                 </Sidebar.MenuLabel>
                 {row.unreadCount > 0 ? <UnreadCountChip count={row.unreadCount} /> : null}
@@ -161,6 +145,23 @@ export const PersonNavigationRow = React.memo(function PersonNavigationRow({
         </Sidebar.MenuItem>
     );
 });
+
+function WaitingOnYouKey({ taskKey }: { taskKey: string }) {
+    return (
+        <Tooltip delay={400}>
+            <Tooltip.Trigger
+                className="pointer-events-auto me-1.5 inline-flex items-center gap-1"
+                role="presentation"
+                tabIndex={-1}
+            >
+                <span className="sr-only">Waiting on you, </span>
+                <span aria-hidden="true" className="bg-accent size-1.5 rounded-full" />
+                <span className="text-accent tabular-nums">{taskKey}</span>
+            </Tooltip.Trigger>
+            <Tooltip.Content>Waiting on you</Tooltip.Content>
+        </Tooltip>
+    );
+}
 
 function useRowNavigation(serverId: string, chatId: string | undefined, href: string) {
     const { focusRef, preload } = usePreloadChat(serverId, chatId);

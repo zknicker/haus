@@ -929,6 +929,10 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   The bar occupies the reserved transcript space above the input without changing layout or
   scrolling messages. The typing row rides above the bar in the same stack, so both stay visible; while the bar is open the stack paints `background`, so transcript text never shows behind the typing row. Its cancel button preserves pointer focus instead of flashing input focus;
   keyboard focus remains available.
+- **Capy shell sidebar marks:** Inside `.capy-sidebar` the row icon slot takes the 24px mark box (a
+  Project's `sidebar` `ChannelIconBox`, a person's avatar) instead of HeroUI's spacing-scaled
+  `size-5`, so marks, section labels and Captain tiles share one left edge. The old shell keeps
+  the stock slot.
 - **Home composer (Capy shell):** Capy's elevated card rather than a field. The stock `sm`
   `PromptInput` sits inside `.home-composer`, and one theme-layer rule gives its shell a `--surface`
   fill and `--surface-shadow` with no field border. Dark surfaces cast no shadow, so dark rims it with

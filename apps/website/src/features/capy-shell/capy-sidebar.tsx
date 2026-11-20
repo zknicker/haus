@@ -54,7 +54,7 @@ export function CapySidebar({
             {lead === 'row' ? <CapySidebarHeader slug={slug} /> : null}
             <UnreadRowWalkKeys sections={sections} serverId={serverId} slug={slug} />
             <ShellSidebarPageContent>
-                <div className="flex flex-col gap-6 pt-2">
+                <div className="capy-sidebar flex flex-col gap-6 pt-2">
                     {sections?.map((section) => (
                         <CapySidebarSectionView
                             key={section.kind}
