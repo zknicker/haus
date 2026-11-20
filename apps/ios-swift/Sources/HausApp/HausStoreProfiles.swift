@@ -284,7 +284,6 @@ private extension SettingsAgent {
             avatarURL: url,
             presence: presence,
             initials: initials,
-            canGenerateAvatar: canGenerateAvatar,
             runtimeConfiguration: runtimeConfiguration
         )
     }

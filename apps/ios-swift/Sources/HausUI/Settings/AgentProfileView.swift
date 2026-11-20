@@ -53,9 +53,7 @@ struct AgentProfileView: View {
                         handle: "@\(agent.handle)",
                         onSaveAvatar: onSaveAvatar
                     )
-                    if agent.canGenerateAvatar {
-                        AgentAvatarGeneratorEntry(onOpen: onOpenAvatarGenerator)
-                    }
+                    AgentAvatarGeneratorEntry(onOpen: onOpenAvatarGenerator)
                 }
 
                 SettingsSection("Identity") {
@@ -188,7 +186,6 @@ struct AgentProfileView: View {
                 avatarURL: agent.avatarURL,
                 presence: agent.presence,
                 initials: agent.initials,
-                canGenerateAvatar: agent.canGenerateAvatar,
                 runtimeConfiguration: agent.runtimeConfiguration
             )
             let saved = try await onSave(draft)

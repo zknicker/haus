@@ -11,7 +11,7 @@ public enum HausPreviewFixtures {
 
     public static let agents: [AgentSummary] = decode(
         """
-        [{"availability":"idle","avatarUrl":null,"computerId":"computer_preview","createdAt":"2026-01-01T00:00:00Z","createdByUserId":"user_preview","description":"Onboarding Assistant","desiredModelId":"model_preview","desiredRuntimeId":"runtime_preview","displayName":"Cove","dmChatId":"chat_cove","effectiveModelId":"model_preview","effectiveReportedAt":"2026-01-01T00:00:00.000Z","effectiveRuntimeId":"runtime_preview","factoryKind":"cove","handle":"cove-agent","id":"agent_cove","missingResources":[],"serverId":"srv_preview","status":"applied"}]
+        [{"availability":"idle","avatarUrl":null,"computerId":"computer_preview","createdAt":"2026-01-01T00:00:00Z","createdByUserId":"user_preview","description":"Onboarding Assistant","desiredModelId":"model_preview","desiredRuntimeId":"runtime_preview","displayName":"Cove","dmChatId":"chat_cove","effectiveModelId":"model_preview","effectiveReportedAt":"2026-01-01T00:00:00.000Z","effectiveRuntimeId":"runtime_preview","handle":"cove-agent","id":"agent_cove","missingResources":[],"serverId":"srv_preview","status":"applied"}]
         """
     )
 
