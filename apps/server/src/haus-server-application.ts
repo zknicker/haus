@@ -34,7 +34,6 @@ import { createCloudflareAdmissions } from './identity/cloudflare-access.ts';
 import { ensureDevelopmentAuthUser } from './identity/development-auth.ts';
 import { createHausSessions } from './identity/haus-sessions.ts';
 import { SessionConnections } from './identity/session-connections.ts';
-import { managedSkillSeeder } from './managed-skills/seeder.ts';
 import { ModelConnectionRelay } from './model-connections/model-connection-relay.ts';
 import { isAllowedAppOrigin } from './origin.ts';
 import { connectHausDatabase } from './postgres/connection.ts';
@@ -111,13 +110,6 @@ export async function createHausServerApplication(
         );
         const startedPostCommitWork = new ServerPostCommitWork(runtime);
         handles.postCommitWork = startedPostCommitWork;
-        const seedsManagedSkills = options.seedManagedSkills !== false;
-        const managedSkills = managedSkillSeeder({
-            db: connectedHaus.db,
-            enabled: seedsManagedSkills,
-            postCommitWork: startedPostCommitWork,
-            storage: artifactStorage,
-        });
         const avatarImageService = new AvatarImageService(
             options.avatarImageProvider ??
                 new OpenAiAvatarImageProvider({ apiKey: options.openAiApiKey }),
@@ -166,7 +158,6 @@ export async function createHausServerApplication(
                 options.computerReleaseManifestUrl ?? productionComputerManifestUrl,
             githubApp: options.githubApp ?? null,
             hausDb: connectedHaus.db,
-            managedSkills,
             mcpIconResolver,
             mcpOAuthRelay,
             mcpRuntime: startedMcpRuntime,
@@ -239,7 +230,7 @@ export async function createHausServerApplication(
         await startServerSweeps(runtime, scope, shutdown, {
             agentDelivery,
             appOrigin: options.appOrigin,
-            artifactStorage,
+            ...artifacts,
             attachmentRoot,
             clock: reminderClock,
             db: connectedHaus.db,
@@ -247,7 +238,6 @@ export async function createHausServerApplication(
             githubIngest,
             githubRecoveryIntervalMs: options.githubRecoveryIntervalMs,
             pushReadGraceMs: options.pushReadGraceMs,
-            seedsManagedSkills,
             pushSender: options.pushSender ?? null,
             timers: options.sweepTimers,
             wakeAgents,

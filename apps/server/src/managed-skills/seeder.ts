@@ -11,23 +11,17 @@ import { seedManagedSkills } from './seed.ts';
 const sweepIntervalMs = 60 * 60_000;
 
 export interface ManagedSkillSeeder {
-    seedAgent(agent: AgentRef): Promise<void>;
+    seedAgent(agent: AgentRef, work: Pick<ServerPostCommitWork, 'run'>): Promise<void>;
+    readonly storage: ArtifactStorage | null;
 }
 
-export function managedSkillSeeder(input: {
-    db: HausDatabase;
-    enabled: boolean;
-    postCommitWork: Pick<ServerPostCommitWork, 'run'>;
-    storage: ArtifactStorage | null;
-}) {
-    const { db, storage } = input;
+export function managedSkillSeeder(db: HausDatabase, storage: ArtifactStorage | null) {
     const seeder: ManagedSkillSeeder = {
-        seedAgent: (agent) =>
-            input.enabled && storage
-                ? input.postCommitWork.run('agent.seed-managed-skills', () =>
-                      seedManagedSkills(db, storage, agent)
-                  )
+        seedAgent: (agent, work) =>
+            storage
+                ? work.run('agent.seed-managed-skills', () => seedManagedSkills(db, storage, agent))
                 : Promise.resolve(),
+        storage,
     };
     return seeder;
 }

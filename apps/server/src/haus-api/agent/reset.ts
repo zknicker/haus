@@ -31,10 +31,10 @@ export const resetAgentProcedure = artifactProcedure
                     : { ...input, kind: 'session' }
             );
             if (input.kind === 'full') {
-                await ctx.managedSkills.seedAgent({
-                    agentId: input.agentId,
-                    serverId: input.serverId,
-                });
+                await ctx.managedSkills.seedAgent(
+                    { agentId: input.agentId, serverId: input.serverId },
+                    ctx.postCommitWork
+                );
             }
             agentUpdatedTopic.announce({
                 agentId: input.agentId,

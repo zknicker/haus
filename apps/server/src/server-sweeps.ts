@@ -13,7 +13,7 @@ import type { GithubApp } from './github/github-app.ts';
 import { startGithubInstallationSweep } from './github/installation-sweep.ts';
 import { startPullRequestRefresher } from './github/pull-request-refresh.ts';
 import type { HausServerShutdown } from './haus-server-shutdown.ts';
-import { startManagedSkillSweep } from './managed-skills/seeder.ts';
+import { type ManagedSkillSeeder, startManagedSkillSweep } from './managed-skills/seeder.ts';
 import type { HausDatabase } from './postgres/connection.ts';
 import { startMessagePush } from './push/message-push.ts';
 import type { PushSender } from './push/push-sender.ts';
@@ -46,8 +46,8 @@ interface ServerSweepsInput {
     pushReadGraceMs?: number;
     /** iPhone push; absent when no APNs key is configured. */
     pushSender: PushSender | null;
-    /** Seeds stale managed skills at start and hourly; needs artifact storage. */
-    seedsManagedSkills: boolean;
+    /** Seeds stale managed skills at start and hourly while it has storage. */
+    managedSkills: Pick<ManagedSkillSeeder, 'storage'>;
     timers?: SweepTimers;
     wakeAgents?(wakes: { agentId: string; serverId: string }[]): void;
 }
@@ -64,6 +64,7 @@ export async function startServerSweeps(
     input: ServerSweepsInput
 ) {
     const { artifactStorage, pushSender } = input;
+    const managedSkillStorage = input.managedSkills.storage;
     const sweeps: NamedSweep[] = [
         ...githubSweeps(runtime, input),
         ...(artifactStorage
@@ -80,11 +81,11 @@ export async function startServerSweeps(
                   ] satisfies NamedSweep,
               ]
             : []),
-        ...(artifactStorage && input.seedsManagedSkills
+        ...(managedSkillStorage
             ? [
                   [
                       'managed-skills',
-                      () => startManagedSkillSweep(input.db, artifactStorage, input.timers),
+                      () => startManagedSkillSweep(input.db, managedSkillStorage, input.timers),
                   ] satisfies NamedSweep,
               ]
             : []),

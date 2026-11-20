@@ -81,10 +81,10 @@ export function registerAgentAgentRoutes(
                 void dependencies.postCommitWork.run(
                     'agent.configure-after-agent-create',
                     async () => {
-                        await dependencies.managedSkills.seedAgent({
-                            agentId: configure.agentId,
-                            serverId: runner.serverId,
-                        });
+                        await dependencies.managedSkills.seedAgent(
+                            { agentId: configure.agentId, serverId: runner.serverId },
+                            dependencies.postCommitWork
+                        );
                         await dependencies.agentDelivery.configureAgent(configure);
                         await dependencies.agentDelivery.dispatchAgent(
                             configure.agentId,
