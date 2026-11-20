@@ -15,18 +15,18 @@ import {
 
 export function useBackgroundUpload(theme: ColorTheme) {
     const inputRef = React.useRef<HTMLInputElement>(null);
-    const session = React.useRef(0);
+    const shownTheme = React.useRef<ColorTheme | null>(null);
     const [error, setError] = React.useState<{ message: string; theme: ColorTheme } | null>(null);
     if (error && error.theme !== theme) {
         setError(null);
     }
 
-    React.useEffect(
-        () => () => {
-            session.current += 1;
-        },
-        [theme]
-    );
+    React.useEffect(() => {
+        shownTheme.current = theme;
+        return () => {
+            shownTheme.current = null;
+        };
+    }, [theme]);
 
     const accept = async (file: File) => {
         const type = imageTypeOf(file.type);
@@ -35,13 +35,12 @@ export function useBackgroundUpload(theme: ColorTheme) {
             setError(problem ? { message: problem, theme } : null);
             return;
         }
-        const started = session.current;
         const id = newBackgroundImageId();
         const saved = await putBackgroundImage(id, file).then(
             () => true,
             () => false
         );
-        if (session.current !== started) {
+        if (shownTheme.current !== theme) {
             if (saved) {
                 void pruneUnusedBackgroundImages();
             }
