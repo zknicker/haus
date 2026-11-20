@@ -33,7 +33,7 @@
     "legacyCeilings": {
         "apps/computer/src/agent-cli/commands/agent-reminder.ts": 345,
         "apps/computer/src/agent-cli/commands/agent-trigger.test.ts": 304,
-        "apps/computer/src/harness/executor.test.ts": 1272,
+        "apps/computer/src/harness/executor.test.ts": 1249,
         "apps/computer/src/harness/executor.ts": 368,
         "apps/computer/src/inbox-store.ts": 310,
         "apps/computer/src/index.test.ts": 929,
@@ -80,7 +80,6 @@
         "apps/website/src/features/mentions/mention-text.test.ts": 474,
         "apps/website/src/features/mentions/use-mention-composer.tsx": 366,
         "apps/website/src/hooks/agents/current-agent-activity.test.ts": 352,
-        "packages/haus-api/src/agent-runner.ts": 402,
         "packages/haus-sdk/src/client.ts": 415,
         "scripts/agent-tests/kit.test.mjs": 439,
         "scripts/dev-stack-controller.mjs": 531,
