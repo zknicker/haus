@@ -36,9 +36,7 @@ services:
     environment:
       HAUS_RUNNER_MAX_WARM: ${HAUS_RUNNER_MAX_WARM:-}
       HAUS_RUNNER_TOKEN: ${HAUS_RUNNER_TOKEN:?HAUS_RUNNER_TOKEN is required}
-      HAUS_SERVER_URL: ${HAUS_RUNNER_SERVER_URL:-http://host.docker.internal:18791}
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      HAUS_SERVER_URL: ${HAUS_RUNNER_SERVER_URL:-http://host.lima.internal:18791}
     healthcheck:
       test: ["CMD", "test", "-f", "/run/haus-runner-firewall-ready"]
       interval: 5s
