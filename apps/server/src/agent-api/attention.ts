@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm';
-import { listProjectHearers } from '../agent-delivery/hearing.ts';
+import { isProjectHearer } from '../agent-delivery/hearing.ts';
 import { deleteQueuedOrdinaryItems } from '../agent-delivery/store.ts';
 import { openAgentChatRead } from '../agent-reads/agent-chat-reads.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
@@ -9,26 +9,23 @@ import { lockServerRow } from '../servers/server-lock.ts';
 import { AgentTargetError, resolveAgentTarget } from './resolve-target.ts';
 
 export async function unfollowAgentTask(db: HausDatabase, runner: ResolvedRunner, target: string) {
-    const taskChatId = await resolveAgentTarget(db, runner, target);
-    const [task] = await db
-        .select({ projectId: chatsTable.parentChatId })
-        .from(chatsTable)
-        .where(
-            and(
-                eq(chatsTable.serverId, runner.serverId),
-                eq(chatsTable.id, taskChatId),
-                eq(chatsTable.kind, 'task')
-            )
-        )
-        .limit(1);
-    if (!task?.projectId) {
-        throw new AgentTargetError('Unfollow requires a Task target.');
-    }
-    const projectHearer = (
-        await listProjectHearers(db, { projectId: task.projectId, serverId: runner.serverId })
-    ).some((agent) => agent.id === runner.agentId);
     await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
+        const taskChatId = await resolveAgentTarget(tx, runner, target);
+        const [task] = await tx
+            .select({ projectId: chatsTable.parentChatId })
+            .from(chatsTable)
+            .where(
+                and(
+                    eq(chatsTable.serverId, runner.serverId),
+                    eq(chatsTable.id, taskChatId),
+                    eq(chatsTable.kind, 'task')
+                )
+            )
+            .limit(1);
+        if (!task?.projectId) {
+            throw new AgentTargetError('Unfollow requires a Task target.');
+        }
         await tx
             .insert(agentTaskFollowsTable)
             .values({
@@ -47,7 +44,7 @@ export async function unfollowAgentTask(db: HausDatabase, runner: ResolvedRunner
                 ],
             });
         // A Project's hearers hear its Tasks whatever the follow says, so the queue stays.
-        if (!projectHearer) {
+        if (!(await isProjectHearer(tx, runner, task.projectId))) {
             await deleteQueuedOrdinaryItems(tx, {
                 agentId: runner.agentId,
                 chatIds: [taskChatId],

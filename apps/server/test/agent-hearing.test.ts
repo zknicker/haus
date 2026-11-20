@@ -178,6 +178,21 @@ test('moving an Agent home changes delivery from the next message', async () => 
     expect(await heard(await send(project('api'), 'API after the move.'))).toEqual(['bex']);
 });
 
+test('an unfollow right after a move into the Task home keeps the queued work', async () => {
+    agents.hal = await fixture.createAgent('hal', 'hal');
+    const task = await startTask('web', 'Audit the fonts');
+    await send(task.chatId, '@hal the fonts look off.');
+    const queued = await send(task.chatId, 'Two weights are missing.');
+    await fixture.owner.trpc.agent.setHome.mutate({
+        agentId: agents.hal,
+        projectId: project('web'),
+        serverId: fixture.serverId,
+    });
+
+    expect(await unfollow('hal', task)).toBe(200);
+    expect(await heard(queued)).toEqual(['ari', 'cyl', 'dov', 'hal']);
+});
+
 async function routingHandles(name: string, mentioned: string[] = []) {
     const routing = await readRoutingAgents(
         connection.db,
