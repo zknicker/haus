@@ -1,6 +1,10 @@
 import { createHash } from 'node:crypto';
-import { type InvocationBytes, invocationPayloadReferenceSchema } from '@haus/api';
-import { type InvocationPayloads, inlineByteBudget, inlinePayloads } from './operation.ts';
+import {
+    type InvocationBytes,
+    invocationInlineBytesMax,
+    invocationPayloadReferenceSchema,
+} from '@haus/api';
+import { type InvocationPayloads, inlinePayloads } from './operation.ts';
 
 const storedPayloadSchema = invocationPayloadReferenceSchema.omit({ kind: true });
 
@@ -26,7 +30,7 @@ export function createInvocationPayloads(input: {
             );
         },
         store: async (bytes, mediaType, signal) => {
-            if (bytes.byteLength <= inlineByteBudget) {
+            if (bytes.byteLength <= invocationInlineBytesMax) {
                 return await inlinePayloads.store(bytes, mediaType, signal);
             }
             const sha256 = digest(bytes);
