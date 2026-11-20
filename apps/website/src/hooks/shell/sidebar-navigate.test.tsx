@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import * as React from 'react';
 import { createMemoryRouter, Navigate, Outlet, RouterProvider } from 'react-router-dom';
 import { installFakeDom } from '../../test-support/fake-dom.ts';
+import { AppRouterContext } from './app-router-context.ts';
 import { SidebarNavigateProvider, useSidebarNavigate } from './sidebar-navigate.tsx';
 import { useStableNavigate } from './use-stable-navigate.ts';
 
@@ -99,7 +100,13 @@ async function walkBackAfter(useRowNavigate: () => (href: string) => void, steps
         { initialEntries: ['/s/one/inbox', '/s/one'] }
     );
     const root = createRoot(document.createElement('div'));
-    await act(async () => root.render(<RouterProvider router={router} />));
+    await act(async () =>
+        root.render(
+            <AppRouterContext value={router}>
+                <RouterProvider router={router} />
+            </AppRouterContext>
+        )
+    );
     const visited = () => {
         const { hash, pathname, search } = router.state.location;
         return `${pathname}${search}${hash}`;

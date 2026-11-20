@@ -1,10 +1,11 @@
 import * as React from 'react';
-import { createPath, type Path, resolvePath, UNSAFE_DataRouterContext } from 'react-router-dom';
+import { createPath, type Path, resolvePath } from 'react-router-dom';
 import { useOptionalDesktopTabs } from '../desktop-tabs/desktop-tabs-context.ts';
+import { useAppRouter } from './app-router-context.ts';
 
 export function useRouteHistoryMode() {
     const desktop = useOptionalDesktopTabs() !== null;
-    const router = React.use(UNSAFE_DataRouterContext)?.router;
+    const router = useAppRouter();
     return React.useCallback(
         (href: string, replace?: boolean) => {
             if (replace) {
