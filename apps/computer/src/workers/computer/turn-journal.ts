@@ -50,7 +50,11 @@ export class ComputerTurnJournal {
                 workerMdRevisionId: frame.workerMdRevisionId,
             };
             return {
-                file: withTurn(file ?? emptyFile(frame.workerId, frame.agentId), frame.turnId, turn),
+                file: withTurn(
+                    file ?? emptyFile(frame.workerId, frame.agentId),
+                    frame.turnId,
+                    turn
+                ),
                 result: turn,
             };
         });
