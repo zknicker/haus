@@ -3,6 +3,7 @@ import type {
     WorkerBranch,
     WorkerOutcome,
     WorkerProviderResult,
+    WorkerReportDraft,
     WorkerStallCode,
     WorkerTurnInput,
     WorkerTurnModelParam,
@@ -10,7 +11,16 @@ import type {
     WorkerUsage,
 } from '@haus/api';
 import { sql } from 'drizzle-orm';
-import { check, foreignKey, index, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import {
+    check,
+    foreignKey,
+    index,
+    integer,
+    pgTable,
+    text,
+    timestamp,
+    unique,
+} from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
 import { bunJsonb } from './bun-jsonb.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
@@ -29,6 +39,10 @@ export const workerTurnsTable = pgTable(
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         /** Set when the place took the turn; the turn counts against its place's limit until settled. */
         dispatchedAt: timestamp('dispatched_at', { withTimezone: true }),
+        /** Bumped each time a start is sent or re-sent; only the current attempt may launch. */
+        dispatchAttempt: integer('dispatch_attempt').notNull().default(0),
+        /** When the Computer reported the harness process ended. */
+        endedAt: timestamp('ended_at', { withTimezone: true }),
         errorCode: text('error_code'),
         /** The Agent send nonces this turn's follow-ups came from, so a retried send queues once. */
         followUpNonces: text('follow_up_nonces')
@@ -58,6 +72,8 @@ export const workerTurnsTable = pgTable(
         providerResult: bunJsonb('provider_result').$type<WorkerProviderResult | null>(),
         providerRunId: text('provider_run_id'),
         rawStatus: text('raw_status'),
+        /** The report `haus worker report` recorded, replaced on each call until settle. */
+        reportDraft: bunJsonb('report_draft').$type<WorkerReportDraft | null>(),
         serverId: text('server_id').notNull(),
         /** Why a live turn is stuck, and since when; a settled turn has neither. */
         stallCode: text('stall_code').$type<WorkerStallCode>(),
@@ -141,6 +157,11 @@ export const workerTurnsTable = pgTable(
         check(
             'worker_turns_input_shape',
             sql`${table.input} is null or jsonb_typeof(${table.input}) = 'array'`
+        ),
+        check('worker_turns_dispatch_attempt', sql`${table.dispatchAttempt} >= 0`),
+        check(
+            'worker_turns_report_draft_shape',
+            sql`${table.reportDraft} is null or jsonb_typeof(${table.reportDraft}) = 'object'`
         ),
     ]
 );
