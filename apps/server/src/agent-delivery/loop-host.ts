@@ -5,7 +5,9 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import type { DeliveryTransport, DispatchPlan } from './delivery.ts';
 import { readDeliveryState } from './store.ts';
 
-export type AgentLoopHost = { computerId: string; kind: 'computer' } | { kind: 'runner' };
+export type AgentLoopHost =
+    | { computerId: string; kind: 'computer' }
+    | { kind: 'runner'; machineId?: string };
 
 export interface RunnerWire {
     isOnline(): boolean;
@@ -32,7 +34,9 @@ export class AgentLoopRoute {
 
     hostOf(computerId: string) {
         const host: AgentLoopHost =
-            this.wiring.kind === 'runner' ? { kind: 'runner' } : { computerId, kind: 'computer' };
+            this.wiring.kind === 'runner'
+                ? { kind: 'runner', machineId: computerId }
+                : { computerId, kind: 'computer' };
         return host;
     }
 
@@ -58,9 +62,23 @@ export class AgentLoopRoute {
             return frame.type !== 'runner-start' && this.transport.send(host.computerId, frame);
         }
         const runnerFrame = toRunnerFrame(frame);
-        return Boolean(
+        const sent = Boolean(
             runnerFrame && this.wiring.kind === 'runner' && this.wiring.runner.send(runnerFrame)
         );
+        if (sent && frame.type === 'runner-start' && host.machineId) {
+            this.pullDrive(host.machineId, frame.start);
+        }
+        return sent;
+    }
+
+    private pullDrive(machineId: string, start: { agentId: string; runId: string }) {
+        if (this.transport.isOnline(machineId)) {
+            this.transport.send(machineId, {
+                agentId: start.agentId,
+                runId: start.runId,
+                type: 'drive-pull',
+            });
+        }
     }
 
     async bindRunCredential(tx: HausDatabase, plan: DispatchPlan) {

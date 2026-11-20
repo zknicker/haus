@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { settleHostedTurn } from '../agent-delivery/settle-turn.ts';
 import type { InvocationRouter } from '../agent-invocations/invocation-router.ts';
+import type { ComputerConnections } from '../computers/connections.ts';
 import { ingestAgentRunFrame } from '../computers/ingest-agent-run-frame.ts';
 import { ingestExecutionJournalUpload } from '../computers/ingest-execution-journal.ts';
 import type { ModelConnectionRelay } from '../model-connections/model-connection-relay.ts';
@@ -13,6 +14,7 @@ import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import type { RunnerLink } from './runner-link.ts';
 
 export interface RunnerIngest {
+    computers: Pick<ComputerConnections, 'isOnline' | 'send'>;
     db: HausDatabase;
     delivery: AgentDelivery;
     hostsLoops: boolean;
@@ -82,6 +84,7 @@ async function ingestLoopReport(ingest: RunnerIngest, frame: LoopReport) {
             return;
         case 'turn':
             await settleHostedTurn(db, delivery, { kind: 'runner' }, frame);
+            await pushDrive(ingest, frame);
             return;
         default:
             await ingestRunPresentation(ingest, frame);
@@ -112,6 +115,17 @@ async function ingestRunPresentation(
         return;
     }
     await ingestAgentRunFrame(ingest.db, input, ingest.thoughts, ingest.postCommitWork);
+}
+
+async function pushDrive(ingest: RunnerIngest, run: { agentId: string; runId: string }) {
+    const placement = await readAgentPlacement(ingest.db, run.agentId);
+    if (placement && ingest.computers.isOnline(placement.computerId)) {
+        ingest.computers.send(placement.computerId, {
+            agentId: run.agentId,
+            runId: run.runId,
+            type: 'drive-push',
+        });
+    }
 }
 
 async function readAgentPlacement(db: HausDatabase, agentId: string) {

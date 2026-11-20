@@ -887,10 +887,13 @@ R2 bumps the protocol to 39 for these frames. Their schemas live in
 `agentCommandSchema`. R3's invocation router (`apps/server/src/agent-invocations/`) sends
 `invoke`, and the Computer ingest chain hands it the two upstream frames.
 
-**Computer protocol, added with runner turns:** `drive-pull` and `drive-push`
-(Server → Computer, `agentId` and `runId`). They come with the PR that first sends them, when the
-runner reports a run started or settled, and D4's pull and push code handles them. R2 does not add
-them, because a frame with no sender and no handler is dead contract.
+**Computer protocol, added by R4b (version 43):** `drive-pull` and `drive-push`
+(Server → Computer, `agentId` and `runId`, in `packages/haus-api/src/agent-drive-sync.ts`). The
+Server sends `drive-pull` beside each `runner-start` and `drive-push` after the runner's `turn`
+settles the run, each only to the Agent's Computer when it is online. The Computer mints its own
+run credential for the run, runs D4's pull or push under the Agent's folder lock, and revokes the
+credential. Its invocations for that Agent wait for a pull in progress, so a machine tool never
+sees a half-pulled folder.
 
 **Computer protocol, removed by R4:** `start`, `notice`, `stop`, `ack`, `notice-ack`, `turn`,
 `agent-activity`, `agent-thought`, `agent-execution-journal-records`,

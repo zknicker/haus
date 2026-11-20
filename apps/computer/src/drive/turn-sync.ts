@@ -35,6 +35,65 @@ export function pushDriveAfterTurn(options: RunAgentLaunchOptions, agentRoot: st
     return inFolderTurn(agentRoot, () => pushAfterTurn(options, agentRoot));
 }
 
+export interface DriveRun {
+    agentId: string;
+    mint: () => Promise<{ runnerId: string; runnerToken: string }>;
+    revoke: (runnerId: string) => Promise<unknown>;
+    runId: string;
+    serverOrigin: string;
+    warn: (event: string, detail: string) => void;
+}
+
+export function pullDriveForRun(agentRoot: string, run: DriveRun) {
+    return inFolderTurn(agentRoot, () =>
+        withRunToken(run, 'drive-pull-failed', async (token) => {
+            const pulled = await pullDrive({
+                layout: driveFolderLayout(agentRoot, run.agentId),
+                remote: driveRemote({ serverOrigin: run.serverOrigin, token }),
+            });
+            if (!pulled.advanced) {
+                run.warn('drive-pull-blocked', `${pulled.blocked} local paths blocked`);
+            }
+        })
+    );
+}
+
+export function pushDriveForRun(agentRoot: string, run: DriveRun) {
+    return inFolderTurn(agentRoot, async () => {
+        if (discardedFolders.has(agentRoot)) {
+            return;
+        }
+        const plan = await planDrivePush(driveFolderLayout(agentRoot, run.agentId));
+        if (plan.isEmpty) {
+            return;
+        }
+        await withRunToken(run, 'drive-push-failed', async (token) => {
+            const remote = driveRemote({ serverOrigin: run.serverOrigin, token });
+            const pushed = await sendDrivePush(plan, remote, run.runId);
+            for (const file of pushed.failed) {
+                run.warn('drive-push-file-failed', `${file.path}: ${file.message}`);
+            }
+        });
+    });
+}
+
+async function withRunToken(
+    run: DriveRun,
+    failure: string,
+    work: (token: string) => Promise<void>
+) {
+    try {
+        const runner = await run.mint();
+        try {
+            await work(runner.runnerToken);
+        } finally {
+            await run.revoke(runner.runnerId).catch(() => undefined);
+        }
+    } catch (error) {
+        run.warn(failure, messageOf(error));
+    }
+}
+
 async function inFolderTurn(agentRoot: string, run: () => Promise<void>) {
     const previous = folderTurns.get(agentRoot) ?? Promise.resolve();
     const next = previous.then(run);

@@ -17,7 +17,12 @@ import type { RunnerAttachment } from './runner-link.ts';
 
 export type RunnerSocketServices = Pick<
     HausContextDependencies,
-    'agentDelivery' | 'hausDb' | 'modelConnections' | 'postCommitWork' | 'runnerLink'
+    | 'agentDelivery'
+    | 'computerConnections'
+    | 'hausDb'
+    | 'modelConnections'
+    | 'postCommitWork'
+    | 'runnerLink'
 > & { invocations: InvocationRouter };
 
 export type RunnerSocketSettings = Pick<
@@ -31,7 +36,7 @@ export function startRunnerSocket(
     services: RunnerSocketServices
 ) {
     const { agentDelivery: delivery, hausDb: db, invocations, modelConnections } = services;
-    const { postCommitWork, runnerLink: link } = services;
+    const { computerConnections: computers, postCommitWork, runnerLink: link } = services;
     const hostsLoops = settings.agentLoop === 'runner';
     const thoughts = createAgentThoughts({ summarizer: settings.thoughtSummarizer ?? null });
     const stopThoughtsOnSettle = onAgentLifecycle((event) => {
@@ -40,6 +45,7 @@ export function startRunnerSocket(
         }
     });
     const ingest = {
+        computers,
         db,
         delivery,
         hostsLoops,
