@@ -11,10 +11,6 @@ import { expect, test } from '../support/test.ts';
 test('the sidebar navigates the current tab, Back returns, and Command-click opens a background tab', async ({
     page,
 }) => {
-    test.fixme(
-        true,
-        'Back lands on a duplicate haus entry: the landing replace-navigates to the chat and the sidebar pushes it again.'
-    );
     await installDesktopBrowserStub(page);
     const { server } = await createTestServer(page, {
         displayName: 'Desktop tabs',
@@ -77,8 +73,10 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
     await expect(tabs.nth(1)).toHaveAttribute('data-active', 'true');
     await tabs.nth(0).getByRole('button', { name: 'haus', exact: true }).click();
     await expect(page.getByRole('textbox', { name: 'Message haus' })).toBeVisible();
+    // The landing replaced the tab's first entry with haus, so Back has no earlier entry.
     await desktopEvent(page, 'test:desktop-history');
-    await expect(tabs.nth(0)).not.toContainText('haus');
+    await expect(tabs.nth(0)).toContainText('haus');
+    await expect(page.getByRole('textbox', { name: 'Message haus' })).toBeVisible();
 
     // Closing the window's last tab closes the window.
     await desktopEvent(page, 'test:desktop-close');
