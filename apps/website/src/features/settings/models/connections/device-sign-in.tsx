@@ -6,6 +6,7 @@ import { useModelSignIn } from '../../../../hooks/servers/use-model-sign-in.ts';
 import { openSystemBrowserLink } from '../../../../lib/open-external-link.ts';
 import { SettingsRowError } from '../../layout/settings-text.tsx';
 import { connectionErrorMessage, signInProviderNames } from './model-connection-model.ts';
+import { useLandedSignIn } from './use-landed-sign-in.ts';
 
 const FORM_ID = 'model-sign-in-form';
 
@@ -37,16 +38,7 @@ export function DeviceSignInFlow({
     starting: boolean;
 }) {
     const signIn = useModelSignIn(serverId, signInId);
-    const landed = signIn.data?.state === 'connected' ? signIn.data.connectionId : null;
-    const label = signIn.data?.label ?? defaultLabel;
-    const announceLanded = React.useEffectEvent((connectionId: string) =>
-        onConnected(connectionId, label)
-    );
-    React.useEffect(() => {
-        if (landed) {
-            announceLanded(landed);
-        }
-    }, [landed]);
+    const landed = useLandedSignIn(signIn.data, onConnected);
 
     if (signInId === null) {
         return (
