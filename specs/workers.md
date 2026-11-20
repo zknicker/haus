@@ -167,7 +167,16 @@ person who attached the Computer, or an Owner or Admin, sets it from the Compute
 and Admins see every Computer there, and a plain member sees only the Computers they attached. The
 switch is Server state on the Computer record (`computers.workers_enabled`), and the Server checks it at every start and
 follow-up. It is off for a newly attached Computer. Turning it on lets Agents run unattended Claude
-Code or Codex sessions there under that machine's logins ([Run](#run-a-turn)). Turning it off lets
+Code or Codex sessions there under that machine's logins ([Run](#run-a-turn)).
+
+**What turning it on trusts.** A Worker runs as the machine user, and a Claude Code Worker runs
+unsandboxed, so it can read anything that user can, including the Computer's own Haus credential.
+With it, a Worker can act as the Computer and as every Agent the Computer hosts, beyond its Task.
+Turning the switch on therefore gives that Server's Agents the machine user's full local access:
+the same trust as the machine's GitHub and model logins, which is why only the attacher, an Owner,
+or an Admin may set it. The turn credential scopes what a Worker is handed, not what the machine
+user can reach. OS isolation is the follow-up
+([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md) decision 7). Turning it off lets
 working turns finish, refuses new starts and follow-ups with `WORKER_PLACE_OFF`, and settles turns
 queued there as failed `place-off`. It also clears every Project default that names the Computer
 ([Projects](projects.md#default-place-for-workers)).
