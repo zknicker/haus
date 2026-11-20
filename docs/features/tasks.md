@@ -43,8 +43,8 @@ per Worker, each attached pull request no card names with its state, checks, and
 reminder the Agent set on the Task, such as "checks back at 7:35".
 
 A counted **Workers** section lists one two-line row per Worker: a status glyph and the title, then
-its needs-you question or place, and its age. Expanding a row shows its latest step or activity, its
-report in a line, its question, **Open full log**, and a compact composer to answer from the row. A
+its needs-you question or place, and its age. Selecting a row opens the Worker; the row itself never
+expands. A
 counted **Pull requests** section lists the Task's pull requests. Opening a Worker opens its own place
 through the same Open path as an Agent profile: on desktop a tab in the right pane beside the Task,
 on the web a navigation like any other place. The Worker's page reads like a channel: the brief from the Agent, the Worker's output as a

@@ -473,9 +473,9 @@ names, then pending reminders. W4 builds it, following how a Capy parent shows i
 
 - **The Workers section** is counted and collapsible. Each row has two lines: a status glyph and
   the title, then the needs-you ask or the place, and the age. A Worker reads Working while any turn
-  runs. Expanding a row shows its tail (the last step line or activity), its report in a line, its
-  ask, **Open full log**, and a compact composer. Pull requests sit in their own counted section.
-- **Opening a Worker** (a Worker row's Open full log, a Worker link in the Task chat) opens its
+  runs. A row is a stock `ListView` item, like Capy's child rows: selecting it opens the Worker, and
+  it never expands in place. Pull requests sit in their own counted section.
+- **Opening a Worker** (a Worker row, a Worker link in the Task chat) opens its
   place, `/s/<slug>/workers/<workerId>`, through the same Open path as an Agent profile or a Drive
   file ([ADR 0046](../docs/adr/0046-the-sidebar-goes-pages-open-to-the-right.md)): on desktop a tab
   in the right pane, titled with the Worker's title, with that pane's own tab strip; on the web it

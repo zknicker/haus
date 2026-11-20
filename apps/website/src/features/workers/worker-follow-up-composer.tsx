@@ -7,11 +7,9 @@ import { isWorkerStopping, isWorkerTurnLive, liveWorkerTurns } from './worker-ca
 import { workerFollowUpControls } from './worker-follow-up-controls.ts';
 
 export function WorkerFollowUpComposer({
-    compact = false,
     serverId,
     work,
 }: {
-    compact?: boolean;
     serverId: string;
     work: Pick<Worker, 'id' | 'status' | 'title' | 'turns'>;
 }) {
@@ -83,10 +81,9 @@ export function WorkerFollowUpComposer({
     };
 
     return (
-        <div className={compact ? 'min-w-0' : 'shrink-0 px-5 pb-4'}>
+        <div className="shrink-0 px-5 pb-4">
             <PromptInput
                 layout="compact"
-                size={compact ? 'sm' : 'md'}
                 lockInputOnRun={false}
                 onStop={controls.stops ? requestStop : undefined}
                 onSubmit={submit}

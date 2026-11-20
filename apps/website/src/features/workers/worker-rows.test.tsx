@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import type { WorkerTurnInput } from '@haus/api';
 import { workerTurnFixture as turn, workerFixture as work } from './worker-fixture.ts';
-import { WorkerQuickLook, WorkerRows } from './worker-rows.tsx';
+import { WorkerRows } from './worker-rows.tsx';
 import { askReport, renderWorkerSurface } from './worker.test-utils.tsx';
 
 const followUp: WorkerTurnInput = {
@@ -42,6 +42,8 @@ test('a row is a status glyph and title, then place and age, with no composer or
     expect(html).toContain('Cursor · ');
     expect(html).not.toContain('Fixed five of six.');
     expect(html).not.toContain('prompt-input');
+    expect(html).not.toContain('disclosure');
+    expect(html).not.toContain('Open full log');
 });
 
 test('a needs-you row puts its question on a second line', () => {
@@ -82,25 +84,4 @@ test('a follow-up waiting behind a working turn reads Working, not Queued', () =
 
     expect(html).toContain('aria-label="Working"');
     expect(html).not.toContain('Queued');
-});
-
-test('an expanded row shows the tail, the ask, Open full log and a compact composer', () => {
-    const html = renderWorkerSurface(
-        <WorkerQuickLook
-            work={work({
-                activity: { at: '2026-09-04T12:03:00.000Z', summary: 'Measuring the toolbar gap' },
-                turns: [
-                    turn({
-                        outcome: { kind: 'report', report: askReport },
-                        status: 'pending_input',
-                    }),
-                ],
-            })}
-        />
-    );
-
-    expect(html).toContain('› Measuring the toolbar gap');
-    expect(html).toContain('Does the iPad baseline move 2px on purpose?');
-    expect(html).toContain('Open full log');
-    expect(html).toContain('prompt-input');
 });
