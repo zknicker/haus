@@ -14,7 +14,7 @@ describe('view of a PDF on the runner', () => {
     test('a Pi model gets the text of every page and images of exactly the scanned and figure pages', async () => {
         const { run, server } = await startedRun();
         const binding = new PiToolBinding();
-        binding.bind(run.tools);
+        binding.bind(run.tools, null);
 
         const viewed = binding.run('call_pdf', BACKGROUND_CONTEXT, (tools, signal) =>
             tools.edit('call_pdf', { command: 'view', path: 'report.pdf' }, signal)
@@ -81,7 +81,6 @@ describe('view of a PDF on the runner', () => {
             right: 1040,
             top: 380,
         });
-        // pdf.js's Liberation Sans draws 25,923; host Helvetica draws 27,938 and a fontless host none.
         expect(label).toBeWithin(25_800, 26_050);
     });
 
