@@ -193,7 +193,7 @@ describe('device sign-in', () => {
         await mounted.unmount();
     });
 
-    test('an accepted cancel shows the cancelled sign-in; a refused one leaves it be', async () => {
+    test('an accepted cancel shows the cancelled sign-in; a refused one refetches it and the list', async () => {
         const cancelled = { ...signIn, state: 'cancelled' as const };
         let answer: unknown = { cancelled: true, signIn: cancelled };
         const { harness, hook, mounted } = await mountHook(
@@ -211,9 +211,12 @@ describe('device sign-in', () => {
 
         const storing: ModelSignIn = { ...signIn, state: 'storing' };
         harness.queryClient.setQueryData(key, storing);
-        answer = { cancelled: false, reason: 'completing' };
+        harness.queryClient.setQueryData(listKey, { agentLoop: 'runner', connections: [] });
+        answer = { cancelled: false, reason: 'finished' };
         await harness.act(() => hook().mutateAsync({ serverId, signInId: 'msi_1' }));
         expect(harness.queryClient.getQueryData<ModelSignIn>(key)).toEqual(storing);
+        expect(harness.queryClient.getQueryState(key)?.isInvalidated).toBe(true);
+        expect(harness.queryClient.getQueryState(listKey)?.isInvalidated).toBe(true);
         await mounted.unmount();
     });
 });

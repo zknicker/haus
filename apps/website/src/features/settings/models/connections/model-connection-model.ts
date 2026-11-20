@@ -3,6 +3,7 @@ import {
     type ModelConnectionCredential,
     type ModelProvider,
     type ModelSignIn,
+    type ModelSignInCancelResult,
     type ModelSignInProvider,
     modelConnectionCredentialSchema,
     modelProviderSchema,
@@ -158,6 +159,10 @@ export function signInCloseStep(signIn: ModelSignIn | undefined) {
         default:
             return 'close' as const;
     }
+}
+
+export function signInCancelStep(result: ModelSignInCancelResult) {
+    return result.cancelled ? ('close' as const) : ('wait' as const);
 }
 
 export const runnerOfflineMessage = 'The runner is not connected. Start it and try again.';

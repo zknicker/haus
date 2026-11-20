@@ -22,13 +22,16 @@ export function useStartModelSignIn(serverId: string) {
 export function useCancelModelSignIn(serverId: string) {
     const utils = hausTrpc.useUtils();
     return hausTrpc.modelConnections.cancelSignIn.useMutation({
-        onSuccess: (result) => {
+        onSuccess: async (result, target) => {
+            await utils.modelConnections.signIn.cancel(target);
             if (result.cancelled) {
-                utils.modelConnections.signIn.setData(
-                    { serverId, signInId: result.signIn.signInId },
-                    result.signIn
-                );
+                utils.modelConnections.signIn.setData(target, result.signIn);
+                return;
             }
+            await Promise.all([
+                utils.modelConnections.signIn.invalidate(target),
+                utils.modelConnections.list.invalidate({ serverId }),
+            ]);
         },
     });
 }

@@ -14,6 +14,7 @@ import {
     connectionName,
     connectLabel,
     modelProviderNames,
+    signInCancelStep,
     signInCloseStep,
 } from './model-connection-model.ts';
 import { PastedCredentialForm } from './pasted-credential-form.tsx';
@@ -47,6 +48,9 @@ export function ConnectDialog({
     const defaultLabel = connectLabel(flow, replacing, takenLabels);
 
     const requestClose = async () => {
+        if (cancel.isPending) {
+            return;
+        }
         const step = signInId ? signInCloseStep(signIn.data) : 'close';
         if (step === 'close') {
             onClose();
@@ -56,7 +60,7 @@ export function ConnectDialog({
         }
         try {
             const result = await cancel.mutateAsync({ serverId, signInId });
-            if (result.cancelled || result.reason === 'finished') {
+            if (signInCancelStep(result) === 'close') {
                 onClose();
             }
         } catch (cause) {

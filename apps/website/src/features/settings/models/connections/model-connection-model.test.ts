@@ -13,6 +13,7 @@ import {
     connectionsByProvider,
     nextConnectionLabel,
     pastedCredential,
+    signInCancelStep,
     signInCloseStep,
 } from './model-connection-model.ts';
 import { testConnection } from './model-connection.fixture.ts';
@@ -151,4 +152,17 @@ test('closing cancels a sign-in still waiting on the person, and waits out one b
     expect(signInCloseStep({ ...base, state: 'storing' })).toBe('wait');
     expect(signInCloseStep({ ...base, detail: 'Expired.', state: 'failed' })).toBe('close');
     expect(signInCloseStep(undefined)).toBe('close');
+});
+
+test('a sign-in that finished as it was cancelled stays open to land, and only a real cancel closes', () => {
+    const signIn = {
+        expiresAt: '2026-11-19T12:15:00.000Z',
+        label: 'ChatGPT plan',
+        provider: 'chatgpt' as const,
+        signInId: 'msi_1',
+        state: 'cancelled' as const,
+    };
+    expect(signInCancelStep({ cancelled: true, signIn })).toBe('close');
+    expect(signInCancelStep({ cancelled: false, reason: 'finished' })).toBe('wait');
+    expect(signInCancelStep({ cancelled: false, reason: 'completing' })).toBe('wait');
 });
