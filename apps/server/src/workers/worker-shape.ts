@@ -54,6 +54,7 @@ export function toWorkerTurn(row: TurnRow): WorkerTurn {
                 : null,
         startedAt: row.startedAt?.toISOString() ?? null,
         status: row.status,
+        ...(row.steps ? { steps: row.steps } : {}),
         stopRequestedAt: row.stopRequestedAt?.toISOString() ?? null,
         stopRequestedBy: stopRequestedByOf(row),
         summary: row.summary,

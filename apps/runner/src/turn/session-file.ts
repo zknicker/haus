@@ -48,6 +48,23 @@ export async function writeAgentSession(agentDir: string, record: AgentSessionRe
     await rename(temporary, destination);
 }
 
+export function sessionAfterCompaction(session: AgentSessionRecord) {
+    const record: AgentSessionRecord = {
+        ...session,
+        deliveredInstructionFingerprint: session.launchedInstructionFingerprint,
+        deliveredMemoryDigest: null,
+        deliveredRuleDigests: {},
+    };
+    return record;
+}
+
+export async function resetReceiptsAfterCompaction(agentDir: string) {
+    const stored = await readAgentSession(agentDir);
+    if (stored) {
+        await writeAgentSession(agentDir, sessionAfterCompaction(stored));
+    }
+}
+
 export function resolveTurnSession(stored: AgentSessionRecord | null, assigned: AssignedSession) {
     if (
         stored &&

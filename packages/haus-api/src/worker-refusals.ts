@@ -14,6 +14,7 @@ import * as z from 'zod';
  * - `WORKER_REPO_UNKNOWN`: no `--repo` where the Project has several, or one that is not the Project's.
  * - `WORKER_REPO_NOT_LINKED`: the Computer place has not linked that repo.
  * - `WORKER_RUNTIME_UNAVAILABLE`: the requested runtime, or every runtime, is not ready there.
+ * - `WORKER_MODEL_UNAVAILABLE`: the runtime there cannot run that model, or reports none; the message lists the models it can.
  * - `WORKER_OPTION_CLOUD`: `--runtime` or `--model` on a cloud place.
  * - `WORKER_HISTORY_READ_ONLY`: the Worker predates Tasks and only reads.
  * - `WORKER_CLOSED`: the Worker's Task closed, so it takes no more turns or new reports.
@@ -33,6 +34,7 @@ export const workerRefusalCodes = [
     'WORKER_REPO_UNKNOWN',
     'WORKER_REPO_NOT_LINKED',
     'WORKER_RUNTIME_UNAVAILABLE',
+    'WORKER_MODEL_UNAVAILABLE',
     'WORKER_OPTION_CLOUD',
     'WORKER_HISTORY_READ_ONLY',
     'WORKER_CLOSED',

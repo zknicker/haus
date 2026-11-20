@@ -11,6 +11,7 @@ import type { ModelConnectionRelay } from '../model-connections/model-connection
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
 import type { AgentThoughts } from '../server-agents/agent-thought.ts';
+import { recordAgentIdleCompaction } from '../server-agents/record-agent-idle-compaction.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import type { RunnerLink } from './runner-link.ts';
 
@@ -95,6 +96,13 @@ async function ingestLoopReport(ingest: RunnerIngest, frame: LoopReport) {
             await pushDrive(ingest, frame);
             await settleHostedTurn(db, delivery, { kind: 'runner' }, frame);
             return;
+        case 'agent-idle-compaction': {
+            const placement = await readAgentPlacement(db, frame.agentId);
+            if (placement) {
+                await recordAgentIdleCompaction(db, placement.computerId, frame);
+            }
+            return;
+        }
         default:
             await ingestRunPresentation(ingest, frame);
     }

@@ -6,9 +6,9 @@ import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { startEmptyDatabase } from './postgres-cluster.ts';
 
-const migrationTag = '0145_agents-hear-their-home';
+const migrationTag = '0146_agents-hear-their-home';
 
-test('0145 keeps each Agent in its Project, marks that Project read, and drops memberships and mutes', async () => {
+test('0146 keeps each Agent in its Project, marks that Project read, and drops memberships and mutes', async () => {
     const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), 'haus-agent-homes-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
@@ -21,11 +21,11 @@ test('0145 keeps each Agent in its Project, marks that Project read, and drops m
                 ...journal,
                 entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= idx),
             });
-        await writeFile(journalPath, through(144));
+        await writeFile(journalPath, through(145));
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
         await seedMemberships(database);
 
-        await writeFile(journalPath, through(145));
+        await writeFile(journalPath, through(146));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
             migrationTag,
         ]);

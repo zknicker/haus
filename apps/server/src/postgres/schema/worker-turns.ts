@@ -5,6 +5,7 @@ import type {
     WorkerProviderResult,
     WorkerReportDraft,
     WorkerStallCode,
+    WorkerStep,
     WorkerTurnInput,
     WorkerTurnModelParam,
     WorkerTurnStatus,
@@ -81,6 +82,8 @@ export const workerTurnsTable = pgTable(
         stallCode: text('stall_code').$type<WorkerStallCode>(),
         stallSince: timestamp('stall_since', { withTimezone: true }),
         startedAt: timestamp('started_at', { withTimezone: true }),
+        /** The Computer's step summary of a Computer-place turn, replaced whole as it changes. */
+        steps: bunJsonb('steps').$type<WorkerStep[] | null>(),
         status: text('status').notNull().default('queued').$type<WorkerTurnStatus>(),
         /** A stop reaches each live turn, so the intent survives a later follow-up. */
         stopRequestedAt: timestamp('stop_requested_at', { withTimezone: true }),
@@ -166,6 +169,10 @@ export const workerTurnsTable = pgTable(
         check(
             'worker_turns_report_draft_shape',
             sql`${table.reportDraft} is null or jsonb_typeof(${table.reportDraft}) = 'object'`
+        ),
+        check(
+            'worker_turns_steps_shape',
+            sql`${table.steps} is null or jsonb_typeof(${table.steps}) = 'array'`
         ),
     ]
 );

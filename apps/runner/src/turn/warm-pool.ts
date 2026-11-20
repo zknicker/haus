@@ -13,10 +13,27 @@ interface Parked<Process> extends WarmIdentity {
 export class WarmPool<Process> {
     private readonly parked = new Map<string, Parked<Process>>();
 
-    constructor(private readonly limits: { idleMs: number; maxWarm: number }) {}
+    constructor(
+        private readonly limits: {
+            holds?: (agentId: string) => boolean;
+            idleMs: number;
+            maxWarm: number;
+        }
+    ) {}
 
     get size() {
         return this.parked.size;
+    }
+
+    isParked(agentId: string, process: Process) {
+        return this.parked.get(agentId)?.process === process;
+    }
+
+    closingTimes() {
+        return [...this.parked].map(
+            ([agentId, entry]) =>
+                [agentId, entry.process, entry.parkedAt + this.limits.idleMs] as const
+        );
     }
 
     park(agentId: string, identity: WarmIdentity, process: Process, now: number) {
@@ -59,7 +76,7 @@ export class WarmPool<Process> {
     expire(now: number) {
         const expired: Process[] = [];
         for (const [key, entry] of this.parked) {
-            if (now - entry.parkedAt >= this.limits.idleMs) {
+            if (now - entry.parkedAt >= this.limits.idleMs && !this.limits.holds?.(key)) {
                 this.parked.delete(key);
                 expired.push(entry.process);
             }

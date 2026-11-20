@@ -2,8 +2,9 @@ import type {
     ServerRuntimeSettingsCommand,
     ServerSettings,
     ServerSettingsSetIdleCompactionInput,
+    RunnerRuntimeSettingsFrame,
 } from '@haus/api';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { serversTable } from '../postgres/schema.ts';
 import type { HausUser } from '../users/haus-user.ts';
@@ -51,6 +52,19 @@ export async function readServerRuntimeSettingsCommand(
 ): Promise<ServerRuntimeSettingsCommand> {
     const settings = await readStoredSettings(db, serverId);
     return { idleCompaction: settings.idleCompaction, type: 'server-runtime-settings' };
+}
+
+/** The frame the runner applies: every live Server whose Agents may idle-compact. */
+export async function readRunnerRuntimeSettingsCommand(db: Pick<HausDatabase, 'select'>) {
+    const rows = await db
+        .select({ id: serversTable.id })
+        .from(serversTable)
+        .where(and(isNull(serversTable.deletedAt), eq(serversTable.idleCompaction, true)));
+    const frame: RunnerRuntimeSettingsFrame = {
+        idleCompactionServerIds: rows.map((row) => row.id),
+        type: 'runner-runtime-settings',
+    };
+    return frame;
 }
 
 async function readStoredSettings(
