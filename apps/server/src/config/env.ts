@@ -85,6 +85,7 @@ const envSchema = z
         HAUS_GEMINI_API_KEY: z.string().min(1).optional(),
         HAUS_AGENT_LOOP: z.enum(['computer', 'runner']).default('computer'),
         HAUS_RUNNER_TOKEN: z.string().min(32).optional(),
+        HAUS_RUNNER_LISTEN_HOST: z.ipv4().optional(),
         HAUS_SECRETS_KEY: z
             .string()
             .min(1)
