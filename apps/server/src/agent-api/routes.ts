@@ -29,6 +29,7 @@ import { registerAgentReactionRoutes } from './reaction-routes.ts';
 import { registerAgentReminderRoutes } from './reminder-routes.ts';
 import { registerAgentTaskRoutes } from './task-routes.ts';
 import { registerAgentTriggerRoutes } from './trigger-routes.ts';
+import { registerWorkerReportRoute } from './worker-report-route.ts';
 import { registerAgentWorkerRoutes } from './worker-routes.ts';
 
 const historyQuerySchema = z.object({
@@ -89,6 +90,7 @@ export function registerAgentApiRoutes(
         mcpRuntime: import('../server-mcp/runtime.ts').McpRuntime;
         modelCatalog: import('../server-agents/agent-model-catalog.ts').AgentModelCatalog;
         postCommitWork: ServerPostCommitWork;
+        storage: import('../artifacts/storage.ts').ArtifactStorage | null;
     }
 ) {
     registerAgentDispatchIds(app, options.db);
@@ -103,11 +105,13 @@ export function registerAgentApiRoutes(
     });
     registerAgentChannelRoutes(app, { db: options.db });
     registerAgentConnectionRoutes(app, options.db);
+    registerWorkerReportRoute(app, { db: options.db });
     registerAgentWorkerRoutes(app, {
         agentDelivery: options.agentDelivery,
         computers: options.computers,
         db: options.db,
         postCommitWork: options.postCommitWork,
+        storage: options.storage,
     });
     registerAgentImageGenerationRoutes(app, {
         db: options.db,

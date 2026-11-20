@@ -6,7 +6,7 @@ private let workJSON = """
 {"activity":{"at":"2026-09-11T09:05:00.000Z","summary":"Reading the diff"},
  "agentId":"agent_1","createdAt":"2026-09-11T09:00:00.000Z","id":"work_1",
  "job":{"followUp":null,"startedAt":"2026-09-11T09:01:00.000Z","state":"working"},
- "place":"cursor","providerUrl":"https://cursor.com/work_1","repository":"zknicker/haus",
+ "place":{"kind":"cursor"},"providerUrl":"https://cursor.com/work_1","repository":"zknicker/haus",
  "turns":[{"branches":[],"createdAt":"2026-09-11T09:00:00.000Z","errorCode":null,
    "turnId":"wkt_1","startedAt":"2026-09-11T09:01:00.000Z","status":"running",
    "stopRequestedAt":null,"summary":null,"terminalAt":null}],

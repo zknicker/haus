@@ -16,17 +16,19 @@ import {
     readPullRequestReadings,
     reportedPullRequest,
 } from './pull-request-readings.ts';
+import { readPlaceComputerNames, workerPlaceViewOf } from './worker-row-place.ts';
 
 type WorkerRow = typeof workersTable.$inferSelect;
 type TurnRow = typeof workerTurnsTable.$inferSelect;
 type WorkerReader = Pick<HausDatabase, 'select'>;
 
 export interface WorkerDetails {
+    computerName: string | null;
     pullRequest: PullRequestReading | null;
     turns: TurnRow[];
 }
 
-const noDetails: WorkerDetails = { pullRequest: null, turns: [] };
+const noDetails: WorkerDetails = { computerName: null, pullRequest: null, turns: [] };
 
 export function toWorkerTurn(row: TurnRow): WorkerTurn {
     return workerTurnSchema.parse({
@@ -73,6 +75,7 @@ export function toWorker(row: WorkerRow, details: WorkerDetails = noDetails): Wo
                 ? { at: row.activityAt.toISOString(), summary: row.activitySummary }
                 : null,
         agentId: row.agentId,
+        branch: row.branch,
         carrierComputerId: row.carrierComputerId,
         closedAt: row.closedAt?.toISOString() ?? null,
         closingAt: row.closingAt?.toISOString() ?? null,
@@ -82,12 +85,14 @@ export function toWorker(row: WorkerRow, details: WorkerDetails = noDetails): Wo
         id: row.id,
         job: deriveWorkerJob({ startedAt, status: row.status, terminalAt, turns: recent }),
         launchMessageId: row.launchMessageId,
+        model: row.model,
         originChatId: row.originChatId,
-        place: row.place,
+        place: workerPlaceViewOf(row, details.computerName),
         providerAgentId: row.providerAgentId,
         providerUrl: row.providerUrl,
         pullRequest: details.pullRequest,
         repository: row.repository,
+        runtime: row.runtime,
         startedAt,
         startingRef: row.startingRef,
         status: workerStatusOf(newest ?? { outcome: null, status: row.status }),
@@ -96,6 +101,7 @@ export function toWorker(row: WorkerRow, details: WorkerDetails = noDetails): Wo
         title: row.title,
         turns: recent,
         updatedAt: row.updatedAt.toISOString(),
+        workerMdRevisionId: row.workerMdRevisionId,
     });
 }
 
@@ -135,11 +141,15 @@ export async function readWorkerDetails(
         [...turnsByWorker].map(([workerId, turns]) => [workerId, reportedPullRequest(turns)])
     );
     const readings = await readPullRequestReadings(db, serverId, [...keyByWorker.values()]);
+    const computerNames = await readPlaceComputerNames(db, serverId, workerIds);
     return new Map(
         [...turnsByWorker].map(([workerId, turns]) => {
             const key = keyByWorker.get(workerId);
             const pullRequest = key ? (readings.get(pullRequestKey(key)) ?? null) : null;
-            return [workerId, { pullRequest, turns }];
+            return [
+                workerId,
+                { computerName: computerNames.get(workerId) ?? null, pullRequest, turns },
+            ];
         })
     );
 }

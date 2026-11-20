@@ -6,7 +6,6 @@ import {
     CodexThreadBusyError,
     classifyResumeRefusal,
 } from './codex-errors.ts';
-import { type CodexLaunchFacts, codexMcpServers, codexThreadParams } from './codex-launch.ts';
 import type { CodexTransport } from './codex-transport.ts';
 import { initializeResultSchema, mcpStartupParamsSchema, threadResultSchema } from './protocol.ts';
 import { answerCodexServerRequest } from './server-requests.ts';
@@ -16,10 +15,10 @@ export type HostToolsStatus =
     | { readonly ok: true }
     | { readonly error: string; readonly ok: false };
 
-/** One app-server process with its Agent thread open. */
+/** One app-server process with its thread open; a Worker's has no host tools. */
 export interface CodexAppServer {
     readonly connection: CodexConnection;
-    readonly hostTools: HostToolSession;
+    readonly hostTools: HostToolSession | null;
     readonly hostToolsReady: Promise<HostToolsStatus>;
     readonly resumed: boolean;
     /** Routes every later notification and foreign line. */
@@ -28,11 +27,13 @@ export interface CodexAppServer {
 }
 
 export interface OpenAppServerInput {
-    readonly facts: CodexLaunchFacts;
-    readonly hostTools: HostToolSession;
+    readonly cwd: string;
+    readonly hostTools: HostToolSession | null;
     readonly resumeThreadId: string | undefined;
     /** Cancels the handshake; the caller ends the process when the open fails. */
     readonly signal?: AbortSignal;
+    /** The `thread/start` or `thread/resume` fields, given the app-server's `config/read`. */
+    readonly threadParams: (configRead: unknown) => Record<string, unknown>;
     readonly transport: CodexTransport;
 }
 
@@ -48,14 +49,19 @@ const CLIENT_INFO = { name: 'haus-computer', title: 'Haus Computer', version: '1
 export async function openAppServer(input: OpenAppServerInput): Promise<CodexAppServer> {
     let listener: ((message: CodexInbound) => void) | null = null;
     let invalid: (line: string) => void = () => undefined;
-    const hostToolName = input.hostTools.mcp.name;
+    const hostToolName = input.hostTools?.mcp.name ?? null;
     const ready = Promise.withResolvers<HostToolsStatus>();
+    if (hostToolName === null) {
+        ready.resolve({ ok: true });
+    }
     const connection = new CodexConnection(input.transport, answerCodexServerRequest, (line) =>
         invalid(line)
     );
     connection.listen((message) => {
         const status =
-            message.kind === 'notification' ? hostToolStatus(message, hostToolName) : null;
+            message.kind === 'notification' && hostToolName !== null
+                ? hostToolStatus(message, hostToolName)
+                : null;
         if (status) {
             ready.resolve(status);
         }
@@ -78,10 +84,10 @@ export async function openAppServer(input: OpenAppServerInput): Promise<CodexApp
     await connection.notify('initialized', {});
     const configRead = await connection.request(
         'config/read',
-        { cwd: input.facts.workspaceDir, includeLayers: true },
+        { cwd: input.cwd, includeLayers: true },
         { signal }
     );
-    const params = codexThreadParams(input.facts, codexMcpServers(configRead, input.hostTools.mcp));
+    const params = input.threadParams(configRead);
     const threadId = input.resumeThreadId
         ? await resumeThread(connection, input.resumeThreadId, params, signal)
         : threadIdOf(await connection.request('thread/start', params, { signal }));

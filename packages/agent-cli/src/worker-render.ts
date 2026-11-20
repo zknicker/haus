@@ -1,3 +1,4 @@
+import { type WorkerPlace, formatWorkerPlace } from '@haus/api';
 import type { z } from 'zod';
 import type { agentWorkerStartResponseSchema } from './agent-api-schemas.ts';
 import { formatHistoryLine } from './agent-format.ts';
@@ -7,13 +8,13 @@ type WorkerRecorded = Exclude<WorkerStartResponse, { state: 'held' }>;
 
 interface WorkerSummary {
     id: string;
-    place: string;
+    place: WorkerPlace;
     title: string;
 }
 
 export function renderWorkerStart(
     response: WorkerStartResponse,
-    request: { repository: string; startingRef: string | null; task: string; target: string }
+    request: { startingRef: string | null; task: string; target: string }
 ) {
     return response.state === 'held'
         ? renderHeld(request.target, response)
@@ -49,7 +50,7 @@ export function renderWorkerList(workers: readonly WorkerListSource[]) {
     }
     const rows = workers.map((worker) => {
         const environment = worker.environmentName ? ` [${worker.environmentName}]` : '';
-        return `${worker.id} [${worker.status}] on ${worker.place}${environment} ${worker.title} (${worker.repository})`;
+        return `${worker.id} [${worker.status}] on ${workerPlaceLabel(worker.place)}${environment} ${worker.title} (${worker.repository})`;
     });
     return `${rows.join('\n')}\n`;
 }
@@ -77,6 +78,12 @@ export function renderWorkerReportText(turn: WorkerTurnReportSource) {
     return `${turn.report?.text ?? ''}${clippedLine}\n`;
 }
 
+export function workerPlaceLabel(place: WorkerPlace & { computerName?: string | null }) {
+    return place.kind === 'computer' && place.computerName
+        ? `${place.computerName} (${formatWorkerPlace(place)})`
+        : formatWorkerPlace(place);
+}
+
 function turnHasMoreResult(turn: WorkerTurnReportSource) {
     return Boolean(turn.report) && (turn.report?.text.length ?? 0) > (turn.summary?.length ?? 0);
 }
@@ -95,7 +102,7 @@ interface WorkerReportSource {
 interface WorkerListSource {
     environmentName?: string | null;
     id: string;
-    place: string;
+    place: WorkerPlace & { computerName?: string | null };
     repository: string;
     status: string;
     title: string;
@@ -103,14 +110,16 @@ interface WorkerListSource {
 
 function renderRecorded(
     receipt: WorkerRecorded,
-    request: { repository: string; startingRef: string | null; task: string }
+    request: { startingRef: string | null; task: string }
 ) {
     const { worker } = receipt;
     const ref = request.startingRef ? `@${request.startingRef}` : '';
+    const place = workerPlaceLabel(worker.place);
+    const runtime = worker.runtime ? ` in ${worker.runtime}` : '';
     const lead =
         receipt.state === 'started'
-            ? `Worker ${worker.id} started on ${worker.place} for ${request.task}: ${worker.title} (${request.repository}${ref}).`
-            : `Worker ${worker.id} queued on ${worker.place} for ${request.task}: ${worker.title} (${request.repository}${ref}). It starts when ${worker.place} has a free slot.`;
+            ? `Worker ${worker.id} started on ${place}${runtime} for ${request.task}: ${worker.title} (${worker.repository}${ref}).`
+            : `Worker ${worker.id} queued on ${place}${runtime} for ${request.task}: ${worker.title} (${worker.repository}${ref}). It starts when ${place} has a free slot.`;
     return `${[
         lead,
         `Its report posts in ${request.task} and reaches you as an inbox item when the turn ends; a launch that fails reaches you the same way.`,
