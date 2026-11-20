@@ -10,7 +10,8 @@ import { type DriveRun, pullDriveForRun, pushDriveForRun } from './turn-sync.ts'
 
 export function driveSyncFrames(
     agentsRoot: string,
-    attachment: { credential: string; serverOrigin: string }
+    attachment: { credential: string; serverOrigin: string },
+    now: () => number = Date.now
 ) {
     const generations = new Map<string, number>();
     return {
@@ -36,6 +37,7 @@ export function driveSyncFrames(
             generations.set(command.agentId, command.sessionGeneration);
             const run: DriveRun = {
                 agentId: command.agentId,
+                current: () => command.sessionGeneration >= (generations.get(command.agentId) ?? 0),
                 mint: () =>
                     mintRunCredential(attachment, {
                         agentId: command.agentId,
@@ -43,6 +45,7 @@ export function driveSyncFrames(
                         purpose: 'drive-sync',
                         runId: command.runId,
                     }),
+                now,
                 revoke: (runnerId) => revokeRunCredential(attachment, runnerId),
                 runId: command.runId,
                 serverOrigin: attachment.serverOrigin,
