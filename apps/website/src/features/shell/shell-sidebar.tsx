@@ -1,7 +1,6 @@
 import { Sidebar } from '@heroui-pro/react';
 import * as React from 'react';
 import { ResizablePaneRail } from '../../components/ui/resizable-pane-rail.tsx';
-import { SidebarNavigateProvider } from '../../hooks/shell/sidebar-navigate.tsx';
 import {
     appSidebarWidthLimits,
     useAppSidebarWidth,
@@ -98,55 +97,53 @@ export function ShellSidebar({
 
     return (
         <SidebarSurfaceContext.Provider value={surface}>
-            <SidebarNavigateProvider>
-                <Sidebar aria-label={activePageContent.ariaLabel} className="relative">
-                    <ResizablePaneRail
-                        aria-label="Resize sidebar"
-                        maxWidth={appSidebarWidthLimits.max}
-                        minWidth={appSidebarWidthLimits.min}
-                        onResizeEnd={() => sidebarWidth.setResizing(false)}
-                        onResizeStart={() => sidebarWidth.setResizing(true)}
-                        onWidthChange={sidebarWidth.setWidth}
-                        onWidthCommit={sidebarWidth.persistWidth}
-                        side="right"
-                        title="Resize sidebar"
-                        width={sidebarWidth.width}
-                    />
-                    {/* The web has no window band, so the Halloween sky and the
+            <Sidebar aria-label={activePageContent.ariaLabel} className="relative">
+                <ResizablePaneRail
+                    aria-label="Resize sidebar"
+                    maxWidth={appSidebarWidthLimits.max}
+                    minWidth={appSidebarWidthLimits.min}
+                    onResizeEnd={() => sidebarWidth.setResizing(false)}
+                    onResizeStart={() => sidebarWidth.setResizing(true)}
+                    onWidthChange={sidebarWidth.setWidth}
+                    onWidthCommit={sidebarWidth.persistWidth}
+                    side="right"
+                    title="Resize sidebar"
+                    width={sidebarWidth.width}
+                />
+                {/* The web has no window band, so the Halloween sky and the
                     Christmas roofline live behind its titlebar strip instead. */}
-                    {surface === 'web' ? <HalloweenSky placement="sidebar" /> : null}
-                    {surface === 'web' ? <ThemeRoofline placement="sidebar" /> : null}
-                    {/* Every surface reserves the strip; only the web puts the Haus
+                {surface === 'web' ? <HalloweenSky placement="sidebar" /> : null}
+                {surface === 'web' ? <ThemeRoofline placement="sidebar" /> : null}
+                {/* Every surface reserves the strip; only the web puts the Haus
                     mark in it. On the macOS desktop the traffic lights already
                     lead that line, so the mark stays down on the Inbox row and
                     the strip carries nothing of ours. */}
-                    <SidebarTitlebarStrip
-                        leadsWithMark={surface === 'web'}
-                        markHref={markHref}
-                        settingsAction={settingsSlot === 'titlebar' ? settingsAction : null}
-                        slug={slug}
-                    />
-                    {activePageContent.header}
-                    {/* `contents` carries the scale to every navigation row without adding a box. */}
-                    <div
-                        className="contents"
-                        style={{ '--spacing': sidebarDensity } as React.CSSProperties}
-                    >
-                        {activePageContent.children}
-                    </div>
-                    {footer || settingsSlot === 'footer' ? (
-                        <Sidebar.Footer>
-                            {/* One line: Settings leads whenever the gear takes this
+                <SidebarTitlebarStrip
+                    leadsWithMark={surface === 'web'}
+                    markHref={markHref}
+                    settingsAction={settingsSlot === 'titlebar' ? settingsAction : null}
+                    slug={slug}
+                />
+                {activePageContent.header}
+                {/* `contents` carries the scale to every navigation row without adding a box. */}
+                <div
+                    className="contents"
+                    style={{ '--spacing': sidebarDensity } as React.CSSProperties}
+                >
+                    {activePageContent.children}
+                </div>
+                {footer || settingsSlot === 'footer' ? (
+                    <Sidebar.Footer>
+                        {/* One line: Settings leads whenever the gear takes this
                             slot, so it never moves as the status marks after it
                             come and go. */}
-                            <div className="flex w-full items-center gap-2">
-                                {settingsSlot === 'footer' ? settingsAction : null}
-                                <div className="min-w-0 flex-1">{footer}</div>
-                            </div>
-                        </Sidebar.Footer>
-                    ) : null}
-                </Sidebar>
-            </SidebarNavigateProvider>
+                        <div className="flex w-full items-center gap-2">
+                            {settingsSlot === 'footer' ? settingsAction : null}
+                            <div className="min-w-0 flex-1">{footer}</div>
+                        </div>
+                    </Sidebar.Footer>
+                ) : null}
+            </Sidebar>
         </SidebarSurfaceContext.Provider>
     );
 }
