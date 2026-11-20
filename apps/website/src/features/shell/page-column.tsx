@@ -18,6 +18,8 @@ import { cn } from '../../lib/utils.ts';
  * apart; 1152px reads as full width in ordinary windows, keeps wide tables
  * (the seven-column usage DataGrid needs 800px+) uncropped, and only centers
  * on genuinely large monitors. Do not reintroduce per-page width variants.
+ * Settings is the one exception: `SettingsPageColumn` narrows it to a form or
+ * a table measure.
  *
  * Chat is deliberately exempt: it is a full-height surface with its own scroll
  * and composer geometry, not a document column. So is an Agent's Activity

@@ -4,8 +4,8 @@ import { Chip } from '@heroui/react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { ProfileFact, ProfileFacts } from '../../components/ui/profile-facts.tsx';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
+import { SettingsPageColumn } from '../settings/layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../settings/layout/settings-page-header.tsx';
-import { PageColumn } from '../shell/page-column.tsx';
 import { ComputerUsageCapacity } from '../usage/computer-usage-capacity.tsx';
 import { BrowserCapabilityCard } from './browser-capability-card.tsx';
 import { CloudAgentCapabilityCard } from './cloud-agent-capability-card.tsx';
@@ -62,7 +62,7 @@ export function ComputerDetail({
         // destination inside it, not a dashboard. At `wide` this page alone
         // jumped from 768px to 1280px mid-nav, and its four-column tables spent
         // the extra 512px on gutters.
-        <PageColumn>
+        <SettingsPageColumn width="table">
             <SettingsPageHeader
                 aside={
                     // The dated facts are what this Computer has done, so they
@@ -157,7 +157,7 @@ export function ComputerDetail({
                 serverId={serverId}
                 serverSlug={serverSlug}
             />
-        </PageColumn>
+        </SettingsPageColumn>
     );
 }
 
