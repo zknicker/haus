@@ -70,3 +70,25 @@ export function createCallHarness(answer: (call: RecordedCall) => unknown = () =
         },
     };
 }
+
+export async function mountCallHook<T>(
+    useHook: () => T,
+    answer?: (call: RecordedCall) => unknown,
+    seed: (queryClient: QueryClient) => void = () => undefined
+) {
+    const harness = createCallHarness(answer);
+    const box: { current: T | null } = { current: null };
+    function Probe() {
+        box.current = useHook();
+        return null;
+    }
+    seed(harness.queryClient);
+    const mounted = await harness.mount(<Probe />);
+    const hook = () => {
+        if (!box.current) {
+            throw new Error('The hook did not mount.');
+        }
+        return box.current;
+    };
+    return { harness, hook, mounted };
+}
