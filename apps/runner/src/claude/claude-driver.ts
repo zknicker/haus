@@ -24,6 +24,7 @@ export function createClaudeHarness(options: { maxWarm: number }) {
         for (const connection of connections) {
             connection.close();
         }
+        return Promise.all(connections.map((connection) => connection.ended));
     };
     const expiry = setInterval(() => closeAll(pool.expire(Date.now())), expiryIntervalMs);
     expiry.unref();
@@ -98,7 +99,7 @@ export function createClaudeHarness(options: { maxWarm: number }) {
             closeAll(pool.drain());
         },
         release(agentId: string) {
-            closeAll(pool.take(agentId));
+            return closeAll(pool.take(agentId));
         },
         driver,
         factory,
