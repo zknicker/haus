@@ -1,5 +1,5 @@
 // Shared scenario support. Provisioned Agents are isolated by construction, so
-// what lives here is the state a scenario driving a STANDING Agent — Cove — has
+// what lives here is the state a scenario driving a STANDING Agent — Blippy — has
 // to own itself before its first turn: a factory session and workspace, and no
 // teammate an earlier run left behind. A scenario asks in its own fresh chat
 // to avoid inheriting earlier requests from the standing Agent's Owner DM.

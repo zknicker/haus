@@ -13,21 +13,21 @@ describe('Agent scenario configuration isolation', () => {
                 calls.push({ modelId, runtimeId });
             },
         };
-        const cove = {
+        const harbor = {
             desiredModelId: 'gpt-5.6-sol',
             desiredRuntimeId: 'codex',
         };
         const terra = { modelId: 'gpt-5.6-terra', runtimeId: 'codex' };
 
         await expect(
-            withTemporaryAgentConfiguration(harness, cove, terra, async () => {
+            withTemporaryAgentConfiguration(harness, harbor, terra, async () => {
                 throw new Error('scenario assertion failed');
             })
         ).rejects.toThrow('scenario assertion failed');
 
         expect(calls).toEqual([
             { modelId: terra.modelId, runtimeId: terra.runtimeId },
-            { modelId: cove.desiredModelId, runtimeId: cove.desiredRuntimeId },
+            { modelId: harbor.desiredModelId, runtimeId: harbor.desiredRuntimeId },
         ]);
     });
 
@@ -38,11 +38,11 @@ describe('Agent scenario configuration isolation', () => {
                 calls.push({ modelId, runtimeId });
             },
         };
-        const cove = { desiredModelId: 'gpt-5.6-sol', desiredRuntimeId: 'codex' };
+        const harbor = { desiredModelId: 'gpt-5.6-sol', desiredRuntimeId: 'codex' };
 
         const result = await withTemporaryAgentConfiguration(
             harness,
-            cove,
+            harbor,
             { modelId: 'gpt-5.6-sol', runtimeId: 'codex' },
             async () => 'ran'
         );
@@ -54,10 +54,10 @@ describe('Agent scenario configuration isolation', () => {
 
 describe('standing-Agent scenario setup', () => {
     test('a full reset settles only once the Computer re-seeded the workspace', async () => {
-        const cove = readyAgent();
+        const harbor = readyAgent();
         let workspaceReads = 0;
         const harness = fakeHarness({
-            'agent.list': () => [cove],
+            'agent.list': () => [harbor],
             'agent.reset': () => ({}),
             'agent.workspaceFile': () => {
                 workspaceReads += 1;
@@ -69,11 +69,11 @@ describe('standing-Agent scenario setup', () => {
             },
         });
 
-        const settled = await resetAgentToFactory(harness, cove, { intervalMs: 1 });
+        const settled = await resetAgentToFactory(harness, harbor, { intervalMs: 1 });
 
-        expect(settled).toBe(cove);
+        expect(settled).toBe(harbor);
         expect(harness.inputs('agent.reset')).toEqual([
-            { agentId: 'cove', kind: 'full', serverId: 'server-1' },
+            { agentId: 'harbor', kind: 'full', serverId: 'server-1' },
         ]);
         expect(workspaceReads).toBeGreaterThan(1);
     });
@@ -81,9 +81,9 @@ describe('standing-Agent scenario setup', () => {
     // The pre-reset MEMORY.md is the trap: it reads fine, so a wait that only
     // asked whether the file exists would hand the scenario the old workspace.
     test('a MEMORY.md older than the request never settles the reset', async () => {
-        const cove = readyAgent();
+        const harbor = readyAgent();
         const harness = fakeHarness({
-            'agent.list': () => [cove],
+            'agent.list': () => [harbor],
             'agent.reset': () => ({}),
             'agent.workspaceFile': () => ({
                 updatedAt: new Date(Date.now() - 60_000).toISOString(),
@@ -91,7 +91,7 @@ describe('standing-Agent scenario setup', () => {
         });
 
         await expect(
-            resetAgentToFactory(harness, cove, { intervalMs: 1, timeoutMs: 10 })
+            resetAgentToFactory(harness, harbor, { intervalMs: 1, timeoutMs: 10 })
         ).rejects.toThrow(/never came back from a full reset/u);
     });
 
@@ -99,9 +99,9 @@ describe('standing-Agent scenario setup', () => {
         const harness = fakeHarness({
             'agent.delete': () => ({}),
             'agent.list': () => [
-                { createdByAgentId: null, displayName: 'Cove', handle: 'cove', id: 'cove' },
+                { createdByAgentId: null, displayName: 'Harbor', handle: 'harbor', id: 'harbor' },
                 {
-                    createdByAgentId: 'cove',
+                    createdByAgentId: 'harbor',
                     displayName: 'Mossy Lantern',
                     handle: 'mossy-lantern',
                     id: 'mossy',
@@ -110,7 +110,7 @@ describe('standing-Agent scenario setup', () => {
             ],
         });
 
-        const retired = await retireAgentsCreatedBy(harness, 'cove');
+        const retired = await retireAgentsCreatedBy(harness, 'harbor');
 
         expect(retired).toEqual(['mossy']);
         expect(harness.inputs('agent.delete')).toEqual([
@@ -127,8 +127,8 @@ function readyAgent() {
         desiredRuntimeId: 'codex',
         effectiveModelId: 'gpt-5.6-terra',
         effectiveRuntimeId: 'codex',
-        handle: 'cove',
-        id: 'cove',
+        handle: 'harbor',
+        id: 'harbor',
         missingResources: [],
         status: 'applied',
     };

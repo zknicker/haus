@@ -50,16 +50,16 @@ describe('ordinary Agent workspace seed', () => {
             agentName: 'Orbit',
             bio: 'Watches competitor launches.',
             brief: 'Own competitor intel. Post a digest in #product every Friday.',
-            briefAuthorHandle: 'cove',
+            briefAuthorHandle: 'harbor',
             workspaceDir,
         });
 
         const memory = await fs.readFile(path.join(workspaceDir, 'MEMORY.md'), 'utf8');
-        expect(memory).toContain('## Standing brief from @cove');
+        expect(memory).toContain('## Standing brief from @harbor');
         expect(memory).toContain('Own competitor intel. Post a digest in #product every Friday.');
         // The one-time greeting rides the first turn's input, never permanent memory.
         expect(memory).not.toContain('say hello');
-        expect(memory.indexOf('## Standing brief from @cove')).toBeLessThan(
+        expect(memory.indexOf('## Standing brief from @harbor')).toBeLessThan(
             memory.indexOf('## Standing Preferences')
         );
     });
@@ -67,7 +67,7 @@ describe('ordinary Agent workspace seed', () => {
     it('leaves out the brief section when there is no brief', async () => {
         await seedAgentWorkspace({
             agentName: 'Orbit',
-            briefAuthorHandle: 'cove',
+            briefAuthorHandle: 'harbor',
             workspaceDir,
         });
 
@@ -89,7 +89,7 @@ describe('ordinary Agent workspace seed', () => {
         await seedAgentWorkspace({
             agentName: 'scout',
             brief: 'Own the delivery lane.',
-            briefAuthorHandle: 'cove',
+            briefAuthorHandle: 'harbor',
             workspaceDir,
         });
         await expect(fs.readFile(path.join(workspaceDir, 'MEMORY.md'), 'utf8')).resolves.toBe(

@@ -1,15 +1,3 @@
-// Opt-in live proof for Cove's factory Agent-creation guidance. This uses the
-// real seeded Server and attached Computer; the image fixture makes the avatar
-// provider boundary deterministic without persisting the concept or calling OpenAI.
-//
-// Cove is the seeded factory Agent, not a provisioned fixture, so this scenario
-// owns its starting state: it retires the teammate an earlier run had Cove
-// create and resets Cove to factory — session, workspace, MEMORY.md — through
-// the product's own Full Reset.
-//
-// The Owner asks in a fresh channel. Cove creates there and answers there with the
-// returned identity; the new Agent introduces itself in #haus on its first turn.
-
 import { isAbsolute } from 'node:path';
 import { defineScenario } from '../scenario.mjs';
 import {
@@ -20,8 +8,8 @@ import {
 
 export default defineScenario({
     contract:
-        'Cove answers a natural Agent proposal request from its Owner without creating anything, then a separate creation request creates exactly one Agent inheriting Cove’s runtime and model, named by handle in Cove’s answer in the asking chat with the same session generation and with no introduction from Cove in #haus, joined to #haus and the requested #product, and carrying its standing brief in the workspace MEMORY.md on the Computer; repeating the request creates no second Agent.',
-    name: 'cove-composes-agent-creation',
+        'An ordinary Agent answers a natural Agent proposal request from its Owner without creating anything, then a separate creation request creates exactly one Agent inheriting the creator’s runtime and model, named by handle in the creator’s answer in the asking chat with the same session generation and with no introduction from the creator in #haus, joined to #haus and the requested #product, and carrying its standing brief in the workspace MEMORY.md on the Computer; repeating the request creates no second Agent.',
+    name: 'agent-composes-agent-creation',
     optIn: true,
     async run({ expect, kit, log, marker, settleTurn }) {
         const fixturePath = process.env.HAUS_AGENT_E2E_AVATAR_FIXTURE_PATH;
@@ -39,41 +27,35 @@ export default defineScenario({
         }
 
         const listAgents = () => kit.trpc('agent.list', { serverId: kit.serverId });
-        const seeded = (await listAgents()).find(
-            (agent) => agent.factoryKind === 'cove' && agent.handle === 'cove'
-        );
+        const seeded = (await listAgents()).find((agent) => agent.handle === 'blippy');
         if (!seeded) {
-            throw new Error(
-                'This opt-in scenario requires an active Cove created through the onboarding flow.'
-            );
+            throw new Error('This opt-in scenario requires the seeded development Agent Blippy.');
         }
         if (!(seeded.desiredModelId && seeded.desiredRuntimeId)) {
             throw new Error(
-                'This opt-in scenario requires Cove to have a configured runtime and model.'
+                'This opt-in scenario requires Blippy to have a configured runtime and model.'
             );
         }
 
         await retireAgentsCreatedBy(kit.harness, seeded.id, { log });
-        const cove = await resetAgentToFactory(kit.harness, seeded, { log });
-        const askChat = await kit.createChannel({ agentIds: [cove.id] });
+        const creator = await resetAgentToFactory(kit.harness, seeded, { log });
+        const askChat = await kit.createChannel({ agentIds: [creator.id] });
 
-        const target = { modelId: cove.desiredModelId, runtimeId: cove.desiredRuntimeId };
-        // Snapshotted after the reset, so an Agent this run finds new is one
-        // this run's own turns created.
+        const target = { modelId: creator.desiredModelId, runtimeId: creator.desiredRuntimeId };
         const knownAgentIds = new Set((await listAgents()).map((agent) => agent.id));
         const newAgents = async () =>
             (await listAgents()).filter((agent) => !knownAgentIds.has(agent.id));
 
         await withTemporaryAgentConfiguration(
             kit.harness,
-            cove,
+            creator,
             target,
             async () => {
-                const proposalBrief = `@${cove.handle} ${marker('COVE')} Can you propose a CTO / Systems Steward Agent for keeping this Computer reliable and secure?`;
+                const proposalBrief = `@${creator.handle} ${marker('PROPOSE')} Can you propose a CTO / Systems Steward Agent for keeping this Computer reliable and secure?`;
 
-                log('asking Cove for a prose Agent proposal');
+                log('asking the Agent for a prose Agent proposal');
                 const proposalReceipt = await kit.harness.send(askChat.id, proposalBrief);
-                const proposalTurn = await settleTurn(cove.id, {
+                const proposalTurn = await settleTurn(creator.id, {
                     settleWithin: 300_000,
                     startWithin: 120_000,
                 });
@@ -86,7 +68,7 @@ export default defineScenario({
                     (message) =>
                         message.sequence > proposalReceipt.message.sequence &&
                         message.author.kind === 'agent' &&
-                        message.author.agentId === cove.id
+                        message.author.agentId === creator.id
                 );
                 expect(
                     proposalMessages.filter((message) => message.content.trim().length > 0).length,
@@ -110,10 +92,10 @@ export default defineScenario({
                 }
                 const allHeadSequence = await kit.readHead(allChannel.id);
 
-                const creationBrief = `@${cove.handle} ${marker('CREATE')} Looks good. Please create that Agent now. Name it Mossy Lantern, put it in #product, and give it a standing brief for that lane.`;
-                log('asking Cove to create the approved Agent');
+                const creationBrief = `@${creator.handle} ${marker('CREATE')} Looks good. Please create that Agent now. Name it Mossy Lantern, put it in #product, and give it a standing brief for that lane.`;
+                log('asking the Agent to create the approved Agent');
                 await kit.harness.send(askChat.id, creationBrief);
-                const creationTurn = await settleTurn(cove.id, {
+                const creationTurn = await settleTurn(creator.id, {
                     settleWithin: 300_000,
                     startWithin: 120_000,
                 });
@@ -128,45 +110,42 @@ export default defineScenario({
                 await kit.trackAgent(createdAgent);
                 knownAgentIds.add(createdAgent.id);
 
-                // Runtime, model, reasoning effort, and Computer inherit from Cove.
                 expect(createdAgent.desiredRuntimeId, 'inherited runtime').toBe(target.runtimeId);
                 expect(createdAgent.desiredModelId, 'inherited model').toBe(target.modelId);
                 expect(createdAgent.desiredReasoningEffort, 'inherited reasoning effort').toBe(
-                    cove.desiredReasoningEffort
+                    creator.desiredReasoningEffort
                 );
-                expect(createdAgent.computerId, 'inherited Computer').toBe(cove.computerId);
+                expect(createdAgent.computerId, 'inherited Computer').toBe(creator.computerId);
 
-                // The new Agent's own first-turn greeting is its only introduction,
-                // so Cove posts none in #haus (ADR 0028, amended 2026-11-03).
-                const coveIntroductions = (await kit.readMessages(allChannel.id)).filter(
+                const creatorIntroductions = (await kit.readMessages(allChannel.id)).filter(
                     (message) =>
                         message.sequence > allHeadSequence &&
                         message.author.kind === 'agent' &&
-                        message.author.agentId === cove.id
+                        message.author.agentId === creator.id
                 );
-                expect(coveIntroductions, 'Cove posts no introduction in #haus').toHaveLength(0);
-                // Cove answers the Owner where they asked. The mention is the only way
-                // a human reaches the new profile, so the answer names the teammate.
+                expect(
+                    creatorIntroductions,
+                    'the creator posts no introduction in #haus'
+                ).toHaveLength(0);
                 const answers = (await kit.readMessages(askChat.id)).filter(
                     (message) =>
                         message.author.kind === 'agent' &&
-                        message.author.agentId === cove.id &&
+                        message.author.agentId === creator.id &&
                         message.body?.kind === 'text' &&
                         message.content.includes(`@${createdAgent.handle}`)
                 );
                 expect(
                     answers.length,
-                    'Cove answers the Owner with the new handle'
+                    'the creator answers the Owner with the new handle'
                 ).toBeGreaterThan(0);
                 const answer = answers.at(-1);
-                expect(answer.sessionGeneration, 'the answer keeps Cove’s session').toBe(
+                expect(answer.sessionGeneration, 'the answer keeps the creator’s session').toBe(
                     proposalMessages.at(-1).sessionGeneration
                 );
                 expect(answer.sessionGeneration, 'the answer has a session stamp').toBeGreaterThan(
                     0
                 );
 
-                // #haus is the Server's guarantee; #product is what the request named.
                 const membership = await kit.trpc('chat.list', { serverId: kit.serverId });
                 const memberOf = (chatId) =>
                     membership
@@ -175,22 +154,18 @@ export default defineScenario({
                 expect(memberOf(allChannel.id), 'the new Agent is in #haus').toBe(true);
                 expect(memberOf(productChannel.id), 'the new Agent is in #product').toBe(true);
 
-                // The brief is memory on the Computer, not a message: it reaches the
-                // new Agent through the workspace its configure seeded.
                 const memory = await kit.trpc('agent.workspaceFile', {
                     agentId: createdAgent.id,
                     path: 'MEMORY.md',
                     serverId: kit.serverId,
                 });
                 expect(memory.content, 'the seeded memory carries the standing brief').toContain(
-                    `## Standing brief from @${cove.handle}`
+                    `## Standing brief from @${creator.handle}`
                 );
-                // The first hello is one-time turn input, not permanent memory.
                 expect(
                     memory.content.includes('self-introduction'),
                     'the seeded memory leaves the first hello to turn input'
                 ).toBe(false);
-                // Nothing DMs the new Agent — a DM is human ↔ Agent.
                 expect(
                     membership.filter(
                         (chat) =>
@@ -204,9 +179,9 @@ export default defineScenario({
                 log('repeating the creation request');
                 await kit.harness.send(
                     askChat.id,
-                    `@${cove.handle} ${marker('REPEAT')} Did that work? Please make sure ${createdAgent.displayName} exists.`
+                    `@${creator.handle} ${marker('REPEAT')} Did that work? Please make sure ${createdAgent.displayName} exists.`
                 );
-                const repeatTurn = await settleTurn(cove.id, {
+                const repeatTurn = await settleTurn(creator.id, {
                     settleWithin: 300_000,
                     startWithin: 120_000,
                 });

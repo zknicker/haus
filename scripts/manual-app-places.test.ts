@@ -7,9 +7,6 @@ import type { AppPlace, AppPlaceAnchor } from '../packages/agent-manual/src/app-
 import { appPlaces } from '../packages/agent-manual/src/app-places.ts';
 import { renderAppPlace } from '../packages/agent-manual/src/app-topic.ts';
 import { getManualTopic, manualTopics } from '../packages/agent-manual/src/index.ts';
-import { coveCoordinationGuidance } from '../packages/agent-workspace/src/cove-coordination-guidance.ts';
-import { coveOnboardingFaq } from '../packages/agent-workspace/src/cove-factory-faq.ts';
-import { coveOnboardingPlaybook } from '../packages/agent-workspace/src/cove-factory-guidance.ts';
 import { isPlaceholder, unmappedAppPaths } from './app-place-paths.ts';
 
 const repoRoot = new URL('../', import.meta.url);
@@ -47,13 +44,8 @@ test('every UI label in a path has an anchor, and every anchor names a segment',
     }
 });
 
-test('Manual topics and Cove guidance write only App paths the map knows', () => {
-    const texts = [
-        ...manualTopics.map((topic) => [topic.id, topic.body] as const),
-        ['cove faq', coveOnboardingFaq] as const,
-        ['cove playbook', coveOnboardingPlaybook] as const,
-        ['cove coordination', coveCoordinationGuidance] as const,
-    ];
+test('Manual topics write only App paths the map knows', () => {
+    const texts = manualTopics.map((topic) => [topic.id, topic.body] as const);
     const unmapped = texts.flatMap(([source, text]) =>
         unmappedAppPaths(text).map((chain) => `${source}: ${chain.join(' → ')}`)
     );
@@ -78,7 +70,9 @@ test('the app topic renders each place as one line with its role and caveat', ()
     expect(renderAppPlace(placeFor('Rename a channel or change its description'))).toBe(
         'Rename a channel or change its description: Project actions → Name & description…'
     );
-    expect(body.length).toBeLessThan(3800);
+    expect(body).toContain('## Common questions\n\n- What a Computer gives an Agent:');
+    expect(body).toContain('check Captain profile → Runs on');
+    expect(body.length).toBeLessThan(4600);
 });
 
 function anchorRoot(anchor: AppPlaceAnchor): string {

@@ -34,7 +34,7 @@ const navigationTopics: readonly ManualNavigationTopic[] = [
 
 Use the Haus CLI for collaboration and retrieve deeper guidance only when the task needs it.
 
-The Manual contains 33 complete recipe cards: 12 seeded cards for proactive orientation and 21 query-tier cards for on-demand guidance. Seeded and query are delivery tiers, not authorization tiers; every authenticated managed Agent can get and search both.
+The Manual contains 33 complete recipe cards: 12 seeded cards for the situations that come up most and 21 query-tier cards for on-demand guidance. Seeded and query are delivery tiers, not authorization tiers; every authenticated managed Agent can get and search both.
 
 Product reference topics describe current Haus capabilities without turning them into prescriptive recipes. Every haus command family has one named after its noun: ${cliFamilyTopicList()}. Get accepts the family noun in singular or plural form.
 
@@ -115,7 +115,7 @@ Recipe search results are bounded metadata. A result is a pointer to a later hau
 
 function seededIndexBody(): string {
     const lines = seededRecipeTopics.map((topic) => `- ${topic.id} — ${topic.title}`);
-    return `Seeded recipes are the small bootstrap tier used for proactive orientation. Every Manual topic remains available on demand; seeded does not mean restricted.
+    return `Seeded recipes are the small tier for the situations that come up most. Every Manual topic remains available on demand; seeded does not mean restricted.
 
 The complete seeded tier contains 12 cards:
 ${lines.join('\n')}
