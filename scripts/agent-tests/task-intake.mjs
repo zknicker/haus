@@ -3,13 +3,14 @@ import { gzipSync } from 'node:zlib';
 const ownBy = (agentId) => (message) =>
     message.author.kind === 'agent' && message.author.agentId === agentId;
 
-export async function tasksCreatedBy(kit, agentId, since = '1970-01-01T00:00:00.000Z') {
+export async function tasksCreatedBy(kit, agentId, settled) {
+    const since = Date.parse(settled.firstStartedAt ?? settled.startedAt);
     const tasks = await kit.trpc('task.list', { serverId: kit.serverId });
     return tasks.filter(
         (task) =>
             task.createdBy.kind === 'agent' &&
             task.createdBy.agentId === agentId &&
-            Date.parse(task.createdAt) >= Date.parse(since)
+            Date.parse(task.createdAt) >= since
     );
 }
 
@@ -127,7 +128,9 @@ export function relayPuzzle({ divisor, limit, modulus }) {
 
 export async function cancelTasksBy(kit, agentIds) {
     for (const agentId of agentIds) {
-        const tasks = await tasksCreatedBy(kit, agentId).catch(() => []);
+        const tasks = await tasksCreatedBy(kit, agentId, {
+            startedAt: '1970-01-01T00:00:00.000Z',
+        }).catch(() => []);
         for (const task of tasks.filter((entry) => entry.state !== 'canceled')) {
             await kit
                 .trpc('task.setState', {
