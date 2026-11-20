@@ -1,3 +1,4 @@
+import { workerNotJournaledErrorCode } from '@haus/api';
 import { Clock, Effect } from 'effect';
 import { type WorkerOperationError, foreign } from './foreign-operation.ts';
 import { abortWorkerLaunch } from './launch-attempt.ts';
@@ -9,6 +10,8 @@ import type { WorkerHeldFollowUp, WorkerSendingTurn } from './turn-record.ts';
 /** A monitored turn the provider has not addressed yet. */
 export interface LocalRun {
     readonly cancelRequested: boolean;
+    /** This connection drained the turn's held follow-up, so the Server now holds it. */
+    readonly drained?: boolean;
     readonly ref: WorkerTurnRef;
 }
 
@@ -24,7 +27,7 @@ export type LocalRunState =
     | { kind: 'unsent'; observation: CloudAgentProviderObservation | null }
     /** A follow-up from before Workers, waiting for the Server to take it. */
     | { kind: 'held'; followUp: WorkerHeldFollowUp }
-    /** Never accepted here: the Server still holds it, or will start it again. */
+    /** Its held follow-up was drained: the Server holds it and will start it again. */
     | { kind: 'absent' };
 
 /**
@@ -103,21 +106,30 @@ export class WorkerLocalRuns {
     }
 
     /**
-     * A stop for a turn this Computer never accepted claims it cancelled, so a
-     * start the Server sends again loses the exclusive claim. Without a stop
-     * the turn is the Server's until it starts it here.
+     * A turn the Server names that this Computer never journaled never reached
+     * the provider. A stop claims it cancelled; otherwise it is claimed
+     * rejected `launch-refused`. Either claim is exclusive, so a start the
+     * Server sends later loses it. Only a drained follow-up stays the Server's.
      */
     private settleUnaccepted(run: LocalRun): Effect.Effect<LocalRunState, WorkerOperationError> {
-        if (!run.cancelRequested) {
+        if (run.drained && !run.cancelRequested) {
             return Effect.succeed({ kind: 'absent' });
         }
         const self = this;
         return Effect.gen(function* () {
             yield* foreign(() =>
-                self.journal.claim(self.serverId, run.ref, {
-                    phase: 'cancelled',
-                    workerId: run.ref.workerId,
-                })
+                self.journal.claim(
+                    self.serverId,
+                    run.ref,
+                    run.cancelRequested
+                        ? { phase: 'cancelled', workerId: run.ref.workerId }
+                        : {
+                              errorCode: workerNotJournaledErrorCode,
+                              phase: 'rejected',
+                              summary: 'This Computer never accepted the turn, so it never reached the provider.',
+                              workerId: run.ref.workerId,
+                          }
+                )
             );
             return yield* self.resolve(run);
         });

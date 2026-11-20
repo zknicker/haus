@@ -149,6 +149,11 @@ test.each<[string, WorkerOutcome, WorkerOutcome]>([
         { detail: 'boom', kind: 'failed', reason: 'provider-error' },
     ],
     [
+        'a turn its carrier never journaled never reached the provider',
+        settle({ errorCode: 'turn-not-journaled', status: 'failed' }),
+        { detail: 'turn-not-journaled', kind: 'failed', reason: 'launch-refused' },
+    ],
+    [
         'a finished run with no result text has no report',
         settle({ result: result(''), status: 'completed' }),
         { detail: null, kind: 'failed', reason: 'no-report' },

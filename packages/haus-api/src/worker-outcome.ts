@@ -104,6 +104,9 @@ export interface WorkerOutcomeInput {
     status: SettledTurnStatus;
 }
 
+/** The carrier's `errorCode` for a turn it never journaled, so it never reached the provider. */
+export const workerNotJournaledErrorCode = 'turn-not-journaled';
+
 const outcomeByStatus: Record<SettledTurnStatus, (input: WorkerOutcomeInput) => WorkerOutcome> = {
     cancelled: () => ({ kind: 'stopped' }),
     completed: (input) =>
@@ -111,8 +114,14 @@ const outcomeByStatus: Record<SettledTurnStatus, (input: WorkerOutcomeInput) => 
             ? report(input, input.result.outcome ?? 'done')
             : failed('no-report', input.errorCode),
     expired: (input) => failed('provider-expired', input.errorCode),
-    failed: (input) =>
-        input.result?.text ? report(input, 'failed') : failed('provider-error', input.errorCode),
+    failed: (input) => {
+        if (input.result?.text) {
+            return report(input, 'failed');
+        }
+        return input.errorCode === workerNotJournaledErrorCode
+            ? failed('launch-refused', input.errorCode)
+            : failed('provider-error', input.errorCode);
+    },
     pending_input: (input) => report({ ...input, person: noPerson }, 'needs-you'),
 };
 

@@ -136,10 +136,16 @@ test('a stop for a turn never accepted here settles it cancelled, and its late s
     expect(f.provider.launches).toEqual([]);
 });
 
-test('a turn the Server still holds is left alone', async () => {
+test('a reconciled turn never journaled here fails as never journaled, and its late start never runs', async () => {
     const f = await supervisors(createFakeCloudAgentProvider());
+    const frame = turnStartFrame();
     const daemon = f.start();
-    await daemon.work.reconcile([reconcileEntry(turnStartFrame())]);
-    expect(daemon.frames).toEqual([]);
-    expect(await f.journal.read(serverId, turnRef(turnStartFrame()))).toBeNull();
+    await daemon.work.reconcile([reconcileEntry(frame)]);
+    await daemon.work.accept(frame);
+    await daemon.work.close();
+    expect(
+        daemon.observations().map(({ errorCode, status, turnId }) => ({ errorCode, status, turnId }))
+    ).toEqual([{ errorCode: 'turn-not-journaled', status: 'failed', turnId: frame.turnId }]);
+    expect((await f.journal.read(serverId, turnRef(frame)))?.phase).toBe('rejected');
+    expect(f.provider.launches).toEqual([]);
 });
