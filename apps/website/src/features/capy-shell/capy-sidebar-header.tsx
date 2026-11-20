@@ -1,17 +1,18 @@
 import { Button, Kbd, Tooltip } from '@heroui/react';
 import { PencilEdit02Icon, Search01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type { IconSvgElement } from '@hugeicons/react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { HausMascot } from '../../components/haus-mascot.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useOptionalServerWorkState } from '../../hooks/agents/use-current-agent-activity.tsx';
+import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import { serverRoute } from '../servers/server-routes.ts';
 import { resolveAgentActivityGhostTempo } from '../shell/agent-activity-ghost-tempo.ts';
 import { useCommandMenu } from '../shell/command-menu-provider.tsx';
 import { requestHomePromptFocus } from './home-prompt-focus.ts';
 
 export function CapySidebarActions({ slug }: { slug: string }) {
-    const navigate = useNavigate();
+    const navigate = useSidebarNavigate();
     const { open: openCommandMenu } = useCommandMenu();
     return (
         <div className="app-shell-band flex items-center">

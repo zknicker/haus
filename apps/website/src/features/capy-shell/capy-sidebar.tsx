@@ -2,9 +2,9 @@ import { Sidebar } from '@heroui-pro/react';
 import { Button } from '@heroui/react';
 import { Plus } from '@hugeicons/core-free-icons';
 import * as React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
-import { SidebarNavigateProvider } from '../../hooks/shell/sidebar-navigate.tsx';
+import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import {
     resolveSelectedAgentDmId,
     resolveSelectedChatId,
@@ -36,7 +36,7 @@ export function CapySidebar({
 }) {
     const sections = useCapySidebarSections(serverId);
     const { pathname } = useLocation();
-    const navigate = useNavigate();
+    const navigate = useSidebarNavigate();
     const [creating, setCreating] = React.useState<'captain' | 'project' | null>(null);
     const openNewProject = React.useCallback(() => setCreating('project'), []);
     const openNewCaptain = React.useCallback(() => setCreating('captain'), []);
@@ -47,7 +47,7 @@ export function CapySidebar({
     };
 
     return (
-        <SidebarNavigateProvider>
+        <>
             {lead === 'row' ? <CapySidebarHeader slug={slug} /> : null}
             <UnreadRowWalkKeys sections={sections} serverId={serverId} slug={slug} />
             <ShellSidebarPageContent>
@@ -80,7 +80,7 @@ export function CapySidebar({
                 open={creating === 'project'}
                 serverId={serverId}
             />
-        </SidebarNavigateProvider>
+        </>
     );
 }
 

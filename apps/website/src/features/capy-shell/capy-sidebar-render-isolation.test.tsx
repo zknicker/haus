@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import type { Task } from '@haus/api';
 import { Sidebar } from '@heroui-pro/react';
+import { SidebarNavigateProvider } from '../../hooks/shell/sidebar-navigate.tsx';
 import { installKeptChatViewTestDom } from '../../test-support/kept-chat-views-harness.tsx';
 import {
     agents,
@@ -60,7 +61,9 @@ async function mountCapySidebar() {
     const view = await harness.mount(
         <CommandMenuProvider>
             <Sidebar.Provider>
-                <CapySidebar canManage lead="strip" serverId={serverId} slug="render" />
+                <SidebarNavigateProvider>
+                    <CapySidebar canManage lead="strip" serverId={serverId} slug="render" />
+                </SidebarNavigateProvider>
             </Sidebar.Provider>
         </CommandMenuProvider>
     );
