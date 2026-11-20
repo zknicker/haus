@@ -4,7 +4,7 @@ import { expect, test } from '../support/test.ts';
 
 /**
  * The membership round trip in a real browser: an Owner invites, a second Haus user
- * identity accepts and lands in #haus, the Owner promotes and then removes them,
+ * identity accepts and lands in #all, the Owner promotes and then removes them,
  * and the removed human loses the Server. The last Owner stays protected
  * throughout.
  */
@@ -52,11 +52,11 @@ test('an Owner invites, promotes, and removes a human', async ({ browser, page }
     const peerPage = await peerContext.newPage();
     await signInAsAppHuman(peerPage, 'peer');
     await peerPage.goto(invitePath);
-    await expect(peerPage.getByText(`You will join /${slug} as a member of #haus.`)).toBeVisible();
+    await expect(peerPage.getByText(`You will join /${slug} as a member of #all.`)).toBeVisible();
     await peerPage.getByRole('button', { name: 'Accept invitation' }).click();
 
     await expect(peerPage).toHaveURL(new RegExp(`/s/${slug}/chats/[^/]+$`, 'u'));
-    await expect(peerPage.getByRole('textbox', { name: 'Message haus' })).toBeVisible();
+    await expect(peerPage.getByRole('textbox', { name: 'Message all' })).toBeVisible();
 
     // A single-use token cannot be replayed.
     await peerPage.goto(invitePath);
@@ -96,8 +96,8 @@ test('an Owner invites, promotes, and removes a human', async ({ browser, page }
     // The removed human is sitting on the Server with its transcript rendered.
     await peerPage.goto(`/s/${slug}`);
     await openSection(peerPage, 'Chat');
-    await openChannel(peerPage, 'haus');
-    await expect(peerPage.getByRole('textbox', { name: 'Message haus' })).toBeVisible();
+    await openChannel(peerPage, 'all');
+    await expect(peerPage.getByRole('textbox', { name: 'Message all' })).toBeVisible();
     const peerListPage = await peerContext.newPage();
     await signInAsAppHuman(peerListPage, 'peer');
     // Settings > Servers is where switching lives now, so that list is what a
@@ -126,7 +126,7 @@ test('an Owner invites, promotes, and removes a human', async ({ browser, page }
     // Their open page drops the Server without being reloaded: losing access
     // arrives as a refused subscription, never as data, so the App has to act on
     // the refusal rather than wait for the next navigation.
-    await expect(peerPage.getByRole('textbox', { name: 'Message haus' })).toHaveCount(0);
+    await expect(peerPage.getByRole('textbox', { name: 'Message all' })).toHaveCount(0);
     await expect(peerPage.getByText('Server Unavailable')).toBeVisible();
 
     // The already-open list loses it too. This proves membership-loss listening
