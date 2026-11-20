@@ -72,7 +72,7 @@ export async function settleWorkerTurn(
 
 export async function settleWorkerTurnAsFailed(
     tx: HausDatabase,
-    agentDelivery: AgentDelivery,
+    agentDelivery: Pick<AgentDelivery, 'enqueue'>,
     input: { reason: WorkerFailure; turnId: string; worker: WorkerRow }
 ) {
     const { worker } = input;
@@ -91,7 +91,7 @@ export async function settleWorkerTurnAsFailed(
 
 export async function queueWorkerReport(
     tx: HausDatabase,
-    agentDelivery: AgentDelivery,
+    agentDelivery: Pick<AgentDelivery, 'enqueue'>,
     input: {
         outcome: WorkerOutcome;
         taskChatId: string | null;
@@ -175,7 +175,7 @@ async function recordedOutcome(
     return { messageId, person: resolved.person, recorded };
 }
 
-async function recordOutcome(
+export async function recordOutcome(
     tx: HausDatabase,
     input: { outcome: WorkerOutcome; turnId: string; worker: WorkerRow }
 ) {
@@ -202,7 +202,7 @@ async function recordOutcome(
         );
 }
 
-async function attachReportedPullRequests(
+export async function attachReportedPullRequests(
     tx: HausDatabase,
     input: { serverId: string; taskId: string; urls: readonly string[] }
 ) {

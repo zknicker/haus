@@ -110,7 +110,7 @@ async function listConflicts(tx: HausDatabase, serverId: string, outcomes: Drive
     });
 }
 
-function citationBindings(outcomes: DrivePushOutcome[]) {
+export function citationBindings(outcomes: DrivePushOutcome[]) {
     const bindings = new Map<string, DriveCitationBinding>();
     for (const outcome of outcomes) {
         const bound = outcome.outcome === 'kept_both' ? outcome.copy : boundRevision(outcome);

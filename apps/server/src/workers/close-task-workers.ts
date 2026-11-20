@@ -5,6 +5,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { workerTurnsTable, workersTable } from '../postgres/schema.ts';
 import { closeWhenSettled, queueWorkerReport } from './settle-worker-turn.ts';
 import { stopWorkerTurns } from './stop-worker-turns.ts';
+import { workerCloseFrames } from './worker-close-frames.ts';
 import type { WorkerEffects } from './worker-effects.ts';
 import { prepareWorkerEvents } from './worker-events.ts';
 
@@ -60,6 +61,13 @@ export async function closeTaskWorkers(
         }
         await closeWhenSettled(tx, worker);
     }
+    effects.frames.push(
+        ...(await workerCloseFrames(
+            tx,
+            input.serverId,
+            closing.map((worker) => worker.id)
+        ))
+    );
     effects.events.push(
         ...(await prepareWorkerEvents(tx, {
             serverId: input.serverId,

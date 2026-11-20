@@ -21,6 +21,7 @@ import {
     workerTurnsTable,
     workersTable,
 } from '../postgres/schema.ts';
+import { workerCloseFrames } from './worker-close-frames.ts';
 import type { WorkerEffects, WorkerFrame } from './worker-effects.ts';
 import { prepareWorkerEvents } from './worker-events.ts';
 import { workerTurnStartFrame } from './worker-turn-start-frame.ts';
@@ -81,6 +82,7 @@ export async function withDispatch(
     effects: WorkerEffects & { workerIds: readonly string[] }
 ) {
     const dispatched = await dispatchWorkerTurns(tx, storage, serverId);
+    const closing = await workerCloseFrames(tx, serverId, effects.workerIds);
     return {
         events: [
             ...effects.events,
@@ -89,7 +91,7 @@ export async function withDispatch(
                 workerIds: [...effects.workerIds, ...dispatched.workerIds],
             })),
         ],
-        frames: [...effects.frames, ...dispatched.frames],
+        frames: [...effects.frames, ...closing, ...dispatched.frames],
         wakes: effects.wakes,
     } satisfies WorkerEffects;
 }

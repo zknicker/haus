@@ -20,6 +20,7 @@ import type { ReminderClock } from './reminders/reminder-model.ts';
 import { startReminderRetentionSweep } from './reminders/retention-sweep.ts';
 import { startExecutionJournalRetentionSweep } from './server-agents/execution-journal-retention.ts';
 import { startTriggerRetentionSweep } from './triggers/retention-sweep.ts';
+import { startOfflineComputerTurnSweep } from './workers/fail-offline-computer-turns.ts';
 
 /** Production recovery cadence; the dev stack and tests pass their own. */
 const githubRecoveryDefaultIntervalMs = 10 * 60_000;
@@ -100,6 +101,19 @@ export async function startServerSweeps(
                 ),
         ],
         ['stale-claims', () => startStaleClaimSweep(input.db, input.clock, input.timers)],
+        [
+            'offline-computer-worker-turns',
+            () =>
+                startOfflineComputerTurnSweep(
+                    {
+                        agentDelivery: input.agentDelivery,
+                        clock: input.clock,
+                        db: input.db,
+                        wakeAgents: input.wakeAgents,
+                    },
+                    input.timers
+                ),
+        ],
         ...(pushSender
             ? [
                   [

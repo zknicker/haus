@@ -15,6 +15,7 @@ import {
     planCarrierReconnect,
 } from '../workers/carrier-frames.ts';
 import { commitWorkerEffects } from '../workers/worker-effects.ts';
+import { applyComputerTurnFrame } from './computer-turn-frame-ingest.ts';
 import type { ComputerConnections } from './connections.ts';
 
 export async function ingestWorkerReport(input: {
@@ -64,14 +65,16 @@ export async function reconnectWorkerCarrier(
     });
 }
 
-async function applyCarrierFrame(input: {
+interface CarrierFrameInput {
     computerId: string;
     db: HausDatabase;
     delivery: AgentDelivery;
     frame: unknown;
     serverId: string;
     storage: ArtifactStorage | null;
-}) {
+}
+
+async function applyCarrierFrame(input: CarrierFrameInput) {
     const { computerId, db, serverId, storage } = input;
     const observation = workerObservationFrameSchema.safeParse(input.frame);
     if (observation.success) {
@@ -90,6 +93,12 @@ async function applyCarrierFrame(input: {
             storage
         );
     }
+    const computerTurn = await applyComputerTurnFrame(input);
+    return computerTurn === undefined ? await applyDrainFrame(input) : computerTurn;
+}
+
+async function applyDrainFrame(input: CarrierFrameInput) {
+    const { computerId, db, serverId, storage } = input;
     const drained = workerFollowUpDrainFrameSchema.safeParse(input.frame);
     if (drained.success) {
         return await drainWorkerFollowUp(
