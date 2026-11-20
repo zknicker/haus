@@ -5,7 +5,7 @@ import { testConnection } from '../../features/settings/models/connections/model
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { installRealtimeTestDom } from '../../test-support/realtime-stream-harness.tsx';
 import { createCallHarness, type RecordedCall } from '../../test-support/trpc-call-harness.tsx';
-import { useModelConnectionEdits, useReplaceModelConnection } from './use-model-connections.ts';
+import { useModelConnectionEdits } from './use-model-connections.ts';
 import { useCancelModelSignIn, useStartModelSignIn } from './use-model-sign-in.ts';
 
 installRealtimeTestDom();
@@ -87,35 +87,49 @@ describe('model connection edits', () => {
 });
 
 describe('reconnect', () => {
-    test('a reconnected default takes the default spot, then the old label once the old row is gone', async () => {
-        const { harness, hook, mounted } = await mountHook(() =>
-            useReplaceModelConnection(serverId)
+    test('a pasted Reconnect replaces the credential in place and refreshes the list', async () => {
+        const { harness, hook, mounted } = await mountHook(
+            () => useModelConnectionEdits(serverId),
+            () => testConnection({ id: 'mcn_team', label: 'Team plan' })
         );
         await harness.act(() =>
-            hook()({ id: 'mcn_old', isDefault: true, label: 'Team plan' }, 'mcn_new')
+            hook().replaceCredential.mutateAsync({
+                connectionId: 'mcn_team',
+                credential: { kind: 'setup-token', token: 'sk-ant-oat01-renewed' },
+                serverId,
+            })
         );
         expect(harness.calls).toEqual([
-            mutation('modelConnections.makeDefault', { connectionId: 'mcn_new', serverId }),
-            mutation('modelConnections.remove', { connectionId: 'mcn_old', serverId }),
-            mutation('modelConnections.rename', {
-                connectionId: 'mcn_new',
-                label: 'Team plan',
+            mutation('modelConnections.replaceCredential', {
+                connectionId: 'mcn_team',
+                credential: { kind: 'setup-token', token: 'sk-ant-oat01-renewed' },
                 serverId,
             }),
         ]);
+        expect(harness.queryClient.getQueryState(listKey)?.isInvalidated).toBe(true);
         await mounted.unmount();
     });
 
-    test('a reconnected second connection keeps its place without a make default', async () => {
-        const { harness, hook, mounted } = await mountHook(() =>
-            useReplaceModelConnection(serverId)
+    test('a sign-in Reconnect names the connection it replaces', async () => {
+        const { harness, hook, mounted } = await mountHook(
+            () => useStartModelSignIn(serverId),
+            () => signIn
         );
         await harness.act(() =>
-            hook()({ id: 'mcn_old', isDefault: false, label: 'Side plan' }, 'mcn_new')
+            hook().mutateAsync({
+                label: 'ChatGPT plan',
+                provider: 'chatgpt',
+                replaceConnectionId: 'mcn_plus',
+                serverId,
+            })
         );
-        expect(harness.calls.map((call) => call.path)).toEqual([
-            'modelConnections.remove',
-            'modelConnections.rename',
+        expect(harness.calls).toEqual([
+            mutation('modelConnections.startSignIn', {
+                label: 'ChatGPT plan',
+                provider: 'chatgpt',
+                replaceConnectionId: 'mcn_plus',
+                serverId,
+            }),
         ]);
         await mounted.unmount();
     });

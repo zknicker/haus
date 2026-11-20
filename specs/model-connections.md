@@ -98,7 +98,9 @@ connection, or with one the runner doesn't hold, fails before any model call as 
   3. The runner runs Pi's device-code login and sends `runner-sign-in-code` with the verification
      link and code. The App shows both.
   4. The runner sends `runner-sign-in-finished` with the credential, or why it failed.
-  5. The Server seals the credential and stores it as a new connection.
+  5. The Server seals the credential and stores it as a new connection. A Reconnect sign-in
+     names the connection it replaces, and the credential replaces that connection's in place.
+     The target must be an OAuth connection of the same provider on the same Server.
   - Finishing and cancelling are one serialized transition. A finish moves the sign-in to
     `storing` before the Server writes anything. A cancel before that moves it to `cancelled`,
     sends `runner-sign-in-cancel`, and the finished credential is discarded. A cancel during
@@ -111,6 +113,10 @@ connection, or with one the runner doesn't hold, fails before any model call as 
 - A Connections group sits at the top of the page, with one card per provider.
 - Each connection is a row: its label, Connected or the failure, and its plan capacity. The row
   menu has Rename, Make default, Reconnect and Remove.
+- Reconnect replaces the credential in place: `modelConnections.replaceCredential` for a pasted
+  setup-token or API key, and a sign-in with `replaceConnectionId` for ChatGPT and SuperGrok. The
+  connection keeps its id, label, order, web search switch and every Agent's choice of it. Its
+  `credentialVersion` goes up and its status returns to `ready`.
 - ChatGPT, xAI, Gemini and OpenRouter rows have a Web search switch, starting on. Only the Owner
   can change it.
 - Each provider card has a Connect action:
