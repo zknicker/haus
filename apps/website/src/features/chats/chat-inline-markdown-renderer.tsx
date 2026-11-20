@@ -1,10 +1,10 @@
-import { readMarkdownSpans } from '@haus/api';
 import type * as React from 'react';
 import { MarkdownLink, matchBareUrl, matchMarkdownLink } from './chat-inline-markdown-link.tsx';
 import {
     type ChatTextAnimationRange,
     renderTextWithAnimatedRanges,
 } from './chat-inline-text-animation.tsx';
+import { readCachedMarkdownSpans } from './markdown-spans-cache.ts';
 
 const maxParseDepth = 6;
 
@@ -30,7 +30,7 @@ export function renderInlineMarkdown(
         );
     }
 
-    const spans = readMarkdownSpans(text);
+    const spans = readCachedMarkdownSpans(text);
     const nodes: React.ReactNode[] = [];
     let buffer = '';
     let bufferStart: number | null = null;
