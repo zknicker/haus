@@ -2,7 +2,8 @@ import type { Dirent } from 'node:fs';
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { EditorCommand } from '@haus/api';
-import { filesystemFailure, readImageMediaType, viewImage } from './files.ts';
+import { isPdf, viewPdf } from './editor-pdf.ts';
+import { filesystemFailure, imageMediaType, readFileHead, viewImage } from './files.ts';
 import { type OperationContext, textResult } from './operation.ts';
 import { resolveReadPath } from './paths.ts';
 import { DEFAULT_MAX_BYTES, formatSize, truncateHead } from './pi/truncate.ts';
@@ -17,7 +18,11 @@ export async function viewPath(command: ViewCommand, context: OperationContext) 
         if ((await stat(absolutePath)).isDirectory()) {
             return await viewDirectory(command.path, absolutePath);
         }
-        if (await readImageMediaType(absolutePath)) {
+        const head = await readFileHead(absolutePath);
+        if (isPdf(head)) {
+            return await viewPdf(command.path, absolutePath, context);
+        }
+        if (imageMediaType(head)) {
             return await viewImage(command.path, context);
         }
         return viewText(command, await readFile(absolutePath, 'utf-8'));
@@ -26,7 +31,7 @@ export async function viewPath(command: ViewCommand, context: OperationContext) 
     }
 }
 
-function viewText(command: ViewCommand, content: string) {
+export function viewText(command: ViewCommand, content: string) {
     const lines = content.split('\n');
     if (content.endsWith('\n')) {
         lines.pop();
