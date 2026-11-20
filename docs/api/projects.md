@@ -22,7 +22,11 @@ product logic in `apps/server/src/projects/`. Every procedure runs for an active
 
 `project` carries `chatId`, `serverId`, `name`, `key`, `taskKeyId`, `keyEditable` (no Task holds
 the key yet), `isHaus` (the channel's `isAll`, the Haus project), and `homeAgentIds` (the
-non-retired Agents whose home it is, oldest first).
+non-retired Agents whose home it is, oldest first). For Workers it also carries
+`defaultWorkerPlace`, the place view (`{ kind: 'computer', computerId, computerName }`,
+`{ kind: 'cursor' }`, `{ kind: 'claude' }`) or null, and `repos`, each
+`{ id, repository, links: [{ computerId, computerName, checkoutPath }] }` by repository.
+`computerName` is the Computer's reported name, or null before it reports one.
 
 - `project.create` makes the channel, its creator's membership, its ledger entry, and its
   `projects` row in one transaction. A new Project has no Agents. Without `key` the Server

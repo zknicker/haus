@@ -16,9 +16,11 @@ import {
 } from './worker-report-draft.ts';
 import type { WorkerRuntimeReadiness } from './worker-runtime.ts';
 import {
+    type ProjectRepo,
     type ProjectSetDefaultWorkerPlaceInput,
     computerSetWorkersInputSchema,
     projectLinkRepoInputSchema,
+    projectRepoSchema,
     projectSetDefaultWorkerPlaceInputSchema,
 } from './worker-settings.ts';
 import { type Worker, workerSchema } from './worker-shared.ts';
@@ -188,4 +190,22 @@ test('settings inputs carry the switch, the default place, and a repo link', () 
         serverId: 'srv_one',
     };
     expect(projectLinkRepoInputSchema.parse(link)).toEqual(link);
+});
+
+test('a Project repo lists each Computer link, and a link may wait for a Computer name', () => {
+    const repo: ProjectRepo = {
+        id: 'prp_1',
+        links: [
+            { checkoutPath: '/Users/person/src/haus', computerId: 'cmp_1', computerName: 'mini' },
+            { checkoutPath: null, computerId: 'cmp_2', computerName: null },
+        ],
+        repository: 'haus/haus',
+    };
+    expect(projectRepoSchema.parse(repo)).toEqual(repo);
+    expect(
+        projectRepoSchema.safeParse({
+            ...repo,
+            links: [{ checkoutPath: '', computerId: 'cmp_1', computerName: 'mini' }],
+        }).success
+    ).toBe(false);
 });

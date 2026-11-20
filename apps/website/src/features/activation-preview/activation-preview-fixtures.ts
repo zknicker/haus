@@ -21,6 +21,7 @@ export const previewServerSummaries: ServerSummary[] = [
 
 const previewComputer: ComputerSummary = {
     attachedByCurrentUser: true,
+    canChangeWorkers: true,
     diskStatus: null,
     architecture: 'arm64',
     createdAt: fixedTimestamp,
@@ -61,6 +62,8 @@ const previewComputer: ComputerSummary = {
     updateTargetVersion: null,
     updateTotalBytes: null,
     updateUpdatedAt: null,
+    workerLimit: 4,
+    workersEnabled: false,
 };
 
 const onboardingBySlug: Record<string, ServerOnboarding> = {

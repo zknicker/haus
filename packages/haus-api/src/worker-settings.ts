@@ -1,7 +1,10 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
-import { workerPlaceSchema } from './worker-place.ts';
+import { workerComputerNameSchema, workerPlaceSchema } from './worker-place.ts';
 import { workerRepositorySchema } from './worker-shared.ts';
+
+const computerWorkerLimitSchema = z.number().int().min(1).max(50);
+const checkoutPathSchema = z.string().trim().min(1).max(1024);
 
 /**
  * `computer.setWorkers`: the **Workers can run here** switch and its limit.
@@ -13,11 +16,25 @@ export const computerSetWorkersInputSchema = z
     .object({
         computerId: idSchema,
         enabled: z.boolean(),
-        limit: z.number().int().min(1).max(50).optional(),
+        limit: computerWorkerLimitSchema.optional(),
         serverId: idSchema,
     })
     .strict();
 export type ComputerSetWorkersInput = z.infer<typeof computerSetWorkersInputSchema>;
+
+/**
+ * The switch and limit as `computer.list` shows them. `canChangeWorkers` is
+ * whether the viewer may call `computer.setWorkers`: the attacher, an Owner,
+ * or an Admin.
+ */
+export const computerWorkerSettingsSchema = z
+    .object({
+        canChangeWorkers: z.boolean(),
+        workerLimit: computerWorkerLimitSchema,
+        workersEnabled: z.boolean(),
+    })
+    .strict();
+export type ComputerWorkerSettings = z.infer<typeof computerWorkerSettingsSchema>;
 
 /**
  * `project.setDefaultWorkerPlace`: where the Project's Workers run unless the
@@ -50,7 +67,7 @@ export type ProjectRemoveRepoInput = z.infer<typeof projectRemoveRepoInputSchema
  */
 export const projectLinkRepoInputSchema = z
     .object({
-        checkoutPath: z.string().trim().min(1).max(1024).nullable(),
+        checkoutPath: checkoutPathSchema.nullable(),
         computerId: idSchema,
         projectRepoId: idSchema,
         serverId: idSchema,
@@ -62,3 +79,23 @@ export const projectUnlinkRepoInputSchema = z
     .object({ computerId: idSchema, projectRepoId: idSchema, serverId: idSchema })
     .strict();
 export type ProjectUnlinkRepoInput = z.infer<typeof projectUnlinkRepoInputSchema>;
+
+/** One Computer's link to a Project repo; a null `checkoutPath` clones into its data root. */
+export const projectRepoLinkSchema = z
+    .object({
+        checkoutPath: checkoutPathSchema.nullable(),
+        computerId: idSchema,
+        computerName: workerComputerNameSchema,
+    })
+    .strict();
+export type ProjectRepoLink = z.infer<typeof projectRepoLinkSchema>;
+
+/** A repository the Project's Workers run in, with each Computer it is linked on. */
+export const projectRepoSchema = z
+    .object({
+        id: idSchema,
+        links: z.array(projectRepoLinkSchema),
+        repository: workerRepositorySchema,
+    })
+    .strict();
+export type ProjectRepo = z.infer<typeof projectRepoSchema>;

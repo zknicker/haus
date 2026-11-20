@@ -4,6 +4,8 @@ import { channelDescriptionInputSchema } from './channel-description.ts';
 import { idSchema } from './chat-contract-primitives.ts';
 import { chatSchema } from './chat.ts';
 import { taskKeyPrefixSchema } from './task-key-ledger.ts';
+import { workerPlaceViewSchema } from './worker-place.ts';
+import { projectRepoSchema } from './worker-settings.ts';
 
 export const projectNameSchema = z
     .string()
@@ -15,12 +17,15 @@ export const projectNameSchema = z
 export const projectSchema = z
     .object({
         chatId: idSchema,
+        /** Where the Project's Workers run when the Agent names no place; null asks for one. */
+        defaultWorkerPlace: workerPlaceViewSchema.nullable(),
         /** The non-retired Agents whose home this Project is. */
         homeAgentIds: z.array(idSchema),
         isHaus: z.boolean(),
         key: taskKeyPrefixSchema,
         keyEditable: z.boolean(),
         name: projectNameSchema,
+        repos: z.array(projectRepoSchema),
         serverId: idSchema,
         taskKeyId: idSchema,
     })

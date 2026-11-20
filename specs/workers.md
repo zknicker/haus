@@ -162,7 +162,8 @@ name.
 
 **The switch.** A Computer runs Workers locally only while its **Workers can run here** switch is on. The
 person who attached the Computer, or an Owner or Admin, sets it from the Computer's settings
-(`computer.setWorkers`, with the Worker limit; the App control is W4). The
+(`computer.setWorkers`, with the Worker limit; the App control is W4). `computer.list` shows
+`workersEnabled`, `workerLimit`, and `canChangeWorkers`, whether the viewer may set them. The
 switch is Server state on the Computer record (`computers.workers_enabled`), and the Server checks it at every start and
 follow-up. It is off for a newly attached Computer. Turning it on lets Agents run unattended Claude
 Code or Codex sessions there under that machine's logins ([Run](#run-a-turn)). Turning it off lets

@@ -1,9 +1,11 @@
+import type { ComputerWorkerSettings } from '@haus/api';
 import { desc, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computersTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { presentComputer } from './computer-presence.ts';
+import { isComputerSteward } from './computer-steward.ts';
 import type { ComputerConnections } from './connections.ts';
 import { ComputerSetupDeniedError } from './service.ts';
 
@@ -37,14 +39,24 @@ export async function listServerComputers(
             updateTargetVersion: computersTable.updateTargetVersion,
             updateTotalBytes: computersTable.updateTotalBytes,
             updateUpdatedAt: computersTable.updateUpdatedAt,
+            workerLimit: computersTable.workerLimit,
+            workersEnabled: computersTable.workersEnabled,
         })
         .from(computersTable)
         .where(eq(computersTable.serverId, serverId))
         .orderBy(desc(computersTable.createdAt));
-    return computers.map(({ attachedByUserId, ...computer }) => ({
-        ...presentComputer(computer, connections),
-        name: computer.reportedInventory?.name ?? null,
-        attachedByCurrentUser: attachedByUserId === member?.id,
-        diskStatus: connections.diskStatus(computer.id),
-    }));
+    return computers.map(({ attachedByUserId, workerLimit, workersEnabled, ...computer }) => {
+        const workers: ComputerWorkerSettings = {
+            canChangeWorkers: isComputerSteward(server.role, attachedByUserId, member?.id),
+            workerLimit,
+            workersEnabled,
+        };
+        return {
+            ...presentComputer(computer, connections),
+            ...workers,
+            name: computer.reportedInventory?.name ?? null,
+            attachedByCurrentUser: attachedByUserId === member?.id,
+            diskStatus: connections.diskStatus(computer.id),
+        };
+    });
 }

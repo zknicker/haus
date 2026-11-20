@@ -10,6 +10,9 @@ export const workerPlaceSchema = z.discriminatedUnion('kind', [
 ]);
 export type WorkerPlace = z.infer<typeof workerPlaceSchema>;
 
+/** A Computer's reported name, or null before it reports one. */
+export const workerComputerNameSchema = z.string().trim().min(1).max(100).nullable();
+
 /**
  * A place as the Worker record shows it: a Computer place carries the
  * Computer's reported name, so a reader never resolves it separately. Inputs,
@@ -19,7 +22,7 @@ export const workerPlaceViewSchema = z.discriminatedUnion('kind', [
     z
         .object({
             computerId: idSchema,
-            computerName: z.string().trim().min(1).max(100).nullable(),
+            computerName: workerComputerNameSchema,
             kind: z.literal('computer'),
         })
         .strict(),

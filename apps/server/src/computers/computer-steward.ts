@@ -24,14 +24,22 @@ export async function requireComputerSteward(
     if (!computer) {
         throw new ComputerSetupDeniedError('That Computer no longer exists.');
     }
-    const steward =
-        server.role === 'owner' ||
-        server.role === 'admin' ||
-        computer.attachedByUserId === member?.id;
-    if (!(member && steward)) {
+    if (!(member && isComputerSteward(server.role, computer.attachedByUserId, member.id))) {
         throw new ComputerSetupDeniedError(
             'Only the person who attached this Computer, an Owner, or an Admin can change what runs on it.'
         );
     }
     return { ...computer, stewardUserId: member.id };
+}
+
+export function isComputerSteward(
+    role: string,
+    attachedByUserId: string,
+    memberId: string | undefined
+) {
+    return (
+        role === 'owner' ||
+        role === 'admin' ||
+        (memberId !== undefined && attachedByUserId === memberId)
+    );
 }

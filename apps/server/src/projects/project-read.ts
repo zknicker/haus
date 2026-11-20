@@ -2,9 +2,10 @@ import type { Project } from '@haus/api';
 import { and, asc, eq, isNull, sql } from 'drizzle-orm';
 import { listChats } from '../chats/list-chats.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { chatsTable, projectsTable, taskKeysTable } from '../postgres/schema.ts';
+import { chatsTable, computersTable, projectsTable, taskKeysTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
+import { computerNameSql, defaultWorkerPlaceOf, readProjectRepos } from './project-worker-read.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
@@ -36,6 +37,9 @@ async function readProjects(db: Reader, serverId: string, chatId?: string) {
     const rows = await db
         .select({
             chatId: projectsTable.chatId,
+            defaultWorkerComputerId: projectsTable.defaultWorkerComputerId,
+            defaultWorkerComputerName: computerNameSql,
+            defaultWorkerPlace: projectsTable.defaultWorkerPlace,
             homeAgentIds: sql<string[]>`coalesce((
                 select array_agg(agent.id order by agent.created_at, agent.id) from agents agent
                 where agent.server_id = ${projectsTable.serverId}
@@ -68,6 +72,13 @@ async function readProjects(db: Reader, serverId: string, chatId?: string) {
                 eq(taskKeysTable.id, projectsTable.taskKeyId)
             )
         )
+        .leftJoin(
+            computersTable,
+            and(
+                eq(computersTable.serverId, projectsTable.serverId),
+                eq(computersTable.id, projectsTable.defaultWorkerComputerId)
+            )
+        )
         .where(
             and(
                 eq(projectsTable.serverId, serverId),
@@ -76,10 +87,32 @@ async function readProjects(db: Reader, serverId: string, chatId?: string) {
             )
         )
         .orderBy(asc(chatsTable.name));
-    return rows.map(({ name, ...row }) => {
-        if (name === null) {
-            throw new Error(`Project ${row.chatId} has a channel with no name.`);
+    const repos = await readProjectRepos(
+        db,
+        serverId,
+        rows.map((row) => row.chatId)
+    );
+    return rows.map(
+        ({
+            defaultWorkerComputerId,
+            defaultWorkerComputerName,
+            defaultWorkerPlace,
+            name,
+            ...row
+        }) => {
+            if (name === null) {
+                throw new Error(`Project ${row.chatId} has a channel with no name.`);
+            }
+            return {
+                ...row,
+                defaultWorkerPlace: defaultWorkerPlaceOf({
+                    defaultWorkerComputerId,
+                    defaultWorkerComputerName,
+                    defaultWorkerPlace,
+                }),
+                name,
+                repos: repos.get(row.chatId) ?? [],
+            } satisfies Project;
         }
-        return { ...row, name } satisfies Project;
-    });
+    );
 }
