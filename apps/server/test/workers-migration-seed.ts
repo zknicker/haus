@@ -43,7 +43,10 @@ export async function seedPreWorkerRows(database: SQL) {
                     '2026-09-01T00:00:00Z', '2026-09-03T00:00:00Z', '2026-09-02T00:00:00Z'),
                 ('caw_cccccccccccccccc', 'srv_one', 'agt_one', 'cht_ops', 'cmp_old0000000000000', 'msg_older',
                     'cursor', 'acme/app', 'Older', null, 'running',
-                    '2026-08-01T00:00:00Z', '2026-08-05T00:00:00Z', null)`;
+                    '2026-08-01T00:00:00Z', '2026-08-05T00:00:00Z', null),
+                ('caw_dddddddddddddddd', 'srv_one', 'agt_one', 'cht_ops', 'cmp_gone000000000000', 'msg_gone',
+                    'cursor', 'acme/app', 'Orphaned', null, 'running',
+                    '2026-07-01T00:00:00Z', '2026-07-05T00:00:00Z', null)`;
         await tx`INSERT INTO cloud_agent_runs (id, server_id, work_id, status, summary,
                 error_code, provider_run_id, branches, created_at, terminal_at)
             VALUES
@@ -65,7 +68,9 @@ export async function seedPreWorkerRows(database: SQL) {
                 ('car_c3cccccccccccccc', 'srv_one', 'caw_cccccccccccccccc', 'running',
                     null, null, 'run_c3', '[]'::jsonb, '2026-08-03T00:00:00Z', null),
                 ('car_c0cccccccccccccc', 'srv_one', 'caw_cccccccccccccccc', 'completed',
-                    null, null, 'run_c0', '[]'::jsonb, '2026-07-31T00:00:00Z', '2026-07-31T01:00:00Z')`;
+                    null, null, 'run_c0', '[]'::jsonb, '2026-07-31T00:00:00Z', '2026-07-31T01:00:00Z'),
+                ('car_d1dddddddddddddd', 'srv_one', 'caw_dddddddddddddddd', 'running',
+                    null, null, 'run_d1', '[]'::jsonb, '2026-07-01T00:00:00Z', null)`;
         await tx`INSERT INTO chat_messages (id, server_id, chat_id, author_user_id, nonce, sequence, content)
             VALUES ('msg_link', 'srv_one', 'cht_ops', 'usr_one', 'n1', 1,
                 ${'Started.\n\n[Fix flake](cloud-agent://caw_aaaaaaaaaaaaaaaa) and [Old \\[draft](cloud-agent://caw_bbbbbbbbbbbbbbbb)'})`;
@@ -77,6 +82,7 @@ export async function seedPreWorkerRows(database: SQL) {
             VALUES
                 ('inb_settled000000000', 'srv_one', 'agt_one', 'cht_ops', '', 'car_a1', 'cloud_agent_work', 'settled', 'car_a1aaaaaaaaaaaaaa'),
                 ('inb_stall00000000000', 'srv_one', 'agt_one', 'cht_ops', '', 'car_c3:stall', 'cloud_agent_work', 'stall', 'car_c3cccccccccccccc'),
+                ('inb_stallgone0000000', 'srv_one', 'agt_one', 'cht_ops', '', 'car_d1:stall', 'cloud_agent_work', 'stall', 'car_d1dddddddddddddd'),
                 ('inb_pullrequest00000', 'srv_one', 'agt_one', 'cht_ops', '', 'acme/app#12:ready', 'cloud_agent_work', 'pull_request', null),
                 ('inb_human00000000000', 'srv_one', 'agt_one', 'cht_ops', 'hi', 'msg_link', 'human', null, null)`;
         await tx`INSERT INTO agent_run_triggers (server_id, agent_id, run_id, chat_id, source, work_id)

@@ -205,6 +205,25 @@ ALTER TABLE "agent_inbox" ADD CONSTRAINT "agent_inbox_worker_shape" CHECK (("age
                 and ("agent_inbox"."source" not in ('worker_report', 'worker_stall')
                     or "agent_inbox"."worker_turn_id" is not null));--> statement-breakpoint
 UPDATE "agent_run_triggers" SET "source" = 'worker_report' WHERE "source" = 'cloud_agent_work';--> statement-breakpoint
+-- A turn whose carrier was removed before Workers never settles on its own. It fails
+-- machine-removed as a removal does today, its queued stall goes, and it queues no report.
+WITH "removed" AS (
+    UPDATE "worker_turns" AS t SET
+        "outcome" = '{"kind":"failed","reason":"machine-removed","detail":null}'::jsonb,
+        "input" = coalesce(t."input", '[]'::jsonb),
+        "stall_code" = NULL,
+        "stall_since" = NULL
+    FROM "workers" AS w
+    WHERE w."server_id" = t."server_id" AND w."id" = t."worker_id" AND t."outcome" IS NULL
+        AND NOT EXISTS (
+            SELECT 1 FROM "computers" AS c
+            WHERE c."server_id" = w."server_id" AND c."id" = w."carrier_computer_id"
+        )
+    RETURNING t."server_id", t."id"
+)
+DELETE FROM "agent_inbox" AS i USING "removed" AS r
+WHERE i."server_id" = r."server_id" AND i."worker_turn_id" = r."id"
+    AND i."source" = 'worker_stall' AND i."state" = 'queued';--> statement-breakpoint
 ALTER TABLE "chat_messages" DROP CONSTRAINT IF EXISTS "chat_messages_body_kind";--> statement-breakpoint
 ALTER TABLE "chat_messages" ADD CONSTRAINT "chat_messages_body_kind" CHECK ("chat_messages"."body_kind" in ('text', 'agent-created', 'worker-report', 'worker-follow-up'));--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "worker_place_limits" (

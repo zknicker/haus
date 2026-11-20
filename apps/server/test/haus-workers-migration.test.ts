@@ -56,11 +56,20 @@ test('0132 turns cloud agent work into Workers, and running it again changes not
                 place: 'cursor',
                 task_id: null,
             },
+            {
+                carrier_computer_id: 'cmp_gone000000000000',
+                closed: true,
+                id: 'caw_dddddddddddddddd',
+                origin_chat_id: 'cht_ops',
+                place: 'cursor',
+                task_id: null,
+            },
         ]);
         expect(migrated.closedAt).toEqual([
             { closed_at_terminal: false, closed_at_updated: false, id: 'caw_aaaaaaaaaaaaaaaa' },
             { closed_at_terminal: true, closed_at_updated: false, id: 'caw_bbbbbbbbbbbbbbbb' },
             { closed_at_terminal: false, closed_at_updated: true, id: 'caw_cccccccccccccccc' },
+            { closed_at_terminal: false, closed_at_updated: true, id: 'caw_dddddddddddddddd' },
         ]);
         expect(migrated.turns).toEqual([
             {
@@ -142,6 +151,13 @@ test('0132 turns cloud agent work into Workers, and running it again changes not
                 input: null,
                 outcome: null,
                 worker_id: 'caw_cccccccccccccccc',
+            },
+            {
+                dispatched: true,
+                id: 'car_d1dddddddddddddd',
+                input: [],
+                outcome: { detail: null, kind: 'failed', reason: 'machine-removed' },
+                worker_id: 'caw_dddddddddddddddd',
             },
         ]);
         expect(migrated.messages).toEqual([
