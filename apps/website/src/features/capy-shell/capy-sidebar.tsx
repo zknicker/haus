@@ -125,6 +125,9 @@ function CapySidebarSectionView({
                     {section.chatIds.length > 0 ? (
                         <SortableChannelList
                             channelIds={section.chatIds}
+                            key={serverId}
+                            label="Projects"
+                            noun="project"
                             selectedChatId={selection.selectedChatId}
                             serverId={serverId}
                             slug={slug}

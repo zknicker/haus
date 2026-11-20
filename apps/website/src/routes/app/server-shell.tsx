@@ -25,6 +25,7 @@ import { HausUpdateFooterContainer } from '../../features/updates/haus-update-fo
 import { AgentActivityProvider } from '../../hooks/agents/use-current-agent-activity.tsx';
 import { SyncHumanIdentity } from '../../hooks/servers/sync-human-identity.tsx';
 import { useChatListSelection } from '../../hooks/servers/use-chats.ts';
+import { SidebarNavigateProvider } from '../../hooks/shell/sidebar-navigate.tsx';
 import {
     setAppSidebarOpen,
     useDesktopSidebarToggle,
@@ -121,61 +122,63 @@ export function ServerShell({
                         <ResizableAppLayout
                             navigate={navigate}
                             sidebar={
-                                <ShellSidebar
-                                    activePage={activeSidebarPage}
-                                    footer={
-                                        capyShell ? (
-                                            <CapySidebarFooter
-                                                onOpenSettings={openSettings}
-                                                serverId={server.id}
-                                                slug={slug}
-                                            />
-                                        ) : (
-                                            <HausUpdateFooterContainer slug={slug} />
-                                        )
-                                    }
-                                    markHref={capyShell ? serverRoute(slug) : undefined}
-                                    settingsAction={capyShell ? capyActions : settingsAction}
-                                    settingsSlot={topbarInWindow ? 'footer' : 'titlebar'}
-                                    slug={slug}
-                                >
-                                    <ShellSidebarPage
-                                        ariaLabel="Server"
-                                        header={
-                                            capyShell && topbarInWindow ? (
-                                                <CapySidebarHeader slug={slug} />
-                                            ) : null
+                                <CapyNavigateScope capyShell={capyShell}>
+                                    <ShellSidebar
+                                        activePage={activeSidebarPage}
+                                        footer={
+                                            capyShell ? (
+                                                <CapySidebarFooter
+                                                    onOpenSettings={openSettings}
+                                                    serverId={server.id}
+                                                    slug={slug}
+                                                />
+                                            ) : (
+                                                <HausUpdateFooterContainer slug={slug} />
+                                            )
                                         }
-                                        value="server"
+                                        markHref={capyShell ? serverRoute(slug) : undefined}
+                                        settingsAction={capyShell ? capyActions : settingsAction}
+                                        settingsSlot={topbarInWindow ? 'footer' : 'titlebar'}
+                                        slug={slug}
                                     >
-                                        {capyShell ? (
-                                            <CapySidebar
-                                                canManage={canOperate}
-                                                key={server.id}
-                                                serverId={server.id}
+                                        <ShellSidebarPage
+                                            ariaLabel="Server"
+                                            header={
+                                                capyShell && topbarInWindow ? (
+                                                    <CapySidebarHeader slug={slug} />
+                                                ) : null
+                                            }
+                                            value="server"
+                                        >
+                                            {capyShell ? (
+                                                <CapySidebar
+                                                    canManage={canOperate}
+                                                    key={server.id}
+                                                    serverId={server.id}
+                                                    slug={slug}
+                                                />
+                                            ) : (
+                                                <AppSidebar
+                                                    currentServer={server}
+                                                    onPreloadSection={preloadServerSection}
+                                                    selectedAgentDmId={selectedAgentDmId}
+                                                    selectedChatId={selectedChatId}
+                                                />
+                                            )}
+                                        </ShellSidebarPage>
+                                        <ShellSidebarPage ariaLabel="Settings" value="settings">
+                                            <SettingsSidebar
+                                                // Desktop tabs and ⌘[ go back; only the web keeps the row.
+                                                backRoute={
+                                                    isElectronDesktopApp() ? null : chatSectionRoute
+                                                }
+                                                canOperate={canOperate}
+                                                currentSection={settingsSection}
                                                 slug={slug}
                                             />
-                                        ) : (
-                                            <AppSidebar
-                                                currentServer={server}
-                                                onPreloadSection={preloadServerSection}
-                                                selectedAgentDmId={selectedAgentDmId}
-                                                selectedChatId={selectedChatId}
-                                            />
-                                        )}
-                                    </ShellSidebarPage>
-                                    <ShellSidebarPage ariaLabel="Settings" value="settings">
-                                        <SettingsSidebar
-                                            // Desktop tabs and ⌘[ go back; only the web keeps the row.
-                                            backRoute={
-                                                isElectronDesktopApp() ? null : chatSectionRoute
-                                            }
-                                            canOperate={canOperate}
-                                            currentSection={settingsSection}
-                                            slug={slug}
-                                        />
-                                    </ShellSidebarPage>
-                                </ShellSidebar>
+                                        </ShellSidebarPage>
+                                    </ShellSidebar>
+                                </CapyNavigateScope>
                             }
                         >
                             <div className="app-shell-main flex h-full min-h-0 flex-col">
@@ -229,4 +232,14 @@ function ResizableAppLayout({
             {children}
         </AppLayout>
     );
+}
+
+function CapyNavigateScope({
+    capyShell,
+    children,
+}: {
+    capyShell: boolean;
+    children: React.ReactNode;
+}) {
+    return capyShell ? <SidebarNavigateProvider>{children}</SidebarNavigateProvider> : children;
 }

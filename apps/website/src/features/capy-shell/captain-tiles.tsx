@@ -1,7 +1,7 @@
 import { Badge, Tooltip } from '@heroui/react';
 import * as React from 'react';
+import { Link } from 'react-aria-components';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
-import { TooltipLink } from '../../components/ui/tooltip-link.tsx';
 import { usePreloadAgentRecord } from '../../hooks/members/use-preload-agent-profile.ts';
 import { usePreloadChat } from '../../hooks/servers/use-preload-chat.ts';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
@@ -97,21 +97,22 @@ const CaptainTileLink = React.memo(function CaptainTileLink({
             chatId={tile.dmChatId}
             chatName={tile.name}
             href={href}
+            layout="tile"
             slug={slug}
         >
             <Tooltip delay={400} isDisabled={!name.truncated}>
-                <TooltipLink
+                <Link
                     aria-current={isCurrent ? 'page' : undefined}
                     aria-label={label}
                     className={cn(
                         'hover:bg-default flex cursor-[var(--cursor-interactive)] flex-col items-center gap-1 rounded-xl pt-1.5 pb-1.25',
                         isCurrent && 'bg-default'
                     )}
+                    href={href}
                     onFocus={preload}
-                    onMouseEnter={preload}
+                    onHoverStart={preload}
                     ref={pressRef}
                     style={{ width: tileSize }}
-                    to={href}
                 >
                     <Badge.Anchor style={{ height: tileAvatarSize, width: tileAvatarSize }}>
                         <EntityAvatar name={tile.name} size={tileAvatarSize} src={tile.avatarUrl} />
@@ -136,7 +137,7 @@ const CaptainTileLink = React.memo(function CaptainTileLink({
                     >
                         {tile.name}
                     </span>
-                </TooltipLink>
+                </Link>
                 <Tooltip.Content>{tile.name}</Tooltip.Content>
             </Tooltip>
         </DmNavigationContextMenu>

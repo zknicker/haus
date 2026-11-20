@@ -1,5 +1,4 @@
 import type { Chat, ChatUnreadPreview, Task } from '@haus/api';
-import { orderChannelIds } from '../shell/channel-order.ts';
 import { taskUnread } from './sidebar-model.ts';
 
 export interface OpenTaskSlot {
@@ -28,7 +27,6 @@ export type CapySidebarSection =
 
 export interface CapySidebarSources {
     agentIds: readonly string[];
-    channelOrder: readonly string[];
     chats: readonly Chat[];
     openTasks: readonly Task[];
     unreadPreviews: readonly ChatUnreadPreview[];
@@ -44,7 +42,7 @@ export function buildCapySidebar(sources: CapySidebarSources) {
             waitingChatIds(sources.unreadPreviews, sources.viewerUserId)
         ),
         personChatIds: personChatIds(sources.chats),
-        projectIds: projectIds(sources.chats, sources.channelOrder),
+        projectIds: projectIds(sources.chats),
     });
 }
 
@@ -62,11 +60,8 @@ export function capySidebarSections(layout: CapySidebarLayout) {
     return sections;
 }
 
-export function projectIds(chats: readonly Chat[], channelOrder: readonly string[]) {
-    return orderChannelIds(
-        chats.filter((chat) => chat.kind === 'channel').map((chat) => chat.id),
-        channelOrder
-    );
+export function projectIds(chats: readonly Chat[]) {
+    return chats.filter((chat) => chat.kind === 'channel').map((chat) => chat.id);
 }
 
 export function personChatIds(chats: readonly Chat[]) {

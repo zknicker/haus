@@ -170,3 +170,45 @@ test('an @mention of you in a Task renders that Task’s row and moves it first'
 
     await harness.unmount();
 });
+
+test('the Waiting on you key is not a tab stop of its own', async () => {
+    const harness = await mountCapySidebar();
+    await harness.change(() => {
+        harness.utils.chat.unreadPreviews.setData({ serverId }, {
+            previews: [
+                {
+                    chatId: 'cht_task',
+                    earlierUnreadCount: 0,
+                    messages: [{ content: '[@Viewer](user://usr_viewer) ok?' }],
+                    task: null,
+                },
+            ],
+        } as never);
+    });
+
+    expect(harness.container.textContent).toContain('Waiting on you');
+    expect(presentationTabStops(harness.container as unknown as DomNode)).toEqual([]);
+
+    await harness.unmount();
+});
+
+interface DomNode {
+    childNodes: DomNode[];
+    getAttribute?: (name: string) => string | null;
+    tagName?: string;
+}
+
+function presentationTabStops(root: DomNode) {
+    const found: string[] = [];
+    const pending = [root];
+    for (let node = pending.pop(); node; node = pending.pop()) {
+        if (
+            node.getAttribute?.('role') === 'presentation' &&
+            node.getAttribute('tabindex') !== null
+        ) {
+            found.push(`${node.tagName}[tabindex=${node.getAttribute('tabindex')}]`);
+        }
+        pending.push(...node.childNodes);
+    }
+    return found;
+}

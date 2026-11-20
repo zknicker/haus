@@ -13,7 +13,10 @@ function railShape(input: { canOperate: boolean; capyShell?: boolean; query: str
 
 test('the rail groups pages by whose settings they are', () => {
     assert.deepEqual(railShape({ canOperate: true, query: '' }), [
-        { label: 'You', rows: ['Profile', 'Preferences', 'Appearance', 'Servers'] },
+        {
+            label: 'You',
+            rows: ['Profile', 'Preferences', 'Appearance', 'Notifications', 'Shortcuts', 'Servers'],
+        },
         { label: 'Captains', rows: ['Models', 'Skills', 'Connections'] },
         { label: 'Haus', rows: ['General', 'Members', 'Devices', 'Usage', 'Archived chats'] },
     ]);
@@ -56,6 +59,15 @@ test('search finds a page by a row on it and names the row', () => {
     ]);
     assert.deepEqual(railShape({ canOperate: true, query: 'server id' }), [
         { label: 'Haus', rows: ['General · Server ID'] },
+    ]);
+});
+
+test('search finds a shortcut by its command and the test notification by name', () => {
+    assert.deepEqual(railShape({ canOperate: true, query: 'zoom' }), [
+        { label: 'You', rows: ['Shortcuts · Zoom in'] },
+    ]);
+    assert.deepEqual(railShape({ canOperate: true, query: 'test notification' }), [
+        { label: 'You', rows: ['Notifications · Test notification'] },
     ]);
 });
 

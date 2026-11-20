@@ -1,5 +1,4 @@
 import {
-    type Announcements,
     closestCenter,
     DndContext,
     type DragEndEvent,
@@ -18,6 +17,7 @@ import { channelListModifiers } from './channel-drag-modifiers.ts';
 import { orderChannelIds, readChannelOrder, writeChannelOrder } from './channel-order.ts';
 import { chatNavigationName } from './chat-navigation-name.ts';
 import { ChatNavigationRowContent } from './chat-navigation-row.tsx';
+import { type ReorderNoun, reorderAnnouncements } from './reorder-announcements.ts';
 import {
     type KeyboardCommand,
     keyboardCommand,
@@ -30,15 +30,9 @@ const screenReaderInstructions = {
     draggable:
         'To reorder a focused project, press space. Use the arrow keys to move it, then press space to drop. Press escape to cancel.',
 };
-const announcements: Announcements = {
-    onDragCancel: ({ active }) => `Cancelled reordering ${sortableName(active)}.`,
-    onDragEnd: ({ active, over }) =>
-        over
-            ? `Dropped ${sortableName(active)} at ${sortableName(over)}.`
-            : `Cancelled reordering ${sortableName(active)}.`,
-    onDragOver: ({ active, over }) =>
-        over ? `${sortableName(active)} is now at ${sortableName(over)}.` : undefined,
-    onDragStart: ({ active }) => `Picked up ${sortableName(active)}.`,
+const announcementsByNoun = {
+    channel: reorderAnnouncements('channel'),
+    project: reorderAnnouncements('project'),
 };
 // Module-level: dnd-kit memoizes the sensor on this object, and a new one per render
 // re-renders every sortable row through its context.
@@ -54,11 +48,15 @@ interface KeyboardDrag extends SortableChannel {
  */
 export const SortableChannelList = React.memo(function SortableChannelList({
     channelIds,
+    label = 'Projects',
+    noun = 'channel',
     selectedChatId,
     serverId,
     slug,
 }: {
     channelIds: readonly string[];
+    label?: string;
+    noun?: ReorderNoun;
     selectedChatId: string | undefined;
     serverId: string;
     slug: string;
@@ -186,7 +184,7 @@ export const SortableChannelList = React.memo(function SortableChannelList({
 
     return (
         <DndContext
-            accessibility={{ announcements, screenReaderInstructions }}
+            accessibility={{ announcements: announcementsByNoun[noun], screenReaderInstructions }}
             collisionDetection={closestCenter}
             modifiers={channelListModifiers}
             onDragCancel={() => setActiveId(null)}
@@ -195,7 +193,7 @@ export const SortableChannelList = React.memo(function SortableChannelList({
             sensors={sensors}
         >
             <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
-                <Sidebar.Menu aria-label="Projects">
+                <Sidebar.Menu aria-label={label}>
                     {orderedIds.map((chatId) => (
                         <SortableChannelRow
                             chatId={chatId}
@@ -238,9 +236,4 @@ function DraggedChannel({ chatId, serverId }: { chatId: string; serverId: string
             </div>
         </div>
     );
-}
-
-function sortableName(item: { data: { current?: { name?: unknown } }; id: unknown }) {
-    const name = item.data.current?.name;
-    return typeof name === 'string' ? `channel ${name}` : `channel ${String(item.id)}`;
 }

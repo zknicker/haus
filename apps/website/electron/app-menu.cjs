@@ -55,7 +55,12 @@ function appMenuTemplate({ actions, appName, platform, state }) {
         {
             label: 'File',
             submenu: [
-                { accelerator: 'CmdOrCtrl+N', click: actions.newWindow, label: 'New Window' },
+                {
+                    accelerator: 'CmdOrCtrl+N',
+                    click: actions.newWindow,
+                    id: 'new-window',
+                    label: 'New Window',
+                },
                 ...tabMenuItems(actions.run),
             ],
         },
@@ -71,7 +76,12 @@ function appMenuTemplate({ actions, appName, platform, state }) {
                 { role: 'selectAll' },
                 { type: 'separator' },
                 // Finds in the focused web page; otherwise opens Search.
-                { accelerator: 'CmdOrCtrl+F', click: () => actions.run('find'), label: 'Find…' },
+                {
+                    accelerator: 'CmdOrCtrl+F',
+                    click: () => actions.run('find'),
+                    id: 'find',
+                    label: 'Find…',
+                },
             ],
         },
         { label: 'View', submenu: viewMenuItems(actions, state, platform) },
@@ -81,11 +91,13 @@ function appMenuTemplate({ actions, appName, platform, state }) {
                 {
                     accelerator: 'CmdOrCtrl+[',
                     click: () => actions.history('back'),
+                    id: 'back',
                     label: 'Back',
                 },
                 {
                     accelerator: 'CmdOrCtrl+]',
                     click: () => actions.history('forward'),
+                    id: 'forward',
                     label: 'Forward',
                 },
             ],
@@ -123,6 +135,7 @@ function tabCommandItems(run, tabs) {
     const item = (label, action, enabled, accelerator) => ({
         ...(accelerator ? { accelerator } : {}),
         click: () => run(action),
+        id: action,
         enabled: tabs?.[enabled] === true,
         label,
     });
@@ -139,10 +152,16 @@ function tabCommandItems(run, tabs) {
 function viewMenuItems(actions, state, platform) {
     return [
         // The focused web page reloads; an App page refetches its data.
-        { accelerator: 'CmdOrCtrl+R', click: () => actions.run('reload'), label: 'Reload Page' },
+        {
+            accelerator: 'CmdOrCtrl+R',
+            click: () => actions.run('reload'),
+            id: 'reload',
+            label: 'Reload Page',
+        },
         {
             accelerator: platform === 'darwin' ? 'Ctrl+Cmd+S' : 'Ctrl+Shift+S',
             click: actions.toggleSidebar,
+            id: 'toggle-sidebar',
             enabled: state.sidebarOpen !== undefined,
             label: state.sidebarOpen === false ? 'Show Sidebar' : 'Hide Sidebar',
         },
@@ -159,7 +178,12 @@ function appNameMenu(appName, actions) {
         submenu: [
             { role: 'about' },
             { type: 'separator' },
-            { accelerator: 'CmdOrCtrl+,', click: actions.openSettings, label: 'Settings…' },
+            {
+                accelerator: 'CmdOrCtrl+,',
+                click: actions.openSettings,
+                id: 'settings',
+                label: 'Settings…',
+            },
             { type: 'separator' },
             { role: 'services' },
             { type: 'separator' },

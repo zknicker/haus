@@ -188,7 +188,7 @@ Haus (Server)
   - It starts Tasks in its own Project. Work that belongs elsewhere it hands to that Project's
     Agent, in that Project's channel, by @mention or assignment.
   - An Agent in the **Haus project** is a generalist. It can start Tasks in any Project and loads a
-    Project's rules when it acts there. Cove lives here.
+    Project's rules when it acts there. A new Server starts with none ([ADR 0059](../adr/0059-haus-starts-empty-without-cove.md)).
   - Moving an Agent to another Project is a setting.
   - *Why:* in a team, "who do I ask about security?" needs one answer. Ownership also gives
     cross-agent conversation a real job instead of making it compete with work.
@@ -332,7 +332,7 @@ agents/<handle>/reports/ renders/ handoffs/   Worker deliverables
  📥 Inbox                         3
  ───────────────────────────────────
  Agents
-  [🐧 Cap] [🦊 Forge •] [👻 Cove]     ← tiles; the dot means working; click = your DM + its Overview
+  [🐧 Cap] [🦊 Forge •] [🦉 Scout]    ← tiles; the dot means working; click = your DM + its Overview
  ───────────────────────────────────
  Projects                          +   ← humans only
   ▣ Engineering   ENG   🦊             ← the Project's Agents (v2)
@@ -401,12 +401,12 @@ Agents coordinate where people can see them:
 | (v2) An Agent hearing every channel it has joined | Its home Project, plus @mentions |
 
 Kept: Agents with one global session and the inbox, Tasks as places, claims, Reminders, Triggers,
-the Inbox (unread only), Activity, harness sub-agents, MCP connections, and Cove.
+the Inbox (unread only), Activity, harness sub-agents, and MCP connections. Cove is deleted by [ADR 0059](../adr/0059-haus-starts-empty-without-cove.md).
 
 ### Walkthroughs
 
 The cast: Zach and Priya; **Forge**, whose home is Engineering (`ENG`); **Cap**, whose home is
-Security (`SEC`); and **Cove**, a generalist in the Haus project. There are two Computers: the
+Security (`SEC`); and **Scout**, a generalist in the Haus project. There are two Computers: the
 **mini**, Forge's and Cap's home, and Zach's **MacBook**. Both have "Workers can run here" on.
 Engineering's default place is the mini.
 
@@ -436,7 +436,7 @@ Engineering's default place is the mini.
 - Cap, whose home is Security, hears every message there. It replies and starts **SEC-12 Stop
   logging session tokens** from that message.
 - Everyone in Security sees the handoff, and ENG-41 links to SEC-12.
-- Cove, a generalist, doesn't answer: nobody @mentioned it.
+- Scout, a generalist, doesn't answer: nobody @mentioned it.
 
 **3. Zach files a Task.**
 - In Security, Zach presses **New task**, types "Rotate the GitHub App private key", and leaves
