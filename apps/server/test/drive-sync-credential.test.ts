@@ -38,6 +38,13 @@ test('a drive-sync credential reaches the Drive sync routes, nothing else, for 1
     expect((await get('/api/agent/drive/changes')).status).not.toBe(401);
     expect((await get('/api/agent/server')).status).toBe(401);
     expect((await get('/api/agent/history')).status).toBe(401);
+    expect((await get('/api/agent/reminders')).status).toBe(401);
+    const schedule = await fetch(new URL('/api/agent/reminders/schedule', setup.harness.url), {
+        body: JSON.stringify({}),
+        headers: { authorization: `Bearer ${runnerToken}`, 'content-type': 'application/json' },
+        method: 'POST',
+    });
+    expect(schedule.status).toBe(401);
     const [row] = (await setup.harness.sql`
         select capabilities, round(extract(epoch from expires_at - created_at)) as lifetime_seconds
         from agent_runner_credentials where id = ${runnerId}
