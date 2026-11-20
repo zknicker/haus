@@ -51,7 +51,6 @@ export * from './schema/reminders.ts';
 export * from './schema/server-deletions.ts';
 export * from './schema/server-invitations.ts';
 export * from './schema/server-memberships.ts';
-export * from './schema/server-onboarding.ts';
 export * from './schema/servers.ts';
 export * from './schema/task-follows.ts';
 export * from './schema/task-keys.ts';

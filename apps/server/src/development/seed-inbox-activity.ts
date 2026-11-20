@@ -17,7 +17,7 @@ const hour = 60 * minute;
 
 /**
  * Gives the demo workspace the activity the human Inbox is a lens over: unread
- * conversations with a last line (Tiny's DM question among them), Cove's
+ * conversations with a last line (Tiny's DM question among them), Blippy's
  * @mention of the owner, a claim an Agent left behind,
  * one settled Worker, and a week of Agent turns. Every row is shaped
  * the way the product writes it, so the page can be judged from a fresh boot
@@ -50,7 +50,6 @@ export async function seedDevelopmentInboxActivity(
         });
         await seedProductChannelActivity(tx, context, now);
         await seedDirectMessageActivity(tx, context, now);
-        await seedCoveMention(tx, context, before(now, 55 * minute));
         await seedAgentTurns(tx, context, now);
     });
 }
@@ -108,10 +107,10 @@ async function seedAllChannelActivity(
 }
 
 /**
- * Cove asks the owner by @mention where the work lives (ADR 0037). There is no
+ * Blippy asks the owner by @mention where the work lives (ADR 0037). There is no
  * question record; the reply is the answer.
  */
-async function seedCoveMention(tx: HausDatabase, context: InboxSeedContext, at: Date) {
+async function ownerMention(tx: HausDatabase, context: InboxSeedContext) {
     const [owner] = await tx
         .select({ handle: serverMembershipsTable.handle })
         .from(serverMembershipsTable)
@@ -122,27 +121,10 @@ async function seedCoveMention(tx: HausDatabase, context: InboxSeedContext, at: 
             )
         )
         .limit(1);
-    const mention = `[@${owner?.handle ?? 'owner'}](${formatUserReferenceTarget(context.userId)})`;
-    await backdateSeedHistory(tx, {
-        chatId: context.onboardingChatId,
-        serverId: context.serverId,
-        until: at,
-    });
-    await appendSeedMessages(tx, {
-        chatId: context.onboardingChatId,
-        messages: [
-            {
-                authorAgentId: context.coveId,
-                content: `${mention} Rename #product to #build? Two agents keep filing build questions in #product, and the new name makes the channel’s job obvious. Reply yes and I’ll rename it; nothing changes until you do.`,
-                createdAt: at,
-                nonce: 'dev-inbox-mention-rename-product',
-            },
-        ],
-        serverId: context.serverId,
-    });
+    return `[@${owner?.handle ?? 'owner'}](${formatUserReferenceTarget(context.userId)})`;
 }
 
-/** #product: yesterday's settled Worker and Tiny's rename nudge. */
+/** #product: yesterday's settled Worker, Blippy's @mention of the owner, and Tiny's rename nudge. */
 async function seedProductChannelActivity(
     tx: HausDatabase,
     context: InboxSeedContext,
@@ -172,9 +154,16 @@ async function seedProductChannelActivity(
         terminalAt: before(now, 25 * hour + 10 * minute),
         title: 'Sidebar Inbox badge',
     });
+    const mention = await ownerMention(tx, context);
     await appendSeedMessages(tx, {
         chatId: context.productChatId,
         messages: [
+            {
+                authorAgentId: context.blippyId,
+                content: `${mention} Rename #product to #build? Two agents keep filing build questions in #product, and the new name makes the channel’s job obvious. Reply yes and I’ll rename it; nothing changes until you do.`,
+                createdAt: before(now, 55 * minute),
+                nonce: 'dev-inbox-mention-rename-product',
+            },
             {
                 authorAgentId: context.tinyId,
                 content:

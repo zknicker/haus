@@ -18,6 +18,14 @@ export interface OpenAgentProfileOptions {
 export function useOpenAgentProfile() {
     const navigate = useNavigate();
     const { slug = '' } = useParams();
+    return useOpenAgentProfileWith(navigate, slug);
+}
+
+/**
+ * The same command with a caller-owned navigate and slug, for window chrome that must not
+ * re-render on every location change (the sidebar's `useSidebarNavigate`).
+ */
+export function useOpenAgentProfileWith(navigate: (path: string) => void, slug: string) {
     const route = useRef({ navigate, slug });
     route.current = { navigate, slug };
     return useCallback((agentId: string, options: OpenAgentProfileOptions = {}) => {

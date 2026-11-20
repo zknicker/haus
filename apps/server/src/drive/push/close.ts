@@ -88,7 +88,7 @@ async function listConflicts(tx: HausDatabase, serverId: string, outcomes: Drive
     const conflicts = outcomes.flatMap((outcome) =>
         outcome.outcome === 'kept_both' ||
         outcome.outcome === 'kept_edit' ||
-        outcome.outcome === 'refused'
+        (outcome.outcome === 'refused' && outcome.code !== 'AGENT_RESET')
             ? [outcome]
             : []
     );

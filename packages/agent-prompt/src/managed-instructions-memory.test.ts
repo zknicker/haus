@@ -25,3 +25,13 @@ test('memory arrives in the turn input under a cap, with no re-read ritual (ADR 
     expect(prompt).toContain('MEMORY.md is your recovery point after compression');
     expect(prompt).not.toContain('Re-read MEMORY.md');
 });
+
+test('describes the rule files beside MEMORY.md (ADR 0054 decisions 7 and 10)', () => {
+    expect(prompt).toContain(
+        '- `AGENTS.md` beside MEMORY.md holds your standing rules, and Haus puts it in your turn input whenever it changed. `WORKER.md` there holds the rules your Workers follow. The `rules` Manual topic covers both.'
+    );
+    expect(prompt).toContain(
+        '## Standing Preferences\n<preferences people show in passing: terse imperative lines; the rules people set live in AGENTS.md and WORKER.md>'
+    );
+    expect(prompt).not.toContain('standing directives');
+});

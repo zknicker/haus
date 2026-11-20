@@ -1,4 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+import { hashKey } from '@tanstack/react-query';
+import { getQueryKey } from '@trpc/react-query';
+import { hausTrpc } from '../../lib/haus-server.tsx';
 import {
     createRealtimeHarness,
     installRealtimeTestDom,
@@ -12,6 +15,7 @@ import { useComputerUpdateStream } from './use-computer-update-stream.ts';
 import { useInvitationUpdateStream } from './use-invitation-update-stream.ts';
 import { useMcpUpdateStream } from './use-mcp-update-stream.ts';
 import { useMemberUpdateStream } from './use-member-update-stream.ts';
+import { useModelConnectionsStream } from './use-model-connections-stream.ts';
 import { useReminderStream } from './use-reminder-stream.ts';
 import { useServerUpdateStream } from './use-server-update-stream.ts';
 
@@ -118,6 +122,7 @@ describe('Server-level stream hooks', () => {
         expect(onEvent).toEqual([
             read('artifact.list', { serverId }),
             read('artifact.creators', { serverId }),
+            read('artifact.byPath', { serverId }),
             read('artifact.get', file),
             read('artifact.versions', file),
             read('artifact.publicLink', file),
@@ -126,10 +131,51 @@ describe('Server-level stream hooks', () => {
         expect(onRecovery).toEqual([
             read('artifact.list', { serverId }),
             read('artifact.creators', { serverId }),
+            read('artifact.byPath', { serverId }),
             read('artifact.get', { serverId }),
             read('artifact.versions', { serverId }),
             read('artifact.publicLink', { serverId }),
         ]);
+    });
+
+    test('artifact.onUpdated and its recovery refresh this Server’s open page cards only', async () => {
+        const harness = createRealtimeHarness();
+        const card = (server: string) =>
+            getQueryKey(
+                hausTrpc.artifact.byPath,
+                { path: 'agents/scout/workbench/plan.html', serverId: server },
+                'query'
+            );
+        harness.queryClient.setQueryData(card(serverId), { artifact: null });
+        harness.queryClient.setQueryData(card('srv_2'), { artifact: null });
+        const cards = [hashKey(card(serverId)), hashKey(card('srv_2'))];
+        const refreshedCards = () =>
+            harness.ops.flatMap((op) =>
+                op.op === 'invalidate'
+                    ? harness.queryClient
+                          .getQueryCache()
+                          .findAll({ queryKey: op.queryKey })
+                          .map((query) => query.queryHash)
+                          .filter((hash) => cards.includes(hash))
+                    : []
+            );
+        function Stream() {
+            useArtifactUpdateStream(serverId);
+            return null;
+        }
+        const mounted = await harness.mount(<Stream />);
+        harness.start('artifact.onUpdated');
+        harness.ops.splice(0);
+
+        harness.emit('artifact.onUpdated', { artifactId: 'art_1', serverId });
+        expect(refreshedCards()).toEqual([hashKey(card(serverId))]);
+
+        harness.ops.splice(0);
+        harness.complete('artifact.onUpdated');
+        expect(runRestarts()).toBe(1);
+        harness.start('artifact.onUpdated');
+        expect(refreshedCards()).toEqual([hashKey(card(serverId))]);
+        await mounted.unmount();
     });
 
     test('an artifact.onUpdated burst refreshes listings once now and once after the window', async () => {
@@ -204,6 +250,19 @@ describe('Server-level stream hooks', () => {
             { serverId }
         );
         expect(onEvent).toEqual([read('cloudAgentSettings.get', { serverId })]);
+        expect(onRecovery).toEqual(onEvent);
+    });
+
+    test('modelConnections.onUpdated refreshes the connection list and every open sign-in', async () => {
+        const { onEvent, onRecovery } = await drive(
+            'modelConnections.onUpdated',
+            () => useModelConnectionsStream(serverId),
+            { serverId }
+        );
+        expect(onEvent).toEqual([
+            read('modelConnections.list', { serverId }),
+            read('modelConnections.signIn', { serverId }),
+        ]);
         expect(onRecovery).toEqual(onEvent);
     });
 

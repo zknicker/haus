@@ -3,6 +3,7 @@ import type { RuntimeResumeState } from '../runtime/resume-state.ts';
 import { deliveredInstructionReceipt, type InstructionsUpdatePlan } from './instructions-update.ts';
 import type { ComposedInstructions } from './instructions.ts';
 import { type MemoryDelivery, memoryReceiptAfterTurn } from './memory-delivery.ts';
+import { type RulesDelivery, ruleReceiptsAfterTurn } from './rules-delivery.ts';
 import type { AgentSessionState } from './session-store.ts';
 
 /** What every ending of a turn on a live session records. */
@@ -10,6 +11,7 @@ export interface TurnSessionFacts {
     composed: Pick<ComposedInstructions, 'fingerprint' | 'stableFingerprint'>;
     instructionsUpdate: InstructionsUpdatePlan;
     memory: MemoryDelivery;
+    rules: RulesDelivery;
     reasoningEffort: AgentReasoningEffort;
     runtimeSessionId: string;
 }
@@ -23,11 +25,11 @@ export interface EndedTurn {
 
 export interface CompletedTurnFacts {
     bootstrapFingerprint: string | null;
-    /** False when a Cove factory-guidance conflict keeps the version unapplied. */
-    coveGuidanceCanApply: boolean;
     /** The digest of MEMORY.md at turn end; null when the file is missing. */
     memoryDigest: string | null;
     modelId: string;
+    /** The rule layers' digests at turn end, by Drive path. */
+    ruleDigests: Readonly<Record<string, string>>;
     runtimeId: string;
 }
 
@@ -46,6 +48,7 @@ export function turnSessionRecord(session: AgentSessionState, facts: TurnSession
             ...session,
             ...receipt({ compacted: false, completed: false }),
             deliveredMemoryDigest: facts.memory.priorReceipt,
+            deliveredRuleDigests: facts.rules.priorReceipts,
             resumeState,
             runtimeSessionId: facts.runtimeSessionId,
         }),
@@ -60,6 +63,11 @@ export function turnSessionRecord(session: AgentSessionState, facts: TurnSession
                 compacted,
                 completed: false,
                 endDigest: null,
+            }),
+            deliveredRuleDigests: ruleReceiptsAfterTurn(facts.rules, {
+                compacted,
+                completed: false,
+                endDigests: {},
             }),
             effectiveReasoningEffort: facts.reasoningEffort,
             hausAgentStatus:
@@ -79,7 +87,7 @@ export function turnSessionRecord(session: AgentSessionState, facts: TurnSession
         ): AgentSessionState => {
             const versionDrift = session.hausAgentVersion !== hausAgentVersion;
             const instructionsDelivered = facts.instructionsUpdate.kind !== 'deferred';
-            const applies = !versionDrift || (run.coveGuidanceCanApply && instructionsDelivered);
+            const applies = !versionDrift || instructionsDelivered;
             return {
                 ...receipt({ compacted, completed: true }),
                 bootstrapFingerprint: run.bootstrapFingerprint,
@@ -88,16 +96,17 @@ export function turnSessionRecord(session: AgentSessionState, facts: TurnSession
                     completed: true,
                     endDigest: run.memoryDigest,
                 }),
+                deliveredRuleDigests: ruleReceiptsAfterTurn(facts.rules, {
+                    compacted,
+                    completed: true,
+                    endDigests: run.ruleDigests,
+                }),
                 effectiveModel: { modelId: run.modelId, runtimeId: run.runtimeId },
                 effectiveReasoningEffort: facts.reasoningEffort,
                 generation: session.generation,
                 hausAgentAppliedAt:
                     versionDrift && applies ? new Date().toISOString() : session.hausAgentAppliedAt,
-                hausAgentStatus: applies
-                    ? 'current'
-                    : run.coveGuidanceCanApply
-                      ? 'pending'
-                      : 'failed',
+                hausAgentStatus: applies ? 'current' : 'pending',
                 hausAgentVersion: applies ? hausAgentVersion : session.hausAgentVersion,
                 resumeState,
                 runtimeSessionId: facts.runtimeSessionId,

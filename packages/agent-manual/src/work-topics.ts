@@ -57,6 +57,8 @@ Use one when the work is a real coding change someone else's machine can build (
 
 The brief arrives on stdin. Make it complete: the repository paths, the reproduction, and what a finished result looks like, so the Worker rarely needs to ask. \`--title\` names the work for people, and \`--ref\` is the starting branch, tag, or commit, else the repository's default branch. \`--repo\` can be left out when the Task's Project has one repo. Starting posts nothing: the Worker's card shows on the Task's page, and you say what you started only when that is worth saying. The receipt says the Worker is \`started\` or \`queued\` behind its place's limit, never that it finished launching.
 
+**Your Worker rules ride every turn.** \`drive/agents/<your handle>/WORKER.md\` holds the rules every Worker of yours follows. Haus puts it, with the team and Project AGENTS.md, in each Worker's first turn and sends it again after it changes, so the brief carries only the work (see rules).
+
 **It works for a Task.** Start the Task first (see tasks), then the Worker with \`--task SEC-12\`. A start without an open Task you can reach is refused with \`WORKER_TASK_REQUIRED\` or \`WORKER_TASK_CLOSED\`. A Task can hold several Workers; start another only for a genuinely separate assignment.
 
 **Places.** \`haus worker places --task SEC-12\` lists where a Worker can run: each Computer with its **Workers can run here** switch, runtimes, linked repos, and free slots, then \`cursor\` and \`claude\`, with the Project's default marked. \`--on\` takes a Computer by name (\`computer:mini\` or \`mini\`, or the \`computer:<id>\` that \`places\` prints when two share a name), or \`cursor\` or \`claude\` for a cloud agent. Without \`--on\` a start runs on the Task's Project default, else on your Computer's ready cloud default (Settings → Devices → (your device) → Cloud Agents → Make default). Name a place when the requester asks for one.
@@ -83,7 +85,13 @@ As the coordinating Agent, keep review rounds, revision requests, and progress i
         aliases: ['cloud agent model', 'cursor', 'claude cloud', 'workers can run here'],
         id: 'workers',
         kind: 'overview',
-        related: ['agent', 'tasks', 'haus-cli-overview', 'recipes/decision/when-to-ask-human'],
+        related: [
+            'agent',
+            'tasks',
+            'rules',
+            'haus-cli-overview',
+            'recipes/decision/when-to-ask-human',
+        ],
         summary:
             'Delegate bounded repository work for a Task to a Computer or a cloud agent, and get its report there.',
         title: 'Workers',

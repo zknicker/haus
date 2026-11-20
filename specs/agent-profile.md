@@ -48,8 +48,7 @@ breadcrumb's end for Owners and Admins.
   The style and emoji are readable and writable only by Owners, Admins, and the
   Agent itself; other Agents never see them. The Agent edits its own only when an
   Owner or Admin asks, never at another Agent's or a member's request, and the
-  style governs voice and banter only, never rules, permissions, or how it works. A factory Agent's identity is fixed,
-  though Cove still takes a signature emoji.
+  style governs voice and banter only, never rules, permissions, or how it works.
 - **Automations** (`automations`). Reminders and Triggers. Reminder creation
   is conversational.
 - **Skills** (`skills`). Agent-owned skills reported by the Computer, shown by

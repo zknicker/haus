@@ -10,6 +10,7 @@ import { useImageGenerationStream } from '../../hooks/realtime/use-image-generat
 import { useInvitationUpdateStream } from '../../hooks/realtime/use-invitation-update-stream.ts';
 import { useMcpUpdateStream } from '../../hooks/realtime/use-mcp-update-stream.ts';
 import { useMessageReactionStream } from '../../hooks/realtime/use-message-reaction-stream.ts';
+import { useModelConnectionsStream } from '../../hooks/realtime/use-model-connections-stream.ts';
 import { useReminderStream } from '../../hooks/realtime/use-reminder-stream.ts';
 import { useTaskCreatedStream } from '../../hooks/realtime/use-task-created-stream.ts';
 import { useTaskFollowStream } from '../../hooks/realtime/use-task-follow-stream.ts';
@@ -51,6 +52,7 @@ export const ServerRealtimeListeners = React.memo(function ServerRealtimeListene
             <McpUpdateStream serverId={serverId} />
             <ArtifactUpdateStream serverId={serverId} />
             <CloudAgentSettingsStream serverId={serverId} />
+            <ModelConnectionsStream serverId={serverId} />
             {canOperate ? <ReminderStream serverId={serverId} /> : null}
             {canOperate ? <InvitationUpdateStream serverId={serverId} /> : null}
         </>
@@ -128,6 +130,11 @@ function ArtifactUpdateStream({ serverId }: StreamProps) {
 
 function CloudAgentSettingsStream({ serverId }: StreamProps) {
     useCloudAgentSettingsStream(serverId);
+    return null;
+}
+
+function ModelConnectionsStream({ serverId }: StreamProps) {
+    useModelConnectionsStream(serverId);
     return null;
 }
 

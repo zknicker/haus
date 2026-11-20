@@ -84,7 +84,6 @@ export const agentConfigureCommandSchema = z
         /** The standing brief its creator wrote, and whose brief it is. */
         brief: z.string().trim().min(1).max(4000).nullable().default(null),
         briefAuthorHandle: z.string().trim().min(1).max(64).nullable().default(null),
-        factoryKind: z.enum(['cove', 'ordinary']),
         modelId: z.string().trim().min(1).max(128),
         reasoningEffort: agentReasoningEffortSchema.default('medium'),
         runtimeId: z.string().trim().min(1).max(64),
@@ -95,23 +94,6 @@ export const agentConfigureCommandSchema = z
     .strict();
 
 export type AgentConfigureCommand = z.infer<typeof agentConfigureCommandSchema>;
-
-/** Dedicated, replayable factory operation for the one onboarding Agent. */
-export const coveApplyCommandSchema = z
-    .object({
-        agentDescription: z.literal('Onboarding Assistant'),
-        agentId: idSchema,
-        agentName: z.literal('Cove'),
-        applicationId: idSchema,
-        factoryKind: z.literal('cove'),
-        modelId: z.string().trim().min(1).max(128),
-        runtimeId: z.string().trim().min(1).max(64),
-        sessionGeneration: z.number().int().positive(),
-        type: z.literal('cove-apply'),
-    })
-    .strict();
-
-export type CoveApplyCommand = z.infer<typeof coveApplyCommandSchema>;
 
 export const agentSkillImportCommandSchema = z
     .object({
@@ -135,7 +117,6 @@ export const agentCommandSchema = z.discriminatedUnion('type', [
     agentResetCommandSchema,
     agentRetireCommandSchema,
     agentConfigureCommandSchema,
-    coveApplyCommandSchema,
     agentSkillImportCommandSchema,
     agentSkillFileRequestSchema,
     hostSkillFileRequestSchema,

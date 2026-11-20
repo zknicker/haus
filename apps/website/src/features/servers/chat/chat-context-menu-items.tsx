@@ -77,20 +77,28 @@ export function DmContextMenuItems({
     files,
     hasAgent,
     hasChat,
+    peer = 'agent',
 }: {
     files: boolean;
     hasAgent: boolean;
     hasChat: boolean;
+    peer?: 'agent' | 'person';
 }) {
     return (
         <>
-            <ContextMenu.Item id="profile" isDisabled={!hasAgent} textValue="View Captain profile">
-                <Icon aria-hidden="true" icon={UserCircleIcon} size={16} />
-                <Label>View Captain profile</Label>
-            </ContextMenu.Item>
+            {peer === 'agent' ? (
+                <ContextMenu.Item
+                    id="profile"
+                    isDisabled={!hasAgent}
+                    textValue="View Captain profile"
+                >
+                    <Icon aria-hidden="true" icon={UserCircleIcon} size={16} />
+                    <Label>View Captain profile</Label>
+                </ContextMenu.Item>
+            ) : null}
             {files ? (
                 <>
-                    <ContextMenu.Separator />
+                    {peer === 'agent' ? <ContextMenu.Separator /> : null}
                     <ChatContextSurfaceItems isDisabled={!hasChat} />
                 </>
             ) : null}

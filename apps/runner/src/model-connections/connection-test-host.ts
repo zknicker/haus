@@ -7,18 +7,30 @@ import { openDispatchLedger } from '../dispatch/ledger.ts';
 import { createPiHarness } from '../pi/pi-driver.ts';
 import { connectionModels } from '../pi/pi-models.ts';
 import type { RunnerLink } from '../run-context.ts';
-import { cleanups, runnerToken, serverStandIn } from '../runner-test-server.ts';
+import { cleanups, runnerToken, type StandInRoutes, serverStandIn } from '../runner-test-server.ts';
 import { openServerLink } from '../server-link.ts';
 import { createTurnHostWith } from '../turn/turn-host.ts';
 import { createConnectionBook } from './connection-book.ts';
+import { createCapacityReader } from './connection-capacity.ts';
 
-export async function connectedRunner(provider: Provider) {
-    const server = serverStandIn();
+export async function connectedRunner(provider: Provider, usageRoutes?: StandInRoutes) {
+    const server = serverStandIn(usageRoutes);
     const dataDir = await mkdtemp(join(tmpdir(), 'haus-runner-connections-'));
     cleanups.push(() => rm(dataDir, { force: true, recursive: true }));
     const book = createConnectionBook();
     let attached: ReturnType<typeof openServerLink> | null = null;
     const link: RunnerLink = { send: (frame) => attached?.link.send(frame) };
+    const capacity = usageRoutes
+        ? createCapacityReader({
+              book,
+              link,
+              log: () => undefined,
+              usageUrls: {
+                  chatgpt: `${server.url}/backend-api/wham/usage`,
+                  claude: `${server.url}/api/oauth/usage`,
+              },
+          })
+        : null;
     const pi = createPiHarness({
         log: () => undefined,
         maxWarm: 1,
@@ -28,6 +40,7 @@ export async function connectedRunner(provider: Provider) {
     const ledger = openDispatchLedger(dataDir);
     const turnHost = createTurnHostWith({
         book,
+        ...(capacity ? { capacity } : {}),
         dataDir,
         factory: pi.factory,
         ledger,

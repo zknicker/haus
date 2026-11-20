@@ -117,6 +117,9 @@ Status values:
 | M4 | An Agent creates a workspace file and can read it from a fresh model session. | Deterministic workspace state (`workspace-survives-fresh-session` retired 2026-10-15) | passing |
 | M5 | A workspace artifact shared in Chat opens the correct Agent-owned file in the App. | App E2E + `managed-instructions-artifacts.test.ts` (`artifact-authoring` retired 2026-10-15) | passing |
 | M6 | Unavailable MCP connections, bounded skill traversal, and stale edits fail independently and safely. | Deterministic | mapped |
+| M7 | Told "from now on, every Worker attaches before/after screenshots", an Agent writes the rule to its `WORKER.md` in Drive, leaves `MEMORY.md` Standing Preferences unchanged (a Key Knowledge line pointing at the file is fine), and confirms once inline. | `test:agents rule-files-worker` (`rules` eval) | mapped |
+| M8 | Told "from now on, keep replies under three sentences", an Agent writes the rule to its own `AGENTS.md` in Drive, not `MEMORY.md` Standing Preferences, and confirms once inline. | `test:agents rule-files-agent` (`rules` eval) | mapped |
+| M9 | Told a plain fact ("my timezone is Pacific"), an Agent records it in `MEMORY.md` and makes no rule file. | `test:agents rule-files-fact` (`rules` eval) | mapped |
 
 ### Tranche 6 — Reminders and autonomous follow-up
 
@@ -154,7 +157,7 @@ Status values:
 
 | ID | Haus behavior | Coverage | Status |
 | --- | --- | --- | --- |
-| P6 | Cove answers a natural Agent proposal in its parent DM without creating anything, then a separate creation request creates exactly one Agent inheriting Cove's runtime, model, reasoning effort, and Computer, announced by one `agent-created` Message in that same DM; repeating the request creates no second Agent. | `test:agents --include-opt-in --only cove-composes-agent-creation` + factory-playbook/Manual/tool contracts | opt-in |
+| P6 | An ordinary Agent answers a natural Agent proposal in the asking channel without creating anything, then a separate creation request creates exactly one Agent inheriting the creator's runtime, model, reasoning effort, and Computer, which the creator names by handle in that channel; repeating the request creates no second Agent. | `test:agents --include-opt-in --only agent-composes-agent-creation` + Manual/tool contracts | opt-in |
 
 ## Existing executable lanes
 
@@ -179,9 +182,9 @@ coupling; `test:tracer` retains the one browser proof that the wire works end to
 end. The observations below remain historical records of what those runs saw and
 are not maintained against the current lanes.
 
-The Cove creation scenario is deliberately excluded from the default lane. Run
-it only with `--include-opt-in` against a dev stack that has an active Cove,
-healthy attached Computer reporting Terra, and
+The Agent-creation scenario is deliberately excluded from the default lane. Run
+it only with `--include-opt-in` against a dev stack with a healthy attached
+Computer, where it provisions its own Agent, and
 `HAUS_AGENT_E2E_AVATAR_FIXTURE=1` with absolute fixture and request-log paths. It writes
 the normal transcript/report under `.context/agent-tests/<run>/` and performs
 exact-id Agent cleanup through the shared crash ledger.

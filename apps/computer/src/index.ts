@@ -67,7 +67,6 @@ import { sendComputerDiskReport } from './computer-disk.ts';
 import { readComputerName } from './computer-name.ts';
 import { startComputerReportSchedule } from './computer-report-schedule.ts';
 import { createComputerReporter, reportStateError } from './computer-report.ts';
-import { applyCoveConfiguration, parseCoveApplyCommand } from './cove-configuration.ts';
 import { type DaemonRuntime, withDaemonRuntime } from './daemon-runtime.ts';
 import { decideStart, readRunMarker, writeRunMarker } from './delivery.ts';
 import {
@@ -77,6 +76,7 @@ import {
     readComputerLogs,
     readComputerStatus,
 } from './diagnostics.ts';
+import { discardDrivePushes } from './drive/turn-sync.ts';
 import { attachmentJournalUploads } from './execution-journal-upload/attachment-journal-uploads.ts';
 import { handleHostSkillFileRequest } from './host-skill-file.ts';
 import {
@@ -1216,34 +1216,6 @@ async function connect(
                 );
                 return;
             }
-            const coveApplication = parseCoveApplyCommand(frame);
-            if (coveApplication) {
-                if (retiredAgents.has(coveApplication.agentId)) {
-                    return;
-                }
-                void trackWriter(
-                    agentWork
-                        .enqueueConfiguration(coveApplication.agentId, async () => {
-                            await agentWork.waitForRun(coveApplication.agentId);
-                            const result = await applyCoveConfiguration({
-                                prepareWorkspace: agentWorkspacePreparation(
-                                    dataRoot,
-                                    coveApplication.runtimeId
-                                ),
-                                command: coveApplication,
-                                dataRoot,
-                                inventory: detectInventory(),
-                                serverId: attachment.serverId,
-                            });
-                            sendFrame(result);
-                            if (result.status === 'applied') {
-                                await reportComputer();
-                            }
-                        })
-                        .catch(reportStateError)
-                );
-                return;
-            }
             const skillImport = parseAgentSkillImportCommand(frame);
             if (skillImport) {
                 void trackWriter(acceptSkillImport(skillImport).catch(reportStateError));
@@ -1286,6 +1258,9 @@ async function connect(
                     return;
                 }
                 resettingAgents.add(reset.agentId);
+                const agentRoot = join(agentsDir, reset.agentId);
+                const resumePushes =
+                    reset.kind === 'full' ? discardDrivePushes(agentRoot) : () => undefined;
                 const runId = agentWork.activeRunId(reset.agentId);
                 if (runId) {
                     agentWork.abortRun(runId);
@@ -1296,13 +1271,7 @@ async function connect(
                         .then(() => agentWork.waitForRun(reset.agentId))
                         .then(async () => {
                             await applyAuthoritativeSession({
-                                agentRoot: join(
-                                    dataRoot,
-                                    'servers',
-                                    attachment.serverId,
-                                    'agents',
-                                    reset.agentId
-                                ),
+                                agentRoot,
                                 generation: reset.sessionGeneration,
                                 reset: async () => {
                                     await resetOwnedAgentState({
@@ -1321,6 +1290,7 @@ async function connect(
                         })
                         .finally(() => {
                             resettingAgents.delete(reset.agentId);
+                            resumePushes();
                         })
                 );
                 return;

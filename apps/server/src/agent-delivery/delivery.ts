@@ -8,17 +8,13 @@ import {
     type ReminderScriptResult,
 } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
-import { eq, sql } from 'drizzle-orm';
-import {
-    runLivenessClaimEvents,
-    settleAgentBackgroundClaims,
-} from '../claims/background-claims.ts';
+import { runLivenessClaimEvents } from '../claims/background-claims.ts';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { agentMessageDraftsTable, agentsTable } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { publishRealtime } from '../realtime/topic.ts';
+import { artifactUpdatedTopic } from '../realtime/topics.ts';
 import {
     listReminderScriptCommands,
     settleReminderScript,
@@ -63,7 +59,7 @@ import * as failureHold from './failure-hold.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
 import { inboxWork } from './inbox-work.ts';
-import { interruptActiveRun, killedRun } from './interrupt-active-run.ts';
+import { interruptActiveRun } from './interrupt-active-run.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
 import {
     type AgentLoopHost,
@@ -73,10 +69,9 @@ import {
     startOf,
 } from './loop-host.ts';
 import { consumeNoticeAck } from './notice-ack.ts';
+import { type AgentResetRequest, resetInTransaction } from './reset-transaction.ts';
 import { isBackedOff } from './retry-policy.ts';
-import { recordSessionRotation } from './session-rotation.ts';
 import * as store from './store.ts';
-import { retireQueuedSubagentWakes } from './subagent-wake-request.ts';
 import { recoverSessionResume, settleRun } from './turn-settlement.ts';
 import { isolateUnrenderableItems } from './undeliverable-items.ts';
 import { readUnreadElsewhere } from './unread-elsewhere.ts';
@@ -236,77 +231,11 @@ export class AgentDelivery {
     }
 
     /** Rotates session identity; full reset also recreates Computer-local Agent state. */
-    async reset(input: { agentId: string; kind: 'full' | 'session'; serverId: string }) {
-        const result = await this.db.transaction(async (tx) => {
-            await lockServerRow(tx, input.serverId);
-            const state = await store.readDeliveryState(tx, input.agentId);
-            let activity: AgentActivityEvent | null = null;
-            let claimEvents: PreparedRealtimeEvent[] = [];
-            if (state?.activeRunId) {
-                await revokeRunnerCredentialsForRun(tx, {
-                    agentId: input.agentId,
-                    runId: state.activeRunId,
-                    serverId: input.serverId,
-                });
-                await store.requeueInboxItemsForRun(tx, {
-                    agentId: input.agentId,
-                    runId: state.activeRunId,
-                });
-                activity = await appendServerAgentActivity(tx, {
-                    agentId: input.agentId,
-                    category: 'working',
-                    phase: 'failed',
-                    runId: state.activeRunId,
-                    serverId: input.serverId,
-                });
-                claimEvents = await settleAgentBackgroundClaims(tx, killedRun(input, state));
-                await store.clearActiveRun(tx, input.agentId);
-            }
-            await store.clearInboxNotices(tx, { agentId: input.agentId });
-            await retireQueuedSubagentWakes(tx, input.agentId);
-            await failureHold.clearDeliveryFailures(tx, input.agentId);
-            const [rotated] = await tx
-                .update(agentsTable)
-                .set({
-                    sessionGeneration: sql`${agentsTable.sessionGeneration} + 1`,
-                    sessionResetKind: input.kind,
-                })
-                .where(
-                    sql`${agentsTable.serverId} = ${input.serverId}
-                        and ${agentsTable.id} = ${input.agentId}`
-                )
-                .returning({ sessionGeneration: agentsTable.sessionGeneration });
-            if (!rotated) {
-                throw new Error('The Agent session could not be rotated.');
-            }
-            await tx
-                .delete(agentMessageDraftsTable)
-                .where(eq(agentMessageDraftsTable.agentId, input.agentId));
-            const config = await readAgentDispatchConfig(tx, input.agentId);
-            const configuration =
-                state?.activeRunId &&
-                isConfigured(config) &&
-                (state.activeRunModelId !== config.desiredModelId ||
-                    state.activeRunRuntimeId !== config.desiredRuntimeId ||
-                    state.activeRunReasoningEffort !== config.desiredReasoningEffort)
-                    ? { agentId: input.agentId, config }
-                    : null;
-            await recordSessionRotation(tx, {
-                agentId: input.agentId,
-                generation: rotated.sessionGeneration,
-                reason: input.kind,
-                serverId: input.serverId,
-            });
-            return {
-                activity,
-                chatId: state?.activeRunChatId ?? null,
-                computerId: config?.computerId ?? null,
-                configuration,
-                runId: state?.activeRunId ?? null,
-                sessionGeneration: rotated.sessionGeneration,
-                claimEvents,
-            };
-        });
+    async reset(input: AgentResetRequest) {
+        const result = await resetInTransaction(this.db, input);
+        if (result.deletedArtifacts > 0) {
+            artifactUpdatedTopic.announce({ artifactId: null, serverId: input.serverId });
+        }
         publishRealtime(result.claimEvents);
         if (result.activity) {
             publishCommittedAgentActivity(result.activity);
@@ -499,9 +428,6 @@ export class AgentDelivery {
                 });
                 continue;
             }
-            if (agent.factoryKind === 'cove' && !agent.factoryAppliedAt) {
-                continue;
-            }
             const state = await store.readDeliveryState(this.db, agent.agentId);
             const activeConfigurationChanged =
                 Boolean(state?.activeRunId) &&
@@ -610,7 +536,6 @@ export class AgentDelivery {
             runtimeId: input.runtimeId,
             sessionGeneration: config.sessionGeneration,
             sessionResetKind: config.sessionResetKind,
-            factoryKind: config.factoryKind,
             type: 'agent-configure',
         });
     }

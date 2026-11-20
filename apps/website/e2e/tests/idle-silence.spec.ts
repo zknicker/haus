@@ -215,7 +215,7 @@ function expectWithinAllowance(entries: TrafficEntry[], minutes: number, extraCh
 }
 
 function composer(page: Page) {
-    return page.getByRole('textbox', { name: 'Message all' });
+    return page.getByRole('textbox', { name: 'Message haus' });
 }
 
 function key(entry: TrafficEntry) {

@@ -1,8 +1,8 @@
-import { and, eq, isNull, ne } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, computersTable, serverOnboardingTable } from '../postgres/schema.ts';
+import { agentsTable, computersTable } from '../postgres/schema.ts';
 import { clearComputerDefaults } from '../projects/project-worker-defaults.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
@@ -61,31 +61,6 @@ export async function removeServerComputer(
                 'Delete every assigned Agent before removing this Computer.'
             );
         }
-        await tx
-            .update(serverOnboardingTable)
-            .set({ computerId: null })
-            .where(
-                and(
-                    eq(serverOnboardingTable.serverId, input.serverId),
-                    eq(serverOnboardingTable.computerId, computer.id),
-                    eq(serverOnboardingTable.phase, 'complete')
-                )
-            );
-        await tx
-            .update(serverOnboardingTable)
-            .set({
-                computerId: null,
-                failureCode: null,
-                failureDetail: null,
-                phase: 'awaiting-computer',
-            })
-            .where(
-                and(
-                    eq(serverOnboardingTable.serverId, input.serverId),
-                    eq(serverOnboardingTable.computerId, computer.id),
-                    ne(serverOnboardingTable.phase, 'complete')
-                )
-            );
         await tx
             .update(agentsTable)
             .set({ computerId: null, desiredModelId: null, desiredRuntimeId: null })

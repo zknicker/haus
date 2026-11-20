@@ -139,3 +139,9 @@ page routes, or a source file that renders the label. It also fails when any
 Manual topic writes an App path (`A → B`) that is not a prefix
 of a mapped path, so a new place starts in `appPlaces` and other topics point
 at it. The iPhone app has its own layout and is not mapped.
+
+The topic ends with a short Common questions section every Agent can answer from: what a Computer
+gives an Agent, what Agents can see, and what to check when an Agent does not respond. It carries
+the still-true answers from Cove's former onboarding FAQ
+([ADR 0059](../adr/0059-haus-starts-empty-without-cove.md)), and any App path it writes passes the
+same map check.

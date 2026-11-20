@@ -22,8 +22,6 @@ import {
 } from '../usage/claude-plan-usage-state.ts';
 import { createHarnessActivityProjector } from './activity-projector.ts';
 import { readAgentSkillNames } from './agent-skill-names.ts';
-import { clearPendingCoveGuidanceRefresh } from './cove-guidance-refresh.ts';
-import { prepareCoveGuidanceForTurn } from './cove-guidance-turn.ts';
 import {
     type ComputerExecutionJournal,
     createComputerExecutionJournal,
@@ -33,7 +31,6 @@ import { startInstructionRefreshActivity } from './instruction-refresh-activity.
 import { planInstructionsUpdate, withInstructionsUpdate } from './instructions-update.ts';
 import { composeAgentInstructions } from './instructions.ts';
 import { journalError, journalOutcome } from './journal-outcome.ts';
-import { planMemoryDelivery, readMemoryDigest, withMemory } from './memory-delivery.ts';
 import { AgentSessionResumeRejectedError } from './resume-rejection.ts';
 import { projectMessageForAgent } from './rich-reference-projection.ts';
 import { type HarnessSessionLease, harnessSessionOwner } from './session-lifecycle.ts';
@@ -49,6 +46,7 @@ import {
 } from './session-store.ts';
 import { settleStoppedTurn } from './stopped-turn.ts';
 import type { HarnessTokenUsage } from './token-usage.ts';
+import { planTurnFiles, readTurnFileDigests, withTurnFiles } from './turn-files.ts';
 import { openTurnNotices, returnUnconsumedNotices } from './turn-notices.ts';
 import { createTurnPhaseLog } from './turn-phase-log.ts';
 import { attestComposedDrain, composeTurnPrompt, type TurnDelivery } from './turn-prompt.ts';
@@ -62,7 +60,6 @@ export interface HarnessTurnInput extends TurnDelivery {
     agentRoot: string;
     conversationStyle?: string | null;
     env: Record<string, string>;
-    factoryKind: 'cove' | 'ordinary';
     homeDir: string;
     initialRole: string | null;
     modelId: string;
@@ -174,13 +171,6 @@ async function executeHarnessTurn(
     try {
         const sessionId = session.runtimeSessionId ?? `${input.agentId}-${session.generation}`;
         const resumeFrom = session.resumeState ?? undefined;
-        const coveGuidance = await prepareCoveGuidanceForTurn({
-            activity: input.activity,
-            activityKey: instructionActivityKey,
-            agentRoot: input.agentRoot,
-            factoryKind: input.factoryKind,
-            drive: input.drive,
-        });
         // Remove only an unresumable cold generation; successful sessions retain resume state.
         if (!(resumeFrom || session.runtimeSessionId)) {
             await rm(join(input.agentRoot, '.agent-runs', sessionId), {
@@ -196,7 +186,6 @@ async function executeHarnessTurn(
             resumed: resumeFrom !== undefined,
             // What a resume will carry; the live session's own `isResume` decides it after start.
             update: updateFor(resumeFrom !== undefined),
-            versionCanApply: coveGuidance.versionCanApply,
             versionDrift: hausAgentVersionDrift,
         });
         const reasoningChanged = session.effectiveReasoningEffort !== input.reasoningEffort;
@@ -221,16 +210,16 @@ async function executeHarnessTurn(
         });
         await phase('session ready');
         const instructionsUpdate = updateFor(live.isResume);
-        const memory = await planMemoryDelivery({
+        const files = await planTurnFiles({
+            drive: input.drive,
             isResume: live.isResume,
-            receipt: session.deliveredMemoryDigest,
+            session,
             wake,
-            memoryPath: input.drive.memory,
         });
         const record = turnSessionRecord(session, {
             composed,
             instructionsUpdate,
-            memory,
+            ...files,
             reasoningEffort: input.reasoningEffort,
             runtimeSessionId: live.sessionId,
         });
@@ -250,15 +239,13 @@ async function executeHarnessTurn(
         const noProgress = new AbortController();
         const turnSignal = AbortSignal.any([noProgress.signal, input.signal ?? noProgress.signal]);
         const turn = await live.startTurn({
-            // The update and memory lead, outside the projection: neither is a message.
+            // The update, rules, and memory lead, outside the projection: none is a message.
             prompt: withInstructionsUpdate(
                 instructionsUpdate,
-                withMemory(
-                    memory,
+                withTurnFiles(
+                    files,
                     projectMessageForAgent({
-                        content: [coveGuidance.notice, turnContent, skillNotice?.text]
-                            .filter(Boolean)
-                            .join('\n\n'),
+                        content: [turnContent, skillNotice?.text].filter(Boolean).join('\n\n'),
                         enabledSkillIds: skillNames,
                     })
                 )
@@ -337,15 +324,11 @@ async function executeHarnessTurn(
             input.agentRoot,
             record.completed(ended, {
                 bootstrapFingerprint,
-                coveGuidanceCanApply: coveGuidance.versionCanApply,
-                memoryDigest: await readMemoryDigest(input.drive.memory),
+                ...(await readTurnFileDigests(input.drive, files.rules)),
                 modelId: input.modelId,
                 runtimeId: input.runtimeId,
             })
         );
-        if (coveGuidance.refreshPending && coveGuidance.refreshCanComplete) {
-            await clearPendingCoveGuidanceRefresh(input.agentRoot);
-        }
         if (skillNotice) {
             await clearManagedSkillChangeNotice(input.agentRoot, skillNotice);
         }

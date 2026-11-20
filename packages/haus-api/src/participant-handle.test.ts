@@ -12,9 +12,11 @@ describe('participant handles', () => {
 
     test('rejects reserved handles case-insensitively for every participant kind', () => {
         expect(participantHandleSchema.safeParse('SYSTEM').success).toBe(false);
-        expect(participantHandleSchema.safeParse('cove').success).toBe(false);
         expect(participantHandleSchema.safeParse('HAUS').success).toBe(false);
-        expect(participantHandleSchema.safeParse('HAUS').success).toBe(false);
+    });
+
+    test('accepts cove as an ordinary handle', () => {
+        expect(participantHandleSchema.parse('Cove')).toBe('cove');
     });
 
     test('suggests a valid handle from a profile without coupling future changes', () => {

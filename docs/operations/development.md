@@ -117,15 +117,18 @@ worktree's data across runs. On later boots it applies any new checked-in
 PostgreSQL migrations before starting Haus Server, so an existing worktree
 database stays current with main. If that migration step fails, the database
 predates the checked-in migration baseline: move
-`~/.haus/dev/<worktree-id>/postgres` aside and rerun to bootstrap fresh. On first use, Server creates one demo Server with
-the Agents Blippy and Tiny, avatars for them and for you, the `#all` and
+`~/.haus/dev/<worktree-id>/postgres` aside and rerun to bootstrap fresh. A dev database
+that ran a draft of migration `0129_drive.sql` before D2 merged fails every Drive push with
+`column "base_revision_id" does not exist`; move it aside once the same way. Production never
+ran the draft. On first use, Server creates one demo Server with
+the Agents Blippy and Tiny, avatars for them and for you, the `#haus` and
 `#product` Channels, starter messages with inline replies, four `GEN` Tasks started from Channel
 messages (one in flight and one waiting with the Agents, two handed to you), and one MCP
 connection — enough to open any surface without hand-building data
 (`seed-server.ts`, `seed-demo-tasks.ts`). It then
 seeds the activity the Inbox is a lens over: unread lines in both Channels and
 both Agent DMs (Tiny's DM ends on its unanswered stale-copy question; Blippy's DM line already has
-your reply), and Cove @mentioning you with its rename question in `#onboarding-owner`. It also
+your reply), and Blippy @mentioning you with its rename question in `#product`. It also
 seeds one claim Blippy left stalled (shown
 on Blippy's profile under **Stopped before finishing**), one
 settled Worker, and seven days of Agent turns. That activity is idempotent and separate,
@@ -148,8 +151,8 @@ Gallery runs belong to a dedicated **UI gallery (unattached samples)** Computer 
 created credential is discarded. The attached development Computer never receives these runs for
 reconciliation, and the seed creates no deliveries or external jobs. Running timestamps age
 naturally into stale states; these are static examples, not a simulated provider. The bootstrap
-always resolves the real Computer through onboarding, so adding the gallery cannot replace its
-attachment. Restarting and opening the dev workspace adds missing gallery data without resetting
+always resolves the real Computer by its deterministic local attachment credential, so adding the
+gallery cannot replace its attachment. Restarting and opening the dev workspace adds missing gallery data without resetting
 existing messages; subsequent bootstraps leave it alone.
 
 An idempotent seed (`seed-automation-causes.ts`) adds **#automations**: Blippy and Tiny answers
@@ -263,7 +266,7 @@ The runner starts after the Server with `HAUS_SERVER_URL` set to the Server orig
 `HAUS_RUNNER_DATA_DIR` under the worktree's dev state directory, beside the Computer's data root.
 It inherits only a narrow shell environment, never the Server's secrets, and it gets model logins
 only from the Server: connect them in Settings → Models ([model connections](../../specs/model-connections.md)),
-which needs `HAUS_SECRETS_KEY` from the Development `Haus Secrets Key` item. Without
+which needs `HAUS_SECRETS_KEY` from the Development `Secrets Key - Haus` item. Without
 `HAUS_AGENT_LOOP=runner`, nothing changes.
 
 The live Claude Agent SDK test spends real quota and runs only on request:
@@ -292,7 +295,7 @@ Computer keeps its macOS-only pieces behind platform seams:
   release-asset host); elsewhere install a release package by hand.
 
 Turns need a signed-in runtime CLI on the host, exactly as on a Mac. The dev
-seed puts Cove, Blippy, and Tiny on Codex. Cloud sessions handle this
+seed puts Blippy and Tiny on Codex. Cloud sessions handle this
 automatically: `.agents/cloud/install.sh` installs the Codex CLI the Codex driver pins
 (`runtime/codex/pin/`), and `.agents/cloud/start.sh` signs it in each session
 with the Development OpenAI key. Elsewhere on Linux, do the same by hand:
@@ -302,8 +305,7 @@ npm install -g @openai/codex@0.159.0
 varlock printenv HAUS_OPENAI_API_KEY | codex login --with-api-key
 ```
 
-Restart the stack after signing in so Computer reports the runtime. A Cove whose
-setup already failed recovers on its own once the inventory includes Codex. The
+Restart the stack after signing in so Computer reports the runtime. The
 cloud install also exposes Playwright's Chromium as `chromium` and installs
 `agent-browser`, so a headless Chromium started with a dedicated
 `--user-data-dir` and `--remote-debugging-port=0` can be connected for the
@@ -381,7 +383,7 @@ hand; the file regenerates each session.
 ## Activation Preview
 
 In development builds, `/prototype/activation` renders every activation surface — sign-in, Server
-choice and creation, invitations, Computer login, and Cove onboarding — as
+choice and creation, invitations, and Computer login — as
 independently addressable scenes for design iteration. Each scene mounts the
 real component; a fixture tRPC client
 (`apps/website/src/features/activation-preview/`) answers its Haus API calls,
@@ -409,15 +411,13 @@ local backend, Server, Computer, and PostgreSQL processes.
 
 Use [Testing](testing.md) for test lanes and e2e rules.
 
-### Repeating the opening and waiting experience
+### Repeating the opening experience
 
-Create a fresh Server from Settings → Servers and leave it without a Computer. Reload its
-`/s/<slug>` URL to exercise real authentication and Server loading into setup. This does not
-change the seeded `/dev` Server or its attached Computer.
+Create a fresh Server from Settings → Servers. It opens straight into the App with the Haus
+project and no Agents or Computer. Reload its `/s/<slug>` URL to exercise real authentication and
+Server loading. This does not change the seeded `/dev` Server or its attached Computer.
 
-The dev-only activation preview also includes `/prototype/activation/sign-in-loading`,
-`/prototype/activation/onboarding/preview-connect-computer`,
-`/prototype/activation/onboarding/preview-member`, and
-`/prototype/activation/onboarding/preview-admin`. These render the actual components with fixture
-responses for quick visual checks; they do not prove authentication or real Server transitions.
-Use the focused `onboarding-entry.spec.ts` browser test for those Server transitions.
+The dev-only activation preview also includes `/prototype/activation/sign-in-loading`, which renders
+the actual loading frame with fixture responses for quick visual checks; it does not prove
+authentication or real Server transitions. The `servers.spec.ts` App e2e covers creating a Server
+and opening it.

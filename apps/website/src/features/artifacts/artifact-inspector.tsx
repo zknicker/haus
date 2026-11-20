@@ -3,23 +3,27 @@ import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Separator } from '@heroui/react';
 import { Fragment } from 'react';
 import { SettingsFact } from '../settings/layout/settings-text.tsx';
+import type { RevisionView } from './artifact-compare-url.ts';
 import { artifactKindLabel, formatArtifactBytes, formatArtifactDate } from './artifact-format.ts';
-import { ArtifactRevisions } from './artifact-revisions.tsx';
+import { ArtifactHistory } from './artifact-history.tsx';
+import { artifactTextRenderer } from './artifact-text.ts';
 import { artifactFileKind } from './icons/artifact-file-kind.ts';
 import { useArtifactCreatorDirectory } from './use-artifact-creator-directory.ts';
 
 /**
- * File facts and revision history beside the preview. Images add their pixel
- * size and, when the file records one, print density.
+ * File facts and History beside the preview. Images add their pixel size
+ * and, when the file records one, print density.
  */
 export function ArtifactInspector({
     artifact,
-    revisionHref,
     serverId,
+    slug,
+    viewHref,
 }: {
     artifact: ArtifactRecord;
-    revisionHref: (revisionId: string) => string;
     serverId: string;
+    slug: string;
+    viewHref: (view: RevisionView) => string;
 }) {
     const directory = useArtifactCreatorDirectory(serverId);
     const image = artifact.image;
@@ -56,10 +60,12 @@ export function ArtifactInspector({
                     </Fragment>
                 ))}
             </ItemCardGroup>
-            <ArtifactRevisions
+            <ArtifactHistory
                 artifactId={artifact.artifact_id}
-                revisionHref={revisionHref}
+                canCompare={artifactTextRenderer(artifact) !== null}
                 serverId={serverId}
+                slug={slug}
+                viewHref={viewHref}
                 viewingRevisionId={artifact.revision_id}
             />
         </aside>

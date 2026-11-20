@@ -23,6 +23,7 @@ export async function listServerComputers(
             createdAt: computersTable.createdAt,
             health: computersTable.health,
             id: computersTable.id,
+            inventoryInvalidAt: computersTable.inventoryInvalidAt,
             lastConnectedAt: computersTable.lastConnectedAt,
             operatingSystem: computersTable.operatingSystem,
             productVersion: computersTable.productVersion,

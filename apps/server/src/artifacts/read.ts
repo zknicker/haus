@@ -71,6 +71,22 @@ export async function getArtifactAtPath(
     return metadata;
 }
 
+/** The live file at `path` as an App record, at `revisionId` when that revision is its own. */
+export async function getArtifactRecordAtPath(
+    db: HausDatabase,
+    actor: ArtifactActor,
+    origin: string,
+    path: string,
+    revisionId?: string
+) {
+    const access = await artifactAccess(db, actor);
+    const artifact = await liveArtifactAtPath(db, access.serverId, path);
+    if (!artifact) {
+        throw new ArtifactError(`Nothing lives at \`${path}\`.`, 404, 'NOT_FOUND');
+    }
+    return (await getArtifact(db, actor, origin, artifact.id, revisionId)).record;
+}
+
 /** Every ready revision of one artifact, newest revision number first, 50 per page. */
 export async function listArtifactVersions(
     db: HausDatabase,

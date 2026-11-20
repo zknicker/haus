@@ -113,4 +113,7 @@ carry a `cloud-agent-work` body, and each `cloudAgentWork.listActive` row drops 
 Message fields for a `location` plus the delegating Agent's stored `agentName`. A protocol-10
 client gets the update-required response. App protocol 13 is the Channels-and-Tasks cutover
 ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md)): Threads, boards, and the Task
-Inbox are gone from the wire, and Tasks are places.
+Inbox are gone from the wire, and Tasks are places. App protocol 14 removes Server onboarding
+([ADR 0059](../adr/0059-haus-starts-empty-without-cove.md)): `ServerDetail.onboarding`,
+`Agent.factoryKind`, and `server.createCove` are gone, so a protocol-13 App gets the
+update-required response instead of failing to decode.

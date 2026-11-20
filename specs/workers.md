@@ -641,7 +641,7 @@ W2 migrates every caller and deletes the cloud agent path in one change.
 - `cloud_agent_work` inbox rows become `worker_report`, `worker_stall`, or `pull_request` items by
   their notice.
 - Each Project's default place becomes the default provider of the Computer that launched the
-  Server's newest cloud agent work (migration 0138, in W3). A Server with none leaves defaults
+  Server's newest cloud agent work (migration 0142, in W3). A Server with none leaves defaults
   unset. The migration never
   turns **Workers can run here** on. Cloud places keep working without it, and local execution
   stays off until the attaching person, an Owner, or an Admin turns it on.
@@ -664,7 +664,7 @@ until W4 and the Project settings UI replace them. Each says what retires it.
   **Make default**, below, which leaves the order this spec's [default place](#places) names.
 - **Make default as the last fallback.** The per-Computer **Make default** cloud provider is the
   third step above. It retires when the Project settings UI ships the default place.
-- **Repos until the Project settings UI ships them.** Migration 0138 backfills `project_repos`
+- **Repos until the Project settings UI ships them.** Migration 0142 backfills `project_repos`
   from each Project's Workers' `repository`, skipping taskless history. A start that names a
   `--repo` the Project lacks adds it to the Project's repos. `WORKER_REPO_UNKNOWN` applies only
   when `--repo` is omitted and the Project has no repo or several. A Computer place still needs a

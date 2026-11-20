@@ -81,10 +81,12 @@ drive/agents/<handle>/
 ```
 
 A page is written under `drive/agents/<handle>/workbench/`, and its `page` fence names that
-cwd-relative path, which the App opens through the workspace read. A card written before Drive
-names `workbench/<file>`; when no such file exists in the workspace, the read resolves it under the
-Agent's area. That fallback (`apps/computer/src/legacy-workbench-path.ts`) is the one legacy path
-read Drive keeps, and it goes once pages open from Drive (D5).
+cwd-relative path, which the App opens from Drive by path
+([pages.md](../docs/internals/pages.md#card-and-pane-flow)). A card written before Drive names
+`workbench/<file>`, which the App reads as `agents/<handle>/workbench/<file>`. Page cards no longer
+reach the workspace read; the Computer's fallback for `workbench/` paths
+(`apps/computer/src/legacy-workbench-path.ts`) now serves only `haus://workspace` links and goes
+with the workspace frames in R4.
 
 Everyone on the team can read the area, and Drive keeps every revision. The Agent's working
 directory stays `workspace/`; everything there outside `drive/` is local scratch, not Drive. The
@@ -93,9 +95,9 @@ Agent may add, rename, organize, and remove files in its area as its work requir
 ### The seed at launch
 
 A fresh Agent's area is seeded on its first launch, after the runner is minted and before the
-runtime starts, because only the launch knows the handle. Configure and Cove apply write no files;
-they record the seed facts in `configuration.json` (factory kind, name, description, and standing
-brief) for the launch to read. The ordinary factory seed provides:
+runtime starts, because only the launch knows the handle. Configure writes no files; it records
+the seed facts in `configuration.json` (name, description, and standing brief) for the launch to
+read. Every Agent gets the same factory seed:
 
 - `MEMORY.md` in the prompt template's shape: identity, role, empty standing
   preferences, initial Active Context, and an empty Key Knowledge index.
@@ -110,36 +112,11 @@ always filled a missing `MEMORY.md`. The seed writes each file to Drive with no 
 holds keeps Drive's copy: a seed never overwrites, exactly as the workspace seed never did. It
 then places the same bytes in the folder.
 
-Cove is the one distinct factory kind. Its seeded area is exactly:
-
-```text
-MEMORY.md
-notes/
-  onboarding_knowledge_faq.md
-  onboarding_objectives.md
-  onboarding_playbook.md
-skills/visuals/
-```
-
-Objectives contain 12 separately authored short summaries linked to the 12 seeded-tier Manual
-topics. Haus does not create `notes/recipes/` or copy any full Manual card, query-tier summary,
-archetype note, `save-as-a-skill`, or `haus-agent` skill. The durable Cove application receipt
-records the digest of the four-file factory manifest, computed from the release without reading
-the folder, and a replay checks the configuration only: the files live in Drive, where people may
-edit them.
-
-After creation, `MEMORY.md` and `notes/onboarding_objectives.md` are Cove-owned state and are never
-factory-refreshed. `notes/onboarding_playbook.md` and `notes/onboarding_knowledge_faq.md` are
-versioned factory guidance: before a Cove turn, Computer may replace them in the area only when
-their bytes exactly match a known prior factory release. Missing or edited files are preserved as
-conflicts. Both successful refreshes and conflicts appear in Agent Activity History. A successful
-refresh adds a one-turn private notice, naming the files by their path from the working directory
-(`drive/agents/<handle>/notes/`), that tells the existing model session to re-read them; it does
-not rotate the session.
-
-Factory guidance participates in the public Haus Agent version. A successful compatible refresh
-may advance that version; a missing or edited Cove file blocks the receipt from advancing and leaves
-the conflict visible as a failed update.
+A former Cove (ADR 0059) seeds, launches, and resets as an ordinary Agent. Its existing Drive
+area, including any `notes/onboarding_*.md` files, is ordinary Drive content: no factory refresh
+touches it, and a Full reset treats it as it treats any Agent's area. A `configuration.json` written before Computer protocol 42 may still
+carry `seed.factoryKind`; the Computer ignores the key. Leftover `cove-application.json` and
+`runtime/cove-guidance-refresh.json` files are never read and never deleted.
 
 ### Migration
 
@@ -230,15 +207,25 @@ and host import) land in the folder, and the turn-end push publishes them.
 
 The local root survives ordinary idle periods, Computer restarts, model or
 runtime changes, and session reset. Session reset creates fresh model context
-without erasing the workspace or the area. Full reset keeps `workspace/drive/`, because memory,
-notes and skills live in Drive, and `workspace/drive-refused/`. An Agent without
-`runtime/drive-seed.json` has not finished its migration, so full reset also keeps the legacy
-`workspace/MEMORY.md`, `notes/`, `pages/`, `workbench/` and `agents/<agent-id>/skills/`, and the
-next launch moves them; a reset never deletes a file that has not reached Drive. Full reset clears
-everything else: the rest of the workspace, `home/`, `runtime/` (with its seed receipt and the
-managed-skill record), `.agent-runs`, and `session.json`. It reseeds nothing. The next launch
-re-records the handle, finds `MEMORY.md` in the folder, and seeds nothing over it; a seed attempt
-would find the Drive paths occupied and keep them.
+without erasing the workspace or the area. Full reset starts on the Server: `agent.reset` deletes
+every live file under `agents/<handle>/` and increments `agents.reset_generation` in the same transaction
+that revokes the active run's credentials and rotates the session, so a reset that fails leaves
+all of it as it was. The files stay restorable from Recently deleted for
+`driveDeletedRetentionDays`. The Computer then discards the push of any turn the reset interrupted,
+aborts a push already in flight and waits for it to settle, so a stale folder never revives a
+deleted file, and clears `workspace/drive/` with the rest of the workspace. The Server refuses any
+straggler with `AGENT_RESET`. It keeps `workspace/drive-refused/`. An Agent without `runtime/drive-seed.json` has not
+finished its migration, so full reset also keeps the legacy `workspace/MEMORY.md`, `notes/`,
+`pages/`, `workbench/` and `agents/<agent-id>/skills/`, and the next launch moves them; a reset
+never deletes a file that has not reached Drive. Full reset clears everything else: `home/`,
+`runtime/` (with its seed receipt, folder bookkeeping and the managed-skill record), `.agent-runs`,
+and `session.json`. The next launch finds no receipt and no `MEMORY.md`, seeds the factory
+workspace and the factory-managed skills from `@haus/agent-workspace` as new files, and pulls every
+other area again. Restoring a deleted file whose path the seed took fails with `PATH_TAKEN` until
+the seeded file moves.
+
+History: D3 made full reset keep the Drive folder and reseed nothing. D7c restored the factory
+reset, with Recently deleted as the way back.
 
 Managed skills are seeded by comparing the bytes the Agent holds with the release, because the
 record does not survive a full reset. Each skill's held hash covers its regular files the way the

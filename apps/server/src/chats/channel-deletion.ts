@@ -6,7 +6,6 @@ import {
     attachmentsTable,
     chatsTable,
     remindersTable,
-    serverOnboardingTable,
     triggersTable,
 } from '../postgres/schema.ts';
 import { requireHausProjectId } from '../projects/haus-project.ts';
@@ -42,16 +41,6 @@ export async function purgeDeletedChannel(
     root: AttachmentRoot,
     input: DeletedChannelTarget
 ) {
-    if (await isOnboardingChannel(db, input)) {
-        // Deletion now refuses this channel; a tombstone from before that
-        // refusal is restored instead of purged, before any bytes are discarded.
-        await db
-            .update(chatsTable)
-            .set({ deletedAt: null, deletedByUserId: null })
-            .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
-        return [];
-    }
-
     const chats = await db
         .select({ id: chatsTable.id })
         .from(chatsTable)
@@ -162,18 +151,4 @@ async function rehomeRetiredAgents(tx: HausDatabase, input: DeletedChannelTarget
             .set({ homeProjectId: await requireHausProjectId(tx, input.serverId) })
             .where(homedHere);
     }
-}
-
-/** The durable onboarding record names this channel forever, so it is never purged. */
-export async function isOnboardingChannel(db: HausDatabase, input: DeletedChannelTarget) {
-    const [row] = await db
-        .select({ channelId: serverOnboardingTable.channelId })
-        .from(serverOnboardingTable)
-        .where(
-            and(
-                eq(serverOnboardingTable.serverId, input.serverId),
-                eq(serverOnboardingTable.channelId, input.chatId)
-            )
-        );
-    return row !== undefined;
 }

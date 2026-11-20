@@ -48,7 +48,7 @@ export async function deleteArtifact(
             access,
             await driveAreaOfPath(tx, access.serverId, artifact.path)
         );
-        await softDeleteArtifacts(tx, access.serverId, [{ artifact, placement }]);
+        await softDeleteArtifacts(tx, access.serverId, [{ artifact, placement }], access.authorKey);
     });
     artifactUpdatedTopic.announce({ artifactId, serverId: access.serverId });
     return { ok: true };
@@ -104,7 +104,8 @@ export async function deleteArtifactVersion(
 export async function softDeleteArtifacts(
     tx: HausDatabase,
     serverId: string,
-    files: readonly { artifact: Artifact; placement: DrivePlacement }[]
+    files: readonly { artifact: Artifact; placement: DrivePlacement }[],
+    deletedBy: string
 ) {
     if (files.length === 0) {
         return;
@@ -133,6 +134,7 @@ export async function softDeleteArtifacts(
         .update(artifacts)
         .set({
             deletedAt: new Date(),
+            deletedBy,
             publicLinkCreatedAt: null,
             publicLinkCreatorAgentId: null,
             publicLinkCreatorUserId: null,

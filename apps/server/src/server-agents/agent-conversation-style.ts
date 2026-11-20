@@ -45,7 +45,7 @@ export async function updateAgentConversationStyle(
 
 /**
  * Applies a conversation style change to one Agent. Absent fields stay; null or a blank style
- * clears. Cove's product-owned identity refuses a conversation style but keeps an emoji.
+ * clears.
  */
 export async function writeAgentConversationStyle(
     db: HausDatabase,
@@ -55,11 +55,6 @@ export async function writeAgentConversationStyle(
     const current = await selectConversationStyle(db, agent);
     if (!current) {
         throw new AgentConfigDeniedError('No configured Agent exists with that id.');
-    }
-    if (current.factoryKind === 'cove' && change.conversationStyle) {
-        throw new AgentConfigDeniedError(
-            "Cove's product-owned identity cannot take a conversation style."
-        );
     }
     const set = {
         ...(change.conversationStyle === undefined
@@ -105,7 +100,6 @@ async function selectConversationStyle(db: HausDatabase, agent: AgentRef) {
     const [row] = await db
         .select({
             conversationStyle: agentsTable.conversationStyle,
-            factoryKind: agentsTable.factoryKind,
             signatureEmoji: agentsTable.signatureEmoji,
         })
         .from(agentsTable)

@@ -24,6 +24,8 @@ export const artifactsTable = pgTable(
         creatorUserId: text('creator_user_id'),
         currentRevisionId: text('current_revision_id'),
         deletedAt: timestamp('deleted_at', { withTimezone: true }),
+        /** Who deleted the file, as an author key (`agent:<id>` or `user:<id>`); null while live. */
+        deletedBy: text('deleted_by'),
         id: text('id').primaryKey(),
         nextRevision: integer('next_revision').notNull().default(1),
         /** Canonical drive path, NFC-normalized (specs/artifact-drive.md). */
@@ -47,6 +49,10 @@ export const artifactsTable = pgTable(
         index('artifacts_server_path_prefix')
             .on(table.serverId, sql`${table.pathKey} text_pattern_ops`)
             .where(sql`${table.deletedAt} is null`),
+        check(
+            'artifacts_deleted_by_shape',
+            sql`${table.deletedBy} is null or ${table.deletedBy} ~ '^(agent|user):.+$'`
+        ),
         check(
             'artifacts_creator_shape',
             sql`num_nonnulls(${table.creatorAgentId}, ${table.creatorUserId}) = 1`

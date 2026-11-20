@@ -4,7 +4,12 @@ import type { ArtifactAccess } from '../../artifacts/access.ts';
 import { lockLiveServer } from '../../artifacts/move.ts';
 import { ArtifactError } from '../../artifacts/storage.ts';
 import type { HausDatabase } from '../../postgres/connection.ts';
-import { agentRunTriggersTable, drivePushesTable, workersTable } from '../../postgres/schema.ts';
+import {
+    agentRunTriggersTable,
+    agentsTable,
+    drivePushesTable,
+    workersTable,
+} from '../../postgres/schema.ts';
 import { taskIdOfAssignmentKey } from '../../tasks/task-assignment-envelope.ts';
 import { findTaskByChatId } from '../../tasks/task-chat.ts';
 import { closePushIn } from './close.ts';
@@ -53,6 +58,21 @@ export async function requireOpenPush(tx: HausDatabase, access: PushAgentAccess,
     return push;
 }
 
+export async function requireRunSinceReset(tx: HausDatabase, push: DrivePush) {
+    const [agent] = await tx
+        .select({ resetGeneration: agentsTable.resetGeneration })
+        .from(agentsTable)
+        .where(and(eq(agentsTable.serverId, push.serverId), eq(agentsTable.id, push.agentId)))
+        .limit(1);
+    if (agent && agent.resetGeneration !== push.resetGeneration) {
+        throw new ArtifactError(
+            `A full reset replaced run \`${push.id}\`, so its push writes nothing.`,
+            409,
+            'AGENT_RESET'
+        );
+    }
+}
+
 async function openPushIn(
     tx: HausDatabase,
     delivery: ConflictDelivery,
@@ -91,6 +111,7 @@ async function openPushIn(
         .values({
             agentId,
             id: pushId,
+            resetGeneration: source.resetGeneration,
             serverId: access.serverId,
             taskId: source.taskId,
             workerId: access.worker?.workerId ?? null,
@@ -122,10 +143,15 @@ async function pushSource(
                 )
             )
             .limit(1);
-        if (!worker) {
+        const [agent] = await tx
+            .select({ resetGeneration: agentsTable.resetGeneration })
+            .from(agentsTable)
+            .where(and(eq(agentsTable.serverId, access.serverId), eq(agentsTable.id, agentId)))
+            .limit(1);
+        if (!(worker && agent)) {
             throw notDispatched(pushId);
         }
-        return { taskId: worker.taskId };
+        return { resetGeneration: agent.resetGeneration, taskId: worker.taskId };
     }
     const [trigger] = await tx
         .select()
@@ -141,7 +167,7 @@ async function pushSource(
     if (!trigger) {
         throw notDispatched(pushId);
     }
-    return { taskId: await runTask(tx, trigger) };
+    return { resetGeneration: trigger.resetGeneration, taskId: await runTask(tx, trigger) };
 }
 
 async function runTask(tx: HausDatabase, trigger: typeof agentRunTriggersTable.$inferSelect) {

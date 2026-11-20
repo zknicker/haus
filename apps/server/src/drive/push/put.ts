@@ -22,7 +22,7 @@ import { writableDrivePath } from '../areas.ts';
 import { isRefusal, pushRevisionRequestId, requirePushPath } from './outcomes.ts';
 import { landPushPut } from './put-land.ts';
 import { type PushRequest, putRequest, recordRefusal, replayPut, storedOutcome } from './replay.ts';
-import { type DrivePush, openPush, requireOpenPush } from './session.ts';
+import { type DrivePush, openPush, requireOpenPush, requireRunSinceReset } from './session.ts';
 
 export interface DrivePushOptions {
     agentDelivery: Pick<AgentDelivery, 'enqueue'>;
@@ -158,6 +158,7 @@ async function reservePut(
         if (stored) {
             return { stored };
         }
+        await requireRunSinceReset(tx, write.push);
         const { path: placed } = await writableDrivePath(tx, access, write.path);
         await requireStorageBudget(tx, access.serverId, write.budget);
         const requestId = pushRevisionRequestId(write.requestId);

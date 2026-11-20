@@ -88,10 +88,10 @@ test('a Server holding real Tasks purges completely', async () => {
     expect(await counts()).toEqual([
         {
             follows: 1,
-            keys: 3,
+            keys: 2,
             labels: 1,
             message_links: 1,
-            projects: 3,
+            projects: 2,
             task_chats: 2,
             tasks: 2,
         },

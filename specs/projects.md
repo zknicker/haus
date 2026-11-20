@@ -33,7 +33,7 @@ Workers and their places are [ADR 0056](../docs/adr/0056-agents-run-quiet-worker
 
   The Haus project is the channel whose `chats.is_all` is true, exactly one per Server; the flag
   stays on the channel row and the wire `Chat.isAll` until an explicit rename, and `projectSchema`
-  exposes it as `isHaus`. The default place landed with W3 (migration 0138). A check keeps the
+  exposes it as `isHaus`. The default place landed with W3 (migration 0142). A check keeps the
   Computer id set exactly when the place is `computer`, and the API renders it as
   `computer:<computerId>`.
   Repos are `project_repos` rows ([Repos](#repos)). Home Agents are `agents.home_project_id`
@@ -155,8 +155,9 @@ starts with a digit is prefixed with `P` before step 2.
 
 ## Generalists
 
-- An Agent whose home is the Haus project is a **generalist**. Cove is one, and every Agent created
-  without a named Project starts as one.
+- An Agent whose home is the Haus project is a **generalist**. Every Agent created without a named
+  Project starts as one. A new Server has none: the Haus project holds the generalists people put
+  there, and may hold none ([ADR 0059](../docs/adr/0059-haus-starts-empty-without-cove.md)).
 - A generalist hears the Haus project the way any Agent hears its home. It may start a Task in any
   Project. When it acts in a Project, its turn input carries that Project's `AGENTS.md` the first
   time in a session ([ADR 0054](../docs/adr/0054-drive-holds-what-agents-know-and-follow.md)

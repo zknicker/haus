@@ -58,6 +58,22 @@ test('Unread reads the demo Chats with their last line', async () => {
     expect(dms.every((chat) => chat.unreadCount > 0 || chat.lastMessage === null)).toBe(true);
 });
 
+test('Blippy @mentions the owner in #product', async () => {
+    const mentions = (await harness.sql`
+        select message.content
+        from chat_messages message
+        join chats on chats.server_id = message.server_id and chats.id = message.chat_id
+        join agents on agents.server_id = message.server_id and agents.id = message.author_agent_id
+        where message.server_id = ${serverId}
+          and chats.name = 'product'
+          and agents.handle = 'blippy'
+          and ${userId} = any(message.mentioned_user_ids)
+    `) as { content: string }[];
+    expect(
+        mentions.filter((mention) => mention.content.includes('Rename #product to #build?'))
+    ).toHaveLength(1);
+});
+
 test('Unread holds Tiny’s inline answer in the DM; the claim is on Claims', async () => {
     const agents = await owner.trpc.agent.list.query({ serverId });
     const agentId = (handle: string) => agents.find((agent) => agent.handle === handle)?.id;
@@ -124,7 +140,7 @@ test('the roster reads seven days of turns for every demo Agent', async () => {
     // The Inbox seed's turns.
     expect(turnsByHandle.get('blippy')).toBe(13);
     expect(turnsByHandle.get('tiny')).toBe(9);
-    expect(turnsByHandle.get('cove')).toBe(2);
+    expect([...turnsByHandle.keys()].sort()).toEqual(['blippy', 'tiny']);
 
     const blippyId = agents.find((agent) => agent.handle === 'blippy')?.id ?? '';
     const blippyTurns = await owner.trpc.agent.turns.query({
@@ -210,20 +226,21 @@ test('UI gallery reads the attachment combinations and isolates live samples', a
         'stopped',
         'working',
     ]);
-    const [onboarding] =
-        await harness.sql`select computer_id from server_onboarding where server_id = ${serverId}`;
+    const [devComputer] = await harness.sql`
+        select computer_id from agents where server_id = ${serverId} and handle = 'blippy'
+    `;
     expect(
         await listComputerWorker(database.db, {
             serverId,
-            computerId: onboarding.computer_id,
+            computerId: devComputer.computer_id,
         })
     ).toEqual([]);
     const active = works.filter(
         (entry) => entry.worker.status === 'working' || entry.worker.status === 'queued'
     );
     expect(active).toHaveLength(9);
-    expect(active.every((entry) => entry.worker.carrierComputerId !== onboarding.computer_id)).toBe(
-        true
-    );
+    expect(
+        active.every((entry) => entry.worker.carrierComputerId !== devComputer.computer_id)
+    ).toBe(true);
     expect(works.every((entry) => entry.worker.providerUrl === null)).toBe(true);
 });

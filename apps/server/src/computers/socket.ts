@@ -12,7 +12,6 @@ import { clearStartRejectedHolds } from '../agent-delivery/failure-hold.ts';
 import { onAgentLifecycle } from '../agent-delivery/lifecycle.ts';
 import type { InvocationRouter } from '../agent-invocations/invocation-router.ts';
 import type { ArtifactStorage } from '../artifacts/storage.ts';
-import { sendPendingCoveApplication } from '../onboarding/create-cove.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computerUpdatedTopic } from '../realtime/topics.ts';
 import type { ThoughtSummarizer } from '../server-agents/agent-thought-summarizer.ts';
@@ -195,7 +194,6 @@ export function startComputerAttachmentSocket(
                     readServerRuntimeSettingsCommand(db, computer.serverId)
                 )
                 .catch(() => undefined);
-            void sendPendingCoveApplication(db, connections, computer.id).catch(() => undefined);
             // Idempotent reconnect: resend unacknowledged deliveries and drain
             // any pending inbox for this Computer's Agents.
             void clearStartRejectedHolds(db, computer.id)

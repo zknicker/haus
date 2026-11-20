@@ -139,6 +139,14 @@ test('every W3 start refusal code reads in plain words', () => {
     }
 });
 
+test('Haus hands WORKER.md to every Worker turn, so the brief carries only the work', () => {
+    const topic = getManualTopic('workers');
+    expect(topic?.body).toContain(
+        "`drive/agents/<your handle>/WORKER.md` holds the rules every Worker of yours follows. Haus puts it, with the team and Project AGENTS.md, in each Worker's first turn and sends it again after it changes"
+    );
+    expect(topic?.related).toContain('rules');
+});
+
 test('work split for other Agents is sibling Tasks; a claim stays inside the conversation', () => {
     const body = getManualTopic('claims')?.body ?? '';
     expect(body).toContain('genuinely new work inside a conversation');

@@ -2,15 +2,9 @@ import { expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { commandGroups } from '../apps/computer/src/agent-cli.ts';
 import type { SubCommand } from '../apps/computer/src/agent-cli/subcommand.ts';
-import {
-    coveGuidanceConflictNotice,
-    coveGuidanceRefreshNotice,
-    coveTurnGuidanceNotice,
-} from '../apps/computer/src/harness/cove-guidance-refresh.ts';
 import { workerCommandGroups } from '../apps/computer/src/worker-cli/worker-cli.ts';
 import { manualTopics, resolveManualTopic } from '../packages/agent-manual/src/index.ts';
 import { renderAgentInstructions } from '../packages/agent-prompt/src/index.ts';
-import { coveOnboardingPlaybook } from '../packages/agent-workspace/src/cove-factory-guidance.ts';
 
 // A Worker turn's `haus` is its own scope (`haus worker report`), and guidance names both.
 const workerGroups: Record<string, SubCommand[]> = workerCommandGroups(() => {
@@ -19,10 +13,9 @@ const workerGroups: Record<string, SubCommand[]> = workerCommandGroups(() => {
 const scopes: Record<string, SubCommand[]>[] = [commandGroups, workerGroups];
 
 // Validate executable references against the registries that dispatch Agent and Worker commands.
-test('Manual and Cove guidance reference registered Haus subcommands and flags', () => {
+test('Manual and prompt guidance reference registered Haus subcommands and flags', () => {
     const texts = [
         ...manualTopics.map((topic) => topic.body),
-        coveOnboardingPlaybook,
         renderAgentInstructions({
             agentId: 'test',
             agentName: 'Test',
@@ -33,9 +26,6 @@ test('Manual and Cove guidance reference registered Haus subcommands and flags',
             runtimeVersion: 'test',
             workspacePath: '/workspace',
         }),
-        coveTurnGuidanceNotice('cove', 'cove')!,
-        coveGuidanceRefreshNotice('cove'),
-        coveGuidanceConflictNotice([], 'cove'),
     ];
     let references = 0;
     const recovery = [
@@ -74,31 +64,8 @@ test('Manual and Cove guidance reference registered Haus subcommands and flags',
     expect(references).toBeGreaterThan(0);
 });
 
-test('Cove notices and the playbook use the same offer-state and send-status vocabulary', async () => {
-    const { coveCoordinationGuidance } =
-        await import('../packages/agent-workspace/src/cove-coordination-guidance.ts');
-    const notice = coveTurnGuidanceNotice('cove', 'cove')!;
-    const states = coveCoordinationGuidance.match(/Keep review_offer_state[^:]+: ([^.]+)\./u)![1]!;
-    const playbookStates = states.split(/,\s*| or /u).map((state) => state.trim());
-    const direct = [...notice.matchAll(/review_offer_state: (\w+)/gu)].map((match) => match[1]!);
-    const answer = notice.match(/Write (\w+) after[^.]+, (\w+) on no, (\w+) on later\./u)!;
-    expect(new Set([...direct, ...answer.slice(1)])).toEqual(new Set(playbookStates));
-    const statuses = (text: string) =>
-        new Set(text.match(/offer_send_status \(([^)]+)\)/u)![1]!.split(', '));
-    expect(statuses(notice)).toEqual(statuses(coveCoordinationGuidance));
-    expect(playbookStates).toHaveLength(5);
-    expect(statuses(notice).size).toBe(5);
-    expect(notice).toContain('Custom playbook or notes disabling offers take precedence');
-});
-
-test('literal recipe references in all Manual and Cove guidance resolve', () => {
-    for (const body of [
-        ...manualTopics.map((topic) => topic.body),
-        coveOnboardingPlaybook,
-        coveTurnGuidanceNotice('cove', 'cove')!,
-        coveGuidanceRefreshNotice('cove'),
-        coveGuidanceConflictNotice([], 'cove'),
-    ]) {
+test('literal recipe references in all Manual guidance resolve', () => {
+    for (const body of manualTopics.map((topic) => topic.body)) {
         for (const [topic] of body.matchAll(/recipes\/[a-z-]+\/[a-z][a-z-]+/gu)) {
             expect(resolveManualTopic(topic), topic).not.toBeNull();
         }

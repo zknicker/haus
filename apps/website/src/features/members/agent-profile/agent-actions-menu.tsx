@@ -18,7 +18,11 @@ import { useAgentState } from '../../../hooks/members/use-agent-state.ts';
 import { useAgentStop } from '../../../hooks/members/use-agent-stop.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
-import { type AgentAction, disabledAgentActions, fullResetCopy } from './agent-actions-model.ts';
+import {
+    type AgentAction,
+    disabledAgentActions,
+    fullResetConfirmation,
+} from './agent-actions-model.ts';
 import { type AgentSection, canOpenAgentSection } from './agent-sections.ts';
 
 const menuIconSize = 16;
@@ -105,7 +109,6 @@ export function AgentActions({
         setDeleteOpen(false);
         onDeleted();
     });
-    const resetCopy = fullResetCopy(agent.factoryKind);
     const disabledKeys = new Set(
         disabledAgentActions({
             isPending: remove.isPending || reset.isPending || restart.isPending || stop.isPending,
@@ -143,7 +146,9 @@ export function AgentActions({
                                 <AlertDialog.Icon status="danger" />
                                 <AlertDialog.Heading>Full Reset?</AlertDialog.Heading>
                             </AlertDialog.Header>
-                            <AlertDialog.Body>{resetCopy.confirmation}</AlertDialog.Body>
+                            <AlertDialog.Body>
+                                {fullResetConfirmation(agent.displayName)}
+                            </AlertDialog.Body>
                             <AlertDialog.Footer>
                                 <Button
                                     isDisabled={reset.isPending}
