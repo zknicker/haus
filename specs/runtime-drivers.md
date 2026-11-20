@@ -312,20 +312,54 @@ secrets wrapper and the runtime search path, and `LANG`, `LC_ALL` and `TMPDIR` w
 returns an image file as an image. The Computer sends images as they are, up to 5 MiB, and the
 runner resizes them for the model it serves, because the runner knows that model's limits and the
 Computer carries no image library. `view` of a PDF, recognized by its `%PDF-` magic bytes rather
-than its extension, returns the file's bytes as `application/pdf`, up to 5 MiB, and the runner
-turns them into text for every model. The Computer carries no PDF library either. `create`
-overwrites an existing file.
+than its extension, returns the file's bytes as `application/pdf`, up to 25 MiB, and the runner
+turns them into text and page images for every model. The Computer carries no PDF library
+either. `create` overwrites an existing file.
 
-**PDFs reach the model as text.** The runner extracts each page's text with `unpdf` (2.1.0,
-pinned exactly; a maintained pure-JS wrapper over Mozilla's PDF.js that runs in Bun with no
-native canvas), puts `[Page <n> of <total>]` before each page, and serves the result as `view`
-serves a text file: numbered lines, the first 2,000 lines or 50 KiB, and a `view_range` to read on.
-A PDF with no text layer says so. Claude models get the same text as Pi models. A live probe on
-2026-11-19 (Claude Agent SDK 0.3.326, Haiku 4.5, `claude-pdf-live.test.ts`) returned an SDK MCP
-tool result holding an MCP `resource` block with an `application/pdf` blob. The SDK saved the
-blob to disk and sent the model only the text "Binary content (application/pdf, 895 bytes) saved
-to …", so the model could not read it. A document block through a tool result waits on the SDK
-carrying one.
+**PDFs reach the model as text and page images**, as Claude Code's native Read showed Claude the
+pages themselves. The runner extracts each page's text with `unpdf` (2.1.0, pinned exactly; a
+maintained wrapper over Mozilla's PDF.js that runs in Bun) and puts `[Page <n> of <total>]`
+before each page. A page with no text reads `(No text on this page.)`. On a PDF, `view_range`
+selects pages, not lines: `[start, end]` counts pages from 1, and an end of `-1` runs to the last
+page. A view shows whole pages until the next would pass 2,000 lines or 50 KiB, then names the
+`view_range` that continues, in pages. A first page over that cap shows its first 50 KiB and says
+it was cut. The text carries no line numbers, because no PDF line is a `view_range` target.
+
+The runner renders a page as an image when:
+
+- **It has no text layer.** Its extracted text is empty, as a scanned page's is.
+- **It carries figures.** Its pdf.js operator list paints images (image XObjects, inline images,
+  and image masks) whose transformed areas add up to at least 3% of the page, or paints at least
+  16 paths (`constructPath` with a fill or stroke). The 3% floor drops a header logo or an icon
+  and keeps a two-inch figure on a Letter page. The 16-path floor drops underlines and table
+  rules and keeps a chart's bars, ticks and gridlines. Only pages with text need the operator
+  list, and only pages whose text the view shows are inspected.
+- **The Agent asked for it.** Every page a `view_range` selects returns its text and its image.
+
+A view without `view_range` renders at most 5 pages, and one with `view_range` at most 10. A
+view whose figure or scanned pages pass the bound names them in a line and gives the
+`view_range` that shows one, and a range wider than 10 pages names the pages it showed without
+images and the `view_range` that shows them. Each image fits its longer side to 1,568 px, the
+size above which Claude downscales an image and within what GPT and Gemini models take. A page
+encodes as PNG, or as JPEG at quality 0.8 when it has no text or its images cover at least half
+of it, because a scan rendered as PNG runs to several MB. A page that fails to render keeps its
+text and a line naming the failure. The tool result holds the parts in page order, each rendered
+page's image after its text. Claude models get them as MCP `image` blocks, and Pi models get the
+same image parts `view_image` returns; pi-ai replaces an image with a placeholder for a model
+without image input.
+
+Rendering runs on the runner with `unpdf`'s `renderPageAsImage` over `@napi-rs/canvas` (1.1.0,
+pinned exactly): Skia compiled to a Node-API addon, with no browser and no system libraries. It
+ships prebuilt per platform as optional dependencies, and `bun.lock` records
+`@napi-rs/canvas-linux-x64-gnu` and `@napi-rs/canvas-linux-arm64-gnu`, so the Dockerfile's
+`bun install --frozen-lockfile --filter @haus/runner --production` on `oven/bun:*-debian` picks
+the binary for the image's architecture with no build step and no install script.
+
+A live probe on 2026-11-19 (Claude Agent SDK 0.3.326, Haiku 4.5, `claude-pdf-live.test.ts`)
+returned an SDK MCP tool result holding an MCP `resource` block with an `application/pdf` blob.
+The SDK saved the blob to disk and sent the model only the text "Binary content
+(application/pdf, 895 bytes) saved to …", so the model could not read it. A document block
+through a tool result waits on the SDK carrying one, so Claude models get page images instead.
 
 ### `haus` runs on the runner
 
@@ -592,10 +626,12 @@ during a transfer settles as `cancelled` or `timed-out` and the Agent's next inv
   `agents/<agent-id>/runtime/invocations/<invocation-id>.log`, kept seven days, and the result
   names that path.
 - `view` returns the first 2,000 lines or 50 KiB of text, with a line naming the `view_range` to
-  read on. Images are capped at 5 MiB and sent unresized. PDFs are capped at 5 MiB, the image
-  cap, which keeps a PDF well under the 50 MiB attachment limit and leaves room for a document
-  block if Claude models ever take one; the runner applies the text cap to the extracted text. `file-read` returns raw bytes up to its
-  `maxBytes`, because it feeds `haus` commands rather than the model.
+  read on. Images are capped at 5 MiB and sent unresized. PDFs are capped at 25 MiB, half the
+  50 MiB attachment limit and under the 32 MB a Claude request takes, which leaves room for a
+  document block if Claude models ever take one. The runner never sends the PDF itself to a
+  model; it applies the text cap to the extracted text and the page bound to the images.
+  `file-read` returns raw bytes up to its `maxBytes`, because it feeds `haus` commands rather
+  than the model.
 - Every frame stays under 1 MiB.
 
 ### Large payloads
@@ -605,7 +641,7 @@ move through the existing streamed attachment upload (`attachment-upload-stream.
 frame carries a reference: `{ kind: 'attachment', attachmentId, mediaType, sizeBytes, sha256 }`.
 
 - **Results, machine to runner.** A Computer whose result payload is over the limit (an image
-  from `view` or `view_image` up to 5 MiB, a `file-read` for
+  from `view` or `view_image` up to 5 MiB, a PDF from `view` up to 25 MiB, a `file-read` for
   `attachment upload --path` or `image generate --reference`) streams the bytes to the Server
   under the invocation id with its Computer credential, then sends `invoke-result` with the
   reference. The runner reads the bytes with the run credential when the model or the `haus`
@@ -798,8 +834,9 @@ settings, reminder scripts, host skill discovery, inventory, updates, and Worker
 | A payload is stored and read only under its invocation and Computer, its digest and size match, a run reads only its own invocations' payloads, and no general attachment route reads or attaches one | `apps/server/test/agent-invocation-payloads.test.ts`, `apps/runner/src/invocations/invocation-results.test.ts` | R3 |
 | A result or write over 1 MiB moves as an attachment reference, and no frame exceeds 1 MiB | `apps/computer/src/invocations/large-payload.test.ts` | R2 |
 | A runner upload binds to its dispatch key, a 2 MiB `haus` write reaches the machine through the Computer download with a matching digest, and another run, tool call, or Agent can neither bind nor read it | `apps/server/test/agent-invocation-uploads.test.ts`, `apps/runner/src/haus/haus-cli.test.ts` | R3c |
-| `view` of a PDF returns `application/pdf` bytes by its magic bytes and refuses one over 5 MiB; the runner gives Pi and Claude models its paged text | `apps/computer/src/invocations/editor-pdf.test.ts`, `apps/runner/src/tools/pdf-view.test.ts` | R3c |
-| An SDK MCP tool result cannot carry a PDF to Claude, so Claude gets the text | `apps/runner/src/claude/claude-pdf-live.test.ts` (live) | R3c |
+| `view` of a PDF returns `application/pdf` bytes by its magic bytes, streams one over 5 MiB, and refuses one over 25 MiB | `apps/computer/src/invocations/editor-pdf.test.ts` | R3c |
+| The runner gives Pi and Claude models a PDF's paged text plus images of exactly its scanned and figure pages, `view_range` selects pages and returns each one's image, and the image bound names the pages it left out | `apps/runner/src/tools/pdf-view.test.ts`, `apps/runner/src/tools/pdf-view-bounds.test.ts` | R3c |
+| An SDK MCP tool result cannot carry a PDF to Claude, so Claude gets text and page images | `apps/runner/src/claude/claude-pdf-live.test.ts` (live) | R3c |
 | A lone `haus` command runs on the runner, and a composed one is refused with `HAUS_NOT_ALONE` | `apps/runner/src/haus/haus-command.test.ts` | R3 |
 | A `haus` path argument never reads the runner's disk: workspace commands are refused, path flags read the machine, and every CLI command is classified | `apps/runner/src/haus/haus-cli.test.ts`, `command-access.test.ts` | R3 |
 | A runner crash after recording a dispatch accepted reports `unknown` and never sends it again | `apps/runner/src/dispatch/dispatch-ledger-crash.test.ts` | R3 |
