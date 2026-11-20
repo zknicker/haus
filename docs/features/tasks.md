@@ -42,16 +42,16 @@ the Task's Details (state, assignee, priority, labels, due date) and its attache
 per Worker, each attached pull request no card names with its state, checks, and review, and any
 reminder the Agent set on the Task, such as "checks back at 7:35".
 
-A Worker card names its place and repository, wears its status as a chip, and links the pull
-request its reports named. Under that sit the newest report in full, the ask with the person it
-names, and the Drive files it cites, each opening at the cited revision. One muted line states the
-most urgent live fact: why an unreported turn failed, a working turn gone quiet, a stop in flight,
-a follow-up waiting on the working turn, the wait for a slot, or the latest activity. A settled
-report has no line. The card ends in a composer while its Worker is open. What a person sends posts
-in the Task and becomes the Worker's next turn, and while a turn is live and the field is empty
-the send button is Stop. In the conversation, a report and a person's follow-up each carry a
-context line naming the Worker and its place; pressing it shows the card.
-On a narrower pane, the band's Details control opens the same Details.
+A **Workers** list holds one row per Worker: its place mark, its title, a pull request chip once a
+report names one, and a status chip (Working, Needs you, Done, Failed, Stopped, or Queued while no
+turn runs). A needs-you row shows its question on a second line. Rows carry no composer and no
+report text. Opening a row opens the Worker's own page beside the Task: each turn with who asked
+and what, the report once in full with its ask and the Drive files it cites (each opening at the
+cited revision), and a composer at the bottom whose send button is Stop while a turn is live and
+the field is empty. Open in the provider and Copy link sit behind the page's ••• menu. In the
+conversation, a report is a one-line notice naming its Worker and outcome ("Fix iPad composer
+baseline needs you"), and a person's follow-up carries a "To Worker on Cursor" context line. Both
+open the Worker's page.
 
 **Mentioned in** lists the messages that reference the Task. A section with nothing to list is
 absent. **Copy reference** copies the bare key, which is what a message references.

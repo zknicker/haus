@@ -33,7 +33,7 @@ export function projectChatMessage(
     directories: ChatMessageDirectories
 ): ProjectedChatMessageRow {
     const actor = messageActor(message);
-    const senderType = message.author.kind === 'agent' ? ('agent' as const) : ('user' as const);
+    const senderType = messageSenderType(message);
     const agentId = message.author.kind === 'agent' ? message.author.agentId : null;
 
     return {
@@ -135,7 +135,7 @@ export function projectChatMessageLayout(
             id: layout.id,
             reply: layout.reply,
             sender: messageSender(layout),
-            senderType: layout.author.kind === 'agent' ? 'agent' : 'user',
+            senderType: messageSenderType(layout),
             sendNonce: layout.nonce,
             sourceSessionId: null,
             sourceSessionKey: `hosted:${agentId ?? layout.author.kind}`,
@@ -157,4 +157,11 @@ function messageActor(message: Pick<ChatMessage, 'author'>): TranscriptActor {
     return message.author.kind === 'agent'
         ? { id: message.author.agentId, kind: 'agent' }
         : { id: message.author.userId, kind: 'participant' };
+}
+
+function messageSenderType(message: Pick<ChatMessage, 'author' | 'body'>) {
+    if (message.body.kind === 'worker-report') {
+        return 'system' as const;
+    }
+    return message.author.kind === 'agent' ? ('agent' as const) : ('user' as const);
 }

@@ -45,6 +45,10 @@ export function taskRoute(slug: string, key: string) {
     return `${tasksRoute(slug)}/${encodeURIComponent(key)}`;
 }
 
+export function workerRoute(slug: string, workerId: string) {
+    return `${serverRoute(slug)}/workers/${encodeURIComponent(workerId)}`;
+}
+
 /**
  * Server-wide token usage, a Settings section so the settings rail stays put
  * while you read it.

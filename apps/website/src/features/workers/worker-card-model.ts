@@ -89,6 +89,21 @@ export function isWorkerStopping(work: Pick<Worker, 'turns'>) {
     return liveWorkerTurns(work).some((turn) => turn.stopRequestedAt !== null);
 }
 
+export function workerRowStatus(work: Pick<Worker, 'status' | 'turns'>) {
+    const live = liveWorkerTurns(work);
+    if (live.some((turn) => turn.status === 'running')) {
+        return 'working' satisfies WorkerStatus;
+    }
+    return live.length > 0 ? ('queued' satisfies WorkerStatus) : work.status;
+}
+
+export function workerRowQuestion(work: Pick<Worker, 'status' | 'turns'>) {
+    const [newest] = work.turns;
+    return newest?.outcome?.kind === 'report' && newest.outcome.report.outcome === 'needs-you'
+        ? (newest.outcome.report.ask ?? null)
+        : null;
+}
+
 export function canFollowUpWorker(work: Pick<Worker, 'closedAt' | 'closingAt' | 'taskId'>) {
     return work.taskId !== null && work.closedAt === null && work.closingAt === null;
 }

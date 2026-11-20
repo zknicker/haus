@@ -467,20 +467,25 @@ reports on its own, so it wakes nobody.
 
 ## The card
 
-The Task page shows one card per Worker in the attached-work panel, newest first, then attached
-pull requests no card names, then pending reminders. W4 builds it. The card is presentation of the
-record, never a chat row, and shows:
+The Task page lists its Workers in the attached-work panel, then attached pull requests no Worker
+names, then pending reminders. W4 builds it, following how a Capy parent shows its children
+(the note `w4-capy-research.md` in the program's notes folder).
 
-- the place (the Computer's name, or the provider's mark), the title, and a status chip;
-- the pull request row from the newest reading;
-- the newest report: outcome, text in full, the ask with its person, and the cited files at their
-  cited revisions;
-- one status line, the most urgent of: the failure reason; `No update in <d>` when working with
-  no activity for ten minutes; **Status unconfirmed** when the place or carrier is offline;
-  **Stopping**; the follow-up note; queue position while `queued`; else the latest activity;
-- a composer, enabled while the Task is open and the Worker is not closed. While a turn works it
-  says the message goes in when the turn ends;
-- **Stop** while a turn is queued or working, and **Open in `<provider>`** for cloud Workers.
+- **The row** shows the place mark, the title, a pull request chip from the newest reading or
+  report, and a status chip. A Worker reads Working while any turn runs, so a follow-up queued
+  behind a working turn never reads Queued. A needs-you report puts its ask on a second line.
+  Rows carry no composer and no report text.
+- **The Worker page** (`/s/<slug>/workers/<workerId>`) opens beside the Task. It shows each turn
+  oldest first: the inputs with their authors, then the outcome. A report shows in full with its
+  ask, its person, and the cited files at their cited revisions. An outcome nobody wrote shows its
+  failure reason. A live turn shows the one status line: no update in `<d>`, Stopping, a
+  follow-up waiting on the working turn, a wait for a slot, or the latest activity.
+- **The composer** sits at the bottom of the Worker page only, enabled while the Task has a chat,
+  is open, and the Worker is not closed. While a turn is live and the field is empty, its send
+  button is **Stop**. **Open in `<provider>`** and **Copy link** sit behind the page's ••• menu.
+- **In the Task chat** a report Message renders as a one-line notice ("`<title>` needs you") and a
+  person's follow-up carries a "To Worker on `<place>`" context line. Both open the Worker page,
+  so the report text shows once.
 
 The Task summary exposes the count and place labels of its live Workers, and the people named by
 needs-you reports that no later turn answered, for the sidebar row ("Forge · 6 workers · mini,

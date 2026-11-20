@@ -7,6 +7,8 @@ import {
     legacyWorkerSummary,
     newestWorkerReport,
     workerCardLine,
+    workerRowQuestion,
+    workerRowStatus,
     workerStatusText,
 } from './worker-card-model.ts';
 import { workerTurnFixture as turn, workerFixture as work } from './worker-fixture.ts';
@@ -222,6 +224,49 @@ test('a legacy turn summary stands in for the report it never had', () => {
                         outcome: { kind: 'report', report: doneReport },
                         summary: 'Opened PR #4.',
                     }),
+                ],
+            })
+        )
+    ).toBeNull();
+});
+
+test('a follow-up waiting behind a working turn still reads Working, and a lone wait reads Queued', () => {
+    const behind = work({
+        turns: [
+            turn({ input: [followUp], status: 'queued', turnId: 'wkt_two' }),
+            turn({ status: 'running', turnId: 'wkt_one' }),
+        ],
+    });
+
+    expect(workerRowStatus(behind)).toBe('working');
+    expect(workerRowStatus(work({ status: 'queued' }))).toBe('queued');
+    expect(workerRowStatus(work({ turns: [turn({ status: 'completed' })] }))).toBe('done');
+});
+
+test('only an open needs-you report asks a question on its row', () => {
+    const asking = work({
+        turns: [
+            turn({
+                outcome: {
+                    kind: 'report',
+                    report: {
+                        ...doneReport,
+                        ask: 'Is the 2px shift intended?',
+                        outcome: 'needs-you',
+                    },
+                },
+                status: 'pending_input',
+            }),
+        ],
+    });
+
+    expect(workerRowQuestion(asking)).toBe('Is the 2px shift intended?');
+    expect(
+        workerRowQuestion(
+            work({
+                turns: [
+                    turn({ input: [followUp], status: 'running', turnId: 'wkt_two' }),
+                    ...asking.turns,
                 ],
             })
         )

@@ -2,14 +2,13 @@ import type { TaskDetail } from '@haus/api';
 import { EmptyState } from '@heroui-pro/react';
 import { Button } from '@heroui/react';
 import { Alert02Icon, Task01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useTask } from '../../hooks/tasks/use-task.ts';
 import { useServerContext } from '../servers/server-context.ts';
 import { tasksRoute } from '../servers/server-routes.ts';
 import { PageColumn } from '../shell/page-column.tsx';
-import { DockedWorkerProvider } from '../workers/docked-worker.tsx';
+import { WorkerSummariesProvider } from '../workers/worker-summaries.tsx';
 import { TaskConversation } from './conversation/task-conversation.tsx';
 import { TaskDetailsCard } from './details/task-details-card.tsx';
 import { TaskHistoryDetails } from './details/task-history-details.tsx';
@@ -48,9 +47,8 @@ function TaskDetailView({
     panelShown: boolean;
     task: TaskDetail;
 }) {
-    const dockRef = React.useRef<HTMLDivElement>(null);
     return (
-        <DockedWorkerProvider dock={dockRef} docked={panelShown} workers={task.attachedWork}>
+        <WorkerSummariesProvider workers={task.attachedWork}>
             <div
                 className={
                     panelShown
@@ -64,16 +62,13 @@ function TaskDetailView({
                     title={`${task.key} ${task.title}`}
                 />
                 {panelShown ? (
-                    <div
-                        className="flex min-h-0 flex-col gap-3 overflow-y-auto pt-4 pb-6"
-                        ref={dockRef}
-                    >
+                    <div className="flex min-h-0 flex-col gap-3 overflow-y-auto pt-4 pb-6">
                         <TaskDetailsCard task={task} />
                         <TaskWorkPanel task={task} />
                     </div>
                 ) : null}
             </div>
-        </DockedWorkerProvider>
+        </WorkerSummariesProvider>
     );
 }
 

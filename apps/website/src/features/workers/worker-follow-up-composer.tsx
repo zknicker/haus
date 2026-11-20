@@ -82,15 +82,12 @@ export function WorkerFollowUpComposer({
 
     return (
         <PromptInput
-            layout="compact"
             lockInputOnRun={false}
             onStop={controls.stops ? requestStop : undefined}
             onSubmit={submit}
             onValueChange={changeText}
-            size="sm"
             status={controls.status}
             value={text}
-            variant="secondary"
         >
             <PromptInput.Shell>
                 <PromptInput.Content>

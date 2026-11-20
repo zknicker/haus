@@ -38,7 +38,8 @@ export type TabPage =
     | { kind: 'files'; chatId: string }
     | { kind: 'newTab' }
     | { kind: 'section'; section: AppSection }
-    | { kind: 'task'; taskKey: string };
+    | { kind: 'task'; taskKey: string }
+    | { kind: 'worker'; workerId: string };
 
 /**
  * Parses a tab location. App paths are `/s/<slug>/<section>/<id>…`; desktop
@@ -77,6 +78,8 @@ export function parseTabPage(location: TabLocation): TabPage {
                 : sectionPage(pathname, slug);
         case 'tasks':
             return tasksPage(first, second) ?? sectionPage(pathname, slug);
+        case 'workers':
+            return first ? { kind: 'worker', workerId: first } : sectionPage(pathname, slug);
         default:
             return sectionPage(pathname, slug);
     }
@@ -99,19 +102,8 @@ export type TabChat = Pick<
 
 export function resolveTabIdentity(page: TabPage, records: TabIdentityRecords): TabIdentity {
     switch (page.kind) {
-        case 'browser': {
-            const live = records.browserTab;
-            const url = live?.url || page.url;
-            return {
-                label: live?.title || page.title || url,
-                mark: {
-                    kind: 'favicon',
-                    loading: live?.loading ?? false,
-                    url: live?.faviconUrl ?? null,
-                },
-                place: url,
-            };
-        }
+        case 'browser':
+            return browserIdentity(page, records);
         case 'chat': {
             const chat = records.chats?.find((item) => item.id === page.chatId) ?? null;
             return chat ? chatIdentity(chat, records) : pending;
@@ -135,8 +127,9 @@ export function resolveTabIdentity(page: TabPage, records: TabIdentityRecords): 
             };
         case 'task':
             return { label: page.taskKey, mark: { kind: 'glyph', glyph: 'task' }, place: null };
+        case 'worker':
         case 'newTab':
-            return { label: 'New tab', mark: { kind: 'glyph', glyph: 'newTab' }, place: null };
+            return fixedIdentities[page.kind];
         case 'section':
             return {
                 label: sectionLabels[page.section],
@@ -150,6 +143,21 @@ export function resolveTabIdentity(page: TabPage, records: TabIdentityRecords): 
 export function chatPlace(chat: Pick<Chat, 'kind' | 'name'>): string {
     return chat.kind === 'channel' ? `#${chat.name ?? 'channel'}` : 'DM';
 }
+
+function browserIdentity(page: Extract<TabPage, { kind: 'browser' }>, records: TabIdentityRecords) {
+    const live = records.browserTab;
+    const url = live?.url || page.url;
+    return {
+        label: live?.title || page.title || url,
+        mark: { kind: 'favicon', loading: live?.loading ?? false, url: live?.faviconUrl ?? null },
+        place: url,
+    } satisfies TabIdentity;
+}
+
+const fixedIdentities = {
+    newTab: { label: 'New tab', mark: { kind: 'glyph', glyph: 'newTab' }, place: null },
+    worker: { label: 'Worker', mark: { kind: 'glyph', glyph: 'task' }, place: null },
+} as const satisfies Record<'newTab' | 'worker', TabIdentity>;
 
 const pending: TabIdentity = { label: '', mark: { kind: 'none' }, place: null };
 

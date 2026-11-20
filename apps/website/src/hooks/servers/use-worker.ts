@@ -29,6 +29,10 @@ export function useActiveWorker(serverId: string | undefined) {
     );
 }
 
+export function useWorkerRecord(serverId: string, workerId: string) {
+    return hausTrpc.worker.get.useQuery({ serverId, workerId }, queryPolicy.syncedSnapshot);
+}
+
 export function useWorkerSummary(serverId: null | string, workerId: string, enabled: boolean) {
     return hausTrpc.worker.get.useQuery(
         { serverId: serverId ?? '', workerId },

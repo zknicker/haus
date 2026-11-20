@@ -1,36 +1,38 @@
 import { expect, test } from 'bun:test';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { observable } from '@trpc/server/observable';
-import { renderToStaticMarkup } from 'react-dom/server';
-import { hausTrpc } from '../../lib/haus-server.tsx';
-import { DockedWorkerProvider } from './docked-worker.tsx';
 import { workerFixture } from './worker-fixture.ts';
 import { WorkerMessageContext } from './worker-message-context.tsx';
+import { WorkerReportNotice } from './worker-report-notice.tsx';
+import { WorkerSummariesProvider } from './worker-summaries.tsx';
+import { renderWorkerSurface } from './worker.test-utils.tsx';
 
-test('the context line renders at once from the Task attached work, before any Worker read', () => {
-    const queryClient = new QueryClient();
-    const client = hausTrpc.createClient({
-        links: [() => () => observable(() => () => undefined)],
-    });
-    const work = workerFixture({ id: 'wkr_one', title: 'Fix the composer' });
-    const html = renderToStaticMarkup(
-        <QueryClientProvider client={queryClient}>
-            <hausTrpc.Provider client={client} queryClient={queryClient}>
-                <DockedWorkerProvider dock={{ current: null }} docked workers={[work]}>
-                    <WorkerMessageContext
-                        body={{
-                            kind: 'worker-report',
-                            outcome: 'done',
-                            turnId: 'wkt_one',
-                            workerId: 'wkr_one',
-                        }}
-                        serverId="srv_one"
-                    />
-                </DockedWorkerProvider>
-            </hausTrpc.Provider>
-        </QueryClientProvider>
+const work = workerFixture({ id: 'wkr_one', title: 'Fix the composer' });
+
+test('a follow-up names its Worker at once from the Task, before any Worker read', () => {
+    const html = renderWorkerSurface(
+        <WorkerSummariesProvider workers={[work]}>
+            <WorkerMessageContext
+                body={{ kind: 'worker-follow-up', workerId: 'wkr_one' }}
+                serverId="srv_one"
+            />
+        </WorkerSummariesProvider>
     );
 
-    expect(html).toContain('Worker on Cursor');
+    expect(html).toContain('To Worker on Cursor');
     expect(html).toContain('Fix the composer');
+});
+
+test('a report is a one-line notice that names its Worker and outcome, never the report body', () => {
+    const html = renderWorkerSurface(
+        <WorkerSummariesProvider workers={[work]}>
+            <WorkerReportNotice
+                outcome="needs-you"
+                serverId="srv_one"
+                timestamp="2026-09-04T12:00:00.000Z"
+                workerId="wkr_one"
+            />
+        </WorkerSummariesProvider>
+    );
+
+    expect(html).toContain('Fix the composer');
+    expect(html).toContain('needs you');
 });

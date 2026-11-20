@@ -34,3 +34,16 @@ function personMessage(id: string, body: ChatMessage['body'], createdAt: string)
         runId: null,
     } satisfies ChatMessage;
 }
+
+test('a Worker report stands as a one-line system entry, never an Agent turn', () => {
+    const report = {
+        ...linkedMessage,
+        body: { kind: 'worker-report', outcome: 'done', turnId: 'wkt_one', workerId: 'wkr_one' },
+        id: 'msg_report',
+    } satisfies ChatMessage;
+    const rows = [projectChatMessageLayout(toChatMessageLayout(report), false)];
+
+    const [entry] = buildTranscriptEntries({ activeReplies: [], rows });
+
+    expect(entry?.kind).toBe('system');
+});

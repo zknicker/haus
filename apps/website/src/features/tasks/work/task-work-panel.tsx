@@ -1,12 +1,12 @@
 import type { TaskDetail } from '@haus/api';
-import { WorkerCard } from '../../workers/worker-card.tsx';
+import { WorkerRows } from '../../workers/worker-rows.tsx';
 import { TaskPullRequestCard } from './task-pull-request-card.tsx';
 import { pendingTaskReminders, reminderLine, standalonePullRequests } from './task-work-model.ts';
 
 export function TaskWorkPanel({
     task,
 }: {
-    task: Pick<TaskDetail, 'attachedWork' | 'chatId' | 'pullRequests' | 'reminders'>;
+    task: Pick<TaskDetail, 'attachedWork' | 'pullRequests' | 'reminders'>;
 }) {
     const pullRequests = standalonePullRequests(task.attachedWork, task.pullRequests);
     const reminders = pendingTaskReminders(task.reminders);
@@ -16,11 +16,14 @@ export function TaskWorkPanel({
 
     return (
         <aside aria-label="Attached work" className="flex min-w-0 flex-col gap-3">
-            {task.attachedWork.map((work) => (
-                <div className="scroll-my-4" data-work-id={work.id} key={work.id} tabIndex={-1}>
-                    <WorkerCard chatId={task.chatId} work={work} />
-                </div>
-            ))}
+            {task.attachedWork.length > 0 ? (
+                <section aria-label="Workers" className="flex min-w-0 flex-col gap-1">
+                    <h3 className="text-muted px-2 text-xs font-medium">
+                        Workers <span className="tabular-nums">{task.attachedWork.length}</span>
+                    </h3>
+                    <WorkerRows label="Workers" works={task.attachedWork} />
+                </section>
+            ) : null}
             {pullRequests.map((reading) => (
                 <TaskPullRequestCard key={reading.url} reading={reading} />
             ))}
