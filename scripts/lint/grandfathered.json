@@ -3336,7 +3336,6 @@
             "scripts/agent-tests/state.test.mjs",
             "scripts/agent-tests/sweep.mjs",
             "scripts/agent-tests/test-support.mjs",
-            "scripts/agent-tests/test-support.test.mjs",
             "scripts/agent-tests/turns.mjs",
             "scripts/agent-tests/voice-gate.mjs",
             "scripts/app-place-paths.ts",

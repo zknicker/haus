@@ -110,8 +110,8 @@ holds keeps Drive's copy: a seed never overwrites, exactly as the workspace seed
 then places the same bytes in the folder.
 
 A former Cove (ADR 0059) seeds, launches, and resets as an ordinary Agent. Its existing Drive
-area, including any `notes/onboarding_*.md` files, is its own content: the Computer neither
-refreshes nor removes it. A `configuration.json` written before Computer protocol 42 may still
+area, including any `notes/onboarding_*.md` files, is ordinary Drive content: no factory refresh
+touches it, and a Full reset treats it as it treats any Agent's area. A `configuration.json` written before Computer protocol 42 may still
 carry `seed.factoryKind`; the Computer ignores the key. Leftover `cove-application.json` and
 `runtime/cove-guidance-refresh.json` files are never read and never deleted.
 

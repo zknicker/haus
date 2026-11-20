@@ -180,8 +180,8 @@ end. The observations below remain historical records of what those runs saw and
 are not maintained against the current lanes.
 
 The Agent-creation scenario is deliberately excluded from the default lane. Run
-it only with `--include-opt-in` against a dev stack that has the seeded Blippy on a
-healthy attached Computer, and
+it only with `--include-opt-in` against a dev stack with a healthy attached
+Computer, where it provisions its own Agent, and
 `HAUS_AGENT_E2E_AVATAR_FIXTURE=1` with absolute fixture and request-log paths. It writes
 the normal transcript/report under `.context/agent-tests/<run>/` and performs
 exact-id Agent cleanup through the shared crash ledger.

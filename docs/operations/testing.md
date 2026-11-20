@@ -402,9 +402,10 @@ bun scripts/agent-tests/memory-feedback-grade.mjs [--since <stamp>] [--json]
 Run agent-test commands serially against one dev stack, because startup cleanup sweeps prior run
 records.
 
-The Agent-creation scenario is opt-in because it needs the seeded development
-Agent Blippy on an attached healthy Computer plus the local deterministic avatar
-fixture. Start the dev stack with an absolute JSONL path, then run the scenario:
+The Agent-creation scenario is opt-in because it needs the local deterministic
+avatar fixture. It provisions its own Agent on an attached healthy Computer, as
+other scenarios do. Start the dev stack with an absolute JSONL path, then run
+the scenario:
 
 ```sh
 HAUS_AGENT_E2E_AVATAR_FIXTURE=1 \
@@ -431,13 +432,9 @@ written under `.context/agent-tests/<run>/`; if the required Agent, Computer, or
 provider setup is unavailable, record that exact precondition gap rather than
 running a partial substitute.
 
-Blippy is a seeded standing Agent rather than a provisioned fixture, so the
-scenario owns its own starting state: it retires the Agents an earlier run had
-Blippy create and runs a Full Reset (`agent.reset` with `kind: 'full'`), waiting
-for the Computer to report a re-seeded `MEMORY.md`. The Owner asks in a channel
-the run creates rather than in a standing DM, which accumulates earlier creation
-requests. Rerunning the scenario against one dev stack therefore needs no
-restart.
+The Owner asks in a channel the run creates, and the run tracks the Agent its
+creator made so cleanup retires both. Rerunning the scenario against one dev
+stack therefore needs no restart.
 
 A scenario is one file under `scripts/agent-tests/scenarios/`, exporting a
 `name`, a one-sentence `contract` stating exactly what must be true, and a

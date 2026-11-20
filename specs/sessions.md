@@ -91,8 +91,7 @@ Sessions never rotate because of age or idleness. A new session starts only on:
    - *Session reset:* fresh context; workspace, `MEMORY.md`, and skills persist.
    - *Full reset:* fresh context plus a wiped workspace, including `MEMORY.md`;
      Agent-authored skills and runtime-local state are also wiped. Computer then
-     restores the factory workspace and current factory-managed skills: minimal
-     memory and only `visuals` today, the same for every Agent.
+     restores the factory seed, the same for every Agent.
    Session reset and Full reset rotate the agent token. Restart does not.
 
 Reasoning-effort changes apply on the next turn without rotating the session. The active turn

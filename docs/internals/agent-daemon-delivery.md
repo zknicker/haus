@@ -221,8 +221,8 @@ recovers durable context from its unchanged `MEMORY.md`, notes, and canonical
 Server history.
 
 Session reset preserves workspace, skills, identity, and Server history. Full
-reset restores the factory workspace—minimal `MEMORY.md`, the same for every
-Agent—and only the current factory-managed skills. Retirement is the only normal lifecycle
+reset works the same for every Agent; the [sessions spec](../../specs/sessions.md)
+says what it clears and reseeds. Retirement is the only normal lifecycle
 operation that removes the Agent execution host.
 
 Human Restart is distinct from session reset. Server requires the assigned
