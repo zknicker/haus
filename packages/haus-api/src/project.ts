@@ -76,11 +76,13 @@ export const projectListInputSchema = z.object({ serverId: idSchema }).strict();
 export const projectListSchema = z.array(projectSchema);
 
 /**
+ * - `COVE_HOME_FIXED`: moving Cove, whose home is always the Haus project.
  * - `PROJECT_HAS_AGENTS`: archiving or deleting a Project that is still some
  *   Agent's home; move them first.
  * - `PROJECT_NAME_FIXED`: renaming the Haus project's channel, which is always `haus`.
  */
 export const projectErrorCodeSchema = z.enum([
+    'COVE_HOME_FIXED',
     'PROJECT_HAS_AGENTS',
     'PROJECT_KEY_FIXED',
     'PROJECT_NAME_FIXED',

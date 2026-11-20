@@ -22,6 +22,7 @@ const router: MessageRouter = {
 const fixture = agentCreationFixture(router);
 let nonce = 0;
 let channelId: string;
+let novaAgentId: string;
 const send = (content: string, extra: { replyToMessageId?: string } = {}) =>
     fixture.owner.trpc.chat.send.mutate({
         chatId: channelId,
@@ -47,9 +48,10 @@ const mentionedOnly = async (): Promise<MentionScopeDecision> => ({
 });
 
 beforeAll(async () => {
+    novaAgentId = await fixture.createAgent('Nova', 'nova');
     channelId = (
         await createTestProject(fixture.owner, {
-            agentIds: [fixture.orbitAgentId, fixture.peerAgentId, fixture.coveAgentId],
+            agentIds: [fixture.orbitAgentId, fixture.peerAgentId, novaAgentId],
             name: 'mentions',
             serverId: fixture.serverId,
         })
@@ -65,7 +67,7 @@ test('a confident mention-only judgment delivers to the mentioned Agent alone', 
     const state = scopeCalls.at(-1);
     expect(state?.currentMessage.explicitAgentIds).toEqual([fixture.orbitAgentId]);
     expect(state?.eligibleAgentIds).toEqual(
-        [fixture.orbitAgentId, fixture.peerAgentId, fixture.coveAgentId].sort()
+        [fixture.orbitAgentId, fixture.peerAgentId, novaAgentId].sort()
     );
     expect(await audit(receipt.message.id)).toMatchObject({
         outcome: 'mentioned',
@@ -145,7 +147,7 @@ test('kept, uncertain, failed, timed-out and invalid judgments keep ordinary del
 
 test('mentioning every eligible Agent leaves nothing for Jev to narrow', async () => {
     const before = scopeCalls.length;
-    const receipt = await send('@orbit @peer @cove post your standup.');
+    const receipt = await send('@orbit @peer @nova post your standup.');
     expect(await inbox(receipt.message.id)).toHaveLength(3);
     expect(scopeCalls.length).toBe(before);
     expect(await audit(receipt.message.id)).toMatchObject({

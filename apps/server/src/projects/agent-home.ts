@@ -8,7 +8,7 @@ import { projectUpdatedTopic } from '../realtime/topics.ts';
 import { AgentConfigDeniedError } from '../server-agents/agent-config-errors.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { ProjectNotFoundError } from './project-errors.ts';
+import { CoveHomeFixedError, ProjectNotFoundError } from './project-errors.ts';
 
 export async function setAgentHome(
     db: HausDatabase,
@@ -19,7 +19,11 @@ export async function setAgentHome(
         await lockServerRow(tx, input.serverId);
         await requireHomeProject(tx, member, input);
         const [agent] = await tx
-            .select({ homeProjectId: agentsTable.homeProjectId, retiredAt: agentsTable.retiredAt })
+            .select({
+                factoryKind: agentsTable.factoryKind,
+                homeProjectId: agentsTable.homeProjectId,
+                retiredAt: agentsTable.retiredAt,
+            })
             .from(agentsTable)
             .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
             .limit(1);
@@ -28,6 +32,9 @@ export async function setAgentHome(
         }
         if (agent.retiredAt) {
             throw new AgentConfigDeniedError('A retired Agent has no home to move.');
+        }
+        if (agent.factoryKind === 'cove' && agent.homeProjectId !== input.projectId) {
+            throw new CoveHomeFixedError();
         }
         if (agent.homeProjectId !== input.projectId) {
             await moveAgentHome(tx, input);

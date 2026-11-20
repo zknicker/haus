@@ -146,6 +146,8 @@ starts with a digit is prefixed with `P` before step 2.
 
 - An Agent whose home is the Haus project is a **generalist**. Cove is one, and every Agent created
   without a named Project starts as one.
+- Cove always lives in the Haus project, so Haus is never unheard: `agent.setHome` refuses to move
+  it with `COVE_HOME_FIXED`, and the App never offers the move.
 - A generalist hears the Haus project the way any Agent hears its home. It also hears every
   Project that has no non-retired home Agent, its channel and Tasks, until a person homes an
   Agent there ([inbox.md](inbox.md#hearing)). So a new Server's `#onboarding-owner` reaches Cove,

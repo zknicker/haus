@@ -40,6 +40,13 @@ export class HausProjectNameError extends ProjectRefusalError {
     }
 }
 
+export class CoveHomeFixedError extends ProjectRefusalError {
+    constructor() {
+        super('COVE_HOME_FIXED', 'Cove always lives in the Haus project.');
+        this.name = 'CoveHomeFixedError';
+    }
+}
+
 export class ChannelNameTakenError extends Error {
     constructor() {
         super('A channel already uses that name.');

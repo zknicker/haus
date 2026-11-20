@@ -3,7 +3,7 @@ summary: The Project tRPC procedures (`project.create`, `project.update`, `proje
 read_when:
   - calling or changing `project.create`, `project.update`, `project.list`, or `project.onUpdated`
   - creating or renaming a channel, or changing its description, icon, color, or key
-  - handling `TASK_KEY_TAKEN`, `PROJECT_KEY_FIXED`, `PROJECT_HAS_AGENTS`, or `PROJECT_NAME_FIXED`
+  - handling `TASK_KEY_TAKEN`, `PROJECT_KEY_FIXED`, `PROJECT_HAS_AGENTS`, `PROJECT_NAME_FIXED`, or `COVE_HOME_FIXED`
   - reading a Project's home Agents or moving an Agent's home (`agent.setHome`)
 ---
 
@@ -52,5 +52,6 @@ Project refusals carry `data.project.code` on the tRPC error.
 | `PROJECT_KEY_FIXED` (`CONFLICT`) | A Task already carries this Project's key |
 | `PROJECT_NAME_FIXED` (`CONFLICT`) | Renaming the Haus project's channel, which is always `haus` |
 | `PROJECT_HAS_AGENTS` (`CONFLICT`) | `chat.archiveChannel` or `chat.deleteChannel` on a Project that is still some Agent's home; the message names them |
+| `COVE_HOME_FIXED` (`CONFLICT`) | `agent.setHome` moving Cove, whose home is always the Haus project |
 | `CONFLICT` "A channel already uses that name." | The name is taken by any channel, archived or deleted included |
 | `NOT_FOUND` | The chat is not a Project on the Server |

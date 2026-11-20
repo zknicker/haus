@@ -5,6 +5,7 @@ import { testAgent } from '../features/members/agent-fixtures.ts';
 import {
     agentHomeProject,
     hausProject,
+    homeIsFixed,
     projectCaptains,
     projectRefusalCode,
 } from './project-homes.ts';
@@ -21,15 +22,16 @@ const project = (chatId: string, name: string, homeAgentIds: string[], isHaus = 
         taskKeyId: `key_${chatId}`,
     }) satisfies Project;
 
-const haus = project('cht_haus', 'haus', ['agt_blippy'], true);
+const haus = project('cht_haus', 'haus', ['agt_blippy', 'agt_cove'], true);
 const ops = project('cht_ops', 'ops', ['agt_tiny', 'agt_nova']);
 const empty = project('cht_new', 'new', []);
 const projects = [haus, ops, empty];
 const blippy = testAgent({ handle: 'blippy', id: 'agt_blippy' });
+const cove = testAgent({ factoryKind: 'cove', handle: 'cove', id: 'agt_cove' });
 const tiny = testAgent({ handle: 'tiny', id: 'agt_tiny' });
 const nova = testAgent({ handle: 'nova', id: 'agt_nova' });
 const retired = testAgent({ handle: 'gone', id: 'agt_gone' });
-const agents = [blippy, tiny, nova, retired];
+const agents = [blippy, cove, tiny, nova, retired];
 
 describe('Project homes', () => {
     test('an Agent lives in the Project that lists it', () => {
@@ -50,6 +52,11 @@ describe('Project homes', () => {
         const { candidates, captains } = projectCaptains(projects, agents, 'cht_new');
         expect(captains).toEqual([]);
         expect(candidates.map(({ agent }) => agent.handle)).toEqual(['blippy', 'tiny', 'nova']);
+    });
+
+    test("only Cove's home is fixed, so it is never a candidate elsewhere", () => {
+        expect(homeIsFixed(cove)).toBe(true);
+        expect(homeIsFixed(blippy)).toBe(false);
     });
 
     test('a refusal reads its Project code from the Server error data', () => {

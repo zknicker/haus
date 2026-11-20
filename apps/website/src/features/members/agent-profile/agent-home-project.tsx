@@ -4,7 +4,7 @@ import { Label, ListBox, Select } from '@heroui/react';
 import { useAgentHomeMove } from '../../../hooks/projects/use-agent-home-move.ts';
 import { useProjects } from '../../../hooks/projects/use-projects.ts';
 import { useChatNavigationLayout } from '../../../hooks/servers/use-chats.ts';
-import { agentHomeProject } from '../../../lib/project-homes.ts';
+import { agentHomeProject, homeIsFixed } from '../../../lib/project-homes.ts';
 import { SettingsRowError } from '../../settings/layout/settings-text.tsx';
 
 export function AgentHomeProject({ agent }: { agent: Agent }) {
@@ -12,6 +12,7 @@ export function AgentHomeProject({ agent }: { agent: Agent }) {
     const { channelIds } = useChatNavigationLayout(agent.serverId);
     const move = useAgentHomeMove();
     const home = agentHomeProject(projects.data ?? [], agent.id);
+    const fixed = homeIsFixed(agent);
     const choices = (projects.data ?? []).filter(
         (project) => project === home || channelIds.includes(project.chatId)
     );
@@ -25,6 +26,11 @@ export function AgentHomeProject({ agent }: { agent: Agent }) {
                 <ItemCard>
                     <ItemCard.Content>
                         <ItemCard.Title>Home Project</ItemCard.Title>
+                        {fixed ? (
+                            <ItemCard.Description>
+                                Cove always lives in the Haus project.
+                            </ItemCard.Description>
+                        ) : null}
                         <SettingsRowError>
                             {move.error?.message ?? projects.error?.message}
                         </SettingsRowError>
@@ -33,7 +39,7 @@ export function AgentHomeProject({ agent }: { agent: Agent }) {
                         <Select
                             aria-label="Home Project"
                             className="w-48"
-                            isDisabled={!home || move.isPending}
+                            isDisabled={fixed || !home || move.isPending}
                             onChange={(projectId) => {
                                 if (typeof projectId === 'string' && projectId !== home?.chatId) {
                                     move.mutate({

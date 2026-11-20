@@ -41,6 +41,21 @@ test('a human-created Agent is a generalist unless the dialog names a home', asy
     expect(await readHome(agentId)).toBe(await readHausProjectId());
 });
 
+test('Cove always lives in the Haus project', async () => {
+    await expect(
+        fixture.owner.trpc.agent.setHome.mutate({
+            agentId: fixture.coveAgentId,
+            projectId: fixture.channelId,
+            serverId: fixture.serverId,
+        })
+    ).rejects.toEqual(
+        expect.objectContaining({
+            data: expect.objectContaining({ project: { code: 'COVE_HOME_FIXED' } }),
+        })
+    );
+    expect(await readHome(fixture.coveAgentId)).toBe(await readHausProjectId());
+});
+
 test('a Project key that names nothing refuses the whole creation before generation', async () => {
     fixture.setAvatarMode('success');
     const runner = await fixture.mintRunner('run_create_bad_home');
