@@ -111,11 +111,11 @@ function ProjectPicker({
             }}
             value={project?.id ?? null}
         >
-            <InlineSelect.Trigger className="gap-1.5">
+            <InlineSelect.Trigger>
                 {project ? (
                     <ChannelIconBox color={project.color} icon={project.icon} size="inline" />
                 ) : null}
-                <span className="truncate text-sm">{project?.name ?? 'Project'}</span>
+                <InlineSelect.Value>{() => project?.name ?? 'Project'}</InlineSelect.Value>
                 <InlineSelect.Indicator />
             </InlineSelect.Trigger>
             <InlineSelect.Popover className="w-64" placement="bottom start">
@@ -152,11 +152,11 @@ function CaptainPicker({
             }}
             value={captain?.id ?? null}
         >
-            <InlineSelect.Trigger className="gap-1.5">
+            <InlineSelect.Trigger>
                 {captain ? (
                     <EntityAvatar name={captain.displayName} size={18} src={captain.avatarUrl} />
                 ) : null}
-                <span className="truncate text-sm">{captain?.displayName ?? 'Captain'}</span>
+                <InlineSelect.Value>{() => captain?.displayName ?? 'Captain'}</InlineSelect.Value>
                 <InlineSelect.Indicator />
             </InlineSelect.Trigger>
             <InlineSelect.Popover className="w-56" placement="bottom start">

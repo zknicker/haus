@@ -866,6 +866,14 @@
     }
 
     /*
+     * Home's Project and Captain chips lead with a mark, so the trigger keeps
+     * Capy's tighter step between the mark and its name.
+     */
+    .home-composer .inline-select__trigger {
+        gap: calc(var(--spacing) * 1.5);
+    }
+
+    /*
      * Home's composer is Capy's elevated card, not a field: a surface fill and
      * the resting surface shadow (hairline ring plus lift) in place of the
      * field border. `--home-input-opacity`

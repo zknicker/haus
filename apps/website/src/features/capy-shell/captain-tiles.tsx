@@ -36,7 +36,7 @@ export function CaptainTiles({
     return (
         <CapySection action={action} label="Captains">
             {agentIds.length > 0 ? (
-                <ul aria-label="Captains" className="flex flex-wrap gap-y-[2px] ps-[1px]">
+                <ul aria-label="Captains" className="flex flex-wrap gap-y-0.5 ps-0.25">
                     {agentIds.map((agentId) => (
                         <li key={agentId}>
                             <CaptainTileLink
@@ -104,7 +104,7 @@ const CaptainTileLink = React.memo(function CaptainTileLink({
                     aria-current={isCurrent ? 'page' : undefined}
                     aria-label={label}
                     className={cn(
-                        'hover:bg-default flex cursor-[var(--cursor-interactive)] flex-col items-center gap-[3px] rounded-xl pt-[5px] pb-[4px]',
+                        'hover:bg-default flex cursor-[var(--cursor-interactive)] flex-col items-center gap-1 rounded-xl pt-1.5 pb-1.25',
                         isCurrent && 'bg-default'
                     )}
                     onFocus={preload}
@@ -131,7 +131,7 @@ const CaptainTileLink = React.memo(function CaptainTileLink({
                     </Badge.Anchor>
                     <span
                         aria-hidden="true"
-                        className="text-muted w-full truncate px-[2px] text-center text-xs leading-tight"
+                        className="text-muted w-full truncate px-0.5 text-center text-xs leading-tight"
                         ref={name.ref}
                     >
                         {tile.name}
