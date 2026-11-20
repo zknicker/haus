@@ -1,7 +1,10 @@
 import { join } from 'node:path';
-import type { AgentTurnSummary } from '@haus/api';
+import { type AgentTurnSummary, agentPathSegment } from '@haus/api';
 import type { RunnerConfig } from '../config.ts';
 import type { DispatchLedger, RecoveredDispatch } from '../dispatch/ledger.ts';
+import type { JournalUploads } from '../journal/journal-uploads.ts';
+import type { RunJournal } from '../journal/run-journal.ts';
+import { createTurnJournals } from '../journal/turn-journals.ts';
 import {
     type ConnectionBook,
     connectionForRun,
@@ -30,6 +33,7 @@ export function createTurnHost(input: {
     book: ConnectionBook;
     capacity?: CapacityReader;
     config: Pick<RunnerConfig, 'dataDir' | 'maxWarm'>;
+    journal?: JournalUploads;
     ledger: DispatchLedger;
     link: RunnerLink;
     log?: (line: string) => void;
@@ -46,6 +50,7 @@ export function createTurnHost(input: {
         ...(input.capacity ? { capacity: input.capacity } : {}),
         dataDir: input.config.dataDir,
         factory: harnesses.factory,
+        ...(input.journal ? { journal: input.journal } : {}),
         ledger: input.ledger,
         link: input.link,
         log,
@@ -58,6 +63,7 @@ export function createTurnHostWith(input: {
     capacity?: CapacityReader;
     dataDir: string;
     factory: RuntimeDriverFactory;
+    journal?: JournalUploads;
     ledger: DispatchLedger;
     link: RunnerLink;
     log: (line: string) => void;
@@ -66,9 +72,14 @@ export function createTurnHostWith(input: {
     const active = new Map<string, ActiveRun>();
     const queues = new Map<string, Promise<unknown>>();
     const paths = (agentId: string) => {
-        const agentDir = join(input.dataDir, 'agents', agentId);
+        const agentDir = join(input.dataDir, 'agents', agentPathSegment(agentId));
         return { agentDir, runtimeDir: join(agentDir, 'runtime') };
     };
+    const journals = createTurnJournals({
+        agentDirOf: (agentId) => paths(agentId).agentDir,
+        log: input.log,
+        ...(input.journal ? { uploads: input.journal } : {}),
+    });
 
     const execute = async (run: RunStart) => {
         const { start } = run;
@@ -103,8 +114,10 @@ export function createTurnHostWith(input: {
             send: (frame) => input.link.send(frame),
         });
         const connection = connectionForRun(input.book, run.modelConnectionId, start.modelId);
+        let journal: RunJournal | null = null;
         let result: RunTurnResult;
         try {
+            journal = await journals.open(start.agentId, start.runId);
             if (!connection) {
                 throw new SessionFailureError({
                     category: 'access',
@@ -119,6 +132,7 @@ export function createTurnHostWith(input: {
                 authority: run.authority,
                 connection,
                 factory: input.factory,
+                journal,
                 link: input.link,
                 log: input.log,
                 reasoningEffort: run.reasoningEffort,
@@ -143,6 +157,7 @@ export function createTurnHostWith(input: {
             }
         }
         activity.close(result.status === 'completed' ? 'completed' : result.status);
+        await journals.close(journal, start.runId, result);
         if (connection && status.afterTurn(connection, result) === 'failed') {
             void input.capacity?.afterAccessFailure(connection.id);
         }
@@ -187,6 +202,7 @@ export function createTurnHostWith(input: {
     ) => {
         const { start } = run;
         await run.tools.settle();
+        await journals.crashed(start.agentId, start.runId);
         const visible = await records.visible();
         await inboxStore(runtimeDir).consume(visible.map((message) => message.id));
         const at = new Date().toISOString();
@@ -214,6 +230,7 @@ export function createTurnHostWith(input: {
         for (const [agentId, toolCallIds] of byAgent) {
             await unknownToolCalls(paths(agentId).runtimeDir).add(toolCallIds);
         }
+        await journals.recovered(dispatches);
     };
 
     const host: TurnHost = {

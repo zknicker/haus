@@ -11,6 +11,7 @@ import {
 import type { RunnerConfig } from './config.ts';
 import type { DispatchLedger } from './dispatch/ledger.ts';
 import { type InvocationClock, systemInvocationClock } from './invocations/invocation-clock.ts';
+import type { JournalUploads } from './journal/journal-uploads.ts';
 import type { ConnectionBook } from './model-connections/connection-book.ts';
 import { createSignIns } from './pi/pi-sign-ins.ts';
 import type { RunnerLink, TurnHost } from './run-context.ts';
@@ -24,6 +25,7 @@ export function openServerLink(input: {
     book: ConnectionBook;
     config: Pick<RunnerConfig, 'runnerToken' | 'serverUrl'>;
     invocationClock?: InvocationClock;
+    journal?: JournalUploads;
     ledger: DispatchLedger;
     log?: (line: string) => void;
     reconnectDelaysMs?: readonly number[];
@@ -79,7 +81,7 @@ export function openServerLink(input: {
                 }
                 return;
             case 'agent-execution-journal-ack':
-                return;
+                return input.journal?.acknowledge(frame);
             case 'runner-model-connections':
                 return void input.book.replace(frame.connections);
             case 'runner-connection-credential-ack':
@@ -164,6 +166,13 @@ export function openServerLink(input: {
                 for (const frame of queued.splice(0)) {
                     current.send(JSON.stringify(frame));
                 }
+                input.journal?.connected((frame) => {
+                    if (socket !== current || !accepted) {
+                        return false;
+                    }
+                    current.send(JSON.stringify(frame));
+                    return true;
+                });
                 void input.book.resend(link);
                 markReady();
                 return;
@@ -176,6 +185,7 @@ export function openServerLink(input: {
             }
             socket = null;
             accepted = false;
+            input.journal?.disconnected();
             if (!closed) {
                 const delay = delays[Math.min(attempt, delays.length - 1)] ?? 30_000;
                 attempt += 1;
