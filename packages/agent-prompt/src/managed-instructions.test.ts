@@ -218,10 +218,11 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // Raised by exactly 13 (37,910 → 37,923) when the Files entry became Drive: edits happen in the drive/ folder, not haus files pull/push.
     // Lowered by exactly 79 (37,923 → 37,844): only people create Projects, so `haus channel create`
     // and its Manual pointer went (-80), and the welcome rule names #haus for #all (+1).
-    // Raised by exactly 188 (37,844 → 38,032): How to organize memory describes AGENTS.md (standing
+    // Raised by exactly 199 (37,844 → 38,043): How to organize memory describes AGENTS.md (standing
     // rules, delivered on change) and WORKER.md beside MEMORY.md (ADR 0054 decisions 7 and 10, +208);
-    // the Standing Preferences placeholder says only "preferences people show in passing" (-20).
-    expect(prompt.length).toBeLessThanOrEqual(38_032);
+    // the Standing Preferences placeholder says "preferences people show in passing: terse imperative
+    // lines" for "communication style and standing directives: terse imperative rules" (-9).
+    expect(prompt.length).toBeLessThanOrEqual(38_043);
     expect(prompt.toLowerCase()).not.toContain('thread');
 });
 

@@ -74,6 +74,7 @@ export async function runMemoryFeedback(variant, { agents, expect, kit, log, set
     replies.request = await authoredInChannel(kit, conversation.id, worker.id, head);
     await kit.harness.waitForAgentQuiet(worker.id, 10_000, 300_000);
     const afterFeedback = await readMemory(kit, worker);
+    const rulesAfterFeedback = await readAgentRules(kit, worker);
 
     log('resetting the session');
     await kit.trpc('agent.reset', { agentId: worker.id, kind: 'session', serverId: kit.serverId });
@@ -85,6 +86,7 @@ export async function runMemoryFeedback(variant, { agents, expect, kit, log, set
     await settled(expect, await settleTurn(worker.id), 'probe turn', runIds);
     replies.probe = await authoredInChannel(kit, fresh.id, worker.id, head);
     const afterProbe = await readMemory(kit, worker);
+    const rulesAfterProbe = await readAgentRules(kit, worker);
 
     const agent = await kit.trpc('agent.get', { agentId: worker.id, serverId: kit.serverId });
     await writeEvidence({
@@ -95,6 +97,7 @@ export async function runMemoryFeedback(variant, { agents, expect, kit, log, set
             runtimeId: agent.effectiveRuntimeId,
         },
         manualCommands: await manualCommands(kit, worker.id, runIds),
+        agentRules: { afterFeedback: rulesAfterFeedback, afterProbe: rulesAfterProbe },
         memory: { afterFeedback, afterProbe, seeded },
         messages: { probe, request: requestMessages[variant] },
         replies,
@@ -168,6 +171,24 @@ async function readMemory(kit, { handle, id }) {
     const file = await kit.trpc('agent.workspaceFile', {
         agentId: id,
         path: driveMemoryPath(handle),
+        serverId: kit.serverId,
+    });
+    return file.content;
+}
+
+async function readAgentRules(kit, { handle, id }) {
+    const folder = `drive/agents/${handle}`;
+    const listing = await kit.trpc('agent.workspaceFiles', {
+        agentId: id,
+        path: folder,
+        serverId: kit.serverId,
+    });
+    if (!listing.entries.some((entry) => entry.path === `${folder}/AGENTS.md`)) {
+        return null;
+    }
+    const file = await kit.trpc('agent.workspaceFile', {
+        agentId: id,
+        path: `${folder}/AGENTS.md`,
         serverId: kit.serverId,
     });
     return file.content;

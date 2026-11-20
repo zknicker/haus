@@ -31,7 +31,7 @@ test('describes the rule files beside MEMORY.md (ADR 0054 decisions 7 and 10)', 
         '- `AGENTS.md` beside MEMORY.md holds your standing rules, and Haus puts it in your turn input whenever it changed. `WORKER.md` there holds the rules your Workers follow. The `rules` Manual topic covers both.'
     );
     expect(prompt).toContain(
-        "## Standing Preferences\n<preferences people show in passing: terse lines; merge, don't append>"
+        "## Standing Preferences\n<preferences people show in passing: terse imperative lines; merge, don't append>"
     );
     expect(prompt).not.toContain('standing directives');
 });
