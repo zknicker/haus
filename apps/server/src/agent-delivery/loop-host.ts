@@ -1,11 +1,15 @@
 import type { AgentCommand, RunnerDownFrame, RunnerStartFrame } from '@haus/api';
+import { eq } from 'drizzle-orm';
 import { mintServerRunCredential } from '../computers/runner-credentials.ts';
 import { resolveModelConnection } from '../model-connections/agent-model-connection.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { agentsTable } from '../postgres/schema.ts';
 import type { DeliveryTransport, DispatchPlan } from './delivery.ts';
 import { readDeliveryState } from './store.ts';
 
-export type AgentLoopHost = { computerId: string; kind: 'computer' } | { kind: 'runner' };
+export type AgentLoopHost =
+    | { computerId: string; kind: 'computer' }
+    | { kind: 'runner'; machineId?: string };
 
 export interface RunnerWire {
     isOnline(): boolean;
@@ -32,7 +36,9 @@ export class AgentLoopRoute {
 
     hostOf(computerId: string) {
         const host: AgentLoopHost =
-            this.wiring.kind === 'runner' ? { kind: 'runner' } : { computerId, kind: 'computer' };
+            this.wiring.kind === 'runner'
+                ? { kind: 'runner', machineId: computerId }
+                : { computerId, kind: 'computer' };
         return host;
     }
 
@@ -57,10 +63,32 @@ export class AgentLoopRoute {
         if (host.kind === 'computer') {
             return frame.type !== 'runner-start' && this.transport.send(host.computerId, frame);
         }
+        const sent = this.toRunner(frame);
+        if (sent && frame.type === 'runner-start' && host.machineId) {
+            this.pullDrive(host.machineId, frame.start);
+        }
+        return sent;
+    }
+
+    toRunner(frame: LoopFrame) {
         const runnerFrame = toRunnerFrame(frame);
         return Boolean(
             runnerFrame && this.wiring.kind === 'runner' && this.wiring.runner.send(runnerFrame)
         );
+    }
+
+    private pullDrive(
+        machineId: string,
+        start: { agentId: string; runId: string; sessionGeneration: number }
+    ) {
+        if (this.transport.isOnline(machineId)) {
+            this.transport.send(machineId, {
+                agentId: start.agentId,
+                runId: start.runId,
+                sessionGeneration: start.sessionGeneration,
+                type: 'drive-pull',
+            });
+        }
     }
 
     async bindRunCredential(tx: HausDatabase, plan: DispatchPlan) {
@@ -78,6 +106,15 @@ export class AgentLoopRoute {
         const state = await readDeliveryState(tx, start.agentId);
         const reasoningEffort =
             state?.activeRunId === start.runId ? state.activeRunReasoningEffort : null;
+        const [agent] = await tx
+            .select({ sessionResetKind: agentsTable.sessionResetKind })
+            .from(agentsTable)
+            .where(eq(agentsTable.id, start.agentId));
+        if (!agent) {
+            throw new Error(
+                `Agent ${start.agentId} is gone, so its run cannot start on the runner.`
+            );
+        }
         const modelConnectionId = await resolveModelConnection(tx, {
             agentId: start.agentId,
             modelId: start.modelId,
@@ -89,12 +126,17 @@ export class AgentLoopRoute {
                 ...(reasoningEffort ? { reasoningEffort } : {}),
                 modelConnectionId,
                 runCredential,
+                sessionResetKind: agent.sessionResetKind,
                 start,
                 type: 'runner-start',
             },
         };
         return bound;
     }
+}
+
+export function hostName(host: AgentLoopHost | null) {
+    return host?.kind === 'runner' ? 'runner' : 'assigned Computer';
 }
 
 export function startOf(frame: LoopFrame) {
@@ -109,6 +151,9 @@ function toRunnerFrame(frame: LoopFrame) {
         case 'runner-start':
         case 'notice':
         case 'stop':
+        case 'agent-restart':
+        case 'agent-reset':
+        case 'agent-retire':
             return frame;
         default:
             return null;

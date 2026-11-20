@@ -6,7 +6,7 @@ import {
     agentSearchResponseSchema,
     agentSendResponseSchema,
     resolvedAgentMessageSchema,
-} from './agent-cli/agent-api-schemas.ts';
+} from '@haus/agent-cli';
 import type { VisibleMessageIdentity } from './inbox-store.ts';
 
 type VisibleExtractor = (body: unknown) => VisibleMessageIdentity[];

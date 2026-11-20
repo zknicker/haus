@@ -20,7 +20,7 @@ test('a start answers with the Worker, posts no Message, and publishes worker.up
             carrierComputerId: fixture.computerId,
             launchMessageId: null,
             originChatId: null,
-            place: 'cursor',
+            place: { kind: 'cursor' },
             repository: 'haus/haus',
             startingRef: 'main',
             status: 'queued',

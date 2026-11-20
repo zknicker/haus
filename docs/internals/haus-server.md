@@ -209,7 +209,9 @@ without a deadline, then the verified standalone executable atomically replaces 
 resident service restarts every Server attachment daemon. Queued Server work drains
 after reconnect.
 
-Only Owners and Admins can attach or view Computers. The Server never opens an
+Only Owners and Admins can attach Computers. `computer.list` shows Owners and Admins every
+Computer and a plain member only the Computers they attached, with the same fields; a member who
+attached none gets an empty list. The Server never opens an
 inbound Computer connection. It accepts the Computer login session only on
 narrow human-management endpoints; attachment sockets and execution never use it.
 

@@ -182,6 +182,8 @@ Check the result in this order:
 4. For iOS, record the furthest proven state exactly as `uploaded`, `processing`, `processed`,
    `distributed to internal testers`, or `device-verified`; link evidence for each transition and
    follow the iOS doc for the required actions. Workflow success alone does not make iOS released.
+   While [iOS is non-blocking](../../../docs/operations/releases.md#ios-is-temporarily-non-blocking),
+   a failed upload leaves iOS `not shipped` and the other targets ship; say so in the handoff.
 5. For App, retain the signed/notarized artifact and updater evidence required by the App contract.
 6. For Server, confirm the artifact is published and deployable. Publication alone is not production
    deployment.

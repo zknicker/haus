@@ -18,6 +18,7 @@ import { registerAgentArtifactPublicLinkRoutes } from './artifact-public-link-ro
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 import { registerAgentDriveChangesRoute } from './drive-changes-route.ts';
 import { registerAgentDrivePushRoutes } from './drive-push-routes.ts';
+import { authorizeDriveReader } from './worker-auth.ts';
 
 export function registerAgentArtifactRoutes(
     app: FastifyInstance,
@@ -121,7 +122,12 @@ export function registerAgentArtifactRoutes(
             handler: async (request, reply) => {
                 try {
                     const runner = await authorizeAgentRunner(options.db, request);
-                    if (!runner) {
+                    const actor: ArtifactActor | null = runner
+                        ? { kind: 'agent', runner }
+                        : action === 'download'
+                          ? await authorizeDriveReader(options.db, request)
+                          : null;
+                    if (!actor) {
                         return sendAgentApiError(
                             reply,
                             401,
@@ -129,7 +135,6 @@ export function registerAgentArtifactRoutes(
                             'A valid runner credential is required.'
                         );
                     }
-                    const actor: ArtifactActor = { kind: 'agent', runner };
                     const origin = options.appOrigin;
                     const params =
                         action === 'list'
@@ -154,7 +159,7 @@ export function registerAgentArtifactRoutes(
                                 recursive: parsedQuery.recursive === 'true',
                                 // `mine` is the calling Agent's own creations; other creators stay unexposed.
                                 creator:
-                                    parsedQuery.mine === 'true'
+                                    parsedQuery.mine === 'true' && runner
                                         ? { type: 'agent', agent_id: runner.agentId }
                                         : undefined,
                             },

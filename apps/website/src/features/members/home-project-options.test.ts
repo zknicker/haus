@@ -15,10 +15,12 @@ test('New Captain offers only live Projects, never #all or an archived one', () 
 function project(overrides: Partial<Project> & Pick<Project, 'chatId' | 'name'>) {
     return {
         archived: false,
+        defaultWorkerPlace: null,
         homeAgentIds: [],
         isHaus: false,
         key: 'PROD',
         keyEditable: true,
+        repos: [],
         serverId: 'srv_one',
         taskKeyId: 'tky_one',
         ...overrides,

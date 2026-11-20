@@ -1,7 +1,7 @@
 import type { WorkerReport } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import { followAgentTask } from '../agent-api/attention.ts';
-import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import type { InboxWork } from '../agent-delivery/inbox-work.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { mentionedUserIds } from '../chats/mentioned-user-ids.ts';
 import { prepareMessageCreatedEvent } from '../chats/message-created-event.ts';
@@ -20,7 +20,7 @@ export function workerReportContent(report: WorkerReport, person: WorkerPerson |
 
 export async function postWorkerReportMessage(
     tx: HausDatabase,
-    agentDelivery: AgentDelivery,
+    agentDelivery: InboxWork,
     input: {
         agentId: string;
         chatId: string;

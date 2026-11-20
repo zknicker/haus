@@ -32,6 +32,7 @@ import {
     startPostgresCluster,
     type TestDatabase,
 } from './postgres-cluster.ts';
+import { listRoutes } from './server-route-list.ts';
 
 export interface TestHumanAuth {
     mintExpiredSessionToken(subject: string): Promise<string>;
@@ -55,6 +56,7 @@ export interface HausServerHarness {
     databaseUrl: string;
     humans: TestHumanAuth;
     restart(): Promise<void>;
+    routes(): Array<{ method: string; url: string }>;
     sql: SQL;
     url: URL;
 }
@@ -102,6 +104,7 @@ export async function startHausServerHarness(
         const sql = new SQL({ url: cluster.databaseUrl });
         const humans = createTestHumanAuth(connection.db, sql);
         let application: HausServerApplication | null = null;
+        let registeredRoutes: Array<{ method: string; url: string }> = [];
         const harness: HausServerHarness = {
             appOrigin,
             attachmentRoot,
@@ -121,6 +124,7 @@ export async function startHausServerHarness(
                 application = null;
                 await startApplication();
             },
+            routes: () => registeredRoutes,
             sql,
             url: new URL('http://127.0.0.1'),
         };
@@ -155,6 +159,7 @@ export async function startHausServerHarness(
                 githubRecoveryIntervalMs: null,
                 enableDevelopmentAuth: options.enableDevelopmentAuth,
             });
+            registeredRoutes = listRoutes(next.app.printRoutes({ commonPrefix: false }));
             await next.app.listen({ host: '127.0.0.1', port: 0 });
             application = next;
             const { port } = next.app.server.address() as AddressInfo;

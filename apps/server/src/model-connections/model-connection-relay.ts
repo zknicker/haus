@@ -4,6 +4,7 @@ import type {
     RunnerConnectionCapacityFrame,
     RunnerConnectionCredentialFrame,
     RunnerConnectionStatusFrame,
+    RunnerInventoryFrame,
     RunnerSignInCodeFrame,
     RunnerSignInFinishedFrame,
 } from '@haus/api';
@@ -12,6 +13,10 @@ import type { HausServerApplicationOptions } from '../haus-server-options.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { modelConnectionsUpdatedTopic } from '../realtime/topics.ts';
 import { type SecretsKey, SecretsKeyMissingError } from '../secrets/sealed-secret.ts';
+import {
+    type AgentModelCatalog,
+    computerModelCatalog,
+} from '../server-agents/agent-model-catalog.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import {
     ModelConnectionNotFoundError,
@@ -41,14 +46,19 @@ export class ModelConnectionRelay {
     private reportedMissingKey = false;
 
     readonly agentLoop: AgentLoop;
+    readonly catalog: AgentModelCatalog;
     readonly secretsKey: SecretsKey | null;
 
     constructor(
         private readonly db: HausDatabase,
-        private readonly runner: RunnerWire,
+        private readonly runner: RunnerWire & { readonly inventory: RunnerInventoryFrame | null },
         settings: Pick<HausServerApplicationOptions, 'agentLoop' | 'secretsKey'>
     ) {
         this.agentLoop = settings.agentLoop ?? 'computer';
+        this.catalog =
+            this.agentLoop === 'runner'
+                ? { kind: 'runner', runtimes: () => runner.inventory?.runtimes ?? null }
+                : computerModelCatalog;
         this.secretsKey = settings.secretsKey ?? null;
     }
 

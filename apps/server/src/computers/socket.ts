@@ -8,9 +8,11 @@ import {
 } from '@haus/api';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { driveReconcileFrames } from '../agent-delivery/drive-reconcile.ts';
 import { clearStartRejectedHolds } from '../agent-delivery/failure-hold.ts';
 import { onAgentLifecycle } from '../agent-delivery/lifecycle.ts';
 import type { InvocationRouter } from '../agent-invocations/invocation-router.ts';
+import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computerUpdatedTopic } from '../realtime/topics.ts';
 import type { ThoughtSummarizer } from '../server-agents/agent-thought-summarizer.ts';
@@ -49,6 +51,7 @@ export function startComputerAttachmentSocket(
     postCommitWork: ServerPostCommitWork,
     thoughtSummarizer: ThoughtSummarizer | null,
     invocations: InvocationRouter,
+    storage: ArtifactStorage | null,
     liveness: ComputerSocketLivenessTiming = defaultComputerSocketLiveness
 ) {
     const thoughts = createAgentThoughts({ summarizer: thoughtSummarizer });
@@ -163,6 +166,14 @@ export function startComputerAttachmentSocket(
                 return;
             }
             ordinary = hello.protocolVersion === computerProtocolVersion;
+            const driveFrames =
+                ordinary && delivery.route.hostOf(computer.id).kind === 'runner'
+                    ? await driveReconcileFrames(db, computer.id)
+                    : [];
+            if (closed) {
+                markClosedOffline();
+                return;
+            }
             connections.register(computer.id, {
                 disconnect: (reason) => socket.close(4000, reason),
                 ordinary,
@@ -185,6 +196,9 @@ export function startComputerAttachmentSocket(
             if (!ordinary) {
                 return;
             }
+            for (const frame of driveFrames) {
+                socket.send(JSON.stringify(frame));
+            }
             invocations.computerAttached(computer.id);
             // A Computer holds every runtime setting off until an attach turns one on.
             void connections.runtimeSettings
@@ -198,7 +212,11 @@ export function startComputerAttachmentSocket(
                 .then(() => delivery.onComputerReconnect(computer.id))
                 .catch(() => undefined);
             void postCommitWork.run('worker.reconcile-on-connect', () =>
-                reconnectWorkerCarrier(db, { connections, delivery, postCommitWork }, computer)
+                reconnectWorkerCarrier(
+                    db,
+                    { connections, delivery, postCommitWork, storage },
+                    computer
+                )
             );
         };
         socket.on('message', (raw) => {
@@ -223,7 +241,8 @@ export function startComputerAttachmentSocket(
                             rawString,
                             postCommitWork,
                             thoughts,
-                            invocations
+                            invocations,
+                            storage
                         );
                         return;
                     }

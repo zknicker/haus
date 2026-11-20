@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import type { ExecutionJournalSink } from '../harness/execution-journal.ts';
 import { computerKnownSecrets } from './journal-redaction.ts';
 import { ExecutionJournalUploader } from './journal-uploader.ts';
@@ -20,10 +21,9 @@ export function attachmentJournalUploads(
     let uploader = uploaders.get(attachment.serverId);
     if (!uploader) {
         uploader = new ExecutionJournalUploader({
-            dataRoot,
+            agentsDir: join(dataRoot, 'servers', attachment.serverId, 'agents'),
             knownSecrets: computerKnownSecrets(attachment.credential, process.env),
             send: (frame) => daemonWork.send(frame),
-            serverId: attachment.serverId,
         });
         uploaders.set(attachment.serverId, uploader);
     }

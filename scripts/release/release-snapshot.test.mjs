@@ -35,7 +35,7 @@ test('resolves a product release into its carried-forward component snapshot', (
         },
     ];
 
-    expect(resolveReleaseSnapshot(ledger, { sourceRevision })).toEqual({
+    expect(resolveReleaseSnapshot(ledger, { sourceRevision, unshippedIOSVersions: [] })).toEqual({
         components: {
             agent: '1.0.0',
             computer: '1.4.9',
@@ -59,13 +59,53 @@ test('preserves null for a component that has never published', () => {
         },
     ];
 
-    expect(resolveReleaseSnapshot(ledger, { sourceRevision }).components).toEqual({
+    expect(
+        resolveReleaseSnapshot(ledger, { sourceRevision, unshippedIOSVersions: [] }).components
+    ).toEqual({
         agent: null,
         computer: '1.0.0',
         desktopApp: null,
         ios: null,
         server: null,
     });
+});
+
+test('an unshipped iOS release keeps the last shipped iPhone build in the snapshot', () => {
+    const ledger = [
+        {
+            version: '19.0.0',
+            date: '2026-11-18',
+            targets: {
+                agent: null,
+                app: null,
+                computer: null,
+                ios: { buildNumber: 70, version: '11.0.0' },
+                server: '19.0.0',
+            },
+        },
+        {
+            version: '20.0.0',
+            date: '2026-11-20',
+            targets: {
+                agent: null,
+                app: null,
+                computer: null,
+                ios: { buildNumber: 71, version: '12.0.0' },
+                server: '20.0.0',
+            },
+        },
+    ];
+
+    const snapshot = resolveReleaseSnapshot(ledger, {
+        sourceRevision,
+        unshippedIOSVersions: ['20.0.0'],
+    });
+    expect(snapshot.version).toBe('20.0.0');
+    expect(snapshot.components.server).toBe('20.0.0');
+    expect(snapshot.components.ios).toEqual({ buildNumber: 70, version: '11.0.0' });
+    expect(() => resolveReleaseSnapshot(ledger, { sourceRevision })).toThrow(
+        'unshipped iOS release versions'
+    );
 });
 
 test('resolves one expected object only for the current public release version', () => {
@@ -77,14 +117,26 @@ test('resolves one expected object only for the current public release version',
         },
     ];
 
-    expect(resolveExpectedPublicHausRelease(ledger, { sourceRevision, version: '1.9.0' })).toEqual(
-        resolveReleaseSnapshot(ledger, { sourceRevision })
-    );
+    expect(
+        resolveExpectedPublicHausRelease(ledger, {
+            sourceRevision,
+            unshippedIOSVersions: [],
+            version: '1.9.0',
+        })
+    ).toEqual(resolveReleaseSnapshot(ledger, { sourceRevision, unshippedIOSVersions: [] }));
     expect(() =>
-        resolveExpectedPublicHausRelease(ledger, { sourceRevision, version: 'latest' })
+        resolveExpectedPublicHausRelease(ledger, {
+            sourceRevision,
+            unshippedIOSVersions: [],
+            version: 'latest',
+        })
     ).toThrow('must be X.Y.Z');
     expect(() =>
-        resolveExpectedPublicHausRelease(ledger, { sourceRevision, version: '1.8.0' })
+        resolveExpectedPublicHausRelease(ledger, {
+            sourceRevision,
+            unshippedIOSVersions: [],
+            version: '1.8.0',
+        })
     ).toThrow('does not match latest release 1.9.0');
 });
 
@@ -100,9 +152,9 @@ test('requires a complete release and exact source identity', () => {
             server: 'undecided',
         },
     };
-    expect(() => resolveReleaseSnapshot([release], { sourceRevision })).toThrow(
-        'latest release ledger entry is still a draft'
-    );
+    expect(() =>
+        resolveReleaseSnapshot([release], { sourceRevision, unshippedIOSVersions: [] })
+    ).toThrow('latest release ledger entry is still a draft');
     expect(() =>
         resolveReleaseSnapshot(
             [
@@ -119,7 +171,7 @@ test('requires a complete release and exact source identity', () => {
                     },
                 },
             ],
-            { sourceRevision: 'abc' }
+            { sourceRevision: 'abc', unshippedIOSVersions: [] }
         )
     ).toThrow('full lowercase Git SHA');
 });

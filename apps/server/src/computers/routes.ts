@@ -1,7 +1,16 @@
-import { runnerMintRequestSchema, runnerRevokeRequestSchema } from '@haus/api';
+import {
+    runnerMintRequestSchema,
+    runnerRevokeRequestSchema,
+    workerPushCredentialRequestSchema,
+    workerTurnCredentialRequestSchema,
+} from '@haus/api';
 import type { OtlpTelemetryRelay } from '@haus/effect';
 import type { FastifyInstance } from 'fastify';
 import type { HausDatabase } from '../postgres/connection.ts';
+import {
+    mintWorkerPushCredential,
+    mintWorkerTurnCredential,
+} from '../workers/worker-credentials.ts';
 import { attachComputer, ComputerAttachmentError } from './attachment-service.ts';
 import {
     attachComputerSchema,
@@ -125,6 +134,22 @@ export function registerComputerRoutes(
         try {
             const input = runnerRevokeRequestSchema.parse(request.body);
             return await revokeRunnerCredential(options.db, input);
+        } catch (cause) {
+            return setupError(reply, cause);
+        }
+    });
+    app.post('/computer/workers/turn-credential', async (request, reply) => {
+        try {
+            const input = workerTurnCredentialRequestSchema.parse(request.body);
+            return await mintWorkerTurnCredential(options.db, input);
+        } catch (cause) {
+            return setupError(reply, cause);
+        }
+    });
+    app.post('/computer/workers/push-credential', async (request, reply) => {
+        try {
+            const input = workerPushCredentialRequestSchema.parse(request.body);
+            return await mintWorkerPushCredential(options.db, input);
         } catch (cause) {
             return setupError(reply, cause);
         }

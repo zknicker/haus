@@ -334,12 +334,47 @@ until they save it, and an Agent reaches it only through `haus agent create --av
 _Avoid_: avatar repository, automatic profile update, transient avatar file
 
 **Worker**:
-Bounded repository work an Agent delegates for one Task to a place (`cursor` or `claude` today),
-recorded by the Server ([Workers](specs/workers.md), ADR 0056). It runs in turns: each turn's
-report posts in the Task as a Message and reaches the delegating Agent as an inbox item. It closes
-when its Task is done or canceled. Cursor's and Claude's own Cloud Agents products are places, not
-the noun.
+Bounded repository work an Agent delegates for one Task to a place (a Computer, `cursor`, or
+`claude`), recorded by the Server ([Workers](specs/workers.md), ADR 0056). It runs in turns: each
+turn's report posts in the Task as a Message and reaches the delegating Agent as an inbox item. It
+closes when its Task is done or canceled. Cursor's and Claude's own Cloud Agents products are
+places, not the noun.
 _Avoid_: cloud agent, Cloud Agent work, Run, harness subagent, named teammate
+
+**Computer place**:
+The place `computer:<computerId>`: a Worker that runs as a native Claude Code or Codex session on
+that Computer, with the machine user's own logins, in its own `git worktree` and branch of a
+linked Project repo, and its own drive folder. It is usable only while the Computer's **Workers
+can run here** switch is on, the Computer is online, and some runtime there is ready.
+_Avoid_: local cloud agent, device place, machine Worker
+
+**Workers can run here**:
+The per-Computer switch, Server state on the Computer record, that lets Agents run unattended
+Worker sessions there. Only the person who attached the Computer, an Owner, or an Admin sets it,
+with the Computer's Worker limit beside it. It is off for a newly attached Computer. Turning it off
+refuses new starts and follow-ups there, settles queued turns `place-off`, lets working turns
+finish, and clears Project defaults that name the Computer. Carrying a cloud place needs no switch.
+_Avoid_: local execution toggle, Worker mode, enable Workers
+
+**Project repo**:
+A repository (`owner/name`) that belongs to a Project, a `project_repos` row. Workers of the
+Project's Tasks run in it. A start that omits `--repo` uses the Project's only repo.
+_Avoid_: linked repo (that is a repo link), workspace repo, Project repository setting
+
+**Repo link**:
+A Project repo made available on one Computer, a `project_repo_links` row, with an optional local
+checkout path; without one the Computer clones the repo into its data root on first use. A Computer
+place needs a link for the Worker's repo. The person who attached the Computer, an Owner, or an
+Admin links it.
+_Avoid_: checkout setting, repo mapping, clone
+
+**Turn credential**:
+The short-lived, model-visible credential (`HAUS_WORKER_TOKEN`) a Computer mints for one Worker
+turn and attempt with its Computer credential. Minting it is the launch fence: the Server refuses
+for a settled, stopped, closing, stale, switched-off, or misdirected turn, and nothing launches.
+It reaches only `haus worker report` for that turn and the Drive reads, and dies when the turn
+settles. The Drive push uses a separate host-only push credential the harness never sees.
+_Avoid_: Worker token, Agent runner credential, push credential
 
 **Worker history link**:
 A `worker://<workerId>` rich reference to a Worker from before Tasks, kept read-only. A Worker with

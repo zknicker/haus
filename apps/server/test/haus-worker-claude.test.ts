@@ -52,7 +52,7 @@ test('each provider keeps its own model, and a Claude Run sends Claude’s', asy
         fixture.startBody({ nonce: 'claude-model', place: 'claude' })
     );
     expect(started.status).toBe(200);
-    expect(started.body.worker?.place).toBe('claude');
+    expect(started.body.worker?.place).toEqual({ kind: 'claude' });
     expect(started.body.worker?.turns[0]?.model).toEqual({
         droppedParams: [],
         fallbackFrom: null,

@@ -68,3 +68,41 @@ export function frameOfType(type: string, match: Record<string, unknown> = {}) {
     return (frame: RunnerFrame) =>
         frame.type === type && Object.entries(match).every(([key, value]) => frame[key] === value);
 }
+
+export const testRunnerRuntimes = [
+    { id: 'codex', label: 'Codex', models: [{ id: 'gpt-5.6-sol', label: 'Sol' }] },
+    { id: 'claude', label: 'Claude', models: [{ id: 'claude-opus', label: 'Opus' }] },
+];
+
+export async function reportRunnerModels(
+    harness: HausServerHarness,
+    options: { attached?: RunnerClient; runtimes?: unknown[] } = {}
+) {
+    const { attached, runtimes = testRunnerRuntimes } = options;
+    const client = attached ?? connectRunner(harness, testRunnerToken);
+    if (!attached) {
+        await client.next(frameOfType('runner-hello-accepted'));
+    }
+    client.send({
+        harnesses: ['claude-agent-sdk', 'pi-durable'],
+        runtimes,
+        type: 'runner-inventory',
+    });
+    const rotationId = crypto.randomUUID();
+    client.send({
+        baseVersion: 1,
+        connectionId: 'mc_inventory_barrier',
+        credential: { access: 'barrier', expires: 0, refresh: 'barrier' },
+        previousRefresh: 'barrier',
+        rotationId,
+        type: 'runner-connection-credential',
+    });
+    await client.next(
+        (frame) =>
+            frame.type === 'runner-connection-credential-ack' && frame.rotationId === rotationId
+    );
+    if (!attached) {
+        client.close();
+        await client.closed;
+    }
+}

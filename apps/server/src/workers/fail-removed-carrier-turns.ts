@@ -1,5 +1,6 @@
 import { and, asc, eq, isNull } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { workerTurnsTable, workersTable } from '../postgres/schema.ts';
 import { withDispatch } from './dispatch-worker-turns.ts';
@@ -8,6 +9,7 @@ import { settleWorkerTurnAsFailed } from './settle-worker-turn.ts';
 export async function failRemovedCarrierTurns(
     tx: HausDatabase,
     agentDelivery: AgentDelivery,
+    storage: ArtifactStorage | null,
     input: { computerId: string; serverId: string }
 ) {
     const unsettled = await tx
@@ -39,7 +41,7 @@ export async function failRemovedCarrierTurns(
             wakes.push(delivered);
         }
     }
-    return await withDispatch(tx, input.serverId, {
+    return await withDispatch(tx, storage, input.serverId, {
         events: [],
         frames: [],
         wakes,

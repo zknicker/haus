@@ -1,4 +1,4 @@
-import { agentMessageSchema } from './agent-cli/agent-api-schemas.ts';
+import { agentMessageSchema } from '@haus/agent-cli';
 import {
     type AgentInboxLocation,
     consumeVisibleMessages,

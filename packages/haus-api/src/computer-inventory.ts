@@ -3,6 +3,7 @@ import { agentReasoningEffortSchema } from './agent-execution.ts';
 import { idSchema } from './chat.ts';
 import { cloudAgentModelCatalogSchema } from './cloud-agent-model.ts';
 import { computerSecretsStatusSchema } from './computer-secrets.ts';
+import { workerRuntimeReadinessSchema } from './worker-runtime.ts';
 import { cloudAgentProviderSchema, cloudAgentUnreadyReasonSchema } from './worker-shared.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
@@ -17,6 +18,8 @@ export const computerModelSchema = z
     .object({
         id: z.string().trim().min(1).max(128),
         label: z.string().trim().min(1).max(200),
+        /** Tokens the model reads at once; the runner catalog reports it, Computers do not. */
+        contextWindow: z.number().int().positive().optional(),
         defaultReasoningEffort: agentReasoningEffortSchema.optional(),
         reasoningEfforts: z.array(agentReasoningEffortSchema).min(1).max(6).optional(),
         features: z.array(computerModelFeatureSchema).max(8).optional(),
@@ -38,6 +41,8 @@ export const computerRuntimeSchema = z
         models: z.array(computerModelSchema).max(200),
     })
     .strict();
+
+export type ComputerRuntime = z.infer<typeof computerRuntimeSchema>;
 
 export const agentSkillMetadataSchema = z
     .object({
@@ -152,6 +157,11 @@ export const computerInventorySchema = z
         runtimes: z.array(computerRuntimeSchema).max(50),
         /** The Computer's 1Password vault connection (Computer Secrets), names only. */
         secrets: computerSecretsStatusSchema.optional(),
+        /**
+         * The native harnesses a Computer-place Worker can run in here. Absent
+         * from Computers that predate Computer places, which run none.
+         */
+        workerRuntimes: z.array(workerRuntimeReadinessSchema).max(2).optional(),
     })
     .strict();
 

@@ -7,6 +7,7 @@ import {
 } from '@haus/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import type { InboxWork } from '../agent-delivery/inbox-work.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -18,6 +19,7 @@ import {
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { readTask } from '../tasks/task-read.ts';
 import { isLiveChat } from './worker-attention.ts';
+import { revokeTurnCredentials } from './worker-credentials.ts';
 import { resolveWorkerPerson } from './worker-person.ts';
 import { postWorkerReportMessage, workerReportContent } from './worker-report-message.ts';
 
@@ -71,11 +73,15 @@ export async function settleWorkerTurn(
 
 export async function settleWorkerTurnAsFailed(
     tx: HausDatabase,
-    agentDelivery: AgentDelivery,
-    input: { reason: WorkerFailure; turnId: string; worker: WorkerRow }
+    agentDelivery: InboxWork,
+    input: { detail?: string; reason: WorkerFailure; turnId: string; worker: WorkerRow }
 ) {
     const { worker } = input;
-    const outcome: WorkerOutcome = { detail: null, kind: 'failed', reason: input.reason };
+    const outcome: WorkerOutcome = {
+        detail: input.detail ?? null,
+        kind: 'failed',
+        reason: input.reason,
+    };
     await recordOutcome(tx, { outcome, turnId: input.turnId, worker });
     const task = worker.taskId ? await readTask(tx, worker.serverId, worker.taskId) : null;
     const delivered = await queueWorkerReport(tx, agentDelivery, {
@@ -90,7 +96,7 @@ export async function settleWorkerTurnAsFailed(
 
 export async function queueWorkerReport(
     tx: HausDatabase,
-    agentDelivery: AgentDelivery,
+    agentDelivery: InboxWork,
     input: {
         outcome: WorkerOutcome;
         taskChatId: string | null;
@@ -174,11 +180,12 @@ async function recordedOutcome(
     return { messageId, person: resolved.person, recorded };
 }
 
-async function recordOutcome(
+export async function recordOutcome(
     tx: HausDatabase,
     input: { outcome: WorkerOutcome; turnId: string; worker: WorkerRow }
 ) {
     const { worker } = input;
+    await revokeTurnCredentials(tx, worker.serverId, [input.turnId]);
     await tx
         .update(workerTurnsTable)
         .set({ outcome: input.outcome, stallCode: null, stallSince: null })
@@ -200,7 +207,7 @@ async function recordOutcome(
         );
 }
 
-async function attachReportedPullRequests(
+export async function attachReportedPullRequests(
     tx: HausDatabase,
     input: { serverId: string; taskId: string; urls: readonly string[] }
 ) {

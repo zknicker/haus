@@ -156,7 +156,13 @@ async function planSkill(tx: HausDatabase, agent: AgentRef, skill: ManagedSkill)
             ));
         const revision = await insertUploadingRevision(
             tx,
-            { agentId: null, authorKey: hausAuthorKey, serverId: agent.serverId, userId: null },
+            {
+                agentId: null,
+                authorKey: hausAuthorKey,
+                serverId: agent.serverId,
+                userId: null,
+                worker: null,
+            },
             {
                 artifact,
                 base: artifact.currentRevisionId,

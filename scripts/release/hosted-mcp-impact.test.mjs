@@ -23,7 +23,7 @@ for (const file of [
                     },
                 },
             ],
-            resolveTag: async () => 'a'.repeat(40),
+            resolveTag: async (tag) => (tag.startsWith('unshipped/') ? null : 'a'.repeat(40)),
             listChangedFiles: async () => [file],
         });
         assert.equal(impact.targets.server.status, 'required');

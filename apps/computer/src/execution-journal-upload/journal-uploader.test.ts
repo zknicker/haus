@@ -27,7 +27,7 @@ async function harness(options: { maxQueuedBytes?: number; now?: () => number } 
     const sent: AgentExecutionJournalRecordsFrame[] = [];
     let accepting = true;
     const uploader = new ExecutionJournalUploader({
-        dataRoot,
+        agentsDir: join(dataRoot, 'servers', 'srv_up', 'agents'),
         knownSecrets: [],
         log: () => undefined,
         send: (frame) => {
@@ -36,7 +36,6 @@ async function harness(options: { maxQueuedBytes?: number; now?: () => number } 
             }
             return accepting;
         },
-        serverId: 'srv_up',
         ...options,
     });
     const agentRoot = (agentId: string) => join(dataRoot, 'servers', 'srv_up', 'agents', agentId);
@@ -66,7 +65,10 @@ async function harness(options: { maxQueuedBytes?: number; now?: () => number } 
             uploader.connected();
         },
         unsynced: () =>
-            listUnsyncedJournals({ serverRoot: join(dataRoot, 'servers', 'srv_up'), since: 0 }),
+            listUnsyncedJournals({
+                agentsDir: join(dataRoot, 'servers', 'srv_up', 'agents'),
+                since: 0,
+            }),
     };
 }
 

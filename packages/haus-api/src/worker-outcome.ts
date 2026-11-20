@@ -2,10 +2,6 @@ import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
 import type { WorkerTurnStatus } from './worker-shared.ts';
 
-export const workerPlaces = ['cursor', 'claude'] as const;
-export const workerPlaceSchema = z.enum(workerPlaces);
-export type WorkerPlace = z.infer<typeof workerPlaceSchema>;
-
 export const workerStatuses = [
     'queued',
     'working',
