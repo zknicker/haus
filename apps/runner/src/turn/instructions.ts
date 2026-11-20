@@ -6,19 +6,23 @@ import {
     renderAgentInstructions,
     renderSkillListing,
     runnerMachineFacts,
+    runnerRuntimeVersions,
     type SkillListingEntry,
 } from '@haus/agent-prompt';
 import type { AgentStartCommand } from '@haus/api';
 import type { RuleFile } from './agent-context.ts';
+import type { HarnessId } from './runtime-driver.ts';
 import type { AgentSessionRecord } from './session-file.ts';
 
 export function composeInstructions(
     start: AgentStartCommand,
-    skills: readonly SkillListingEntry[]
+    skills: readonly SkillListingEntry[],
+    harness: HarnessId
 ) {
     const instructions = [
         renderAgentInstructions({
             ...runnerMachineFacts,
+            runtimeVersion: runnerRuntimeVersions[harness],
             agentId: start.agentId,
             agentName: start.agentName,
             connectionChips: start.connectionChips,

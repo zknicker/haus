@@ -9,6 +9,7 @@ import {
     runnerUpFrameSchema,
 } from '@haus/api';
 import { openDispatchLedger } from './dispatch/ledger.ts';
+import type { InvocationClock } from './invocations/invocation-clock.ts';
 import type { RunStart, TurnHost } from './run-context.ts';
 import { openServerLink } from './server-link.ts';
 
@@ -18,7 +19,7 @@ export const cleanups: (() => Promise<void> | void)[] = [];
 
 export type StandInRoutes = Record<
     string,
-    (body: unknown, url: URL) => Response | Promise<Response>
+    (body: unknown, url: URL, request: Request) => Response | Promise<Response>
 >;
 
 export interface StandInRequest {
@@ -27,6 +28,16 @@ export interface StandInRequest {
     readonly dispatchId: string | null;
     readonly method: string;
     readonly path: string;
+}
+
+export function noLogins(dataDir: string) {
+    return {
+        claudeSetupToken: null,
+        dataDir,
+        geminiApiKey: null,
+        openrouterApiKey: null,
+        xaiApiKey: null,
+    };
 }
 
 export function live() {
@@ -41,12 +52,12 @@ export async function drainCleanups() {
 
 export async function attachRunner(
     server: ServerStandIn,
-    options: { invocationGraceMs?: number } = {}
+    options: { invocationClock?: InvocationClock } = {}
 ) {
     const dataDir = await mkdtemp(join(tmpdir(), 'haus-runner-link-'));
     const host = turnHostDriver();
     const link = openServerLink({
-        config: { claudeSetupToken: null, runnerToken, serverUrl: server.url },
+        config: { ...noLogins(dataDir), runnerToken, serverUrl: server.url },
         ...options,
         ledger: openDispatchLedger(dataDir),
         log: () => undefined,
@@ -61,9 +72,12 @@ export async function attachRunner(
     return { dataDir, host };
 }
 
-export async function startedRun(routes: StandInRoutes = {}) {
+export async function startedRun(
+    routes: StandInRoutes = {},
+    options: { invocationClock?: InvocationClock } = {}
+) {
     const server = serverStandIn(routes);
-    const runner = await attachRunner(server);
+    const runner = await attachRunner(server, options);
     await server.frame('runner-inventory');
     server.start();
     return { run: await runner.host.started, runner, server };
@@ -134,7 +148,7 @@ export function serverStandIn(routes: StandInRoutes = {}) {
             }
             const handler = handlers[url.pathname];
             return handler
-                ? handler(body, url)
+                ? handler(body, url, request)
                 : Response.json({ code: 'NOT_FOUND', message: url.pathname }, { status: 404 });
         },
         hostname: '127.0.0.1',

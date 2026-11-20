@@ -1,0 +1,26 @@
+/*
+ * Catppuccin: Latte in light, Mocha in dark, mauve accent. Base colors only;
+ * `palette-ground.css` derives the ladder. Palette by Catppuccin (MIT),
+ * https://github.com/catppuccin/palette.
+ */
+[data-color-theme="catppuccin"][data-palette][data-theme="light"] {
+    --accent: #8839ef;
+    --background: #eff1f5;
+    --foreground: #4c4f69;
+    --sidebar-surface: #e6e9ef;
+    --default: #dce0e8;
+    --muted: #6c6f85;
+    --border: #ccd0da;
+}
+
+[data-color-theme="catppuccin"][data-palette][data-theme="dark"] {
+    --accent: #cba6f7;
+    --accent-foreground: #11111b;
+    --background: #1e1e2e;
+    --foreground: #cdd6f4;
+    --sidebar-surface: #181825;
+    --surface: #313244;
+    --default: #45475a;
+    --muted: #a6adc8;
+    --border: #45475a;
+}

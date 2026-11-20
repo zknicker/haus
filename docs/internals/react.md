@@ -319,7 +319,7 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   each exception's reason). Neither sees a `className`
   built through `cn()` or a variable, so read the component's anatomy before
   reaching for a wrapper.
-* One Settings page groups its rail as **You** (Profile, Preferences,
+* One Settings page groups its rail as **You** (Profile, Preferences, Appearance,
   Notifications, Shortcuts, Servers), **Captains** (Models, Skills,
   Connections), and **Haus** (General, Members, Devices, Usage, then Archived
   chats). Shortcuts is generated from `features/shortcuts/shortcut-registry.ts`,

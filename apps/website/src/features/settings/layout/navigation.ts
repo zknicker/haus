@@ -3,9 +3,10 @@ import {
     Analytics01Icon,
     ArchiveIcon,
     ComputerIcon,
+    Exchange01Icon,
     KeyboardIcon,
     Notification03Icon,
-    Exchange01Icon,
+    PaintBoardIcon,
     Plug01Icon,
     PreferenceHorizontalIcon,
     ServerStack01Icon,
@@ -31,7 +32,15 @@ export const settingsNavItems = [
         id: 'preferences',
         kind: 'page',
         label: 'Preferences',
-        rows: ['Mode', 'Theme', 'Snow', 'Window layout', 'Show claims in chat', 'Open links in'],
+        rows: ['Window layout', 'Show claims in chat', 'Open links in'],
+    },
+    {
+        access: 'everyone',
+        icon: PaintBoardIcon,
+        id: 'appearance',
+        kind: 'page',
+        label: 'Appearance',
+        rows: ['Mode', 'Theme', 'Create theme', 'Colors', 'Snow'],
     },
     {
         access: 'everyone',
@@ -142,7 +151,7 @@ export const settingsPages = settingsNavItems.filter(
 export const settingsNavSections = [
     {
         id: 'you',
-        itemIds: ['profile', 'preferences', 'notifications', 'shortcuts', 'servers'],
+        itemIds: ['profile', 'preferences', 'appearance', 'notifications', 'shortcuts', 'servers'],
         label: 'You',
     },
     { id: 'captains', itemIds: ['models', 'skills', 'connections'], label: 'Captains' },

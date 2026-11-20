@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { drainCleanups, live, startedRun } from '../runner-test-server.ts';
+import { createHash } from 'node:crypto';
+import { drainCleanups, live, runCredential, startedRun } from '../runner-test-server.ts';
 
 afterEach(drainCleanups);
 
@@ -43,8 +44,43 @@ describe('machine results reach the model', () => {
         });
     });
 
-    test('a machine file that arrives as an attachment reference is refused with a note naming it', async () => {
-        const { run, server } = await startedRun();
+    test('an image that arrives as an attachment reference is read with the run credential and shown', async () => {
+        const image = Buffer.concat([Buffer.from(pngBase64, 'base64'), Buffer.alloc(800_000, 3)]);
+        const { run, server } = await startedRun({
+            '/api/agent/invocation-payloads/att_shot': () =>
+                new Response(image, { headers: { 'content-type': 'image/png' } }),
+        });
+
+        const viewed = run.tools.edit('toolu_1', { command: 'view', path: 'shot.png' }, live());
+        await server.frame('invocation-request');
+        server.answer({
+            outcome: 'completed',
+            output: { ...reference('att_shot', image), mediaType: 'image/png' },
+            runId: 'run_1',
+            seq: 0,
+            toolCallId: 'toolu_1',
+        });
+
+        expect(await viewed).toEqual({
+            content: [{ data: image.toString('base64'), mimeType: 'image/png', type: 'image' }],
+            invocation: 'completed',
+            isError: false,
+        });
+        expect(server.requests).toEqual([
+            {
+                authorization: `Bearer ${runCredential}`,
+                body: null,
+                dispatchId: null,
+                method: 'GET',
+                path: '/api/agent/invocation-payloads/att_shot',
+            },
+        ]);
+    });
+
+    test('a payload whose bytes differ from its reference is never handed on', async () => {
+        const { run, server } = await startedRun({
+            '/api/agent/invocation-payloads/att_big': () => new Response('tampered'),
+        });
 
         const upload = run.tools.bash(
             'toolu_1',
@@ -54,13 +90,7 @@ describe('machine results reach the model', () => {
         await server.frame('invocation-request');
         server.answer({
             outcome: 'completed',
-            output: {
-                attachmentId: 'att_big',
-                kind: 'attachment',
-                mediaType: 'application/octet-stream',
-                sha256: 'a'.repeat(64),
-                sizeBytes: 2_000_000,
-            },
+            output: reference('att_big', Buffer.from('original')),
             runId: 'run_1',
             seq: 0,
             toolCallId: 'toolu_1',
@@ -69,12 +99,21 @@ describe('machine results reach the model', () => {
         expect(await upload).toEqual({
             content: [
                 {
-                    text: './big.bin was not read. The result arrived as attachment att_big (application/octet-stream, 2000000 bytes), which this runner cannot read yet.',
+                    text: './big.bin was not read. The machine stored 8 bytes of application/octet-stream, but they could not be read: The payload the Server returned does not match its reference.',
                     type: 'text',
                 },
             ],
             isError: true,
         });
-        expect(server.requests).toEqual([]);
     });
 });
+
+function reference(attachmentId: string, bytes: Buffer) {
+    return {
+        attachmentId,
+        kind: 'attachment' as const,
+        mediaType: 'application/octet-stream',
+        sha256: createHash('sha256').update(bytes).digest('hex'),
+        sizeBytes: bytes.byteLength,
+    };
+}

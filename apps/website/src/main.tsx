@@ -3,7 +3,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './app.tsx';
 import { DevModeProvider } from './components/dev-mode-provider.tsx';
-import { ThemeProvider } from './components/theme-provider.tsx';
+import { stampStoredAppearance, ThemeProvider } from './components/theme-provider.tsx';
 import { installStrayFileDropGuard } from './features/servers/chat/composer-file-drop.ts';
 import { DesktopEditContextMenuProvider } from './features/shell/desktop-edit-context-menu.tsx';
 import { AppAuthProvider, seedDesktopAppSession } from './lib/app-auth.tsx';
@@ -16,6 +16,7 @@ if (!rootElement) {
     throw new Error('Root element not found.');
 }
 
+stampStoredAppearance();
 installStrayFileDropGuard(window);
 if (isElectronDesktopApp()) {
     seedDesktopAppSession();

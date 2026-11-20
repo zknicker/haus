@@ -351,6 +351,28 @@
                 "timer": 2
             }
         },
+        "apps/computer/src/invocations/codex/apply-patch.test-support.ts": {
+            "disposition": "test-support",
+            "reason": "The apply_patch test runner passes a fresh, never-aborted signal when a test does not supply its own; nothing listens to it.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/invocations/codex/apply-patch.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "One module-level signal that never aborts carries the patch's write phase, so a cancel that arrives after the pre-write check cannot leave a patch half applied; no listener or timer is attached.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
         "apps/computer/src/invocations/browser.ts": {
             "disposition": "finite-cleanup",
             "reason": "Each browser invocation streams agent-browser output into one output tail whose log file is finished and closed in lexical finally once the process settles.",
@@ -596,6 +618,28 @@
         "apps/computer/src/workspace-files.ts": {
             "disposition": "finite-cleanup",
             "reason": "A finite workspace preview closes its local file handle before returning the bounded result.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/server/src/agent-invocations/invocation-clock.ts": {
+            "disposition": "external-adapter",
+            "reason": "The invocation grace timer seam: the router cancels each scheduled grace when its invocation settles or its Computer reconnects, and close cancels every grace still open.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 1
+            }
+        },
+        "apps/server/src/agent-invocations/invocation-payloads.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A payload upload releases its Server write hold in lexical finally; the staged upload it wraps owns its own file cleanup.",
             "risks": {
                 "abortController": 0,
                 "catchAndIgnore": 0,

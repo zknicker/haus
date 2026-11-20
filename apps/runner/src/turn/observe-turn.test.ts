@@ -22,7 +22,7 @@ test('a turn stuck on an open tool call trips the no-progress watchdog', async (
             runId: 'run_1',
             send: () => undefined,
         }),
-        gate: { toolCallSettled: async () => undefined, toolCallStarted: () => undefined },
+        gate: { toolCallSettled: () => undefined, toolCallStarted: () => undefined },
         noProgress: { checkEveryMs: 1, deadlineMs: 5 },
         onNoProgress: () => stalled.resolve(),
     });

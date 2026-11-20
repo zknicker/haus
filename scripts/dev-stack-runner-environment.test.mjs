@@ -27,7 +27,7 @@ test('Server and runner share the token and the loop switch', () => {
     assert.equal(server.PATH, '/usr/bin');
 });
 
-test('the runner process gets the Server origin, token, data dir, and setup token when present', () => {
+test('the runner process gets the Server origin, token, data dir, and logins when present', () => {
     const base = {
         runnerDataRoot: '/data/runner',
         runnerToken: 'token-a',
@@ -37,6 +37,7 @@ test('the runner process gets the Server origin, token, data dir, and setup toke
         ...base,
         startupEnvironment: {
             HAUS_RUNNER_CLAUDE_SETUP_TOKEN: 'sk-setup',
+            HAUS_RUNNER_XAI_API_KEY: 'xai-key',
             HAUS_DATABASE_URL: 'postgres://secret',
             PATH: '/usr/bin',
         },
@@ -45,6 +46,7 @@ test('the runner process gets the Server origin, token, data dir, and setup toke
     assert.equal(withSetup.HAUS_RUNNER_TOKEN, 'token-a');
     assert.equal(withSetup.HAUS_RUNNER_DATA_DIR, '/data/runner');
     assert.equal(withSetup.HAUS_RUNNER_CLAUDE_SETUP_TOKEN, 'sk-setup');
+    assert.equal(withSetup.HAUS_RUNNER_XAI_API_KEY, 'xai-key');
     assert.equal(withSetup.PATH, '/usr/bin');
     assert.equal(withSetup.HAUS_DATABASE_URL, undefined);
     const without = createRunnerProcessEnvironment({ ...base, startupEnvironment: {} });

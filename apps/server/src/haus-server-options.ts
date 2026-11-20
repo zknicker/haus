@@ -1,4 +1,5 @@
 import type { WebSocket } from 'ws';
+import type { InvocationClock } from './agent-invocations/invocation-clock.ts';
 import type { ArtifactR2Config, ArtifactStorage } from './artifacts/storage.ts';
 import type { AvatarGenerationLogger, AvatarImageProvider } from './avatar-generation/index.ts';
 import type { SweepTimers } from './boot-sweep.ts';
@@ -52,6 +53,8 @@ export interface HausServerApplicationOptions {
     hostedMcps?: { definitions: readonly HostedMcpDefinition[]; storageRoot: string };
     /** Test seam: replaces the OpenAI and Gemini image adapters outright. */
     imageGenerationAdapters?: ImageProviderAdapters;
+    /** Timer seam for the invocation grace; tests fire it by hand. */
+    invocationClock?: InvocationClock;
     messageRouter?: MessageRouter;
     /** Server-owned OpenAI key for avatar generation and GPT-Live calls. */
     openAiApiKey?: string;

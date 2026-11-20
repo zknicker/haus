@@ -1,3 +1,4 @@
+import { patchCommandSchema } from '@haus/api';
 import type { RunDispatches } from '../dispatch/dispatch-id.ts';
 import { createRunDispatches } from '../dispatch/dispatch-id.ts';
 import type { DispatchLedger } from '../dispatch/ledger.ts';
@@ -5,10 +6,12 @@ import { runHausCommand } from '../haus/haus-cli.ts';
 import { routeBashCommand } from '../haus/haus-command.ts';
 import { startHausProxy } from '../haus/haus-proxy.ts';
 import { createInvocationClient, invocationToolOutcome } from '../invocations/invocation-client.ts';
+import type { InvocationClock } from '../invocations/invocation-clock.ts';
 import type { RunAuthority, RunnerLink, RunTools, ToolOutcome } from '../run-context.ts';
-import { editorCommandOf } from './editor-command.ts';
+import { editorCommandOf, refusedInput } from './editor-command.ts';
 import { runExecute } from './execute-tool.ts';
 import { createMcpClient } from './mcp-client.ts';
+import { shellCommandOf } from './shell-command.ts';
 
 export type RunToolset = ReturnType<typeof createRunTools>;
 
@@ -17,7 +20,7 @@ const hausMaxTimeoutMs = 600_000;
 
 export function createRunTools(input: {
     authority: RunAuthority;
-    invocationGraceMs: number;
+    invocationClock: InvocationClock;
     ledger: DispatchLedger;
     link: RunnerLink;
 }) {
@@ -29,36 +32,64 @@ export function createRunTools(input: {
     });
     const invocations = createInvocationClient({
         agentId: authority.agentId,
+        authority,
+        clock: input.invocationClock,
         dispatches,
-        graceMs: input.invocationGraceMs,
         link: input.link,
     });
     const proxy = startHausProxy({ authority, dispatches });
     const mcp = createMcpClient(authority);
+    const runCommand = async (
+        toolCallId: string,
+        command: { cwd?: string; machine: string; script: string; timeoutMs?: number },
+        signal: AbortSignal
+    ) => {
+        const route = await routeBashCommand(command.script);
+        if (route.kind === 'haus') {
+            return await runHausCommand({
+                argv: route.argv,
+                authority,
+                invocations,
+                proxy,
+                signal,
+                stdin: route.stdin,
+                timeoutMs: Math.min(command.timeoutMs ?? hausDefaultTimeoutMs, hausMaxTimeoutMs),
+                toolCallId,
+            });
+        }
+        if (route.kind === 'haus-not-alone') {
+            return hausNotAlone;
+        }
+        return invocationToolOutcome(
+            await invocations.invoke(
+                toolCallId,
+                { command: command.machine, cwd: command.cwd, kind: 'bash' },
+                { requestedTimeoutMs: command.timeoutMs, signal }
+            )
+        );
+    };
     const tools: RunTools = {
-        async bash(toolCallId, bash, signal) {
-            const route = await routeBashCommand(bash.command);
-            if (route.kind === 'haus') {
-                return await runHausCommand({
-                    argv: route.argv,
-                    authority,
-                    invocations,
-                    proxy,
-                    signal,
-                    stdin: route.stdin,
-                    timeoutMs: Math.min(bash.timeout ?? hausDefaultTimeoutMs, hausMaxTimeoutMs),
-                    toolCallId,
-                });
-            }
-            if (route.kind === 'haus-not-alone') {
-                return hausNotAlone;
+        async applyPatch(toolCallId, patch, signal) {
+            const parsed = patchCommandSchema.safeParse({
+                command: 'apply_patch',
+                input: patch.input,
+            });
+            if (!parsed.success) {
+                return refusedInput('apply_patch', parsed.error);
             }
             return invocationToolOutcome(
                 await invocations.invoke(
                     toolCallId,
-                    { command: bash.command, kind: 'bash' },
-                    { requestedTimeoutMs: bash.timeout, signal }
+                    { edit: parsed.data, kind: 'edit' },
+                    { signal }
                 )
+            );
+        },
+        bash(toolCallId, bash, signal) {
+            return runCommand(
+                toolCallId,
+                { machine: bash.command, script: bash.command, timeoutMs: bash.timeout },
+                signal
             );
         },
         async edit(toolCallId, edit, signal) {
@@ -88,6 +119,23 @@ export function createRunTools(input: {
             const visibility = proxy.visibility();
             proxy.close();
             return visibility;
+        },
+        shell(toolCallId, shell, signal) {
+            const { command, script } = shellCommandOf(shell.command);
+            return runCommand(
+                toolCallId,
+                { cwd: shell.workdir, machine: command, script, timeoutMs: shell.timeout_ms },
+                signal
+            );
+        },
+        async viewImage(toolCallId, view, signal) {
+            return invocationToolOutcome(
+                await invocations.invoke(
+                    toolCallId,
+                    { kind: 'view-image', path: view.path },
+                    { signal }
+                )
+            );
         },
     };
     return {

@@ -23,6 +23,12 @@ export const invocationTimeoutsMs = {
     'view-image': { default: 30_000, max: 30_000 },
 } as const satisfies Record<InvocationOperationKind, { default: number; max: number }>;
 
+/** Past its timeout plus this grace, the runner and the Server both settle an invocation `unknown`. */
+export const invocationGraceMs = 30_000;
+
+/** The runner waits this much past the Server's window, so the Server decides `unknown` first. */
+export const invocationRunnerMarginMs = 5000;
+
 /** Bytes that would push a frame past the limit, streamed through the attachment upload. */
 export const invocationPayloadReferenceSchema = z
     .object({
@@ -87,6 +93,22 @@ export const editorCommandSchema = z.discriminatedUnion('command', [
 ]);
 export type EditorCommand = z.infer<typeof editorCommandSchema>;
 
+/** One patch in OpenAI Codex's `apply_patch` grammar, the shape GPT models are trained on. */
+export const patchCommandSchema = z
+    .object({
+        command: z.literal('apply_patch'),
+        cwd: machinePathSchema.optional(),
+        input: z.string().min(1).max(262_144),
+    })
+    .strict();
+export type PatchCommand = z.infer<typeof patchCommandSchema>;
+
+export const invocationEditSchema = z.discriminatedUnion('command', [
+    ...editorCommandSchema.options,
+    patchCommandSchema,
+]);
+export type InvocationEdit = z.infer<typeof invocationEditSchema>;
+
 export const invocationOperationSchema = z.discriminatedUnion('kind', [
     z
         .object({
@@ -95,7 +117,7 @@ export const invocationOperationSchema = z.discriminatedUnion('kind', [
             kind: z.literal('bash'),
         })
         .strict(),
-    z.object({ edit: editorCommandSchema, kind: z.literal('edit') }).strict(),
+    z.object({ edit: invocationEditSchema, kind: z.literal('edit') }).strict(),
     z.object({ kind: z.literal('view-image'), path: machinePathSchema }).strict(),
     z
         .object({
