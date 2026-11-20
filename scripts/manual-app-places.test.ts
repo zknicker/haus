@@ -73,7 +73,9 @@ test('the app topic renders each place as one line with its role and caveat', ()
     expect(body).toContain('## Common questions\n\n- What a Computer gives an Agent:');
     expect(body).toContain('Its Captain profile shows the last error, with Restart');
     expect(body).toContain("synced into the Agent's `drive/` folder");
-    expect(body).toContain("Captain profile → Runs on shows its Computer's health and model status");
+    expect(body).toContain(
+        "Captain profile → Runs on shows its Computer's health and model status"
+    );
     expect(body).toContain(
         "- Add a skill from a Computer to an Agent's library: Captain profile → Skills → Add Skills (Owner or Admin).\n"
     );
