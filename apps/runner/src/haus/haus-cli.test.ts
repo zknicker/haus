@@ -7,7 +7,7 @@ import { drainCleanups, live, startedRun } from '../runner-test-server.ts';
 afterEach(drainCleanups);
 
 describe('haus on the runner', () => {
-    test("files push never reads another Agent's session from the runner's disk", async () => {
+    test("drive view never writes over another Agent's session on the runner's disk", async () => {
         const { run, runner, server } = await startedRun();
         const otherSession = join(runner.dataDir, 'agents', 'agt_other', 'session.json');
         await mkdir(join(runner.dataDir, 'agents', 'agt_other'), { recursive: true });
@@ -16,12 +16,12 @@ describe('haus on the runner', () => {
 
         const absolute = await run.tools.bash(
             'toolu_1',
-            { command: `haus files push ${otherSession} leaked.json` },
+            { command: `haus drive view haus/brief.md --output ${otherSession}` },
             live()
         );
         const relative = await run.tools.bash(
             'toolu_2',
-            { command: `haus files push ${relativeSession} leaked.json` },
+            { command: `haus drive view haus/brief.md --output ${relativeSession}` },
             live()
         );
 
@@ -71,9 +71,9 @@ const workspaceRefusal = {
     content: [
         {
             text: [
-                'Error: `haus files push` moves files between Files and your workspace, which `haus` cannot reach on its own.',
+                'Error: `haus drive view` moves files between Drive and your workspace, which `haus` cannot reach on its own.',
                 'Code: HAUS_WORKSPACE_UNREACHABLE',
-                'Next action: To share one file, run `haus attachment upload --path <file>` and attach its id to a message.',
+                'Next action: Read the current version in your `drive/` folder with file commands; `haus drive versions` lists its history.',
             ].join('\n'),
             type: 'text',
         },

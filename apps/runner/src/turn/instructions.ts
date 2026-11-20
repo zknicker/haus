@@ -20,7 +20,7 @@ export function composeInstructions(
         renderAgentInstructions({
             ...runnerMachineFacts,
             agentId: start.agentId,
-            agentName: start.agentName ?? start.agentId,
+            agentName: start.agentName,
             connectionChips: start.connectionChips,
             conversationStyle: start.agentConversationStyle ?? null,
             homeTimezone: start.homeTimezone ?? 'UTC',

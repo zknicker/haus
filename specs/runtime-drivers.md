@@ -311,9 +311,9 @@ invocation record or the journal.
 
 A `haus` argument never resolves against the runner's disk, which holds every Agent's sessions.
 The runner's command table (`apps/runner/src/haus/command-access.ts`) classifies every Agent CLI
-command as Server-only, routed through the flags above, or refused. `files push`, `files pull`,
-and `files view` walk workspace folders and the Computer's Files cache, so they are refused with
-`Code: HAUS_WORKSPACE_UNREACHABLE` until `haus drive` replaces them (D4). A command the table
+command as Server-only, routed through the flags above, or refused. `drive view` writes into the
+Computer's Drive cache, so it is refused with `Code: HAUS_WORKSPACE_UNREACHABLE` and points at
+the `drive/` folder the Computer keeps in the Agent's workspace (D4). A command the table
 does not know is refused with `Code: UNKNOWN_HAUS_COMMAND`, so a new CLI command cannot touch a
 local path until it is classified. The CLI child runs in a fresh per-call directory with an
 empty `HOME`.

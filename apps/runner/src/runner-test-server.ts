@@ -219,6 +219,7 @@ export function driveRoutes(handle: string, files: Map<string, string>) {
 function startCommand() {
     return {
         agentId: 'agt_1',
+        agentName: 'blippy',
         chatId: 'chat_1',
         drainItemIds: [],
         inboxDelivery: 'notice',

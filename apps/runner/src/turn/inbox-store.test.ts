@@ -57,6 +57,7 @@ test('a busy notice is stored with its receipt until a run accepts the work', as
     await store.acceptRun(
         agentStartCommandSchema.parse({
             agentId,
+            agentName: 'blippy',
             chatId,
             drainItemIds: [maya.id],
             inbox: [maya],

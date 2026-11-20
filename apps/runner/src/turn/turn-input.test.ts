@@ -118,7 +118,7 @@ test('a cold first-generation turn with nothing pending is bare Start.', () => {
     expect(input.turnContent).toBe('Start.');
 });
 
-test('a Drive conflict run is chatless and lists the files in the Agent's own words', () => {
+test('a Drive conflict run is chatless and tells its own edits apart by handle', () => {
     const input = composeTurnInput(
         start({
             chatId: null,

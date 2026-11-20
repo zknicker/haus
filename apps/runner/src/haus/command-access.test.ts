@@ -19,7 +19,7 @@ describe('hausCommandAccess', () => {
         expect(unclassified).toEqual([]);
     });
 
-    test.each([[[]], [['help']], [['--version']], [['files']], [['files', '--help']]])(
+    test.each([[[]], [['help']], [['--version']], [['drive']], [['drive', '--help']]])(
         'lets help through: %j',
         (argv) => {
             expect(hausCommandAccess(argv)).toEqual({ kind: 'run', machineFlags: [] });
@@ -27,9 +27,9 @@ describe('hausCommandAccess', () => {
     );
 
     test.each([
-        [['files', 'sync'], 'Run `haus files --help` for its commands.'],
-        [['files', 'constructor'], 'Run `haus files --help` for its commands.'],
-        [['drive', 'push'], 'Run `haus help` for the command list.'],
+        [['drive', 'push'], 'Run `haus drive --help` for its commands.'],
+        [['drive', 'constructor'], 'Run `haus drive --help` for its commands.'],
+        [['files', 'push'], 'Run `haus help` for the command list.'],
         [['toString', 'call'], 'Run `haus help` for the command list.'],
     ])('refuses a command it does not know: %j', (argv, nextAction) => {
         expect(hausCommandAccess(argv)).toEqual({

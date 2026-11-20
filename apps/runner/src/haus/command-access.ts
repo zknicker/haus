@@ -15,17 +15,14 @@ export type HausCommandAccess =
 
 const bare = '[flags]';
 const serverOnly = { kind: 'run', machineFlags: [] } as const satisfies CommandAccess;
-const shareOneFile =
-    'To share one file, run `haus attachment upload --path <file>` and attach its id to a message.';
-const useDrivePaths =
-    'Work with Files by path through `haus files list`, `mv`, `versions`, `share`, or `delete`.';
+const readDriveFolder =
+    'Read the current version in your `drive/` folder with file commands; `haus drive versions` lists its history.';
 
 const commandTable: Readonly<Record<string, Readonly<Record<string, CommandAccess>>>> = {
     agent: { avatar: serverOnly, create: serverOnly, update: serverOnly },
     attachment: { upload: reads('--path'), view: writes('--output') },
     channel: {
         add: serverOnly,
-        create: serverOnly,
         info: serverOnly,
         join: serverOnly,
         leave: serverOnly,
@@ -50,15 +47,10 @@ const commandTable: Readonly<Record<string, Readonly<Record<string, CommandAcces
         stop: serverOnly,
     },
     connection: { grant: serverOnly, list: serverOnly, revoke: serverOnly },
-    files: {
-        delete: serverOnly,
-        list: serverOnly,
-        mv: serverOnly,
-        pull: { kind: 'workspace', nextAction: useDrivePaths },
-        push: { kind: 'workspace', nextAction: shareOneFile },
+    drive: {
         share: serverOnly,
         versions: serverOnly,
-        view: { kind: 'workspace', nextAction: useDrivePaths },
+        view: { kind: 'workspace', nextAction: readDriveFolder },
     },
     image: { generate: reads('--reference'), models: serverOnly, wait: writes('--out') },
     inbox: { check: serverOnly },
@@ -143,7 +135,7 @@ export function hausCommandAccess(argv: readonly string[]) {
     }
     if (access.kind === 'workspace') {
         return refused(
-            `\`haus ${group} ${name}\` moves files between Files and your workspace, which \`haus\` cannot reach on its own.`,
+            `\`haus ${group} ${name}\` moves files between Drive and your workspace, which \`haus\` cannot reach on its own.`,
             'HAUS_WORKSPACE_UNREACHABLE',
             access.nextAction
         );
