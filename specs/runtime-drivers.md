@@ -311,7 +311,21 @@ process group, with the environment reminder scripts get: the Agent's `HOME`, a 
 secrets wrapper and the runtime search path, and `LANG`, `LC_ALL` and `TMPDIR` when set. `view`
 returns an image file as an image. The Computer sends images as they are, up to 5 MiB, and the
 runner resizes them for the model it serves, because the runner knows that model's limits and the
-Computer carries no image library. `create` overwrites an existing file.
+Computer carries no image library. `view` of a PDF, recognized by its `%PDF-` magic bytes rather
+than its extension, returns the file's bytes as `application/pdf`, up to 5 MiB, and the runner
+turns them into text for every model. The Computer carries no PDF library either. `create`
+overwrites an existing file.
+
+**PDFs reach the model as text.** The runner extracts each page's text with `unpdf` (2.1.0,
+pinned exactly; a maintained pure-JS wrapper over Mozilla's PDF.js that runs in Bun with no
+native canvas), puts `[Page <n> of <total>]` before each page, and serves the result as `view`
+serves a text file: numbered lines, the first 2,000 lines or 50 KiB, and a `view_range` to read on.
+A PDF with no text layer says so. Claude models get the same text as Pi models. A live probe on
+2026-11-19 (Claude Agent SDK 0.3.326, Haiku 4.5, `claude-pdf-live.test.ts`) returned an SDK MCP
+tool result holding an MCP `resource` block with an `application/pdf` blob. The SDK saved the
+blob to disk and sent the model only the text "Binary content (application/pdf, 895 bytes) saved
+to …", so the model could not read it. A document block through a tool result waits on the SDK
+carrying one.
 
 ### `haus` runs on the runner
 
@@ -334,9 +348,11 @@ here-string. Otherwise:
 A `haus` flag that names a machine path reads or writes it through a `file-read` or `file-write`
 invocation: `attachment upload --path`, `attachment view --output`,
 `image generate --reference <path>`, `image wait --out`, `trigger preview --payload-file`, and
-`trigger create|rotate --output`. Only those commands need the machine. A webhook secret written
-by `--output` crosses the Server once, inside the invocation, and is never stored in an
-invocation record or the journal.
+`trigger create|rotate --output`. Only those commands need the machine. A write works at any
+size up to the 50 MiB attachment limit: bytes over 700 KiB go up first and the `file-write`
+carries a reference ([Large payloads](#large-payloads)). A webhook secret written by `--output`
+crosses the Server once, inside the invocation, and is never stored in an invocation record or
+the journal.
 
 A `haus` argument never resolves against the runner's disk, which holds every Agent's sessions.
 The runner's command table (`apps/runner/src/haus/command-access.ts`) classifies every Agent CLI
@@ -384,6 +400,8 @@ These end at R4 and are named here as intentional capability removals:
 - **Images to the model from an attachment reference.** `view_image` and `view` on a large image
   return a reference the runner cannot read until R3b adds the runner read path. Resizing an image
   for its model comes with that read.
+- **PDFs for GPT models.** GPT Agents have `view_image`, not the editor's `view`, so a PDF reaches
+  them only through shell tools on the machine.
 - **Pi compaction between turns.** A Pi compaction that lands outside a Haus turn has no observer,
   so the memory and rules receipts do not reset for it.
 - **A cross-process lock on the login file.** Pi locks a token refresh inside the runner process
@@ -574,7 +592,9 @@ during a transfer settles as `cancelled` or `timed-out` and the Agent's next inv
   `agents/<agent-id>/runtime/invocations/<invocation-id>.log`, kept seven days, and the result
   names that path.
 - `view` returns the first 2,000 lines or 50 KiB of text, with a line naming the `view_range` to
-  read on. Images are capped at 5 MiB and sent unresized. `file-read` returns raw bytes up to its
+  read on. Images are capped at 5 MiB and sent unresized. PDFs are capped at 5 MiB, the image
+  cap, which keeps a PDF well under the 50 MiB attachment limit and leaves room for a document
+  block if Claude models ever take one; the runner applies the text cap to the extracted text. `file-read` returns raw bytes up to its
   `maxBytes`, because it feeds `haus` commands rather than the model.
 - Every frame stays under 1 MiB.
 
@@ -591,8 +611,8 @@ frame carries a reference: `{ kind: 'attachment', attachmentId, mediaType, sizeB
   reference. The runner reads the bytes with the run credential when the model or the `haus`
   command needs them. An attachment upload uses the reference as the attachment, with no second
   upload.
-- **Payloads, runner to machine.** A `file-write` over the limit (`image wait --out`, or any
-  other write) uploads first, and `invoke` carries the
+- **Payloads, runner to machine.** A `file-write` over the limit (`attachment view --output`,
+  `image wait --out`, `trigger create|rotate --output`) uploads first, and `invoke` carries the
   reference. The Computer downloads it under the invocation id before it writes the file. A
   download that fails is the invocation's `failed` outcome, with nothing written.
 - The Computer uploads with `PUT /computer/invocations/:invocationId/payloads`, its Computer
@@ -610,10 +630,23 @@ frame carries a reference: `{ kind: 'attachment', attachmentId, mediaType, sizeB
   open until its payload is read, so the download runs under the same timeout plus grace, and a
   cancel or Stop aborts it. A download cut off that way keeps the outcome the Server recorded
   and tells the model the bytes could not be read.
-- The runner has no upload path yet. The Server mints the invocation id only when the request
-  arrives, so a payload cannot be bound to its invocation before `invoke` carries it. Until a
-  runner upload route exists, a `haus` write of a file over 700 KiB is refused, and nothing is
+- The runner uploads with `PUT /api/agent/invocation-payloads?toolCallId=<id>&seq=<n>`, its run
+  credential as the bearer and the media type as `Content-Type`
+  (`uploadInvocationPayload` in `apps/runner/src/invocations/invocation-payload.ts`). The Server
+  still mints every invocation id when the request arrives, so the upload binds to the dispatch
+  key instead: the run and Agent come from the credential, and the tool call id and `seq` from
+  the query. The runner's ledger records the dispatch `accepted` before the upload, so an upload
+  is a dispatch's first effect and is never repeated. The Server answers the same
+  `{ attachmentId, mediaType, sha256, sizeBytes }`, and the runner refuses an answer whose digest
+  or size differs. A dispatch key holds one upload; a second answers 409. The upload runs under
+  the `file-write` timeout and the tool call's abort signal, and an upload that fails settles the
+  dispatch `failed` (or `timed-out`, `cancelled`) with no `invocation-request` sent and nothing
   written.
+- When the router mints the invocation for an `invocation-request` whose `file-write` carries a
+  reference, it binds the upload with the same dispatch key to that invocation before it sends
+  `invoke`. A reference that names no upload under that key (another run's, another Agent's, a
+  different tool call's) binds nothing, so the Computer's download answers 404 and the
+  invocation settles `failed` with nothing written.
 - The reference is bound to its invocation and Agent, and only that invocation's run reads it.
   A payload is not an attachment to anyone else: `GET /api/agent/attachments/:id` answers 404
   for it, even for a later run of the same Agent, and an Agent cannot attach it to a message,
@@ -637,8 +670,11 @@ Server, Agent, and dispatch key. Its states are `sent`, `accepted`, `finished` (
 `offline` included), and `unknown`; `unknown` is terminal there, and a late result fills its
 `late_*` columns only. It is evidence and routing, and the
 execution journal remains the record of what the model saw. `agent_invocation_payloads` binds
-each payload attachment to its invocation. Records keep the execution journal's 30-day window;
-the retention sweep deletes them with their payload attachments and bytes.
+each payload attachment to its invocation. A runner upload's row also carries its dispatch key
+(Agent, run, tool call id, `seq`) and starts with no invocation until the router binds it.
+Records keep the execution journal's 30-day window; the retention sweep deletes them with their
+payload attachments and bytes, and deletes an upload never bound to an invocation 30 days after
+it arrived.
 
 ## Inbox delivery
 
@@ -761,6 +797,9 @@ settings, reminder scripts, host skill discovery, inventory, updates, and Worker
 | An invocation is sent once with its clamped timeout, its result is recorded, answered, and acknowledged, a repeated key sends nothing, a cancel reaches the Computer, and a reconnect resends unaccepted `invoke` frames and cancels a settled run's | `apps/server/test/agent-invocations-routing.test.ts` | R3 |
 | A payload is stored and read only under its invocation and Computer, its digest and size match, a run reads only its own invocations' payloads, and no general attachment route reads or attaches one | `apps/server/test/agent-invocation-payloads.test.ts`, `apps/runner/src/invocations/invocation-results.test.ts` | R3 |
 | A result or write over 1 MiB moves as an attachment reference, and no frame exceeds 1 MiB | `apps/computer/src/invocations/large-payload.test.ts` | R2 |
+| A runner upload binds to its dispatch key, a 2 MiB `haus` write reaches the machine through the Computer download with a matching digest, and another run, tool call, or Agent can neither bind nor read it | `apps/server/test/agent-invocation-uploads.test.ts`, `apps/runner/src/haus/haus-cli.test.ts` | R3c |
+| `view` of a PDF returns `application/pdf` bytes by its magic bytes and refuses one over 5 MiB; the runner gives Pi and Claude models its paged text | `apps/computer/src/invocations/editor-pdf.test.ts`, `apps/runner/src/tools/pdf-view.test.ts` | R3c |
+| An SDK MCP tool result cannot carry a PDF to Claude, so Claude gets the text | `apps/runner/src/claude/claude-pdf-live.test.ts` (live) | R3c |
 | A lone `haus` command runs on the runner, and a composed one is refused with `HAUS_NOT_ALONE` | `apps/runner/src/haus/haus-command.test.ts` | R3 |
 | A `haus` path argument never reads the runner's disk: workspace commands are refused, path flags read the machine, and every CLI command is classified | `apps/runner/src/haus/haus-cli.test.ts`, `command-access.test.ts` | R3 |
 | A runner crash after recording a dispatch accepted reports `unknown` and never sends it again | `apps/runner/src/dispatch/dispatch-ledger-crash.test.ts` | R3 |
