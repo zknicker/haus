@@ -1,28 +1,33 @@
 import type {
-    ModelConnectionCapacityWindow,
     ModelProvider,
     RunnerConnectionCapacityFrame,
     RunnerModelConnection,
 } from '@haus/api';
-import { type ClaudeUsageWindowId, getClaudeUsage } from '@haus/claude-usage';
-import { type CodexUsageWindowId, getCodexUsage } from '@haus/codex-usage';
 import type { RunnerLink } from '../run-context.ts';
 import type { ConnectionBook } from './connection-book.ts';
+import {
+    type CapacityUsageUrls,
+    readFailure,
+    readsCapacity,
+    readWindows,
+} from './connection-capacity-readers.ts';
 
 export const capacityReadEveryMs = 15 * 60 * 1000;
 const accessFailureGapMs = 60 * 1000;
+const refusedPauseMs = 6 * 60 * 60 * 1000;
+const rateLimitHoldCapMs = 60 * 60 * 1000;
 
 type Trigger = 'access-failure' | 'sweep';
+type ReadOutcome = 'failed' | 'read' | 'refused';
 
-const readGapMs: Record<Trigger, number> = {
-    'access-failure': accessFailureGapMs,
-    sweep: capacityReadEveryMs,
+const readGapMs: Record<Trigger, Record<ReadOutcome, number>> = {
+    'access-failure': {
+        failed: accessFailureGapMs,
+        read: accessFailureGapMs,
+        refused: refusedPauseMs,
+    },
+    sweep: { failed: capacityReadEveryMs, read: capacityReadEveryMs, refused: refusedPauseMs },
 };
-
-export interface CapacityUsageUrls {
-    readonly chatgpt?: string;
-    readonly claude?: string;
-}
 
 export type CapacityReader = ReturnType<typeof createCapacityReader>;
 
@@ -34,33 +39,55 @@ export function createCapacityReader(input: {
     usageUrls?: CapacityUsageUrls;
 }) {
     const now = input.now ?? (() => new Date());
-    const lastRead = new Map<string, { at: number; credentialVersion: number }>();
+    const lastRead = new Map<
+        string,
+        { at: number; credentialVersion: number; outcome: ReadOutcome }
+    >();
     const reading = new Set<string>();
     const queues = new Map<ModelProvider, Promise<void>>();
+    const heldUntil = new Map<ModelProvider, number>();
 
-    const readOne = async (connectionId: string) => {
-        const connection = input.book.get(connectionId);
-        if (!connection) {
-            return;
-        }
-        const readAt = now();
+    const held = (provider: ModelProvider, at: number) => at < (heldUntil.get(provider) ?? 0);
+
+    const attempt = async (connection: RunnerModelConnection, readAt: Date) => {
         try {
             const windows = await readWindows(connection, readAt, input.usageUrls ?? {});
             const frame: RunnerConnectionCapacityFrame = {
-                connectionId,
+                connectionId: connection.id,
                 readAt: readAt.toISOString(),
                 type: 'runner-connection-capacity',
                 windows,
             };
             input.link.send(frame);
+            return 'read' as const;
         } catch (error) {
             input.log(
-                `Runner could not read capacity for ${connectionId}: ${error instanceof Error ? error.message : String(error)}`
+                `Runner could not read capacity for ${connection.id}: ${error instanceof Error ? error.message : String(error)}`
             );
+            const failure = readFailure(error);
+            if (failure.kind !== 'rate-limited') {
+                return failure.kind;
+            }
+            const holdMs = Math.min(
+                failure.retryAfterMs ?? capacityReadEveryMs,
+                rateLimitHoldCapMs
+            );
+            heldUntil.set(connection.provider, readAt.getTime() + holdMs);
+            return 'failed' as const;
         }
+    };
+
+    const readOne = async (connectionId: string) => {
+        const connection = input.book.get(connectionId);
+        const readAt = now();
+        if (!connection || held(connection.provider, readAt.getTime())) {
+            return;
+        }
+        const outcome = await attempt(connection, readAt);
         lastRead.set(connectionId, {
             at: now().getTime(),
             credentialVersion: connection.credentialVersion,
+            outcome,
         });
     };
 
@@ -76,14 +103,14 @@ export function createCapacityReader(input: {
     };
 
     const due = (connection: RunnerModelConnection, trigger: Trigger, at: number) => {
-        if (reading.has(connection.id)) {
+        if (reading.has(connection.id) || held(connection.provider, at)) {
             return false;
         }
         const last = lastRead.get(connection.id);
         return (
             !last ||
             last.credentialVersion !== connection.credentialVersion ||
-            at - last.at >= readGapMs[trigger]
+            at - last.at >= readGapMs[trigger][last.outcome]
         );
     };
 
@@ -111,77 +138,3 @@ export function createCapacityReader(input: {
         },
     };
 }
-
-export function readsCapacity(connection: RunnerModelConnection) {
-    return (
-        (connection.provider === 'claude' && connection.credential.kind === 'setup-token') ||
-        (connection.provider === 'chatgpt' && connection.credential.kind === 'oauth')
-    );
-}
-
-async function readWindows(
-    connection: RunnerModelConnection,
-    readAt: Date,
-    urls: CapacityUsageUrls
-) {
-    const { credential } = connection;
-    if (credential.kind === 'setup-token') {
-        const usage = await getClaudeUsage({
-            credentials: {
-                accessToken: credential.token,
-                expiresAt: null,
-                refreshToken: null,
-                subscriptionType: null,
-            },
-            now: readAt,
-            ...(urls.claude ? { usageUrl: urls.claude } : {}),
-        });
-        return usage.windows.map((window) => capacityWindow(window, claudeLabels[window.id]));
-    }
-    if (!(connection.provider === 'chatgpt' && credential.kind === 'oauth')) {
-        throw new Error(
-            `A ${connection.provider} ${credential.kind} connection has no capacity reader.`
-        );
-    }
-    const { access, accountId, expires } = credential.credential;
-    if (expires <= readAt.getTime()) {
-        throw new Error('The access token has expired; the next turn refreshes it.');
-    }
-    const usage = await getCodexUsage({
-        credentials: {
-            accessToken: access,
-            accountId: typeof accountId === 'string' ? accountId : null,
-            lastRefresh: null,
-            refreshToken: null,
-        },
-        now: readAt,
-        ...(urls.chatgpt ? { usageUrl: urls.chatgpt } : {}),
-    });
-    return usage.windows.map((window) => capacityWindow(window, chatgptLabels[window.id]));
-}
-
-function capacityWindow(
-    window: { id: string; resetsAt: string | null; usedPercent: number },
-    label: string
-) {
-    const resetsAt = window.resetsAt === null ? Number.NaN : Date.parse(window.resetsAt);
-    const mapped: ModelConnectionCapacityWindow = {
-        id: window.id,
-        label,
-        resetsAt: Number.isFinite(resetsAt) ? new Date(resetsAt).toISOString() : null,
-        usedPercent: window.usedPercent,
-    };
-    return mapped;
-}
-
-const claudeLabels: Record<ClaudeUsageWindowId, string> = {
-    'current-session': '5-hour',
-    'current-week-all-models': 'Weekly',
-    'current-week-opus': 'Weekly Opus',
-    'current-week-sonnet': 'Weekly Sonnet',
-};
-
-const chatgptLabels: Record<CodexUsageWindowId, string> = {
-    'current-session': '5-hour',
-    'current-week': 'Weekly',
-};

@@ -153,7 +153,10 @@ The runner reads each plan connection's capacity and sends it up as `runner-conn
 - **Windows** are `{ id, label, resetsAt, usedPercent }`: `5-hour` and `Weekly` for both plans,
   plus `Weekly Sonnet` and `Weekly Opus` when Claude reports them.
 - **Failures.** A failed read sends nothing and never changes the connection's status. The runner
-  logs that capacity is unavailable.
+  logs that capacity is unavailable. A `429` holds every read on that provider for its
+  `Retry-After` (seconds or an HTTP date), 15 minutes when it gives none, and never more than an
+  hour. A `401` or `403` stops reading that connection for 6 hours or until its `credentialVersion`
+  changes, failed turns included.
 - **Storage.** The Server stores the windows and `readAt` on the connection and announces
   `modelConnections` updated only when the windows changed. The list shows `capacity: null` when
   nothing was read or the reading is older than 6 hours. Replacing a credential clears it.
