@@ -1,9 +1,9 @@
 import * as z from 'zod';
-import { applyServerAcceptEncoding } from '../server-encoding.ts';
 import { type AgentContext, resolveAgentContext } from './agent-context.ts';
 import { AgentCliError } from './agent-error.ts';
 
 const REQUEST_TIMEOUT_MS = 15_000;
+const serverAcceptEncoding = 'gzip, deflate, br';
 const errorResponseSchema = z.object({
     code: z.string().min(1),
     draftSaved: z.boolean().optional(),
@@ -49,12 +49,11 @@ export class AgentApiClient implements AgentApiRequester {
         try {
             response = await this.fetcher(url, {
                 ...(input.body === undefined ? {} : { body: JSON.stringify(input.body) }),
-                headers: applyServerAcceptEncoding(
-                    new Headers({
-                        authorization: `Bearer ${this.context.token}`,
-                        ...(input.body === undefined ? {} : { 'content-type': 'application/json' }),
-                    })
-                ),
+                headers: new Headers({
+                    'accept-encoding': serverAcceptEncoding,
+                    authorization: `Bearer ${this.context.token}`,
+                    ...(input.body === undefined ? {} : { 'content-type': 'application/json' }),
+                }),
                 method: input.method ?? 'GET',
                 signal: input.signal
                     ? AbortSignal.any([

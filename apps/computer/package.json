@@ -13,6 +13,7 @@
     },
     "dependencies": {
         "@cursor/sdk": "1.0.30",
+        "@haus/agent-cli": "workspace:*",
         "@haus/agent-prompt": "workspace:*",
         "@haus/agent-workspace": "workspace:*",
         "@haus/api": "workspace:*",

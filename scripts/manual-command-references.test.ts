@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
-import { commandGroups } from '../apps/computer/src/agent-cli.ts';
+import { commandGroups } from '../packages/agent-cli/src/agent-cli.ts';
 import { manualTopics, resolveManualTopic } from '../packages/agent-manual/src/index.ts';
 import { renderAgentInstructions } from '../packages/agent-prompt/src/index.ts';
 

@@ -31,8 +31,8 @@
         }
     },
     "legacyCeilings": {
-        "apps/computer/src/agent-cli/commands/agent-reminder.ts": 345,
-        "apps/computer/src/agent-cli/commands/agent-trigger.test.ts": 304,
+        "packages/agent-cli/src/commands/agent-reminder.ts": 345,
+        "packages/agent-cli/src/commands/agent-trigger.test.ts": 304,
         "apps/computer/src/harness/executor.test.ts": 1041,
         "apps/computer/src/harness/executor.ts": 351,
         "apps/computer/src/inbox-store.ts": 308,

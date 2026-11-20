@@ -111,6 +111,8 @@ async function main() {
         run('bun', ['run', 'release:check']);
     }
     run('bun', ['run', '--filter', '@haus/api', 'typecheck']);
+    run('bun', ['run', '--filter', '@haus/agent-cli', 'test']);
+    run('bun', ['run', '--filter', '@haus/agent-cli', 'typecheck']);
     run('bun', ['run', '--filter', '@haus/computer', 'test']);
     run('bun', ['run', '--filter', '@haus/computer', 'typecheck']);
     const recoveredArtifactPath = dryRun

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { commandGroups } from '@haus/computer/src/agent-cli.ts';
+import { commandGroups } from '@haus/agent-cli';
 import { hausCommandAccess } from './command-access.ts';
 
 describe('hausCommandAccess', () => {

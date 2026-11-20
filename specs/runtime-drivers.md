@@ -430,10 +430,13 @@ The machine has no `haus` wrapper, proxy, or runner token for Agents. The Comput
 proxy, its local inbox answers, its visibility receipts, and its send-outcome tracking move into
 the runner's `haus` handler. Workers get their own CLI scope (W1).
 
-In R3 the runner runs the existing Agent CLI from the `@haus/computer` package (`__agent`) as a
-child process against a runner-local loopback proxy. The proxy holds the run credential and adds
-`Haus-Dispatch-Id`, so the CLI never sees a Server-valid credential. Moving the CLI into its own
-package comes before R4 deletes the Computer's Agent paths.
+The Agent CLI lives in `packages/agent-cli` (`@haus/agent-cli`). The runner runs its `bin`
+entry (`@haus/agent-cli/bin`) as a child process against a runner-local loopback proxy. The proxy
+holds the run credential and adds `Haus-Dispatch-Id`, so the CLI never sees a Server-valid
+credential. The CLI needs no host interface: it reads `HAUS_AGENT_ID`, `HAUS_SERVER_URL`, and
+`HAUS_AGENT_TOKEN_FILE`, talks HTTP to whichever loopback proxy `HAUS_SERVER_URL` names, and
+touches only the paths its flags name. The Computer embeds the same package behind `__agent`
+until R4 deletes the Computer's Agent paths.
 
 ### `execute`
 
