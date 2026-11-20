@@ -31,7 +31,7 @@ function CommandStep({
             <p className="text-sm font-medium">
                 {number}. {label}
             </p>
-            <CodeSnippet lines={command} />
+            <CodeSnippet lines={command} wrap />
         </li>
     );
 }

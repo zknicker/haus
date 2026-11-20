@@ -103,7 +103,9 @@ export function ServerShell({
             shortcut={topbarInWindow ? '⌘,' : undefined}
         />
     );
-    const capyActions = topbarInWindow ? null : <CapySidebarActions slug={slug} />;
+    const capyActions = topbarInWindow ? null : (
+        <CapySidebarActions canOperate={canOperate} serverId={server.id} slug={slug} />
+    );
     return (
         <AppShell className="w-full">
             <ServerRealtimeListeners server={server} />
@@ -145,7 +147,11 @@ export function ServerShell({
                                             ariaLabel="Server"
                                             header={
                                                 capyShell && topbarInWindow ? (
-                                                    <CapySidebarHeader slug={slug} />
+                                                    <CapySidebarHeader
+                                                        canOperate={canOperate}
+                                                        serverId={server.id}
+                                                        slug={slug}
+                                                    />
                                                 ) : null
                                             }
                                             value="server"

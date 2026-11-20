@@ -11,7 +11,7 @@ test('Drive selects on click, opens on double click or Return, and Back walks th
         displayName: 'Navigation',
         slug,
     });
-    await seedArtifactLibrary(page, session.databaseUrl, server.id);
+    await seedArtifactLibrary(page, session, server.id);
     // A deep folder for the trail to fold: haus/starter-kit/scripts/a/b/c.
     await client.artifact.move.mutate({
         from: 'haus/starter-kit/scripts/setup.sh',
@@ -91,7 +91,7 @@ test('right-clicking an item selects it and offers only the actions this member 
     await page.setViewportSize({ width: 1440, height: 1000 });
     const slug = 'artifact-context-menu';
     const { server, session } = await createTestServer(page, { displayName: 'Context', slug });
-    await seedArtifactLibrary(page, session.databaseUrl, server.id);
+    await seedArtifactLibrary(page, session, server.id);
     await page.goto(`/s/${slug}/artifacts?folder=haus%2Fstarter-kit%2Fscripts`);
     const today = librarySection(page, 'Today');
     const agentFile = today.getByRole('row', { name: /tm_check\.py/u });
@@ -163,7 +163,7 @@ test.describe('on a touch screen', () => {
     test('a tap opens a folder at once', async ({ page }) => {
         const slug = 'artifact-touch';
         const { server, session } = await createTestServer(page, { displayName: 'Touch', slug });
-        await seedArtifactLibrary(page, session.databaseUrl, server.id);
+        await seedArtifactLibrary(page, session, server.id);
         await page.goto(`/s/${slug}/artifacts`);
         await librarySection(page, 'Folders').getByRole('row', { name: 'Haus' }).tap();
         await expect(page).toHaveURL(/folder=haus$/u);
