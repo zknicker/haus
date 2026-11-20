@@ -1,4 +1,9 @@
-import { type Agent, type ComputerInventory, reasoningChangeResetsSession } from '@haus/api';
+import {
+    type Agent,
+    type ComputerInventory,
+    type ModelConnection,
+    reasoningChangeResetsSession,
+} from '@haus/api';
 import { Button, Description, Form, Label, ListBox, Modal, Select } from '@heroui/react';
 import { CpuIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
@@ -6,12 +11,14 @@ import { Icon } from '../../../components/ui/icon.tsx';
 import { SettingsRowError } from '../../settings/layout/settings-text.tsx';
 import { modelFeatureDescription } from '../model-features.ts';
 import { ReasoningSelect, supportedReasoningEffort } from '../reasoning-select.tsx';
+import { RunnerModelForm } from './runner-model-form.tsx';
 import { isRuntimeConfigDraftAvailable, type RuntimeConfigDraft } from './runtime-model.ts';
 
 type Runtime = ComputerInventory['runtimes'][number];
 
 export function RuntimeDialog({
     agent,
+    connections,
     error,
     onOpenChange,
     onSave,
@@ -20,6 +27,7 @@ export function RuntimeDialog({
     runtimes,
 }: {
     agent: Agent;
+    connections: ModelConnection[] | null;
     error: string | null;
     onOpenChange: (open: boolean) => void;
     onSave: (draft: RuntimeConfigDraft) => Promise<void>;
@@ -32,13 +40,24 @@ export function RuntimeDialog({
             <Modal.Container size="md">
                 <Modal.Dialog>
                     <Modal.CloseTrigger />
-                    <RuntimeConfigForm
-                        agent={agent}
-                        error={error}
-                        onSave={onSave}
-                        pending={pending}
-                        runtimes={runtimes}
-                    />
+                    {connections ? (
+                        <RunnerModelForm
+                            agent={agent}
+                            connections={connections}
+                            error={error}
+                            onSave={onSave}
+                            pending={pending}
+                            runtimes={runtimes}
+                        />
+                    ) : (
+                        <RuntimeConfigForm
+                            agent={agent}
+                            error={error}
+                            onSave={onSave}
+                            pending={pending}
+                            runtimes={runtimes}
+                        />
+                    )}
                 </Modal.Dialog>
             </Modal.Container>
         </Modal.Backdrop>
