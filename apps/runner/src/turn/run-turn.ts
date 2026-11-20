@@ -1,6 +1,7 @@
 import { planRulesDelivery, projectMessageForAgent, runnerSkillLoading } from '@haus/agent-prompt';
 import type { AgentReasoningEffort, AgentStartCommand, RunnerModelConnection } from '@haus/api';
 import type { RunAuthority, RunnerLink, RunTools } from '../run-context.ts';
+import { createRunThoughts } from '../thoughts/run-thoughts.ts';
 import { readAgentContext } from './agent-context.ts';
 import { attestComposedDrain } from './composed-drain.ts';
 import type { inboxStore } from './inbox-store.ts';
@@ -168,12 +169,19 @@ export async function runTurn(input: RunTurnInput) {
     });
     const unregister = input.registerNoticeSink(notices.deliver);
     input.activity.start('thinking', 'thinking');
+    const thoughts = createRunThoughts({
+        agentId: start.agentId,
+        link: input.link,
+        runId: start.runId,
+    });
     const observation = await observeTurn(turn.events, {
         activity: input.activity,
         gate: notices.gate,
         noProgress: turnNoProgress,
         onNoProgress: () => noProgress.abort(),
+        thoughts,
     });
+    thoughts.close();
     unregister();
     const stalled = noProgress.signal.aborted && !input.signal.aborted;
     const settled = await settleWithin(turn, observation.aborted || stalled);

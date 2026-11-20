@@ -168,11 +168,12 @@ cold-starts once.
 
 R3 left these Computer turn features unported, and R4 ports each before it moves an Agent:
 execution journal upload (including journaling dispatches the ledger recovers as `unknown`),
-thoughts, idle compaction, rich-reference projection of message content, the
-managed-skill change notice, Claude plan usage after a turn, and `haus worker start`, which the
+idle compaction, Server-side seeding of managed skills into Drive with their change notice, Claude plan usage after a turn, and `haus worker start`, which the
 Computer's proxy handled.
 
-R4b already moved these: `drive-pull` when a runner run starts and `drive-push` when it settles
+R4b already moved these: thoughts (the runner narrates reasoning titles, started tool actions,
+and their findings as `agent-thought` frames, with the Computer's narrator and scrubbing); the
+skill-reference projection, from `@haus/agent-prompt`; `drive-pull` when a runner run starts and `drive-push` when it settles
 (Drive folder below); voice calls that no longer need a healthy Computer; and restart, session
 reset, and full reset on the runner. `agent-restart`, `agent-reset`, and `agent-retire` ride the
 runner socket. Restart and a session reset close the Agent's warm harness process, so the next
