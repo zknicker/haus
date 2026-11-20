@@ -6,11 +6,11 @@ import {
     collectRecentJsonlFiles,
     objectValue,
     type RuntimeTokenEntry,
-    readJsonLines,
     tokenCount,
     usageCutoffMs,
     usageFilesFingerprint,
 } from './local-runtime-usage.ts';
+import { createUsageEntryReader } from './usage-file-entries.ts';
 
 interface ClaudeTokenEntry extends RuntimeTokenEntry {
     isSidechain: boolean;
@@ -18,6 +18,7 @@ interface ClaudeTokenEntry extends RuntimeTokenEntry {
     requestId: string | null;
 }
 
+const readEntries = createUsageEntryReader(parseClaudeRows);
 let snapshotCache: { fingerprint: string; snapshot: RuntimeTokenUsageSnapshot } | null = null;
 
 export async function readClaudeLocalUsage(
@@ -43,9 +44,7 @@ export async function readClaudeLocalUsage(
     if (snapshotCache?.fingerprint === fingerprint) {
         return { ...snapshotCache.snapshot, capturedAt: now.toISOString() };
     }
-    const entries = (
-        await Promise.all(files.map(async (file) => parseClaudeRows(await readJsonLines(file))))
-    ).flat();
+    const entries = await readEntries(files);
     const snapshot = buildRuntimeTokenSnapshot(
         dedupeClaudeEntries(entries),
         'claude-code',

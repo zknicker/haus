@@ -67,6 +67,7 @@ import { sendComputerDiskReport } from './computer-disk.ts';
 import { readComputerName } from './computer-name.ts';
 import { startComputerReportSchedule } from './computer-report-schedule.ts';
 import { createComputerReporter, reportStateError } from './computer-report.ts';
+import { guardDevDaemonMemory } from './daemon-memory-guard.ts';
 import { type DaemonRuntime, withDaemonRuntime } from './daemon-runtime.ts';
 import { decideStart, readRunMarker, writeRunMarker } from './delivery.ts';
 import {
@@ -401,6 +402,7 @@ async function main(args: string[]) {
             throw new Error('This Server is not attached to this Haus Computer.');
         }
         await finishRestart(dataRoot);
+        guardDevDaemonMemory(attachment.slug);
         const prewarm = createRuntimePrewarmer({
             ...(process.env.HAUS_DEV_STACK === '1' ? { runtimes: ['codex'] } : {}),
         });

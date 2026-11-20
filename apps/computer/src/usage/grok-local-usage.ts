@@ -6,12 +6,13 @@ import {
     collectRecentJsonlFiles,
     objectValue,
     type RuntimeTokenEntry,
-    readJsonLines,
     tokenCount,
     usageCutoffMs,
     usageFilesFingerprint,
 } from './local-runtime-usage.ts';
+import { createUsageEntryReader } from './usage-file-entries.ts';
 
+const readEntries = createUsageEntryReader(parseGrokRows);
 let snapshotCache: { fingerprint: string; snapshot: RuntimeTokenUsageSnapshot } | null = null;
 
 export async function readGrokLocalUsage(
@@ -32,9 +33,7 @@ export async function readGrokLocalUsage(
     if (snapshotCache?.fingerprint === fingerprint) {
         return { ...snapshotCache.snapshot, capturedAt: now.toISOString() };
     }
-    const entries = (
-        await Promise.all(files.map(async (file) => parseGrokRows(await readJsonLines(file))))
-    ).flat();
+    const entries = await readEntries(files);
     const deduped = new Map<string, RuntimeTokenEntry>();
     for (const entry of entries) {
         if (!deduped.has(entry.id)) {
