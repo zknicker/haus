@@ -18,6 +18,7 @@ export const computerServer = {
 
 export function turnStartFrame(overrides: Partial<WorkerTurnStartFrame> = {}) {
     return {
+        agentId: 'agt_1234567890abcdef',
         attempt: 1,
         checkout: null,
         input: 'Fix the flaky delivery test.',

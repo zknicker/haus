@@ -167,19 +167,6 @@ describe('a Worker turn on a Computer', () => {
         expect(fake.record.counts.destroy).toBe(1);
         expect((await place.journal.turn(ref))?.stopRequested).toBe(true);
     });
-
-    test('a start without its delegating Agent ends before anything is journaled', async () => {
-        const { frames, place } = computerPlaces().place();
-        const { agentId: _missing, ...start } = computerStart();
-        await place.accept(start);
-
-        expect(frames.map((frame) => frame.type)).toEqual([
-            'worker-turn-accepted',
-            'worker-turn-ended',
-        ]);
-        expect(frames.at(-1)).toMatchObject({ exit: 'crashed-before-launch' });
-        expect(await place.journal.heldWorkerIds()).toEqual([]);
-    });
 });
 
 async function* deliver(

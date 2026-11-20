@@ -3,7 +3,6 @@ import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
-    agentId,
     branch,
     computerStart,
     registerComputerPlaces,
@@ -24,7 +23,7 @@ async function journalUpTo(
     phases: readonly ('credentialed' | 'running')[]
 ) {
     const ref: ComputerTurnRef = { turnId: frame.turnId, workerId: frame.workerId };
-    await journal.accept(frame, agentId);
+    await journal.accept(frame);
     for (const phase of phases) {
         await journal.advance(ref, (turn) => ({
             ...sharedOf(turn),

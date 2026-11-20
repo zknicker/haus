@@ -3,7 +3,12 @@ import { mkdtempSync, realpathSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { WorkerTurnCredentialResponse, WorkerTurnStartFrame } from '@haus/api';
+import {
+    type WorkerTurnCredentialResponse,
+    type WorkerTurnStartFrame,
+    workerPushCredentialRequestSchema,
+    workerTurnCredentialRequestSchema,
+} from '@haus/api';
 import { makeTestRuntime } from '@haus/effect';
 import { type DriveServer, startDriveServer } from '../../drive/drive-server.fixture.ts';
 import {
@@ -16,8 +21,8 @@ import type { WorkerHarnessLaunch } from './harness.ts';
 import type { ComputerPlaceFrame } from './turn-finish.ts';
 
 export const agentId = 'agt_alpha';
-export const turnToken = `turn-token-${'t'.repeat(32)}`;
-export const pushToken = `push-token-${'p'.repeat(32)}`;
+export const turnToken = `hwt_${'t'.repeat(43)}`;
+export const pushToken = `hwp_${'p'.repeat(43)}`;
 export const branch = 'haus/sec-12-wrk_1';
 
 type Refusal = Extract<WorkerTurnCredentialResponse, { state: 'refused' }>['reason'];
@@ -109,7 +114,7 @@ export function computerStart(overrides: Partial<WorkerTurnStartFrame> = {}) {
         workerId: 'wrk_1',
         workerMdRevisionId: 'rev_md_1',
         ...overrides,
-    } satisfies WorkerTurnStartFrame & { agentId: string };
+    } satisfies WorkerTurnStartFrame;
 }
 
 function mintRoute(request: Request, url: URL, mints: string[], refuse?: Refusal) {
@@ -122,12 +127,15 @@ function mintRoute(request: Request, url: URL, mints: string[], refuse?: Refusal
 }
 
 async function answerMint(request: Request, url: URL, mints: string[], refuse?: Refusal) {
-    const body = (await request.json()) as { attempt?: number; turnId: string };
-    mints.push(`${url.pathname.slice('/computer/workers/'.length)} ${body.turnId}`);
+    const raw: unknown = await request.json();
     const expiresAt = '2026-11-20T00:00:00.000Z';
     if (url.pathname.endsWith('/push-credential')) {
+        const body = workerPushCredentialRequestSchema.parse(raw);
+        mints.push(`push-credential ${body.turnId}`);
         return Response.json({ expiresAt, state: 'minted', token: pushToken, turnId: body.turnId });
     }
+    const body = workerTurnCredentialRequestSchema.parse(raw);
+    mints.push(`turn-credential ${body.turnId}`);
     return refuse
         ? Response.json({ reason: refuse, state: 'refused', turnId: body.turnId })
         : Response.json({

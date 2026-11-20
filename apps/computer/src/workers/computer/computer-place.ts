@@ -1,4 +1,4 @@
-import { idSchema, type WorkerTurnStartFrame, type WorkerHeldFrame } from '@haus/api';
+import type { WorkerHeldFrame, WorkerTurnStartFrame } from '@haus/api';
 import type { PullRequestReader } from '../github/pull-request-reader.ts';
 import type { WorkerServer } from './credentials.ts';
 import { type WorkerDriverFactory, workerDriverFactory } from './harness.ts';
@@ -75,26 +75,7 @@ export class ComputerWorkerPlace {
     }
 
     async accept(frame: WorkerTurnStartFrame) {
-        const agentId = idSchema.safeParse((frame as Record<string, unknown>).agentId);
-        if (!agentId.success) {
-            this.context.send({
-                attempt: frame.attempt,
-                turnId: frame.turnId,
-                type: 'worker-turn-accepted',
-            });
-            this.context.send({
-                attempt: frame.attempt,
-                branch: frame.checkout?.branch ?? null,
-                branches: [],
-                detail: 'The start named no delegating Agent, so its drive folder has no writer.',
-                exit: 'crashed-before-launch',
-                sessionId: null,
-                turnId: frame.turnId,
-                type: 'worker-turn-ended',
-            });
-            return;
-        }
-        const turn = await this.journal.accept(frame, agentId.data);
+        const turn = await this.journal.accept(frame);
         this.context.send({
             attempt: frame.attempt,
             turnId: frame.turnId,

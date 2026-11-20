@@ -34,7 +34,7 @@ export class ComputerTurnJournal {
         return (await this.read(ref.workerId))?.turns[ref.turnId] ?? null;
     }
 
-    accept(frame: WorkerTurnStartFrame, agentId: string) {
+    accept(frame: WorkerTurnStartFrame) {
         return this.change<ComputerTurnRecord>(frame.workerId, (file) => {
             const existing = file?.turns[frame.turnId];
             if (existing && existing.phase !== 'accepted') {
@@ -50,7 +50,7 @@ export class ComputerTurnJournal {
                 workerMdRevisionId: frame.workerMdRevisionId,
             };
             return {
-                file: withTurn(file ?? emptyFile(frame.workerId, agentId), frame.turnId, turn),
+                file: withTurn(file ?? emptyFile(frame.workerId, frame.agentId), frame.turnId, turn),
                 result: turn,
             };
         });
