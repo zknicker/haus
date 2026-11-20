@@ -197,15 +197,17 @@ server version; do not enable a host PostgreSQL service.
 
 The Agent runner is the second Haus container, in the same Compose project `haus`. Its service is
 `haus-runner` in `apps/server/compose.yml`, behind the Compose profile `runner`, so the database
-bring-up above never builds or starts it. It is built from `apps/runner/Dockerfile` at the same
-commit as the Server and runs under `varlock run` like the database:
+bring-up above never builds or starts it. Every deploy starts it after the Server proves its local
+health: the workflow checks out the release's own commit, builds `apps/runner/Dockerfile` from it,
+and recreates the container under `varlock run` like the database. By hand:
 
 ```bash
-bunx varlock@1.16.1 run -- docker compose -f apps/server/compose.yml -p haus --profile runner up -d --build haus-runner
+bunx varlock@1.16.1 run -- docker compose -f apps/server/compose.yml -p haus --profile runner up -d --build --force-recreate --wait haus-runner
 ```
 
-The token comes from the `Agent Runner - Haus` Production item and the optional Claude login from
-`Claude Setup Token - Haus Runner`. The Server must hold the same `HAUS_RUNNER_TOKEN` and listen on
+The token comes from the `Agent Runner - Haus` Production item. Model logins are not in the
+container's environment: the runner reads them from the Server's connections (Settings → Models).
+The Server must hold the same `HAUS_RUNNER_TOKEN` and listen on
 an address the container reaches through `host.docker.internal`. `HAUS_RUNNER_SERVER_URL`
 overrides the default `http://host.docker.internal:18791`.
 
@@ -214,21 +216,24 @@ deny PostgreSQL ports 5432 and 5438, the RFC 1918, link-local, and CGNAT ranges,
 unique local, link-local, site-local, local-use NAT64 (`64:ff9b:1::/48`), and IPv4-translated
 (`::ffff:0:0:0/96`) ranges, except the one
 Server `host:port` taken from `HAUS_SERVER_URL`. It then drops to the unprivileged `haus-runner`
-user with no capabilities and no new privileges. The entrypoint resolves the Server host once at
+user with no capabilities and no new privileges. It writes `/run/haus-runner-firewall-ready`
+once the rules are in, and the service's healthcheck waits on that file, so `--wait` returns
+only after the deny is installed. The entrypoint resolves the Server host once at
 start, so restart the container after the host address changes.
 
 The named volume `haus_runner_data` holds each Agent's harness session under `/data`. The [local backup](#backups)
 archives it beside the database dump. `docker compose -p haus down` without `--volumes` preserves it. Losing it
 costs every Agent its session context, not its Haus history.
 
-After every runner deploy, prove the deny from inside the container:
+Every deploy then proves the deny from inside the container, and fails if any check fails:
 
 ```bash
 docker exec -u haus-runner haus-runner /app/apps/runner/container/prove-network-deny.sh
 ```
 
-It prints one line per check and exits non-zero on any failure. The proof is an operator step.
-Development hosts without Docker cannot run it.
+It prints one line per check and exits non-zero on any failure. Its first check is that the Server
+endpoint answers, which also proves the container reaches the Server at all. Development hosts
+without Docker cannot run it.
 
 ## Fresh PostgreSQL authority
 

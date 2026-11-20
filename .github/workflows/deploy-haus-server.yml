@@ -145,6 +145,9 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+          # The Agent runner image builds from this checkout, so it must be the
+          # Server release's own commit.
+          ref: ${{ env.HAUS_SOURCE_REVISION }}
 
       - name: Refuse a stray environment file
         run: |
@@ -308,3 +311,19 @@ jobs:
 
       - name: Prove public Server and hosted Haus App
         run: bun scripts/release/verify-hosted-haus.mjs "${HAUS_RELEASE_VERSION#v}"
+
+      - name: Start the Agent runner
+        run: |
+          set -euo pipefail
+          bunx varlock@1.16.1 run -- \
+            docker compose -f apps/server/compose.yml -p haus --profile runner \
+              up -d --build --force-recreate --wait haus-runner
+        env:
+          VARLOCK_ENV: production
+          DEPLOY_AGENT_PRODUCTION_OP_TOKEN: ${{ secrets.GH_DEPLOY_AGENT_PRODUCTION_OP_TOKEN }}
+
+      - name: Prove the runner reaches only the Server
+        run: |
+          set -euo pipefail
+          docker exec -u haus-runner haus-runner \
+            /app/apps/runner/container/prove-network-deny.sh

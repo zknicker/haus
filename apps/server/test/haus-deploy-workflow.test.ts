@@ -45,3 +45,27 @@ test('a deploy verifies, renders, migrates once, then activates, holding one pla
     expect(step('Render the Server environment')).toContain('until bunx varlock');
     expect(step('Apply database migrations')).not.toContain('until ');
 });
+
+test('a deploy starts the Agent runner from the release commit after the Server, then proves its network deny', () => {
+    const workflow = parse(readFileSync(workflowPath, 'utf8')) as {
+        jobs: { deploy: { steps: (Step & { uses?: string; with?: Record<string, unknown> })[] } };
+    };
+    const steps = workflow.jobs.deploy.steps;
+    const names = steps.map((step) => step.name ?? '');
+    const checkout = steps.find((step) => step.uses?.startsWith('actions/checkout'));
+    const start = steps.find((step) => step.name === 'Start the Agent runner')?.run ?? '';
+    const proof =
+        steps.find((step) => step.name === 'Prove the runner reaches only the Server')?.run ?? '';
+
+    expect(String(checkout?.with?.ref)).toContain('env.HAUS_SOURCE_REVISION');
+    expect(names.indexOf('Prove local Server health')).toBeLessThan(
+        names.indexOf('Start the Agent runner')
+    );
+    expect(names.indexOf('Start the Agent runner')).toBeLessThan(
+        names.indexOf('Prove the runner reaches only the Server')
+    );
+    expect(start).toContain('--profile runner');
+    expect(start).toContain('--wait haus-runner');
+    expect(proof).toContain('docker exec -u haus-runner haus-runner');
+    expect(proof).toContain('/app/apps/runner/container/prove-network-deny.sh');
+});
