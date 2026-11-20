@@ -225,11 +225,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // Lowered by exactly 265 (37,963 → 37,698) when Agents came to hear their home Project (ADR 0055,
     // J3): channel join/leave/mute/unmute went from the attention family (-87), Discovering's
     // membership paragraph became the hearing description (-437), and Tasks gained placement (+259).
-    // Raised by exactly 130 (37,698 → 37,828) when generalists came to hear Projects with no home
-    // Agent (+98) and placement named generalists first and ownerless handoffs (+32).
-    // Lowered by exactly 232 (37,828 → 37,596) when generalists were retired (Zach, 2026-11-20):
-    // the hearing sentence for Projects with no home Agent went (-98), and placement lost the
-    // generalist start and the ownerless handoff (-134).
+    // Raised by exactly 130 (37,698 → 37,828) for generalists hearing ownerless Projects (+98) and placement (+32);
+    // lowered by exactly 232 (37,828 → 37,596) when Zach retired generalists (2026-11-20): -98 hearing, -134 placement.
     expect(prompt.length).toBeLessThanOrEqual(37_596);
     expect(prompt.toLowerCase()).not.toContain('thread');
 });
