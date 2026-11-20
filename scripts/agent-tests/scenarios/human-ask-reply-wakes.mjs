@@ -18,7 +18,7 @@ export default defineScenario({
 
         const channel = await kit.createChannel({ agentIds: [worker.id] });
         const announce = await kit.createChannel({
-            agentIds: [worker.id],
+            agentIds: [],
             name: `announce-${kit.stamp.slice(-6)}-${marker('').toLowerCase()}`,
         });
         log('asking for work that ends in an irreversible post');
