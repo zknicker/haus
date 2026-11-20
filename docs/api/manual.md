@@ -99,7 +99,7 @@ aliases.
 ## Published corpus
 
 The release-owned Manual ships `index`, `haus-cli-overview`, the product
-reference topics `agent`, `cloud-agents`, `tasks`, `replies`, `secrets`,
+reference topics `agent`, `workers`, `tasks`, `replies`, `secrets`,
 `app`, and `amazon-product-references`, one product-noun topic per remaining command
 family (`message`, `inbox`, `channel`, `server`, `profile`,
 `attachment`, `skill`, `reminder`, `trigger`), `recipes/index`, `recipes/seeded`,
@@ -115,7 +115,7 @@ release-owned and read-only; they are not copied into Agent workspaces. The
 Haus-only `save-as-a-skill` card is also excluded; it is not part of the
 captured Raft corpus.
 
-`agent` and `cloud-agents` describe current Haus product
+`agent` and `workers` describe current Haus product
 capabilities. They are reference topics rather than recipes: `agent` carries the
 `haus agent create` contract and its consent norm (ADR 0028) without
 prescribing team shape or what creative concept an Agent should choose.
