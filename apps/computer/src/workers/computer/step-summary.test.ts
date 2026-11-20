@@ -175,6 +175,7 @@ test('a step names Worker files from its checkout and drive folder, never by mac
     const mask = workerTextMask({
         checkout: '/Users/me/.haus/computer/servers/srv_1/workers/wkr_1/checkout',
         drive: '/Users/me/.haus/computer/servers/srv_1/workers/wkr_1/drive',
+        environment: {},
         token,
     });
     const recorder = workerStepRecorder(mask);
@@ -202,4 +203,25 @@ test('a step names Worker files from its checkout and drive folder, never by mac
         ['drive/agents/a/reports/X-1/r.md', null],
         ['pwd', '.'],
     ]);
+});
+
+test('a secret the harness inherited from its environment never reaches a step', () => {
+    const awsSecret = 'wJalrXUtnFEMIK7MDENGbPxRfiCYEXAMPLEKEY';
+    const mask = workerTextMask({
+        checkout: '/w/checkout',
+        drive: '/w/drive',
+        environment: { AWS_SECRET_ACCESS_KEY: awsSecret, HOME: '/Users/me' },
+        token,
+    });
+    const recorder = workerStepRecorder(mask);
+    recorder.offer(claude('t1', 'Bash', { command: 'printenv AWS_SECRET_ACCESS_KEY HOME' }));
+    recorder.offer({
+        nativeName: 'Bash',
+        output: { stdout: `${awsSecret}\n/Users/me\n` },
+        toolCallId: 't1',
+        toolName: 'bash',
+        type: 'tool-result',
+    });
+
+    expect(recorder.steps().map((step) => step.output)).toEqual(['[redacted]\n/Users/me']);
 });

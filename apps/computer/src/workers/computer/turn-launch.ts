@@ -174,6 +174,7 @@ async function runHarness(
         const redact = workerTextMask({
             checkout: layout.checkout,
             drive: layout.drive,
+            environment: { ...process.env, ...launch.env },
             token: launch.env.HAUS_WORKER_TOKEN,
         });
         const offer = activityThrottle({

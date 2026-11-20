@@ -5,7 +5,10 @@ import {
     workerStepOutputMaxLength,
     workerStepsRetained,
 } from '@haus/api';
-import { createJournalRedactor } from '../../execution-journal-upload/journal-redaction.ts';
+import {
+    computerKnownSecrets,
+    createJournalRedactor,
+} from '../../execution-journal-upload/journal-redaction.ts';
 import type { TurnEvent } from '../../runtime/turn-event.ts';
 import { activityIntervalMs } from './activity.ts';
 
@@ -115,8 +118,13 @@ export function workerStepReporter(options: {
     };
 }
 
-export function workerTextMask(options: { checkout: string; drive: string; token: string }) {
-    const redact = createJournalRedactor([options.token]);
+export function workerTextMask(options: {
+    checkout: string;
+    drive: string;
+    environment: Record<string, string | undefined>;
+    token: string;
+}) {
+    const redact = createJournalRedactor(computerKnownSecrets(options.token, options.environment));
     return (text: string) =>
         redact(text)
             .replaceAll(`${options.drive}/`, 'drive/')
