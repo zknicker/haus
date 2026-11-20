@@ -2,6 +2,7 @@ import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { legacyRoots } from './drive-migration/drive-sources.ts';
 import { hasDriveSeedReceipt } from './drive-migration/prepare-agent-drive.ts';
+import { settleDriveFolder } from './drive/turn-sync.ts';
 import {
     ensureAgentWorkspace,
     exists,
@@ -24,6 +25,7 @@ export async function resetAgentState(input: {
 }): Promise<void> {
     const agentRoot = join(input.dataRoot, 'servers', input.serverId, 'agents', input.agentId);
     if (input.kind === 'full') {
+        await settleDriveFolder(agentRoot);
         if (await exists(workspaceVolumePaths(agentRoot).manifest)) {
             await ensureAgentWorkspace({ agentRoot, dataRoot: input.dataRoot });
         }

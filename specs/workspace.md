@@ -234,8 +234,9 @@ every live file under `agents/<handle>/` and stamps `agents.full_reset_at` in th
 that revokes the active run's credentials and rotates the session, so a reset that fails leaves
 all of it as it was. The files stay restorable from Recently deleted for
 `driveDeletedRetentionDays`. The Computer then discards the push of any turn the reset interrupted,
-so a stale folder never revives a deleted file, and clears `workspace/drive/` with the rest of the
-workspace. It keeps `workspace/drive-refused/`. An Agent without `runtime/drive-seed.json` has not
+aborts a push already in flight and waits for it to settle, so a stale folder never revives a
+deleted file, and clears `workspace/drive/` with the rest of the workspace. The Server refuses any
+straggler with `AGENT_RESET`. It keeps `workspace/drive-refused/`. An Agent without `runtime/drive-seed.json` has not
 finished its migration, so full reset also keeps the legacy `workspace/MEMORY.md`, `notes/`,
 `pages/`, `workbench/` and `agents/<agent-id>/skills/`, and the next launch moves them; a reset
 never deletes a file that has not reached Drive. Full reset clears everything else: `home/`,

@@ -170,7 +170,8 @@ original path is left empty in the folder, and the first pull fetches Drive's he
 file Drive refused moves to `agents/<agent-id>/workspace/drive-refused/<path>`, the same place a
 refused push uses. Full reset clears `drive/` after the Server deleted the Agent's area, keeps
 `drive-refused/`, and until the migration receipt exists it keeps the legacy sources too, so the
-next launch can still move them. A turn the full reset interrupts skips its push.
+next launch can still move them. A turn the full reset interrupts skips its push, a push already in
+flight is aborted before its next request, and the reset clears `drive/` only after that push settles.
 
 After R4 the runner composes from the Server's current revisions
 ([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md) decision
@@ -199,7 +200,7 @@ D2 and D4 add these guards.
 | A push applies every outcome to the folder, and a refused file does not repeat | `apps/computer/src/drive/push.test.ts` |
 | Two folders editing one file merge different lines and keep both versions of the same line | `apps/computer/src/drive/two-writers.test.ts` |
 | A launch pulls before the turn and pushes the turn's edits under its run id | `apps/computer/src/drive/turn-sync.test.ts` |
-| A turn a full reset interrupts pushes nothing back over the reset | `apps/computer/src/drive/turn-sync.test.ts` |
+| A turn a full reset interrupts pushes nothing back over the reset, and a push in flight is aborted and drained first | `apps/computer/src/drive/turn-sync.test.ts` |
 | Full reset deletes the Agent's area, restorable from Recently deleted, and session reset leaves it | `apps/server/test/agent-full-reset-drive.test.ts` |
 | Two Computer folders sync through the real Server routes: create, pull, merge, kept-both, refused | `apps/server/test/drive-folder-sync.test.ts` |
 | A start frame's `driveConflict` renders as the whole turn input | `apps/computer/src/harness/drive-conflict-turn.test.ts` |
