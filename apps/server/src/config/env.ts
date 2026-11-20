@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { z } from 'zod';
 import { artifactStorageBytes } from '../artifacts/storage.ts';
 import { cloudflareAccessAudience } from '../identity/cloudflare-access.ts';
+import { parseSecretsKey } from '../secrets/sealed-secret.ts';
 
 // There is no env-file loading here on purpose. The committed root
 // `.env.schema` is the environment contract and Varlock is the only loader:
@@ -84,6 +85,18 @@ const envSchema = z
         HAUS_GEMINI_API_KEY: z.string().min(1).optional(),
         HAUS_AGENT_LOOP: z.enum(['computer', 'runner']).default('computer'),
         HAUS_RUNNER_TOKEN: z.string().min(32).optional(),
+        HAUS_SECRETS_KEY: z
+            .string()
+            .min(1)
+            .transform((value, context) => {
+                try {
+                    return parseSecretsKey(value);
+                } catch (error) {
+                    context.addIssue({ code: 'custom', message: String(error) });
+                    return z.NEVER;
+                }
+            })
+            .optional(),
         // The Haus GitHub App (specs/github-app-connection.md#environment). Each
         // is optional; `readGithubAppConfig` treats a partial set as unconfigured.
         HAUS_GITHUB_APP_CLIENT_ID: z.string().min(1).optional(),

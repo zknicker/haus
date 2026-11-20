@@ -11,7 +11,9 @@ import type { CloudflareAdmissions } from '../identity/cloudflare-access.ts';
 import type { HausSessions } from '../identity/haus-sessions.ts';
 import type { SessionConnections } from '../identity/session-connections.ts';
 import type { MessageRouter } from '../message-routing/jev.ts';
+import type { ModelConnectionRelay } from '../model-connections/model-connection-relay.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import type { RunnerLink } from '../runner/runner-link.ts';
 import type { McpIconResolver } from '../server-mcp/icons.ts';
 import type { McpOAuthRelay } from '../server-mcp/oauth-relay.ts';
 import type { McpRuntime } from '../server-mcp/runtime.ts';
@@ -52,7 +54,11 @@ export interface HausContext {
     mcpOAuthRelay: McpOAuthRelay;
     mcpRuntime: McpRuntime;
     messageRouter?: MessageRouter;
+    /** Model connections on the runner link: snapshot pushes and App sign-ins. */
+    modelConnections: ModelConnectionRelay;
     postCommitWork: ServerPostCommitWork;
+    /** The one attached runner, if any. */
+    runnerLink: RunnerLink;
     /** HTTP Host header, used only to constrain localhost development procedures. */
     requestHost: string | null;
     /**
@@ -99,7 +105,9 @@ export interface HausContextDependencies {
     mcpOAuthRelay: McpOAuthRelay;
     mcpRuntime: McpRuntime;
     messageRouter?: MessageRouter;
+    modelConnections: ModelConnectionRelay;
     postCommitWork: ServerPostCommitWork;
+    runnerLink: RunnerLink;
     runtime: EffectRuntime<never>;
     sessionConnections: SessionConnections;
     triggerRateLimiter: TriggerRateLimiter;

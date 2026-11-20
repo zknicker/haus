@@ -3669,6 +3669,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "model_connection_id": {
+          "name": "model_connection_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "retired_at": {
           "name": "retired_at",
           "type": "timestamp with time zone",
@@ -3796,6 +3802,21 @@
             "id"
           ],
           "onDelete": "set null (creation_message_id)",
+          "onUpdate": "no action"
+        },
+        "agents_model_connection_fk": {
+          "name": "agents_model_connection_fk",
+          "tableFrom": "agents",
+          "tableTo": "model_connections",
+          "columnsFrom": [
+            "server_id",
+            "model_connection_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id"
+          ],
+          "onDelete": "set null (model_connection_id)",
           "onUpdate": "no action"
         }
       },
@@ -9652,6 +9673,183 @@
       },
       "isRLSEnabled": false
     },
+    "public.model_connections": {
+      "name": "model_connections",
+      "schema": "",
+      "columns": {
+        "auth_kind": {
+          "name": "auth_kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "credential_version": {
+          "name": "credential_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sealed_credential": {
+          "name": "sealed_credential",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "server_id": {
+          "name": "server_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ready'"
+        },
+        "status_detail": {
+          "name": "status_detail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "web_search": {
+          "name": "web_search",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {
+        "model_connections_order_idx": {
+          "name": "model_connections_order_idx",
+          "columns": [
+            {
+              "expression": "server_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "provider",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "position",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "model_connections_server_id_servers_id_fk": {
+          "name": "model_connections_server_id_servers_id_fk",
+          "tableFrom": "model_connections",
+          "tableTo": "servers",
+          "columnsFrom": [
+            "server_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "model_connections_server_id_key": {
+          "name": "model_connections_server_id_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "server_id",
+            "id"
+          ]
+        },
+        "model_connections_label_key": {
+          "name": "model_connections_label_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "server_id",
+            "provider",
+            "label"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "model_connections_provider": {
+          "name": "model_connections_provider",
+          "value": "\"model_connections\".\"provider\" in ('claude', 'chatgpt', 'xai', 'gemini', 'openrouter')"
+        },
+        "model_connections_auth_kind": {
+          "name": "model_connections_auth_kind",
+          "value": "(\"model_connections\".\"provider\" = 'claude' and \"model_connections\".\"auth_kind\" = 'setup-token')\n                or (\"model_connections\".\"provider\" = 'chatgpt' and \"model_connections\".\"auth_kind\" = 'oauth')\n                or (\"model_connections\".\"provider\" = 'xai' and \"model_connections\".\"auth_kind\" in ('oauth', 'api-key'))\n                or (\"model_connections\".\"provider\" in ('gemini', 'openrouter') and \"model_connections\".\"auth_kind\" = 'api-key')"
+        },
+        "model_connections_status": {
+          "name": "model_connections_status",
+          "value": "\"model_connections\".\"status\" in ('ready', 'failed')"
+        },
+        "model_connections_position": {
+          "name": "model_connections_position",
+          "value": "\"model_connections\".\"position\" >= 0"
+        },
+        "model_connections_label_length": {
+          "name": "model_connections_label_length",
+          "value": "char_length(\"model_connections\".\"label\") between 1 and 80"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.native_auth_intents": {
       "name": "native_auth_intents",
       "schema": "",
@@ -13685,13 +13883,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "follow_up_nonces": {
-          "name": "follow_up_nonces",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::text[]"
-        },
         "id": {
           "name": "id",
           "type": "text",
@@ -14314,6 +14505,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "6b4ef434-f164-4059-a4ba-d1f9ce0432da",
-  "prevId": "a0f9724b-b05a-4181-88b3-c6f95b05987b"
+  "id": "a0f9724b-b05a-4181-88b3-c6f95b05987b",
+  "prevId": "fce6746b-982d-4358-b5cb-7913c444e092"
 }

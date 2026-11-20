@@ -1,15 +1,18 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { Provider } from '@earendil-works/pi-ai';
 import {
     type InvocationOutcome,
     type InvocationOutput,
+    type ModelSignInProvider,
     type RunnerUpFrame,
     runnerSocketPath,
     runnerUpFrameSchema,
 } from '@haus/api';
 import { openDispatchLedger } from './dispatch/ledger.ts';
 import type { InvocationClock } from './invocations/invocation-clock.ts';
+import { createConnectionBook } from './model-connections/connection-book.ts';
 import type { RunStart, TurnHost } from './run-context.ts';
 import { openServerLink } from './server-link.ts';
 
@@ -30,16 +33,6 @@ export interface StandInRequest {
     readonly path: string;
 }
 
-export function noLogins(dataDir: string) {
-    return {
-        claudeSetupToken: null,
-        dataDir,
-        geminiApiKey: null,
-        openrouterApiKey: null,
-        xaiApiKey: null,
-    };
-}
-
 export function live() {
     return new AbortController().signal;
 }
@@ -52,12 +45,17 @@ export async function drainCleanups() {
 
 export async function attachRunner(
     server: ServerStandIn,
-    options: { invocationClock?: InvocationClock } = {}
+    options: {
+        invocationClock?: InvocationClock;
+        signInProvider?: (provider: ModelSignInProvider) => Provider;
+    } = {}
 ) {
     const dataDir = await mkdtemp(join(tmpdir(), 'haus-runner-link-'));
     const host = turnHostDriver();
+    const book = createConnectionBook();
     const link = openServerLink({
-        config: { ...noLogins(dataDir), runnerToken, serverUrl: server.url },
+        book,
+        config: { runnerToken, serverUrl: server.url },
         ...options,
         ledger: openDispatchLedger(dataDir),
         log: () => undefined,
@@ -69,7 +67,7 @@ export async function attachRunner(
         await rm(dataDir, { force: true, recursive: true });
     });
     await link.ready;
-    return { dataDir, host };
+    return { book, dataDir, host, link: link.link };
 }
 
 export async function startedRun(
@@ -201,10 +199,29 @@ export function serverStandIn(routes: StandInRoutes = {}) {
             }
             return new Promise<RunnerUpFrame>((resolve) => waiters.push({ resolve, type }));
         },
+        received,
         requests,
         send,
-        start(frame: { reasoningEffort?: string } = {}) {
-            send({ ...frame, runCredential, start: startCommand(), type: 'runner-start' });
+        start(
+            frame: {
+                modelConnectionId?: string | null;
+                modelId?: string;
+                reasoningEffort?: string;
+                runId?: string;
+            } = {}
+        ) {
+            const { modelConnectionId = null, modelId, reasoningEffort, runId } = frame;
+            send({
+                modelConnectionId,
+                ...(reasoningEffort ? { reasoningEffort } : {}),
+                runCredential,
+                start: {
+                    ...startCommand(),
+                    ...(modelId ? { modelId } : {}),
+                    ...(runId ? { runId } : {}),
+                },
+                type: 'runner-start',
+            });
         },
         url: `http://127.0.0.1:${server.port}`,
     };
