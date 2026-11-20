@@ -1,4 +1,10 @@
-import type { PullRequestReading, Worker, WorkerBranch, WorkerTurnInput } from '@haus/api';
+import {
+    type PullRequestReading,
+    type Worker,
+    type WorkerBranch,
+    type WorkerTurnInput,
+    workerPullRequestNumber,
+} from '@haus/api';
 import { Chip, Link, toast } from '@heroui/react';
 import { GitPullRequestIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { useParams } from 'react-router-dom';
@@ -86,7 +92,11 @@ export function WorkerCard({ chatId: chatIdProp, work }: { chatId?: null | strin
                     </ActionCard.Description>
                 </ActionCard.Content>
             </ActionCard.Header>
-            <WorkerPullRequestRow branch={branch} reading={work.pullRequest} />
+            <WorkerPullRequestRow
+                branch={branch}
+                reading={work.pullRequest}
+                reportUrls={report?.pullRequestUrls}
+            />
             {report && server ? (
                 <WorkerReport chatId={chatId} report={report} server={server} />
             ) : null}
@@ -110,20 +120,27 @@ export function WorkerCard({ chatId: chatIdProp, work }: { chatId?: null | strin
 export function WorkerPullRequestRow({
     branch,
     reading = null,
+    reportUrls = [],
 }: {
     branch: null | WorkerBranch;
     reading?: null | PullRequestReading;
+    reportUrls?: readonly string[];
 }) {
-    const url = reading?.url ?? branch?.pullRequestUrl ?? null;
-    const number = reading?.number ?? (branch ? workerBranchPullRequestNumber(branch) : null);
-    const facts = reading ?? branch?.pullRequest ?? null;
-    if (url === null || number === null) {
+    const url = reading?.url ?? branch?.pullRequestUrl ?? reportUrls[0] ?? null;
+    if (url === null) {
         return null;
     }
+    const number =
+        reading?.number ??
+        (branch?.pullRequestUrl ? workerBranchPullRequestNumber(branch) : null) ??
+        workerPullRequestNumber(url);
+    const facts = reading ?? branch?.pullRequest ?? null;
     return (
         <ActionCard.Meta data-testid="worker-pull-request">
             <Icon aria-hidden="true" icon={GitPullRequestIcon} />
-            <Link onPress={() => openPullRequest(url)}>{`PR #${number}`}</Link>
+            <Link onPress={() => openPullRequest(url)}>
+                {number === null ? 'Pull request' : `PR #${number}`}
+            </Link>
             {facts ? (
                 <>
                     {` · ${pullRequestStateLabels[facts.state]} · `}

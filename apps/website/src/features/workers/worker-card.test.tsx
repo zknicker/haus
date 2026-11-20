@@ -7,6 +7,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { linkedMessage } from '../../../../../packages/haus-api/src/worker-fixture.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
+import { TranscriptRenderProvider } from '../chats/chat-transcript-render-context.tsx';
 import { testAgent } from '../members/agent-fixtures.ts';
 import { WorkerCard, WorkerPullRequestRow } from './worker-card.tsx';
 import { workerTurnFixture as turn, workerFixture as work } from './worker-fixture.ts';
@@ -106,6 +107,39 @@ test('a follow-up from another Agent is attributed to that Agent, not the delega
     expect(html).toContain('On Tiny&#x27;s follow-up');
 });
 
+test('a pull request only the report named still shows, numbered when GitHub names it', () => {
+    expect(
+        renderToStaticMarkup(
+            <WorkerPullRequestRow
+                branch={null}
+                reportUrls={['https://github.com/haus/haus/pull/7']}
+            />
+        )
+    ).toContain('PR #7');
+    expect(
+        renderToStaticMarkup(
+            <WorkerPullRequestRow branch={null} reportUrls={['https://git.example.com/mr/7']} />
+        )
+    ).toContain('Pull request');
+});
+
+test('on a narrow pane the card in the Task transcript still shows cited files', () => {
+    const report = { ...askReport, messageId: 'msg_report' };
+    const html = renderCard(
+        work({ turns: [turn({ outcome: { kind: 'report', report }, status: 'pending_input' })] }),
+        {
+            ...linkedMessage,
+            driveCitations: [
+                { artifactId: 'art_render', path: 'a/render.png', revisionId: 'rev_two' },
+            ],
+            id: 'msg_report',
+        },
+        { inTranscript: true }
+    );
+
+    expect(html).toContain('render.png');
+});
+
 test('a closed Worker shows its record with no composer', () => {
     const html = renderCard(work({ closedAt: '2026-09-04T12:03:00.000Z', status: 'completed' }));
 
@@ -182,7 +216,11 @@ test('a branch that opened no pull request renders no row', () => {
     ).toBe('');
 });
 
-function renderCard(worker: Worker, reportMessage?: typeof linkedMessage) {
+function renderCard(
+    worker: Worker,
+    reportMessage?: typeof linkedMessage,
+    options: { inTranscript?: boolean } = {}
+) {
     const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false, staleTime: Number.POSITIVE_INFINITY } },
     });
@@ -232,7 +270,22 @@ function renderCard(worker: Worker, reportMessage?: typeof linkedMessage) {
                 <MemoryRouter initialEntries={['/s/cards']}>
                     <Routes>
                         <Route
-                            element={<WorkerCard chatId="cht_task" work={worker} />}
+                            element={
+                                options.inTranscript ? (
+                                    <TranscriptRenderProvider
+                                        value={
+                                            {
+                                                chatId: 'cht_task',
+                                                repliedRunIds: new Set(),
+                                            } as never
+                                        }
+                                    >
+                                        <WorkerCard work={worker} />
+                                    </TranscriptRenderProvider>
+                                ) : (
+                                    <WorkerCard chatId="cht_task" work={worker} />
+                                )
+                            }
                             path="/s/:slug"
                         />
                     </Routes>
