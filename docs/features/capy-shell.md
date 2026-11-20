@@ -41,9 +41,13 @@ stored in `localStorage` under `haus.capy-shell` and follows into other open win
 - **Removed.** The Inbox row and page, the Direct messages section, the Files row, and the top
   Settings gear. `/inbox` redirects to Home. Every row carries its own
   unread state, so ADR 0038's unread-only rule still holds.
-- **Home.** The Server's default route renders Home: a Project chip and a Captain chip above a
-  composer. The Captain defaults to the Project's first Captain. The background is the theme's
-  plain background; wallpapers come later.
+- **Home.** The Server's default route renders Home: a Project chip and a Captain chip, left-aligned
+  above a compact stock `PromptInput` (size `sm`, a `max-w-xl` measure) placed a little above the
+  middle, as in Capy. The placeholder is "Ask <Captain> anything", and the bottom row holds only
+  Send: `task.create` carries no files, so there is no attachment action, and there is no model
+  picker or mic. The Captain defaults to the Project's first Captain. The page keeps the theme's
+  plain background; its content area is a positioned, isolated layer, so a full-bleed Home
+  background can sit behind the composer.
 - **Activity.** The Inbox's Captain activity strip (each Captain's 7-day tokens with the spike
   flag, and "N running" with its popover) heads the Activity page.
 
