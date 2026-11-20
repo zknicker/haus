@@ -142,8 +142,9 @@ starts with a digit is prefixed with `P` before step 2.
 
 ## Generalists
 
-- An Agent whose home is the Haus project is a **generalist**. Cove is one, and every Agent created
-  without a named Project starts as one.
+- An Agent whose home is the Haus project is a **generalist**. Every Agent created without a named
+  Project starts as one. A new Server has none: the Haus project holds the generalists people put
+  there, and may hold none ([ADR 0059](../docs/adr/0059-haus-starts-empty-without-cove.md)).
 - A generalist hears the Haus project the way any Agent hears its home. It may start a Task in any
   Project. When it acts in a Project, its turn input carries that Project's `AGENTS.md` the first
   time in a session ([ADR 0054](../docs/adr/0054-drive-holds-what-agents-know-and-follow.md)

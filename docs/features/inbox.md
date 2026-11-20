@@ -204,9 +204,6 @@ Channel, DM, or Task through its newest message. Newer activity brings a row bac
 Stalled claims are not here. A claim an Agent took and stopped short of finishing belongs to that
 Agent's profile, under **Stopped before finishing** ([Claims](claims.md)).
 
-A failed Server onboarding appears on the owner's setup screen. Until setup completes,
-owners remain in setup and members and Admins remain on the waiting page, outside the Inbox.
-
 **Happening now** — work running right now, whether or not this human started it, also as one list:
 
 - [Workers](../../specs/workers.md) queued or working anywhere on the Server I can see, led by

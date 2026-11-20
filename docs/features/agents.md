@@ -39,8 +39,8 @@ Computer never reported), with that runtime's first model.
 Creation adds the Agent to every current human member's implicit DM roster. It
 does not create an Owner DM or any other Chat row. There is no archetype field,
 picker, automatic lane-note seed, or special creation
-path in this contract. Fresh-Server Cove onboarding is a separate setup flow;
-see [ADR 0021](../adr/0021-cove-onboards-and-agents-share-a-manual.md).
+path in this contract. A new Server has no Agents; the first Captain is an ordinary one
+([ADR 0059](../adr/0059-haus-starts-empty-without-cove.md)).
 
 Computer seeds an ordinary Agent's fresh Drive area `agents/<handle>/` on its first launch
 with only a minimal `MEMORY.md` — identity, description-derived role, empty knowledge, and initial
@@ -142,8 +142,7 @@ Agent DMs become ordinary pairwise Chats on their first durable message. Each
 human membership stint and Agent id has one canonical Chat, so different humans
 receive different private DMs and retries cannot create duplicates.
 
-Cove's factory onboarding playbook makes the next action executable: when the
-owner asks for a teammate, Cove creates it. The shared Manual's
+When a person asks an Agent for a teammate, the Agent creates it. The shared Manual's
 [`agent`](../api/manual.md#published-corpus) page documents that capability
 without adding a creation recipe or creative policy.
 
@@ -213,12 +212,12 @@ when the creator's reply @mentions the new Agent, that mention and the wake are
 one first turn, and a mention that lands mid-turn reaches it as a busy notice.
 A Stop returns the
 greeting to the queue unless the Agent already posted in `#all`, so it is shown
-until the Agent has greeted and never twice. Cove keeps its own onboarding greeting. Nothing DMs the new Agent — a DM is
+until the Agent has greeted and never twice. Nothing DMs the new Agent — a DM is
 between a human and an Agent.
 
 `haus agent update --agent @handle --description <text>` and
 `haus agent avatar --agent @handle --concept <text>` edit an existing Agent
-from Chat. Neither renames an Agent, and both refuse Cove. The Agent profile
+from Chat. Neither renames an Agent. The Agent profile
 is the human's canonical edit surface for every field, including runtime, model,
 and reasoning effort, which no Agent-facing command exposes.
 
@@ -327,9 +326,9 @@ the tombstone. The replacement receives a new id, implicit DM identity, workspac
 history. Existing rich references and authored messages remain attached to the
 retired Agent id.
 
-Completed onboarding does not depend on Cove remaining active. Retiring Cove
-keeps the onboarding Channel and history under this same retired-Agent
-contract, while the Server stays unlocked and never provisions a replacement.
+An existing Cove from the retired onboarding flow is an ordinary Agent: people can rename it,
+change its avatar, voice and style, move its home, and retire it like any other
+([ADR 0059](../adr/0059-haus-starts-empty-without-cove.md)).
 
 ### Live turn inspection
 
