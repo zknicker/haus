@@ -41,6 +41,8 @@ export function pushDriveAfterTurn(options: RunAgentLaunchOptions, agentRoot: st
 
 export interface DriveRun {
     agentId: string;
+    current: () => boolean;
+    now: () => number;
     mint: () => Promise<{ runnerId: string; runnerToken: string }>;
     revoke: (runnerId: string) => Promise<unknown>;
     runId: string;
@@ -49,8 +51,11 @@ export interface DriveRun {
 }
 
 export function pullDriveForRun(agentRoot: string, run: DriveRun) {
-    return inFolderTurn(agentRoot, () =>
-        withRunToken(run, 'drive-pull-failed', async (token) => {
+    return inFolderTurn(agentRoot, async () => {
+        if (!run.current() || discardedFolders.has(agentRoot)) {
+            return;
+        }
+        await withRunToken(run, 'drive-pull-failed', async (token) => {
             const pulled = await pullDrive({
                 layout: driveFolderLayout(agentRoot, run.agentId),
                 remote: driveRemote({ serverOrigin: run.serverOrigin, token }),
@@ -58,13 +63,13 @@ export function pullDriveForRun(agentRoot: string, run: DriveRun) {
             if (!pulled.advanced) {
                 run.warn('drive-pull-blocked', `${pulled.blocked} local paths blocked`);
             }
-        })
-    );
+        });
+    });
 }
 
 export function pushDriveForRun(agentRoot: string, run: DriveRun) {
     return inFolderTurn(agentRoot, async () => {
-        if (discardedFolders.has(agentRoot)) {
+        if (!run.current() || discardedFolders.has(agentRoot)) {
             return;
         }
         const plan = await planDrivePush(driveFolderLayout(agentRoot, run.agentId));
@@ -84,19 +89,32 @@ export function pushDriveForRun(agentRoot: string, run: DriveRun) {
 async function withRunToken(
     run: DriveRun,
     failure: string,
-    work: (token: string) => Promise<void>
+    work: (token: () => Promise<string>) => Promise<void>
 ) {
-    try {
-        const runner = await run.mint();
-        try {
-            await work(runner.runnerToken);
-        } finally {
-            await run.revoke(runner.runnerId).catch(() => undefined);
+    const minted: string[] = [];
+    let held: { at: number; token: string } | null = null;
+    const token = async () => {
+        if (!held || run.now() - held.at >= tokenRenewMs) {
+            const runner = await run.mint();
+            minted.push(runner.runnerId);
+            held = { at: run.now(), token: runner.runnerToken };
         }
+        return held.token;
+    };
+    try {
+        await work(token);
     } catch (error) {
         run.warn(failure, messageOf(error));
+    } finally {
+        for (const runnerId of minted) {
+            await run
+                .revoke(runnerId)
+                .catch((error: unknown) => run.warn('drive-revoke-failed', messageOf(error)));
+        }
     }
 }
+
+const tokenRenewMs = 10 * 60 * 1000;
 
 async function inFolderTurn(agentRoot: string, run: () => Promise<void>, signal?: AbortSignal) {
     const previous = folderTurns.get(agentRoot) ?? Promise.resolve();

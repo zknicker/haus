@@ -103,6 +103,19 @@ test('a Computer that reconnects during a runner run pushes and then pulls the A
     expect(computer.frames.indexOf(push)).toBeLessThan(computer.frames.indexOf(pull));
 });
 
+test('a Computer that reconnects after the run settled pushes the folder for that last run', async () => {
+    runner.send({ agentId: setup.agentId, runId: activeRunId, type: 'ack' });
+    runner.send(settledTurn(activeRunId));
+    await computer.next((frame) => frame.type === 'drive-push' && frame.runId === activeRunId);
+    computer.close();
+    computer = await connectComputer(setup.harness, setup.computerCredential);
+
+    const push = await computer.next((frame) => frame.type === 'drive-push');
+    expect(push).toMatchObject({ agentId: setup.agentId, runId: activeRunId });
+    await computer.next((frame) => frame.type === 'bootstrap-accepted');
+    expect(computer.frames.some((frame) => frame.type === 'drive-pull')).toBe(false);
+});
+
 function settledTurn(runId: string) {
     const now = new Date().toISOString();
     return {

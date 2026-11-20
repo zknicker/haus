@@ -5,7 +5,6 @@ import { resolveModelConnection } from '../model-connections/agent-model-connect
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
 import type { DeliveryTransport, DispatchPlan } from './delivery.ts';
-import { listComputerAgents } from './dispatch-config.ts';
 import { readDeliveryState } from './store.ts';
 
 export type AgentLoopHost =
@@ -76,24 +75,6 @@ export class AgentLoopRoute {
         return Boolean(
             runnerFrame && this.wiring.kind === 'runner' && this.wiring.runner.send(runnerFrame)
         );
-    }
-
-    async reconcileDrive(db: HausDatabase, machineId: string) {
-        if (this.wiring.kind !== 'runner' || !this.transport.isOnline(machineId)) {
-            return;
-        }
-        for (const agent of await listComputerAgents(db, machineId)) {
-            const state = agent.retiredAt ? null : await readDeliveryState(db, agent.agentId);
-            if (state?.activeRunId) {
-                const run = {
-                    agentId: agent.agentId,
-                    runId: state.activeRunId,
-                    sessionGeneration: agent.sessionGeneration,
-                };
-                this.transport.send(machineId, { ...run, type: 'drive-push' });
-                this.transport.send(machineId, { ...run, type: 'drive-pull' });
-            }
-        }
     }
 
     private pullDrive(

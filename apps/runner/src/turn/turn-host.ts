@@ -13,13 +13,13 @@ import type { RunnerLink, RunStart, TurnHost } from '../run-context.ts';
 import { agentSessions } from './agent-sessions.ts';
 import { createHarnesses } from './harnesses.ts';
 import { inboxStore } from './inbox-store.ts';
+import { recoverDispatches } from './recovered-dispatches.ts';
 import { createRunActivity } from './run-activity.ts';
 import { runRecords } from './run-records.ts';
 import { type NoticeSink, type RunTurnResult, runTurn } from './run-turn.ts';
 import type { RuntimeDriverFactory } from './runtime-driver.ts';
 import { RunnerCrashedError, SessionFailureError } from './turn-failure.ts';
 import { turnSummary } from './turn-summary.ts';
-import { unknownToolCalls } from './unknown-tool-calls.ts';
 
 interface ActiveRun {
     readonly controller: AbortController;
@@ -101,6 +101,23 @@ export function createTurnHostWith(input: {
     };
 
     const execute = async (run: RunStart) => {
+        const current: ActiveRun = {
+            controller: new AbortController(),
+            generation: run.start.sessionGeneration,
+            runId: run.start.runId,
+            sink: null,
+        };
+        active.set(run.start.agentId, current);
+        try {
+            await executeRun(run, current);
+        } finally {
+            if (active.get(run.start.agentId) === current) {
+                active.delete(run.start.agentId);
+            }
+        }
+    };
+
+    const executeRun = async (run: RunStart, current: ActiveRun) => {
         const { start } = run;
         if (!(await sessions.enter(run))) {
             await skipStale(run);
@@ -124,13 +141,6 @@ export function createTurnHostWith(input: {
         await store.acceptRun(start);
         await records.accepted();
         const startedAt = new Date().toISOString();
-        const current: ActiveRun = {
-            controller: new AbortController(),
-            generation: start.sessionGeneration,
-            runId: start.runId,
-            sink: null,
-        };
-        active.set(start.agentId, current);
         const activity = createRunActivity({
             agentId: start.agentId,
             now: () => Date.now(),
@@ -172,10 +182,6 @@ export function createTurnHostWith(input: {
             });
         } catch (error) {
             result = { failure: error, status: 'failed', tokenUsage: null };
-        } finally {
-            if (active.get(start.agentId) === current) {
-                active.delete(start.agentId);
-            }
         }
         activity.close(result.status === 'completed' ? 'completed' : result.status);
         if (connection && status.afterTurn(connection, result) === 'failed') {
@@ -238,18 +244,11 @@ export function createTurnHostWith(input: {
         await settle(start, records, summary);
     };
 
-    const recover = async (dispatches: readonly RecoveredDispatch[]) => {
-        const byAgent = new Map<string, string[]>();
-        for (const { agentId, key } of dispatches) {
-            input.log(
-                `Runner recovered dispatch ${key.runId}:${key.toolCallId}:${key.seq} for ${agentId} as unknown.`
-            );
-            byAgent.set(agentId, [...(byAgent.get(agentId) ?? []), key.toolCallId]);
-        }
-        for (const [agentId, toolCallIds] of byAgent) {
-            await unknownToolCalls(paths(agentId).runtimeDir).add(toolCallIds);
-        }
-    };
+    const recover = (dispatches: readonly RecoveredDispatch[]) =>
+        recoverDispatches(dispatches, {
+            log: input.log,
+            runtimeDir: (agentId) => paths(agentId).runtimeDir,
+        });
 
     const host: TurnHost = {
         async notice(notice) {

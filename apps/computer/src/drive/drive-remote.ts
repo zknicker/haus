@@ -23,8 +23,13 @@ export class DriveRemoteError extends Error {
     }
 }
 
-export function driveRemote(input: { serverOrigin: string; signal?: AbortSignal; token: string }) {
-    const authorization = `Bearer ${input.token}`;
+export function driveRemote(input: {
+    serverOrigin: string;
+    signal?: AbortSignal;
+    token: string | (() => Promise<string>);
+}) {
+    const bearer = async () =>
+        `Bearer ${typeof input.token === 'string' ? input.token : await input.token()}`;
     const call = async (
         path: string,
         init: { body?: Blob | string; method?: string; type?: string } = {},
@@ -33,7 +38,7 @@ export function driveRemote(input: { serverOrigin: string; signal?: AbortSignal;
         const response = await fetch(new URL(path, input.serverOrigin), {
             body: init.body,
             headers: {
-                authorization,
+                authorization: await bearer(),
                 ...(init.type ? { 'content-type': init.type } : {}),
             },
             method: init.method ?? 'GET',

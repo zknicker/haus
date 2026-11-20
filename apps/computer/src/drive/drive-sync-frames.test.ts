@@ -124,6 +124,68 @@ test('a cancelled invocation stops waiting on a stalled drive sync for its Agent
     expect(authority.minted).toHaveLength(1);
 });
 
+test('a sync renews its drive-sync credential as it runs and revokes every one it minted', async () => {
+    server = startDriveServer();
+    server.write('agents/alpha/a.md', 'first', 'agt_alpha');
+    server.write('agents/alpha/b.md', 'second', 'agt_alpha');
+    const authority = startAuthority(server);
+    front = authority.server;
+    agentsRoot = await mkdtemp(join(tmpdir(), 'haus-drive-sync-'));
+    let clock = 0;
+    const sync = driveSyncFrames(
+        agentsRoot,
+        { credential: 'computer-credential', serverOrigin: `http://127.0.0.1:${front.port}` },
+        () => {
+            clock += 11 * 60 * 1000;
+            return clock;
+        }
+    );
+
+    sync.receive({
+        agentId: 'agt_alpha',
+        runId: 'run_1',
+        sessionGeneration: 1,
+        type: 'drive-pull',
+    });
+    await settleDriveFolder(join(agentsRoot, 'agt_alpha'));
+
+    expect(authority.minted.length).toBeGreaterThan(1);
+    expect(authority.revoked).toHaveLength(authority.minted.length);
+});
+
+test('a queued sync from a replaced session generation never runs', async () => {
+    server = startDriveServer();
+    const authority = startAuthority(server);
+    front = authority.server;
+    agentsRoot = await mkdtemp(join(tmpdir(), 'haus-drive-sync-'));
+    const sync = driveSyncFrames(agentsRoot, {
+        credential: 'computer-credential',
+        serverOrigin: `http://127.0.0.1:${front.port}`,
+    });
+
+    sync.receive({
+        agentId: 'agt_alpha',
+        runId: 'run_a',
+        sessionGeneration: 1,
+        type: 'drive-pull',
+    });
+    sync.receive({
+        agentId: 'agt_alpha',
+        runId: 'run_b',
+        sessionGeneration: 1,
+        type: 'drive-pull',
+    });
+    sync.receive({
+        agentId: 'agt_alpha',
+        runId: 'run_c',
+        sessionGeneration: 2,
+        type: 'drive-pull',
+    });
+    await settleDriveFolder(join(agentsRoot, 'agt_alpha'));
+
+    expect(authority.minted.map((mint) => (mint as { runId: string }).runId)).toEqual(['run_c']);
+});
+
 function startAuthority(drive: DriveServer, mintGate: Promise<void> = Promise.resolve()) {
     const minted: unknown[] = [];
     const revoked: unknown[] = [];
