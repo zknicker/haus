@@ -5,6 +5,11 @@ import { useHumanDirectory } from '../../hooks/servers/use-human-directory.ts';
 import { ChatMarkdownText } from '../chats/chat-markdown-text.tsx';
 import { SharedArtifactChip } from '../chats/shared-artifact-chip.tsx';
 import { appOrigins } from '../chats/shared-artifact-link.ts';
+import {
+    isOpenableDriveCitation,
+    type OpenableDriveCitation,
+    useOpenDriveCitation,
+} from '../drive/open-drive-citation.ts';
 
 export function WorkerReport({
     chatId,
@@ -64,22 +69,36 @@ function WorkerReportCitations({
         <ul aria-label="Cited files" className="flex min-w-0 flex-wrap gap-1">
             {citations.map((citation) => (
                 <li className="min-w-0" key={citation.path}>
-                    {citation.artifactId ? (
-                        <SharedArtifactChip
-                            scope={scope}
-                            target={{
-                                artifactId: citation.artifactId,
-                                ...(citation.revisionId ? { revisionId: citation.revisionId } : {}),
-                            }}
-                        >
-                            {fileName(citation)}
-                        </SharedArtifactChip>
+                    {isOpenableDriveCitation(citation) ? (
+                        <WorkerCitation citation={citation} scope={scope} />
                     ) : (
                         <span className="text-muted">{fileName(citation)}</span>
                     )}
                 </li>
             ))}
         </ul>
+    );
+}
+
+function WorkerCitation({
+    citation,
+    scope,
+}: {
+    citation: OpenableDriveCitation;
+    scope: { origins: string[]; serverId: string; slug: string };
+}) {
+    const open = useOpenDriveCitation(scope.slug, citation);
+    return (
+        <SharedArtifactChip
+            open={open}
+            scope={scope}
+            target={{
+                artifactId: citation.artifactId,
+                ...(citation.revisionId ? { revisionId: citation.revisionId } : {}),
+            }}
+        >
+            {fileName(citation)}
+        </SharedArtifactChip>
     );
 }
 

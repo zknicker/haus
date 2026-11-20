@@ -15,15 +15,18 @@ import { useSharedArtifactOpen } from './use-shared-artifact-open.ts';
  */
 export function SharedArtifactChip({
     children,
+    open: openOverride,
     scope,
     target,
 }: {
     children: React.ReactNode;
+    open?: ReturnType<typeof useSharedArtifactOpen>;
     scope: SharedArtifactScope;
     target: SharedArtifactLinkTarget;
 }) {
     const query = useArtifact(scope.serverId, target.artifactId, target.revisionId);
-    const open = useSharedArtifactOpen(scope.slug, target);
+    const sharedOpen = useSharedArtifactOpen(scope.slug, target);
+    const open = openOverride ?? sharedOpen;
     const artifact = query.data?.artifact;
 
     if (!artifact) {

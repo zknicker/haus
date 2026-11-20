@@ -5,6 +5,7 @@ import { createTRPCQueryUtils } from '@trpc/react-query';
 import { observable } from '@trpc/server/observable';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { linkedMessage } from '../../../../../packages/haus-api/src/worker-fixture.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { WorkerCard, WorkerPullRequestRow } from './worker-card.tsx';
 import { workerTurnFixture as turn, workerFixture as work } from './worker-fixture.ts';
@@ -46,6 +47,35 @@ test('a needs-you report shows its text and the ask with its person, and invites
     expect(html).toContain('placeholder="Answer this Worker"');
     expect(html).toContain('aria-label="Send follow-up"');
     expect(html).not.toContain('worker-status-line');
+});
+
+test('a cited Drive file opens at the revision the report cited', () => {
+    const report = { ...askReport, messageId: 'msg_report' };
+    const html = renderCard(
+        work({
+            turns: [turn({ outcome: { kind: 'report', report }, status: 'pending_input' })],
+        }),
+        {
+            ...linkedMessage,
+            driveCitations: [
+                {
+                    artifactId: 'art_render',
+                    path: 'agents/forge/renders/ENG-41/composer.png',
+                    revisionId: 'rev_two',
+                },
+                {
+                    artifactId: null,
+                    path: 'agents/forge/reports/ENG-41/notes.md',
+                    revisionId: null,
+                },
+            ],
+            id: 'msg_report',
+        }
+    );
+
+    expect(html).toContain('href="/s/cards/artifacts/art_render?revision=rev_two"');
+    expect(html).toContain('composer.png');
+    expect(html).toContain('notes.md');
 });
 
 test('a closed Worker shows its record with no composer', () => {
@@ -124,7 +154,7 @@ test('a branch that opened no pull request renders no row', () => {
     ).toBe('');
 });
 
-function renderCard(worker: Worker) {
+function renderCard(worker: Worker, reportMessage?: typeof linkedMessage) {
     const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false, staleTime: Number.POSITIVE_INFINITY } },
     });
@@ -139,6 +169,12 @@ function renderCard(worker: Worker) {
         slug: 'cards',
     } as never);
     utils.agent.list.setData({ serverId }, []);
+    if (reportMessage) {
+        utils.chat.message.setData(
+            { chatId: 'cht_task', messageId: reportMessage.id, serverId },
+            { message: reportMessage, tasks: [] }
+        );
+    }
     utils.member.list.setData(
         { serverId },
         {
