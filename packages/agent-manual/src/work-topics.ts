@@ -57,6 +57,8 @@ Use one when the work is a real coding change in a repository someone else's mac
 
 The instructions for the cloud agent arrive on stdin. Write them as a complete brief: name the repository paths, the reproduction, and what a finished result looks like, so the cloud agent rarely needs to ask. \`--say\` is your own message to the Task and becomes the Message content, so say what you delegated and why in your own words. \`--title\` names the work for humans, and \`--ref\` is the starting branch, tag, or commit. When the launch answers a reminder or trigger fire, add \`--cause <fireId>\` as on \`haus message send\`.
 
+**Your Worker rules travel in the brief.** \`drive/agents/<your handle>/WORKER.md\` holds the rules every Worker of yours follows, and a cloud agent is one. Haus does not hand that file to the cloud agent, so the brief carries its rules: read the file before you write the brief and include what applies (see rules).
+
 **It works for a Task.** Cloud work attaches to a Task and reports there: start the Task first (see tasks), then launch with \`--task SEC-12\`. The work's card shows on the Task's page, and a launch without a Task is refused with \`CLOUD_AGENT_TASK_REQUIRED\`. A Task can hold several cloud agents; start another only for a genuinely separate assignment.
 
 **Launch approval.** A launch spends provider time on someone's repository. When the Server, the requester, or your brief wants a human to approve launches, @mention that human with the repository, starting ref, and a one-line brief, and wait for an explicit yes in reply before \`start\`. Silence, a reaction, or "sounds interesting" is not a yes. There is no approval card; their reply wakes you.
@@ -81,7 +83,13 @@ When the run settles you receive one inbox attention on the Task carrying its st
         aliases: ['cloud agent model', 'cursor', 'claude cloud'],
         id: 'cloud-agents',
         kind: 'overview',
-        related: ['agent', 'tasks', 'haus-cli-overview', 'recipes/decision/when-to-ask-human'],
+        related: [
+            'agent',
+            'tasks',
+            'rules',
+            'haus-cli-overview',
+            'recipes/decision/when-to-ask-human',
+        ],
         summary:
             'Delegate bounded repository work for a Task to a provider-hosted agent and report the result there.',
         title: 'Cloud agents',

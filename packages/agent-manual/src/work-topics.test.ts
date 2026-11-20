@@ -87,6 +87,14 @@ test('a cloud agent launches on a Task and wakes the Agent there', () => {
     expect(body).not.toContain('You do not need to set a reminder or poll');
 });
 
+test('a cloud agent brief carries the WORKER.md rules Haus does not hand it', () => {
+    const topic = getManualTopic('cloud-agents');
+    expect(topic?.body).toContain(
+        '`drive/agents/<your handle>/WORKER.md` holds the rules every Worker of yours follows, and a cloud agent is one. Haus does not hand that file to the cloud agent, so the brief carries its rules'
+    );
+    expect(topic?.related).toContain('rules');
+});
+
 test('work split for other Agents is sibling Tasks; a claim stays inside the conversation', () => {
     const body = getManualTopic('claims')?.body ?? '';
     expect(body).toContain('genuinely new work inside a conversation');
