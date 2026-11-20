@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { type VoiceTarget, voiceInstructions } from './voice-context.ts';
+import { type VoiceTarget, voiceCallRefusal, voiceInstructions } from './voice-context.ts';
 
 test('voice identity uses the called Agent while retaining delegation and grounding', () => {
     const target = {
@@ -49,5 +49,17 @@ test('voice instructions carry the conversation style only when one is set', () 
     );
     expect(voiceInstructions({ ...target, conversationStyle: null })).not.toContain(
         'Conversation style'
+    );
+});
+
+test('a call needs a healthy Computer only while Agents run on Computers', () => {
+    const offline = { health: 'offline', stopped: false } as const;
+    expect(voiceCallRefusal(offline, 'runner')).toBeNull();
+    expect(voiceCallRefusal(offline, 'computer')).toBe(
+        'The Agent needs a connected Computer before you call.'
+    );
+    expect(voiceCallRefusal({ health: null, stopped: false }, 'runner')).toBeNull();
+    expect(voiceCallRefusal({ health: 'healthy', stopped: true }, 'runner')).toBe(
+        'The Agent is stopped. Start it before you call.'
     );
 });

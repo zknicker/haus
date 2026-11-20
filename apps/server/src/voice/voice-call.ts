@@ -4,6 +4,7 @@ import { type EffectRuntime, settle } from '@haus/effect';
 import { Data, Deferred, Effect, Exit, Schedule, Scope } from 'effect';
 import { WebSocket } from 'ws';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import type { AgentLoop } from '../agent-delivery/loop-host.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import type { HausUser } from '../users/haus-user.ts';
@@ -19,6 +20,7 @@ export interface VoiceCallOptions {
     connectLive?: () => WebSocket;
     db: HausDatabase;
     delivery: AgentDelivery;
+    loop: AgentLoop;
     member: HausUser;
     postCommitWork: ServerPostCommitWork;
     runtime: EffectRuntime<never>;
