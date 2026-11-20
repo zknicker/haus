@@ -94,7 +94,10 @@ export default defineScenario({
             (message) =>
                 message.sequence > allHeadSequence &&
                 message.author.kind === 'agent' &&
-                message.author.agentId === creator.id
+                message.author.agentId === creator.id &&
+                (message.body?.kind === 'agent-created' ||
+                    message.content.includes(`@${createdAgent.handle}`) ||
+                    message.content.includes(createdAgent.displayName))
         );
         expect(creatorIntroductions, 'the creator posts no introduction in #haus').toHaveLength(0);
         const answers = (await kit.readMessages(askChat.id)).filter(
