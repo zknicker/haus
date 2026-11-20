@@ -22,6 +22,7 @@ import {
 } from './worker-turn-frames.ts';
 
 const computerStart: WorkerTurnStartFrame = {
+    agentId: 'agt_1',
     attempt: 2,
     checkout: {
         branch: 'haus/sec-12-wkr_1234567890abcdef',

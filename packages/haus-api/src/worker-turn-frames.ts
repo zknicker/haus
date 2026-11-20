@@ -23,6 +23,7 @@ const predecessorTurnIdsSchema = z.array(idSchema).max(200);
  */
 export const workerTurnStartFrameSchema = z
     .object({
+        agentId: idSchema,
         attempt: workerTurnAttemptSchema,
         checkout: workerCheckoutSchema.nullable(),
         input: z.string().min(1).max(composedInputMaxLength),

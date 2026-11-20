@@ -69,6 +69,7 @@ export async function workerTurnStartFrame(
             .where(and(eq(workersTable.serverId, worker.serverId), eq(workersTable.id, worker.id)));
     }
     return {
+        agentId: worker.agentId,
         attempt: sent.attempt,
         checkout:
             place.kind === 'computer'
