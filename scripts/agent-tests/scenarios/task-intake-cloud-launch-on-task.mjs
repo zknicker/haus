@@ -8,8 +8,6 @@ import {
     tasksCreatedBy,
 } from '../task-intake.mjs';
 
-const terminal = new Set(['completed', 'failed', 'cancelled']);
-
 export default defineScenario({
     agents: [{ kind: 'worker' }],
     contract:
@@ -19,7 +17,6 @@ export default defineScenario({
     run: withRoutingEvidence(async ({ agents, expect, kit, log, settleTurn }) => {
         const [worker] = agents;
         const channel = await kit.createChannel({ agentIds: [worker.id] });
-        let works = [];
         try {
             await kit.harness.send(
                 channel.id,
@@ -34,16 +31,8 @@ export default defineScenario({
             const [task] = tasks;
             const origin = await originMessage(kit, task, { agentId: null, chatId: channel.id });
             expect(Boolean(origin), 'the Task starts from a message in the channel').toBe(true);
-            works = await attachedWork(kit, task);
-            expect(works, 'Worker attached to the Task').toHaveLength(1);
+            expect(await attachedWork(kit, task), 'Worker attached to the Task').toHaveLength(1);
         } finally {
-            for (const work of works) {
-                if (!terminal.has(work.status)) {
-                    await kit
-                        .trpc('worker.cancel', { serverId: kit.serverId, workId: work.id })
-                        .catch(() => undefined);
-                }
-            }
             await cancelTasksBy(kit, [worker.id]);
         }
     }),

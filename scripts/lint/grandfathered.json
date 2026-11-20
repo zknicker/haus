@@ -3339,7 +3339,6 @@
             "scripts/agent-tests/scenario.test.mjs",
             "scripts/agent-tests/scenarios/ack-reaction-thanks.mjs",
             "scripts/agent-tests/scenarios/claim-then-inline-reply.mjs",
-            "scripts/agent-tests/scenarios/cloud-launch-and-link.mjs",
             "scripts/agent-tests/scenarios/cove-composes-agent-creation.mjs",
             "scripts/agent-tests/scenarios/fyi-silence-dm.mjs",
             "scripts/agent-tests/scenarios/github-trigger-ci-setup.mjs",

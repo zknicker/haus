@@ -70,13 +70,13 @@ export const evals = {
         judge: null,
         profiles: {},
         scenarios: [
-            'cloud-launch-and-link',
+            'cloud-worker-start-and-stop',
             'mcp-granted-lookup',
             'webhook-secret-stays-out-of-chat',
             'shared-artifact-discovery',
         ],
         summary:
-            'Agents launch and link cloud work, use only granted MCP connections, keep Trigger secrets out of chat, and share files through Files.',
+            'Agents start Workers on Tasks, use only granted MCP connections, keep Trigger secrets out of chat, and share files through Files.',
     },
     // GitHub Triggers on a GitHub installation seeded on the eval stack itself:
     // no GitHub account. Serial: the scenarios share an `acme` installation.

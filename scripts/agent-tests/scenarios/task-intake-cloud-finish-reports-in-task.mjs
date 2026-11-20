@@ -13,7 +13,7 @@ import {
     tasksCreatedBy,
 } from '../task-intake.mjs';
 
-const terminal = new Set(['completed', 'failed', 'cancelled']);
+const settled = new Set(['done', 'needs-you', 'failed', 'stopped']);
 
 export default defineScenario({
     agents: [{ kind: 'worker' }],
@@ -41,7 +41,7 @@ export default defineScenario({
 
             log('waiting for the Worker to finish');
             const work = await awaitTerminalWork(kit, task, 20 * 60_000);
-            expect(work?.status, 'the Worker finished').toBe('completed');
+            expect(work?.status, 'the Worker finished').toBe('done');
             await kit.harness.waitForAgentQuiet(worker.id, 15_000, 600_000);
 
             log('checking gates');
@@ -66,14 +66,6 @@ export default defineScenario({
                 'channel posts after the Worker finished'
             ).toHaveLength(0);
         } finally {
-            const works = task ? await attachedWork(kit, task).catch(() => []) : [];
-            for (const entry of works) {
-                if (!terminal.has(entry.status)) {
-                    await kit
-                        .trpc('worker.cancel', { serverId: kit.serverId, workId: entry.id })
-                        .catch(() => undefined);
-                }
-            }
             await cancelTasksBy(kit, [worker.id]);
         }
     }),
@@ -83,7 +75,7 @@ async function awaitTerminalWork(kit, task, timeoutMs) {
     const deadline = Date.now() + timeoutMs;
     for (;;) {
         const [work] = await attachedWork(kit, task);
-        if ((work && terminal.has(work.status)) || Date.now() >= deadline) {
+        if ((work && settled.has(work.status)) || Date.now() >= deadline) {
             return work ?? null;
         }
         await wait(10_000);
