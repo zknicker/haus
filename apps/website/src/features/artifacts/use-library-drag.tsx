@@ -1,6 +1,7 @@
 import { Chip } from '@heroui/react';
 import * as React from 'react';
 import { useDragAndDrop } from 'react-aria-components';
+import { driveAcceptsFiles, driveFolderIsFixed } from './drive-places.ts';
 import { bulkMovePaths } from './library-bulk.ts';
 import type { LibraryItem } from './library-items.ts';
 import { libraryDragType } from './use-library-drop.ts';
@@ -11,7 +12,8 @@ import { libraryDragType } from './use-library-drop.ts';
  * carries just it. The drag names its paths (`libraryDragType`, plus plain
  * text), and the library remembers what is in flight so a folder tile or a
  * trail crumb can tell, while the pointer is still moving, whether the items
- * may land there: never into themselves, never where they already are.
+ * may land there: never into themselves, never where they already are, never
+ * onto the Drive root or a shelf, and never carrying a shelf or area root.
  */
 export function useLibraryDrag(input: {
     items: readonly LibraryItem[];
@@ -40,6 +42,8 @@ export function useLibraryDrag(input: {
     return {
         canMoveInto: (folder: string) =>
             dragged.current !== null &&
+            driveAcceptsFiles(folder) &&
+            !dragged.current.some((item) => driveFolderIsFixed(item.path)) &&
             bulkMovePaths(
                 dragged.current.map((item) => item.path),
                 folder
