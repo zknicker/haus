@@ -9,7 +9,9 @@ test('an Agent cannot leave #all, the team room', async () => {
     const left = await fixture.post('/api/agent/channels/leave', runner, { target: '#all' });
 
     expect(left.status).toBe(404);
-    expect(left.body.message).toBe('Every Agent hears #all, the team room, so you cannot leave it.');
+    expect(left.body.message).toBe(
+        'Every Agent hears #all, the team room, so you cannot leave it.'
+    );
     expect(await isMember(fixture.orbitAgentId)).toBe(true);
 });
 
@@ -18,7 +20,9 @@ test('an Agent cannot mute #all, but can still leave and mute a Project', async 
 
     const muted = await fixture.post('/api/agent/channels/mute', runner, { target: '#all' });
     expect(muted.status).toBe(404);
-    expect(muted.body.message).toBe('Every Agent hears #all, the team room, so you cannot mute it.');
+    expect(muted.body.message).toBe(
+        'Every Agent hears #all, the team room, so you cannot mute it.'
+    );
     expect(
         await fixture.harness.sql`SELECT agent_id FROM agent_channel_mutes
             WHERE agent_id = ${fixture.orbitAgentId}`
