@@ -25,6 +25,7 @@ export {
     agentWorkDirectoryName,
     renderAgentInstructions,
 } from './managed-instructions.ts';
+export { managedSkillChangeText } from './managed-skill-notice.ts';
 export { formatMemoryBlock, memoryCharacterCap, memoryFileName } from './memory-block.ts';
 export { formatRulesBlock, type RulesChange } from './rules-block.ts';
 export { planRulesDelivery, type RuleFile, ruleLayerPaths } from './rules-delivery.ts';

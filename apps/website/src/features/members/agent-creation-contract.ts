@@ -7,6 +7,11 @@ export interface ReportedComputer {
     label: string;
 }
 
+export interface HomeProjectOption {
+    id: string;
+    label: string;
+}
+
 export interface AgentCreationSubmitValues {
     avatar?: {
         bytesBase64: string;
@@ -16,6 +21,7 @@ export interface AgentCreationSubmitValues {
     description: string | null;
     displayName: string;
     handle: string;
+    homeProjectId: string;
     modelId: string;
     reasoningEffort: AgentReasoningEffort;
     runtimeId: string;

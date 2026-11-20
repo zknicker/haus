@@ -19,15 +19,22 @@ export function artifactCreatorDirectory(
         creator.type === 'user' && humans.isSelf(creator.user_id);
     const agentName = (agentId: string) => byId.get(agentId)?.displayName ?? 'Removed Captain';
     return {
-        avatar: (creator) =>
-            creator.type === 'user'
+        avatar: (creator) => {
+            if (creator.type === 'haus') {
+                return { name: 'Haus', src: null };
+            }
+            return creator.type === 'user'
                 ? { name: humans.name(creator.user_id), src: humans.avatarUrl(creator.user_id) }
                 : {
                       name: agentName(creator.agent_id),
                       src: byId.get(creator.agent_id)?.avatarUrl ?? null,
-                  },
+                  };
+        },
         isSelf,
         name: (creator) => {
+            if (creator.type === 'haus') {
+                return 'Haus';
+            }
             if (creator.type === 'agent') {
                 return agentName(creator.agent_id);
             }

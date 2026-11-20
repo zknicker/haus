@@ -12,6 +12,7 @@ import {
     planMemoryDelivery,
     sessionAfterTurn,
 } from './instructions.ts';
+import { ackManagedSkillNotice, type ManagedSkillNotice } from './managed-skill-notice.ts';
 import { observeTurn, turnNoProgress } from './observe-turn.ts';
 import type { NoticeReceipt } from './pending-notice.ts';
 import { createRunActivity } from './run-activity.ts';
@@ -142,6 +143,7 @@ export async function runTurn(input: RunTurnInput) {
                 instructions: plan,
                 memoryBlock: memory.block,
                 rulesBlock: rules.block,
+                skillNotice: context.skillNotice,
                 turnContent: projectMessageForAgent({
                     content: turnInput.turnContent,
                     enabledSkillIds: context.skills.map((skill) => skill.name),
@@ -199,10 +201,9 @@ export async function runTurn(input: RunTurnInput) {
         return failed;
     }
     await live.detach();
-    await record(
-        stalled || observation.aborted ? 'interrupted' : 'completed',
-        observation.compacted
-    );
+    const outcome = stalled || observation.aborted ? 'interrupted' : 'completed';
+    await record(outcome, observation.compacted);
+    await settleSkillNotice(input, outcome, context.skillNotice);
     if (stalled) {
         input.activity.finish('thinking', 'failed');
         const stalledResult: RunTurnResult = {
@@ -219,6 +220,19 @@ export async function runTurn(input: RunTurnInput) {
     };
     input.activity.finish('thinking', finished.status);
     return finished;
+}
+
+async function settleSkillNotice(
+    input: Pick<RunTurnInput, 'authority' | 'log' | 'start'>,
+    outcome: 'completed' | 'interrupted',
+    notice: ManagedSkillNotice | null
+) {
+    if (outcome !== 'completed' || !notice) {
+        return;
+    }
+    await ackManagedSkillNotice(input.authority, notice).catch((error: unknown) =>
+        input.log(`Runner could not clear ${input.start.agentId}'s skill notice: ${String(error)}`)
+    );
 }
 
 async function settleWithin(turn: RuntimeTurn, stopping: boolean) {

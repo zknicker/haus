@@ -11,6 +11,7 @@ export function agentSessions(input: {
     const sessions = sessionAuthority(input.dataDir);
     const announced = new Map<string, number>();
     const retired = new Set<string>();
+    const restarts = new Map<string, number>();
 
     const discard = async (agentId: string, kind: 'full' | 'session') => {
         await input.release(agentId);
@@ -24,6 +25,9 @@ export function agentSessions(input: {
             agentPathSegment(agentId);
             if (reset.scope === 'retire') {
                 retired.add(agentId);
+            }
+            if (reset.scope === 'restart') {
+                restarts.set(agentId, (restarts.get(agentId) ?? 0) + 1);
             }
             if (reset.scope === 'full' || reset.scope === 'session') {
                 const generation = Math.max(reset.sessionGeneration, announced.get(agentId) ?? 0);
@@ -46,12 +50,19 @@ export function agentSessions(input: {
             await discard(agentId, reset.scope);
             await sessions.advance(agentId, reset.sessionGeneration);
         },
-        async enter(run: {
-            sessionResetKind: 'full' | 'session';
-            start: { agentId: string; sessionGeneration: number };
-        }) {
+        async enter(
+            run: {
+                sessionResetKind: 'full' | 'session';
+                start: { agentId: string; sessionGeneration: number };
+            },
+            restartEpoch: number
+        ) {
             const { agentId, sessionGeneration } = run.start;
-            if (retired.has(agentId) || sessionGeneration < (announced.get(agentId) ?? 0)) {
+            if (
+                retired.has(agentId) ||
+                restartEpoch < (restarts.get(agentId) ?? 0) ||
+                sessionGeneration < (announced.get(agentId) ?? 0)
+            ) {
                 return false;
             }
             const applied = await sessions.applied(agentId);
@@ -63,6 +74,9 @@ export function agentSessions(input: {
             }
             await sessions.advance(agentId, sessionGeneration);
             return true;
+        },
+        restartEpoch(agentId: string) {
+            return restarts.get(agentId) ?? 0;
         },
         supersedes(reset: AgentReset, generation: number) {
             return (

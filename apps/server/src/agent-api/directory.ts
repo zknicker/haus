@@ -1,5 +1,4 @@
 import { and, asc, eq, ilike, isNull, sql } from 'drizzle-orm';
-import { joinChannelAgents } from '../chats/channel-agent-membership.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -11,6 +10,7 @@ import {
     usersTable,
 } from '../postgres/schema.ts';
 import { countAgentDirectory, countChannelMembers } from './directory-counts.ts';
+import { findChannel } from './find-channel.ts';
 import { AgentTargetError } from './resolve-target.ts';
 
 export interface AgentDirectoryQuery {
@@ -137,33 +137,6 @@ export async function readAgentChannelMembers(
     };
 }
 
-export async function changeAgentChannelMembership(
-    db: HausDatabase,
-    runner: ResolvedRunner,
-    target: string,
-    action: 'join' | 'leave'
-) {
-    const channel = await findChannel(db, runner.serverId, target);
-    if (action === 'join') {
-        await joinChannelAgents(db, {
-            agentIds: [runner.agentId],
-            chatId: channel.id,
-            serverId: runner.serverId,
-        });
-        return { joined: true, target: `#${channel.name}` };
-    }
-    await db
-        .delete(channelAgentParticipantsTable)
-        .where(
-            and(
-                eq(channelAgentParticipantsTable.serverId, runner.serverId),
-                eq(channelAgentParticipantsTable.chatId, channel.id),
-                eq(channelAgentParticipantsTable.agentId, runner.agentId)
-            )
-        );
-    return { left: true, target: `#${channel.name}` };
-}
-
 async function listChannels(db: HausDatabase, runner: ResolvedRunner, input: AgentDirectoryQuery) {
     const rows = await db
         .select({
@@ -255,25 +228,6 @@ async function listHumans(db: HausDatabase, runner: ResolvedRunner, input: Agent
                 timezone: row.timezone,
             }))
         );
-}
-
-async function findChannel(db: HausDatabase, serverId: string, target: string) {
-    const name = target.startsWith('#') ? target.slice(1) : target;
-    const [channel] = await db
-        .select({ description: chatsTable.description, id: chatsTable.id, name: chatsTable.name })
-        .from(chatsTable)
-        .where(
-            and(
-                eq(chatsTable.serverId, serverId),
-                eq(chatsTable.kind, 'channel'),
-                eq(chatsTable.name, name)
-            )
-        )
-        .limit(1);
-    if (!channel?.name) {
-        throw new AgentTargetError('That channel does not exist.');
-    }
-    return { description: channel.description, id: channel.id, name: channel.name };
 }
 
 async function isAgentJoined(db: HausDatabase, runner: ResolvedRunner, chatId: string) {

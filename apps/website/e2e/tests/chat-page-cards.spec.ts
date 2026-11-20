@@ -11,9 +11,9 @@ test('an Agent page card opens its Drive file beside the chat', async ({ page })
         displayName: 'Chat Page Cards',
         slug,
     });
-    const chatId = server.channels.find((channel) => channel.name === 'haus')?.id;
+    const chatId = server.channels.find((channel) => channel.name === 'all')?.id;
     if (!chatId) {
-        throw new Error('The page card test did not resolve #haus.');
+        throw new Error('The page card test did not resolve #all.');
     }
     const agentId = `agt_${server.id}_pages`;
     const artifactId = `art_${server.id}_page`;
@@ -37,7 +37,7 @@ test('an Agent page card opens its Drive file beside the chat', async ({ page })
     await page.goto(`/s/${slug}/chats/${chatId}`);
     await page.setViewportSize({ height: 720, width: 1200 });
 
-    const composer = page.getByRole('textbox', { name: 'Message haus' });
+    const composer = page.getByRole('textbox', { name: 'Message all' });
     await expect(page.getByText('```page', { exact: false })).toHaveCount(0);
     await composer.fill('Preserved draft');
     await page.getByRole('button', { name: 'Open Deterministic audit' }).press('Enter');

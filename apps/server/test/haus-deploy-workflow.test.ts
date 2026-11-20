@@ -45,3 +45,46 @@ test('a deploy verifies, renders, migrates once, then activates, holding one pla
     expect(step('Render the Server environment')).toContain('until bunx varlock');
     expect(step('Apply database migrations')).not.toContain('until ');
 });
+
+test('a deploy builds the runner from the release tree before activation and rolls it back on failure', () => {
+    const workflow = parse(readFileSync(workflowPath, 'utf8')) as {
+        jobs: {
+            deploy: {
+                steps: (Step & { if?: string; uses?: string; with?: Record<string, unknown> })[];
+            };
+        };
+    };
+    const steps = workflow.jobs.deploy.steps;
+    const names = steps.map((step) => step.name ?? '');
+    const named = (name: string) => steps.find((step) => step.name === name);
+    const checkout = steps.find((step) => step.uses?.startsWith('actions/checkout'));
+    const build = named('Build the Agent runner image')?.run ?? '';
+    const start = named('Start the Agent runner')?.run ?? '';
+    const rollback = named('Roll the Agent runner back');
+
+    expect(checkout?.with?.ref).toBeUndefined();
+    expect(build).toMatch(/git archive "\$\{HAUS_SOURCE_REVISION\}"/u);
+    expect(build).toContain('build haus-runner');
+    expect(names.indexOf('Build the Agent runner image')).toBeLessThan(
+        names.indexOf('Apply database migrations')
+    );
+    expect(names.indexOf('Prove local Server health')).toBeLessThan(
+        names.indexOf('Start the Agent runner')
+    );
+    expect(start).toContain('HAUS_RUNNER_REPLACED=true');
+    expect(start).toContain('--no-build --force-recreate --wait haus-runner');
+    const proof = named('Prove the runner reaches only the Server')?.run ?? '';
+    expect(proof).toContain('docker exec -u haus-runner haus-runner');
+    expect(proof).toContain('/app/apps/runner/container/prove-network-deny.sh');
+    const prune = named('Prune old runner images')?.run ?? '';
+    expect(names.indexOf('Prove the runner reaches only the Server')).toBeLessThan(
+        names.indexOf('Prune old runner images')
+    );
+    expect(prune).toContain('HAUS_RUNNER_PREVIOUS_IMAGE');
+    expect(prune).toContain('docker image rm');
+    expect(prune).toContain('::warning::');
+    expect(names.at(-1)).toBe('Roll the Agent runner back');
+    expect(rollback?.if).toBe("failure() && env.HAUS_RUNNER_REPLACED == 'true'");
+    expect(rollback?.run).toContain('docker rm -f haus-runner');
+    expect(rollback?.run).toMatch(/HAUS_RUNNER_IMAGE_TAG="\$\{previous_tag\}"/u);
+});

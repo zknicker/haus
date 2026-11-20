@@ -3,11 +3,11 @@ import { agentCreationFixture } from './agent-creation-fixture.ts';
 
 const fixture = agentCreationFixture();
 
-test('a human-created Agent is queued one greeting wake in #haus', async () => {
+test('a human-created Agent is queued one greeting wake in #all', async () => {
     const agentId = await fixture.createAgent('Beacon', 'beacon');
 
     expect(await readGreetings(agentId)).toEqual([
-        { chatName: 'haus', dedupeKey: `greeting:${agentId}`, state: 'queued' },
+        { chatName: 'all', dedupeKey: `greeting:${agentId}`, state: 'queued' },
     ]);
 });
 
@@ -19,7 +19,7 @@ test('an Agent-created Agent is queued one greeting wake, and a replay queues no
     const agentId = created.body.agent?.agentId ?? '';
     expect(created.status).toBe(200);
     expect(await readGreetings(agentId)).toEqual([
-        { chatName: 'haus', dedupeKey: `greeting:${agentId}`, state: 'queued' },
+        { chatName: 'all', dedupeKey: `greeting:${agentId}`, state: 'queued' },
     ]);
 
     const replay = await fixture.postCreate(runner, body);

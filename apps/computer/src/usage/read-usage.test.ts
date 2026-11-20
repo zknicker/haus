@@ -12,7 +12,6 @@ test('Computer reports only provider usage sources it can actually read', async 
             subscriptionType: 'max',
             windows: [],
         }),
-        loadClaudeLocalUsage: async () => null,
         loadCodexUsage: async () => ({
             capturedAt: '2026-07-28T20:00:00.000Z',
             creditsBalance: null,
@@ -20,20 +19,6 @@ test('Computer reports only provider usage sources it can actually read', async 
             provider: 'codex',
             source: 'chatgpt-wham-usage',
             windows: [],
-        }),
-        loadGrokLocalUsage: async () => ({
-            capturedAt: '2026-07-28T20:00:00.000Z',
-            days: 30,
-            models: [],
-            runtimeId: 'grok-build',
-            source: 'grok-build-jsonl',
-            totals: {
-                cacheReadTokens: 0,
-                cacheWriteTokens: 0,
-                inputTokens: 100,
-                outputTokens: 20,
-                totalTokens: 120,
-            },
         }),
         loadGrokUsage: async () => ({
             capturedAt: '2026-07-28T20:00:00.000Z',
@@ -62,7 +47,6 @@ test('Computer reports only provider usage sources it can actually read', async 
         'grok-build',
         'openrouter',
     ]);
-    expect(usage.runtimeUsage).toHaveLength(1);
 });
 
 test('Computer does not claim Codex is connected after an auth/read failure', async () => {
@@ -70,11 +54,9 @@ test('Computer does not claim Codex is connected after an auth/read failure', as
         loadClaudeUsage: async () => {
             throw new Error('No Claude session');
         },
-        loadClaudeLocalUsage: async () => null,
         loadCodexUsage: async () => {
             throw new Error('No Codex session');
         },
-        loadGrokLocalUsage: async () => null,
         loadGrokUsage: async () => {
             throw new Error('No Grok session');
         },
@@ -108,11 +90,9 @@ test('Computer does not claim OpenRouter is connected after a request failure', 
         loadClaudeUsage: async () => {
             throw new Error('No Claude session');
         },
-        loadClaudeLocalUsage: async () => null,
         loadCodexUsage: async () => {
             throw new Error('No Codex session');
         },
-        loadGrokLocalUsage: async () => null,
         loadGrokUsage: async () => {
             throw new Error('No Grok session');
         },
@@ -136,11 +116,9 @@ test('Computer classifies an expired Grok login as an authentication failure', a
         loadClaudeUsage: async () => {
             throw new Error('No Claude session');
         },
-        loadClaudeLocalUsage: async () => null,
         loadCodexUsage: async () => {
             throw new Error('No Codex session');
         },
-        loadGrokLocalUsage: async () => null,
         loadGrokUsage: async () => {
             throw new Error('No current Grok login is available.');
         },
@@ -173,11 +151,9 @@ test('Computer reports a guarded Claude backoff as a request failure it can reta
                 600_000
             );
         },
-        loadClaudeLocalUsage: async () => null,
         loadCodexUsage: async () => {
             throw new Error('No Codex session');
         },
-        loadGrokLocalUsage: async () => null,
         loadGrokUsage: async () => {
             throw new Error('No Grok session');
         },
@@ -200,11 +176,9 @@ test('Computer logs one sanitized line per failed provider read', async () => {
         loadClaudeUsage: async () => {
             throw new ClaudeUsageRequestError('rate limited by api.anthropic.com', 429);
         },
-        loadClaudeLocalUsage: async () => null,
         loadCodexUsage: async () => {
             throw new Error('No Codex session');
         },
-        loadGrokLocalUsage: async () => null,
         loadGrokUsage: async () => {
             throw new Error('No current Grok login is available.');
         },

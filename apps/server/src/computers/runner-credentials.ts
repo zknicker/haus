@@ -149,10 +149,14 @@ export async function revokeRunnerCredentialsForRun(
         );
 }
 
-/** Resolves a runner token to its bound Agent, launch chat, and Server. Fails closed. */
+/**
+ * Resolves a runner token to its bound Agent, launch chat, and Server. Fails closed: a
+ * drive-sync credential resolves only for a caller that serves a Drive sync route.
+ */
 export async function resolveRunnerCredential(
     db: HausDatabase,
-    token: string
+    token: string,
+    options: { driveSync?: boolean } = {}
 ): Promise<ResolvedRunner | null> {
     const [row] = await db
         .select({
@@ -169,7 +173,14 @@ export async function resolveRunnerCredential(
             and(
                 eq(agentRunnerCredentialsTable.tokenHash, hashComputerSecret(token)),
                 isNull(agentRunnerCredentialsTable.revokedAt),
-                gt(agentRunnerCredentialsTable.expiresAt, new Date())
+                gt(agentRunnerCredentialsTable.expiresAt, new Date()),
+                options.driveSync
+                    ? undefined
+                    : not(
+                          arrayContains(agentRunnerCredentialsTable.capabilities, [
+                              driveSyncRunnerCapability,
+                          ])
+                      )
             )
         )
         .limit(1);

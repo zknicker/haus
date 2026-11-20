@@ -52,6 +52,11 @@ export interface HausServerApplicationOptions {
      */
     githubRecoveryIntervalMs?: number | null;
     hostedMcps?: { definitions: readonly HostedMcpDefinition[]; storageRoot: string };
+    /**
+     * Seeds the factory-managed skills into each Agent's Drive area at creation, full reset, and
+     * Server start. On unless false; the test harness turns it off unless a test asks for it.
+     */
+    seedManagedSkills?: boolean;
     /** Test seam: replaces the OpenAI and Gemini image adapters outright. */
     imageGenerationAdapters?: ImageProviderAdapters;
     /** Timer seam for the invocation grace; tests fire it by hand. */

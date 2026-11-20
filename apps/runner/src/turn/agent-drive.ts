@@ -91,7 +91,7 @@ async function downloadText(authority: RunAuthority, artifactId: string, what: s
     return await response.text();
 }
 
-async function agentGet(
+export async function agentGet(
     authority: RunAuthority,
     path: string,
     what: string,

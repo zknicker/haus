@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import type { AgentLifecycleEvent } from '@haus/api';
 import { onAgentLifecycle } from '../src/agent-delivery/lifecycle.ts';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import {
@@ -44,7 +45,7 @@ beforeAll(async () => {
         )
     `;
     agentId = (
-        await owner.trpc.agent.create.mutate({
+        await createHomedAgent(owner, {
             computerId,
             displayName: 'Orbit',
             handle: 'orbit',

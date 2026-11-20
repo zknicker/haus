@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { createHomedAgent } from './project.ts';
 import { assertOpaqueId, attachComputer, createClient, runPsql } from './server.ts';
 
 export interface SeededWorker {
@@ -51,7 +52,7 @@ export async function seedWorker(input: {
          where id = '${attached.computerId}'`
     );
 
-    const created = await owner.agent.create.mutate({
+    const created = await createHomedAgent(owner, {
         computerId: attached.computerId,
         displayName: 'Orbit',
         handle: input.agentHandle,

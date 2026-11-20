@@ -168,7 +168,7 @@ cold-starts once.
 
 R3 left these Computer turn features unported, and R4 ports each before it moves an Agent:
 execution journal upload (including journaling dispatches the ledger recovers as `unknown`),
-idle compaction, and Server-side seeding of managed skills into Drive with their change notice.
+and idle compaction.
 Claude plan usage needs no port: the runner's connection capacity reader (R6) reads each Claude
 connection's plan windows on its own schedule, and nothing reads `turn-finish.claudePlanUsage`.
 `haus worker start` already runs on the runner since W2: it is a
@@ -184,10 +184,17 @@ turn resumes cold or, after a generation change, starts fresh. A full reset and 
 delete `/data/agents/<agent-id>/`. The runner records the session generation it last applied in
 `/data/agent-sessions/<agent-id>.json`, outside the Agent's directory. A reset applies only when
 its generation is newer, aborts a turn from an older generation, and refuses queued runs that a
-reset replaced. `runner-start` carries `sessionResetKind`, so the first run of a newer generation
-applies a reset the runner missed while it was offline. Retire aborts the turn in progress; the
-other controls run after it. The Server sends
+reset replaced. A restart also refuses the runs queued before it, since the Server interrupts
+the Agent's active run before it restarts. `runner-start` carries `sessionResetKind`, so the first run of a newer generation
+applies a reset the runner missed while it was offline. Restart and retire abort the turn in progress; resets abort a turn from an older generation. The Server sends
 `agent-retire` to the runner from R4d, when the Computer path that sends it today is deleted.
+
+Managed skills are ported. The Server seeds the factory-managed skills into each Agent's Drive
+area as Haus-authored revisions at creation, after a full reset, and at Server start
+([Skills](skills.md#managed-skills)), so no launch has to. The runner delivers the skill update
+notice (Instructions below). The Computer's own launch seeding stays until R4d deletes Computer
+Agent paths. It writes the same release bytes, so a push of them is an `unchanged` outcome and adds
+no revision.
 
 R5 lands Pi Durable before R4, so the cutover has both harnesses and every Agent has one for
 its model. R4 moves every Agent at once and resets every session. No native session is copied from a
@@ -269,13 +276,22 @@ session receives every present layer. A resumed session receives a layer only wh
 differs from the session's rule receipt, and a layer the session saw that is now gone is announced
 once as deleted. The receipts sit in `session.json` beside the memory receipt and move the same
 way: they advance after a completed turn, hold after an interrupted one, and reset after a
-compacted one. A layer the runner could not read keeps its receipt. Home Projects arrive in J3,
-and the home Project's `projects/<key>/AGENTS.md` joins between the two layers then. The block
+compacted one. A layer the runner could not read keeps its receipt. Agent Projects arrive in J3,
+and the Project's `projects/<key>/AGENTS.md` joins between the two layers then. The block
 text is `formatRulesBlock` in `@haus/agent-prompt`.
 
 Skills load from Drive. The runner lists the Agent's skills in its instructions by name and
 description, from `agents/<handle>/skills/*/SKILL.md`, and the Agent opens one with
 `haus skill view`. The listing text goes through the prompt contract in R3.
+
+When the Server's seeding updated a managed skill the Agent had not edited, the next turn carries
+the skill update notice, `managedSkillChangeText` in `@haus/agent-prompt`, after the turn content,
+where the Computer puts it too. The pending updates are Server state, not session state, because a
+session reset must not drop them. The runner reads them with
+`GET /api/agent/managed-skills/notice` beside the rule and memory reads. After a completed turn it
+sends `POST /api/agent/managed-skills/notice/ack` naming the releases it announced, so an update
+that landed during the turn stays pending. An interrupted or failed turn sends no receipt, and the
+next turn carries the notice again. A notice the runner could not read is left for the next turn.
 
 ### Idle compaction
 

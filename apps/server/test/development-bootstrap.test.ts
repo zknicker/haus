@@ -18,6 +18,7 @@ import {
     computersTable,
     mcpConnectionsTable,
     messageClaimsTable,
+    projectsTable,
     serversTable,
     taskFollowsTable,
     taskKeysTable,
@@ -171,10 +172,14 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     const keys = links.map((link) => link.text).sort();
     expect(keys.join(' ')).toBe('GEN-1 GEN-2 GEN-3 GEN-4 GEN-5');
     const ledger = await connection.db.select().from(taskKeysTable);
-    expect(ledger.map((entry) => `${entry.key}:${entry.nextNumber}`).sort()).toEqual([
-        'GEN:6',
-        'PROD:1',
-    ]);
+    expect(ledger.map((entry) => `${entry.key}:${entry.nextNumber}`).sort()).toEqual(['GEN:6']);
+    const productId = (await connection.db.select().from(chatsTable)).find(
+        (chat) => chat.name === 'product'
+    )?.id;
+    const projects = await connection.db.select().from(projectsTable);
+    expect(projects.map((project) => project.chatId)).toEqual([productId]);
+    expect(agents.every((agent) => agent.homeProjectId === productId)).toBe(true);
+    expect(tasks.every((task) => task.projectId === productId)).toBe(true);
     const ownerTasks = tasks.filter((task) => task.assigneeUserId !== null);
     expect(ownerTasks.map((task) => task.number).sort()).toEqual([3, 4]);
     const followed = new Set(follows.map((follow) => follow.taskChatId));
@@ -195,7 +200,7 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     const inTask = named.some((message) => tasks.some((task) => task.chatId === message?.chatId));
     expect(inTask).toBe(false);
 
-    // The Inbox seed's stalled claim is the only one in `#haus`. The channel's
+    // The Inbox seed's stalled claim is the only one in `#all`. The channel's
     // counter is past it, so promoting a message there does not collide with a
     // seeded claim number.
     expect(claims).toHaveLength(11);

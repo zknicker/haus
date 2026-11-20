@@ -11,7 +11,7 @@ test('the App reconnects to a restarted Server', async ({ page }) => {
         displayName: 'Restart Smoke',
         slug: 'restart-smoke',
     });
-    await expect(page.getByRole('row', { exact: true, name: 'haus' })).toBeVisible();
+    await expect(page.getByRole('row', { exact: true, name: 'all' })).toBeVisible();
     await traffic.settled();
     const mark = traffic.mark();
 
@@ -29,5 +29,5 @@ test('the App reconnects to a restarted Server', async ({ page }) => {
     await expect(client.server.bySlug.query({ slug: 'restart-smoke' })).resolves.toMatchObject({
         slug: 'restart-smoke',
     });
-    await expect(page.getByRole('row', { exact: true, name: 'haus' })).toBeVisible();
+    await expect(page.getByRole('row', { exact: true, name: 'all' })).toBeVisible();
 });

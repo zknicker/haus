@@ -73,9 +73,9 @@ export const agentsTable = pgTable(
         effectiveReportedAt: timestamp('effective_reported_at', { withTimezone: true }),
         effectiveRuntimeId: text('effective_runtime_id'),
         handle: text('handle').notNull(),
-        /** The Agent's one home Project (specs/projects.md#agents); the Haus project makes it a generalist. */
+        /** The Agent's one home Project (specs/projects.md#agents); only a retired Agent has none. */
         // Migration 0131 adds `agents_home_project_fk`; importing `projects` here would close a schema import cycle.
-        homeProjectId: text('home_project_id').notNull(),
+        homeProjectId: text('home_project_id'),
         homeTimezone: text('home_timezone').notNull(),
         id: text('id').primaryKey(),
         /**
@@ -144,6 +144,10 @@ export const agentsTable = pgTable(
             sql`(${table.creationNonce} is null and ${table.creationRequestHash} is null)
                 or (${table.createdByAgentId} is not null and ${table.creationNonce} is not null
                     and ${table.creationRequestHash} is not null)`
+        ),
+        check(
+            'agents_home_project_shape',
+            sql`${table.homeProjectId} is not null or ${table.retiredAt} is not null`
         ),
         check(
             'agents_reasoning_effort',

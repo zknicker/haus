@@ -232,38 +232,6 @@ export function serverStandIn(routes: StandInRoutes = {}) {
     };
 }
 
-export function driveRoutes(handle: string, files: Map<string, string>) {
-    const ids = new Map([...files.keys()].map((path, index) => [path, `art_${index}`]));
-    const routes: StandInRoutes = {
-        '/api/agent/artifacts/by-path': (_body, url) => {
-            const path = url.searchParams.get('path') ?? '';
-            const id = ids.get(path);
-            return id && files.has(path)
-                ? Response.json({ artifact: { artifact_id: id, path } })
-                : Response.json({ code: 'NOT_FOUND', message: path }, { status: 404 });
-        },
-        '/api/agent/profile': () => Response.json({ profile: { handle } }),
-    };
-    for (const [path, id] of ids) {
-        routes[`/api/agent/artifacts/${id}/download`] = (_body, url) =>
-            Response.json({ download_url: new URL(`/drive-bytes/${id}`, url).href });
-        routes[`/drive-bytes/${id}`] = () => new Response(files.get(path) ?? '');
-    }
-    return routes;
-}
-
-async function requestBody(request: Request) {
-    if (request.headers.get('content-type') === 'application/octet-stream') {
-        const bytes = new Uint8Array(await request.arrayBuffer());
-        return {
-            sha256: createHash('sha256').update(bytes).digest('hex'),
-            sizeBytes: bytes.byteLength,
-        };
-    }
-    const text = await request.text();
-    return text ? (JSON.parse(text) as Record<string, unknown>) : null;
-}
-
 function startCommand() {
     return {
         agentId: 'agt_1',
@@ -298,4 +266,16 @@ function chatMessage(id: string, sequence: number) {
         sender: { description: null, handle: 'operator', type: 'human' },
         sequence,
     };
+}
+
+async function requestBody(request: Request) {
+    if (request.headers.get('content-type') === 'application/octet-stream') {
+        const bytes = new Uint8Array(await request.arrayBuffer());
+        return {
+            sha256: createHash('sha256').update(bytes).digest('hex'),
+            sizeBytes: bytes.byteLength,
+        };
+    }
+    const text = await request.text();
+    return text ? (JSON.parse(text) as Record<string, unknown>) : null;
 }

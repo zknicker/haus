@@ -4,7 +4,7 @@ import { agentInboxTable, chatMessagesTable } from '../postgres/schema.ts';
 import { enqueueInboxItem, ensureDeliveryState, queuedFor } from './store.ts';
 
 /**
- * The new Agent's one-time `#haus` greeting (ADR 0028, amended 2026-11-03), as
+ * The new Agent's one-time `#all` greeting (ADR 0028, amended 2026-11-03), as
  * Raft's `triggerNewAgentAllChannelGreeting`: creation queues one wake, and the
  * run that carries it tells the Agent to introduce itself. The row is bodiless
  * and noticeless, and it leads no lane of its own: a queued greeting rides the
@@ -20,7 +20,7 @@ export function greetingDedupeKey(agentId: string): string {
     return `greeting:${agentId}`;
 }
 
-/** Queues the greeting wake in `#haus`, inside the creation transaction. */
+/** Queues the greeting wake in `#all`, inside the creation transaction. */
 export async function enqueueAgentGreeting(
     tx: HausDatabase,
     input: { agentId: string; allChannelId: string; serverId: string }
@@ -29,7 +29,7 @@ export async function enqueueAgentGreeting(
     await enqueueInboxItem(tx, {
         agentId: input.agentId,
         chatId: input.allChannelId,
-        content: 'Introduce yourself once in #haus.',
+        content: 'Introduce yourself once in #all.',
         dedupeKey: greetingDedupeKey(input.agentId),
         serverId: input.serverId,
         source: greetingInboxSource,
