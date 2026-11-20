@@ -57,6 +57,9 @@ test('search finds a page by a row on it and names the row', () => {
     assert.deepEqual(railShape({ canOperate: true, query: 'server id' }), [
         { label: 'Haus', rows: ['General · Server ID'] },
     ]);
+    assert.deepEqual(railShape({ canOperate: false, query: 'chatgpt' }), [
+        { label: 'Captains', rows: ['Models · ChatGPT plan'] },
+    ]);
 });
 
 test('search does not reveal operator pages to members', () => {

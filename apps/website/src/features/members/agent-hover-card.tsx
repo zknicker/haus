@@ -4,6 +4,7 @@ import { CursorHoverCard } from '../../components/ui/cursor-hover-card.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useAgent } from '../../hooks/members/use-agent.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
+import { useModelConnections } from '../../hooks/servers/use-model-connections.ts';
 import { agentExecutionLabels } from '../computers/presentation.ts';
 import {
     ReferencePreviewHeader,
@@ -12,7 +13,7 @@ import {
 import { AgentExecutionChips } from './agent-execution-chips.tsx';
 import { AgentHoverActivity } from './agent-hover-activity.tsx';
 import {
-    AgentRuntimeIssueLine,
+    AgentAttentionLine,
     AgentWakePauseBanner,
     agentHoverAttention,
 } from './agent-hover-attention.tsx';
@@ -60,6 +61,7 @@ export function AgentHoverCardContent({
 }) {
     const agent = useAgent(serverId, agentId);
     const computers = useComputers(serverId);
+    const connections = useModelConnections(serverId);
 
     if (agent.isPending && !agent.data) {
         return (
@@ -95,7 +97,11 @@ export function AgentHoverCardContent({
             : null;
     const modelChange = resolveAgentHoverModelChange(value);
     const desiredExecution = agentExecutionLabels(value, computer?.reportedInventory ?? null);
-    const attention = agentHoverAttention(value, computer ?? null);
+    const attention = agentHoverAttention(
+        value,
+        computer ?? null,
+        connections.data?.connections ?? []
+    );
     const banner =
         attention?.kind === 'wake-pause' ? (
             <AgentWakePauseBanner wakePause={attention.wakePause} />
@@ -136,13 +142,7 @@ export function AgentHoverCardContent({
                     {effectiveExecution.kind === 'unavailable' ? effectiveExecution.label : null}
                 </span>
             )}
-            {attention?.kind === 'runtime-issue' ? (
-                <AgentRuntimeIssueLine
-                    agent={value}
-                    computer={attention.computer}
-                    runtimeId={attention.runtimeId}
-                />
-            ) : null}
+            <AgentAttentionLine agent={value} attention={attention} />
             {modelChange ? (
                 <p className="text-muted text-xs">
                     Switching to {desiredExecution.runtime} · {desiredExecution.model} ·{' '}

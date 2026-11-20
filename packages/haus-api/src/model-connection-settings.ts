@@ -10,10 +10,23 @@ import {
     modelSignInProviderSchema,
 } from './model-connections.ts';
 
+/** One plan window as the App's usage meters draw it: the share used and when it resets. */
+export const modelConnectionCapacityWindowSchema = z
+    .object({
+        id: z.string().min(1),
+        label: z.string().min(1),
+        resetsAt: timestampSchema.nullable(),
+        usedPercent: z.number().min(0).max(100),
+    })
+    .strict();
+export type ModelConnectionCapacityWindow = z.infer<typeof modelConnectionCapacityWindowSchema>;
+
 /** One connection as Settings shows it: never a credential, nor any hint of one. */
 export const modelConnectionSchema = z
     .object({
         authKind: modelConnectionAuthKindSchema,
+        /** The plan's capacity windows, or null until the runner has read them (R6c). */
+        capacity: z.array(modelConnectionCapacityWindowSchema).nullable(),
         id: idSchema,
         isDefault: z.boolean(),
         label: modelConnectionLabelSchema,

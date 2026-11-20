@@ -84,6 +84,7 @@ function toModelConnection(row: {
 }) {
     const connection: ModelConnection = {
         ...row,
+        capacity: null,
         isDefault: row.position === 0,
         updatedAt: row.updatedAt.toISOString(),
     };
