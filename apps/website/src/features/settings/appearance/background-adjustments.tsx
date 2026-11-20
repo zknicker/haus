@@ -1,19 +1,14 @@
-import { CellSlider, ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Label, ListBox, Select } from '@heroui/react';
-import {
-    previewThemeBackground,
-    saveThemeBackground,
-} from '../../../hooks/shell/use-theme-background.ts';
+import { saveThemeBackground } from '../../../hooks/shell/use-theme-background.ts';
 import type { ColorTheme } from '../../../lib/color-theme.ts';
 import {
     backgroundAdjustments,
     backgroundEffects,
     parseBackgroundEffect,
     type ThemeBackground,
-    withAdjustment,
 } from '../../../lib/home-background.ts';
-
-const percent = { maximumFractionDigits: 0, style: 'unit', unit: 'percent' } as const;
+import { AdjustmentSlider } from './adjustment-slider.tsx';
 
 export function BackgroundAdjustments({
     background,
@@ -66,38 +61,12 @@ export function BackgroundAdjustments({
             </ItemCardGroup>
             <div className="grid gap-2 sm:grid-cols-2">
                 {backgroundAdjustments.map((adjustment) => (
-                    <CellSlider
-                        aria-label={adjustment.label}
-                        formatOptions={percent}
+                    <AdjustmentSlider
+                        adjustment={adjustment}
+                        background={background}
                         key={adjustment.id}
-                        maxValue={adjustment.max}
-                        minValue={adjustment.min}
-                        onChange={(value) => {
-                            if (typeof value === 'number') {
-                                previewThemeBackground(
-                                    theme,
-                                    withAdjustment(background, adjustment.id, value)
-                                );
-                            }
-                        }}
-                        onChangeEnd={(value) => {
-                            if (typeof value === 'number') {
-                                saveThemeBackground(
-                                    theme,
-                                    withAdjustment(background, adjustment.id, value)
-                                );
-                            }
-                        }}
-                        step={1}
-                        value={background.adjustments[adjustment.id]}
-                    >
-                        <CellSlider.Track>
-                            <CellSlider.Fill />
-                            <CellSlider.Thumb />
-                            <CellSlider.Label>{adjustment.label}</CellSlider.Label>
-                            <CellSlider.Output />
-                        </CellSlider.Track>
-                    </CellSlider>
+                        theme={theme}
+                    />
                 ))}
             </div>
         </div>

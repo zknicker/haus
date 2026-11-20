@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { pruneBackgroundImages } from '../../lib/background-images.ts';
 import { type ColorTheme, isCustomTheme } from '../../lib/color-theme.ts';
+import { customThemesStorageKey } from '../../lib/custom-themes.ts';
 import type { ThemeBackground } from '../../lib/home-background.ts';
 import {
     type PresetBackgrounds,
@@ -44,7 +45,11 @@ export function getPresetBackgrounds() {
 export function usePresetBackgroundsSync() {
     React.useEffect(() => {
         const follow = (event: StorageEvent) => {
+            if (event.key === customThemesStorageKey) {
+                discardThemeBackgroundPreview();
+            }
             if (event.key === presetBackgroundsStorageKey || event.key === null) {
+                preview = null;
                 publish(readStoredPresetBackgrounds(safeLocalStorage()), null);
             }
         };
@@ -56,6 +61,19 @@ export function usePresetBackgroundsSync() {
 export function previewThemeBackground(theme: ColorTheme, background: ThemeBackground) {
     preview = { background, theme };
     notify();
+}
+
+export function settleThemeBackgroundPreview() {
+    if (preview) {
+        saveThemeBackground(preview.theme, preview.background);
+    }
+}
+
+export function discardThemeBackgroundPreview() {
+    if (preview) {
+        preview = null;
+        notify();
+    }
 }
 
 export function saveThemeBackground(theme: ColorTheme, background: ThemeBackground) {

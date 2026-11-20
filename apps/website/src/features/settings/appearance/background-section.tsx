@@ -55,7 +55,7 @@ export function BackgroundSection({ theme }: { theme: ColorTheme }) {
                     <ImageRow image={background.image} onReplace={upload.choose} theme={theme} />
                 ) : null}
                 {background.source === 'none' ? null : (
-                    <BackgroundAdjustments background={background} theme={theme} />
+                    <BackgroundAdjustments background={background} key={theme} theme={theme} />
                 )}
             </div>
         </ItemCardGroup>
