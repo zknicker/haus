@@ -40,15 +40,6 @@ export const workerReportAttentionSchema = z
     .strict();
 export type WorkerReportAttention = z.infer<typeof workerReportAttentionSchema>;
 
-/** The reports of one Task an idle Agent wakes to, coalesced into one run. */
-export const workerReportsStartSchema = z
-    .array(workerReportAttentionSchema)
-    .min(1)
-    .max(workerReportsPerRun)
-    .refine((reports) => new Set(reports.map((report) => report.taskKey)).size === 1, {
-        message: 'One run carries the reports of one Task.',
-    });
-
 /** What a busy Agent hears: a count of one Task's queued reports. */
 export const workerReportsNoticeSchema = z
     .object({

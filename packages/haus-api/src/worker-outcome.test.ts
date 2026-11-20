@@ -183,6 +183,11 @@ test.each<[string, Parameters<typeof workerStatusOf>[0], ReturnType<typeof worke
     ],
     ['a stop reads stopped', { outcome: { kind: 'stopped' }, status: 'cancelled' }, 'stopped'],
     [
+        'a stop Haus settled while the provider still runs reads stopped',
+        { outcome: { kind: 'stopped' }, status: 'running' },
+        'stopped',
+    ],
+    [
         'a recorded failure reads failed',
         { outcome: settle({ status: 'expired' }), status: 'expired' },
         'failed',

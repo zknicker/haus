@@ -121,16 +121,17 @@ export function workerOutcomeOf(input: WorkerOutcomeInput) {
     return outcomeByStatus[input.status](input);
 }
 
-/** A Worker's status, projected from its newest turn (specs/workers.md "Record"). */
+/**
+ * A Worker's status, projected from its newest turn (specs/workers.md "Record").
+ * The outcome wins over the provider status: a turn Haus stopped while its
+ * carrier was offline is settled before the provider says so.
+ */
 export function workerStatusOf(newest: {
     outcome: WorkerOutcome | null;
     status: WorkerTurnStatus;
 }) {
-    if (newest.status === 'queued') {
-        return 'queued' satisfies WorkerStatus;
-    }
-    if (newest.status === 'running' || newest.outcome === null) {
-        return 'working' satisfies WorkerStatus;
+    if (newest.outcome === null) {
+        return statusBeforeOutcome[newest.status];
     }
     return newest.outcome.kind === 'report'
         ? newest.outcome.report.outcome
@@ -138,6 +139,16 @@ export function workerStatusOf(newest: {
           ? 'stopped'
           : 'failed';
 }
+
+const statusBeforeOutcome: Record<WorkerTurnStatus, WorkerStatus> = {
+    cancelled: 'stopped',
+    completed: 'done',
+    expired: 'failed',
+    failed: 'failed',
+    pending_input: 'needs-you',
+    queued: 'queued',
+    running: 'working',
+};
 
 export function isLiveWorkerStatus(status: WorkerStatus) {
     return status === 'queued' || status === 'working';

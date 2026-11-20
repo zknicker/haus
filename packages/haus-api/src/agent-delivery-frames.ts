@@ -12,7 +12,7 @@ import { timestampSchema } from './chat-contract-primitives.ts';
 import { idSchema } from './chat.ts';
 import { connectionChipKindSchema } from './connection-chips.ts';
 import { traceCarrierSchema } from './trace-context.ts';
-import { workerReportsNoticeSchema, workerReportsStartSchema } from './worker-report-attention.ts';
+import { workerReportsNoticeSchema } from './worker-report-attention.ts';
 
 /**
  * The sub-agent wake: a private turn for background work the Agent started on its runtime (a
@@ -105,7 +105,6 @@ export const agentStartCommandSchema = z
         unreadElsewhere: z.array(unreadElsewhereSchema).max(50).default([]),
         /** Additionally drainable when the harness session resumes: alive-idle parity. */
         warmDrainItemIds: drainItemIdsSchema,
-        workerReports: workerReportsStartSchema.optional(),
     })
     .strict()
     .refine(
