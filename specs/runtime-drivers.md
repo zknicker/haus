@@ -146,9 +146,9 @@ about the session.
   returns it through `unconsumedSteers()`, so the executor redelivers it as it does for Claude.
 - A turn left running by a crash is aborted when its store reopens, not resumed into a turn no one
   observes. The interrupted-turn input reports it, as for Claude.
-- Providers come from Pi: `openai-codex` (ChatGPT plans), `xai`, `google` and `openrouter`. A
-  model goes to the first provider whose catalog lists its id. Credentials come only from runner
-  settings, never ambient environment or files.
+- Providers come from Pi: `openai-codex` (ChatGPT plans), `xai`, `google` and `openrouter`. The
+  run's model connection names the provider, and its credential comes from the Server, never from
+  ambient environment or files.
 
 ### Pinning and reset
 
@@ -386,8 +386,6 @@ These end at R4 and are named here as intentional capability removals:
   for its model comes with that read.
 - **Pi compaction between turns.** A Pi compaction that lands outside a Haus turn has no observer,
   so the memory and rules receipts do not reset for it.
-- **A cross-process lock on the login file.** Pi locks a token refresh inside the runner process
-  only.
 
 ## Dispatches
 
@@ -661,26 +659,16 @@ nothing then, and its next pull or push catches up from the folder's records.
 
 ## Logins
 
-Model logins live in runner settings. There are no sign-in screens in v1.
+Agents' model logins are model connections, configured in the App and held encrypted by the
+Server ([model-connections.md](model-connections.md)). The Server resolves each run's connection
+into `runner-start.modelConnectionId` and sends the runner every connection over its socket. The
+runner keeps them in memory, never in its environment or on disk. It runs ChatGPT and SuperGrok
+device-code sign-ins for the App, and sends refreshed tokens back for the Server to store. A login
+that fails mid-turn is a fatal `session-failure` with category `access`, and it marks the
+connection failed.
 
-| Login | Where | Set by |
-| --- | --- | --- |
-| Claude plan | `HAUS_RUNNER_CLAUDE_SETUP_TOKEN`, a `claude setup-token` value | `.env.schema`, from 1Password |
-| ChatGPT plan | Pi's Codex sign-in file at `/data/logins/openai-codex.json`, refreshed in place by Pi | `haus-runner login chatgpt`, a device-code sign-in run once in the container |
-| xAI, Google, OpenRouter | `HAUS_RUNNER_XAI_API_KEY`, `HAUS_RUNNER_GEMINI_API_KEY`, `HAUS_RUNNER_OPENROUTER_API_KEY` | `.env.schema`, from 1Password |
-
-The ChatGPT sign-in is a file, not an environment variable, because its refresh token rotates.
-Pi ships no file-backed credential store, so the runner keeps one at
-`/data/logins/<provider>.json` (mode 0600, atomic replace). Run the login as the runner's user
-(`docker exec --user haus-runner … haus-runner login chatgpt`), or the runner cannot read the file.
-Pi refreshes the token under a lock inside the runner process only, so do not run a login while
-the runner is refreshing.
-
-The runner reports which logins work in `runner-inventory` on connect, so a new login appears
-after the runner's next reconnect. The Agent
-model picker offers exactly those models. Computers no longer report runtimes or models for
-Agents. A login that fails mid-turn is a fatal `session-failure` with category `access`, as
-today.
+`runner-inventory` reports harnesses only. The Agent model picker moves from Computer inventory to
+the runner's model catalog in R4.
 
 ## Protocol frames
 

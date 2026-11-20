@@ -40,6 +40,7 @@ export * from './schema/mcp.ts';
 export * from './schema/message-causes.ts';
 export * from './schema/message-claims.ts';
 export * from './schema/message-reactions.ts';
+export * from './schema/model-connections.ts';
 export * from './schema/projects.ts';
 export * from './schema/push-devices.ts';
 export * from './schema/reminders.ts';

@@ -21,6 +21,10 @@ import {
 import { agentStopCommandSchema } from './agent-stop-commands.ts';
 import { agentThoughtFrameSchema } from './agent-thought.ts';
 import { idSchema } from './chat.ts';
+import {
+    runnerModelConnectionDownFrameSchemas,
+    runnerModelConnectionUpFrameSchemas,
+} from './model-connections.ts';
 
 export const runnerSocketPath = '/runner/attachment';
 
@@ -36,6 +40,8 @@ export const runnerStartFrameSchema = z
     .object({
         /** The effort frozen onto the run; absent launches at the model's default. */
         reasoningEffort: agentReasoningEffortSchema.optional(),
+        /** The connection the Server chose for this run; null when the Agent's provider has none. */
+        modelConnectionId: idSchema.nullable(),
         runCredential: runnerTokenSchema,
         start: agentStartCommandSchema,
         type: z.literal('runner-start'),
@@ -86,17 +92,9 @@ export const invocationCancelFrameSchema = z
     .object({ ...dispatchKeySchema.shape, agentId: idSchema, type: z.literal('invocation-cancel') })
     .strict();
 
-export const runnerLoginSchema = z
-    .object({
-        provider: z.enum(['claude', 'chatgpt', 'xai', 'gemini', 'openrouter']),
-        state: z.enum(['ready', 'missing', 'failed']),
-    })
-    .strict();
-
 export const runnerInventoryFrameSchema = z
     .object({
         harnesses: z.array(z.enum(['claude-agent-sdk', 'pi-durable'])).max(2),
-        logins: z.array(runnerLoginSchema).max(8),
         type: z.literal('runner-inventory'),
     })
     .strict();
@@ -110,6 +108,7 @@ export const runnerDownFrameSchema = z.union([
     agentStopCommandSchema,
     agentExecutionJournalAckSchema,
     invocationResultFrameSchema,
+    ...runnerModelConnectionDownFrameSchemas,
 ]);
 
 export type RunnerDownFrame = z.infer<typeof runnerDownFrameSchema>;
@@ -125,6 +124,7 @@ export const runnerUpFrameSchema = z.union([
     agentExecutionJournalRecordsFrameSchema,
     invocationRequestFrameSchema,
     invocationCancelFrameSchema,
+    ...runnerModelConnectionUpFrameSchemas,
 ]);
 
 export type RunnerUpFrame = z.infer<typeof runnerUpFrameSchema>;

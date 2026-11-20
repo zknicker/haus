@@ -3,7 +3,6 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BACKGROUND_CONTEXT } from '@earendil-works/chord/context';
-import type { Models } from '@earendil-works/pi-ai';
 import type { AgentReasoningEffort } from '@haus/api';
 import type {
     OpenSessionOptions,
@@ -12,6 +11,7 @@ import type {
 } from '../turn/runtime-driver.ts';
 import { WarmPool, warmIdleMs } from '../turn/warm-pool.ts';
 import {
+    type PiConnectionModels,
     PiModelUnavailableError,
     type PiToolFamily,
     piModelRef,
@@ -26,7 +26,7 @@ const expiryIntervalMs = 60_000;
 export function createPiHarness(options: {
     log: (line: string) => void;
     maxWarm: number;
-    models: Models;
+    models: (launch: RuntimeLaunch) => PiConnectionModels;
 }) {
     const pool = new WarmPool<PiSessionHandle>({ idleMs: warmIdleMs, maxWarm: options.maxWarm });
     const closeAll = async (handles: readonly PiSessionHandle[]) => {
@@ -45,10 +45,11 @@ export function createPiHarness(options: {
 
     const connect = async (
         launch: RuntimeLaunch,
+        opened: PiConnectionModels,
         family: PiToolFamily,
         resumeFrom: string | undefined
     ) => {
-        const launchKey = piLaunchKey(await piBootstrapFingerprint(family), launch.modelId);
+        const launchKey = piLaunchKey(await piBootstrapFingerprint(family), launch);
         if (resumeFrom) {
             const claim = pool.claim(
                 launch.agentId,
@@ -67,7 +68,7 @@ export function createPiHarness(options: {
             family,
             launchKey,
             log: options.log,
-            models: options.models,
+            models: opened.models,
             nativeSessionId: resumeFrom ?? crypto.randomUUID(),
             resume: resumeFrom !== undefined,
         });
@@ -81,11 +82,12 @@ export function createPiHarness(options: {
             instructionsOnResume: 'current' as const,
             async openSession({ resumeFrom, signal }: OpenSessionOptions) {
                 signal?.throwIfAborted();
-                const model = piModelRef(options.models, launch.modelId);
+                const opened = options.models(launch);
+                const model = piModelRef(opened, launch.modelId);
                 if (!model) {
-                    throw new PiModelUnavailableError(launch.modelId);
+                    throw new PiModelUnavailableError(launch.modelId, opened.providerId);
                 }
-                const handle = await connect(launch, family, resumeFrom);
+                const handle = await connect(launch, opened, family, resumeFrom);
                 handle.prompt.instructions = launch.instructions;
                 handle.binding.bind(launch.tools);
                 await handle.root.configure(
@@ -148,9 +150,9 @@ export async function piBootstrapFingerprint(family: PiToolFamily) {
         .digest('hex');
 }
 
-function piLaunchKey(bootstrapFingerprint: string, modelId: string) {
+function piLaunchKey(bootstrapFingerprint: string, launch: RuntimeLaunch) {
     return createHash('sha256')
-        .update(JSON.stringify([bootstrapFingerprint, modelId]))
+        .update(JSON.stringify([bootstrapFingerprint, launch.modelId, launch.connection.id]))
         .digest('hex');
 }
 

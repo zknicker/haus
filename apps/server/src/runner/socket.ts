@@ -3,26 +3,22 @@ import type { IncomingMessage, Server } from 'node:http';
 import type { Duplex } from 'node:stream';
 import { runnerHelloSchema, runnerSocketPath } from '@haus/api';
 import { WebSocket, WebSocketServer } from 'ws';
-import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { onAgentLifecycle } from '../agent-delivery/lifecycle.ts';
 import type { InvocationRouter } from '../agent-invocations/invocation-router.ts';
 import {
     defaultComputerSocketLiveness,
     watchComputerSocketLiveness,
 } from '../computers/socket-liveness.ts';
+import type { HausContextDependencies } from '../haus-api/context.ts';
 import type { HausServerApplicationOptions } from '../haus-server-options.ts';
-import type { HausDatabase } from '../postgres/connection.ts';
 import { createAgentThoughts } from '../server-agents/agent-thought.ts';
-import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { ingestRunnerFrame } from './ingest.ts';
-import type { RunnerAttachment, RunnerLink } from './runner-link.ts';
+import type { RunnerAttachment } from './runner-link.ts';
 
-export interface RunnerSocketServices {
-    db: HausDatabase;
-    delivery: AgentDelivery;
-    invocations: InvocationRouter;
-    postCommitWork: ServerPostCommitWork;
-}
+export type RunnerSocketServices = Pick<
+    HausContextDependencies,
+    'agentDelivery' | 'hausDb' | 'modelConnections' | 'postCommitWork' | 'runnerLink'
+> & { invocations: InvocationRouter };
 
 export type RunnerSocketSettings = Pick<
     HausServerApplicationOptions,
@@ -31,11 +27,11 @@ export type RunnerSocketSettings = Pick<
 
 export function startRunnerSocket(
     server: Server,
-    link: RunnerLink,
     settings: RunnerSocketSettings,
     services: RunnerSocketServices
 ) {
-    const { delivery } = services;
+    const { agentDelivery: delivery, hausDb: db, invocations, modelConnections } = services;
+    const { postCommitWork, runnerLink: link } = services;
     const hostsLoops = settings.agentLoop === 'runner';
     const thoughts = createAgentThoughts({ summarizer: settings.thoughtSummarizer ?? null });
     const stopThoughtsOnSettle = onAgentLifecycle((event) => {
@@ -43,7 +39,16 @@ export function startRunnerSocket(
             thoughts.endRun(event.runId);
         }
     });
-    const ingest = { ...services, hostsLoops, link, thoughts };
+    const ingest = {
+        db,
+        delivery,
+        hostsLoops,
+        invocations,
+        link,
+        modelConnections,
+        postCommitWork,
+        thoughts,
+    };
     const sockets = new Set<WebSocket>();
     const socketServer = new WebSocketServer({ noServer: true });
     const onUpgrade = (request: IncomingMessage, socket: Duplex, head: Buffer) => {
@@ -80,7 +85,8 @@ export function startRunnerSocket(
                     }
                     link.attach(attachment);
                     attachment.send({ type: 'runner-hello-accepted' });
-                    services.invocations.runnerAttached();
+                    invocations.runnerAttached();
+                    await modelConnections.runnerAttached();
                     if (hostsLoops) {
                         await delivery.onRunnerReconnect();
                     }
@@ -93,14 +99,17 @@ export function startRunnerSocket(
         socket.on('close', () => {
             sockets.delete(socket);
             liveness.stop();
-            link.detach(attachment);
+            if (link.isAttached(attachment)) {
+                link.detach(attachment);
+                modelConnections.runnerLost();
+            }
         });
     });
     return {
         close: () => {
             server.off('upgrade', onUpgrade);
             stopThoughtsOnSettle();
-            services.invocations.close();
+            invocations.close();
             for (const socket of sockets) {
                 socket.close(1001, 'Server shutting down');
             }

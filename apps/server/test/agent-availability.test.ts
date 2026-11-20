@@ -25,6 +25,7 @@ const base: ConfiguredAgentRow = {
     factoryKind: 'ordinary',
     handle: 'sage',
     id: 'agt_1234567890123456',
+    modelConnectionId: null,
     lastFailureAt: null,
     lastFailureCode: null,
     lastFailureKind: null,
