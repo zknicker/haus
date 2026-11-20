@@ -5,6 +5,7 @@ import type { TabLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
+import { useCapyShell } from '../capy-shell/capy-shell-preference.ts';
 import {
     parseTabPage,
     resolveTabIdentity,
@@ -26,7 +27,7 @@ export function useTabIdentity(
     const chats = useChats(serverId);
     const agents = useAgents(serverId);
     const views = useBrowserViews();
-    const page = parseTabPage(location);
+    const page = parseTabPage(location, { capyShell: useCapyShell() });
     const browserTab = page.kind === 'browser' ? (views?.views.get(page.viewId) ?? null) : null;
     return resolveTabIdentity(page, {
         agents: agents.data ?? null,
