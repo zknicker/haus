@@ -60,7 +60,7 @@ ALTER TABLE "worker_turns" ADD COLUMN IF NOT EXISTS "worker_md_revision_id" text
 ALTER TABLE "computers" ADD COLUMN IF NOT EXISTS "disconnected_at" timestamp with time zone;--> statement-breakpoint
 ALTER TABLE "artifact_revisions" ADD COLUMN IF NOT EXISTS "author_worker_id" text;--> statement-breakpoint
 ALTER TABLE "artifact_revisions" DROP CONSTRAINT IF EXISTS "artifact_revisions_author_worker_fk";--> statement-breakpoint
-ALTER TABLE "artifact_revisions" ADD CONSTRAINT "artifact_revisions_author_worker_fk" FOREIGN KEY ("server_id","author_worker_id") REFERENCES "public"."workers"("server_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "artifact_revisions" ADD CONSTRAINT "artifact_revisions_author_worker_fk" FOREIGN KEY ("server_id","author_worker_id") REFERENCES "public"."workers"("server_id","id") ON DELETE no action ON UPDATE no action DEFERRABLE INITIALLY DEFERRED;--> statement-breakpoint
 ALTER TABLE "worker_turn_credentials" DROP CONSTRAINT IF EXISTS "worker_turn_credentials_turn_fk";--> statement-breakpoint
 ALTER TABLE "worker_turn_credentials" ADD CONSTRAINT "worker_turn_credentials_turn_fk" FOREIGN KEY ("server_id","turn_id") REFERENCES "public"."worker_turns"("server_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "project_repo_links" DROP CONSTRAINT IF EXISTS "project_repo_links_repo_fk";--> statement-breakpoint
@@ -68,7 +68,7 @@ ALTER TABLE "project_repo_links" ADD CONSTRAINT "project_repo_links_repo_fk" FOR
 ALTER TABLE "project_repo_links" DROP CONSTRAINT IF EXISTS "project_repo_links_computer_fk";--> statement-breakpoint
 ALTER TABLE "project_repo_links" ADD CONSTRAINT "project_repo_links_computer_fk" FOREIGN KEY ("server_id","computer_id") REFERENCES "public"."computers"("server_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "project_repo_links" DROP CONSTRAINT IF EXISTS "project_repo_links_linker_membership_fk";--> statement-breakpoint
-ALTER TABLE "project_repo_links" ADD CONSTRAINT "project_repo_links_linker_membership_fk" FOREIGN KEY ("server_id","linked_by_user_id") REFERENCES "public"."server_memberships"("server_id","user_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "project_repo_links" ADD CONSTRAINT "project_repo_links_linker_membership_fk" FOREIGN KEY ("server_id","linked_by_user_id") REFERENCES "public"."server_memberships"("server_id","user_id") ON DELETE no action ON UPDATE no action DEFERRABLE INITIALLY DEFERRED;--> statement-breakpoint
 ALTER TABLE "project_repos" DROP CONSTRAINT IF EXISTS "project_repos_project_fk";--> statement-breakpoint
 ALTER TABLE "project_repos" ADD CONSTRAINT "project_repos_project_fk" FOREIGN KEY ("server_id","project_id") REFERENCES "public"."projects"("server_id","chat_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "worker_turn_credentials_turn_idx" ON "worker_turn_credentials" USING btree ("server_id","turn_id");--> statement-breakpoint
