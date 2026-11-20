@@ -105,6 +105,22 @@ export const githubTriggerProfiles = {
     },
 };
 
+/**
+ * "From now on" (ADR 0054 decision 10). Told "from now on, every Worker attaches
+ * before/after screenshots", a good teammate adds one terse line to its
+ * WORKER.md, leaves MEMORY.md alone, and confirms once inline, naming the file so
+ * the human can open it. Told "from now on, keep replies under three
+ * sentences", it does the same in its own AGENTS.md, and the confirmation obeys
+ * the rule. Told a plain fact ("my timezone is Pacific"), it records the fact in
+ * MEMORY.md and makes no rule file; a short reply or a reaction is enough. Wrong:
+ * a rule in MEMORY.md, a rule in the wrong file, a second post, a question back,
+ * or an offer to do more.
+ */
+export const ruleFileProfiles = {
+    'rule-files-worker': { cap: 40, channel: [1, 1], maxQuestions: 0, spec: 'M7' },
+    'rule-files-agent': { cap: 40, channel: [1, 1], maxQuestions: 0, spec: 'M8' },
+};
+
 /** Jev judge question for the placement eval; its yes-probability maps to 1-5 (pass bar 4). */
 export const placementJudge = {
     no: 'The posts add anything beyond the answer, such as a recap, a plan, an offer, or extra questions, or they answer somewhere the human is not looking.',
