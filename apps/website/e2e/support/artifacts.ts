@@ -169,6 +169,41 @@ export async function routeArtifactUploads(page: Page, databaseUrl: string, serv
     });
 }
 
+/**
+ * An Agent's page in Drive at `path`, with two HTML revisions (`<id>_r1`, and
+ * the current `<id>_r2`); `routeAgentPageText` serves their bytes.
+ */
+export function seedAgentPage(
+    databaseUrl: string,
+    input: { agentId: string; id: string; path: string; serverId: string }
+) {
+    assertOpaqueId(input.serverId);
+    assertOpaqueId(input.agentId);
+    assertOpaqueId(input.id);
+    const name = input.path.split('/').at(-1);
+    runPsql(
+        databaseUrl,
+        `insert into artifacts (id, server_id, path, path_key, creator_agent_id, creator_user_id, current_revision_id, next_revision)
+        values ('${input.id}', '${input.serverId}', '${input.path}', lower('${input.path}'), '${input.agentId}', null, '${input.id}_r2', 3);
+        insert into artifact_revisions (id, artifact_id, server_id, author_agent_id, author_user_id, author_key, byte_size, content_type, filename, object_key, request_id, reserved_bytes, revision_number, sha256, state, title)
+        select '${input.id}_r' || n, '${input.id}', '${input.serverId}', '${input.agentId}', null, 'agent:${input.agentId}', 512, 'text/html', '${name}', 'test/${input.id}/' || n, '${input.id}_request_' || n, 0, n, repeat('c', 64), 'ready', '${name}' from generate_series(1, 2) n;`
+    );
+}
+
+/** Answers each page revision's `artifact.text` read with `html(revisionId)`. */
+export async function routeAgentPageText(
+    page: Page,
+    revisionIds: readonly string[],
+    html: (revisionId: string) => string
+) {
+    await routeFileTransport(page, {
+        'artifact.text': (_page, request) => {
+            const revisionId = revisionIds.find((id) => request.includes(`"${id}"`)) ?? '';
+            return { status: 'text', text: html(revisionId) };
+        },
+    });
+}
+
 /** Markdown and plain text the seeded text revisions read back as. */
 export const seededArtifactText = {
     readme: '# Release notes\n\nShipped **inline text previews** for shared files.',
@@ -185,11 +220,11 @@ function seedMember(databaseUrl: string, serverId: string) {
 }
 
 // File transport is isolated here; metadata, membership, search and revisions use the real Server.
-async function routeFileTransport(page: Page) {
+async function routeFileTransport(page: Page, transport: FileTransport = fileTransport) {
     await page.route('**/trpc/**', async (route) => {
         const url = new URL(route.request().url());
         const procedures = url.pathname.split('/trpc/')[1]?.split(',') ?? [];
-        if (!procedures.some((procedure) => procedure in fileTransport)) {
+        if (!procedures.some((procedure) => procedure in transport)) {
             await route.continue();
             return;
         }
@@ -197,8 +232,8 @@ async function routeFileTransport(page: Page) {
         const response = await route.fetch();
         const payload = await response.json();
         const replace = (procedure: string | undefined, result: unknown) =>
-            procedure && procedure in fileTransport
-                ? { result: { data: fileTransport[procedure]?.(page, request) } }
+            procedure && procedure in transport
+                ? { result: { data: transport[procedure]?.(page, request) } }
                 : result;
         await route.fulfill({
             json: Array.isArray(payload)
@@ -208,7 +243,9 @@ async function routeFileTransport(page: Page) {
     });
 }
 
-const fileTransport: Record<string, (page: Page, request: string) => unknown> = {
+type FileTransport = Record<string, (page: Page, request: string) => unknown>;
+
+const fileTransport: FileTransport = {
     'artifact.download': (page) => ({
         download_url: new URL('/prototypes/cove-avatar.png', page.url()).href,
     }),
