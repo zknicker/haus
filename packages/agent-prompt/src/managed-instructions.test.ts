@@ -224,8 +224,10 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // rules, delivered on change) and WORKER.md beside MEMORY.md (ADR 0054 decisions 7 and 10, +208);
     // the Standing Preferences placeholder says "preferences people show in passing: terse imperative
     // lines; the rules people set live in AGENTS.md and WORKER.md" (+24).
-    // Raised by exactly 22 (37,963 → 37,985) when the Workers family entry named `haus worker places` (W3): Workers run on Computers too, and `places` lists where.
-    expect(prompt.length).toBeLessThanOrEqual(37_985);
+    // Lowered by exactly 1 (37,963 → 37,962): the welcome rule says #all again, the team room (ADR 0059 amended).
+    // Raised by exactly 37 (37,962 → 37,999): Discovering says "You always hear #all, the team room." (ADR 0059 decision 5), then by exactly 22 (→ 38,021) when the Workers entry named `haus worker places` (W3).
+    expect(prompt.length).toBeLessThanOrEqual(38_021);
+    expect(prompt).toContain('You always hear #all, the team room.');
     expect(prompt.toLowerCase()).not.toContain('thread');
 });
 

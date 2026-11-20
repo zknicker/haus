@@ -17,6 +17,7 @@ export type ChatMessageLayout = Pick<
     ChatMessage,
     | 'attachments'
     | 'author'
+    | 'body'
     | 'chatId'
     | 'createdAt'
     | 'id'
@@ -48,6 +49,7 @@ export function toChatMessageLayout(message: ChatMessage): ChatMessageLayout {
     return {
         attachments: message.attachments,
         author: message.author,
+        body: message.body,
         chatId: message.chatId,
         createdAt: message.createdAt,
         id: message.id,

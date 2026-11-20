@@ -122,6 +122,18 @@ export function ChatNavigation({
                         />
                     </Sidebar.Menu>
                 </Sidebar.Group>
+                {layout.allChannelId ? (
+                    <Sidebar.Group>
+                        <Sidebar.Menu aria-label="Team room">
+                            <ListedChatNavigationRow
+                                chatId={layout.allChannelId}
+                                isCurrent={layout.allChannelId === selectedChatId}
+                                serverId={serverId}
+                                slug={slug}
+                            />
+                        </Sidebar.Menu>
+                    </Sidebar.Group>
+                ) : null}
                 <OpenTasksSection currentPath={location.pathname} serverId={serverId} slug={slug} />
                 <ChatGroup
                     action={
@@ -138,7 +150,7 @@ export function ChatNavigation({
                     label="Projects"
                 >
                     <SortableChannelList
-                        channelIds={layout.channelIds}
+                        channelIds={layout.projectIds}
                         key={serverId}
                         selectedChatId={selectedChatId}
                         serverId={serverId}

@@ -27,5 +27,5 @@ test('a human without membership cannot open the Server', async ({ page }) => {
     await signInAsAppHuman(page, 'peer');
     await page.goto('/s/haus-hq');
     await expect(page.getByText('Server Unavailable')).toBeVisible();
-    await expect(page.getByRole('textbox', { name: 'Message haus' })).toHaveCount(0);
+    await expect(page.getByRole('textbox', { name: 'Message all' })).toHaveCount(0);
 });

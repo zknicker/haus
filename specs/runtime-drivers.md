@@ -255,8 +255,8 @@ session receives every present layer. A resumed session receives a layer only wh
 differs from the session's rule receipt, and a layer the session saw that is now gone is announced
 once as deleted. The receipts sit in `session.json` beside the memory receipt and move the same
 way: they advance after a completed turn, hold after an interrupted one, and reset after a
-compacted one. A layer the runner could not read keeps its receipt. Home Projects arrive in J3,
-and the home Project's `projects/<key>/AGENTS.md` joins between the two layers then. The block
+compacted one. A layer the runner could not read keeps its receipt. Agent Projects arrive in J3,
+and the Project's `projects/<key>/AGENTS.md` joins between the two layers then. The block
 text is `formatRulesBlock` in `@haus/agent-prompt`.
 
 Skills load from Drive. The runner lists the Agent's skills in its instructions by name and

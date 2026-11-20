@@ -572,20 +572,43 @@ reports on its own, so it wakes nobody.
 
 ## The card
 
-The Task page shows one card per Worker in the attached-work panel, newest first, then attached
-pull requests no card names, then pending reminders. W4 builds it. The card is presentation of the
-record, never a chat row, and shows:
+The Task page lists its Workers in the attached-work panel, then attached pull requests no Worker
+names, then pending reminders. W4 builds it, following how a Capy parent shows its children
+(the note `w4-capy-research.md` in the program's notes folder).
 
-- the place (the Computer's name, or the provider's mark), the title, and a status chip;
-- the pull request row from the newest reading;
-- the newest report: outcome, text in full, the ask with its person, and the cited files at their
-  cited revisions;
-- one status line, the most urgent of: the failure reason; `No update in <d>` when working with
-  no activity for ten minutes; **Status unconfirmed** when the place or carrier is offline;
-  **Stopping**; the follow-up note; queue position while `queued`; else the latest activity;
-- a composer, enabled while the Task is open and the Worker is not closed. While a turn works it
-  says the message goes in when the turn ends;
-- **Stop** while a turn is queued or working, and **Open in `<provider>`** for cloud Workers.
+- **The Workers section** is counted and collapsible. Each row has two lines: a status glyph and
+  the title, then the needs-you ask or the place, and the age. A Worker reads Working while any turn
+  runs. A row is a stock `ListView` item, like Capy's child rows: selecting it opens the Worker, and
+  it never expands in place. Pull requests sit in their own counted section.
+- **Opening a Worker** (a Worker row, a Worker link in the Task chat) opens its
+  place, `/s/<slug>/workers/<workerId>`, through the same Open path as an Agent profile or a Drive
+  file ([ADR 0046](../docs/adr/0046-the-sidebar-goes-pages-open-to-the-right.md)): on desktop a tab
+  in the right pane, titled with the Worker's title, with that pane's own tab strip; on the web it
+  navigates like any other place. The Task page and its Overview panel stay as they are. The
+  Worker page's band holds **Open in `<provider>`** and **Copy link** behind •••.
+- **The Worker's conversation** uses Haus channel message rows, left-aligned: the brief as a
+  Message from the Agent that started it, follow-ups from their authors, and the Worker's output as
+  a Message from the Worker (its place name, its provider logo as the avatar). Centered system rows
+  separate turns ("Finished, worked for 28m"). Fenced code in a report renders through the
+  transcript's code blocks.
+- **Steps** sit inside the Worker's message for that turn as a stock HeroUI Pro `ChainOfThought`,
+  collapsed, titled "Worked for 6m · 5 steps" (shimmering while the turn is live). Each step is a
+  stock `ChatTool` (status icon, verb, path or command, +/− lines), and a run's output opens in
+  the code block inside it.
+- **The composer** is docked under the conversation, enabled while the Task has a chat, is open,
+  and the Worker is not closed. While a turn is live and the field is empty, its send button is
+  **Stop**.
+- **In the Task chat** a report Message renders as a centered muted lifecycle line ("`<title>`
+  needs you, worked for 17m") and a person's follow-up carries a "To Worker on `<place>`" context
+  line. Both open the Worker, so the report text shows once.
+- **Step summaries.** `WorkerTurn.steps` (`packages/haus-api/src/worker-steps.ts`) is a bounded
+  list, the newest 40, of `{ kind: read | edit | run | search, label, state: running | done |
+  failed, additions, deletions, output }` that a carrier reports per turn: a path for read and
+  edit, the command line for run, the query for search, line counts only on edit, and `output`
+  only on run, as the tail of its terminal output up to 4,000 characters. It never carries file
+  contents, and the Computer redacts known secret patterns (tokens, keys, credentials, the turn
+  credential) from `output` and `label` before sending. Each field drives one stock `ChatTool` prop. It is optional: without it the Worker's
+  message shows its report and activity. W3b adds the carrier and Server side.
 
 The Task summary exposes the count and place labels of its live Workers, and the people named by
 needs-you reports that no later turn answered, for the sidebar row ("Forge · 6 workers · mini,
@@ -641,7 +664,7 @@ W2 migrates every caller and deletes the cloud agent path in one change.
 - `cloud_agent_work` inbox rows become `worker_report`, `worker_stall`, or `pull_request` items by
   their notice.
 - Each Project's default place becomes the default provider of the Computer that launched the
-  Server's newest cloud agent work (migration 0142, in W3). A Server with none leaves defaults
+  Server's newest cloud agent work (migration 0143, in W3). A Server with none leaves defaults
   unset. The migration never
   turns **Workers can run here** on. Cloud places keep working without it, and local execution
   stays off until the attaching person, an Owner, or an Admin turns it on.
@@ -664,7 +687,7 @@ until W4 and the Project settings UI replace them. Each says what retires it.
   **Make default**, below, which leaves the order this spec's [default place](#places) names.
 - **Make default as the last fallback.** The per-Computer **Make default** cloud provider is the
   third step above. It retires when the Project settings UI ships the default place.
-- **Repos until the Project settings UI ships them.** Migration 0142 backfills `project_repos`
+- **Repos until the Project settings UI ships them.** Migration 0143 backfills `project_repos`
   from each Project's Workers' `repository`, skipping taskless history. A start that names a
   `--repo` the Project lacks adds it to the Project's repos. `WORKER_REPO_UNKNOWN` applies only
   when `--repo` is omitted and the Project has no repo or several. A Computer place still needs a

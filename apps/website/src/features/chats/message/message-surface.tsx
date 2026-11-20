@@ -4,7 +4,7 @@ import { cn } from '../../../lib/utils.ts';
 import { claimVisibleInChat, useShowClaimsInChat } from '../../claims/show-claims-in-chat.ts';
 import { TranscriptClaimChip } from '../../claims/transcript-claim-chip.tsx';
 import { TaskOriginPreviews } from '../../tasks/preview/task-origin-previews.tsx';
-import { MessageWorker } from '../../workers/docked-worker.tsx';
+import { WorkerRows } from '../../workers/worker-rows.tsx';
 import {
     type TranscriptMessageRow,
     useTranscriptRenderContextOptional,
@@ -45,9 +45,11 @@ export function MessageSurface({
                     <TranscriptClaimChip row={row} />
                 </div>
             ) : null}
-            {linked.map((work) => (
-                <MessageWorker key={work.id} work={work} />
-            ))}
+            {linked.length > 0 ? (
+                <div className="mt-1.5 w-full max-w-(--chat-card-width)">
+                    <WorkerRows label="Linked Workers" works={linked} />
+                </div>
+            ) : null}
             {row.taskPreviews && context?.turnDetails?.serverId ? (
                 <TaskOriginPreviews
                     previews={row.taskPreviews}

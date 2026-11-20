@@ -128,6 +128,7 @@ export * from './worker-settings.ts';
 export * from './worker-report-draft.ts';
 export * from './worker-runtime.ts';
 export * from './worker-report-attention.ts';
+export * from './worker-steps.ts';
 export * from './worker-turn-frames.ts';
 export * from './worker-refusals.ts';
 export * from './computer-disk.ts';

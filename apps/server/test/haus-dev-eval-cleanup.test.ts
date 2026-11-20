@@ -174,7 +174,10 @@ describe('dev.cleanupEvalChats', () => {
             displayName: 'Eval Cleanup Tasks',
             slug: 'eval-cleanup-tasks',
         });
-        const channel = server.channels[0];
+        const { chat: channel } = await owner.trpc.project.create.mutate({
+            name: 'eval-tasks',
+            serverId: server.id,
+        });
         const task = await startTestTask(harness, owner, {
             channelId: channel.id,
             serverId: server.id,

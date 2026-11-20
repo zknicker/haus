@@ -14,7 +14,7 @@ test('Worker reads as one card in the Chat and the Inbox', async ({ page }, test
     });
     const seeded = await seedWorker({
         agentHandle: 'orbit',
-        channelName: 'haus',
+        channelName: 'all',
         computerCredential: credential,
         content: 'Delegating the migration fix to a Worker.',
         databaseUrl: session.databaseUrl,
@@ -34,7 +34,7 @@ test('Worker reads as one card in the Chat and the Inbox', async ({ page }, test
     await expect(inboxRow).toBeVisible();
     // No Run has reported yet, so the queued launch reads as its stage.
     await expect(inboxRow).toContainText('Starting');
-    await expect(inboxRow).toContainText('#haus');
+    await expect(inboxRow).toContainText('#all');
     await expect(inboxRow).toContainText('Orbit');
 
     await page.goto(`/s/worker/tasks/${seeded.taskKey}`);

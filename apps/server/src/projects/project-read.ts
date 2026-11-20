@@ -36,6 +36,7 @@ export async function readProjectResult(
 async function readProjects(db: Reader, serverId: string, chatId?: string) {
     const rows = await db
         .select({
+            archived: sql<boolean>`${chatsTable.archivedAt} is not null`,
             chatId: projectsTable.chatId,
             defaultWorkerComputerId: projectsTable.defaultWorkerComputerId,
             defaultWorkerComputerName: computerNameSql,

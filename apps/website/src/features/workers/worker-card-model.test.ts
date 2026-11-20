@@ -1,0 +1,274 @@
+import { expect, test } from 'bun:test';
+import type { WorkerReport, WorkerTurnInput } from '@haus/api';
+import {
+    canFollowUpWorker,
+    isWorkerStopping,
+    isWorkerTurnLive,
+    legacyWorkerSummary,
+    newestWorkerReport,
+    workerCardLine,
+    workerRowQuestion,
+    workerRowStatus,
+    workerStatusText,
+} from './worker-card-model.ts';
+import { workerTurnFixture as turn, workerFixture as work } from './worker-fixture.ts';
+
+const now = Date.parse('2026-09-04T12:04:00.000Z');
+const names: Record<string, string> = { agt_one: 'Forge', usr_zach: 'Zach' };
+const name = (author: WorkerTurnInput['author']) => names[author.id] ?? author.id;
+const line = (worker: ReturnType<typeof work>) => workerCardLine(worker, { name, now });
+
+const doneReport: WorkerReport = {
+    ask: null,
+    messageId: 'msg_report',
+    outcome: 'done',
+    personId: null,
+    personRefused: null,
+    pullRequestUrls: [],
+    source: 'worker',
+    text: 'Fixed the migration.',
+};
+
+const followUp: WorkerTurnInput = {
+    at: '2026-09-04T12:02:00.000Z',
+    author: { id: 'usr_zach', kind: 'user' },
+    kind: 'follow-up',
+    messageId: 'msg_follow_up',
+    text: 'Match iPhone.',
+};
+
+test('the newest report survives a later follow-up turn that has not reported yet', () => {
+    const worker = work({
+        turns: [
+            turn({ input: [followUp], status: 'running', turnId: 'wkt_two' }),
+            turn({ outcome: { kind: 'report', report: doneReport }, turnId: 'wkt_one' }),
+        ],
+    });
+
+    expect(newestWorkerReport(worker)?.text).toBe('Fixed the migration.');
+    expect(line(worker)).toEqual({ text: "On Zach's follow-up", tone: 'muted' });
+});
+
+test('a settled report speaks for itself, so the card has no status line', () => {
+    const worker = work({
+        turns: [turn({ outcome: { kind: 'report', report: doneReport } })],
+    });
+
+    expect(line(worker)).toBeNull();
+});
+
+test('an unreported failure states its reason as danger', () => {
+    const worker = work({
+        turns: [
+            turn({
+                outcome: { detail: null, kind: 'failed', reason: 'no-report' },
+                status: 'failed',
+            }),
+        ],
+    });
+
+    expect(line(worker)).toEqual({ text: 'Ended without a report', tone: 'danger' });
+});
+
+test('a follow-up queued behind the working turn says it goes in next', () => {
+    const worker = work({
+        turns: [
+            turn({ input: [followUp], status: 'queued', turnId: 'wkt_two' }),
+            turn({ status: 'running', turnId: 'wkt_one' }),
+        ],
+        updatedAt: '2026-09-04T12:03:00.000Z',
+    });
+
+    expect(line(worker)).toEqual({ text: "Zach's follow-up goes in next", tone: 'muted' });
+});
+
+test('a lone queued turn waits for a slot, and a quiet working turn warns', () => {
+    expect(line(work({ status: 'queued', updatedAt: '2026-09-04T12:03:00.000Z' }))).toEqual({
+        text: 'Waiting for a free slot',
+        tone: 'muted',
+    });
+    expect(line(work({ updatedAt: '2026-09-04T11:50:00.000Z' }))).toEqual({
+        text: 'No update in 14m',
+        tone: 'warning',
+    });
+});
+
+test('a requested stop reads Stopping on the chip and the line until the turn settles', () => {
+    const stopping = work({
+        stopRequestedAt: '2026-09-04T12:03:00.000Z',
+        updatedAt: '2026-09-04T12:03:00.000Z',
+    });
+
+    expect(workerStatusText(stopping)).toBe('Stopping');
+    expect(line(stopping)).toEqual({ text: 'Stopping', tone: 'muted' });
+
+    const stopped = work({
+        turns: [
+            turn({
+                outcome: { kind: 'stopped' },
+                status: 'cancelled',
+                stopRequestedBy: { id: 'usr_zach', kind: 'user' },
+                terminalAt: '2026-09-04T11:54:00.000Z',
+            }),
+        ],
+    });
+
+    expect(workerStatusText(stopped)).toBe('Stopped');
+    expect(line(stopped)?.text).toBe('Stopped by Zach 10m ago');
+});
+
+test('only an open Worker on a Task takes follow-ups', () => {
+    expect(canFollowUpWorker(work())).toBe(true);
+    expect(canFollowUpWorker(work({ closingAt: '2026-09-04T12:03:00.000Z' }))).toBe(false);
+    expect(canFollowUpWorker(work({ closedAt: '2026-09-04T12:03:00.000Z' }))).toBe(false);
+    expect(canFollowUpWorker(work({ taskId: null }))).toBe(false);
+});
+
+test('a stop on the working turn reads Stopping while a follow-up waits behind it', () => {
+    const worker = work({
+        turns: [
+            turn({ input: [followUp], status: 'queued', turnId: 'wkt_two' }),
+            turn({
+                status: 'running',
+                stopRequestedAt: '2026-09-04T12:03:00.000Z',
+                stopRequestedBy: { id: 'usr_zach', kind: 'user' },
+                turnId: 'wkt_one',
+            }),
+        ],
+        updatedAt: '2026-09-04T12:03:00.000Z',
+    });
+
+    expect(isWorkerStopping(worker)).toBe(true);
+    expect(workerStatusText(worker)).toBe('Stopping');
+    expect(line(worker)).toEqual({ text: 'Stopping', tone: 'muted' });
+});
+
+test('a hung working turn warns even with a follow-up queued, and so does a stuck queue', () => {
+    const hung = work({
+        turns: [
+            turn({ input: [followUp], status: 'queued', turnId: 'wkt_two' }),
+            turn({ status: 'running', turnId: 'wkt_one' }),
+        ],
+        updatedAt: '2026-09-04T11:50:00.000Z',
+    });
+
+    expect(line(hung)).toEqual({ text: 'No update in 14m', tone: 'warning' });
+    expect(line(work({ status: 'queued', updatedAt: '2026-09-04T11:50:00.000Z' }))).toEqual({
+        text: 'No update in 14m',
+        tone: 'warning',
+    });
+});
+
+test('a turn queued behind the working one without a follow-up still shows the work', () => {
+    const worker = work({
+        activity: { at: '2026-09-04T12:03:00.000Z', summary: 'Reading the failing test.' },
+        turns: [
+            turn({ status: 'queued', turnId: 'wkt_two' }),
+            turn({ status: 'running', turnId: 'wkt_one' }),
+        ],
+        updatedAt: '2026-09-04T12:03:00.000Z',
+    });
+
+    expect(line(worker)).toEqual({ text: 'Reading the failing test.', tone: 'muted' });
+});
+
+test('a Worker is live while any turn is, even after its newest turn settled', () => {
+    const worker = work({
+        turns: [
+            turn({ outcome: { kind: 'stopped' }, status: 'cancelled', turnId: 'wkt_two' }),
+            turn({ status: 'running', turnId: 'wkt_one' }),
+        ],
+    });
+
+    expect(isWorkerTurnLive(worker)).toBe(true);
+});
+
+test('a legacy settled turn with no typed outcome still states how it ended', () => {
+    expect(
+        line(work({ turns: [turn({ errorCode: 'provider_error', status: 'failed' })] }))
+    ).toEqual({ text: 'Provider error', tone: 'danger' });
+    expect(
+        line(work({ turns: [turn({ status: 'failed', summary: 'Tests kept failing.' })] }))
+    ).toEqual({ text: 'Tests kept failing.', tone: 'danger' });
+    expect(line(work({ turns: [turn({ status: 'expired' })] }))).toEqual({
+        text: 'Expired',
+        tone: 'danger',
+    });
+    expect(
+        line(
+            work({ turns: [turn({ status: 'cancelled', terminalAt: '2026-09-04T11:54:00.000Z' })] })
+        )
+    ).toEqual({
+        text: 'Stopped 10m ago',
+        tone: 'muted',
+    });
+    expect(
+        line(
+            work({ turns: [turn({ status: 'completed', terminalAt: '2026-09-04T11:54:00.000Z' })] })
+        )
+    ).toEqual({
+        text: 'Finished 10m ago',
+        tone: 'muted',
+    });
+});
+
+test('a legacy turn summary stands in for the report it never had', () => {
+    expect(legacyWorkerSummary(work({ turns: [turn({ summary: 'Opened PR #4.' })] }))).toBe(
+        'Opened PR #4.'
+    );
+    expect(
+        legacyWorkerSummary(
+            work({
+                turns: [
+                    turn({
+                        outcome: { kind: 'report', report: doneReport },
+                        summary: 'Opened PR #4.',
+                    }),
+                ],
+            })
+        )
+    ).toBeNull();
+});
+
+test('a follow-up waiting behind a working turn still reads Working, and a lone wait reads Queued', () => {
+    const behind = work({
+        turns: [
+            turn({ input: [followUp], status: 'queued', turnId: 'wkt_two' }),
+            turn({ status: 'running', turnId: 'wkt_one' }),
+        ],
+    });
+
+    expect(workerRowStatus(behind)).toBe('working');
+    expect(workerRowStatus(work({ status: 'queued' }))).toBe('queued');
+    expect(workerRowStatus(work({ turns: [turn({ status: 'completed' })] }))).toBe('done');
+});
+
+test('only an open needs-you report asks a question on its row', () => {
+    const asking = work({
+        turns: [
+            turn({
+                outcome: {
+                    kind: 'report',
+                    report: {
+                        ...doneReport,
+                        ask: 'Is the 2px shift intended?',
+                        outcome: 'needs-you',
+                    },
+                },
+                status: 'pending_input',
+            }),
+        ],
+    });
+
+    expect(workerRowQuestion(asking)).toBe('Is the 2px shift intended?');
+    expect(
+        workerRowQuestion(
+            work({
+                turns: [
+                    turn({ input: [followUp], status: 'running', turnId: 'wkt_two' }),
+                    ...asking.turns,
+                ],
+            })
+        )
+    ).toBeNull();
+});

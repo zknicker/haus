@@ -2,11 +2,12 @@ import { createHash } from 'node:crypto';
 import type { AgentCreateAgentReceipt, AgentCreateAgentRequest } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { assertFreshAgentView } from '../agent-api/chat-freshness.ts';
-import { resolveAgentTarget } from '../agent-api/resolve-target.ts';
+import { AgentTargetError, resolveAgentTarget } from '../agent-api/resolve-target.ts';
 import { requireChatWritable } from '../chats/chat-access.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, chatsTable } from '../postgres/schema.ts';
+import { findLiveAgentHome } from '../projects/live-project.ts';
 import { readCreatedAgent } from './agent-created-shape.ts';
 import { readAgentChannels, requireCreationChannels } from './creation-channels.ts';
 import { requireAgentCreationGuidance } from './creation-guidance.ts';
@@ -104,5 +105,17 @@ export async function precheckAgentCreation(
     await assertFreshAgentView(db, runner, chatId);
     await requireAgentCreationGuidance(db, runner, input.brief);
     await requireCreationChannels(db, runner.serverId, input.channels);
+    await requireCreationHome(db, runner);
     return { replayed: false };
+}
+
+export async function requireCreationHome(
+    db: Pick<HausDatabase, 'select'>,
+    runner: ResolvedRunner
+) {
+    const home = await findLiveAgentHome(db, runner);
+    if (!home) {
+        throw new AgentTargetError('Your Project is not open, so the new Agent cannot join it.');
+    }
+    return home;
 }

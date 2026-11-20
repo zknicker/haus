@@ -531,12 +531,13 @@ access.
 
 `server.create` commits one transaction: the creator's Haus User, the opaque
 Server id, its slug and display name, the first human Owner membership, and the
-Haus project (`#haus`), which the Owner participates in. `#haus` starts with the
+everyone channel `#all`, which the Owner participates in. `#all` is a chat with no
+`projects` row, and Postgres refuses one (`projects.chat_is_all`, migration 0142). It starts with the
 description "General channel for all members and team-wide announcements."
 (`allChannelDescription` in `servers/contracts.ts`; migration 0068 backfilled
 existing rows that had none). A new Server starts empty
 ([ADR 0059](../adr/0059-haus-starts-empty-without-cove.md)): it creates no
-Computer, Agent, other Project, or execution configuration, and Haus App opens
+Computer, Agent, Project, or execution configuration, and Haus App opens
 straight into it with no setup gate. A taken slug is refused as `CONFLICT`, and
 the whole transaction rolls back — including a first-time creator's User.
 

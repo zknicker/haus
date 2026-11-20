@@ -13,7 +13,7 @@ test('the sidebar goes in the left pane, pages open on the right, and Settings i
         slug: 'desktop-navigation',
     });
     const agent = await createChannelAgent({
-        channelName: 'haus',
+        channelName: 'all',
         databaseUrl: session.databaseUrl,
         serverId: server.id,
         slug: server.slug,
@@ -41,7 +41,7 @@ test('the sidebar goes in the left pane, pages open on the right, and Settings i
 
     // Back undoes Go in the left tab.
     await page.evaluate(() => window.dispatchEvent(new Event('test:desktop-history')));
-    await expect(left.first()).toContainText('haus');
+    await expect(left.first()).toContainText('all');
 
     // Modifiers open beside the source in its own pane, never on the right: Command-click
     // and middle-click a background tab, each after the last.
@@ -63,7 +63,7 @@ test('the sidebar goes in the left pane, pages open on the right, and Settings i
     // …with no pre-tab back row on desktop.
     await expect(page.getByRole('row', { exact: true, name: 'Back to chat' })).toHaveCount(0);
     // …and pressing it again from another tab selects that same tab.
-    await left.nth(0).getByRole('button', { exact: true, name: 'haus' }).click();
+    await left.nth(0).getByRole('button', { exact: true, name: 'all' }).click();
     await settings.click();
     await expect(left).toHaveCount(4);
     await expect(left.nth(1)).toHaveAttribute('data-active', 'true');

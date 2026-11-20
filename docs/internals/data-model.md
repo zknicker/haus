@@ -149,7 +149,7 @@ pull request readings. A report's Message (`body_kind = 'worker-report'`) and a 
 transcripts, and workspace files never reach the Server. Settling a turn queues at most one
 `agent_inbox` row (`worker_report`, `worker-report:<turnId>`) for the delegating Agent in the same
 transaction; stalls queue `worker_stall` and pull request changes `pull_request`.
-Migration 0142 adds Workers on Computers. `computers` gains `workers_enabled` (off by default),
+Migration 0143 adds Workers on Computers. `computers` gains `workers_enabled` (off by default),
 `worker_limit` (1 to 50, default 4), and `disconnected_at`, which the `machine-offline` sweep reads.
 `project_repos` (`prp_`, unique per Project and repository) and `project_repo_links` (per Computer,
 an optional `checkout_path`, the linking member) carry repos; the migration backfills repos from

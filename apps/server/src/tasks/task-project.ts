@@ -16,13 +16,14 @@ export async function resolveStartProject(
     }
 ) {
     const home = await readAgentHome(db, input);
+    const originProject =
+        input.origin.kind === 'channel' && !(await isAllChannel(db, input.origin.chatId))
+            ? input.origin.chatId
+            : home.projectId;
     const project = await (input.projectKey !== undefined
         ? readProjectByKey(db, { key: input.projectKey, serverId: input.serverId })
-        : readProject(db, {
-              projectId: input.origin.kind === 'channel' ? input.origin.chatId : home.projectId,
-              serverId: input.serverId,
-          }));
-    if (!(home.generalist || project.projectId === home.projectId)) {
+        : readProject(db, { projectId: originProject, serverId: input.serverId }));
+    if (project.projectId !== home.projectId) {
         throw new TaskProjectNotHomeError({
             channelName: project.name,
             homeAgentHandles: await readHomeAgentHandles(db, {
@@ -44,23 +45,25 @@ export async function requireFilingProject(
     return { projectId: project.projectId, taskKeyId: project.taskKeyId };
 }
 
+async function isAllChannel(db: Reader, chatId: string) {
+    const [chat] = await db
+        .select({ isAll: chatsTable.isAll })
+        .from(chatsTable)
+        .where(eq(chatsTable.id, chatId))
+        .limit(1);
+    return chat?.isAll === true;
+}
+
 async function readAgentHome(db: Reader, input: { agentId: string; serverId: string }) {
     const [home] = await db
-        .select({ generalist: chatsTable.isAll, projectId: agentsTable.homeProjectId })
+        .select({ projectId: agentsTable.homeProjectId })
         .from(agentsTable)
-        .innerJoin(
-            chatsTable,
-            and(
-                eq(chatsTable.serverId, agentsTable.serverId),
-                eq(chatsTable.id, agentsTable.homeProjectId)
-            )
-        )
         .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
         .limit(1);
-    if (!home) {
-        throw new Error(`Agent ${input.agentId} has no home Project.`);
+    if (!home?.projectId) {
+        throw new Error(`Agent ${input.agentId} has no Project.`);
     }
-    return home;
+    return { projectId: home.projectId };
 }
 
 const projectColumns = {

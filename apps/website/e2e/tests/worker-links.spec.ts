@@ -19,7 +19,7 @@ test('linked Worker reads as the same card wherever it is linked', async ({ page
     });
     const seeded = await seedWorker({
         agentHandle: 'orbit',
-        channelName: 'haus',
+        channelName: 'all',
         computerCredential: credential,
         content: 'Delegating the first fix.',
         databaseUrl: session.databaseUrl,

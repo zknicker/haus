@@ -1,6 +1,7 @@
 import type { WorkerPlaceKind } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import {
+    boolean,
     check,
     foreignKey,
     pgTable,
@@ -17,6 +18,7 @@ export const projectsTable = pgTable(
     'projects',
     {
         chatId: text('chat_id').primaryKey(),
+        chatIsAll: boolean('chat_is_all').notNull().default(false),
         chatKind: text('chat_kind').notNull().default('channel'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         defaultWorkerComputerId: text('default_worker_computer_id'),
@@ -28,8 +30,8 @@ export const projectsTable = pgTable(
         unique('projects_server_id_chat_id_key').on(table.serverId, table.chatId),
         unique('projects_task_key_id_key').on(table.taskKeyId),
         foreignKey({
-            columns: [table.serverId, table.chatId, table.chatKind],
-            foreignColumns: [chatsTable.serverId, chatsTable.id, chatsTable.kind],
+            columns: [table.serverId, table.chatId, table.chatKind, table.chatIsAll],
+            foreignColumns: [chatsTable.serverId, chatsTable.id, chatsTable.kind, chatsTable.isAll],
             name: 'projects_chat_fk',
         }).onDelete('cascade'),
         foreignKey({
@@ -43,6 +45,7 @@ export const projectsTable = pgTable(
             name: 'projects_default_worker_computer_fk',
         }).onDelete('set null (default_worker_computer_id)' as UpdateDeleteAction),
         check('projects_chat_kind', sql`${table.chatKind} = 'channel'`),
+        check('projects_chat_not_all', sql`${table.chatIsAll} = false`),
         check(
             'projects_default_worker_place',
             sql`${table.defaultWorkerPlace} is null

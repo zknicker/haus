@@ -16,6 +16,7 @@ export const projectNameSchema = z
 
 export const projectSchema = z
     .object({
+        archived: z.boolean(),
         chatId: idSchema,
         /** Where the Project's Workers run when the Agent names no place; null asks for one. */
         defaultWorkerPlace: workerPlaceViewSchema.nullable(),
@@ -57,6 +58,12 @@ export const projectUpdateInputSchema = z
 
 export type ProjectUpdateInput = z.infer<typeof projectUpdateInputSchema>;
 
+export const allChannelUpdateInputSchema = projectUpdateInputSchema.omit({ key: true });
+
+export type AllChannelUpdateInput = z.infer<typeof allChannelUpdateInputSchema>;
+
+export const allChannelUpdateResultSchema = z.object({ chat: chatSchema }).strict();
+
 export const projectMutationResultSchema = z
     .object({ chat: chatSchema, project: projectSchema })
     .strict();
@@ -70,7 +77,7 @@ export const projectListSchema = z.array(projectSchema);
 /**
  * - `PROJECT_HAS_AGENTS`: archiving or deleting a Project that is still some
  *   Agent's home; move them first.
- * - `PROJECT_NAME_FIXED`: renaming the Haus project's channel, which is always `haus`.
+ * - `PROJECT_NAME_FIXED`: renaming `#all`, whose name is always `all`.
  * - `WORKER_PLACE_OFF`: a Computer default place whose "Workers can run here" switch is off.
  */
 export const projectErrorCodeSchema = z.enum([

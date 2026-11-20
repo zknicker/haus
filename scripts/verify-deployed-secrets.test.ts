@@ -22,6 +22,8 @@ const productionFixture: NodeJS.ProcessEnv = {
     HAUS_APP_ORIGIN: 'https://haus.example',
     HAUS_DATABASE_URL: 'postgres://haus_runtime:fixture@127.0.0.1:5432/haus',
     HAUS_OPENAI_API_KEY: 'sk_live_avatar_fixture',
+    HAUS_RUNNER_TOKEN: 'runner-token-fixture-0123456789abcdef0123456789',
+    HAUS_SECRETS_KEY: 'AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=',
     HAUS_SERVER_PORT: '18791',
 };
 
@@ -94,6 +96,17 @@ describe('the delivered-environment guard, against a rendered fixture', () => {
         expect(guard.stderr.toString()).toContain(
             'HAUS_OPENAI_API_KEY is required in production but is missing'
         );
+    });
+
+    test('fails a release without the model-connection key or the runner token', () => {
+        for (const name of ['HAUS_SECRETS_KEY', 'HAUS_RUNNER_TOKEN']) {
+            const { [name]: _missing, ...without } = productionFixture;
+            const guard = runGuard(renderFixture(without));
+            expect(guard.exitCode).toBe(1);
+            expect(guard.stderr.toString()).toContain(
+                `${name} is required in production but is missing`
+            );
+        }
     });
 
     test('fails when a delivered production-required name arrives empty', () => {
