@@ -29,25 +29,37 @@ export function createJournalUploads(input: {
         log: input.log,
         send: (frame) => live?.(frame) ?? false,
     });
+    let pruning: Promise<void> | null = null;
+    const prune = () => {
+        pruning ??= pruneSyncedJournals({
+            agentsDir,
+            before: (input.now ?? Date.now)() - journalRetentionMs,
+        })
+            .catch((error: unknown) =>
+                input.log(`Runner could not prune uploaded journals: ${String(error)}`)
+            )
+            .finally(() => {
+                pruning = null;
+            });
+    };
     return {
         acknowledge(ack: AgentExecutionJournalAck) {
             uploader.acknowledge(ack);
+            if (ack.status !== 'refused') {
+                prune();
+            }
         },
         connected(send: LiveSend) {
             live = send;
             uploader.connected();
-            void pruneSyncedJournals({
-                agentsDir,
-                before: (input.now ?? Date.now)() - journalRetentionMs,
-            }).catch((error: unknown) =>
-                input.log(`Runner could not prune uploaded journals: ${String(error)}`)
-            );
+            prune();
         },
         disconnected() {
             live = null;
             uploader.disconnected();
         },
         drained: () => uploader.drained(),
+        pruned: () => pruning ?? Promise.resolve(),
         sink: (run: { agentId: string; agentRoot: string; runId: string }) =>
             uploader.journalSink(run),
     };
