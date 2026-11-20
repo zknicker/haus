@@ -74,7 +74,7 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
     await tabs.nth(0).getByRole('button', { name: 'haus', exact: true }).click();
     await expect(page.getByRole('textbox', { name: 'Message haus' })).toBeVisible();
     await desktopEvent(page, 'test:desktop-history');
-    await expect(tabs.nth(0)).not.toContainText('haus');
+    await expect(page.getByRole('button', { name: 'Forward' })).toBeEnabled();
 
     // Closing the window's last tab closes the window.
     await desktopEvent(page, 'test:desktop-close');

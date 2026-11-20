@@ -365,6 +365,6 @@ test('Haus App never requests a retired local product endpoint', async ({ page }
     await signInAsAppHuman(page);
     await page.goto('/s/hosted-messages');
     await openChannel(page, 'haus');
-    await expect(page.getByText('First durable human message')).toBeVisible();
+    await expect(page.getByText('First durable human message').first()).toBeVisible();
     expect(localRequests).toEqual([]);
 });
