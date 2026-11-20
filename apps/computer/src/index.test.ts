@@ -677,7 +677,7 @@ test('a watch-mode attachment daemon reconnects instead of idling in the watcher
         stdout: 'pipe',
     });
     try {
-        expect(await firstOf(reconnected.promise, child)).toBe('reconnected');
+        expect(await firstOf(reconnected.promise, child, 9_000)).toBe('reconnected');
         expect(connections).toBe(2);
     } finally {
         for (const socket of sockets) {
@@ -749,7 +749,7 @@ test('resident start reconnects an attachment after the Server closes it', async
         stdout: 'pipe',
     });
     try {
-        expect(await firstOf(reconnected.promise, child)).toBe('reconnected');
+        expect(await firstOf(reconnected.promise, child, 5_000)).toBe('reconnected');
         expect(connections).toBe(2);
     } finally {
         for (const socket of sockets) {
@@ -760,7 +760,7 @@ test('resident start reconnects an attachment after the Server closes it', async
         peer.stop(true);
         await rm(dataRoot, { force: true, recursive: true });
     }
-});
+}, 8000);
 
 test('resident start reconnects an attachment when Server heartbeats silently stop', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-test-'));
@@ -838,7 +838,7 @@ test('resident start reconnects an attachment when Server heartbeats silently st
         stdout: 'pipe',
     });
     try {
-        expect(await firstOf(reconnected.promise, child)).toBe('reconnected');
+        expect(await firstOf(reconnected.promise, child, 5_000)).toBe('reconnected');
         expect(heartbeats).toBeGreaterThan(1);
         expect(connections).toBe(2);
     } finally {
@@ -887,10 +887,15 @@ async function killAttachmentDaemon(attachmentRoot: string) {
     }
 }
 
-function firstOf(reconnected: Promise<void>, resident: { exited: Promise<number> }) {
+function firstOf(
+    reconnected: Promise<void>,
+    resident: { exited: Promise<number> },
+    deadlineMs: number
+) {
     return Promise.race([
         reconnected.then(() => 'reconnected'),
         resident.exited.then((code) => `the resident exited ${code} before reconnecting`),
+        Bun.sleep(deadlineMs).then(() => `no reconnect within ${deadlineMs}ms`),
     ]);
 }
 
