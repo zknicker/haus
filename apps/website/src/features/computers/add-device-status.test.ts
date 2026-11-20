@@ -29,7 +29,7 @@ describe('addDeviceStatus', () => {
             computerId: 'cmp_new',
             kind: 'repair',
             recheck: true,
-            title: 'No Captain runtime yet',
+            title: 'Sign in to Claude Code or Codex',
         });
     });
 

@@ -85,9 +85,9 @@ export function addDeviceStatus(
             computerId: device.id,
             kind: 'repair',
             message:
-                'Sign in to Claude Code or Codex on this device, then check again. Captains run on those.',
+                'Haus Computer is connected, but neither is signed in on this Mac yet. Sign in to one, then check again.',
             recheck: true,
-            title: 'No Captain runtime yet',
+            title: 'Sign in to Claude Code or Codex',
         } satisfies AddDeviceStatus;
     }
     return { kind: 'ready', runtimeCount } satisfies AddDeviceStatus;

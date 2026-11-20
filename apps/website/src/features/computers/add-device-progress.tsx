@@ -66,12 +66,13 @@ function AddDeviceStatusView({ serverId, status }: { serverId: string; status: A
         );
     }
     return (
-        <Alert role="alert" status="warning">
-            <Alert.Indicator />
-            <Alert.Content>
-                <Alert.Title>{status.title}</Alert.Title>
-                <Alert.Description>{status.message}</Alert.Description>
-                {status.command ? <CodeSnippet lines={status.command} /> : null}
+        <div className="grid min-w-0 gap-3">
+            <Alert role="alert" status="warning">
+                <Alert.Indicator />
+                <Alert.Content>
+                    <Alert.Title>{status.title}</Alert.Title>
+                    <Alert.Description>{status.message}</Alert.Description>
+                </Alert.Content>
                 {status.recheck ? (
                     <Button
                         isPending={refresh.isPending}
@@ -82,7 +83,8 @@ function AddDeviceStatusView({ serverId, status }: { serverId: string; status: A
                         Check again
                     </Button>
                 ) : null}
-            </Alert.Content>
-        </Alert>
+            </Alert>
+            {status.command ? <CodeSnippet lines={status.command} wrap /> : null}
+        </div>
     );
 }
