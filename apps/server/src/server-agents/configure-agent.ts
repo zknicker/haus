@@ -21,7 +21,11 @@ import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { AgentConfigDeniedError } from './agent-config-errors.ts';
 import { resolveAssignedComputer } from './agent-inventory.ts';
-import { type AgentModelCatalog, assertModelAvailable } from './agent-model-catalog.ts';
+import {
+    type AgentModelCatalog,
+    assertModelAvailable,
+    computerModelCatalog,
+} from './agent-model-catalog.ts';
 import { type ConfiguredAgentRow, toAgent } from './agent-shape.ts';
 
 export interface AgentConfigurationRotation {
@@ -49,7 +53,7 @@ export async function configureAgent(
     db: HausDatabase,
     member: HausUser | null,
     input: ConfigureAgentInput,
-    catalog: AgentModelCatalog
+    catalog: AgentModelCatalog = computerModelCatalog
 ): Promise<ConfigureAgentResult> {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
