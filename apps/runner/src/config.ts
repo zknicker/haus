@@ -14,10 +14,12 @@ const configSchema = z.object({
     HAUS_SERVER_URL: z.url({ protocol: /^https?$/u }),
 });
 
+export const runnerConfigNames = configSchema.keyof().options;
+
 export type RunnerConfig = ReturnType<typeof parseRunnerConfig>;
 
 export function parseRunnerConfig(environment: Record<string, string | undefined>) {
-    const parsed = configSchema.safeParse(environment);
+    const parsed = configSchema.safeParse(setVariables(environment));
     if (!parsed.success) {
         const fields = parsed.error.issues.map((issue) => issue.path.join('.')).join(', ');
         throw new Error(`Runner environment is invalid: ${fields}.`);
@@ -36,5 +38,9 @@ export function parseRunnerConfig(environment: Record<string, string | undefined
 }
 
 export function parseRunnerDataDir(environment: Record<string, string | undefined>) {
-    return dataDir.parse(environment.HAUS_RUNNER_DATA_DIR);
+    return dataDir.parse(environment.HAUS_RUNNER_DATA_DIR || undefined);
+}
+
+function setVariables(environment: Record<string, string | undefined>) {
+    return Object.fromEntries(Object.entries(environment).filter(([, value]) => value !== ''));
 }

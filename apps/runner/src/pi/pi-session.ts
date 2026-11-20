@@ -151,7 +151,7 @@ export function piSession(deps: {
             return {
                 events: next.events,
                 settle: () => next.settle(),
-                unconsumedSteers: () => [],
+                unconsumedSteers: () => next.unconsumedSteers(),
             };
         },
         steer(text) {

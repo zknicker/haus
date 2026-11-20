@@ -5,7 +5,7 @@ import { type OperationContext, stoppedOutcome, textResult } from '../operation.
 import { resolveMachinePath } from '../paths.ts';
 import { parsePatch } from './parser.ts';
 import { PatchParseError } from './patch-errors.ts';
-import { errorCode, type PlannedFile, planPatch } from './patch-plan.ts';
+import { errorCode, planPatch } from './patch-plan.ts';
 
 const writePhaseRunsToTheEnd = new AbortController().signal;
 
@@ -36,19 +36,27 @@ export async function applyPatch(command: PatchCommand, context: OperationContex
     if (stopped) {
         return textResult(stopped, 'Stopped before applying the patch. Nothing was written.');
     }
-    const changes = [...plan.files].filter(([, file]) => file.content !== null || file.existed);
-    for (const [index, [path, file]] of changes.entries()) {
+    const steps = [
+        ...plan.writes.map((write) => ({
+            commit: () =>
+                writeFileAtomically(write.path, write.content, writePhaseRunsToTheEnd, write.mode),
+            path: write.path,
+            verb: 'write',
+        })),
+        ...plan.removals.map((path) => ({ commit: () => unlink(path), path, verb: 'delete' })),
+    ];
+    for (const [index, step] of steps.entries()) {
         try {
-            await commit(path, file);
+            await step.commit();
         } catch (error) {
             const code = errorCode(error);
             if (!code) {
                 throw error;
             }
             return partialFailure(
-                `Could not ${file.content === null ? 'delete' : 'write'} ${path}. Error code: ${code}.`,
-                changes.slice(0, index).map(([changed]) => changed),
-                changes.slice(index).map(([unchanged]) => unchanged)
+                `Could not ${step.verb} ${step.path}. Error code: ${code}.`,
+                steps.slice(0, index).map(({ path }) => path),
+                steps.slice(index).map(({ path }) => path)
             );
         }
     }
@@ -62,14 +70,6 @@ export async function applyPatch(command: PatchCommand, context: OperationContex
             ...deleted.map((path) => `D ${path}`),
         ].join('\n')
     );
-}
-
-async function commit(path: string, file: PlannedFile) {
-    if (file.content === null) {
-        await unlink(path);
-        return;
-    }
-    await writeFileAtomically(path, file.content, writePhaseRunsToTheEnd, file.mode);
 }
 
 function partialFailure(reason: string, changed: string[], unchanged: string[]) {

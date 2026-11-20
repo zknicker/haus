@@ -85,7 +85,7 @@ describe('Pi Durable driver', () => {
         expect(harness.warm).toBe(1);
     });
 
-    test('a steer sent while a tool runs joins the run, and nothing comes back unconsumed', async () => {
+    test('a steer counts as delivered once the run places it, and nothing comes back unconsumed', async () => {
         const { run, server } = await startedRun();
         const seen: TranscriptContext[] = [];
         const harness = fauxHarness([
@@ -94,8 +94,12 @@ describe('Pi Durable driver', () => {
             }),
             (context) => {
                 seen.push(context);
-                return fauxAssistantMessage([fauxText('Counted.')]);
+                return fauxAssistantMessage(
+                    [fauxToolCall('bash', { command: 'ls' }, { id: 'call_2' })],
+                    { stopReason: 'toolUse' }
+                );
             },
+            fauxAssistantMessage([fauxText('Counted.')]),
         ]);
         const driver = harness.factory(launch(await agentDir(), run.tools));
         const session = await driver.openSession({ resumeFrom: undefined, sessionId: 'agt_1-1' });
@@ -103,9 +107,12 @@ describe('Pi Durable driver', () => {
         const turn = await session.startTurn({ prompt: 'Wait, then answer.', signal: live() });
         const events = collect(turn.events);
         await server.frame('invocation-request');
-        expect(await session.steer('Also count the files.')).toEqual({ delivered: true });
+        const steered = session.steer('Also count the files.');
         server.answer({ outcome: 'completed', runId: 'run_1', seq: 0, toolCallId: 'call_1' });
 
+        expect(await steered).toEqual({ delivered: true });
+        expect(await server.frame('invocation-request')).toMatchObject({ toolCallId: 'call_2' });
+        server.answer({ outcome: 'completed', runId: 'run_1', seq: 0, toolCallId: 'call_2' });
         expect((await events).text).toBe('Counted.');
         expect(roles(seen[0] as TranscriptContext)).toEqual([
             'system',
@@ -141,6 +148,46 @@ describe('Pi Durable driver', () => {
         server.answer({ outcome: 'cancelled', runId: 'run_1', seq: 0, toolCallId: 'call_1' });
 
         expect((await events).steps.at(-1)).toBe('abort');
+    });
+
+    test('a steer still queued when a stop lands comes back unconsumed and never reaches history', async () => {
+        const { run, server } = await startedRun();
+        const seen: TranscriptContext[] = [];
+        const harness = fauxHarness([
+            fauxAssistantMessage(
+                [fauxToolCall('bash', { command: 'sleep 60' }, { id: 'call_1' })],
+                {
+                    stopReason: 'toolUse',
+                }
+            ),
+            (context) => {
+                seen.push(context);
+                return fauxAssistantMessage([fauxText('Next answer.')]);
+            },
+        ]);
+        const driver = harness.factory(launch(await agentDir(), run.tools));
+        const session = await driver.openSession({ resumeFrom: undefined, sessionId: 'agt_1-1' });
+        const stop = new AbortController();
+
+        const turn = await session.startTurn({ prompt: 'Sleep.', signal: stop.signal });
+        const events = collect(turn.events);
+        await server.frame('invocation-request');
+        const steered = session.steer('Also count the files.');
+        stop.abort();
+        await server.frame('invocation-cancel');
+        server.answer({ outcome: 'cancelled', runId: 'run_1', seq: 0, toolCallId: 'call_1' });
+
+        expect(await steered).toEqual({ delivered: false, reason: 'idle' });
+        expect((await events).steps.at(-1)).toBe('abort');
+        await turn.settle();
+        expect(turn.unconsumedSteers()).toEqual(['Also count the files.']);
+
+        await collect((await session.startTurn({ prompt: 'Next.', signal: live() })).events);
+        expect(
+            seen[0]?.messages.flatMap((message) =>
+                message.role === 'user' ? [message.content] : []
+            )
+        ).toEqual(['Sleep.', 'Next.']);
     });
 
     test('GPT models get shell, apply_patch, and view_image', async () => {

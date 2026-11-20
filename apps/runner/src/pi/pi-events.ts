@@ -171,7 +171,7 @@ export function piTokenUsage(usage: Usage) {
     return tokens;
 }
 
-function liveOf(view: ConversationView) {
+export function liveOf(view: ConversationView) {
     return (view.docs['pi.live'] ?? {}) as LiveState;
 }
 

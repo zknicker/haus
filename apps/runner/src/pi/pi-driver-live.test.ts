@@ -71,9 +71,7 @@ describe('Pi Durable driver against a live provider', () => {
             });
             const events = collect(turn.events);
             const frame = await server.frame('invocation-request');
-            expect(await session.steer('Also say how many there are.')).toEqual({
-                delivered: true,
-            });
+            const steered = session.steer('Also say how many there are.');
             if (frame.type === 'invocation-request') {
                 server.answer({
                     exitCode: 0,
@@ -84,6 +82,7 @@ describe('Pi Durable driver against a live provider', () => {
                     toolCallId: frame.toolCallId,
                 });
             }
+            expect(await steered).toEqual({ delivered: true });
             const answered = await events;
             expect(answered.last).toBe('turn-finish');
             expect(answered.text).toMatch(/alpha|beta|two|2/iu);

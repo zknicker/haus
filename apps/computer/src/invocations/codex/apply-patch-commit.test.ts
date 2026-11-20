@@ -73,6 +73,39 @@ describe('apply_patch commits all or nothing', () => {
         expect(await readFile(at('target.txt'), 'utf8')).toBe('new\n');
     });
 
+    test('a failed move write leaves every source in place', async () => {
+        await writeFile(at('source.txt'), 'one\n');
+        await writeFile(at('doomed.txt'), 'doomed\n');
+        await mkdir(at('locked'));
+        await chmod(at('locked'), 0o555);
+        expect(
+            await applyPatchIn(
+                workspace.dir,
+                wrapPatch(
+                    '*** Delete File: doomed.txt\n*** Add File: added.txt\n+new\n*** Update File: source.txt\n@@\n-one\n+two\n*** Update File: source.txt\n*** Move to: locked/moved.txt\n@@\n-two\n+three'
+                )
+            )
+        ).toEqual({
+            ...text(
+                'completed',
+                [
+                    `The patch was only partly applied. Could not write ${at('locked/moved.txt')}. Error code: EACCES.`,
+                    'Changed:',
+                    at('added.txt'),
+                    'Not changed:',
+                    at('locked/moved.txt'),
+                    at('doomed.txt'),
+                    at('source.txt'),
+                ].join('\n')
+            ),
+            exitCode: 1,
+        });
+        await chmod(at('locked'), 0o755);
+        expect(await readFile(at('source.txt'), 'utf8')).toBe('one\n');
+        expect(await readFile(at('doomed.txt'), 'utf8')).toBe('doomed\n');
+        expect(await readFile(at('added.txt'), 'utf8')).toBe('new\n');
+    });
+
     test('refuses to add over an existing file or move onto one', async () => {
         await writeFile(at('kept.txt'), 'kept\n');
         await writeFile(at('source.txt'), 'source\n');

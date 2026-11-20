@@ -6,6 +6,7 @@ import {
     type ConversationView,
     type Harness,
     type Observation,
+    type Submission,
 } from '@earendil-works/pi-durable';
 import type { InvocationOutcome } from '@haus/api';
 import { EventQueue } from '../turn/event-queue.ts';
@@ -13,6 +14,7 @@ import type { SteerResult } from '../turn/runtime-driver.ts';
 import { isFatalTurnEvent, type TurnEvent } from '../turn/turn-event.ts';
 import { PiTurnEvents } from './pi-events.ts';
 import { PiSessionEndedError, runFailureEvent } from './pi-failures.ts';
+import { PiTurnSteers } from './pi-turn-steers.ts';
 
 const context = BACKGROUND_CONTEXT;
 
@@ -28,6 +30,7 @@ export class PiTurn {
     readonly events = new EventQueue<TurnEvent>();
     private readonly settled = Promise.withResolvers<void>();
     private readonly pending: ConversationView[] = [];
+    private readonly steers = new PiTurnSteers();
     private derived: PiTurnEvents | null = null;
     private observation: Observation<ConversationView> | null = null;
     private aborting = false;
@@ -57,16 +60,20 @@ export class PiTurn {
         if (this.failed || this.aborting) {
             return refused(new Error('The Pi turn is ending.'));
         }
+        let submission: Submission;
         try {
-            await this.deps.root.submit(
+            submission = await this.deps.root.submit(
                 { content: text, type: 'input', whenBusy: 'steer', whenIdle: 'reject' },
                 context
             );
-            const delivered: SteerResult = { delivered: true };
-            return delivered;
         } catch (error) {
             return error instanceof ConversationIdle ? idle : refused(error);
         }
+        return (await this.steers.track(submission, text)) ? delivered : idle;
+    }
+
+    unconsumedSteers() {
+        return this.steers.unconsumed();
     }
 
     private async begin(prompt: string) {
@@ -125,6 +132,7 @@ export class PiTurn {
         if (call.kind !== 'value' || this.finished) {
             return;
         }
+        this.steers.observe(call.value);
         if (this.derived) {
             this.derive(this.derived, call.value);
         } else {
@@ -179,10 +187,11 @@ export class PiTurn {
             });
         }
         this.events.end();
-        this.settled.resolve();
+        this.steers.close().then(() => this.settled.resolve());
     }
 }
 
+const delivered: SteerResult = { delivered: true };
 const idle: SteerResult = { delivered: false, reason: 'idle' };
 
 function refused(error: unknown) {

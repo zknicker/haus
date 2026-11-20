@@ -15,6 +15,18 @@ describe('GPT machine tools', () => {
             script: 'ls -la && echo "$HOME"',
         });
         expect(shellCommandOf(['echo', ''])).toEqual({ command: "echo ''", script: "echo ''" });
+        expect(shellCommandOf(['/bin/sh', '-ec', 'haus message check', 'sh', 'one'])).toEqual({
+            command: "/bin/sh -ec 'haus message check' sh one",
+            script: 'haus message check',
+        });
+        expect(shellCommandOf(['bash', '-l', '-c', 'haus message check'])).toEqual({
+            command: "bash -l -c 'haus message check'",
+            script: 'haus message check',
+        });
+        expect(shellCommandOf(['bash', 'script.sh', '-c', 'haus'])).toEqual({
+            command: 'bash script.sh -c haus',
+            script: 'bash script.sh -c haus',
+        });
     });
 
     test('shell runs on the machine with workdir as cwd and timeout_ms as the timeout', async () => {
@@ -68,15 +80,60 @@ describe('GPT machine tools', () => {
         expect(server.requests.map((request) => request.path)).toEqual([
             '/api/agent/messages/send',
         ]);
-        expect(piped).toEqual({
+        expect(piped).toEqual(hausNotAlone);
+    });
+
+    test('a shell wrapper with trailing arguments still has its script checked for haus', async () => {
+        const { run, server } = await startedRun();
+
+        const quoted = await run.tools.shell(
+            'call_8',
+            { command: ['bash', '-lc', '"haus" message read | cat', 'arg0'] },
+            live()
+        );
+        const read = await run.tools.shell(
+            'call_9',
+            { command: ['bash', '-lc', 'haus message read'] },
+            live()
+        );
+        const zsh = await run.tools.shell(
+            'call_10',
+            { command: ['/bin/zsh', '-c', "'haus' send x", 'x'] },
+            live()
+        );
+        const listed = run.tools.shell('call_11', { command: ['ls', '-la'] }, live());
+
+        expect(quoted).toEqual(hausNotAlone);
+        expect(read).toEqual({
             content: [
                 {
-                    text: 'Error: haus must run as its own command, not inside a pipeline, list, substitution, or redirection, and with literal arguments.\nCode: HAUS_NOT_ALONE\nNext action: run `haus` as its own command.',
+                    text: 'Error: --target is required.\nCode: INVALID_ARG\nExit code: 1',
                     type: 'text',
                 },
             ],
             isError: true,
         });
+        expect(zsh).toEqual({
+            content: [
+                {
+                    text: 'Error: `haus send x` is not a haus command.\nCode: UNKNOWN_HAUS_COMMAND\nNext action: Run `haus help` for the command list.',
+                    type: 'text',
+                },
+            ],
+            isError: true,
+        });
+        expect(server.requests.map((request) => request.path)).toEqual([]);
+        expect(await server.frame('invocation-request')).toEqual({
+            agentId: 'agt_1',
+            operation: { command: 'ls -la', kind: 'bash' },
+            runId: 'run_1',
+            seq: 0,
+            timeoutMs: 120_000,
+            toolCallId: 'call_11',
+            type: 'invocation-request',
+        });
+        server.answer({ outcome: 'completed', runId: 'run_1', seq: 0, toolCallId: 'call_11' });
+        expect((await listed).invocation).toBe('completed');
     });
 
     test('apply_patch sends the patch as an edit and refuses an empty one', async () => {
@@ -165,3 +222,13 @@ describe('GPT machine tools', () => {
         });
     });
 });
+
+const hausNotAlone = {
+    content: [
+        {
+            text: 'Error: haus must run as its own command, not inside a pipeline, list, substitution, or redirection, and with literal arguments.\nCode: HAUS_NOT_ALONE\nNext action: run `haus` as its own command.',
+            type: 'text',
+        },
+    ],
+    isError: true,
+} as const;

@@ -5,10 +5,16 @@ import { resolveMachinePath } from '../paths.ts';
 import { updatedContents } from './file-update.ts';
 import type { Hunk } from './parser.ts';
 
-export interface PlannedFile {
+interface PlannedFile {
     content: string | null;
     existed: boolean;
     mode?: number;
+}
+
+export interface PlannedWrite {
+    content: string;
+    mode?: number;
+    path: string;
 }
 
 type PathContext = Pick<OperationContext, 'cwd' | 'env'>;
@@ -62,7 +68,20 @@ export async function planPatch(hunks: readonly Hunk[], context: PathContext) {
         plan(files, path, { content: null, existed: true });
         summary.modified.push(hunk.movePath);
     }
-    return { files, summary };
+    return { summary, ...writesThenRemovals(files) };
+}
+
+function writesThenRemovals(files: Map<string, PlannedFile>) {
+    const writes: PlannedWrite[] = [];
+    const removals: string[] = [];
+    for (const [path, file] of files) {
+        if (file.content !== null) {
+            writes.push({ content: file.content, mode: file.mode, path });
+        } else if (file.existed) {
+            removals.push(path);
+        }
+    }
+    return { removals, writes };
 }
 
 function plan(files: Map<string, PlannedFile>, path: string, next: PlannedFile) {
