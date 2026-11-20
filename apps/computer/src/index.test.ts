@@ -32,6 +32,7 @@ test('setup signs in, stores only a Server credential, and reruns by validation'
     const requests: string[] = [];
     const socketFrames: unknown[] = [];
     const peer = Bun.serve({
+        hostname: '127.0.0.1',
         async fetch(request, server) {
             const url = new URL(request.url);
             requests.push(`${request.method} ${url.pathname}`);
@@ -187,6 +188,7 @@ test('login exchanges a device grant and atomically stores an origin-bound sessi
     const requests: string[] = [];
     let polls = 0;
     const peer = Bun.serve({
+        hostname: '127.0.0.1',
         async fetch(request) {
             const url = new URL(request.url);
             requests.push(`${request.method} ${url.pathname}`);
@@ -282,6 +284,7 @@ test('setup preserves an unlinked attachment when replacement attachment fails',
     const attachmentRoot = join(dataRoot, 'servers', serverId);
     await mkdir(attachmentRoot, { recursive: true });
     const peer = Bun.serve({
+        hostname: '127.0.0.1',
         async fetch(request) {
             const url = new URL(request.url);
             if (url.pathname === '/computer/validate') {
@@ -379,6 +382,7 @@ test('setup archives an unlinked attachment before connecting a recreated Server
         })
     );
     const peer = Bun.serve({
+        hostname: '127.0.0.1',
         async fetch(request, server) {
             const url = new URL(request.url);
             if (url.pathname === '/computer/validate') {
@@ -489,6 +493,7 @@ test('resident start parks a terminally unlinked attachment instead of retrying'
     let validations = 0;
     const rejected = Promise.withResolvers<void>();
     const peer = Bun.serve({
+        hostname: '127.0.0.1',
         fetch(request) {
             if (new URL(request.url).pathname === '/computer/validate') {
                 validations += 1;
@@ -547,6 +552,7 @@ test('the Server attachment daemon stays connected until the Server closes it', 
     const connected = Promise.withResolvers<void>();
     const sockets = new Set<ServerWebSocket<undefined>>();
     const peer = Bun.serve({
+        hostname: '127.0.0.1',
         fetch(request, server) {
             const pathname = new URL(request.url).pathname;
             if (pathname === '/computer/validate') {
@@ -614,6 +620,7 @@ test('a watch-mode attachment daemon reconnects instead of idling in the watcher
     const sockets = new Set<ServerWebSocket<undefined>>();
     let connections = 0;
     const peer = Bun.serve({
+        hostname: '127.0.0.1',
         fetch(request, server) {
             const pathname = new URL(request.url).pathname;
             if (pathname === '/computer/validate') {
@@ -670,14 +677,7 @@ test('a watch-mode attachment daemon reconnects instead of idling in the watcher
         stdout: 'pipe',
     });
     try {
-        await Promise.race([
-            reconnected.promise,
-            Bun.sleep(9000).then(() => {
-                throw new Error(
-                    'The watch-mode attachment daemon did not reconnect after the Server closed its socket.'
-                );
-            }),
-        ]);
+        expect(await firstOf(reconnected.promise, child)).toBe('reconnected');
         expect(connections).toBe(2);
     } finally {
         for (const socket of sockets) {
@@ -696,6 +696,7 @@ test('resident start reconnects an attachment after the Server closes it', async
     const sockets = new Set<ServerWebSocket<undefined>>();
     let connections = 0;
     const peer = Bun.serve({
+        hostname: '127.0.0.1',
         fetch(request, server) {
             const pathname = new URL(request.url).pathname;
             if (pathname === '/computer/validate') {
@@ -748,18 +749,7 @@ test('resident start reconnects an attachment after the Server closes it', async
         stdout: 'pipe',
     });
     try {
-        await Promise.race([
-            reconnected.promise,
-            Bun.sleep(5000).then(async () => {
-                const marker = await readFile(
-                    join(attachmentRoot, 'attachment-daemon.pid'),
-                    'utf8'
-                ).catch(() => 'missing');
-                throw new Error(
-                    `Computer did not reconnect after the Server closed its socket. Attachment daemon: ${marker}`
-                );
-            }),
-        ]);
+        expect(await firstOf(reconnected.promise, child)).toBe('reconnected');
         expect(connections).toBe(2);
     } finally {
         for (const socket of sockets) {
@@ -779,6 +769,7 @@ test('resident start reconnects an attachment when Server heartbeats silently st
     let connections = 0;
     let heartbeats = 0;
     const peer = Bun.serve({
+        hostname: '127.0.0.1',
         fetch(request, server) {
             const pathname = new URL(request.url).pathname;
             if (pathname === '/computer/validate') {
@@ -847,18 +838,7 @@ test('resident start reconnects an attachment when Server heartbeats silently st
         stdout: 'pipe',
     });
     try {
-        await Promise.race([
-            reconnected.promise,
-            Bun.sleep(5000).then(async () => {
-                const marker = await readFile(
-                    join(attachmentRoot, 'attachment-daemon.pid'),
-                    'utf8'
-                ).catch(() => 'missing');
-                throw new Error(
-                    `Computer did not reconnect after Server heartbeats stopped. Attachment daemon: ${marker}`
-                );
-            }),
-        ]);
+        expect(await firstOf(reconnected.promise, child)).toBe('reconnected');
         expect(heartbeats).toBeGreaterThan(1);
         expect(connections).toBe(2);
     } finally {
@@ -905,6 +885,13 @@ async function killAttachmentDaemon(attachmentRoot: string) {
     } catch {
         // The daemon already exited or never started.
     }
+}
+
+function firstOf(reconnected: Promise<void>, resident: { exited: Promise<number> }) {
+    return Promise.race([
+        reconnected.then(() => 'reconnected'),
+        resident.exited.then((code) => `the resident exited ${code} before reconnecting`),
+    ]);
 }
 
 async function runCli(environment: Record<string, string | undefined>) {
