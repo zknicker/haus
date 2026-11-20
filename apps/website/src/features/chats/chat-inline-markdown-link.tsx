@@ -1,4 +1,4 @@
-import { readMarkdownLinkAt } from '@haus/api';
+import type { MarkdownLinkSpan } from '@haus/api';
 import type * as React from 'react';
 import { opensPlace } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useArtifactPanelOpen } from './artifact-panel-context.tsx';
@@ -53,15 +53,19 @@ export function MarkdownLink({ children, href }: { children: React.ReactNode; hr
     );
 }
 
-export function matchMarkdownLink(text: string, cursor: number) {
-    const link = readMarkdownLinkAt(text, cursor);
-    const href = link ? sanitizeUrl(link.target) : null;
+export function matchMarkdownLink(
+    text: string,
+    links: readonly MarkdownLinkSpan[],
+    cursor: number
+) {
+    const link = links.find((span) => span.start === cursor);
+    const href = link ? sanitizeUrl(link.url) : null;
 
     if (!(link && href)) {
         return null;
     }
 
-    return { end: link.end, href, label: link.label };
+    return { end: link.end, href, label: text.slice(cursor + 1, link.labelEnd) };
 }
 
 export function matchBareUrl(text: string) {

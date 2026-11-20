@@ -1,4 +1,4 @@
-import { codeRangeAt, readCodeRanges } from '@haus/api';
+import { readMarkdownSpans } from '@haus/api';
 import type * as React from 'react';
 import { MarkdownLink, matchBareUrl, matchMarkdownLink } from './chat-inline-markdown-link.tsx';
 import {
@@ -30,7 +30,7 @@ export function renderInlineMarkdown(
         );
     }
 
-    const code = readCodeRanges(text);
+    const spans = readMarkdownSpans(text);
     const nodes: React.ReactNode[] = [];
     let buffer = '';
     let bufferStart: number | null = null;
@@ -72,9 +72,9 @@ export function renderInlineMarkdown(
             continue;
         }
 
-        const codeRange = codeRangeAt(code, cursor);
+        const codeRange = spans.code.find((span) => span.start === cursor);
 
-        if (codeRange?.kind === 'fence') {
+        if (codeRange?.kind === 'block') {
             if (buffer.length === 0) {
                 bufferStart = cursor;
             }
@@ -84,7 +84,6 @@ export function renderInlineMarkdown(
         }
 
         if (codeRange) {
-            const contentStart = codeRange.start + codeRange.ticks;
             flushBuffer();
             nodes.push(
                 <code
@@ -92,8 +91,8 @@ export function renderInlineMarkdown(
                     key={`${keyPrefix}:code:${cursor}`}
                 >
                     {renderTextWithAnimatedRanges(
-                        text.slice(contentStart, codeRange.end - codeRange.ticks),
-                        options.sourceOffset + contentStart,
+                        text.slice(codeRange.contentStart, codeRange.contentEnd),
+                        options.sourceOffset + codeRange.contentStart,
                         `${keyPrefix}:code-text:${cursor}`,
                         options.animatedRanges
                     )}
@@ -103,7 +102,7 @@ export function renderInlineMarkdown(
             continue;
         }
 
-        const link = matchMarkdownLink(text, cursor);
+        const link = matchMarkdownLink(text, spans.links, cursor);
 
         if (link) {
             flushBuffer();

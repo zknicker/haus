@@ -1,52 +1,70 @@
 import { expect, test } from 'bun:test';
-import { readCodeRanges } from './markdown-code-ranges.ts';
-import { readMarkdownLinkAt, readMarkdownLinks } from './markdown-links.ts';
+import { readMarkdownSpans } from './markdown-links.ts';
 
-const targets = (text: string) => readMarkdownLinks(text).map((link) => link.target);
+const urls = (text: string) => readMarkdownSpans(text).links.map((link) => link.url);
 
-test('a link reads its label, target and span', () => {
-    expect(readMarkdownLinkAt('See [plan](drive://a/plan.md).', 4)).toEqual({
-        end: 29,
-        label: 'plan',
-        start: 4,
-        target: 'drive://a/plan.md',
-        targetStart: 11,
-    });
-});
-
-test('an angle-bracket destination unwraps and keeps its spaces', () => {
-    expect(targets('[plan](<drive://a/Q4 plan.md>)')).toEqual(['drive://a/Q4 plan.md']);
-});
-
-test('balanced parentheses stay in the path', () => {
-    expect(targets('[draft](drive://a/Q4%20(draft).md) then (aside)')).toEqual([
-        'drive://a/Q4%20(draft).md',
+test('a link reads its span, label end and url', () => {
+    expect(readMarkdownSpans('See [plan](drive://a/plan.md).').links).toEqual([
+        { end: 29, labelEnd: 9, start: 4, url: 'drive://a/plan.md' },
     ]);
 });
 
-test('links inside inline code and fenced blocks are not links', () => {
+test('an angle-bracket destination keeps its spaces, trailing ones too', () => {
+    expect(urls('[plan](<drive://a/Q4 plan.md>) [s](<drive://a/space.md >)')).toEqual([
+        'drive://a/Q4 plan.md',
+        'drive://a/space.md ',
+    ]);
+});
+
+test('balanced and escaped parentheses stay in the path, and a title does not', () => {
     expect(
-        targets(
-            'Use `[a](drive://a.md)` or ``x ` [b](drive://b.md)``.\n```\n[c](drive://c.md)\n```\n[d](drive://d.md)'
+        urls(
+            '[d](drive://a/Q4%20(draft).md) [e](drive://a/a\\(draft.md) [t](drive://a/t.md "Title") [p]( <drive://a/p.md> "P")'
+        )
+    ).toEqual([
+        'drive://a/Q4%20(draft).md',
+        'drive://a/a(draft.md',
+        'drive://a/t.md',
+        'drive://a/p.md',
+    ]);
+});
+
+test('links inside any kind of code are not links', () => {
+    expect(
+        urls(
+            [
+                'Use `[a](drive://a.md)` or ``x ` [b](drive://b.md)``.',
+                '`multi',
+                '[c](drive://c.md) line`',
+                '`a`` [m](drive://m.md) `',
+                '',
+                '> ```',
+                '> [q](drive://q.md)',
+                '> ```',
+                '',
+                '```',
+                '[f](drive://f.md)',
+                '```',
+                '[d](drive://d.md)',
+            ].join('\n')
         )
     ).toEqual(['drive://d.md']);
 });
 
-test('image syntax is not a link', () => {
-    expect(targets('![shot](drive://shot.png) and [doc](drive://doc.md)')).toEqual([
+test('image syntax and autolinks are not written links', () => {
+    expect(urls('![shot](drive://shot.png) <https://haus.test> [doc](drive://doc.md)')).toEqual([
         'drive://doc.md',
     ]);
 });
 
-test('an unclosed or line-crossing link reads nothing', () => {
-    expect(targets('[a](drive://a.md')).toEqual([]);
-    expect(targets('[a](drive://a\n.md)')).toEqual([]);
-    expect(targets('[a\nb](drive://a.md)')).toEqual([]);
+test('an unclosed or line-crossing destination reads nothing', () => {
+    expect(urls('[a](drive://a.md')).toEqual([]);
+    expect(urls('[a](drive://a\n.md)')).toEqual([]);
 });
 
-test('code ranges come back in source order with their kind', () => {
-    expect(readCodeRanges('`a` then\n```\nx\n```\n')).toEqual([
-        { end: 3, kind: 'inline', start: 0, ticks: 1 },
-        { end: 19, kind: 'fence', start: 9, ticks: 0 },
+test('code spans report where their content sits', () => {
+    expect(readMarkdownSpans('``a` b`` then\n```\nx\n```\n').code).toEqual([
+        { contentEnd: 6, contentStart: 2, end: 8, kind: 'inline', start: 0 },
+        { contentEnd: 23, contentStart: 14, end: 23, kind: 'block', start: 14 },
     ]);
 });

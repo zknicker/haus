@@ -127,6 +127,42 @@ test('a send reads links the way the App renders them', async () => {
     ]);
 });
 
+test('a send reads titles, escapes, angle spaces and every kind of code as Markdown does', async () => {
+    const titled = await insertFile('haus/titled.md');
+    const escaped = await insertFile('haus/a(draft.md');
+    await insertFile('haus/space.md');
+    const cell = await insertFile('haus/cell.md');
+    const struck = await insertFile('haus/struck.md');
+    const messageId = await agentSend(
+        'run_citations_commonmark',
+        [
+            '[t](drive://haus/titled.md "Title") [e](drive://haus/a\\(draft.md)',
+            '[s](<drive://haus/space.md >)',
+            '`a',
+            '[m](drive://haus/multiline.md) b`',
+            '`a`` [x](drive://haus/mismatch.md) `',
+            '',
+            '> ```',
+            '> [q](drive://haus/quoted.md)',
+            '> ```',
+            '',
+            '| File |',
+            '| --- |',
+            '| [c](drive://haus/cell.md) |',
+            '',
+            '~~[k](drive://haus/struck.md)~~',
+        ].join('\n')
+    );
+
+    expect(await citationsOf(notesChatId, messageId)).toEqual([
+        { artifactId: titled.artifactId, path: 'haus/titled.md', revisionId: titled.revisionId },
+        { artifactId: escaped.artifactId, path: 'haus/a(draft.md', revisionId: escaped.revisionId },
+        { artifactId: null, path: 'haus/space.md ', revisionId: null },
+        { artifactId: cell.artifactId, path: 'haus/cell.md', revisionId: cell.revisionId },
+        { artifactId: struck.artifactId, path: 'haus/struck.md', revisionId: struck.revisionId },
+    ]);
+});
+
 test('a human send binds to the head, and a later revision does not move it', async () => {
     const { channelId, owner, serverId } = fixture;
     const brief = await insertFile('haus/brief.md');

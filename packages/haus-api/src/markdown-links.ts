@@ -1,69 +1,64 @@
-import { codeRangeAt, readCodeRanges } from './markdown-code-ranges.ts';
+import { fromMarkdown } from 'mdast-util-from-markdown';
 
-export function readMarkdownLinkAt(text: string, start: number) {
-    if (text[start] !== '[' || text[start - 1] === '!') {
-        return null;
-    }
-    const labelEnd = text.indexOf(']', start + 1);
-    const label = text.slice(start + 1, labelEnd);
-    if (labelEnd <= start + 1 || label.includes('\n') || text[labelEnd + 1] !== '(') {
-        return null;
-    }
-    const destinationStart = labelEnd + 2;
-    const destination =
-        text[destinationStart] === '<'
-            ? readAngleDestination(text, destinationStart)
-            : readBareDestination(text, destinationStart);
-    if (!destination?.target) {
-        return null;
-    }
-    return {
-        end: destination.end,
-        label,
-        start,
-        target: destination.target,
-        targetStart: destinationStart,
+export interface MarkdownLinkSpan {
+    end: number;
+    labelEnd: number;
+    start: number;
+    url: string;
+}
+
+export interface MarkdownCodeSpan {
+    contentEnd: number;
+    contentStart: number;
+    end: number;
+    kind: 'block' | 'inline';
+    start: number;
+}
+
+interface SourceNode {
+    children?: SourceNode[];
+    position?: { end: { offset?: number }; start: { offset?: number } };
+    type: string;
+    url?: string;
+}
+
+/**
+ * The inline links and code a CommonMark reader sees, in source order. Links
+ * inside code or image syntax are never links, and an autolink is not a
+ * written `[label](target)`, so neither is listed.
+ */
+export function readMarkdownSpans(content: string) {
+    const links: MarkdownLinkSpan[] = [];
+    const code: MarkdownCodeSpan[] = [];
+    const visit = (node: SourceNode) => {
+        const start = node.position?.start.offset;
+        const end = node.position?.end.offset;
+        if (start === undefined || end === undefined) {
+            node.children?.forEach(visit);
+            return;
+        }
+        if (node.type === 'link' && node.url !== undefined && content[start] === '[') {
+            const labelEnd = node.children?.at(-1)?.position?.end.offset ?? start + 1;
+            links.push({ end, labelEnd, start, url: node.url });
+            return;
+        }
+        if (node.type === 'inlineCode') {
+            const ticks = /^`+/u.exec(content.slice(start))?.[0].length ?? 0;
+            code.push({
+                contentEnd: end - ticks,
+                contentStart: start + ticks,
+                end,
+                kind: 'inline',
+                start,
+            });
+            return;
+        }
+        if (node.type === 'code') {
+            code.push({ contentEnd: end, contentStart: start, end, kind: 'block', start });
+            return;
+        }
+        node.children?.forEach(visit);
     };
-}
-
-export function readMarkdownLinks(text: string) {
-    const code = readCodeRanges(text);
-    const links: NonNullable<ReturnType<typeof readMarkdownLinkAt>>[] = [];
-    let cursor = text.indexOf('[');
-    while (cursor !== -1) {
-        const codeRange = codeRangeAt(code, cursor);
-        const link = codeRange ? null : readMarkdownLinkAt(text, cursor);
-        if (link) {
-            links.push(link);
-        }
-        cursor = text.indexOf('[', codeRange?.end ?? link?.end ?? cursor + 1);
-    }
-    return links;
-}
-
-function readAngleDestination(text: string, open: number) {
-    const close = text.indexOf('>', open + 1);
-    const target = text.slice(open + 1, close);
-    if (close === -1 || /[<\n]/u.test(target) || text[close + 1] !== ')') {
-        return null;
-    }
-    return { end: close + 2, target: target.trim() };
-}
-
-function readBareDestination(text: string, from: number) {
-    let depth = 0;
-    for (let index = from; index < text.length; index += 1) {
-        const character = text[index];
-        if (character === '\n') {
-            return null;
-        }
-        if (character === '(') {
-            depth += 1;
-        } else if (character === ')' && depth > 0) {
-            depth -= 1;
-        } else if (character === ')') {
-            return { end: index + 1, target: text.slice(from, index).trim() };
-        }
-    }
-    return null;
+    visit(fromMarkdown(content) as SourceNode);
+    return { code, links };
 }

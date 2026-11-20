@@ -1,15 +1,15 @@
-import { artifactPathKey, parseArtifactPath, readMarkdownLinks } from '@haus/api';
+import { artifactPathKey, parseArtifactPath, readMarkdownSpans } from '@haus/api';
 
 const scheme = 'drive://';
 const maxCitations = 100;
 
 export function readDriveCitationPaths(content: string) {
     const paths = new Map<string, string>();
-    for (const { target } of readMarkdownLinks(content)) {
-        if (!target.startsWith(scheme)) {
+    for (const { url } of readMarkdownSpans(content).links) {
+        if (!url.startsWith(scheme)) {
             continue;
         }
-        const path = parseCitedPath(target.slice(scheme.length));
+        const path = parseCitedPath(url.slice(scheme.length));
         if (path && !paths.has(artifactPathKey(path))) {
             paths.set(artifactPathKey(path), path);
         }

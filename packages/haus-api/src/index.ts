@@ -144,7 +144,6 @@ export * from './image-generation.ts';
 export * from './image-generation-models.ts';
 export * from './image-generation-settings.ts';
 export * from './manual.ts';
-export * from './markdown-code-ranges.ts';
 export * from './markdown-links.ts';
 export * from './mcp.ts';
 export * from './mcp-preset-icon-catalog.ts';

@@ -15,7 +15,47 @@ const citations: DriveCitation[] = [
     { artifactId: null, path: 'notes/later.md', revisionId: null },
     { artifactId: 'art_plan', path: 'plans/Q4 plan.md', revisionId: 'rev_9' },
     { artifactId: 'art_draft', path: 'plans/Q4 (draft).md', revisionId: 'rev_2' },
+    { artifactId: 'art_titled', path: 'plans/titled.md', revisionId: 'rev_t' },
+    { artifactId: 'art_escaped', path: 'plans/a(draft.md', revisionId: 'rev_e' },
+    { artifactId: 'art_spaced', path: 'plans/space.md ', revisionId: 'rev_s' },
+    { artifactId: 'art_cell', path: 'plans/cell.md', revisionId: 'rev_c' },
 ];
+
+test('titles, escapes and angle-bracket spaces read as Markdown does in both renderers', () => {
+    const content =
+        '[t](drive://plans/titled.md "Title") [e](drive://plans/a\\(draft.md) [s](<drive://plans/space.md >)';
+
+    for (const markup of [renderSettled(content), renderStreaming(content)]) {
+        expect(markup).toContain('href="/s/acme/artifacts/art_titled?revision=rev_t"');
+        expect(markup).toContain('href="/s/acme/artifacts/art_escaped?revision=rev_e"');
+        expect(markup).toContain('href="/s/acme/artifacts/art_spaced?revision=rev_s"');
+    }
+});
+
+test('a citation in a table cell or strikethrough still opens when settled', () => {
+    const markup = renderSettled(
+        '| File |\n| --- |\n| [c](drive://plans/cell.md) |\n\n~~[w](drive://agents/blippy/WORKER.md)~~'
+    );
+
+    expect(markup).toContain('href="/s/acme/artifacts/art_cell?revision=rev_c"');
+    expect(markup).toContain('href="/s/acme/artifacts/art_worker?revision=rev_3"');
+});
+
+test('multiline spans, mismatched tick runs and quoted fences stay code in both renderers', () => {
+    const fixtures = [
+        '`a\n[m](drive://agents/blippy/WORKER.md) b`',
+        '`a`` [m](drive://agents/blippy/WORKER.md) `',
+        '> ```\n> [m](drive://agents/blippy/WORKER.md)\n> ```',
+    ];
+
+    for (const content of fixtures) {
+        for (const markup of [renderSettled(content), renderStreaming(content)]) {
+            expect(markup).toContain('[m](drive://agents/blippy/WORKER.md)');
+            expect(markup).not.toContain('references.haus.invalid');
+            expect(markup).not.toContain('<a');
+        }
+    }
+});
 
 test('an angle-bracket destination and a path with parentheses resolve in both renderers', () => {
     const content =

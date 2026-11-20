@@ -1,4 +1,4 @@
-import { readMarkdownLinks } from '@haus/api';
+import { readMarkdownSpans } from '@haus/api';
 import { Markdown } from '@heroui-pro/react/markdown';
 import * as React from 'react';
 import { MarkdownCodeBlock } from '../../components/code/markdown-code-block.tsx';
@@ -118,10 +118,10 @@ export function prepareMarkdownReferences(content: string, suppliedMentions?: re
 /** The source's own reference and resource links, retargeted at a token. */
 function linkEdits(content: string, mentions: readonly Mention[]): MarkdownReferenceEdit[] {
     const mentionsByStart = new Map(mentions.map((mention) => [mention.start, mention]));
-    return readMarkdownLinks(content).flatMap(({ end, start, target, targetStart }) => {
+    return readMarkdownSpans(content).links.flatMap(({ end, labelEnd, start, url }) => {
         const reference = mentionsByStart.get(start);
         // react-markdown's URL sanitizer empties custom schemes, so `haus://` and `drive://` ride a token.
-        const resource = parseHausResourceLink(target) || isDriveCitationHref(target);
+        const resource = parseHausResourceLink(url) || isDriveCitationHref(url);
         if (!(reference || resource)) {
             return [];
         }
@@ -130,8 +130,8 @@ function linkEdits(content: string, mentions: readonly Mention[]): MarkdownRefer
                 end,
                 link: reference
                     ? ({ kind: 'reference', reference } as const)
-                    : ({ href: target, kind: 'resource' } as const),
-                linkText: (token: string) => `${content.slice(start, targetStart)}${token})`,
+                    : ({ href: url, kind: 'resource' } as const),
+                linkText: (token: string) => `${content.slice(start, labelEnd + 1)}(${token})`,
                 start,
             },
         ];
