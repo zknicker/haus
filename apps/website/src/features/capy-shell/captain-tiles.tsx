@@ -97,6 +97,7 @@ const CaptainTileLink = React.memo(function CaptainTileLink({
             chatId={tile.dmChatId}
             chatName={tile.name}
             href={href}
+            layout="tile"
             slug={slug}
         >
             <Tooltip delay={400} isDisabled={!name.truncated}>

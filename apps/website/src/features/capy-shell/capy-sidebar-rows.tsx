@@ -88,8 +88,9 @@ export const PersonNavigationRow = React.memo(function PersonNavigationRow({
             <DmNavigationContextMenu
                 agentId={null}
                 chatId={chatId}
-                chatName="DM"
+                chatName={row.name}
                 href={href}
+                peer="person"
                 slug={slug}
             >
                 <Sidebar.MenuIcon>

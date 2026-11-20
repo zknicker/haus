@@ -19,6 +19,8 @@ export function DmNavigationContextMenu({
     chatName,
     children,
     href,
+    layout = 'row',
+    peer = 'agent',
     slug,
 }: {
     agentId: string | null;
@@ -26,6 +28,8 @@ export function DmNavigationContextMenu({
     chatName: string;
     children: React.ReactNode;
     href: string;
+    layout?: 'row' | 'tile';
+    peer?: 'agent' | 'person';
     slug: string;
 }) {
     const navigate = useSidebarNavigate();
@@ -49,9 +53,7 @@ export function DmNavigationContextMenu({
 
     return (
         <ContextMenu>
-            <ContextMenu.Trigger className="flex min-w-0 flex-1 items-center gap-3">
-                {children}
-            </ContextMenu.Trigger>
+            <ContextMenu.Trigger className={triggerLayouts[layout]}>{children}</ContextMenu.Trigger>
             <ContextMenu.Popover>
                 <ContextMenu.Menu onAction={onAction}>
                     <ContextMenu.Item id="open" textValue={`Open ${chatName}`}>
@@ -59,14 +61,20 @@ export function DmNavigationContextMenu({
                         <Label>Open chat</Label>
                     </ContextMenu.Item>
                     {tabOpeners ? <RowTabItems /> : null}
-                    <ContextMenu.Separator />
+                    {peer === 'agent' || actions.filesAvailable ? <ContextMenu.Separator /> : null}
                     <DmContextMenuItems
                         files={actions.filesAvailable}
                         hasAgent={agentId !== null}
                         hasChat={Boolean(chatId)}
+                        peer={peer}
                     />
                 </ContextMenu.Menu>
             </ContextMenu.Popover>
         </ContextMenu>
     );
 }
+
+const triggerLayouts = {
+    row: 'flex min-w-0 flex-1 items-center gap-3',
+    tile: 'contents',
+} as const;
