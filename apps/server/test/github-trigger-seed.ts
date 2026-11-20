@@ -3,7 +3,7 @@ import { fixtureInstallationId, fixtureRepository } from './github-delivery-fixt
 import { createHausClient, type HausClient } from './haus-client.ts';
 import type { HausServerHarness } from './haus-server-harness.ts';
 
-// One Server wired for GitHub Triggers: an Agent in #haus with a message to
+// One Server wired for GitHub Triggers: an Agent in #all with a message to
 // anchor on, a connected GitHub connection the Agent holds a grant on, and an
 // active installation whose access cache reaches acme/api.
 

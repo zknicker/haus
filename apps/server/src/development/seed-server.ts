@@ -6,6 +6,7 @@ import {
     agentsTable,
     agentTokenUsageDailyTable,
     channelAgentParticipantsTable,
+    channelParticipantsTable,
     chatMessagesTable,
     chatsTable,
     computersTable,
@@ -83,26 +84,25 @@ export async function seedDevelopmentServer(
             .update(usersTable)
             .set({ avatarId: avatarIds.owner })
             .where(eq(usersTable.id, userId));
-        const { taskKeyId: generalKeyId } = await insertProject(tx, {
-            chat: {
-                description: allChannelDescription,
-                id: channelId,
-                isAll: true,
-                lastActivityAt: now,
-                lastMessageSequence: 9,
-                name: allChannelName,
-            },
-            key: GENERAL_TASK_KEY,
+        await tx.insert(chatsTable).values({
+            description: allChannelDescription,
+            id: channelId,
+            isAll: true,
+            kind: 'channel',
+            lastActivityAt: now,
+            lastMessageSequence: 9,
+            name: allChannelName,
             serverId,
-            userIds: [userId],
         });
-        await insertProject(tx, {
+        await tx.insert(channelParticipantsTable).values({ chatId: channelId, serverId, userId });
+        const { taskKeyId: generalKeyId } = await insertProject(tx, {
             chat: {
                 id: demoChannelId,
                 lastActivityAt: now,
                 lastMessageSequence: 2,
                 name: 'product',
             },
+            key: GENERAL_TASK_KEY,
             serverId,
             userIds: [userId],
         });
@@ -126,7 +126,7 @@ export async function seedDevelopmentServer(
                 description: 'Keeps the plan tight and surfaces decisions early.',
                 displayName: 'Blippy',
                 handle: 'blippy',
-                homeProjectId: channelId,
+                homeProjectId: demoChannelId,
                 id: blippyId,
                 modelId: 'gpt-5.6-sol',
                 reportedAt: now,
@@ -139,7 +139,7 @@ export async function seedDevelopmentServer(
                 description: 'Pressure-tests the details and keeps the work grounded.',
                 displayName: 'Tiny',
                 handle: 'tiny',
-                homeProjectId: channelId,
+                homeProjectId: demoChannelId,
                 id: tinyId,
                 modelId: 'gpt-5.6-terra',
                 reportedAt: now,

@@ -14,6 +14,7 @@ import {
     tickReminders,
     updateReminder,
 } from '../src/reminders/reminders.ts';
+import { testSqlAgentHome } from './agent-home.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -46,7 +47,7 @@ beforeAll(async () => {
     agentId = 'agt_reminder_author';
     await harness.sql`
         insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
-        values (${agentId}, ${serverId}, 'reminder-cove', 'Cove', 'America/New_York', (select id from chats where server_id = ${serverId} and is_all))
+        values (${agentId}, ${serverId}, 'reminder-cove', 'Cove', 'America/New_York', ${await testSqlAgentHome(harness.sql, serverId)})
     `;
     await harness.sql`
         insert into channel_agent_participants (server_id, chat_id, agent_id)
@@ -851,7 +852,7 @@ async function addAgent(id: string) {
     const handle = id.replaceAll('_', '-');
     await harness.sql`
         insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
-        values (${id}, ${serverId}, ${handle}, ${id}, 'America/New_York', (select id from chats where server_id = ${serverId} and is_all))
+        values (${id}, ${serverId}, ${handle}, ${id}, 'America/New_York', ${await testSqlAgentHome(harness.sql, serverId)})
     `;
     await harness.sql`
         insert into channel_agent_participants (server_id, chat_id, agent_id)

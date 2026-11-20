@@ -16,12 +16,12 @@ async function allChannel() {
     const chats = await fixture.owner.trpc.chat.list.query({ serverId: fixture.serverId });
     const all = chats.find((chat) => chat.isAll);
     if (!all) {
-        throw new Error('The Server has no #haus.');
+        throw new Error('The Server has no #all.');
     }
     return all;
 }
 
-test('a new Server seeds #haus with its shared description', async () => {
+test('a new Server seeds #all with its shared description', async () => {
     const all = await allChannel();
 
     expect(all.description).toBe(allChannelDescription);
@@ -70,16 +70,16 @@ test('Agents read channel descriptions with bare handles from server and channel
     expect(server.status).toBe(200);
     const channels = server.body.channels as { description: string | null; handle: string }[];
     expect(channels).toContainEqual(
-        expect.objectContaining({ description: allChannelDescription, handle: 'haus' })
+        expect.objectContaining({ description: allChannelDescription, handle: 'all' })
     );
     expect(channels).toContainEqual(
         expect.objectContaining({ description: null, handle: 'product' })
     );
 
     const info = await agentGet(
-        `/api/agent/channels/info?target=${encodeURIComponent('#haus')}`,
+        `/api/agent/channels/info?target=${encodeURIComponent('#all')}`,
         runner
     );
     expect(info.status).toBe(200);
-    expect(info.body).toMatchObject({ description: allChannelDescription, handle: 'haus' });
+    expect(info.body).toMatchObject({ description: allChannelDescription, handle: 'all' });
 });

@@ -974,6 +974,13 @@
       "when": 1795144337421,
       "tag": "0138_remove-cove-onboarding",
       "breakpoints": true
+    },
+    {
+      "idx": 139,
+      "version": "7",
+      "when": 1795201577302,
+      "tag": "0139_all-is-a-chat",
+      "breakpoints": true
     }
   ]
 }

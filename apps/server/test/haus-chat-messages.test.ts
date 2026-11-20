@@ -17,7 +17,7 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('a human sends an immutable message to #haus and reads it back by sequence', async () => {
+test('a human sends an immutable message to #all and reads it back by sequence', async () => {
     const server = await client.trpc.server.create.mutate({
         displayName: 'Message Server',
         slug: 'message-server',

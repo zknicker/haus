@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { testSqlAgentHome } from './agent-home.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { createTestProject } from './project.fixture.ts';
@@ -18,7 +19,7 @@ beforeAll(async () => {
     });
     serverId = server.id;
     await harness.sql`INSERT INTO agents (id, server_id, handle, display_name, home_timezone, home_project_id)
-        VALUES (${agentId}, ${serverId}, 'dependents-agent', 'Dependents Agent', 'UTC', (select id from chats where server_id = ${serverId} and is_all))`;
+        VALUES (${agentId}, ${serverId}, 'dependents-agent', 'Dependents Agent', 'UTC', ${await testSqlAgentHome(harness.sql, serverId)})`;
 });
 
 afterAll(async () => {

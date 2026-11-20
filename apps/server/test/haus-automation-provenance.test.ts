@@ -129,7 +129,7 @@ test('fires a Trigger without a receipt and hands the Agent its envelope', async
         id: fireId,
         senderHandle: 'trigger',
         senderType: 'trigger',
-        target: '#haus',
+        target: '#all',
     });
 });
 
@@ -145,7 +145,7 @@ test('records the cause of the Agent answer and reads it back on the message', a
         cause: fireId,
         content: 'The deploy finished cleanly.',
         nonce: `provenance-send-${fireId}`,
-        target: '#haus',
+        target: '#all',
     });
 
     expect(sent.status).toBe(200);
@@ -228,7 +228,7 @@ test('keeps the mark after the Trigger is deleted, reading archived', async () =
         cause: fireId,
         content: 'The queue drained.',
         nonce: `provenance-archived-${fireId}`,
-        target: '#haus',
+        target: '#all',
     });
     const messageId = sent.body.message?.id ?? '';
 
@@ -287,20 +287,20 @@ test('refuses a cause the sending Agent does not own', async () => {
     const borrowed = await agentRequest(
         'POST',
         '/api/agent/messages/send',
-        { cause: fireId, content: 'Mine now.', nonce: 'borrowed-cause', target: '#haus' },
+        { cause: fireId, content: 'Mine now.', nonce: 'borrowed-cause', target: '#all' },
         peerRunner
     );
     const unknown = await agentRequest('POST', '/api/agent/messages/send', {
         cause: 'trf_does_not_exist',
         content: 'Nothing fired.',
         nonce: 'unknown-cause',
-        target: '#haus',
+        target: '#all',
     });
     const malformed = await agentRequest('POST', '/api/agent/messages/send', {
         cause: 'msg_not_a_fire',
         content: 'Wrong id.',
         nonce: 'malformed-cause',
-        target: '#haus',
+        target: '#all',
     });
 
     expect(borrowed).toMatchObject({ body: { code: 'INVALID_ARG' }, status: 400 });
@@ -351,14 +351,14 @@ test('answers the fire context for a Reminder-caused message and refuses the res
         id: fire.id,
         senderHandle: 'reminder',
         senderType: 'system',
-        target: '#haus',
+        target: '#all',
     });
 
     const sent = await agentRequest('POST', '/api/agent/messages/send', {
         cause: fire.id,
         content: 'Deploy checked.',
         nonce: `provenance-reminder-${fire.id}`,
-        target: '#haus',
+        target: '#all',
     });
     const messageId = sent.body.message?.id ?? '';
 
@@ -443,7 +443,7 @@ test('infers the cause when the sole served inbox item was one fire', async () =
     // fire id is not a message id, and an Agent that copied it into
     // `--message-id` would only earn INVALID_TARGET back.
     const inbox = await agentRequest('GET', '/api/agent/inbox');
-    expect(inbox.body.rows?.find((row) => row.target === '#haus')).toMatchObject({
+    expect(inbox.body.rows?.find((row) => row.target === '#all')).toMatchObject({
         firstShortId: '-',
         latestShortId: '-',
     });
@@ -453,7 +453,7 @@ test('infers the cause when the sole served inbox item was one fire', async () =
     const sent = await agentRequest('POST', '/api/agent/messages/send', {
         content: 'Handled the sole fire.',
         nonce: 'infer-sole-fire',
-        target: '#haus',
+        target: '#all',
     });
     const messageId = sent.body.message?.id ?? '';
 
@@ -503,7 +503,7 @@ test('infers the cause of a fire the run was woken with, without any pull', asyn
     const sent = await agentRequest('POST', '/api/agent/messages/send', {
         content: 'Answered the fire I woke up with.',
         nonce: 'infer-concrete-fire',
-        target: '#haus',
+        target: '#all',
     });
 
     expect(await readCause(sent.body.message?.id ?? '')).toEqual({
@@ -529,7 +529,7 @@ test('infers nothing when the run also saw a human message', async () => {
     const sent = await agentRequest('POST', '/api/agent/messages/send', {
         content: 'Answering something in here.',
         nonce: 'infer-mixed',
-        target: '#haus',
+        target: '#all',
     });
 
     expect(await readCause(sent.body.message?.id ?? '')).toBeNull();
@@ -545,7 +545,7 @@ test('infers nothing when two fires were served to the same run', async () => {
     const sent = await agentRequest('POST', '/api/agent/messages/send', {
         content: 'One answer for two fires.',
         nonce: 'infer-two-fires',
-        target: '#haus',
+        target: '#all',
     });
 
     expect(await readCause(sent.body.message?.id ?? '')).toBeNull();
@@ -560,7 +560,7 @@ test('an explicit cause outranks inference and says so', async () => {
         cause: fireId,
         content: 'Named the fire myself.',
         nonce: 'infer-explicit',
-        target: '#haus',
+        target: '#all',
     });
 
     expect(await readCause(sent.body.message?.id ?? '')).toEqual({
@@ -592,7 +592,7 @@ test('an inline reply answer in the anchor Chat infers its fire', async () => {
         content: 'Answering inline.',
         nonce: 'infer-reply',
         replyToMessageId: anchorMessageId,
-        target: '#haus',
+        target: '#all',
     });
     expect(sent.status).toBe(200);
 
