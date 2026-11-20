@@ -5,7 +5,7 @@ import * as React from 'react';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useHomePromptFocusRequests } from './home-prompt-focus.ts';
-import { defaultCaptainId } from './home-send.ts';
+import { homeCaptainId } from './home-send.ts';
 import { useHomeSend } from './use-home-send.ts';
 
 type HomeProject = Pick<Chat, 'color' | 'icon' | 'id' | 'name' | 'participantAgentIds'>;
@@ -35,7 +35,7 @@ export function HomeComposer({
     const project = projects.find((entry) => entry.id === projectId) ?? projects[0];
     const captain = resolveCaptain(captains, project, pickedCaptainId);
     const ask =
-        project && captain && text.trim().length > 0
+        project && captain && text.trim().length > 0 && !sendHome.isPending
             ? {
                   captain: { agentId: captain.id, name: captain.displayName },
                   projectChatId: project.id,
@@ -183,11 +183,10 @@ function resolveCaptain(
     project: HomeProject | undefined,
     pickedCaptainId: string | null
 ) {
-    const id =
-        pickedCaptainId ??
-        defaultCaptainId(
-            project?.participantAgentIds ?? [],
-            captains.map((captain) => captain.id)
-        );
+    const id = homeCaptainId({
+        captainIds: captains.map((captain) => captain.id),
+        picked: pickedCaptainId,
+        projectCaptainIds: project?.participantAgentIds ?? [],
+    });
     return captains.find((captain) => captain.id === id);
 }

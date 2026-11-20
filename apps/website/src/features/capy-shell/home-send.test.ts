@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { defaultCaptainId, planHomeTask } from './home-send.ts';
+import { homeCaptainId, planHomeTask } from './home-send.ts';
 
 const captain = { agentId: 'forge', name: 'Forge' };
 
@@ -35,7 +35,20 @@ test('a first line longer than a title keeps the whole ask as the description', 
 });
 
 test("the Captain defaults to the Project's Captain, else the Server's first", () => {
-    expect(defaultCaptainId(['retired', 'orbit'], ['forge', 'orbit'])).toBe('orbit');
-    expect(defaultCaptainId([], ['forge', 'orbit'])).toBe('forge');
-    expect(defaultCaptainId(['orbit'], [])).toBeNull();
+    const captainIds = ['forge', 'orbit'];
+    expect(homeCaptainId({ captainIds, picked: null, projectCaptainIds: ['retired', 'orbit'] })).toBe(
+        'orbit'
+    );
+    expect(homeCaptainId({ captainIds, picked: null, projectCaptainIds: [] })).toBe('forge');
+    expect(homeCaptainId({ captainIds: [], picked: null, projectCaptainIds: ['orbit'] })).toBeNull();
+});
+
+test('a picked Captain wins until it is retired, then the default returns', () => {
+    const captainIds = ['forge', 'orbit'];
+    expect(homeCaptainId({ captainIds, picked: 'forge', projectCaptainIds: ['orbit'] })).toBe(
+        'forge'
+    );
+    expect(homeCaptainId({ captainIds, picked: 'gone', projectCaptainIds: ['orbit'] })).toBe(
+        'orbit'
+    );
 });
