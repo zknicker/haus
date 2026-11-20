@@ -69,12 +69,8 @@ test('a DM reaches its Agent wherever it lives', async () => {
     expect(await heard(sent.message.id)).toEqual(['bex']);
 });
 
-test('an Agent homed in the Haus project hears it as its home, and elsewhere only its mentions', async () => {
-    expect(await heard(await send(hearing.hausId, 'Haus-wide update.'))).toEqual([
-        'cove',
-        'gus',
-        'peer',
-    ]);
+test('an Agent the migration left in the Haus project hears it as its home, and elsewhere only its mentions', async () => {
+    expect(await heard(await send(hearing.hausId, 'Haus-wide update.'))).toEqual(['cove']);
     expect(await heard(await send(project('api'), 'API only.'))).toEqual(['bex', 'dov']);
     expect(await heard(await send(project('api'), '@gus take a look.'))).toEqual([
         'bex',

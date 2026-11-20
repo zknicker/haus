@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomUUID } from 'node:crypto';
 import { agentTriggerResultSchema, githubTriggerPreviewResultSchema } from '@haus/api';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { fixtureRepository, workflowRunPayload } from './github-delivery-fixtures.ts';
 import { createFakeGithub, type FakeGithub } from './github-fake.ts';
 import {
@@ -167,7 +168,7 @@ test('revoked GitHub access refuses edits instead of broadening scope', async ()
 });
 
 test('another Agent cannot edit or preview the owned trigger', async () => {
-    const peer = await world.owner.trpc.agent.create.mutate({
+    const peer = await createHomedAgent(world.owner, {
         computerId: 'cmp_githubtriggers01',
         displayName: 'Peer',
         handle: 'peer',

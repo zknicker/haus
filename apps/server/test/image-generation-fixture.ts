@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import type { ImageGeneration } from '@haus/api';
 import { ImageProviderError } from '../src/image-generation/providers/image-provider.ts';
 import type { ImageProviderAdapters } from '../src/image-generation/run-image-generation.ts';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { createTestProject } from './project.fixture.ts';
@@ -104,7 +105,7 @@ export function imageGenerationFixture() {
             )
         `;
         orbitAgentId = (
-            await owner.trpc.agent.create.mutate({
+            await createHomedAgent(owner, {
                 computerId,
                 displayName: 'Orbit',
                 handle: 'orbit',

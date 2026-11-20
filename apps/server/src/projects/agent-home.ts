@@ -92,19 +92,34 @@ export async function requireHomeProject(
     input: { projectId: string; serverId: string }
 ) {
     await requireChatWriteAccess(db, member, { chatId: input.projectId, serverId: input.serverId });
+    if (!(await isLiveProject(db, input))) {
+        throw new ProjectNotFoundError();
+    }
+}
+
+export async function isLiveProject(
+    db: Pick<HausDatabase, 'select'>,
+    input: { projectId: string; serverId: string }
+) {
     const [project] = await db
         .select({ id: projectsTable.chatId })
         .from(projectsTable)
+        .innerJoin(
+            chatsTable,
+            and(
+                eq(chatsTable.serverId, projectsTable.serverId),
+                eq(chatsTable.id, projectsTable.chatId)
+            )
+        )
         .where(
             and(
                 eq(projectsTable.serverId, input.serverId),
-                eq(projectsTable.chatId, input.projectId)
+                eq(projectsTable.chatId, input.projectId),
+                liveProjectChat
             )
         )
         .limit(1);
-    if (!project) {
-        throw new ProjectNotFoundError();
-    }
+    return project !== undefined;
 }
 
 export async function findLiveProjectByKey(
@@ -132,13 +147,18 @@ export async function findLiveProjectByKey(
             and(
                 eq(projectsTable.serverId, input.serverId),
                 eq(taskKeysTable.key, input.key),
-                isNull(chatsTable.archivedAt),
-                isNull(chatsTable.deletedAt)
+                liveProjectChat
             )
         )
         .limit(1);
     return project ?? null;
 }
+
+const liveProjectChat = and(
+    isNull(chatsTable.archivedAt),
+    isNull(chatsTable.deletedAt),
+    eq(chatsTable.isAll, false)
+);
 
 export async function readAgentHomeKey(
     db: Pick<HausDatabase, 'select'>,

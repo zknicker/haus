@@ -10,6 +10,7 @@ import { AvatarGenerationUnavailableError } from '../src/avatar-generation/servi
 import type { MessageRouter } from '../src/message-routing/jev.ts';
 import { type AvatarProviderMode, deterministicPng } from './agent-creation-avatar-fixture.ts';
 import { readCreationGuidance } from './agent-creation-guidance-fixture.ts';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { createTestProject } from './project.fixture.ts';
@@ -258,7 +259,7 @@ export function agentCreationFixture(
     }
 
     async function createAgent(displayName: string, handle: string) {
-        const created = await owner.trpc.agent.create.mutate({
+        const created = await createHomedAgent(owner, {
             computerId,
             displayName,
             handle,

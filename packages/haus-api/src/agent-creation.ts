@@ -39,8 +39,7 @@ export const createAgentInputSchema = z
         description: agentDescriptionInputSchema.nullable().optional(),
         displayName: z.string().trim().min(1).max(80),
         handle: participantHandleSchema,
-        /** Omitted: the Haus project, so the new Agent is a generalist. */
-        homeProjectId: appIdSchema.optional(),
+        homeProjectId: appIdSchema,
         modelId: z.string().trim().min(1).max(128),
         reasoningEffort: agentReasoningEffortSchema.default('medium'),
         runtimeId: z.string().trim().min(1).max(64),
@@ -67,7 +66,7 @@ export const projectKeyTargetSchema = z
  * `brief` is the new Agent's standing instruction. It is durable Server state
  * rendered into the seeded workspace memory, not a Message, so nothing has to
  * DM the new Agent to tell it what it owns. `project` names its home Project
- * by key; null makes it a generalist, homed in the Haus project.
+ * by key; null homes it in the creating Agent's own home Project.
  * `signatureEmoji` is the new Agent's pickup reaction; null means the default 👀.
  */
 /** Server decoder retains missing legacy briefs solely for skew errors and nonce replay. */

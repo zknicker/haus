@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -42,7 +43,7 @@ beforeAll(async () => {
         insert into computers (id, server_id, attached_by_user_id, credential_hash, reported_inventory, health)
         values (${computerId}, ${serverId}, ${user.id}, ${credentialHash}, ${{ runtimes: [codexRuntime] }}::jsonb, 'healthy')
     `;
-    const created = await owner.trpc.agent.create.mutate({
+    const created = await createHomedAgent(owner, {
         computerId,
         displayName: 'Sage',
         handle: 'sage',

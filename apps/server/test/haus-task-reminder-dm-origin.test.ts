@@ -39,14 +39,10 @@ beforeAll(async () => {
         serverId,
     });
     await bea.trpc.invitation.accept.mutate({ token });
-    const [haus] = (await fixture.harness.sql`
-        select id from chats where server_id = ${serverId} and is_all
-    `) as { id: string }[];
-    await owner.trpc.agent.setHome.mutate({
-        agentId: fixture.orbitAgentId,
-        projectId: haus?.id ?? '',
-        serverId,
-    });
+    await fixture.harness.sql`
+        insert into channel_participants (server_id, chat_id, user_id)
+        values (${serverId}, ${fixture.channelId}, ${await fixture.readUserId('user_task_reminder_bea')})
+    `;
     const dm = await owner.trpc.chat.send.mutate({
         agentId: fixture.orbitAgentId,
         content: dmSecret,

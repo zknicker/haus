@@ -135,6 +135,9 @@ test('human sends jump to latest; agent messages preserve following across backg
             values ('cmp_scrolltest000000', '${server.id}', '${userId}', '${credentialHash}', '${JSON.stringify(inventory)}'::jsonb, 'healthy')`
         );
         const { agent } = await client.agent.create.mutate({
+            homeProjectId: (
+                await client.project.create.mutate({ name: 'scrolling', serverId: server.id })
+            ).chat.id,
             computerId: 'cmp_scrolltest000000',
             displayName: 'Scroll agent',
             handle: 'scroll-agent',

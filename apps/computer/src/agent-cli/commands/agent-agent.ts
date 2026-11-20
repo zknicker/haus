@@ -55,7 +55,7 @@ const CREATE_COMMAND: SubCommand = {
         },
         {
             description:
-                'Key of its home Project, which it hears; omitted, it is a generalist in the Haus project',
+                'Key of its home Project, which it hears; omitted, it lives in your own home Project',
             name: '--project',
             valueName: '<KEY>',
         },

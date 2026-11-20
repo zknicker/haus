@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { captureAllTopics, publishedSince } from './realtime-capture.ts';
@@ -63,7 +64,7 @@ test('announces the creator DM once when a human-created trigger first opens it'
 });
 
 async function createAgent(displayName: string, handle: string) {
-    const created = await owner.trpc.agent.create.mutate({
+    const created = await createHomedAgent(owner, {
         computerId,
         displayName,
         handle,

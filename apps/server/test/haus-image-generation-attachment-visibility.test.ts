@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { formatImageGenerationLink } from '@haus/api';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { readTargetAsAgent } from './agent-read-target.ts';
 import type { HausClient } from './haus-client.ts';
 import { imageGenerationFixture } from './image-generation-fixture.ts';
@@ -15,7 +16,7 @@ test('a ready generated image loads exactly where its generation is visible', as
         serverId,
     });
     const novaAgentId = (
-        await owner.trpc.agent.create.mutate({
+        await createHomedAgent(owner, {
             computerId: (
                 (await harness.sql`select computer_id from agents where id = ${orbitAgentId}`) as {
                     computer_id: string;

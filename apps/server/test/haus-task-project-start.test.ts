@@ -6,7 +6,7 @@ import type { HausClient } from './haus-client.ts';
 const fixture = agentCreationFixture();
 let runner: { token: string };
 let bea: HausClient;
-let hausId: string;
+let allId: string;
 let opsId: string;
 
 interface StartReceipt {
@@ -51,15 +51,14 @@ beforeAll(async () => {
         serverId,
     });
     await bea.trpc.invitation.accept.mutate({ token });
+    await fixture.harness.sql`
+        insert into channel_participants (server_id, chat_id, user_id)
+        values (${serverId}, ${fixture.channelId}, ${await fixture.readUserId('user_task_project_bea')})
+    `;
     const [haus] = (await fixture.harness.sql`
         select id from chats where server_id = ${serverId} and is_all
     `) as { id: string }[];
-    hausId = haus?.id ?? '';
-    await owner.trpc.agent.setHome.mutate({
-        agentId: fixture.orbitAgentId,
-        projectId: hausId,
-        serverId,
-    });
+    allId = haus?.id ?? '';
     opsId = (await owner.trpc.project.create.mutate({ key: 'OPS', name: 'ops', serverId })).chat.id;
 });
 
@@ -77,27 +76,30 @@ test('a DM origin starts a Task in the Agent’s home Project, shown only to tha
         target: 'dm:@ada',
         title: 'Look into the deploy',
     });
-    expect(started).toMatchObject({ body: { target: 'task:GEN-1' }, status: 200 });
+    expect(started).toMatchObject({ body: { target: 'task:PROD-1' }, status: 200 });
 
-    const seen = await owner.trpc.task.get.query({ key: 'GEN-1', serverId });
+    const seen = await owner.trpc.task.get.query({ key: 'PROD-1', serverId });
     expect(seen).toMatchObject({
         origin: { chatId: dm.message.chatId, messageId: dm.message.id },
-        projectId: hausId,
+        projectId: fixture.channelId,
     });
-    expect(await taskChatParent(seen.chatId ?? '')).toBe(hausId);
-    expect((await bea.trpc.task.get.query({ key: 'GEN-1', serverId })).origin).toBeNull();
+    expect(await taskChatParent(seen.chatId ?? '')).toBe(fixture.channelId);
+    expect((await bea.trpc.task.get.query({ key: 'PROD-1', serverId })).origin).toBeNull();
     expect(
-        (await bea.trpc.task.listOpen.query({ serverId })).find((task) => task.key === 'GEN-1')
+        (await bea.trpc.task.listOpen.query({ serverId })).find((task) => task.key === 'PROD-1')
             ?.origin
     ).toBeNull();
 
     const page = await owner.trpc.chat.messages.query({ chatId: dm.message.chatId, serverId });
     expect(page.tasks.map((task) => [task.key, task.originMessageId])).toEqual([
-        ['GEN-1', dm.message.id],
+        ['PROD-1', dm.message.id],
     ]);
 });
 
-test('an Agent homed in the Haus project starting a Task in another Project is TASK_PROJECT_NOT_HOME', async () => {
+test('an Agent the migration left in #all starting a Task in another Project is TASK_PROJECT_NOT_HOME', async () => {
+    await fixture.harness.sql`
+        update agents set home_project_id = ${allId} where id = ${fixture.orbitAgentId}
+    `;
     const origin = await send(fixture.channelId, 'The ops pager is noisy');
 
     expect(

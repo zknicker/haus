@@ -33,6 +33,9 @@ test('Inbox elapsed time ticks through activity changes and reloads', async ({ p
             `update computers set reported_inventory = '${JSON.stringify(inventory)}'::jsonb where id = '${computerId}'`
         );
         const { agent } = await client.agent.create.mutate({
+            homeProjectId: (
+                await client.project.create.mutate({ name: 'scouting', serverId: server.id })
+            ).chat.id,
             serverId: server.id,
             computerId,
             displayName: 'Scout',

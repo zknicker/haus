@@ -30,6 +30,9 @@ test('live turn retains open tool evidence and scroll through refresh, reasoning
             `update computers set reported_inventory = '${JSON.stringify(inventory)}'::jsonb where id = '${computerId}'`
         );
         const { agent } = await client.agent.create.mutate({
+            homeProjectId: (
+                await client.project.create.mutate({ name: 'scouting', serverId: server.id })
+            ).chat.id,
             serverId: server.id,
             computerId,
             displayName: 'Scout',

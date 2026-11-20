@@ -72,7 +72,7 @@ export async function createAgentFromAgent(
         await requireAgentCreationGuidance(tx, runner, input.brief);
         // Nothing is written until the requested Project is there to live in, so
         // a typo in `--project` creates nothing.
-        const homeProjectId = await requireCreationHome(tx, runner.serverId, input.project);
+        const homeProjectId = await requireCreationHome(tx, runner, input.project);
         const execution = await requireCallerExecution(tx, runner);
         const handle = await suggestAvailableParticipantHandle(
             tx,

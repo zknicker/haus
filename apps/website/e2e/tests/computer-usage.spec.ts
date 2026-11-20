@@ -146,6 +146,9 @@ test('manual runtime refresh updates capacity and Agent model choices without re
         await expect(page.getByText('Not detected: Claude Code')).toBeVisible();
         await page.screenshot({ path: test.info().outputPath('refreshed-runtimes.png') });
         const { agent } = await owner.agent.create.mutate({
+            homeProjectId: (
+                await owner.project.create.mutate({ name: 'refreshing', serverId: server.id })
+            ).chat.id,
             serverId: server.id,
             computerId: attachment.computerId,
             displayName: 'Refresh Scout',

@@ -13,6 +13,7 @@ import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { createMcpConnection, disconnectMcpConnection } from '../src/server-mcp/service.ts';
 import { listMcpConnections, setMcpGrant } from '../src/server-mcp/state.ts';
 import { modelToolName } from '../src/server-mcp/tool-catalog.ts';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { invokeMcp } from './mcp-client.ts';
@@ -55,7 +56,7 @@ beforeAll(async () => {
         values (${computerId}, ${serverId}, ${ownerUserId}, ${credentialHash}, ${{ runtimes: [codexRuntime] }}::jsonb, 'healthy')
     `;
 
-    const created = await owner.trpc.agent.create.mutate({
+    const created = await createHomedAgent(owner, {
         computerId,
         displayName: 'Sage',
         handle: 'sage',
@@ -110,6 +111,13 @@ test('chat mention options expose the DM Agent, active humans, visible channels,
             id: expect.stringMatching(/^user:\/\/usr_/u),
             kind: 'user',
             label: 'Ada',
+        }),
+        expect.objectContaining({
+            id: expect.stringMatching(/^chat:\/\/cht_/u),
+            insertText: '#captains',
+            kind: 'chat',
+            label: 'captains',
+            sourceLabel: 'Channels',
         }),
         expect.objectContaining({
             id: expect.stringMatching(/^chat:\/\/cht_/u),
@@ -240,7 +248,7 @@ test('Agent sends remove terminal whitespace while preserving leading and intern
     ]);
 });
 test('Agent message references persist as stable Agent and Chat links', async () => {
-    const blippy = await owner.trpc.agent.create.mutate({
+    const blippy = await createHomedAgent(owner, {
         computerId,
         displayName: 'Blippy',
         handle: 'blippy',
@@ -248,7 +256,7 @@ test('Agent message references persist as stable Agent and Chat links', async ()
         runtimeId: 'codex',
         serverId,
     });
-    const tiny = await owner.trpc.agent.create.mutate({
+    const tiny = await createHomedAgent(owner, {
         computerId,
         displayName: 'Tiny',
         handle: 'tiny',
@@ -310,7 +318,7 @@ test('Agent message references persist as stable Agent and Chat links', async ()
         confirmation: 'Blippy',
         serverId,
     });
-    await owner.trpc.agent.create.mutate({
+    await createHomedAgent(owner, {
         computerId,
         displayName: 'Blippy Replacement',
         handle: 'blippy',
@@ -318,7 +326,7 @@ test('Agent message references persist as stable Agent and Chat links', async ()
         runtimeId: 'codex',
         serverId,
     });
-    await owner.trpc.agent.create.mutate({
+    await createHomedAgent(owner, {
         computerId,
         displayName: 'Future',
         handle: 'future',
@@ -420,7 +428,7 @@ test('As Claim enters the Agent inbox with canonical unassigned claim metadata',
     ).toMatchObject({ number: created.claim.number, status: 'todo' });
 });
 test('ordinary Channel delivery preserves per-recipient direct attention', async () => {
-    const peer = await owner.trpc.agent.create.mutate({
+    const peer = await createHomedAgent(owner, {
         computerId,
         displayName: 'Attention Peer',
         handle: 'attention-peer',
@@ -1028,7 +1036,7 @@ test('concurrent Agent claims choose one owner and the losing Agent cannot proce
         insert into channel_participants (server_id, chat_id, user_id)
         values (${serverId}, ${channelId}, ${ownerUserId})
     `;
-    const peer = await owner.trpc.agent.create.mutate({
+    const peer = await createHomedAgent(owner, {
         computerId,
         displayName: 'Rival',
         handle: 'rival',
@@ -1240,7 +1248,7 @@ test('Agent claim creation is replay-safe and directly wakes an assigned peer', 
         insert into channel_participants (server_id, chat_id, user_id)
         values (${serverId}, ${channelId}, ${ownerUserId})
     `;
-    const peer = await owner.trpc.agent.create.mutate({
+    const peer = await createHomedAgent(owner, {
         computerId,
         displayName: 'Scout',
         handle: 'scout',

@@ -158,6 +158,9 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     const [computer] = await owner.computer.list.query({ serverId: attachment.serverId });
     await expect(
         owner.agent.create.mutate({
+            homeProjectId: (
+                await owner.project.create.mutate({ name: 'ghosts', serverId: attachment.serverId })
+            ).chat.id,
             computerId: computer.id,
             displayName: 'Ghost',
             handle: 'ghost',

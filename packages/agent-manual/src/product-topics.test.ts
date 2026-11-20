@@ -110,7 +110,9 @@ test('publishes the Agent reference topic as the Agent-creation contract', () =>
     // follow-up DM.
     expect(agent?.body).toContain('**It introduces itself.**');
     expect(agent?.body).not.toContain('**Introduce it in #all after creation.**');
-    expect(agent?.body).toMatch(/\*\*Give it a home\.\*\*.*a generalist in the Haus project/u);
+    expect(agent?.body).toMatch(
+        /\*\*Give it a home\.\*\*.*Leave it off and it lives in your own home Project\./u
+    );
     expect(agent?.body).toContain('**Give it a brief.**');
     expect(agent?.body).toContain('copy their ID-backed Markdown reference');
     expect(agent?.body).not.toContain('@zach-knickerbocker');

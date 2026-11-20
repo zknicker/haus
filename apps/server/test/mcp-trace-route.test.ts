@@ -8,6 +8,7 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import { makeClient } from '../src/server-mcp/runtime-test-fixtures.ts';
 import { McpRuntime } from '../src/server-mcp/runtime.ts';
 import { modelToolName } from '../src/server-mcp/tool-catalog.ts';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -47,7 +48,7 @@ beforeAll(async () => {
     await harness.sql`insert into computers (id, server_id, attached_by_user_id, credential_hash, reported_inventory, health)
         values (${computerId}, ${server.id}, ${user.id}, ${credentialHash},
         ${{ runtimes: [{ id: 'codex', label: 'Codex', models: [{ id: 'gpt-5.6-sol', label: 'Sol' }] }] }}::jsonb, 'healthy')`;
-    const { agent } = await owner.trpc.agent.create.mutate({
+    const { agent } = await createHomedAgent(owner, {
         computerId,
         displayName: 'Trace Agent',
         handle: 'trace-agent',
@@ -72,7 +73,7 @@ beforeAll(async () => {
     });
     expect(minted.status).toBe(200);
     ({ runnerToken } = await minted.json());
-    const { agent: other } = await owner.trpc.agent.create.mutate({
+    const { agent: other } = await createHomedAgent(owner, {
         computerId,
         displayName: 'Other',
         handle: 'other',

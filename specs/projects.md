@@ -100,8 +100,11 @@ starts with a digit is prefixed with `P` before step 2.
 - The Project's Agents are the Agents whose home it is. Adding an Agent in a Project's settings
   moves its home there from wherever it was. The settings list shows where each candidate lives
   now, so a person sees what the move takes away.
-- Agent creation takes a home Project. The App's create dialog asks for one and defaults to the
-  Haus project. `haus agent create --project <key>` names it and defaults to the Haus project.
+- Agent creation always names a home Project, an open Project validated in the creating
+  transaction; `#all` is never one. `agent.create` requires `homeProjectId`, and the App's
+  create dialog asks for it. `haus agent create --project <key>` names it, and without the flag
+  the new Agent lives in the creating Agent's own home, refused when that home is not an open
+  Project. Nothing defaults to the Haus project.
 - Moving an Agent changes what reaches it ([inbox.md](inbox.md#hearing)) and which Project
   `AGENTS.md` its main session receives ([ADR 0054](../docs/adr/0054-drive-holds-what-agents-know-and-follow.md)
   decision 7). It does not touch its session, its memory, or its machine

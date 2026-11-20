@@ -1,16 +1,16 @@
 import type { AgentCreated, AvatarMediaType, CreateAgentInput } from '@haus/api';
+import { and, eq } from 'drizzle-orm';
 import { enqueueAgentGreeting } from '../agent-delivery/greeting.ts';
 import { type AvatarBytes, createAvatarId, readAvatarBytes } from '../avatars/avatar-bytes.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { agentsTable, avatarsTable } from '../postgres/schema.ts';
+import { agentsTable, avatarsTable, chatsTable } from '../postgres/schema.ts';
 import {
     homeChangeEvents,
     openAgentHomeReads,
     requireHomeProject,
 } from '../projects/agent-home.ts';
-import { requireHausProjectId } from '../projects/haus-project.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { participantHandleConstraint } from '../servers/participant-handles.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
@@ -41,12 +41,10 @@ export async function createAgent(
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const creator = await requireAgentCreationAuthority(tx, member, input.serverId);
-        if (input.homeProjectId) {
-            await requireHomeProject(tx, creator, {
-                projectId: input.homeProjectId,
-                serverId: input.serverId,
-            });
-        }
+        await requireHomeProject(tx, creator, {
+            projectId: input.homeProjectId,
+            serverId: input.serverId,
+        });
         const avatar = input.avatar
             ? {
                   ...readAvatarBytes(input.avatar.bytesBase64, input.avatar.mediaType),
@@ -97,8 +95,7 @@ export async function createAgentInTransaction(
     }
 
     const agentId = createOpaqueId('agt');
-    const hausProjectId = await requireHausProjectId(db, input.serverId);
-    const homeProjectId = input.homeProjectId ?? hausProjectId;
+    const { homeProjectId } = input;
     try {
         await db.insert(agentsTable).values({
             avatarId,
@@ -135,7 +132,7 @@ export async function createAgentInTransaction(
     // rather than waiting for its first delivery. The caller dispatches after commit.
     await enqueueAgentGreeting(db, {
         agentId,
-        allChannelId: hausProjectId,
+        allChannelId: await requireAllChannelId(db, input.serverId),
         serverId: input.serverId,
     });
 
@@ -195,4 +192,16 @@ async function requireAgentCreationAuthority(
         throw new AgentConfigDeniedError('Only a Server Owner or Admin can create an Agent.');
     }
     return member;
+}
+
+async function requireAllChannelId(db: Pick<HausDatabase, 'select'>, serverId: string) {
+    const [channel] = await db
+        .select({ id: chatsTable.id })
+        .from(chatsTable)
+        .where(and(eq(chatsTable.serverId, serverId), eq(chatsTable.isAll, true)))
+        .limit(1);
+    if (!channel) {
+        throw new Error(`Server ${serverId} has no #all channel for the greeting.`);
+    }
+    return channel.id;
 }

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect } from 'bun:test';
 import { createHash } from 'node:crypto';
 import type { Worker } from '@haus/api';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { readTargetAsAgent } from './agent-read-target.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
@@ -67,7 +68,7 @@ export function workerRecordFixture() {
         )
     `;
         orbitAgentId = (
-            await owner.trpc.agent.create.mutate({
+            await createHomedAgent(owner, {
                 computerId,
                 displayName: 'Orbit',
                 handle: 'orbit',

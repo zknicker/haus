@@ -3,6 +3,7 @@ import { lstat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { makeTestRuntime } from '@haus/effect';
 import { openAttachmentRoot } from '../src/attachments/attachment-root.ts';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { createTestProject } from './project.fixture.ts';
@@ -53,7 +54,7 @@ beforeAll(async () => {
             'healthy'
         )
     `;
-    await owner.trpc.agent.create.mutate({
+    await createHomedAgent(owner, {
         computerId: 'cmp_lifecycle0000000',
         displayName: 'Sage',
         handle: 'sage',

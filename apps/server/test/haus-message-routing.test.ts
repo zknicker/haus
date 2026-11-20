@@ -1,6 +1,7 @@
 import { beforeAll, expect, test } from 'bun:test';
 import type { MessageRouter, RoutingDecision, RoutingState } from '../src/message-routing/jev.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
+import { ensureCaptainsProject } from './agent-home.fixture.ts';
 import { createInlineReplyHelpers } from './haus-inline-replies-helpers.ts';
 
 const calls: RoutingState[] = [];
@@ -257,13 +258,11 @@ test('a concurrent message does not wait for inference and invalidates the old s
 });
 
 test('a home move during inference cannot be bypassed by the selected Agent', async () => {
-    const haus = (await fixture.harness.sql`
-        select id from chats where server_id = ${fixture.serverId} and is_all
-    `) as { id: string }[];
+    const captains = await ensureCaptainsProject(fixture.owner, fixture.serverId);
     judge = async () => {
         await fixture.owner.trpc.agent.setHome.mutate({
             agentId: fixture.orbitAgentId,
-            projectId: haus[0]?.id ?? '',
+            projectId: captains,
             serverId: fixture.serverId,
         });
         return await narrow();

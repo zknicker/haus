@@ -7,7 +7,7 @@ import { requireChatWritable } from '../chats/chat-access.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, chatsTable } from '../postgres/schema.ts';
-import { findLiveProjectByKey, readAgentHomeKey } from '../projects/agent-home.ts';
+import { findLiveProjectByKey, isLiveProject, readAgentHomeKey } from '../projects/agent-home.ts';
 import { readCreatedAgent } from './agent-created-shape.ts';
 import { requireAgentCreationGuidance } from './creation-guidance.ts';
 import { AgentCreateConflictError } from './errors.ts';
@@ -102,24 +102,47 @@ export async function precheckAgentCreation(
     }
     await assertFreshAgentView(db, runner, chatId);
     await requireAgentCreationGuidance(db, runner, input.brief);
-    await requireCreationHome(db, runner.serverId, input.project);
+    await requireCreationHome(db, runner, input.project);
     return { replayed: false };
 }
 
-/** The live Project `--project` names, or the Haus project when it names none. */
+/** The live Project `--project` names, or else the creating Agent's own home. */
 export async function requireCreationHome(
     db: Pick<HausDatabase, 'select'>,
-    serverId: string,
+    runner: ResolvedRunner,
     key: string | null
 ) {
     if (key === null) {
-        return undefined;
+        const home = await findCreatorHome(db, runner);
+        if (!home) {
+            throw new AgentTargetError(
+                'Your home is not an open Project, so the new Agent cannot live there. Pass --project <KEY>.'
+            );
+        }
+        return home;
     }
-    const project = await findLiveProjectByKey(db, { key, serverId });
+    const project = await findLiveProjectByKey(db, { key, serverId: runner.serverId });
     if (!project) {
         throw new AgentTargetError(
             `There is no open Project with key ${key} on this Server to make the new Agent's home.`
         );
     }
     return project.id;
+}
+
+async function findCreatorHome(db: Pick<HausDatabase, 'select'>, runner: ResolvedRunner) {
+    const [creator] = await db
+        .select({ homeProjectId: agentsTable.homeProjectId })
+        .from(agentsTable)
+        .where(and(eq(agentsTable.serverId, runner.serverId), eq(agentsTable.id, runner.agentId)))
+        .limit(1);
+    if (!creator) {
+        return null;
+    }
+    return (await isLiveProject(db, {
+        projectId: creator.homeProjectId,
+        serverId: runner.serverId,
+    }))
+        ? creator.homeProjectId
+        : null;
 }

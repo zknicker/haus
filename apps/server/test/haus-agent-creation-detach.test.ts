@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
+import { ensureCaptainsProject } from './agent-home.fixture.ts';
 
 const fixture = agentCreationFixture();
 
@@ -47,12 +48,9 @@ test('deleting a legacy creation announcement detaches its link and preserves th
     `) as { id: string }[];
     const chatIds = [fixture.channelId, ...children.map((child) => child.id)];
 
-    const [haus] = (await fixture.harness.sql`
-        select id from chats where server_id = ${fixture.serverId} and is_all
-    `) as { id: string }[];
     await fixture.owner.trpc.agent.setHome.mutate({
         agentId: fixture.orbitAgentId,
-        projectId: haus?.id ?? '',
+        projectId: await ensureCaptainsProject(fixture.owner, fixture.serverId),
         serverId: fixture.serverId,
     });
     await expect(
