@@ -6,9 +6,12 @@ import { WorkerCard } from './worker-card.tsx';
 import { workerText } from './worker-presentation.ts';
 import { WorkerStatusDisc } from './worker-status-disc.tsx';
 
+export type WorkerSummary = Pick<Worker, 'id' | 'place' | 'title'>;
+
 interface DockedWorker {
     isDocked: (workerId: string) => boolean;
     reveal: (workerId: string) => void;
+    summary: (workerId: string) => null | WorkerSummary;
 }
 
 const DockedWorkerContext = React.createContext<DockedWorker | null>(null);
@@ -16,17 +19,23 @@ const DockedWorkerContext = React.createContext<DockedWorker | null>(null);
 export function DockedWorkerProvider({
     children,
     dock,
-    workerIds,
+    docked,
+    workers,
 }: {
     children: React.ReactNode;
     dock: React.RefObject<HTMLElement | null>;
-    workerIds: readonly string[];
+    docked: boolean;
+    workers: readonly WorkerSummary[];
 }) {
-    const key = workerIds.join('\n');
+    const key = JSON.stringify(workers.map(({ id, place, title }) => [id, place, title]));
     const value = React.useMemo<DockedWorker>(() => {
-        const docked = new Set(key.split('\n'));
+        const summaries = new Map(
+            (JSON.parse(key) as [string, WorkerSummary['place'], string][]).map(
+                ([id, place, title]) => [id, { id, place, title }]
+            )
+        );
         return {
-            isDocked: (workerId) => docked.has(workerId),
+            isDocked: (workerId) => docked && summaries.has(workerId),
             reveal: (workerId) => {
                 const card = dock.current?.querySelector<HTMLElement>(
                     `[data-work-id="${CSS.escape(workerId)}"]`
@@ -34,8 +43,9 @@ export function DockedWorkerProvider({
                 card?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 card?.focus({ preventScroll: true });
             },
+            summary: (workerId) => summaries.get(workerId) ?? null,
         };
-    }, [dock, key]);
+    }, [dock, docked, key]);
     return <DockedWorkerContext.Provider value={value}>{children}</DockedWorkerContext.Provider>;
 }
 

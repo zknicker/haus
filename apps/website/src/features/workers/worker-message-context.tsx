@@ -1,6 +1,4 @@
-import { useParams } from 'react-router-dom';
-import { useServer } from '../../hooks/servers/use-server.ts';
-import { useWorker } from '../../hooks/servers/use-worker.ts';
+import { useWorkerSummary } from '../../hooks/servers/use-worker.ts';
 import { cn } from '../../lib/utils.ts';
 import {
     TurnContextLine,
@@ -12,11 +10,17 @@ import { useDockedWorker } from './docked-worker.tsx';
 import type { WorkerMessageBody } from './worker-message-body.ts';
 import { workerPlaceName } from './worker-place.tsx';
 
-export function WorkerMessageContext({ body }: { body: WorkerMessageBody }) {
-    const { slug = '' } = useParams();
-    const server = useServer(slug, Boolean(slug)).data;
+export function WorkerMessageContext({
+    body,
+    serverId,
+}: {
+    body: WorkerMessageBody;
+    serverId: null | string;
+}) {
     const docked = useDockedWorker();
-    const work = useWorker(server?.id ?? '', body.workerId, { enabled: server !== undefined }).data;
+    const known = docked?.summary(body.workerId) ?? null;
+    const fetched = useWorkerSummary(serverId, body.workerId, known === null);
+    const work = known ?? fetched;
     if (!work) {
         return null;
     }

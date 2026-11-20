@@ -22,9 +22,9 @@ export function TurnContext({
     if (cause) {
         return <MessageCauseLine cause={cause} />;
     }
-    const workerBody = turnWorkerBody(entry.items);
-    if (workerBody) {
-        return <WorkerMessageContext body={workerBody} />;
+    const worker = turnWorkerBody(entry.items);
+    if (worker) {
+        return <WorkerMessageContext body={worker.body} serverId={worker.serverId} />;
     }
     return reply ? (
         <NavigableInlineReply onOpen={reply.onOpen} reference={reply.reference} />

@@ -1,3 +1,4 @@
+import type { Worker } from '@haus/api';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
@@ -28,15 +29,19 @@ export function useActiveWorker(serverId: string | undefined) {
     );
 }
 
-export function useWorker(
-    serverId: string,
-    workerId: string,
-    { enabled = true }: { enabled?: boolean } = {}
-) {
+export function useWorkerSummary(serverId: null | string, workerId: string, enabled: boolean) {
     return hausTrpc.worker.get.useQuery(
-        { serverId, workerId },
-        { ...queryPolicy.syncedSnapshot, enabled }
-    );
+        { serverId: serverId ?? '', workerId },
+        {
+            ...queryPolicy.syncedSnapshot,
+            enabled: enabled && serverId !== null,
+            select: selectWorkerSummary,
+        }
+    ).data;
+}
+
+function selectWorkerSummary(worker: { id: string; place: Worker['place']; title: string }) {
+    return { id: worker.id, place: worker.place, title: worker.title };
 }
 
 export function useWorkerStop() {

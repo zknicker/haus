@@ -50,10 +50,7 @@ function TaskDetailView({
 }) {
     const dockRef = React.useRef<HTMLDivElement>(null);
     return (
-        <DockedWorkerProvider
-            dock={dockRef}
-            workerIds={panelShown ? task.attachedWork.map((work) => work.id) : []}
-        >
+        <DockedWorkerProvider dock={dockRef} docked={panelShown} workers={task.attachedWork}>
             <div
                 className={
                     panelShown

@@ -13,7 +13,10 @@ export function workerMessageBody(body: MessageBody) {
 export function turnWorkerBody(items: readonly TranscriptItem[]) {
     for (const item of items) {
         if (item.kind === 'row' && item.row.kind === 'message' && item.row.message.workerBody) {
-            return item.row.message.workerBody;
+            return {
+                body: item.row.message.workerBody,
+                serverId: item.row.entity?.serverId ?? null,
+            };
         }
     }
     return null;
