@@ -27,11 +27,12 @@ export function CapyHomePage({
         { serverId },
         { ...queryPolicy.syncedSnapshot, select: selectCaptainChoices }
     ).data;
+    const needsDeviceCount = canManage && captains?.length === 0;
     const devices = hausTrpc.computer.list.useQuery(
         { serverId },
-        { ...queryPolicy.syncedSnapshot, enabled: canManage, select: countDevices }
-    ).data;
-    const deviceCount = canManage ? devices : null;
+        { ...queryPolicy.syncedSnapshot, enabled: needsDeviceCount, select: countDevices }
+    );
+    const deviceCount = needsDeviceCount && !devices.isError ? devices.data : null;
     const projects = React.useMemo(() => {
         if (!chats) {
             return undefined;
