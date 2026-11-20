@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
+import { revokeRunnerCredentialsForRun } from '../src/computers/runner-credentials.ts';
+import { connectHausDatabase } from '../src/postgres/connection.ts';
 import { type InvocationHarness, startInvocationHarness } from './agent-invocations.fixture.ts';
 
 let setup: InvocationHarness;
@@ -41,4 +43,13 @@ test('a drive-sync credential reaches the Drive sync routes, nothing else, for 1
         from agent_runner_credentials where id = ${runnerId}
     `) as { capabilities: string[]; lifetime_seconds: string }[];
     expect(row).toEqual({ capabilities: ['drive-sync'], lifetime_seconds: '900' });
+
+    const connection = await connectHausDatabase(setup.harness.databaseUrl);
+    await revokeRunnerCredentialsForRun(connection.db, {
+        agentId: setup.agentId,
+        runId: 'run_drive_sync_scope',
+        serverId: setup.serverId,
+    });
+    await connection.close();
+    expect((await get('/api/agent/drive/changes')).status).not.toBe(401);
 });

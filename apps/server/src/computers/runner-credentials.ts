@@ -5,7 +5,7 @@ import {
     type RunnerMintRequest,
     type RunnerRevokeRequest,
 } from '@haus/api';
-import { and, eq, gt, isNull } from 'drizzle-orm';
+import { and, arrayContains, eq, gt, isNull, not } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -123,7 +123,9 @@ export async function revokeRunnerCredential(db: HausDatabase, input: RunnerRevo
  * Revokes every live runner credential for one run. A human Stop calls this
  * durably, so the credential dies even when the Computer is offline: a Computer
  * that never got the Stop frame — or that restarts and re-runs the killed turn —
- * can no longer speak as the Agent, and the Stop stays effective.
+ * can no longer speak as the Agent, and the Stop stays effective. A drive-sync
+ * credential stays: it reaches only Drive, expires on its own, and its push may
+ * still be landing the run's edits.
  */
 export async function revokeRunnerCredentialsForRun(
     db: HausDatabase,
@@ -137,7 +139,12 @@ export async function revokeRunnerCredentialsForRun(
                 eq(agentRunnerCredentialsTable.serverId, input.serverId),
                 eq(agentRunnerCredentialsTable.agentId, input.agentId),
                 eq(agentRunnerCredentialsTable.runId, input.runId),
-                isNull(agentRunnerCredentialsTable.revokedAt)
+                isNull(agentRunnerCredentialsTable.revokedAt),
+                not(
+                    arrayContains(agentRunnerCredentialsTable.capabilities, [
+                        driveSyncRunnerCapability,
+                    ])
+                )
             )
         );
 }
