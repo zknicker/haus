@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
-import { parseRunnerConfig, type RunnerConfig } from './config.ts';
+import { parseRunnerConfig, parseRunnerDataDir, type RunnerConfig } from './config.ts';
 import { type DispatchLedger, openDispatchLedger } from './dispatch/ledger.ts';
+import { loginChatgpt } from './pi/pi-login.ts';
 import type { RunnerLink } from './run-context.ts';
 import { openServerLink } from './server-link.ts';
 import { createTurnHost } from './turn/turn-host.ts';
@@ -10,17 +11,26 @@ let attached: ReturnType<typeof openServerLink> | null = null;
 
 if (process.argv[2] === '__mcp-executor') {
     await (await import('@haus/mcp-executor/worker')).runMcpExecutorWorker();
+} else if (process.argv[2] === 'login') {
+    if (process.argv[3] !== 'chatgpt') {
+        process.stderr.write('Usage: haus-runner login chatgpt\n');
+        process.exit(2);
+    }
+    await loginChatgpt({
+        dataDir: parseRunnerDataDir(process.env),
+        write: (line) => process.stdout.write(`${line}\n`),
+    });
 } else {
     const config = parseRunnerConfig(process.env);
     const ledger = openDispatchLedger(config.dataDir);
     const link: RunnerLink = { send: (frame) => attached?.link.send(frame) };
     const turnHost = createTurnHost({ config, ledger, link });
-    const shutdown = (signal: NodeJS.Signals) => {
+    const shutdown = async (signal: NodeJS.Signals) => {
         process.stderr.write(
             `Runner received ${signal}; closing warm sessions and the Server link.\n`
         );
         attached?.close();
-        turnHost.close();
+        await turnHost.close();
         process.exit(0);
     };
     process.once('SIGTERM', shutdown);

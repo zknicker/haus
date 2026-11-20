@@ -71,6 +71,7 @@ export function createClaudeHarness(options: { environment: ClaudeEnvironment; m
     const driver = (launch: RuntimeLaunch) => ({
         bootstrapFingerprint,
         harness: 'claude-agent-sdk' as const,
+        instructionsOnResume: 'launched' as const,
         async openSession({ resumeFrom, signal }: OpenSessionOptions) {
             signal?.throwIfAborted();
             const connection = await connect(launch, resumeFrom);

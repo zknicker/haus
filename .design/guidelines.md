@@ -449,10 +449,31 @@ Tailwind's own scale. That remapping lives in `agent-html/tokens.ts`.
 
 ### Color themes
 
-A color theme is a palette family, picked per device in Settings > Preferences >
-Appearance > **Theme** (`lib/color-theme.ts`), and orthogonal to the Light/Dark/System
-**Mode**. `Default` is the system above; every other theme is a thin layer over it,
-stamped as `data-color-theme` on the document root by `ThemeProvider`, on every route.
+A color theme is a palette family, picked per device in Settings > Appearance > **Theme**
+(`lib/color-theme.ts`), and orthogonal to the Light/Dark/System **Mode**. Haus (id
+`default`) is the system above. `stampAppearance` (`lib/appearance-root.ts`) stamps
+`data-color-theme`, `data-theme` and, for a palette theme, `data-palette` on the document
+root, once before the first render and then from `ThemeProvider`, on every route.
+
+Themes come in two grounds (the definition's `ground`):
+
+- **`haus`**: Haus, OLED and the seasonal themes are thin token layers over the default
+  ladder, as described below.
+- **`palette`**: the open-license palettes (Catppuccin, Gruvbox, Everforest, Nord, One),
+  Mauve (HeroUI Pro's Mouve colors, without its radius, shadows or component overrides), and
+  every custom theme set base colors only: `--accent`, `--background`, `--foreground`, and
+  optionally `--sidebar-surface`, `--surface`, `--overlay`, `--field-background`, `--default`,
+  `--muted`, `--border`, `--link`, `--accent-foreground`. `styles/themes/palette-ground.css`
+  derives every other ground from those, per mode, with the same `color-mix` steps HeroUI uses
+  for hover and soft fills. A palette's block is
+  `[data-color-theme="<id>"][data-palette][data-theme="<mode>"]`, (0,3,0), over the
+  derivation's (0,2,0). Custom themes (`lib/custom-themes.ts`) are generated into one
+  `<style id="haus-custom-themes">` in exactly that shape.
+
+Theme selectors key on attributes, never on `:root`, so a theme preview
+(`styles/themes/theme-preview.css`) that carries the same three attributes renders the real
+theme in place. HeroUI declares `--accent` on `:root` only, so the preview re-declares the
+stock accent for themes that keep it.
 
 Each theme is one `ColorThemeDefinition` in `lib/color-themes.ts`:
 
@@ -476,10 +497,10 @@ Soft, Icicles) is app-local presentation in `lib/roofline-snow.ts`, read and set
 active definition's `scene` is `snowy-roofline`.
 
 - **Tokens only.** A theme's colors live in `styles/themes/<name>-tokens.css` under
-  `:root[data-color-theme="<name>"]`, and for one mode under
-  `:root[data-color-theme="<name>"]:is([data-theme="dark"], .dark)` (or the light
-  equivalent). Those selectors outrank the default theme's `[data-theme]`/`.dark` blocks
-  by specificity, not import order. No BEM overrides and no component restyling: a theme
+  `[data-color-theme="<name>"][data-theme]`, and for one mode under
+  `[data-color-theme="<name>"][data-theme="dark"]` (or the light equivalent). Those
+  selectors outrank the default theme's `[data-theme]`/`.dark` blocks by specificity, not
+  import order. No BEM overrides and no component restyling: a theme
   that needs a rule the tokens cannot express gets the token first. The one exception is a
   token the default theme re-seats on a descendant (light's `--default` on `.sidebar` and
   `.shell-window-band`): a root value never reaches it, so the theme re-seats the same token

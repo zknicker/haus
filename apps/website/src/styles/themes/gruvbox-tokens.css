@@ -1,0 +1,28 @@
+/*
+ * Gruvbox: the light and dark medium-contrast grounds, orange accent. Base
+ * colors only; `palette-ground.css` derives the ladder. Palette by Pavel
+ * Pertsev (MIT), https://github.com/morhetz/gruvbox.
+ */
+[data-color-theme="gruvbox"][data-palette][data-theme="light"] {
+    --accent: #af3a03;
+    --accent-foreground: #fbf1c7;
+    --background: #fbf1c7;
+    --foreground: #3c3836;
+    --sidebar-surface: #f2e5bc;
+    --surface: #f9f5d7;
+    --default: #ebdbb2;
+    --muted: #7c6f64;
+    --border: #d5c4a1;
+}
+
+[data-color-theme="gruvbox"][data-palette][data-theme="dark"] {
+    --accent: #fe8019;
+    --accent-foreground: #282828;
+    --background: #282828;
+    --foreground: #ebdbb2;
+    --sidebar-surface: #1d2021;
+    --surface: #3c3836;
+    --default: #504945;
+    --muted: #a89984;
+    --border: #504945;
+}

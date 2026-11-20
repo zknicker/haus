@@ -15,7 +15,7 @@ import { observeTurn, turnNoProgress } from './observe-turn.ts';
 import type { NoticeReceipt } from './pending-notice.ts';
 import { createRunActivity } from './run-activity.ts';
 import type { runRecords } from './run-records.ts';
-import type { RuntimeDriverFactory, RuntimeTurn } from './runtime-driver.ts';
+import { harnessFor, type RuntimeDriverFactory, type RuntimeTurn } from './runtime-driver.ts';
 import { readAgentSession, resolveTurnSession, writeAgentSession } from './session-file.ts';
 import type { RuntimeTokenUsage } from './turn-event.ts';
 import { TurnStalledError } from './turn-failure.ts';
@@ -59,10 +59,11 @@ export interface RunTurnInput {
 export async function runTurn(input: RunTurnInput) {
     const { start } = input;
     const context = await readAgentContext(input);
-    const composed = composeInstructions(start, context.skills);
+    const harness = harnessFor(start.modelId);
+    const composed = composeInstructions(start, context.skills, harness);
     const session = resolveTurnSession(await readAgentSession(input.agentDir), {
         generation: start.sessionGeneration,
-        harness: 'claude-agent-sdk',
+        harness,
         modelId: start.modelId,
     });
     const driver = input.factory({
@@ -79,7 +80,11 @@ export async function runTurn(input: RunTurnInput) {
         sessionId: `${start.agentId}-${session.generation}`,
         signal: input.signal,
     });
-    const plan = planInstructionsUpdate({ composed, isResume: live.isResume, session });
+    const plan = planInstructionsUpdate({
+        composed,
+        isResume: live.isResume && driver.instructionsOnResume === 'launched',
+        session,
+    });
     const memory = planMemoryDelivery({
         content: context.memory,
         isResume: live.isResume,

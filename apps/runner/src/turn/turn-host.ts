@@ -1,10 +1,10 @@
 import { join } from 'node:path';
 import type { AgentTurnSummary } from '@haus/api';
-import { createClaudeHarness } from '../claude/claude-driver.ts';
-import { setupTokenEnvironment } from '../claude/claude-launch.ts';
 import type { RunnerConfig } from '../config.ts';
 import type { DispatchLedger, RecoveredDispatch } from '../dispatch/ledger.ts';
+import type { LoginConfig } from '../logins.ts';
 import type { RunnerLink, RunStart, TurnHost } from '../run-context.ts';
+import { createHarnesses } from './harnesses.ts';
 import { inboxStore } from './inbox-store.ts';
 import { createRunActivity } from './run-activity.ts';
 import { runRecords } from './run-records.ts';
@@ -21,23 +21,21 @@ interface ActiveRun {
 }
 
 export function createTurnHost(input: {
-    config: Pick<RunnerConfig, 'claudeSetupToken' | 'dataDir' | 'maxWarm'>;
+    config: LoginConfig & Pick<RunnerConfig, 'maxWarm'>;
     ledger: DispatchLedger;
     link: RunnerLink;
     log?: (line: string) => void;
 }) {
-    const harness = createClaudeHarness({
-        environment: setupTokenEnvironment(input.config.claudeSetupToken),
-        maxWarm: input.config.maxWarm,
-    });
+    const log = input.log ?? ((line: string) => process.stderr.write(`${line}\n`));
+    const harnesses = createHarnesses(input.config, log);
     const host = createTurnHostWith({
         dataDir: input.config.dataDir,
-        factory: harness.factory,
+        factory: harnesses.factory,
         ledger: input.ledger,
         link: input.link,
-        log: input.log ?? ((line) => process.stderr.write(`${line}\n`)),
+        log,
     });
-    return { ...host, close: () => harness.close() };
+    return { ...host, close: harnesses.close };
 }
 
 export function createTurnHostWith(input: {

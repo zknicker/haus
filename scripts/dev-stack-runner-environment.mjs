@@ -29,7 +29,10 @@ export function createRunnerProcessEnvironment({
     for (const name of [
         ...inheritedNames,
         'HAUS_RUNNER_CLAUDE_SETUP_TOKEN',
+        'HAUS_RUNNER_GEMINI_API_KEY',
         'HAUS_RUNNER_MAX_WARM',
+        'HAUS_RUNNER_OPENROUTER_API_KEY',
+        'HAUS_RUNNER_XAI_API_KEY',
     ]) {
         if (startupEnvironment[name]) {
             environment[name] = startupEnvironment[name];

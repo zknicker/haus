@@ -122,14 +122,33 @@ about the session.
 
 ### Pi Durable
 
-- Pinned to an exact version and kept behind the harness boundary, so a Pi API change touches one
-  module (R5).
-- Pi's own tools are off. Haus registers its tools as Pi custom tools.
-- The system prompt is the Haus composed prompt. Pi's default prompt and its context files
-  (`AGENTS.md` discovery) are off.
-- Busy delivery uses Pi's steering queue, which delivers at the next tool boundary.
-- Providers come from Pi: OpenAI (ChatGPT plans through the Codex sign-in), xAI, Google, and
-  OpenRouter, as runner logins allow.
+- `@earendil-works/pi-durable` 1.5.2, with its lockstep siblings `pi-ai`, `chord` and `pi-schema`
+  at 1.5.2, pinned exactly in `apps/runner/package.json`. 1.5.1 fixed a task that stuck when
+  parallel tool calls ended during a scheduler pass, and 1.5.2 carries the same durable code. Pi's
+  next minor changes its storage format, so a bump checks that existing stores still open. All Pi
+  code sits in `apps/runner/src/pi/`.
+- Sessions use Pi's SQLite file backend, one file per session at
+  `/data/agents/<agent-id>/pi/<nativeSessionId>/session.sqlite`. Pi's JSONL backend keeps the whole
+  history in memory, which an endless session cannot afford. `nativeSessionId` is a runner UUID,
+  because a Pi store has no session id of its own, so a rotated generation is a new file. One
+  process writes a store at a time, and the per-Agent turn lock guarantees it.
+- Pi's own tools are never installed. Haus registers its tools as Pi custom tools.
+- The system prompt is the Haus composed prompt alone, rendered as one untagged extension section.
+  Pi's conversation `instructions` stay unset, because Pi wraps them in `<instructions>` tags. Pi
+  has no default prompt or context-file discovery to turn off.
+- Pi has no event stream. The harness builds `TurnEvent`s by observing each commit to the
+  conversation (`pi.live` partials, tool slots and run failures) and its committed entries, with
+  partials committed every 50 ms. Usage comes from each committed assistant entry.
+- Busy delivery uses Pi's steering queue, which places a steer at the next tool boundary. A steer
+  counts as delivered only once Pi has placed it in conversation history, not when Pi queues it.
+  Pi starts a successor run for any steer still queued when a run answers, so a Pi turn lasts until
+  the conversation is idle. On abort, the harness withdraws every steer Pi has not placed and
+  returns it through `unconsumedSteers()`, so the executor redelivers it as it does for Claude.
+- A turn left running by a crash is aborted when its store reopens, not resumed into a turn no one
+  observes. The interrupted-turn input reports it, as for Claude.
+- Providers come from Pi: `openai-codex` (ChatGPT plans), `xai`, `google` and `openrouter`. A
+  model goes to the first provider whose catalog lists its id. Credentials come only from runner
+  settings, never ambient environment or files.
 
 ### Pinning and reset
 
@@ -223,8 +242,10 @@ runner render the same text from one source until R4 deletes the Computer's comp
 prompt contract (the size cap, the divergence register, `test:prompt-contract`, and
 `managed-instructions.test.ts`) moved there in R3.
 
-A resumed native session keeps the instructions it started with on both harnesses. The executor
-keeps resumed sessions current as it does today (specs/sessions.md "Instruction updates").
+A resumed Claude Agent SDK session keeps the instructions it started with. A Pi session re-renders
+the Haus section on every request, so a change reaches it natively as a system update and the
+executor sends no instruction-update input to it. The executor keeps resumed Claude sessions
+current as it does today (specs/sessions.md "Instruction updates").
 
 Rules and memory ride the turn input, ahead of the turn content, as ADR 0052 delivers
 `MEMORY.md`. The runner reads the rule layers broadest first, `haus/AGENTS.md` then
@@ -254,7 +275,7 @@ compaction, and the setting has no effect on its Agents.
 | Model family | Machine tools | Runner tools |
 | --- | --- | --- |
 | Claude | `bash`, `str_replace_based_edit_tool` | `execute`, `WebSearch`, `WebFetch` |
-| GPT | `shell`, `apply_patch`, `view_image` | `execute`, provider web search where Pi exposes it |
+| GPT | `shell`, `apply_patch`, `view_image` | `execute` |
 | Every other Pi model | `bash`, `str_replace_based_edit_tool` | `execute` |
 
 Each machine tool keeps the input shape its models are trained on:
@@ -274,9 +295,15 @@ Apache-2.0 `apply_patch` parser for the patch grammar. Ported code lives in its 
 maps each file to its upstream path and commit. The no-comments lint rule forbids a provenance
 header in the file itself.
 
-R2 builds the Claude tools: `bash` and `str_replace_based_edit_tool`, plus `view-image`. The GPT
-tools (`shell`, `apply_patch`, `view_image`) arrive with R5, the first harness that serves GPT
-models, which adds the patch variant of the `edit` operation and ports the Codex parser.
+R2 built the Claude tools, `bash` and `str_replace_based_edit_tool`, plus `view-image`. R5 built
+the GPT tools with Pi Durable, the first harness that serves GPT models. `apply_patch` is the
+`edit` operation's `{ command: 'apply_patch', input, cwd? }` variant, applied by the Codex parser
+ported to `apps/computer/src/invocations/codex/` (Computer protocol 40). Every hunk is checked in
+memory before any write, so a refused patch changes nothing, and Add File over an existing file
+or Move to onto one is refused where Codex would overwrite. Every destination write commits
+before any source is removed, so a failed write never loses a moved or deleted file. `shell` quotes its argv into one
+`bash` command. When the argv is a `bash`, `sh` or `zsh` `-c`/`-lc` wrapper, the lone-`haus` check
+reads the inner script, because GPT models wrap nearly every command that way.
 
 Every call starts in the Agent's working directory on the machine, `<agent-root>/workspace`, with
 no cwd or environment carried from the call before. A command runs under `/bin/bash -c` in its own
@@ -349,6 +376,18 @@ These end at R4 and are named here as intentional capability removals:
 - **Codex native image generation.** Agents generate images with `haus image`
   ([Image Generation](image-generation.md)).
 - **Grok Build as an Agent runtime.** Grok models run on Pi Durable through xAI.
+
+### Deferred
+
+- **Provider web search for GPT models.** pi-ai 1.5.2 exposes no provider-executed web search, so
+  GPT Agents have `execute` and no web search until Pi adds one.
+- **Images to the model from an attachment reference.** `view_image` and `view` on a large image
+  return a reference the runner cannot read until R3b adds the runner read path. Resizing an image
+  for its model comes with that read.
+- **Pi compaction between turns.** A Pi compaction that lands outside a Haus turn has no observer,
+  so the memory and rules receipts do not reset for it.
+- **A cross-process lock on the login file.** Pi locks a token refresh inside the runner process
+  only.
 
 ## Dispatches
 
@@ -595,8 +634,14 @@ Model logins live in runner settings. There are no sign-in screens in v1.
 | xAI, Google, OpenRouter | `HAUS_RUNNER_XAI_API_KEY`, `HAUS_RUNNER_GEMINI_API_KEY`, `HAUS_RUNNER_OPENROUTER_API_KEY` | `.env.schema`, from 1Password |
 
 The ChatGPT sign-in is a file, not an environment variable, because its refresh token rotates.
+Pi ships no file-backed credential store, so the runner keeps one at
+`/data/logins/<provider>.json` (mode 0600, atomic replace). Run the login as the runner's user
+(`docker exec --user haus-runner … haus-runner login chatgpt`), or the runner cannot read the file.
+Pi refreshes the token under a lock inside the runner process only, so do not run a login while
+the runner is refreshing.
 
-The runner reports which logins work in `runner-inventory`, on connect and on change. The Agent
+The runner reports which logins work in `runner-inventory` on connect, so a new login appears
+after the runner's next reconnect. The Agent
 model picker offers exactly those models. Computers no longer report runtimes or models for
 Agents. A login that fails mid-turn is a fatal `session-failure` with category `access`, as
 today.

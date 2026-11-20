@@ -1,0 +1,27 @@
+/*
+ * OLED: the Haus palette with a true black dark ground, for OLED screens.
+ * Light is the default light. Dark moves the page and the shell ladder to
+ * black and keeps raised grounds just above it, so cards and menus still read
+ * by value step on a screen that switches black pixels off. Lines and text
+ * stay HeroUI's.
+ */
+[data-color-theme="oled"][data-theme="dark"] {
+    --background: oklch(0% 0 0);
+    --shell-canvas: oklch(0% 0 0);
+    --shell-band-sidebar: oklch(0% 0 0);
+    --shell-card: oklch(0% 0 0);
+    --shell-tab-active-background: oklch(17% 0.004 286);
+    --shell-field-background: oklch(15% 0.004 286);
+
+    --surface: oklch(14% 0.004 286);
+    --overlay: oklch(17% 0.004 286);
+    --field-background: oklch(14% 0.004 286);
+    --surface-secondary: oklch(19% 0.004 286);
+    --surface-tertiary: oklch(21% 0.004 286);
+    --default: oklch(21% 0.005 286);
+    --tooltip: oklch(25% 0.005 286);
+    --segment: oklch(32% 0.008 286);
+    --border: oklch(22% 0.005 286);
+    --separator: oklch(19% 0.005 286);
+    --nested-surface: oklch(80% 0.01 286 / 9%);
+}

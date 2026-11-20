@@ -114,6 +114,7 @@ function localTools() {
         isError: true,
     };
     const tools: RunTools = {
+        applyPatch: () => Promise.resolve(refused),
         async bash(_toolCallId, input) {
             const child = Bun.spawn(['bash', '-c', input.command], {
                 stderr: 'pipe',
@@ -135,6 +136,8 @@ function localTools() {
                 servedAutomationIds: [],
                 visibleMessages: [],
             }),
+        shell: () => Promise.resolve(refused),
+        viewImage: () => Promise.resolve(refused),
     };
     return tools;
 }
