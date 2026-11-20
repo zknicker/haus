@@ -24,6 +24,7 @@ import {
 import { agentStopCommandSchema } from './agent-stop-commands.ts';
 import { agentThoughtFrameSchema } from './agent-thought.ts';
 import { idSchema } from './chat.ts';
+import { computerRuntimeSchema } from './computer-inventory.ts';
 import {
     runnerModelConnectionDownFrameSchemas,
     runnerModelConnectionUpFrameSchemas,
@@ -100,6 +101,8 @@ export const invocationCancelFrameSchema = z
 export const runnerInventoryFrameSchema = z
     .object({
         harnesses: z.array(z.enum(['claude-agent-sdk', 'pi-durable'])).max(2),
+        /** The curated models the runner serves, one runtime per model family. */
+        runtimes: z.array(computerRuntimeSchema).max(10),
         type: z.literal('runner-inventory'),
     })
     .strict();
