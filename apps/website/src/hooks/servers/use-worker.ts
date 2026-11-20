@@ -1,3 +1,4 @@
+import { summarizeWorker } from '../../features/workers/worker-summaries.tsx';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
@@ -28,12 +29,25 @@ export function useActiveWorker(serverId: string | undefined) {
     );
 }
 
-/**
- * An Owner or Admin asking the provider to stop. The request is recorded even
- * while the Computer is offline, and the work settles through the ordinary
- * observation path — so this mutation invalidates nothing itself and the
- * surface reads as cancelling until `worker.updated` arrives.
- */
-export function useWorkerCancel() {
+export function useWorkerRecord(serverId: string, workerId: string) {
+    return hausTrpc.worker.get.useQuery({ serverId, workerId }, queryPolicy.syncedSnapshot);
+}
+
+export function useWorkerSummary(serverId: null | string, workerId: string, enabled: boolean) {
+    return hausTrpc.worker.get.useQuery(
+        { serverId: serverId ?? '', workerId },
+        {
+            ...queryPolicy.syncedSnapshot,
+            enabled: enabled && serverId !== null,
+            select: summarizeWorker,
+        }
+    ).data;
+}
+
+export function useWorkerStop() {
     return hausTrpc.worker.stop.useMutation();
+}
+
+export function useWorkerSendFollowUp() {
+    return hausTrpc.worker.sendFollowUp.useMutation();
 }

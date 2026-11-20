@@ -6,6 +6,7 @@ import {
 import type { FastifyInstance } from 'fastify';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { AvatarImageService } from '../avatar-generation/service.ts';
+import type { ManagedSkillSeeder } from '../managed-skills/seeder.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import { agentUpdatedTopic } from '../realtime/topics.ts';
@@ -33,6 +34,7 @@ export function registerAgentAgentRoutes(
         agentDelivery: AgentDelivery;
         avatarImageService: AvatarImageService;
         db: HausDatabase;
+        managedSkills: ManagedSkillSeeder;
         postCommitWork: ServerPostCommitWork;
     }
 ) {
@@ -75,10 +77,14 @@ export function registerAgentAgentRoutes(
             }
             const configure = created.configure;
             if (configure) {
-                // Configure first, so the Computer knows the Agent its greeting wakes.
+                // Seed and configure first, so the greeting's turn finds its skills and Computer.
                 void dependencies.postCommitWork.run(
                     'agent.configure-after-agent-create',
                     async () => {
+                        await dependencies.managedSkills.seedAgent(
+                            { agentId: configure.agentId, serverId: runner.serverId },
+                            dependencies.postCommitWork
+                        );
                         await dependencies.agentDelivery.configureAgent(configure);
                         await dependencies.agentDelivery.dispatchAgent(
                             configure.agentId,

@@ -1,3 +1,4 @@
+import { testSqlAgentHome } from './agent-home.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import type { HausServerHarness } from './haus-server-harness.ts';
 
@@ -10,7 +11,7 @@ export function taskFixture(harness: HausServerHarness) {
         async addAgent(serverId: string, agentId: string, handle: string) {
             await harness.sql`
                 insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
-                values (${agentId}, ${serverId}, ${handle}, 'Agent', 'America/New_York', (select id from chats where server_id = ${serverId} and is_all))
+                values (${agentId}, ${serverId}, ${handle}, 'Agent', 'America/New_York', ${await testSqlAgentHome(harness.sql, serverId)})
             `;
         },
         /** Signs a person in and makes them a Member of the Server (no Channel participation). */

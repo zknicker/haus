@@ -132,7 +132,7 @@ test('an Agent creates a github Trigger anchored on the asking message', async (
     expect(body).not.toHaveProperty('secret');
     expect(body.trigger).toMatchObject({
         anchorMessageId: world.anchorMessageId,
-        anchorTarget: '#haus',
+        anchorTarget: '#all',
         createdByUserId: null,
         github: { repositories: { scope: 'installation' } },
         kind: 'github',

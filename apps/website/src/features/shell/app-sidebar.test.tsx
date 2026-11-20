@@ -79,6 +79,16 @@ test('renders a draggable channel row without a handle', () => {
     expect(markup).toContain('--channel-color-dark:#a78bfa');
 });
 
+test('lists #all as the team room, outside Projects', () => {
+    const markup = renderNavigation({
+        chats: [testChat({ id: 'chat_all', isAll: true, name: 'all' }), channel()],
+    });
+
+    expect(markup).toContain('aria-label="Team room"');
+    expect(markup.match(/sortable-channel-row/g)?.length).toBe(1);
+    expect(markup.indexOf('Team room')).toBeLessThan(markup.indexOf('Projects'));
+});
+
 test('keeps context-menu chat rows on the stock Sidebar icon gap', () => {
     const blippy = agent({
         availability: 'idle',

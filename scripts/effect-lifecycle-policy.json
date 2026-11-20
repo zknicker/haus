@@ -43,6 +43,17 @@
                 "timer": 0
             }
         },
+        "apps/computer/src/daemon-memory-guard.ts": {
+            "disposition": "external-adapter",
+            "reason": "A dev-only process watchdog: one unref'd interval reads the daemon's own resident set and, past the limit, clears itself and exits the process. It owns no other resource, never keeps the process alive, and ends with the process.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 1
+            }
+        },
         "apps/computer/src/execution-journal-upload/journal-uploader.ts": {
             "disposition": "finite-cleanup",
             "reason": "Each run's idle waiter is one manual promise that resolves when the Server acks the run's last frame or the attachment socket closes; the on-connect resend pass and ledger writes are serialized promise chains owned by the daemon-lifetime uploader.",
@@ -183,6 +194,17 @@
                 "catchAndIgnore": 0,
                 "finallyBlock": 3,
                 "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/drive/drive-launch.fixture.ts": {
+            "disposition": "test-support",
+            "reason": "The Drive launch fixture holds one push put open on a promise the test releases, so a test can reset mid-push without sleeping; its server and data root close in the test's afterEach.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 2,
                 "timer": 0
             }
         },
@@ -738,10 +760,10 @@
         },
         "apps/server/src/computers/socket.ts": {
             "disposition": "external-adapter",
-            "reason": "ServerPostCommitWork owns reconnect work; the remaining Promise only adapts WebSocketServer close callbacks. Best-effort attach sends (pending Cove application, Server runtime settings) ignore a failure because the next attach resends them.",
+            "reason": "ServerPostCommitWork owns reconnect work; the remaining Promise only adapts WebSocketServer close callbacks. Best-effort attach sends (Server runtime settings) ignore a failure because the next attach resends them.",
             "risks": {
                 "abortController": 0,
-                "catchAndIgnore": 3,
+                "catchAndIgnore": 2,
                 "finallyBlock": 0,
                 "manualPromise": 0,
                 "timer": 2
@@ -1574,11 +1596,11 @@
         },
         "apps/computer/src/drive/turn-sync.ts": {
             "disposition": "finite-cleanup",
-            "reason": "The post-turn push revokes the runner credential it minted once the push ends, and the per-folder queue drops its settled turn; a failed revoke leaves a credential that expires on its own.",
+            "reason": "The post-turn push revokes the runner credential it minted once the push ends, and the per-folder queue drops its settled turn; a failed revoke leaves a credential that expires on its own. Each push owns one AbortController a full reset aborts, removed in the push's finally.",
             "risks": {
-                "abortController": 0,
+                "abortController": 2,
                 "catchAndIgnore": 1,
-                "finallyBlock": 2,
+                "finallyBlock": 3,
                 "manualPromise": 0,
                 "timer": 0
             }

@@ -41,8 +41,8 @@ export async function joinChannelAgents(
 }
 
 /**
- * The Server's `#haus` channel, which every Agent belongs to. A Server seeded
- * before `#haus` existed has none, and creation simply joins the channels it was
+ * The Server's `#all` channel, which every Agent belongs to. A Server seeded
+ * before `#all` existed has none, and creation simply joins the channels it was
  * asked for instead of failing on a channel that is not there to join.
  */
 export async function findAllChannel(
@@ -96,10 +96,9 @@ export async function findActiveAgentByHandle(
     db: Pick<HausDatabase, 'select'>,
     serverId: string,
     handle: string
-): Promise<{ factoryKind: 'cove' | 'ordinary'; handle: string; id: string } | null> {
+) {
     const [agent] = await db
         .select({
-            factoryKind: agentsTable.factoryKind,
             handle: agentsTable.handle,
             id: agentsTable.id,
         })

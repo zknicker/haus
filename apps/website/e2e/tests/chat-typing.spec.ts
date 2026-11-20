@@ -1,3 +1,4 @@
+import { createHomedAgent } from '../support/project.ts';
 import { assertOpaqueId, createTestServer, openChannel, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -10,7 +11,7 @@ test('an Agent reading a message types until its reply lands', async ({ page }) 
         displayName: 'Chat typing',
         slug: 'chat-typing',
     });
-    const chatId = server.channels.find((channel) => channel.name === 'haus')?.id;
+    const chatId = server.channels.find((channel) => channel.name === 'all')?.id;
     assertOpaqueId(chatId);
     const ownerUserId = runPsql(
         session.databaseUrl,
@@ -25,7 +26,7 @@ test('an Agent reading a message types until its reply lands', async ({ page }) 
         `insert into computers (id, server_id, attached_by_user_id, credential_hash, reported_inventory, health)
          values ('${computerId}', '${server.id}', '${ownerUserId}', '${credentialHash}', '${JSON.stringify(inventory)}'::jsonb, 'healthy')`
     );
-    const { agent } = await client.agent.create.mutate({
+    const { agent } = await createHomedAgent(client, {
         computerId,
         displayName: 'Scout',
         handle: 'scout',
@@ -55,11 +56,11 @@ test('an Agent reading a message types until its reply lands', async ({ page }) 
     );
     const runner = await mintRunner(agent.id, chatId);
 
-    await openChannel(page, 'haus');
+    await openChannel(page, 'all');
     // Recently opened Chats stay mounted hidden; target the one on screen.
     const typing = page.locator('[data-slot="chat-typing"]').filter({ visible: true });
     await expect(typing).toBeEmpty();
-    const composer = page.getByRole('textbox', { name: 'Message haus' });
+    const composer = page.getByRole('textbox', { name: 'Message all' });
     await composer.fill('Scout, can you check the build?');
     await composer.press('Enter');
     await expect(page.getByText('Scout, can you check the build?')).toBeVisible();
@@ -104,7 +105,7 @@ test('an Agent reading a message types until its reply lands', async ({ page }) 
         content: 'On it — the build is green.',
         done: true,
         nonce: 'e2e-chat-typing-reply',
-        target: '#haus',
+        target: '#all',
     });
     // The done reply ends the engagement as sent, so a face launches from the dots.
     await expect(typing.locator('[data-slot="chat-typing-launch"]')).toHaveCount(1);

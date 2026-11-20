@@ -87,11 +87,15 @@ export const artifactCreatorSchema = z.discriminatedUnion('type', [
     z.object({ type: z.literal('user'), user_id: id }).strict(),
 ]);
 export type ArtifactCreator = z.infer<typeof artifactCreatorSchema>;
-/** Who wrote one revision: an Agent, a person, or a Worker of an Agent (lands with W2). */
+/**
+ * Who wrote one revision: an Agent, a person, a Worker of an Agent (lands with W2), or Haus
+ * itself, which writes the factory-managed skills into each Agent's area.
+ */
 export const artifactAuthorSchema = z.discriminatedUnion('type', [
     z.object({ type: z.literal('agent'), agent_id: id }).strict(),
     z.object({ type: z.literal('user'), user_id: id }).strict(),
     z.object({ type: z.literal('worker'), worker_id: id, agent_id: id }).strict(),
+    z.object({ type: z.literal('haus') }).strict(),
 ]);
 export type ArtifactAuthor = z.infer<typeof artifactAuthorSchema>;
 export const artifactMetadataSchema = z
@@ -169,9 +173,13 @@ export type ArtifactCreatorSummary = z.infer<typeof artifactCreatorSummarySchema
 export const artifactCreatorsResultSchema = z
     .object({ creators: z.array(artifactCreatorSummarySchema) })
     .strict();
-/** A deleted file: its last head and when it was deleted. Restorable until purged. */
+/** A deleted file: its last head, when and by whom it was deleted. Restorable until purged. */
 export const artifactDeletedRecordSchema = z
-    .object({ artifact: artifactRecordSchema, deleted_at: z.string() })
+    .object({
+        artifact: artifactRecordSchema,
+        deleted_at: z.string(),
+        deleted_by: artifactAuthorSchema.nullable(),
+    })
     .strict();
 export type ArtifactDeletedRecord = z.infer<typeof artifactDeletedRecordSchema>;
 export const artifactListDeletedResultSchema = z

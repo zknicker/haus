@@ -45,7 +45,7 @@ export const serverMembershipsTable = pgTable(
         check('server_memberships_positive_stint', sql`${table.stint} > 0`),
         check(
             'server_memberships_handle_grammar',
-            sql`${table.handle} is null or (${table.handle} ~ '^[a-z0-9][a-z0-9-]{1,30}$' and lower(${table.handle}) not in ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'haus', 'here', 'human', 'humans', 'idle', 'system'))`
+            sql`${table.handle} is null or (${table.handle} ~ '^[a-z0-9][a-z0-9-]{1,30}$' and lower(${table.handle}) not in ('agent', 'agents', 'all', 'busy', 'everyone', 'haus', 'here', 'human', 'humans', 'idle', 'system'))`
         ),
     ]
 );

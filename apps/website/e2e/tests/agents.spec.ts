@@ -1,5 +1,6 @@
 import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@haus/api';
 import { WebSocket } from 'ws';
+import { createHomedAgent } from '../support/project.ts';
 import { attachComputer, createTestServer, runAgentAction } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -150,14 +151,14 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await confirmation.getByRole('button', { name: 'Cancel' }).click();
     await expect(confirmation).toBeHidden();
 
-    // The DM appears as an ordinary Agent DM, not a special onboarding Channel.
+    // The DM appears as an ordinary Agent DM.
     await page.goto('/s/agent-hq');
     await expect(page.getByRole('row', { name: 'Scout' })).toBeVisible();
 
     // Cross-Computer / unreported references fail closed at the contract.
     const [computer] = await owner.computer.list.query({ serverId: attachment.serverId });
     await expect(
-        owner.agent.create.mutate({
+        createHomedAgent(owner, {
             computerId: computer.id,
             displayName: 'Ghost',
             handle: 'ghost',

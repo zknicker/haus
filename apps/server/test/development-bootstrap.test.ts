@@ -7,7 +7,6 @@ import { openAttachmentRoot } from '../src/attachments/attachment-root.ts';
 import { readMessageCauses } from '../src/automations/message-cause-read.ts';
 import { developmentArtifactFiles } from '../src/development/seed-artifact-files.ts';
 import { seedDevelopmentServer } from '../src/development/seed-server.ts';
-import { readPendingCoveCommand } from '../src/onboarding/create-cove.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import {
     agentsTable,
@@ -19,7 +18,7 @@ import {
     computersTable,
     mcpConnectionsTable,
     messageClaimsTable,
-    serverOnboardingTable,
+    projectsTable,
     serversTable,
     taskFollowsTable,
     taskKeysTable,
@@ -66,17 +65,8 @@ test('creates one idempotent Server-owned demo workspace', async () => {
     expect(await connection.db.select().from(serversTable)).toHaveLength(1);
     expect(await connection.db.select().from(computersTable)).toHaveLength(2);
     const agents = await connection.db.select().from(agentsTable);
-    expect(agents).toHaveLength(3);
-    expect(await connection.db.select().from(chatsTable)).toHaveLength(13);
-    expect(await connection.db.select().from(serverOnboardingTable)).toMatchObject([
-        {
-            agentId: agents.find((agent) => agent.handle === 'cove')?.id,
-            modelId: 'gpt-5.6-terra',
-            phase: 'applying',
-            runtimeId: 'codex',
-            serverId: first.id,
-        },
-    ]);
+    expect(agents).toHaveLength(2);
+    expect(await connection.db.select().from(chatsTable)).toHaveLength(11);
     expect(await connection.db.select().from(chatMessagesTable)).toHaveLength(91);
     const [seededAttachment] = await connection.db.select().from(attachmentsTable);
     expect(seededAttachment).toMatchObject({
@@ -98,26 +88,13 @@ test('creates one idempotent Server-owned demo workspace', async () => {
     expect(createHash('sha256').update(attachmentBytes).digest('hex')).toBe(
         seededAttachment.sha256
     );
-    const onboardingComputerId = (await connection.db.select().from(serverOnboardingTable))[0]
-        ?.computerId;
-    const computer = (await connection.db.select().from(computersTable)).find(
-        (row) => row.id === onboardingComputerId
-    );
+    const blippyComputerId = agents.find((agent) => agent.handle === 'blippy')?.computerId;
     const computerAttachment = JSON.parse(
         await readFile(join(computerDataRoot, 'servers', first.id, 'attachment.json'), 'utf8')
     ) as { computerId: string; serverOrigin: string };
     expect(computerAttachment).toMatchObject({
-        computerId: computer?.id,
+        computerId: blippyComputerId,
         serverOrigin: 'http://127.0.0.1:43210',
-    });
-    expect(await readPendingCoveCommand(connection.db, computer?.id ?? '')).toMatchObject({
-        agentDescription: 'Onboarding Assistant',
-        agentId: agents.find((agent) => agent.handle === 'cove')?.id,
-        agentName: 'Cove',
-        factoryKind: 'cove',
-        modelId: 'gpt-5.6-terra',
-        runtimeId: 'codex',
-        type: 'cove-apply',
     });
     // Blippy shares real workspace artifacts in #product, once, with the
     // channel's sequence still matching its latest message.
@@ -165,19 +142,17 @@ test('seeds a demo workspace an operator can actually look at', async () => {
 
     // Every Agent is attributed, so the human's Created Agents is populated.
     expect(agents.every((agent) => agent.createdByUserId !== null)).toBe(true);
-    expect(agents.map((agent) => agent.displayName).sort()).toEqual(['Blippy', 'Cove', 'Tiny']);
-    expect(agents.find((agent) => agent.handle === 'cove')).toMatchObject({
-        description: 'Onboarding Assistant',
-        desiredModelId: 'gpt-5.6-terra',
-        desiredRuntimeId: 'codex',
-        factoryAppliedAt: null,
-        factoryKind: 'cove',
-    });
+    expect(agents.map((agent) => agent.displayName).sort()).toEqual(['Blippy', 'Tiny']);
+    expect(
+        (await connection.db.select().from(chatsTable)).some(
+            (chat) => chat.name === 'onboarding-owner'
+        )
+    ).toBe(false);
 
     // Nothing in the demo workspace falls back to initials.
     expect(agents.every((agent) => agent.avatarId !== null)).toBe(true);
     expect(users.every((user) => user.avatarId !== null)).toBe(true);
-    expect(await connection.db.select().from(avatarsTable)).toHaveLength(4);
+    expect(await connection.db.select().from(avatarsTable)).toHaveLength(3);
 
     const allChannelId = (await connection.db.select().from(chatsTable)).find(
         (chat) => chat.isAll
@@ -197,11 +172,14 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     const keys = links.map((link) => link.text).sort();
     expect(keys.join(' ')).toBe('GEN-1 GEN-2 GEN-3 GEN-4 GEN-5');
     const ledger = await connection.db.select().from(taskKeysTable);
-    expect(ledger.map((entry) => `${entry.key}:${entry.nextNumber}`).sort()).toEqual([
-        'GEN:6',
-        'ONBO:1',
-        'PROD:1',
-    ]);
+    expect(ledger.map((entry) => `${entry.key}:${entry.nextNumber}`).sort()).toEqual(['GEN:6']);
+    const productId = (await connection.db.select().from(chatsTable)).find(
+        (chat) => chat.name === 'product'
+    )?.id;
+    const projects = await connection.db.select().from(projectsTable);
+    expect(projects.map((project) => project.chatId)).toEqual([productId]);
+    expect(agents.every((agent) => agent.homeProjectId === productId)).toBe(true);
+    expect(tasks.every((task) => task.projectId === productId)).toBe(true);
     const ownerTasks = tasks.filter((task) => task.assigneeUserId !== null);
     expect(ownerTasks.map((task) => task.number).sort()).toEqual([3, 4]);
     const followed = new Set(follows.map((follow) => follow.taskChatId));
@@ -222,7 +200,7 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     const inTask = named.some((message) => tasks.some((task) => task.chatId === message?.chatId));
     expect(inTask).toBe(false);
 
-    // The Inbox seed's stalled claim is the only one in `#haus`. The channel's
+    // The Inbox seed's stalled claim is the only one in `#all`. The channel's
     // counter is past it, so promoting a message there does not collide with a
     // seeded claim number.
     expect(claims).toHaveLength(11);

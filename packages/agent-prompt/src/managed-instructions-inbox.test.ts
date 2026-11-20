@@ -12,7 +12,7 @@ test('the Inbox family entry teaches the unread-conversation list in Raft 26f77e
 function renderPrompt() {
     return renderAgentInstructions({
         agentId: 'agt_prompt_test',
-        agentName: 'Cove',
+        agentName: 'Wren',
         homeTimezone: 'UTC',
         hostname: 'computer.test',
         initialRole: null,

@@ -5,7 +5,6 @@ export const reservedParticipantHandles = [
     'agents',
     'all',
     'busy',
-    'cove',
     'everyone',
     'haus',
     'here',

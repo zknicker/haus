@@ -1,9 +1,6 @@
 import type { AgentActivityRun } from './agent-activity-run.ts';
 import type { AgentStartCommand } from './agent-commands.ts';
-import {
-    readAgentSeedConfiguration,
-    readAppliedAgentConfiguration,
-} from './agent-configuration.ts';
+import { readAppliedAgentConfiguration } from './agent-configuration.ts';
 import type { AgentTurnTimings } from './agent-turn-timings.ts';
 import type { createComputerTools } from './computer-tools.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
@@ -46,7 +43,6 @@ export async function runRealRuntime(
 ) {
     const { command } = input;
     try {
-        const seed = await readAgentSeedConfiguration(input.agentRoot);
         const turn = await runHarnessTurn({
             turnTimings: input.turnTimings,
             agentId: command.agentId,
@@ -55,7 +51,6 @@ export async function runRealRuntime(
             agentRoot: input.agentRoot,
             dataRoot: input.dataRoot,
             env: input.agentEnv,
-            factoryKind: seed?.factoryKind ?? 'ordinary',
             homeDir: input.dirs.home,
             homeTimezone: command.homeTimezone ?? 'UTC',
             runtimeDriverFactory: input.runtimeDriverFactory,

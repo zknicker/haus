@@ -30,6 +30,7 @@ test('a resumed session on older instructions gets one update block ahead of the
             instructions: plan,
             memoryBlock: memory.block,
             rulesBlock: null,
+            skillNotice: null,
             turnContent: 'Start.',
         })
     ).toBe(

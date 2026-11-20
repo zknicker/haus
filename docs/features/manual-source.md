@@ -71,6 +71,4 @@ Run `bun run --filter @haus/agent-manual test` and `typecheck`, plus repository 
 
 To check newer upstream refs without changing the pin, run `git ls-remote --heads --tags https://github.com/botiverse/raft-source.git`; compare main and the newest source tag's peeled commit with the manifest. Tests protect the reviewed snapshot and cannot detect a future remote release without this network check. When upstream advances, audit body and metadata diffs, update captures/hashes/inventory and named adaptations, and rerun the checks. Do not silently re-pin the independent system-prompt divergence register.
 
-## Experiment boundary
-
-This Manual sync follows the completed Cove comparisons. Their baseline stays pinned to d031dd7e; their original patch was preserved as cove-evidence/pre-manual-sync.patch. No previous model transcript is attributed to these subsequent Manual edits, and no new model service call was required for this content audit.
+No model transcript is attributed to these Manual edits, and no model service call was required for this content audit.

@@ -2,12 +2,12 @@ import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { managedSkillChangeText } from '@haus/agent-prompt';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { agentDrive } from '../drive/agent-drive.ts';
 import {
     type ManagedSkillFactory,
-    managedSkillChangeText,
     readManagedSkillChangeNotice,
     seedAgentManagedSkills,
 } from '../managed-skill-changes.ts';
@@ -88,7 +88,6 @@ function turnInput(): HarnessTurnInput {
         dataRoot: agentRoot,
         drainItemIds: [],
         env: {},
-        factoryKind: 'ordinary',
         homeDir: join(agentRoot, 'home'),
         homeTimezone: 'UTC',
         inbox: [],

@@ -57,7 +57,6 @@ final class AgentWakePauseTests: XCTestCase {
           "effectiveModelId": null,
           "effectiveReportedAt": null,
           "effectiveRuntimeId": null,
-          "factoryKind": "ordinary",
           "handle": "cove",
           "id": "agent_1",
           "missingResources": [],

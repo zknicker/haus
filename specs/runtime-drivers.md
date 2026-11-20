@@ -168,12 +168,18 @@ cold-starts once.
 
 R3 left these Computer turn features unported, and R4 ports each before it moves an Agent:
 execution journal upload (including journaling dispatches the ledger recovers as `unknown`),
-thoughts, idle compaction, rich-reference projection of message content, Cove guidance, the
-managed-skill change notice, Claude plan usage after a turn, Agent restart and reset frames to
-the runner, and
+thoughts, idle compaction, rich-reference projection of message content, Claude plan usage after a
+turn, Agent restart and reset frames to the runner, and
 `haus worker start`, which the Computer's proxy handled. R4 also sends `drive-pull` when a
 runner run starts and `drive-push` when it settles (Drive folder below), because runner-hosted
 Agents depend on their `drive/` folder from the cutover on.
+
+Managed skills are ported. The Server seeds the factory-managed skills into each Agent's Drive
+area as Haus-authored revisions at creation, after a full reset, and at Server start
+([Skills](skills.md#managed-skills)), so no launch has to. The runner delivers the skill update
+notice (Instructions below). The Computer's own launch seeding stays until R4d deletes Computer
+Agent paths. It writes the same release bytes, so a push of them is an `unchanged` outcome and adds
+no revision.
 
 R5 lands Pi Durable before R4, so the cutover has both harnesses and every Agent has one for
 its model. R4 moves every Agent at once and resets every session. No native session is copied from a
@@ -255,13 +261,22 @@ session receives every present layer. A resumed session receives a layer only wh
 differs from the session's rule receipt, and a layer the session saw that is now gone is announced
 once as deleted. The receipts sit in `session.json` beside the memory receipt and move the same
 way: they advance after a completed turn, hold after an interrupted one, and reset after a
-compacted one. A layer the runner could not read keeps its receipt. Home Projects arrive in J3,
-and the home Project's `projects/<key>/AGENTS.md` joins between the two layers then. The block
+compacted one. A layer the runner could not read keeps its receipt. Agent Projects arrive in J3,
+and the Project's `projects/<key>/AGENTS.md` joins between the two layers then. The block
 text is `formatRulesBlock` in `@haus/agent-prompt`.
 
 Skills load from Drive. The runner lists the Agent's skills in its instructions by name and
 description, from `agents/<handle>/skills/*/SKILL.md`, and the Agent opens one with
 `haus skill view`. The listing text goes through the prompt contract in R3.
+
+When the Server's seeding updated a managed skill the Agent had not edited, the next turn carries
+the skill update notice, `managedSkillChangeText` in `@haus/agent-prompt`, after the turn content,
+where the Computer puts it too. The pending updates are Server state, not session state, because a
+session reset must not drop them. The runner reads them with
+`GET /api/agent/managed-skills/notice` beside the rule and memory reads. After a completed turn it
+sends `POST /api/agent/managed-skills/notice/ack` naming the releases it announced, so an update
+that landed during the turn stays pending. An interrupted or failed turn sends no receipt, and the
+next turn carries the notice again. A notice the runner could not read is left for the next turn.
 
 ### Idle compaction
 
@@ -896,8 +911,9 @@ them, because a frame with no sender and no handler is dead contract.
 `agent-activity`, `agent-thought`, `agent-execution-journal-records`,
 `agent-execution-journal-ack`, `agent-restart`, `agent-configure`, `agent-background-work`,
 `agent-stop-background`, `agent-subagent-wake`, `agent-subagent-wake-result`,
-`agent-subagent-wake-retire`, `agent-idle-compaction`, `cove-apply`, `cove-apply-result`, and
-`server-runtime-settings`. D3 retires `agent-skill-file-*` and `agent-workspace-*` where Drive
+`agent-subagent-wake-retire`, `agent-idle-compaction`, and `server-runtime-settings`.
+`cove-apply` and `cove-apply-result` already left with Cove (ADR 0059, Computer protocol 42), along
+with `agent-configure`'s `factoryKind`. D3 retires `agent-skill-file-*` and `agent-workspace-*` where Drive
 replaces them, and R4 deletes any that remain.
 
 **Computer protocol, changed by R4:** `agent-reset` with `kind: 'full'` and `agent-retire` stay
@@ -909,8 +925,7 @@ Computer.
 
 **Runner protocol.** The runner socket carries the Agent frames removed above, with the same
 schemas, except the sub-agent and background-work frames, which are deleted. It adds
-`invocation-request`, `invocation-result`, `invocation-cancel`, and `runner-inventory`.
-`cove-apply` runs on the Server after D3, because Cove's guidance is Drive content. The runner
+`invocation-request`, `invocation-result`, `invocation-cancel`, and `runner-inventory`. The runner
 protocol has no version of its own, since the runner ships with the Server.
 
 ## Workers

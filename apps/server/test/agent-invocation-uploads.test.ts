@@ -5,6 +5,7 @@ import { onAgentLifecycle } from '../src/agent-delivery/lifecycle.ts';
 import { deleteExpiredInvocations } from '../src/agent-invocations/invocation-retention.ts';
 import { openAttachmentRoot } from '../src/attachments/attachment-root.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import {
     connectComputer,
     type FrameClient,
@@ -104,7 +105,7 @@ test('another run, tool call, or Agent cannot bind an upload, and a later run ca
     };
     const { attachmentId } = reference as { attachmentId: string };
     const otherAgentId = (
-        await setup.owner.trpc.agent.create.mutate({
+        await createHomedAgent(setup.owner, {
             computerId: setup.computerId,
             displayName: 'Echo',
             handle: 'echo',

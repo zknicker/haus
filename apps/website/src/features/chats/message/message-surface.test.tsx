@@ -15,27 +15,15 @@ const serverId = 'srv_cards';
 const blippy = { ...linkedWork, agentId: 'agt_blippy', id: 'caw_blippy', title: 'Blippy job' };
 const tiny = { ...linkedWork, agentId: 'agt_tiny', id: 'caw_tiny', title: 'Tiny job' };
 
-test('every linked work renders its own card, named after its delegating Agent', () => {
+test('every linked Worker renders its own row, in link order', () => {
     const html = render(row([blippy, tiny]));
 
-    expect(html.match(/data-testid="worker-card"/g)).toHaveLength(2);
-    expect(html).toContain('Worker: Blippy job');
-    expect(html).toContain('Worker: Tiny job');
+    expect(html.match(/data-testid="worker-row"/g)).toHaveLength(2);
     expect(html.indexOf('Blippy job')).toBeLessThan(html.indexOf('Tiny job'));
 });
 
-test('a Message that links no work renders no card', () => {
-    expect(render(row([]))).not.toContain('worker-card');
-});
-
-test('the card names the delegator from the work, never the linking author', () => {
-    const followUp = { since: linkedWork.createdAt, state: 'waiting' as const };
-    const job = { followUp, settledAt: null, startedAt: null, state: 'done' as const };
-    const asked = { ...blippy, job, updatedAt: new Date().toISOString() };
-    const html = render(row([asked]));
-
-    expect(html).toContain('Blippy asked for changes');
-    expect(html).not.toContain('Forge');
+test('a Message that links no Worker renders no row', () => {
+    expect(render(row([]))).not.toContain('worker-row');
 });
 
 function row(works: readonly (typeof linkedWork)[]): TranscriptMessageRow {
@@ -68,7 +56,6 @@ function render(target: TranscriptMessageRow) {
     const utils = createTRPCQueryUtils({ client, queryClient });
     utils.server.bySlug.setData({ slug: 'cards' }, {
         id: serverId,
-        onboarding: { phase: 'complete' },
         role: 'member',
     } as never);
     utils.agent.list.setData({ serverId }, [

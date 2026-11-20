@@ -157,6 +157,7 @@ async function provisionAgent(harness, request, position, { onCreated, onPhase, 
                 description: agentKindDescriptions[request.kind],
                 displayName,
                 handle,
+                homeProjectId: target.homeProjectId,
                 modelId: target.modelId,
                 runtimeId: target.runtimeId,
                 serverId: harness.serverId,
@@ -241,7 +242,7 @@ async function readAgentTarget(harness) {
         const computers = await harness.trpc('computer.list', { serverId: harness.serverId });
         const target = pickAgentTarget(computers, preference);
         if (target) {
-            return target;
+            return { ...target, homeProjectId: await readEvalProjectId(harness) };
         }
         if (Date.now() >= deadline) {
             throw new Error(
@@ -250,6 +251,17 @@ async function readAgentTarget(harness) {
         }
         await sleep(1000);
     }
+}
+
+async function readEvalProjectId(harness) {
+    const projects = await harness.trpc('project.list', { serverId: harness.serverId });
+    const project = projects.find((entry) => !(entry.isHaus || entry.archived));
+    if (!project) {
+        throw new Error(
+            'The eval Server has no open Project, so the agent tests cannot create Agents.'
+        );
+    }
+    return project.chatId;
 }
 
 /**

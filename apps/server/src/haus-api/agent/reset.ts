@@ -1,20 +1,41 @@
 import { agentDeliveryStateSchema, agentResetInputSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
+import { artifactAccess } from '../../artifacts/access.ts';
 import { agentUpdatedTopic } from '../../realtime/topics.ts';
 import { AgentConfigDeniedError } from '../../server-agents/agent-config-errors.ts';
 import {
     assertAgentResetAccess,
     readAgentDeliveryState,
 } from '../../server-agents/agent-delivery-control.ts';
-import { memberProcedure } from '../server/procedure.ts';
+import { artifactProcedure } from '../artifact/procedure.ts';
 
-export const resetAgentProcedure = memberProcedure
+export const resetAgentProcedure = artifactProcedure
     .input(agentResetInputSchema)
     .output(agentDeliveryStateSchema)
     .mutation(async ({ ctx, input }) => {
         try {
             await assertAgentResetAccess(ctx.hausDb, ctx.member, input);
-            await ctx.agentDelivery.reset(input);
+            await ctx.agentDelivery.reset(
+                input.kind === 'full'
+                    ? {
+                          ...input,
+                          kind: 'full',
+                          resetBy: (
+                              await artifactAccess(ctx.hausDb, {
+                                  kind: 'human',
+                                  member: ctx.member,
+                                  serverId: input.serverId,
+                              })
+                          ).authorKey,
+                      }
+                    : { ...input, kind: 'session' }
+            );
+            if (input.kind === 'full') {
+                await ctx.managedSkills.seedAgent(
+                    { agentId: input.agentId, serverId: input.serverId },
+                    ctx.postCommitWork
+                );
+            }
             agentUpdatedTopic.announce({
                 agentId: input.agentId,
                 serverId: input.serverId,

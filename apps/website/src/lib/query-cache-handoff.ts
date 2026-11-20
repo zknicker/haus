@@ -22,13 +22,14 @@ export interface QueryCacheHandoff {
 /** Larger caches are not handed off at all; the new window loads normally. */
 export const maxHandoffBytes = 4 * 1024 * 1024;
 
-// Reads keyed by one-time codes or invitation tokens: an auth flow's own state.
+// Reads keyed by one-time codes, invitation tokens or device sign-ins: an auth flow's own state.
 // Execution journals are large evidence a window reads for itself; copying
 // them would push the handoff past `maxHandoffBytes` and drop it entirely.
 const unsharedProcedures: readonly (readonly string[])[] = [
     ['agent', 'executionJournal'],
     ['computer', 'login'],
     ['invitation'],
+    ['modelConnections', 'signIn'],
 ];
 
 /**

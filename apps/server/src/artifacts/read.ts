@@ -1,4 +1,5 @@
 import {
+    type ArtifactAuthor,
     type ArtifactCreator,
     type ArtifactMetadata,
     type ArtifactRecord,
@@ -13,6 +14,9 @@ import {
 import { type ArtifactActor, artifactAccess } from './access.ts';
 import { liveArtifactAtPath } from './path.ts';
 import { ArtifactError, type ArtifactStorage, requireArtifactStorage } from './storage.ts';
+
+/** The author key of a revision Haus wrote itself (specs/artifact-drive.md). */
+export const hausAuthorKey = 'haus';
 
 export async function getArtifact(
     db: HausDatabase,
@@ -242,10 +246,14 @@ export function toArtifactMetadata(record: ArtifactRecord): ArtifactMetadata {
     return metadata;
 }
 
-/** `artifact_revision_author_shape` guarantees exactly one author column. */
-function revisionAuthor(
-    revision: Pick<typeof revisions.$inferSelect, 'authorAgentId' | 'authorUserId'>
-): ArtifactCreator {
+/** `artifact_revision_author_shape` guarantees one author column, or none for a Haus write. */
+export function revisionAuthor(
+    revision: Pick<typeof revisions.$inferSelect, 'authorAgentId' | 'authorKey' | 'authorUserId'>
+) {
+    if (revision.authorKey === hausAuthorKey) {
+        const haus: ArtifactAuthor = { type: 'haus' };
+        return haus;
+    }
     return artifactCreator({
         creatorAgentId: revision.authorAgentId,
         creatorUserId: revision.authorUserId,

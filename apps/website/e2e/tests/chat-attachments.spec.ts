@@ -1,15 +1,10 @@
 import { deflateSync } from 'node:zlib';
 import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
-import {
-    assertOpaqueId,
-    completeOnboarding,
-    createClient,
-    openChannel,
-} from '../support/server.ts';
+import { assertOpaqueId, createClient, openChannel } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 test.beforeAll(async () => {
-    const { accessToken, databaseUrl } = await createAppTestFixture();
+    const { accessToken } = await createAppTestFixture();
     const owner = createClient(accessToken);
     // A worker restarted after a failure runs this again against the same stack.
     const existing = await owner.server.bySlug
@@ -24,7 +19,6 @@ test.beforeAll(async () => {
     });
     const server = await owner.server.bySlug.query({ slug: 'attachment-images' });
     assertOpaqueId(server.id);
-    completeOnboarding(databaseUrl, server.id);
 });
 
 test('an image send renders as an image while pending and after the Server confirms it', async ({
@@ -32,7 +26,7 @@ test('an image send renders as an image while pending and after the Server confi
 }) => {
     await signInAsAppHuman(page);
     await page.goto('/s/attachment-images');
-    await openChannel(page, 'haus');
+    await openChannel(page, 'all');
 
     // Hold the byte upload so the pending row is observable.
     let releaseUpload: () => void = () => undefined;
@@ -69,7 +63,7 @@ test('a PNG uploaded with no type and no extension is stored and shown as an ima
 }) => {
     await signInAsAppHuman(page);
     await page.goto('/s/attachment-images');
-    await openChannel(page, 'haus');
+    await openChannel(page, 'all');
 
     await attach(page, { mimeType: '', name: 'clipboard-paste' });
     await chat(page).getByRole('button', { name: 'Send' }).click();
@@ -79,7 +73,7 @@ test('a PNG uploaded with no type and no extension is stored and shown as an ima
 
     // After a reload nothing local remains: the image comes from the stored type and bytes.
     await page.reload();
-    await openChannel(page, 'haus');
+    await openChannel(page, 'all');
     const image = chat(page).getByRole('button', { name: 'Open clipboard-paste' }).locator('img');
     await expect(image).toBeVisible();
     expect(await image.evaluate((element: HTMLImageElement) => element.naturalWidth)).toBe(48);
@@ -93,7 +87,7 @@ test('the image viewer steps through a message’s images and keeps focus at the
 }) => {
     await signInAsAppHuman(page);
     await page.goto('/s/attachment-images');
-    await openChannel(page, 'haus');
+    await openChannel(page, 'all');
 
     const chooser = page.waitForEvent('filechooser');
     await chat(page).getByLabel('Add attachments', { exact: true }).click();
@@ -123,9 +117,9 @@ test('the image viewer steps through a message’s images and keeps focus at the
     await expect(viewer).toHaveCount(0);
 });
 
-/** The open #haus chat; a kept, hidden chat view can hold a second composer. */
+/** The open #all chat; a kept, hidden chat view can hold a second composer. */
 function chat(page: import('@playwright/test').Page) {
-    return page.getByRole('region', { name: 'haus' });
+    return page.getByRole('region', { name: 'all' });
 }
 
 async function attach(

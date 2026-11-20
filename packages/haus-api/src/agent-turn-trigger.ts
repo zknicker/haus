@@ -28,8 +28,10 @@ export type AgentTurnTriggerPreview = z.infer<typeof agentTurnTriggerPreviewSche
  *
  * - `message`: a Chat message from a human or another Agent.
  * - `claim`: a claim assignment; `messageId` is the claim's message.
- * - `reminder`, `trigger`, `worker`, `onboarding`: typed work anchored to a Chat
- *   with no message of its own.
+ * - `reminder`, `trigger`, `worker`: typed work anchored to a Chat with no message
+ *   of its own.
+ * - `onboarding`: a past turn of the retired Server onboarding flow; nothing writes
+ *   one anymore, but its history still reads.
  * - `greeting`: a new Agent's one-time wake to introduce itself in `#all`, when it led
  *   the run alone.
  * - `subagent`: background work the Agent started finished or stopped; no Chat.

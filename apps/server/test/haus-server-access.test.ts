@@ -21,13 +21,13 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('opens a Server by slug with #haus', async () => {
+test('opens a Server by slug with #all', async () => {
     const server = await owner.trpc.server.bySlug.query({ slug: 'haus-hq' });
 
     expect(server.slug).toBe('haus-hq');
     expect(server.displayName).toBe('Haus HQ');
     expect(server.role).toBe('owner');
-    expect(server.channels.map((channel) => channel.name)).toEqual(['haus']);
+    expect(server.channels.map((channel) => channel.name)).toEqual(['all']);
 });
 
 test('switches between the Servers a human can access', async () => {

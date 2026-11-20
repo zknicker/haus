@@ -166,20 +166,11 @@ describe('Chat stream hooks', () => {
         expect(invalidated(onRecovery)).toEqual(reads);
     });
 
-    test('worker.onUpdated invalidates the work entity and its Chat work list', async () => {
-        const event = {
-            chatId: 'cht_task',
-            messageId: 'msg_work',
-            serverId,
-            workId: 'wrk_1',
-        };
+    test('worker.onUpdated refetches the Worker and its Task, and recovery refetches every Worker', async () => {
+        const event = { chatId: 'cht_task', serverId, taskId: 'tsk_1', workerId: 'wkr_1' };
         const { onEvent, onRecovery } = await drive('worker.onUpdated', useWorkerStream, event);
-        expect<unknown>(onEvent[0]).toEqual({
-            op: 'noteMessageAnnotated',
-            target: { chatId: 'cht_task', messageId: 'msg_work', serverId },
-        });
         expect(invalidated(onEvent)).toEqual([
-            listKey('worker.listForChat', { chatId: 'cht_task', serverId }),
+            listKey('worker.get', { serverId, workerId: 'wkr_1' }),
             listKey('worker.listLinks', { serverId }),
             listKey('worker.listAutomations', { serverId }),
             listKey('worker.listActive', { serverId }),
@@ -187,6 +178,7 @@ describe('Chat stream hooks', () => {
         expect<unknown>(onRecovery[0]).toEqual(bulkLists);
         expect(invalidated(onRecovery)).toEqual([
             listKey('worker.listForChat', { serverId }),
+            listKey('worker.get', { serverId }),
             listKey('worker.listLinks', { serverId }),
             listKey('worker.listAutomations', { serverId }),
             listKey('worker.listActive', { serverId }),

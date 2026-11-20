@@ -9,10 +9,6 @@
         "test": "bun test src",
         "typecheck": "tsc --noEmit"
     },
-    "dependencies": {
-        "@haus/agent-manual": "workspace:*",
-        "@haus/api": "workspace:*"
-    },
     "devDependencies": {
         "@types/bun": "1.3.13",
         "typescript": "5.9.3"

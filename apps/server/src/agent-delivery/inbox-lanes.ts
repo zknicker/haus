@@ -13,7 +13,6 @@ import { chatlessInboxSources } from '@haus/api';
  * notice is concrete for the same reason (specs/github-triggers.md#failure-modes).
  */
 export const concreteInboxSources = [
-    'onboarding',
     'worker_report',
     'worker_stall',
     'pull_request',
@@ -38,7 +37,6 @@ export function isConcreteInboxSource(source: string): boolean {
  * lanes exclude them by source.
  */
 export const bodilessInboxSources = [
-    'onboarding',
     'greeting',
     'worker_report',
     'worker_stall',
@@ -50,13 +48,13 @@ export const bodilessInboxSources = [
 ] as const;
 
 /**
- * Attentions no notice row, unread digest, or `haus inbox check` lists: Cove's
- * bootstrap and the chatless attentions, which lead their own runs and have no
- * Chat to list them under, and a new Agent's greeting, which rides a run rather
- * than being read (greeting.ts). Only Task assignments reach a busy Agent at all,
- * as a bare count beside those rows (`planBusyNotice`).
+ * Attentions no notice row, unread digest, or `haus inbox check` lists: the
+ * chatless attentions, which lead their own runs and have no Chat to list them
+ * under, and a new Agent's greeting, which rides a run rather than being read
+ * (greeting.ts). Only Task assignments reach a busy Agent at all, as a bare
+ * count beside those rows (`planBusyNotice`).
  */
-export const noticelessInboxSources = ['onboarding', 'greeting', ...chatlessInboxSources] as const;
+export const noticelessInboxSources = ['greeting', ...chatlessInboxSources] as const;
 
 export function isNoticelessInboxSource(source: string): boolean {
     return (noticelessInboxSources as readonly string[]).includes(source);

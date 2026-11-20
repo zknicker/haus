@@ -93,6 +93,10 @@ test('an edit beats a delete on either side, and a delete of another file leaves
         outcome: 'deleted',
         path: 'haus/edit/plain.md',
     });
+    const [plainDeleter] = await fixture.harness.sql`
+        select deleted_by from artifacts where id = ${plain.artifact_id}
+    `;
+    expect(plainDeleter).toEqual({ deleted_by: `agent:${fixture.orbitAgentId}` });
     expect(await del('haus/edit/never.md', plain.revision_id, 'edit-never-delete')).toEqual({
         current: null,
         outcome: 'deleted',

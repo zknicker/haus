@@ -243,7 +243,7 @@ prepares the focused event before commit and publishes it after.
 
 | Today (`emitServerUpdated`) | New topic |
 | --- | --- |
-| `scope:'agent'`: `haus-api/agent/` create, configure, update-profile, update-conversation-style, start, stop, restart, reset, delete; `agent-api/agent-routes` (×3), `agent-api/profile-routes`; `agent-delivery/failure-hold`; `computers/ingest-report` (Cove apply); `haus-api/server/create-cove` | `agent.updated` |
+| `scope:'agent'`: `haus-api/agent/` create, configure, update-profile, update-conversation-style, start, stop, restart, reset, delete; `agent-api/agent-routes` (×3), `agent-api/profile-routes`; `agent-delivery/failure-hold` | `agent.updated` |
 | `haus-api/agent/import-skill` (with `agentId`), and any Computer report that changes one Agent's skills or workspace files | `agent.updated` (with `agentId`) |
 | `scope:'computer'`: `computers/socket` (attach, close), `computers/ingest-report` (×2), `haus-api/computer/` remove, refresh-inventory, start-update, check-update | `computer.updated` |
 | `scope:'mcp'`: `haus-api/mcp/router`, `server-mcp/oauth-relay` | `mcp.updated` |

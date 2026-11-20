@@ -2,7 +2,7 @@ import Foundation
 
 public enum ParticipantHandleValidation {
     private static let reserved = Set([
-        "agent", "agents", "all", "busy", "cove", "everyone", "haus", "here",
+        "agent", "agents", "all", "busy", "everyone", "haus", "here",
         "human", "humans", "idle", "system",
     ])
 

@@ -39,5 +39,8 @@ fi
 
 chown haus-runner:haus-runner /data
 
+# The compose healthcheck waits on this, so the deploy proves the deny only once it is installed.
+touch /run/haus-runner-firewall-ready
+
 exec setpriv --reuid=haus-runner --regid=haus-runner --init-groups \
   --inh-caps=-all --ambient-caps=-all --bounding-set=-all --no-new-privs "$@"

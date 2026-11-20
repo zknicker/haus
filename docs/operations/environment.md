@@ -53,7 +53,7 @@ the access boundary.
 | `Axiom Production OTLP - Haus` | `Production` | Hosted Server OTLP ingestion for the shared operations and metrics datasets |
 | `Postgres - Haus` | `Production` | runtime URL, migration URL, container admin password |
 | `Agent Runner - Haus` | `Production` | `credential`: the token that opens the Server's runner socket and nothing else; development mints one per stack run |
-| `Haus Secrets Key` | `Development`, `Production` | `credential`: `HAUS_SECRETS_KEY`, the base64 of 32 random bytes that seals model connections at rest; one per lifecycle, optional |
+| `Secrets Key - Haus` | `Development`, `Production` | `credential`: `HAUS_SECRETS_KEY`, the base64 of 32 random bytes that seals model connections at rest; one per lifecycle, optional |
 | `HugeIcons Pro - Merchbase` | `Development` | shared licensed registry key (adopted, not copied) |
 | `HeroUI Pro CICD - Merchbase` | `Development` | shared licensed artifact token (adopted, not copied) |
 | `Apple Notarization - Merchbase` | `Tooling` | shared notarization identity (adopted, not copied) |
@@ -93,7 +93,7 @@ The opt-in live Cursor Cloud Agent smoke reads `HAUS_RUN_LIVE_CURSOR_TEST=1` and
 lifecycle: the run spends a real Cursor allowance against a real repository, so an operator sets
 them by hand and every automated lane runs against recorded provider responses instead.
 
-The opt-in Cove Agent E2E scenario can set `HAUS_AGENT_E2E_AVATAR_FIXTURE=1`,
+The opt-in Agent-creation E2E scenario can set `HAUS_AGENT_E2E_AVATAR_FIXTURE=1`,
 an absolute `HAUS_AGENT_E2E_AVATAR_FIXTURE_PATH`, and an absolute
 `HAUS_AGENT_E2E_AVATAR_REQUEST_LOG` path. The Server honors these only when
 `HAUS_DEV_STACK=1`, reads the operator-selected stable PNG, and logs request

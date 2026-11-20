@@ -54,28 +54,14 @@ test('an Owner sets, keeps, and clears a conversation style the member-wide reco
     expect(await read()).toEqual({ conversationStyle: null, signatureEmoji: null });
 });
 
-test('a Member can neither read nor write a conversation style; Cove takes only an emoji', async () => {
-    const { coveAgentId, orbitAgentId: agentId, owner, serverId } = fixture;
+test('a Member can neither read nor write a conversation style', async () => {
+    const { orbitAgentId: agentId, owner, serverId } = fixture;
     await expect(member.trpc.agent.conversationStyle.query({ agentId, serverId })).rejects.toThrow(
         /Owner or Admin/u
     );
     await expect(
         member.trpc.agent.updateConversationStyle.mutate({ agentId, conversationStyle, serverId })
     ).rejects.toThrow(/Owner or Admin/u);
-    await expect(
-        owner.trpc.agent.updateConversationStyle.mutate({
-            agentId: coveAgentId,
-            conversationStyle,
-            serverId,
-        })
-    ).rejects.toThrow(/product-owned identity/u);
-    expect(
-        await owner.trpc.agent.updateConversationStyle.mutate({
-            agentId: coveAgentId,
-            serverId,
-            signatureEmoji: '🌊',
-        })
-    ).toEqual({ conversationStyle: null, signatureEmoji: '🌊' });
     await expect(
         owner.trpc.agent.updateConversationStyle.mutate({
             agentId,
@@ -161,14 +147,26 @@ test('a refused field leaves the whole self-update unwritten', async () => {
 
     const refused = await fixture.post('/api/agent/profile/update', runner, {
         conversationStyle,
-        description: 'Rewritten in the same request.',
+        description: 'x'.repeat(501),
         signatureEmoji: '🐚',
     });
-    expect(refused.status).toBe(403);
+    expect(refused.status).toBe(400);
     expect(
         await owner.trpc.agent.conversationStyle.query({ agentId: coveAgentId, serverId })
     ).toEqual(before);
     expect((await fixture.readAgentRow(coveAgentId))?.description).toBe(description);
+});
+
+test('a former Cove takes a conversation style like any Agent', async () => {
+    const { coveAgentId, owner, serverId } = fixture;
+    expect(
+        await owner.trpc.agent.updateConversationStyle.mutate({
+            agentId: coveAgentId,
+            conversationStyle,
+            serverId,
+            signatureEmoji: '🌊',
+        })
+    ).toEqual({ conversationStyle, signatureEmoji: '🌊' });
 });
 
 test('no other Agent API surface reads a conversation style', async () => {

@@ -133,8 +133,12 @@ and `files` (files directly in the folder). `recursive` changes the listed files
 
 Each revision records four facts.
 
-- `author` is the writer. It is `{ type: 'agent', agent_id }`, `{ type: 'user', user_id }`, or
-  `{ type: 'worker', worker_id, agent_id }`. The Worker variant lands with Workers (W2).
+- `author` is the writer. It is `{ type: 'agent', agent_id }`, `{ type: 'user', user_id }`,
+  `{ type: 'worker', worker_id, agent_id }`, or `{ type: 'haus' }`. The Worker variant lands with
+  Workers (W2). Haus is the author of the factory-managed skills it seeds into each Agent's
+  area ([Skills](skills.md#managed-skills)). A Haus revision stores author key `haus` with no
+  Agent or person column, and a file Haus creates names the Agent whose area holds it as its
+  `creator`, so `creator` stays an Agent or a person for deployed CLIs.
 - `task_id` is the Task the write was for, or null. A push names its run, and the Server takes the
   Task from that run. That is the Task whose chat the run answered in, or the Task a
   `task_assignment` run carried. A Worker's write takes the Worker's Task. A person's write, and an
@@ -276,7 +280,7 @@ or an author to fill it.
 | `deleted` | A delete whose base is the head | A tombstone |
 | `kept_both` | A put whose merge failed, or a create at a path someone else filled | The other version at the path, and the incoming bytes in a copy |
 | `kept_edit` | An edit met a delete, on either side | The edited file, live at its path |
-| `refused` | Path rules, area write access, a file and folder clash, size, or content type | Nothing new |
+| `refused` | Path rules, area write access, a file and folder clash, size, content type, or a run a full reset replaced (`AGENT_RESET`) | Nothing new |
 
 The path rules apply after the request parses, so a bad path is a `refused` outcome, not a 400.
 A clean merge whose result equals the head answers `unchanged`. A create at a filled path, or a base
@@ -321,7 +325,13 @@ it.
 
 The Server records each file's outcome under the push id. A push closes on `close`, or when the
 same writer opens its next push, so a machine that crashed mid-push still reaches the Agent.
-Closing twice changes nothing. A new request for a closed push fails with `PUSH_CLOSED`, and the
+A full reset increments the Agent's `reset_generation` under the Server lock. Each dispatched run
+records the generation it was dispatched in (`agent_run_triggers.reset_generation`), and its push
+copies it (`drive_pushes.reset_generation`). A put or delete under a push whose generation is not
+the Agent's current one is refused with `AGENT_RESET`, so a turn the reset interrupted cannot
+revive a deleted file or add one to the reseeded area. The comparison is by counter, not by time,
+because a transaction's `now()` is its start, not the moment it took the lock. Those refusals stay out of the push's
+`drive_conflict` item. Closing twice changes nothing. A new request for a closed push fails with `PUSH_CLOSED`, and the
 machine sends that file in its next push. On close, a push with any `kept_both`, `kept_edit`, or
 `refused` outcome queues one `drive_conflict` item ([Agent inbox](inbox.md)). A Worker's item goes
 to its Agent.
@@ -331,7 +341,7 @@ to its Agent.
 A message cites a Drive file with a typed link, `[label](drive://<path>)`, which people insert from
 the composer and Agents write. At send, the Server resolves the path and stores a citation with the
 message. In `packages/haus-api`, the message gains `driveCitations: { path, artifactId, revisionId
-}[]`. The chip opens the cited revision, opens beside the chat, and says when a newer revision
+}[]`. The chip opens the cited revision, and the viewer offers the latest when a newer revision
 exists.
 
 An Agent cites files its turn wrote, and the push runs after the turn. The Server binds the
@@ -339,7 +349,9 @@ citation to the head at send time. When the sending run's push closes, each cita
 that push changed moves to the revision the push left. When the push kept both versions, the
 citation moves to the writer's own copy, because the copy holds what the Agent meant. A path that
 does not exist at send has null ids until the push creates it. A citation that never resolves renders its label as plain text.
-The Server reads links in order, skipping inline code and code fences. It percent-decodes each
+The Server reads links in order with the GFM parse the App renders with
+(`readMarkdownSpans` in `packages/haus-api`, on `mdast-util-from-markdown` with GFM), so links inside code
+and images never cite, and titles, `<…>` destinations and escapes read as Markdown reads them. It percent-decodes each
 path, ignores one that is malformed or breaks the path rules, keeps each path once by its key, and
 reads at most 100 per message. A kept-both rebind moves the ids to the copy and keeps the path as the
 link wrote it. Citations keep artifact and revision ids, so they survive moves. A citation whose revision was
@@ -352,6 +364,10 @@ the life of the file, so rule and memory history never expires. A larger replace
 deleted seven days after a newer revision took its place (`ARTIFACT_REVISION_RETENTION_DAYS`), and
 only while the file is live. A deleted file keeps every revision, large replaced ones included, for
 30 days (`driveDeletedRetentionDays`), then its revisions are purged and its tombstone stays.
+Every soft delete (a single delete, `deleteMany`, a push delete, and a full reset's area delete)
+records `artifacts.deleted_by`, the deleter's author key (`agent:<id>` or `user:<id>`), and a
+revive or restore clears it. `artifact.listDeleted` returns it as `deleted_by`, an author or null
+for files deleted before the column existed.
 `delete-artifact-version` still removes one non-current revision at once. A delete also turns off
 the file's public link, so a restore never re-exposes a link the delete ended.
 `artifact.restore` on a deleted file's revision brings the file back at its last path on top of its
@@ -418,7 +434,8 @@ Agent routes answer `{ code, message }`, plus `current` for `REVISION_CONFLICT`.
 API and `BAD_REQUEST` on tRPC. Codes: `INVALID_ARG`, `INVALID_PATH`, `NOT_FOUND`,
 `UNAUTHORIZED`, `FORBIDDEN`, `REVISION_CONFLICT`, `PATH_TAKEN`, `PATH_CONFLICT`,
 `IDEMPOTENCY_KEY_REUSED`, `UPLOAD_CONFLICT`, `DELETED`, `CURRENT_REVISION`, `CONTENT_TYPE`,
-`SIZE_LIMIT`, `STORAGE_LIMIT`, `STORAGE_UNAVAILABLE`, `AUTH_UNAVAILABLE`, `PUSH_CLOSED`.
+`SIZE_LIMIT`, `STORAGE_LIMIT`, `STORAGE_UNAVAILABLE`, `AUTH_UNAVAILABLE`, `PUSH_CLOSED`,
+`AGENT_RESET`.
 
 ## Migration
 

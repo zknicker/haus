@@ -8,6 +8,20 @@ import { pullDrive } from './pull.ts';
 import { planDrivePush, sendDrivePush } from './push.ts';
 
 const folderTurns = new Map<string, Promise<unknown>>();
+const discardedFolders = new Set<string>();
+const pushAborts = new Map<string, AbortController>();
+
+export function discardDrivePushes(agentRoot: string) {
+    discardedFolders.add(agentRoot);
+    pushAborts.get(agentRoot)?.abort();
+    return () => {
+        discardedFolders.delete(agentRoot);
+    };
+}
+
+export async function settleDriveFolder(agentRoot: string) {
+    await folderTurns.get(agentRoot);
+}
 
 export function pullDriveBeforeTurn(
     options: RunAgentLaunchOptions,
@@ -53,15 +67,21 @@ async function pullBeforeTurn(
 }
 
 async function pushAfterTurn(options: RunAgentLaunchOptions, agentRoot: string) {
+    if (discardedFolders.has(agentRoot)) {
+        return;
+    }
+    const abort = new AbortController();
+    pushAborts.set(agentRoot, abort);
     try {
         const plan = await planDrivePush(driveFolderLayout(agentRoot, options.command.agentId));
-        if (plan.isEmpty) {
+        if (plan.isEmpty || abort.signal.aborted) {
             return;
         }
         const runner = await mintRunner(options);
         try {
             const remote = driveRemote({
                 serverOrigin: options.serverOrigin,
+                signal: abort.signal,
                 token: runner.runnerToken,
             });
             const pushed = await sendDrivePush(plan, remote, options.command.runId);
@@ -73,6 +93,8 @@ async function pushAfterTurn(options: RunAgentLaunchOptions, agentRoot: string) 
         }
     } catch (error) {
         await warn(options, 'drive-push-failed', messageOf(error));
+    } finally {
+        pushAborts.delete(agentRoot);
     }
 }
 

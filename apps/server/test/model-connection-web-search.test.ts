@@ -45,6 +45,11 @@ afterAll(async () => {
     await harness?.close();
 });
 
+test('a Server whose Agents run on the runner says so in the connections read', async () => {
+    const read = await member.trpc.modelConnections.list.query({ serverId: seed.serverId });
+    expect(read.agentLoop).toBe('runner');
+});
+
 test('the Owner turns web search off and on, and each change reaches the App and the runner', async () => {
     expect(await webSearchById()).toEqual({ [geminiId]: true });
 

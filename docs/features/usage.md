@@ -38,6 +38,14 @@ while you read it.
   Code, and Grok Build runtimes. Supported runtimes that are absent sit in compact,
   low-contrast **Not Detected** Chips in the section header instead of occupying card-sized space.
   Computer-local token ledgers are not shown on this surface.
+* **Model connections.** Settings → Models lists plan accounts in one table with what is left of
+  each 5-hour and weekly window and the soonest reset. A Claude or ChatGPT plan connection shows
+  its windows as the runner last read them. Nothing shows until a read lands, or once the last one
+  is six hours old. SuperGrok and API-key connections show none. While Captains run on their
+  Devices (`HAUS_AGENT_LOOP=computer`), the same table also lists each Device's detected Codex,
+  Claude Code and Grok Build login, labeled by runtime and Device, with the windows the Computer
+  detail page shows. Those rows only read. See
+  [Model connections](../../specs/model-connections.md#plan-capacity).
 
 * **Cloud Agents.** Beside the runtime capacity cards, the same Computer page carries one **Cursor
   Cloud Agents** row and one **Claude Cloud Agents** row. **Make default** on a row chooses the place a
@@ -148,14 +156,10 @@ can lag a settled turn. Haus makes no claim about a Cursor plan's capacity, rema
 reset time: Cursor exposes no supported public personal-account surface for them, so the Cloud
 Agents row shows readiness only and never a meter.
 
-Claude Code and Grok Build token totals follow ccusage's source rules: Claude assistant usage rows
-under `${CLAUDE_CONFIG_DIR:-~/.claude}/projects/**/*.jsonl`, including the operator's own
-Claude Code sub-agent transcripts (not Haus Agent turns) and replay deduplication; and completed
-Grok turns under `${GROK_HOME:-~/.grok}/sessions/**/updates.jsonl`, expanded by model without counting reasoning twice. Computer scans only files modified inside the
-30-day window, caches parsed rows by path, size, and modification time, and reuses the aggregate
-while the file fingerprint and UTC day are unchanged. The one-minute report therefore checks file
-metadata without repeatedly parsing or aggregating an unchanged ledger. Raw logs never leave the
-Computer.
+Computer reads plan limits only from the providers' own usage responses. It never scans runtime
+transcripts such as `~/.claude/projects/**/*.jsonl` or `~/.grok/sessions/**/updates.jsonl`: a
+30-day scan of those logs once read gigabytes per report and exhausted the machine's memory, and
+the totals it produced were never shown. Agent token volume comes from the turn ledger below.
 
 Computer also records normalized token counts from each completed Haus Agent turn. The compact
 turn summary carries the Agent, runtime, model, input, output, and cache counts to Server; prompts,
@@ -179,11 +183,11 @@ normalized and are joined when usage is read.
 
 ## Upstream methodology
 
-The local-ledger adapters track [ccusage](https://github.com/ccusage/ccusage), specifically its
-Claude transcript and Grok `turn_completed` accounting rules. Those reconstructed ledgers own token
-volume, not authoritative subscription allowance. Claude allowance comes from Claude Code's
-structured SDK usage response, with the OAuth usage endpoint retained only as a guarded bootstrap
-fallback. Grok allowance follows the [official Grok Build billing
+Claude allowance comes from Claude Code's structured SDK usage response, with the OAuth usage
+endpoint retained only as a guarded bootstrap fallback. Asking the provider rather than
+reconstructing usage from transcripts matches [t3code](https://github.com/pingdotgg/t3code), which
+reads Claude limits through the CLI's usage request with its transcript scan skipped and Codex limits
+through `account/rateLimits/read`. Grok allowance follows the [official Grok Build billing
 implementation](https://github.com/xai-org/grok-build/blob/main/crates/codegen/xai-grok-shell/src/extensions/billing.rs).
 
 ## Runtime sign-in issues

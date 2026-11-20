@@ -23,7 +23,7 @@ export class DriveRemoteError extends Error {
     }
 }
 
-export function driveRemote(input: { serverOrigin: string; token: string }) {
+export function driveRemote(input: { serverOrigin: string; signal?: AbortSignal; token: string }) {
     const authorization = `Bearer ${input.token}`;
     const call = async (
         path: string,
@@ -37,7 +37,10 @@ export function driveRemote(input: { serverOrigin: string; token: string }) {
                 ...(init.type ? { 'content-type': init.type } : {}),
             },
             method: init.method ?? 'GET',
-            signal: AbortSignal.timeout(timeoutMs),
+            signal: AbortSignal.any([
+                AbortSignal.timeout(timeoutMs),
+                ...(input.signal ? [input.signal] : []),
+            ]),
         });
         if (!response.ok) {
             throw await remoteError(response);

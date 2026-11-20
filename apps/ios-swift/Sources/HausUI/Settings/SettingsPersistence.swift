@@ -61,8 +61,7 @@ public struct SettingsPersistence: Sendable {
                 status: agent.status,
                 avatarURL: agent.avatarURL,
                 presence: agent.presence,
-                initials: agent.initials,
-                canGenerateAvatar: agent.canGenerateAvatar
+                initials: agent.initials
             )
         },
         saveAgentRuntime: { _, _ in SettingsFixtures.cove },

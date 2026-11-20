@@ -68,6 +68,14 @@ export function TaskConversation({
         }
     };
     const startedFrom = origin && !messages.hasOlderHistory ? <TaskOrigin origin={origin} /> : null;
+    const conversationEmpty =
+        Boolean(messages.data) && (entries?.length ?? 0) === 0 && pendingMessages.length === 0;
+    const leadingContent = startedFrom ? (
+        <>
+            {startedFrom}
+            {conversationEmpty ? <NoMessages /> : null}
+        </>
+    ) : null;
 
     return (
         <section
@@ -113,7 +121,7 @@ export function TaskConversation({
                 timelineContent={(scrollContentRef) => (
                     <ChatTranscript
                         chatId={chatId}
-                        leadingContent={startedFrom}
+                        leadingContent={leadingContent}
                         messages={entries}
                         onOpenArtifact={openArtifact}
                         onOpenInlineReply={revealMessage}

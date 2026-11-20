@@ -5,14 +5,10 @@ import {
     type ComputerUpdateProgress,
     computerProtocolVersion,
 } from '@haus/api';
-import { and, desc, eq, gte, isNotNull, isNull, ne, or, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, ne, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import {
-    computerSystemEventsTable,
-    computersTable,
-    serverOnboardingTable,
-} from '../postgres/schema.ts';
+import { computerSystemEventsTable, computersTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import type { ComputerHandshake } from './contracts.ts';
@@ -83,30 +79,6 @@ export async function reportComputerHandshake(
             type: 'connected',
         });
         await pruneComputerSystemEvents(tx, computer.id);
-        await tx
-            .update(serverOnboardingTable)
-            .set({
-                computerId: computer.id,
-                failureCode: compatible ? null : 'computer-incompatible',
-                failureDetail: compatible ? null : 'Update Haus Computer before continuing setup.',
-                updatedAt: new Date(),
-            })
-            .where(
-                and(
-                    eq(serverOnboardingTable.serverId, computer.serverId),
-                    ne(serverOnboardingTable.phase, 'complete'),
-                    compatible
-                        ? or(
-                              isNull(serverOnboardingTable.failureCode),
-                              ne(serverOnboardingTable.failureCode, 'application-failed')
-                          )
-                        : undefined,
-                    or(
-                        eq(serverOnboardingTable.phase, 'awaiting-computer'),
-                        eq(serverOnboardingTable.computerId, computer.id)
-                    )
-                )
-            );
     });
     return { ...computer, connectionGeneration };
 }
@@ -213,24 +185,6 @@ export async function markComputerOffline(
             type: 'disconnected',
         });
         await pruneComputerSystemEvents(tx, computerId);
-        await tx
-            .update(serverOnboardingTable)
-            .set({
-                failureCode: 'computer-disconnected',
-                failureDetail: 'The Computer disconnected. Run setup again on that Computer.',
-                updatedAt: new Date(),
-            })
-            .where(
-                and(
-                    eq(serverOnboardingTable.serverId, computer.serverId),
-                    eq(serverOnboardingTable.computerId, computerId),
-                    ne(serverOnboardingTable.phase, 'complete'),
-                    or(
-                        isNull(serverOnboardingTable.failureCode),
-                        ne(serverOnboardingTable.failureCode, 'application-failed')
-                    )
-                )
-            );
     });
 }
 
@@ -276,23 +230,6 @@ export async function markAllComputersOffline(db: HausDatabase) {
                 await pruneComputerSystemEvents(tx, computer.id);
             }
         }
-        await tx
-            .update(serverOnboardingTable)
-            .set({
-                failureCode: 'computer-disconnected',
-                failureDetail: 'The Computer disconnected. Run setup again on that Computer.',
-                updatedAt: new Date(),
-            })
-            .where(
-                and(
-                    isNotNull(serverOnboardingTable.computerId),
-                    ne(serverOnboardingTable.phase, 'complete'),
-                    or(
-                        isNull(serverOnboardingTable.failureCode),
-                        ne(serverOnboardingTable.failureCode, 'application-failed')
-                    )
-                )
-            );
     });
 }
 

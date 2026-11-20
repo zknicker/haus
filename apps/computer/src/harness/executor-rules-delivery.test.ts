@@ -22,7 +22,7 @@ const runtime = makeDaemonRuntime();
 afterAll(() => runtime.dispose());
 
 const rulesTag = '<haus-rules>';
-const agentRules = 'agents/cove/AGENTS.md';
+const agentRules = 'agents/harbor/AGENTS.md';
 const hausRules = 'haus/AGENTS.md';
 
 let agentRoot: string;
@@ -34,7 +34,7 @@ let fake: ReturnType<typeof fakeRuntimeDriver<HarnessTurnInput>>;
 
 beforeEach(async () => {
     agentRoot = await mkdtemp(join(tmpdir(), 'haus-rules-turn-'));
-    await mkdir(agentDrive(agentRoot, 'cove').area, { recursive: true });
+    await mkdir(agentDrive(agentRoot, 'harbor').area, { recursive: true });
     compacts = false;
     agentEdit = null;
     duringTurn = null;
@@ -150,7 +150,7 @@ test('an idle compaction between turns resets the receipts, so the next turn car
 test('a deleted rules file is announced once', async () => {
     await writeRules(agentRules, '- Keep replies under three sentences.\n');
     await turn();
-    await rm(join(agentDrive(agentRoot, 'cove').folder, agentRules));
+    await rm(join(agentDrive(agentRoot, 'harbor').folder, agentRules));
     await turn();
     await turn();
 
@@ -161,7 +161,7 @@ test('a deleted rules file is announced once', async () => {
 });
 
 test('a rules path unreadable at turn start (a directory: EISDIR even for root) is carried once it reads again', async () => {
-    const file = join(agentDrive(agentRoot, 'cove').folder, agentRules);
+    const file = join(agentDrive(agentRoot, 'harbor').folder, agentRules);
     await mkdir(file, { recursive: true });
     duringTurn = async () => {
         await rm(file, { recursive: true });
@@ -189,7 +189,7 @@ function turn(overrides: TestTurnOverrides = {}) {
 }
 
 async function writeRules(path: string, content: string) {
-    const file = join(agentDrive(agentRoot, 'cove').folder, path);
+    const file = join(agentDrive(agentRoot, 'harbor').folder, path);
     await mkdir(dirname(file), { recursive: true });
     await writeFile(file, content);
 }

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { appProtocolHeaders, appProtocolVersion } from '@haus/api';
 import { WebSocket, WebSocketServer } from 'ws';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -63,7 +64,7 @@ beforeAll(async () => {
         values ('cmp_voiceaaaaaaaaaaa', ${serverId}, ${user.id}, ${'a'.repeat(64)}, ${inventory}::jsonb, 'healthy')
     `;
     agentId = (
-        await owner.trpc.agent.create.mutate({
+        await createHomedAgent(owner, {
             computerId: 'cmp_voiceaaaaaaaaaaa',
             displayName: 'Scout',
             handle: 'scout',
