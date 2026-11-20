@@ -1,6 +1,6 @@
 ---
 status: accepted
-summary: Drive is the existing Files drive, renamed and extended with three areas (Haus, each Project, each Agent), revisions attributed to an Agent, Worker or person and a Task, and a per-area change counter. It holds the rule layers (Haus, Project and Agent AGENTS.md, plus each Agent's WORKER.md), MEMORY.md, notes, reports and skills, and everyone can read everything. Each Agent keeps a plain drive/ folder on its machine that pulls changes at turn start and pushes changes after the reply; the Server merges clean text edits and turns real conflicts into a kept-both copy plus a drive_conflict inbox item. The runner reads rules and memory from the Server. Accepted 2026-11-19, not yet implemented.
+summary: Drive is the existing Files drive, renamed and extended with three areas (Haus, each Project, each Agent), revisions attributed to an Agent, Worker or person and a Task, and a per-area change counter. It holds the rule layers (Haus, Project and Agent AGENTS.md, plus each Agent's WORKER.md), MEMORY.md, notes, reports and skills, and everyone can read everything. Each Agent keeps a plain drive/ folder on its machine that pulls changes at turn start and pushes changes after the reply; the Server merges clean text edits and turns real conflicts into a kept-both copy plus a drive_conflict inbox item. The runner reads rules and memory from the Server. Accepted 2026-11-19, not yet implemented; amended 2026-11-20 (a Drive citation opens its revision in the file viewer, not beside the chat).
 read_when:
   - changing Files, the artifact drive, Agent workspaces, or where MEMORY.md, notes and skills live
   - changing how rules (AGENTS.md, WORKER.md, conversation style) reach an Agent or a Worker
@@ -50,6 +50,9 @@ searchable threads. Rules people can edit outlast facts a model remembers.
    revisions, compare-and-set writes and bulk pull. The durable files of every Agent workspace
    (`MEMORY.md`, `notes/`, pages) and its skills migrate into it. The Files page becomes the Drive
    page, and files open beside the chat.
+
+   Amended 2026-11-20: a Drive citation opens the cited revision in the file viewer, not beside
+   the chat; opening it in a side pane beside the chat is a possible follow-up.
 
 2. **Three areas.**
 
