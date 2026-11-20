@@ -122,7 +122,7 @@ export async function createAgentFromAgent(
             ? prepareLifecycleEvent({ chatId: dm.id, serverId: runner.serverId }, 'created')
             : null;
 
-        // `#haus` is joined by the shared creation seam; these are the lanes the
+        // `#all` is joined by the shared creation seam; these are the lanes the
         // request named on top of it.
         await joinCreationChannels(tx, runner.serverId, created.agent.id, channels);
         const joined = await readAgentChannels(tx, runner.serverId, created.agent.id);

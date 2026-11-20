@@ -14,7 +14,7 @@ export const createAgentProcedure = memberProcedure
         try {
             const { event, ...created } = await createAgent(ctx.hausDb, ctx.member, input);
             if (event) {
-                // The new Agent is in #haus now, so that channel's member list moved.
+                // The new Agent is in #all now, so that channel's member list moved.
                 publishRealtime(event);
             }
             await ctx.agentDelivery.configureAgent({

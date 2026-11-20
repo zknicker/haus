@@ -35,7 +35,7 @@ export class ProjectHasAgentsError extends ProjectRefusalError {
 
 export class HausProjectNameError extends ProjectRefusalError {
     constructor() {
-        super('PROJECT_NAME_FIXED', 'The Haus project’s channel is always #haus.');
+        super('PROJECT_NAME_FIXED', 'The Haus project’s channel is always #all.');
         this.name = 'HausProjectNameError';
     }
 }
