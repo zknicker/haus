@@ -30,7 +30,7 @@ export async function readPdf<T>(
     const stop = () => reject(signal.reason);
     signal.addEventListener('abort', stop, { once: true });
     try {
-        return await viewOpened(bytes, stopped, view);
+        return await viewOpened(bytes, { signal, stopped }, view);
     } finally {
         signal.removeEventListener('abort', stop);
     }
@@ -38,7 +38,7 @@ export async function readPdf<T>(
 
 async function viewOpened<T>(
     bytes: Uint8Array,
-    stopped: Promise<never>,
+    stop: { signal: AbortSignal; stopped: Promise<never> },
     view: (pdf: PdfPages) => Promise<T>
 ) {
     const opening = getDocumentProxy(bytes, {
@@ -47,30 +47,27 @@ async function viewOpened<T>(
         useSystemFonts: false,
         verbosity: 0,
     });
-    const document = await Promise.race([opening, stopped]).catch((error: unknown) => {
-        opening.then(
-            (opened) => opened.loadingTask.destroy(),
-            () => undefined
-        );
+    const document = await Promise.race([opening, stop.stopped]).catch((error: unknown) => {
+        opening.then((opened) => opened.loadingTask.destroy()).catch(() => undefined);
         throw error;
     });
     try {
-        const viewing = view(openedPages(document));
+        const viewing = view(openedPages(document, stop.signal));
         viewing.catch(() => undefined);
-        return await Promise.race([viewing, stopped]);
+        return await Promise.race([viewing, stop.stopped]);
     } finally {
         await document.loadingTask.destroy();
     }
 }
 
-function openedPages(document: PdfDocument) {
+function openedPages(document: PdfDocument, signal: AbortSignal) {
     const texts = new Map<number, Promise<string>>();
     const text = (page: number) => {
         const known = texts.get(page);
         if (known) {
             return known;
         }
-        const extracted = withPage(document, page, async (proxy) =>
+        const extracted = withPage(document, signal, page, async (proxy) =>
             (await proxy.getTextContent()).items
                 .map((item) => ('str' in item ? item.str + (item.hasEOL ? '\n' : '') : ''))
                 .join('')
@@ -88,7 +85,7 @@ function openedPages(document: PdfDocument) {
             if ((await text(page)).trim().length === 0) {
                 return { kind: 'scanned', photographic: true } satisfies PageLook;
             }
-            const marks = await pageMarks(document, page);
+            const marks = await withPage(document, signal, page, marksOf);
             return {
                 kind:
                     marks.imageCoverage >= figureImageCoverage || marks.paths >= figurePathCount
@@ -98,7 +95,7 @@ function openedPages(document: PdfDocument) {
             } satisfies PageLook;
         },
         render(page: number, look: PageLook) {
-            return withPage(document, page, async (proxy) => {
+            return withPage(document, signal, page, async (proxy) => {
                 const viewport = proxy.getViewport({ scale: 1 });
                 const format = look.photographic ? 'jpeg' : 'png';
                 const bytes = await renderPageAsImage(document, page, {
@@ -126,19 +123,17 @@ type PdfPage = Awaited<ReturnType<PdfDocument['getPage']>>;
 
 async function withPage<T>(
     document: PdfDocument,
+    signal: AbortSignal,
     number: number,
     read: (page: PdfPage) => Promise<T>
 ) {
+    signal.throwIfAborted();
     const page = await document.getPage(number);
     try {
         return await read(page);
     } finally {
         page.cleanup();
     }
-}
-
-function pageMarks(document: PdfDocument, number: number) {
-    return withPage(document, number, (page) => marksOf(page));
 }
 
 async function marksOf(page: PdfPage) {

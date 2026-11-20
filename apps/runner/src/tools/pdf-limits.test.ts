@@ -81,6 +81,41 @@ describe('a PDF view bounds its work', () => {
         }
     });
 
+    test('a stop mid-view stops its page loop at the next page', async () => {
+        const stop = new AbortController();
+        const visited: number[] = [];
+        let viewing: Promise<unknown> = Promise.resolve();
+
+        const reading = readPdf(manyPagePdf(50), stop.signal, (pdf) => {
+            viewing = pdfView(
+                {
+                    ...pdf,
+                    text(page) {
+                        visited.push(page);
+                        if (page === 3) {
+                            stop.abort(new Error('stopped by the user'));
+                        }
+                        return pdf.text(page);
+                    },
+                },
+                undefined
+            );
+            return viewing;
+        });
+
+        await expect(reading).rejects.toThrow('stopped by the user');
+        await expect(viewing).rejects.toThrow('stopped by the user');
+        expect(visited).toEqual([1, 2, 3]);
+    });
+
+    test('a stop while the PDF opens settles without an unhandled rejection', async () => {
+        const stop = new AbortController();
+        const reading = readPdf(manyPagePdf(50), stop.signal, (pdf) => pdf.text(1));
+        stop.abort(new Error('stopped by the user'));
+
+        await expect(reading).rejects.toThrow('stopped by the user');
+    });
+
     test('a stop mid-render rejects with the stop instead of finishing the pages', async () => {
         const stop = new AbortController();
         const viewing = viewPdf(new Uint8Array(await scanned()), [1, 10], { signal: stop.signal });
