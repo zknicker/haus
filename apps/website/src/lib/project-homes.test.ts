@@ -98,7 +98,7 @@ describe('Project homes', () => {
             error: {
                 code: -32_009,
                 data: { code: 'CONFLICT', project: { code: 'PROJECT_HAS_AGENTS' } },
-                message: 'This Project is home to @tiny. Move them to another Project first.',
+                message: 'Captains live in this Project: @tiny. Move them to another Project first.',
             },
         });
         expect(projectRefusalCode(refused)).toBe('PROJECT_HAS_AGENTS');

@@ -27,7 +27,7 @@ export class ProjectHasAgentsError extends ProjectRefusalError {
     constructor(handles: readonly string[]) {
         super(
             'PROJECT_HAS_AGENTS',
-            `This Project is home to ${handles.map((handle) => `@${handle}`).join(', ')}. Move them to another Project first.`
+            `Captains live in this Project: ${handles.map((handle) => `@${handle}`).join(', ')}. Move them to another Project first.`
         );
         this.name = 'ProjectHasAgentsError';
     }

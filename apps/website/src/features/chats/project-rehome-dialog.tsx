@@ -68,8 +68,8 @@ export function ProjectRehomeDialog({
                     <AlertDialog.Body>
                         <div className="grid gap-4">
                             <p>
-                                #{chat.name} is home to {names || 'Captains'}. Choose where they
-                                live before you {action} it.
+                                #{chat.name} has {names || 'Captains'}. Choose where they go before
+                                you {action} it.
                             </p>
                             <ProjectSelect
                                 except={chat.id}
