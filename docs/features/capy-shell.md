@@ -52,9 +52,12 @@ stored in `localStorage` under `haus.capy-shell` and follows into other open win
 - **First run.** A new Haus starts with no Captains and no Projects. Until both exist, Home shows a
   stock `EmptyState` in place of the composer that names what is missing and offers "Create a
   project" and, for Owners and Admins, "New Captain"; a Member reads that an Owner or Admin adds
-  Captains. The theme's Home background sits behind it as it does behind the composer. Home draws
-  nothing while either list loads. The sidebar keeps the Captains and Projects headers with their
-  "+" and nothing below them (`home-state.ts`).
+  Captains. A Captain needs a device, so with no Captains and no Devices an Owner or Admin is led
+  to "Add a device" (Settings › Devices) and "New Captain" waits, with a line saying why; a Member
+  reads that an Owner or Admin connects a device and adds Captains. The theme's Home background
+  sits behind it as it does behind the composer. Home draws nothing while the Captain, Project or
+  Device list (`computer.list`) loads. The sidebar keeps the Captains and Projects headers with
+  their "+" and nothing below them (`home-state.ts`).
 - **Activity.** The Inbox's Captain activity strip (each Captain's 7-day tokens with the spike
   flag, and "N running" with its popover) heads the Activity page.
 
