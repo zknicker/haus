@@ -1,4 +1,5 @@
 import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
+import { captainsProjectId } from '../support/project.ts';
 import {
     assertOpaqueId,
     createClient,
@@ -47,8 +48,9 @@ test.beforeAll(async () => {
         nonce: 'e2e-peer-message',
         serverId,
     });
-    seedArtifactReply({ chatId: allChatId, databaseUrl, serverId });
-    seedReferenceFixture({ chatId: allChatId, databaseUrl, serverId });
+    const homeProjectId = await captainsProjectId(owner, serverId);
+    seedArtifactReply({ chatId: allChatId, databaseUrl, homeProjectId, serverId });
+    seedReferenceFixture({ chatId: allChatId, databaseUrl, homeProjectId, serverId });
 });
 
 test('a human messages in #all with only the hosted Server online', async ({ page }) => {
@@ -240,7 +242,7 @@ test('Agent-authored typed references render as interactive Agent and Chat chips
     await expect(page.getByRole('textbox', { name: 'Message product' })).toBeVisible();
 });
 
-function seedArtifactReply(input: { chatId: string; databaseUrl: string; serverId: string }) {
+function seedArtifactReply(input: SeedInput) {
     runPsql(
         input.databaseUrl,
         `begin;
@@ -248,7 +250,7 @@ function seedArtifactReply(input: { chatId: string; databaseUrl: string; serverI
            id, server_id, handle, display_name, home_timezone, home_project_id
          ) values (
            'agt_e2e_artifact', '${input.serverId}', 'artifact-auditor',
-           'Artifact Auditor', 'America/New_York', (select id from chats where server_id = '${input.serverId}' and is_all)
+           'Artifact Auditor', 'America/New_York', '${input.homeProjectId}'
          );
          insert into channel_agent_participants (server_id, chat_id, agent_id)
          values ('${input.serverId}', '${input.chatId}', 'agt_e2e_artifact');
@@ -285,7 +287,14 @@ function seedArtifactReply(input: { chatId: string; databaseUrl: string; serverI
     );
 }
 
-function seedReferenceFixture(input: { chatId: string; databaseUrl: string; serverId: string }) {
+interface SeedInput {
+    chatId: string;
+    databaseUrl: string;
+    homeProjectId: string;
+    serverId: string;
+}
+
+function seedReferenceFixture(input: SeedInput) {
     runPsql(
         input.databaseUrl,
         `begin;
@@ -308,11 +317,11 @@ function seedReferenceFixture(input: { chatId: string; databaseUrl: string; serv
          ) values
            (
              'agt_e2e_blippy', '${input.serverId}', 'cmp_e2e_ref_blippy00',
-             'blippy', 'Blippy', 'America/New_York', 'codex', 'gpt-5.6-sol', (select id from chats where server_id = '${input.serverId}' and is_all)
+             'blippy', 'Blippy', 'America/New_York', 'codex', 'gpt-5.6-sol', '${input.homeProjectId}'
            ),
            (
              'agt_e2e_tiny', '${input.serverId}', 'cmp_e2e_ref_tiny0000',
-             'tiny', 'Tiny', 'America/New_York', 'codex', 'gpt-5.6-sol', (select id from chats where server_id = '${input.serverId}' and is_all)
+             'tiny', 'Tiny', 'America/New_York', 'codex', 'gpt-5.6-sol', '${input.homeProjectId}'
            );
          insert into chats (id, server_id, kind, is_all, name)
          values ('cht_e2e_product', '${input.serverId}', 'channel', false, 'product');

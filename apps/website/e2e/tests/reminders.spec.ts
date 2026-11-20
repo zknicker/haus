@@ -1,4 +1,5 @@
 import { signInAsAppHuman } from '../support/app-session.ts';
+import { captainsProjectId } from '../support/project.ts';
 import { attachComputer, createTestServer, openChannel, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -24,6 +25,7 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
     }
     seedReminderState({
         chatId,
+        homeProjectId: await captainsProjectId(client, server.id),
         computerId: computer.computerId,
         databaseUrl: session.databaseUrl,
         serverId: server.id,
@@ -188,6 +190,7 @@ function seedReminderState(input: {
     chatId: string;
     computerId: string;
     databaseUrl: string;
+    homeProjectId: string;
     serverId: string;
 }) {
     runPsql(
@@ -198,7 +201,7 @@ function seedReminderState(input: {
            desired_runtime_id, desired_model_id, home_project_id
          ) values (
            'agt_e2e_reminder', '${input.serverId}', '${input.computerId}', 'reminder-cove', 'Cove',
-           'America/New_York', 'codex', 'gpt-5.6-sol', '${input.chatId}'
+           'America/New_York', 'codex', 'gpt-5.6-sol', '${input.homeProjectId}'
          );
          insert into channel_agent_participants (server_id, chat_id, agent_id)
          values ('${input.serverId}', '${input.chatId}', 'agt_e2e_reminder');

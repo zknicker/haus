@@ -1,3 +1,4 @@
+import { captainsProjectId } from '../support/project.ts';
 import { attachComputer, createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -23,10 +24,7 @@ test('a cold Agent profile keeps identity and navigation available before its co
         credential: 'agent-performance-computer-credential-1234',
         slug: server.slug,
     });
-    const { chat: home } = await client.project.create.mutate({
-        name: 'performance',
-        serverId: server.id,
-    });
+    const homeProjectId = await captainsProjectId(client, server.id);
     runPsql(
         session.databaseUrl,
         `insert into agents (
@@ -34,7 +32,7 @@ test('a cold Agent profile keeps identity and navigation available before its co
         desired_runtime_id, desired_model_id, created_at, home_project_id
     ) values ('agt_performance', '${server.id}', '${computer.computerId}',
         'iris', 'Iris', 'America/New_York', 'codex', 'gpt-5.6-sol', now(),
-        '${home.id}')`
+        '${homeProjectId}')`
     );
     await page.reload();
     const row = page.getByRole('row', { name: 'Iris', exact: true });
