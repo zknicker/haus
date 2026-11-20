@@ -591,7 +591,7 @@ and `apps/server/src/haus-api/agent/`; Computer proxy and launch behavior live i
 
 Hosted Agent execution detail is a separate, explicit `agent.executionJournal` query. It accepts
 one `serverId`, `agentId`, and `runId`; Server authorizes only Owners/Admins and answers from the
-journal the Agent's Computer synced
+journal the Agent's Computer, or the runner for a runner run, synced
 ([ADR 0048](../adr/0048-execution-journals-sync-to-the-server.md)): `{ status: 'available',
 agentId, runId, journal }`, or `{ status: 'missing', agentId, runId }` when nothing is stored yet
 or the run is past the 30-day retention. The Server never asks a Computer for evidence, so the
