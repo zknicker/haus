@@ -42,8 +42,13 @@ function startLoading(key: string, load: () => Promise<Blob | null>) {
     entries.set(key, entry);
     load()
         .then(
-            (blob): BackgroundImageUrl =>
-                blob ? { status: 'ready', url: URL.createObjectURL(blob) } : missing,
+            (blob) =>
+                blob
+                    ? ({
+                          status: 'ready',
+                          url: URL.createObjectURL(blob),
+                      } satisfies BackgroundImageUrl)
+                    : missing,
             () => missing
         )
         .then((url) => {
