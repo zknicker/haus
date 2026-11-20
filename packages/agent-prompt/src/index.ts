@@ -29,10 +29,18 @@ export { formatMemoryBlock, memoryCharacterCap, memoryFileName } from './memory-
 export { formatRulesBlock, type RulesChange } from './rules-block.ts';
 export { planRulesDelivery, type RuleFile, ruleLayerPaths } from './rules-delivery.ts';
 export {
+    composePdfPage,
+    composePdfTooLarge,
+    composePdfTimedOut,
+    composePdfTooManyPages,
+    composePdfUnreadable,
     composeUnknownToolCalls,
+    pdfViewNotes,
     runnerMachineFacts,
     runnerRuntimeVersions,
     runnerToolDescriptions,
+    runnerUnsentWrite,
+    webSearchNotConfigured,
 } from './runner-text.ts';
 export { renderSkillListing, type SkillListingEntry } from './skill-listing.ts';
 export {

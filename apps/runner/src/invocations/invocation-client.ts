@@ -1,3 +1,4 @@
+import { runnerUnsentWrite } from '@haus/agent-prompt';
 import {
     type DispatchKey,
     dispatchIdOf,
@@ -13,7 +14,7 @@ import {
 import type { RunDispatches } from '../dispatch/dispatch-id.ts';
 import type { RunAuthority, RunnerLink, ToolOutcome, ToolResultContent } from '../run-context.ts';
 import type { InvocationClock } from './invocation-clock.ts';
-import { inlineInvocationPayload } from './invocation-payload.ts';
+import { fileWriteBytes, inlineInvocationPayload } from './invocation-payload.ts';
 
 export type InvocationClient = ReturnType<typeof createInvocationClient>;
 
@@ -55,66 +56,102 @@ export function createInvocationClient(input: {
         };
         return frame;
     };
+    const dispatch = async (
+        toolCallId: string,
+        kind: InvocationOperation['kind'],
+        prepare: (key: DispatchKey, signal: AbortSignal) => Promise<InvocationOperation>,
+        options: { requestedTimeoutMs?: number; signal: AbortSignal }
+    ) => {
+        const { timeoutMs, timeoutNote } = clampTimeout(kind, options.requestedTimeoutMs);
+        options.signal.throwIfAborted();
+        const key = await input.dispatches.open(toolCallId, 'invocation');
+        const prepared = await prepareOperation(key, prepare, options.signal, timeoutMs);
+        if (prepared.kind === 'unsent') {
+            const frame: InvocationResultFrame = {
+                ...key,
+                agentId: input.agentId,
+                outcome: prepared.outcome,
+                output: { kind: 'text', text: prepared.text },
+                truncated: false,
+                type: 'invocation-result',
+            };
+            await input.dispatches.finish(key, frame.outcome);
+            return { frame, timeoutMs, timeoutNote } satisfies InvocationAnswer;
+        }
+        const { operation } = prepared;
+        const id = dispatchIdOf(key);
+        const onAbort = () => {
+            const pending = open.get(id);
+            if (pending) {
+                halt(pending);
+            }
+        };
+        const frame = await new Promise<InvocationResultFrame>((resolve) => {
+            const pending: OpenInvocation = {
+                answered: false,
+                key,
+                reading: new AbortController(),
+                settle: (answer) => {
+                    pending.answered = true;
+                    void inlineInvocationPayload(
+                        input.authority,
+                        answer,
+                        pending.reading.signal
+                    ).then((read) => {
+                        deadline.cancel();
+                        open.delete(id);
+                        resolve(read);
+                    });
+                },
+            };
+            const deadline = input.clock.schedule(
+                () => {
+                    pending.reading.abort();
+                    if (!pending.answered) {
+                        open.delete(id);
+                        resolve(unknown(key));
+                    }
+                },
+                timeoutMs + invocationGraceMs + invocationRunnerMarginMs
+            );
+            open.set(id, pending);
+            options.signal.addEventListener('abort', onAbort, { once: true });
+            input.link.send({
+                ...key,
+                agentId: input.agentId,
+                operation,
+                timeoutMs,
+                type: 'invocation-request',
+            });
+        });
+        options.signal.removeEventListener('abort', onAbort);
+        await input.dispatches.finish(key, frame.outcome);
+        return { frame, timeoutMs, timeoutNote } satisfies InvocationAnswer;
+    };
     return {
-        async invoke(
+        invoke(
             toolCallId: string,
             operation: InvocationOperation,
             options: { requestedTimeoutMs?: number; signal: AbortSignal }
         ) {
-            const { timeoutMs, timeoutNote } = clampTimeout(
-                operation.kind,
-                options.requestedTimeoutMs
+            return dispatch(toolCallId, operation.kind, async () => operation, options);
+        },
+        writeFile(
+            toolCallId: string,
+            file: { bytes: Uint8Array; mode: number; path: string },
+            options: { signal: AbortSignal }
+        ) {
+            return dispatch(
+                toolCallId,
+                'file-write',
+                async (key, signal) => ({
+                    bytes: await fileWriteBytes(input.authority, key, file.bytes, signal),
+                    kind: 'file-write',
+                    mode: file.mode,
+                    path: file.path,
+                }),
+                options
             );
-            options.signal.throwIfAborted();
-            const key = await input.dispatches.open(toolCallId, 'invocation');
-            const id = dispatchIdOf(key);
-            const onAbort = () => {
-                const pending = open.get(id);
-                if (pending) {
-                    halt(pending);
-                }
-            };
-            const frame = await new Promise<InvocationResultFrame>((resolve) => {
-                const pending: OpenInvocation = {
-                    answered: false,
-                    key,
-                    reading: new AbortController(),
-                    settle: (answer) => {
-                        pending.answered = true;
-                        void inlineInvocationPayload(
-                            input.authority,
-                            answer,
-                            pending.reading.signal
-                        ).then((read) => {
-                            deadline.cancel();
-                            open.delete(id);
-                            resolve(read);
-                        });
-                    },
-                };
-                const deadline = input.clock.schedule(
-                    () => {
-                        pending.reading.abort();
-                        if (!pending.answered) {
-                            open.delete(id);
-                            resolve(unknown(key));
-                        }
-                    },
-                    timeoutMs + invocationGraceMs + invocationRunnerMarginMs
-                );
-                open.set(id, pending);
-                options.signal.addEventListener('abort', onAbort, { once: true });
-                input.link.send({
-                    ...key,
-                    agentId: input.agentId,
-                    operation,
-                    timeoutMs,
-                    type: 'invocation-request',
-                });
-            });
-            options.signal.removeEventListener('abort', onAbort);
-            await input.dispatches.finish(key, frame.outcome);
-            return { frame, timeoutMs, timeoutNote } satisfies InvocationAnswer;
         },
         receive(frame: InvocationResultFrame) {
             const pending = open.get(dispatchIdOf(frame));
@@ -191,6 +228,35 @@ function outcomeLines(
             return [invocationOutcomeNotices[outcome]];
         default:
             return outcome satisfies never;
+    }
+}
+
+async function prepareOperation(
+    key: DispatchKey,
+    prepare: (key: DispatchKey, signal: AbortSignal) => Promise<InvocationOperation>,
+    signal: AbortSignal,
+    timeoutMs: number
+) {
+    try {
+        const operation = await prepare(
+            key,
+            AbortSignal.any([signal, AbortSignal.timeout(timeoutMs)])
+        );
+        return { kind: 'ready' as const, operation };
+    } catch (error) {
+        if (signal.aborted) {
+            return {
+                kind: 'unsent' as const,
+                outcome: 'cancelled' as const,
+                text: runnerUnsentWrite.cancelled,
+            };
+        }
+        const reason = error instanceof Error ? error.message : String(error);
+        return {
+            kind: 'unsent' as const,
+            outcome: 'failed' as const,
+            text: runnerUnsentWrite.failed(reason),
+        };
     }
 }
 

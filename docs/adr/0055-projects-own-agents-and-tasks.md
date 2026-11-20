@@ -20,6 +20,9 @@ Accepted 2026-11-19. Not yet implemented. Part of the direction in
 [ADR 0053](0053-channels-and-tasks-are-the-only-places.md) and
 [ADR 0011](0011-agents-own-one-global-session.md).
 
+Amended 2026-11-19 by [ADR 0059](0059-haus-starts-empty-without-cove.md): Cove is deleted, so
+decision 9 no longer places it in the Haus project, and a new Server's Haus project holds no Agent.
+
 ## Context
 
 A channel is half a project. It has a Task key, but no repos, no rules, and no place for its work
@@ -70,7 +73,9 @@ someone @mentions it. Haus is a team, so it takes Capy's ownership and Amp's qui
    where everyone can see it.
 
 9. **The Haus project holds generalists.** An Agent there can start Tasks in any Project and loads
-   a Project's rules when it acts there. Cove lives here.
+   a Project's rules when it acts there. Amended by
+   [ADR 0059](0059-haus-starts-empty-without-cove.md): Cove is deleted, and the Haus project may
+   hold no Agent at all.
 
 10. **The sidebar leads with Agents.** Search and Inbox, then Agent tiles (a dot means working;
     a click opens your DM with its Overview), then Projects with their Agents' faces, then open

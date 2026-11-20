@@ -1,5 +1,5 @@
 ---
-summary: Decision to require Cove during fresh-Server setup, seed onboarding knowledge only for Cove, and give every Agent a shared read-only Haus Manual.
+summary: Decision to give every Agent a shared read-only Haus Manual. Its Cove onboarding parts (Cove required during fresh-Server setup, onboarding knowledge seeded only for Cove) are superseded by ADR 0059.
 read_when:
   - changing fresh-Server onboarding, Computer connection, or Cove creation
   - changing Agent workspace seeding, archetypes, or factory-managed skills
@@ -16,6 +16,10 @@ onboarding-chat statements in ADR 0019. Existing Servers are not migrated.
 
 Amended 2026-09-29 by [ADR 0037](0037-humans-are-addressed-by-mention.md): the `asks` Manual topic
 is retired; asking a human is the @mention recipe.
+
+Partly superseded 2026-11-19 by [ADR 0059](0059-haus-starts-empty-without-cove.md): a new Server
+starts empty, and Cove, the setup flow and Cove's onboarding workspace are deleted. The shared
+Haus Manual, ordinary Agents' minimal workspace, and the retired archetypes stand.
 
 ## Context
 

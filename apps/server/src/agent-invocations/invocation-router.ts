@@ -15,6 +15,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import type { RunnerLink } from '../runner/runner-link.ts';
 import { clampTimeoutMs, noticeAnswer, resultAnswer, settledAnswer } from './invocation-answers.ts';
 import { type InvocationClock, systemInvocationClock } from './invocation-clock.ts';
+import { bindRunnerUpload } from './invocation-payloads.ts';
 import {
     readAgentMachine,
     recordAccepted,
@@ -123,6 +124,9 @@ function routeInvocations(input: RouterInput) {
                 answer(settledAnswer(record));
             }
             return;
+        }
+        if (frame.operation.kind === 'file-write' && frame.operation.bytes.kind === 'attachment') {
+            await bindRunnerUpload(db, record, frame.operation.bytes.attachmentId);
         }
         if (!(online && computerId)) {
             answer(noticeAnswer(frame, 'offline', record.id));
