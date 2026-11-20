@@ -1,4 +1,5 @@
 import type { MessageCause } from '@haus/api';
+import { turnWorkerBody } from '../workers/worker-message-body.ts';
 import { WorkerMessageContext } from '../workers/worker-message-context.tsx';
 import { MessageCauseLine } from './automation/message-cause-line.tsx';
 import type { TranscriptItem, TranscriptTurnEntry } from './chat-transcript-model.ts';
@@ -21,7 +22,7 @@ export function TurnContext({
     if (cause) {
         return <MessageCauseLine cause={cause} />;
     }
-    const workerBody = getTurnWorkerBody(entry.items);
+    const workerBody = turnWorkerBody(entry.items);
     if (workerBody) {
         return <WorkerMessageContext body={workerBody} />;
     }
@@ -40,13 +41,10 @@ export function getTurnCause(items: TranscriptItem[]): MessageCause | null {
     return null;
 }
 
-export function getTurnWorkerBody(items: TranscriptItem[]) {
-    const first = items.find((item) => item.kind === 'row' && item.row.kind === 'message');
-    return first?.kind === 'row' && first.row.kind === 'message'
-        ? (first.row.message.workerBody ?? null)
-        : null;
-}
-
-export function continuesPreviousTurn(entry: TranscriptTurnEntry, cause: MessageCause | null) {
-    return entry.continuesPrevious && !cause && !getTurnWorkerBody(entry.items);
+export function readTurnContext(entry: TranscriptTurnEntry) {
+    const cause = getTurnCause(entry.items);
+    return {
+        cause,
+        continues: entry.continuesPrevious && !cause && !turnWorkerBody(entry.items),
+    };
 }
