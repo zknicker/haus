@@ -153,6 +153,28 @@ The Channels-and-Tasks release (Computer protocol 38, App protocol 13, the Threa
 its own operator order: see
 [Shipping Channels and Tasks](haus-server-deploy.md#shipping-channels-and-tasks-adr-0053).
 
+### iOS is temporarily non-blocking
+
+Until iPhone releases are reliable again, a failed or skipped `Upload iOS` job does not block
+Server. `Publish Server` neither waits for the upload nor requires a processed build, so Server
+can deploy while the iPhone build still speaks the previous App protocol. Older iPhone installs
+cannot connect until a compatible TestFlight build ships.
+
+`Finalize release` still runs. When iOS was selected and its upload did not succeed, it prints a
+`::warning`, marks iOS `not shipped` in the run summary, and pushes the tag
+`unshipped/ios/v<haus version>`. Target impact and the public snapshot skip that release's iOS
+entry, so the snapshot keeps the last shipped iPhone build and the next release still requires
+the iOS target. The marker is permanent: a later rerun of that release's upload does not clear it.
+
+To ship iOS later, cut a new release that publishes iOS with a new version and an unused build
+number. Do not rerun the old `Upload iOS` job after Finalize has recorded the marker.
+
+To make iOS blocking again, restore `upload_ios` to `publish_server`'s `needs` and `if:` and its
+"Require processed iOS before Server publication" step, return `ios` to
+`assertSelectedJobResults` in `scripts/release/verify-release.mjs`, and remove the unshipped-iOS
+recording there. Keep `scripts/release/unshipped-ios.mjs` and its readers while any
+`unshipped/ios/*` tag exists, because older ledger entries still depend on it.
+
 Use [iOS TestFlight](ios-testflight.md) for App Store Connect setup, build-number continuity,
 processing, automatic internal distribution, and real-device smoke. The release workflow records
 the exact Apple processing state. A processed TestFlight build is published evidence; internal
