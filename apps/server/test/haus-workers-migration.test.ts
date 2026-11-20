@@ -117,6 +117,13 @@ test('0132 turns cloud agent work into Workers, and running it again changes not
             },
             {
                 dispatched: true,
+                id: 'car_c0cccccccccccccc',
+                input: [],
+                outcome: { detail: null, kind: 'failed', reason: 'no-report' },
+                worker_id: 'caw_cccccccccccccccc',
+            },
+            {
+                dispatched: true,
                 id: 'car_c1cccccccccccccc',
                 input: [],
                 outcome: { detail: 'boom', kind: 'failed', reason: 'provider-error' },

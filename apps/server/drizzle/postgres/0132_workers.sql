@@ -119,7 +119,9 @@ UPDATE "worker_turns" SET "outcome" = CASE
     WHEN "status" = 'cancelled' THEN '{"kind":"stopped"}'::jsonb
     WHEN "status" = 'expired' THEN jsonb_build_object(
         'kind', 'failed', 'reason', 'provider-expired', 'detail', "error_code")
-    WHEN "status" = 'failed' AND "summary" IS NULL THEN jsonb_build_object(
+    WHEN "status" = 'completed' AND coalesce("summary", '') = '' THEN jsonb_build_object(
+        'kind', 'failed', 'reason', 'no-report', 'detail', "error_code")
+    WHEN "status" = 'failed' AND coalesce("summary", '') = '' THEN jsonb_build_object(
         'kind', 'failed', 'reason', 'provider-error', 'detail', "error_code")
     ELSE jsonb_build_object('kind', 'report', 'report', jsonb_build_object(
         'outcome', CASE "status"

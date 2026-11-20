@@ -63,7 +63,9 @@ export async function seedPreWorkerRows(database: SQL) {
                 ('car_c2cccccccccccccc', 'srv_one', 'caw_cccccccccccccccc', 'expired',
                     null, 'gone', 'run_c2', '[]'::jsonb, '2026-08-02T00:00:00Z', '2026-08-02T01:00:00Z'),
                 ('car_c3cccccccccccccc', 'srv_one', 'caw_cccccccccccccccc', 'running',
-                    null, null, 'run_c3', '[]'::jsonb, '2026-08-03T00:00:00Z', null)`;
+                    null, null, 'run_c3', '[]'::jsonb, '2026-08-03T00:00:00Z', null),
+                ('car_c0cccccccccccccc', 'srv_one', 'caw_cccccccccccccccc', 'completed',
+                    null, null, 'run_c0', '[]'::jsonb, '2026-07-31T00:00:00Z', '2026-07-31T01:00:00Z')`;
         await tx`INSERT INTO chat_messages (id, server_id, chat_id, author_user_id, nonce, sequence, content)
             VALUES ('msg_link', 'srv_one', 'cht_ops', 'usr_one', 'n1', 1,
                 ${'Started.\n\n[Fix flake](cloud-agent://caw_aaaaaaaaaaaaaaaa) and [Old \\[draft](cloud-agent://caw_bbbbbbbbbbbbbbbb)'})`;
