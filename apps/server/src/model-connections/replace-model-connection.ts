@@ -24,10 +24,10 @@ export async function replaceModelConnectionCredential(
     key: SecretsKey | null,
     input: ModelConnectionReplaceCredentialInput
 ) {
-    const sealedCredential = sealCredential(key, input.credential);
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         await requireConnectionsOwner(tx, member, input.serverId);
+        const sealedCredential = sealCredential(key, input.credential);
         const target = await lockedConnection(tx, input.serverId, input.connectionId);
         if (target.authKind !== input.credential.kind) {
             throw new ModelConnectionMismatchError(
