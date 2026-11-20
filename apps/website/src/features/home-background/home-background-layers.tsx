@@ -25,6 +25,8 @@ export function HomeBackgroundLayers({
             className={cn('home-background', className)}
             data-art={layers.art}
             data-effect={layers.effect}
+            data-faded={layers.faded ? '' : undefined}
+            data-filtered={layers.filtered ? '' : undefined}
             ref={ref}
             style={layers.style as CSSProperties}
         >

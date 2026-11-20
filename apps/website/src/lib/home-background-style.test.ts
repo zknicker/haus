@@ -1,6 +1,12 @@
 import { describe, expect, test } from 'bun:test';
+import { grainTile } from './grain-tile.ts';
 import { ghostTile, homeBackgroundLayers, homeInputOpacity } from './home-background-style.ts';
-import { defaultBackgroundAdjustments, noBackground, themeBackground } from './home-background.ts';
+import {
+    defaultBackgroundAdjustments,
+    noBackground,
+    themeBackground,
+    withAdjustment,
+} from './home-background.ts';
 
 const photo = { id: 'abc123', name: 'lake.gif', type: 'image/gif' } as const;
 const defaultStyle = {
@@ -21,6 +27,8 @@ describe('home background style', () => {
         expect(homeBackgroundLayers(themeBackground('dots'), null)).toEqual({
             art: 'dots',
             effect: 'none',
+            faded: false,
+            filtered: false,
             style: defaultStyle,
         });
     });
@@ -40,6 +48,15 @@ describe('home background style', () => {
         ).toBe('url("blob:haus/1")');
     });
 
+    test('filter and fade apply only once an adjustment leaves its no-op value', () => {
+        const at = (id: 'blur' | 'bottomFade' | 'brightness', value: number) =>
+            homeBackgroundLayers(withAdjustment(themeBackground('dots'), id, value), null);
+        expect([at('blur', 1)?.filtered, at('blur', 1)?.faded]).toEqual([true, false]);
+        expect(at('brightness', 99)?.filtered).toBe(true);
+        expect(at('brightness', 100)?.filtered).toBe(false);
+        expect([at('bottomFade', 1)?.filtered, at('bottomFade', 1)?.faded]).toEqual([false, true]);
+    });
+
     test('effect and adjustments at their extremes', () => {
         const background = {
             ...themeBackground('image'),
@@ -57,6 +74,8 @@ describe('home background style', () => {
         expect(homeBackgroundLayers(background, 'blob:haus/1')).toEqual({
             art: 'image',
             effect: 'dither',
+            faded: true,
+            filtered: true,
             style: {
                 '--home-background-art': 'url("blob:haus/1")',
                 '--home-background-blur': '32px',
@@ -79,6 +98,12 @@ describe('home background style', () => {
             '10.6px'
         );
         expect(homeBackgroundLayers(background, null)?.effect).toBe('grain');
+        expect(homeBackgroundLayers(background, null)?.style['--home-background-grain']).toBe(
+            grainTile
+        );
+        expect(
+            homeBackgroundLayers(themeBackground('aurora'), null)?.style['--home-background-grain']
+        ).toBeUndefined();
         expect(homeInputOpacity(themeBackground('aurora'))).toBe('0.9');
     });
 });

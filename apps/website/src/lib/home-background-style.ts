@@ -1,4 +1,5 @@
 import { BODY_PATH, EYES_PATH } from '../components/haus-ghost-paths.ts';
+import { grainTile } from './grain-tile.ts';
 import { backgroundArt, type ThemeBackground } from './home-background.ts';
 
 const maxBlurPx = 32;
@@ -13,7 +14,10 @@ export function homeBackgroundLayers(background: ThemeBackground, imageUrl: stri
     return {
         art: paint.art,
         effect: background.effect,
+        faded: adjustments.bottomFade > 0,
+        filtered: adjustments.blur > 0 || adjustments.brightness !== 100,
         style: {
+            ...(background.effect === 'grain' ? { '--home-background-grain': grainTile } : {}),
             '--home-background-art': paint.image,
             '--home-background-blur': `${roundTo((adjustments.blur / 100) * maxBlurPx, 1)}px`,
             '--home-background-brightness': `${adjustments.brightness / 100}`,

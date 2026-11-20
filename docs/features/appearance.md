@@ -121,8 +121,10 @@ six **adjustments**. The Background section edits the selected theme's:
 - Source tiles: **None**, five built-in patterns, and **Image**. Picking Image with no upload
   opens the file picker. An upload stays with the theme while a pattern is picked, so switching
   back restores it; **Replace** and **Remove** manage it.
-- **Effect**: None, Dither (a 4px ordered checker in soft light), Grain (SVG fractal noise in
-  overlay), or Vignette (edges sink into the theme's background).
+- **Effect**: None, Dither (a 4px ordered checker in soft light), Grain (a static 64px
+  grayscale noise tile in overlay, generated once from a fixed seed in `lib/grain-tile.ts`), or
+  Vignette (edges sink into the theme's background). The layer pays for a filter only while
+  Brightness or Blur leaves its default, and for a mask only while Bottom fade is above 0.
 - Sliders: **Brightness** (50 to 150%), **Blur** (0 to 100%, up to 32px), **Image opacity**,
   **Bottom fade** (a mask that fades the layer into the page toward the bottom), **Overlay
   opacity** (a wash of the theme's background color), and **Input opacity** (the composer
