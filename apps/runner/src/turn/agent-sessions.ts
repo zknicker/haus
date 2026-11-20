@@ -10,6 +10,7 @@ export function agentSessions(input: {
 }) {
     const sessions = sessionAuthority(input.dataDir);
     const announced = new Map<string, number>();
+    const retired = new Set<string>();
 
     const discard = async (agentId: string, kind: 'full' | 'session') => {
         await input.release(agentId);
@@ -21,6 +22,9 @@ export function agentSessions(input: {
     return {
         announce(agentId: string, reset: AgentReset) {
             agentPathSegment(agentId);
+            if (reset.scope === 'retire') {
+                retired.add(agentId);
+            }
             if (reset.scope === 'full' || reset.scope === 'session') {
                 const generation = Math.max(reset.sessionGeneration, announced.get(agentId) ?? 0);
                 announced.set(agentId, generation);
@@ -47,12 +51,12 @@ export function agentSessions(input: {
             start: { agentId: string; sessionGeneration: number };
         }) {
             const { agentId, sessionGeneration } = run.start;
+            if (retired.has(agentId) || sessionGeneration < (announced.get(agentId) ?? 0)) {
+                return false;
+            }
             const applied = await sessions.applied(agentId);
             if (applied !== null && sessionGeneration <= applied) {
                 return sessionGeneration === applied;
-            }
-            if (sessionGeneration < (announced.get(agentId) ?? 0)) {
-                return false;
             }
             if (applied !== null) {
                 await discard(agentId, run.sessionResetKind);
@@ -63,6 +67,7 @@ export function agentSessions(input: {
         supersedes(reset: AgentReset, generation: number) {
             return (
                 reset.scope === 'retire' ||
+                reset.scope === 'restart' ||
                 ((reset.scope === 'full' || reset.scope === 'session') &&
                     generation < reset.sessionGeneration)
             );

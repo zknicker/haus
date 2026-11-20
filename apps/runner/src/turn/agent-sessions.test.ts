@@ -9,7 +9,7 @@ afterEach(async () => {
     await rm(dataDir, { force: true, recursive: true });
 });
 
-test('a run applies the full reset the runner missed, and runs from a replaced generation are refused', async () => {
+test('a run applies the full reset the runner missed, and runs a reset or retire replaced are refused', async () => {
     dataDir = await mkdtemp(join(tmpdir(), 'haus-runner-sessions-'));
     const agentDir = (agentId: string) => join(dataDir, 'agents', agentId);
     const sessions = agentSessions({ agentDir, dataDir, release: () => undefined });
@@ -30,8 +30,12 @@ test('a run applies the full reset the runner missed, and runs from a replaced g
 
     sessions.announce('agt_alpha', { scope: 'session', sessionGeneration: 6 });
     expect(await sessions.enter(run(5, 'session'))).toBe(false);
+    expect(await sessions.enter(run(4, 'full'))).toBe(false);
     expect(sessions.supersedes({ scope: 'session', sessionGeneration: 6 }, 5)).toBe(true);
     expect(sessions.supersedes({ scope: 'session', sessionGeneration: 6 }, 6)).toBe(false);
-    expect(sessions.supersedes({ scope: 'restart' }, 5)).toBe(false);
+    expect(sessions.supersedes({ scope: 'restart' }, 6)).toBe(true);
     expect(sessions.supersedes({ scope: 'retire' }, 6)).toBe(true);
+
+    sessions.announce('agt_alpha', { scope: 'retire' });
+    expect(await sessions.enter(run(6, 'session'))).toBe(false);
 });
