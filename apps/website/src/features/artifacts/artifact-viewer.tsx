@@ -10,6 +10,7 @@ import { ArtifactActionsContext } from './artifact-actions-context.ts';
 import { parseRevisionView, type RevisionView, revisionViewHref } from './artifact-compare-url.ts';
 import { ArtifactCompare } from './artifact-compare.tsx';
 import { ArtifactInspector } from './artifact-inspector.tsx';
+import { pinnedBehindHead } from './artifact-pinned-revision.ts';
 import { ArtifactPreview } from './artifact-preview.tsx';
 import { artifactTextRenderer } from './artifact-text.ts';
 import { ArtifactViewerHeader } from './artifact-viewer-header.tsx';
@@ -47,6 +48,7 @@ export function ArtifactViewer({
     const pinnedRevisionId = view.revision ?? undefined;
     const context = React.useMemo(() => parseViewerContext(params), [params]);
     const query = useArtifact(serverId, artifactId, pinnedRevisionId);
+    const head = useArtifact(serverId, artifactId);
     const artifact = query.data?.artifact;
     const agents = useAgentAppearances(serverId);
     const viewHref = (next: RevisionView) =>
@@ -92,7 +94,14 @@ export function ArtifactViewer({
                         <>
                             <ArtifactViewerHeader
                                 artifact={artifact}
-                                latestHref={artifactViewerHref(slug, artifactId, context)}
+                                latestHref={
+                                    pinnedBehindHead(
+                                        pinnedRevisionId,
+                                        head.data?.artifact.revision_id
+                                    )
+                                        ? artifactViewerHref(slug, artifactId, context)
+                                        : null
+                                }
                                 pinned={pinnedRevisionId !== undefined}
                                 serverId={serverId}
                                 stepper={stepper(false)}
