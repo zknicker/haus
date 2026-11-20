@@ -4,6 +4,7 @@ import {
     runCloudAgentCapabilityRequest,
 } from './workers/capability-requests.ts';
 import {
+    parseWorkerCloseCommand,
     parseWorkerFollowUpDrainAck,
     parseWorkerReconcileCommand,
     parseWorkerStopCommand,
@@ -65,6 +66,10 @@ function workerOperation(
     const reconcile = parseWorkerReconcileCommand(frame);
     if (reconcile) {
         return () => workers?.reconcile(reconcile.workers);
+    }
+    const close = parseWorkerCloseCommand(frame);
+    if (close) {
+        return () => workers?.closeWorker(close.workerId);
     }
     return null;
 }

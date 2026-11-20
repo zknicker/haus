@@ -1,0 +1,209 @@
+import { describe, expect, test } from 'bun:test';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import type { FakeTurnContext } from '../../runtime/testing/fake-runtime-driver.ts';
+import { finishedTurn } from '../../runtime/testing/fake-runtime-driver.ts';
+import type { TurnEvent } from '../../runtime/turn-event.ts';
+import {
+    branch,
+    computerStart,
+    pushToken,
+    registerComputerPlaces,
+    turnToken,
+} from './computer-place.fixture.ts';
+import type { WorkerHarnessLaunch } from './harness.ts';
+
+const computerPlaces = registerComputerPlaces();
+const ref = { turnId: 'wkt_1', workerId: 'wrk_1' };
+const git = (cwd: string, ...args: string[]) =>
+    Bun.spawnSync(['git', ...args], { cwd })
+        .stdout.toString()
+        .trim();
+
+describe('a Worker turn on a Computer', () => {
+    test('runs in its worktree, pulls and pushes its drive folder, and ends after the push', async () => {
+        const computer = computerPlaces();
+        computer.drive.write('haus/AGENTS.md', 'House rules', 'agt_beta');
+        const seen: Record<string, string> = {};
+        const { fake, frames, place, sent } = computer.place({
+            sessionId: 'thread-9',
+            turn: (context) => deliver(context, seen),
+        });
+        await place.accept(computerStart());
+        await sent('worker-turn-ended');
+
+        expect(frames).toEqual([
+            { attempt: 1, turnId: 'wkt_1', type: 'worker-turn-accepted' },
+            { sessionId: 'thread-9', turnId: 'wkt_1', type: 'worker-turn-session' },
+            {
+                attempt: 1,
+                turnId: 'wkt_1',
+                type: 'worker-turn-input-accepted',
+                workerMdRevisionId: 'rev_md_1',
+            },
+            {
+                at: '1970-01-01T00:00:05.000Z',
+                summary: 'Running git status',
+                turnId: 'wkt_1',
+                type: 'worker-turn-activity',
+            },
+            {
+                attempt: 1,
+                branch,
+                branches: [
+                    {
+                        branch,
+                        pullRequest: null,
+                        pullRequestUrl: 'https://github.com/acme/app/pull/7',
+                        repository: 'acme/app',
+                    },
+                ],
+                detail: null,
+                exit: 'exited',
+                sessionId: 'thread-9',
+                turnId: 'wkt_1',
+                type: 'worker-turn-ended',
+            },
+        ]);
+        expect(seen).toEqual({ branch, rules: 'House rules' });
+        expect(computer.drive.text('agents/alpha/reports/SEC-12/summary.md')).toBe('Done.');
+        expect(computer.mints).toEqual(['turn-credential wkt_1', 'push-credential wkt_1']);
+        const [launch] = fake.record.launches;
+        expect(launch?.input.env.HAUS_WORKER_TOKEN).toBe(turnToken);
+        expect(Object.values(launch?.input.env ?? {})).not.toContain(pushToken);
+        expect(launch?.input.env.PATH.split(':')[0]).toEndWith('/workers/wrk_1/runtime/bin');
+        expect(fake.record.prompts).toEqual(['Write the report.']);
+        expect(fake.record.opens).toEqual([{ resumeFrom: undefined, sessionId: 'wrk_1' }]);
+    });
+
+    test('a later turn resumes the native session it was given', async () => {
+        const { fake, place, sent } = computerPlaces().place();
+        await place.accept(computerStart({ resumeSessionId: 'thread-9', runtime: 'claude-code' }));
+        await sent('worker-turn-ended');
+        expect(fake.record.opens).toEqual([
+            {
+                resumeFrom: { claudeSessionId: 'thread-9', runtime: 'claude-code', version: 1 },
+                sessionId: 'wrk_1',
+            },
+        ]);
+    });
+
+    test('a refused credential ends the turn refused and never launches it', async () => {
+        const computer = computerPlaces({ refuse: 'stale-attempt' });
+        const { fake, frames, place, sent } = computer.place();
+        await place.accept(computerStart());
+        await sent('worker-turn-ended');
+
+        expect(frames.at(-1)).toEqual({
+            attempt: 1,
+            branch,
+            branches: [],
+            detail: 'stale-attempt',
+            exit: 'refused',
+            sessionId: null,
+            turnId: 'wkt_1',
+            type: 'worker-turn-ended',
+        });
+        expect(fake.record.launches).toEqual([]);
+    });
+
+    test('Claude Code input counts as accepted on its first event, Codex on turn start', async () => {
+        const computer = computerPlaces();
+        const claude = computer.place({ turn: () => [] });
+        await claude.place.accept(computerStart({ runtime: 'claude-code' }));
+        await claude.sent('worker-turn-ended');
+        const codex = computer.place({ turn: () => [] });
+        await codex.place.accept(
+            computerStart({
+                checkout: {
+                    branch: 'haus/sec-12-wrk_2',
+                    checkoutPath: null,
+                    repository: 'acme/app',
+                    startingRef: null,
+                },
+                turnId: 'wkt_2',
+                workerId: 'wrk_2',
+            })
+        );
+        await codex.sent('worker-turn-ended');
+
+        expect(claude.frames.map((frame) => frame.type)).toEqual([
+            'worker-turn-accepted',
+            'worker-turn-session',
+            'worker-turn-ended',
+        ]);
+        expect(codex.frames.map((frame) => frame.type)).toEqual([
+            'worker-turn-accepted',
+            'worker-turn-session',
+            'worker-turn-input-accepted',
+            'worker-turn-ended',
+        ]);
+    });
+
+    test('a stop ends the harness, pushes, and settles the turn stopped', async () => {
+        const { fake, frames, place, sent } = computerPlaces().place({ turn: untilStopped });
+        await place.accept(computerStart());
+        await sent('worker-turn-input-accepted');
+        await place.stop(ref);
+
+        expect(frames.at(-1)).toMatchObject({ exit: 'stopped', type: 'worker-turn-ended' });
+        expect(fake.record.counts.destroy).toBe(1);
+        expect((await place.journal.turn(ref))?.stopRequested).toBe(true);
+    });
+
+    test('a start without its delegating Agent ends before anything is journaled', async () => {
+        const { frames, place } = computerPlaces().place();
+        const { agentId: _missing, ...start } = computerStart();
+        await place.accept(start);
+
+        expect(frames.map((frame) => frame.type)).toEqual([
+            'worker-turn-accepted',
+            'worker-turn-ended',
+        ]);
+        expect(frames.at(-1)).toMatchObject({ exit: 'crashed-before-launch' });
+        expect(await place.journal.heldWorkerIds()).toEqual([]);
+    });
+});
+
+async function* deliver(
+    context: FakeTurnContext<WorkerHarnessLaunch>,
+    seen: Record<string, string>
+) {
+    const [drive, report] = context.input.writableRoots;
+    seen.branch = git(context.input.cwd, 'branch', '--show-current');
+    seen.rules = await readFile(join(drive ?? '', 'haus', 'AGENTS.md'), 'utf8');
+    await mkdir(join(drive ?? '', 'agents', 'alpha', 'reports', 'SEC-12'), { recursive: true });
+    await writeFile(
+        join(drive ?? '', 'agents', 'alpha', 'reports', 'SEC-12', 'summary.md'),
+        'Done.'
+    );
+    await writeFile(
+        join(report ?? '', 'receipt.json'),
+        JSON.stringify({
+            draft: {
+                ask: null,
+                outcome: 'done',
+                personId: null,
+                pullRequestUrls: ['https://github.com/acme/app/pull/7'],
+                text: 'Done.',
+            },
+            turnId: 'wkt_1',
+        })
+    );
+    yield {
+        input: { command: 'git status' },
+        providerExecuted: true,
+        toolCallId: 'call_1',
+        toolName: 'bash',
+        type: 'tool-call',
+    } satisfies TurnEvent;
+    yield* finishedTurn();
+}
+
+async function* untilStopped(context: FakeTurnContext<WorkerHarnessLaunch>) {
+    yield { nativeType: 'turn/started', type: 'progress' } satisfies TurnEvent;
+    await new Promise((resolve) =>
+        context.signal.addEventListener('abort', resolve, { once: true })
+    );
+    yield { type: 'abort' } satisfies TurnEvent;
+}

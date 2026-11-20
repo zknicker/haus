@@ -4,11 +4,12 @@ import {
     type WorkerReconcileEntry,
     type WorkerStopCommand,
     type WorkerTurnStartFrame,
-    requireCloudWorkerPlace,
+    isCloudWorkerPlace,
 } from '@haus/api';
 import { settle } from '@haus/effect';
 import { Deferred, Effect, Exit, Scope } from 'effect';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
+import { type ComputerPlaceOptions, ComputerWorkerPlace } from './computer/computer-place.ts';
 import { withPullRequestEvidence } from './github/observation-evidence.ts';
 import { createPullRequestReader } from './github/pull-request-reader.ts';
 import { WorkerLaunchScope } from './launch-scope.ts';
@@ -36,10 +37,12 @@ export class WorkerSupervisor {
     private readonly monitor: WorkerTurnMonitor;
     private readonly provider: (id: CloudAgentProviderId) => CloudAgentProvider;
     private readonly serverId: string;
+    private readonly computer: ComputerWorkerPlace;
 
     constructor(
         private readonly runtime: DaemonRuntime,
         options: {
+            computer: Omit<ComputerPlaceOptions, 'dataRoot' | 'reader' | 'serverId'>;
             dataRoot: string;
             serverId: string;
             provider?: (id: CloudAgentProviderId) => CloudAgentProvider;
@@ -53,6 +56,12 @@ export class WorkerSupervisor {
         const localRuns = new WorkerLocalRuns(this.journal, options.serverId, sends);
         this.launches = new WorkerLaunchScope(runtime);
         const reader = createPullRequestReader({ runtime });
+        this.computer = new ComputerWorkerPlace({
+            ...options.computer,
+            dataRoot: options.dataRoot,
+            reader,
+            serverId: options.serverId,
+        });
         const enrich: EnrichObservation =
             options.enrich ??
             ((observation, signal) => withPullRequestEvidence(observation, reader, signal));
@@ -70,11 +79,14 @@ export class WorkerSupervisor {
             return;
         }
         this.connection = { runs: new Map(), scope: this.runtime.runSync(Scope.make()), send };
+        this.computer.attach(send);
+        this.launches.run(() => this.computer.connected()).catch(logComputerFailure);
     }
 
     detach(): Promise<void> {
         const connection = this.connection;
         this.connection = null;
+        this.computer.detach();
         if (connection) {
             this.detachPromise = Promise.all([
                 this.detachPromise,
@@ -86,15 +98,20 @@ export class WorkerSupervisor {
 
     close(): Promise<void> {
         this.closed = true;
-        this.closePromise ??= Promise.all([this.launches.close(), this.detach()]).then(
-            () => undefined
-        );
+        this.closePromise ??= Promise.all([
+            this.computer.shutdown(),
+            this.launches.close(),
+            this.detach(),
+        ]).then(() => undefined);
         return this.closePromise;
     }
 
     /** Journals one turn the Server started, acknowledges it, then runs it at most once. */
     accept(frame: WorkerTurnStartFrame): Promise<void> {
-        return acceptWorkerTurn(frame, {
+        if (!isCloudWorkerPlace(frame.place)) {
+            return this.computer.accept(frame);
+        }
+        return acceptWorkerTurn(frame, frame.place.kind, {
             acknowledge: ({ attempt, turnId }) =>
                 this.connection?.send({ attempt, turnId, type: 'worker-turn-accepted' }),
             journal: this.journal,
@@ -123,23 +140,36 @@ export class WorkerSupervisor {
     }
 
     async stop(command: WorkerStopCommand): Promise<void> {
-        const run = this.admit(turnRefOf(command), true);
+        const ref = cloudTurnRefOf(command);
+        if (!ref) {
+            await this.computer.stop(command);
+            return;
+        }
+        const run = this.admit(ref, true);
         if (run) {
             await settle(this.runtime, Deferred.await(run.ready));
         }
     }
 
+    /** Closing step 5: the Computer place removes the closed Worker's worktree and drive folder. */
+    closeWorker(workerId: string): Promise<void> {
+        return this.computer.close(workerId);
+    }
+
     async reconcile(entries: WorkerReconcileEntry[]): Promise<void> {
-        const runs = entries.map((entry) =>
-            isTerminalWorkerTurnStatus(entry.status)
-                ? undefined
-                : this.admit(turnRefOf(entry), entry.stopRequested)
-        );
-        await Promise.all(
-            runs.map((run) =>
+        const local = entries.filter((entry) => !isCloudWorkerPlace(entry.place));
+        const runs = entries.map((entry) => {
+            const ref = cloudTurnRefOf(entry);
+            return ref && !isTerminalWorkerTurnStatus(entry.status)
+                ? this.admit(ref, entry.stopRequested)
+                : undefined;
+        });
+        await Promise.all([
+            this.computer.reconcile(local),
+            ...runs.map((run) =>
                 run ? settle(this.runtime, Deferred.await(run.ready)) : Promise.resolve()
-            )
-        );
+            ),
+        ]);
     }
 
     private admit(ref: WorkerTurnRef, cancelRequested: boolean): WatchedRun | undefined {
@@ -169,12 +199,22 @@ export class WorkerSupervisor {
 }
 
 /** The wire names the place; provider adapters address the same turn by provider. */
-function turnRefOf(entry: WorkerStopCommand | WorkerReconcileEntry): WorkerTurnRef {
+function cloudTurnRefOf(entry: WorkerStopCommand | WorkerReconcileEntry): WorkerTurnRef | null {
+    if (!isCloudWorkerPlace(entry.place)) {
+        return null;
+    }
     return {
-        provider: requireCloudWorkerPlace(entry.place),
+        provider: entry.place.kind,
         providerAgentId: entry.providerAgentId,
         providerRunId: entry.providerRunId,
         turnId: entry.turnId,
         workerId: entry.workerId,
     };
+}
+
+function logComputerFailure(cause: unknown) {
+    console.error('Worker recovery did not finish.', {
+        cause: cause instanceof Error ? cause.message : String(cause),
+        operation: 'worker.computer-connect',
+    });
 }

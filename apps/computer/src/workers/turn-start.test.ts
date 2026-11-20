@@ -17,6 +17,8 @@ const accepted = {
 } as const;
 const launched = (frame: WorkerComputerFrame) =>
     frame.type === 'worker-observation' && frame.observation.providerRunId !== undefined;
+const turnFrames = (frames: WorkerComputerFrame[]) =>
+    frames.filter((frame) => frame.type !== 'worker-held');
 
 test('a first turn is journaled and acknowledged before the provider launches it', async () => {
     const f = await supervisors(createFakeCloudAgentProvider());
@@ -25,14 +27,14 @@ test('a first turn is journaled and acknowledged before the provider launches it
     const launch = f.provider.start;
     f.provider.start = async (input, signal) => {
         seenAtLaunch.push((await f.journal.read(serverId, turnRef(frame)))?.phase);
-        seenAtLaunch.push(daemon.frames[0]?.type);
+        seenAtLaunch.push(turnFrames(daemon.frames)[0]?.type);
         return await launch(input, signal);
     };
     const daemon = f.start();
     await daemon.work.accept(frame);
     await daemon.sent(launched);
     expect(seenAtLaunch).toEqual(['launching', 'worker-turn-accepted']);
-    expect(daemon.frames[0]).toEqual(accepted);
+    expect(turnFrames(daemon.frames)[0]).toEqual(accepted);
     expect(f.provider.launches).toEqual([
         {
             idempotencyKey: frame.turnId,
@@ -62,7 +64,7 @@ test('a start sent again after a restart is acknowledged again and never launche
     const after = f.start();
     await after.work.accept(frame);
     await after.work.close();
-    expect(after.frames[0]).toEqual(accepted);
+    expect(turnFrames(after.frames)[0]).toEqual(accepted);
     expect(f.provider.launches).toHaveLength(1);
     expect((await f.journal.read(serverId, turnRef(frame)))?.phase).toBe('launched');
 });

@@ -20,7 +20,17 @@ import { mergeLines } from './merge-lines.fixture.ts';
 
 type Revision = DriveRevision;
 
-export function startDriveServer(options: { pageSize?: number } = {}) {
+export function startDriveServer(
+    options: {
+        pageSize?: number;
+        route?: (request: Request, url: URL) => Promise<Response> | Response | null;
+        writer?: (token: string) => string;
+    } = {}
+) {
+    const writerOf = (request: Request) => {
+        const token = request.headers.get('authorization')?.replace('Bearer ', '') ?? '';
+        return options.writer?.(token) ?? token;
+    };
     const pageSize = options.pageSize ?? driveChangesPageMax;
     const blobs = new Map<string, Uint8Array>();
     const live = new Map<string, Revision>();
@@ -175,7 +185,7 @@ export function startDriveServer(options: { pageSize?: number } = {}) {
         if (push.closed) {
             return Response.json({ code: 'PUSH_CLOSED', message: 'closed' }, { status: 409 });
         }
-        const writer = request.headers.get('authorization')?.replace('Bearer ', '') ?? '';
+        const writer = writerOf(request);
         const bytes = isPut ? new Uint8Array(await request.arrayBuffer()) : null;
         const outcome: DrivePushOutcome = decide(writer, body.path, body.base_revision_id, bytes);
         replies.set(body.request_id, { change, outcome });
@@ -193,7 +203,7 @@ export function startDriveServer(options: { pageSize?: number } = {}) {
 
     async function publishRaw(request: Request, url: URL) {
         const path = url.searchParams.get('path') ?? '';
-        const writer = request.headers.get('authorization')?.replace('Bearer ', '') ?? '';
+        const writer = writerOf(request);
         const bytes = new Uint8Array(await request.arrayBuffer());
         const sha = createHash('sha256').update(bytes).digest('hex');
         const head = live.get(artifactPathKey(path));
@@ -212,6 +222,10 @@ export function startDriveServer(options: { pageSize?: number } = {}) {
         fetch: (request) => {
             const url = new URL(request.url);
             requests.push(`${request.method} ${url.pathname}`);
+            const routed = options.route?.(request, url);
+            if (routed) {
+                return routed;
+            }
             if (url.pathname === '/api/agent/drive/changes') {
                 return changes(url);
             }

@@ -17,6 +17,8 @@ export function workerLayout(dataRoot: string, serverId: string, workerId: strin
         bin: join(runtime, 'bin'),
         checkout: join(root, 'checkout'),
         drive: join(root, 'drive'),
+        report: join(runtime, 'report'),
+        reportFile: join(runtime, 'report', 'receipt.json'),
         root,
         turnsFile: join(runtime, 'turns.json'),
         workerId,
