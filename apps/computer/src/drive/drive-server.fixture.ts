@@ -208,6 +208,7 @@ export function startDriveServer(options: { pageSize?: number } = {}) {
     }
 
     const server = Bun.serve({
+        hostname: '127.0.0.1',
         port: 0,
         fetch: (request) => {
             const url = new URL(request.url);
