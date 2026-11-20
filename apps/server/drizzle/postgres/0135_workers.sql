@@ -234,4 +234,5 @@ CREATE TABLE IF NOT EXISTS "worker_place_limits" (
     CONSTRAINT "worker_place_limits_place" CHECK ("worker_place_limits"."place" in ('cursor', 'claude')),
     CONSTRAINT "worker_place_limits_limit" CHECK ("worker_place_limits"."worker_limit" between 1 and 50),
     CONSTRAINT "worker_place_limits_server_id_servers_id_fk" FOREIGN KEY ("server_id") REFERENCES "public"."servers"("id") ON DELETE cascade ON UPDATE no action
-);
+);--> statement-breakpoint
+SET CONSTRAINTS ALL DEFERRED;

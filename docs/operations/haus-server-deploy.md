@@ -289,6 +289,41 @@ rollback does not reverse database changes. Destructive cleanup lands only in a
 later release after every deployed Server version has stopped using the old
 shape.
 
+Drizzle applies every pending migration in one transaction, so session state such as
+constraint mode carries from one migration into the next. A migration that runs
+`SET CONSTRAINTS ALL IMMEDIATE` ends with `SET CONSTRAINTS ALL DEFERRED`;
+`bun run lint` enforces this through `scripts/check-migration-constraint-mode.ts`. A
+migration failure prints PostgreSQL's code, constraint, and detail beneath the failed query.
+
+### Migration rehearsal
+
+A PR that adds or edits a migration, and every release PR that ships the Server, rehearses the
+migrations production has not applied against a copy of production before it merges:
+
+```bash
+bun run release:rehearse-migrations -- --ref <PR head SHA>
+```
+
+The command SSHes to the Server host with `~/.ssh/macmini_tailscale` (`--host` and `--identity`
+override it) and:
+
+1. starts a throwaway `haus-migration-rehearsal-<time>` container from the same image as
+   `haus-postgres`, with `--network none`
+2. streams `pg_dump --format custom` of `haus_production`, run inside `haus-postgres` as the
+   read-only `haus_backup` role over the local socket, straight into `pg_restore` in that container,
+   so no dump file is written and no credential is used
+3. reads the newest applied migration from the copy, and sends every migration in the ref's journal
+   after it as one transaction, the way drizzle runs them, with a `rehearsal: applying <tag>` notice
+   before each
+4. runs `SET CONSTRAINTS ALL IMMEDIATE` to check every deferred constraint, then `ROLLBACK`
+5. removes the container, which takes the restored copy with it
+
+On failure psql prints PostgreSQL's error code, message, and `DETAIL` after the notice of the
+migration that failed, and the command exits non-zero. It never writes to `haus-postgres`. A
+failed rehearsal blocks the merge; paste its error into the PR. A rehearsal is current only for the
+migration files at its ref, so rehearse again after a merge brings new ones.
+`apps/server/test/migration-rehearsal.test.ts` proves the same script catches the v20 failure.
+
 Haus 10.0.0 is an operator-approved exception: migration 0072 removes `chat_events` and
 `servers.last_chat_event_cursor` with the protocol 9 cutover. Server 8.4.0 cannot run against
 that migrated schema. Recovery after the drop requires a forward fix on the new schema;
