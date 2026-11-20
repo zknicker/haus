@@ -19,7 +19,7 @@ const weekly = [
     {
         id: 'current-session',
         label: '5-hour',
-        resetsAt: '2026-11-19T15:00:00.000Z',
+        resetsAt: new Date(Date.now() + 4 * hour).toISOString(),
         usedPercent: 42,
     },
     { id: 'current-week-all-models', label: 'Weekly', resetsAt: null, usedPercent: 81.6 },
@@ -73,6 +73,16 @@ test('a reading older than 6 hours lists as null', async () => {
     expect(await listedCapacity(stale)).toBeNull();
     const [row] = await harness.sql`select capacity from model_connections where id = ${stale}`;
     expect(row?.capacity).toEqual(weekly);
+});
+
+test('a window whose reset has passed stops showing', async () => {
+    const reset = (await addClaudeConnection(seed, 'Reset plan', 'sk-ant-oat01-reset-token')).id;
+    const passed = { ...weekly[0], resetsAt: new Date(Date.now() - 1000).toISOString() };
+    const announced = connectionsAnnounced(seed.serverId);
+    runner.send(capacity(reset, new Date(), [{ ...passed, usedPercent: 100 }, weekly[1]]));
+    await announced;
+
+    expect(await listedCapacity(reset)).toEqual([weekly[1]]);
 });
 
 test('a replaced credential clears the capacity', async () => {

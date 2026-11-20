@@ -15,7 +15,7 @@ import {
 export const modelConnectionSchema = z
     .object({
         authKind: modelConnectionAuthKindSchema,
-        /** The plan's capacity windows, or null when the runner has not read them in the last 6 hours. */
+        /** The plan's capacity windows that have not reset yet, or null when the runner has not read them in the last 6 hours. */
         capacity: z.array(modelConnectionCapacityWindowSchema).nullable(),
         id: idSchema,
         isDefault: z.boolean(),

@@ -161,7 +161,8 @@ with. Settings → Models shows it on the connection's row.
 - **Storage.** The Server stores the windows and `readAt` on the connection, dropping a reading
   whose `credentialVersion` is not the stored credential's, and announces
   `modelConnections` updated only when the windows changed. The list shows `capacity: null` when
-  nothing was read or the reading is older than 6 hours. Replacing a credential clears it.
+  nothing was read or the reading is older than 6 hours, and leaves out a window whose `resetsAt`
+  has passed. Replacing a credential clears it.
 
 ## Retired
 

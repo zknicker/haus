@@ -75,6 +75,19 @@ export async function requireConnectionsOwner(
     }
 }
 
+export function shownCapacity(
+    capacity: ModelConnection['capacity'],
+    readAt: Date | null,
+    at: number
+) {
+    if (!(capacity && readAt) || at - readAt.getTime() > capacityShownMs) {
+        return null;
+    }
+    return capacity.filter(
+        (window) => window.resetsAt === null || Date.parse(window.resetsAt) > at
+    );
+}
+
 function toModelConnection({
     capacity,
     capacityReadAt,
@@ -94,10 +107,7 @@ function toModelConnection({
 }) {
     const connection: ModelConnection = {
         ...row,
-        capacity:
-            capacityReadAt && Date.now() - capacityReadAt.getTime() <= capacityShownMs
-                ? capacity
-                : null,
+        capacity: shownCapacity(capacity, capacityReadAt, Date.now()),
         isDefault: row.position === 0,
         updatedAt: row.updatedAt.toISOString(),
     };
