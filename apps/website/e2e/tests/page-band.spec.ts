@@ -14,7 +14,7 @@ test('every surface leads its band with Back, Forward, and a Haus trail', async 
         ['tasks', ['Haus', 'Tasks']],
         ['activity', ['Haus', 'Activity']],
         ['search', ['Haus', 'Search']],
-        ['artifacts', ['Haus', 'Files']],
+        ['artifacts', ['Haus', 'Drive']],
         ['settings/profile', ['Haus', 'Settings', 'Profile']],
         ['archived', ['Haus', 'Settings', 'Archived chats']],
     ] as const;

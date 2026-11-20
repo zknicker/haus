@@ -1,4 +1,5 @@
 import { type ColorTheme, isCustomTheme, type PresetTheme } from './color-theme.ts';
+import type { BackgroundSource } from './home-background.ts';
 
 /**
  * Every color theme as one definition (.design/guidelines.md "Color themes"). Consumers
@@ -8,6 +9,8 @@ import { type ColorTheme, isCustomTheme, type PresetTheme } from './color-theme.
 export interface ColorThemeDefinition {
     /** The app icon the web tab and the desktop Dock show while the theme is on. */
     readonly appIcon: AppIcon;
+    /** What Home draws behind its composer until this device picks another (`home-background.ts`). */
+    readonly background: BackgroundSource;
     /** A theme that only reads in one mode pins it; the stored Mode preference stays untouched. */
     readonly forcedMode: 'dark' | 'light' | null;
     /** The Inbox greeting pools; `null` keeps the standard "Good morning, Name". */
@@ -55,16 +58,17 @@ const innkeeperGreetings: GreetingSet = {
 };
 
 const colorThemeDefinitions: Readonly<Record<PresetTheme, ColorThemeDefinition>> = {
-    default: plainTheme('default', 'Haus', 'haus'),
-    oled: plainTheme('oled', 'OLED', 'haus'),
-    catppuccin: plainTheme('catppuccin', 'Catppuccin', 'palette'),
-    gruvbox: plainTheme('gruvbox', 'Gruvbox', 'palette'),
-    everforest: plainTheme('everforest', 'Everforest', 'palette'),
-    nord: plainTheme('nord', 'Nord', 'palette'),
-    one: plainTheme('one', 'One', 'palette'),
-    mauve: plainTheme('mauve', 'Mauve', 'palette'),
+    default: plainTheme('default', 'Haus', 'haus', 'none'),
+    oled: plainTheme('oled', 'OLED', 'haus', 'none'),
+    catppuccin: plainTheme('catppuccin', 'Catppuccin', 'palette', 'aurora'),
+    gruvbox: plainTheme('gruvbox', 'Gruvbox', 'palette', 'dots'),
+    everforest: plainTheme('everforest', 'Everforest', 'palette', 'contours'),
+    nord: plainTheme('nord', 'Nord', 'palette', 'horizon'),
+    one: plainTheme('one', 'One', 'palette', 'dots'),
+    mauve: plainTheme('mauve', 'Mauve', 'palette', 'aurora'),
     halloween: {
         appIcon: 'pumpkin',
+        background: 'ghosts',
         forcedMode: 'dark',
         ground: 'haus',
         // A haunted-house host: elegant, gently sinister, theatrical.
@@ -95,6 +99,7 @@ const colorThemeDefinitions: Readonly<Record<PresetTheme, ColorThemeDefinition>>
     },
     'christmas-eve': {
         appIcon: 'santa',
+        background: 'horizon',
         forcedMode: 'dark',
         greetings: innkeeperGreetings,
         ground: 'haus',
@@ -105,6 +110,7 @@ const colorThemeDefinitions: Readonly<Record<PresetTheme, ColorThemeDefinition>>
     },
     'christmas-morning': {
         appIcon: 'santa',
+        background: 'horizon',
         forcedMode: 'light',
         greetings: innkeeperGreetings,
         ground: 'haus',
@@ -121,6 +127,7 @@ export const colorThemes: readonly ColorThemeDefinition[] = Object.values(colorT
 /** A custom theme wears nothing but its colors, which are always a palette. */
 const customThemeDefinition: ColorThemeDefinition = {
     ...colorThemeDefinitions.default,
+    background: 'none',
     ground: 'palette',
 };
 
@@ -128,9 +135,15 @@ export function colorThemeDefinition(theme: ColorTheme): ColorThemeDefinition {
     return isCustomTheme(theme) ? customThemeDefinition : colorThemeDefinitions[theme];
 }
 
-function plainTheme(id: PresetTheme, label: string, ground: ColorThemeDefinition['ground']) {
+function plainTheme(
+    id: PresetTheme,
+    label: string,
+    ground: ColorThemeDefinition['ground'],
+    background: BackgroundSource
+) {
     return {
         appIcon: 'ghost',
+        background,
         forcedMode: null,
         greetings: null,
         ground,

@@ -159,4 +159,45 @@ describe('Server command groups', () => {
         expect(titles).not.toContain('Cove');
         expect(titles).not.toContain('Focus Composer');
     });
+    test('with the Capy shell on, Navigation offers Home in place of Chat and Inbox', () => {
+        const navigated: string[] = [];
+        const context = {
+            agents: [agent],
+            chats,
+            devMode: false,
+            navigate: (path: string) => navigated.push(path),
+            openAgentProfile: () => undefined,
+            pathname: '/s/dev/chats/cht_cove',
+            role: 'owner' as const,
+            serverSlug: 'dev',
+            setDevMode: () => undefined,
+        };
+        const navigation = (capyShell: boolean) =>
+            buildCommandGroups({ ...context, capyShell })
+                .find((group) => group.id === 'navigation')
+                ?.commands.map((command) => command.title);
+
+        expect(navigation(true)).toEqual([
+            'Search',
+            'Home',
+            'Tasks',
+            'Activity',
+            'Members',
+            'Archived chats',
+        ]);
+        expect(navigation(false)).toEqual([
+            'Search',
+            'Chat',
+            'Inbox',
+            'Tasks',
+            'Activity',
+            'Members',
+            'Archived chats',
+        ]);
+        buildCommandGroups({ ...context, capyShell: true })
+            .find((group) => group.id === 'navigation')
+            ?.commands.find((command) => command.title === 'Home')
+            ?.run();
+        expect(navigated).toEqual(['/s/dev']);
+    });
 });

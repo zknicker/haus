@@ -35,7 +35,7 @@ ordinary Chat work, the rendered envelope as its content, and the recipient Agen
 | `claim_assignment` | A direct claim assignment to this Agent | The assignment identity | Concrete |
 | `reminder` | One reminder fire | The fire id | Concrete |
 | `trigger` | One Trigger fire | The fire id | Concrete |
-| `onboarding` | Cove's one-shot bootstrap instruction | Its own bootstrap identity | Concrete |
+| `onboarding` | Retired. Cove's one-shot bootstrap instruction from the removed Server onboarding flow ([ADR 0059](../docs/adr/0059-haus-starts-empty-without-cove.md)); nothing writes one, migration 0138 settled every unsettled row `seen`, and seen rows stay as history | Its own bootstrap identity | None |
 | `greeting` | A newly created Agent's one-time `#all` greeting wake (ADR 0028) | `greeting:<agentId>`, so one per Agent | No lane of its own: attached to the next ordinary run whatever leads it (setting the start frame's `greets`), and leads a run only when nothing else waits (a sub-agent wake still leads, since it is never held and the greeting rides the next ordinary run). Retired as `seen`, queued or attached, once the Agent has a message in its `#all`, so neither a Stop nor a reconnect replay makes it show twice. Bodiless; never listed in a notice, the digest, or `haus inbox check` |
 | `subagent` | A wake for background work the Agent started on its runtime that finished or stopped ([runtime-drivers.md](runtime-drivers.md#background-work)); no Chat | `subagent:<agentId>:<wake id>` | Concrete; at most one queued per Agent, only for the current session generation. Never in a notice, the digest, or `haus inbox check`. Spends the automation chain; refused, not queued, at the chain ceiling. Retired by Stop, a session reset, or a run that adopted the turn it was for |
 | `task_assignment` | A Task assigned to this Agent ([tasks.md](tasks.md)); no Chat | `task-assign:<taskId>:<version>` | Concrete, and the one kind that coalesces: every queued assignment rides one run in the main session, up to 50. A busy Agent gets a count in its notice, never a row. Not in the digest or `haus inbox check`. Retired by reassigning or unassigning before a run takes it |
@@ -280,8 +280,8 @@ turn for that unchanged set. A new identity changes the set and wakes once;
 Restart, Start, or session reset explicitly offers pending work again. Chain
 budget follows rows made model-visible, not notice-only turns.
 
-Non-Chat system attention is a separate typed concrete lane. Cove's one-shot
-bootstrap instruction, a settled Cloud Agent Run's terminal attention, reminder and Trigger fires,
+Non-Chat system attention is a separate typed concrete lane. A settled Cloud Agent Run's terminal
+attention, reminder and Trigger fires,
 claim assignments, and Drive conflicts use that lane, settle against their own stable identities, and never enter Chat message
 resolution or Chat cursor accounting. Each of those exists nowhere but its inbox row, so its
 envelope rides the wake instead of waiting behind a pull the Agent may never make. The

@@ -1,5 +1,5 @@
 import { createAppTestFixture, e2ePeerEmail, signInAsAppHuman } from '../support/app-session.ts';
-import { completeOnboarding, createClient, openChannel, openSection } from '../support/server.ts';
+import { createClient, openChannel, openSection } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 /**
@@ -11,13 +11,12 @@ import { expect, test } from '../support/test.ts';
 const slug = 'membership-hq';
 
 test.beforeAll(async () => {
-    const { accessToken, databaseUrl } = await createAppTestFixture();
+    const { accessToken } = await createAppTestFixture();
     await createAppTestFixture('peer');
-    const created = await createClient(accessToken).server.create.mutate({
+    await createClient(accessToken).server.create.mutate({
         displayName: 'Membership HQ',
         slug,
     });
-    completeOnboarding(databaseUrl, created.id);
 });
 
 test('an Owner invites, promotes, and removes a human', async ({ browser, page }) => {
@@ -53,10 +52,11 @@ test('an Owner invites, promotes, and removes a human', async ({ browser, page }
     const peerPage = await peerContext.newPage();
     await signInAsAppHuman(peerPage, 'peer');
     await peerPage.goto(invitePath);
+    await expect(peerPage.getByText(`You will join /${slug} as a member of #haus.`)).toBeVisible();
     await peerPage.getByRole('button', { name: 'Accept invitation' }).click();
 
     await expect(peerPage).toHaveURL(new RegExp(`/s/${slug}/chats/[^/]+$`, 'u'));
-    await expect(peerPage.getByRole('textbox', { name: 'Message all' })).toBeVisible();
+    await expect(peerPage.getByRole('textbox', { name: 'Message haus' })).toBeVisible();
 
     // A single-use token cannot be replayed.
     await peerPage.goto(invitePath);
@@ -97,7 +97,7 @@ test('an Owner invites, promotes, and removes a human', async ({ browser, page }
     await peerPage.goto(`/s/${slug}`);
     await openSection(peerPage, 'Chat');
     await openChannel(peerPage, 'haus');
-    await expect(peerPage.getByRole('textbox', { name: 'Message all' })).toBeVisible();
+    await expect(peerPage.getByRole('textbox', { name: 'Message haus' })).toBeVisible();
     const peerListPage = await peerContext.newPage();
     await signInAsAppHuman(peerListPage, 'peer');
     // Settings > Servers is where switching lives now, so that list is what a
@@ -126,8 +126,8 @@ test('an Owner invites, promotes, and removes a human', async ({ browser, page }
     // Their open page drops the Server without being reloaded: losing access
     // arrives as a refused subscription, never as data, so the App has to act on
     // the refusal rather than wait for the next navigation.
-    await expect(peerPage.getByRole('textbox', { name: 'Message all' })).toHaveCount(0);
-    await expect(peerPage.getByText('Server unavailable')).toBeVisible();
+    await expect(peerPage.getByRole('textbox', { name: 'Message haus' })).toHaveCount(0);
+    await expect(peerPage.getByText('Server Unavailable')).toBeVisible();
 
     // The already-open list loses it too. This proves membership-loss listening
     // belongs to the hosted route rather than only an open Server page.
@@ -140,6 +140,6 @@ test('a human outside the Server cannot reach its member management', async ({ p
     await signInAsAppHuman(page, 'peer');
     await page.goto(`/s/${slug}/members`);
 
-    await expect(page.getByText('Server unavailable')).toBeVisible();
+    await expect(page.getByText('Server Unavailable')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Invite', exact: true })).toHaveCount(0);
 });

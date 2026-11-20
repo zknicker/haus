@@ -156,7 +156,6 @@ export async function readDrainCandidates(tx: HausDatabase, agentId: string) {
  */
 function preferredDrainLead(rows: store.InboxItemRow[]): store.InboxItemRow | undefined {
     return (
-        rows.find((row) => row.source === 'onboarding') ??
         rows.find((row) => isConcreteSource(row.source)) ??
         rows.find((row) => !isGreetingRow(row)) ??
         rows[0]

@@ -59,7 +59,7 @@ function turnInput(overrides: Partial<HarnessTurnInput>): HarnessTurnInput {
     return {
         activity: new AgentActivityRun(runtime, () => undefined),
         agentId: 'agt_receipt',
-        agentName: 'Cove',
+        agentName: 'Harbor',
         agentRoot,
         attestVisible: async (identities) => {
             events.push(`receipt:${identities.map(({ id }) => id).join(',')}`);
@@ -68,7 +68,6 @@ function turnInput(overrides: Partial<HarnessTurnInput>): HarnessTurnInput {
         dataRoot: agentRoot,
         drainItemIds: [],
         env: {},
-        factoryKind: 'ordinary',
         runtimeDriverFactory: fakeDriver,
         homeDir: join(agentRoot, 'home'),
         homeTimezone: 'UTC',

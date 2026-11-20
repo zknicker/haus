@@ -2,14 +2,12 @@ import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { coveFactoryManifestSha256 } from '@haus/agent-workspace';
 import {
     applyAgentConfiguration,
     parseAgentConfigureCommand,
     readAgentSeedConfiguration,
     readAppliedAgentConfiguration,
 } from './agent-configuration.ts';
-import { applyCoveConfiguration } from './cove-configuration.ts';
 import { readEffectiveAgentStates } from './effective-state.ts';
 
 let dataRoot: string;
@@ -27,7 +25,6 @@ test('applies desired runtime and model without waiting for the first turn', asy
         agentDescription: 'Reviews launch copy and records concrete risks.',
         agentId: 'agt_configurationxxx',
         agentName: 'Scout',
-        factoryKind: 'ordinary',
         modelId: 'gpt-5.6-sol',
         reasoningEffort: 'max',
         runtimeId: 'codex',
@@ -105,8 +102,7 @@ test('records the standing brief for the launch seed and keeps it on reprovision
         agentId: 'agt_briefseedxxxxxxx',
         agentName: 'Orbit',
         brief: 'Own competitor intel. Post a Friday digest in #product; @ada reviews it.',
-        briefAuthorHandle: 'cove',
-        factoryKind: 'ordinary',
+        briefAuthorHandle: 'harbor',
         modelId: 'gpt-5.6-sol',
         reasoningEffort: 'medium',
         runtimeId: 'codex',
@@ -134,7 +130,7 @@ test('records the standing brief for the launch seed and keeps it on reprovision
     const agentRoot = join(dataRoot, 'servers', 'srv_configuration', 'agents', command.agentId);
     await expect(readAgentSeedConfiguration(agentRoot)).resolves.toMatchObject({
         brief: 'Own competitor intel. Post a Friday digest in #product; @ada reviews it.',
-        briefAuthorHandle: 'cove',
+        briefAuthorHandle: 'harbor',
     });
 });
 
@@ -143,7 +139,6 @@ test('reports a missing desired model instead of substituting one', async () => 
         agentDescription: null,
         agentId: 'agt_missingmodelxxxx',
         agentName: 'Missing',
-        factoryKind: 'ordinary',
         modelId: 'missing-model',
         runtimeId: 'codex',
         sessionGeneration: 1,
@@ -175,95 +170,76 @@ test('reports a missing desired model instead of substituting one', async () => 
     ]);
 });
 
-test('durably applies and replays Cove without touching its Drive files', async () => {
-    const command = {
-        agentDescription: 'Onboarding Assistant' as const,
-        agentId: 'agt_covefactoryxxxx',
-        agentName: 'Cove' as const,
-        applicationId: 'cap_coveapplication',
-        factoryKind: 'cove' as const,
-        modelId: 'gpt-5.6-sol',
-        runtimeId: 'codex',
-        sessionGeneration: 1,
-        type: 'cove-apply' as const,
-    };
-    const input = {
-        command,
-        dataRoot,
-        inventory: {
-            runtimes: [
-                {
-                    id: 'codex',
-                    label: 'Codex',
-                    models: [{ id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' }],
+test.each(['cove', 'ordinary'])(
+    'a stored configuration with factory kind %s still loads and reapplies as an ordinary Agent',
+    async (factoryKind) => {
+        const agentRoot = join(
+            dataRoot,
+            'servers',
+            'srv_configuration',
+            'agents',
+            'agt_legacyseedxxxxx'
+        );
+        await mkdir(join(agentRoot, 'workspace', 'drive'), { recursive: true });
+        await writeFile(join(agentRoot, 'workspace', 'drive', 'MEMORY.md'), '# Edited\n');
+        await writeFile(join(agentRoot, 'cove-application.json'), '{"applicationId":"cap_old"}\n');
+        await writeFile(
+            join(agentRoot, 'configuration.json'),
+            `${JSON.stringify({
+                missingResources: [],
+                modelId: 'gpt-5.6-sol',
+                reasoningEffort: 'high',
+                runtimeId: 'codex',
+                seed: {
+                    agentDescription: 'Onboarding Assistant',
+                    agentName: 'Harbor',
+                    factoryKind,
                 },
-            ],
-        },
-        serverId: 'srv_configuration',
-    };
+            })}\n`
+        );
 
-    expect(await applyCoveConfiguration(input)).toEqual({
-        agentId: command.agentId,
-        applicationId: command.applicationId,
-        factoryKind: 'cove',
-        status: 'applied',
-        type: 'cove-apply-result',
-    });
-    expect(await applyCoveConfiguration(input)).toEqual({
-        agentId: command.agentId,
-        applicationId: command.applicationId,
-        factoryKind: 'cove',
-        status: 'applied',
-        type: 'cove-apply-result',
-    });
+        await expect(readAgentSeedConfiguration(agentRoot)).resolves.toEqual({
+            agentDescription: 'Onboarding Assistant',
+            agentName: 'Harbor',
+            brief: null,
+            briefAuthorHandle: null,
+        });
+        await expect(readAppliedAgentConfiguration(agentRoot)).resolves.toMatchObject({
+            modelId: 'gpt-5.6-sol',
+            reasoningEffort: 'high',
+        });
 
-    const agentRoot = join(dataRoot, 'servers', input.serverId, 'agents', command.agentId);
-    expect(await readdir(join(agentRoot, 'workspace'))).toEqual([]);
-    expect(
-        JSON.parse(await readFile(join(agentRoot, 'cove-application.json'), 'utf8'))
-    ).toMatchObject({ manifestSha256: coveFactoryManifestSha256() });
-    expect(await inventory(agentRoot)).toEqual([
-        'configuration.json',
-        'cove-application.json',
-        'home/',
-        'runtime/',
-        'workspace/',
-    ]);
-    await mkdir(join(agentRoot, 'workspace', 'drive', 'agents', 'cove'), { recursive: true });
-    await writeFile(
-        join(agentRoot, 'workspace', 'drive', 'agents', 'cove', 'MEMORY.md'),
-        '# Edited\n'
-    );
-    expect(await applyCoveConfiguration(input)).toMatchObject({ status: 'applied' });
+        const command = parseAgentConfigureCommand({
+            agentDescription: 'Onboarding Assistant',
+            agentId: 'agt_legacyseedxxxxx',
+            agentName: 'Harbor',
+            modelId: 'gpt-5.6-sol',
+            runtimeId: 'codex',
+            sessionGeneration: 1,
+            sessionResetKind: 'session',
+            type: 'agent-configure',
+        });
+        if (!command) {
+            throw new Error('Fixture command did not parse.');
+        }
+        await applyAgentConfiguration({
+            command,
+            dataRoot,
+            inventory: {
+                runtimes: [
+                    { id: 'codex', label: 'Codex', models: [{ id: 'gpt-5.6-sol', label: 'Sol' }] },
+                ],
+            },
+            serverId: 'srv_configuration',
+        });
 
-    const replay = parseAgentConfigureCommand({
-        agentDescription: command.agentDescription,
-        agentId: command.agentId,
-        agentName: command.agentName,
-        factoryKind: 'cove',
-        modelId: command.modelId,
-        reasoningEffort: 'medium',
-        runtimeId: command.runtimeId,
-        sessionGeneration: 1,
-        sessionResetKind: 'session',
-        type: 'agent-configure',
-    });
-    if (!replay) {
-        throw new Error('Cove replay fixture did not parse.');
+        const stored = JSON.parse(await readFile(join(agentRoot, 'configuration.json'), 'utf8'));
+        expect(stored.seed).not.toHaveProperty('factoryKind');
+        await expect(
+            readFile(join(agentRoot, 'workspace', 'drive', 'MEMORY.md'), 'utf8')
+        ).resolves.toBe('# Edited\n');
+        await expect(readFile(join(agentRoot, 'cove-application.json'), 'utf8')).resolves.toBe(
+            '{"applicationId":"cap_old"}\n'
+        );
     }
-    await applyAgentConfiguration({ ...input, command: replay });
-    await expect(readAgentSeedConfiguration(agentRoot)).resolves.toMatchObject({
-        factoryKind: 'cove',
-    });
-
-    const receiptPath = join(agentRoot, 'cove-application.json');
-    await writeFile(receiptPath, '{malformed receipt\n');
-    expect(await applyCoveConfiguration(input)).toMatchObject({ status: 'failed' });
-    await expect(readFile(receiptPath, 'utf8')).resolves.toBe('{malformed receipt\n');
-});
-
-async function inventory(root: string): Promise<string[]> {
-    return (await readdir(root, { withFileTypes: true }))
-        .map((entry) => `${entry.name}${entry.isDirectory() ? '/' : ''}`)
-        .sort();
-}
+);

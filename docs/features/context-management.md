@@ -1,10 +1,11 @@
 ---
-summary: Fresh-session instruction composition, MEMORY.md delivery in the turn input, and persistent Agent context.
+summary: Fresh-session instruction composition, MEMORY.md and AGENTS.md rule delivery in the turn input, and persistent Agent context.
 read_when:
   - changing generated Agent instructions
   - changing session resume, reset, model switching, or recovery
   - changing runtime launch config, Agent HOME setup, or what a runtime loads from disk (AGENTS.md, CLAUDE.md, settings)
   - changing how MEMORY.md reaches the turn input, its 8,000-character cap, or the memory receipt
+  - changing how the AGENTS.md rule layers reach the turn input on a Computer, or their receipts
   - changing compaction, idle compaction, or the Idle compaction Server setting
 ---
 
@@ -38,6 +39,15 @@ model session. Per-turn message delivery is an inbox concern; see
   ([ADR 0052](../adr/0052-memory-is-one-capped-file-and-heartbeats-retire.md),
   [Agent Workspace](../../specs/workspace.md#memory)). The Agent reads any other notes it needs
   itself.
+- The rule layers arrive the same way, ahead of `MEMORY.md`: `drive/haus/AGENTS.md`, then the
+  Agent's own `drive/agents/<handle>/AGENTS.md`, each in a `<haus-rules>` block when its content
+  differs from what this session last received, and a deleted layer is announced once
+  ([ADR 0054](../adr/0054-drive-holds-what-agents-know-and-follow.md) decision 7). The change test
+  is `planRulesDelivery` in `@haus/agent-prompt`, shared with the runner; the Computer reads the
+  files from the drive/ folder (`apps/computer/src/harness/rules-delivery.ts`) and keeps one
+  digest per layer in the session record. The receipts behave like the memory receipt: a
+  completed turn holds the files as it left them, a sub-agent wake defers a change, and a fresh
+  session or a compaction (in a turn or idle) clears them.
 - Every turn runs in the Agent's one main session. Haus runs no scheduled, unprompted turns:
   heartbeats and the nightly dream retired with ADR 0052.
 - Explicit MCP requests use the fixed `execute` tool to discover and invoke currently granted
@@ -58,10 +68,6 @@ model session. Per-turn message delivery is an inbox concern; see
   runtime CLI pin) or Restart parks the session at the turn boundary, refreshes the driver's
   install, and resumes that conversation. Activity History records the
   update as started, completed, or failed without prompt text, local paths, commands, or hashes.
-- Before Cove turns, Computer also reconciles recognized prior factory revisions of the playbook
-  and FAQ. It never replaces Cove's memory, objectives, missing files, or edited guidance. A
-  successful reconciliation gives the current session a one-turn private re-read notice; conflicts
-  remain visible as failed instruction-update activity while the turn continues.
 - Fingerprints advance only after the refreshed turn successfully detaches with new resume state,
   and the instruction receipt only on a turn that launched on or carried the current instructions
   (a sub-agent wake defers the update to the next ordinary turn). A turn the runtime compacted sets
@@ -97,8 +103,9 @@ model session. Per-turn message delivery is an inbox concern; see
   Its next delivery uses the same refresh path without rotating the session generation or
   replaying `Start.`.
 - Session reset preserves workspace, memory, skills, identity, and Server
-  history. Full reset keeps the Agent's Drive folder (memory, notes and skills) and clears the
-  rest of its local state without reseeding.
+  history. Full reset deletes the Agent's Drive area (restorable from Recently deleted for 30
+  days), clears its local state, and the next launch seeds a starter `MEMORY.md` and the
+  factory-managed skills.
 
 The composed instructions are bounded by a size cap asserted in
 `packages/agent-prompt/src/managed-instructions.test.ts`. It is a ratchet that forces a deliberate
@@ -107,12 +114,13 @@ and other prompt text is never cut just to make room. Raft-verbatim text is neve
 AGENTS.md and [the divergence register](../../specs/raft-alignment/prompt-divergences.md).
 
 Durable Agent knowledge lives in the Agent's Drive area (`MEMORY.md`, notes and
-skills). Only `MEMORY.md` reaches the turn input, and only when it changed. Agents
+skills). Only `MEMORY.md` and the two `AGENTS.md` rule layers reach the turn input, and only
+when they changed. Agents
 read older canonical Chat history through the `haus` CLI when inbox delivery is
 insufficient.
 
-A model's context is the composed instructions, `MEMORY.md` as the Computer
-delivers it, the workspace files the Agent chooses to read, and its isolated
+A model's context is the composed instructions, `MEMORY.md` and the rule layers as the
+Computer delivers them, the workspace files the Agent chooses to read, and its isolated
 `HOME` (skill links and runtime state). No runtime auto-loads `AGENTS.md`,
 `CLAUDE.md`, or an equivalent from the workspace, its ancestors, or the
 operator's home. Computer enforces this per runtime:

@@ -150,7 +150,7 @@ The receipt returns the new \`@handle\` and the channels it landed in.
 
 **Re-running it is safe.** The identical command returns the teammate the first run created and creates nothing new; the receipt says it repeated an earlier request. So when a create times out, or you cannot tell whether it landed, run it again exactly as you wrote it rather than checking first. Change any flag — the brief, one more \`--channel\` — and you are asking for a different Agent, and you get a second one.
 
-\`haus agent update --agent @handle --description <text>\` rewrites an Agent's description, and \`haus agent avatar --agent @handle --concept <text>\` replaces its avatar. Cove's identity is protected: both refuse on Cove.
+\`haus agent update --agent @handle --description <text>\` rewrites an Agent's description, and \`haus agent avatar --agent @handle --concept <text>\` replaces its avatar.
 
 The Agent profile in Haus App is where a human owns these values, along with runtime, model, and reasoning effort at Captain profile → Runs on, which an Owner or Admin alone changes. Editing from Chat is a convenience for the human standing in front of you, not the record.`,
         id: 'agent',

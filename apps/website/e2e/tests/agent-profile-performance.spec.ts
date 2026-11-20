@@ -27,9 +27,10 @@ test('a cold Agent profile keeps identity and navigation available before its co
         session.databaseUrl,
         `insert into agents (
         id, server_id, computer_id, handle, display_name, home_timezone,
-        desired_runtime_id, desired_model_id, created_at
+        desired_runtime_id, desired_model_id, created_at, home_project_id
     ) values ('agt_performance', '${server.id}', '${computer.computerId}',
-        'iris', 'Iris', 'America/New_York', 'codex', 'gpt-5.6-sol', now())`
+        'iris', 'Iris', 'America/New_York', 'codex', 'gpt-5.6-sol', now(),
+        (select id from chats where server_id = '${server.id}' and is_all))`
     );
     await page.reload();
     const row = page.getByRole('row', { name: 'Iris', exact: true });

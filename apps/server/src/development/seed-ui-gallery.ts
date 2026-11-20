@@ -52,7 +52,7 @@ export async function seedDevelopmentUiGallery(
             ...input,
             chatId,
             computerId,
-            agentId: context.coveId,
+            agentId: context.tinyId,
             now: new Date(),
         };
         await galleryMessage(

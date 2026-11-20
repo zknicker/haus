@@ -7,8 +7,6 @@ export interface InstructionRefresh {
     resumed: boolean;
     /** The instructions update a resume of this session will carry. */
     update: InstructionsUpdatePlan;
-    /** False when a Cove factory-guidance conflict keeps the version unapplied. */
-    versionCanApply: boolean;
     versionDrift: boolean;
 }
 
@@ -27,7 +25,7 @@ export async function startInstructionRefreshActivity(
         refresh.restartRequested ||
         refresh.bootstrapDrift ||
         refresh.update.kind === 'inject' ||
-        (refresh.versionDrift && refresh.versionCanApply && refresh.update.kind !== 'deferred');
+        (refresh.versionDrift && refresh.update.kind !== 'deferred');
     if (refresh.resumed && due && !activity.isActive(key)) {
         await activity.start({ category: 'updating_instructions', key });
     }

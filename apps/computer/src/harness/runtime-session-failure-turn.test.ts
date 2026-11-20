@@ -150,7 +150,6 @@ function turnInput(overrides: Partial<HarnessTurnInput> = {}): HarnessTurnInput 
         dataRoot: agentRoot,
         drainItemIds: [],
         env: {},
-        factoryKind: 'ordinary',
         homeDir: join(agentRoot, 'home'),
         homeTimezone: 'UTC',
         inbox: [],

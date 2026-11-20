@@ -29,7 +29,7 @@ function answer(path: string): unknown {
         case 'server.list':
             return servers;
         case 'server.bySlug':
-            return { ...servers[0], onboarding: { phase: 'complete' } };
+            return servers[0];
         case 'member.list':
             return { members: [], viewerUserId: 'usr_viewer' };
         case 'chat.engagements':

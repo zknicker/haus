@@ -14,7 +14,6 @@ import {
     AgentCreateConflictError,
     AgentCreateNoComputerError,
     AgentDescriptionTooLongError,
-    AgentIdentityProtectedError,
     AgentTargetNotFoundError,
 } from '../server-agents/errors.ts';
 import { sendAgentApiError } from './auth.ts';
@@ -105,9 +104,6 @@ export function sendAgentRouteFailure(
     }
     if (cause instanceof AgentConfigDeniedError) {
         return sendAgentApiError(reply, 409, 'AGENT_CREATE_REFUSED', cause.message);
-    }
-    if (cause instanceof AgentIdentityProtectedError) {
-        return sendAgentApiError(reply, 403, 'AGENT_IDENTITY_PROTECTED', cause.message);
     }
     if (cause instanceof AgentTargetNotFoundError) {
         return sendAgentApiError(reply, 404, 'AGENT_NOT_FOUND', cause.message);

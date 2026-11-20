@@ -8,31 +8,6 @@ import { idSchema } from './chat.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
-/** Durable Computer acknowledgement for the dedicated Cove factory operation. */
-export const coveApplyResultSchema = z.discriminatedUnion('status', [
-    z
-        .object({
-            agentId: idSchema,
-            applicationId: idSchema,
-            factoryKind: z.literal('cove'),
-            status: z.literal('applied'),
-            type: z.literal('cove-apply-result'),
-        })
-        .strict(),
-    z
-        .object({
-            agentId: idSchema,
-            applicationId: idSchema,
-            error: z.string().trim().min(1).max(300),
-            factoryKind: z.literal('cove'),
-            status: z.literal('failed'),
-            type: z.literal('cove-apply-result'),
-        })
-        .strict(),
-]);
-
-export type CoveApplyResult = z.infer<typeof coveApplyResultSchema>;
-
 export const agentSkillImportResultSchema = z.discriminatedUnion('status', [
     z
         .object({

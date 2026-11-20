@@ -41,7 +41,7 @@ export async function restoreArtifactRevision(options: {
     }
     if (artifact.deletedAt && (await liveArtifactAtPath(db, serverId, artifact.path))) {
         throw new ArtifactError(
-            `Another file lives at \`${artifact.path}\` now. Move it away, then restore.`,
+            `A file already exists at \`${artifact.path}\`. Move or rename that file first, then restore this one.`,
             409,
             'PATH_TAKEN'
         );

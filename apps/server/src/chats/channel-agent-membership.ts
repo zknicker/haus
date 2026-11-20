@@ -96,10 +96,9 @@ export async function findActiveAgentByHandle(
     db: Pick<HausDatabase, 'select'>,
     serverId: string,
     handle: string
-): Promise<{ factoryKind: 'cove' | 'ordinary'; handle: string; id: string } | null> {
+) {
     const [agent] = await db
         .select({
-            factoryKind: agentsTable.factoryKind,
             handle: agentsTable.handle,
             id: agentsTable.id,
         })

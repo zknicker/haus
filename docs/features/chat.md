@@ -255,9 +255,10 @@ and [Agent Inbox](../../specs/inbox.md).
   [Widgets](../internals/widgets.md).
 * **Pages and outputs.** Code, images, files, diffs, documents, and longer pages render
   as durable outputs attached to messages; an agent makes one when asked for
-  something to keep, share, or revisit. An Agent's `page` fence (a workspace
-  HTML page) becomes a card below its message (kind icon, title, `Page` and file
-  name) that opens the page in the chat's Workspace pane, or its own tab on desktop; it keeps its place
+  something to keep, share, or revisit. An Agent's `page` fence (an HTML
+  page in its Drive area) becomes a card below its message (kind icon, title, `Page` and file
+  name) that opens the page from Drive in the chat's Workspace pane, or its own tab on
+  desktop, at the revision the fence pins if it pins one; it keeps its place
   in the prose rather than joining the media strip. A link to a file in
   this Server's Files (its `/artifacts/<id>` stable URL)
   reads inline as a reference chip (kind icon and title, dotted underline) and
@@ -327,9 +328,9 @@ and [Agent Inbox](../../specs/inbox.md).
   from a Task in another Project), Triggers anchored in it (with their fire
   history), delivery rows, search state, attachment metadata, and attachment
   bytes. The committed deletion is the outcome: a failed cleanup is retried by
-  the Server's startup sweep, never reported as a failed delete. The
-  onboarding channel (`#onboarding-owner`) can be archived but not deleted,
-  because the durable onboarding record names it. `#all`, DMs, and Tasks
+  the Server's startup sweep, never reported as a failed delete. An existing
+  `#onboarding-owner` from the retired onboarding flow is an ordinary channel
+  and archives or deletes like any other. `#all`, DMs, and Tasks
   have no independent archive/delete action. New workspaces
   start with no user channels. Each active Agent has one implicit sidebar DM
   per human Server member and Agents address those pairs by the human's Server

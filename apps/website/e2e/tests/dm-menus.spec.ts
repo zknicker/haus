@@ -15,9 +15,10 @@ test('agent DM menus work before the first message and on the selected conversat
         select 'cmp_e2edmmenus000000', '${server.id}', user_id, md5(random()::text) || md5(random()::text), 'offline'
         from server_memberships where server_id = '${server.id}' and role = 'owner';
         insert into agents (id, server_id, computer_id, handle, display_name, home_timezone,
-            desired_runtime_id, desired_model_id)
+            desired_runtime_id, desired_model_id, home_project_id)
         values ('agt_e2edmmenus000000', '${server.id}', 'cmp_e2edmmenus000000', 'marlow', 'Marlow',
-            'America/New_York', 'codex', 'gpt-5.6-sol');
+            'America/New_York', 'codex', 'gpt-5.6-sol',
+            (select id from chats where server_id = '${server.id}' and is_all));
     `
     );
     await page.reload();

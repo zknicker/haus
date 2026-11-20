@@ -13,7 +13,6 @@ import {
     computerSecretsResultSchema,
     computerSystemEventReportSchema,
     computerUpdateProgressFrameSchema,
-    coveApplyResultSchema,
     hausAgentReportFrameSchema,
     hostSkillFileResultSchema,
     reminderScriptResultSchema,
@@ -23,9 +22,8 @@ import { z } from 'zod';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { settleTurn } from '../agent-delivery/settle-turn.ts';
 import type { InvocationRouter } from '../agent-invocations/invocation-router.ts';
-import { recordCoveApplyResult } from '../onboarding/create-cove.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentUpdatedTopic, computerUpdatedTopic } from '../realtime/topics.ts';
+import { computerUpdatedTopic } from '../realtime/topics.ts';
 import type { AgentThoughts } from '../server-agents/agent-thought.ts';
 import { recordAgentEffectiveState } from '../server-agents/record-agent-effective-state.ts';
 import { ingestAgentIdleCompaction } from '../server-agents/record-agent-idle-compaction.ts';
@@ -115,21 +113,6 @@ export async function ingestReport(
         return;
     }
 
-    const coveApply = coveApplyResultSchema.safeParse(frame);
-    if (coveApply.success) {
-        const changedServerId = await recordCoveApplyResult(db, computerId, coveApply.data);
-        if (changedServerId) {
-            agentUpdatedTopic.announce({
-                agentId: coveApply.data.agentId,
-                serverId: changedServerId,
-            });
-            if (coveApply.data.status === 'applied') {
-                await delivery.dispatchAgent(coveApply.data.agentId, changedServerId);
-            }
-        }
-        return;
-    }
-
     const turn = agentTurnSummarySchema.safeParse(frame);
     if (turn.success) {
         // Delivery records the durable summary and drains the next turn; a
@@ -215,7 +198,7 @@ async function recordStateReport(
             frame.type === 'report' &&
             'inventory' in frame
         ) {
-            return await recordInvalidComputerInventory(db, computerId, serverId);
+            return await recordInvalidComputerInventory(db, computerId);
         }
         return false;
     }

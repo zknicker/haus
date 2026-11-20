@@ -39,8 +39,8 @@ Computer never reported), with that runtime's first model.
 Creation adds the Agent to every current human member's implicit DM roster. It
 does not create an Owner DM or any other Chat row. There is no archetype field,
 picker, automatic lane-note seed, or special creation
-path in this contract. Fresh-Server Cove onboarding is a separate setup flow;
-see [ADR 0021](../adr/0021-cove-onboards-and-agents-share-a-manual.md).
+path in this contract. A new Server has no Agents; the first Captain is an ordinary one
+([ADR 0059](../adr/0059-haus-starts-empty-without-cove.md)).
 
 Computer seeds an ordinary Agent's fresh Drive area `agents/<handle>/` on its first launch
 with only a minimal `MEMORY.md` — identity, description-derived role, empty knowledge, and initial
@@ -132,7 +132,7 @@ factory-managed skill is `visuals`; see [Skills](skills.md).
 
 Computer retains an internal per-Agent **Haus Agent** version receipt for release evidence and
 diagnostics. That version covers Haus-managed behavior delivered through instructions, actions,
-recipes and Manual content, Harness bootstrap, and factory guidance; it does not version
+recipes and Manual content, and Harness bootstrap; it does not version
 Agent-owned memory, skills, or workspace edits. The ordinary App does not present the receipt as an
 update state because an Agent has no independent update action. Instruction refresh attempts remain
 available in Activity History without exposing prompt text, local paths, content hashes, or file
@@ -142,8 +142,7 @@ Agent DMs become ordinary pairwise Chats on their first durable message. Each
 human membership stint and Agent id has one canonical Chat, so different humans
 receive different private DMs and retries cannot create duplicates.
 
-Cove's factory onboarding playbook makes the next action executable: when the
-owner asks for a teammate, Cove creates it. The shared Manual's
+When a person asks an Agent for a teammate, the Agent creates it. The shared Manual's
 [`agent`](../api/manual.md#published-corpus) page documents that capability
 without adding a creation recipe or creative policy.
 
@@ -213,12 +212,12 @@ when the creator's reply @mentions the new Agent, that mention and the wake are
 one first turn, and a mention that lands mid-turn reaches it as a busy notice.
 A Stop returns the
 greeting to the queue unless the Agent already posted in `#all`, so it is shown
-until the Agent has greeted and never twice. Cove keeps its own onboarding greeting. Nothing DMs the new Agent — a DM is
+until the Agent has greeted and never twice. Nothing DMs the new Agent — a DM is
 between a human and an Agent.
 
 `haus agent update --agent @handle --description <text>` and
 `haus agent avatar --agent @handle --concept <text>` edit an existing Agent
-from Chat. Neither renames an Agent, and both refuse Cove. The Agent profile
+from Chat. Neither renames an Agent. The Agent profile
 is the human's canonical edit surface for every field, including runtime, model,
 and reasoning effort, which no Agent-facing command exposes.
 
@@ -279,7 +278,7 @@ Manual topic teaches this flow and tells Agents without the capability to say so
 an SVG or inline visual instead.
 
 Haus Agent releases do not force fresh model context. Computer supplies the current managed
-instructions on the next accepted turn and applies any release-owned bootstrap or factory guidance
+instructions on the next accepted turn and applies any release-owned bootstrap
 at that same boundary. The public version receipt advances only after that turn succeeds.
 
 Avatar generation is a Server-owned service. The Server owns the prompt, provider call,
@@ -301,9 +300,12 @@ One resident Computer execution host serves each assigned Agent. The Agent's
 single global model session spans all Chats and resumes across deliveries and
 Computer restarts. Stop, Restart, Start fresh session, and Full reset all run from the profile
 header's actions menu. Session reset creates fresh model context while preserving
-the workspace and skills. Full reset keeps the Agent's Drive folder (memory, notes and
-skills) and clears the rest of its local state; it reseeds nothing. Today the only
-factory-managed skill is `visuals`.
+the workspace and skills. Full reset deletes every file in the Agent's Drive area
+(`agents/<handle>/`: memory, notes, skills and rules) as the person who pressed it, clears its
+local state, and the next launch seeds a starter `MEMORY.md` and the factory-managed skills as new
+files. Each deleted file stays in Recently deleted in Drive for 30 days. Restoring the old
+`MEMORY.md` or a factory skill means moving or deleting the seeded file at that path first. Today
+the only factory-managed skill is `visuals`.
 
 See [Context management](context-management.md) and
 [Agent daemon and delivery](../internals/agent-daemon-delivery.md).
@@ -327,9 +329,9 @@ the tombstone. The replacement receives a new id, implicit DM identity, workspac
 history. Existing rich references and authored messages remain attached to the
 retired Agent id.
 
-Completed onboarding does not depend on Cove remaining active. Retiring Cove
-keeps the onboarding Channel and history under this same retired-Agent
-contract, while the Server stays unlocked and never provisions a replacement.
+An existing Cove from the retired onboarding flow is an ordinary Agent: people can rename it,
+change its avatar, voice and style, move its home, and retire it like any other
+([ADR 0059](../adr/0059-haus-starts-empty-without-cove.md)).
 
 ### Live turn inspection
 

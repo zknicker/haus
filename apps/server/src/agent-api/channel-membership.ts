@@ -6,14 +6,12 @@ import {
 } from '../chats/channel-agent-membership.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { AgentIdentityProtectedError } from '../server-agents/errors.ts';
 import { AgentTargetError } from './resolve-target.ts';
 
 /**
  * `haus channel add`: one Agent puts another in a channel. Membership is a
  * correction any teammate may make, so the runner credential is the whole
- * authority; the add wakes nobody and repeating it changes nothing. Cove's
- * membership belongs to the onboarding factory, so it is refused here.
+ * authority; the add wakes nobody and repeating it changes nothing.
  */
 export async function addAgentToChannel(
     db: HausDatabase,
@@ -28,9 +26,6 @@ export async function addAgentToChannel(
     const agent = await findActiveAgentByHandle(db, runner.serverId, handle);
     if (!agent) {
         throw new AgentTargetError(`No active Agent on this Server answers to "@${handle}".`);
-    }
-    if (agent.factoryKind === 'cove') {
-        throw new AgentIdentityProtectedError('Cove’s channel membership is product-owned.');
     }
     const joined = await joinChannelAgents(db, {
         agentIds: [agent.id],
