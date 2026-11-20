@@ -4,6 +4,7 @@ import {
     type ChatTextAnimationRange,
     renderTextWithAnimatedRanges,
 } from './chat-inline-text-animation.tsx';
+import { readCachedMarkdownSpans } from './markdown-spans-cache.ts';
 
 const maxParseDepth = 6;
 
@@ -29,6 +30,7 @@ export function renderInlineMarkdown(
         );
     }
 
+    const spans = readCachedMarkdownSpans(text);
     const nodes: React.ReactNode[] = [];
     let buffer = '';
     let bufferStart: number | null = null;
@@ -70,30 +72,37 @@ export function renderInlineMarkdown(
             continue;
         }
 
-        if (text[cursor] === '`') {
-            const end = text.indexOf('`', cursor + 1);
+        const codeRange = spans.code.find((span) => span.start === cursor);
 
-            if (end > cursor + 1) {
-                flushBuffer();
-                nodes.push(
-                    <code
-                        className="bg-surface-secondary rounded px-1 py-0.5 font-mono text-[0.92em] [overflow-wrap:anywhere] break-words"
-                        key={`${keyPrefix}:code:${cursor}`}
-                    >
-                        {renderTextWithAnimatedRanges(
-                            text.slice(cursor + 1, end),
-                            options.sourceOffset + cursor + 1,
-                            `${keyPrefix}:code-text:${cursor}`,
-                            options.animatedRanges
-                        )}
-                    </code>
-                );
-                cursor = end + 1;
-                continue;
+        if (codeRange?.kind === 'block') {
+            if (buffer.length === 0) {
+                bufferStart = cursor;
             }
+            buffer += text.slice(cursor, codeRange.end);
+            cursor = codeRange.end;
+            continue;
         }
 
-        const link = matchMarkdownLink(text, cursor);
+        if (codeRange) {
+            flushBuffer();
+            nodes.push(
+                <code
+                    className="bg-surface-secondary rounded px-1 py-0.5 font-mono text-[0.92em] [overflow-wrap:anywhere] break-words"
+                    key={`${keyPrefix}:code:${cursor}`}
+                >
+                    {renderTextWithAnimatedRanges(
+                        text.slice(codeRange.contentStart, codeRange.contentEnd),
+                        options.sourceOffset + codeRange.contentStart,
+                        `${keyPrefix}:code-text:${cursor}`,
+                        options.animatedRanges
+                    )}
+                </code>
+            );
+            cursor = codeRange.end;
+            continue;
+        }
+
+        const link = matchMarkdownLink(text, spans.links, cursor);
 
         if (link) {
             flushBuffer();
