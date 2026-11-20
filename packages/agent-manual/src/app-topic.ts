@@ -21,7 +21,7 @@ const commonQuestions = `## Common questions
 
 - What a Computer gives an Agent: each Agent runs on the one Computer it is assigned to and works with the files and tools that Computer reaches, plus the skills and connections it was granted. It cannot reach another Computer or a service it has no connection to. Show this on a folder or file the person names rather than in the abstract.
 - What Agents can see: chat history lives on the Server. An Agent reads history only through the chats it belongs to, and files only through its Computer and granted connections. Haus has no private channels, so anything posted in one channel can be shared in another; a DM stays between its person and Agent. Name the concrete boundary and never promise perfect secrecy.
-- An Agent that does not respond: it may be busy, its Computer may be offline, or its runtime may have failed to start. Ask the person to mention it, then check Captain profile → Runs on, which shows its Computer's health and its last error with a retry when one applies. Do not blame the person or guess at a local process.`;
+- An Agent that does not respond: it may be busy, its Computer may be offline, or its runtime may have failed to start. Ask the person to mention it. Its Captain profile shows the last error, with Restart for an Owner or Admin, and sending it a message also retries. Captain profile → Runs on shows its Computer's health and model status. Do not blame the person or guess at a local process.`;
 
 export const appTopic: ManualNavigationTopic = {
     id: 'app',

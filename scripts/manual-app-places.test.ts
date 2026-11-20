@@ -71,7 +71,8 @@ test('the app topic renders each place as one line with its role and caveat', ()
         'Rename a channel or change its description: Project actions → Name & description…'
     );
     expect(body).toContain('## Common questions\n\n- What a Computer gives an Agent:');
-    expect(body).toContain('check Captain profile → Runs on');
+    expect(body).toContain('Its Captain profile shows the last error, with Restart');
+    expect(body).toContain("Captain profile → Runs on shows its Computer's health and model status");
     expect(body.length).toBeLessThan(4600);
 });
 
