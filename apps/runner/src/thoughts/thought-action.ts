@@ -1,4 +1,5 @@
 import { type AgentActivityCategory, agentThoughtActionMaxLength } from '@haus/api';
+import { commandText } from '../turn/run-activity.ts';
 import { isSecretName, scrubCommandLine, scrubPhrase } from './thought-action-scrub.ts';
 
 export function describeToolAction(action: {
@@ -12,7 +13,7 @@ export function describeToolAction(action: {
     const fields = inputFields(action.input);
     switch (action.category) {
         case 'running_command': {
-            const command = textField(fields, ['command']);
+            const command = commandText(action.input);
             return command ? bounded(scrubCommandLine(command)) : null;
         }
         case 'reading_files':

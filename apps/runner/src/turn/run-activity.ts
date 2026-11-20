@@ -5,6 +5,7 @@ import {
     type AgentTurnOperationCategory,
     agentTurnOperationCategorySchema,
 } from '@haus/api';
+import { shellCommandOf } from '../tools/shell-command.ts';
 import { compactionToolName, type TurnEvent } from './turn-event.ts';
 
 type TerminalPhase = 'completed' | 'failed' | 'interrupted';
@@ -100,8 +101,14 @@ export function toolCategory(toolName: string, input: unknown) {
     if (toolName === compactionToolName) {
         return null;
     }
-    if (toolName === 'bash') {
+    if (toolName === 'bash' || toolName === 'shell') {
         return isHausCommand(input) ? null : 'running_command';
+    }
+    if (toolName === 'apply_patch') {
+        return 'editing_files';
+    }
+    if (toolName === 'view_image') {
+        return 'reading_files';
     }
     if (toolName === 'str_replace_based_edit_tool') {
         return commandOf(input) === 'view' ? 'reading_files' : 'editing_files';
@@ -115,7 +122,15 @@ function commandOf(input: unknown) {
         : undefined;
 }
 
-function isHausCommand(input: unknown) {
+export function commandText(input: unknown) {
     const command = commandOf(input);
+    if (Array.isArray(command) && command.every((word) => typeof word === 'string')) {
+        return shellCommandOf(command).script;
+    }
+    return typeof command === 'string' ? command : undefined;
+}
+
+function isHausCommand(input: unknown) {
+    const command = commandText(input);
     return typeof command === 'string' && /^\s*haus(?:\s|$)/u.test(command);
 }

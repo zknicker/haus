@@ -66,3 +66,26 @@ test('a runner turn narrates its reasoning title, a started command, and the com
         },
     ]);
 });
+
+test('a GPT shell call that reads a file or a secret never becomes a finding', () => {
+    const frames: Record<string, unknown>[] = [];
+    const thoughts = createRunThoughts({
+        agentId: 'agt_1',
+        link: { send: (frame) => frames.push({ ...frame }) },
+        now: () => 0,
+        runId: 'run_1',
+        schedule: () => () => undefined,
+    });
+    const shell = (toolCallId: string, command: string[], output: string) => {
+        thoughts.observe({ input: { command }, toolCallId, toolName: 'shell', type: 'tool-call' });
+        thoughts.observe({ output, toolCallId, toolName: 'shell', type: 'tool-result' });
+    };
+
+    shell('call_1', ['cat', '/work/private.txt'], 'the private notes nobody should see');
+    shell('call_2', ['bash', '-lc', 'printenv OPENAI_API_KEY'], 'sk-live-secret-value-123456');
+    shell('call_3', ['bash', '-lc', 'haus message read --chat all'], 'a long message history');
+    thoughts.close();
+
+    expect(frames.map((frame) => frame.action)).toContain('cat private.txt');
+    expect(frames.some((frame) => 'result' in frame)).toBe(false);
+});
