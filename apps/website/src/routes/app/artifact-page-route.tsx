@@ -14,6 +14,7 @@ import type { HausResourceTarget } from '../../features/chats/haus-resource-link
 import { useServerContext } from '../../features/servers/server-context.ts';
 import { PageToolbar } from '../../features/shell/page-toolbar.tsx';
 import { parseArtifactPageKey } from './desktop-page-paths.ts';
+import { DrivePageRoute } from './drive-page-route.tsx';
 
 /**
  * An Agent's artifact as a desktop page (`artifacts/:artifactKey`, ADR 0039),
@@ -34,7 +35,9 @@ export function ArtifactPageRoute() {
     }
     return (
         <section aria-label="Workspace" className="bg-background flex min-h-0 flex-1 flex-col">
-            {target.kind === 'workspaceFile' ? (
+            {target.kind === 'drivePage' ? (
+                <DrivePageRoute serverId={server.id} slug={server.slug} target={target} />
+            ) : target.kind === 'workspaceFile' ? (
                 <ArtifactFile agentId={target.agentId} serverId={server.id} target={target} />
             ) : (
                 <WorkspaceBrowserContent

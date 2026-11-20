@@ -4,7 +4,7 @@ import type { ChatArtifactPanelState } from '../../chats/chat-artifact-panel-sta
 import {
     getArtifactPanelTargetKey,
     type HausResourceTarget,
-    isWorkspaceChatPaneTarget,
+    isWorkspaceResourceTarget,
 } from '../../chats/haus-resource-link.ts';
 
 export function useChatArtifactPanel(chatId: string): ChatArtifactPanelState {
@@ -17,7 +17,7 @@ export function useChatArtifactPanel(chatId: string): ChatArtifactPanelState {
 
     const open = React.useCallback(
         (target: HausResourceTarget) => {
-            if (!(isWorkspaceChatPaneTarget(target) && target.agentId)) {
+            if (!target.agentId) {
                 return;
             }
             setChatSidePane(chatId, 'artifact');
@@ -70,10 +70,10 @@ export function mergeArtifactTarget(
         return current.activeKey === key ? current : { ...current, activeKey: key };
     }
 
-    if (isWorkspaceChatPaneTarget(target)) {
+    if (isWorkspaceResourceTarget(target)) {
         const workspaceIndex = current.targets.findIndex(
             (candidate) =>
-                isWorkspaceChatPaneTarget(candidate) && candidate.agentId === target.agentId
+                isWorkspaceResourceTarget(candidate) && candidate.agentId === target.agentId
         );
         const workspaceTarget = current.targets[workspaceIndex];
         if (workspaceTarget) {

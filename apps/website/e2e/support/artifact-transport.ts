@@ -15,8 +15,33 @@ interface Transport {
 
 type TransportInput = Partial<Record<'artifact_id' | 'revision_id', string>>;
 
-export async function routeFileTransport(transport: Transport) {
-    await transport.page.route('**/trpc/**', async (route) => {
+type FileTransport = Record<string, (input: TransportInput) => unknown>;
+
+export function libraryFileTransport(transport: Transport) {
+    const { page } = transport;
+    const handlers: FileTransport = {
+        'artifact.download': () => ({
+            download_url: new URL('/prototypes/cove-avatar.png', page.url()).href,
+        }),
+        'artifact.thumbnail': () => ({
+            expires_at: new Date(Date.now() + 300_000).toISOString(),
+            status: 'ready',
+            thumbnail_url: new URL('/prototypes/cove-avatar.png', page.url()).href,
+        }),
+        'artifact.text': (input) => ({ status: 'text', text: revisionText(input) }),
+        'artifact.restore': (input) => restoreRevision(transport, input),
+    };
+    return handlers;
+}
+
+export async function routeAgentPageText(page: Page, html: (revisionId: string) => string) {
+    await routeFileTransport(page, {
+        'artifact.text': ({ revision_id = '' }) => ({ status: 'text', text: html(revision_id) }),
+    });
+}
+
+export async function routeFileTransport(page: Page, fileTransport: FileTransport) {
+    await page.route('**/trpc/**', async (route) => {
         const url = new URL(route.request().url());
         const procedures = url.pathname.split('/trpc/')[1]?.split(',') ?? [];
         if (!procedures.some((procedure) => procedure in fileTransport)) {
@@ -31,7 +56,7 @@ export async function routeFileTransport(transport: Transport) {
             const procedure = procedures[index];
             const input: TransportInput = batched ? body[String(index)] : body;
             return procedure && procedure in fileTransport
-                ? { result: { data: fileTransport[procedure]?.(transport, input) } }
+                ? { result: { data: fileTransport[procedure]?.(input) } }
                 : result;
         };
         await route.fulfill({
@@ -41,19 +66,6 @@ export async function routeFileTransport(transport: Transport) {
         });
     });
 }
-
-const fileTransport: Record<string, (transport: Transport, input: TransportInput) => unknown> = {
-    'artifact.download': ({ page }) => ({
-        download_url: new URL('/prototypes/cove-avatar.png', page.url()).href,
-    }),
-    'artifact.thumbnail': ({ page }) => ({
-        expires_at: new Date(Date.now() + 300_000).toISOString(),
-        status: 'ready',
-        thumbnail_url: new URL('/prototypes/cove-avatar.png', page.url()).href,
-    }),
-    'artifact.text': (_transport, input) => ({ status: 'text', text: revisionText(input) }),
-    'artifact.restore': restoreRevision,
-};
 
 function revisionText({ artifact_id = '', revision_id = '' }: TransportInput) {
     if (artifact_id.endsWith('_readme')) {
