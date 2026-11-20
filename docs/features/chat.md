@@ -306,7 +306,7 @@ and [Agent Inbox](../../specs/inbox.md).
   it is: Add moves another Agent's home here (each choice shows its avatar and
   the Project it lives in now), and Move to… moves one home to another Project,
   both through `agent.setHome`. Every Project choice is one searchable picker
-  whose rows carry the Project's icon and color, leaves out `#all`, and ends in
+  over `project.list` whose rows carry the Project's icon and color, and ends in
   New project, which creates a Project and picks it. An Agent's profile hub
   carries the same picker as its Home Project row, New Captain requires one, and
   archiving or deleting a Project that is still home to Captains asks where they

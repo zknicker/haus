@@ -37,16 +37,14 @@ export function ChannelContextMenuItems({
                 <Icon aria-hidden="true" icon={PaintBrush03Icon} size={16} />
                 <Label>Icon &amp; color…</Label>
             </ContextMenu.Item>
-            {chat.isAll ? null : (
-                <ContextMenu.Item
-                    id="captains"
-                    isDisabled={archived}
-                    textValue="Captains in this Project"
-                >
-                    <Icon aria-hidden="true" icon={UserMultipleIcon} size={16} />
-                    <Label>Captains in this Project…</Label>
-                </ContextMenu.Item>
-            )}
+            <ContextMenu.Item
+                id="captains"
+                isDisabled={archived}
+                textValue="Captains in this Project"
+            >
+                <Icon aria-hidden="true" icon={UserMultipleIcon} size={16} />
+                <Label>Captains in this Project…</Label>
+            </ContextMenu.Item>
             {actions.filesAvailable ? (
                 <>
                     <ContextMenu.Separator />

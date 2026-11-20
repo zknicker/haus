@@ -26,11 +26,8 @@ export function projectChoices(
     except?: string
 ) {
     return projects.flatMap((project) => {
-        const chat = chats.get(project.chatId);
-        if (project.isHaus || chat?.isAll || project.chatId === except) {
-            return [];
-        }
-        const choice = projectChoice(project, chat);
+        const choice =
+            project.chatId === except ? null : projectChoice(project, chats.get(project.chatId));
         return choice ? [choice] : [];
     });
 }

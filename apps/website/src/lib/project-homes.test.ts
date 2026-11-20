@@ -42,29 +42,28 @@ describe('Project homes', () => {
         expect(agentHomeProject(projects, 'agt_gone')).toBeUndefined();
     });
 
-    test('a picker offers listed Projects with their marks, never the everyone-channel', () => {
-        const all = project('cht_all', 'all', []);
+    test('a picker offers listed Projects with their marks, never an archived one', () => {
         const archived = project('cht_old', 'old', []);
         const chats = new Map(
             [
                 testChat({ id: 'cht_haus', name: 'haus' }),
                 testChat({ color: 'teal', icon: 'Rocket01Icon', id: 'cht_ops', name: 'ops' }),
                 testChat({ id: 'cht_new', name: 'new' }),
-                testChat({ id: 'cht_all', isAll: true, name: 'all' }),
                 testChat({ archivedAt: '2026-11-01T00:00:00.000Z', id: 'cht_old', name: 'old' }),
             ].map((chat) => [chat.id, chat])
         );
         const unlisted = project('cht_gone', 'gone', []);
-        const everything = [...projects, all, archived, unlisted];
+        const everything = [...projects, archived, unlisted];
 
         expect(projectChoices(everything, chats)).toEqual([
+            { chatId: 'cht_haus', color: null, icon: null, name: 'haus' },
             { chatId: 'cht_ops', color: 'teal', icon: 'Rocket01Icon', name: 'ops' },
             { chatId: 'cht_new', color: null, icon: null, name: 'new' },
         ]);
         expect(projectChoices(everything, chats, 'cht_ops').map(({ name }) => name)).toEqual([
+            'haus',
             'new',
         ]);
-        expect(projectChoice(haus, chats.get('cht_haus'))?.name).toBe('haus');
         expect(projectChoice(unlisted, undefined)).toBeNull();
     });
 
