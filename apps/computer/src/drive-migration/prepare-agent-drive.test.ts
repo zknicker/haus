@@ -3,11 +3,11 @@ import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readdir, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { AgentSeedConfiguration } from '../agent-configuration.ts';
 import { agentDrive } from '../drive/agent-drive.ts';
 import { resolveEntries } from './drive-outcomes.ts';
 import { legacyEntries } from './drive-sources.ts';
 import { DriveMigrationError, prepareAgentDrive } from './prepare-agent-drive.ts';
+import type { AgentSeedConfiguration } from './seed-configuration.ts';
 import { createDriveRoutes, serveDrive } from './testing/drive-server.ts';
 
 const agentId = 'agt_drivemigrate';

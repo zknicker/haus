@@ -21,7 +21,6 @@ export function handleAgentSkillFileRequest(
         send(frame: unknown): boolean;
         serverId: string;
         track<T>(work: Promise<T>): Promise<T>;
-        waitForRun(agentId: string): Promise<void>;
     }
 ): boolean {
     const request = parseAgentSkillFileRequest(frame);
@@ -30,14 +29,11 @@ export function handleAgentSkillFileRequest(
     }
     const mutates = request.operation.kind !== 'read';
     void input.track(
-        (mutates ? input.waitForRun(request.agentId) : Promise.resolve())
-            .then(() =>
-                runAgentSkillFileRequest({
-                    dataRoot: input.dataRoot,
-                    request,
-                    serverId: input.serverId,
-                })
-            )
+        runAgentSkillFileRequest({
+            dataRoot: input.dataRoot,
+            request,
+            serverId: input.serverId,
+        })
             .then(async (result) => {
                 input.send(result);
                 if (mutates && result.result) {
