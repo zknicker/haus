@@ -44,7 +44,7 @@ export function HomeComposer({
             : null;
 
     return (
-        <div className="flex w-full flex-col gap-2">
+        <div className="home-composer flex w-full flex-col gap-2">
             <div className="flex items-center gap-1">
                 <ProjectPicker
                     onChange={(id) => {
