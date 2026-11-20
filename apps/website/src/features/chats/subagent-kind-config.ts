@@ -1,8 +1,8 @@
 import { HourglassIcon, TerminalIcon, ZapIcon } from '@hugeicons-pro/core-duotone-rounded';
 import type { IconSvgElement } from '@hugeicons/react';
-import type { TranscriptWorker } from '../chats/transcript-contract.ts';
+import type { TranscriptSubagent } from './transcript-contract.ts';
 
-export const workerKindConfig = {
+export const subagentKindConfig = {
     acp: {
         accent: 'var(--accent)',
         accentMuted: 'oklch(from var(--accent) l c h / 0.25)',
@@ -25,7 +25,7 @@ export const workerKindConfig = {
         label: 'Cron',
     },
 } satisfies Record<
-    TranscriptWorker['kind'],
+    TranscriptSubagent['kind'],
     {
         accent: string;
         accentMuted: string;

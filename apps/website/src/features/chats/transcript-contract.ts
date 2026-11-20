@@ -187,7 +187,7 @@ export interface TranscriptToolRow {
     toolCall: TranscriptToolCall;
 }
 
-export interface TranscriptWorker {
+export interface TranscriptSubagent {
     agentId: string | null;
     agentName: string;
     chatTitle: string | null;
@@ -204,7 +204,7 @@ export interface TranscriptWorker {
     kind: 'acp' | 'cli' | 'cron';
     lastEventAt: string | null;
     notifyPolicy: string | null;
-    parentWorkerId: string | null;
+    parentSubagentId: string | null;
     progressSummary: string | null;
     requesterSessionKey: string | null;
     runId: string | null;
@@ -228,18 +228,18 @@ export interface TranscriptWorker {
     title: string;
 }
 
-export interface TranscriptWorkerRow {
+export interface TranscriptSubagentRow {
     actor: TranscriptActor;
     completedAt: string | null;
     connectsToNext: boolean;
     connectsToPrevious: boolean;
     id: string;
     isFirstInGroup: boolean;
-    kind: 'worker';
+    kind: 'subagent';
     responseId?: string;
     sessionKey: string | null;
     startedAt: string | null;
-    worker: TranscriptWorker;
+    subagent: TranscriptSubagent;
 }
 
 export interface TranscriptWidgetRow {
@@ -269,4 +269,4 @@ export type TranscriptRow =
     | TranscriptSystemRow
     | TranscriptToolRow
     | TranscriptWidgetRow
-    | TranscriptWorkerRow;
+    | TranscriptSubagentRow;
