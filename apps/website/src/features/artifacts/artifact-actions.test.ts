@@ -65,22 +65,38 @@ describe('fileActions', () => {
 });
 
 describe('folder and empty-area actions', () => {
-    test('folders open, download as a zip, copy a link or path, rename, and move', () => {
-        expect(ids(folderActions(web))).toEqual([
+    test('folders open, download as a zip, copy a link or path, rename, move, and show what was deleted', () => {
+        expect(ids(folderActions({ ...web, isFixed: false }))).toEqual([
             'open',
             'download',
             'copy-link',
             'copy-path',
             'rename',
             'move',
+            'recently-deleted',
         ]);
-        expect(ids(folderActions({ canOpenInTab: true, canShowInFolder: true }))).toContain(
-            'show-in-folder'
-        );
+        expect(
+            ids(folderActions({ canOpenInTab: true, canShowInFolder: true, isFixed: false }))
+        ).toContain('show-in-folder');
     });
 
-    test('the empty area uploads into the open folder', () => {
-        expect(ids(libraryAreaActions)).toEqual(['upload-files', 'upload-folder']);
+    test('a shelf or area root neither renames nor moves', () => {
+        expect(ids(folderActions({ ...web, isFixed: true }))).toEqual([
+            'open',
+            'download',
+            'copy-link',
+            'copy-path',
+            'recently-deleted',
+        ]);
+    });
+
+    test('the empty area uploads only where files may land', () => {
+        expect(ids(libraryAreaActions({ acceptsFiles: true }))).toEqual([
+            'upload-files',
+            'upload-folder',
+            'recently-deleted',
+        ]);
+        expect(ids(libraryAreaActions({ acceptsFiles: false }))).toEqual(['recently-deleted']);
     });
 });
 

@@ -1,10 +1,6 @@
+import { type RuleFile, ruleLayerPaths } from '@haus/agent-prompt';
 import type { RunAuthority } from '../run-context.ts';
 import { readAgentHandle, readDriveText, readSkillListing } from './agent-drive.ts';
-
-export interface RuleFile {
-    readonly content: string | null;
-    readonly path: string;
-}
 
 interface ContextReader {
     readonly authority: RunAuthority;
@@ -31,10 +27,6 @@ export async function readAgentContext(input: ContextReader) {
         }),
     ]);
     return { memory, rules, skills };
-}
-
-function ruleLayerPaths(handle: string) {
-    return ['haus/AGENTS.md', `agents/${handle}/AGENTS.md`];
 }
 
 async function readRuleFiles(input: ContextReader, handle: string) {

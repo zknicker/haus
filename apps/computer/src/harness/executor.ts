@@ -33,7 +33,6 @@ import { startInstructionRefreshActivity } from './instruction-refresh-activity.
 import { planInstructionsUpdate, withInstructionsUpdate } from './instructions-update.ts';
 import { composeAgentInstructions } from './instructions.ts';
 import { journalError, journalOutcome } from './journal-outcome.ts';
-import { planMemoryDelivery, readMemoryDigest, withMemory } from './memory-delivery.ts';
 import { AgentSessionResumeRejectedError } from './resume-rejection.ts';
 import { projectMessageForAgent } from './rich-reference-projection.ts';
 import { type HarnessSessionLease, harnessSessionOwner } from './session-lifecycle.ts';
@@ -49,6 +48,7 @@ import {
 } from './session-store.ts';
 import { settleStoppedTurn } from './stopped-turn.ts';
 import type { HarnessTokenUsage } from './token-usage.ts';
+import { planTurnFiles, readTurnFileDigests, withTurnFiles } from './turn-files.ts';
 import { openTurnNotices, returnUnconsumedNotices } from './turn-notices.ts';
 import { createTurnPhaseLog } from './turn-phase-log.ts';
 import { attestComposedDrain, composeTurnPrompt, type TurnDelivery } from './turn-prompt.ts';
@@ -221,16 +221,16 @@ async function executeHarnessTurn(
         });
         await phase('session ready');
         const instructionsUpdate = updateFor(live.isResume);
-        const memory = await planMemoryDelivery({
+        const files = await planTurnFiles({
+            drive: input.drive,
             isResume: live.isResume,
-            receipt: session.deliveredMemoryDigest,
+            session,
             wake,
-            memoryPath: input.drive.memory,
         });
         const record = turnSessionRecord(session, {
             composed,
             instructionsUpdate,
-            memory,
+            ...files,
             reasoningEffort: input.reasoningEffort,
             runtimeSessionId: live.sessionId,
         });
@@ -250,11 +250,11 @@ async function executeHarnessTurn(
         const noProgress = new AbortController();
         const turnSignal = AbortSignal.any([noProgress.signal, input.signal ?? noProgress.signal]);
         const turn = await live.startTurn({
-            // The update and memory lead, outside the projection: neither is a message.
+            // The update, rules, and memory lead, outside the projection: none is a message.
             prompt: withInstructionsUpdate(
                 instructionsUpdate,
-                withMemory(
-                    memory,
+                withTurnFiles(
+                    files,
                     projectMessageForAgent({
                         content: [coveGuidance.notice, turnContent, skillNotice?.text]
                             .filter(Boolean)
@@ -338,7 +338,7 @@ async function executeHarnessTurn(
             record.completed(ended, {
                 bootstrapFingerprint,
                 coveGuidanceCanApply: coveGuidance.versionCanApply,
-                memoryDigest: await readMemoryDigest(input.drive.memory),
+                ...(await readTurnFileDigests(input.drive, files.rules)),
                 modelId: input.modelId,
                 runtimeId: input.runtimeId,
             })
