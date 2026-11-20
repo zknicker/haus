@@ -10,7 +10,12 @@ import { cn } from '../../lib/utils.ts';
 import { shellBandIconSize } from '../shell/section-header.tsx';
 import { ArtifactPanelSourceMenu } from './chat-artifact-panel-source-menu.tsx';
 import { ArtifactTabStrip } from './chat-artifact-tab-strip.tsx';
-import { formatHausResourceLink, type HausResourceTarget } from './haus-resource-link.ts';
+import {
+    formatHausResourceLink,
+    type HausResourceTarget,
+    isWorkspaceResourceTarget,
+    type WorkspaceResourceTarget,
+} from './haus-resource-link.ts';
 
 // One chrome row: tabs, the active target's options, add, hide. The pane
 // intentionally has no second path/toolbar row — target navigation lives in
@@ -59,7 +64,9 @@ export function ArtifactPanelChrome({
                 </ScrollShadow>
                 <ArtifactPanelSourceMenu agentId={agentId} onOpenTarget={onOpenTarget} />
             </div>
-            {activeTarget ? <ArtifactOptionsMenu target={activeTarget} /> : null}
+            {activeTarget && isWorkspaceResourceTarget(activeTarget) ? (
+                <ArtifactOptionsMenu target={activeTarget} />
+            ) : null}
             {closeButtonHidden ? null : (
                 <Button
                     aria-label="Hide workspace"
@@ -75,7 +82,7 @@ export function ArtifactPanelChrome({
     );
 }
 
-export function ArtifactOptionsMenu({ target }: { target: HausResourceTarget }) {
+export function ArtifactOptionsMenu({ target }: { target: WorkspaceResourceTarget }) {
     return (
         <Dropdown>
             <Button aria-label="Workspace item options" isIconOnly size="sm" variant="ghost">

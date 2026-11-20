@@ -42,6 +42,8 @@ export function parseArtifactPageKey(key: string): ArtifactPageTarget | null {
     const agentId = key.slice(kindEnd + 1, agentEnd);
     const path = key.slice(agentEnd + 1);
     switch (kind) {
+        case 'drivePage':
+            return parseDrivePageKey(agentId, path);
         case 'workspaceFile':
             return path.trim() ? { agentId, kind, path } : null;
         case 'workspaceDirectory':
@@ -51,4 +53,18 @@ export function parseArtifactPageKey(key: string): ArtifactPageTarget | null {
         default:
             return null;
     }
+}
+
+/** `drivePage:<agent>:<revision or empty>:<path>`; the rest after the agent is `revision:path`. */
+function parseDrivePageKey(agentId: string, rest: string) {
+    const revisionEnd = rest.indexOf(':');
+    const path = rest.slice(revisionEnd + 1);
+    if (revisionEnd < 0 || !path.trim()) {
+        return null;
+    }
+    const revisionId = rest.slice(0, revisionEnd);
+    const target: ArtifactPageTarget = revisionId
+        ? { agentId, kind: 'drivePage', path, revisionId }
+        : { agentId, kind: 'drivePage', path };
+    return target;
 }
