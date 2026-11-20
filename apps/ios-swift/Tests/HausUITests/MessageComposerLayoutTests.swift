@@ -84,6 +84,7 @@ final class MessageComposerLayoutTests: XCTestCase {
         let leadingInset = ComposerControlLayout.expandedFieldInset
 
         XCTAssertEqual(leadingInset, 10)
+        XCTAssertEqual(ComposerControlLayout.expandedRowSpacing, leadingInset)
         XCTAssertEqual(width - (leadingInset + fieldWidth), leadingInset)
     }
 

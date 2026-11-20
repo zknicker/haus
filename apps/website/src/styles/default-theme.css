@@ -916,6 +916,49 @@
             var(--surface-shadow);
     }
 
+    /*
+     * The expanded compact composer keeps a short draft against the controls,
+     * the same rhythm as the iPhone composer: a one-line text well, a ×2.5
+     * text inset (~10px), and controls ×2 from the shell. Stock reserves a
+     * three-line well (`×18`) and a `×28` shell, which left a band of empty
+     * field under one line. Attachments keep the tighter top inset stock
+     * already uses between the strip and the text.
+     */
+    .prompt-input[data-layout="compact"][data-expanded] .prompt-input__shell--compact,
+    .prompt-input[data-layout="compact"]
+        .prompt-input__shell--compact:has(.prompt-input__attachments > *) {
+        min-height: calc(var(--spacing) * 21);
+    }
+
+    .prompt-input[data-layout="compact"][data-expanded]
+        :is(.prompt-input__textarea, .prompt-input__token-input),
+    .prompt-input[data-layout="compact"]
+        .prompt-input__shell--compact:has(.prompt-input__attachments > *)
+        :is(.prompt-input__textarea, .prompt-input__token-input) {
+        min-height: calc(var(--spacing) * 8);
+        margin-bottom: calc(var(--spacing) * 13);
+        padding-inline: calc(var(--spacing) * 2.5);
+        padding-top: calc(var(--spacing) * 2.5);
+    }
+
+    .prompt-input[data-layout="compact"][data-expanded]
+        .prompt-input__attachments
+        + :is(.prompt-input__textarea, .prompt-input__token-input),
+    .prompt-input[data-layout="compact"]
+        .prompt-input__shell--compact:has(.prompt-input__attachments > *)
+        .prompt-input__attachments
+        + :is(.prompt-input__textarea, .prompt-input__token-input) {
+        padding-top: calc(var(--spacing) * 1);
+    }
+
+    .prompt-input[data-layout="compact"][data-expanded] .prompt-input__toolbar,
+    .prompt-input[data-layout="compact"]
+        .prompt-input__shell--compact:has(.prompt-input__attachments > *)
+        .prompt-input__toolbar {
+        inset-inline: calc(var(--spacing) * 2);
+        bottom: calc(var(--spacing) * 2);
+    }
+
     /* Reply context and the editor form one joined composer surface. */
     .prompt-input__reply {
         min-width: 0;

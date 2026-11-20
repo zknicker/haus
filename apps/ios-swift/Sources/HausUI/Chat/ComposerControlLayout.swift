@@ -15,7 +15,9 @@ struct ComposerControlLayout: Layout {
     /// instead of leaving the reference's tall dead space beneath it.
     static let expandedFieldMinimumHeight: CGFloat = 26
     /// Gap between the text zone and the controls row when expanded.
-    static let expandedRowSpacing: CGFloat = 14
+    /// The same step as `expandedFieldInset`, so the line sits as close to the
+    /// controls as it sits from the shell's leading edge.
+    static let expandedRowSpacing: CGFloat = 10
     /// Breathing room between the shell's inner edge and the text when expanded. With the shell's
     /// own 10pt padding this lands the caret ~20pt in from the glass edge.
     static let expandedFieldInset: CGFloat = 10
