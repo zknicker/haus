@@ -14,8 +14,8 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { useAgentAppearances } from '../../hooks/members/use-agents.ts';
 import { useHumanDirectory } from '../../hooks/servers/use-human-directory.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
-import { ChatMarkdownText } from '../chats/chat-markdown-text.tsx';
 import { useTranscriptRenderContextOptional } from '../chats/chat-transcript-render-context.tsx';
+import { ReferenceMarkdown } from '../mentions/reference-markdown.tsx';
 import { WorkerKeycap } from './cloud-agent-provider-mark.tsx';
 import {
     canFollowUpWorker,
@@ -109,7 +109,11 @@ export function WorkerCard({ chatId: chatIdProp, work }: { chatId?: null | strin
             ) : null}
             {legacySummary ? (
                 <div className="min-w-0 break-words" data-testid="worker-legacy-summary">
-                    <ChatMarkdownText content={legacySummary} />
+                    <ReferenceMarkdown
+                        className="text-sm"
+                        content={legacySummary}
+                        serverId={server?.id}
+                    />
                 </div>
             ) : null}
             {server && chatId !== null && canFollowUpWorker(work) ? (

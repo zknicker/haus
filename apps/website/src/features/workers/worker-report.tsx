@@ -2,14 +2,14 @@ import type { DriveCitation, WorkerReport as WorkerReportRecord } from '@haus/ap
 import * as React from 'react';
 import { useChatMessage } from '../../hooks/servers/use-chat-message.ts';
 import { useHumanDirectory } from '../../hooks/servers/use-human-directory.ts';
-import { ChatMarkdownText } from '../chats/chat-markdown-text.tsx';
-import { SharedArtifactChip } from '../chats/shared-artifact-chip.tsx';
+import { SharedArtifactChipView } from '../chats/shared-artifact-chip.tsx';
 import { appOrigins } from '../chats/shared-artifact-link.ts';
 import {
     isOpenableDriveCitation,
     type OpenableDriveCitation,
     useOpenDriveCitation,
 } from '../drive/open-drive-citation.ts';
+import { ReferenceMarkdown } from '../mentions/reference-markdown.tsx';
 
 export function WorkerReport({
     chatId,
@@ -25,11 +25,19 @@ export function WorkerReport({
         <div className="flex min-w-0 flex-col gap-1.5 text-sm" data-testid="worker-report">
             {report.text.trim() === '' ? null : (
                 <div className="min-w-0 break-words">
-                    <ChatMarkdownText content={report.text} />
+                    <ReferenceMarkdown
+                        className="text-sm"
+                        content={report.text}
+                        serverId={server.id}
+                    />
                 </div>
             )}
             {report.ask ? (
-                <p className="text-foreground min-w-0 break-words" data-testid="worker-report-ask">
+                <p
+                    className="text-foreground min-w-0 break-words"
+                    data-selectable-text=""
+                    data-testid="worker-report-ask"
+                >
                     {report.personId ? (
                         <span className="text-accent font-medium">{`@${humans.name(report.personId)} `}</span>
                     ) : null}
@@ -68,7 +76,10 @@ function WorkerReportCitations({
     return (
         <ul aria-label="Cited files" className="flex min-w-0 flex-wrap gap-1">
             {citations.map((citation) => (
-                <li className="min-w-0" key={citation.path}>
+                <li
+                    className="min-w-0"
+                    key={`${citation.path}:${citation.artifactId ?? ''}:${citation.revisionId ?? ''}`}
+                >
                     {isOpenableDriveCitation(citation) ? (
                         <WorkerCitation citation={citation} scope={scope} />
                     ) : (
@@ -89,7 +100,7 @@ function WorkerCitation({
 }) {
     const open = useOpenDriveCitation(scope.slug, citation);
     return (
-        <SharedArtifactChip
+        <SharedArtifactChipView
             open={open}
             scope={scope}
             target={{
@@ -98,7 +109,7 @@ function WorkerCitation({
             }}
         >
             {fileName(citation)}
-        </SharedArtifactChip>
+        </SharedArtifactChipView>
     );
 }
 

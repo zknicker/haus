@@ -178,6 +178,21 @@ test('a Worker on a chatless legacy Task shows its summary and no composer', () 
     expect(html).not.toContain('prompt-input');
 });
 
+test('the report reads at the card size and its ask can be selected', () => {
+    const html = renderCard(
+        work({
+            turns: [
+                turn({ outcome: { kind: 'report', report: askReport }, status: 'pending_input' }),
+            ],
+        })
+    );
+
+    expect(html).not.toContain('chat-markdown text-base');
+    expect(html).toMatch(
+        /data-testid="worker-report-ask"[^>]*data-selectable-text=""|data-selectable-text=""[^>]*data-testid="worker-report-ask"/u
+    );
+});
+
 test('a closed Worker shows its record with no composer', () => {
     const html = renderCard(work({ closedAt: '2026-09-04T12:03:00.000Z', status: 'completed' }));
 
