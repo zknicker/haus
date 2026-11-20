@@ -168,12 +168,28 @@ cold-starts once.
 
 R3 left these Computer turn features unported, and R4 ports each before it moves an Agent:
 execution journal upload (including journaling dispatches the ledger recovers as `unknown`),
-thoughts, idle compaction, rich-reference projection of message content, the
-managed-skill change notice, Claude plan usage after a turn, Agent restart and reset frames to
-the runner, and
-`haus worker start`, which the Computer's proxy handled. R4 also sends `drive-pull` when a
-runner run starts and `drive-push` when it settles (Drive folder below), because runner-hosted
-Agents depend on their `drive/` folder from the cutover on.
+thoughts, idle compaction, rich-reference projection of message content, Claude plan usage after a
+turn, and `haus worker start`, which the Computer's proxy handled.
+
+R4b already moved these: `drive-pull` when a runner run starts and `drive-push` when it settles
+(Drive folder below); voice calls that no longer need a healthy Computer; and restart, session
+reset, and full reset on the runner. `agent-restart`, `agent-reset`, and `agent-retire` ride the
+runner socket. Restart and a session reset close the Agent's warm harness process, so the next
+turn resumes cold or, after a generation change, starts fresh. A full reset and retire also
+delete `/data/agents/<agent-id>/`. The runner records the session generation it last applied in
+`/data/agent-sessions/<agent-id>.json`, outside the Agent's directory. A reset applies only when
+its generation is newer, aborts a turn from an older generation, and refuses queued runs that a
+reset replaced. A restart also refuses the runs queued before it, since the Server interrupts
+the Agent's active run before it restarts. `runner-start` carries `sessionResetKind`, so the first run of a newer generation
+applies a reset the runner missed while it was offline. Restart and retire abort the turn in progress; resets abort a turn from an older generation. The Server sends
+`agent-retire` to the runner from R4d, when the Computer path that sends it today is deleted.
+
+Managed skills are ported. The Server seeds the factory-managed skills into each Agent's Drive
+area as Haus-authored revisions at creation, after a full reset, and at Server start
+([Skills](skills.md#managed-skills)), so no launch has to. The runner delivers the skill update
+notice (Instructions below). The Computer's own launch seeding stays until R4d deletes Computer
+Agent paths. It writes the same release bytes, so a push of them is an `unchanged` outcome and adds
+no revision.
 
 R5 lands Pi Durable before R4, so the cutover has both harnesses and every Agent has one for
 its model. R4 moves every Agent at once and resets every session. No native session is copied from a
@@ -262,6 +278,15 @@ text is `formatRulesBlock` in `@haus/agent-prompt`.
 Skills load from Drive. The runner lists the Agent's skills in its instructions by name and
 description, from `agents/<handle>/skills/*/SKILL.md`, and the Agent opens one with
 `haus skill view`. The listing text goes through the prompt contract in R3.
+
+When the Server's seeding updated a managed skill the Agent had not edited, the next turn carries
+the skill update notice, `managedSkillChangeText` in `@haus/agent-prompt`, after the turn content,
+where the Computer puts it too. The pending updates are Server state, not session state, because a
+session reset must not drop them. The runner reads them with
+`GET /api/agent/managed-skills/notice` beside the rule and memory reads. After a completed turn it
+sends `POST /api/agent/managed-skills/notice/ack` naming the releases it announced, so an update
+that landed during the turn stays pending. An interrupted or failed turn sends no receipt, and the
+next turn carries the notice again. A notice the runner could not read is left for the next turn.
 
 ### Idle compaction
 
@@ -430,10 +455,13 @@ The machine has no `haus` wrapper, proxy, or runner token for Agents. The Comput
 proxy, its local inbox answers, its visibility receipts, and its send-outcome tracking move into
 the runner's `haus` handler. Workers get their own CLI scope (W1).
 
-In R3 the runner runs the existing Agent CLI from the `@haus/computer` package (`__agent`) as a
-child process against a runner-local loopback proxy. The proxy holds the run credential and adds
-`Haus-Dispatch-Id`, so the CLI never sees a Server-valid credential. Moving the CLI into its own
-package comes before R4 deletes the Computer's Agent paths.
+The Agent CLI lives in `packages/agent-cli` (`@haus/agent-cli`). The runner runs its `bin`
+entry (`@haus/agent-cli/bin`) as a child process against a runner-local loopback proxy. The proxy
+holds the run credential and adds `Haus-Dispatch-Id`, so the CLI never sees a Server-valid
+credential. The CLI needs no host interface: it reads `HAUS_AGENT_ID`, `HAUS_SERVER_URL`, and
+`HAUS_AGENT_TOKEN_FILE`, talks HTTP to whichever loopback proxy `HAUS_SERVER_URL` names, and
+touches only the paths its flags name. The Computer embeds the same package behind `__agent`
+until R4 deletes the Computer's Agent paths.
 
 ### `execute`
 
@@ -863,8 +891,18 @@ device-code sign-ins for the App, and sends refreshed tokens back for the Server
 that fails mid-turn is a fatal `session-failure` with category `access`, and it marks the
 connection failed.
 
-`runner-inventory` reports harnesses only. The Agent model picker moves from Computer inventory to
-the runner's model catalog in R4.
+`runner-inventory` reports the harnesses and the runner's model catalog as `runtimes`, in the
+Computer inventory's shape: one runtime per model family (`claude-code`, `codex`, `grok-build`,
+`gemini`, `openrouter`), each model with its label, context window, and reasoning efforts. The
+catalog's model ids are curated in `apps/runner/src/model-catalog.ts`; labels, context windows, and
+efforts come from Pi's model registry. On the runner loop the Server validates an Agent's runtime,
+model, and effort against the last catalog the runner reported, kept in memory across a runner
+reconnect, and `modelConnections.list` returns it as `runnerModels` for the App picker. A model
+whose provider has no connection is still accepted; its turns fail with the connection message
+until one is added. An Agent that creates another Agent passes on its own model; when the catalog no
+longer offers it, the new Agent takes the first catalog model from the same provider, and the Server
+logs the mapping. At the R4d flip the Server applies the same mapping to every Agent whose model the
+catalog drops, logged per Agent.
 
 ## Protocol frames
 
@@ -887,10 +925,20 @@ R2 bumps the protocol to 39 for these frames. Their schemas live in
 `agentCommandSchema`. R3's invocation router (`apps/server/src/agent-invocations/`) sends
 `invoke`, and the Computer ingest chain hands it the two upstream frames.
 
-**Computer protocol, added with runner turns:** `drive-pull` and `drive-push`
-(Server → Computer, `agentId` and `runId`). They come with the PR that first sends them, when the
-runner reports a run started or settled, and D4's pull and push code handles them. R2 does not add
-them, because a frame with no sender and no handler is dead contract.
+**Computer protocol, added by R4b (version 43):** `drive-pull` and `drive-push`
+(Server → Computer, `agentId`, `runId`, and `sessionGeneration`, in `packages/haus-api/src/agent-drive-sync.ts`). The
+Server sends `drive-pull` beside each `runner-start`, and `drive-push` when the runner's `turn`
+reports the Agent's active run, before settling it starts the next run. Each goes only to the
+Agent's Computer when it is online, and the Computer ignores frames from an older session
+generation than one it has seen. When the Computer reconnects, the Server sends `drive-push` for each
+Agent's active run, or else its last settled run, and `drive-pull` for an active run. Those
+frames go out right after the bootstrap, before the connection carries any other frame.
+Settling or stopping a run revokes its run credentials but not a `drive-sync` one, so a push
+still landing the run's edits completes. The Computer mints its own
+`drive-sync` credential for the run, which reaches only the Drive sync routes and expires in 15
+minutes, runs D4's pull or push under the Agent's folder lock, and revokes the
+credential. Its invocations for that Agent run under the same folder lock, so a machine tool never sees a
+half-pulled folder and a sync never runs beside a tool; a cancelled invocation stops waiting.
 
 **Computer protocol, removed by R4:** `start`, `notice`, `stop`, `ack`, `notice-ack`, `turn`,
 `agent-activity`, `agent-thought`, `agent-execution-journal-records`,

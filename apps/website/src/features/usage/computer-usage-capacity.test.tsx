@@ -71,15 +71,6 @@ test('renders only detected runtime cards without token details', () => {
                         },
                         status: 'ok',
                     },
-                    runtimeUsage: [
-                        runtimeTokens(
-                            'claude-code',
-                            'claude-code-jsonl',
-                            'claude-opus-4-1',
-                            120_000
-                        ),
-                        runtimeTokens('grok-build', 'grok-build-jsonl', 'grok-code-fast-1', 80_000),
-                    ],
                 },
             })}
             detectedRuntimeIds={['claude-code', 'grok-build']}
@@ -105,9 +96,6 @@ test('renders only detected runtime cards without token details', () => {
     expect(markup).toContain('No 5-hour limit');
     expect(markup).toContain('5-hour limit, 11% used.');
     expect(markup).not.toContain('auto-rows-fr');
-    expect(markup).not.toContain('30-day processed tokens');
-    expect(markup).not.toContain('claude-opus-4-1');
-    expect(markup).not.toContain('grok-code-fast-1');
     expect(markup).not.toContain('OpenRouter');
 });
 
@@ -122,30 +110,3 @@ test('explains when a Computer has not reported usage', () => {
     expect(markup).toContain('Collecting usage');
     expect(markup).toContain('first usage report');
 });
-
-function runtimeTokens(
-    runtimeId: 'claude-code' | 'grok-build',
-    source: 'claude-code-jsonl' | 'grok-build-jsonl',
-    modelId: string,
-    totalTokens: number
-) {
-    const totals = {
-        cacheReadTokens: 0,
-        cacheWriteTokens: 0,
-        inputTokens: totalTokens - 1000,
-        outputTokens: 1000,
-        totalTokens,
-    };
-    return {
-        runtimeId,
-        snapshot: {
-            capturedAt: usage.capturedAt,
-            days: 30 as const,
-            models: [{ modelId, ...totals }],
-            runtimeId,
-            source,
-            totals,
-        },
-        status: 'ok' as const,
-    };
-}

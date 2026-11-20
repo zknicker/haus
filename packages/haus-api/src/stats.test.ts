@@ -34,35 +34,6 @@ const usage = {
         },
         status: 'ok' as const,
     },
-    runtimeUsage: [
-        {
-            runtimeId: 'grok-build' as const,
-            snapshot: {
-                capturedAt: '2026-07-28T20:00:00.000Z',
-                days: 30 as const,
-                models: [
-                    {
-                        cacheReadTokens: 80,
-                        cacheWriteTokens: 0,
-                        inputTokens: 100,
-                        modelId: 'grok-4.6-build',
-                        outputTokens: 20,
-                        totalTokens: 120,
-                    },
-                ],
-                runtimeId: 'grok-build' as const,
-                source: 'grok-build-jsonl' as const,
-                totals: {
-                    cacheReadTokens: 80,
-                    cacheWriteTokens: 0,
-                    inputTokens: 100,
-                    outputTokens: 20,
-                    totalTokens: 120,
-                },
-            },
-            status: 'ok' as const,
-        },
-    ],
 };
 
 test('Computer usage reports carry one validated snapshot', () => {

@@ -1,10 +1,11 @@
 import { randomBytes } from 'node:crypto';
 import {
+    driveSyncRunnerCapability,
     manualRunnerCapability,
     type RunnerMintRequest,
     type RunnerRevokeRequest,
 } from '@haus/api';
-import { and, eq, gt, isNull } from 'drizzle-orm';
+import { and, arrayContains, eq, gt, isNull, not } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -28,6 +29,7 @@ export interface ResolvedRunner {
 }
 
 const runnerLifetimeMs = 12 * 60 * 60 * 1000;
+const driveSyncLifetimeMs = 15 * 60 * 1000;
 
 /**
  * Mints one scoped runner credential for an Agent launch. The caller proves the
@@ -57,13 +59,17 @@ export async function mintRunnerCredential(db: HausDatabase, input: RunnerMintRe
         await requireChat(db, computer.serverId, input.chatId);
     }
 
-    return await insertRunnerCredential(db, {
-        agentId: input.agentId,
-        chatId: input.chatId,
-        computerId: computer.id,
-        runId: input.runId,
-        serverId: computer.serverId,
-    });
+    return await insertRunnerCredential(
+        db,
+        {
+            agentId: input.agentId,
+            chatId: input.chatId,
+            computerId: computer.id,
+            runId: input.runId,
+            serverId: computer.serverId,
+        },
+        input.purpose
+    );
 }
 
 /**
@@ -117,7 +123,9 @@ export async function revokeRunnerCredential(db: HausDatabase, input: RunnerRevo
  * Revokes every live runner credential for one run. A human Stop calls this
  * durably, so the credential dies even when the Computer is offline: a Computer
  * that never got the Stop frame — or that restarts and re-runs the killed turn —
- * can no longer speak as the Agent, and the Stop stays effective.
+ * can no longer speak as the Agent, and the Stop stays effective. A drive-sync
+ * credential stays: it reaches only Drive, expires on its own, and its push may
+ * still be landing the run's edits.
  */
 export async function revokeRunnerCredentialsForRun(
     db: HausDatabase,
@@ -131,15 +139,24 @@ export async function revokeRunnerCredentialsForRun(
                 eq(agentRunnerCredentialsTable.serverId, input.serverId),
                 eq(agentRunnerCredentialsTable.agentId, input.agentId),
                 eq(agentRunnerCredentialsTable.runId, input.runId),
-                isNull(agentRunnerCredentialsTable.revokedAt)
+                isNull(agentRunnerCredentialsTable.revokedAt),
+                not(
+                    arrayContains(agentRunnerCredentialsTable.capabilities, [
+                        driveSyncRunnerCapability,
+                    ])
+                )
             )
         );
 }
 
-/** Resolves a runner token to its bound Agent, launch chat, and Server. Fails closed. */
+/**
+ * Resolves a runner token to its bound Agent, launch chat, and Server. Fails closed: a
+ * drive-sync credential resolves only for a caller that serves a Drive sync route.
+ */
 export async function resolveRunnerCredential(
     db: HausDatabase,
-    token: string
+    token: string,
+    options: { driveSync?: boolean } = {}
 ): Promise<ResolvedRunner | null> {
     const [row] = await db
         .select({
@@ -156,7 +173,14 @@ export async function resolveRunnerCredential(
             and(
                 eq(agentRunnerCredentialsTable.tokenHash, hashComputerSecret(token)),
                 isNull(agentRunnerCredentialsTable.revokedAt),
-                gt(agentRunnerCredentialsTable.expiresAt, new Date())
+                gt(agentRunnerCredentialsTable.expiresAt, new Date()),
+                options.driveSync
+                    ? undefined
+                    : not(
+                          arrayContains(agentRunnerCredentialsTable.capabilities, [
+                              driveSyncRunnerCapability,
+                          ])
+                      )
             )
         )
         .limit(1);
@@ -171,14 +195,16 @@ async function insertRunnerCredential(
         computerId: string | null;
         runId: string;
         serverId: string;
-    }
+    },
+    purpose: RunnerMintRequest['purpose'] = 'run'
 ) {
+    const driveSync = purpose === 'drive-sync';
     const runnerToken = `grtr_${randomBytes(32).toString('base64url')}`;
     const runnerId = createOpaqueId('arc');
     await db.insert(agentRunnerCredentialsTable).values({
         ...input,
-        capabilities: [manualRunnerCapability],
-        expiresAt: new Date(Date.now() + runnerLifetimeMs),
+        capabilities: [driveSync ? driveSyncRunnerCapability : manualRunnerCapability],
+        expiresAt: new Date(Date.now() + (driveSync ? driveSyncLifetimeMs : runnerLifetimeMs)),
         id: runnerId,
         tokenHash: hashComputerSecret(runnerToken),
     });

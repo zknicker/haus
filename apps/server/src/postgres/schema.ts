@@ -8,6 +8,7 @@ export * from './schema/agent-dispatches.ts';
 export * from './schema/agent-execution-journals.ts';
 export * from './schema/agent-inbox.ts';
 export * from './schema/agent-invocations.ts';
+export * from './schema/agent-managed-skills.ts';
 export * from './schema/agent-manual-audit.ts';
 export * from './schema/agent-message-follows.ts';
 export * from './schema/agent-run-triggers.ts';

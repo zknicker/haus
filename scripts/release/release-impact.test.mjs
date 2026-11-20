@@ -149,14 +149,14 @@ test('Agent actions and their Server implementation require a Haus Agent release
                 'v1.8.25': sha('b'),
             })[tag] ?? null,
         listChangedFiles: async () => [
-            'apps/computer/src/agent-cli.ts',
+            'packages/agent-cli/src/agent-cli.ts',
             'apps/server/src/agent-api/agent-routes.ts',
         ],
     });
 
     assert.equal(impact.targets.agent.status, 'required');
     assert.deepEqual(impact.targets.agent.requiredFiles, [
-        'apps/computer/src/agent-cli.ts',
+        'packages/agent-cli/src/agent-cli.ts',
         'apps/server/src/agent-api/agent-routes.ts',
     ]);
 });

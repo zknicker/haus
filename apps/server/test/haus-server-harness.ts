@@ -90,6 +90,8 @@ export async function startHausServerHarness(
         cloudflareOAuthMetadataFetch?: typeof fetch;
         /** Seals model connections; defaults to `testSecretsKey`, null runs without one. */
         secretsKey?: SecretsKey | null;
+        /** Off unless a test asks, so other tests' Drive areas hold only what they wrote. */
+        seedManagedSkills?: boolean;
     } = {}
 ): Promise<HausServerHarness> {
     const cluster = await startHarnessDatabase(options.postgresIcuLocale);
@@ -143,6 +145,7 @@ export async function startHausServerHarness(
                 attachmentRoot,
                 artifactStorage: options.artifactStorage,
                 artifactStorageBytes: options.artifactStorageBytes,
+                seedManagedSkills: options.seedManagedSkills ?? false,
                 databaseUrl: cluster.databaseUrl,
                 pushSender: options.pushSender,
                 pushReadGraceMs: options.pushReadGraceMs,

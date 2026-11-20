@@ -51,6 +51,7 @@ Each package gate includes its tests and typecheck:
 | --- | --- |
 | `apps/server` | `@haus/server test` + `typecheck`. See [Server suite](#server-suite). Avatar generation tests inject a deterministic fake provider and never call OpenAI. |
 | `apps/computer` | `@haus/computer test` + `typecheck` |
+| `packages/agent-cli` | `@haus/agent-cli test` + `typecheck`, plus the runner's `src/haus/` tests and the Computer typecheck |
 | `apps/website` | `@haus/website test` + `typecheck` |
 | `packages/haus-api` | `@haus/api check`, plus typecheck of the consuming apps you touched |
 | `packages/haus-sdk` | `@haus/sdk test` + `typecheck` |
@@ -152,7 +153,7 @@ lost.
 
 | Lane | Contents | Runs in |
 | --- | --- | --- |
-| `check:fast` | `env:check`, `env:contract`, `lint`, `typecheck:fast` (api, sdk, usage packages, Server), `test:fast` (`packages` + `scripts` + `apps/website/electron`), `test:prompt-contract` (pure managed-prompt contract and budget) | Quality, and inside `check` |
+| `check:fast` | `env:check`, `env:contract`, `lint`, `typecheck:fast` (api, agent-prompt, agent-cli, sdk, usage packages, Server, runner), `test:fast` (`packages` + `scripts` + `apps/website/electron`), `test:prompt-contract` (pure managed-prompt contract and budget) | Quality, and inside `check` |
 | `check:heavy` | `typecheck:licensed` (App, Computer), `test:app-unit`, `test:server`, `test:computer`, `build` | `bun run check` only |
 | Neither | `test:app` (Playwright), `test:agents`, `eval:*`, release builds | opt-in, by hand |
 

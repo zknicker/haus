@@ -2099,6 +2099,87 @@
       },
       "isRLSEnabled": false
     },
+    "public.agent_managed_skills": {
+      "name": "agent_managed_skills",
+      "schema": "",
+      "columns": {
+        "agent_id": {
+          "name": "agent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pending_release_fingerprint": {
+          "name": "pending_release_fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "release_fingerprint": {
+          "name": "release_fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "seeded_fingerprint": {
+          "name": "seeded_fingerprint",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "server_id": {
+          "name": "server_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "skill_id": {
+          "name": "skill_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "agent_managed_skills_agent_fk": {
+          "name": "agent_managed_skills_agent_fk",
+          "tableFrom": "agent_managed_skills",
+          "tableTo": "agents",
+          "columnsFrom": [
+            "server_id",
+            "agent_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "agent_managed_skills_server_id_agent_id_skill_id_pk": {
+          "name": "agent_managed_skills_server_id_agent_id_skill_id_pk",
+          "columns": [
+            "server_id",
+            "agent_id",
+            "skill_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.manual_lookup_audit": {
       "name": "manual_lookup_audit",
       "schema": "",
@@ -4295,7 +4376,7 @@
       "checkConstraints": {
         "artifact_revision_author_shape": {
           "name": "artifact_revision_author_shape",
-          "value": "num_nonnulls(\"artifact_revisions\".\"author_agent_id\", \"artifact_revisions\".\"author_user_id\") = 1"
+          "value": "num_nonnulls(\"artifact_revisions\".\"author_agent_id\", \"artifact_revisions\".\"author_user_id\") = 1 or (\"artifact_revisions\".\"author_key\" = 'haus' and num_nonnulls(\"artifact_revisions\".\"author_agent_id\", \"artifact_revisions\".\"author_user_id\") = 0)"
         },
         "artifact_revision_size": {
           "name": "artifact_revision_size",
@@ -14407,12 +14488,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "steps": {
-          "name": "steps",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": false
-        },
         "status": {
           "name": "status",
           "type": "text",
@@ -14605,10 +14680,6 @@
         "worker_turns_report_draft_shape": {
           "name": "worker_turns_report_draft_shape",
           "value": "\"worker_turns\".\"report_draft\" is null or jsonb_typeof(\"worker_turns\".\"report_draft\") = 'object'"
-        },
-        "worker_turns_steps_shape": {
-          "name": "worker_turns_steps_shape",
-          "value": "\"worker_turns\".\"steps\" is null or jsonb_typeof(\"worker_turns\".\"steps\") = 'array'"
         }
       },
       "isRLSEnabled": false
@@ -15007,6 +15078,6 @@
     "tables": {},
     "columns": {}
   },
-  "id": "3f775499-eae3-47b2-a920-7d63bb8a9f13",
-  "prevId": "c2f1ab2c-bc6d-47f4-bee5-621274583dbc"
+  "id": "ac1e1940-5704-4c2d-8ac1-5e772fbc479a",
+  "prevId": "e105ce33-d7ab-4bd2-84c9-a1c3063c83b5"
 }

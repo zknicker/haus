@@ -75,7 +75,8 @@ export async function readServerUsage(
 }
 
 /**
- * Fills in fields older Computers never stored. Everything a current Computer
+ * Fills in fields older Computers never stored and drops the retired
+ * `runtimeUsage` transcript totals they did. Everything a current Computer
  * reports — including each provider's optional `stale` retention stamp — is
  * stored and returned verbatim, so the App reads the Computer's own account of
  * why a snapshot is last-known rather than current.
@@ -84,12 +85,12 @@ export function normalizeStoredUsage(usage: UsageOverview | null): UsageOverview
     if (!usage) {
         return null;
     }
-    const stored = usage as UsageOverview & {
+    const { runtimeUsage: _retired, ...stored } = usage as UsageOverview & {
         grok?: UsageOverview['grok'];
-        runtimeUsage?: UsageOverview['runtimeUsage'];
+        runtimeUsage?: unknown;
     };
     return {
-        ...usage,
+        ...stored,
         grok: stored.grok ?? {
             error: {
                 code: 'unknown',
@@ -99,7 +100,6 @@ export function normalizeStoredUsage(usage: UsageOverview | null): UsageOverview
             provider: 'grok',
             status: 'error',
         },
-        runtimeUsage: stored.runtimeUsage ?? [],
     };
 }
 

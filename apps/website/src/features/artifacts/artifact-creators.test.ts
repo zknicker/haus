@@ -58,6 +58,13 @@ test('rows name the viewer "You"; marks keep real names', () => {
     expect(directory.name({ agent_id: 'ag_blippy', type: 'agent' })).toBe('Blippy');
 });
 
+test('a revision Haus wrote is named Haus, with no image', () => {
+    expect([directory.name({ type: 'haus' }), directory.avatar({ type: 'haus' })]).toEqual([
+        'Haus',
+        { name: 'Haus', src: null },
+    ]);
+});
+
 test('a Worker reads as its Agent’s Worker and wears the Agent’s mark', () => {
     const worker = { agent_id: 'ag_blippy', type: 'worker', worker_id: 'wrk_1' } as const;
     expect(directory.name(worker)).toBe('Worker for Blippy');

@@ -6,6 +6,7 @@ import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import {
     connectRunner,
+    reportRunnerModels,
     frameOfType,
     type RunnerClient,
     type RunnerFrame,
@@ -44,6 +45,7 @@ beforeAll(async () => {
             'healthy'
         )
     `;
+    await reportRunnerModels(harness);
     agentId = (
         await createHomedAgent(owner, {
             computerId,

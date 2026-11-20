@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
+import { computerRuntimeSchema } from './computer-inventory.ts';
 import {
     credentialFitsProvider,
     modelConnectionAuthKindSchema,
@@ -43,7 +44,11 @@ export type AgentLoop = z.infer<typeof agentLoopSchema>;
 
 /** The connections read, with the Server's Agent loop so the App warns about a missing connection only where one is used. */
 export const modelConnectionsReadSchema = modelConnectionListSchema
-    .extend({ agentLoop: agentLoopSchema })
+    .extend({
+        agentLoop: agentLoopSchema,
+        /** The runner's model catalog; null on the Computer loop or before the runner reports. */
+        runnerModels: z.array(computerRuntimeSchema).nullable(),
+    })
     .strict();
 export type ModelConnectionsRead = z.infer<typeof modelConnectionsReadSchema>;
 

@@ -1,7 +1,6 @@
 import { afterAll, beforeAll, expect } from 'bun:test';
 import { createHash } from 'node:crypto';
 import type { AgentCreateAgentReceipt, CreatedAgentSummary } from '@haus/api';
-import type { ArtifactStorage } from '../src/artifacts/storage.ts';
 import type {
     AvatarImageProvider,
     AvatarProviderRequest,
@@ -18,7 +17,7 @@ import { createTestProject } from './project.fixture.ts';
 
 export function agentCreationFixture(
     messageRouter?: MessageRouter,
-    artifacts: { artifactStorage?: ArtifactStorage; artifactStorageBytes?: number } = {}
+    artifacts: Parameters<typeof startHausServerHarness>[0] = {}
 ) {
     let harness: HausServerHarness;
     let owner: HausClient;

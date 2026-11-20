@@ -7,9 +7,9 @@ import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { startEmptyDatabase } from './postgres-cluster.ts';
 import { seedPreWorkerRows } from './workers-migration-seed.ts';
 
-const migration = join(import.meta.dir, '../drizzle/postgres/0143_w3-workers-on-computers.sql');
+const migration = join(import.meta.dir, '../drizzle/postgres/0144_w3-workers-on-computers.sql');
 
-test('0143 turns every Computer off, backfills Project defaults and repos, and running it again changes nothing', async () => {
+test('0144 turns every Computer off, backfills Project defaults and repos, and running it again changes nothing', async () => {
     const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), 'haus-workers-on-computers-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
@@ -26,13 +26,13 @@ test('0143 turns every Computer off, backfills Project defaults and repos, and r
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
         await seedPreWorkerRows(database);
         await seedServerWithoutWorkers(database);
-        await writeFile(journalPath, through(142));
+        await writeFile(journalPath, through(143));
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
         await seedMoreTaskWorkers(database);
 
-        await writeFile(journalPath, through(143));
+        await writeFile(journalPath, through(144));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
-            '0143_w3-workers-on-computers',
+            '0144_w3-workers-on-computers',
         ]);
         const migrated = await readMigrated(database);
         expect(migrated.computers).toEqual([

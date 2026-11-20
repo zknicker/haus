@@ -31,5 +31,8 @@ export function createHarnesses(input: {
             return pi.close();
         },
         factory,
+        release(agentId: string) {
+            return Promise.all([claude.release(agentId), pi.release(agentId)]);
+        },
     };
 }

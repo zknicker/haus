@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { UsageOverview } from '@haus/api';
+import { serverUsageOverviewSchema, type UsageOverview } from '@haus/api';
 import { normalizeStoredUsage } from './computer-usage.ts';
 
 test('Server returns a retained provider snapshot with its retention stamp intact', () => {
@@ -23,13 +23,21 @@ test('Server returns a retained provider snapshot with its retention stamp intac
 });
 
 test('Server fills only the fields older Computers never reported', () => {
-    const { grok, runtimeUsage, ...withoutGrok } = storedUsage();
+    const { grok, ...withoutGrok } = storedUsage();
 
     const normalized = normalizeStoredUsage(withoutGrok as UsageOverview);
 
     expect(normalized?.grok).toMatchObject({ provider: 'grok', status: 'error' });
-    expect(normalized?.runtimeUsage).toEqual([]);
     expect(normalized?.claude.status).toBe('ok');
+});
+
+test('Server drops the transcript totals older Computers stored', () => {
+    const stored = { ...storedUsage(), runtimeUsage: [] } as UsageOverview;
+
+    const normalized = normalizeStoredUsage(stored);
+
+    expect(serverUsageOverviewSchema.parse(overviewOf(normalized))).toBeDefined();
+    expect(normalized).not.toHaveProperty('runtimeUsage');
 });
 
 const claudeSnapshot = {
@@ -71,7 +79,33 @@ function storedUsage(overrides: Partial<UsageOverview> = {}): UsageOverview {
             },
             status: 'ok',
         },
-        runtimeUsage: [],
         ...overrides,
+    };
+}
+
+function overviewOf(usage: UsageOverview | null) {
+    return {
+        computers: [
+            {
+                architecture: null,
+                computerId: 'cmp_1234567890123456',
+                health: 'healthy',
+                operatingSystem: null,
+                productVersion: null,
+                reportedAt: null,
+                usage,
+            },
+        ],
+        tokenUsage: {
+            breakdown: [],
+            days: 90,
+            totals: {
+                cacheReadTokens: 0,
+                cacheWriteTokens: 0,
+                inputTokens: 0,
+                outputTokens: 0,
+                totalTokens: 0,
+            },
+        },
     };
 }
