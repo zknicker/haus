@@ -15,6 +15,7 @@ import { useComputerUpdateStream } from './use-computer-update-stream.ts';
 import { useInvitationUpdateStream } from './use-invitation-update-stream.ts';
 import { useMcpUpdateStream } from './use-mcp-update-stream.ts';
 import { useMemberUpdateStream } from './use-member-update-stream.ts';
+import { useModelConnectionsStream } from './use-model-connections-stream.ts';
 import { useReminderStream } from './use-reminder-stream.ts';
 import { useServerUpdateStream } from './use-server-update-stream.ts';
 
@@ -249,6 +250,19 @@ describe('Server-level stream hooks', () => {
             { serverId }
         );
         expect(onEvent).toEqual([read('cloudAgentSettings.get', { serverId })]);
+        expect(onRecovery).toEqual(onEvent);
+    });
+
+    test('modelConnections.onUpdated refreshes the connection list and every open sign-in', async () => {
+        const { onEvent, onRecovery } = await drive(
+            'modelConnections.onUpdated',
+            () => useModelConnectionsStream(serverId),
+            { serverId }
+        );
+        expect(onEvent).toEqual([
+            read('modelConnections.list', { serverId }),
+            read('modelConnections.signIn', { serverId }),
+        ]);
         expect(onRecovery).toEqual(onEvent);
     });
 

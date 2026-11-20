@@ -277,7 +277,7 @@ straight into the Server with no setup gate, and that a non-member cannot open i
 `apps/server/test/haus-cove-removal-migration.test.ts` proves migration 0138 keeps an existing Cove
 as an ordinary editable Agent, keeps `#onboarding-owner` with its members, settles unsettled
 `onboarding` inbox items, and keeps past onboarding turn causes.
-`apps/server/test/haus-all-is-a-chat-migration.test.ts` proves migration 0141 moves an existing
+`apps/server/test/haus-all-is-a-chat-migration.test.ts` proves migration 0142 moves an existing
 Server's Haus project to a new `#general` with its key, members and open Tasks, rehomes the Agents
 homed in `#all` by activity, clears retired Agents' homes, renames `#all` back to `all` after moving
 any other channel named `all`, refuses a `projects` row on `#all` in Postgres, and changes nothing on

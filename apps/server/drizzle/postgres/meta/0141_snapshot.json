@@ -1,5 +1,5 @@
 {
-  "id": "8028d897-ac52-41bc-afe9-164c47ebaf97",
+  "id": "24034669-797f-4ba8-9a19-6d8b029f45a6",
   "prevId": "6d05fde3-f094-48eb-bf2b-2caedc301b03",
   "version": "7",
   "dialect": "postgresql",
@@ -3642,7 +3642,7 @@
           "name": "home_project_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "home_timezone": {
           "name": "home_timezone",
@@ -3853,10 +3853,6 @@
         "agents_creation_request": {
           "name": "agents_creation_request",
           "value": "(\"agents\".\"creation_nonce\" is null and \"agents\".\"creation_request_hash\" is null)\n                or (\"agents\".\"created_by_agent_id\" is not null and \"agents\".\"creation_nonce\" is not null\n                    and \"agents\".\"creation_request_hash\" is not null)"
-        },
-        "agents_home_project_shape": {
-          "name": "agents_home_project_shape",
-          "value": "\"agents\".\"home_project_id\" is not null or \"agents\".\"retired_at\" is not null"
         },
         "agents_reasoning_effort": {
           "name": "agents_reasoning_effort",
@@ -5996,16 +5992,6 @@
             "id",
             "parent_chat_id"
           ]
-        },
-        "chats_server_id_kind_is_all_key": {
-          "name": "chats_server_id_kind_is_all_key",
-          "nullsNotDistinct": false,
-          "columns": [
-            "server_id",
-            "id",
-            "kind",
-            "is_all"
-          ]
         }
       },
       "policies": {},
@@ -6036,7 +6022,7 @@
         },
         "chats_shape": {
           "name": "chats_shape",
-          "value": "(\n                (\n                    \"chats\".\"kind\" = 'channel'\n                    and \"chats\".\"name\" is not null\n                    and \"chats\".\"dm_agent_id\" is null\n                    and \"chats\".\"dm_member_one_stint\" is null\n                    and \"chats\".\"dm_member_one_user_id\" is null\n                    and \"chats\".\"dm_member_two_stint\" is null\n                    and \"chats\".\"dm_member_two_user_id\" is null\n                    and \"chats\".\"parent_chat_id\" is null\n                    and \"chats\".\"parent_chat_kind\" is null\n                    and (not \"chats\".\"is_all\" or \"chats\".\"name\" = 'all')\n                )\n                or (\n                    \"chats\".\"kind\" = 'dm'\n                    and \"chats\".\"name\" is null\n                    and \"chats\".\"color\" is null\n                    and \"chats\".\"icon\" is null\n                    and \"chats\".\"is_all\" = false\n                    and \"chats\".\"dm_member_one_stint\" is not null\n                    and \"chats\".\"dm_member_one_user_id\" is not null\n                    and \"chats\".\"parent_chat_id\" is null\n                    and \"chats\".\"parent_chat_kind\" is null\n                    and (\n                        (\n                            \"chats\".\"dm_agent_id\" is null\n                            and \"chats\".\"dm_member_two_stint\" is not null\n                            and \"chats\".\"dm_member_two_user_id\" is not null\n                            and \"chats\".\"dm_member_one_user_id\" collate \"C\" < \"chats\".\"dm_member_two_user_id\" collate \"C\"\n                        )\n                        or (\n                            \"chats\".\"dm_agent_id\" is not null\n                            and \"chats\".\"dm_member_two_stint\" is null\n                            and \"chats\".\"dm_member_two_user_id\" is null\n                        )\n                    )\n                )\n                or (\n                    \"chats\".\"kind\" = 'task'\n                    and \"chats\".\"name\" is null\n                    and \"chats\".\"color\" is null\n                    and \"chats\".\"icon\" is null\n                    and \"chats\".\"is_all\" = false\n                    and \"chats\".\"dm_agent_id\" is null\n                    and \"chats\".\"dm_member_one_stint\" is null\n                    and \"chats\".\"dm_member_one_user_id\" is null\n                    and \"chats\".\"dm_member_two_stint\" is null\n                    and \"chats\".\"dm_member_two_user_id\" is null\n                    and \"chats\".\"parent_chat_id\" is not null\n                    and \"chats\".\"parent_chat_kind\" = 'channel'\n                )\n            )"
+          "value": "(\n                (\n                    \"chats\".\"kind\" = 'channel'\n                    and \"chats\".\"name\" is not null\n                    and \"chats\".\"dm_agent_id\" is null\n                    and \"chats\".\"dm_member_one_stint\" is null\n                    and \"chats\".\"dm_member_one_user_id\" is null\n                    and \"chats\".\"dm_member_two_stint\" is null\n                    and \"chats\".\"dm_member_two_user_id\" is null\n                    and \"chats\".\"parent_chat_id\" is null\n                    and \"chats\".\"parent_chat_kind\" is null\n                    and (not \"chats\".\"is_all\" or \"chats\".\"name\" = 'haus')\n                )\n                or (\n                    \"chats\".\"kind\" = 'dm'\n                    and \"chats\".\"name\" is null\n                    and \"chats\".\"color\" is null\n                    and \"chats\".\"icon\" is null\n                    and \"chats\".\"is_all\" = false\n                    and \"chats\".\"dm_member_one_stint\" is not null\n                    and \"chats\".\"dm_member_one_user_id\" is not null\n                    and \"chats\".\"parent_chat_id\" is null\n                    and \"chats\".\"parent_chat_kind\" is null\n                    and (\n                        (\n                            \"chats\".\"dm_agent_id\" is null\n                            and \"chats\".\"dm_member_two_stint\" is not null\n                            and \"chats\".\"dm_member_two_user_id\" is not null\n                            and \"chats\".\"dm_member_one_user_id\" collate \"C\" < \"chats\".\"dm_member_two_user_id\" collate \"C\"\n                        )\n                        or (\n                            \"chats\".\"dm_agent_id\" is not null\n                            and \"chats\".\"dm_member_two_stint\" is null\n                            and \"chats\".\"dm_member_two_user_id\" is null\n                        )\n                    )\n                )\n                or (\n                    \"chats\".\"kind\" = 'task'\n                    and \"chats\".\"name\" is null\n                    and \"chats\".\"color\" is null\n                    and \"chats\".\"icon\" is null\n                    and \"chats\".\"is_all\" = false\n                    and \"chats\".\"dm_agent_id\" is null\n                    and \"chats\".\"dm_member_one_stint\" is null\n                    and \"chats\".\"dm_member_one_user_id\" is null\n                    and \"chats\".\"dm_member_two_stint\" is null\n                    and \"chats\".\"dm_member_two_user_id\" is null\n                    and \"chats\".\"parent_chat_id\" is not null\n                    and \"chats\".\"parent_chat_kind\" = 'channel'\n                )\n            )"
         }
       },
       "isRLSEnabled": false
@@ -11016,6 +11002,18 @@
           "primaryKey": false,
           "notNull": true
         },
+        "capacity": {
+          "name": "capacity",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "capacity_read_at": {
+          "name": "capacity_read_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -11029,6 +11027,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": 1
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         },
         "id": {
           "name": "id",
@@ -11193,13 +11198,6 @@
           "primaryKey": true,
           "notNull": true
         },
-        "chat_is_all": {
-          "name": "chat_is_all",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
         "chat_kind": {
           "name": "chat_kind",
           "type": "text",
@@ -11236,14 +11234,12 @@
           "columnsFrom": [
             "server_id",
             "chat_id",
-            "chat_kind",
-            "chat_is_all"
+            "chat_kind"
           ],
           "columnsTo": [
             "server_id",
             "id",
-            "kind",
-            "is_all"
+            "kind"
           ],
           "onDelete": "cascade",
           "onUpdate": "no action"
@@ -11287,10 +11283,6 @@
         "projects_chat_kind": {
           "name": "projects_chat_kind",
           "value": "\"projects\".\"chat_kind\" = 'channel'"
-        },
-        "projects_chat_not_all": {
-          "name": "projects_chat_not_all",
-          "value": "\"projects\".\"chat_is_all\" = false"
         }
       },
       "isRLSEnabled": false

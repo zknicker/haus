@@ -115,6 +115,7 @@ export async function getClaudeUsage(
         accessToken: credentials.accessToken,
         fetch: fetchImpl,
         signal,
+        url: options.usageUrl ?? CLAUDE_USAGE_URL,
     });
 
     if (usageResponse.status === 401 || usageResponse.status === 403) {
@@ -190,8 +191,9 @@ async function fetchClaudeUsageResponse(options: {
     accessToken: string;
     fetch: typeof fetch;
     signal: AbortSignal;
+    url: string;
 }): Promise<Response> {
-    return options.fetch(CLAUDE_USAGE_URL, {
+    return options.fetch(options.url, {
         headers: {
             accept: 'application/json',
             authorization: `Bearer ${options.accessToken.trim()}`,

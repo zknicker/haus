@@ -236,6 +236,20 @@ export const appPlaces: readonly AppPlace[] = [
     },
     {
         area: 'connections-and-computers',
+        task: "Connect a Captain's model account (Claude, ChatGPT, SuperGrok or an API key)",
+        path: ['Settings', 'Models', 'Add connection'],
+        who: 'owner',
+        anchors: [
+            settingsEntry(),
+            settingsSection('models'),
+            label(
+                'features/settings/models/connections/model-connections-group.tsx',
+                'Add connection'
+            ),
+        ],
+    },
+    {
+        area: 'connections-and-computers',
         task: 'Add an image generation provider key',
         path: ['Settings', 'Models', 'Image generation'],
         who: 'owner',

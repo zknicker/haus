@@ -992,8 +992,15 @@
     {
       "idx": 141,
       "version": "7",
-      "when": 1795204208152,
-      "tag": "0141_all-is-a-chat",
+      "when": 1795205639541,
+      "tag": "0141_model-connection-capacity",
+      "breakpoints": true
+    },
+    {
+      "idx": 142,
+      "version": "7",
+      "when": 1795206704991,
+      "tag": "0142_all-is-a-chat",
       "breakpoints": true
     }
   ]

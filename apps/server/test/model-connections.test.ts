@@ -51,6 +51,7 @@ describe('model connections', () => {
             webSearch: false,
         });
         const seen = await member.trpc.modelConnections.list.query({ serverId: seed.serverId });
+        expect(seen.agentLoop).toBe('computer');
         expect(seen.connections.map(({ label, provider }) => ({ label, provider }))).toEqual([
             { label: 'Zach plan', provider: 'claude' },
             { label: 'xAI key', provider: 'xai' },

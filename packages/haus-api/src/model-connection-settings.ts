@@ -3,6 +3,7 @@ import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
 import {
     credentialFitsProvider,
     modelConnectionAuthKindSchema,
+    modelConnectionCapacityWindowSchema,
     modelConnectionCredentialSchema,
     modelConnectionLabelSchema,
     modelConnectionStatusSchema,
@@ -14,6 +15,10 @@ import {
 export const modelConnectionSchema = z
     .object({
         authKind: modelConnectionAuthKindSchema,
+        /** The plan's capacity windows that have not reset yet, or null when the runner has not read them in the last 6 hours. */
+        capacity: z.array(modelConnectionCapacityWindowSchema).nullable(),
+        /** Off leaves the connection stored but out of resolution and out of the runner's snapshot. */
+        enabled: z.boolean(),
         id: idSchema,
         isDefault: z.boolean(),
         label: modelConnectionLabelSchema,
@@ -31,6 +36,16 @@ export const modelConnectionListSchema = z
     .object({ connections: z.array(modelConnectionSchema) })
     .strict();
 export type ModelConnectionList = z.infer<typeof modelConnectionListSchema>;
+
+/** Where every Agent's loop runs on this Server (`HAUS_AGENT_LOOP`). Only the runner reads these connections. */
+export const agentLoopSchema = z.enum(['computer', 'runner']);
+export type AgentLoop = z.infer<typeof agentLoopSchema>;
+
+/** The connections read, with the Server's Agent loop so the App warns about a missing connection only where one is used. */
+export const modelConnectionsReadSchema = modelConnectionListSchema
+    .extend({ agentLoop: agentLoopSchema })
+    .strict();
+export type ModelConnectionsRead = z.infer<typeof modelConnectionsReadSchema>;
 
 export const modelConnectionListInputSchema = z.object({ serverId: idSchema }).strict();
 
@@ -51,6 +66,22 @@ export const modelConnectionAddInputSchema = z
     );
 export type ModelConnectionAddInput = z.infer<typeof modelConnectionAddInputSchema>;
 
+/** A new pasted setup-token or API key for an existing connection of that kind; the id, label, order, web search and Agent pins stay. */
+export const modelConnectionReplaceCredentialInputSchema = z
+    .object({
+        connectionId: idSchema,
+        credential: modelConnectionCredentialSchema,
+        serverId: idSchema,
+    })
+    .strict()
+    .refine((input) => input.credential.kind !== 'oauth', {
+        message: 'Signed-in connections reconnect by signing in again.',
+        path: ['credential'],
+    });
+export type ModelConnectionReplaceCredentialInput = z.infer<
+    typeof modelConnectionReplaceCredentialInputSchema
+>;
+
 export const modelConnectionTargetInputSchema = z
     .object({ connectionId: idSchema, serverId: idSchema })
     .strict();
@@ -68,10 +99,17 @@ export type ModelConnectionSetWebSearchInput = z.infer<
     typeof modelConnectionSetWebSearchInputSchema
 >;
 
+export const modelConnectionSetEnabledInputSchema = z
+    .object({ connectionId: idSchema, enabled: z.boolean(), serverId: idSchema })
+    .strict();
+export type ModelConnectionSetEnabledInput = z.infer<typeof modelConnectionSetEnabledInputSchema>;
+
+/** With `replaceConnectionId`, the signed-in credential replaces that connection's in place instead of adding one. */
 export const modelSignInStartInputSchema = z
     .object({
         label: modelConnectionLabelSchema,
         provider: modelSignInProviderSchema,
+        replaceConnectionId: idSchema.optional(),
         serverId: idSchema,
     })
     .strict();

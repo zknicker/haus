@@ -8,9 +8,9 @@ import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { createServer } from '../src/servers/create-server.ts';
 import { startEmptyDatabase } from './postgres-cluster.ts';
 
-const migrationTag = '0141_all-is-a-chat';
+const migrationTag = '0142_all-is-a-chat';
 
-test('0141 makes #all a chat, moves its Project to #general, and rehomes Agents', async () => {
+test('0142 makes #all a chat, moves its Project to #general, and rehomes Agents', async () => {
     const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), 'haus-all-is-a-chat-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
@@ -23,11 +23,11 @@ test('0141 makes #all a chat, moves its Project to #general, and rehomes Agents'
                 ...journal,
                 entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= idx),
             });
-        await writeFile(journalPath, through(140));
+        await writeFile(journalPath, through(141));
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
         await seedServers(database);
 
-        await writeFile(journalPath, through(141));
+        await writeFile(journalPath, through(142));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
             migrationTag,
         ]);
@@ -81,11 +81,28 @@ test('0141 makes #all a chat, moves its Project to #general, and rehomes Agents'
 
         expect(await database`SELECT id, home_project_id FROM agents ORDER BY id`).toEqual([
             { home_project_id: 'cht_a_product', id: 'agt_a_busy' },
-            { home_project_id: generalId, id: 'agt_a_onboarded' },
+            { home_project_id: 'cht_a_product', id: 'agt_a_onboarded' },
             { home_project_id: 'cht_a_product', id: 'agt_a_product' },
-            { home_project_id: generalId, id: 'agt_a_quiet' },
+            { home_project_id: 'cht_a_product', id: 'agt_a_quiet' },
             { home_project_id: null, id: 'agt_a_retired' },
             { home_project_id: generalId, id: 'agt_a_tasker' },
+        ]);
+        expect(await agentParticipants(database)).toEqual([
+            { agent_id: 'agt_a_busy', chat_id: 'cht_a_all' },
+            { agent_id: 'agt_a_onboarded', chat_id: 'cht_a_all' },
+            { agent_id: 'agt_a_product', chat_id: 'cht_a_all' },
+            { agent_id: 'agt_a_quiet', chat_id: 'cht_a_all' },
+            { agent_id: 'agt_a_retired', chat_id: 'cht_a_all' },
+            { agent_id: 'agt_a_tasker', chat_id: 'cht_a_all' },
+            { agent_id: 'agt_a_busy', chat_id: 'cht_a_product' },
+            { agent_id: 'agt_a_onboarded', chat_id: 'cht_a_product' },
+            { agent_id: 'agt_a_product', chat_id: 'cht_a_product' },
+            { agent_id: 'agt_a_quiet', chat_id: 'cht_a_product' },
+            { agent_id: 'agt_a_busy', chat_id: generalId },
+            { agent_id: 'agt_a_tasker', chat_id: generalId },
+        ]);
+        expect(await database`SELECT agent_id FROM agent_channel_mutes ORDER BY agent_id`).toEqual([
+            { agent_id: 'agt_a_product' },
         ]);
 
         await database`INSERT INTO task_keys (id, server_id, key) VALUES ('tky_b_all', 'srv_b', 'ALL')`;
@@ -157,11 +174,19 @@ async function snapshot(database: SQL) {
     return {
         agents: await database`SELECT id, home_project_id FROM agents ORDER BY id`,
         chats: await database`SELECT id, name, parent_chat_id FROM chats ORDER BY id`,
+        agentParticipants: await agentParticipants(database),
+        mutes: await database`SELECT agent_id, chat_id FROM agent_channel_mutes ORDER BY agent_id`,
         participants:
             await database`SELECT chat_id, user_id FROM channel_participants ORDER BY chat_id, user_id`,
         projects: await database`SELECT chat_id, task_key_id FROM projects ORDER BY chat_id`,
         tasks: await database`SELECT id, project_id FROM tasks ORDER BY id`,
     };
+}
+
+async function agentParticipants(database: SQL) {
+    return await database`SELECT agent_id, chat_id FROM channel_agent_participants
+        ORDER BY CASE WHEN chat_id = 'cht_a_all' THEN 0 WHEN chat_id = 'cht_a_product' THEN 1 ELSE 2 END,
+            agent_id`;
 }
 
 async function seedServers(database: SQL) {
@@ -217,5 +242,10 @@ async function seedServers(database: SQL) {
                 origin_message_id, project_id, state, title, created_by_user_id)
             VALUES ('tsk_a_open', 'srv_a', 'cht_a_task', 'tky_a_gen', 1, 'cht_a_all',
                 'msg_a_origin', 'cht_a_all', 'open', 'Open GEN task', 'usr_a')`;
+        await tx`INSERT INTO channel_agent_participants (server_id, chat_id, agent_id) VALUES
+            ('srv_a', 'cht_a_all', 'agt_a_busy'), ('srv_a', 'cht_a_all', 'agt_a_tasker'),
+            ('srv_a', 'cht_a_all', 'agt_a_retired'), ('srv_a', 'cht_a_product', 'agt_a_product')`;
+        await tx`INSERT INTO agent_channel_mutes (server_id, agent_id, chat_id) VALUES
+            ('srv_a', 'agt_a_quiet', 'cht_a_all'), ('srv_a', 'agt_a_product', 'cht_a_product')`;
     });
 }

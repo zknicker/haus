@@ -7,6 +7,7 @@ import {
     connectionForRun,
     missingConnectionMessage,
 } from '../model-connections/connection-book.ts';
+import type { CapacityReader } from '../model-connections/connection-capacity.ts';
 import { createConnectionStatus } from '../model-connections/connection-status.ts';
 import type { RunnerLink, RunStart, TurnHost } from '../run-context.ts';
 import { createHarnesses } from './harnesses.ts';
@@ -27,6 +28,7 @@ interface ActiveRun {
 
 export function createTurnHost(input: {
     book: ConnectionBook;
+    capacity?: CapacityReader;
     config: Pick<RunnerConfig, 'dataDir' | 'maxWarm'>;
     ledger: DispatchLedger;
     link: RunnerLink;
@@ -41,6 +43,7 @@ export function createTurnHost(input: {
     });
     const host = createTurnHostWith({
         book: input.book,
+        ...(input.capacity ? { capacity: input.capacity } : {}),
         dataDir: input.config.dataDir,
         factory: harnesses.factory,
         ledger: input.ledger,
@@ -52,6 +55,7 @@ export function createTurnHost(input: {
 
 export function createTurnHostWith(input: {
     book: ConnectionBook;
+    capacity?: CapacityReader;
     dataDir: string;
     factory: RuntimeDriverFactory;
     ledger: DispatchLedger;
@@ -139,8 +143,8 @@ export function createTurnHostWith(input: {
             }
         }
         activity.close(result.status === 'completed' ? 'completed' : result.status);
-        if (connection) {
-            status.afterTurn(connection, result);
+        if (connection && status.afterTurn(connection, result) === 'failed') {
+            void input.capacity?.afterAccessFailure(connection.id);
         }
         const visibility = await run.tools.settle();
         await store.consume([

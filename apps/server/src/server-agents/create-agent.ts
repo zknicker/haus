@@ -25,8 +25,8 @@ import { toAgent } from './agent-shape.ts';
 export type AgentCreator = { agentId: string; kind: 'agent' } | { kind: 'human'; user: HausUser };
 
 export interface CreatedAgentFromApp extends AgentCreated {
-    /** The `#all` membership change, for the App's channel member lists. */
-    event: PreparedRealtimeEvent | null;
+    /** The `#all` and Project membership changes, for the App's channel member lists. */
+    events: PreparedRealtimeEvent[];
 }
 
 /** Creates one Agent; its per-human DMs remain implicit until first use. */
@@ -52,12 +52,9 @@ export async function createAgent(
         );
         return {
             agent: created.agent,
-            event: created.allChannelId
-                ? prepareLifecycleEvent(
-                      { chatId: created.allChannelId, serverId: input.serverId },
-                      'updated'
-                  )
-                : null,
+            events: created.joinedChannelIds.map((chatId) =>
+                prepareLifecycleEvent({ chatId, serverId: input.serverId }, 'updated')
+            ),
         };
     });
 }
@@ -71,7 +68,7 @@ export async function createAgentInTransaction(
         creationRequest?: { hash: string; nonce: string };
     },
     avatar: (AvatarBytes & { mediaType: AvatarMediaType }) | null
-): Promise<AgentCreated & { allChannelId: string | null }> {
+): Promise<AgentCreated & { joinedChannelIds: string[] }> {
     const createdByAgentId = creator.kind === 'agent' ? creator.agentId : null;
     const createdByUserId = creator.kind === 'human' ? creator.user.id : null;
 
@@ -144,8 +141,14 @@ export async function createAgentInTransaction(
         });
     }
 
+    await joinChannelAgents(db, {
+        agentIds: [agentId],
+        chatId: input.homeProjectId,
+        serverId: input.serverId,
+    });
+
     return {
-        allChannelId: allChannel?.id ?? null,
+        joinedChannelIds: [...(allChannel ? [allChannel.id] : []), input.homeProjectId],
         agent: toAgent({
             activeRunId: null,
             avatarId,

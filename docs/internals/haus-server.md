@@ -530,7 +530,7 @@ access.
 `server.create` commits one transaction: the creator's Haus User, the opaque
 Server id, its slug and display name, the first human Owner membership, and the
 everyone channel `#all`, which the Owner participates in. `#all` is a chat with no
-`projects` row, and Postgres refuses one (`projects.chat_is_all`, migration 0141). It starts with the
+`projects` row, and Postgres refuses one (`projects.chat_is_all`, migration 0142). It starts with the
 description "General channel for all members and team-wide announcements."
 (`allChannelDescription` in `servers/contracts.ts`; migration 0068 backfilled
 existing rows that had none). A new Server starts empty

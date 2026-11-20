@@ -51,6 +51,22 @@ describe('model connection book', () => {
         expect(runner.book.get('mc_xai')).toBeUndefined();
     });
 
+    test('a snapshot older than the credential the book holds never replaces it', async () => {
+        const book = createConnectionBook();
+        const replaced: RunnerModelConnection = {
+            ...claudePlan,
+            credential: { kind: 'setup-token', token: 'sk-ant-oat01-replaced' },
+            credentialVersion: 2,
+        };
+        await book.replace([replaced]);
+        await book.replace([claudePlan]);
+        expect(book.get('mc_claude')).toEqual(replaced);
+
+        const renamed = { ...replaced, label: 'Team plan' };
+        await book.replace([renamed]);
+        expect(book.get('mc_claude')).toEqual(renamed);
+    });
+
     test('a run gets its connection only when the book holds it for the model’s provider', async () => {
         const book = createConnectionBook();
         await book.replace([claudePlan, xaiKey]);

@@ -39,6 +39,14 @@ BEGIN
         SELECT "server_id", general_id, "user_id"
         FROM "channel_participants"
         WHERE "server_id" = everyone."server_id" AND "chat_id" = everyone."id";
+        INSERT INTO "channel_agent_participants" ("server_id", "chat_id", "agent_id")
+        SELECT participant."server_id", general_id, participant."agent_id"
+        FROM "channel_agent_participants" participant
+        JOIN "agents" member
+            ON member."server_id" = participant."server_id" AND member."id" = participant."agent_id"
+        WHERE participant."server_id" = everyone."server_id" AND participant."chat_id" = everyone."id"
+            AND member."retired_at" IS NULL
+        ON CONFLICT DO NOTHING;
         UPDATE "projects" SET "chat_id" = general_id
         WHERE "server_id" = everyone."server_id" AND "chat_id" = everyone."id";
         UPDATE "tasks" SET "project_id" = general_id
@@ -76,6 +84,7 @@ BEGIN
                 AND home."archived_at" IS NULL
                 AND home."deleted_at" IS NULL
                 AND home."name" <> 'onboarding-owner'
+                AND (project."chat_id" <> general_id OR activity.total > 0)
             ORDER BY activity.recent DESC, activity.total DESC, project."created_at", project."chat_id"
             LIMIT 1;
             IF target IS NULL THEN
@@ -91,6 +100,9 @@ BEGIN
             END IF;
             target := coalesce(target, general_id);
             UPDATE "agents" SET "home_project_id" = target WHERE "id" = agent."id";
+            INSERT INTO "channel_agent_participants" ("server_id", "chat_id", "agent_id")
+            VALUES (everyone."server_id", target, agent."id")
+            ON CONFLICT DO NOTHING;
             RAISE NOTICE 'all is a chat: Agent % homed in %', agent."id", target;
         END LOOP;
 
@@ -99,6 +111,15 @@ BEGIN
             AND "retired_at" IS NOT NULL;
     END LOOP;
 END $$;--> statement-breakpoint
+INSERT INTO "channel_agent_participants" ("server_id", "chat_id", "agent_id")
+SELECT member."server_id", everyone."id", member."id"
+FROM "agents" member
+JOIN "chats" everyone ON everyone."server_id" = member."server_id" AND everyone."is_all"
+WHERE member."retired_at" IS NULL
+ON CONFLICT DO NOTHING;--> statement-breakpoint
+DELETE FROM "agent_channel_mutes" mute
+USING "chats" everyone
+WHERE everyone."server_id" = mute."server_id" AND everyone."id" = mute."chat_id" AND everyone."is_all";--> statement-breakpoint
 DO $$
 DECLARE
     taken record;
