@@ -93,14 +93,16 @@ export function AgentConnectionControl({
             variant="secondary"
         >
             <Select.Trigger>
-                <Select.Value />
+                <Select.Value>{({ selectedText }) => selectedText}</Select.Value>
                 <Select.Indicator />
             </Select.Trigger>
             <Select.Popover>
                 <ListBox>
                     <ListBox.Item id={defaultConnectionKey} textValue="Default">
-                        <Label>Default</Label>
-                        <Description>{choice.defaultLabel}</Description>
+                        <div className="flex flex-col">
+                            <Label>Default</Label>
+                            <Description>{choice.defaultLabel}</Description>
+                        </div>
                         <ListBox.ItemIndicator />
                     </ListBox.Item>
                     {choice.options.map((connection) => (
