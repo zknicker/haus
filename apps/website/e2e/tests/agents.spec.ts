@@ -37,8 +37,8 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     // The Computer reports its sanitized inventory over its attachment socket.
     await reportInventory();
 
-    await page.goto('/s/agent-hq/members');
-    await page.getByRole('button', { name: 'Create Captain' }).click();
+    await page.goto('/s/agent-hq');
+    await page.getByRole('button', { name: 'New Captain' }).click();
     const createDialog = page.getByRole('dialog', { name: 'Create Captain' });
     await expect(createDialog.getByLabel('Runtime')).toContainText('Codex');
     await expect(createDialog.getByLabel('Model')).toContainText('GPT-5.6 Sol');
@@ -48,9 +48,11 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await page.getByRole('option', { name: '🎉', exact: true }).click();
     await createDialog.getByRole('button', { name: 'Create Captain' }).click();
 
+    // A Captain made from the sidebar opens its DM; its profile is its own page.
+    await expect(page).toHaveURL(/\/s\/agent-hq\/dm\/[^/]+$/u);
+    const agentId = new URL(page.url()).pathname.split('/').at(-1);
+    await page.goto(`/s/agent-hq/agents/${agentId}/home`);
     await expect(page.getByRole('heading', { level: 1, name: 'Scout' })).toBeVisible();
-    // A new Agent lands on its own page outside Settings, on the profile hub.
-    await expect(page).toHaveURL(/\/s\/agent-hq\/agents\/[^/]+\/home$/u);
 
     // The hub opens every section through a card, not titlebar tabs.
     for (const section of [
