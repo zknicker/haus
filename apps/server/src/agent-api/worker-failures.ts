@@ -1,6 +1,7 @@
 import { ChatArchivedError } from '../chats/chat-access.ts';
 import {
     WorkerAgentNotFoundError,
+    WorkerCarrierRemovedError,
     WorkerClosedError,
     WorkerConflictError,
     WorkerHistoryReadOnlyError,
@@ -21,6 +22,7 @@ const refusals = [
     [WorkerPlaceUnavailableError, 409, 'WORKER_PLACE_UNAVAILABLE'],
     [WorkerHistoryReadOnlyError, 409, 'WORKER_HISTORY_READ_ONLY'],
     [WorkerClosedError, 409, 'WORKER_CLOSED'],
+    [WorkerCarrierRemovedError, 409, 'WORKER_CARRIER_REMOVED'],
     [WorkerNotLiveError, 409, 'WORKER_NOT_LIVE'],
     [WorkerStopDeniedError, 403, 'WORKER_STOP_DENIED'],
     [WorkerConflictError, 409, 'WORKER_IDEMPOTENCY_CONFLICT'],

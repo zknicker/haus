@@ -49,6 +49,15 @@ export class WorkerClosedError extends Error {
     }
 }
 
+export class WorkerCarrierRemovedError extends Error {
+    constructor() {
+        super(
+            'The Computer that carried this Worker was removed, and its provider login went with it, so the Worker takes no more turns. Start a new Worker on the Task.'
+        );
+        this.name = 'WorkerCarrierRemovedError';
+    }
+}
+
 export class WorkerTaskRequiredError extends Error {
     constructor(
         message = 'A Worker needs a Task. Start a Task for this work first, then start the Worker on that Task by its key; the Worker reports there.'

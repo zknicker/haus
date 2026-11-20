@@ -3,6 +3,7 @@ import type { HausDatabase } from '../../postgres/connection.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
 import type { HausUser } from '../../users/haus-user.ts';
 import {
+    WorkerCarrierRemovedError,
     WorkerClosedError,
     WorkerHistoryReadOnlyError,
     WorkerNotFoundError,
@@ -38,6 +39,7 @@ export function toWorkerTrpcError(cause: unknown) {
     if (
         cause instanceof WorkerNotLiveError ||
         cause instanceof WorkerClosedError ||
+        cause instanceof WorkerCarrierRemovedError ||
         cause instanceof WorkerHistoryReadOnlyError
     ) {
         return new TRPCError({ cause, code: 'CONFLICT', message: cause.message });

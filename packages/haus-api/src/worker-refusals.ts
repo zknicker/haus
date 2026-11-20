@@ -11,6 +11,7 @@ import * as z from 'zod';
  * - `WORKER_PLACE_UNAVAILABLE`: no online Computer has that place ready.
  * - `WORKER_HISTORY_READ_ONLY`: the Worker predates Tasks and only reads.
  * - `WORKER_CLOSED`: the Worker's Task closed, so it takes no more turns.
+ * - `WORKER_CARRIER_REMOVED`: the Worker's carrier Computer was removed, so it takes no more turns.
  * - `WORKER_NOT_LIVE`: stop found no queued or working turn.
  * - `WORKER_STOP_DENIED`: only the delegating Agent stops its Workers.
  * - `WORKER_IDEMPOTENCY_CONFLICT`: the nonce already started a different Worker.
@@ -21,6 +22,7 @@ export const workerRefusalCodes = [
     'WORKER_PLACE_UNAVAILABLE',
     'WORKER_HISTORY_READ_ONLY',
     'WORKER_CLOSED',
+    'WORKER_CARRIER_REMOVED',
     'WORKER_NOT_LIVE',
     'WORKER_STOP_DENIED',
     'WORKER_IDEMPOTENCY_CONFLICT',

@@ -2,7 +2,12 @@ import { type WorkerPlace, type WorkerTurnStartFrame, workerPlaces } from '@haus
 import { and, asc, count, eq, isNotNull, isNull, lt, notExists, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { workerPlaceLimitsTable, workerTurnsTable, workersTable } from '../postgres/schema.ts';
+import {
+    computersTable,
+    workerPlaceLimitsTable,
+    workerTurnsTable,
+    workersTable,
+} from '../postgres/schema.ts';
 import { readTask } from '../tasks/task-read.ts';
 import { composeWorkerInput } from './compose-worker-input.ts';
 import type { WorkerEffects, WorkerFrame } from './worker-effects.ts';
@@ -124,6 +129,13 @@ async function readDispatchCandidates(tx: HausDatabase, serverId: string) {
             and(
                 eq(workersTable.serverId, workerTurnsTable.serverId),
                 eq(workersTable.id, workerTurnsTable.workerId)
+            )
+        )
+        .innerJoin(
+            computersTable,
+            and(
+                eq(computersTable.serverId, workersTable.serverId),
+                eq(computersTable.id, workersTable.carrierComputerId)
             )
         )
         .where(

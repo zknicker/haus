@@ -4,11 +4,25 @@ import { and, eq, sql } from 'drizzle-orm';
 import { removeServerComputer } from '../src/computers/remove-computer.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
-import { agentInboxTable, computersTable } from '../src/postgres/schema.ts';
+import {
+    agentInboxTable,
+    chatMessagesTable,
+    computersTable,
+    workerTurnsTable,
+} from '../src/postgres/schema.ts';
+import { findUserById } from '../src/users/haus-user.ts';
+import { WorkerCarrierRemovedError } from '../src/workers/errors.ts';
+import { sendPersonFollowUp } from '../src/workers/send-person-follow-up.ts';
 import { sendAgentFollowUp } from '../src/workers/worker-operations.ts';
 import { offlineDelivery } from './agent-inbox-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
-import { readTurns, seedWorkerBoard, setReadyPlaces, startOn } from './worker-board.fixture.ts';
+import {
+    readTurns,
+    seedWorkerBoard,
+    setReadyPlaces,
+    startOn,
+    type WorkerBoard,
+} from './worker-board.fixture.ts';
 
 let cluster: TestDatabase;
 let connection: HausConnection;
@@ -89,6 +103,101 @@ test('removing a Computer fails the turns it carried machine-removed, reports ea
             .where(eq(computersTable.id, carrierId))
     ).toEqual([]);
 });
+
+test('a Worker whose carrier was removed refuses follow-ups from its Agent and from people', async () => {
+    const board = await seedWorkerBoard(connection.db);
+    const { delivery } = offlineDelivery(connection.db, board.seed);
+    const workerId = await startOnRemovedCarrier(board, delivery);
+    const member = await findUserById(connection.db, board.seed.userId);
+    if (!member) {
+        throw new Error('The seeded person is missing.');
+    }
+
+    const fromAgent = sendAgentFollowUp(connection.db, board.runner, {
+        interrupt: false,
+        nonce: 'after-removal',
+        text: 'Keep going.',
+        workerId,
+    });
+    const fromPerson = sendPersonFollowUp(
+        connection.db,
+        member,
+        { nonce: 'card-after-removal', serverId: board.seed.serverId, text: 'Keep going.', workerId },
+        delivery
+    );
+
+    await expect(fromAgent).rejects.toBeInstanceOf(WorkerCarrierRemovedError);
+    await expect(fromPerson).rejects.toBeInstanceOf(WorkerCarrierRemovedError);
+    expect((await readTurns(connection.db, workerId)).length).toBe(1);
+    expect(
+        await connection.db
+            .select({ id: chatMessagesTable.id })
+            .from(chatMessagesTable)
+            .where(
+                and(
+                    eq(chatMessagesTable.chatId, board.task.chatId),
+                    eq(chatMessagesTable.bodyKind, 'worker-follow-up')
+                )
+            )
+    ).toEqual([]);
+});
+
+test('dispatch never sends a turn to a removed carrier', async () => {
+    const board = await seedWorkerBoard(connection.db);
+    const { delivery } = offlineDelivery(connection.db, board.seed);
+    const workerId = await startOnRemovedCarrier(board, delivery);
+    const orphanId = createOpaqueId('wkt');
+    await connection.db.insert(workerTurnsTable).values({
+        id: orphanId,
+        input: [
+            {
+                at: new Date().toISOString(),
+                author: { id: board.seed.agentId, kind: 'agent' },
+                kind: 'follow-up',
+                messageId: null,
+                text: 'Queued before the removal reached this Worker.',
+            },
+        ],
+        serverId: board.seed.serverId,
+        workerId,
+    });
+    await setReadyPlaces(connection.db, board.seed.serverId, board.seed.computerId, ['cursor']);
+
+    const other = await startOn(connection.db, board);
+
+    expect(
+        other.effects.frames.map(({ computerId, frame }) => [
+            computerId,
+            'turnId' in frame && frame.turnId,
+        ])
+    ).toEqual([[board.seed.computerId, other.receipt.worker.turns[0]?.turnId]]);
+    const orphan = (await readTurns(connection.db, workerId)).find((turn) => turn.id === orphanId);
+    expect(orphan?.dispatchedAt).toBeNull();
+});
+
+async function startOnRemovedCarrier(
+    board: WorkerBoard,
+    delivery: ReturnType<typeof offlineDelivery>['delivery']
+) {
+    const { seed } = board;
+    const carrierId = createOpaqueId('cmp');
+    await connection.db.insert(computersTable).values({
+        attachedByUserId: seed.userId,
+        credentialHash: randomBytes(32).toString('hex'),
+        id: carrierId,
+        serverId: seed.serverId,
+    });
+    await setReadyPlaces(connection.db, seed.serverId, seed.computerId, []);
+    await setReadyPlaces(connection.db, seed.serverId, carrierId, ['cursor']);
+    const { worker } = (await startOn(connection.db, board)).receipt;
+    await removeServerComputer(
+        connection.db,
+        delivery,
+        { id: seed.userId },
+        { computerId: carrierId, confirmation: 'REMOVE', serverId: seed.serverId }
+    );
+    return worker.id;
+}
 
 async function reportItems(agentId: string) {
     const rows = await connection.db

@@ -486,7 +486,8 @@ turn, or a new one, and posts nothing; `interrupt` first stops the working turn 
 follow-ups. `POST /api/agent/workers/stop` takes `{ workerId }` and answers `{ worker }`.
 Undispatched turns settle `stopped` at once; dispatched ones get `worker-stop`, or settle on the
 Server at once while the carrier is offline (reconcile still carries the stop). Both routes are the
-delegating Agent's own (`WORKER_STOP_DENIED`), refuse a closing Worker (`WORKER_CLOSED`), and stop
+delegating Agent's own (`WORKER_STOP_DENIED`), refuse a closing Worker (`WORKER_CLOSED`), send
+refuses a Worker whose carrier Computer was removed (`WORKER_CARRIER_REMOVED`), and stop
 answers `WORKER_NOT_LIVE` when nothing is queued or working. A Worker with no Task is read-only
 history: every write answers `WORKER_HISTORY_READ_ONLY`.
 

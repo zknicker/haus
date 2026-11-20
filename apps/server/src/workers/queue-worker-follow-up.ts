@@ -2,8 +2,9 @@ import { type WorkerTurnInput, projectWorker } from '@haus/api';
 import { and, arrayContains, asc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { workerTurnsTable, workersTable } from '../postgres/schema.ts';
+import { computersTable, workerTurnsTable, workersTable } from '../postgres/schema.ts';
 import { resolveRunModel } from './cloud-agent-model.ts';
+import { WorkerCarrierRemovedError } from './errors.ts';
 import { requireOpenWorker, stopWorkerTurns } from './stop-worker-turns.ts';
 import type { WorkerFrame } from './worker-effects.ts';
 
@@ -23,6 +24,7 @@ export async function queueWorkerFollowUp(
     if (replayed) {
         return { frames: [] as WorkerFrame[], idempotent: true, turnId: replayed };
     }
+    await requireCarrier(tx, worker);
     const stopped = input.interrupt
         ? await stopWorkerTurns(tx, { requestedBy: input.followUp.author, worker })
         : { frames: [] };
@@ -109,6 +111,22 @@ async function findWaitingTurn(tx: HausDatabase, worker: WorkerRow) {
         .orderBy(asc(workerTurnsTable.createdAt))
         .limit(1);
     return turn ?? null;
+}
+
+async function requireCarrier(tx: HausDatabase, worker: WorkerRow) {
+    const [carrier] = await tx
+        .select({ id: computersTable.id })
+        .from(computersTable)
+        .where(
+            and(
+                eq(computersTable.serverId, worker.serverId),
+                eq(computersTable.id, worker.carrierComputerId)
+            )
+        )
+        .limit(1);
+    if (!carrier) {
+        throw new WorkerCarrierRemovedError();
+    }
 }
 
 async function touchWorker(tx: HausDatabase, worker: WorkerRow) {
