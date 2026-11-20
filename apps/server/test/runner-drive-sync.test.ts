@@ -15,6 +15,7 @@ import {
 let setup: InvocationHarness;
 let runner: RunnerClient;
 let computer: FrameClient;
+let activeRunId: string;
 
 beforeAll(async () => {
     setup = await startInvocationHarness({ slug: 'runner-drive-sync' });
@@ -88,6 +89,18 @@ test('after a full reset the next runner start carries the new generation and it
                 reset.sessionGeneration
     );
     expect(start.sessionResetKind).toBe('full');
+    activeRunId = (start.start as { runId: string }).runId;
+});
+
+test('a Computer that reconnects during a runner run pushes and then pulls the Agent folder', async () => {
+    computer.close();
+    computer = await connectComputer(setup.harness, setup.computerCredential);
+
+    const push = await computer.next((frame) => frame.type === 'drive-push');
+    const pull = await computer.next((frame) => frame.type === 'drive-pull');
+    expect(push).toMatchObject({ agentId: setup.agentId, runId: activeRunId });
+    expect(pull).toMatchObject({ agentId: setup.agentId, runId: activeRunId });
+    expect(computer.frames.indexOf(push)).toBeLessThan(computer.frames.indexOf(pull));
 });
 
 function settledTurn(runId: string) {

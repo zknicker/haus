@@ -108,7 +108,7 @@ interface DispatchOptions {
  */
 export class AgentDelivery {
     private readonly wakePauseLifts = new failureHold.WakePauseLifts();
-    private readonly route: AgentLoopRoute;
+    readonly route: AgentLoopRoute;
 
     constructor(
         private readonly db: HausDatabase,
