@@ -1,4 +1,4 @@
-import { AGENT_IDEMPOTENCY_KEY_REUSED } from '@haus/api';
+import { AGENT_IDEMPOTENCY_KEY_REUSED, driveSyncRunnerCapability } from '@haus/api';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { ChatArchivedError } from '../chats/chat-access.ts';
 import { resolveRunnerCredential } from '../computers/runner-credentials.ts';
@@ -10,7 +10,20 @@ export async function authorizeAgentRunner(db: HausDatabase, request: FastifyReq
     const header = request.headers.authorization;
     const value = Array.isArray(header) ? header[0] : header;
     const token = typeof value === 'string' && value.startsWith('Bearer ') ? value.slice(7) : null;
-    return token ? await resolveRunnerCredential(db, token) : null;
+    const runner = token ? await resolveRunnerCredential(db, token) : null;
+    if (runner?.capabilities.includes(driveSyncRunnerCapability) && !isDriveSyncRoute(request)) {
+        return null;
+    }
+    return runner;
+}
+
+function isDriveSyncRoute(request: FastifyRequest) {
+    const path = request.url.split('?')[0] ?? '';
+    return (
+        path.startsWith('/api/agent/drive/') ||
+        (request.method === 'GET' &&
+            /^\/api\/agent\/artifacts\/(?:by-path|[^/]+\/download)$/u.test(path))
+    );
 }
 
 export function sendAgentApiError(

@@ -20,7 +20,7 @@ export async function readVoiceTarget(
     db: HausDatabase,
     member: HausUser,
     scope: VoiceChatScope,
-    loop: AgentLoop
+    host: VoiceLoopHost
 ) {
     const chat = await requireChatWriteAccess(db, member, scope);
     if (chat.kind !== 'dm' || !chat.dmAgentId) {
@@ -65,7 +65,7 @@ export async function readVoiceTarget(
     if (!target) {
         throw new Error('The Agent is not in this direct message.');
     }
-    const refusal = voiceCallRefusal(target, loop);
+    const refusal = voiceCallRefusal(target, host);
     if (refusal) {
         throw new Error(refusal);
     }
@@ -74,11 +74,22 @@ export async function readVoiceTarget(
 
 export type VoiceTarget = Awaited<ReturnType<typeof readVoiceTarget>>;
 
-export function voiceCallRefusal(target: Pick<VoiceTarget, 'health' | 'stopped'>, loop: AgentLoop) {
+export interface VoiceLoopHost {
+    loop: AgentLoop;
+    runnerOnline: () => boolean;
+}
+
+export function voiceCallRefusal(
+    target: Pick<VoiceTarget, 'health' | 'stopped'>,
+    host: VoiceLoopHost
+) {
     if (target.stopped) {
         return 'The Agent is stopped. Start it before you call.';
     }
-    if (loop === 'computer' && target.health !== 'healthy') {
+    if (host.loop === 'runner' && !host.runnerOnline()) {
+        return 'Haus cannot reach the Agent runner right now. Try the call again shortly.';
+    }
+    if (host.loop === 'computer' && target.health !== 'healthy') {
         return 'The Agent needs a connected Computer before you call.';
     }
     return null;

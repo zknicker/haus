@@ -1,6 +1,8 @@
 import { createHash } from 'node:crypto';
 import type { RunAgentLaunchOptions } from './launch.ts';
 
+const authorityTimeoutMs = 30_000;
+
 interface ComputerAttachment {
     credential: string;
     serverOrigin: string;
@@ -26,7 +28,7 @@ export async function revokeRunner(options: RunAgentLaunchOptions, runnerId: str
 
 export async function mintRunCredential(
     attachment: ComputerAttachment,
-    run: { agentId: string; chatId: string | null; runId: string }
+    run: { agentId: string; chatId: string | null; purpose?: 'drive-sync'; runId: string }
 ) {
     return await postJson<{ runnerId: string; runnerToken: string }>(
         attachment.serverOrigin,
@@ -47,6 +49,7 @@ async function postJson<Response>(origin: string, path: string, body: object): P
         body: JSON.stringify(body),
         headers: { 'content-type': 'application/json' },
         method: 'POST',
+        signal: AbortSignal.timeout(authorityTimeoutMs),
     });
     const payload = (await response.json()) as Response & { error?: string };
     if (!response.ok) {

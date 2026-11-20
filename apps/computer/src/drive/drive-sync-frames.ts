@@ -1,5 +1,10 @@
 import { join } from 'node:path';
-import { type DriveSyncCommand, drivePullCommandSchema, drivePushCommandSchema } from '@haus/api';
+import {
+    agentPathSegment,
+    type DriveSyncCommand,
+    drivePullCommandSchema,
+    drivePushCommandSchema,
+} from '@haus/api';
 import { mintRunCredential, revokeRunCredential } from '../runner-authority.ts';
 import { type DriveRun, pullDriveForRun, pushDriveForRun } from './turn-sync.ts';
 
@@ -7,18 +12,35 @@ export function driveSyncFrames(
     agentsRoot: string,
     attachment: { credential: string; serverOrigin: string }
 ) {
+    const generations = new Map<string, number>();
     return {
         receive(frame: unknown) {
             const command = parseDriveSync(frame);
             if (!command) {
                 return false;
             }
+            if (!isAgentSegment(command.agentId)) {
+                console.warn('Ignored a drive sync frame for an unusable Agent id.', {
+                    agentId: command.agentId,
+                });
+                return true;
+            }
+            if (command.sessionGeneration < (generations.get(command.agentId) ?? 0)) {
+                console.warn('Ignored a drive sync frame from an earlier Agent session.', {
+                    agentId: command.agentId,
+                    runId: command.runId,
+                    sessionGeneration: command.sessionGeneration,
+                });
+                return true;
+            }
+            generations.set(command.agentId, command.sessionGeneration);
             const run: DriveRun = {
                 agentId: command.agentId,
                 mint: () =>
                     mintRunCredential(attachment, {
                         agentId: command.agentId,
                         chatId: null,
+                        purpose: 'drive-sync',
                         runId: command.runId,
                     }),
                 revoke: (runnerId) => revokeRunCredential(attachment, runnerId),
@@ -32,7 +54,7 @@ export function driveSyncFrames(
                         runId: command.runId,
                     }),
             };
-            const agentRoot = join(agentsRoot, command.agentId);
+            const agentRoot = join(agentsRoot, agentPathSegment(command.agentId));
             const sync = command.type === 'drive-pull' ? pullDriveForRun : pushDriveForRun;
             void sync(agentRoot, run).catch((error: unknown) =>
                 run.warn(
@@ -43,6 +65,15 @@ export function driveSyncFrames(
             return true;
         },
     };
+}
+
+function isAgentSegment(agentId: string) {
+    try {
+        agentPathSegment(agentId);
+        return true;
+    } catch {
+        return false;
+    }
 }
 
 function parseDriveSync(frame: unknown) {

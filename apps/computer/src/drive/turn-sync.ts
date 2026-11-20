@@ -23,6 +23,10 @@ export async function settleDriveFolder(agentRoot: string) {
     await folderTurns.get(agentRoot);
 }
 
+export function holdDriveFolder(agentRoot: string, signal: AbortSignal, work: () => Promise<void>) {
+    return inFolderTurn(agentRoot, work, signal);
+}
+
 export function pullDriveBeforeTurn(
     options: RunAgentLaunchOptions,
     agentRoot: string,
@@ -94,17 +98,17 @@ async function withRunToken(
     }
 }
 
-async function inFolderTurn(agentRoot: string, run: () => Promise<void>) {
+async function inFolderTurn(agentRoot: string, run: () => Promise<void>, signal?: AbortSignal) {
     const previous = folderTurns.get(agentRoot) ?? Promise.resolve();
-    const next = previous.then(run);
-    folderTurns.set(agentRoot, next);
-    try {
-        await next;
-    } finally {
-        if (folderTurns.get(agentRoot) === next) {
+    const next = (signal ? Promise.race([previous, abortOf(signal)]) : previous).then(run);
+    const tail = Promise.allSettled([previous, next]);
+    folderTurns.set(agentRoot, tail);
+    void tail.then(() => {
+        if (folderTurns.get(agentRoot) === tail) {
             folderTurns.delete(agentRoot);
         }
-    }
+    });
+    await next;
 }
 
 async function pullBeforeTurn(
@@ -169,6 +173,16 @@ async function warn(options: RunAgentLaunchOptions, event: string, detail: strin
             })
         )
     );
+}
+
+function abortOf(signal: AbortSignal) {
+    return new Promise<void>((resolve) => {
+        if (signal.aborted) {
+            resolve();
+            return;
+        }
+        signal.addEventListener('abort', () => resolve(), { once: true });
+    });
 }
 
 function messageOf(error: unknown) {

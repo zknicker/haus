@@ -181,7 +181,12 @@ skill-reference projection, from `@haus/agent-prompt`; `drive-pull` when a runne
 reset, and full reset on the runner. `agent-restart`, `agent-reset`, and `agent-retire` ride the
 runner socket. Restart and a session reset close the Agent's warm harness process, so the next
 turn resumes cold or, after a generation change, starts fresh. A full reset and retire also
-delete `/data/agents/<agent-id>/`. Each runs after the Agent's turn in progress. The Server sends
+delete `/data/agents/<agent-id>/`. The runner records the session generation it last applied in
+`/data/agent-sessions/<agent-id>.json`, outside the Agent's directory. A reset applies only when
+its generation is newer, aborts a turn from an older generation, and refuses queued runs that a
+reset replaced. `runner-start` carries `sessionResetKind`, so the first run of a newer generation
+applies a reset the runner missed while it was offline. Retire aborts the turn in progress; the
+other controls run after it. The Server sends
 `agent-retire` to the runner from R4d, when the Computer path that sends it today is deleted.
 
 R5 lands Pi Durable before R4, so the cutover has both harnesses and every Agent has one for
@@ -897,12 +902,16 @@ R2 bumps the protocol to 39 for these frames. Their schemas live in
 `invoke`, and the Computer ingest chain hands it the two upstream frames.
 
 **Computer protocol, added by R4b (version 43):** `drive-pull` and `drive-push`
-(Server → Computer, `agentId` and `runId`, in `packages/haus-api/src/agent-drive-sync.ts`). The
-Server sends `drive-pull` beside each `runner-start` and `drive-push` after the runner's `turn`
-settles the run, each only to the Agent's Computer when it is online. The Computer mints its own
-run credential for the run, runs D4's pull or push under the Agent's folder lock, and revokes the
-credential. Its invocations for that Agent wait for a pull in progress, so a machine tool never
-sees a half-pulled folder.
+(Server → Computer, `agentId`, `runId`, and `sessionGeneration`, in `packages/haus-api/src/agent-drive-sync.ts`). The
+Server sends `drive-pull` beside each `runner-start`, and `drive-push` when the runner's `turn`
+reports the Agent's active run, before settling it starts the next run. Each goes only to the
+Agent's Computer when it is online, and the Computer ignores frames from an older session
+generation than one it has seen. When the Computer reconnects during a runner run, the Server sends
+`drive-push` and then `drive-pull` for that run before it resends any invocation. The Computer mints its own
+`drive-sync` credential for the run, which reaches only the Drive sync routes and expires in 15
+minutes, runs D4's pull or push under the Agent's folder lock, and revokes the
+credential. Its invocations for that Agent run under the same folder lock, so a machine tool never sees a
+half-pulled folder and a sync never runs beside a tool; a cancelled invocation stops waiting.
 
 **Computer protocol, removed by R4:** `start`, `notice`, `stop`, `ack`, `notice-ack`, `turn`,
 `agent-activity`, `agent-thought`, `agent-execution-journal-records`,

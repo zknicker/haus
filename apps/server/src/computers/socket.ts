@@ -185,6 +185,11 @@ export function startComputerAttachmentSocket(
             if (!ordinary) {
                 return;
             }
+            await delivery.route
+                .reconcileDrive(db, computer.id)
+                .catch((error: unknown) =>
+                    console.error('Drive reconcile on Computer attach failed.', error)
+                );
             invocations.computerAttached(computer.id);
             // A Computer holds every runtime setting off until an attach turns one on.
             void connections.runtimeSettings

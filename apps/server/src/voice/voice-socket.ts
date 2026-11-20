@@ -48,12 +48,11 @@ export function startVoiceSocket(server: Server, options: VoiceSocketOptions) {
             throw new Error('Membership required');
         }
         const scope = voiceCallInputSchema.parse(Object.fromEntries(url.searchParams));
-        const target = await readVoiceTarget(
-            ctx.hausDb,
-            member,
-            scope,
-            ctx.modelConnections.agentLoop
-        );
+        const host = {
+            loop: ctx.modelConnections.agentLoop,
+            runnerOnline: () => ctx.runnerLink.isOnline(),
+        };
+        const target = await readVoiceTarget(ctx.hausDb, member, scope, host);
         if (closing || socket.destroyed || callers.has(member.id)) {
             throw new Error('Call already active');
         }
@@ -86,7 +85,7 @@ export function startVoiceSocket(server: Server, options: VoiceSocketOptions) {
                     apiKey: options.apiKey,
                     db: ctx.hausDb,
                     delivery: ctx.agentDelivery,
-                    loop: ctx.modelConnections.agentLoop,
+                    host,
                     member,
                     postCommitWork: ctx.postCommitWork,
                     scope,

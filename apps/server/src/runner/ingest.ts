@@ -2,6 +2,7 @@ import { type RunnerUpFrame, runnerUpFrameSchema } from '@haus/api';
 import { eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { settleHostedTurn } from '../agent-delivery/settle-turn.ts';
+import { readDeliveryState } from '../agent-delivery/store.ts';
 import type { InvocationRouter } from '../agent-invocations/invocation-router.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
 import { ingestAgentRunFrame } from '../computers/ingest-agent-run-frame.ts';
@@ -83,8 +84,8 @@ async function ingestLoopReport(ingest: RunnerIngest, frame: LoopReport) {
             await delivery.onNoticeAck(frame);
             return;
         case 'turn':
-            await settleHostedTurn(db, delivery, { kind: 'runner' }, frame);
             await pushDrive(ingest, frame);
+            await settleHostedTurn(db, delivery, { kind: 'runner' }, frame);
             return;
         default:
             await ingestRunPresentation(ingest, frame);
@@ -118,11 +119,19 @@ async function ingestRunPresentation(
 }
 
 async function pushDrive(ingest: RunnerIngest, run: { agentId: string; runId: string }) {
-    const placement = await readAgentPlacement(ingest.db, run.agentId);
-    if (placement && ingest.computers.isOnline(placement.computerId)) {
+    const [placement, state] = await Promise.all([
+        readAgentPlacement(ingest.db, run.agentId),
+        readDeliveryState(ingest.db, run.agentId),
+    ]);
+    if (
+        placement &&
+        state?.activeRunId === run.runId &&
+        ingest.computers.isOnline(placement.computerId)
+    ) {
         ingest.computers.send(placement.computerId, {
             agentId: run.agentId,
             runId: run.runId,
+            sessionGeneration: placement.sessionGeneration,
             type: 'drive-push',
         });
     }
@@ -130,11 +139,21 @@ async function pushDrive(ingest: RunnerIngest, run: { agentId: string; runId: st
 
 async function readAgentPlacement(db: HausDatabase, agentId: string) {
     const [agent] = await db
-        .select({ computerId: agentsTable.computerId, serverId: agentsTable.serverId })
+        .select({
+            computerId: agentsTable.computerId,
+            serverId: agentsTable.serverId,
+            sessionGeneration: agentsTable.sessionGeneration,
+        })
         .from(agentsTable)
         .where(eq(agentsTable.id, agentId))
         .limit(1);
-    return agent?.computerId ? { computerId: agent.computerId, serverId: agent.serverId } : null;
+    return agent?.computerId
+        ? {
+              computerId: agent.computerId,
+              serverId: agent.serverId,
+              sessionGeneration: agent.sessionGeneration,
+          }
+        : null;
 }
 
 function parseRunnerFrame(raw: string) {

@@ -1,8 +1,11 @@
 import type { AgentCommand, RunnerDownFrame, RunnerStartFrame } from '@haus/api';
+import { eq } from 'drizzle-orm';
 import { mintServerRunCredential } from '../computers/runner-credentials.ts';
 import { resolveModelConnection } from '../model-connections/agent-model-connection.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { agentsTable } from '../postgres/schema.ts';
 import type { DeliveryTransport, DispatchPlan } from './delivery.ts';
+import { listComputerAgents } from './dispatch-config.ts';
 import { readDeliveryState } from './store.ts';
 
 export type AgentLoopHost =
@@ -75,11 +78,33 @@ export class AgentLoopRoute {
         );
     }
 
-    private pullDrive(machineId: string, start: { agentId: string; runId: string }) {
+    async reconcileDrive(db: HausDatabase, machineId: string) {
+        if (this.wiring.kind !== 'runner' || !this.transport.isOnline(machineId)) {
+            return;
+        }
+        for (const agent of await listComputerAgents(db, machineId)) {
+            const state = agent.retiredAt ? null : await readDeliveryState(db, agent.agentId);
+            if (state?.activeRunId) {
+                const run = {
+                    agentId: agent.agentId,
+                    runId: state.activeRunId,
+                    sessionGeneration: agent.sessionGeneration,
+                };
+                this.transport.send(machineId, { ...run, type: 'drive-push' });
+                this.transport.send(machineId, { ...run, type: 'drive-pull' });
+            }
+        }
+    }
+
+    private pullDrive(
+        machineId: string,
+        start: { agentId: string; runId: string; sessionGeneration: number }
+    ) {
         if (this.transport.isOnline(machineId)) {
             this.transport.send(machineId, {
                 agentId: start.agentId,
                 runId: start.runId,
+                sessionGeneration: start.sessionGeneration,
                 type: 'drive-pull',
             });
         }
@@ -100,6 +125,15 @@ export class AgentLoopRoute {
         const state = await readDeliveryState(tx, start.agentId);
         const reasoningEffort =
             state?.activeRunId === start.runId ? state.activeRunReasoningEffort : null;
+        const [agent] = await tx
+            .select({ sessionResetKind: agentsTable.sessionResetKind })
+            .from(agentsTable)
+            .where(eq(agentsTable.id, start.agentId));
+        if (!agent) {
+            throw new Error(
+                `Agent ${start.agentId} is gone, so its run cannot start on the runner.`
+            );
+        }
         const modelConnectionId = await resolveModelConnection(tx, {
             agentId: start.agentId,
             modelId: start.modelId,
@@ -111,6 +145,7 @@ export class AgentLoopRoute {
                 ...(reasoningEffort ? { reasoningEffort } : {}),
                 modelConnectionId,
                 runCredential,
+                sessionResetKind: agent.sessionResetKind,
                 start,
                 type: 'runner-start',
             },

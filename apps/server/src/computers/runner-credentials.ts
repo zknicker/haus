@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import {
+    driveSyncRunnerCapability,
     manualRunnerCapability,
     type RunnerMintRequest,
     type RunnerRevokeRequest,
@@ -28,6 +29,7 @@ export interface ResolvedRunner {
 }
 
 const runnerLifetimeMs = 12 * 60 * 60 * 1000;
+const driveSyncLifetimeMs = 15 * 60 * 1000;
 
 /**
  * Mints one scoped runner credential for an Agent launch. The caller proves the
@@ -57,13 +59,17 @@ export async function mintRunnerCredential(db: HausDatabase, input: RunnerMintRe
         await requireChat(db, computer.serverId, input.chatId);
     }
 
-    return await insertRunnerCredential(db, {
-        agentId: input.agentId,
-        chatId: input.chatId,
-        computerId: computer.id,
-        runId: input.runId,
-        serverId: computer.serverId,
-    });
+    return await insertRunnerCredential(
+        db,
+        {
+            agentId: input.agentId,
+            chatId: input.chatId,
+            computerId: computer.id,
+            runId: input.runId,
+            serverId: computer.serverId,
+        },
+        input.purpose
+    );
 }
 
 /**
@@ -171,14 +177,16 @@ async function insertRunnerCredential(
         computerId: string | null;
         runId: string;
         serverId: string;
-    }
+    },
+    purpose: RunnerMintRequest['purpose'] = 'run'
 ) {
+    const driveSync = purpose === 'drive-sync';
     const runnerToken = `grtr_${randomBytes(32).toString('base64url')}`;
     const runnerId = createOpaqueId('arc');
     await db.insert(agentRunnerCredentialsTable).values({
         ...input,
-        capabilities: [manualRunnerCapability],
-        expiresAt: new Date(Date.now() + runnerLifetimeMs),
+        capabilities: [driveSync ? driveSyncRunnerCapability : manualRunnerCapability],
+        expiresAt: new Date(Date.now() + (driveSync ? driveSyncLifetimeMs : runnerLifetimeMs)),
         id: runnerId,
         tokenHash: hashComputerSecret(runnerToken),
     });
