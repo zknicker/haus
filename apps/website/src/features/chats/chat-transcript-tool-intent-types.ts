@@ -22,7 +22,7 @@ export type ToolIntentKind =
     | 'voice'
     | 'web'
     | 'wiki'
-    | 'worker';
+    | 'subagent';
 
 export interface ToolIntent {
     kind: ToolIntentKind;

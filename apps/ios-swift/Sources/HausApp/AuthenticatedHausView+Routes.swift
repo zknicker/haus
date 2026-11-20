@@ -59,13 +59,9 @@ extension AuthenticatedHausView {
     }
 
     private func openCloudAgentWork(_ work: ActiveCloudAgentWork) {
-        if let taskID = work.taskID {
-            openTask(taskID)
-            return
-        }
         switch work.location {
-        case .message(let chatID, let messageID):
-            openCanvasChat(.chat(chatID), revealing: messageID)
+        case .task(_, let taskID):
+            openTask(taskID)
         }
     }
 

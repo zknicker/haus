@@ -32,4 +32,4 @@ export class PiSessionEndedError extends Error {
 }
 
 const accessFailure =
-    /\b(?:401|403)\b|unauthori[sz]ed|forbidden|invalid api key|not signed in|login/iu;
+    /\b(?:401|403)\b|unauthori[sz]ed|forbidden|invalid api key|not signed in|login|oauth|not configured/iu;

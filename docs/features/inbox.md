@@ -209,8 +209,8 @@ owners remain in setup and members and Admins remain on the waiting page, outsid
 
 **Happening now** — work running right now, whether or not this human started it, also as one list:
 
-- [Cloud Agent work](../../specs/cloud-agents.md) queued, running, or waiting on an answer
-  (`Needs input`) anywhere on the Server I can see, led by its cloud agent key (a terminal badged with its provider's logo): the title, the Chat and Agent it came from as its preview, and its
+- [Workers](../../specs/workers.md) queued or working anywhere on the Server I can see, led by
+  their place's mark (a terminal badged with its provider's logo): the title, the Chat and Agent it came from as its preview, and its
   status disc with the elapsed time trailing — `Running · 25m`.
 - Agents currently in a turn, from the current Agent activity projection
   ([Agent Activity](../../specs/agent-activity.md)), each stating its current activity and total
@@ -245,8 +245,8 @@ row group's existing reset clears each row's own surface; `.inbox-unread-row` gi
 ground back, and `.inbox-unread-selected` adds the ring.
 
 Rows in the Agents and Happening now lists stack a title over a subline instead, because a popover
-is narrow; each is a pressable `ItemCard` with a 32px mark (`inbox-list-row.tsx`). A Cloud Agent
-work row's trailing status disc is 16px, the app's icon size.
+is narrow; each is a pressable `ItemCard` with a 32px mark (`inbox-list-row.tsx`). A Worker row's
+trailing status disc is 16px, the app's icon size.
 
 ### Task cards
 
@@ -262,7 +262,7 @@ read; the assignment itself posts nothing. A Task you do not follow never appear
 
 The page is live at `/s/:slug/inbox`. An Unread Chat row opens its Chat at
 `/s/<slug>/chats/<chatId>`. An Unread Task row opens the Task page at `/s/<slug>/tasks/<key>`. A
-Cloud Agent work row in **Happening now** opens the work's Task; an Agent row opens that Agent's
+Worker row in **Happening now** opens its Task; an Agent row opens that Agent's
 page.
 
 Chat rows come from `chat.list({ serverId })`, and followed Task rows from the Task entries of
@@ -343,7 +343,7 @@ key pair and a service worker). A closed browser tab learns about new messages o
   usage snapshot rather than ranking against zeroes. Page chrome and section labels load with
   the Server shell; the section bodies can arrive independently of navigation.
 - The page updates from the durable events the underlying records already emit —
-  `message.created`, `chat.read`, `cloud-agent-work.updated`, and Agent activity and lifecycle —
+  `message.created`, `chat.read`, `worker.updated`, and Agent activity and lifecycle —
   through the existing invalidations; Unread is `chat.list` and `chat.unreadPreviews`, refetched
   on `message.created` and `chat.read`. The Inbox adds no event of its own. The strip's token figure is
   the exception that needs none: it rides the usage snapshot's own freshness, the same one every
@@ -358,9 +358,9 @@ key pair and a service worker). A closed browser tab learns about new messages o
   strip and Unread as one-line rows; the open cards, their composers and keys, and the token-chip
   strip of [ADR 0050](../adr/0050-the-inbox-renders-what-is-waiting.md) are App-only for now. It reads
   the same Server records through Store-owned snapshots
-  ([Haus for iPhone](../internals/ios.md)). **Happening now** is where Cloud Agent work gets its
+  ([Haus for iPhone](../internals/ios.md)). **Happening now** is where Workers get their
   first iPhone presentation. One row differs, because the phone has nowhere else to send it: an
   Agent row in **Happening now** opens that Agent's DM rather than a profile page, which the phone
-  reaches from a Chat instead. A Cloud Agent work row opens the work's Task as a chat with its
+  reaches from a Chat instead. A Worker row opens its Task as a chat with its
   attached-work header. The iPhone Inbox is also the cold-start landing screen there, which the
   App has no counterpart for.

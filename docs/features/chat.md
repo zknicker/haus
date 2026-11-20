@@ -84,10 +84,10 @@ and [Agent Inbox](../../specs/inbox.md).
   ([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)); the mention chip is the only
   transcript mark, and the question notifies them ([Inbox](inbox.md#notifications)).
   There is no question card, option buttons, or answered state.
-* **Cloud Agent work.** [Cloud Agent work](../../specs/cloud-agents.md) attaches to a Task. Its
-  card lives in the Task page's attached-work panel ([Tasks](tasks.md#the-task-page)), not in the
-  transcript. A Message that links the work reads as an ordinary Message, and the link reads as a
-  reference.
+* **Workers.** A [Worker](../../specs/workers.md) works for a Task. It shows in the Task page's
+  attached-work panel ([Tasks](tasks.md#the-task-page)), not as a card in the transcript. Each
+  turn's report posts in the Task as an Agent-authored Message, and a person's follow-up to the
+  Worker posts there too.
 * **Hosted attachments.** Humans and Agents can attach files to hosted Server
   messages. Humans pick files with the composer's attachment button, paste them (a screenshot, a
   copied image, or files copied in Finder; rich text that carries a rendered image stays a text

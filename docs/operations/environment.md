@@ -53,7 +53,7 @@ the access boundary.
 | `Axiom Production OTLP - Haus` | `Production` | Hosted Server OTLP ingestion for the shared operations and metrics datasets |
 | `Postgres - Haus` | `Production` | runtime URL, migration URL, container admin password |
 | `Agent Runner - Haus` | `Production` | `credential`: the token that opens the Server's runner socket and nothing else; development mints one per stack run |
-| `Claude Setup Token - Haus Runner` | `Development`, `Production` | `credential`: a `claude setup-token` value, the Claude plan login for Agents on the runner; optional |
+| `Haus Secrets Key` | `Development`, `Production` | `credential`: `HAUS_SECRETS_KEY`, the base64 of 32 random bytes that seals model connections at rest; one per lifecycle, optional |
 | `HugeIcons Pro - Merchbase` | `Development` | shared licensed registry key (adopted, not copied) |
 | `HeroUI Pro CICD - Merchbase` | `Development` | shared licensed artifact token (adopted, not copied) |
 | `Apple Notarization - Merchbase` | `Tooling` | shared notarization identity (adopted, not copied) |
@@ -82,7 +82,7 @@ mints, delivers, or stores it: the Computer settings **Connect** action runs Cur
 sign-in on the machine, and the key stays in Cursor's store. Nothing in this contract resolves it,
 so it has no 1Password item and no schema arm.
 
-The local `gh` CLI token is absent for the same reason. A Computer reads a Cloud Agent Run's pull
+The local `gh` CLI token is absent for the same reason. A Computer reads a Worker turn's pull
 request from GitHub using whatever token `gh auth token` already resolves on that machine, held in
 memory for the life of the process and never logged, stored, or reported to Server. It is a
 host-native credential, not a Haus variable: it has no 1Password item, no schema arm, and a

@@ -128,7 +128,7 @@ both Agent DMs (Tiny's DM ends on its unanswered stale-copy question; Blippy's D
 your reply), and Cove @mentioning you with its rename question in `#onboarding-owner`. It also
 seeds one claim Blippy left stalled (shown
 on Blippy's profile under **Stopped before finishing**), one
-settled Cloud Agent work, and seven days of Agent turns. That activity is idempotent and separate,
+settled Worker, and seven days of Agent turns. That activity is idempotent and separate,
 in `apps/server/src/development/seed-inbox-activity.ts`.
 
 Another idempotent seed (`seed-artifact-message.ts`) gives fresh and existing demo workspaces a
@@ -139,8 +139,8 @@ card, the link, and desktop workspace tabs have real files to open.
 
 A separate idempotent seed adds **#ui-gallery** to fresh and existing demo workspaces. Its
 messages cover human @mentions in Channels and Tasks, every Task state, hidden claims, claims
-with replies, every cloud-work status, cancelling and stale work, follow-ups waiting or running
-behind a finished Run and waiting behind a failed one, and a Task holding several cloud agents
+with replies, every Worker status, cancelling and stale work, follow-ups waiting or running
+behind a finished Run and waiting behind a failed one, and a Task holding several Workers
 and an inline human @mention. Toggle **Show tasks in chat** to compare hidden claims. Cloud branch and diff evidence is synthetic; its pull request link points at a nonexistent
 `demo/ui-gallery` repository. The gallery's queued/running work appears in Inbox too.
 
@@ -261,8 +261,10 @@ HAUS_AGENT_LOOP=runner bun run dev
 The stack mints a fresh `HAUS_RUNNER_TOKEN` for each run and hands it to the Server and the runner.
 The runner starts after the Server with `HAUS_SERVER_URL` set to the Server origin and
 `HAUS_RUNNER_DATA_DIR` under the worktree's dev state directory, beside the Computer's data root.
-It inherits only a narrow shell environment, never the Server's secrets. `HAUS_RUNNER_CLAUDE_SETUP_TOKEN`
-reaches it when your environment resolves one. Without `HAUS_AGENT_LOOP=runner`, nothing changes.
+It inherits only a narrow shell environment, never the Server's secrets, and it gets model logins
+only from the Server: connect them in Settings → Models ([model connections](../../specs/model-connections.md)),
+which needs `HAUS_SECRETS_KEY` from the Development `Haus Secrets Key` item. Without
+`HAUS_AGENT_LOOP=runner`, nothing changes.
 
 The live Claude Agent SDK test spends real quota and runs only on request:
 

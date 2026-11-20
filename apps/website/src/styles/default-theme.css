@@ -33,7 +33,7 @@
   --feed-card-shadow: var(--surface-shadow);
   --feed-card-ring: color-mix(in oklab, var(--foreground) 24%, transparent);
   /*
-   * The one column every in-chat attachment under a message fills: Cloud Agent
+   * The one column every in-chat attachment under a message fills: Worker
    * cards, Task previews, the working log, workspace changes. Each is
    * `w-full` up to this cap, so a card stacked over a Task preview shares
    * both edges whatever the transcript width.
@@ -1527,7 +1527,7 @@
      * `--automation-keycap-*` — keeping its stock box and radius, so the key and
      * its corner stay paired. `AutomationKeycapFace` prints on it: a Reminder's
      * rose band over its next hour, a Trigger's source glyph in its ink, a
-     * Cloud Agent's terminal with its provider badged in the corner. The
+     * Worker's terminal with its provider badged in the corner. The
      * face stacks band over body, so the slot lays out as a column. Paired
      * selectors outrank the secondary group's icon wash.
      */

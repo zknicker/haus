@@ -9,7 +9,6 @@ import { chatRouter } from './chat/router.ts';
 import { claimRouter } from './claim/router.ts';
 import { cloudAgentProviderRouter } from './cloud-agent-provider/router.ts';
 import { cloudAgentSettingsRouter } from './cloud-agent-settings/router.ts';
-import { cloudAgentWorkRouter } from './cloud-agent-work/router.ts';
 import { computerSecretsRouter } from './computer-secrets/router.ts';
 import { computerRouter } from './computer/router.ts';
 import { devRouter } from './dev/router.ts';
@@ -20,6 +19,7 @@ import { imageGenerationRouter } from './image-generation/router.ts';
 import { invitationRouter } from './invitation/router.ts';
 import { mcpRouter } from './mcp/router.ts';
 import { memberRouter } from './member/router.ts';
+import { modelConnectionsRouter } from './model-connections/router.ts';
 import { projectRouter } from './project/router.ts';
 import { pushRouter } from './push/router.ts';
 import { reminderRouter } from './reminder/router.ts';
@@ -31,6 +31,7 @@ import { taskLabelRouter } from './task-label/router.ts';
 import { taskRouter } from './task/router.ts';
 import { triggerRouter } from './trigger/router.ts';
 import { createRouter } from './trpc.ts';
+import { workerRouter } from './worker/router.ts';
 
 /**
  * The whole Haus Server contract.
@@ -46,7 +47,7 @@ export const hausRouter = createRouter({
     chat: chatRouter,
     cloudAgentProvider: cloudAgentProviderRouter,
     cloudAgentSettings: cloudAgentSettingsRouter,
-    cloudAgentWork: cloudAgentWorkRouter,
+    worker: workerRouter,
     computer: computerRouter,
     computerSecrets: computerSecretsRouter,
     dev: devRouter,
@@ -57,6 +58,7 @@ export const hausRouter = createRouter({
     invitation: invitationRouter,
     member: memberRouter,
     mcp: mcpRouter,
+    modelConnections: modelConnectionsRouter,
     project: projectRouter,
     push: pushRouter,
     reminder: reminderRouter,

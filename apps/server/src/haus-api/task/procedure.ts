@@ -27,12 +27,18 @@ export const taskProcedure = memberProcedure.use(async ({ next }) => {
  * The response never waits on the wake.
  */
 export async function commitTaskWrite(
-    ctx: Pick<HausContext, 'agentDelivery' | 'hausDb' | 'postCommitWork'> & {
+    ctx: Pick<
+        HausContext,
+        'agentDelivery' | 'computerConnections' | 'hausDb' | 'postCommitWork'
+    > & {
         member: HausUser | null;
     },
     result: TaskWriteResult
 ) {
     publishRealtime(result.events);
+    for (const { computerId, frame } of result.workerFrames ?? []) {
+        ctx.computerConnections.send(computerId, frame);
+    }
     void ctx.postCommitWork.wakeAgents(ctx.agentDelivery, result.wakes);
     const [task] = await withVisibleOrigins(ctx.hausDb, memberTaskActor(ctx.member), [result.task]);
     if (!task) {

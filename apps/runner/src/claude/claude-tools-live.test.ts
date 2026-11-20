@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { createSdkMcpServer, query, tool } from '@anthropic-ai/claude-agent-sdk';
 import * as z from 'zod';
 
-const setupToken = process.env.HAUS_RUNNER_CLAUDE_SETUP_TOKEN;
+const setupToken = process.env.HAUS_RUNNER_TEST_CLAUDE_SETUP_TOKEN;
 const liveTest = process.env.HAUS_RUN_LIVE_RUNNER_CLAUDE_TEST === '1' ? test : test.skip;
 const root = await mkdtemp(join(tmpdir(), 'haus-runner-sdk-'));
 afterAll(() => rm(root, { force: true, recursive: true }));

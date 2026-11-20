@@ -32,13 +32,13 @@ import { ingestAgentIdleCompaction } from '../server-agents/record-agent-idle-co
 import { recordHausAgentState } from '../server-agents/record-haus-agent-state.ts';
 import { recordComputerUsage } from '../server-operations/computer-usage.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
-import { ingestCloudAgentReport } from './cloud-agent-reports.ts';
 import type { ComputerConnections } from './connections.ts';
 import { ingestAgentRunFrame } from './ingest-agent-run-frame.ts';
 import { ingestBackgroundWorkFrame } from './ingest-background-work.ts';
 import { ingestExecutionJournalUpload } from './ingest-execution-journal.ts';
 import { recordComputerInventory, recordInvalidComputerInventory } from './record-inventory.ts';
 import { recordComputerManagementEvents, reportComputerUpdateProgress } from './service.ts';
+import { ingestWorkerReport } from './worker-reports.ts';
 
 /** Ongoing report of last-reported inventory and per-Agent effective state. */
 const reportSchema = z
@@ -83,7 +83,7 @@ export async function ingestReport(
 
     if (
         (await invocations.ingestComputerFrame(computerId, frame)) ||
-        (await ingestCloudAgentReport({
+        (await ingestWorkerReport({
             db,
             connections,
             delivery,

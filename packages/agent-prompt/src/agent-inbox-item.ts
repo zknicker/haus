@@ -1,10 +1,11 @@
 import type {
     AddressedReason,
     ChatMessageReply,
-    CloudAgentBranch,
-    CloudAgentProvider,
-    CloudAgentStallCode,
-    CloudAgentStatus,
+    WorkerBranch,
+    WorkerPlace,
+    WorkerReportAttention,
+    WorkerStallCode,
+    WorkerTurnStatus,
 } from '@haus/api';
 
 export interface AgentInboxItem {
@@ -18,13 +19,13 @@ export interface AgentInboxItem {
         number: number;
         status: 'closed' | 'done' | 'in_progress' | 'in_review' | 'todo';
     };
-    cloudAgentWork?: AgentCloudAgentWorkAttention;
+    worker?: AgentWorkerAttention;
     content: string;
     createdAt: string;
     id: string;
     mentioned?: boolean;
     message?: Record<string, unknown>;
-    pullRequestNotice?: CloudAgentPullRequestChange;
+    pullRequestNotice?: WorkerPullRequestChange;
     reply?: ChatMessageReply | null;
     senderDescription?: string;
     senderHandle: string;
@@ -33,28 +34,30 @@ export interface AgentInboxItem {
     senderType: 'agent' | 'human' | 'system' | 'trigger';
     sequence: number;
     target: string;
+    /** One settled Worker turn for its delegating Agent: its report, or the failure Haus recorded. */
+    workerReport?: WorkerReportAttention;
 }
 
-/** A settled Cloud Agent Run's terminal attention for the delegating Agent. */
-export interface AgentCloudAgentWorkAttention {
-    branches: CloudAgentBranch[];
+/** A live Worker turn's stall, or a pull request change, for the delegating Agent. */
+export interface AgentWorkerAttention {
+    branches: WorkerBranch[];
     errorCode: string | null;
     /** Whether `summary` is only the capped head of a longer report (TECH-8). */
     hasFullReport?: boolean;
-    notice: 'settled' | 'stall' | 'pull_request';
-    provider: CloudAgentProvider;
+    notice: 'stall' | 'pull_request';
+    place: WorkerPlace;
     providerUrl: string | null;
-    pullRequestChange?: CloudAgentPullRequestChange;
+    pullRequestChange?: WorkerPullRequestChange;
     repository: string;
-    runId: string;
-    stallCode: CloudAgentStallCode | null;
-    status: CloudAgentStatus;
+    turnId: string;
+    stallCode: WorkerStallCode | null;
+    status: WorkerTurnStatus;
     summary: string | null;
     title: string;
-    workId: string;
+    workerId: string;
 }
 
-export interface CloudAgentPullRequestChange {
+export interface WorkerPullRequestChange {
     change: 'checks_failing' | 'checks_passing' | 'ready_for_review';
     url: string;
 }

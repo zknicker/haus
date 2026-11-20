@@ -87,6 +87,7 @@ export interface RunnerLink {
 
 export interface RunStart {
     readonly authority: RunAuthority;
+    readonly modelConnectionId: string | null;
     readonly reasoningEffort: AgentReasoningEffort;
     readonly start: AgentStartCommand;
     readonly tools: RunTools;

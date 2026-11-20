@@ -6,9 +6,9 @@ import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profil
 import { tabIntentState } from '../../../hooks/desktop-tabs/tab-navigation.ts';
 import { currentOpenGesture } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
-import { useActiveCloudAgentWork } from '../../../hooks/servers/use-cloud-agent-work.ts';
 import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
-import { useOpenCloudAgentWork } from '../../cloud-agents/use-open-cloud-agent-work.ts';
+import { useActiveWorker } from '../../../hooks/servers/use-worker.ts';
+import { useOpenWorker } from '../../workers/use-open-worker.ts';
 import { useAgentLifecycle } from '../agent-lifecycle.tsx';
 import { useServerContext } from '../server-context.ts';
 import { taskRoute } from '../server-routes.ts';
@@ -31,19 +31,19 @@ export function useHappeningNowRows(): HappeningNowRow[] | null {
     const lifecycles = useAgentLifecycle();
     const agents = useAgents(server.id);
     const humans = useHumanDirectory(server.id);
-    const cloudAgentWork = useActiveCloudAgentWork(server.id);
+    const worker = useActiveWorker(server.id);
     const activities = currentActivity?.activities ?? [];
     // Elapsed time ticks on the rows the same way it does on a work surface —
     // and only while a row is actually counting up.
-    const now = useRelativeNow(cloudAgentWork.data?.length || activities.length ? 1000 : 60_000);
-    const settled = currentActivity?.isSnapshotReady === true && Boolean(cloudAgentWork.data);
+    const now = useRelativeNow(worker.data?.length || activities.length ? 1000 : 60_000);
+    const settled = currentActivity?.isSnapshotReady === true && Boolean(worker.data);
     const rows = React.useMemo(
         () =>
             toHappeningNowRows(
-                toHappeningNowWork(cloudAgentWork.data ?? [], humans, agents.data ?? [], now),
+                toHappeningNowWork(worker.data ?? [], humans, agents.data ?? [], now),
                 happeningNowAgentRows(activities, lifecycles, agents.data ?? [], now)
             ),
-        [activities, agents.data, cloudAgentWork.data, humans, lifecycles, now]
+        [activities, agents.data, worker.data, humans, lifecycles, now]
     );
 
     return settled ? rows : null;
@@ -53,7 +53,7 @@ export function useOpenHappeningNowRow(): (row: HappeningNowRow) => void {
     const { server } = useServerContext();
     const navigate = useNavigate();
     const openAgentProfile = useOpenAgentProfile();
-    const openWork = useOpenCloudAgentWork();
+    const openWork = useOpenWorker();
     return (row) => {
         if (row.kind === 'work') {
             if (row.work.task) {

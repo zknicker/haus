@@ -1,9 +1,9 @@
 import { PuzzleIcon } from '@hugeicons-pro/core-stroke-rounded';
-import { workerKindConfig } from '../workers/config.ts';
 import type { ActivityItem } from './chat-transcript-activity-utils.ts';
 import type { TranscriptRow } from './chat-transcript-model.ts';
 import { SystemStep } from './chat-transcript-system-step.tsx';
 import { ToolStep } from './chat-transcript-tool-step.tsx';
+import { subagentKindConfig } from './subagent-kind-config.ts';
 import { ThinkingStep } from './thinking-steps.tsx';
 
 export function ActivityStep({
@@ -32,7 +32,7 @@ export function ActivityStep({
                     row={item.row}
                 />
             );
-        case 'worker':
+        case 'subagent':
             return (
                 <WorkerStep
                     animateEnter={animateEnter}
@@ -65,22 +65,22 @@ function WorkerStep({
     animateEnter?: boolean;
     index: number;
     isLast: boolean;
-    row: Extract<TranscriptRow, { kind: 'worker' }>;
+    row: Extract<TranscriptRow, { kind: 'subagent' }>;
 }) {
-    const config = workerKindConfig[row.worker.kind];
-    const status = workerStepStatus(row.worker.status);
+    const config = subagentKindConfig[row.subagent.kind];
+    const status = subagentStepStatus(row.subagent.status);
 
     return (
         <ThinkingStep
             animateEnter={animateEnter}
-            description={row.worker.detail}
+            description={row.subagent.detail}
             icon={PuzzleIcon}
             index={index}
             isLast={isLast}
             label={
                 <span className="inline-flex max-w-full min-w-0 items-baseline gap-1.5 text-left">
                     <span className="shrink-0">{config.label}</span>
-                    <span className="text-muted truncate">{row.worker.title}</span>
+                    <span className="text-muted truncate">{row.subagent.title}</span>
                 </span>
             }
             status={status}
@@ -88,7 +88,9 @@ function WorkerStep({
     );
 }
 
-function workerStepStatus(status: Extract<TranscriptRow, { kind: 'worker' }>['worker']['status']) {
+function subagentStepStatus(
+    status: Extract<TranscriptRow, { kind: 'subagent' }>['subagent']['status']
+) {
     if (status === 'failed' || status === 'timed_out') {
         return 'failed' as const;
     }

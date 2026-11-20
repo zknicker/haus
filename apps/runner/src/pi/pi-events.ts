@@ -31,6 +31,7 @@ export class PiTurnEvents {
         private readonly options: {
             readonly invocations: ReadonlyMap<string, InvocationOutcome>;
             readonly newId: () => string;
+            readonly searches: { drain(): readonly TurnEvent[] };
         }
     ) {
         this.seen = Math.max(0, ...initial.entries.map((entry) => entry.id));
@@ -88,6 +89,7 @@ export class PiTurnEvents {
         this.stream(this.streamed?.attempt ?? 0, message.content, events);
         this.closeReasoning(events);
         this.streamed = null;
+        events.push(...this.options.searches.drain());
         for (const block of message.content) {
             if (block.type === 'toolCall') {
                 events.push({

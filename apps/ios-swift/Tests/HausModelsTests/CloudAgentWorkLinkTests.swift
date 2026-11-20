@@ -14,8 +14,8 @@ struct CloudAgentWorkLinkTests {
         ("Open [draft", #"Open \[draft"#),
         (#"trailing\"#, #"trailing\\"#),
         ("Café 修正 🚀 ✓", "Café 修正 🚀 ✓"),
-        ("]]]", "Cloud Agent work"),
-        (" \r\n ", "Cloud Agent work"),
+        ("]]]", "Worker"),
+        (" \r\n ", "Worker"),
         (String(repeating: "x", count: 120), String(repeating: "x", count: 120)),
         (String(repeating: "\\", count: 120), String(repeating: "\\\\", count: 120)),
     ])
@@ -37,11 +37,11 @@ struct CloudAgentWorkLinkTests {
     }
 
     @Test func workIDsArePercentDecodedAndOtherSchemesAreNotWork() {
-        #expect(CloudAgentWorkLink.workID(target: "cloud-agent://caw%2F1") == "caw/1")
-        #expect(CloudAgentWorkLink.workID(target: " cloud-agent://caw_1 ") == "caw_1")
-        #expect(CloudAgentWorkLink.workID(target: "cloud-agent://") == nil)
+        #expect(CloudAgentWorkLink.workID(target: "worker://caw%2F1") == "caw/1")
+        #expect(CloudAgentWorkLink.workID(target: " worker://caw_1 ") == "caw_1")
+        #expect(CloudAgentWorkLink.workID(target: "worker://") == nil)
         #expect(CloudAgentWorkLink.workID(target: "chat://cht_1") == nil)
-        #expect(CloudAgentWorkLink.format(title: "T", workID: "caw/1") == "[T](cloud-agent://caw%2F1)")
+        #expect(CloudAgentWorkLink.format(title: "T", workID: "caw/1") == "[T](worker://caw%2F1)")
     }
 
     @Test func aLoneBackslashBeforeAnythingElseStays() {
@@ -49,44 +49,44 @@ struct CloudAgentWorkLinkTests {
     }
 
     @Test func anImageIsNeverAWorkLink() {
-        #expect(CloudAgentWorkLink.occurrences(in: "![T](cloud-agent://caw_1)").isEmpty)
+        #expect(CloudAgentWorkLink.occurrences(in: "![T](worker://caw_1)").isEmpty)
     }
 
     // MARK: - Q1 elision
 
     @Test func hidesATrailingParagraphOfBackedLinks() {
-        let content = "On it.\n\n[Fix tests](cloud-agent://caw_1)"
+        let content = "On it.\n\n[Fix tests](worker://caw_1)"
         #expect(CloudAgentWorkLink.elidingBackedTrailingParagraph(content, backedWorkIDs: ["caw_1"]) == "On it.")
     }
 
     @Test func hidesSeveralBackedLinksAndAWholeLinkOnlyMessage() {
-        let several = "Two jobs.\n\n[A](cloud-agent://caw_1) [B](cloud-agent://caw_2)\n"
+        let several = "Two jobs.\n\n[A](worker://caw_1) [B](worker://caw_2)\n"
         #expect(CloudAgentWorkLink.elidingBackedTrailingParagraph(several, backedWorkIDs: ["caw_1", "caw_2"]) == "Two jobs.")
-        let alone = "[A](cloud-agent://caw_1)"
+        let alone = "[A](worker://caw_1)"
         #expect(CloudAgentWorkLink.elidingBackedTrailingParagraph(alone, backedWorkIDs: ["caw_1"]) == "")
     }
 
     @Test func keepsForgedUnknownOrPartlyBackedLinks() {
-        let forged = "On it.\n\n[Fix tests](cloud-agent://caw_forged)"
+        let forged = "On it.\n\n[Fix tests](worker://caw_forged)"
         #expect(CloudAgentWorkLink.elidingBackedTrailingParagraph(forged, backedWorkIDs: ["caw_1"]) == forged)
-        let mixed = "On it.\n\n[A](cloud-agent://caw_1) [B](cloud-agent://caw_2)"
+        let mixed = "On it.\n\n[A](worker://caw_1) [B](worker://caw_2)"
         #expect(CloudAgentWorkLink.elidingBackedTrailingParagraph(mixed, backedWorkIDs: ["caw_1"]) == mixed)
         #expect(CloudAgentWorkLink.elidingBackedTrailingParagraph(forged, backedWorkIDs: []) == forged)
     }
 
     @Test func keepsAParagraphWithAnythingButLinks() {
-        let prose = "On it.\n\nSee [Fix tests](cloud-agent://caw_1) for status"
+        let prose = "On it.\n\nSee [Fix tests](worker://caw_1) for status"
         #expect(CloudAgentWorkLink.elidingBackedTrailingParagraph(prose, backedWorkIDs: ["caw_1"]) == prose)
-        let otherLink = "On it.\n\n[Fix tests](cloud-agent://caw_1) [#ops](chat://cht_ops)"
+        let otherLink = "On it.\n\n[Fix tests](worker://caw_1) [#ops](chat://cht_ops)"
         #expect(CloudAgentWorkLink.elidingBackedTrailingParagraph(otherLink, backedWorkIDs: ["caw_1"]) == otherLink)
-        let notLast = "[Fix tests](cloud-agent://caw_1)\n\nThen more words."
+        let notLast = "[Fix tests](worker://caw_1)\n\nThen more words."
         #expect(CloudAgentWorkLink.elidingBackedTrailingParagraph(notLast, backedWorkIDs: ["caw_1"]) == notLast)
     }
 
     @Test func aParagraphIsSplitByABlankLineNotASingleBreak() {
-        let sameParagraph = "On it.\n[Fix tests](cloud-agent://caw_1)"
+        let sameParagraph = "On it.\n[Fix tests](worker://caw_1)"
         #expect(CloudAgentWorkLink.elidingBackedTrailingParagraph(sameParagraph, backedWorkIDs: ["caw_1"]) == sameParagraph)
-        let spacedBlank = "On it.\n  \n[Fix tests](cloud-agent://caw_1)"
+        let spacedBlank = "On it.\n  \n[Fix tests](worker://caw_1)"
         #expect(CloudAgentWorkLink.elidingBackedTrailingParagraph(spacedBlank, backedWorkIDs: ["caw_1"]) == "On it.")
     }
 }
@@ -95,7 +95,7 @@ struct CloudAgentWorkLinkTests {
 struct ChatMessageCloudAgentWorkTests {
     @Test func decodesTheAnnotationInLinkOrder() throws {
         let message = try CloudAgentWorkFixture.message(
-            content: "On it.\n\n[First](cloud-agent://caw_1)",
+            content: "On it.\n\n[First](worker://caw_1)",
             annotation: [CloudAgentWorkFixture.work("caw_2"), CloudAgentWorkFixture.work("caw_1")]
         )
         #expect(message.cloudAgentWork.map(\.id) == ["caw_2", "caw_1"])
@@ -103,9 +103,9 @@ struct ChatMessageCloudAgentWorkTests {
     }
 
     @Test func aServerWithoutLinksDecodesAnEmptyAnnotation() throws {
-        let message = try CloudAgentWorkFixture.message(content: "[Forged](cloud-agent://caw_1)", annotation: nil)
+        let message = try CloudAgentWorkFixture.message(content: "[Forged](worker://caw_1)", annotation: nil)
         #expect(message.cloudAgentWork.isEmpty)
-        #expect(message.displayContent == "[Forged](cloud-agent://caw_1)")
+        #expect(message.displayContent == "[Forged](worker://caw_1)")
     }
 
     @Test func aRetiredWorkBodyIsUnsupportedAndDrawsNoCard() throws {
@@ -207,7 +207,7 @@ enum CloudAgentWorkFixture {
             "serverId": "server_1",
         ]
         if let annotation {
-            object["cloudAgentWork"] = try annotation.map { try jsonObject($0) }
+            object["workers"] = try annotation.map { try jsonObject($0) }
         }
         if let legacyBody {
             object["body"] = ["kind": "cloud-agent-work", "work": try jsonObject(legacyBody)]
@@ -225,8 +225,8 @@ enum CloudAgentWorkFixture {
         {"activity":null,"agentId":"agent_forge","cancelRequestedAt":null,"chatId":"cht_joy",
          "createdAt":"2026-10-11T09:00:00.000Z","id":"\(id)","messageId":"m_launch",
          "job":{"followUp":null,"startedAt":null,"state":"working"},
-         "provider":"cursor","providerUrl":null,"repository":"zknicker/haus",
-         "runs":[],"startedAt":null,"startingRef":"main","status":"queued",
+         "place":"cursor","providerUrl":null,"repository":"zknicker/haus",
+         "turns":[],"startedAt":null,"startingRef":"main","status":"queued",
          "terminalAt":null,"title":"Work \(id)","updatedAt":"2026-10-11T09:00:00.000Z"}
         """
     }

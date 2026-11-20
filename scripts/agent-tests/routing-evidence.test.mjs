@@ -8,7 +8,7 @@ test('captures every tracked chat and its Tasks, paginated, and every resumed jo
         turns: {
             deliveryState: async () => ({ running: false }),
             listTurns: async () => [{ runId: 'completion' }, { runId: 'launch' }],
-            listDeliveries: async () => [{ source: 'cloud_agent_work', chatId: 'parent' }],
+            listDeliveries: async () => [{ source: 'worker_report', chatId: 'parent' }],
         },
         trpc: async (procedure, input) => {
             if (procedure === 'agent.executionJournal') {

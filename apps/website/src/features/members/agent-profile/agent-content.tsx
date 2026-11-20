@@ -20,7 +20,7 @@ export { AgentActivity } from './agent-activity.tsx';
 
 /**
  * An Agent's automatic wakes in one section: Reminders answer "at this
- * time", Triggers answer "when this outside thing happens", and Cloud Agents
+ * time", Triggers answer "when this outside thing happens", and Workers
  * expose automatic result handoffs. One section, because a
  * reader asking "what wakes this Agent on its own?" is asking one question.
  *

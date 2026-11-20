@@ -34,6 +34,7 @@ import { createCloudflareAdmissions } from './identity/cloudflare-access.ts';
 import { ensureDevelopmentAuthUser } from './identity/development-auth.ts';
 import { createHausSessions } from './identity/haus-sessions.ts';
 import { SessionConnections } from './identity/session-connections.ts';
+import { ModelConnectionRelay } from './model-connections/model-connection-relay.ts';
 import { isAllowedAppOrigin } from './origin.ts';
 import { connectHausDatabase } from './postgres/connection.ts';
 import { startServerRecurringWork } from './recurring-work.ts';
@@ -94,6 +95,7 @@ export async function createHausServerApplication(
             : null;
         const computerConnections = new ComputerConnections(runtime);
         const runnerLink = new RunnerLink();
+        const modelConnections = new ModelConnectionRelay(connectedHaus.db, runnerLink, options);
         const invocations = await openInvocationRouter({
             clock: options.invocationClock,
             computers: computerConnections,
@@ -159,7 +161,9 @@ export async function createHausServerApplication(
             mcpIconResolver,
             mcpOAuthRelay,
             mcpRuntime: startedMcpRuntime,
+            modelConnections,
             postCommitWork: startedPostCommitWork,
+            runnerLink,
             runtime,
             triggerRateLimiter,
         } satisfies HausContextDependencies;
@@ -208,7 +212,7 @@ export async function createHausServerApplication(
             createContext,
             isAllowedOrigin,
         });
-        const startedComputerSocket = startComputerAttachmentSocket(
+        handles.computerSocket = startComputerAttachmentSocket(
             startedApp.server,
             connectedHaus.db,
             computerConnections,
@@ -218,12 +222,9 @@ export async function createHausServerApplication(
             invocations,
             options.computerSocketLiveness
         );
-        handles.computerSocket = startedComputerSocket;
-        handles.runnerSocket = startRunnerSocket(startedApp.server, runnerLink, options, {
-            db: connectedHaus.db,
-            delivery: agentDelivery,
+        handles.runnerSocket = startRunnerSocket(startedApp.server, options, {
+            ...contextDependencies,
             invocations,
-            postCommitWork: startedPostCommitWork,
         });
         const reminderClock = options.reminderClock ?? { now: () => new Date() };
         await startServerSweeps(runtime, scope, shutdown, {

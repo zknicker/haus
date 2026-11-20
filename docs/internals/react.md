@@ -118,7 +118,7 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   first commit (`readLoadedAgentProfileContent`); the lazy boundary is only a cold fallback,
   decided once per mount so it never remounts.
   Channel and existing DM rows also warm Chat detail, paginated history,
-  engagements, and Cloud Agent work on hover, keyboard focus, or press; once
+  engagements, and linked Workers on hover, keyboard focus, or press; once
   the shell is idle it warms the first paint of unread and recently active
   Chats, two at a time and only when uncached (`use-idle-chat-warming.ts`).
   `AgentProfileLink` warms the Agent profile's reads the same way
@@ -577,7 +577,7 @@ holds whole-App renders per interaction to the ratchet in
   that rows read through `useEntityTranscriptEntry` / `useChatMessage`. The
   root builds a row skeleton from layout facts
   (`features/servers/chat/chat-message-projection.ts`), so a reaction, task,
-  Cloud Agent work, or Task preview change re-renders only the row whose
+  Worker, or Task preview change re-renders only the row whose
   entity changed. Hidden kept views read entities with `subscribed: false`.
   `lib/targeted-read-coalescer.ts` owns tail reads, entity invalidation, and
   transcript recovery; nothing else patches lists or entities.

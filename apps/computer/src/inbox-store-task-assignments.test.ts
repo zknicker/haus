@@ -45,7 +45,7 @@ test('a notice of assignments alone is delivered with its receipt', async () => 
             delivered.push(text);
         },
         receipt,
-        tasks
+        { taskAssignments: tasks }
     );
     expect(notice).toContain('2 tasks assigned to you');
     expect(delivered).toEqual([notice ?? '']);
@@ -54,7 +54,9 @@ test('a notice of assignments alone is delivered with its receipt', async () => 
 });
 
 test('the count survives a Chat row leaving the mirror', async () => {
-    await replacePendingInbox(location(), [message], 1, undefined, undefined, tasks);
+    await replacePendingInbox(location(), [message], 1, undefined, undefined, {
+        taskAssignments: tasks,
+    });
     await consumeVisibleMessages(location(), [
         { chatId: message.chatId, id: message.id, sequence: 1 },
     ]);
@@ -65,7 +67,7 @@ test('the count survives a Chat row leaving the mirror', async () => {
 });
 
 test('a run carrying the assignments clears the count and its stored notice', async () => {
-    await replacePendingInbox(location(), [], 0, undefined, receipt, tasks);
+    await replacePendingInbox(location(), [], 0, undefined, receipt, { taskAssignments: tasks });
     await acceptRunInbox(location(), 'run_other', []);
     expect((await readPendingInboxState(location())).taskAssignments).toEqual(tasks);
 
@@ -75,7 +77,9 @@ test('a run carrying the assignments clears the count and its stored notice', as
 });
 
 test('a later snapshot without assignments drops the count', async () => {
-    await replacePendingInbox(location(), [message], 1, undefined, undefined, tasks);
+    await replacePendingInbox(location(), [message], 1, undefined, undefined, {
+        taskAssignments: tasks,
+    });
     await replacePendingInbox(location(), [message], 1);
     expect((await readPendingInboxState(location())).taskAssignments).toBeUndefined();
 });

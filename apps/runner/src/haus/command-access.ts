@@ -39,13 +39,6 @@ const commandTable: Readonly<Record<string, Readonly<Record<string, CommandAcces
         unassign: serverOnly,
         update: serverOnly,
     },
-    'cloud-agent': {
-        cancel: serverOnly,
-        inspect: serverOnly,
-        send: serverOnly,
-        start: serverOnly,
-        stop: serverOnly,
-    },
     connection: { grant: serverOnly, list: serverOnly, revoke: serverOnly },
     drive: {
         share: serverOnly,
@@ -105,6 +98,7 @@ const commandTable: Readonly<Record<string, Readonly<Record<string, CommandAcces
         show: serverOnly,
         update: serverOnly,
     },
+    worker: { inspect: serverOnly, send: serverOnly, start: serverOnly, stop: serverOnly },
 };
 
 const topLevelHelp = new Set(['--help', '--version', '-h', '-v', 'help']);

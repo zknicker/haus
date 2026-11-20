@@ -1,50 +1,55 @@
-import type { AuthContext, CredentialStore, Models } from '@earendil-works/pi-ai';
+import type { AuthContext, Models, Provider } from '@earendil-works/pi-ai';
 import { createModels } from '@earendil-works/pi-ai/models';
 import { googleProvider } from '@earendil-works/pi-ai/providers/google';
 import { openaiCodexProvider } from '@earendil-works/pi-ai/providers/openai-codex';
 import { openrouterProvider } from '@earendil-works/pi-ai/providers/openrouter';
 import { xaiProvider } from '@earendil-works/pi-ai/providers/xai';
+import type { ModelProvider } from '@haus/api';
+import type { ConnectionBook } from '../model-connections/connection-book.ts';
+import type { RunnerLink } from '../run-context.ts';
+import { connectionCredentialStore } from './pi-connection-credentials.ts';
 
-export interface PiApiKeys {
-    readonly geminiApiKey: string | null;
-    readonly openrouterApiKey: string | null;
-    readonly xaiApiKey: string | null;
+export interface PiConnectionModels {
+    readonly models: Models;
+    readonly providerId: string;
 }
 
-export function createPiModels(input: { apiKeys: PiApiKeys; credentials: CredentialStore }) {
-    const models = createModels({
-        authContext: piAuthContext(input.apiKeys),
-        credentials: input.credentials,
-    });
-    for (const provider of [
-        openaiCodexProvider(),
-        xaiProvider(),
-        googleProvider(),
-        openrouterProvider(),
-    ]) {
-        models.setProvider(provider);
+export function piProviderFor(provider: ModelProvider) {
+    switch (provider) {
+        case 'chatgpt':
+            return openaiCodexProvider();
+        case 'xai':
+            return xaiProvider();
+        case 'gemini':
+            return googleProvider();
+        case 'openrouter':
+            return openrouterProvider();
+        case 'claude':
+            throw new Error('Claude connections run on the Claude Agent SDK, not Pi.');
+        default:
+            return provider satisfies never;
     }
-    return models;
 }
 
-export function piAuthContext(apiKeys: PiApiKeys) {
-    const values: Readonly<Record<string, string | null>> = {
-        GEMINI_API_KEY: apiKeys.geminiApiKey,
-        OPENROUTER_API_KEY: apiKeys.openrouterApiKey,
-        XAI_API_KEY: apiKeys.xaiApiKey,
-    };
-    const context: AuthContext = {
-        env: (name) => Promise.resolve(values[name] ?? undefined),
-        fileExists: () => Promise.resolve(false),
-    };
-    return context;
+export function connectionModels(input: {
+    book: ConnectionBook;
+    connectionId: string;
+    link: RunnerLink;
+    provider: Provider;
+}) {
+    const models = createModels({
+        authContext: noAmbientAuth,
+        credentials: connectionCredentialStore({ ...input, providerId: input.provider.id }),
+    });
+    models.setProvider(input.provider);
+    const opened: PiConnectionModels = { models, providerId: input.provider.id };
+    return opened;
 }
 
-export function piModelRef(models: Models, modelId: string) {
-    const provider = models
-        .getProviders()
-        .find((candidate) => models.getModel(candidate.id, modelId) !== undefined);
-    return provider ? { modelId, provider: provider.id } : null;
+export function piModelRef(opened: PiConnectionModels, modelId: string) {
+    return opened.models.getModel(opened.providerId, modelId)
+        ? { modelId, provider: opened.providerId }
+        : null;
 }
 
 export function piToolFamily(modelId: string) {
@@ -54,10 +59,15 @@ export function piToolFamily(modelId: string) {
 export type PiToolFamily = ReturnType<typeof piToolFamily>;
 
 export class PiModelUnavailableError extends Error {
-    constructor(modelId: string) {
-        super(`No Pi provider on this runner serves the model ${modelId}.`);
+    constructor(modelId: string, providerId: string) {
+        super(`The Pi provider ${providerId} does not serve the model ${modelId}.`);
         this.name = 'PiModelUnavailableError';
     }
 }
+
+export const noAmbientAuth: AuthContext = {
+    env: () => Promise.resolve(undefined),
+    fileExists: () => Promise.resolve(false),
+};
 
 const gptModel = /(?:^|\/)gpt-/u;

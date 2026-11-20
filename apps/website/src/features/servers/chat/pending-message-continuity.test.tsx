@@ -80,7 +80,7 @@ const durableMessage: ChatMessage = {
     author: { kind: 'human', profile: undefined, userId: 'usr_zach' },
     body: { kind: 'text' },
     chatId: 'cht_1',
-    cloudAgentWork: [],
+    workers: [],
     imageGenerations: [],
     driveCitations: [],
     content: pending.content,

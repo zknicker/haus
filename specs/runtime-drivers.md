@@ -4,7 +4,7 @@ read_when:
   - changing where an Agent's loop runs, the runner, its container, its volume, or its credentials
   - changing the Claude Agent SDK or Pi Durable harness, harness pinning, or session reset
   - changing the invocation contract, the Computer result ledger, timeouts, cancellation, output limits, or offline answers
-  - changing the Agent's tools (bash, shell, the edit tools, execute) or how the haus CLI runs for an Agent
+  - changing the Agent's tools (bash, shell, the edit tools, execute, web_fetch, web search) or how the haus CLI runs for an Agent
   - changing how inbox items, notices, steering, or turn reports move between the Server and the runner
   - changing model logins, runner settings, or which models an Agent can use
   - changing the Computer or runner protocol frames for Agents, drive pulls, or pushes
@@ -146,9 +146,9 @@ about the session.
   returns it through `unconsumedSteers()`, so the executor redelivers it as it does for Claude.
 - A turn left running by a crash is aborted when its store reopens, not resumed into a turn no one
   observes. The interrupted-turn input reports it, as for Claude.
-- Providers come from Pi: `openai-codex` (ChatGPT plans), `xai`, `google` and `openrouter`. A
-  model goes to the first provider whose catalog lists its id. Credentials come only from runner
-  settings, never ambient environment or files.
+- Providers come from Pi: `openai-codex` (ChatGPT plans), `xai`, `google` and `openrouter`. The
+  run's model connection names the provider, and its credential comes from the Server, never from
+  ambient environment or files.
 
 ### Pinning and reset
 
@@ -171,7 +171,7 @@ execution journal upload (including journaling dispatches the ledger recovers as
 thoughts, idle compaction, rich-reference projection of message content, Cove guidance, the
 managed-skill change notice, Claude plan usage after a turn, Agent restart and reset frames to
 the runner, and
-`haus cloud-agent start`, which the Computer handled locally. R4 also sends `drive-pull` when a
+`haus worker start`, which the Computer's proxy handled. R4 also sends `drive-pull` when a
 runner run starts and `drive-push` when it settles (Drive folder below), because runner-hosted
 Agents depend on their `drive/` folder from the cutover on.
 
@@ -224,7 +224,8 @@ type TurnEvent =
   | { type: 'abort' };
 ```
 
-- `providerExecuted` marks `WebSearch` and `WebFetch`. Every other tool is a Haus tool.
+- `providerExecuted` marks `WebSearch`, `WebFetch`, and a Pi provider's hosted web search. Every
+  other tool is a Haus tool.
 - A `tool-result` for a machine tool carries its invocation outcome, so activity and the journal
   show `offline` and `unknown` as themselves, not as generic errors.
 - The `subagent-*` events, `tool-read-location`, and `sourceToolCallId` are deleted with the
@@ -275,8 +276,11 @@ compaction, and the setting has no effect on its Agents.
 | Model family | Machine tools | Runner tools |
 | --- | --- | --- |
 | Claude | `bash`, `str_replace_based_edit_tool` | `execute`, `WebSearch`, `WebFetch` |
-| GPT | `shell`, `apply_patch`, `view_image` | `execute` |
-| Every other Pi model | `bash`, `str_replace_based_edit_tool` | `execute` |
+| GPT | `shell`, `apply_patch`, `view_image` | `execute`, `web_fetch`, web search |
+| Every other Pi model | `bash`, `str_replace_based_edit_tool` | `execute`, `web_fetch`, web search |
+
+Web search on Pi is the provider's own search, hosted in the request or behind a `web_search`
+tool ([Web reach](#web-reach)).
 
 Each machine tool keeps the input shape its models are trained on:
 
@@ -311,7 +315,80 @@ process group, with the environment reminder scripts get: the Agent's `HOME`, a 
 secrets wrapper and the runtime search path, and `LANG`, `LC_ALL` and `TMPDIR` when set. `view`
 returns an image file as an image. The Computer sends images as they are, up to 5 MiB, and the
 runner resizes them for the model it serves, because the runner knows that model's limits and the
-Computer carries no image library. `create` overwrites an existing file.
+Computer carries no image library. `view` of a PDF, recognized by its `%PDF-` magic bytes rather
+than its extension, returns the file's bytes as `application/pdf`, up to 25 MiB, and the runner
+turns them into text and page images for every model. The Computer carries no PDF library
+either. `create` overwrites an existing file.
+
+**PDFs reach the model as text and page images**, as Claude Code's native Read showed Claude the
+pages themselves. The runner extracts each page's text with `unpdf` (2.1.0, pinned exactly; a
+maintained wrapper over Mozilla's PDF.js that runs in Bun) and puts `[Page <n> of <total>]`
+before each page. A page with no text reads `(No text on this page.)`. On a PDF, `view_range`
+selects pages, not lines: `[start, end]` counts pages from 1, and an end of `-1` runs to the last
+page. A view shows whole pages until the next would pass 2,000 lines or 50 KiB, then names the
+`view_range` that continues, in pages. A first page over that cap shows its first 50 KiB and says
+it was cut. The text carries no line numbers, because no PDF line is a `view_range` target.
+
+A view reads only the pages it shows: text is extracted page by page from the selection's first
+page until the cap stops it, never the whole document first, and each page's parsed content is
+released after use. The runner decodes the payload once and hands those bytes to PDF.js without
+copying them. Three limits bound the work, in `pdfLimits` and `maxImagePixels` under
+`apps/runner/src/tools/`:
+
+- **2,000 pages.** A longer PDF is refused before any page is read, with "PDF has <n> pages; the
+  limit is 2000."
+- **16,777,216 pixels per embedded image** (PDF.js `maxImageSize`, 2^24, a 4,096 px square).
+  PDF.js skips a larger image instead of decoding it, so a scan at 300 dpi on Letter or A4 still
+  renders and one hostile image cannot claim gigabytes.
+- **60 seconds.** Reading, extracting, and rendering run under the invocation's stop signal and
+  this timeout. A stop rejects at once, as other tools do. The timeout destroys the document and
+  answers "Reading this PDF took longer than 60 seconds, so view stopped."
+
+The Computer opens the file once without blocking, refuses anything but a regular file (a FIFO or
+a device says it is not a regular file before any read), and reads at most 25 MiB plus one byte
+from that handle, so a file that grows past the limit after its size check is still refused.
+
+The runner renders a page as an image when:
+
+- **It has no text layer.** Its extracted text is empty, as a scanned page's is.
+- **It carries figures.** Its pdf.js operator list paints images (image XObjects, inline images,
+  and image masks) whose transformed areas add up to at least 3% of the page, or paints at least
+  16 paths (`constructPath` with a fill or stroke). The 3% floor drops a header logo or an icon
+  and keeps a two-inch figure on a Letter page. The 16-path floor drops underlines and table
+  rules and keeps a chart's bars, ticks and gridlines. Only pages with text need the operator
+  list, and only pages whose text the view shows are inspected.
+- **The Agent asked for it.** Every page a `view_range` selects returns its text and its image.
+
+A view without `view_range` renders at most 5 pages, and one with `view_range` at most 10. A
+view whose figure or scanned pages pass the bound names them in a line and gives the
+`view_range` that shows one, and a range wider than 10 pages names the pages it showed without
+images and the `view_range` that shows them. Each image fits its longer side to 1,568 px, the
+size above which Claude downscales an image and within what GPT and Gemini models take. A page
+encodes as PNG, or as JPEG at quality 0.8 when it has no text or its images cover at least half
+of it, because a scan rendered as PNG runs to several MB. A page that fails to render keeps its
+text and a line naming the failure. The tool result holds the parts in page order, each rendered
+page's image after its text. Claude models get them as MCP `image` blocks, and Pi models get the
+same image parts `view_image` returns; pi-ai replaces an image with a placeholder for a model
+without image input.
+
+Rendering runs on the runner with `unpdf`'s `renderPageAsImage` over `@napi-rs/canvas` (1.1.0,
+pinned exactly): Skia compiled to a Node-API addon, with no browser and no system libraries. It
+ships prebuilt per platform as optional dependencies, and `bun.lock` records
+`@napi-rs/canvas-linux-x64-gnu` and `@napi-rs/canvas-linux-arm64-gnu`, so the Dockerfile's
+`bun install --frozen-lockfile --filter @haus/runner --production` on `oven/bun:*-debian` picks
+the binary for the image's architecture with no build step and no install script.
+
+A PDF may name one of the 14 standard fonts, such as Helvetica, without embedding it. The runner
+draws such text from the standard font data of `pdfjs-dist` (6.4.299, pinned exactly to the
+PDF.js version `unpdf` bundles), passed to PDF.js as `standardFontDataUrl` with system fonts off,
+so a page image looks the same on any host and the runner image needs no installed fonts. The
+same production install puts `pdfjs-dist`'s `standard_fonts` directory in the image.
+
+A live probe on 2026-11-19 (Claude Agent SDK 0.3.326, Haiku 4.5, `claude-pdf-live.test.ts`)
+returned an SDK MCP tool result holding an MCP `resource` block with an `application/pdf` blob.
+The SDK saved the blob to disk and sent the model only the text "Binary content
+(application/pdf, 895 bytes) saved to …", so the model could not read it. A document block
+through a tool result waits on the SDK carrying one, so Claude models get page images instead.
 
 ### `haus` runs on the runner
 
@@ -334,9 +411,11 @@ here-string. Otherwise:
 A `haus` flag that names a machine path reads or writes it through a `file-read` or `file-write`
 invocation: `attachment upload --path`, `attachment view --output`,
 `image generate --reference <path>`, `image wait --out`, `trigger preview --payload-file`, and
-`trigger create|rotate --output`. Only those commands need the machine. A webhook secret written
-by `--output` crosses the Server once, inside the invocation, and is never stored in an
-invocation record or the journal.
+`trigger create|rotate --output`. Only those commands need the machine. A write works at any
+size up to the 50 MiB attachment limit: bytes over 700 KiB go up first and the `file-write`
+carries a reference ([Large payloads](#large-payloads)). A webhook secret written by `--output`
+crosses the Server once, inside the invocation, and is never stored in an invocation record or
+the journal.
 
 A `haus` argument never resolves against the runner's disk, which holds every Agent's sessions.
 The runner's command table (`apps/runner/src/haus/command-access.ts`) classifies every Agent CLI
@@ -363,11 +442,108 @@ Headless Executor in a disposable QuickJS child, `tools.search`, `tools.describe
 `tools.call`, with today's limits. Its catalog holds the Agent's granted Server MCP tools and one
 built-in, `browser`, which relays agent-browser on the machine as a `browser` invocation.
 
+### Web reach
+
+Claude Agents keep the SDK's native `WebSearch` and `WebFetch`. Pi has no web tools of its own,
+so the runner gives every Pi Agent `web_fetch` and web search. Both run on the runner and reach
+the internet, never the machine. The tool descriptions and the not-configured answer are
+`runnerToolDescriptions` and `webSearchNotConfigured` in `@haus/agent-prompt`.
+
+| Tool | Input |
+| --- | --- |
+| `web_fetch` | `{ url: string }` |
+| `web_search` | `{ query: string, count?: number }`, 1 to 20 results, 10 by default |
+
+`web_fetch` takes no `prompt`, unlike Claude's `WebFetch`: the runner has no small model to
+answer one, so it returns the page itself. It fetches one `http` or `https` URL:
+
+- It follows at most 5 redirects. Before each hop the runner resolves the host once and refuses
+  the hop when any address is not public: private (RFC 1918, IPv6 unique local), loopback,
+  link-local, IPv6 site-local (`fec0::/10`), CGNAT (`100.64.0.0/10`), NAT64 (`64:ff9b::/96`,
+  `64:ff9b:1::/48`), IPv4-translated (`::ffff:0:0:0/96`), unspecified, multicast, benchmarking, or
+  reserved, with IPv4-mapped IPv6 checked as IPv4. The hop then connects to the first vetted
+  address through a `node:http` request whose `lookup` returns only that address, so DNS is never
+  asked again and a host that rebinds after the check cannot redirect the connection. The URL
+  keeps the hostname, so the Host header and TLS SNI name the original host. The container's
+  network deny stays the primary guard. This check is defense in depth, and it protects
+  development, where the runner is a local process.
+- It reads at most 5 MiB of body, and a fetch ends after 30 seconds, redirects included.
+- HTML becomes Markdown through `turndown` 7.2.4, with scripts, styles, `noscript`, `template`,
+  and SVG removed and links made absolute. Text, Markdown, JSON, and XML pass through as text.
+  Any other type is described by its type and size, with none of its bytes.
+- The model sees the first 2,000 lines or 50 KiB, whichever is smaller, with a line naming what
+  was cut.
+
+Web search always goes through the model's own connection. Haus holds no search key of its own.
+A provider either hosts the search inside the model's request, or Haus calls it from a
+`web_search` tool:
+
+| Provider | Shape | Login | Cost |
+| --- | --- | --- | --- |
+| ChatGPT plan (`openai-codex`) | Hosted: OpenAI's `web_search` tool on every generation request, as Codex's `web_search = "live"` sends it | The ChatGPT connection's sign-in | Draws on the plan's Codex usage; no per-call API charge |
+| xAI | Hosted: xAI's `web_search` server-side tool on the Responses request | The xAI connection's key | Each search call is billed to the key, $5 per 1,000 in xAI's pricing at 2026-11 |
+| Google | `web_search` tool: one `generateContent` request to the Agent's own model with only `googleSearch`, answered with the grounded text and its sources | The Gemini connection's key | Gemini 3 bills each search query after 5,000 free a month, then $14 per 1,000 |
+| OpenRouter | Hosted: OpenRouter's `openrouter:web_search` server tool on every Chat Completions or Messages request, with its default `auto` engine | The OpenRouter connection's key | Billed to the key. Anthropic, Google, OpenAI, Perplexity and xAI models search natively at their provider's price; every other model searches through Exa at $0.007 a request, at 2026-11 |
+
+Haus sends OpenRouter's server tool, not its older `web` plugin: with the server tool the model
+decides when and how often to search, and OpenRouter runs every search inside the request.
+
+Google takes the tool shape because Gemini combines `googleSearch` with function declarations
+only under `toolConfig.includeServerSideToolInvocations`, and then needs every `toolCall` and
+`toolResponse` part sent back with its thought signature. Pi 1.5.2's Gemini adapter drops those
+parts, so a hosted search would break the next request. A separate grounded request leaves the
+Agent's own transcript as ordinary function calls. Gemini names each grounded source by a
+`vertexaisearch.cloud.google.com/grounding-api-redirect/` link. The runner asks each one, with a
+`HEAD` request that does not follow the redirect, where it leads, and lists the page it names. A
+link that does not answer with a redirect within 5 seconds stays as Gemini sent it, since it still
+works. A grounding chunk whose link is not a URL is skipped, and the search keeps its other
+sources.
+
+pi-ai 1.5.2 has no option for hosted tools, so each Pi session gets a thin shim over its model
+collection. On `streamSimple`, which carries generation requests, the shim appends the hosted
+tool for the request's provider to the request body after Pi Durable's own hooks, and reads the
+provider's stream events. Compaction's `completeSimple` request is left alone. Pi keeps no
+search item in the stored transcript, and with `store: false` the model is not sent its old
+searches. Its answer text carries what it learned. Each search reaches the turn's events as a
+`providerExecuted` `webSearch` tool call and result, like Claude's, with its query and its
+sources. The shim reads a search from each wire API:
+
+- Responses (ChatGPT plan, xAI): each `web_search_call` item, with its query, the sources it
+  lists, and the page an `open_page` or `find_in_page` action names. The response's
+  `url_citation` annotations join the last search's sources.
+- Chat Completions (OpenRouter): no search item reaches the client, so one search stands for the
+  response, with no query. It appears when a chunk carries `url_citation` annotations or its usage
+  counts `server_tool_use_details.web_search_requests`, and the annotations are its sources.
+- Messages (OpenRouter's Anthropic models): each `server_tool_use` block named `web_search`, with
+  the query its input streams, the results of its `web_search_tool_result` block, and the
+  `web_search_result_location` citations of the answer text.
+
+Every source URL drops its fragment and its `utm_*`, `ref`, and similar tracking parameters, so
+one page cited twice is one source. An Agent with a hosted search has no `web_search` tool.
+
+Each search belongs to the request that ran it. A request that ends in an error or a stop drops
+its searches, and every turn starts and ends with an empty search log, so a retried attempt or a
+stopped turn never reports a search in a later answer or turn on the same warm session.
+
+The response parsing that came from [pi-web-search](https://github.com/ttttmr/pi-web-search)
+1.7.0 (MIT) is vendored, adapted to Haus types, in `apps/runner/src/pi/vendor/pi-web-search/`
+with its license and a `PROVENANCE.md` that maps each file to its upstream path and commit:
+the URL cleanup, Gemini's redirect resolution, the two `url_citation` shapes, and the Messages
+search blocks. Haus does not run pi-web-search as a Pi extension; its request side calls each
+provider from a tool of its own, where Haus hosts the search in the Agent's request.
+
+Search is a per-connection setting in Settings → Models, on by default: each ChatGPT, xAI,
+Gemini, and OpenRouter connection carries `webSearch` ([Model connections](model-connections.md)).
+`webSearchOn` in `apps/runner/src/pi/pi-web-search.ts` answers from the run's connection whether
+it searches. The setting's effect on the Agent's tools and requests is part of the Pi launch
+fingerprint, so turning it off or on restarts warm sessions. A Pi Agent without search keeps a
+`web_search` tool that answers that web search is not configured and points at `web_fetch`.
+
 ### Removed
 
 These end at R4 and are named here as intentional capability removals:
 
-- **Sub-agents.** `Task`/`Agent` is off. Parallel work goes to cloud agents until W2, then to
+- **Sub-agents.** `Task`/`Agent` is off. Parallel work goes to
   Workers ([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md)).
 - **Background shells.** A command runs within its invocation's timeout. Work longer than ten
   minutes goes to a Worker.
@@ -379,15 +555,13 @@ These end at R4 and are named here as intentional capability removals:
 
 ### Deferred
 
-- **Provider web search for GPT models.** pi-ai 1.5.2 exposes no provider-executed web search, so
-  GPT Agents have `execute` and no web search until Pi adds one.
 - **Images to the model from an attachment reference.** `view_image` and `view` on a large image
   return a reference the runner cannot read until R3b adds the runner read path. Resizing an image
   for its model comes with that read.
+- **PDFs for GPT models.** GPT Agents have `view_image`, not the editor's `view`, so a PDF reaches
+  them only through shell tools on the machine.
 - **Pi compaction between turns.** A Pi compaction that lands outside a Haus turn has no observer,
   so the memory and rules receipts do not reset for it.
-- **A cross-process lock on the login file.** Pi locks a token refresh inside the runner process
-  only.
 
 ## Dispatches
 
@@ -574,8 +748,12 @@ during a transfer settles as `cancelled` or `timed-out` and the Agent's next inv
   `agents/<agent-id>/runtime/invocations/<invocation-id>.log`, kept seven days, and the result
   names that path.
 - `view` returns the first 2,000 lines or 50 KiB of text, with a line naming the `view_range` to
-  read on. Images are capped at 5 MiB and sent unresized. `file-read` returns raw bytes up to its
-  `maxBytes`, because it feeds `haus` commands rather than the model.
+  read on. Images are capped at 5 MiB and sent unresized. PDFs are capped at 25 MiB, half the
+  50 MiB attachment limit and under the 32 MB a Claude request takes, which leaves room for a
+  document block if Claude models ever take one. The runner never sends the PDF itself to a
+  model; it applies the text cap to the extracted text and the page bound to the images.
+  `file-read` returns raw bytes up to its `maxBytes`, because it feeds `haus` commands rather
+  than the model.
 - Every frame stays under 1 MiB.
 
 ### Large payloads
@@ -585,14 +763,14 @@ move through the existing streamed attachment upload (`attachment-upload-stream.
 frame carries a reference: `{ kind: 'attachment', attachmentId, mediaType, sizeBytes, sha256 }`.
 
 - **Results, machine to runner.** A Computer whose result payload is over the limit (an image
-  from `view` or `view_image` up to 5 MiB, a `file-read` for
+  from `view` or `view_image` up to 5 MiB, a PDF from `view` up to 25 MiB, a `file-read` for
   `attachment upload --path` or `image generate --reference`) streams the bytes to the Server
   under the invocation id with its Computer credential, then sends `invoke-result` with the
   reference. The runner reads the bytes with the run credential when the model or the `haus`
   command needs them. An attachment upload uses the reference as the attachment, with no second
   upload.
-- **Payloads, runner to machine.** A `file-write` over the limit (`image wait --out`, or any
-  other write) uploads first, and `invoke` carries the
+- **Payloads, runner to machine.** A `file-write` over the limit (`attachment view --output`,
+  `image wait --out`, `trigger create|rotate --output`) uploads first, and `invoke` carries the
   reference. The Computer downloads it under the invocation id before it writes the file. A
   download that fails is the invocation's `failed` outcome, with nothing written.
 - The Computer uploads with `PUT /computer/invocations/:invocationId/payloads`, its Computer
@@ -610,10 +788,23 @@ frame carries a reference: `{ kind: 'attachment', attachmentId, mediaType, sizeB
   open until its payload is read, so the download runs under the same timeout plus grace, and a
   cancel or Stop aborts it. A download cut off that way keeps the outcome the Server recorded
   and tells the model the bytes could not be read.
-- The runner has no upload path yet. The Server mints the invocation id only when the request
-  arrives, so a payload cannot be bound to its invocation before `invoke` carries it. Until a
-  runner upload route exists, a `haus` write of a file over 700 KiB is refused, and nothing is
-  written.
+- The runner uploads with `PUT /api/agent/invocation-payloads?toolCallId=<id>&seq=<n>`, its run
+  credential as the bearer and the media type as `Content-Type`
+  (`uploadInvocationPayload` in `apps/runner/src/invocations/invocation-payload.ts`). The Server
+  still mints every invocation id when the request arrives, so the upload binds to the dispatch
+  key instead: the run and Agent come from the credential, and the tool call id and `seq` from
+  the query. The runner's ledger records the dispatch `accepted` before the upload, so an upload
+  is a dispatch's first effect and is never repeated. The Server answers the same
+  `{ attachmentId, mediaType, sha256, sizeBytes }`, and the runner refuses an answer whose digest
+  or size differs. A dispatch key holds one upload; a second answers 409. The upload runs under
+  the `file-write` timeout and the tool call's abort signal. An upload that fails or times out
+  settles the dispatch `failed`, and one the tool call's abort stopped settles it `cancelled`,
+  with no `invocation-request` sent and nothing written.
+- When the router mints the invocation for an `invocation-request` whose `file-write` carries a
+  reference, it binds the upload with the same dispatch key to that invocation before it sends
+  `invoke`. A reference that names no upload under that key (another run's, another Agent's, a
+  different tool call's) binds nothing, so the Computer's download answers 404 and the
+  invocation settles `failed` with nothing written.
 - The reference is bound to its invocation and Agent, and only that invocation's run reads it.
   A payload is not an attachment to anyone else: `GET /api/agent/attachments/:id` answers 404
   for it, even for a later run of the same Agent, and an Agent cannot attach it to a message,
@@ -637,8 +828,11 @@ Server, Agent, and dispatch key. Its states are `sent`, `accepted`, `finished` (
 `offline` included), and `unknown`; `unknown` is terminal there, and a late result fills its
 `late_*` columns only. It is evidence and routing, and the
 execution journal remains the record of what the model saw. `agent_invocation_payloads` binds
-each payload attachment to its invocation. Records keep the execution journal's 30-day window;
-the retention sweep deletes them with their payload attachments and bytes.
+each payload attachment to its invocation. A runner upload's row also carries its dispatch key
+(Agent, run, tool call id, `seq`) and starts with no invocation until the router binds it.
+Records keep the execution journal's 30-day window; the retention sweep deletes them with their
+payload attachments and bytes, and deletes an upload never bound to an invocation 30 days after
+it arrived.
 
 ## Inbox delivery
 
@@ -661,26 +855,16 @@ nothing then, and its next pull or push catches up from the folder's records.
 
 ## Logins
 
-Model logins live in runner settings. There are no sign-in screens in v1.
+Agents' model logins are model connections, configured in the App and held encrypted by the
+Server ([model-connections.md](model-connections.md)). The Server resolves each run's connection
+into `runner-start.modelConnectionId` and sends the runner every connection over its socket. The
+runner keeps them in memory, never in its environment or on disk. It runs ChatGPT and SuperGrok
+device-code sign-ins for the App, and sends refreshed tokens back for the Server to store. A login
+that fails mid-turn is a fatal `session-failure` with category `access`, and it marks the
+connection failed.
 
-| Login | Where | Set by |
-| --- | --- | --- |
-| Claude plan | `HAUS_RUNNER_CLAUDE_SETUP_TOKEN`, a `claude setup-token` value | `.env.schema`, from 1Password |
-| ChatGPT plan | Pi's Codex sign-in file at `/data/logins/openai-codex.json`, refreshed in place by Pi | `haus-runner login chatgpt`, a device-code sign-in run once in the container |
-| xAI, Google, OpenRouter | `HAUS_RUNNER_XAI_API_KEY`, `HAUS_RUNNER_GEMINI_API_KEY`, `HAUS_RUNNER_OPENROUTER_API_KEY` | `.env.schema`, from 1Password |
-
-The ChatGPT sign-in is a file, not an environment variable, because its refresh token rotates.
-Pi ships no file-backed credential store, so the runner keeps one at
-`/data/logins/<provider>.json` (mode 0600, atomic replace). Run the login as the runner's user
-(`docker exec --user haus-runner … haus-runner login chatgpt`), or the runner cannot read the file.
-Pi refreshes the token under a lock inside the runner process only, so do not run a login while
-the runner is refreshing.
-
-The runner reports which logins work in `runner-inventory` on connect, so a new login appears
-after the runner's next reconnect. The Agent
-model picker offers exactly those models. Computers no longer report runtimes or models for
-Agents. A login that fails mid-turn is a fatal `session-failure` with category `access`, as
-today.
+`runner-inventory` reports harnesses only. The Agent model picker moves from Computer inventory to
+the runner's model catalog in R4.
 
 ## Protocol frames
 
@@ -721,7 +905,7 @@ and only clear the Agent's directory on that machine. A session reset no longer 
 Computer.
 
 **Computer protocol, unchanged:** `browser-request` and `browser-result` for Browser settings,
-`reminder-script`, inventory, disk, update, secrets, heartbeat, and cloud-agent frames until W2.
+`reminder-script`, inventory, disk, update, secrets, heartbeat, and Worker frames.
 
 **Runner protocol.** The runner socket carries the Agent frames removed above, with the same
 schemas, except the sub-agent and background-work frames, which are deleted. It adds
@@ -761,6 +945,11 @@ settings, reminder scripts, host skill discovery, inventory, updates, and Worker
 | An invocation is sent once with its clamped timeout, its result is recorded, answered, and acknowledged, a repeated key sends nothing, a cancel reaches the Computer, and a reconnect resends unaccepted `invoke` frames and cancels a settled run's | `apps/server/test/agent-invocations-routing.test.ts` | R3 |
 | A payload is stored and read only under its invocation and Computer, its digest and size match, a run reads only its own invocations' payloads, and no general attachment route reads or attaches one | `apps/server/test/agent-invocation-payloads.test.ts`, `apps/runner/src/invocations/invocation-results.test.ts` | R3 |
 | A result or write over 1 MiB moves as an attachment reference, and no frame exceeds 1 MiB | `apps/computer/src/invocations/large-payload.test.ts` | R2 |
+| A runner upload binds to its dispatch key, a 2 MiB `haus` write reaches the machine through the Computer download with a matching digest, and another run, tool call, or Agent can neither bind nor read it | `apps/server/test/agent-invocation-uploads.test.ts`, `apps/runner/src/haus/haus-cli.test.ts` | R3c |
+| `view` of a PDF returns `application/pdf` bytes by its magic bytes, streams one over 5 MiB, refuses one over 25 MiB or grown past it after its stat, and refuses a FIFO without waiting | `apps/computer/src/invocations/editor-pdf.test.ts` | R3c |
+| The runner gives Pi and Claude models a PDF's paged text plus images of exactly its scanned and figure pages, `view_range` selects pages and returns each one's image, and the image bound names the pages it left out, a range reads only its pages, the page cap refuses, and the timeout and a stop settle a render promptly | `apps/runner/src/tools/pdf-view.test.ts`, `pdf-view-bounds.test.ts`, `pdf-limits.test.ts` | R3c |
+| A page image draws text set in a standard font the PDF does not embed from PDF.js's own font data, not the host's | `apps/runner/src/tools/pdf-view.test.ts` | R3c |
+| An SDK MCP tool result cannot carry a PDF to Claude, so Claude gets text and page images | `apps/runner/src/claude/claude-pdf-live.test.ts` (live) | R3c |
 | A lone `haus` command runs on the runner, and a composed one is refused with `HAUS_NOT_ALONE` | `apps/runner/src/haus/haus-command.test.ts` | R3 |
 | A `haus` path argument never reads the runner's disk: workspace commands are refused, path flags read the machine, and every CLI command is classified | `apps/runner/src/haus/haus-cli.test.ts`, `command-access.test.ts` | R3 |
 | A runner crash after recording a dispatch accepted reports `unknown` and never sends it again | `apps/runner/src/dispatch/dispatch-ledger-crash.test.ts` | R3 |
@@ -773,6 +962,10 @@ settings, reminder scripts, host skill discovery, inventory, updates, and Worker
 | The runner socket refuses a wrong token, a start reaches the runner with a working run credential while the Computer is offline, and settle, Stop, and reconnect behave as on Computers | `apps/server/test/runner-socket-auth.test.ts`, `runner-delivery.test.ts`, `agent-invocations-offline.test.ts` | R3 |
 | The runner cannot import Server or PostgreSQL modules, and Computer code makes no model calls | `scripts/lint/haus-rules/runner-boundary.cases.mjs`, `computer-no-model-calls.cases.mjs` | R3 |
 | The SDK runs with native tools off and only `mcp__haus__*` tools reachable | `apps/runner/src/claude/claude-tools-live.test.ts`, `claude-driver-live.test.ts` | R3 |
+| `web_fetch` turns HTML into Markdown, caps redirects, size, and time, refuses a non-public address at every hop, connects only to the address it vetted when the host rebinds, and describes a non-text body without its bytes | `apps/runner/src/web/web-fetch.test.ts`, `web-fetch-rebinding.test.ts`, `public-address.test.ts` | R3c |
+| Hosted search reaches the ChatGPT plan and xAI requests, Gemini's grounded request carries only `googleSearch` and survives a hung redirect or a malformed chunk, citations reach the turn events, a connection with search off sends no hosted tool and its Agent hears that search is not configured, and the switch changes the Pi launch fingerprint | `apps/runner/src/pi/pi-web-search.test.ts`, `pi-openrouter-search.test.ts`, `pi-driver.test.ts`, `pi-grounded-search.test.ts`, `vendor/pi-web-search/grounding-redirects.test.ts`, `apps/runner/src/web/web-search.test.ts` | R3c |
+| A stopped or failed request drops its hosted searches, and a stopped turn reports none in the next turn | `apps/runner/src/pi/pi-hosted-search-turns.test.ts` | R3c |
+| Each provider's native search answers a live turn | `apps/runner/src/pi/pi-web-search-live.test.ts` (`HAUS_RUN_LIVE_RUNNER_PI_SEARCH_TEST=1`) | R3c |
 | Ported Pi tools keep their upstream behavior | Ported upstream tests, listed in `pi/PROVENANCE.md` | R2 |
 | The ported Codex patch grammar keeps its upstream behavior | Ported upstream tests | R5 |
 

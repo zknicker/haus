@@ -8,7 +8,7 @@ import {
     SearchField,
 } from '@heroui/react';
 import * as React from 'react';
-import { cloudAgentProviderName } from '../../cloud-agents/cloud-agent-provider-presentation.ts';
+import { cloudAgentProviderName } from '../../workers/cloud-agent-provider-presentation.ts';
 import type { CloudAgentModelOption, CloudAgentModelView } from './cloud-agent-model.ts';
 
 /**

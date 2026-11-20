@@ -62,7 +62,7 @@ final class RealtimeEventsTests: XCTestCase {
 
     func testDecodesCloudAgentWorkUpdated() throws {
         let event = try decode(CloudAgentWorkUpdatedEvent.self, """
-        {"chatId":"chat_1","messageId":"m1","parentChatId":null,"serverId":"server_1","workId":"work_1"}
+        {"chatId":"chat_1","messageId":"m1","parentChatId":null,"serverId":"server_1","workerId":"work_1"}
         """)
         XCTAssertEqual(event, CloudAgentWorkUpdatedEvent(
             serverID: "server_1", chatID: "chat_1", messageID: "m1", workID: "work_1"
