@@ -58,7 +58,13 @@ test('drive-pull and drive-push frames sync the Agent folder under a run credent
     expect(server.text('agents/alpha/notes/heron.md')).toBe('copper heron');
 
     const credentialHash = createHash('sha256').update('computer-credential').digest('hex');
-    const mint = { agentId: 'agt_alpha', chatId: null, credentialHash, runId: 'run_1' };
+    const mint = {
+        agentId: 'agt_alpha',
+        chatId: null,
+        credentialHash,
+        purpose: 'drive-sync',
+        runId: 'run_1',
+    };
     expect(authority.minted).toEqual([mint, mint]);
     expect(authority.revoked).toEqual([
         { credentialHash, runnerId: 'arc_1' },

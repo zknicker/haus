@@ -40,6 +40,7 @@ export function driveSyncFrames(
                     mintRunCredential(attachment, {
                         agentId: command.agentId,
                         chatId: null,
+                        purpose: 'drive-sync',
                         runId: command.runId,
                     }),
                 revoke: (runnerId) => revokeRunCredential(attachment, runnerId),

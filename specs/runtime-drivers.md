@@ -904,7 +904,8 @@ reports the Agent's active run, before settling it starts the next run. Each goe
 Agent's Computer when it is online, and the Computer ignores frames from an older session
 generation than one it has seen. When the Computer reconnects during a runner run, the Server sends
 `drive-push` and then `drive-pull` for that run before it resends any invocation. The Computer mints its own
-run credential for the run, runs D4's pull or push under the Agent's folder lock, and revokes the
+`drive-sync` credential for the run, which reaches only the Drive sync routes and expires in 15
+minutes, runs D4's pull or push under the Agent's folder lock, and revokes the
 credential. Its invocations for that Agent run under the same folder lock, so a machine tool never sees a
 half-pulled folder and a sync never runs beside a tool; a cancelled invocation stops waiting.
 

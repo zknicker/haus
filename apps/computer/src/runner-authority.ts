@@ -28,7 +28,7 @@ export async function revokeRunner(options: RunAgentLaunchOptions, runnerId: str
 
 export async function mintRunCredential(
     attachment: ComputerAttachment,
-    run: { agentId: string; chatId: string | null; runId: string }
+    run: { agentId: string; chatId: string | null; purpose?: 'drive-sync'; runId: string }
 ) {
     return await postJson<{ runnerId: string; runnerToken: string }>(
         attachment.serverOrigin,
