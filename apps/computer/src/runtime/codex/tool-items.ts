@@ -179,10 +179,32 @@ function modelCommand(command: unknown): unknown {
 
 function fileChanges(item: CodexItem, context: ToolItemContext) {
     const changes = Array.isArray(item.changes) ? item.changes : [];
-    return changes.filter(isRecord).map((change) => ({
-        event: changeEvent(change.kind),
-        path: workspacePath(String(change.path ?? ''), context.workspaceDir),
-    }));
+    return changes.filter(isRecord).map((change) => {
+        const event = changeEvent(change.kind);
+        return {
+            ...diffCounts(event, typeof change.diff === 'string' ? change.diff : null),
+            event,
+            path: workspacePath(String(change.path ?? ''), context.workspaceDir),
+        };
+    });
+}
+
+/** Lines a change adds and removes: an add or delete carries the whole file, an update a diff. */
+function diffCounts(event: 'create' | 'delete' | 'modify', diff: string | null) {
+    if (diff === null) {
+        return {};
+    }
+    const lines = diff.split('\n');
+    if (event !== 'modify') {
+        const count = diff.endsWith('\n') ? lines.length - 1 : lines.length;
+        return event === 'create'
+            ? { additions: count, deletions: 0 }
+            : { additions: 0, deletions: count };
+    }
+    return {
+        additions: lines.filter((line) => line.startsWith('+') && !line.startsWith('+++')).length,
+        deletions: lines.filter((line) => line.startsWith('-') && !line.startsWith('---')).length,
+    };
 }
 
 function changeEvent(kind: unknown): 'create' | 'delete' | 'modify' {

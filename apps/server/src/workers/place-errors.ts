@@ -74,6 +74,23 @@ export class WorkerRuntimeUnavailableError extends Error {
     }
 }
 
+export class WorkerModelUnavailableError extends Error {
+    constructor(input: {
+        models: readonly string[];
+        name: string;
+        requested: string | null;
+        runtime: string;
+    }) {
+        const listed = input.models.slice(0, 12).join(', ');
+        super(
+            input.models.length === 0
+                ? `${input.runtime} on ${input.name} reports no models it can run. Name one with --model, or ask a person to check its sign-in there.`
+                : `${input.runtime} on ${input.name} cannot run ${input.requested}. It can run: ${listed}.`
+        );
+        this.name = 'WorkerModelUnavailableError';
+    }
+}
+
 export class WorkerTurnSettledError extends Error {
     constructor() {
         super('This turn already settled, so it takes no more reports.');

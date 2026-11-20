@@ -7,6 +7,7 @@ import {
     workerRefSchema,
     workerRepositorySchema,
 } from './worker-shared.ts';
+import { workerStepsSchema } from './worker-steps.ts';
 import { workerTimestampSchema } from './worker-time.ts';
 
 /** Each send or resend of a start is a new attempt; only the current one may launch. */
@@ -63,6 +64,20 @@ export const workerTurnActivityFrameSchema = z
     })
     .strict();
 export type WorkerTurnActivityFrame = z.infer<typeof workerTurnActivityFrameSchema>;
+
+/**
+ * Computer to Server: the turn's step summary so far (`worker-steps.ts`), sent whole and at most
+ * once every 5 seconds per turn, then once more before the turn ends.
+ */
+export const workerTurnStepsFrameSchema = z
+    .object({
+        attempt: workerTurnAttemptSchema,
+        steps: workerStepsSchema,
+        turnId: idSchema,
+        type: z.literal('worker-turn-steps'),
+    })
+    .strict();
+export type WorkerTurnStepsFrame = z.infer<typeof workerTurnStepsFrameSchema>;
 
 /**
  * How a Computer-place turn's process ended (W3 design R5):
