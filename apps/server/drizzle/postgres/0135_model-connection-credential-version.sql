@@ -1,0 +1,1 @@
+ALTER TABLE "model_connections" ADD COLUMN "credential_version" integer DEFAULT 1 NOT NULL;

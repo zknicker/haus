@@ -66,7 +66,7 @@ export async function attachRunner(
         await rm(dataDir, { force: true, recursive: true });
     });
     await link.ready;
-    return { book, dataDir, host };
+    return { book, dataDir, host, link: link.link };
 }
 
 export async function startedRun(routes: StandInRoutes = {}) {

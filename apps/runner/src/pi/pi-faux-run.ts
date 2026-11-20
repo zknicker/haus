@@ -44,6 +44,7 @@ export function fauxProviderAs(id: string, auth: ProviderAuth, modelIds: readonl
 
 export const fauxConnection: RunnerModelConnection = {
     credential: { key: 'faux-key-0001', kind: 'api-key' },
+    credentialVersion: 1,
     id: 'mc_faux',
     label: 'Faux',
     provider: 'xai',

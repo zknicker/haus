@@ -946,6 +946,13 @@
       "when": 1795137265765,
       "tag": "0134_model-connection-web-search",
       "breakpoints": true
+    },
+    {
+      "idx": 135,
+      "version": "7",
+      "when": 1795137874075,
+      "tag": "0135_model-connection-credential-version",
+      "breakpoints": true
     }
   ]
 }

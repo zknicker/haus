@@ -81,7 +81,9 @@ export function openServerLink(input: {
             case 'agent-execution-journal-ack':
                 return;
             case 'runner-model-connections':
-                return input.book.replace(frame.connections);
+                return void input.book.replace(frame.connections);
+            case 'runner-connection-credential-ack':
+                return void input.book.acknowledge(frame, link);
             case 'runner-sign-in-start':
                 return signIns.start(frame);
             case 'runner-sign-in-cancel':
@@ -162,6 +164,7 @@ export function openServerLink(input: {
                 for (const frame of queued.splice(0)) {
                     current.send(JSON.stringify(frame));
                 }
+                void input.book.resend(link);
                 markReady();
                 return;
             }

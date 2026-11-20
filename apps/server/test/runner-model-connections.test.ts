@@ -58,19 +58,21 @@ test('a runner attaching receives every connection opened, and a write sends a n
     expect(snapshot.connections).toEqual([
         {
             credential: { kind: 'setup-token', token: 'sk-ant-oat01-zach-token' },
+            credentialVersion: 1,
             id: zachPlanId,
             label: 'Zach plan',
             provider: 'claude',
             serverId: seed.serverId,
-            webSearch: true,
+            webSearch: false,
         },
         {
             credential: { kind: 'setup-token', token: 'sk-ant-oat01-team-token' },
+            credentialVersion: 1,
             id: teamPlanId,
             label: 'Team plan',
             provider: 'claude',
             serverId: seed.serverId,
-            webSearch: true,
+            webSearch: false,
         },
     ]);
 

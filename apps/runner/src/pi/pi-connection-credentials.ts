@@ -1,9 +1,5 @@
 import type { Credential, CredentialStore } from '@earendil-works/pi-ai';
-import {
-    modelOAuthCredentialSchema,
-    type RunnerConnectionCredentialFrame,
-    type RunnerModelConnection,
-} from '@haus/api';
+import { modelOAuthCredentialSchema, type RunnerModelConnection } from '@haus/api';
 import type { ConnectionBook } from '../model-connections/connection-book.ts';
 import type { RunnerLink } from '../run-context.ts';
 
@@ -36,16 +32,16 @@ export function connectionCredentialStore(input: {
                 if (current?.type !== 'oauth' || next.type !== 'oauth') {
                     throw new Error('Only an OAuth refresh may change a model connection.');
                 }
-                const { type: _type, ...rotated } = next;
-                const credential = modelOAuthCredentialSchema.parse(rotated);
-                input.book.refreshed(input.connectionId, credential);
-                const frame: RunnerConnectionCredentialFrame = {
-                    connectionId: input.connectionId,
-                    credential,
-                    previousRefresh: current.refresh,
-                    type: 'runner-connection-credential',
-                };
-                input.link.send(frame);
+                const { type: _from, ...from } = current;
+                const { type: _next, ...rotated } = next;
+                input.book.rotated(
+                    input.connectionId,
+                    {
+                        credential: modelOAuthCredentialSchema.parse(rotated),
+                        from: modelOAuthCredentialSchema.parse(from),
+                    },
+                    input.link
+                );
                 return next;
             }),
         read,

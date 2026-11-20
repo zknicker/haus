@@ -4,6 +4,7 @@ import { claudeLaunchFacts, claudeLaunchKey } from './claude-launch.ts';
 
 const plan: RunnerModelConnection = {
     credential: { kind: 'setup-token', token: 'sk-ant-oat01-first' },
+    credentialVersion: 1,
     id: 'mc_claude',
     label: 'Max plan',
     provider: 'claude',

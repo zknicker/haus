@@ -11,6 +11,7 @@ afterEach(drainCleanups);
 
 const claudePlan: RunnerModelConnection = {
     credential: { kind: 'setup-token', token: 'sk-ant-oat01-first' },
+    credentialVersion: 1,
     id: 'mc_claude',
     label: 'Max plan',
     provider: 'claude',
@@ -19,6 +20,7 @@ const claudePlan: RunnerModelConnection = {
 };
 const xaiKey: RunnerModelConnection = {
     credential: { key: 'xai-connection-key', kind: 'api-key' },
+    credentialVersion: 1,
     id: 'mc_xai',
     label: 'xAI key',
     provider: 'xai',
@@ -49,9 +51,9 @@ describe('model connection book', () => {
         expect(runner.book.get('mc_xai')).toBeUndefined();
     });
 
-    test('a run gets its connection only when the book holds it for the model’s provider', () => {
+    test('a run gets its connection only when the book holds it for the model’s provider', async () => {
         const book = createConnectionBook();
-        book.replace([claudePlan, xaiKey]);
+        await book.replace([claudePlan, xaiKey]);
 
         expect([
             connectionForRun(book, 'mc_claude', 'claude-opus-4-5'),

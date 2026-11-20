@@ -18,6 +18,7 @@ export const modelConnectionsTable = pgTable(
     {
         authKind: text('auth_kind').notNull().$type<ModelConnectionAuthKind>(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        credentialVersion: integer('credential_version').notNull().default(1),
         id: text('id').primaryKey(),
         label: text('label').notNull(),
         position: integer('position').notNull(),

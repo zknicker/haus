@@ -1,9 +1,10 @@
-import type {
-    ModelConnectionAddInput,
-    ModelConnectionCredential,
-    ModelConnectionRenameInput,
-    ModelConnectionTargetInput,
-    ModelProvider,
+import {
+    type ModelConnectionAddInput,
+    type ModelConnectionCredential,
+    type ModelConnectionRenameInput,
+    type ModelConnectionTargetInput,
+    type ModelProvider,
+    providerSearchesWeb,
 } from '@haus/api';
 import { and, asc, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -48,6 +49,7 @@ export async function addModelConnection(
                 provider: input.provider,
                 sealedCredential,
                 serverId: input.serverId,
+                webSearch: providerSearchesWeb(input.provider),
             });
         } catch (error) {
             throw violatesConstraint(error, labelConstraint)
@@ -162,6 +164,7 @@ export async function insertSignedInConnection(
             provider: input.provider,
             sealedCredential,
             serverId: input.serverId,
+            webSearch: providerSearchesWeb(input.provider),
         });
         return id;
     });

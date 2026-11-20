@@ -12,6 +12,7 @@ afterEach(drainCleanups);
 const farFuture = 4_102_444_800_000;
 const xaiKey: RunnerModelConnection = {
     credential: { key: 'xai-connection-key', kind: 'api-key' },
+    credentialVersion: 1,
     id: 'mc_xai',
     label: 'xAI key',
     provider: 'xai',
@@ -19,12 +20,13 @@ const xaiKey: RunnerModelConnection = {
     webSearch: true,
 };
 
-function chatgptPlan(access: string, refresh: string, expires: number) {
+function chatgptPlan(access: string, refresh: string, expires: number, credentialVersion = 1) {
     const connection: RunnerModelConnection = {
         credential: {
             credential: { access, accountId: 'acct_1', expires, refresh },
             kind: 'oauth',
         },
+        credentialVersion,
         id: 'mc_chatgpt',
         label: 'Plus',
         provider: 'chatgpt',
@@ -138,7 +140,7 @@ describe('model connections in turns', () => {
         expect(seen).toEqual(['xai-connection-key']);
     });
 
-    test('a Pi OAuth refresh goes up with the previous refresh token, and the Server’s later snapshot wins', async () => {
+    test('a Pi OAuth refresh goes up from the Server’s version, and a snapshot after the ack wins', async () => {
         const seen: (string | undefined)[] = [];
         const refreshedFrom: string[] = [];
         const oauth: OAuthAuth = {
@@ -169,7 +171,9 @@ describe('model connections in turns', () => {
             modelId: 'gpt-faux',
             runId: 'run_1',
         });
-        expect(await runner.server.frame('runner-connection-credential')).toEqual({
+        const rotation = await runner.server.frame('runner-connection-credential');
+        expect(rotation).toEqual({
+            baseVersion: 1,
             connectionId: 'mc_chatgpt',
             credential: {
                 access: 'access-2',
@@ -178,6 +182,7 @@ describe('model connections in turns', () => {
                 refresh: 'refresh-2',
             },
             previousRefresh: 'refresh-1',
+            rotationId: expect.stringMatching(/^[0-9a-f-]{36}$/u),
             type: 'runner-connection-credential',
         });
         expect(await runner.server.frame('turn')).toMatchObject({ runId: 'run_1' });
@@ -186,7 +191,14 @@ describe('model connections in turns', () => {
         );
 
         runner.server.send({
-            connections: [chatgptPlan('access-3', 'refresh-3', farFuture)],
+            connectionId: 'mc_chatgpt',
+            credentialVersion: 2,
+            result: 'stored',
+            rotationId: rotation?.type === 'runner-connection-credential' && rotation.rotationId,
+            type: 'runner-connection-credential-ack',
+        });
+        runner.server.send({
+            connections: [chatgptPlan('access-3', 'refresh-3', farFuture, 3)],
             type: 'runner-model-connections',
         });
         runner.server.start({

@@ -1,6 +1,7 @@
 import { modelConnectionsUpdatedTopic } from '../src/realtime/topics.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import type { HausServerHarness } from './haus-server-harness.ts';
+import { frameOfType, type RunnerClient, type RunnerFrame } from './runner.fixture.ts';
 
 export interface ConnectionServer {
     computerId: string;
@@ -81,6 +82,39 @@ export async function addClaudeConnection(seed: ConnectionServer, label: string,
         provider: 'claude',
         serverId: seed.serverId,
     });
+}
+
+export async function signInConnection(
+    seed: ConnectionServer,
+    runner: RunnerClient,
+    input: { credential: Record<string, unknown>; label: string; provider: 'chatgpt' | 'xai' }
+) {
+    const { signInId } = await seed.owner.trpc.modelConnections.startSignIn.mutate({
+        label: input.label,
+        provider: input.provider,
+        serverId: seed.serverId,
+    });
+    await runner.next(frameOfType('runner-sign-in-start', { signInId }));
+    const seen = runner.frames.length;
+    runner.send({
+        result: { credential: input.credential, status: 'connected' },
+        signInId,
+        type: 'runner-sign-in-finished',
+    });
+    await runner.next(snapshotAfter(runner, seen));
+    const signedIn = await seed.owner.trpc.modelConnections.signIn.query({
+        serverId: seed.serverId,
+        signInId,
+    });
+    if (signedIn.state !== 'connected') {
+        throw new Error(`Sign-in ${signInId} ended ${signedIn.state}.`);
+    }
+    return signedIn.connectionId;
+}
+
+export function snapshotAfter(runner: RunnerClient, seen: number) {
+    return (frame: RunnerFrame) =>
+        frame.type === 'runner-model-connections' && runner.frames.indexOf(frame) >= seen;
 }
 
 export async function connectionsAnnounced(serverId: string) {

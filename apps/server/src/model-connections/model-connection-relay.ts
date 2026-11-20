@@ -53,7 +53,7 @@ export class ModelConnectionRelay {
     }
 
     runnerLost() {
-        for (const { serverId } of this.signIns.failInFlight(
+        for (const { serverId } of this.signIns.failOnRunner(
             'The runner disconnected. Start the sign-in again.'
         )) {
             modelConnectionsUpdatedTopic.announce({ serverId });
@@ -98,13 +98,17 @@ export class ModelConnectionRelay {
     }
 
     async cancelSignIn(member: HausUser | null, input: ModelSignInTargetInput) {
-        const signIn = await this.readSignIn(member, input);
-        if (!this.signIns.end(signIn.signInId, { detail: 'Cancelled.', status: 'cancelled' })) {
-            return signIn;
+        await requireConnectionsOwner(this.db, member, input.serverId);
+        this.sweep();
+        const cancel = this.signIns.cancel(input.serverId, input.signInId);
+        if (!cancel) {
+            throw new ModelSignInNotFoundError();
         }
-        this.runner.send({ signInId: signIn.signInId, type: 'runner-sign-in-cancel' });
-        modelConnectionsUpdatedTopic.announce({ serverId: input.serverId });
-        return await this.readSignIn(member, input);
+        if (cancel.changed) {
+            this.runner.send({ signInId: input.signInId, type: 'runner-sign-in-cancel' });
+            modelConnectionsUpdatedTopic.announce({ serverId: input.serverId });
+        }
+        return cancel.result;
     }
 
     async ingest(frame: RunnerConnectionFrame) {
@@ -141,12 +145,27 @@ export class ModelConnectionRelay {
     }
 
     private async storeCredential(frame: RunnerConnectionCredentialFrame) {
+        const ack = { connectionId: frame.connectionId, rotationId: frame.rotationId };
+        let stored: Awaited<ReturnType<typeof storeRotatedCredential>>;
         try {
-            const result = await storeRotatedCredential(this.db, this.secretsKey, frame);
-            this.announce(result?.stored ? result.serverId : null);
+            stored = await storeRotatedCredential(this.db, this.secretsKey, frame);
         } catch (error) {
             console.error(`[haus] rotated credential for ${frame.connectionId} not stored`, error);
+            this.runner.send({
+                ...ack,
+                credentialVersion: frame.baseVersion,
+                result: 'failed',
+                type: 'runner-connection-credential-ack',
+            });
+            return;
         }
+        this.runner.send({
+            ...ack,
+            credentialVersion: stored.credentialVersion,
+            result: stored.result,
+            type: 'runner-connection-credential-ack',
+        });
+        this.announce(stored.result === 'stored' ? stored.serverId : null);
         await this.sendSnapshot();
     }
 
@@ -156,11 +175,12 @@ export class ModelConnectionRelay {
             this.announce(this.signIns.end(signInId, result));
             return;
         }
-        const signIn = this.signIns.inFlight(signInId);
-        if (!signIn) {
+        const storing = this.signIns.beginStoring(signInId);
+        if (!storing) {
             return;
         }
-        const { serverId, view } = signIn;
+        const { serverId, view } = storing;
+        modelConnectionsUpdatedTopic.announce({ serverId });
         try {
             const connectionId = await insertSignedInConnection(this.db, this.secretsKey, {
                 credential: { credential: result.credential, kind: 'oauth' },
@@ -168,16 +188,12 @@ export class ModelConnectionRelay {
                 provider: view.provider,
                 serverId,
             });
-            this.signIns.connect(signInId, connectionId);
+            this.signIns.settle(signInId, { connectionId });
             await this.connectionsChanged(serverId);
         } catch (error) {
             console.error(`[haus] sign-in ${signInId} could not be stored`, error);
-            this.announce(
-                this.signIns.end(signInId, {
-                    detail: 'The Server could not store this sign-in.',
-                    status: 'failed',
-                })
-            );
+            this.signIns.settle(signInId, { detail: 'The Server could not store this sign-in.' });
+            modelConnectionsUpdatedTopic.announce({ serverId });
         }
     }
 

@@ -48,7 +48,7 @@ describe('model connections', () => {
             provider: 'claude',
             status: 'ready',
             statusDetail: null,
-            webSearch: true,
+            webSearch: false,
         });
         const seen = await member.trpc.modelConnections.list.query({ serverId: seed.serverId });
         expect(seen.connections.map(({ label, provider }) => ({ label, provider }))).toEqual([

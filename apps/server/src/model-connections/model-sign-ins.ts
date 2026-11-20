@@ -1,5 +1,6 @@
 import type {
     ModelSignIn,
+    ModelSignInCancelResult,
     ModelSignInProvider,
     RunnerSignInCodeFrame,
     RunnerSignInFinishedFrame,
@@ -7,7 +8,7 @@ import type {
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 
 const signInLifetimeMs = 15 * 60 * 1000;
-const terminalStates = new Set<ModelSignIn['state']>(['cancelled', 'connected', 'failed']);
+const runnerStates = new Set<ModelSignIn['state']>(['waiting-for-code', 'code']);
 
 interface PendingSignIn {
     expiresAt: number;
@@ -42,13 +43,8 @@ export class ModelSignIns {
         return signIn?.serverId === serverId ? signIn.view : null;
     }
 
-    inFlight(signInId: string) {
-        const signIn = this.pending.get(signInId);
-        return signIn && !terminalStates.has(signIn.view.state) ? signIn : null;
-    }
-
     showCode(frame: RunnerSignInCodeFrame) {
-        const signIn = this.inFlight(frame.signInId);
+        const signIn = this.onRunner(frame.signInId);
         if (!signIn) {
             return null;
         }
@@ -61,15 +57,47 @@ export class ModelSignIns {
         return signIn.serverId;
     }
 
-    connect(signInId: string, connectionId: string) {
-        const signIn = this.pending.get(signInId);
-        if (signIn) {
-            signIn.view = { ...base(signIn.view), connectionId, state: 'connected' };
+    beginStoring(signInId: string) {
+        const signIn = this.onRunner(signInId);
+        if (!signIn || Date.now() >= signIn.expiresAt) {
+            return null;
         }
+        signIn.view = { ...base(signIn.view), state: 'storing' };
+        return { serverId: signIn.serverId, view: signIn.view };
+    }
+
+    settle(signInId: string, outcome: { connectionId: string } | { detail: string }) {
+        const signIn = this.pending.get(signInId);
+        if (signIn?.view.state !== 'storing') {
+            return;
+        }
+        signIn.view =
+            'connectionId' in outcome
+                ? { ...base(signIn.view), connectionId: outcome.connectionId, state: 'connected' }
+                : { ...base(signIn.view), detail: outcome.detail, state: 'failed' };
+    }
+
+    cancel(serverId: string, signInId: string) {
+        const signIn = this.pending.get(signInId);
+        if (signIn?.serverId !== serverId) {
+            return null;
+        }
+        const { state } = signIn.view;
+        if (runnerStates.has(state)) {
+            signIn.view = { ...base(signIn.view), state: 'cancelled' };
+        }
+        const result: ModelSignInCancelResult =
+            signIn.view.state === 'cancelled'
+                ? { cancelled: true, signIn: signIn.view }
+                : {
+                      cancelled: false,
+                      reason: signIn.view.state === 'storing' ? 'completing' : 'finished',
+                  };
+        return { changed: runnerStates.has(state), result };
     }
 
     end(signInId: string, result: FailedResult) {
-        const signIn = this.inFlight(signInId);
+        const signIn = this.onRunner(signInId);
         if (!signIn) {
             return null;
         }
@@ -80,7 +108,7 @@ export class ModelSignIns {
         return signIn.serverId;
     }
 
-    failInFlight(detail: string) {
+    failOnRunner(detail: string) {
         return [...this.pending.keys()].flatMap((signInId) => {
             const serverId = this.end(signInId, { detail, status: 'failed' });
             return serverId ? [{ serverId, signInId }] : [];
@@ -91,14 +119,22 @@ export class ModelSignIns {
         const now = Date.now();
         const expired: { serverId: string; signInId: string }[] = [];
         for (const [signInId, signIn] of this.pending) {
+            if (signIn.view.state === 'storing') {
+                continue;
+            }
             if (now >= signIn.expiresAt + signInLifetimeMs) {
                 this.pending.delete(signInId);
-            } else if (now >= signIn.expiresAt && this.inFlight(signInId)) {
+            } else if (now >= signIn.expiresAt && this.onRunner(signInId)) {
                 this.end(signInId, { detail: 'The sign-in expired.', status: 'failed' });
                 expired.push({ serverId: signIn.serverId, signInId });
             }
         }
         return expired;
+    }
+
+    private onRunner(signInId: string) {
+        const signIn = this.pending.get(signInId);
+        return signIn && runnerStates.has(signIn.view.state) ? signIn : null;
     }
 }
 

@@ -1,8 +1,4 @@
-import {
-    type ModelConnectionSetWebSearchInput,
-    type ModelProvider,
-    modelProvidersWithWebSearch,
-} from '@haus/api';
+import { type ModelConnectionSetWebSearchInput, providerSearchesWeb } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { modelConnectionsTable } from '../postgres/schema.ts';
@@ -20,7 +16,7 @@ export async function setModelConnectionWebSearch(
         await lockServerRow(tx, input.serverId);
         await requireConnectionsOwner(tx, member, input.serverId);
         const connection = await readModelConnection(tx, input.serverId, input.connectionId);
-        if (input.enabled && !searchableProviders.includes(connection.provider)) {
+        if (input.enabled && !providerSearchesWeb(connection.provider)) {
             throw new WebSearchUnsupportedError();
         }
         await tx
@@ -35,5 +31,3 @@ export async function setModelConnectionWebSearch(
         return await readModelConnection(tx, input.serverId, input.connectionId);
     });
 }
-
-const searchableProviders: readonly ModelProvider[] = modelProvidersWithWebSearch;

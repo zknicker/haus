@@ -22,6 +22,7 @@ liveTest(
             agentId: 'agent-live',
             connection: {
                 credential: { kind: 'setup-token' as const, token: setupToken ?? '' },
+                credentialVersion: 1,
                 id: 'mc_live_claude',
                 label: 'Live Claude',
                 provider: 'claude' as const,

@@ -6,6 +6,7 @@ import { connectionModels, piModelRef, piProviderFor, piToolFamily } from './pi-
 
 const xaiKey: RunnerModelConnection = {
     credential: { key: 'xai-connection-key', kind: 'api-key' },
+    credentialVersion: 1,
     id: 'mc_xai',
     label: 'xAI key',
     provider: 'xai',
@@ -13,9 +14,12 @@ const xaiKey: RunnerModelConnection = {
     webSearch: true,
 };
 
-function opened(connections: readonly RunnerModelConnection[], connection: RunnerModelConnection) {
+async function opened(
+    connections: readonly RunnerModelConnection[],
+    connection: RunnerModelConnection
+) {
     const book = createConnectionBook();
-    book.replace(connections);
+    await book.replace(connections);
     return connectionModels({
         book,
         connectionId: connection.id,
@@ -43,7 +47,7 @@ describe('Pi model selection', () => {
         ]);
     });
 
-    test('the connection’s provider picks the Pi provider, and the model must be in its catalog', () => {
+    test('the connection’s provider picks the Pi provider, and the model must be in its catalog', async () => {
         const pairs = [
             ['chatgpt', 'gpt-5.6-sol'],
             ['xai', 'grok-4.7'],
@@ -53,8 +57,10 @@ describe('Pi model selection', () => {
         ] as const;
 
         expect(
-            pairs.map(([provider, modelId]) =>
-                piModelRef(opened([], { ...xaiKey, provider }), modelId)
+            await Promise.all(
+                pairs.map(async ([provider, modelId]) =>
+                    piModelRef(await opened([], { ...xaiKey, provider }), modelId)
+                )
             )
         ).toEqual([
             { modelId: 'gpt-5.6-sol', provider: 'openai-codex' },
@@ -78,8 +84,8 @@ describe('Pi model selection', () => {
         const ambient = process.env.XAI_API_KEY;
         process.env.XAI_API_KEY = 'ambient-key';
         try {
-            const missing = opened([], xaiKey);
-            const connected = opened([xaiKey], xaiKey);
+            const missing = await opened([], xaiKey);
+            const connected = await opened([xaiKey], xaiKey);
 
             expect(await missing.models.checkAuth('xai')).toBeUndefined();
             expect(await connected.models.getAuth('xai')).toMatchObject({
@@ -105,6 +111,7 @@ describe('Pi model selection', () => {
                 },
                 kind: 'oauth',
             },
+            credentialVersion: 1,
             id: 'mc_chatgpt',
             label: 'Plus',
             provider: 'chatgpt',
@@ -120,7 +127,7 @@ describe('Pi model selection', () => {
         }).models;
         expect(await models.checkAuth('openai-codex')).toBeUndefined();
 
-        book.replace([chatgpt]);
+        await book.replace([chatgpt]);
 
         expect(await models.checkAuth('openai-codex')).toEqual({ source: 'OAuth', type: 'oauth' });
         expect(await models.getAuth('openai-codex')).toMatchObject({

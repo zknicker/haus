@@ -89,7 +89,7 @@ const modelSignInBase = {
     signInId: idSchema,
 };
 
-/** A device-code sign-in the runner is running for the App: `waiting-for-code → code → connected | failed | cancelled`. */
+/** A device-code sign-in the runner is running for the App: `waiting-for-code → code → storing → connected | failed`, or `cancelled` before `storing`. */
 export const modelSignInSchema = z.discriminatedUnion('state', [
     z.object({ ...modelSignInBase, state: z.literal('waiting-for-code') }).strict(),
     z
@@ -100,6 +100,7 @@ export const modelSignInSchema = z.discriminatedUnion('state', [
             verificationUri: z.url(),
         })
         .strict(),
+    z.object({ ...modelSignInBase, state: z.literal('storing') }).strict(),
     z
         .object({ ...modelSignInBase, connectionId: idSchema, state: z.literal('connected') })
         .strict(),
@@ -109,6 +110,13 @@ export const modelSignInSchema = z.discriminatedUnion('state', [
     z.object({ ...modelSignInBase, state: z.literal('cancelled') }).strict(),
 ]);
 export type ModelSignIn = z.infer<typeof modelSignInSchema>;
+
+/** A `storing` sign-in cannot be cancelled (`completing`); the App waits for it to land. A `connected` or `failed` one is `finished`. */
+export const modelSignInCancelResultSchema = z.discriminatedUnion('cancelled', [
+    z.object({ cancelled: z.literal(true), signIn: modelSignInSchema }).strict(),
+    z.object({ cancelled: z.literal(false), reason: z.enum(['completing', 'finished']) }).strict(),
+]);
+export type ModelSignInCancelResult = z.infer<typeof modelSignInCancelResultSchema>;
 
 export const modelConnectionAssignAgentInputSchema = z
     .object({ agentId: idSchema, connectionId: idSchema.nullable(), serverId: idSchema })

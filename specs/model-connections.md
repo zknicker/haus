@@ -3,7 +3,7 @@ summary: Normative contract for model connections. A Server holds Agents' model 
 read_when:
   - changing Settings → Models connections, sign-in dialogs, or the Agent's connection picker
   - changing how the Server stores, encrypts, or resolves model logins
-  - changing the runner-model-connections, runner-sign-in, runner-connection-credential, or runner-connection-status frames
+  - changing the runner-model-connections, runner-sign-in, runner-connection-credential (and its ack), or runner-connection-status frames
   - changing HAUS_SECRETS_KEY or sealed secrets
   - changing plan capacity per connection
 ---
@@ -41,9 +41,9 @@ connection's provider.
   App, or any hint of one.
 - Without `HAUS_SECRETS_KEY` the Server refuses to store a connection and sends the runner none.
   It does not fail at boot.
-- Each connection has a web search switch, on by default. It turns on the provider's native search
-  for Agents on that connection, and it exists only for ChatGPT, xAI and Gemini connections, the
-  providers with native search. The runner receives it in the snapshot, and R3c turns it into the
+- Each connection has a web search switch. It turns on the provider's native search for Agents on
+  that connection. It can be on only for ChatGPT, xAI and Gemini, the providers with native
+  search, and starts on for those and off for the rest. The runner receives it in the snapshot, and R3c turns it into the
   provider's search tool.
 - An Agent stores an optional connection id. Removing that connection clears it, and the Agent
   falls back to its provider's default.
@@ -70,12 +70,24 @@ connection, or with one the runner doesn't hold, fails before any model call as 
   environment.
 - **Claude.** The run's setup-token goes into that launch's environment. A changed token changes
   the warm-process launch key.
-- **Pi.** Each connection gets its own provider credentials. OAuth credentials sit behind a
-  Server-backed `CredentialStore`. When Pi refreshes a token, the runner uses it at once and sends
-  `runner-connection-credential { connectionId, credential, previousRefresh }`. The Server locks
-  the row and stores the new credential only if its stored refresh token still equals
-  `previousRefresh`, then sends the snapshot again. Refresh tokens are single-use, so this keeps
-  two refreshes from overwriting each other, across runner restarts too.
+- **Pi.** Each connection gets its own provider credentials, behind a Server-backed
+  `CredentialStore`. Refresh tokens are single-use, so a rotated credential is the only good copy
+  until the Server stores it.
+  - Every stored credential has a `credentialVersion`, which the snapshot carries.
+  - When Pi refreshes a token, the runner uses it at once. It holds it as a pending rotation and
+    sends `runner-connection-credential { connectionId, credential, previousRefresh, baseVersion,
+    rotationId }`.
+  - The Server locks the row and stores the credential only if its stored refresh token still
+    equals `previousRefresh`. It answers `runner-connection-credential-ack` before any snapshot,
+    with `stored` (the new version), `superseded` (another rotation won) or `failed` (storage
+    threw; nothing changed).
+  - A resent rotation the Server already stored is acked `stored` again.
+  - The runner never lets a snapshot replace a pending rotation or a newer local version. It
+    clears a rotation only on `stored` or `superseded`, and resends it after `failed` (backing off
+    from 1 s to 60 s) and on every reconnect.
+  - A connection sends one rotation at a time.
+  - Every change to a connection in the runner's book, snapshots included, goes through that
+    connection's queue.
 - **Status.** The runner sends `runner-connection-status`: `failed` with the provider's message
   when a turn ends in an access failure, and `ready` once a turn reaches the model again. It sends
   only changes.
@@ -86,7 +98,10 @@ connection, or with one the runner doesn't hold, fails before any model call as 
      link and code. The App shows both.
   4. The runner sends `runner-sign-in-finished` with the credential, or why it failed.
   5. The Server seals the credential and stores it as a new connection.
-  - Cancelling sends `runner-sign-in-cancel`.
+  - Finishing and cancelling are one serialized transition. A finish moves the sign-in to
+    `storing` before the Server writes anything. A cancel before that moves it to `cancelled`,
+    sends `runner-sign-in-cancel`, and the finished credential is discarded. A cancel during
+    `storing` is refused ("completing"), and the App waits for the result.
   - With no runner attached, starting a sign-in answers at once that the runner is not connected.
   - A pending sign-in expires after 15 minutes.
 
@@ -95,7 +110,7 @@ connection, or with one the runner doesn't hold, fails before any model call as 
 - A Connections group sits at the top of the page, with one card per provider.
 - Each connection is a row: its label, Connected or the failure, and its plan capacity. The row
   menu has Rename, Make default, Reconnect and Remove.
-- ChatGPT, xAI and Gemini rows have a Web search switch, on by default. Only the Owner can change it.
+- ChatGPT, xAI and Gemini rows have a Web search switch, starting on. Only the Owner can change it.
 - Each provider card has a Connect action:
   - Claude: paste a setup-token.
   - ChatGPT and SuperGrok: a dialog shows the link and code, and closes when the connection lands.

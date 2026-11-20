@@ -12,6 +12,7 @@ import { openCredential, sealCredential } from './connection-credential.ts';
 export async function readRunnerConnections(db: HausDatabase, key: SecretsKey) {
     const rows = await db
         .select({
+            credentialVersion: modelConnectionsTable.credentialVersion,
             id: modelConnectionsTable.id,
             label: modelConnectionsTable.label,
             provider: modelConnectionsTable.provider,
@@ -46,6 +47,7 @@ export async function storeRotatedCredential(
     return await db.transaction(async (tx) => {
         const [row] = await tx
             .select({
+                credentialVersion: modelConnectionsTable.credentialVersion,
                 sealedCredential: modelConnectionsTable.sealedCredential,
                 serverId: modelConnectionsTable.serverId,
             })
@@ -53,16 +55,22 @@ export async function storeRotatedCredential(
             .where(eq(modelConnectionsTable.id, frame.connectionId))
             .for('update');
         if (!row) {
-            return null;
+            return rotation('superseded', frame.baseVersion, null);
         }
         const stored = openCredential(key, row.sealedCredential);
-        // WARNING: refresh tokens are single-use; storing a pair rotated from a stale refresh would strand the connection.
-        if (stored.kind !== 'oauth' || stored.credential.refresh !== frame.previousRefresh) {
-            return { serverId: row.serverId, stored: false };
+        const refresh = stored.kind === 'oauth' ? stored.credential.refresh : null;
+        if (refresh === frame.credential.refresh) {
+            return rotation('stored', row.credentialVersion, row.serverId);
         }
+        // WARNING: refresh tokens are single-use; storing a pair rotated from a stale refresh would strand the connection.
+        if (refresh !== frame.previousRefresh) {
+            return rotation('superseded', row.credentialVersion, row.serverId);
+        }
+        const credentialVersion = row.credentialVersion + 1;
         await tx
             .update(modelConnectionsTable)
             .set({
+                credentialVersion,
                 sealedCredential: sealCredential(key, {
                     credential: frame.credential,
                     kind: 'oauth',
@@ -70,7 +78,7 @@ export async function storeRotatedCredential(
                 updatedAt: new Date(),
             })
             .where(eq(modelConnectionsTable.id, frame.connectionId));
-        return { serverId: row.serverId, stored: true };
+        return rotation('stored', credentialVersion, row.serverId);
     });
 }
 
@@ -90,4 +98,12 @@ export async function recordConnectionStatus(db: HausDatabase, frame: RunnerConn
         )
         .returning({ serverId: modelConnectionsTable.serverId });
     return changed?.serverId ?? null;
+}
+
+function rotation(
+    result: 'stored' | 'superseded',
+    credentialVersion: number,
+    serverId: string | null
+) {
+    return { credentialVersion, result, serverId };
 }

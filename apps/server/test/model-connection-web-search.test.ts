@@ -7,6 +7,7 @@ import {
     type ConnectionServer,
     connectionsAnnounced,
     seedConnectionServer,
+    signInConnection,
 } from './model-connection.fixture.ts';
 import {
     connectRunner,
@@ -75,29 +76,41 @@ test('a member cannot change web search', async () => {
     expect(await webSearchById()).toEqual({ [geminiId]: true });
 });
 
-test('claude and openrouter connections can turn web search off but never on', async () => {
+test('new connections start with web search only where the provider has it', async () => {
     const claude = await addClaudeConnection(seed, 'Zach plan', 'sk-ant-oat01-search-token');
-    const openrouter = await seed.owner.trpc.modelConnections.add.mutate({
-        credential: { key: 'sk-or-v1-search-key', kind: 'api-key' },
-        label: 'OpenRouter key',
-        provider: 'openrouter',
-        serverId: seed.serverId,
+    const openrouter = await addKey('openrouter', 'OpenRouter key', 'sk-or-v1-search-key');
+    const xai = await addKey('xai', 'xAI key', 'xai-search-api-key');
+    const chatgpt = await signInConnection(seed, runner, {
+        credential: { access: 'access-1', expires: 1, refresh: 'refresh-1' },
+        label: 'ChatGPT plan',
+        provider: 'chatgpt',
     });
-    expect([claude.webSearch, openrouter.webSearch]).toEqual([true, true]);
+
+    expect(await webSearchById()).toEqual({
+        [chatgpt]: true,
+        [claude.id]: false,
+        [geminiId]: true,
+        [openrouter.id]: false,
+        [xai.id]: true,
+    });
 
     for (const connectionId of [claude.id, openrouter.id]) {
-        expect(await setWebSearch(connectionId, false)).toMatchObject({ webSearch: false });
         await expect(setWebSearch(connectionId, true)).rejects.toMatchObject({
             data: { code: 'BAD_REQUEST', modelConnection: { code: 'web-search-unsupported' } },
             message: 'Web search cannot be turned on for this provider.',
         });
+        expect(await setWebSearch(connectionId, false)).toMatchObject({ webSearch: false });
     }
-    expect(await webSearchById()).toEqual({
-        [claude.id]: false,
-        [geminiId]: true,
-        [openrouter.id]: false,
-    });
 });
+
+function addKey(provider: 'openrouter' | 'xai', label: string, key: string) {
+    return seed.owner.trpc.modelConnections.add.mutate({
+        credential: { key, kind: 'api-key' },
+        label,
+        provider,
+        serverId: seed.serverId,
+    });
+}
 
 function setWebSearch(connectionId: string, enabled: boolean) {
     return seed.owner.trpc.modelConnections.setWebSearch.mutate({

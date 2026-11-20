@@ -22,7 +22,6 @@ const firstCredential = {
 let harness: HausServerHarness;
 let seed: ConnectionServer;
 let runner: RunnerClient;
-let connectionId: string;
 
 beforeAll(async () => {
     harness = await startHausServerHarness({ agentLoop: 'runner', runnerToken: testRunnerToken });
@@ -79,10 +78,11 @@ test('a ChatGPT sign-in runs on the runner and lands as a connection', async () 
     const snapshot = await runner.next(snapshotAfter(seen));
     const signedIn = await readSignIn(signInId);
     expect(signedIn.state).toBe('connected');
-    connectionId = signedIn.state === 'connected' ? signedIn.connectionId : '';
+    const connectionId = signedIn.state === 'connected' ? signedIn.connectionId : '';
     expect(snapshot.connections).toEqual([
         {
             credential: { credential: firstCredential, kind: 'oauth' },
+            credentialVersion: 1,
             id: connectionId,
             label: 'ChatGPT plan',
             provider: 'chatgpt',
@@ -120,17 +120,6 @@ test('a second sign-in under a taken label is numbered', async () => {
     ]);
 });
 
-test('a rotated credential is stored only while its previous refresh matches', async () => {
-    const rotated = { access: 'access-2', accountId: 'acct_1', expires: 2, refresh: 'refresh-2' };
-    let seen = runner.frames.length;
-    runner.send(rotation(rotated, 'refresh-1'));
-    expect(credentialIn(await runner.next(snapshotAfter(seen)))).toEqual(rotated);
-
-    seen = runner.frames.length;
-    runner.send(rotation({ access: 'access-3', expires: 3, refresh: 'refresh-3' }, 'refresh-1'));
-    expect(credentialIn(await runner.next(snapshotAfter(seen)))).toEqual(rotated);
-});
-
 test('cancelling a sign-in stops it on the runner', async () => {
     const { signInId } = await startSignIn('Spare plan');
     await runner.next(frameOfType('runner-sign-in-start', { signInId }));
@@ -140,7 +129,7 @@ test('cancelling a sign-in stops it on the runner', async () => {
         signInId,
     });
 
-    expect(cancelled).toMatchObject({ signInId, state: 'cancelled' });
+    expect(cancelled).toMatchObject({ cancelled: true, signIn: { signInId, state: 'cancelled' } });
     expect(await runner.next(frameOfType('runner-sign-in-cancel', { signInId }))).toEqual({
         signInId,
         type: 'runner-sign-in-cancel',
@@ -167,19 +156,7 @@ function finished(signInId: string, credential: Record<string, unknown>) {
     };
 }
 
-function rotation(credential: Record<string, unknown>, previousRefresh: string) {
-    return { connectionId, credential, previousRefresh, type: 'runner-connection-credential' };
-}
-
 function snapshotAfter(seen: number) {
     return (frame: RunnerFrame) =>
         frame.type === 'runner-model-connections' && runner.frames.indexOf(frame) >= seen;
-}
-
-function credentialIn(frame: RunnerFrame) {
-    const connections = frame.connections as {
-        credential: { credential: unknown };
-        id: string;
-    }[];
-    return connections.find((connection) => connection.id === connectionId)?.credential.credential;
 }

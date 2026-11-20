@@ -23,6 +23,10 @@ export const modelProvidersWithWebSearch = [
     'gemini',
 ] as const satisfies readonly ModelProvider[];
 
+export function providerSearchesWeb(provider: ModelProvider) {
+    return (modelProvidersWithWebSearch as readonly ModelProvider[]).includes(provider);
+}
+
 export const modelSignInProviderSchema = z.enum(['chatgpt', 'xai']);
 export type ModelSignInProvider = z.infer<typeof modelSignInProviderSchema>;
 
@@ -63,6 +67,7 @@ export function credentialFitsProvider(
 export const runnerModelConnectionSchema = z
     .object({
         credential: modelConnectionCredentialSchema,
+        credentialVersion: z.number().int().positive(),
         id: idSchema,
         label: modelConnectionLabelSchema,
         provider: modelProviderSchema,
@@ -82,16 +87,40 @@ export const runnerModelConnectionsFrameSchema = z
     .strict();
 export type RunnerModelConnectionsFrame = z.infer<typeof runnerModelConnectionsFrameSchema>;
 
-/** Runner → Server: Pi rotated an OAuth credential; stored only if `previousRefresh` still matches. */
+/**
+ * Runner → Server: Pi rotated an OAuth credential from the Server's `baseVersion`. Stored only if
+ * `previousRefresh` still matches; the Server answers with `runner-connection-credential-ack`.
+ */
 export const runnerConnectionCredentialFrameSchema = z
     .object({
+        baseVersion: z.number().int().positive(),
         connectionId: idSchema,
         credential: modelOAuthCredentialSchema,
         previousRefresh: z.string().min(1).max(16_384),
+        rotationId: z.uuid(),
         type: z.literal('runner-connection-credential'),
     })
     .strict();
 export type RunnerConnectionCredentialFrame = z.infer<typeof runnerConnectionCredentialFrameSchema>;
+
+/**
+ * Server → runner, before any snapshot that reflects it. `stored`: the rotation is the Server's
+ * credential at `credentialVersion`. `superseded`: another change won, and `credentialVersion` is
+ * the Server's current one (`baseVersion` when the connection is gone). `failed`: nothing changed,
+ * `credentialVersion` echoes `baseVersion`, and the runner keeps the rotation and resends it.
+ */
+export const runnerConnectionCredentialAckFrameSchema = z
+    .object({
+        connectionId: idSchema,
+        credentialVersion: z.number().int().positive(),
+        result: z.enum(['stored', 'superseded', 'failed']),
+        rotationId: z.uuid(),
+        type: z.literal('runner-connection-credential-ack'),
+    })
+    .strict();
+export type RunnerConnectionCredentialAckFrame = z.infer<
+    typeof runnerConnectionCredentialAckFrameSchema
+>;
 
 /** Runner → Server: a connection worked, or a provider refused it. */
 export const runnerConnectionStatusFrameSchema = z
@@ -152,6 +181,7 @@ export type RunnerSignInFinishedFrame = z.infer<typeof runnerSignInFinishedFrame
 
 export const runnerModelConnectionDownFrameSchemas = [
     runnerModelConnectionsFrameSchema,
+    runnerConnectionCredentialAckFrameSchema,
     runnerSignInStartFrameSchema,
     runnerSignInCancelFrameSchema,
 ] as const;
