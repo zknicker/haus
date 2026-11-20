@@ -28,6 +28,7 @@ export class Session implements IdleCompactable {
     compactions = 0;
     finish: ((value: IdleCompactionResult) => void) | null = null;
     fail: ((error: Error) => void) | null = null;
+    holdsBackgroundWork = false;
     snapshot: IdleCompactionSnapshot | null;
 
     constructor(activityAt: number) {

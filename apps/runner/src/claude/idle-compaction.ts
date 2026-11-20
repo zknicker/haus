@@ -27,6 +27,7 @@ export interface IdleCompactionResult {
 
 export interface IdleCompactable {
     readonly alive: boolean;
+    readonly holdsBackgroundWork?: boolean;
     compact(): Promise<IdleCompactionResult>;
     idleCompactionSnapshot(): IdleCompactionSnapshot | null;
 }

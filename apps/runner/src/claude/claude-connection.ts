@@ -6,6 +6,7 @@ import {
     type SDKUserMessage,
 } from '@anthropic-ai/claude-agent-sdk';
 import { EventQueue } from '../turn/event-queue.ts';
+import { ClaudeBackgroundTasks } from './claude-background-tasks.ts';
 import { runClaudeCompaction } from './claude-compaction.ts';
 import { ClaudeSessionEndedError, claudeResumeRejection } from './claude-errors.ts';
 import { ClaudeIdleActivity } from './claude-idle-activity.ts';
@@ -30,6 +31,7 @@ const stderrTailLines = 20;
 
 export class ClaudeConnection implements IdleCompactable {
     readonly binding = new HausToolBinding();
+    private readonly tasks = new ClaudeBackgroundTasks();
     readonly idleActivity: ClaudeIdleActivity;
     readonly modelId: string;
     readonly normalizer: ClaudeNormalizer;
@@ -126,6 +128,10 @@ export class ClaudeConnection implements IdleCompactable {
         return receipt?.still_queued ?? [];
     }
 
+    get holdsBackgroundWork() {
+        return this.alive && this.tasks.running;
+    }
+
     close() {
         this.input.end();
         this.query.close();
@@ -168,12 +174,16 @@ export class ClaudeConnection implements IdleCompactable {
             failure = error;
         }
         this.endedWith = { error: new Error(this.stderrText(failure), { cause: failure }) };
+        this.tasks.clear();
         this.input.end();
         this.sink?.onEnded(this.endedWith.error);
     }
 
     private dispatch(parsed: ParsedClaudeMessage) {
         this.idleActivity.observe(parsed);
+        if (parsed.message.kind === 'system') {
+            this.tasks.apply(parsed.message.message);
+        }
         if (parsed.sessionId) {
             this.sessionId = parsed.sessionId;
         }

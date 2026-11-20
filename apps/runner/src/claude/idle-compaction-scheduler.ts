@@ -130,7 +130,7 @@ export class IdleCompactionScheduler<Process extends IdleCompactable> {
         const { hooks } = this.options;
         const verdict = idleCompactionVerdict({
             armed,
-            busy: hooks.busy(agentId),
+            busy: process.holdsBackgroundWork === true || hooks.busy(agentId),
             current: process.idleCompactionSnapshot(),
             dueAt,
             now: this.now(),

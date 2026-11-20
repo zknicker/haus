@@ -47,6 +47,7 @@ export function createTurnHost(input: {
     const harnesses = createHarnesses({
         agentBusy: (agentId) => host.busy(agentId),
         book: input.book,
+        ...(input.journal ? { journal: input.journal } : {}),
         link: input.link,
         log,
         maxWarm: input.config.maxWarm,
