@@ -476,8 +476,8 @@ names, then pending reminders. W4 builds it, following how a Capy parent shows i
   turn never reads Queued), the needs-you ask or the place, and the age. Rows carry no composer and
   no report text. Pull requests sit in their own counted section of two-line rows.
 - **The Worker page** (`/s/<slug>/workers/<workerId>`) opens beside the Task and reads like a
-  thread: the brief as the first message, then each turn's follow-ups with their authors, the
-  report in full with its ask, its person, and the cited files at their cited revisions, and a
+  thread built from the chat transcript's own rows: the brief as a Message from its Agent, then each
+  turn's follow-ups from their authors, the report as a Message from the Worker in full with its ask, its person, and the cited files at their cited revisions, and a
   centered line as the turn ends ("Needs you, worked for 17m", or the failure reason for an outcome
   nobody wrote). A live turn shows the one status line. Its pull request sits in an Overview pane.
 - **The composer** sits at the bottom of the Worker page only, enabled while the Task has a chat,

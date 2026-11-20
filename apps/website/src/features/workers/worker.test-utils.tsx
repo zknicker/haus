@@ -5,6 +5,7 @@ import { observable } from '@trpc/server/observable';
 import type * as React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom';
+import { DevModeProvider } from '../../components/dev-mode-provider.tsx';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { testAgent } from '../members/agent-fixtures.ts';
 
@@ -61,13 +62,15 @@ export function renderWorkerSurface(
     return renderToStaticMarkup(
         <QueryClientProvider client={queryClient}>
             <hausTrpc.Provider client={client} queryClient={queryClient}>
-                <MemoryRouter initialEntries={['/s/cards']}>
-                    <Routes>
-                        <Route element={<Outlet context={{ server }} />} path="/s/:slug">
-                            <Route element={element} index />
-                        </Route>
-                    </Routes>
-                </MemoryRouter>
+                <DevModeProvider>
+                    <MemoryRouter initialEntries={['/s/cards']}>
+                        <Routes>
+                            <Route element={<Outlet context={{ server }} />} path="/s/:slug">
+                                <Route element={element} index />
+                            </Route>
+                        </Routes>
+                    </MemoryRouter>
+                </DevModeProvider>
             </hausTrpc.Provider>
         </QueryClientProvider>
     );

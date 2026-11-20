@@ -7,11 +7,9 @@ import { isWorkerStopping, isWorkerTurnLive, liveWorkerTurns } from './worker-ca
 import { workerFollowUpControls } from './worker-follow-up-controls.ts';
 
 export function WorkerFollowUpComposer({
-    context,
     serverId,
     work,
 }: {
-    context: string;
     serverId: string;
     work: Pick<Worker, 'id' | 'status' | 'title' | 'turns'>;
 }) {
@@ -83,34 +81,35 @@ export function WorkerFollowUpComposer({
     };
 
     return (
-        <PromptInput
-            lockInputOnRun={false}
-            onStop={controls.stops ? requestStop : undefined}
-            onSubmit={submit}
-            onValueChange={changeText}
-            status={controls.status}
-            value={text}
-        >
-            <PromptInput.Shell>
-                <PromptInput.Content>
-                    <PromptInput.TextArea
-                        aria-label={`Follow up with ${work.title}`}
-                        placeholder={composerPlaceholder(work, live)}
-                    />
-                </PromptInput.Content>
-                <PromptInput.Toolbar>
-                    <PromptInput.ToolbarStart>
-                        <span className="text-muted min-w-0 truncate px-1 text-xs">{context}</span>
-                    </PromptInput.ToolbarStart>
-                    <PromptInput.ToolbarEnd>
-                        <PromptInput.Send
-                            aria-label={controls.label}
-                            isDisabled={controls.sendDisabled}
+        <div className="shrink-0 px-5 pb-4">
+            <PromptInput
+                layout="compact"
+                lockInputOnRun={false}
+                onStop={controls.stops ? requestStop : undefined}
+                onSubmit={submit}
+                onValueChange={changeText}
+                status={controls.status}
+                value={text}
+                variant="primary"
+            >
+                <PromptInput.Shell>
+                    <PromptInput.Content>
+                        <PromptInput.TextArea
+                            aria-label={`Follow up with ${work.title}`}
+                            placeholder={composerPlaceholder(work, live)}
                         />
-                    </PromptInput.ToolbarEnd>
-                </PromptInput.Toolbar>
-            </PromptInput.Shell>
-        </PromptInput>
+                    </PromptInput.Content>
+                    <PromptInput.Toolbar>
+                        <PromptInput.ToolbarEnd>
+                            <PromptInput.Send
+                                aria-label={controls.label}
+                                isDisabled={controls.sendDisabled}
+                            />
+                        </PromptInput.ToolbarEnd>
+                    </PromptInput.Toolbar>
+                </PromptInput.Shell>
+            </PromptInput>
+        </div>
     );
 }
 

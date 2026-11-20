@@ -20,7 +20,7 @@ const followUp: WorkerTurnInput = {
     text: 'Match iPhone.',
 };
 
-test('the Worker view reads as a thread: the brief first, the report once, and the composer at the bottom', () => {
+test('the Worker view is a chat transcript: the brief first, the Worker\u2019s report once, and the composer', () => {
     const worker = work({
         turns: [
             turn({ input: [followUp], status: 'running', turnId: 'wkt_two' }),
@@ -41,7 +41,7 @@ test('the Worker view reads as a thread: the brief first, the report once, and t
     expect(html.match(/Fixed five of six\./gu)).toHaveLength(1);
     expect(html).toContain('Needs you, worked for');
     expect(html).toContain('aria-label="Stop Worker"');
-    expect(html).toContain('Cursor · haus/haus');
+    expect(html).toContain('Worker on Cursor');
 });
 
 test('a Worker on a chatless legacy Task reads its summary and takes no follow-ups', () => {
