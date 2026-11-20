@@ -140,6 +140,7 @@ export function ServerShell({
                                         {capyShell ? (
                                             <CapySidebar
                                                 canManage={canOperate}
+                                                key={server.id}
                                                 lead={topbarInWindow ? 'row' : 'strip'}
                                                 serverId={server.id}
                                                 slug={slug}

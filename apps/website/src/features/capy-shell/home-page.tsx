@@ -62,6 +62,7 @@ export function CapyHomePage({
                         <HomeComposer
                             captains={state.captains}
                             initialProjectId={state.initialProjectId}
+                            key={serverId}
                             projects={state.projects}
                             serverId={serverId}
                             slug={slug}
