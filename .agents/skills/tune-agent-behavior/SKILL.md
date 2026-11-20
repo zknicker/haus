@@ -36,10 +36,10 @@ owns the situation.
 
 List every place the Agent is told what to do for this situation, and quote each sentence verbatim:
 
-1. Managed prompt sections: `apps/computer/src/harness/managed-instructions.ts` and its siblings.
+1. Managed prompt sections: `packages/agent-prompt/src/managed-instructions.ts` and its siblings.
 2. Manual topics: `packages/agent-manual/src/` (topics, corpus, task-thread routing).
 3. CLI help and post-command receipts: `apps/computer/src/agent-cli/`.
-4. Inbox and event text: `apps/computer/src/inbox-format.ts`.
+4. Inbox and event text: `packages/agent-prompt/src/inbox-format.ts`.
 5. Seeded skills the Agent loads.
 
 Mark the sentences that would lead a literal reader to the observed behavior. A receipt the Agent
@@ -75,7 +75,7 @@ the same change, and docs move with it. Then apply these rules:
 Proof for this phase:
 
 ```sh
-bun test apps/computer/src/harness
+bun test packages/agent-prompt apps/computer/src/harness
 bun run test:prompt-contract
 ```
 

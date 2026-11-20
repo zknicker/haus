@@ -2,8 +2,8 @@ import { DataGrid, type DataGridColumn, ItemCardGroup } from '@heroui-pro/react'
 import { Alert, Chip, SearchField } from '@heroui/react';
 import * as React from 'react';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
-import { PageColumn } from '../../shell/page-column.tsx';
 import { ImageGenerationSettings } from '../image-generation/image-generation-group.tsx';
+import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { CloudAgentModelGroup } from './cloud-agent-model-group.tsx';
 import {
@@ -44,11 +44,8 @@ export function ModelsSettings({
 
     if (computers.error && !computers.data) {
         return (
-            <PageColumn>
-                <SettingsPageHeader
-                    description="Models reported by runtimes detected on your devices."
-                    title="Models"
-                />
+            <SettingsPageColumn width="table">
+                <SettingsPageHeader title="Models" />
                 {/* The model is a Server setting every member reads, even one
                     who cannot see the Computers that report runtimes. */}
                 <CloudAgentModelGroup canManage={canManage} serverId={serverId} />
@@ -59,16 +56,13 @@ export function ModelsSettings({
                         <Alert.Description>{computers.error.message}</Alert.Description>
                     </Alert.Content>
                 </Alert>
-            </PageColumn>
+            </SettingsPageColumn>
         );
     }
 
     return (
-        <PageColumn>
-            <SettingsPageHeader
-                description="Models reported by runtimes detected on your devices."
-                title="Models"
-            />
+        <SettingsPageColumn width="table">
+            <SettingsPageHeader title="Models" />
 
             <CloudAgentModelGroup canManage={canManage} serverId={serverId} />
 
@@ -132,7 +126,7 @@ export function ModelsSettings({
                     </p>
                 )}
             </ItemCardGroup>
-        </PageColumn>
+        </SettingsPageColumn>
     );
 }
 
@@ -158,6 +152,7 @@ const runtimeColumns: DataGridColumn<RuntimeRow>[] = [
     {
         accessorKey: 'label',
         allowsSorting: true,
+        cellClassName: 'whitespace-nowrap',
         header: 'Runtime',
         id: 'label',
         isRowHeader: true,
@@ -166,7 +161,7 @@ const runtimeColumns: DataGridColumn<RuntimeRow>[] = [
     {
         accessorKey: 'computer',
         allowsSorting: true,
-        cellClassName: 'text-muted',
+        cellClassName: 'text-muted whitespace-nowrap',
         header: 'Device',
         id: 'computer',
         minWidth: 160,
@@ -195,6 +190,7 @@ const modelColumns: DataGridColumn<ModelCatalogItem>[] = [
     {
         accessorKey: 'label',
         allowsSorting: true,
+        cellClassName: 'whitespace-nowrap',
         header: 'Model',
         id: 'label',
         isRowHeader: true,
@@ -203,7 +199,7 @@ const modelColumns: DataGridColumn<ModelCatalogItem>[] = [
     },
     {
         allowsSorting: true,
-        cell: (item) => <span className="text-muted font-mono">{item.id}</span>,
+        cell: (item) => <span className="text-muted font-mono whitespace-nowrap">{item.id}</span>,
         header: 'Identifier',
         id: 'id',
         minWidth: 180,

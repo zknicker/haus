@@ -61,6 +61,8 @@ export const harnessAppOrigin = 'https://app.haus.test';
 
 export async function startHausServerHarness(
     options: {
+        agentLoop?: 'computer' | 'runner';
+        runnerToken?: string;
         appOrigin?: string;
         artifactStorage?: ArtifactStorage;
         artifactStorageBytes?: number;
@@ -117,6 +119,8 @@ export async function startHausServerHarness(
 
         const startApplication = async () => {
             const next = await createHausServerApplication({
+                agentLoop: options.agentLoop,
+                runnerToken: options.runnerToken,
                 appOrigin,
                 ...(options.cloudflareAccess ? { cloudflareAccess: options.cloudflareAccess } : {}),
                 ...(options.cloudflareOAuthMetadataFetch

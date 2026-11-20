@@ -1,8 +1,7 @@
 import { expect, test } from 'bun:test';
+import { type AgentInboxItem, composeInboxDrain, composeInboxNotice } from '@haus/agent-prompt';
 import { agentInboxItemSchema } from '@haus/api';
 import { parseInbox } from './agent-inbox-input.ts';
-import type { AgentInboxItem } from './agent-inbox-item.ts';
-import { composeInboxDrain, composeInboxNotice } from './inbox-format.ts';
 
 const url = 'https://github.com/haus/haus/pull/41';
 

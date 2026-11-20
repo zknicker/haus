@@ -1,3 +1,4 @@
+import { formatInstructionsUpdate } from '@haus/agent-prompt';
 import type { ComposedInstructions } from './instructions.ts';
 import type { AgentSessionState } from './session-store.ts';
 
@@ -55,17 +56,6 @@ export function planInstructionsUpdate(input: {
 /** The turn's model prompt, led by the update when the plan injects one (Raft's `applyStandingPromptUpdate`). */
 export function withInstructionsUpdate(plan: InstructionsUpdatePlan, prompt: string): string {
     return plan.kind === 'inject' ? `${plan.block}\n\n${prompt}` : prompt;
-}
-
-/** Raft's `formatStandingPromptUpdate` with Haus nouns. */
-export function formatInstructionsUpdate(instructions: string): string {
-    return [
-        '<haus-instructions-update>',
-        'Haus updated your standing instructions since this session started. The instructions below replace the earlier standing instructions (system or developer prompt) for the rest of this session; where they differ, follow these.',
-        '',
-        instructions.trimEnd(),
-        '</haus-instructions-update>',
-    ].join('\n');
 }
 
 export type InstructionReceipt = Pick<

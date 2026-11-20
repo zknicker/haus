@@ -2,7 +2,7 @@ import { beforeEach, expect, test } from 'bun:test';
 import { access, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { AgentInboxItem } from './agent-inbox-item.ts';
+import type { AgentInboxItem } from '@haus/agent-prompt';
 import { noticePath, writePendingNotice } from './delivery.ts';
 import {
     acceptRunInbox,

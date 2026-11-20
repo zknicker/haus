@@ -15,8 +15,8 @@ import { Icon } from '../../../components/ui/icon.tsx';
  * `.Action`). Rows are the transparent card variant, so a catalog reads as a
  * list of products rather than a wall of boxes; the theme keeps the grid from
  * handing them a surface back (`default-theme.css`, `item-card-group--grid`).
- * The `--catalog` modifier carries the rest of the look — app-icon tiles, the
- * reading width, the divided header — so call sites stay stock.
+ * The `--catalog` modifier carries the rest of the look — app-icon tiles and the
+ * divided header — so call sites stay stock.
  */
 export function SettingsCardGrid({
     action,
