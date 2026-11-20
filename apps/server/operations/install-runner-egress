@@ -1,0 +1,20 @@
+#!/bin/sh
+# Runs inside the Colima VM as root. Owns only the HAUS-RUNNER chain and its one DOCKER-USER jump.
+set -eu
+
+chain=HAUS-RUNNER
+bridge=haus-runner0
+server_host="${1:?usage: install-runner-egress SERVER_HOST SERVER_PORT}"
+server_port="${2:?usage: install-runner-egress SERVER_HOST SERVER_PORT}"
+
+iptables -N "$chain" 2>/dev/null || iptables -F "$chain"
+iptables -A "$chain" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+iptables -A "$chain" -p tcp -d "$server_host" --dport "$server_port" -m conntrack --ctstate NEW -j ACCEPT
+for range in 169.254.0.0/16 100.64.0.0/10 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16; do
+    iptables -A "$chain" -d "$range" -m conntrack --ctstate NEW -j DROP
+done
+iptables -A "$chain" -j RETURN
+
+while iptables -D DOCKER-USER -i "$bridge" -j "$chain" 2>/dev/null; do :; done
+iptables -I DOCKER-USER 1 -i "$bridge" -j "$chain"
+iptables -S "$chain"

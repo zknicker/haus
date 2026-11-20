@@ -218,6 +218,13 @@ The Server must hold the same `HAUS_RUNNER_TOKEN`. It listens only on the Mac's 
 here: on Colima it names the bridge gateway inside the Lima VM, not the Mac. `HAUS_RUNNER_SERVER_URL`
 overrides the default `http://host.lima.internal:18791` on a host that is not Colima.
 
+The runner has its own Docker network, `haus-runner`, on the bridge `haus-runner0`
+(172.30.240.0/24). Every deploy runs `apps/server/operations/install-runner-egress` inside the
+Colima VM before the runner starts. It owns one chain, `HAUS-RUNNER`, which allows the runner
+to reach `192.168.5.2:18791` and drops new connections to link-local, CGNAT and the RFC 1918
+ranges. Its only jump from `DOCKER-USER` matches `-i haus-runner0`, so other containers in the
+shared VM keep their own rules. The script flushes and re-adds only its own chain and jump.
+
 The container starts as root with `CAP_NET_ADMIN`. Its entrypoint installs OUTPUT rules that
 deny PostgreSQL ports 5432 and 5438, the RFC 1918, link-local, and CGNAT ranges, and on IPv6 the
 unique local, link-local, site-local, local-use NAT64 (`64:ff9b:1::/48`), and IPv4-translated

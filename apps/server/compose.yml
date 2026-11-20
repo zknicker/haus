@@ -37,6 +37,8 @@ services:
       HAUS_RUNNER_MAX_WARM: ${HAUS_RUNNER_MAX_WARM:-}
       HAUS_RUNNER_TOKEN: ${HAUS_RUNNER_TOKEN:?HAUS_RUNNER_TOKEN is required}
       HAUS_SERVER_URL: ${HAUS_RUNNER_SERVER_URL:-http://host.lima.internal:18791}
+    networks:
+      - haus-runner
     healthcheck:
       test: ["CMD", "test", "-f", "/run/haus-runner-firewall-ready"]
       interval: 5s
@@ -47,6 +49,16 @@ services:
     restart: unless-stopped
     volumes:
       - runner_data:/data
+
+networks:
+  haus-runner:
+    name: haus-runner
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.name: haus-runner0
+    ipam:
+      config:
+        - subnet: 172.30.240.0/24
 
 volumes:
   postgres_data:
