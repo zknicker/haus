@@ -922,7 +922,8 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   `PromptInput` sits inside `.home-composer`, and one theme-layer rule gives its shell a `--surface`
   fill and `--surface-shadow` with no field border. Dark surfaces cast no shadow, so dark rims it with
   a `--border-width` ring in `--border`. `--home-input-opacity` (default 1, set by a Home background)
-  thins the fill, never the text. Every other composer keeps the field look.
+  thins the fill, never the text. Focus anywhere in the editor draws the stock field focus, a 2px
+  `--focus` ring over the card's shadow, in both themes. Every other composer keeps the field look.
 - **Composer file drop:** A file drag over a chat or Task recedes that surface behind a 90%
   `background` scrim and draws an inset dashed `accent` frame at the shell radius tier
   (`.card-shell`), with a filled accent icon, "Drop files to attach", and a muted limit line.

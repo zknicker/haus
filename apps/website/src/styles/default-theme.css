@@ -855,7 +855,7 @@
     /*
      * Home's composer is Capy's elevated card, not a field: a surface fill and
      * the resting surface shadow (hairline ring plus lift) in place of the
-     * field border, at rest, on hover, and in focus. `--home-input-opacity`
+     * field border. `--home-input-opacity`
      * (set by a Home background) lets a wallpaper show through the fill
      * without fading the text. Every other composer keeps its field look.
      */
@@ -868,15 +868,31 @@
             transparent
         );
         border-color: transparent;
+    }
+
+    .home-composer .prompt-input__shell--primary {
         box-shadow: var(--surface-shadow);
     }
 
     /* Dark surfaces cast no shadow, so the card keeps its edge as a border-token ring. */
     [data-theme="dark"] .home-composer .prompt-input__shell--primary,
-    [data-theme="dark"] .home-composer .prompt-input:focus-within .prompt-input__shell--primary,
-    .dark .home-composer .prompt-input__shell--primary,
-    .dark .home-composer .prompt-input:focus-within .prompt-input__shell--primary {
+    .dark .home-composer .prompt-input__shell--primary {
         box-shadow: 0 0 0 var(--border-width) var(--border);
+    }
+
+    /*
+     * Focus is the stock field's: HeroUI's `focus-field-ring` (a 2px `--focus`
+     * ring at no offset), on any focus into the editor as on every Haus field,
+     * over the card's own shadow. Listed after the dark rim, and more specific,
+     * so it wins in both themes; dark's surface shadow is transparent, so there
+     * the ring is the whole edge.
+     */
+    .home-composer .prompt-input:focus-within .prompt-input__shell--primary,
+    [data-theme="dark"] .home-composer .prompt-input:focus-within .prompt-input__shell--primary,
+    .dark .home-composer .prompt-input:focus-within .prompt-input__shell--primary {
+        box-shadow:
+            0 0 0 2px var(--focus),
+            var(--surface-shadow);
     }
 
     /* Reply context and the editor form one joined composer surface. */
