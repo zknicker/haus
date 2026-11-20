@@ -218,7 +218,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // Raised by exactly 13 (37,910 → 37,923) when the Files entry became Drive: edits happen in the drive/ folder, not haus files pull/push.
     // Lowered by exactly 79 (37,923 → 37,844): only people create Projects, so `haus channel create`
     // and its Manual pointer went (-80), and the welcome rule names #haus for #all (+1).
-    expect(prompt.length).toBeLessThanOrEqual(37_844);
+    // Lowered by exactly 100 (37,844 → 37,744) when cloud agents became Workers (ADR 0056, W2): reports post in the Task and reach the Agent as inbox items, and `start` names `--on`.
+    expect(prompt.length).toBeLessThanOrEqual(37_744);
     expect(prompt.toLowerCase()).not.toContain('thread');
 });
 

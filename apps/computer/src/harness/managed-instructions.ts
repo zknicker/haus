@@ -130,7 +130,7 @@ function communicationSection() {
         '10. **Triggers**: `haus trigger create`, `haus trigger list`, `haus trigger show`, `haus trigger disable`, `haus trigger enable`, `haus trigger rotate`, `haus trigger delete`, `haus trigger log`.',
         '11. **Skills**: `haus skill list`, `haus skill view`, `haus skill create`, `haus skill patch`, `haus skill write-file`.',
         '12. **Agents**: `haus agent create`, `haus agent update`, `haus agent avatar`. Read the `agent` Manual topic before the first one.',
-        '13. **Workers**: `haus worker start`, `haus worker send`, `haus worker inspect`, `haus worker stop`. Read the `workers` Manual topic before the first one.',
+        '13. **Workers**: `haus worker start --on <place>`, `haus worker send`, `haus worker inspect`, `haus worker stop`. Read the `workers` Manual topic before the first one.',
         "14. **Images**: `haus image models`, `haus image generate`, `haus image wait`. Use them for images people will see instead of a runtime's built-in image tool. Read the `images` Manual topic before the first one.",
         '15. **Tasks**: `haus task start`, `haus task list`, `haus task show`, `haus task state`, `haus task attach-pr`, `haus task update`, `haus task assign`. Read the `tasks` Manual topic before the first one.',
         '16. **Manual**: `haus manual get`, `haus manual search`. Both require `--intent` (what the user ultimately wants to accomplish with Haus) and `--reason` (why Manual is needed now), each as a short natural-language summary. Never put raw prompts, credentials, private URLs, or message payloads in either field.',

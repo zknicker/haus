@@ -13,25 +13,23 @@ const prompt = renderAgentInstructions({
 });
 const section = prompt.split('### Workers\n')[1]?.split('### ')[0] ?? '';
 
-test('launch mechanics stay out of the section', () => {
-    expect(section).not.toContain('A Worker works for a Task');
-    expect(section).not.toContain('haus worker start');
-    expect(section).not.toContain('launch card');
-    expect(section).not.toContain('work thread');
-    expect(section).not.toContain('a launch never opens a new thread');
+test('the Workers family names the place a start runs on', () => {
+    expect(prompt).toContain(
+        '13. **Workers**: `haus worker start --on <place>`, `haus worker send`, `haus worker inspect`, `haus worker stop`. Read the `workers` Manual topic before the first one.'
+    );
+    expect(prompt).not.toContain('cloud-agent');
+    expect(prompt.toLowerCase()).not.toContain('cloud agent');
 });
 
-test('Haus wakes the Agent on the Task when a run settles or its pull request changes', () => {
-    expect(section).toContain('completes, fails, or is canceled');
-    expect(section).toContain('when its pull request becomes ready or its checks finish');
-    expect(section).toContain('Haus delivers an inbox item and wakes you on that Task');
-    expect(section).toContain('a later turn if you are busy');
-    expect(section).not.toContain('You do not need to set a reminder or poll');
-    expect(section).toContain('bring back a concise outcome with a link to the work in the Task');
+test('a Worker report posts in the Task and reaches the Agent as an inbox item', () => {
+    expect(section.trim()).toBe(
+        "When a Worker's turn ends, its report posts in the Task as a Message and reaches you as an inbox item on that Task, or in a later turn if you are busy. A pull request it reported reaches you the same way when it becomes ready or its checks finish."
+    );
 });
 
-test('revision mechanics stay in the `workers` Manual topic', () => {
-    expect(section).not.toContain('haus worker send');
-    expect(section).not.toContain('implementation details and revisions');
+test('launch, revision, and report-handling mechanics stay out of the section', () => {
+    expect(section).not.toContain('haus worker');
+    expect(section).not.toContain('bring back a concise outcome');
     expect(section).not.toContain('keep the requester informed');
+    expect(section).not.toContain('You do not need to set a reminder or poll');
 });
