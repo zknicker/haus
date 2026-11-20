@@ -126,7 +126,7 @@ test('an Owner invites, promotes, and removes a human', async ({ browser, page }
     // arrives as a refused subscription, never as data, so the App has to act on
     // the refusal rather than wait for the next navigation.
     await expect(peerPage.getByRole('textbox', { name: 'Message all' })).toHaveCount(0);
-    await expect(peerPage.getByText('Server unavailable')).toBeVisible();
+    await expect(peerPage.getByText('Server Unavailable')).toBeVisible();
 
     // The already-open list loses it too. This proves membership-loss listening
     // belongs to the hosted route rather than only an open Server page.
@@ -139,6 +139,6 @@ test('a human outside the Server cannot reach its member management', async ({ p
     await signInAsAppHuman(page, 'peer');
     await page.goto(`/s/${slug}/members`);
 
-    await expect(page.getByText('Server unavailable')).toBeVisible();
+    await expect(page.getByText('Server Unavailable')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Invite', exact: true })).toHaveCount(0);
 });

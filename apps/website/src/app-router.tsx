@@ -6,6 +6,7 @@ import { ComputerLoginRoutes } from './features/computers/computer-login-routes.
 import { HausServerRoutes } from './features/servers/haus-server-routes.tsx';
 import { isElectronDesktopApp } from './lib/desktop-bridge.ts';
 import { serverPageRoutes } from './routes/app/server-page-routes.tsx';
+import { ServerRouteGate } from './routes/app/server-route-gate.tsx';
 import { cachedRouteModule, registerServerRouteShells } from './routes/app/server-route-modules.ts';
 
 const ServerErrorPage = React.lazy(async () => {
@@ -84,11 +85,16 @@ export function createAppRouter() {
                         },
                         {
                             path: 's/:slug',
-                            lazy: lazyRoute(loadServerShells, 'ServerLayout'),
+                            element: <ServerRouteGate />,
                             children: [
                                 {
-                                    errorElement: <ServerErrorBoundary />,
-                                    children: serverPageRoutes({ desktop }),
+                                    lazy: lazyRoute(loadServerShells, 'ServerLayout'),
+                                    children: [
+                                        {
+                                            errorElement: <ServerErrorBoundary />,
+                                            children: serverPageRoutes({ desktop }),
+                                        },
+                                    ],
                                 },
                             ],
                         },

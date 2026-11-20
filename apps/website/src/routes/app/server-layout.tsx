@@ -54,15 +54,6 @@ export function ServerLayout() {
         return () => window.clearTimeout(timeoutId);
     }, [currentServerSlug]);
 
-    if (server.error && !server.data) {
-        return (
-            <main className="flex h-dvh flex-col items-center justify-center gap-2 px-6 text-center">
-                <h1 className="text-foreground text-lg font-semibold">Server unavailable</h1>
-                <p className="text-muted max-w-sm text-sm">{server.error.message}</p>
-            </main>
-        );
-    }
-
     if (!server.data) {
         return null;
     }
