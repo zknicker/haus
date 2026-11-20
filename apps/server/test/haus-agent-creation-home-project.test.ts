@@ -35,7 +35,7 @@ test('the App homes a new Agent in an open Project and refuses #all, archived an
     });
     await fixture.harness
         .sql`update chats set archived_at = now(), archived_by_user_id = ${fixture.ownerUserId} where id = ${archived.chat.id}`;
-    const refusal = 'Its home must be an open Project on this Server, and #all is not a Project.';
+    const refusal = 'Its Project must be open and on this Server, and #all is not a Project.';
     for (const [homeProjectId, handle] of [
         [all?.id ?? '', 'in-all'],
         [archived.chat.id, 'in-archive'],
@@ -80,5 +80,5 @@ test('an Agent-created Agent lives in its creator’s home, and creation refuses
         update agents set home_project_id = ${fixture.channelId} where id = ${fixture.orbitAgentId}
     `;
     expect(refused.status).not.toBe(200);
-    expect(JSON.stringify(refused.body)).toContain('Your home is not an open Project');
+    expect(JSON.stringify(refused.body)).toContain('Your Project is not open');
 });

@@ -15,7 +15,7 @@ export function HomeProjectSelect({
         <InventorySelect
             description={empty ? 'Create a project first. A Captain lives in one.' : undefined}
             disabled={empty}
-            label="Home project"
+            label="Project"
             onChange={onChange}
             options={projects}
             placeholder={empty ? 'No projects yet' : 'Select a project'}

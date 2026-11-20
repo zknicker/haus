@@ -113,7 +113,7 @@ test('a Captain starts in the first Project the Server has', () => {
         />
     );
 
-    expect(markup).toContain('Home project');
+    expect(markup).toContain('>Project<');
     expect(markup).toContain('#product');
     expect(markup).not.toContain('Create a project first.');
 });

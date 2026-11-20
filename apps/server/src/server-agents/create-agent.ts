@@ -207,7 +207,7 @@ async function requireLiveHome(
 ) {
     if (!(await isLiveProject(db, { projectId: input.homeProjectId, serverId: input.serverId }))) {
         throw new AgentConfigDeniedError(
-            'Its home must be an open Project on this Server, and #all is not a Project.'
+            'Its Project must be open and on this Server, and #all is not a Project.'
         );
     }
 }
