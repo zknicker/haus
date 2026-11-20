@@ -30,7 +30,7 @@ export function CaptainTiles({
 }) {
     return (
         <ChatGroup label="Captains">
-            <ul aria-label="Captains" className="flex flex-wrap gap-x-0.5 ps-[2px]">
+            <ul aria-label="Captains" className="flex flex-wrap gap-x-0.5 gap-y-[2px] ps-[2px]">
                 {agentIds.map((agentId) => (
                     <li key={agentId}>
                         <CaptainTileLink
@@ -67,6 +67,7 @@ const CaptainTileLink = React.memo(function CaptainTileLink({
     const { preload } = usePreloadChat(serverId, dmChatId);
     const href = dmChatId ? serverChatRoute(slug, dmChatId) : serverAgentDmRoute(slug, agentId);
     const pressRef = usePressNavigationWith(useSidebarNavigate(), href, preload);
+    const name = useTruncation(tile?.name);
     if (!tile) {
         return null;
     }
@@ -79,19 +80,19 @@ const CaptainTileLink = React.memo(function CaptainTileLink({
         .join(', ');
 
     return (
-        <Tooltip delay={400}>
+        <Tooltip delay={400} isDisabled={!name.truncated}>
             <Tooltip.Trigger role="presentation" tabIndex={-1}>
                 <Link
                     aria-current={isCurrent ? 'page' : undefined}
                     aria-label={label}
                     className={cn(
-                        'hover:bg-default flex cursor-[var(--cursor-interactive)] items-center justify-center rounded-xl',
+                        'hover:bg-default flex cursor-[var(--cursor-interactive)] flex-col items-center gap-[3px] rounded-xl pt-[5px] pb-[4px]',
                         isCurrent && 'bg-default'
                     )}
                     onFocus={preload}
                     onMouseEnter={preload}
                     ref={pressRef}
-                    style={{ height: tileSize, width: tileSize }}
+                    style={{ width: tileSize }}
                     to={href}
                 >
                     <Badge.Anchor style={{ height: tileAvatarSize, width: tileAvatarSize }}>
@@ -110,9 +111,28 @@ const CaptainTileLink = React.memo(function CaptainTileLink({
                             />
                         ) : null}
                     </Badge.Anchor>
+                    <span
+                        aria-hidden="true"
+                        className="text-muted w-full truncate px-[2px] text-center text-xs leading-tight"
+                        ref={name.ref}
+                    >
+                        {tile.name}
+                    </span>
                 </Link>
             </Tooltip.Trigger>
             <Tooltip.Content>{tile.name}</Tooltip.Content>
         </Tooltip>
     );
 });
+
+function useTruncation(text: string | undefined) {
+    const ref = React.useRef<HTMLSpanElement>(null);
+    const [truncated, setTruncated] = React.useState(false);
+    React.useLayoutEffect(() => {
+        const element = ref.current;
+        setTruncated(
+            element !== null && text !== undefined && element.scrollWidth > element.clientWidth
+        );
+    }, [text]);
+    return { ref, truncated };
+}
