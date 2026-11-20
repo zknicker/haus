@@ -32,6 +32,7 @@ export function createRunnerProcessEnvironment({
         'HAUS_RUNNER_GEMINI_API_KEY',
         'HAUS_RUNNER_MAX_WARM',
         'HAUS_RUNNER_OPENROUTER_API_KEY',
+        'HAUS_RUNNER_WEB_SEARCH',
         'HAUS_RUNNER_XAI_API_KEY',
     ]) {
         if (startupEnvironment[name]) {

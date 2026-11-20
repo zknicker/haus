@@ -24,6 +24,7 @@ function liveHarness() {
             apiKeys: { geminiApiKey: null, openrouterApiKey: null, xaiApiKey },
             credentials: openFileCredentialStore(piLoginsDir(dataDir)),
         }),
+        webSearch: [],
     });
     cleanups.push(() => harness.close());
     return harness;

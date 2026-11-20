@@ -30,6 +30,10 @@ export const runnerToolDescriptions = {
     str_replace_based_edit_tool:
         'Views, creates, and edits text files on your machine: `view` a file, a directory, or a PDF as its text plus images of its scanned and figure pages (on a PDF, `view_range` selects pages and shows each one as an image), `create` a file with `file_text`, `str_replace` an exact unique `old_str` with `new_str`, or `insert` `new_str` after `insert_line`.',
     view_image: 'Shows you an image file from your machine.',
+    web_fetch:
+        'Fetches one public http or https URL and returns the page as Markdown. It runs in Haus, not on your machine, so it cannot reach private or local addresses.',
+    web_search:
+        'Searches the web and returns what it found with links to the sources. Use `web_fetch` to read a source in full.',
 } as const;
 
 /** Ends a machine write whose bytes never reached the Server, so no invocation was sent. */
@@ -93,3 +97,7 @@ function pageList(pages: readonly number[]) {
         spans.length === 1 ? spans[0] : `${spans.slice(0, -1).join(', ')} and ${spans.at(-1)}`;
     return `${pages.length === 1 ? 'Page' : 'Pages'} ${listed}`;
 }
+
+/** What `web_search` answers on a Pi Agent whose provider's search is off. */
+export const webSearchNotConfigured =
+    'Web search is not configured for this Haus. Use `web_fetch` to read a URL you already know.';

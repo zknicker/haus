@@ -10,6 +10,7 @@ import {
     runnerRuntimeVersions,
     runnerToolDescriptions,
     runnerUnsentWrite,
+    webSearchNotConfigured,
 } from './runner-text.ts';
 
 test('the turn after a runner crash names each tool call whose outcome is unknown', () => {
@@ -55,6 +56,10 @@ test('the runner tools describe how each one works', () => {
         str_replace_based_edit_tool:
             'Views, creates, and edits text files on your machine: `view` a file, a directory, or a PDF as its text plus images of its scanned and figure pages (on a PDF, `view_range` selects pages and shows each one as an image), `create` a file with `file_text`, `str_replace` an exact unique `old_str` with `new_str`, or `insert` `new_str` after `insert_line`.',
         view_image: 'Shows you an image file from your machine.',
+        web_fetch:
+            'Fetches one public http or https URL and returns the page as Markdown. It runs in Haus, not on your machine, so it cannot reach private or local addresses.',
+        web_search:
+            'Searches the web and returns what it found with links to the sources. Use `web_fetch` to read a source in full.',
     });
 });
 
@@ -99,5 +104,11 @@ test("a PDF's view names what it cut and left out, and the view_range that shows
     );
     expect(pdfViewNotes.invalidRange([5, 9], 3)).toBe(
         'Invalid view_range [5, 9]: on a PDF it selects pages, from 1 to 3, and an end of -1 runs to the last page.'
+    );
+});
+
+test('a Pi Agent without search hears that it is not configured and where to go instead', () => {
+    expect(webSearchNotConfigured).toBe(
+        'Web search is not configured for this Haus. Use `web_fetch` to read a URL you already know.'
     );
 });

@@ -8,7 +8,7 @@ import { createPiModels } from '../pi/pi-models.ts';
 import { harnessFor, type RuntimeDriverFactory } from './runtime-driver.ts';
 
 export function createHarnesses(
-    config: LoginConfig & Pick<RunnerConfig, 'maxWarm'>,
+    config: LoginConfig & Pick<RunnerConfig, 'maxWarm' | 'webSearch'>,
     log: (line: string) => void
 ) {
     const claude = createClaudeHarness({
@@ -22,6 +22,7 @@ export function createHarnesses(
             apiKeys: config,
             credentials: openFileCredentialStore(piLoginsDir(config.dataDir)),
         }),
+        webSearch: config.webSearch,
     });
     const factory: RuntimeDriverFactory = (launch) =>
         harnessFor(launch.modelId) === 'pi-durable' ? pi.factory(launch) : claude.factory(launch);

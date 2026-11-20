@@ -36,6 +36,7 @@ export {
     runnerRuntimeVersions,
     runnerToolDescriptions,
     runnerUnsentWrite,
+    webSearchNotConfigured,
 } from './runner-text.ts';
 export { renderSkillListing, type SkillListingEntry } from './skill-listing.ts';
 export {
