@@ -88,6 +88,34 @@ describe('model connection edits', () => {
     });
 });
 
+describe('row edits', () => {
+    test('a new edit clears the failure an earlier one left on the row', async () => {
+        const { harness, hook, mounted } = await mountHook(
+            () => useModelConnectionEdits(serverId),
+            (call) => {
+                if (call.path === 'modelConnections.makeDefault') {
+                    throw new Error('Haus could not reorder the connections.');
+                }
+                return testConnection({ id: 'mcn_team' });
+            }
+        );
+        const target = { connectionId: 'mcn_team', serverId };
+        await harness.act(() =>
+            hook()
+                .makeDefault.mutateAsync(target)
+                .catch(() => undefined)
+        );
+        expect(hook().makeDefault.error?.message).toBe('Haus could not reorder the connections.');
+        await harness.act(() => hook().setWebSearch.mutateAsync({ ...target, enabled: true }));
+        expect(
+            [hook().makeDefault, hook().remove, hook().setWebSearch].map(
+                (edit) => edit.error?.message ?? null
+            )
+        ).toEqual([null, null, null]);
+        await mounted.unmount();
+    });
+});
+
 describe('web search', () => {
     test('the switch shows the pick at once and a refusal puts the old value back', async () => {
         const gemini = testConnection({

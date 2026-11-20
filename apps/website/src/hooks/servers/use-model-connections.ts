@@ -21,36 +21,53 @@ export function useModelConnectionEdits(serverId: string) {
     const refresh = () => {
         void utils.modelConnections.list.invalidate({ serverId });
     };
+    const makeDefault = hausTrpc.modelConnections.makeDefault.useMutation({
+        onMutate: () => {
+            remove.reset();
+            setWebSearch.reset();
+        },
+        onSuccess: refresh,
+    });
+    const remove = hausTrpc.modelConnections.remove.useMutation({
+        onMutate: () => {
+            makeDefault.reset();
+            setWebSearch.reset();
+        },
+        onSuccess: refresh,
+    });
+    const setWebSearch = hausTrpc.modelConnections.setWebSearch.useMutation({
+        onMutate: async ({ connectionId, enabled }) => {
+            makeDefault.reset();
+            remove.reset();
+            await utils.modelConnections.list.cancel({ serverId });
+            const previous = utils.modelConnections.list.getData({ serverId });
+            utils.modelConnections.list.setData({ serverId }, (read) =>
+                read
+                    ? withConnection(read, connectionId, (connection) => ({
+                          ...connection,
+                          webSearch: enabled,
+                      }))
+                    : read
+            );
+            return { previous };
+        },
+        onError: (_error, _variables, context) => {
+            if (context?.previous) {
+                utils.modelConnections.list.setData({ serverId }, context.previous);
+            }
+            refresh();
+        },
+        onSuccess: (saved) => {
+            utils.modelConnections.list.setData({ serverId }, (read) =>
+                read ? withConnection(read, saved.id, () => saved) : read
+            );
+        },
+    });
     return {
-        makeDefault: hausTrpc.modelConnections.makeDefault.useMutation({ onSuccess: refresh }),
-        remove: hausTrpc.modelConnections.remove.useMutation({ onSuccess: refresh }),
+        makeDefault,
+        remove,
         rename: hausTrpc.modelConnections.rename.useMutation({ onSuccess: refresh }),
-        setWebSearch: hausTrpc.modelConnections.setWebSearch.useMutation({
-            onMutate: async ({ connectionId, enabled }) => {
-                await utils.modelConnections.list.cancel({ serverId });
-                const previous = utils.modelConnections.list.getData({ serverId });
-                utils.modelConnections.list.setData({ serverId }, (read) =>
-                    read
-                        ? withConnection(read, connectionId, (connection) => ({
-                              ...connection,
-                              webSearch: enabled,
-                          }))
-                        : read
-                );
-                return { previous };
-            },
-            onError: (_error, _variables, context) => {
-                if (context?.previous) {
-                    utils.modelConnections.list.setData({ serverId }, context.previous);
-                }
-                refresh();
-            },
-            onSuccess: (saved) => {
-                utils.modelConnections.list.setData({ serverId }, (read) =>
-                    read ? withConnection(read, saved.id, () => saved) : read
-                );
-            },
-        }),
+        setWebSearch,
     };
 }
 
