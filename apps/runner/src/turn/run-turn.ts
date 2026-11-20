@@ -1,4 +1,4 @@
-import { planRulesDelivery } from '@haus/agent-prompt';
+import { planRulesDelivery, projectMessageForAgent, runnerSkillLoading } from '@haus/agent-prompt';
 import type { AgentReasoningEffort, AgentStartCommand, RunnerModelConnection } from '@haus/api';
 import type { RunAuthority, RunnerLink, RunTools } from '../run-context.ts';
 import { readAgentContext } from './agent-context.ts';
@@ -141,7 +141,11 @@ export async function runTurn(input: RunTurnInput) {
                 instructions: plan,
                 memoryBlock: memory.block,
                 rulesBlock: rules.block,
-                turnContent: turnInput.turnContent,
+                turnContent: projectMessageForAgent({
+                    content: turnInput.turnContent,
+                    enabledSkillIds: context.skills.map((skill) => skill.name),
+                    loading: runnerSkillLoading,
+                }),
             }),
             signal: turnSignal,
         });

@@ -483,7 +483,6 @@
             "apps/computer/src/harness/read-location-steps.ts",
             "apps/computer/src/harness/reasoning-capture.ts",
             "apps/computer/src/harness/resume-rejection.ts",
-            "apps/computer/src/harness/rich-reference-projection.ts",
             "apps/computer/src/harness/runtime-driver-e2e-live.test.ts",
             "apps/computer/src/harness/runtime-session-failure-turn.test.ts",
             "apps/computer/src/harness/runtime-session-failure.test.ts",

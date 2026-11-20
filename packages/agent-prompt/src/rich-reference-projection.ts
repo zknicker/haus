@@ -1,13 +1,13 @@
 import { parseHausRichReferences, parseSkillReferenceTarget } from '@haus/api/rich-references';
 
-/**
- * Port of Runtime's skill-reference projection. Rich reference markdown stays
- * canonical in Server chat history; the addressed Agent receives only the
- * activation hint for skills that actually exist in its local library.
- */
+export const runtimeSkillLoading = 'Use the normal runtime skill-loading mechanism for them:';
+
+export const runnerSkillLoading = 'Open each one with `haus skill view <name>` before you start:';
+
 export function projectMessageForAgent(input: {
     content: string;
     enabledSkillIds: readonly string[];
+    loading?: string;
 }) {
     const skillIds = resolveActiveReferencedSkillIds(input);
     if (skillIds.length === 0) {
@@ -16,7 +16,7 @@ export function projectMessageForAgent(input: {
 
     return [
         '<skill_reference_context>',
-        'The user explicitly referenced these enabled skills for this turn. Use the normal runtime skill-loading mechanism for them:',
+        `The user explicitly referenced these enabled skills for this turn. ${input.loading ?? runtimeSkillLoading}`,
         '',
         ...skillIds.map((skillId) => `- ${skillId}`),
         '</skill_reference_context>',
