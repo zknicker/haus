@@ -153,7 +153,7 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
     expect(prompt).toContain(
         "- When you need a human's decision or action, @mention them where the work lives. Ask one question, a default only if reversible, and what you prepared. Their reply wakes you. Irreversible acts wait for an explicit yes."
     );
-    expect(prompt).toContain('13. **Workers**');
+    expect(prompt).toContain('13. **Workers**: `haus worker places`, `haus worker start`,');
     expect(prompt).toMatch(/14\. \*\*Images\*\*: `haus image models`.*\n15\. \*\*Tasks\*\*/);
 
     // These Raft-only surfaces must not leak into the Haus prompt.
@@ -220,7 +220,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // and its Manual pointer went (-80), and the welcome rule names #haus for #all (+1).
     // Lowered by exactly 100 (37,844 → 37,744) when cloud agents became Workers (ADR 0056, W2): reports post in the Task and reach the Agent as inbox items, and `start` names `--on`.
     // Lowered by exactly 13 (37,744 → 37,731) when `--on` became optional again: a start without it runs on the Computer's default place.
-    expect(prompt.length).toBeLessThanOrEqual(37_731);
+    // Raised by exactly 22 (37,731 → 37,753) when the Workers family entry named `haus worker places` (W3): Workers run on Computers too, and `places` lists where.
+    expect(prompt.length).toBeLessThanOrEqual(37_753);
     expect(prompt.toLowerCase()).not.toContain('thread');
 });
 
