@@ -54,7 +54,7 @@ export function cloudAutomationPresentation(row: WorkerAutomation, now: number) 
                 } as const;
             }
             return {
-                label: row.worker.cancelRequestedAt ? 'Stopping' : 'Working',
+                label: row.worker.turns[0]?.stopRequestedAt ? 'Stopping' : 'Working',
                 detail: 'Will notify the Captain when this run finishes or needs input',
                 color: 'accent',
             } as const;

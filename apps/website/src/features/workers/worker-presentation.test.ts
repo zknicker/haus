@@ -80,10 +80,10 @@ test('any live Run that has not reported for ten minutes reads as stale', () => 
 
     expect(quietFor(quiet, now)).toBe(14 * 60_000);
     // A follow-up waiting in the queue is live too.
-    expect(quietFor({ ...quiet, status: 'queued' }, now)).toBe(14 * 60_000);
+    expect(quietFor(work({ status: 'queued', updatedAt: quiet.updatedAt }), now)).toBe(14 * 60_000);
     expect(quietFor({ ...quiet, updatedAt: '2026-09-04T12:03:00.000Z' }, now)).toBeNull();
     // A settled work is not quiet; it is finished.
-    expect(quietFor({ ...quiet, status: 'completed' }, now)).toBeNull();
+    expect(quietFor(work({ status: 'completed', updatedAt: quiet.updatedAt }), now)).toBeNull();
 });
 
 test('only an Owner or Admin may cancel, and only a live, uncancelled Run', () => {
@@ -204,7 +204,7 @@ test('launching reads Starting, a failed launch reads Stopped, and a requested s
         ],
     });
     expect(workerText(failed, now)).toBe('Stopped');
-    expect(workerText(work({ cancelRequestedAt: new Date(now).toISOString() }), now)).toBe(
+    expect(workerText(work({ stopRequestedAt: new Date(now).toISOString() }), now)).toBe(
         'Stopping'
     );
 });

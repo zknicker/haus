@@ -225,7 +225,7 @@ enum CloudAgentWorkFixture {
         {"activity":null,"agentId":"agent_forge","cancelRequestedAt":null,"chatId":"cht_joy",
          "createdAt":"2026-10-11T09:00:00.000Z","id":"\(id)","messageId":"m_launch",
          "job":{"followUp":null,"startedAt":null,"state":"working"},
-         "provider":"cursor","providerUrl":null,"repository":"zknicker/haus",
+         "place":"cursor","providerUrl":null,"repository":"zknicker/haus",
          "turns":[],"startedAt":null,"startingRef":"main","status":"queued",
          "terminalAt":null,"title":"Work \(id)","updatedAt":"2026-10-11T09:00:00.000Z"}
         """

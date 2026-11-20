@@ -6,6 +6,8 @@ import {
     workerJobLabels,
     elapsedSince,
     formatWorkerDuration,
+    newestWorkerTurn,
+    newestWorkerTurnStatus,
     quietFor,
 } from './worker-presentation.ts';
 
@@ -43,11 +45,9 @@ export function workerStatusLine(
     if (quiet !== null) {
         return { text: `No update in ${formatWorkerDuration(quiet)}`, tone: 'warning' };
     }
-    if (work.cancelRequestedAt && !isTerminalWorkerTurnStatus(work.status)) {
-        return {
-            text: `Stopping · requested ${formatRelativeTime(work.cancelRequestedAt, input.now)}`,
-            tone: 'muted',
-        };
+    const stopping = stoppingLine(work, input.now);
+    if (stopping) {
+        return stopping;
     }
     if (job.followUp) {
         const elapsed = elapsedSince(job.followUp.since, input.now) ?? '0s';
@@ -107,4 +107,15 @@ function oneLine(text: null | string): null | string {
     }
     const line = messagePreviewLine(text);
     return line === '' ? null : line;
+}
+
+function stoppingLine(work: WorkerPresentationInput, now: number) {
+    const stopRequestedAt = newestWorkerTurn(work)?.stopRequestedAt ?? null;
+    if (!stopRequestedAt || isTerminalWorkerTurnStatus(newestWorkerTurnStatus(work))) {
+        return null;
+    }
+    return {
+        text: `Stopping · requested ${formatRelativeTime(stopRequestedAt, now)}`,
+        tone: 'muted',
+    } satisfies WorkerStatusLine;
 }

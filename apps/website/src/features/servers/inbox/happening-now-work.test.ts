@@ -18,34 +18,23 @@ test('a channel work reads its title, ticking status, Chat, and live Agent name'
             agentName: 'Blippy',
             chatLabel: '#product',
             id: 'caw_one',
-            location: {
-                chatId: 'chat_product',
-                kind: 'message',
-                messageId: 'message_one',
-            },
+            location: { chatId: 'chat_task', kind: 'task', taskId: 'tsk_12' },
             provider: 'cursor',
             state: 'working',
             statusText: 'Working · 7m',
-            task: null,
+            task: { id: 'tsk_12', key: 'SEC-12' },
             title: 'Fix the failing migration',
         },
     ]);
 });
 
-test('work on a Task carries the Task, and its subline leads with the key', () => {
-    const [onTask] = toHappeningNowWork(
-        [activeWork({ taskId: 'tsk_12', taskKey: 'SEC-12' })],
-        humans,
-        agents,
-        now
-    );
-    const [loose] = toHappeningNowWork([activeWork()], humans, agents, now);
+test('a Worker carries its Task, and its subline leads with the key', () => {
+    const [onTask] = toHappeningNowWork([activeWork()], humans, agents, now);
 
     expect(onTask?.task).toEqual({ id: 'tsk_12', key: 'SEC-12' });
     expect(onTask && happeningNowWorkSubline(onTask)).toBe(
         'Working · 7m · SEC-12 · #product · Blippy'
     );
-    expect(loose && happeningNowWorkSubline(loose)).toBe('Working · 7m · #product · Blippy');
 });
 
 test('a DM work names the human peer, and an Agent DM names neither', () => {
@@ -97,11 +86,9 @@ test('a follow-up queued behind a finished Run reads as the waiting follow-up, n
     expect(row?.statusText).toBe('Follow-up waiting · 2m');
 });
 
-function workRecord(overrides: Partial<ActiveWorker['worker']> = {}): ActiveWorker['worker'] {
+function workRecord(overrides: Parameters<typeof workerFixture>[0] = {}): ActiveWorker['worker'] {
     return workerFixture({
         agentId: 'agent_blippy',
-        chatId: 'chat_product',
-        messageId: 'message_one',
         updatedAt: '2026-09-04T12:06:00.000Z',
         ...overrides,
     });
@@ -114,13 +101,9 @@ function activeWork(overrides: Partial<ActiveWorker> = {}): ActiveWorker {
         chatName: 'product',
         chatPeerUserId: null,
         conversationChatId: 'chat_product',
-        location: {
-            chatId: 'chat_product',
-            kind: 'message',
-            messageId: 'message_one',
-        },
-        taskId: null,
-        taskKey: null,
+        location: { chatId: 'chat_task', kind: 'task', taskId: 'tsk_12' },
+        taskId: 'tsk_12',
+        taskKey: 'SEC-12',
         worker: workRecord(),
         ...overrides,
     };

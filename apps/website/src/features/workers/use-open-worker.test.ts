@@ -25,24 +25,14 @@ function window() {
     return { middleClick, uninstall };
 }
 
-test('a middle-click survives the fetch before the linking Message opens', async () => {
+test('a middle-click opens the Worker Task in a background tab', () => {
     const calls: unknown[][] = [];
-    const settle = () => new Promise((resolve) => setTimeout(resolve, 5));
     const open = createWorkerOpener({
-        fail: (title) => calls.push(['fail', title]),
-        fetchMessageSequence: async () => {
-            await settle();
-            return 7;
-        },
         navigate: (...args) => calls.push(['navigate', ...args]),
         slug: 'acme',
     });
     const { middleClick, uninstall } = window();
-    middleClick(() =>
-        open({ id: 'w1', location: { chatId: 'c2', kind: 'message', messageId: 'm3' } })
-    );
-    await settle();
-    await settle();
+    middleClick(() => open({ id: 'w1', location: { chatId: 'c2', kind: 'task', taskId: 't3' } }));
     uninstall();
     expect(calls).toEqual([
         ['navigate', '/s/acme/chats/c2', { state: tabIntentState('backgroundTab') }],

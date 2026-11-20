@@ -40,8 +40,9 @@ export function WorkerActions({
     const context = useTranscriptRenderContextOptional();
     const cancel = useWorkerCancelAction(work);
     const conversationChatId = context?.chatId ?? null;
-    const providerLabel = openInCloudAgentProviderLabel(work.provider);
-    const canOpenProvider = canOpenCloudAgentProvider(work);
+    const providerTarget = { ...work, provider: work.place };
+    const providerLabel = openInCloudAgentProviderLabel(work.place);
+    const canOpenProvider = canOpenCloudAgentProvider(providerTarget);
 
     const runAction = (key: React.Key) => {
         if (key === 'link' && conversationChatId && server) {
@@ -64,7 +65,10 @@ export function WorkerActions({
                 </Button>
             ) : null}
             <ButtonGroup size="sm" variant="secondary">
-                <Button isDisabled={!canOpenProvider} onPress={() => openCloudAgentProvider(work)}>
+                <Button
+                    isDisabled={!canOpenProvider}
+                    onPress={() => openCloudAgentProvider(providerTarget)}
+                >
                     <Icon aria-hidden="true" icon={ArrowUpRight01Icon} size={16} />
                     {providerLabel}
                 </Button>

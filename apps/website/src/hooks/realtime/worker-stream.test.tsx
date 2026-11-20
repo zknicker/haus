@@ -13,7 +13,7 @@ installRealtimeTestDom();
 const serverId = 'srv_1';
 const path = 'worker.onUpdated';
 
-test('one update per linking Message refreshes each Message and its own Chat lists', async () => {
+test('an update refreshes that Worker and the active lists, and annotates no Message', async () => {
     const harness = createRealtimeHarness();
     function Stream() {
         useWorkerStream(serverId);
@@ -23,37 +23,15 @@ test('one update per linking Message refreshes each Message and its own Chat lis
     harness.start(path);
     harness.ops.splice(0);
 
-    // The Server fans one lifecycle change out to every linking Message (ADR 0044).
-    const work = { serverId, taskId: null, workerId: 'caw_1' };
-    harness.emit(path, {
-        ...work,
-        chatId: 'cht_launch',
-        messageId: 'msg_launch',
-    });
-    harness.emit(path, {
-        ...work,
-        chatId: 'cht_task',
-        messageId: 'msg_link',
-    });
+    harness.emit(path, { chatId: 'cht_task', serverId, taskId: 'tsk_1', workerId: 'wkr_1' });
     const ops = harness.ops.splice(0);
     await mounted.unmount();
 
-    expect(ops.filter((entry) => entry.op === 'noteMessageAnnotated')).toEqual([
-        {
-            op: 'noteMessageAnnotated',
-            target: { chatId: 'cht_launch', messageId: 'msg_launch', serverId },
-        },
-        {
-            op: 'noteMessageAnnotated',
-            target: { chatId: 'cht_task', messageId: 'msg_link', serverId },
-        },
+    expect(ops.filter((entry) => entry.op === 'noteMessageAnnotated')).toEqual([]);
+    expect(invalidated(ops).filter((entry) => entry.path === 'worker.get')).toEqual([
+        { input: { serverId, workerId: 'wkr_1' }, path: 'worker.get' },
     ]);
-    const lists = invalidated(ops).map((entry) => entry.input);
-    for (const chatId of ['cht_launch', 'cht_task']) {
-        expect(lists).toContainEqual({ chatId, serverId });
-    }
-    expect(lists).toContainEqual({ serverId });
-    expect(invalidated(ops).filter((entry) => entry.path === 'task.get')).toEqual([]);
+    expect(invalidated(ops).map((entry) => entry.input)).toContainEqual({ serverId });
 });
 
 test('an update naming a Task refreshes exactly that Task, by key and by id', async () => {
@@ -76,7 +54,6 @@ test('an update naming a Task refreshes exactly that Task, by key and by id', as
 
     harness.emit(path, {
         chatId: 'cht_task',
-        messageId: 'msg_launch',
         serverId,
         taskId: 'tsk_12',
         workerId: 'caw_new',

@@ -34,7 +34,7 @@ export function WorkerCard({ children, work }: { children?: React.ReactNode; wor
                 <ActionCard.Mark>
                     <WorkerKeycap
                         environmentName={work.environmentName}
-                        provider={work.provider}
+                        provider={work.place}
                         size={40}
                     />
                 </ActionCard.Mark>

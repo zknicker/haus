@@ -32,23 +32,23 @@ public struct ActiveCloudAgentWork: Decodable, Identifiable, Sendable, Equatable
 }
 
 public enum ActiveCloudAgentWorkLocation: Hashable, Sendable {
-    case message(chatID: String, messageID: String)
+    case task(chatID: String, taskID: String)
 }
 
 extension ActiveCloudAgentWorkLocation: Decodable {
     private enum CodingKeys: String, CodingKey {
         case chatID = "chatId"
         case kind
-        case messageID = "messageId"
+        case taskID = "taskId"
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(String.self, forKey: .kind)
-        guard kind == "message" else { throw UnknownKind(kind: kind) }
-        self = .message(
+        guard kind == "task" else { throw UnknownKind(kind: kind) }
+        self = .task(
             chatID: try container.decode(String.self, forKey: .chatID),
-            messageID: try container.decode(String.self, forKey: .messageID)
+            taskID: try container.decode(String.self, forKey: .taskID)
         )
     }
 

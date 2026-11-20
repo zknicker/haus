@@ -42,7 +42,7 @@ export function toHappeningNowWork(
         chatLabel: conversationLabel(item, humans),
         id: item.worker.id,
         location: item.location,
-        provider: item.worker.provider,
+        provider: item.worker.place,
         ...liveStatus(item.worker, now),
         task: workTask(item),
         title: item.worker.title,

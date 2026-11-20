@@ -8,7 +8,10 @@ const minutesAgo = (minutes: number) => new Date(now - minutes * 60_000).toISOSt
 const line = (value: Worker) => workerStatusLine(value, { agentName: 'Blippy', now });
 
 /** A follow-up queued 3 minutes ago behind an earlier Run. */
-function followedUp(earlier: Parameters<typeof run>[0], overrides: Partial<Worker> = {}) {
+function followedUp(
+    earlier: Parameters<typeof run>[0],
+    overrides: Parameters<typeof work>[0] = {}
+) {
     return work({
         turns: [
             run({ createdAt: minutesAgo(3), turnId: 'car_two', status: 'queued' }),
@@ -112,7 +115,7 @@ test('a quiet live Run warns, ahead of the follow-up note', () => {
 });
 
 test('a requested stop shows until the Run settles', () => {
-    expect(line(work({ cancelRequestedAt: minutesAgo(2), updatedAt: minutesAgo(1) }))).toEqual({
+    expect(line(work({ stopRequestedAt: minutesAgo(2), updatedAt: minutesAgo(1) }))).toEqual({
         text: 'Stopping · requested 2m ago',
         tone: 'muted',
     });

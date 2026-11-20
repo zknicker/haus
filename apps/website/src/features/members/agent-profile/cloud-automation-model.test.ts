@@ -8,7 +8,7 @@ function row(overrides: Partial<WorkerAutomation> = {}): WorkerAutomation {
     return {
         computerHealth: 'healthy',
         conversationChatId: 'cht_one',
-        location: { kind: 'message', chatId: 'cht_one', messageId: 'msg_one' },
+        location: { chatId: 'cht_task', kind: 'task', taskId: 'tsk_one' },
         notification: 'waiting',
         worker: workerFixture({ updatedAt: new Date(now).toISOString() }),
         ...overrides,

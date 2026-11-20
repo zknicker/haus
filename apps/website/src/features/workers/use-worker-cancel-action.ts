@@ -3,7 +3,11 @@ import { toast } from '@heroui/react';
 import { useParams } from 'react-router-dom';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { useWorkerCancel } from '../../hooks/servers/use-worker.ts';
-import { canCancelWorker } from './worker-presentation.ts';
+import {
+    canCancelWorker,
+    newestWorkerTurn,
+    newestWorkerTurnStatus,
+} from './worker-presentation.ts';
 
 /**
  * The one cancel path, pressed from the work card's control band wherever the
@@ -21,9 +25,9 @@ export function useWorkerCancelAction(work: Worker) {
         canCancel:
             server !== undefined &&
             canCancelWorker({
-                cancelRequestedAt: work.cancelRequestedAt,
+                cancelRequestedAt: newestWorkerTurn(work)?.stopRequestedAt ?? null,
                 role: server.role,
-                status: work.status,
+                status: newestWorkerTurnStatus(work),
             }),
         isPending: cancel.isPending,
         requestCancel: () => {

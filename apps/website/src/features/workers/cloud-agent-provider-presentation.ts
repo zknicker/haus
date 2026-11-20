@@ -64,7 +64,9 @@ export function openInCloudAgentProviderLabel(provider: CloudAgentProvider): str
 }
 
 /** What a run carries that can open it in the provider. */
-export type CloudAgentProviderTarget = Pick<Worker, 'provider' | 'providerAgentId' | 'providerUrl'>;
+export type CloudAgentProviderTarget = Pick<Worker, 'providerAgentId' | 'providerUrl'> & {
+    provider: CloudAgentProvider;
+};
 
 /** The desktop shell can open the provider's app; every client can open its web page. */
 export function canOpenCloudAgentProvider(

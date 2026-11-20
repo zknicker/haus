@@ -13,10 +13,7 @@ export type WorkerTone = 'accent' | 'danger' | 'muted' | 'success' | 'warning';
 /** A live work that has not reported for this long reads as gone quiet. */
 export const workerStaleAfterMs = 10 * 60_000;
 
-export type WorkerPresentationInput = Pick<
-    Worker,
-    'activity' | 'cancelRequestedAt' | 'job' | 'turns' | 'status' | 'updatedAt'
->;
+export type WorkerPresentationInput = Pick<Worker, 'activity' | 'job' | 'turns' | 'updatedAt'>;
 
 export const workerJobLabels: Record<WorkerJobState, string> = {
     cancelled: 'Stopped',
@@ -39,6 +36,11 @@ export const workerTurnStatusLabels: Record<WorkerTurnStatus, string> = {
 
 export function newestWorkerTurn(work: { turns: readonly WorkerTurn[] }): WorkerTurn | null {
     return work.turns[0] ?? null;
+}
+
+/** The provider's status for the newest turn, which the card's lifecycle copy reads. */
+export function newestWorkerTurnStatus(work: { turns: readonly WorkerTurn[] }): WorkerTurnStatus {
+    return work.turns[0]?.status ?? 'queued';
 }
 
 /** A cancelled or expired job ended without failing, so it no longer asks for attention. */
@@ -105,11 +107,10 @@ export function workerJobText(job: Worker['job'], now: number): string {
 }
 
 /** Launching and stopping are concrete lifecycle stages, never generic working labels. */
-export function workerText(
-    work: Pick<Worker, 'job' | 'status' | 'createdAt' | 'cancelRequestedAt'>,
-    now: number
-): string {
-    if (!isTerminalWorkerTurnStatus(work.status) && work.cancelRequestedAt) {
+export function workerText(work: Pick<Worker, 'job' | 'turns' | 'createdAt'>, now: number): string {
+    const newest = newestWorkerTurn(work);
+    const status = newestWorkerTurnStatus(work);
+    if (!isTerminalWorkerTurnStatus(status) && newest?.stopRequestedAt) {
         return 'Stopping';
     }
     if (
@@ -119,7 +120,7 @@ export function workerText(
     ) {
         return 'Stopped';
     }
-    if (work.job.state === 'working' && work.status === 'queued' && !work.job.followUp) {
+    if (work.job.state === 'working' && status === 'queued' && !work.job.followUp) {
         const elapsed = elapsedSince(work.createdAt, now);
         return elapsed === null ? 'Starting' : `Starting · ${elapsed}`;
     }
@@ -134,10 +135,10 @@ export function workerText(
  * reader cares that nothing has been reported, not why.
  */
 export function quietFor(
-    work: Pick<WorkerPresentationInput, 'status' | 'updatedAt'>,
+    work: Pick<WorkerPresentationInput, 'turns' | 'updatedAt'>,
     now: number
 ): null | number {
-    if (isTerminalWorkerTurnStatus(work.status)) {
+    if (isTerminalWorkerTurnStatus(newestWorkerTurnStatus(work))) {
         return null;
     }
     const updatedAt = Date.parse(work.updatedAt);

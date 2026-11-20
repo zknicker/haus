@@ -40,13 +40,10 @@ export function applyWorkerUpdate(
     queryClient: QueryClient,
     event: WorkerUpdatedEvent
 ) {
-    const { chatId, messageId, serverId, taskId } = event;
-    if (taskId) {
-        refreshTaskReads(coalescer, queryClient, { serverId, taskId });
-    }
-    coalescer.noteMessageAnnotated({ chatId, messageId, serverId });
+    const { serverId, taskId, workerId } = event;
+    refreshTaskReads(coalescer, queryClient, { serverId, taskId });
     coalescer.invalidate({
-        queryKey: getQueryKey(hausTrpc.worker.listForChat, { chatId, serverId }),
+        queryKey: getQueryKey(hausTrpc.worker.get, { serverId, workerId }),
     });
     invalidateActiveWork(coalescer, serverId);
 }
