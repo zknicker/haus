@@ -53,15 +53,18 @@ interface PlannedWrite {
     readonly artifactId: string;
     readonly base: string | null;
     readonly file: ManagedSkillFile;
+    readonly pathKey: string;
     readonly revision: typeof revisions.$inferSelect;
 }
 
 type SkillPlan =
     | { readonly kind: 'settled'; readonly outcome: SkillSeedOutcome }
     | {
+          readonly heldFingerprint: string | null;
           readonly kind: 'upload';
           readonly outcome: 'updated' | 'written';
           readonly record: SkillRecord;
+          readonly root: string;
           readonly writes: readonly PlannedWrite[];
       };
 
@@ -165,9 +168,16 @@ async function planSkill(tx: HausDatabase, agent: AgentRef, skill: ManagedSkill)
                 title: artifactPathBasename(artifact.path),
             }
         );
-        writes.push({ artifactId: artifact.id, base: artifact.currentRevisionId, file, revision });
+        writes.push({
+            artifactId: artifact.id,
+            base: artifact.currentRevisionId,
+            file,
+            pathKey: artifact.pathKey,
+            revision,
+        });
     }
     const plan: SkillPlan = {
+        heldFingerprint: held.fingerprint,
         kind: 'upload',
         outcome: step === 'write' ? 'written' : 'updated',
         record: {
@@ -175,6 +185,7 @@ async function planSkill(tx: HausDatabase, agent: AgentRef, skill: ManagedSkill)
             release: skill.fingerprint,
             seeded,
         },
+        root,
         writes,
     };
     return plan;
@@ -188,6 +199,10 @@ async function landSkill(
     uploaded: readonly { sha256: string; size: number }[]
 ) {
     await lockLiveServer(tx, agent.serverId);
+    const held = await readHeldSkill(tx, agent.serverId, plan.root);
+    if (held.fingerprint !== plan.heldFingerprint) {
+        return false;
+    }
     const rows = await tx
         .select()
         .from(artifacts)
@@ -201,7 +216,11 @@ async function landSkill(
     const ready = plan.writes.flatMap((write, index) => {
         const artifact = byId.get(write.artifactId);
         const bytes = uploaded[index];
-        return artifact && bytes && !artifact.deletedAt && artifact.currentRevisionId === write.base
+        return artifact &&
+            bytes &&
+            !artifact.deletedAt &&
+            artifact.pathKey === write.pathKey &&
+            artifact.currentRevisionId === write.base
             ? [{ artifact, bytes, write }]
             : [];
     });

@@ -5,6 +5,8 @@ import {
     factoryManagedSkillFiles,
     visualsSkillFiles,
 } from '@haus/agent-workspace';
+import { moveArtifacts } from '../src/artifacts/move.ts';
+import { resolveRunnerCredential } from '../src/computers/runner-credentials.ts';
 import { factoryRelease, managedSkillRelease } from '../src/managed-skills/release.ts';
 import { seedManagedSkills } from '../src/managed-skills/seed.ts';
 import { seedStaleManagedSkills } from '../src/managed-skills/seeder.ts';
@@ -17,6 +19,12 @@ const skillFileCount = Object.keys(visualsSkillFiles).length + 1;
 const nextVisuals = `${defaultVisualsSkill}\nRe-read the charts module before every chart.\n`;
 const nextRelease = managedSkillRelease({
     visuals: { ...factoryManagedSkillFiles.visuals, 'SKILL.md': nextVisuals },
+});
+const thirdRelease = managedSkillRelease({
+    visuals: {
+        ...factoryManagedSkillFiles.visuals,
+        'SKILL.md': `${nextVisuals}Label every axis.\n`,
+    },
 });
 let connection: HausConnection;
 
@@ -127,6 +135,38 @@ test('two seeders racing on one Agent land a single revision', async () => {
         where a.path = 'agents/cove/skills/visuals/SKILL.md' and r.state = 'ready'
     `) as { count: number }[];
     expect(ready?.count).toBe(2);
+});
+
+test('a skill file its Agent moves during the upload keeps its place and gets no seed', async () => {
+    const before = 'agents/cove/skills/visuals/SKILL.md';
+    const after = 'agents/cove/notes/visuals-skill.md';
+    const held = drive.storage.holdNextUpload();
+    const seeding = seed(fixture.coveAgentId, thirdRelease);
+    await held.started;
+    const { token } = await fixture.mintRunner(
+        'run_move_skill',
+        fixture.coveAgentId,
+        fixture.channelId,
+        false
+    );
+    const runner = await resolveRunnerCredential(connection.db, token);
+    if (!runner) {
+        throw new Error('The Cove run credential did not resolve.');
+    }
+    await moveArtifacts(connection.db, { kind: 'agent', runner }, 'http://haus.test', {
+        from: before,
+        to: after,
+    });
+    held.release();
+
+    expect(await seeding).toEqual({ visuals: 'raced' });
+    const [moved] = (await fixture.harness.sql`
+        select r.revision_number, r.sha256 from artifacts a
+        join artifact_revisions r on r.id = a.current_revision_id
+        where a.server_id = ${fixture.serverId} and a.path = ${after} and a.deleted_at is null
+    `) as { revision_number: number; sha256: string }[];
+    expect(moved).toEqual({ revision_number: 2, sha256: sha256(nextVisuals) });
+    expect(await headRevisionId(before)).toBe('');
 });
 
 test('a full reset seeds the factory skills fresh, with no notice', async () => {
