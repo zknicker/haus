@@ -93,6 +93,8 @@ export function toolCategory(toolName: string, input: unknown) {
     const categories: Readonly<Record<string, AgentActivityCategory>> = {
         WebFetch: 'browsing',
         execute: 'using_tool',
+        web_fetch: 'browsing',
+        web_search: 'searching_web',
         webSearch: 'searching_web',
     };
     if (toolName === compactionToolName) {

@@ -84,7 +84,7 @@ async function restartRunner(server: ServerStandIn, dataDir: string) {
     const link: RunnerLink = { send: (frame) => attached?.link.send(frame) };
     await ledger.recover();
     const turnHost = createTurnHost({
-        config: { ...noLogins(dataDir), maxWarm: 1 },
+        config: { ...noLogins(dataDir), maxWarm: 1, webSearch: [] },
         ledger,
         link,
         log: () => undefined,

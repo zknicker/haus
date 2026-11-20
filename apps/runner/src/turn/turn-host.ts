@@ -21,7 +21,7 @@ interface ActiveRun {
 }
 
 export function createTurnHost(input: {
-    config: LoginConfig & Pick<RunnerConfig, 'maxWarm'>;
+    config: LoginConfig & Pick<RunnerConfig, 'maxWarm' | 'webSearch'>;
     ledger: DispatchLedger;
     link: RunnerLink;
     log?: (line: string) => void;

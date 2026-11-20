@@ -4,6 +4,7 @@ import type { ConversationView, RunFailure } from '@earendil-works/pi-durable';
 import type { TurnEvent } from '../turn/turn-event.ts';
 import { PiTurnEvents } from './pi-events.ts';
 import { PiRunFailedError, runFailureEvent } from './pi-failures.ts';
+import { HostedSearchLog } from './pi-hosted-search.ts';
 
 async function capturedViews() {
     const text = await Bun.file(
@@ -29,6 +30,7 @@ function replay(views: readonly ConversationView[]) {
     const derived = new PiTurnEvents(initial as ConversationView, {
         invocations: new Map([['call_1', 'completed']]),
         newId: () => `block_${(next += 1)}`,
+        searches: new HostedSearchLog(),
     });
     const events: TurnEvent[] = [];
     const failures: unknown[] = [];

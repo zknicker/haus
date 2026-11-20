@@ -10,6 +10,7 @@ describe('runner config', () => {
             HAUS_RUNNER_MAX_WARM: '',
             HAUS_RUNNER_OPENROUTER_API_KEY: '',
             HAUS_RUNNER_TOKEN: 'runner-token-0123456789abcdef0123456789',
+            HAUS_RUNNER_WEB_SEARCH: '',
             HAUS_RUNNER_XAI_API_KEY: 'xai-key',
             HAUS_SERVER_URL: 'http://host.docker.internal:18791/',
         };
@@ -22,9 +23,24 @@ describe('runner config', () => {
             openrouterApiKey: null,
             runnerToken: 'runner-token-0123456789abcdef0123456789',
             serverUrl: 'http://host.docker.internal:18791',
+            webSearch: [],
             xaiApiKey: 'xai-key',
         });
         expect(parseRunnerDataDir(environment)).toBe('/data');
+    });
+
+    test('web search names the providers it is on for and refuses an unknown one', () => {
+        const base = {
+            HAUS_RUNNER_TOKEN: 'runner-token-0123456789abcdef0123456789',
+            HAUS_SERVER_URL: 'http://localhost:1',
+        };
+
+        expect(
+            parseRunnerConfig({ ...base, HAUS_RUNNER_WEB_SEARCH: 'openai-codex, google' }).webSearch
+        ).toEqual(['openai-codex', 'google']);
+        expect(() => parseRunnerConfig({ ...base, HAUS_RUNNER_WEB_SEARCH: 'brave' })).toThrow(
+            'Runner environment is invalid: HAUS_RUNNER_WEB_SEARCH.0.'
+        );
     });
 
     test('an empty runner token is still refused', () => {

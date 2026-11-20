@@ -14,6 +14,7 @@ import type { SteerResult } from '../turn/runtime-driver.ts';
 import { isFatalTurnEvent, type TurnEvent } from '../turn/turn-event.ts';
 import { PiTurnEvents } from './pi-events.ts';
 import { PiSessionEndedError, runFailureEvent } from './pi-failures.ts';
+import type { HostedSearchLog } from './pi-hosted-search.ts';
 import { PiTurnSteers } from './pi-turn-steers.ts';
 
 const context = BACKGROUND_CONTEXT;
@@ -23,6 +24,7 @@ export interface PiTurnDeps {
     readonly invocations: ReadonlyMap<string, InvocationOutcome>;
     readonly newId: () => string;
     readonly root: Conversation;
+    readonly searches: HostedSearchLog;
     readonly signal: AbortSignal;
 }
 

@@ -31,6 +31,7 @@ export {
     runnerMachineFacts,
     runnerRuntimeVersions,
     runnerToolDescriptions,
+    webSearchNotConfigured,
 } from './runner-text.ts';
 export { renderSkillListing, type SkillListingEntry } from './skill-listing.ts';
 export {

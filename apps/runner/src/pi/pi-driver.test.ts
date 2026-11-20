@@ -80,6 +80,8 @@ describe('Pi Durable driver', () => {
             'bash',
             'str_replace_based_edit_tool',
             'execute',
+            'web_fetch',
+            'web_search',
         ]);
         expect(await session.detach()).toBe(session.sessionId);
         expect(harness.warm).toBe(1);
@@ -190,7 +192,7 @@ describe('Pi Durable driver', () => {
         ).toEqual(['Sleep.', 'Next.']);
     });
 
-    test('GPT models get shell, apply_patch, and view_image', async () => {
+    test('GPT models get shell, apply_patch, view_image, and the web tools', async () => {
         const { run } = await startedRun();
         const seen: TranscriptContext[] = [];
         const harness = fauxHarness([
@@ -211,6 +213,8 @@ describe('Pi Durable driver', () => {
             'apply_patch',
             'view_image',
             'execute',
+            'web_fetch',
+            'web_search',
         ]);
     });
 });

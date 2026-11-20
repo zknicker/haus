@@ -14,7 +14,7 @@ export function fauxHarness(responses: FauxResponseStep[]) {
     faux.setResponses(responses);
     const models = createModels();
     models.setProvider(faux.provider);
-    const harness = createPiHarness({ log: () => undefined, maxWarm: 2, models });
+    const harness = createPiHarness({ log: () => undefined, maxWarm: 2, models, webSearch: [] });
     cleanups.push(() => harness.close());
     return harness;
 }
