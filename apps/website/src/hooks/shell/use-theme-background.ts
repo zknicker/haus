@@ -13,6 +13,7 @@ import { useColorTheme } from './use-color-theme.ts';
 import { getCustomThemes, updateCustomTheme, useCustomThemes } from './use-custom-themes.ts';
 
 let presetBackgrounds: PresetBackgrounds = readStoredPresetBackgrounds(safeLocalStorage());
+let preview: { readonly background: ThemeBackground; readonly theme: ColorTheme } | null = null;
 const listeners = new Set<() => void>();
 
 export function useActiveThemeBackground() {
@@ -25,8 +26,11 @@ export function useThemeBackground(theme: ColorTheme) {
         getPresetBackgrounds,
         getPresetBackgrounds
     );
+    const live = React.useSyncExternalStore(subscribe, getPreview, getPreview);
     const customThemes = useCustomThemes();
-    return resolveBackground(theme, overrides, customThemes);
+    return live?.theme === theme
+        ? live.background
+        : resolveBackground(theme, overrides, customThemes);
 }
 
 export function getThemeBackground(theme: ColorTheme) {
@@ -49,9 +53,16 @@ export function usePresetBackgroundsSync() {
     }, []);
 }
 
+export function previewThemeBackground(theme: ColorTheme, background: ThemeBackground) {
+    preview = { background, theme };
+    notify();
+}
+
 export function saveThemeBackground(theme: ColorTheme, background: ThemeBackground) {
+    preview = null;
     if (isCustomTheme(theme)) {
         updateCustomTheme(theme, (current) => ({ ...current, background }));
+        notify();
     } else {
         publish({ ...presetBackgrounds, [theme]: background });
     }
@@ -83,6 +94,14 @@ function publish(
 ) {
     presetBackgrounds = next;
     writeStoredPresetBackgrounds(storage, next);
+    notify();
+}
+
+function getPreview() {
+    return preview;
+}
+
+function notify() {
     for (const listener of listeners) {
         listener();
     }

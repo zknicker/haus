@@ -126,7 +126,7 @@ six **adjustments**. The Background section edits the selected theme's:
 - Sliders: **Brightness** (50 to 150%), **Blur** (0 to 100%, up to 32px), **Image opacity**,
   **Bottom fade** (a mask that fades the layer into the page toward the bottom), **Overlay
   opacity** (a wash of the theme's background color), and **Input opacity** (the composer
-  surface, 20 to 100%).
+  surface, 20 to 100%). A drag previews live and saves once, on release.
 - **Reset to defaults** restores the effect and sliders and keeps the source.
 
 The patterns are drawn in CSS from the live tokens (`features/home-background/home-background.css`),

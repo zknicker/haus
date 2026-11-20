@@ -1,6 +1,9 @@
 import { CellSlider, ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Label, ListBox, Select } from '@heroui/react';
-import { saveThemeBackground } from '../../../hooks/shell/use-theme-background.ts';
+import {
+    previewThemeBackground,
+    saveThemeBackground,
+} from '../../../hooks/shell/use-theme-background.ts';
 import type { ColorTheme } from '../../../lib/color-theme.ts';
 import {
     backgroundAdjustments,
@@ -70,6 +73,14 @@ export function BackgroundAdjustments({
                         maxValue={adjustment.max}
                         minValue={adjustment.min}
                         onChange={(value) => {
+                            if (typeof value === 'number') {
+                                previewThemeBackground(
+                                    theme,
+                                    withAdjustment(background, adjustment.id, value)
+                                );
+                            }
+                        }}
+                        onChangeEnd={(value) => {
                             if (typeof value === 'number') {
                                 saveThemeBackground(
                                     theme,
