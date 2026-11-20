@@ -8,6 +8,7 @@ import {
     Edit02Icon,
     PaintBrush03Icon,
     UserCircleIcon,
+    UserMultipleIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { ChatContextSurfaceItems } from './chat-surface-items.tsx';
@@ -35,6 +36,14 @@ export function ChannelContextMenuItems({
             <ContextMenu.Item id="appearance" isDisabled={archived} textValue="Icon and color">
                 <Icon aria-hidden="true" icon={PaintBrush03Icon} size={16} />
                 <Label>Icon &amp; color…</Label>
+            </ContextMenu.Item>
+            <ContextMenu.Item
+                id="captains"
+                isDisabled={archived}
+                textValue="Captains in this Project"
+            >
+                <Icon aria-hidden="true" icon={UserMultipleIcon} size={16} />
+                <Label>Captains in this Project…</Label>
             </ContextMenu.Item>
             {actions.filesAvailable ? (
                 <>

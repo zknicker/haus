@@ -14,9 +14,13 @@ import * as React from 'react';
 import { useChannelUpdate } from '../../hooks/servers/use-channel-update.ts';
 import { ChannelDialogError } from './channel-dialog-error.tsx';
 import { channelHandleIssue } from './channel-handle.ts';
+import { ProjectKeyField, useProjectKeyDraft } from './project-key-field.tsx';
+import { projectKeyRefusal } from './project-key.ts';
 
 export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: () => void }) {
     const updateChannel = useChannelUpdate();
+    const keyDraft = useProjectKeyDraft(chat);
+    const keyRefusal = projectKeyRefusal(updateChannel.error);
     const currentName = chat.name ?? '';
     const currentDescription = chat.description ?? '';
     const [name, setName] = React.useState(currentName);
@@ -24,10 +28,14 @@ export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: (
     const trimmedName = name.trim();
     const trimmedDescription = description.trim();
     const handleIssue = channelHandleIssue(name);
-    const changed = trimmedName !== currentName || trimmedDescription !== currentDescription;
+    const changed =
+        trimmedName !== currentName ||
+        trimmedDescription !== currentDescription ||
+        keyDraft.changed;
     const canSubmit =
         trimmedName.length > 0 &&
         !handleIssue &&
+        keyDraft.savable &&
         trimmedDescription.length <= channelDescriptionMaxLength &&
         changed &&
         !updateChannel.isPending;
@@ -43,6 +51,7 @@ export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: (
             await updateChannel.mutateAsync({
                 chatId: chat.id,
                 description: trimmedDescription,
+                key: keyDraft.changed ? keyDraft.key : undefined,
                 name: trimmedName,
                 serverId: chat.serverId,
             });
@@ -83,6 +92,15 @@ export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: (
                                 <Input autoFocus={!chat.isAll} placeholder="planning" type="text" />
                                 {handleIssue ? <FieldError>{handleIssue}</FieldError> : null}
                             </TextField>
+                            <ProjectKeyField
+                                draft={keyDraft}
+                                isPending={updateChannel.isPending}
+                                onChange={(value) => {
+                                    updateChannel.reset();
+                                    keyDraft.setKey(value);
+                                }}
+                                refusal={keyRefusal}
+                            />
                             <TextField
                                 fullWidth
                                 isDisabled={updateChannel.isPending}
@@ -98,7 +116,9 @@ export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: (
                                     rows={3}
                                 />
                             </TextField>
-                            <ChannelDialogError message={updateChannel.error?.message ?? null} />
+                            <ChannelDialogError
+                                message={keyRefusal ? null : (updateChannel.error?.message ?? null)}
+                            />
                         </Form>
                     </Modal.Body>
                     <Modal.Footer>

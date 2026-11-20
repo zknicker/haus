@@ -300,8 +300,13 @@ and [Agent Inbox](../../specs/inbox.md).
   open as Command-clicking the row), and Attachments appears there only on desktop, where
   Attachments opens as a page. Editing a channel is two separate
   decisions, each with its own dialog: Name & description, and Icon & color
-  (both save through `project.update`). The Agents dialog is gone until Project
-  settings rebuild it (specs/projects.md). The description (at most 500
+  (both save through `project.update`). Name & description also shows the
+  Project's key, editable until a Task carries it; a taken or fixed key is
+  refused on the field. Captains in this Project lists the Agents whose home
+  it is: Add moves another Agent's home here (each choice names the Project it
+  lives in now), and Send to #haus moves one home to the Haus project, both
+  through `agent.setHome`. An Agent's profile hub carries the same choice as
+  its Home Project row. The description (at most 500
   characters, blank clears it) tells people and Agents what the channel is for;
   Agents read it in `haus server info` and `haus channel info`, and the iPhone
   shows it read-only in the channel's details sheet. `#haus`, the Haus project, keeps its
@@ -311,7 +316,9 @@ and [Agent Inbox](../../specs/inbox.md).
   It calls `project.create`, so the channel is a Project with a key the Server
   allocates, and it starts with no Agents. Agents cannot create channels.
   Archive project is an Owner/Admin action for a regular channel. It hides the
-  channel from the active sidebar without deleting history. Settings carries an
+  channel from the active sidebar without deleting history. The Server refuses
+  to archive or delete a Project that is still some Agent's home; the App then
+  names those Agents and offers to move them to #haus and continue. Settings carries an
   Archived chats entry that opens the archived channel view (`/s/:slug/archived`), where
   a channel can be reopened or restored. An open archived channel shows an
   Archived badge and a restore bar in place of the composer. Its history,
@@ -340,8 +347,8 @@ and [Agent Inbox](../../specs/inbox.md).
   There is no separate pinned-chat state.
   Right-clicking a sidebar chat or its topbar name exposes the same contextual
   actions without replacing the ordinary click target. Channel menus offer the
-  Name & description, Icon & color, and participant dialogs (color is chosen only in Icon &
-  color); DM menus link to the Agent profile.
+  Name & description, Icon & color, and Captains in this Project dialogs (color is chosen
+  only in Icon & color); DM menus link to the Agent profile.
 * **Message context.** Right-clicking a durable message offers copy, reply, and quick
   reactions. Right-clicking a link in a message also offers Copy link, which copies its
   destination URL. Agent messages additionally open Turn Details.

@@ -6,6 +6,7 @@ import {
     Delete02Icon,
     Edit02Icon,
     PaintBrush03Icon,
+    UserMultipleIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
 import { Icon } from '../../../components/ui/icon.tsx';
@@ -41,6 +42,14 @@ export function ChannelActionsMenu({
                 >
                     <Icon aria-hidden="true" icon={PaintBrush03Icon} size={16} />
                     <Label>Icon &amp; color</Label>
+                </Dropdown.Item>
+                <Dropdown.Item
+                    id="captains"
+                    isDisabled={Boolean(chat.archivedAt)}
+                    textValue="Captains in this Project"
+                >
+                    <Icon aria-hidden="true" icon={UserMultipleIcon} size={16} />
+                    <Label>Captains in this Project…</Label>
                 </Dropdown.Item>
             </Dropdown.Section>
             <Separator />
