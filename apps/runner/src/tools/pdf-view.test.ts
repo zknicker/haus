@@ -1,28 +1,17 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { readFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { BACKGROUND_CONTEXT } from '@earendil-works/chord/context';
 import { HausToolBinding } from '../claude/haus-tools.ts';
 import { PiToolBinding } from '../pi/pi-tools.ts';
 import { drainCleanups, live, startedRun } from '../runner-test-server.ts';
+import { answerWithPdf, imageFacts } from './pdf-view.test-support.ts';
 
 afterEach(drainCleanups);
 
-const fixture = join(
-    dirname(fileURLToPath(import.meta.resolve('@haus/computer/package.json'))),
-    'src/invocations/fixtures/two-pages.pdf'
-);
-const pagedText = [
-    '     1\t[Page 1 of 2]',
-    '     2\tHaus fixture page one: amber otter 417',
-    '     3\t',
-    '     4\t[Page 2 of 2]',
-    '     5\tSecond page: copper heron 902',
-].join('\n');
+const scannedPage = { height: 1568, mimeType: 'image/jpeg', type: 'image', width: 1211 } as const;
+const figurePage = { height: 1568, mimeType: 'image/png', type: 'image', width: 1211 } as const;
 
 describe('view of a PDF on the runner', () => {
-    test('a Pi model gets the extracted text with page markers', async () => {
+    test('a Pi model gets the text of every page and images of exactly the scanned and figure pages', async () => {
         const { run, server } = await startedRun();
         const binding = new PiToolBinding();
         binding.bind(run.tools);
@@ -30,15 +19,29 @@ describe('view of a PDF on the runner', () => {
         const viewed = binding.run('call_pdf', BACKGROUND_CONTEXT, (tools, signal) =>
             tools.edit('call_pdf', { command: 'view', path: 'report.pdf' }, signal)
         );
-        await answerWithPdf(server, 'call_pdf');
+        await answerWithPdf(server, 'call_pdf', 'text-scan-figure.pdf');
+        const { isError, output } = await viewed;
 
-        expect(await viewed).toEqual({
-            isError: false,
-            output: [{ text: pagedText, type: 'text' }],
-        });
+        expect(isError).toBe(false);
+        expect(output.map(imageFacts)).toEqual([
+            {
+                text: [
+                    '[Page 1 of 3]',
+                    'Quarterly report: amber otter 417',
+                    'Revenue grew in every region this quarter.',
+                    '',
+                    '[Page 2 of 3]',
+                    '(No text on this page.)',
+                ].join('\n'),
+                type: 'text',
+            },
+            scannedPage,
+            { text: '[Page 3 of 3]\nFigure 1: copper heron sales by month', type: 'text' },
+            figurePage,
+        ]);
     });
 
-    test('a Claude model gets the same text in its MCP tool result', async () => {
+    test('a Claude model gets the pages a view_range selects, each with its image', async () => {
         const { run, server } = await startedRun();
         const binding = new HausToolBinding();
         binding.bind(run.tools);
@@ -46,17 +49,36 @@ describe('view of a PDF on the runner', () => {
         const viewed = binding.run(
             { _meta: { 'claudecode/toolUseId': 'toolu_pdf' }, signal: live() },
             (tools, id, signal) =>
-                tools.edit(id, { command: 'view', path: 'report.pdf', view_range: [4, 5] }, signal)
+                tools.edit(id, { command: 'view', path: 'report.pdf', view_range: [2, 2] }, signal)
         );
-        await answerWithPdf(server, 'toolu_pdf');
+        await answerWithPdf(server, 'toolu_pdf', 'text-scan-figure.pdf');
+        const { content } = await viewed;
+
+        expect(content.map(imageFacts)).toEqual([
+            { text: '[Page 2 of 3]\n(No text on this page.)', type: 'text' },
+            scannedPage,
+        ]);
+    });
+
+    test('a view_range past the last page names the pages a PDF has', async () => {
+        const { run, server } = await startedRun();
+
+        const viewed = run.tools.edit(
+            'toolu_range',
+            { command: 'view', path: 'report.pdf', view_range: [3, 4] },
+            live()
+        );
+        await answerWithPdf(server, 'toolu_range', 'text-scan-figure.pdf');
 
         expect(await viewed).toEqual({
             content: [
                 {
-                    text: '     4\t[Page 2 of 2]\n     5\tSecond page: copper heron 902',
+                    text: 'Invalid view_range [3, 4]: on a PDF it selects pages, from 1 to 3, and an end of -1 runs to the last page.',
                     type: 'text',
                 },
             ],
+            invocation: 'completed',
+            isError: true,
         });
     });
 
@@ -89,24 +111,3 @@ describe('view of a PDF on the runner', () => {
         });
     });
 });
-
-async function answerWithPdf(
-    server: Awaited<ReturnType<typeof startedRun>>['server'],
-    toolCallId: string
-) {
-    expect(await server.frame('invocation-request')).toMatchObject({
-        operation: { edit: { command: 'view', path: 'report.pdf' }, kind: 'edit' },
-        toolCallId,
-    });
-    server.answer({
-        outcome: 'completed',
-        output: {
-            base64: (await readFile(fixture)).toString('base64'),
-            kind: 'inline',
-            mediaType: 'application/pdf',
-        },
-        runId: 'run_1',
-        seq: 0,
-        toolCallId,
-    });
-}

@@ -27,10 +27,11 @@ export {
 export { formatMemoryBlock, memoryCharacterCap, memoryFileName } from './memory-block.ts';
 export { formatRulesBlock, type RulesChange } from './rules-block.ts';
 export {
-    composePdfText,
+    composePdfPage,
     composePdfTooLarge,
     composePdfUnreadable,
     composeUnknownToolCalls,
+    pdfViewNotes,
     runnerMachineFacts,
     runnerRuntimeVersions,
     runnerToolDescriptions,

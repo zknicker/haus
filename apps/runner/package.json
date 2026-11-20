@@ -21,6 +21,7 @@
         "@haus/api": "workspace:*",
         "@haus/computer": "workspace:*",
         "@haus/mcp-executor": "workspace:*",
+        "@napi-rs/canvas": "1.1.0",
         "sh-syntax": "0.8.7",
         "unpdf": "2.1.0",
         "zod": "4.6.6"
