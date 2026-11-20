@@ -97,11 +97,8 @@ export function AgentHoverCardContent({
             : null;
     const modelChange = resolveAgentHoverModelChange(value);
     const desiredExecution = agentExecutionLabels(value, computer?.reportedInventory ?? null);
-    const attention = agentHoverAttention(value, computer ?? null, connections.data?.connections);
-    const banner =
-        attention?.kind === 'wake-pause' ? (
-            <AgentWakePauseBanner wakePause={attention.wakePause} />
-        ) : null;
+    const attention = agentHoverAttention(value, computer ?? null, connections.data);
+    const banner = attention.banner ? <AgentWakePauseBanner wakePause={attention.banner} /> : null;
 
     const identity = (
         <ReferencePreviewHeader
@@ -138,7 +135,7 @@ export function AgentHoverCardContent({
                     {effectiveExecution.kind === 'unavailable' ? effectiveExecution.label : null}
                 </span>
             )}
-            <AgentAttentionLine agent={value} attention={attention} />
+            <AgentAttentionLine agent={value} line={attention.line} />
             {modelChange ? (
                 <p className="text-muted text-xs">
                     Switching to {desiredExecution.runtime} · {desiredExecution.model} ·{' '}

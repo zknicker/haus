@@ -127,6 +127,10 @@ connection, or with one the runner doesn't hold, fails before any model call as 
   models that Devices report.
 - On the Agent profile, a Connection select sits beside the model. A failed connection shows on
   the profile with "Reconnect in Settings → Models".
+- `modelConnections.list` carries the Server's `agentLoop` (`HAUS_AGENT_LOOP`). The profile and
+  hover card warn about a missing or failed connection only when it is `runner`, since an Agent
+  on its Computer signs in there. The warning shows beside a wake pause, never instead of it, so
+  Restart stays in reach.
 
 ## Plan capacity
 

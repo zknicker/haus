@@ -1,4 +1,9 @@
-import { type Agent, type ModelConnection, modelProviderFor } from '@haus/api';
+import {
+    type Agent,
+    type ModelConnection,
+    type ModelConnectionsRead,
+    modelProviderFor,
+} from '@haus/api';
 import { modelProviderNames } from '../settings/models/connections/model-connection-model.ts';
 
 type AgentConnectionFields = Pick<Agent, 'desiredModelId' | 'modelConnectionId'>;
@@ -28,11 +33,14 @@ export function agentConnectionChoice(
 
 export function agentConnectionIssue(
     agent: AgentConnectionFields,
-    connections: readonly ModelConnection[]
+    read: Pick<ModelConnectionsRead, 'agentLoop' | 'connections'>
 ) {
+    if (read.agentLoop !== 'runner') {
+        return null;
+    }
     const provider = modelProviderFor(agent.desiredModelId);
     const providerName = modelProviderNames[provider];
-    const options = providerConnections(provider, connections);
+    const options = providerConnections(provider, read.connections);
     const resolved =
         options.find((connection) => connection.id === agent.modelConnectionId) ?? options[0];
     if (!resolved) {

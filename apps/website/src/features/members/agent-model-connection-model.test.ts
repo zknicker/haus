@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import type { ModelConnection } from '@haus/api';
 import { testConnection } from '../settings/models/connections/model-connection.fixture.ts';
 import {
     agentConnectionChoice,
@@ -65,13 +66,13 @@ test('the issue is the connection the Agent actually runs on, only when it faile
     expect(
         agentConnectionIssue(
             { desiredModelId: 'claude-sonnet-4-5', modelConnectionId: 'mcn_side' },
-            withFailure
+            onRunner(withFailure)
         )
     ).toEqual({ connection: failedSide, kind: 'failed', providerName: 'Claude' });
     expect(
         agentConnectionIssue(
             { desiredModelId: 'claude-sonnet-4-5', modelConnectionId: null },
-            withFailure
+            onRunner(withFailure)
         )
     ).toBeNull();
 });
@@ -85,13 +86,16 @@ test("removing the Agent's only connection for its provider warns that none is l
         provider: 'xai',
         webSearch: true,
     });
-    expect(agentConnectionIssue(grok, [claudeTeam, superGrok])).toBeNull();
-    expect(agentConnectionIssue(grok, [claudeTeam])).toEqual({
+    expect(agentConnectionIssue(grok, onRunner([claudeTeam, superGrok]))).toBeNull();
+    expect(agentConnectionIssue(grok, onRunner([claudeTeam]))).toEqual({
         kind: 'missing',
         providerName: 'xAI',
     });
     expect(
-        agentConnectionIssue({ desiredModelId: 'gemini-2.5-pro', modelConnectionId: null }, [])
+        agentConnectionIssue(
+            { desiredModelId: 'gemini-2.5-pro', modelConnectionId: null },
+            onRunner([])
+        )
     ).toEqual({ kind: 'missing', providerName: 'Gemini' });
 });
 
@@ -99,19 +103,38 @@ test("an Agent whose own connection is gone runs on the provider's default witho
     expect(
         agentConnectionIssue(
             { desiredModelId: 'claude-sonnet-4-5', modelConnectionId: 'mcn_side' },
-            [claudeTeam]
+            onRunner([claudeTeam])
         )
     ).toBeNull();
     const failedTeam = { ...claudeTeam, status: 'failed' as const, statusDetail: null };
     expect(
         agentConnectionIssue(
             { desiredModelId: 'claude-sonnet-4-5', modelConnectionId: 'mcn_side' },
-            [failedTeam]
+            onRunner([failedTeam])
         )
     ).toEqual({ connection: failedTeam, kind: 'failed', providerName: 'Claude' });
+});
+
+test('an Agent on its Computer never has a connection issue', () => {
+    const failedTeam = { ...claudeTeam, status: 'failed' as const, statusDetail: null };
+    const claudeAgent = { desiredModelId: 'claude-sonnet-4-5', modelConnectionId: null };
+    expect(
+        agentConnectionIssue(claudeAgent, { agentLoop: 'computer', connections: [] })
+    ).toBeNull();
+    expect(
+        agentConnectionIssue(claudeAgent, { agentLoop: 'computer', connections: [failedTeam] })
+    ).toBeNull();
+    expect(agentConnectionIssue(claudeAgent, onRunner([]))).toEqual({
+        kind: 'missing',
+        providerName: 'Claude',
+    });
 });
 
 test('the Default key saves as no choice', () => {
     expect(connectionIdForKey('default')).toBeNull();
     expect(connectionIdForKey('mcn_side')).toBe('mcn_side');
 });
+
+function onRunner(connections: ModelConnection[]) {
+    return { agentLoop: 'runner' as const, connections };
+}

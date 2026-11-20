@@ -10,10 +10,11 @@ import { type AgentConnectionIssue, agentConnectionIssue } from './agent-model-c
 import { AgentWakePauseAlert } from './agent-wake-pause-alert.tsx';
 
 /**
- * What stands between the Agent and its next turn, one Alert at a time. A
- * runtime sign-in issue, then a refused or missing model connection, outrank
- * a wake pause: each names the concrete fix, and repeated sign-in failures
- * are usually why the Agent paused.
+ * What stands between the Agent and its next turn. A runtime sign-in issue
+ * outranks a wake pause: it names the concrete fix, and repeated sign-in
+ * failures are usually why the Agent paused. A refused or missing model
+ * connection, which only an Agent on the runner has, shows beside the wake
+ * pause so Restart stays in reach.
  */
 export function AgentRuntimeIssue({ agent, canRestart }: { agent: Agent; canRestart: boolean }) {
     const computers = useComputers(agent.serverId);
@@ -21,20 +22,24 @@ export function AgentRuntimeIssue({ agent, canRestart }: { agent: Agent; canRest
     const { slug } = useParams();
     const computer = computers.data?.find(({ id }) => id === agent.computerId);
     const issue = agentRuntimeIssue(agent, computer?.reportedInventory ?? null);
-    const connectionIssue = connections.data
-        ? agentConnectionIssue(agent, connections.data.connections)
-        : null;
-    if (!(computer && issue) && connectionIssue) {
-        return <AgentConnectionAlert issue={connectionIssue} slug={slug} />;
-    }
     if (!(computer && issue)) {
-        return agent.wakePause ? (
-            <AgentWakePauseAlert
-                agent={agent}
-                canRestart={canRestart}
-                wakePause={agent.wakePause}
-            />
-        ) : null;
+        const connectionIssue = connections.data
+            ? agentConnectionIssue(agent, connections.data)
+            : null;
+        return (
+            <>
+                {connectionIssue ? (
+                    <AgentConnectionAlert issue={connectionIssue} slug={slug} />
+                ) : null}
+                {agent.wakePause ? (
+                    <AgentWakePauseAlert
+                        agent={agent}
+                        canRestart={canRestart}
+                        wakePause={agent.wakePause}
+                    />
+                ) : null}
+            </>
+        );
     }
     return (
         <Alert status="warning">

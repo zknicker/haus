@@ -1,4 +1,4 @@
-import type { Agent, AgentWakePause, ModelConnection } from '@haus/api';
+import type { Agent, AgentWakePause, ModelConnectionsRead } from '@haus/api';
 import { Alert } from '@heroui/react';
 import type { HausOutputs } from '../../lib/haus-server.tsx';
 import { computerLabel } from '../computers/presentation.ts';
@@ -9,53 +9,61 @@ import { wakePauseBannerDescription } from './agent-wake-pause-model.ts';
 type Computer = HausOutputs['computer']['list'][number];
 
 /**
- * What the hover card warns about. A runtime sign-in issue, then a refused or
- * missing model connection, outrank a wake pause, matching the profile,
- * because each names the concrete fix.
+ * What the hover card warns about: a banner for a wake pause and one line for
+ * the concrete fix. A runtime sign-in issue takes both, matching the profile;
+ * a refused or missing model connection, which only an Agent on the runner
+ * has, sits under the wake pause banner instead of hiding it.
  */
-export type AgentHoverAttentionState =
+export type AgentHoverAttentionLine =
     | { kind: 'runtime-issue'; computer: Computer; runtimeId: string }
     | { kind: 'connection-issue'; issue: AgentConnectionIssue }
-    | { kind: 'wake-pause'; wakePause: AgentWakePause }
     | null;
+
+export interface AgentHoverAttention {
+    banner: AgentWakePause | null;
+    line: AgentHoverAttentionLine;
+}
 
 export function agentHoverAttention(
     agent: Agent,
     computer: Computer | null,
-    connections: readonly ModelConnection[] | undefined
-): AgentHoverAttentionState {
+    connections: Pick<ModelConnectionsRead, 'agentLoop' | 'connections'> | undefined
+) {
     const issue = agentRuntimeIssue(agent, computer?.reportedInventory ?? null);
     if (computer && issue) {
-        return { computer, kind: 'runtime-issue', runtimeId: issue.runtimeId };
+        return {
+            banner: null,
+            line: { computer, kind: 'runtime-issue', runtimeId: issue.runtimeId },
+        } satisfies AgentHoverAttention;
     }
     const connectionIssue = connections ? agentConnectionIssue(agent, connections) : null;
-    if (connectionIssue) {
-        return { issue: connectionIssue, kind: 'connection-issue' };
-    }
-    return agent.wakePause ? { kind: 'wake-pause', wakePause: agent.wakePause } : null;
+    return {
+        banner: agent.wakePause,
+        line: connectionIssue ? { issue: connectionIssue, kind: 'connection-issue' } : null,
+    } satisfies AgentHoverAttention;
 }
 
 export function AgentAttentionLine({
     agent,
-    attention,
+    line,
 }: {
     agent: Agent;
-    attention: AgentHoverAttentionState;
+    line: AgentHoverAttentionLine;
 }) {
-    if (attention?.kind === 'runtime-issue') {
+    if (line?.kind === 'runtime-issue') {
         return (
             <AgentRuntimeIssueLine
                 agent={agent}
-                computer={attention.computer}
-                runtimeId={attention.runtimeId}
+                computer={line.computer}
+                runtimeId={line.runtimeId}
             />
         );
     }
-    if (attention?.kind === 'connection-issue') {
-        const { providerName } = attention.issue;
+    if (line?.kind === 'connection-issue') {
+        const { providerName } = line.issue;
         return (
             <p className="text-warning text-xs">
-                {attention.issue.kind === 'failed'
+                {line.issue.kind === 'failed'
                     ? `${providerName} connection failed. Reconnect in Settings → Models.`
                     : `No ${providerName} connection. Connect one in Settings → Models.`}
             </p>
