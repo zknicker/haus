@@ -33,7 +33,7 @@ export async function readGrokLocalUsage(
     if (snapshotCache?.fingerprint === fingerprint) {
         return { ...snapshotCache.snapshot, capturedAt: now.toISOString() };
     }
-    const entries = await readEntries(files);
+    const entries = await readEntries(files, usageCutoffMs(now));
     const deduped = new Map<string, RuntimeTokenEntry>();
     for (const entry of entries) {
         if (!deduped.has(entry.id)) {

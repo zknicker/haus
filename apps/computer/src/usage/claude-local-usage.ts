@@ -44,7 +44,7 @@ export async function readClaudeLocalUsage(
     if (snapshotCache?.fingerprint === fingerprint) {
         return { ...snapshotCache.snapshot, capturedAt: now.toISOString() };
     }
-    const entries = await readEntries(files);
+    const entries = await readEntries(files, usageCutoffMs(now));
     const snapshot = buildRuntimeTokenSnapshot(
         dedupeClaudeEntries(entries),
         'claude-code',

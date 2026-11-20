@@ -1,23 +1,29 @@
 import type { RecentUsageFile } from './local-runtime-usage.ts';
 
+export const usageLineLimitChars = 16 * 1024 * 1024;
+
 interface CachedEntries<Entry> {
     entries: Entry[];
     mtimeMs: number;
     size: number;
 }
 
-export function createUsageEntryReader<Entry>(parse: (rows: unknown[]) => Entry[]) {
+export function createUsageEntryReader<Entry extends { timestampMs: number }>(
+    parse: (rows: unknown[]) => Entry[]
+) {
     const cache = new Map<string, CachedEntries<Entry>>();
-    return async (files: readonly RecentUsageFile[]) => {
+    return async (files: readonly RecentUsageFile[], cutoffMs: number) => {
         const current = new Set(files.map((file) => file.path));
-        for (const path of cache.keys()) {
-            if (!current.has(path)) {
+        for (const [path, cached] of cache) {
+            if (current.has(path)) {
+                cached.entries = cached.entries.filter((entry) => entry.timestampMs >= cutoffMs);
+            } else {
                 cache.delete(path);
             }
         }
         const entries: Entry[] = [];
         for (const file of files) {
-            for (const entry of await fileEntries(file, cache, parse)) {
+            for (const entry of await fileEntries(file, cutoffMs, cache, parse)) {
                 entries.push(entry);
             }
         }
@@ -25,8 +31,9 @@ export function createUsageEntryReader<Entry>(parse: (rows: unknown[]) => Entry[
     };
 }
 
-async function fileEntries<Entry>(
+async function fileEntries<Entry extends { timestampMs: number }>(
     file: RecentUsageFile,
+    cutoffMs: number,
     cache: Map<string, CachedEntries<Entry>>,
     parse: (rows: unknown[]) => Entry[]
 ) {
@@ -38,7 +45,9 @@ async function fileEntries<Entry>(
     try {
         for await (const line of fileLines(file.path)) {
             for (const entry of parse(usageRows(line))) {
-                entries.push(entry);
+                if (entry.timestampMs >= cutoffMs) {
+                    entries.push(entry);
+                }
             }
         }
     } catch (error) {
@@ -54,16 +63,28 @@ async function fileEntries<Entry>(
 
 async function* fileLines(path: string) {
     let pending = '';
+    let oversized = false;
     for await (const chunk of Bun.file(path).stream().pipeThrough(new TextDecoderStream())) {
-        if (!chunk.includes('\n')) {
-            pending += chunk;
-            continue;
+        const lines = chunk.split('\n');
+        const rest = lines.pop() ?? '';
+        for (const line of lines) {
+            if (!oversized && pending.length + line.length <= usageLineLimitChars) {
+                yield `${pending}${line}`;
+            }
+            pending = '';
+            oversized = false;
         }
-        const lines = `${pending}${chunk}`.split('\n');
-        pending = lines.pop() ?? '';
-        yield* lines;
+        if (!oversized) {
+            pending += rest;
+            if (pending.length > usageLineLimitChars) {
+                pending = '';
+                oversized = true;
+            }
+        }
     }
-    yield pending;
+    if (!oversized) {
+        yield pending;
+    }
 }
 
 function usageRows(line: string) {

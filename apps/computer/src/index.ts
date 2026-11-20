@@ -26,6 +26,7 @@ import {
     attachmentCredentialHash as hash,
     readAttachmentDaemonMarker,
 } from './attachment-daemon-process.ts';
+import { prepareAttachmentDaemon } from './attachment-daemon-start.ts';
 import { AttachmentDaemonWork } from './attachment-daemon-work.ts';
 import { type AttachmentHeartbeat, startAttachmentHeartbeat } from './attachment-heartbeat.ts';
 import {
@@ -67,7 +68,6 @@ import { sendComputerDiskReport } from './computer-disk.ts';
 import { readComputerName } from './computer-name.ts';
 import { startComputerReportSchedule } from './computer-report-schedule.ts';
 import { createComputerReporter, reportStateError } from './computer-report.ts';
-import { guardDevDaemonMemory } from './daemon-memory-guard.ts';
 import { type DaemonRuntime, withDaemonRuntime } from './daemon-runtime.ts';
 import { decideStart, readRunMarker, writeRunMarker } from './delivery.ts';
 import {
@@ -121,7 +121,6 @@ import {
 } from './login.ts';
 import { parseReminderScriptCommand, runReminderScript } from './reminder-script.ts';
 import { runtimeSearchPath } from './runtime-discovery.ts';
-import { createRuntimePrewarmer } from './runtime/runtime-prewarm.ts';
 import { handleComputerSecretsRequest } from './secrets/requests.ts';
 import { deleteServerPartition } from './server-partition-purge.ts';
 import {
@@ -402,10 +401,7 @@ async function main(args: string[]) {
             throw new Error('This Server is not attached to this Haus Computer.');
         }
         await finishRestart(dataRoot);
-        guardDevDaemonMemory(attachment.slug);
-        const prewarm = createRuntimePrewarmer({
-            ...(process.env.HAUS_DEV_STACK === '1' ? { runtimes: ['codex'] } : {}),
-        });
+        const prewarm = prepareAttachmentDaemon(attachment.slug);
         process.exitCode = await withDaemonRuntime(
             async (runtime) => {
                 const partition = { dataRoot, serverId: attachment.serverId };
