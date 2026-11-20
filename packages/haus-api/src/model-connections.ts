@@ -16,6 +16,13 @@ export const modelProviderAuthKinds = {
     xai: ['oauth', 'api-key'],
 } as const satisfies Record<ModelProvider, readonly ModelConnectionAuthKind[]>;
 
+/** The providers whose native web search a connection can turn on. */
+export const modelProvidersWithWebSearch = [
+    'chatgpt',
+    'xai',
+    'gemini',
+] as const satisfies readonly ModelProvider[];
+
 export const modelSignInProviderSchema = z.enum(['chatgpt', 'xai']);
 export type ModelSignInProvider = z.infer<typeof modelSignInProviderSchema>;
 
@@ -60,6 +67,7 @@ export const runnerModelConnectionSchema = z
         label: modelConnectionLabelSchema,
         provider: modelProviderSchema,
         serverId: idSchema,
+        webSearch: z.boolean(),
     })
     .strict()
     .refine((connection) => credentialFitsProvider(connection.provider, connection.credential));

@@ -48,6 +48,7 @@ export const fauxConnection: RunnerModelConnection = {
     label: 'Faux',
     provider: 'xai',
     serverId: 'srv_1',
+    webSearch: true,
 };
 
 export async function agentDir() {

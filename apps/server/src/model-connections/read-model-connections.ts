@@ -20,6 +20,7 @@ const statusColumns = {
     status: modelConnectionsTable.status,
     statusDetail: modelConnectionsTable.statusDetail,
     updatedAt: modelConnectionsTable.updatedAt,
+    webSearch: modelConnectionsTable.webSearch,
 };
 
 export async function readModelConnections(db: Reader, member: HausUser | null, serverId: string) {
@@ -79,6 +80,7 @@ function toModelConnection(row: {
     status: ModelConnection['status'];
     statusDetail: string | null;
     updatedAt: Date;
+    webSearch: boolean;
 }) {
     const connection: ModelConnection = {
         ...row,

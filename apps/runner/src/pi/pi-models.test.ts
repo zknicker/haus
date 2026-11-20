@@ -10,6 +10,7 @@ const xaiKey: RunnerModelConnection = {
     label: 'xAI key',
     provider: 'xai',
     serverId: 'srv_1',
+    webSearch: true,
 };
 
 function opened(connections: readonly RunnerModelConnection[], connection: RunnerModelConnection) {
@@ -108,6 +109,7 @@ describe('Pi model selection', () => {
             label: 'Plus',
             provider: 'chatgpt',
             serverId: 'srv_1',
+            webSearch: true,
         };
         const book = createConnectionBook();
         const models = connectionModels({

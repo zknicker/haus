@@ -62,6 +62,7 @@ test('a runner attaching receives every connection opened, and a write sends a n
             label: 'Zach plan',
             provider: 'claude',
             serverId: seed.serverId,
+            webSearch: true,
         },
         {
             credential: { kind: 'setup-token', token: 'sk-ant-oat01-team-token' },
@@ -69,6 +70,7 @@ test('a runner attaching receives every connection opened, and a write sends a n
             label: 'Team plan',
             provider: 'claude',
             serverId: seed.serverId,
+            webSearch: true,
         },
     ]);
 

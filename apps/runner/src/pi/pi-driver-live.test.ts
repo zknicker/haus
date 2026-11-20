@@ -21,7 +21,7 @@ const modelId = process.env.HAUS_RUNNER_PI_LIVE_MODEL ?? (xaiApiKey ? 'grok-4.7'
 afterEach(drainCleanups);
 
 async function liveConnection() {
-    const base = { id: 'mc_live', label: 'Live', serverId: 'srv_live' };
+    const base = { id: 'mc_live', label: 'Live', serverId: 'srv_live', webSearch: true };
     if (xaiApiKey) {
         const connection: RunnerModelConnection = {
             ...base,

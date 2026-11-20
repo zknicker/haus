@@ -1,0 +1,1 @@
+ALTER TABLE "model_connections" ADD COLUMN "web_search" boolean DEFAULT true NOT NULL;

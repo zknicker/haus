@@ -22,6 +22,7 @@ export const modelConnectionSchema = z
         status: modelConnectionStatusSchema,
         statusDetail: z.string().nullable(),
         updatedAt: timestampSchema,
+        webSearch: z.boolean(),
     })
     .strict();
 export type ModelConnection = z.infer<typeof modelConnectionSchema>;
@@ -59,6 +60,13 @@ export const modelConnectionRenameInputSchema = z
     .object({ connectionId: idSchema, label: modelConnectionLabelSchema, serverId: idSchema })
     .strict();
 export type ModelConnectionRenameInput = z.infer<typeof modelConnectionRenameInputSchema>;
+
+export const modelConnectionSetWebSearchInputSchema = z
+    .object({ connectionId: idSchema, enabled: z.boolean(), serverId: idSchema })
+    .strict();
+export type ModelConnectionSetWebSearchInput = z.infer<
+    typeof modelConnectionSetWebSearchInputSchema
+>;
 
 export const modelSignInStartInputSchema = z
     .object({

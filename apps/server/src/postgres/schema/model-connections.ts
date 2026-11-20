@@ -1,6 +1,15 @@
 import type { ModelConnectionAuthKind, ModelConnectionStatus, ModelProvider } from '@haus/api';
 import { sql } from 'drizzle-orm';
-import { check, index, integer, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import {
+    boolean,
+    check,
+    index,
+    integer,
+    pgTable,
+    text,
+    timestamp,
+    unique,
+} from 'drizzle-orm/pg-core';
 import { bunJsonb } from './bun-jsonb.ts';
 import { serversTable } from './servers.ts';
 
@@ -20,6 +29,7 @@ export const modelConnectionsTable = pgTable(
         status: text('status').notNull().default('ready').$type<ModelConnectionStatus>(),
         statusDetail: text('status_detail'),
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+        webSearch: boolean('web_search').notNull().default(true),
     },
     (table) => [
         unique('model_connections_server_id_key').on(table.serverId, table.id),

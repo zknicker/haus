@@ -15,6 +15,7 @@ const claudePlan: RunnerModelConnection = {
     label: 'Max plan',
     provider: 'claude',
     serverId: 'srv_1',
+    webSearch: true,
 };
 const xaiKey: RunnerModelConnection = {
     credential: { key: 'xai-connection-key', kind: 'api-key' },
@@ -22,6 +23,7 @@ const xaiKey: RunnerModelConnection = {
     label: 'xAI key',
     provider: 'xai',
     serverId: 'srv_2',
+    webSearch: true,
 };
 
 describe('model connection book', () => {

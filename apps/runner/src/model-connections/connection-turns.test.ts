@@ -16,6 +16,7 @@ const xaiKey: RunnerModelConnection = {
     label: 'xAI key',
     provider: 'xai',
     serverId: 'srv_1',
+    webSearch: true,
 };
 
 function chatgptPlan(access: string, refresh: string, expires: number) {
@@ -28,6 +29,7 @@ function chatgptPlan(access: string, refresh: string, expires: number) {
         label: 'Plus',
         provider: 'chatgpt',
         serverId: 'srv_1',
+        webSearch: true,
     };
     return connection;
 }

@@ -17,6 +17,7 @@ export async function readRunnerConnections(db: HausDatabase, key: SecretsKey) {
             provider: modelConnectionsTable.provider,
             sealedCredential: modelConnectionsTable.sealedCredential,
             serverId: modelConnectionsTable.serverId,
+            webSearch: modelConnectionsTable.webSearch,
         })
         .from(modelConnectionsTable)
         .innerJoin(serversTable, eq(serversTable.id, modelConnectionsTable.serverId))

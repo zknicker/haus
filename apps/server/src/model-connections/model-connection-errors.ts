@@ -44,11 +44,20 @@ export class RunnerNotConnectedError extends Error {
     }
 }
 
+export class WebSearchUnsupportedError extends Error {
+    readonly reason = 'web-search-unsupported' as const;
+
+    constructor() {
+        super('Web search cannot be turned on for this provider.');
+        this.name = 'WebSearchUnsupportedError';
+    }
+}
+
 export function modelConnectionErrorData(error: { cause?: unknown }) {
     const { cause } = error;
     return {
         modelConnection:
-            cause instanceof RunnerNotConnectedError
+            cause instanceof RunnerNotConnectedError || cause instanceof WebSearchUnsupportedError
                 ? { code: cause.reason }
                 : cause instanceof SecretsKeyMissingError
                   ? { code: 'secrets-key-missing' as const }

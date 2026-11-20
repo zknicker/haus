@@ -87,13 +87,20 @@ test('a ChatGPT sign-in runs on the runner and lands as a connection', async () 
             label: 'ChatGPT plan',
             provider: 'chatgpt',
             serverId: seed.serverId,
+            webSearch: true,
         },
     ]);
     const { connections } = await seed.owner.trpc.modelConnections.list.query({
         serverId: seed.serverId,
     });
     expect(connections).toMatchObject([
-        { authKind: 'oauth', id: connectionId, isDefault: true, label: 'ChatGPT plan' },
+        {
+            authKind: 'oauth',
+            id: connectionId,
+            isDefault: true,
+            label: 'ChatGPT plan',
+            webSearch: true,
+        },
     ]);
 });
 

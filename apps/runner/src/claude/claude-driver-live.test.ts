@@ -26,6 +26,7 @@ liveTest(
                 label: 'Live Claude',
                 provider: 'claude' as const,
                 serverId: 'srv_live',
+                webSearch: true,
             },
             instructions:
                 'You are a test agent. Use the bash tool when asked to run a command. Answer in one short line.',

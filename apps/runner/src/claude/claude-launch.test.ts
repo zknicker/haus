@@ -8,6 +8,7 @@ const plan: RunnerModelConnection = {
     label: 'Max plan',
     provider: 'claude',
     serverId: 'srv_1',
+    webSearch: true,
 };
 
 function launch(connection: RunnerModelConnection) {
