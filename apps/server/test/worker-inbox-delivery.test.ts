@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { agentCommandSchema, agentInboxItemSchema } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
+import { noticeReceipt, parseNoticeCommand } from '../../computer/src/agent-command-frames.ts';
 import { enqueuePullRequestWakes } from '../src/github/pull-request-wake.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentInboxTable } from '../src/postgres/schema.ts';
@@ -45,11 +46,24 @@ test('a busy Agent hears a count of one Task reports, then gets the reports in i
         total: 2,
     });
     expect(JSON.stringify(notice)).not.toContain('First is done.');
+    const parsed = parseNoticeCommand(notice);
+    const receipt = parsed ? noticeReceipt(parsed) : null;
+    expect(receipt).toEqual({
+        runId,
+        workIds: [
+            ...(notice?.inbox.map((item) => item.id) ?? []),
+            `worker-report:${first}`,
+            `worker-report:${second}`,
+        ],
+    });
     await delivery.onNoticeAck({
         agentId: board.seed.agentId,
-        runId,
-        workIds: notice?.workerReports?.ids ?? [],
+        ...(receipt ?? { runId, workIds: [] }),
     });
+    expect(await reportNoticeRuns(board)).toEqual([
+        { dedupeKey: `worker-report:${first}`, noticeRunId: runId },
+        { dedupeKey: `worker-report:${second}`, noticeRunId: runId },
+    ]);
     const notices = transport.framesOfType('notice').length;
     await delivery.dispatchAgent(board.seed.agentId, board.seed.serverId);
     expect(transport.framesOfType('notice')).toHaveLength(notices);
@@ -150,6 +164,19 @@ async function finishWorker(
         workerId: worker.id,
     });
     return turnId;
+}
+
+async function reportNoticeRuns(board: WorkerBoard) {
+    return await connection.db
+        .select({ dedupeKey: agentInboxTable.dedupeKey, noticeRunId: agentInboxTable.noticeRunId })
+        .from(agentInboxTable)
+        .where(
+            and(
+                eq(agentInboxTable.agentId, board.seed.agentId),
+                eq(agentInboxTable.source, 'worker_report')
+            )
+        )
+        .orderBy(agentInboxTable.createdAt);
 }
 
 async function itemStates(board: WorkerBoard, source: string) {
