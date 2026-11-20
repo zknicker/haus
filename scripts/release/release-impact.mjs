@@ -1,4 +1,4 @@
-import { requiredPrefixes } from './release-impact-paths.mjs';
+import { ownedPrefixes } from './release-impact-paths.mjs';
 import {
     assertReleaseLedger,
     releasePublishesTarget,
@@ -69,36 +69,19 @@ export async function calculateReleaseImpact({
             resolveReleaseCommit,
         });
         const changedFiles = await listChangedFiles(baseline.sourceRevision, candidateRef);
-        const requiredFiles = changedFiles.filter((file) => isRequiredFile(target, file));
+        const ownedFiles = changedFiles.filter((file) => isOwnedFile(target, file));
         const reviewFiles = changedFiles.filter(
-            (file) => !requiredFiles.includes(file) && isReviewFile(target, file)
+            (file) => !ownedFiles.includes(file) && isReviewFile(target, file)
         );
         targets[target] = {
             baseline,
             status:
-                requiredFiles.length > 0
-                    ? 'required'
-                    : reviewFiles.length > 0
-                      ? 'review'
-                      : 'unchanged',
-            requiredFiles,
+                ownedFiles.length > 0 ? 'changed' : reviewFiles.length > 0 ? 'review' : 'unchanged',
+            ownedFiles,
             reviewFiles,
         };
     }
     return { candidateRef, targets };
-}
-
-export function assertRequiredTargetsSelected({ impact, selectedTargets }) {
-    const missing = releaseImpactTargets.filter(
-        (target) => impact.targets[target].status === 'required' && !selectedTargets[target]
-    );
-    if (missing.length === 0) {
-        return;
-    }
-    const evidence = missing
-        .map((target) => `${target}: ${impact.targets[target].requiredFiles.join(', ')}`)
-        .join('\n');
-    throw new Error(`releases.json marks changed release targets unchanged:\n${evidence}`);
 }
 
 export function formatReleaseImpact(impact) {
@@ -108,8 +91,8 @@ export function formatReleaseImpact(impact) {
         lines.push(`### ${targetLabel(target)} — ${statusLabel(result.status)}`);
         lines.push('');
         lines.push(`- Baseline: ${result.baseline.tag} (${result.baseline.sourceRevision})`);
-        for (const file of result.requiredFiles) {
-            lines.push(`- Required: ${file}`);
+        for (const file of result.ownedFiles) {
+            lines.push(`- Changed: ${file}`);
         }
         for (const file of result.reviewFiles) {
             lines.push(`- Review: ${file}`);
@@ -216,11 +199,11 @@ async function readChangedFiles(before, after) {
         .filter(Boolean);
 }
 
-function isRequiredFile(target, file) {
+function isOwnedFile(target, file) {
     if (isNonShippingFile(file)) {
         return false;
     }
-    return requiredPrefixes[target].some((prefix) => matchesPath(file, prefix));
+    return ownedPrefixes[target].some((prefix) => matchesPath(file, prefix));
 }
 
 function isReviewFile(target, file) {
@@ -257,5 +240,5 @@ function targetLabel(target) {
 }
 
 function statusLabel(status) {
-    return { required: 'publish required', review: 'agent review', unchanged: 'unchanged' }[status];
+    return { changed: 'changed', review: 'agent review', unchanged: 'unchanged' }[status];
 }

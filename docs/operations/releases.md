@@ -123,19 +123,22 @@ Release preparation starts with `bun run release:collect-changelog-context`, bef
 new ledger entry are chosen. The helper resolves each target's latest recorded release source and
 compares its owned shipping inputs with the candidate. It uses target tags when available and the
 recorded release commit for legacy entries that predate reliable tagging. Direct target changes are
-`required`; shared, generated, or dependency inputs are `review`; targets without owned changes are
+`changed`; shared, generated, or dependency inputs are `review`; targets without owned changes are
 `unchanged`.
 
-Required impact is a floor, not a suggestion. `release:check` and the Release workflow reject a
-ledger entry that marks a required target `null`. For every review file, the release agent traces the
+A release ships any subset of targets. Impact is evidence for that choice, not a floor: a changed
+target may stay `null` when its change isn't ready or worth shipping yet. The one rule
+`release:check` and the Release workflow enforce is the Computer protocol order: when the Server ships
+and `packages/haus-api/computer-protocol.json` at the candidate is newer than at the last published
+Computer, Computer must ship in the same release. The workflow then publishes Computer before it
+promotes the Server. For every review file, the release agent traces the
 changed export, dependency, or generated input to each named target and records `affects` or `does
 not affect` with a reason. Files may share one disposition only when the same evidence applies. The
 agent may widen the release for compatibility or an explicit operational reason. Because every
-target uses its own published baseline, an incorrect earlier `null` cannot hide pending changes from
-later release preparation.
+target uses its own published baseline, a target left out keeps its pending changes visible to the
+next release preparation.
 
-The same target-scoped evidence feeds changelog writing. Programmatic scope determines what ships;
-agent judgment assigns versions, groups commits into user-facing outcomes, and removes internal
+The same target-scoped evidence feeds changelog writing. Agent judgment picks the targets, assigns versions, groups commits into user-facing outcomes, and removes internal
 churn and filler before the release PR.
 
 ## Prerequisites
@@ -164,8 +167,8 @@ build ships.
 `Finalize release` still runs. When iOS was selected and its upload did not succeed, it prints a
 `::warning`, marks iOS `not shipped` in the run summary, and pushes the tag
 `unshipped/ios/v<haus version>`. Target impact and the public snapshot skip that release's iOS
-entry, so the snapshot keeps the last shipped iPhone build and the next release still requires
-the iOS target. The marker is permanent: a later rerun of that release's upload does not clear it.
+entry, so the snapshot keeps the last shipped iPhone build and the next release preparation
+still shows the iOS changes as pending. The marker is permanent: a later rerun of that release's upload does not clear it.
 
 To ship iOS later, cut a new release that publishes iOS with a new version and an unused build
 number. Do not rerun the old `Upload iOS` job after Finalize has recorded the marker.

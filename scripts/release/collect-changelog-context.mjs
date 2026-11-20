@@ -41,7 +41,7 @@ console.log('');
 
 for (const target of releaseImpactTargets) {
     const result = impact.targets[target];
-    const files = [...result.requiredFiles, ...result.reviewFiles];
+    const files = [...result.ownedFiles, ...result.reviewFiles];
     console.log(`### ${target}`);
     console.log('');
     if (files.length === 0) {
@@ -66,7 +66,10 @@ for (const target of releaseImpactTargets) {
 
 console.log('## Next decisions');
 console.log('');
-console.log('- Publish every required target.');
+console.log(
+    '- Choose the targets this release ships; any subset may ship, and unshipped changes stay pending.'
+);
+console.log('- Ship Computer with or before a Server that needs a newer Computer protocol.');
 console.log('- Resolve each review target from the diff and record the reason.');
 console.log(
     '- Assign SemVer and the next unused iOS build number only after target scope is settled.'
