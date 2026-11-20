@@ -82,8 +82,8 @@ function attentionContinuation() {
         workerId: 'caw_1234567890abcdef',
     };
     return agentStartCommandSchema.parse({
-        agentId: 'agt_cove',
-        agentName: 'cove',
+        agentId: 'agt_harbor',
+        agentName: 'harbor',
         chatId: 'cht_origin',
         inbox: [
             {

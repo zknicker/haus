@@ -50,7 +50,6 @@ function prepare(runId: string) {
             agentName: 'Scout',
             brief: null,
             briefAuthorHandle: null,
-            factoryKind: 'ordinary',
         },
         serverOrigin: `http://127.0.0.1:${server.port}`,
     });

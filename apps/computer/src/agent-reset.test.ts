@@ -87,7 +87,6 @@ test('full reset clears the Drive folder and the next launch seeds the factory a
                 agentName: 'Scout',
                 brief: null,
                 briefAuthorHandle: null,
-                factoryKind: 'ordinary',
             },
             serverOrigin: `http://127.0.0.1:${server.port}`,
         });
@@ -146,7 +145,6 @@ test('full reset of an unmigrated Agent keeps every legacy source for the next l
                 agentName: 'Scout',
                 brief: null,
                 briefAuthorHandle: null,
-                factoryKind: 'ordinary',
             },
             serverOrigin: `http://127.0.0.1:${server.port}`,
         });
@@ -176,7 +174,6 @@ async function seedResetFixture() {
         agentDescription: 'Onboarding guide',
         agentId,
         agentName: 'Scout',
-        factoryKind: 'ordinary',
         modelId: 'gpt-5.6-sol',
         runtimeId: 'codex',
         sessionGeneration: 1,

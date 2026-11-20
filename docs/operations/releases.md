@@ -35,7 +35,7 @@ the projected files.
 | `app` | Electron shell, preload bridge, native desktop behavior, or installed desktop artifact changes |
 | `ios` | Native iPhone code, metadata, entitlements, dependencies, or assets change |
 | `computer` | Computer execution, lifecycle, human CLI, updater, embedded managed CLI, bootstrap/ordinary protocol, or a required Computer dependency changes |
-| `agent` | Haus-owned Agent instructions, actions, recipes, Harness behavior, or factory guidance changes |
+| `agent` | Haus-owned Agent instructions, actions, recipes, Harness behavior, or factory seed changes |
 
 The top-level Haus version and all five component versions evolve independently. The hosted web
 App remains part of the Server artifact; `app` names the installed desktop artifact. An iOS

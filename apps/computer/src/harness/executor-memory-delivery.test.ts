@@ -32,7 +32,7 @@ let fake: ReturnType<typeof fakeRuntimeDriver<HarnessTurnInput>>;
 
 beforeEach(async () => {
     agentRoot = await mkdtemp(join(tmpdir(), 'haus-memory-turn-'));
-    await mkdir(agentDrive(agentRoot, 'cove').area, { recursive: true });
+    await mkdir(agentDrive(agentRoot, 'harbor').area, { recursive: true });
     compacts = false;
     agentEdit = null;
     fake = fakeRuntimeDriver<HarnessTurnInput>({
@@ -56,7 +56,7 @@ afterEach(async () => {
 });
 
 test('the first turn carries MEMORY.md and an unchanged file adds nothing after it', async () => {
-    await writeMemory('# Cove\n\n## Role\nRelease manager.\n');
+    await writeMemory('# Harbor\n\n## Role\nRelease manager.\n');
     await turn();
     await turn();
 
@@ -69,7 +69,7 @@ test('memory is read from the Drive area, not the working directory', async () =
     await mkdir(join(agentRoot, 'workspace'), { recursive: true });
     await writeFile(join(agentRoot, 'workspace', 'MEMORY.md'), '# Stale cwd copy\n');
     await turn();
-    await writeMemory('# Cove\n\n## Role\nDrive copy.\n');
+    await writeMemory('# Harbor\n\n## Role\nDrive copy.\n');
     await turn();
 
     expect(fake.record.prompts[0]).not.toContain(memoryTag);
@@ -78,11 +78,11 @@ test('memory is read from the Drive area, not the working directory', async () =
 });
 
 test('a file changed outside the session is carried on the next turn; the Agentâ€™s own edit is not', async () => {
-    await writeMemory('# Cove\n');
+    await writeMemory('# Harbor\n');
     await turn();
-    await writeMemory('# Cove\n\n## Standing Preferences\n- Use metric units.\n');
+    await writeMemory('# Harbor\n\n## Standing Preferences\n- Use metric units.\n');
     await turn();
-    agentEdit = '# Cove\n\n## Active Context\n- Shipping 18.3.\n';
+    agentEdit = '# Harbor\n\n## Active Context\n- Shipping 18.3.\n';
     await turn();
     await turn();
 
@@ -92,7 +92,7 @@ test('a file changed outside the session is carried on the next turn; the Agentâ
 });
 
 test('a compacted turn resets the receipt, so the next turn carries the file again', async () => {
-    await writeMemory('# Cove\n');
+    await writeMemory('# Harbor\n');
     await turn();
     compacts = true;
     await turn();
@@ -106,7 +106,7 @@ test('a compacted turn resets the receipt, so the next turn carries the file aga
 });
 
 test('an idle compaction between turns resets the receipt, so the next turn carries the file again', async () => {
-    await writeMemory('# Cove\n');
+    await writeMemory('# Harbor\n');
     await turn();
     const hooks = createIdleCompactionReporter({
         agentBusy: () => false,
@@ -138,7 +138,7 @@ test('an idle compaction between turns resets the receipt, so the next turn carr
 });
 
 test('a fresh session generation carries the file again', async () => {
-    await writeMemory('# Cove\n');
+    await writeMemory('# Harbor\n');
     await turn();
     await turn({ sessionGeneration: 2 });
 
@@ -148,7 +148,7 @@ test('a fresh session generation carries the file again', async () => {
 
 test('a missing file delivers nothing, and a file the Agent creates is not echoed back', async () => {
     await turn();
-    agentEdit = '# Cove\n';
+    agentEdit = '# Harbor\n';
     await turn();
     await turn();
 
@@ -158,9 +158,9 @@ test('a missing file delivers nothing, and a file the Agent creates is not echoe
 });
 
 test('a sub-agent wake defers a changed file to the next ordinary turn', async () => {
-    await writeMemory('# Cove\n');
+    await writeMemory('# Harbor\n');
     await turn();
-    await writeMemory('# Cove\n\n## Role\nOn call.\n');
+    await writeMemory('# Harbor\n\n## Role\nOn call.\n');
     await runHarnessTurn(instructionsWakeInput({ agentRoot, runtime }, {}));
     await turn();
 
@@ -173,7 +173,7 @@ function turn(overrides: TestTurnOverrides = {}) {
 }
 
 async function writeMemory(content: string) {
-    await writeFile(agentDrive(agentRoot, 'cove').memory, content);
+    await writeFile(agentDrive(agentRoot, 'harbor').memory, content);
 }
 
 function compaction(): TurnEvent[] {

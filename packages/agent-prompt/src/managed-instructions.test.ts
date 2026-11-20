@@ -285,7 +285,7 @@ test('pins the rendered visuals and page fence contract', () => {
 function renderPrompt(overrides: Partial<AgentPromptRenderInput> = {}) {
     return renderAgentInstructions({
         agentId: 'agt_prompt_test',
-        agentName: 'Cove',
+        agentName: 'Wren',
         homeTimezone: 'UTC',
         hostname: 'computer.test',
         initialRole: null,

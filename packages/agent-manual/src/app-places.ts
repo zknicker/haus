@@ -175,6 +175,17 @@ export const appPlaces: readonly AppPlace[] = [
     },
     {
         area: 'agent-setup',
+        task: "Add a skill from a Computer to an Agent's library",
+        path: ['Captain profile', 'Skills', 'Add Skills'],
+        who: 'owner-or-admin',
+        anchors: [
+            ...agentProfile(),
+            agentSection('skills'),
+            label('features/members/agent-profile/skill-list.tsx', 'Add Skills'),
+        ],
+    },
+    {
+        area: 'agent-setup',
         task: 'Choose which connections an Agent can use',
         path: ['Captain profile', 'Connections'],
         who: 'owner-or-admin',

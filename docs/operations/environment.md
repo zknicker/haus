@@ -93,7 +93,7 @@ The opt-in live Cursor Cloud Agent smoke reads `HAUS_RUN_LIVE_CURSOR_TEST=1` and
 lifecycle: the run spends a real Cursor allowance against a real repository, so an operator sets
 them by hand and every automated lane runs against recorded provider responses instead.
 
-The opt-in Cove Agent E2E scenario can set `HAUS_AGENT_E2E_AVATAR_FIXTURE=1`,
+The opt-in Agent-creation E2E scenario can set `HAUS_AGENT_E2E_AVATAR_FIXTURE=1`,
 an absolute `HAUS_AGENT_E2E_AVATAR_FIXTURE_PATH`, and an absolute
 `HAUS_AGENT_E2E_AVATAR_REQUEST_LOG` path. The Server honors these only when
 `HAUS_DEV_STACK=1`, reads the operator-selected stable PNG, and logs request

@@ -1,15 +1,4 @@
 export {
-    type CoveFactoryGuidanceFile,
-    type CoveFactoryGuidancePlan,
-    coveFactoryManifestSha256,
-    coveSeededSummaries,
-    coveWorkspaceFiles,
-    inspectCoveFactoryGuidance,
-    reconcileCoveFactoryGuidance,
-    seedCoveWorkspace,
-    validateCoveWorkspace,
-} from './cove-starter-kit.ts';
-export {
     defaultVisualsSkill,
     factoryManagedSkillHashes,
     heldManagedSkillHash,
