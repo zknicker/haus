@@ -396,38 +396,66 @@ answer one, so it returns the page itself. It fetches one `http` or `https` URL:
 - The model sees the first 2,000 lines or 50 KiB, whichever is smaller, with a line naming what
   was cut.
 
-Web search is each provider's own search; Haus calls no third-party search API. A provider
-either hosts the search inside the model's request, or Haus calls it from a `web_search` tool:
+Web search always goes through the model's own connection. Haus holds no search key of its own.
+A provider either hosts the search inside the model's request, or Haus calls it from a
+`web_search` tool:
 
 | Provider | Shape | Login | Cost |
 | --- | --- | --- | --- |
 | ChatGPT plan (`openai-codex`) | Hosted: OpenAI's `web_search` tool on every generation request, as Codex's `web_search = "live"` sends it | The Codex sign-in file | Draws on the plan's Codex usage; no per-call API charge |
 | xAI | Hosted: xAI's `web_search` server-side tool on the Responses request | `HAUS_RUNNER_XAI_API_KEY` | Each search call is billed to the key, $5 per 1,000 in xAI's pricing at 2026-11 |
 | Google | `web_search` tool: one `generateContent` request to the Agent's own model with only `googleSearch`, answered with the grounded text and its sources | `HAUS_RUNNER_GEMINI_API_KEY` | Gemini 3 bills each search query after 5,000 free a month, then $14 per 1,000 |
+| OpenRouter | Hosted: OpenRouter's `openrouter:web_search` server tool on every Chat Completions or Messages request, with its default `auto` engine | `HAUS_RUNNER_OPENROUTER_API_KEY` | Billed to the key. Anthropic, Google, OpenAI, Perplexity and xAI models search natively at their provider's price; every other model searches through Exa at $0.007 a request, at 2026-11 |
+
+Haus sends OpenRouter's server tool, not its older `web` plugin: with the server tool the model
+decides when and how often to search, and OpenRouter runs every search inside the request.
 
 Google takes the tool shape because Gemini combines `googleSearch` with function declarations
 only under `toolConfig.includeServerSideToolInvocations`, and then needs every `toolCall` and
 `toolResponse` part sent back with its thought signature. Pi 1.5.2's Gemini adapter drops those
 parts, so a hosted search would break the next request. A separate grounded request leaves the
-Agent's own transcript as ordinary function calls.
+Agent's own transcript as ordinary function calls. Gemini names each grounded source by a
+`vertexaisearch.cloud.google.com/grounding-api-redirect/` link. The runner asks each one, with a
+`HEAD` request that does not follow the redirect, where it leads, and lists the page it names. A
+link that does not answer with a redirect stays as Gemini sent it, since it still works.
 
 pi-ai 1.5.2 has no option for hosted tools, so each Pi session gets a thin shim over its model
 collection. On `streamSimple`, which carries generation requests, the shim appends the hosted
-tool to the request body after Pi Durable's own hooks, and reads the provider's stream events.
-Compaction's `completeSimple` request is left alone. Pi keeps no `web_search_call` item in the
-stored transcript, and with `store: false` the model is not sent its old searches. Its answer
-text carries what it learned. Each search reaches the turn's events as a `providerExecuted`
-`webSearch` tool call and result, like Claude's, with its query and its sources. The response's
-`url_citation` links join the last search's sources. An Agent with a hosted search has no
-`web_search` tool.
+tool for the request's provider to the request body after Pi Durable's own hooks, and reads the
+provider's stream events. Compaction's `completeSimple` request is left alone. Pi keeps no
+search item in the stored transcript, and with `store: false` the model is not sent its old
+searches. Its answer text carries what it learned. Each search reaches the turn's events as a
+`providerExecuted` `webSearch` tool call and result, like Claude's, with its query and its
+sources. The shim reads a search from each wire API:
 
-`HAUS_RUNNER_WEB_SEARCH` names the providers whose search is on, as a comma-separated list of
-`openai-codex`, `xai`, and `google`. It is empty by default, and each provider stays off until
-the operator approves its cost. The list's effect on the Agent's tools and requests is part of
-the Pi launch fingerprint, so a change restarts warm sessions. A Pi Agent without search keeps a
-`web_search` tool that answers that web search is not configured and points at `web_fetch`. A
-keyless fallback would serve only a model whose provider has no native search, such as an
-OpenRouter model, and none ships.
+- Responses (ChatGPT plan, xAI): each `web_search_call` item, with its query, the sources it
+  lists, and the page an `open_page` or `find_in_page` action names. The response's
+  `url_citation` annotations join the last search's sources.
+- Chat Completions (OpenRouter): no search item reaches the client, so one search stands for the
+  response, with no query. It appears when a chunk carries `url_citation` annotations or its usage
+  counts `server_tool_use_details.web_search_requests`, and the annotations are its sources.
+- Messages (OpenRouter's Anthropic models): each `server_tool_use` block named `web_search`, with
+  the query its input streams, the results of its `web_search_tool_result` block, and the
+  `web_search_result_location` citations of the answer text.
+
+Every source URL drops its fragment and its `utm_*`, `ref`, and similar tracking parameters, so
+one page cited twice is one source. An Agent with a hosted search has no `web_search` tool.
+
+The response parsing that came from [pi-web-search](https://github.com/ttttmr/pi-web-search)
+1.7.0 (MIT) is vendored, adapted to Haus types, in `apps/runner/src/pi/vendor/pi-web-search/`
+with its license and a `PROVENANCE.md` that maps each file to its upstream path and commit:
+the URL cleanup, Gemini's redirect resolution, the two `url_citation` shapes, and the Messages
+search blocks. Haus does not run pi-web-search as a Pi extension; its request side calls each
+provider from a tool of its own, where Haus hosts the search in the Agent's request.
+
+Search is on for every connection by default. Until each model connection carries its own
+`webSearch` setting, `HAUS_RUNNER_WEB_SEARCH` names the providers whose search is on, as a
+comma-separated list of `openai-codex`, `xai`, `google`, and `openrouter`, and an unset list
+means all four. `webSearchOn` in `apps/runner/src/pi/pi-web-search.ts` is the one place that
+answers whether a run's provider searches, so the move to the connection's setting changes that
+function alone. The setting's effect on the Agent's tools and requests is part of the Pi launch
+fingerprint, so a change restarts warm sessions. A Pi Agent without search keeps a `web_search`
+tool that answers that web search is not configured and points at `web_fetch`.
 
 ### Removed
 
