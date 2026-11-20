@@ -11,28 +11,46 @@ beforeAll(() => {
 });
 afterAll(() => restoreDom());
 
-const expectedTrail = [
+const routeSteps = [
+    '/s/one/chats/haus',
+    '/s/one/tasks',
+    '/s/one/chats/haus?message=m1',
+    '/s/one/chats/haus',
+];
+const routeTrail = [
     '/s/one/chats/haus',
     '/s/one/chats/haus?message=m1',
     '/s/one/tasks',
     '/s/one/chats/haus',
     '/s/one/inbox',
 ];
+const hashSteps = ['#latest', '/s/one/chats/haus#latest', '/s/one/chats/haus'];
+const hashTrail = [
+    '/s/one/chats/haus',
+    '/s/one/chats/haus#latest',
+    '/s/one/chats/haus',
+    '/s/one/inbox',
+];
+
+function useRowPress() {
+    const navigate = useSidebarNavigate();
+    return (href: string) => navigate(href, { flushSync: true });
+}
 
 test('a sidebar row press on the route the landing replaced to adds no history entry', async () => {
-    const trail = await walkBackAfter(() => {
-        const navigate = useSidebarNavigate();
-        return (href) => navigate(href, { flushSync: true });
-    });
-    expect(trail).toEqual(expectedTrail);
+    expect(await walkBackAfter(useRowPress, routeSteps)).toEqual(routeTrail);
 });
 
 test('keyboard Enter on that row, through the shell link router, adds no history entry', async () => {
-    const trail = await walkBackAfter(useStableNavigate);
-    expect(trail).toEqual(expectedTrail);
+    expect(await walkBackAfter(useStableNavigate, routeSteps)).toEqual(routeTrail);
 });
 
-async function walkBackAfter(useRowNavigate: () => (href: string) => void) {
+test('a push that changes only the hash is its own entry; the same hash is not', async () => {
+    expect(await walkBackAfter(useRowPress, hashSteps)).toEqual(hashTrail);
+    expect(await walkBackAfter(useStableNavigate, hashSteps)).toEqual(hashTrail);
+});
+
+async function walkBackAfter(useRowNavigate: () => (href: string) => void, steps: string[]) {
     const { act } = React;
     const { createRoot } = await import('react-dom/client');
     let navigate: (href: string) => void = () => undefined;
@@ -59,18 +77,20 @@ async function walkBackAfter(useRowNavigate: () => (href: string) => void) {
     );
     const root = createRoot(document.createElement('div'));
     await act(async () => root.render(<RouterProvider router={router} />));
-    const visited = () => `${router.state.location.pathname}${router.state.location.search}`;
-
-    await act(async () => navigate('/s/one/chats/haus'));
-    await act(async () => navigate('/s/one/tasks'));
-    await act(async () => navigate('/s/one/chats/haus?message=m1'));
-    await act(async () => navigate('/s/one/chats/haus'));
-
-    const back = async () => {
-        await act(async () => router.navigate(-1));
-        return visited();
+    const visited = () => {
+        const { hash, pathname, search } = router.state.location;
+        return `${pathname}${search}${hash}`;
     };
-    const trail = [visited(), await back(), await back(), await back(), await back()];
+
+    for (const step of steps) {
+        await act(async () => navigate(step));
+    }
+
+    const trail = [visited()];
+    while (trail.at(-1) !== '/s/one/inbox' && trail.length <= steps.length + 1) {
+        await act(async () => router.navigate(-1));
+        trail.push(visited());
+    }
     await act(async () => root.unmount());
     return trail;
 }
