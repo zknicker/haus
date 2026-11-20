@@ -1,6 +1,13 @@
 import type { ToolOutcome } from '../run-context.ts';
 import { contentKind, formatSize, pageText, truncateForModel } from './page-text.ts';
-import { type AddressPolicy, isPublicAddress, nonPublicAddressOf } from './public-address.ts';
+import { pinnedRequest } from './pinned-request.ts';
+import {
+    type AddressPolicy,
+    isPublicAddress,
+    type Resolve,
+    resolveHost,
+    vetHost,
+} from './public-address.ts';
 
 export const webFetchLimits = {
     maxBodyBytes: 5 * 1024 * 1024,
@@ -13,6 +20,7 @@ export type WebFetchLimits = typeof webFetchLimits;
 export async function webFetch(input: {
     limits?: Partial<WebFetchLimits>;
     reachable?: AddressPolicy;
+    resolve?: Resolve;
     signal: AbortSignal;
     url: string;
 }) {
@@ -23,6 +31,7 @@ export async function webFetch(input: {
         const fetched = await follow(input.url, {
             limits,
             reachable: input.reachable ?? isPublicAddress,
+            resolve: input.resolve ?? resolveHost,
             signal,
         });
         return fetched.kind === 'refused'
@@ -41,23 +50,27 @@ export async function webFetch(input: {
 
 async function follow(
     requested: string,
-    options: { limits: WebFetchLimits; reachable: AddressPolicy; signal: AbortSignal }
+    options: {
+        limits: WebFetchLimits;
+        reachable: AddressPolicy;
+        resolve: Resolve;
+        signal: AbortSignal;
+    }
 ) {
     let current = webUrlOf(requested);
     for (let hop = 0; ; hop += 1) {
         if (!current) {
             return { kind: 'refused', text: 'web_fetch reads only http and https URLs.' } as const;
         }
-        const blocked = await nonPublicAddressOf(current.hostname, options.reachable);
-        if (blocked) {
+        const vetted = await vetHost(current.hostname, options.reachable, options.resolve);
+        if (vetted.kind === 'blocked') {
             return {
                 kind: 'refused',
-                text: `${current.href} resolves to ${blocked}, a private or local address, so web_fetch did not fetch it.`,
+                text: `${current.href} resolves to ${vetted.address}, a private or local address, so web_fetch did not fetch it.`,
             } as const;
         }
-        const response = await fetch(current, {
+        const response = await pinnedRequest(current, vetted.address, {
             headers: { accept: acceptHeader },
-            redirect: 'manual',
             signal: options.signal,
         });
         const location = redirectStatuses.has(response.status)

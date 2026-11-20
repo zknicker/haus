@@ -438,13 +438,16 @@ the internet, never the machine. The tool descriptions and the not-configured an
 `web_fetch` takes no `prompt`, unlike Claude's `WebFetch`: the runner has no small model to
 answer one, so it returns the page itself. It fetches one `http` or `https` URL:
 
-- It follows at most 5 redirects. Before each hop the runner resolves the host and refuses the
-  hop when any address is not public: private (RFC 1918, IPv6 unique local), loopback,
-  link-local, CGNAT (`100.64.0.0/10`), unspecified, multicast, benchmarking, or reserved, with
-  IPv4-mapped IPv6 checked as IPv4. The container's network deny stays the primary guard. This
-  check is defense in depth, and it protects development, where the runner is a local process.
-  Resolution and connection are separate steps, so a DNS answer that changes between them is
-  caught only by the container deny.
+- It follows at most 5 redirects. Before each hop the runner resolves the host once and refuses
+  the hop when any address is not public: private (RFC 1918, IPv6 unique local), loopback,
+  link-local, IPv6 site-local (`fec0::/10`), CGNAT (`100.64.0.0/10`), NAT64 (`64:ff9b::/96`,
+  `64:ff9b:1::/48`), IPv4-translated (`::ffff:0:0:0/96`), unspecified, multicast, benchmarking, or
+  reserved, with IPv4-mapped IPv6 checked as IPv4. The hop then connects to the first vetted
+  address through a `node:http` request whose `lookup` returns only that address, so DNS is never
+  asked again and a host that rebinds after the check cannot redirect the connection. The URL
+  keeps the hostname, so the Host header and TLS SNI name the original host. The container's
+  network deny stays the primary guard. This check is defense in depth, and it protects
+  development, where the runner is a local process.
 - It reads at most 5 MiB of body, and a fetch ends after 30 seconds, redirects included.
 - HTML becomes Markdown through `turndown` 7.2.4, with scripts, styles, `noscript`, `template`,
   and SVG removed and links made absolute. Text, Markdown, JSON, and XML pass through as text.
@@ -934,7 +937,7 @@ settings, reminder scripts, host skill discovery, inventory, updates, and Worker
 | The runner socket refuses a wrong token, a start reaches the runner with a working run credential while the Computer is offline, and settle, Stop, and reconnect behave as on Computers | `apps/server/test/runner-socket-auth.test.ts`, `runner-delivery.test.ts`, `agent-invocations-offline.test.ts` | R3 |
 | The runner cannot import Server or PostgreSQL modules, and Computer code makes no model calls | `scripts/lint/haus-rules/runner-boundary.cases.mjs`, `computer-no-model-calls.cases.mjs` | R3 |
 | The SDK runs with native tools off and only `mcp__haus__*` tools reachable | `apps/runner/src/claude/claude-tools-live.test.ts`, `claude-driver-live.test.ts` | R3 |
-| `web_fetch` turns HTML into Markdown, caps redirects, size, and time, refuses a non-public address at every hop, and describes a non-text body without its bytes | `apps/runner/src/web/web-fetch.test.ts`, `public-address.test.ts` | R3c |
+| `web_fetch` turns HTML into Markdown, caps redirects, size, and time, refuses a non-public address at every hop, connects only to the address it vetted when the host rebinds, and describes a non-text body without its bytes | `apps/runner/src/web/web-fetch.test.ts`, `web-fetch-rebinding.test.ts`, `public-address.test.ts` | R3c |
 | Hosted search reaches the ChatGPT plan and xAI requests, Gemini's grounded request carries only `googleSearch`, citations reach the turn events, a connection with search off sends no hosted tool and its Agent hears that search is not configured, and the switch changes the Pi launch fingerprint | `apps/runner/src/pi/pi-web-search.test.ts`, `pi-openrouter-search.test.ts`, `pi-driver.test.ts`, `apps/runner/src/web/web-search.test.ts` | R3c |
 | Each provider's native search answers a live turn | `apps/runner/src/pi/pi-web-search-live.test.ts` (`HAUS_RUN_LIVE_RUNNER_PI_SEARCH_TEST=1`) | R3c |
 | Ported Pi tools keep their upstream behavior | Ported upstream tests, listed in `pi/PROVENANCE.md` | R2 |
