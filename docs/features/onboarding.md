@@ -76,9 +76,9 @@ onboarding creates no Cove DM Chat. The first greeting remains in
 
 While applying, reconnect sends only the explicit `cove-apply` factory command,
 never ordinary Agent configuration or a model turn. Computer validates its
-current runtime/model inventory, seeds Cove's root `MEMORY.md` and three
-onboarding files under `notes/`, seeds the normal isolated skill library,
-writes a durable local receipt, then returns a matching
+current runtime/model inventory, records the seed facts and the factory manifest
+digest in a durable local receipt (Cove's `MEMORY.md`, three onboarding notes and the
+`visuals` skill are seeded into its Drive area on its first launch), then returns a matching
 `cove-apply-result`. Command and acknowledgement replay are idempotent. Only an
 `applied` result for the reserved Agent, application, and Computer advances the
 Server to `complete`; effective-state reports and model messages do not.

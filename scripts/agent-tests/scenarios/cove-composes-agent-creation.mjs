@@ -8,7 +8,7 @@
 // the product's own Full Reset.
 //
 // The Owner asks in a fresh channel. Cove creates there and answers there with the
-// returned identity; the new Agent introduces itself in #all on its first turn.
+// returned identity; the new Agent introduces itself in #haus on its first turn.
 
 import { isAbsolute } from 'node:path';
 import { defineScenario } from '../scenario.mjs';
@@ -20,7 +20,7 @@ import {
 
 export default defineScenario({
     contract:
-        'Cove answers a natural Agent proposal request from its Owner without creating anything, then a separate creation request creates exactly one Agent inheriting Cove’s runtime and model, named by handle in Cove’s answer in the asking chat with the same session generation and with no introduction from Cove in #all, joined to #all and the requested #product, and carrying its standing brief in the workspace MEMORY.md on the Computer; repeating the request creates no second Agent.',
+        'Cove answers a natural Agent proposal request from its Owner without creating anything, then a separate creation request creates exactly one Agent inheriting Cove’s runtime and model, named by handle in Cove’s answer in the asking chat with the same session generation and with no introduction from Cove in #haus, joined to #haus and the requested #product, and carrying its standing brief in the workspace MEMORY.md on the Computer; repeating the request creates no second Agent.',
     name: 'cove-composes-agent-creation',
     optIn: true,
     async run({ expect, kit, log, marker, settleTurn }) {
@@ -105,7 +105,7 @@ export default defineScenario({
                 );
                 if (!(allChannel && productChannel)) {
                     throw new Error(
-                        'This opt-in scenario requires the seeded #all and #product channels.'
+                        'This opt-in scenario requires the seeded #haus and #product channels.'
                     );
                 }
                 const allHeadSequence = await kit.readHead(allChannel.id);
@@ -137,14 +137,14 @@ export default defineScenario({
                 expect(createdAgent.computerId, 'inherited Computer').toBe(cove.computerId);
 
                 // The new Agent's own first-turn greeting is its only introduction,
-                // so Cove posts none in #all (ADR 0028, amended 2026-11-03).
+                // so Cove posts none in #haus (ADR 0028, amended 2026-11-03).
                 const coveIntroductions = (await kit.readMessages(allChannel.id)).filter(
                     (message) =>
                         message.sequence > allHeadSequence &&
                         message.author.kind === 'agent' &&
                         message.author.agentId === cove.id
                 );
-                expect(coveIntroductions, 'Cove posts no introduction in #all').toHaveLength(0);
+                expect(coveIntroductions, 'Cove posts no introduction in #haus').toHaveLength(0);
                 // Cove answers the Owner where they asked. The mention is the only way
                 // a human reaches the new profile, so the answer names the teammate.
                 const answers = (await kit.readMessages(askChat.id)).filter(
@@ -166,13 +166,13 @@ export default defineScenario({
                     0
                 );
 
-                // #all is the Server's guarantee; #product is what the request named.
+                // #haus is the Server's guarantee; #product is what the request named.
                 const membership = await kit.trpc('chat.list', { serverId: kit.serverId });
                 const memberOf = (chatId) =>
                     membership
                         .find((chat) => chat.id === chatId)
                         ?.participantAgentIds.includes(createdAgent.id) ?? false;
-                expect(memberOf(allChannel.id), 'the new Agent is in #all').toBe(true);
+                expect(memberOf(allChannel.id), 'the new Agent is in #haus').toBe(true);
                 expect(memberOf(productChannel.id), 'the new Agent is in #product').toBe(true);
 
                 // The brief is memory on the Computer, not a message: it reaches the

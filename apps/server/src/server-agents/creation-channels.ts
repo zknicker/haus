@@ -34,7 +34,7 @@ export async function requireCreationChannels(
     return channels;
 }
 
-/** Puts the new Agent in the lanes the request named, on top of `#all`. */
+/** Puts the new Agent in the lanes the request named, on top of `#haus`. */
 export async function joinCreationChannels(
     db: HausDatabase,
     serverId: string,
@@ -46,7 +46,7 @@ export async function joinCreationChannels(
     }
 }
 
-/** The channels an Agent is in, `#all` first, as the receipt names them. */
+/** The channels an Agent is in, `#haus` first, as the receipt names them. */
 export async function readAgentChannels(
     db: HausDatabase,
     serverId: string,

@@ -1,6 +1,5 @@
 import { createRouter } from '../trpc.ts';
 import { archiveChannelProcedure } from './archive-channel.ts';
-import { createChannelProcedure } from './create-channel.ts';
 import { deleteChannelProcedure } from './delete-channel.ts';
 import { listChatEngagementsProcedure } from './engagements.ts';
 import { ensureAgentDmProcedure } from './ensure-agent-dm.ts';
@@ -27,11 +26,9 @@ import { sendChatMessageProcedure } from './send.ts';
 import { unarchiveChannelProcedure } from './unarchive-channel.ts';
 import { unreadChatCountProcedure } from './unread-chat-count.ts';
 import { listUnreadPreviewsProcedure } from './unread-previews.ts';
-import { updateChannelProcedure } from './update-channel.ts';
 
 export const chatRouter = createRouter({
     archiveChannel: archiveChannelProcedure,
-    createChannel: createChannelProcedure,
     deleteChannel: deleteChannelProcedure,
     engagements: listChatEngagementsProcedure,
     ensureDm: ensureDmProcedure,
@@ -55,7 +52,6 @@ export const chatRouter = createRouter({
     react: reactToChatMessageProcedure,
     search: searchChatMessagesProcedure,
     send: sendChatMessageProcedure,
-    updateChannel: updateChannelProcedure,
     unarchiveChannel: unarchiveChannelProcedure,
     unreadChatCount: unreadChatCountProcedure,
     unreadPreviews: listUnreadPreviewsProcedure,

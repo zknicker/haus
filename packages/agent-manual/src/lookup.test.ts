@@ -20,8 +20,7 @@ test('search ranks partial matches instead of requiring every term', () => {
     expect(topIds('cloud agent model')[0]).toBe('cloud-agents');
     expect(topIds('cursor')[0]).toBe('cloud-agents');
     expect(topIds('schedule a follow up')).toContain('reminder');
-    // The `files` topic's id matches "file"; its where-files-live overview leads, attachment follows.
-    expect(topIds('upload a file').slice(0, 2)).toEqual(['files', 'attachment']);
+    expect(topIds('upload a file').slice(0, 2)).toEqual(['attachment', 'drive']);
 });
 
 test('search weights ids, titles, and triggers above body mentions', () => {
@@ -84,10 +83,8 @@ test('every command family noun resolves to its topic, singular and plural', () 
         if (family === 'manual') {
             continue;
         }
-        // `files` is already plural; every other family noun is singular.
-        const singular = family.endsWith('s') ? family.slice(0, -1) : family;
-        expect(resolveManualTopic(singular)?.id).toBe(topicId);
-        expect(resolveManualTopic(`${singular}s`)?.id).toBe(topicId);
+        expect(resolveManualTopic(family)?.id).toBe(topicId);
+        expect(resolveManualTopic(`${family}s`)?.id).toBe(topicId);
         expect(getManualTopic(topicId)?.body).toContain(`haus ${family}`);
     }
 });

@@ -178,14 +178,23 @@ export function conversationsSql(runner: ResolvedRunner) {
           and (parent.id is null or parent.deleted_at is null)
           and ${visibleChatSql(runner)}
           and (
-              -- Tasks list only for Agents following them (ADR 0053).
+              -- Tasks list only for Agents following them (ADR 0053) in a joined
+              -- channel: reading a Task is open, but this list follows hearing.
               chats.kind <> 'task'
-              or exists (
-                  select 1 from agent_task_follows follow
-                  where follow.server_id = chats.server_id
-                    and follow.agent_id = ${agentId}
-                    and follow.task_chat_id = chats.id
-                    and follow.followed
+              or (
+                  exists (
+                      select 1 from agent_task_follows follow
+                      where follow.server_id = chats.server_id
+                        and follow.agent_id = ${agentId}
+                        and follow.task_chat_id = chats.id
+                        and follow.followed
+                  )
+                  and exists (
+                      select 1 from channel_agent_participants cap
+                      where cap.server_id = chats.server_id
+                        and cap.chat_id = chats.parent_chat_id
+                        and cap.agent_id = ${agentId}
+                  )
               )
           )
           and (chats.kind = 'channel' or parent.kind = 'channel' or dm_human.handle is not null)

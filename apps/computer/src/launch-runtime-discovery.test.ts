@@ -40,6 +40,7 @@ test('launch accepts every runtime advertised by executable discovery', async ()
                 },
                 command: {
                     agentId: 'agt_discovery',
+                    agentName: 'discovery',
                     chatId: 'cht_discovery',
                     inbox: [],
                     inboxDelivery: 'notice',

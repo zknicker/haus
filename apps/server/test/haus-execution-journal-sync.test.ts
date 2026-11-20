@@ -45,13 +45,12 @@ beforeAll(async () => {
     await harness.sql`
         insert into agents (
             id, server_id, handle, display_name, home_timezone,
-            computer_id, desired_runtime_id, desired_model_id
-        )
+            computer_id, desired_runtime_id, desired_model_id, home_project_id)
         values
             (${agentId}, ${serverId}, 'journal-scout', 'Scout', 'America/New_York',
-                ${computerId}, 'codex', 'gpt-5.6-sol'),
+                ${computerId}, 'codex', 'gpt-5.6-sol', (select id from chats where server_id = ${serverId} and is_all)),
             (${strangerId}, ${serverId}, 'journal-stranger', 'Stranger', 'America/New_York',
-                null, null, null)
+                null, null, null, (select id from chats where server_id = ${serverId} and is_all))
     `;
     computer = new WebSocket(computerSocketUrl(harness));
     computer.addEventListener('message', (event) => received.push(JSON.parse(String(event.data))));

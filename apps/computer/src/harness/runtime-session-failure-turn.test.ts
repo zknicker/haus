@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { AgentActivityRun } from '../agent-activity-run.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import { agentDrive } from '../drive/agent-drive.ts';
 import { classifyRuntimeFailure } from '../runtime-failure.ts';
 import type { RuntimeResumeState } from '../runtime/resume-state.ts';
 import { fakeRuntimeDriver, finishedTurn } from '../runtime/testing/fake-runtime-driver.ts';
@@ -162,7 +163,7 @@ function turnInput(overrides: Partial<HarnessTurnInput> = {}): HarnessTurnInput 
         runtimeId: 'codex',
         serverId: 'srv_session_failure_test',
         sessionGeneration: 1,
-        skillsDir: join(agentRoot, 'skills'),
+        drive: agentDrive(agentRoot, 'agent'),
         tools: [],
         totalPending: 0,
         unreadElsewhere: [],

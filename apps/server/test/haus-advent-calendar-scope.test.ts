@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import type { AdventCalendar } from '@haus/api';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { createTestProject } from './project.fixture.ts';
 
 /** The calendar counts only Chats the member can read, and nothing under a deleted one. */
 
@@ -54,7 +55,7 @@ beforeAll(async () => {
         })
     ).agent.id;
     lanternsId = (
-        await carol.trpc.chat.createChannel.mutate({
+        await createTestProject(harness, carol, {
             agentIds: [agentId],
             name: 'lanterns',
             serverId,
@@ -94,7 +95,7 @@ test('in-demand counts mentions only in Chats the member can read', async () => 
 test('a soft-deleted channel takes its inline replies out of every count', async () => {
     const baseline = await read(25);
 
-    const attic = await carol.trpc.chat.createChannel.mutate({
+    const attic = await createTestProject(harness, carol, {
         agentIds: [agentId],
         name: 'attic',
         serverId,

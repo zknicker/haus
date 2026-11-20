@@ -59,11 +59,11 @@ for (const legacy of [false, true]) {
                         ).toBe(true);
                     }
                     // The new Agent's first-turn greeting is its only introduction, so
-                    // Cove posts none in #all (ADR 0028, amended 2026-11-03).
+                    // Cove posts none in #haus (ADR 0028, amended 2026-11-03).
                     const announcements = result.actions.filter(
                         (action) =>
                             action.path === '/api/agent/messages/send' &&
-                            action.body.target === '#all' &&
+                            action.body.target === '#haus' &&
                             action.result?.state === 'sent'
                     );
                     expect(announcements).toHaveLength(0);

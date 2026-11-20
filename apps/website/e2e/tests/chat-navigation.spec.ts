@@ -9,7 +9,7 @@ for (const intent of ['hover', 'focus'] as const) {
             displayName: 'Chat navigation',
             slug: `chat-navigation-${intent}`,
         });
-        const chatId = server.channels.find((channel) => channel.name === 'all')?.id;
+        const chatId = server.channels.find((channel) => channel.name === 'haus')?.id;
         assertOpaqueId(chatId);
         const otherChatId = `cht_navigation_${intent}`;
         runPsql(
@@ -42,7 +42,7 @@ for (const intent of ['hover', 'focus'] as const) {
             nonce: 'navigation-history',
             content: 'Cached navigation message',
         });
-        // Idle warming may fetch #all before the intent does; either way its
+        // Idle warming may fetch #haus before the intent does; either way its
         // history must be warm before the click.
         const history = page.waitForResponse(
             (response) =>
@@ -51,7 +51,7 @@ for (const intent of ['hover', 'focus'] as const) {
         );
         await page.goto(`/s/chat-navigation-${intent}/chats/${otherChatId}`);
         await expect(page.getByText('Other channel message', { exact: true })).toBeVisible();
-        const row = page.getByRole('row', { name: 'all', exact: true });
+        const row = page.getByRole('row', { name: 'haus', exact: true });
         await expect(row).toBeVisible();
         if (intent === 'hover') {
             await row.hover();
@@ -72,7 +72,7 @@ for (const intent of ['hover', 'focus'] as const) {
                 await new Promise(requestAnimationFrame);
                 // A kept-alive Chat stays mounted hidden; only a displayed surface counts.
                 const surface = [
-                    ...document.querySelectorAll('[data-slot="chat-surface"][aria-label="all"]'),
+                    ...document.querySelectorAll('[data-slot="chat-surface"][aria-label="haus"]'),
                 ].find((node) => node.checkVisibility());
                 const viewport = surface?.querySelector('[data-slot="message-scroller-viewport"]');
                 const message = [
@@ -104,7 +104,7 @@ test('a channel row opens on press and still drags to reorder', async ({ page },
         displayName: 'Channel press',
         slug: `channel-press-${run}`,
     });
-    const allId = server.channels.find((channel) => channel.name === 'all')?.id;
+    const allId = server.channels.find((channel) => channel.name === 'haus')?.id;
     assertOpaqueId(allId);
     const productId = `cht_channel_press_product_${run}`;
     runPsql(
@@ -121,10 +121,10 @@ test('a channel row opens on press and still drags to reorder', async ({ page },
     const channels = page.getByRole('treegrid', { name: 'Projects' });
     const order = async () => {
         const names = await channels.getByRole('row').allTextContents();
-        return names.indexOf('all') < names.indexOf('product') ? 'all first' : 'product first';
+        return names.indexOf('haus') < names.indexOf('product') ? 'haus first' : 'product first';
     };
-    await expect.poll(order).toBe('all first');
-    const allBox = await channels.getByRole('row', { exact: true, name: 'all' }).boundingBox();
+    await expect.poll(order).toBe('haus first');
+    const allBox = await channels.getByRole('row', { exact: true, name: 'haus' }).boundingBox();
     const productBox = await channels
         .getByRole('row', { exact: true, name: 'product' })
         .boundingBox();
@@ -132,12 +132,12 @@ test('a channel row opens on press and still drags to reorder', async ({ page },
         throw new Error('Channel rows have no layout.');
     }
 
-    // The press opens #all before the pointer moves, like a Chrome tab.
+    // The press opens #haus before the pointer moves, like a Chrome tab.
     await page.mouse.move(allBox.x + allBox.width / 2, allBox.y + allBox.height / 2);
     await page.mouse.down();
     await expect(page).toHaveURL(new RegExp(`/chats/${allId}$`));
 
-    // The same press still drags #all below #product, and the drop opens nothing else.
+    // The same press still drags #haus below #product, and the drop opens nothing else.
     await page.mouse.move(productBox.x + productBox.width / 2, productBox.y + productBox.height, {
         steps: 12,
     });

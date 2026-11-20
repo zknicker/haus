@@ -3,9 +3,10 @@ import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { AgentInboxItem } from '@haus/agent-prompt';
 import { AgentActivityRun } from '../agent-activity-run.ts';
-import type { AgentInboxItem } from '../agent-inbox-item.ts';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import { agentDrive } from '../drive/agent-drive.ts';
 import { closeRuntimeContext, openRuntimeContext } from '../runtime/runtime-context.ts';
 import { type HarnessTurnInput, runHarnessTurn } from './executor.ts';
 import { readAgentSessionState } from './session-store.ts';
@@ -123,7 +124,7 @@ function turnInput(
         runtimeId,
         serverId: 'srv_canary',
         sessionGeneration: 1,
-        skillsDir: join(root, 'skills'),
+        drive: agentDrive(root, 'agent'),
         tools: [],
         totalPending: 1,
         unreadElsewhere: [],

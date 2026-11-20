@@ -14,6 +14,7 @@ import {
     serversTable,
     usersTable,
 } from '../src/postgres/schema.ts';
+import { testAgentHome } from './agent-home.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 // The automation chain budget through real delivery: Trigger wakes spend it,
@@ -220,6 +221,7 @@ async function seedAgent(chain: { advancedAt: Date; turns: number }): Promise<Se
         handle: `ada-${randomBytes(4).toString('hex')}`,
         homeTimezone: 'UTC',
         id: agentId,
+        homeProjectId: await testAgentHome(db, serverId),
         serverId,
     });
     await db.insert(chatsTable).values({

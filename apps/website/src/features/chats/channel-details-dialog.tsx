@@ -14,7 +14,6 @@ import * as React from 'react';
 import { useChannelUpdate } from '../../hooks/servers/use-channel-update.ts';
 import { ChannelDialogError } from './channel-dialog-error.tsx';
 import { channelHandleIssue } from './channel-handle.ts';
-import { ChannelTaskKeyField } from './channel-task-key-field.tsx';
 
 export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: () => void }) {
     const updateChannel = useChannelUpdate();
@@ -22,13 +21,10 @@ export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: (
     const currentDescription = chat.description ?? '';
     const [name, setName] = React.useState(currentName);
     const [description, setDescription] = React.useState(currentDescription);
-    const [taskKeyId, setTaskKeyId] = React.useState(chat.taskKeyId);
     const trimmedName = name.trim();
     const trimmedDescription = description.trim();
     const handleIssue = channelHandleIssue(name);
-    const taskKeyChanged = taskKeyId !== null && taskKeyId !== chat.taskKeyId;
-    const changed =
-        trimmedName !== currentName || trimmedDescription !== currentDescription || taskKeyChanged;
+    const changed = trimmedName !== currentName || trimmedDescription !== currentDescription;
     const canSubmit =
         trimmedName.length > 0 &&
         !handleIssue &&
@@ -45,12 +41,10 @@ export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: (
 
         try {
             await updateChannel.mutateAsync({
-                agentIds: chat.participantAgentIds,
                 chatId: chat.id,
                 description: trimmedDescription,
                 name: trimmedName,
                 serverId: chat.serverId,
-                ...(taskKeyChanged && taskKeyId ? { taskKeyId } : {}),
             });
             toast.success('Project updated');
             onClose();
@@ -104,12 +98,6 @@ export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: (
                                     rows={3}
                                 />
                             </TextField>
-                            <ChannelTaskKeyField
-                                isDisabled={updateChannel.isPending}
-                                onChange={setTaskKeyId}
-                                serverId={chat.serverId}
-                                value={taskKeyId}
-                            />
                             <ChannelDialogError message={updateChannel.error?.message ?? null} />
                         </Form>
                     </Modal.Body>

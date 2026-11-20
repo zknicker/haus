@@ -6,8 +6,8 @@ import {
     coveGuidanceRefreshNotice,
     coveTurnGuidanceNotice,
 } from '../apps/computer/src/harness/cove-guidance-refresh.ts';
-import { renderAgentInstructions } from '../apps/computer/src/harness/managed-instructions.ts';
 import { manualTopics, resolveManualTopic } from '../packages/agent-manual/src/index.ts';
+import { renderAgentInstructions } from '../packages/agent-prompt/src/index.ts';
 import { coveOnboardingPlaybook } from '../packages/agent-workspace/src/cove-factory-guidance.ts';
 
 // Validate executable references against the same registry that dispatches Agent commands.
@@ -25,9 +25,9 @@ test('Manual and Cove guidance reference registered Haus subcommands and flags',
             runtimeVersion: 'test',
             workspacePath: '/workspace',
         }),
-        coveTurnGuidanceNotice('cove')!,
-        coveGuidanceRefreshNotice,
-        coveGuidanceConflictNotice([]),
+        coveTurnGuidanceNotice('cove', 'cove')!,
+        coveGuidanceRefreshNotice('cove'),
+        coveGuidanceConflictNotice([], 'cove'),
     ];
     let references = 0;
     const recovery = [
@@ -70,7 +70,7 @@ test('Manual and Cove guidance reference registered Haus subcommands and flags',
 test('Cove notices and the playbook use the same offer-state and send-status vocabulary', async () => {
     const { coveCoordinationGuidance } =
         await import('../packages/agent-workspace/src/cove-coordination-guidance.ts');
-    const notice = coveTurnGuidanceNotice('cove')!;
+    const notice = coveTurnGuidanceNotice('cove', 'cove')!;
     const states = coveCoordinationGuidance.match(/Keep review_offer_state[^:]+: ([^.]+)\./u)![1]!;
     const playbookStates = states.split(/,\s*| or /u).map((state) => state.trim());
     const direct = [...notice.matchAll(/review_offer_state: (\w+)/gu)].map((match) => match[1]!);
@@ -88,9 +88,9 @@ test('literal recipe references in all Manual and Cove guidance resolve', () => 
     for (const body of [
         ...manualTopics.map((topic) => topic.body),
         coveOnboardingPlaybook,
-        coveTurnGuidanceNotice('cove')!,
-        coveGuidanceRefreshNotice,
-        coveGuidanceConflictNotice([]),
+        coveTurnGuidanceNotice('cove', 'cove')!,
+        coveGuidanceRefreshNotice('cove'),
+        coveGuidanceConflictNotice([], 'cove'),
     ]) {
         for (const [topic] of body.matchAll(/recipes\/[a-z-]+\/[a-z][a-z-]+/gu)) {
             expect(resolveManualTopic(topic), topic).not.toBeNull();

@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { enqueueAgentGreeting } from '../src/agent-delivery/greeting.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { addChannel, offlineDelivery } from './agent-inbox-harness.ts';
+import { testAgentHome } from './agent-home.ts';
+import { offlineDelivery } from './agent-inbox-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { assignNewTask, seedTaskBoard } from './task-delivery-fixture.ts';
 
@@ -22,7 +23,7 @@ afterAll(async () => {
 test('a Task assignment never runs the main session ahead of the greeting', async () => {
     const board = await seedTaskBoard(connection.db);
     const { seed } = board;
-    const allChannelId = await addChannel(connection.db, seed, 'all');
+    const allChannelId = await testAgentHome(connection.db, seed.serverId);
     await enqueueAgentGreeting(connection.db, {
         agentId: seed.agentId,
         allChannelId,

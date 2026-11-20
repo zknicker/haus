@@ -1,5 +1,6 @@
 import { formatCloudAgentWorkLink } from '@haus/api';
 import { seedCloudAgentWork, startCloudAgentWork } from '../support/agent-cloud-agent.ts';
+import { createProjectWithAgents } from '../support/project.ts';
 import { createTestServer, openChannel, openHappeningNow } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -18,7 +19,7 @@ test('linked Cloud Agent work reads as the same card wherever it is linked', asy
     });
     const seeded = await seedCloudAgentWork({
         agentHandle: 'orbit',
-        channelName: 'all',
+        channelName: 'haus',
         computerCredential: credential,
         content: 'Delegating the first fix.',
         databaseUrl: session.databaseUrl,
@@ -29,7 +30,12 @@ test('linked Cloud Agent work reads as the same card wherever it is linked', asy
         token: session.accessToken,
     });
     const channel = (name: string) =>
-        client.chat.createChannel.mutate({ agentIds: [seeded.agentId], name, serverId: server.id });
+        createProjectWithAgents(client, {
+            agentIds: [seeded.agentId],
+            databaseUrl: session.databaseUrl,
+            name,
+            serverId: server.id,
+        });
     const launch = await channel('launch');
     const techOps = await channel('tech-ops');
     const started = await startCloudAgentWork({

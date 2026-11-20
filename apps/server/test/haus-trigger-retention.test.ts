@@ -36,8 +36,8 @@ beforeAll(async () => {
     channelId = server.channels[0].id;
     agentId = 'agt_trigger_retention';
     await harness.sql`
-        insert into agents (id, server_id, handle, display_name, home_timezone)
-        values (${agentId}, ${serverId}, 'retention-trigger', 'Trigger Retention', 'UTC')
+        insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
+        values (${agentId}, ${serverId}, 'retention-trigger', 'Trigger Retention', 'UTC', (select id from chats where server_id = ${serverId} and is_all))
     `;
     await harness.sql`
         insert into channel_agent_participants (server_id, chat_id, agent_id)

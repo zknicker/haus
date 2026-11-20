@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
+import { agentDrive } from '../drive/agent-drive.ts';
 import { createIdleCompactionReporter } from '../idle-compaction-reporter.ts';
 import { fakeRuntimeDriver, finishedTurn } from '../runtime/testing/fake-runtime-driver.ts';
 import { compactionToolName, type TurnEvent } from '../runtime/turn-event.ts';
@@ -31,7 +32,7 @@ let fake: ReturnType<typeof fakeRuntimeDriver<HarnessTurnInput>>;
 
 beforeEach(async () => {
     agentRoot = await mkdtemp(join(tmpdir(), 'haus-memory-turn-'));
-    await mkdir(join(agentRoot, 'workspace'));
+    await mkdir(agentDrive(agentRoot, 'cove').area, { recursive: true });
     compacts = false;
     agentEdit = null;
     fake = fakeRuntimeDriver<HarnessTurnInput>({
@@ -62,6 +63,18 @@ test('the first turn carries MEMORY.md and an unchanged file adds nothing after 
     expect(fake.record.prompts[0]).toContain(memoryTag);
     expect(fake.record.prompts[0]).toContain('Release manager.');
     expect(fake.record.prompts[1]).not.toContain(memoryTag);
+});
+
+test('memory is read from the Drive area, not the working directory', async () => {
+    await mkdir(join(agentRoot, 'workspace'), { recursive: true });
+    await writeFile(join(agentRoot, 'workspace', 'MEMORY.md'), '# Stale cwd copy\n');
+    await turn();
+    await writeMemory('# Cove\n\n## Role\nDrive copy.\n');
+    await turn();
+
+    expect(fake.record.prompts[0]).not.toContain(memoryTag);
+    expect(fake.record.prompts[1]).toContain('Drive copy.');
+    expect(fake.record.prompts[1]).not.toContain('Stale cwd copy');
 });
 
 test('a file changed outside the session is carried on the next turn; the Agent’s own edit is not', async () => {
@@ -160,7 +173,7 @@ function turn(overrides: TestTurnOverrides = {}) {
 }
 
 async function writeMemory(content: string) {
-    await writeFile(join(agentRoot, 'workspace', 'MEMORY.md'), content);
+    await writeFile(agentDrive(agentRoot, 'cove').memory, content);
 }
 
 function compaction(): TurnEvent[] {

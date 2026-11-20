@@ -621,7 +621,7 @@ test('assigns a claim to an Agent, wakes it with typed work, and writes no messa
     `) as { content: string; dedupe_key: string; mentioned: boolean; source: string }[];
     expect([...deliveries].filter((row) => row.source === 'claim_assignment')).toEqual([
         {
-            content: `[Haus claim assignment claim=#${assigned.claim.number} target=#all assignedBy=@claim-owner] Hand this to an Agent`,
+            content: `[Haus claim assignment claim=#${assigned.claim.number} target=#haus assignedBy=@claim-owner] Hand this to an Agent`,
             dedupe_key: `claim-assign:${created.claim.messageId}:${assigned.claim.version}`,
             mentioned: true,
             source: 'claim_assignment',
@@ -705,9 +705,9 @@ async function addClaimAgent(serverId: string, chatId: null | string) {
     `;
     await harness.sql`
         insert into agents (id, server_id, computer_id, handle, display_name,
-            desired_model_id, desired_runtime_id, home_timezone)
+            desired_model_id, desired_runtime_id, home_timezone, home_project_id)
         values (${agentId}, ${serverId}, ${computerId}, ${handle}, 'Ada',
-            'fake-model', 'fake', 'UTC')
+            'fake-model', 'fake', 'UTC', (select id from chats where server_id = ${serverId} and is_all))
     `;
     if (chatId) {
         await harness.sql`

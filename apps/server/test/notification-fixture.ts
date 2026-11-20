@@ -4,6 +4,7 @@ import { connectHausDatabase } from '../src/postgres/connection.ts';
 import type { PushSender } from '../src/push/push-sender.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { createTestProject } from './project.fixture.ts';
 
 const computerId = `cmp_${'n'.repeat(16)}`;
 const credentialHash = 'c'.repeat(64);
@@ -138,7 +139,7 @@ async function createChannel(
     },
     name: string
 ) {
-    const { id } = await context.owner.trpc.chat.createChannel.mutate({
+    const { id } = await createTestProject(context.harness, context.owner, {
         agentIds: [context.orbitAgentId, context.scoutAgentId],
         name,
         serverId: context.serverId,

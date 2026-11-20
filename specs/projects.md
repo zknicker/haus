@@ -28,9 +28,11 @@ Workers and their places are [ADR 0056](../docs/adr/0056-agents-run-quiet-worker
   | `chat_id` | The channel's Chat id, primary key, references `chats` |
   | `server_id` | The Server |
   | `task_key_id` | The Project's key, a `task_keys` row, unique across Projects |
-  | `is_haus` | True for exactly one Project per Server, the Haus project |
   | `default_worker_place` | `computer:<computerId>`, `cursor`, `claude`, or null |
 
+  The Haus project is the channel whose `chats.is_all` is true, exactly one per Server; the flag
+  stays on the channel row and the wire `Chat.isAll` until an explicit rename, and `projectSchema`
+  exposes it as `isHaus`. `default_worker_place` lands with W3.
   Repos are `project_repos` rows ([Repos](#repos)). Home Agents are `agents.home_project_id`
   ([Agents](#agents)). Name, description, icon, color, archive, and delete stay on the channel's
   Chat row as they are today ([chats.md](chats.md#channels-are-projects)).
@@ -44,8 +46,9 @@ Workers and their places are [ADR 0056](../docs/adr/0056-agents-run-quiet-worker
 ## Creating a Project
 
 - Only people create Projects. "New project" asks for a name and a key, suggests the key from the
-  name, and creates the channel, its `projects` row, and the key's ledger entry in one
-  transaction. The creator becomes the channel's first human member. There is no "New channel".
+  name with `suggestProjectKey` (`packages/haus-api/src/project-key.ts`), and creates the channel, its `projects` row, and the key's ledger entry in one
+  transaction. The key is optional on `project.create`: without one the Server allocates it by
+  the key rule. The creator becomes the channel's first human member. There is no "New channel".
 - Agents cannot create Projects. `POST /api/agent/channels/create` and `haus channel create` are
   deleted. An Agent asked for a new Project says that a person creates it in the App.
 - A new Project has no Agents. A person adds them in its settings.
@@ -134,7 +137,7 @@ starts with a digit is prefixed with `P` before step 2.
   prompt contract.
 - Every member of the Server belongs to the Haus project's channel, as they belong to `#all` today.
 - Its rules are `haus/AGENTS.md`. It has no `projects/<key>/` folder, and its Drive area is `haus`.
-- It cannot be archived or deleted.
+- It cannot be archived or deleted, and its channel cannot be renamed (`PROJECT_NAME_FIXED`).
 - Its key is the key `#all` used, which is `GEN` on every Server that never configured another.
 
 ## Generalists
@@ -164,11 +167,12 @@ starts with a digit is prefixed with `P` before step 2.
 ## Archiving and deleting
 
 - A Project with home Agents cannot be archived or deleted. The Server refuses with
-  `PROJECT_HAS_AGENTS` and names them. A person moves them first.
+  `PROJECT_HAS_AGENTS` and names them. A person moves them first. Retired Agents do not count;
+  deleting the Project moves any retired Agent homed there to the Haus project.
 - Otherwise archiving and deleting a Project are the channel's archive and delete
   ([chats.md](chats.md#config-and-observation)). Deleting a Project deletes its Tasks with the
   channel, its `projects` row, and its repos. Its key's ledger entry stays, so its numbers are
-  never reused.
+  never reused. Cloud work attached to those Tasks stays and loses its Task.
 
 ## Migration from channels
 

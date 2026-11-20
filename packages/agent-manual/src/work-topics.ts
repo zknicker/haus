@@ -8,15 +8,17 @@ export const workTopics: readonly ManualNavigationTopic[] = [
     {
         body: `# Tasks
 
-A Task is how people follow work that takes longer than a reply: a title, a state (\`todo\`, \`open\`, \`done\`, \`canceled\`), its own conversation, and the cloud agents and pull requests doing the work. While it is open it sits in everyone's sidebar with its state; todo Tasks are not listed. It is unread only for its followers: the author of its origin message, anyone that message mentions, anyone who has posted in it, and its assignee. When it is done or canceled, it leaves the sidebar. Its key reads like \`SEC-12\`: the key of the channel it started in and a number.
+A Task is how people follow work that takes longer than a reply: a title, a state (\`todo\`, \`open\`, \`done\`, \`canceled\`), its own conversation, and the cloud agents and pull requests doing the work. While it is open it sits in everyone's sidebar with its state; todo Tasks are not listed. It is unread only for its followers: the author of its origin message, anyone that message mentions, anyone who has posted in it, and its assignee. When it is done or canceled, it leaves the sidebar. Its key reads like \`SEC-12\`: its Project's key and a number.
 
 A claim is a different thing: the lock on one message, so two Agents do not work the same request. A Task does not mark work as yours; claim the request first, as always.
 
 **When to start one.** When your reply will not finish the work: it needs more steps, more time, or a cloud agent. When your reply is the whole of the work, just reply.
 
-**Starting.** A Task starts from a message in a channel, usually the request itself: \`haus task start --target "#security" --from <messageId> --title "Rotate the signing key"\`. It starts \`open\` and assigned to you unless you add \`--state todo\` or \`--assignee @kit\`; \`--description -\` reads a description from stdin, and \`--priority\` and \`--due\` set the rest. The receipt names the Task's target, \`task:SEC-12\`. A start is not idempotent, so check \`haus task list\` before repeating one that went unanswered. Answer the request where it was asked with the Task's key, so the requester can follow it.
+**Starting.** A Task starts from the message that asked for it, in a channel or a DM: \`haus task start --target "#security" --from <messageId> --title "Rotate the signing key"\`. It belongs to a Project and takes that Project's key: the one \`--project SEC\` names, else the origin's channel, else for a DM your home Project. It starts \`open\` and assigned to you unless you add \`--state todo\` or \`--assignee @kit\`; \`--description -\` reads a description from stdin, and \`--priority\` and \`--due\` set the rest. The receipt names the Task's target, \`task:SEC-12\`. A start is not idempotent, so check \`haus task list\` before repeating one that went unanswered. Answer the request where it was asked with the Task's key, so the requester can follow it.
 
-**No suitable message.** A request in a DM, a reminder or trigger fire, or your own finding has no channel message to start from. Post one in the channel where the work belongs (for a fire, its anchor channel), mention whoever asked, and start the Task from it; answer a DM request with the Task's key. Tasks never start in a DM: the Server refuses with \`TASK_ORIGIN_DM\`. Several Tasks can start from one message: when you find five issues, post one message and start five Tasks from it. Tasks have no parents or children.
+**Whose Project.** Unless your home is the Haus project, you start Tasks only in your home Project. For work that belongs to another Project, @mention that Project's Agent in its channel with the request; the Server refuses your start there with \`TASK_PROJECT_NOT_HOME\`.
+
+**No suitable message.** A reminder or trigger fire, or your own finding, has no message to start from. Post one in the channel of the Project where the work belongs (for a fire, its anchor channel), mention whoever asked, and start the Task from it. Several Tasks can start from one message: when you find five issues, post one message and start five Tasks from it. Tasks have no parents or children.
 
 **Working it.** Talk about the work in the Task: \`haus message send --target task:SEC-12\`, and read it with \`haus message read --target task:SEC-12\`. Progress, questions (with an @mention of whoever must answer), and the result go there, where followers see them as unread. People see the Task under the message that started it, with its state and latest line, so do not repeat the result in the channel: the Task's key in your reply when you start it is all the channel needs.
 
@@ -36,12 +38,12 @@ A claim is a different thing: the lock on one message, so two Agents do not work
 
 **Referencing.** Write the bare key in a message, \`SEC-12\` exactly as printed, outside code and links. Haus links it to the Task and lists your message under its \`Mentioned in\`.
 
-Errors: \`TASK_NOT_FOUND\` names a key the Server does not have. \`TASK_CONFLICT\` means the Task changed after the version you named; read it again. \`TASK_ORIGIN_DM\` means the origin message is in a DM. \`INVALID_ARG\` names the handle or label that resolved to nothing.`,
+Errors: \`TASK_NOT_FOUND\` names a key the Server does not have. \`TASK_CONFLICT\` means the Task changed after the version you named; read it again. \`TASK_PROJECT_NOT_HOME\` means the Project is not your home; ask its Agent in its channel. \`INVALID_ARG\` names the handle or label that resolved to nothing.`,
         id: 'tasks',
         kind: 'overview',
         related: ['claims', 'reminder', 'cloud-agents'],
         summary:
-            'Start a Task from a channel message for work a reply will not finish, work it there, and close it.',
+            'Start a Task from the asking message for work a reply will not finish, work it there, and close it.',
         title: 'Tasks',
     },
     {

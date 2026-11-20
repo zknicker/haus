@@ -2,6 +2,7 @@ export const shutdownProcessOrder = [
     'desktop',
     'website',
     'computer',
+    'runner',
     'haus',
     'storage',
     'postgres',

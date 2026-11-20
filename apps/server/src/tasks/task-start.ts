@@ -11,11 +11,12 @@ import {
     type TaskAgentDelivery,
     type TaskWriteResult,
 } from './task-assignment.ts';
-import { TaskInvariantError, TaskOriginDmError } from './task-errors.ts';
+import { TaskInvariantError } from './task-errors.ts';
 import { prepareTaskCreatedEvent } from './task-events.ts';
 import { assigneeColumns, requireTaskAssignee } from './task-fields.ts';
 import { seedTaskFollowers } from './task-follows.ts';
-import { allocateTaskNumber, resolveChannelTaskKeyId } from './task-key-ledger.ts';
+import { allocateTaskNumber } from './task-key-ledger.ts';
+import { resolveStartProject } from './task-project.ts';
 import { readTask } from './task-read.ts';
 
 type Tx = Parameters<Parameters<HausDatabase['transaction']>[0]>[0];
@@ -27,6 +28,7 @@ export interface StartTaskInput {
     originChatId: string;
     originMessageId: string;
     priority?: Task['priority'];
+    projectKey?: string;
     serverId: string;
     state: 'open' | 'todo';
     title: string;
@@ -44,21 +46,23 @@ export async function startTask(
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         await requireTaskActor(tx, input.serverId, actor);
-        await requireOriginInChannel(tx, input);
+        const origin = await requireOrigin(tx, input);
+        const project = await resolveStartProject(tx, {
+            agentId: actor.agentId,
+            origin,
+            ...(input.projectKey === undefined ? {} : { projectKey: input.projectKey }),
+            serverId: input.serverId,
+        });
         if (input.assignee) {
             await requireTaskAssignee(tx, input.serverId, input.assignee);
         }
-        const keyId = await resolveChannelTaskKeyId(tx, {
-            channelId: input.originChatId,
-            serverId: input.serverId,
-        });
+        const keyId = project.taskKeyId;
         const number = await allocateTaskNumber(tx, { keyId, serverId: input.serverId });
         const chatId = createOpaqueId('cht');
         await tx.insert(chatsTable).values({
-            anchorMessageId: input.originMessageId,
             id: chatId,
             kind: 'task',
-            parentChatId: input.originChatId,
+            parentChatId: project.projectId,
             parentChatKind: 'channel',
             serverId: input.serverId,
         });
@@ -72,7 +76,10 @@ export async function startTask(
             id: taskId,
             keyId,
             number,
+            originChatId: input.originChatId,
+            originMessageId: input.originMessageId,
             priority: input.priority ?? 'none',
+            projectId: project.projectId,
             serverId: input.serverId,
             state: input.state,
             title: input.title,
@@ -80,8 +87,8 @@ export async function startTask(
         await seedTaskFollowers(tx, {
             assignee: input.assignee,
             chatId,
-            originChannelId: input.originChatId,
-            originMessageId: input.originMessageId,
+            origin: { chatId: input.originChatId, messageId: input.originMessageId },
+            projectId: project.projectId,
             serverId: input.serverId,
         });
         const task = await readTask(tx, input.serverId, taskId);
@@ -109,10 +116,10 @@ async function assignAgentOnStart(
     return { wakes: effects.wakes };
 }
 
-async function requireOriginInChannel(
+async function requireOrigin(
     tx: Tx,
     input: { originChatId: string; originMessageId: string; serverId: string }
-): Promise<void> {
+) {
     const [origin] = await tx
         .select({ kind: chatsTable.kind })
         .from(chatMessagesTable)
@@ -134,13 +141,11 @@ async function requireOriginInChannel(
     if (!origin) {
         throw new TaskInvariantError('The origin Message is not in that Chat.');
     }
-    if (origin.kind === 'dm') {
-        throw new TaskOriginDmError();
-    }
-    if (origin.kind !== 'channel') {
+    if (origin.kind === 'task') {
         throw new TaskInvariantError(
-            'Tasks start from a Message in a Channel, not one inside a Task.'
+            'Tasks start from a Message in a Channel or DM, not one inside a Task.'
         );
     }
     await requireChatWritable(tx, { chatId: input.originChatId, serverId: input.serverId });
+    return { chatId: input.originChatId, kind: origin.kind };
 }

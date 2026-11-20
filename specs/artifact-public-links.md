@@ -1,7 +1,7 @@
 ---
 summary: Normative contract for public links to Files (shared artifacts) — opt-in unguessable URLs that anyone outside the Server can open or embed.
 read_when:
-  - changing Files public links, the `/f/<token>` route, or `haus files share`
+  - changing Files public links, the `/f/<token>` route, or `haus drive share`
   - changing how Files bytes are served outside Server membership
   - changing artifact deletion, retention, or moves in a way that could break a public link
 ---
@@ -83,8 +83,8 @@ behind its own review.
   in the viewer header. tRPC: `artifact.publicLink` (one file's link), `artifact.share`
   (create or reuse), `artifact.unshare` (disable), and `artifact.list` pages carry
   `public_links` keyed by artifact id for the page's files.
-- **Agents.** `haus files share <id|link|path>` prints `{ artifact_id, url }`; `--disable`
-  disables. The `files` Manual topic teaches it. Agent routes: `POST /api/agent/artifacts/:id/public-link` and
+- **Agents.** `haus drive share <id|link|path>` prints `{ artifact_id, url }`; `--disable`
+  disables. The `drive` Manual topic teaches it. Agent routes: `POST /api/agent/artifacts/:id/public-link` and
   `POST /api/agent/artifacts/:id/public-link/disable`.
 - **Events.** Creating or disabling a link publishes `artifact.onUpdated` with the artifact id.
 

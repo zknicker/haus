@@ -46,13 +46,14 @@ export async function startTestTask(
     const chatId = createOpaqueId('cht');
     const taskId = createOpaqueId('tsk');
     await harness.sql`
-        insert into chats (id, server_id, kind, parent_chat_id, parent_chat_kind, anchor_message_id)
-        values (${chatId}, ${input.serverId}, 'task', ${input.channelId}, 'channel', ${originMessageId})
+        insert into chats (id, server_id, kind, parent_chat_id, parent_chat_kind)
+        values (${chatId}, ${input.serverId}, 'task', ${input.channelId}, 'channel')
     `;
     await harness.sql`
-        insert into tasks (id, server_id, key_id, number, title, chat_id, created_by_user_id)
+        insert into tasks (id, server_id, key_id, number, title, chat_id, created_by_user_id,
+            project_id, origin_chat_id, origin_message_id)
         values (${taskId}, ${input.serverId}, ${entry.id}, ${entry.number}, ${input.title},
-            ${chatId}, ${creator.user_id})
+            ${chatId}, ${creator.user_id}, ${input.channelId}, ${input.channelId}, ${originMessageId})
     `;
     return { chatId, id: taskId, key: `${entry.key}-${entry.number}`, originMessageId };
 }

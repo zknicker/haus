@@ -4,6 +4,7 @@ import { triggerPayloadMaxBytes } from '@haus/api';
 import { triggerBurstLimit } from '../src/triggers/trigger-rate-limit.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { createTestProject } from './project.fixture.ts';
 import { captureAllTopics, publishedSince } from './realtime-capture.ts';
 
 let agentId: string;
@@ -67,7 +68,7 @@ test('mints one readable secret, publishes a curl probe, and stores only the has
     );
     expect(created.body.curl).toContain(`Authorization: Bearer ${created.body.secret}`);
     expect(created.body.trigger).toMatchObject({
-        anchorTarget: '#all',
+        anchorTarget: '#haus',
         // An Agent-created trigger has no human creator and anchors on the
         // asking message rather than on a DM receipt.
         createdByHandle: null,
@@ -344,11 +345,8 @@ test('refuses a disabled trigger without recording a fire', async () => {
 });
 
 test('disables a trigger whose anchor Chat can no longer be written', async () => {
-    const strandedChannel = await owner.trpc.chat.createChannel.mutate({
-        agentIds: [agentId],
-        name: 'stranded',
-        serverId,
-    });
+    const stranding = { agentIds: [agentId], name: 'stranded', serverId };
+    const strandedChannel = await createTestProject(harness, owner, stranding);
     const stranded = await sendAnchor(strandedChannel.id, 'Watch this', 'trigger_stranded_anchor');
     const created = await createTrigger('Stranded trigger', { messageId: stranded });
     const triggerId = created.body.trigger?.id ?? '';

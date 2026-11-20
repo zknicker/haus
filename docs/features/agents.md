@@ -42,8 +42,8 @@ picker, automatic lane-note seed, or special creation
 path in this contract. Fresh-Server Cove onboarding is a separate setup flow;
 see [ADR 0021](../adr/0021-cove-onboards-and-agents-share-a-manual.md).
 
-Computer seeds an ordinary Agent's fresh workspace with only a minimal
-`MEMORY.md` — identity, description-derived role, empty knowledge, and initial
+Computer seeds an ordinary Agent's fresh Drive area `agents/<handle>/` on its first launch
+with only a minimal `MEMORY.md` — identity, description-derived role, empty knowledge, and initial
 active context — and an empty `notes/` directory for the details it indexes. Practice files, recipe summaries, onboarding notes, and
 archetype notes come from neither creation nor reset. Shared guidance belongs
 in the Haus Manual, while the Agent's own work may add files later.
@@ -162,10 +162,11 @@ carry no Server role; Server authority is a human membership property.
 
 `--brief` is the new Agent's standing instruction — its lane, outputs, cadence,
 where it posts, and who reviews. It is Server state on the Agent row, not a
-Message, and it rides every configure command to the Computer, which renders it
-into the `MEMORY.md` it seeds under a `## Standing brief from @<creator>`
-heading. Seeding happens once: an owned workspace is never overwritten, so a
-reprovision recovers the brief from the row rather than from the file. The
+Message, and it rides every configure command to the Computer, which records it and
+renders it into the `MEMORY.md` the first launch seeds under a
+`## Standing brief from @<creator>` heading. Seeding happens once: a Drive path
+that already holds a file is never overwritten, so a reprovision recovers the brief
+from the row rather than from the file. The
 greeting is not memory: the run that carries it opens with Raft's one-time
 instruction to post one short self-introduction in `#all`. That greeting is the new Agent's only introduction,
 and every newly created Agent gets it, from the App or from another Agent, with
@@ -180,13 +181,9 @@ avatar is generated, and the receipt lists the channels the Agent landed in.
 afterwards: any active Agent may add any active Agent, the add is idempotent,
 and it wakes nobody.
 
-An Agent can create a channel itself with
-`haus channel create --name <name> --human @handle [--description <text>]`, as any
-Server member can in the App. The Agent joins it, and so does each named human,
-because a human sees a channel only once they are in it. The Manual's
-`channel` topic tells Agents to name the human who asked, to check
-`haus server info --channels` for an existing channel first, and to create the
-channel before setting up the reminders or triggers that will post there.
+An Agent cannot create a channel. Every channel is a Project and only people
+create Projects, in the App; the Manual's `channel` topic tells an Agent asked
+for one to say so.
 
 No human created the Agent, so the Server names the human its Owner DM belongs
 to at creation: the human of the DM the create ran in, then the one human the
@@ -254,8 +251,8 @@ atomically, and retirement or human departure releases the active alias.
 
 Computer composes managed product instructions (including the house personality), the Agent description and
 conversation style, the Agent's local skills, and tool guidance for every turn; a changed description or conversation style applies from the next turn without a session reset.
-Durable learned knowledge lives in the Agent's own `MEMORY.md` and any files it
-creates.
+Durable learned knowledge lives in the Agent's own `MEMORY.md` and the other files
+in its Drive area.
 Haus does not generate an `AGENTS.md`, `SOUL.md`, or injected memory layer
 inside the workspace, and no runtime auto-loads `AGENTS.md` or `CLAUDE.md` from
 the workspace, its ancestors, or the operator's home (Grok Build still reads
@@ -304,10 +301,9 @@ One resident Computer execution host serves each assigned Agent. The Agent's
 single global model session spans all Chats and resumes across deliveries and
 Computer restarts. Stop, Restart, Start fresh session, and Full reset all run from the profile
 header's actions menu. Session reset creates fresh model context while preserving
-the workspace and skills. Full reset restores the Agent-kind factory workspace
-and only the current factory-managed skills: minimal `MEMORY.md` and empty
-`notes/` for an ordinary Agent, or Cove's root `MEMORY.md` plus three onboarding files under
-`notes/`. Today the only factory-managed skill is `visuals`.
+the workspace and skills. Full reset keeps the Agent's Drive folder (memory, notes and
+skills) and clears the rest of its local state; it reseeds nothing. Today the only
+factory-managed skill is `visuals`.
 
 See [Context management](context-management.md) and
 [Agent daemon and delivery](../internals/agent-daemon-delivery.md).

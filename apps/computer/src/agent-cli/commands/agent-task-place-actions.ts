@@ -16,33 +16,31 @@ import {
 export async function runTaskStart(args: ParsedArgs, deps: TaskDeps): Promise<number> {
     const target = requiredValue(args, '--target');
     assertAgentTarget(target);
-    if (target.startsWith('dm:') || target.startsWith('task:')) {
-        throw originRefusal(
-            'TASK_ORIGIN_DM',
-            `A Task starts from a message in a channel, not ${target}.`
+    if (target.startsWith('task:')) {
+        throw new AgentCliError(
+            'INVALID_ARG',
+            `A Task starts from a message in a channel or DM, not one inside a Task (${target}).`,
+            {
+                nextAction:
+                    'Start it from the message in the channel or DM that asked for the work.',
+            }
         );
     }
     const from = requiredValue(args, '--from');
-    const response = await deps.client
-        .request('/api/agent/tasks/start', taskStartSchema, {
-            body: {
-                assignee: args.values['--assignee'],
-                description: await readDescription(args, deps),
-                dueOn: args.values['--due'],
-                from,
-                priority: args.values['--priority'],
-                state: startState(args),
-                target,
-                title: requiredValue(args, '--title'),
-            },
-            method: 'POST',
-        })
-        .catch((error: unknown) => {
-            if (error instanceof AgentCliError && error.code === 'TASK_ORIGIN_DM') {
-                throw originRefusal(error.code, error.message);
-            }
-            throw error;
-        });
+    const response = await deps.client.request('/api/agent/tasks/start', taskStartSchema, {
+        body: {
+            assignee: args.values['--assignee'],
+            description: await readDescription(args, deps),
+            dueOn: args.values['--due'],
+            from,
+            priority: args.values['--priority'],
+            project: args.values['--project'],
+            state: startState(args),
+            target,
+            title: requiredValue(args, '--title'),
+        },
+        method: 'POST',
+    });
     deps.write(
         [
             `Started ${describeTask(response.task)}`,
@@ -112,12 +110,5 @@ function startState(args: ParsedArgs): 'open' | 'todo' | undefined {
     }
     throw new AgentCliError('INVALID_ARG', 'A Task starts todo or open.', {
         nextAction: 'Omit --state to start it open.',
-    });
-}
-
-function originRefusal(code: string, message: string): AgentCliError {
-    return new AgentCliError(code, message, {
-        nextAction:
-            'Post the origin message in the channel where the work belongs, mentioning whoever asked, start the Task from it, then reply in the DM with the Task key.',
     });
 }

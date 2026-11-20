@@ -322,6 +322,13 @@ canary uses the same runtime and model variables: it starts a session on instruc
 `CANARY-ALPHA`, resumes it with `CANARY-BRAVO`, and expects the Agent to report `BRAVO`, which only
 the re-delivered `<haus-instructions-update>` block can make it do (specs/sessions.md).
 
+The runner has one more live test. It drives the Claude Agent SDK with native tools off and Haus
+tools bridged, on the Claude login the runner holds:
+
+```sh
+HAUS_RUN_LIVE_RUNNER_CLAUDE_TEST=1 bun test --timeout 120000 apps/runner/src/claude
+```
+
 ## Manual Smoke Hygiene
 
 Manual real-provider chats are rare. Prefer deterministic e2e or unit/service
@@ -530,7 +537,7 @@ rendered as the report's "What was changed" section). The registry is
 | `side-work` | Two peers carry a live finance discussion while a human pulls the Agent into a code-review sidebar and replies inline through three substantial write-ups: each reaches the human, and the Agent authors at most two posts in the channel itself, taking the review to a Task. A control keeps a one-off off-topic answer to a single inline reply with no Task (`placement-off-topic-quick-question`). Placement is the Agent's judgment, so read the multi-round rate, not a single run. |
 | `task-intake` | Task or reply: work the reply will not finish (several steps, more time, a cloud agent) becomes a Task opened by the Agent's own top-level message where the work belongs, whatever the source (a human ask, a Reminder fire, a GitHub Trigger fire, several findings, one Task each); work the reply finishes is just answered, and a claim, not a Task, marks ownership. The two cloud scenarios (launch on a Task, report the finish in it) are opt-in because they spend real Cursor runs. Serial; the Trigger scenarios need the varlock environment. |
 | `task-pacing` | Tasks a person assigns are worked one at a time, most urgent first, skipping one blocked on a person; Tasks the Agent starts itself may run side by side. Serial. |
-| `tools` | Work that leaves the chat: a Cloud Agent launched on a Task and linked from a second channel (Cursor), granted-only MCP use with a hot grant, a webhook Trigger whose secret stays out of chat, and a file shared with the team without naming Files (one `haus files push` of a `.md` file whose stable URL is linked, not attached). |
+| `tools` | Work that leaves the chat: a Cloud Agent launched on a Task and linked from a second channel (Cursor), granted-only MCP use with a hot grant, a webhook Trigger whose secret stays out of chat, and a file shared with the team without naming Drive (one `.md` file written under the Agent's `drive/` folder and cited with a `drive://` link, not attached). |
 
 The Files-backed scenarios (`placement-found-the-kit-files` in `placement`,
 `shared-artifact-discovery` in `tools`) run on the eval stack's own local Files storage gateway, so

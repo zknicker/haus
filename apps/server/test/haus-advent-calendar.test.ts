@@ -2,6 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import type { AdventCalendar, AdventEntry } from '@haus/api';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { createTestProject } from './project.fixture.ts';
 
 let harness: HausServerHarness;
 let owner: HausClient;
@@ -44,7 +45,7 @@ beforeAll(async () => {
             serverId,
         })
     ).agent.id;
-    const channel = await owner.trpc.chat.createChannel.mutate({
+    const channel = await createTestProject(harness, owner, {
         agentIds: [agentId],
         name: 'lanterns',
         serverId,

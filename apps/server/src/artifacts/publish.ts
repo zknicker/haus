@@ -5,13 +5,12 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import {
     artifactsTable as artifacts,
     artifactRevisionsTable as revisions,
-    serversTable,
 } from '../postgres/schema.ts';
 import { artifactUpdatedTopic } from '../realtime/topics.ts';
 import { type ArtifactActor, artifactAccess } from './access.ts';
-import { revisionConflict } from './conflict.ts';
+import { landArtifactRevision } from './land.ts';
 import { getArtifact } from './read.ts';
-import { type ArtifactWriteExpectation, reserveArtifact } from './reserve.ts';
+import { type ArtifactReservation, reserveArtifact } from './reserve.ts';
 import {
     ArtifactError,
     type ArtifactStorage,
@@ -21,119 +20,43 @@ import {
 } from './storage.ts';
 import type { ArtifactThumbnails } from './thumbnails.ts';
 
-export async function publishArtifact(options: {
+export interface ArtifactPublishOptions {
     db: HausDatabase;
     actor: ArtifactActor;
     origin: string;
     storage: ArtifactStorage | null;
     budget?: number;
     input: ArtifactPublishInput;
+    merges?: boolean;
     stream: AsyncIterable<Uint8Array>;
+    /** The Task the write was for; only a push names one. */
+    taskId?: string | null;
     /** Renders the new revision's thumbnail after it lands; never fails the publish. */
     thumbnails?: ArtifactThumbnails | null;
-}) {
+}
+
+export async function publishArtifact(options: ArtifactPublishOptions) {
     const { db, actor, input, origin } = options;
     const storage = requireArtifactStorage(options.storage);
     const access = await artifactAccess(db, actor);
     const reserved = await reserveArtifact(
         db,
         access,
-        input,
+        { input, merges: options.merges ?? true, taskId: options.taskId ?? null },
         options.budget ?? artifactStorageBytes,
         origin
     );
     if (reserved.retry) {
-        const hash = createHash('sha256');
-        let size = 0;
-        for await (const chunk of options.stream) {
-            size += chunk.byteLength;
-            if (size > artifactMaxBytes) {
-                throw new ArtifactError('File exceeds the 256 MiB limit.', 413, 'SIZE_LIMIT');
-            }
-            hash.update(chunk);
-        }
-        if (
-            size !== reserved.revision.byteSize ||
-            hash.digest('hex') !== reserved.revision.sha256
-        ) {
-            throw new ArtifactError(
-                'That request_id was published with different bytes.',
-                409,
-                'IDEMPOTENCY_KEY_REUSED'
-            );
-        }
+        await requireSameBytes(reserved.revision, options.stream);
     } else {
-        let published: { size: number };
-        try {
-            const uploaded = await storage.upload(
-                reserved.revision.objectKey,
-                options.stream,
-                input.content_type
-            );
-            if (uploaded.size > artifactMaxBytes) {
-                throw new ArtifactError('File exceeds the 256 MiB limit.', 413, 'SIZE_LIMIT');
-            }
-            published = uploaded;
-            await db.transaction(async (tx) => {
-                const [server] = await tx
-                    .select({ id: serversTable.id })
-                    .from(serversTable)
-                    .where(
-                        and(eq(serversTable.id, access.serverId), isNull(serversTable.deletedAt))
-                    )
-                    .for('update');
-                const [artifact] = await tx
-                    .select()
-                    .from(artifacts)
-                    .where(and(eq(artifacts.id, reserved.artifact.id), isNull(artifacts.deletedAt)))
-                    .limit(1);
-                if (!(server && artifact)) {
-                    throw new ArtifactError('File was deleted during publication.', 409, 'DELETED');
-                }
-                await tx
-                    .update(revisions)
-                    .set({
-                        byteSize: uploaded.size,
-                        reservedBytes: uploaded.size,
-                        sha256: uploaded.sha256,
-                        state: 'ready',
-                    })
-                    .where(eq(revisions.id, reserved.revision.id));
-                await advanceHead(tx, artifact, reserved.revision, reserved.expect, () =>
-                    revisionConflict(tx, access, origin, {
-                        artifactId: artifact.id,
-                        baseRevisionId: reserved.expect.replace ? null : reserved.expect.base,
-                        path: artifact.path,
-                    })
-                );
-            });
-        } catch (cause) {
-            await db
-                .update(revisions)
-                .set({ state: 'failed' })
-                .where(eq(revisions.id, reserved.revision.id));
-            await releasePendingPath(db, reserved.artifact.id);
-            try {
-                await storage.delete(reserved.revision.objectKey);
-                await db
-                    .update(revisions)
-                    .set({ reservedBytes: 0 })
-                    .where(eq(revisions.id, reserved.revision.id));
-            } catch (cleanupCause) {
-                throw new AggregateError(
-                    [cause, cleanupCause],
-                    'Artifact upload failed and cleanup remains pending.'
-                );
-            }
-            throw cause;
-        }
-        // Committed: nothing below may fail the publish or reach its cleanup above.
+        const landed = await upload(options, access, reserved, storage);
+        // Committed: nothing below may fail the publish or reach the upload's cleanup.
         artifactUpdatedTopic.announce({
             artifactId: reserved.artifact.id,
             serverId: access.serverId,
         });
         void options.thumbnails?.ensure({
-            byteSize: published.size,
+            byteSize: landed.byteSize,
             contentType: input.content_type,
             id: reserved.revision.id,
             objectKey: reserved.revision.objectKey,
@@ -146,31 +69,82 @@ export async function publishArtifact(options: {
     };
 }
 
-/**
- * Points the artifact at the landed revision. `replace` advances unless a newer revision already
- * landed; otherwise the head must still be the expected base, or the write lost the race.
- */
-async function advanceHead(
-    tx: HausDatabase,
-    artifact: typeof artifacts.$inferSelect,
-    revision: typeof revisions.$inferSelect,
-    expect: ArtifactWriteExpectation,
-    conflict: () => Promise<ArtifactError>
+async function upload(
+    options: ArtifactPublishOptions,
+    access: Awaited<ReturnType<typeof artifactAccess>>,
+    reserved: Extract<ArtifactReservation, { retry: false }>,
+    storage: ArtifactStorage
 ) {
-    if (!expect.replace && artifact.currentRevisionId !== expect.base) {
-        throw await conflict();
+    const { db, input } = options;
+    try {
+        const uploaded = await storage.upload(
+            reserved.revision.objectKey,
+            options.stream,
+            input.content_type
+        );
+        if (uploaded.size > artifactMaxBytes) {
+            throw new ArtifactError('File exceeds the 256 MiB limit.', 413, 'SIZE_LIMIT');
+        }
+        return await landArtifactRevision(db, access, options.origin, storage, {
+            artifactId: reserved.artifact.id,
+            expect: reserved.expect,
+            revision: reserved.revision,
+            uploaded,
+        });
+    } catch (cause) {
+        await abandonUpload(db, storage, reserved.revision, cause);
+        throw cause;
     }
-    const [current] = artifact.currentRevisionId
-        ? await tx
-              .select({ number: revisions.revisionNumber })
-              .from(revisions)
-              .where(eq(revisions.id, artifact.currentRevisionId))
-        : [];
-    if (!current || current.number < revision.revisionNumber) {
-        await tx
-            .update(artifacts)
-            .set({ currentRevisionId: revision.id })
-            .where(eq(artifacts.id, artifact.id));
+}
+
+export async function abandonUpload(
+    db: HausDatabase,
+    storage: ArtifactStorage,
+    revision: Pick<typeof revisions.$inferSelect, 'artifactId' | 'id' | 'objectKey'>,
+    cause: unknown
+) {
+    await db.update(revisions).set({ state: 'failed' }).where(eq(revisions.id, revision.id));
+    await releasePendingPath(db, revision.artifactId);
+    await dropUploadedBytes(db, storage, revision, cause);
+}
+
+export async function dropUploadedBytes(
+    db: HausDatabase,
+    storage: ArtifactStorage,
+    revision: Pick<typeof revisions.$inferSelect, 'id' | 'objectKey'>,
+    cause: unknown = null
+) {
+    try {
+        await storage.delete(revision.objectKey);
+        await db.update(revisions).set({ reservedBytes: 0 }).where(eq(revisions.id, revision.id));
+    } catch (cleanupCause) {
+        throw new AggregateError(
+            cause ? [cause, cleanupCause] : [cleanupCause],
+            'Artifact upload failed and cleanup remains pending.'
+        );
+    }
+}
+
+/** A retry must resend the bytes the writer first sent, which a merged revision no longer holds. */
+async function requireSameBytes(
+    revision: typeof revisions.$inferSelect,
+    stream: AsyncIterable<Uint8Array>
+) {
+    const hash = createHash('sha256');
+    let size = 0;
+    for await (const chunk of stream) {
+        size += chunk.byteLength;
+        if (size > artifactMaxBytes) {
+            throw new ArtifactError('File exceeds the 256 MiB limit.', 413, 'SIZE_LIMIT');
+        }
+        hash.update(chunk);
+    }
+    if (hash.digest('hex') !== (revision.requestSha256 ?? revision.sha256)) {
+        throw new ArtifactError(
+            'That request_id was published with different bytes.',
+            409,
+            'IDEMPOTENCY_KEY_REUSED'
+        );
     }
 }
 

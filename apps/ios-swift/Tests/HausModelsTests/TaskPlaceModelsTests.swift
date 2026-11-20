@@ -119,7 +119,7 @@ final class TaskPlaceModelsTests: XCTestCase {
         let list = try decode(ChatUnreadPreviewList.self, """
         {"previews":[
           {"anchor":null,"chatId":"chat_task_12","earlierUnreadCount":2,"messages":[\(Self.messageJSON("m1", chatID: "chat_task_12"))],
-           "task":{"key":"SEC-12","originChatId":"chat_security","state":"open","taskId":"task_12","title":"Rate-limit","extra":1}},
+           "task":{"key":"SEC-12","projectId":"chat_security","state":"open","taskId":"task_12","title":"Rate-limit","extra":1}},
           {"anchor":null,"chatId":"chat_product","earlierUnreadCount":0,"messages":[\(Self.messageJSON("m2", chatID: "chat_product"))],"task":null},
           {"chatId":42}
         ],"futureField":[]}
@@ -128,7 +128,7 @@ final class TaskPlaceModelsTests: XCTestCase {
         let task = try XCTUnwrap(list.taskPreviews.first)
         XCTAssertEqual(list.taskPreviews.count, 1)
         XCTAssertEqual(task.task, ChatUnreadPreviewTask(
-            taskID: "task_12", key: "SEC-12", title: "Rate-limit", state: .open, originChatID: "chat_security"
+            taskID: "task_12", key: "SEC-12", title: "Rate-limit", state: .open, projectID: "chat_security"
         ))
         XCTAssertEqual(task.unreadCount, 3)
     }

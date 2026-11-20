@@ -1,9 +1,11 @@
 ---
-summary: Build, install, supervise, back up, restore, cut over, and roll back the single-node Haus Server at haus.chat.
+summary: Build, install, supervise, back up locally, restore, cut over, and roll back the single-node Haus Server at haus.chat.
 read_when:
   - deploying or operating the hosted Haus Server
   - changing haus.chat ingress, PostgreSQL roles, or the delivered Server environment
   - preparing a Haus Server release artifact
+  - backing up or restoring the hosted Haus Server's database or runner volume
+  - running or proving the Agent runner container and its network deny
   - shipping the Channels-and-Tasks release (migrations 0123–0128, the Thread migration verifier)
 ---
 
@@ -151,8 +153,8 @@ traversal and read/write access their job needs:
 | `_haus_server` | `data/attachments` | `current`, `config/server.env` |
 | `_haus_tunnel` | no application state | `config/cloudflared.yml`, Tunnel credential |
 
-Host-only state lives under `/Users/zknicker/srv/haus`: `config/`, `data/`,
-`logs/`, `releases/`, and `current`. Preserve `bin/`, `colima/`, and
+Host-only state lives under `/Users/zknicker/srv/haus`: `backups/`, `config/`,
+`data/`, `logs/`, `releases/`, and `current`. Preserve `bin/`, `colima/`, and
 `operations/` when present. Put these names in the deploy root's local
 `.git/info/exclude`; do not commit them and never run `git clean`.
 
@@ -179,7 +181,7 @@ configuration, and migrations remain the unprivileged deployer's responsibility.
 This does not create another application root: checkout, releases,
 configuration, data, and logs remain under `/Users/zknicker/srv/haus`.
 
-PostgreSQL is the only Haus container. The canonical definition is the
+PostgreSQL is the only Haus container the deploy job manages; the optional runner container is below. The canonical definition is the
 repository's `apps/server/compose.yml`; the deploy job verifies the running
 container and brings it up from that file under `varlock run` only when it is
 absent or unhealthy, so the admin password is interpolated from 1Password and
@@ -187,9 +189,44 @@ no environment file is read or written. Compose project `haus` uses the pinned
 PostgreSQL 16.14 Alpine digest, container
 `haus-postgres`, named volume `haus_postgres_data`, and
 `127.0.0.1:5438:5432`. Do not add the database to Tailscale Serve or Funnel.
-Administration uses SSH and local loopback. Install PostgreSQL 16 client tools
-for the host backup and restore programs without enabling a host PostgreSQL
-service.
+Administration uses SSH and local loopback. The [local backup](#backups) runs
+`pg_dump` and `pg_restore` inside `haus-postgres`, so its tools always match the
+server version; do not enable a host PostgreSQL service.
+
+## Agent runner container
+
+The Agent runner is the second Haus container, in the same Compose project `haus`. Its service is
+`haus-runner` in `apps/server/compose.yml`, behind the Compose profile `runner`, so the database
+bring-up above never builds or starts it. It is built from `apps/runner/Dockerfile` at the same
+commit as the Server and runs under `varlock run` like the database:
+
+```bash
+bunx varlock@1.16.1 run -- docker compose -f apps/server/compose.yml -p haus --profile runner up -d --build haus-runner
+```
+
+The token comes from the `Agent Runner - Haus` Production item and the optional Claude login from
+`Claude Setup Token - Haus Runner`. The Server must hold the same `HAUS_RUNNER_TOKEN` and listen on
+an address the container reaches through `host.docker.internal`. `HAUS_RUNNER_SERVER_URL`
+overrides the default `http://host.docker.internal:18791`.
+
+The container starts as root with `CAP_NET_ADMIN`. Its entrypoint installs OUTPUT rules that
+deny PostgreSQL ports 5432 and 5438 and the RFC 1918, link-local, and CGNAT ranges, except the one
+Server `host:port` taken from `HAUS_SERVER_URL`. It then drops to the unprivileged `haus-runner`
+user with no capabilities and no new privileges. The entrypoint resolves the Server host once at
+start, so restart the container after the host address changes.
+
+The named volume `haus_runner_data` holds each Agent's harness session under `/data`. The [local backup](#backups)
+archives it beside the database dump. `docker compose -p haus down` without `--volumes` preserves it. Losing it
+costs every Agent its session context, not its Haus history.
+
+After every runner deploy, prove the deny from inside the container:
+
+```bash
+docker exec -u haus-runner haus-runner /app/apps/runner/container/prove-network-deny.sh
+```
+
+It prints one line per check and exits non-zero on any failure. The proof is an operator step.
+Development hosts without Docker cannot run it.
 
 ## Fresh PostgreSQL authority
 
@@ -200,9 +237,8 @@ The operator creates three roles:
   Each migration run reapplies privileges so new tables and sequences are
   immediately usable by `haus_runtime`.
 - `haus_runtime`: login with `CONNECT`, schema `USAGE`, and table DML only.
-- `haus_backup`: read-only login every migration re-grants. The scheduled
-  off-machine backup that used it is retired; the role stays so the migration
-  program's privilege model is unchanged.
+- `haus_backup`: read-only login every migration re-grants. The nightly
+  [local backup](#backups) dumps as this role.
 
 Run bootstrap once against an empty, newly created production database:
 
@@ -276,8 +312,8 @@ and Tasks, moves `composed` and `converted` claims onto each Server's General bo
 claim rows, and translates their queued wakes. Migration `0121_drop-claim-priority-labels` drops
 `message_claims.priority` and `message_claim_labels`. The previous Server reads `message_tasks`, so
 it cannot run on the migrated schema: automatic activation rollback restores only the binary, and
-recovery is a forward fix. Take a manual `pg_dump` right before merging the release PR, because no
-scheduled backup exists. Computer must publish and verify first, and any Computer below protocol
+recovery is a forward fix. Take a fresh [local backup](#backups) right before merging the release
+PR. Computer must publish and verify first, and any Computer below protocol
 36 stays idle until upgraded, so upgrade the Mac mini right after the deploy.
 
 ### Shipping Channels and Tasks (ADR 0053)
@@ -314,8 +350,8 @@ new Server serving. Run it in this order:
 4. **Stop and drain.** Stop every Computer after its local inbox store has drained (no run in
    flight and no pending notice queued), then stop the Server, so no delivery names a Thread
    while the migration moves its Messages.
-5. **Take a database dump.** No scheduled backup exists ([Off-machine backup](#off-machine-backup)),
-   so take a manual `pg_dump` right before merging the release PR.
+5. **Take a database dump.** Run a fresh [local backup](#backups) right before merging the
+   release PR; the nightly one is up to a day old.
 6. **Deploy Server and web App together.** They are one artifact; merging the release PR runs the
    migrations on activation.
 7. **Clear App caches.** Desktop and web App caches hold Thread-shaped data; clear them (or sign
@@ -411,18 +447,87 @@ Server `/healthz` reports reminder and hosted MCP health. Connector recovery ret
 `degraded`; unavailable PostgreSQL returns HTTP 503 with the redacted
 `postgres_unavailable` code.
 
-## Off-machine backup
+## Backups
 
-There is none, deliberately. The scheduled `restic` backup and its isolated
-restore drill were retired: they never completed a working cycle, and Haus is
-a greenfield product with no data worth the operational surface. The
-`com.haus.backup` LaunchDaemon, the `_haus_backup` service account, and the
-restic repository and password are host state to remove; the `haus_backup`
-PostgreSQL role stays because every migration re-grants it.
+The Server host keeps a local backup. Off-machine backup does not exist yet: a
+lost or wiped mini loses its backups with it. The retired `restic` design
+(`com.haus.backup`, the `_haus_backup` account, the restic repository and
+password) is host state to remove, not a fallback.
 
-Reintroducing backups means designing them from scratch — new schema items, a
-new 1Password item for the repository credentials, and a proven restore drill
-before the first scheduled run.
+The `com.haus.local-backup` LaunchDaemon runs `current/operations/backup-haus`
+as `zknicker` every night at 03:30. Each run:
+
+1. runs `pg_dump --format custom` inside `haus-postgres` as `haus_backup`, over
+   the container's local socket, so no credential is stored and the dump tool
+   always matches the server version
+2. checks the dump's table of contents with `pg_restore --list`
+3. archives the runner's `haus_runner_data` volume read-only beside the dump
+   when that volume exists, using the PostgreSQL image already on the host;
+   until the runner ships it logs `runner=absent`
+4. publishes `backups/nightly/<UTC stamp>/` atomically, and hard-links the first
+   backup of each ISO week into `backups/weekly/<year>-W<week>/`
+5. keeps the newest 14 nightlies and 4 weeklies and deletes the rest
+
+`backups/` is `zknicker`-owned, mode `0700`, outside `releases/`. Success is one
+`haus-backup ok …` line in `logs/backup.log`; a failure names its step in
+`logs/backup.error.log` and leaves no partial backup. A leftover
+`backups/.lock` from a killed run blocks later runs until removed. The dump and
+the volume archive are taken seconds apart, not in one snapshot.
+
+Verify the latest backup restores:
+
+```bash
+/Users/zknicker/srv/haus/current/operations/verify-haus-backup
+```
+
+It restores the dump into a throwaway `haus_restore_check` database on the
+same cluster as `haus_admin`, compares the restored table count with the dump,
+reports the migration count, lists the runner archive, and drops the database.
+Pass a backup directory to check an older one.
+
+### Restore
+
+Restoring replaces production data, so it needs the operator's explicit
+approval. Stop the Computers and the Server, then:
+
+```bash
+backup=/Users/zknicker/srv/haus/backups/nightly/<stamp>
+sudo launchctl bootout system/com.haus.server
+docker exec haus-postgres dropdb -U haus_admin haus_production
+docker exec haus-postgres createdb -U haus_admin -O haus_bootstrap haus_production
+docker exec -i haus-postgres pg_restore -U haus_admin -d haus_production \
+  --role haus_bootstrap --no-owner --exit-on-error <"$backup/haus.dump"
+```
+
+The dump carries the runtime and backup grants. Start the Server again with
+`sudo launchctl bootstrap system /Library/LaunchDaemons/com.haus.server.plist`
+and check `/healthz`. When `runner-data.tar.gz` is present,
+restore it into `haus_runner_data` with the runner stopped:
+
+```bash
+docker run --rm --network none -v haus_runner_data:/data \
+  -v "$backup":/backup:ro --entrypoint sh \
+  "$(docker inspect --format '{{.Config.Image}}' haus-postgres)" \
+  -c 'rm -rf /data/* && tar -xzf /backup/runner-data.tar.gz -C /data'
+```
+
+### Installing the job
+
+The release artifact ships the plist and operations; releases never install
+privileged launchd jobs. Install once per plist change, as the operator:
+
+```bash
+sudo /Users/zknicker/srv/haus/current/operations/install-local-backup --dry-run
+sudo /Users/zknicker/srv/haus/current/operations/install-local-backup
+/Users/zknicker/srv/haus/current/operations/backup-haus
+/Users/zknicker/srv/haus/current/operations/verify-haus-backup
+```
+
+The installer creates `backups/`, installs the plist root-owned, and bootstraps
+it; it refuses to overwrite a different installed plist. Add `backups` to the
+deploy root's `.git/info/exclude`. Remove the job with
+`sudo launchctl bootout system/com.haus.local-backup` and deleting
+`/Library/LaunchDaemons/com.haus.local-backup.plist`; the backups stay.
 
 ## Manual cutover
 

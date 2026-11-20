@@ -14,6 +14,7 @@ import { registerAgentClaimRoutes } from './claim-routes.ts';
 import { registerAgentCloudAgentRoutes } from './cloud-agent-routes.ts';
 import { registerAgentConnectionRoutes } from './connection-routes.ts';
 import { readAgentServerDirectory } from './directory.ts';
+import { registerAgentDispatchIds } from './dispatch-hooks.ts';
 import { registerAgentImageGenerationRoutes } from './image-generation-routes.ts';
 import { registerAgentInboxRoutes } from './inbox-routes.ts';
 import { registerAgentManualRoutes } from './manual.ts';
@@ -86,6 +87,7 @@ export function registerAgentApiRoutes(
         postCommitWork: ServerPostCommitWork;
     }
 ) {
+    registerAgentDispatchIds(app, options.db);
     registerAgentAttachmentRoutes(app, { db: options.db, root: options.attachmentRoot });
     registerAgentAgentRoutes(app, {
         agentDelivery: options.agentDelivery,

@@ -122,7 +122,7 @@ function publish(
         db: connection.db,
         input: artifactPublishInputSchema.parse({
             content_type: 'text/markdown',
-            path,
+            path: `haus/${path}`,
             ...(baseRevisionId ? { base_revision_id: baseRevisionId } : {}),
             request_id: requestId,
             title: 'Readme',

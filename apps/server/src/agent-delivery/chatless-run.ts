@@ -1,4 +1,5 @@
-import type { AgentCommand } from '@haus/api';
+import type { AgentCommand, AgentStartCommand, chatlessInboxSources } from '@haus/api';
+import { decodeDriveConflict } from '../drive/conflict-item.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
@@ -23,7 +24,7 @@ type ChatlessFrameConfig = Pick<
 type ChatlessRow = Pick<store.InboxItemRow, 'content' | 'createdAt' | 'dedupeKey' | 'source'>;
 
 /**
- * Starts the run a queued sub-agent wake or batch of Task assignments leads. Each
+ * Starts the run a queued sub-agent wake, Drive conflict, or batch of Task assignments leads. Each
  * is concrete work with no Chat, so its run carries its attention alone: no inbox
  * items, no Chat lifecycle event. Busy notices, settlement, failure, and Stop treat
  * it like any concrete run, and it resumes the main session.
@@ -102,7 +103,7 @@ export function chatlessStartFrame(
         agentName: config.agentName,
         chatId: null,
         drainItemIds: [],
-        ...attentionOf(state, rows),
+        ...chatlessAttention(state, rows),
         homeTimezone: config.homeTimezone,
         inbox: [],
         inboxDelivery: 'concrete',
@@ -117,22 +118,42 @@ export function chatlessStartFrame(
     };
 }
 
-function attentionOf(
+type ChatlessAttention = Pick<
+    AgentStartCommand,
+    'driveConflict' | 'subagentWake' | 'taskAssignments'
+>;
+
+type ChatlessSource = (typeof chatlessInboxSources)[number];
+
+const chatlessAttentions: Record<
+    ChatlessSource,
+    (rows: readonly [ChatlessRow, ...ChatlessRow[]]) => ChatlessAttention
+> = {
+    drive_conflict: ([row]) => ({ driveConflict: decodeDriveConflict(row.content) }),
+    // The runtime's own report is already in the conversation; the wake carries no body.
+    subagent: ([row]) => ({
+        subagentWake: { createdAt: row.createdAt.toISOString(), id: row.dedupeKey },
+    }),
+    task_assignment: (rows) => ({
+        taskAssignments: rows.map((assignment) => decodeTaskAssignment(assignment.content)),
+    }),
+};
+
+/** A chatless run's attention, decoded from its rows; throws when they cannot render. */
+export function chatlessAttention(
     state: Pick<store.AgentDeliveryRow, 'activeRunId'>,
     rows: readonly ChatlessRow[]
 ) {
-    const [row] = rows;
+    const [row, ...rest] = rows;
     if (!row) {
         throw new Error(`Chatless run ${state.activeRunId} carries no attention.`);
     }
-    if (row.source === 'task_assignment') {
-        return {
-            taskAssignments: rows.map((assignment) => decodeTaskAssignment(assignment.content)),
-        };
+    if (!isChatlessSource(row.source)) {
+        throw new Error(`Chatless run ${state.activeRunId} has no attention for ${row.source}.`);
     }
-    if (row.source === 'subagent') {
-        // The runtime's own report is already in the conversation; the wake carries no body.
-        return { subagentWake: { createdAt: row.createdAt.toISOString(), id: row.dedupeKey } };
-    }
-    throw new Error(`Chatless run ${state.activeRunId} has no attention for ${row.source}.`);
+    return chatlessAttentions[row.source]([row, ...rest]);
+}
+
+function isChatlessSource(source: string): source is ChatlessSource {
+    return Object.hasOwn(chatlessAttentions, source);
 }

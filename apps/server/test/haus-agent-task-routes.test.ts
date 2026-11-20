@@ -112,7 +112,7 @@ describe('start and list', () => {
 
         const byHandle = await call('/api/agent/tasks?assignee=@ada');
         expect(byHandle.body.tasks.every((task: any) => task.assignee.handle === 'ada')).toBe(true);
-        const byKey = await call('/api/agent/tasks?key=GEN');
+        const byKey = await call('/api/agent/tasks?key=PROD');
         expect(byKey.body.tasks.length).toBeGreaterThan(0);
         expect((await call('/api/agent/tasks?state=nope')).status).toBe(400);
         expect((await call('/api/agent/tasks?key=ZZZ')).status).toBe(404);

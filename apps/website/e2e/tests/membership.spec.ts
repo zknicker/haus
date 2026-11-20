@@ -4,7 +4,7 @@ import { expect, test } from '../support/test.ts';
 
 /**
  * The membership round trip in a real browser: an Owner invites, a second Haus user
- * identity accepts and lands in #all, the Owner promotes and then removes them,
+ * identity accepts and lands in #haus, the Owner promotes and then removes them,
  * and the removed human loses the Server. The last Owner stays protected
  * throughout.
  */
@@ -96,7 +96,7 @@ test('an Owner invites, promotes, and removes a human', async ({ browser, page }
     // The removed human is sitting on the Server with its transcript rendered.
     await peerPage.goto(`/s/${slug}`);
     await openSection(peerPage, 'Chat');
-    await openChannel(peerPage, 'all');
+    await openChannel(peerPage, 'haus');
     await expect(peerPage.getByRole('textbox', { name: 'Message all' })).toBeVisible();
     const peerListPage = await peerContext.newPage();
     await signInAsAppHuman(peerListPage, 'peer');

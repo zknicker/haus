@@ -8,13 +8,12 @@ import {
 import { chatMessageInputSchema, chatMessageReadSchema } from './chat-message-read.ts';
 import { chatMarkReadInputSchema } from './chat-read.ts';
 import {
-    channelCreateInputSchema,
-    channelUpdateInputSchema,
     chatMessagePageSchema,
     chatMessageSchema,
     chatMessagesInputSchema,
     chatSendInputSchema,
 } from './chat.ts';
+import { projectCreateInputSchema, projectUpdateInputSchema } from './project.ts';
 
 test('Chat sends accept only client intent and never an authoritative actor', () => {
     expect(
@@ -243,20 +242,32 @@ test('Chat sends allow attachment-only messages but reject empty messages', () =
     ).toThrow();
 });
 
-test('Channel appearance accepts a curated icon name and preset color id, or null', () => {
-    const base = { agentIds: ['agt_1'], name: 'planning', serverId: 'srv_main' };
+test('Project appearance accepts a curated icon name and preset color id, or null', () => {
+    const base = { name: 'planning', serverId: 'srv_main' };
 
-    expect(channelCreateInputSchema.parse(base)).toEqual(base);
+    expect(projectCreateInputSchema.parse(base)).toEqual(base);
     expect(
-        channelCreateInputSchema.parse({ ...base, color: 'violet', icon: 'RocketIcon' })
-    ).toEqual({ ...base, color: 'violet', icon: 'RocketIcon' });
+        projectCreateInputSchema.parse({
+            ...base,
+            color: 'violet',
+            icon: 'RocketIcon',
+            key: 'PLAN',
+        })
+    ).toEqual({ ...base, color: 'violet', icon: 'RocketIcon', key: 'PLAN' });
     expect(
-        channelUpdateInputSchema.parse({ ...base, chatId: 'cht_1', color: null, icon: null })
-    ).toEqual({ ...base, chatId: 'cht_1', color: null, icon: null });
+        projectUpdateInputSchema.parse({
+            chatId: 'cht_1',
+            color: null,
+            icon: null,
+            serverId: 'srv_main',
+        })
+    ).toEqual({ chatId: 'cht_1', color: null, icon: null, serverId: 'srv_main' });
 
-    expect(() => channelCreateInputSchema.parse({ ...base, color: '#8b5cf6' })).toThrow();
-    expect(() => channelCreateInputSchema.parse({ ...base, icon: 'rocket' })).toThrow();
+    expect(() => projectCreateInputSchema.parse({ ...base, color: '#8b5cf6' })).toThrow();
+    expect(() => projectCreateInputSchema.parse({ ...base, icon: 'rocket' })).toThrow();
     expect(() =>
-        channelCreateInputSchema.parse({ ...base, icon: 'RocketIcon; drop table' })
+        projectCreateInputSchema.parse({ ...base, icon: 'RocketIcon; drop table' })
     ).toThrow();
+    expect(() => projectCreateInputSchema.parse({ ...base, key: 'sec' })).toThrow();
+    expect(() => projectCreateInputSchema.parse({ ...base, agentIds: ['agt_1'] })).toThrow();
 });

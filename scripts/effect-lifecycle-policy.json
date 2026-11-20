@@ -340,6 +340,116 @@
                 "timer": 0
             }
         },
+        "apps/computer/src/invocations/bash.ts": {
+            "disposition": "external-adapter",
+            "reason": "Adapts one bash process group to an invocation: the abort listener and the five-second SIGKILL timer are cleared in lexical finally once the shell and its pipes settle.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 2,
+                "manualPromise": 0,
+                "timer": 2
+            }
+        },
+        "apps/computer/src/invocations/browser.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Each browser invocation streams agent-browser output into one output tail whose log file is finished and closed in lexical finally once the process settles.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/invocations/handler-run.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "The invocation timeout timer aborts the run's controller and is cleared in lexical finally when the operation returns or throws.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 1
+            }
+        },
+        "apps/computer/src/invocations/handler.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "One AbortController per active invocation carries cancel; the active entry is removed in finally after the finished record is durable, and every frame's work is tracked until settled().",
+            "risks": {
+                "abortController": 3,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/invocations/ledger.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Each ledger write closes its temp file handle in a lexical finally before the atomic rename; the ledger owns no background work.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 2,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/invocations/payload-server.test-support.ts": {
+            "disposition": "test-support",
+            "reason": "The test payload server can hold requests open: one resolver signals arrival and another releases every held request when the test stops the server.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 2,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/invocations/pi/shell.ts": {
+            "disposition": "external-adapter",
+            "reason": "Ported Pi child-process wait: one manual promise settles on exit or close, with a fixed post-exit grace timer cleared on settlement so descendants holding the pipes never hang it.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 1
+            }
+        },
+        "apps/computer/src/invocations/stream-process.ts": {
+            "disposition": "external-adapter",
+            "reason": "Adapts one spawned child to an abort signal: the abort listener that terminates the child is removed in lexical finally once the child and its pipes settle.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/drive-migration/drive-sources.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "The awaited seed render removes its scratch directory under runtime/ in lexical finally before returning the entries it read.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/launch-drive.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A failed Drive preparation releases the run's scoped runner authority before the turn reports; a revoke that fails is left to the Server's run-end revocation, as in launch.ts.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 1,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
         "apps/computer/src/launch.ts": {
             "disposition": "finite-cleanup",
             "reason": "The daemon traces and cancels the turn; this adapter releases its scoped runner authority and proxy sinks before returning.",
@@ -755,6 +865,17 @@
                 "catchAndIgnore": 0,
                 "finallyBlock": 2,
                 "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/server/src/agent-api/dispatch-gate.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Each dispatch flight is one HTTP request: its Promise.withResolvers settles exactly once in land(), which also deletes the flight entry, and a running flight lands when that request's onSend hook finishes it, so concurrent duplicates wait on one response.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
                 "timer": 0
             }
         },
@@ -1360,6 +1481,39 @@
                 "catchAndIgnore": 1,
                 "finallyBlock": 0,
                 "manualPromise": 2,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/drive/pull.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A pull restores read-only folder modes in its finally block whether or not every change applied.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/drive/push.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A push restores read-only folder modes in its finally block whether or not the Server answered every request.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/drive/turn-sync.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "The post-turn push revokes the runner credential it minted once the push ends, and the per-folder queue drops its settled turn; a failed revoke leaves a credential that expires on its own.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 1,
+                "finallyBlock": 2,
+                "manualPromise": 0,
                 "timer": 0
             }
         }

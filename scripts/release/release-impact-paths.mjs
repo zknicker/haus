@@ -29,6 +29,8 @@ export const requiredPrefixes = {
     computer: [
         'apps/computer/src/',
         'apps/computer/package.json',
+        'packages/agent-prompt/src/',
+        'packages/agent-prompt/package.json',
         'packages/agent-manual/src/',
         'packages/agent-manual/package.json',
         'packages/agent-workspace/src/',
@@ -42,8 +44,8 @@ export const requiredPrefixes = {
         'apps/computer/src/agent-cli.ts',
         'apps/computer/src/agent-cli/',
         'apps/computer/src/harness/',
-        'apps/computer/src/inbox-format.ts',
         'apps/computer/src/runtime/',
+        'packages/agent-prompt/src/',
         'apps/server/src/agent-api/',
         'packages/agent-manual/src/',
         'packages/agent-workspace/src/',

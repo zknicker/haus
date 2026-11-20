@@ -9,6 +9,7 @@ import {
     requireAgentMessageAttachments,
 } from '../attachments/message-attachments.ts';
 import { type AttributedMessageCause, insertMessageCause } from '../automations/message-cause.ts';
+import { recordDriveCitations } from '../drive/citations.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
@@ -184,6 +185,7 @@ export async function sendAgentMessage(
             messageId,
             serverId: input.serverId,
         });
+        await recordDriveCitations(tx, { content, messageId, serverId: input.serverId });
         // Own messages count as read; the position stops below the first message
         // from someone else the Agent was never shown (DMs and continueAnyway skip the hold).
         await advanceAgentChatReadsSeen(tx, {
@@ -201,11 +203,7 @@ export async function sendAgentMessage(
         }
 
         const [writtenChat] = await tx
-            .select({
-                anchorMessageId: chatsTable.anchorMessageId,
-                kind: chatsTable.kind,
-                parentChatId: chatsTable.parentChatId,
-            })
+            .select({ kind: chatsTable.kind, parentChatId: chatsTable.parentChatId })
             .from(chatsTable)
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)))
             .limit(1);

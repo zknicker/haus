@@ -13,6 +13,14 @@ import { type HausServerHarness, startHausServerHarness } from './haus-server-ha
 export class MemoryArtifactStorage implements ArtifactStorage {
     readonly objects = new Map<string, Uint8Array>();
     failUploads = false;
+    private held: { release: Promise<void>; started: () => void } | null = null;
+    /** Holds the next upload open after it starts, which is after its write reserved storage. */
+    holdNextUpload() {
+        const started = Promise.withResolvers<void>();
+        const release = Promise.withResolvers<void>();
+        this.held = { release: release.promise, started: started.resolve };
+        return { release: release.resolve, started: started.promise };
+    }
     delete(key: string) {
         this.objects.delete(key);
         return Promise.resolve();
@@ -40,6 +48,12 @@ export class MemoryArtifactStorage implements ArtifactStorage {
         if (this.failUploads) {
             throw new Error('R2 upload unavailable');
         }
+        const held = this.held;
+        this.held = null;
+        if (held) {
+            held.started();
+            await held.release;
+        }
         const chunks: Uint8Array[] = [];
         for await (const chunk of stream) {
             chunks.push(chunk);
@@ -59,6 +73,7 @@ export interface DrivePublish {
     path: string;
     replace?: boolean;
     requestId?: string;
+    taskId?: string;
     thumbnails?: ArtifactThumbnails;
 }
 
@@ -115,6 +130,7 @@ export function artifactDriveFixture(slug: string) {
             origin: state.harness.appOrigin,
             storage,
             stream: bytes(write.body ?? write.path, write.gate),
+            taskId: write.taskId,
             thumbnails: write.thumbnails,
         });
     }

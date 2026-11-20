@@ -63,6 +63,7 @@ test('dispatch → turn → loopback MCP keeps one trace without trusting Agent 
             async () => ({
                 frame: {
                     agentId: 'agt_test',
+                    agentName: 'Test',
                     chatId: 'cht_test',
                     modelId: 'model_test',
                     runId: 'run_test',

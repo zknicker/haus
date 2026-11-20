@@ -11,6 +11,7 @@ import {
 } from '../src/reminders/reminders.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { createTestProject } from './project.fixture.ts';
 
 let agentId: string;
 let anchorMessageId: string;
@@ -126,12 +127,12 @@ describe('reminder author anchor access', () => {
     test('left-channel reminders do not block list, update, cancel, or fire elsewhere', async () => {
         const authorId = 'agt_left_channel_author';
         await addAgent(authorId);
-        const leftChat = await owner.trpc.chat.createChannel.mutate({
+        const leftChat = await createTestProject(harness, owner, {
             agentIds: [authorId],
             name: 'tech-ops',
             serverId,
         });
-        const keptChat = await owner.trpc.chat.createChannel.mutate({
+        const keptChat = await createTestProject(harness, owner, {
             agentIds: [authorId],
             name: 'tech-alerts',
             serverId,
@@ -272,8 +273,8 @@ describe('reminder author anchor access', () => {
 async function addAgent(id: string) {
     const handle = id.replaceAll('_', '-');
     await harness.sql`
-        insert into agents (id, server_id, handle, display_name, home_timezone)
-        values (${id}, ${serverId}, ${handle}, ${id}, 'America/New_York')
+        insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
+        values (${id}, ${serverId}, ${handle}, ${id}, 'America/New_York', (select id from chats where server_id = ${serverId} and is_all))
     `;
     await harness.sql`
         insert into channel_agent_participants (server_id, chat_id, agent_id)

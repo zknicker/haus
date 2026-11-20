@@ -261,7 +261,7 @@ export const agentInboxTable = pgTable(
         check(
             'agent_inbox_chat',
             sql`${table.source} = 'task_assignment'
-                or (${table.chatId} is null) = (${table.source} in ('subagent'))`
+                or (${table.chatId} is null) = (${table.source} in ('subagent', 'drive_conflict'))`
         ),
         check(
             'agent_inbox_undelivered_shape',

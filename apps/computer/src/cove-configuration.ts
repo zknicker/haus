@@ -1,6 +1,6 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { seedCoveWorkspace, validateCoveWorkspace } from '@haus/agent-workspace';
+import { coveFactoryManifestSha256 } from '@haus/agent-workspace';
 import {
     type ComputerInventory,
     type CoveApplyCommand,
@@ -12,13 +12,12 @@ import {
     readAppliedAgentConfiguration,
     resolveConfiguration,
 } from './agent-configuration.ts';
-import { seedAgentManagedSkills } from './managed-skill-changes.ts';
 
 /**
- * Cove's factory application: a replayable, receipt-guarded seed of the one
- * onboarding Agent's workspace. It is a different operation from ordinary Agent
- * configuration — idempotent by application id, validated byte-for-byte against
- * the factory manifest, and failing to a reported result rather than throwing.
+ * Cove's factory application: a replayable, receipt-guarded record of the one onboarding
+ * Agent's configuration and factory manifest. Its files are seeded into Drive at launch, where
+ * people may edit them, so a replay checks the configuration, never the files. It is
+ * idempotent by application id and fails to a reported result rather than throwing.
  */
 
 export function parseCoveApplyCommand(frame: unknown): CoveApplyCommand | null {
@@ -48,17 +47,11 @@ export async function applyCoveConfiguration(input: {
             input.prepareWorkspace
         );
         const receiptPath = join(agentRoot, 'cove-application.json');
-        await seedAgentManagedSkills(agentRoot);
         const existing = await readCoveReceipt(receiptPath);
         if (existing) {
             assertMatchingCoveReceipt(existing, command);
-            const manifestSha256 = await validateCoveWorkspace(join(agentRoot, 'workspace'));
-            if (manifestSha256 !== existing.manifestSha256) {
-                throw new Error('Cove workspace no longer matches its durable factory receipt.');
-            }
             await assertMatchingCoveConfiguration(agentRoot, command);
         } else {
-            const manifestSha256 = await seedCoveWorkspace(join(agentRoot, 'workspace'));
             await writeJsonAtomic(join(agentRoot, 'configuration.json'), {
                 ...applied,
                 seed: {
@@ -73,7 +66,7 @@ export async function applyCoveConfiguration(input: {
                 agentId: command.agentId,
                 applicationId: command.applicationId,
                 factoryKind: command.factoryKind,
-                manifestSha256,
+                manifestSha256: coveFactoryManifestSha256(),
                 modelId: command.modelId,
                 runtimeId: command.runtimeId,
             });
@@ -128,7 +121,7 @@ async function ensureAgentRoot(
     const agentRoot = join(dataRoot, 'servers', serverId, 'agents', agentId);
     await mkdir(agentRoot, { mode: 0o700, recursive: true });
     await Promise.all(
-        ['home', 'runtime', 'skills'].map((directory) =>
+        ['home', 'runtime'].map((directory) =>
             mkdir(join(agentRoot, directory), { mode: 0o700, recursive: true })
         )
     );

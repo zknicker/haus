@@ -1,0 +1,42 @@
+#!/bin/sh
+set -eu
+
+label="com.haus.local-backup"
+user_name="zknicker"
+daemon="/Library/LaunchDaemons/${label}.plist"
+backup_root="/Users/zknicker/srv/haus/backups"
+release_root=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
+source_plist="${release_root}/launchd/${label}.plist"
+mode=${1:-install}
+
+if [ "$mode" != install ] && [ "$mode" != --dry-run ]; then
+    echo "Usage: install-local-backup [--dry-run]" >&2
+    exit 2
+fi
+if [ ! -f "$source_plist" ]; then
+    echo "Release backup LaunchDaemon is missing." >&2
+    exit 1
+fi
+/usr/bin/plutil -lint "$source_plist" >/dev/null
+if [ -e "$daemon" ] && ! /usr/bin/cmp -s "$source_plist" "$daemon"; then
+    echo "A different ${daemon} exists; refusing overwrite." >&2
+    exit 1
+fi
+if [ "$mode" = --dry-run ]; then
+    echo "would_create=${backup_root} ${user_name}:staff 0700"
+    echo "would_install=${source_plist} -> ${daemon} root:wheel 0644"
+    echo "would_bootstrap=system/${label}"
+    exit 0
+fi
+if [ "$(/usr/bin/id -u)" -ne 0 ]; then
+    echo "Run with sudo." >&2
+    exit 1
+fi
+
+/usr/bin/install -d -o "$user_name" -g staff -m 0700 "$backup_root"
+/usr/bin/install -o root -g wheel -m 0644 "$source_plist" "$daemon"
+if ! /bin/launchctl print "system/${label}" >/dev/null 2>&1; then
+    /bin/launchctl bootstrap system "$daemon"
+fi
+/bin/launchctl print "system/${label}" >/dev/null
+echo "installed=system/${label}"

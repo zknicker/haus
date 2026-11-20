@@ -13,6 +13,7 @@ import {
     memberUpdatedEventSchema,
     messageCreatedEventSchema,
     messageReactionUpdatedEventSchema,
+    projectUpdatedEventSchema,
     reminderUpdatedEventSchema,
     serverUpdatedEventSchema,
     taskAssignedEventSchema,
@@ -65,6 +66,8 @@ export const cloudAgentSettingsUpdatedTopic = createTopic(
     'cloudAgentSettings.updated',
     cloudAgentSettingsUpdatedEventSchema
 );
+
+export const projectUpdatedTopic = createTopic('project.updated', projectUpdatedEventSchema);
 
 export const taskCreatedTopic = createTopic('task.created', taskCreatedEventSchema);
 export const taskUpdatedTopic = createTopic('task.updated', taskUpdatedEventSchema);

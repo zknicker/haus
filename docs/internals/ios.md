@@ -498,7 +498,7 @@ transport failure while the App's live streams are down (`isConnected` false), s
 offline instead, since blaming the Computer would name the wrong thing to fix. The App installs the reader in
 `ArtifactPageReader` at its root, beside `InAppReferenceRoutes`.
 
-A link to a file in Files — the `stable_url` `haus files push` prints
+A link to a file in Files — its `stable_url`
 (`/s/<slug>/artifacts/art_…`, absolute or root-relative, optionally `?revision=`) — is a reference
 chip of its own, `.sharedArtifact`. `SharedArtifactLinkTarget` ports the App's
 `parseSharedArtifactLink`: only an App origin this phone knows, the open Server's slug, and an `art_`
@@ -1265,8 +1265,9 @@ and a message outside the loaded window is fetched by its authorized `aroundMess
 A failed lookup offers retry without walking the entire transcript. Archived channels load
 through `chat.listArchived` and restore through `chat.unarchiveChannel`, and a successful restore
 dismisses the sheet and selects the restored channel through the same pending-selection wait a newly
-created channel uses, because both reappear only on the next Server chat list. Channel creation uses
-the live Agent directory and `chat.createChannel`. These sheets receive narrow async closures from
+created channel uses, because both reappear only on the next Server chat list. Channel creation calls
+`project.create` with the name only; the form's Agent choice is not sent until the Project settings
+work (J4) replaces it. These sheets receive narrow async closures from
 `HausApp` so `HausUI` remains independent of tRPC and does not invent mobile-only ids or records.
 
 Swift Chat and Task composers use the system inline Photos picker and Files importer plus a focused

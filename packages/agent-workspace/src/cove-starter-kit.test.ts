@@ -8,6 +8,7 @@ import {
     coveWorkspaceFiles,
     inspectCoveFactoryGuidance,
     reconcileCoveFactoryGuidance,
+    coveFactoryManifestSha256,
     seedCoveWorkspace,
     validateCoveWorkspace,
 } from './cove-starter-kit.ts';
@@ -27,6 +28,7 @@ test('seeds Cove exact inventory and 12 valid separately authored Manual summari
     const replayManifest = await seedCoveWorkspace(workspaceDir);
 
     expect(replayManifest).toBe(firstManifest);
+    expect(coveFactoryManifestSha256()).toBe(firstManifest);
     expect((await fs.readdir(workspaceDir)).sort()).toEqual(['MEMORY.md', 'notes']);
     expect((await fs.readdir(path.join(workspaceDir, 'notes'))).sort()).toEqual([
         'onboarding_knowledge_faq.md',

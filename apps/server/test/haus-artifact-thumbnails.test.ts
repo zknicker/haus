@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { deleteArtifact } from '../src/artifacts/delete.ts';
+import { deleteArtifactVersion } from '../src/artifacts/delete.ts';
 import { artifactThumbnailKey } from '../src/artifacts/storage.ts';
 import {
     artifactThumbnailEdge,
@@ -40,7 +40,7 @@ test('a published raster gets its thumbnail and the read signs its key', async (
     const published = await publish({
         body: await poster(2400, 1600),
         contentType: 'image/png',
-        path: 'thumbs/poster.png',
+        path: 'haus/thumbs/poster.png',
         thumbnails: service,
     });
     const revision = await revisionRow(published.artifact.revision_id);
@@ -60,7 +60,19 @@ test('a published raster gets its thumbnail and the read signs its key', async (
     });
     expect(read).toMatchObject({ status: 'ready', thumbnail_url: `https://r2.test/${key}` });
 
-    await deleteArtifact(state.connection.db, state.actor, storage, published.artifact.artifact_id);
+    await publish({
+        base: published.artifact.revision_id,
+        body: await poster(1200, 1200),
+        contentType: 'image/png',
+        path: 'haus/thumbs/poster.png',
+    });
+    await deleteArtifactVersion(
+        state.connection.db,
+        state.actor,
+        storage,
+        published.artifact.artifact_id,
+        published.artifact.revision_id
+    );
     expect(storage.objects.has(key)).toBe(false);
 });
 
@@ -68,7 +80,7 @@ test('a revision published before thumbnails renders on its first read', async (
     const published = await publish({
         body: await poster(1200, 1200),
         contentType: 'image/jpeg',
-        path: 'thumbs/older.jpg',
+        path: 'haus/thumbs/older.jpg',
     });
     expect((await revisionRow(published.artifact.revision_id)).thumbnailState).toBeNull();
     const read = await state.owner.trpc.artifact.thumbnail.query({
@@ -85,7 +97,7 @@ test('bytes that do not decode publish fine, mark the thumbnail failed, and read
     const published = await publish({
         body: 'definitely not pixels',
         contentType: 'image/png',
-        path: 'thumbs/corrupt.png',
+        path: 'haus/thumbs/corrupt.png',
         thumbnails: service,
     });
     expect(published.artifact.revision_id).toBeString();
@@ -123,7 +135,7 @@ test('a source over the byte cap is marked failed without being read or rendered
     const published = await publish({
         body: await poster(64, 64),
         contentType: 'image/png',
-        path: 'thumbs/huge.png',
+        path: 'haus/thumbs/huge.png',
     });
     await state.harness.sql`
         update artifact_revisions set byte_size = ${artifactThumbnailSourceMaxBytes + 1}
@@ -138,7 +150,7 @@ test('non-raster files never render a thumbnail', async () => {
     const published = await publish({
         body: '<svg/>',
         contentType: 'image/svg+xml',
-        path: 'a.svg',
+        path: 'haus/a.svg',
     });
     const read = await state.owner.trpc.artifact.thumbnail.query({
         artifact_id: published.artifact.artifact_id,

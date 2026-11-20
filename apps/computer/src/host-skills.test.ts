@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { agentDrive, recordAgentDriveHandle } from './drive/agent-drive.ts';
 import {
     acceptHostSkillImport,
     finishHostSkillImport,
@@ -13,10 +14,14 @@ import {
 
 let dataRoot: string;
 let sourceRoot: string;
+let agentSkills: string;
 
 beforeEach(async () => {
     dataRoot = await mkdtemp(join(tmpdir(), 'haus-host-skills-'));
     sourceRoot = await mkdtemp(join(tmpdir(), 'haus-host-sources-'));
+    const agentRoot = join(dataRoot, 'servers', 'srv_hostskills', 'agents', 'agt_hostskillsxxxxxx');
+    await recordAgentDriveHandle(agentRoot, 'scout');
+    agentSkills = agentDrive(agentRoot, 'scout').skills;
 });
 
 afterEach(async () => {
@@ -55,21 +60,9 @@ test('reports metadata only and imports an independent Agent copy', async () => 
     });
 
     await writeFile(join(source, 'SKILL.md'), '# Changed source');
-    expect(
-        await readFile(
-            join(
-                dataRoot,
-                'servers',
-                'srv_hostskills',
-                'agents',
-                'agt_hostskillsxxxxxx',
-                'skills',
-                'release-checks',
-                'SKILL.md'
-            ),
-            'utf8'
-        )
-    ).toContain('Verify a release');
+    expect(await readFile(join(agentSkills, 'release-checks', 'SKILL.md'), 'utf8')).toContain(
+        'Verify a release'
+    );
     expect(await listAgentSkillReports(dataRoot, 'srv_hostskills')).toEqual([
         { agentId: 'agt_hostskillsxxxxxx', skills: [imported] },
     ]);
@@ -92,20 +85,7 @@ test('dedupes symlinked sources and never imports symlinks from a bundle', async
         serverId: 'srv_hostskills',
         sourceId: available?.id ?? '',
     });
-    await expect(
-        readFile(
-            join(
-                dataRoot,
-                'servers',
-                'srv_hostskills',
-                'agents',
-                'agt_hostskillsxxxxxx',
-                'skills',
-                'safe',
-                'escape'
-            )
-        )
-    ).rejects.toThrow();
+    await expect(readFile(join(agentSkills, 'safe', 'escape'))).rejects.toThrow();
     await rm(otherRoot, { force: true, recursive: true });
 });
 
@@ -144,19 +124,7 @@ test('parses YAML frontmatter and copies binary support files byte-for-byte', as
         serverId: 'srv_hostskills',
         sourceId: available?.id ?? '',
     });
-    const copied = await readFile(
-        join(
-            dataRoot,
-            'servers',
-            'srv_hostskills',
-            'agents',
-            'agt_hostskillsxxxxxx',
-            'skills',
-            'binary-safe',
-            'assets',
-            'fixture.bin'
-        )
-    );
+    const copied = await readFile(join(agentSkills, 'binary-safe', 'assets', 'fixture.bin'));
     expect(copied.equals(Buffer.from(bytes))).toBe(true);
 });
 
@@ -176,20 +144,7 @@ test('rejects a bundle before copying when its byte budget is exceeded', async (
             sourceId: available?.id ?? '',
         })
     ).rejects.toThrow('exceeds');
-    await expect(
-        readFile(
-            join(
-                dataRoot,
-                'servers',
-                'srv_hostskills',
-                'agents',
-                'agt_hostskillsxxxxxx',
-                'skills',
-                'too-large',
-                'SKILL.md'
-            )
-        )
-    ).rejects.toThrow();
+    await expect(readFile(join(agentSkills, 'too-large', 'SKILL.md'))).rejects.toThrow();
 });
 
 test('persists accepted and applied import states idempotently', async () => {

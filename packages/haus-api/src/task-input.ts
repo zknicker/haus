@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
+import { taskKeyPrefixSchema } from './task-key-ledger.ts';
 import { taskKeySchema } from './task-key.ts';
 import { taskStateSchema } from './task-state.ts';
 import {
@@ -105,8 +106,25 @@ export const taskAssignInputSchema = z
     .strict();
 
 /**
+ * `task.create`: a person files a Task in a Project for an Agent. It has no
+ * origin, starts `open`, and is assigned to that Agent. Answers with
+ * `taskMutationResultSchema`.
+ */
+export const taskCreateInputSchema = z
+    .object({
+        assigneeAgentId: idSchema,
+        description: taskDescriptionSchema.optional(),
+        projectId: idSchema,
+        serverId: idSchema,
+        title: taskTitleSchema,
+    })
+    .strict();
+
+/**
  * `POST /api/agent/tasks/start` (openapi `AgentTaskStartRequest`): an Agent
- * starts a Task from Message `from` in Channel `target` (ADR 0053 decision 4).
+ * starts a Task from Message `from` in Channel or DM `target` (ADR 0055). The
+ * Project is `project` by key, else the origin's channel, else for a DM origin
+ * the Agent's home Project.
  */
 export const agentTaskStartInputSchema = z
     .object({
@@ -115,6 +133,7 @@ export const agentTaskStartInputSchema = z
         dueOn: taskDueOnSchema.optional(),
         from: idSchema,
         priority: taskPrioritySchema.optional(),
+        project: taskKeyPrefixSchema.optional(),
         state: z.enum(['todo', 'open']).optional(),
         target: z.string().trim().min(1).max(200),
         title: taskTitleSchema,
@@ -131,6 +150,7 @@ export const agentTaskStateInputSchema = z
     .strict();
 
 export type AgentTaskStartInput = z.infer<typeof agentTaskStartInputSchema>;
+export type TaskCreateInput = z.infer<typeof taskCreateInputSchema>;
 export type AgentTaskStateInput = z.infer<typeof agentTaskStateInputSchema>;
 export type TaskListAssigneeFilter = z.infer<typeof taskListAssigneeFilterSchema>;
 export type TaskListInput = z.infer<typeof taskListInputSchema>;

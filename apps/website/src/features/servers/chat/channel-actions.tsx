@@ -59,9 +59,6 @@ export function ChannelActions({
                             <ChannelActionsMenu
                                 canManage={actions.canManage}
                                 chat={chat}
-                                count={
-                                    chat.participantAgentIds.length + chat.participantUserIds.length
-                                }
                                 lifecyclePending={actions.lifecyclePending}
                                 onAction={onAction}
                             />

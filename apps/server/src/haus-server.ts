@@ -71,6 +71,8 @@ async function start() {
             : undefined,
         pushSender: push.sender,
         releaseIdentity: release,
+        agentLoop: env.HAUS_AGENT_LOOP,
+        runnerToken: env.HAUS_RUNNER_TOKEN,
         staticAppRoot: env.HAUS_STATIC_APP_ROOT,
         enableDevelopmentAuth: process.env.HAUS_DEV_STACK === '1',
         thoughtSummarizer: env.HAUS_GEMINI_API_KEY
@@ -100,6 +102,11 @@ async function start() {
         env.HAUS_GEMINI_API_KEY
             ? 'Gemini summaries'
             : 'local condensation — set HAUS_GEMINI_API_KEY for Gemini summaries'
+    );
+    logStartupDetail(
+        '🔁',
+        'Agent loop',
+        `${env.HAUS_AGENT_LOOP === 'runner' ? 'runner' : 'Computers'} · runner socket ${env.HAUS_RUNNER_TOKEN ? 'open' : 'closed (no HAUS_RUNNER_TOKEN)'}`
     );
     logStartupEvent('📱', push.status, push.sender ? 'success' : 'warning');
     logStartupDetail(

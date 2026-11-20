@@ -1,0 +1,146 @@
+import { randomUUID } from 'node:crypto';
+import { lstat, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import type { DriveAreaCounters } from '@haus/api';
+import * as z from 'zod';
+
+export interface DriveFolderLayout {
+    folder: string;
+    refused: string;
+    scratch: string;
+    stateFile: string;
+    writer: string;
+}
+
+export function driveFolderLayout(agentRoot: string, agentId: string) {
+    return {
+        folder: join(agentRoot, 'workspace', 'drive'),
+        refused: join(agentRoot, 'workspace', 'drive-refused'),
+        scratch: join(agentRoot, 'runtime', 'drive-scratch'),
+        stateFile: join(agentRoot, 'runtime', 'drive.json'),
+        writer: agentId,
+    } satisfies DriveFolderLayout;
+}
+
+const fileRecordSchema = z.object({
+    artifact_id: z.string().min(1),
+    mtime_ms: z.number(),
+    path: z.string().min(1),
+    revision_id: z.string().min(1),
+    seen_head: z.string().min(1).optional(),
+    sha256: z.string().regex(/^[a-f0-9]{64}$/u),
+    size_bytes: z.number().int().nonnegative(),
+});
+export type DriveFileRecord = z.infer<typeof fileRecordSchema>;
+
+const areaSchema = z.object({ area: z.string().min(1), root: z.string().min(1) });
+export type DriveFolderArea = z.infer<typeof areaSchema>;
+
+const folderStateSchema = z.object({
+    areas: z.array(areaSchema),
+    counters: z.record(z.string(), z.number().int().nonnegative()),
+    files: z.record(z.string(), fileRecordSchema),
+    openPush: z.string().min(1).nullable(),
+    pendingCreates: z.record(
+        z.string(),
+        z.object({ request_id: z.string().min(1), sha256: z.string().min(1) })
+    ),
+    retired: z.record(z.string(), z.string()),
+    version: z.literal(1),
+});
+export type DriveFolderState = z.infer<typeof folderStateSchema>;
+
+const emptyState: DriveFolderState = {
+    areas: [],
+    counters: {},
+    files: {},
+    openPush: null,
+    pendingCreates: {},
+    retired: {},
+    version: 1,
+};
+
+export async function openFolderState(layout: DriveFolderLayout) {
+    let state = emptyState;
+    const persist = async (next: DriveFolderState) => {
+        await writeJsonAtomic(layout.stateFile, next);
+        state = next;
+    };
+    const loaded = await loadFolderState(layout);
+    if (loaded === 'orphaned') {
+        await persist(emptyState);
+    } else {
+        state = loaded;
+    }
+    return {
+        current: () => state,
+        record: (record: DriveFileRecord) => {
+            const { [record.path]: _revived, ...retired } = state.retired;
+            const { [record.path]: _resolved, ...pendingCreates } = state.pendingCreates;
+            const files = { ...state.files, [record.path]: record };
+            return persist({ ...state, files, pendingCreates, retired });
+        },
+        forget: (path: string) => {
+            const forgotten = state.files[path];
+            const { [path]: _resolved, ...pendingCreates } = state.pendingCreates;
+            if (!forgotten) {
+                return path in state.pendingCreates
+                    ? persist({ ...state, pendingCreates })
+                    : Promise.resolve();
+            }
+            const { [path]: _forgotten, ...files } = state.files;
+            const retired = { ...state.retired, [path]: forgotten.revision_id };
+            return persist({ ...state, files, pendingCreates, retired });
+        },
+        dropPendingCreate: (path: string) => {
+            const { [path]: _dropped, ...pendingCreates } = state.pendingCreates;
+            return path in state.pendingCreates
+                ? persist({ ...state, pendingCreates })
+                : Promise.resolve();
+        },
+        notePendingCreate: (path: string, create: { request_id: string; sha256: string }) =>
+            persist({ ...state, pendingCreates: { ...state.pendingCreates, [path]: create } }),
+        markSeen: (path: string, head: string) => {
+            const record = state.files[path];
+            return record && record.seen_head !== head
+                ? persist({
+                      ...state,
+                      files: { ...state.files, [path]: { ...record, seen_head: head } },
+                  })
+                : Promise.resolve();
+        },
+        advance: (areas: DriveFolderArea[], counters: DriveAreaCounters) =>
+            persist({ ...state, areas, counters }),
+        openPush: (pushId: string | null) => persist({ ...state, openPush: pushId }),
+    };
+}
+export type FolderStateStore = Awaited<ReturnType<typeof openFolderState>>;
+
+export function areaOfPath(areas: readonly DriveFolderArea[], path: string) {
+    return areas.find((area) => path.startsWith(`${area.root}/`)) ?? null;
+}
+
+export function isReadOnlyArea(area: string | null, writer: string) {
+    return area !== null && area.startsWith('agent:') && area !== `agent:${writer}`;
+}
+
+async function loadFolderState(layout: DriveFolderLayout) {
+    const raw = await readFile(layout.stateFile, 'utf8').catch((error: unknown) => {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            return null;
+        }
+        throw error;
+    });
+    if (raw === null) {
+        return emptyState;
+    }
+    const folder = await lstat(layout.folder).catch(() => null);
+    return folder?.isDirectory() ? folderStateSchema.parse(JSON.parse(raw)) : ('orphaned' as const);
+}
+
+async function writeJsonAtomic(path: string, value: unknown) {
+    await mkdir(dirname(path), { mode: 0o700, recursive: true });
+    const temp = `${path}.${randomUUID()}.tmp`;
+    await writeFile(temp, JSON.stringify(value), { mode: 0o600 });
+    await rename(temp, path);
+}

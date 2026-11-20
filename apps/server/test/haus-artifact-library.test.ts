@@ -14,10 +14,10 @@ const { publish, state, storage } = artifactDriveFixture('artifact-library');
 
 beforeAll(async () => {
     for (const [path, size] of [
-        ['prints/KEY-010.png', 300],
-        ['prints/KEY-002.png', 100],
-        ['prints/key-001.txt', 200],
-        ['prints/KEY-100-cat/final.png', 50],
+        ['haus/prints/KEY-010.png', 300],
+        ['haus/prints/KEY-002.png', 100],
+        ['haus/prints/key-001.txt', 200],
+        ['haus/prints/KEY-100-cat/final.png', 50],
     ] as const) {
         await publish({
             body: 'x'.repeat(size),
@@ -29,7 +29,9 @@ beforeAll(async () => {
 
 test('file names sort naturally, and size and kind sort with name as the tie', async () => {
     const names = async (order: 'name' | 'size' | 'kind', direction?: 'asc' | 'desc') =>
-        (await list({ direction, order, prefix: 'prints' })).artifacts.map((file) => file.filename);
+        (await list({ direction, order, prefix: 'haus/prints' })).artifacts.map(
+            (file) => file.filename
+        );
     expect(await names('name')).toEqual(['key-001.txt', 'KEY-002.png', 'KEY-010.png']);
     expect(await names('name', 'desc')).toEqual(['KEY-010.png', 'KEY-002.png', 'key-001.txt']);
     expect(await names('size')).toEqual(['KEY-002.png', 'key-001.txt', 'KEY-010.png']);
@@ -39,13 +41,13 @@ test('file names sort naturally, and size and kind sort with name as the tie', a
 test('a search lists matching folders beside matching files', async () => {
     const page = await list({ prefix: '', query: 'cat', recursive: true });
     expect(page.folders.map((folder) => [folder.path, folder.file_count])).toEqual([
-        ['prints/KEY-100-cat', 1],
+        ['haus/prints/KEY-100-cat', 1],
     ]);
-    expect(page.artifacts.map((file) => file.path)).toEqual(['prints/KEY-100-cat/final.png']);
+    expect(page.artifacts.map((file) => file.path)).toEqual(['haus/prints/KEY-100-cat/final.png']);
 });
 
 test('records name the revision author; Agent routes keep the strict metadata shape', async () => {
-    const page = await list({ prefix: 'prints' });
+    const page = await list({ prefix: 'haus/prints' });
     const member = state.actor.member;
     expect(page.artifacts[0]?.author).toEqual({ type: 'user', user_id: member?.id });
     const agentPage = (await runArtifactAction({
@@ -54,7 +56,9 @@ test('records name the revision author; Agent routes keep the strict metadata sh
         db: state.connection.db,
         input: {
             artifact_id: '',
-            filters: artifactListInputSchema.omit({ serverId: true }).parse({ prefix: 'prints' }),
+            filters: artifactListInputSchema
+                .omit({ serverId: true })
+                .parse({ prefix: 'haus/prints' }),
             offset: 0,
         },
         origin: state.harness.appOrigin,
@@ -70,7 +74,7 @@ test('a rendered thumbnail records the image facts, and old renders measure lazi
         measure: () => Promise.resolve({ dpi: 300, height: 5400, width: 4500 }),
         render: () => Promise.resolve(new Uint8Array([1])),
     });
-    const published = await publish({ contentType: 'image/png', path: 'facts/print.png' });
+    const published = await publish({ contentType: 'image/png', path: 'haus/facts/print.png' });
     const revision = { ...(await revisionFacts(published.artifact.revision_id)) };
     expect(await thumbnails.ensure(revision)).toBe(true);
     const read = await state.owner.trpc.artifact.get.query({
@@ -98,11 +102,11 @@ test('PNG density comes from pHYs in pixels per metre', () => {
 });
 
 test('a default title follows a rename; a chosen title stays', async () => {
-    const plain = await publish({ path: 'rename/old.md' });
+    const plain = await publish({ path: 'haus/rename/old.md' });
     await state.owner.trpc.artifact.move.mutate({
-        from: 'rename/old.md',
+        from: 'haus/rename/old.md',
         serverId: state.serverId,
-        to: 'rename/new.md',
+        to: 'haus/rename/new.md',
     });
     const renamed = await state.owner.trpc.artifact.get.query({
         artifact_id: plain.artifact.artifact_id,
@@ -121,11 +125,11 @@ test('a default title follows a rename; a chosen title stays', async () => {
 });
 
 test('Restore publishes the old bytes as a new revision on top of the head', async () => {
-    const first = await publish({ body: 'first', path: 'restore/notes.md' });
+    const first = await publish({ body: 'first', path: 'haus/restore/notes.md' });
     const second = await publish({
         base: first.artifact.revision_id,
         body: 'second',
-        path: 'restore/notes.md',
+        path: 'haus/restore/notes.md',
     });
     const restored = await state.owner.trpc.artifact.restore.mutate({
         artifact_id: first.artifact.artifact_id,

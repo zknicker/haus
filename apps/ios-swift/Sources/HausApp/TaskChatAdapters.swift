@@ -50,7 +50,7 @@ extension HausStore {
 
     func taskContextLabel(taskID: String) -> String? {
         let originChatID = taskOrigin(taskID: taskID)?.chatID
-            ?? taskSnapshots.unreadTasks?.first { $0.task?.taskID == taskID }?.task?.originChatID
+            ?? taskSnapshots.unreadTasks?.first { $0.task?.taskID == taskID }?.task?.projectID
         guard let chat = originChatID.flatMap({ chatsByID[$0] }), let name = chat.name else { return nil }
         return "#\(name)"
     }

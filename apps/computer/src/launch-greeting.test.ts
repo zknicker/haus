@@ -5,13 +5,14 @@ import { join } from 'node:path';
 import { parseStartCommand } from './agent-command-frames.ts';
 import { disposeServerLaunchHosts } from './agent-launch-host.ts';
 import { makeDaemonRuntime } from './daemon-runtime.ts';
+import { createDriveRoutes } from './drive-migration/testing/drive-server.ts';
 import type { HarnessTurnInput } from './harness/executor.ts';
 import { type AgentStartCommand, type Attachment, runAgentLaunch } from './launch.ts';
 import { fakeRuntimeDriver } from './runtime/testing/fake-runtime-driver.ts';
 
-// Raft db5e399's agentic #all greeting; turn-prompt.test.ts pins the full text.
+// Raft db5e399's agentic #haus greeting; turn-prompt.test.ts pins the full text.
 const greetingLead =
-    'Post one short, natural self-introduction to #all so the team knows who you are and what you can help with.';
+    'Post one short, natural self-introduction to #haus so the team knows who you are and what you can help with.';
 
 const runtime = makeDaemonRuntime();
 afterAll(() => runtime.dispose());
@@ -21,8 +22,16 @@ let server: ReturnType<typeof Bun.serve>;
 
 beforeEach(async () => {
     dataRoot = await mkdtemp(join(tmpdir(), 'haus-launch-greeting-'));
+    const drive = createDriveRoutes({
+        agentId: 'agt_greeting',
+        runnerToken: `grtr_${'g'.repeat(43)}`,
+    });
     server = Bun.serve({
-        fetch: (request) => {
+        fetch: async (request) => {
+            const driven = await drive.handle(request);
+            if (driven) {
+                return driven;
+            }
             const path = new URL(request.url).pathname;
             if (path === '/computer/runner/mint') {
                 return Response.json({
@@ -72,6 +81,7 @@ test('an App-created Agent with no brief greets on the run the Server attached i
 function wakeFrame(): AgentStartCommand & Record<string, unknown> {
     return {
         agentId: 'agt_greeting',
+        agentName: 'greeter',
         chatId: 'cht_all',
         inbox: [],
         inboxDelivery: 'notice',
@@ -111,5 +121,5 @@ async function launchPrompt(frame: Record<string, unknown>): Promise<string> {
     if (prompt === undefined) {
         throw new Error('The launch never prompted the model.');
     }
-    return prompt;
+    return prompt.replace(/^<haus-memory>[\s\S]*?<\/haus-memory>\n\n/u, '');
 }

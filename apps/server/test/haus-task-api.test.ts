@@ -142,8 +142,10 @@ describe('states', () => {
 
     test('a chatless Task is read-only history', async () => {
         await harness.sql`
-            insert into tasks (id, server_id, key_id, number, title, state, completed_at, created_by_user_id)
-            select 'tsk_task_api_history', ${serverId}, id, 900, 'Old', 'done', now(), ${ownerUserId}
+            insert into tasks (id, server_id, key_id, number, title, state, completed_at,
+                created_by_user_id, project_id)
+            select 'tsk_task_api_history', ${serverId}, id, 900, 'Old', 'done', now(), ${ownerUserId},
+                ${allChatId}
             from task_keys where server_id = ${serverId} and key = 'GEN'
         `;
         const history = await owner.trpc.task.get.query({ key: 'GEN-900', serverId });

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHash } from 'node:crypto';
 import { computerBootstrapProtocolVersion, computerProtocolVersion } from '@haus/api';
+import { testSqlAgentHome } from './agent-home.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
 let harness: HausServerHarness;
@@ -32,16 +33,15 @@ beforeAll(async () => {
     await harness.sql`
         insert into agents (
             id, server_id, handle, display_name, home_timezone,
-            computer_id, desired_runtime_id, desired_model_id
-        )
+            computer_id, desired_runtime_id, desired_model_id, home_project_id)
         values
             (
                 ${agentId}, ${serverId}, 'report-cove', 'Cove', 'America/New_York',
-                ${computerId}, 'codex', 'gpt-5.6-sol'
+                ${computerId}, 'codex', 'gpt-5.6-sol', ${await testSqlAgentHome(harness.sql, serverId)}
             ),
             (
                 ${omittedAgentId}, ${serverId}, 'report-scout', 'Scout', 'America/New_York',
-                ${computerId}, 'codex', 'gpt-5.6-sol'
+                ${computerId}, 'codex', 'gpt-5.6-sol', ${await testSqlAgentHome(harness.sql, serverId)}
             )
     `;
 });

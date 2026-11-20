@@ -12,10 +12,11 @@ import { type AvatarProviderMode, deterministicPng } from './agent-creation-avat
 import { readCreationGuidance } from './agent-creation-guidance-fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { createTestProject } from './project.fixture.ts';
 
 export function agentCreationFixture(
     messageRouter?: MessageRouter,
-    artifactStorage?: ArtifactStorage
+    artifacts: { artifactStorage?: ArtifactStorage; artifactStorageBytes?: number } = {}
 ) {
     let harness: HausServerHarness;
     let owner: HausClient;
@@ -53,7 +54,7 @@ export function agentCreationFixture(
 
     beforeAll(async () => {
         harness = await startHausServerHarness({
-            artifactStorage,
+            ...artifacts,
             avatarImageProvider,
             messageRouter,
         });
@@ -85,7 +86,7 @@ export function agentCreationFixture(
         peerAgentId = await createAgent('Peer', 'peer');
         coveAgentId = await seedCove();
         channelId = (
-            await owner.trpc.chat.createChannel.mutate({
+            await createTestProject(harness, owner, {
                 agentIds: [orbitAgentId],
                 name: 'product',
                 serverId,
@@ -229,11 +230,10 @@ export function agentCreationFixture(
         await harness.sql`
             insert into agents (
                 id, server_id, computer_id, display_name, handle, home_timezone,
-                desired_model_id, desired_runtime_id
-            )
+                desired_model_id, desired_runtime_id, home_project_id)
             values (
                 ${agentId}, ${otherServerId}, ${offsiteComputerId}, 'Offsite', ${handle}, 'UTC',
-                'gpt-5.6-sol', 'codex'
+                'gpt-5.6-sol', 'codex', (select id from chats where server_id = ${otherServerId} and is_all)
             )
         `;
         return agentId;
@@ -275,11 +275,10 @@ export function agentCreationFixture(
         await harness.sql`
             insert into agents (
                 id, server_id, computer_id, display_name, handle, home_timezone,
-                desired_model_id, desired_runtime_id, factory_kind, description
-            )
+                desired_model_id, desired_runtime_id, factory_kind, description, home_project_id)
             values (
                 ${agentId}, ${serverId}, ${computerId}, 'Cove', 'cove', 'UTC',
-                'gpt-5.6-sol', 'codex', 'cove', 'Onboarding Assistant'
+                'gpt-5.6-sol', 'codex', 'cove', 'Onboarding Assistant', (select id from chats where server_id = ${serverId} and is_all)
             )
         `;
         return agentId;

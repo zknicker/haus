@@ -32,6 +32,7 @@ const task: Task = {
     number: 12,
     origin: { chatId: 'cht_security', messageId: 'msg_origin' },
     priority: 'high',
+    projectId: 'cht_security',
     serverId: 'srv_1',
     state: 'todo',
     title: 'Rotate the deploy key',

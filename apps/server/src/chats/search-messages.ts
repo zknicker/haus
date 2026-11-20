@@ -4,6 +4,7 @@ import { alias } from 'drizzle-orm/pg-core';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import { readMessageCauses } from '../automations/message-cause-read.ts';
 import { readLinkedCloudAgentWork } from '../cloud-agents/linked-cloud-agent-work.ts';
+import { readMessageDriveCitations } from '../drive/citations.ts';
 import { readLinkedImageGenerations } from '../image-generation/linked-image-generations.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -134,7 +135,7 @@ export async function searchChatMessages(
         .limit(input.limit);
 
     const messageIds = rows.map((message) => message.id);
-    const [attachments, causes, bodies, works, images, reactions, replies, taskLinks] =
+    const [attachments, causes, bodies, works, images, reactions, replies, taskLinks, citations] =
         await Promise.all([
             readMessageAttachments(db, input.serverId, messageIds),
             readMessageCauses(db, input.serverId, messageIds),
@@ -144,6 +145,7 @@ export async function searchChatMessages(
             readChatMessageReactions(db, input.serverId, messageIds),
             readInlineReplyContexts(db, input.serverId, rows),
             readMessageTaskLinks(db, input.serverId, messageIds),
+            readMessageDriveCitations(db, input.serverId, messageIds),
         ]);
 
     return rows.map((message) => ({
@@ -153,6 +155,7 @@ export async function searchChatMessages(
             body: bodies.get(message.id),
             cause: causes.get(message.id),
             cloudAgentWork: works.get(message.id),
+            driveCitations: citations.get(message.id),
             imageGenerations: images.get(message.id),
             reactions: reactions.get(message.id),
             reply: replies.get(message.id) ?? null,

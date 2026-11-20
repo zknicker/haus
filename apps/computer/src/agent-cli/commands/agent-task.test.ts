@@ -29,6 +29,7 @@ test('start sends the origin message and names where the Task lives', async () =
         dueOn: undefined,
         from: 'msg_1a2b3c4d5e6f',
         priority: undefined,
+        project: undefined,
         state: undefined,
         target: '#security',
         title: 'Rotate the signing key',
@@ -43,24 +44,32 @@ test('start sends the origin message and names where the Task lives', async () =
     );
 });
 
-test('start refuses a DM origin before asking the Server, and says where to post instead', async () => {
-    const { calls, run } = harness(() => ({ target: 'task:SEC-12', task }));
-    const refusal = run(runTaskStart, args({ values: { ...startArgs, '--target': 'dm:@zero' } }));
-    await expect(refusal).rejects.toMatchObject({ code: 'TASK_ORIGIN_DM' });
-    await expect(refusal).rejects.toMatchObject({
-        options: { nextAction: expect.stringContaining('in the channel where the work belongs') },
+test('start sends a DM origin with the Project it names', async () => {
+    const { calls, lines, run } = harness(() => ({ target: 'task:SEC-12', task }));
+
+    await run(
+        runTaskStart,
+        args({ values: { ...startArgs, '--project': 'SEC', '--target': 'dm:@zero' } })
+    );
+
+    expect(calls[0]?.input?.body).toMatchObject({
+        from: 'msg_1a2b3c4d5e6f',
+        project: 'SEC',
+        target: 'dm:@zero',
     });
-    expect(calls).toHaveLength(0);
+    expect(lines.join('')).toContain('Started from message 1a2b3c4d in dm:@zero;');
 });
 
-test('a Server TASK_ORIGIN_DM refusal gains the same next step', async () => {
-    const { run } = harness(() => {
-        throw new AgentCliError('TASK_ORIGIN_DM', 'That message is in a DM.');
+test('start refuses an origin inside a Task before asking the Server', async () => {
+    const { calls, run } = harness(() => ({ target: 'task:SEC-12', task }));
+    const refusal = run(runTaskStart, args({ values: { ...startArgs, '--target': 'task:SEC-3' } }));
+    await expect(refusal).rejects.toMatchObject({
+        code: 'INVALID_ARG',
+        options: {
+            nextAction: 'Start it from the message in the channel or DM that asked for the work.',
+        },
     });
-    await expect(run(runTaskStart, args({ values: startArgs }))).rejects.toMatchObject({
-        code: 'TASK_ORIGIN_DM',
-        options: { nextAction: expect.stringContaining('mentioning whoever asked') },
-    });
+    expect(calls).toHaveLength(0);
 });
 
 test('start needs a channel, an origin, and a title, and starts only todo or open', async () => {

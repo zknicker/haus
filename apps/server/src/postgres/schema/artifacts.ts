@@ -78,6 +78,8 @@ export const artifactRevisionsTable = pgTable(
         authorAgentId: text('author_agent_id'),
         authorKey: text('author_key').notNull(),
         authorUserId: text('author_user_id'),
+        /** The revision the writer started from; null for a create or a replace. */
+        baseRevisionId: text('base_revision_id'),
         byteSize: bigint('byte_size', { mode: 'number' }).notNull().default(0),
         contentType: text('content_type').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -88,12 +90,18 @@ export const artifactRevisionsTable = pgTable(
         imageHeight: integer('image_height'),
         imageWidth: integer('image_width'),
         objectKey: text('object_key').notNull(),
+        /** The head this revision was committed on; null for a file's first revision. */
+        parentRevisionId: text('parent_revision_id'),
         requestId: text('request_id').notNull(),
+        /** The bytes the writer sent, which a merged revision's own `sha256` no longer matches. */
+        requestSha256: text('request_sha256'),
         reservedBytes: bigint('reserved_bytes', { mode: 'number' }).notNull(),
         revisionNumber: integer('revision_number').notNull(),
         serverId: text('server_id').notNull(),
         sha256: text('sha256'),
         state: text('state').notNull().$type<ArtifactRevisionState>(),
+        /** The Task the write was for: a push's run Task, or null. */
+        taskId: text('task_id'),
         thumbnailState: text('thumbnail_state').$type<ArtifactThumbnailState>(),
         title: text('title').notNull(),
     },

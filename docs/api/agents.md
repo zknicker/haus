@@ -5,7 +5,7 @@ read_when:
   - reading Agent turn records or the delivery ledger
   - changing the Agent inbox list, `message read --unread`, or the Agent read position
   - changing an Agent's conversation style, signature emoji, or self-profile update
-  - changing Agent channel routes (`haus channel create`, `haus channel add`)
+  - changing Agent channel routes (`haus channel add`, `join`, `leave`, `mute`)
   - changing the Agent Task routes (`/api/agent/tasks/*`) or claim routes
   - changing the cloud agent launch route, `CLOUD_AGENT_TASK_REQUIRED`, or where Run notices land
 ---
@@ -175,16 +175,8 @@ active Agent may add any active Agent; Cove is refused. The add is idempotent �
 that Agent was already a member — and wakes nobody. Like the human channel save, it emits
 `chat.lifecycle{action:'updated'}` so member lists refresh.
 
-`POST /api/agent/channels/create` takes `{ name, humans, description? }` and backs
-`haus channel create`. Creating a channel is a member capability, as in the App's New channel
-dialog, so the runner credential is the whole authority. `name` is the bare channel name
-(`^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$`). The creating Agent joins it, and so does every human in
-`humans` (1–10 `@handle`s of active Server members), because a human sees a channel only as its
-participant. The write goes through the same `insertChannel` seam as `chat.createChannel` and
-emits the same `chat.lifecycle{action:'created'}`. The receipt is `{ target, humans, description }`.
-A taken name, including an archived channel's, is `409 CHANNEL_NAME_TAKEN`. A handle that names no
-active human is `404 INVALID_TARGET` and creates nothing. A bad name or an empty `humans` is
-`400 INVALID_ARG`.
+Agents cannot create channels. Every channel is a Project, and only people create Projects
+(`project.create`, [specs/projects.md](../../specs/projects.md)), so there is no Agent create route.
 
 ### Inbox and read position
 
@@ -192,7 +184,7 @@ Each Agent has one durable read position per Chat (`agent_chat_reads`, see
 [Data model](../internals/data-model.md)). It survives session rotation and only moves forward.
 
 `GET /api/agent/inbox/conversations` backs `haus inbox check`: every joined channel, DM, and
-followed Task (each its own row) holding someone else's message past the read position. Query:
+followed Task under a joined channel (each its own row) holding someone else's message past the read position. Query:
 `view` (`unread` | `mentions`, default `unread`), `before` (opaque keyset key, at most 200 characters), `limit`
 (1–50, default 20). The response is `{ view, items, hasMore, nextBefore, totals }`; each item
 carries `chatId`, `target`, `kind`, `unread`, `mentions`, `lastReadSequence`, `activityKey`,
@@ -328,10 +320,12 @@ a claim or list response.
 `omitted`: `assignee` (`me`, `none`, or `@handle`), `key` (a ledger key like `SEC`), and `state`
 (a comma list or repeated; `todo,open` by default) narrow it. `GET /api/agent/tasks/show?key=SEC-12`
 adds the description, Mentioned in, and Reminders. `POST /api/agent/tasks/start` starts a Task from
-a Channel Message (`{ target, from, title, description?, assignee?, state?, priority?, dueOn? }`;
-a DM origin is `TASK_ORIGIN_DM`), and `/state`, `/update`, `/assign`, and `/attach-pr` address
+a Channel or DM Message (`{ target, from, title, project?, description?, assignee?, state?,
+priority?, dueOn? }`) in the Project `project` names by key, else the origin's channel, else for a
+DM the caller's home Project; a non-generalist Agent outside its home Project is
+`403 TASK_PROJECT_NOT_HOME` with a `nextAction` naming that Project's Agent and channel), and `/state`, `/update`, `/assign`, and `/attach-pr` address
 Tasks by key. `/attach-pr` takes `{ key, url }` and answers `{ task, pullRequest }`;
-`/unfollow` takes a `task:KEY-n` target. Only Agents start Tasks (ADR 0053). Inputs are in
+`/unfollow` takes a `task:KEY-n` target. People file Tasks in the App instead (`task.create`). Inputs are in
 `packages/haus-api/src/agent-task.ts` and `task-input.ts`; refusal codes in
 `agent-task-refusals.ts`.
 
@@ -465,8 +459,7 @@ startingRef, target, task, title }`, where `task` is the Task key and `target` i
 `cause` (`start --cause <fireId>`) is the Trigger or Reminder fire the launch answers; the Server
 validates and records it on the launch Message as `haus message send --cause` does, and infers it
 the same way when absent ([Automation provenance](../../specs/automation-provenance.md)). A launch
-with no Task, or a Task the Agent cannot reach (no conversation yet, or a Channel it has not
-joined), fails with `CLOUD_AGENT_TASK_REQUIRED` before anything is written, and the CLI names the
+with no Task, or a Task with no conversation yet, fails with `CLOUD_AGENT_TASK_REQUIRED` before anything is written, and the CLI names the
 `haus task start` step to take first. It returns `{ state: 'started', chatId, idempotent, messageId, runId, sequence, target,
 work }`, or `{ state: 'held', newMessageCount, omittedMessageCount, formalMentionCount,
 shownMessages }` when the `haus message send` freshness hold finds unseen newer messages in the

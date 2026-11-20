@@ -636,7 +636,8 @@ _Avoid_: artifact, artifact page, snapshot, document, report (as the noun for th
 
 **Files**:
 The Server-wide tree of shared folders and files every member can read and edit, with retained
-revisions and a stable link per file: the App's Files section and `haus files` in the Agent CLI.
+revisions and a stable link per file: the App's Files section, and for Agents the `drive/` folder
+and `haus drive` (ADR 0054 renames it Drive).
 Wire names keep `artifact` (`artifact_id`, `/artifacts/<id>`, `ARTIFACT_*`).
 _Avoid_: drive, shared drive, shared artifacts (in product prose)
 

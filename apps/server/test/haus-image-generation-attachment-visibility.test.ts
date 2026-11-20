@@ -3,6 +3,7 @@ import { formatImageGenerationLink } from '@haus/api';
 import { readTargetAsAgent } from './agent-read-target.ts';
 import type { HausClient } from './haus-client.ts';
 import { imageGenerationFixture } from './image-generation-fixture.ts';
+import { createTestProject } from './project.fixture.ts';
 
 const fixture = imageGenerationFixture();
 
@@ -28,7 +29,7 @@ test('a ready generated image loads exactly where its generation is visible', as
         })
     ).agent.id;
     const sharedId = (
-        await owner.trpc.chat.createChannel.mutate({
+        await createTestProject(harness, owner, {
             agentIds: [orbitAgentId, novaAgentId],
             name: 'shared',
             serverId,

@@ -124,6 +124,7 @@ export const artifactErrorCodeSchema = z.enum([
     'STORAGE_LIMIT',
     'STORAGE_UNAVAILABLE',
     'AUTH_UNAVAILABLE',
+    'PUSH_CLOSED',
 ]);
 export type ArtifactErrorCode = z.infer<typeof artifactErrorCodeSchema>;
 

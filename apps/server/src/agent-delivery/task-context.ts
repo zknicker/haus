@@ -6,6 +6,7 @@ import {
     agentInboxExactVisibilityTable,
     chatMessagesTable,
     chatsTable,
+    tasksTable,
 } from '../postgres/schema.ts';
 import { readAgentInboxCursor } from './cursors.ts';
 import { chatOf } from './inbox-lanes.ts';
@@ -37,31 +38,39 @@ export async function readTaskContexts(
     if (!serverId) {
         return new Map();
     }
+    // A DM origin is private to that DM, so a Task started from one quotes nothing.
     const tasks = await db
         .select({
-            anchorMessageId: chatsTable.anchorMessageId,
-            id: chatsTable.id,
-            parentChatId: chatsTable.parentChatId,
+            id: tasksTable.chatId,
+            originChatId: tasksTable.originChatId,
+            originMessageId: tasksTable.originMessageId,
         })
-        .from(chatsTable)
+        .from(tasksTable)
+        .innerJoin(
+            chatsTable,
+            and(
+                eq(chatsTable.serverId, tasksTable.serverId),
+                eq(chatsTable.id, tasksTable.originChatId)
+            )
+        )
         .where(
             and(
-                eq(chatsTable.serverId, serverId),
-                eq(chatsTable.kind, 'task'),
-                inArray(chatsTable.id, [...new Set(mentions.map(chatOf))])
+                eq(tasksTable.serverId, serverId),
+                inArray(tasksTable.chatId, [...new Set(mentions.map(chatOf))]),
+                eq(chatsTable.kind, 'channel')
             )
         );
     const contexts = new Map<string, AgentTaskContext>();
     // Sequential: planning runs inside the transaction holding the Server row.
     for (const task of tasks) {
         const row = mentions.find((mention) => mention.chatId === task.id);
-        if (!(row && task.anchorMessageId && task.parentChatId)) {
+        if (!(row && task.id && task.originChatId && task.originMessageId)) {
             continue;
         }
         const context = await readTaskContext(db, {
-            anchorMessageId: task.anchorMessageId,
             mentionMessageId: row.dedupeKey,
-            parentChatId: task.parentChatId,
+            originChatId: task.originChatId,
+            originMessageId: task.originMessageId,
             serverId,
             taskChatId: task.id,
         });
@@ -137,9 +146,9 @@ async function hasVisibleTask(
 async function readTaskContext(
     db: HausDatabase,
     input: {
-        anchorMessageId: string;
         mentionMessageId: string;
-        parentChatId: string;
+        originChatId: string;
+        originMessageId: string;
         serverId: string;
         taskChatId: string;
     }
@@ -160,8 +169,8 @@ async function readTaskContext(
         .where(
             and(
                 eq(chatMessagesTable.serverId, input.serverId),
-                eq(chatMessagesTable.chatId, input.parentChatId),
-                eq(chatMessagesTable.id, input.anchorMessageId)
+                eq(chatMessagesTable.chatId, input.originChatId),
+                eq(chatMessagesTable.id, input.originMessageId)
             )
         )
         .limit(1);
@@ -190,7 +199,7 @@ async function readTaskContext(
     const taskTarget = await targetForChat(db, input.serverId, input.taskChatId);
     return {
         parentMessage: bounded.parent,
-        parentTarget: await targetForChat(db, input.serverId, input.parentChatId),
+        parentTarget: await targetForChat(db, input.serverId, input.originChatId),
         recentMessages: bounded.recent,
         suggestedReadTarget: taskTarget,
         taskTarget,

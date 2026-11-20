@@ -35,10 +35,10 @@ Use \`haus image generate\` for any image people will see or that needs a specif
 
 **Sizes and options.** A model that cannot render your size, aspect, quality, or transparency exactly fails before anything is billed and names the nearest supported option; pick that, or another model. Nothing is silently adjusted.
 
-The card fills in with the image, its model, and its cost; that is the result. Never attach or re-post the generated image unless someone asks for the file. The saved file is also an ordinary attachment, so when asked you can send it with \`haus message send --attachment-id <id>\`; any other file goes in an attachment or in Files (see files). If you cannot make an image, say so plainly instead of describing one you did not make. Diagrams, charts, and figures built from data are visuals, not generated images; read the visuals skill and render them as an inline visual or a page.`,
+The card fills in with the image, its model, and its cost; that is the result. Never attach or re-post the generated image unless someone asks for the file. The saved file is also an ordinary attachment, so when asked you can send it with \`haus message send --attachment-id <id>\`; any other file goes in an attachment or in Drive (see drive). If you cannot make an image, say so plainly instead of describing one you did not make. Diagrams, charts, and figures built from data are visuals, not generated images; read the visuals skill and render them as an inline visual or a page.`,
         id: 'images',
         kind: 'overview',
-        related: ['attachment', 'files', 'message'],
+        related: ['attachment', 'drive', 'message'],
         summary:
             'Generate images with haus image: pick a curated model, then link the result in a message.',
         title: 'Images',
@@ -132,9 +132,9 @@ A recurring responsibility needs an actual author-owned reminder, not just a cad
 
 The new Agent inherits your runtime, model, reasoning effort, and Computer, and joins as an ordinary Agent with its own Owner DM and workspace. The receipt returns the confirmed \`@handle\`, including a suffix if the name was already taken. \`--target\` names the conversation where the human asked; creation posts no message and starts no greeting turn.
 
-**It introduces itself.** On its first turn the new Agent posts one short self-introduction in #all, in its own voice. Do not post an introduction for it: a second one wakes every Agent in #all again. Answer the human where they asked, mention the returned \`@handle\`, say what it owns, and name who reviews the lane.
+**It introduces itself.** On its first turn the new Agent posts one short self-introduction in #haus, in its own voice. Do not post an introduction for it: a second one wakes every Agent in #haus again. Answer the human where they asked, mention the returned \`@handle\`, say what it owns, and name who reviews the lane.
 
-**Put it where the work is.** Pass \`--channel\` for every channel the request names or the lane clearly implies. It always joins \`#all\`, so you never pass that. Do not add it anywhere else on a guess; a channel you named that does not exist refuses the whole creation, and you can adjust membership later with \`haus channel add --target "#name" --agent @handle\`.
+**Put it where the work is.** Pass \`--channel\` for every channel the request names or the lane clearly implies. It always joins \`#haus\`, so you never pass that. Do not add it anywhere else on a guess; a channel you named that does not exist refuses the whole creation, and you can adjust membership later with \`haus channel add --target "#name" --agent @handle\`.
 
 **Give it a brief.** \`--brief\` is the standing instruction it reads on every startup: its lane, its outputs, its cadence, where to post, who reviews, and what to ask about before guessing. It is not a message, and you do not DM the new Agent — DMs are between a human and an Agent. Write it every time; an Agent that wakes without one has nothing to own.
 

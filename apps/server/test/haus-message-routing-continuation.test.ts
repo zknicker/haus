@@ -3,6 +3,7 @@ import type { MessageRouter, RoutingDecision, RoutingState } from '../src/messag
 import type { MentionScopeDecision } from '../src/message-routing/mention-scope.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 import { createInlineReplyHelpers } from './haus-inline-replies-helpers.ts';
+import { createTestProject } from './project.fixture.ts';
 
 // Golden #joy-haus-ops exchange (2026-10-08): one human, Beacon and Juniper. The human
 // @mentions Beacon about ads, Beacon answers, then the human follows up with no mention.
@@ -65,7 +66,7 @@ beforeAll(async () => {
     beaconId = await fixture.createAgent('Beacon', 'beacon');
     juniperId = await fixture.createAgent('Juniper', 'juniper');
     channelId = (
-        await fixture.owner.trpc.chat.createChannel.mutate({
+        await createTestProject(fixture.harness, fixture.owner, {
             agentIds: [beaconId, juniperId],
             name: 'joy-haus-ops',
             serverId: fixture.serverId,

@@ -126,8 +126,8 @@ async function seedAgentRunner(
 ): Promise<ResolvedRunner> {
     const agentId = `agt_${handle}${server.id.slice(4, 12)}`;
     await harness.sql`
-        insert into agents (id, server_id, handle, display_name, home_timezone)
-        values (${agentId}, ${server.id}, ${handle}, ${handle}, 'UTC')
+        insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
+        values (${agentId}, ${server.id}, ${handle}, ${handle}, 'UTC', (select id from chats where server_id = ${server.id} and is_all))
     `;
     await harness.sql`
         insert into channel_agent_participants (server_id, chat_id, agent_id)
@@ -188,9 +188,9 @@ async function seedAgentClaim(
     messageId: string
 ): Promise<string> {
     const [agent] = (await harness.sql`
-        insert into agents (id, server_id, handle, display_name, home_timezone)
+        insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
         values (
-            ${`agt_${messageId.slice(4)}`}, ${server.id}, 'sage', 'Sage', 'UTC'
+            ${`agt_${messageId.slice(4)}`}, ${server.id}, 'sage', 'Sage', 'UTC', (select id from chats where server_id = ${server.id} and is_all)
         )
         returning id
     `) as Array<{ id: string }>;

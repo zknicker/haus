@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 import type { HausClient } from './haus-client.ts';
+import { createTestProject } from './project.fixture.ts';
 
 const fixture = agentCreationFixture();
 
@@ -30,7 +31,7 @@ beforeAll(async () => {
         })
     ).id;
     scoutingChannelId = (
-        await fixture.owner.trpc.chat.createChannel.mutate({
+        await createTestProject(fixture.harness, fixture.owner, {
             agentIds: [fixture.peerAgentId],
             name: 'scouting',
             serverId: fixture.serverId,

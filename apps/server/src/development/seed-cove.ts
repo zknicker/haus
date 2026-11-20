@@ -13,6 +13,7 @@ import {
     serverMembershipsTable,
     serverOnboardingTable,
 } from '../postgres/schema.ts';
+import { requireHausProjectId } from '../projects/haus-project.ts';
 
 const developmentCoveModelId = 'gpt-5.6-terra';
 const developmentCoveRuntimeId = 'codex';
@@ -82,6 +83,7 @@ export async function ensureDevelopmentCove(
             displayName: 'Cove',
             factoryKind: 'cove',
             handle: 'cove',
+            homeProjectId: await requireHausProjectId(tx, input.serverId),
             homeTimezone: 'UTC',
             id: agentId,
             serverId: input.serverId,

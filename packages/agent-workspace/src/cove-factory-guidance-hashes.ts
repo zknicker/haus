@@ -19,6 +19,7 @@ export const recognizedFactoryGuidanceHashes: Record<
         'da4ae05e0f84c78b52c4f0d89fc3e35d6d3bcb0141e59d5a937a1c6842094475',
         '0182ccf82a10192a0c03aeec117c6773cfacc103f6f7fff7cd0d160e8e0919df',
         '6a6a920b2c4e40bfda127e4712e8eec8297a6e9db86bc3e9a036ecb8f5d20782',
+        '9773c4f736b84f09f334d225c118e377adf1c571ea0e4ffcadd60650d02f999e',
     ],
     'notes/onboarding_playbook.md': [
         '864698e59425d4f3ba974f4fb27734556afd5cf6e86146a3f60bfb7757643500',
@@ -35,5 +36,6 @@ export const recognizedFactoryGuidanceHashes: Record<
         '1a78df111c683bb961e97a21cc56e67c22095031c5aeb260d39808c8c0868e05',
         '0d2ce9cab94a7d2b3ec459e3e4c5a4e7f3f7e13e62d66026fd89db34cf8295a9',
         'b9c8a292e8544d4c38d97c0fadad7b820bb41cad9517dabfa1d51de9f5e0e487',
+        '30de36d72a16086627e778faae1ed3e8f6e7f56918fe0d5b3d421e4ce7e0a30e',
     ],
 };

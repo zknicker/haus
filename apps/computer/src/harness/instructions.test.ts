@@ -186,10 +186,10 @@ test('advertises the Agent family without inventing an Agent-creation policy', (
 test('tells every Agent to welcome a new teammate once, in its own voice', () => {
     const { instructions } = composeAgentInstructions(facts);
 
-    // A creation announcement lands in #all and every Agent there reads it. The
+    // A creation announcement lands in #haus and every Agent there reads it. The
     // etiquette rule is what keeps that from being either silence or a pile-on.
     expect(instructions).toContain(
-        "- **Welcome new teammates.** When someone introduces one in #all, say hi once in your own voice, plus what you'd hand them if your lanes touch. Skip it if the room already has; do not start work on their behalf."
+        "- **Welcome new teammates.** When someone introduces one in #haus, say hi once in your own voice, plus what you'd hand them if your lanes touch. Skip it if the room already has; do not start work on their behalf."
     );
     expect(instructions.indexOf('Skip idle narration')).toBeLessThan(
         instructions.indexOf('Welcome new teammates')

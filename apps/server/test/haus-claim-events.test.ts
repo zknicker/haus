@@ -93,9 +93,9 @@ async function addChannelAgent(serverId: string, chatId: string) {
     `;
     await harness.sql`
         insert into agents (id, server_id, computer_id, handle, display_name,
-            desired_model_id, desired_runtime_id, home_timezone)
+            desired_model_id, desired_runtime_id, home_timezone, home_project_id)
         values (${agentId}, ${serverId}, ${computerId}, 'ada', 'Ada',
-            'fake-model', 'fake', 'UTC')
+            'fake-model', 'fake', 'UTC', (select id from chats where server_id = ${serverId} and is_all))
     `;
     await harness.sql`
         insert into channel_agent_participants (server_id, chat_id, agent_id)

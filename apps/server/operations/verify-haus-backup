@@ -1,0 +1,70 @@
+#!/bin/sh
+set -eu
+umask 077
+
+root=${HAUS_BACKUP_ROOT:-/Users/zknicker/srv/haus/backups}
+container=${HAUS_BACKUP_POSTGRES_CONTAINER-haus-postgres}
+admin=${HAUS_BACKUP_ADMIN_ROLE:-haus_admin}
+check_database=haus_restore_check
+
+log() {
+    printf '%s haus-backup-verify %s\n' "$(/bin/date -u +%Y-%m-%dT%H:%M:%SZ)" "$*"
+}
+
+pg() {
+    if [ -n "$container" ]; then
+        docker exec -i "$container" "$@"
+    else
+        "$@"
+    fi
+}
+
+if [ "$#" -gt 1 ]; then
+    echo "Usage: verify-haus-backup [backup-directory]" >&2
+    exit 2
+fi
+backup=${1:-}
+if [ -z "$backup" ]; then
+    latest=$(/bin/ls -1 "${root}/nightly" | /usr/bin/sort -r | /usr/bin/head -n 1)
+    if [ -z "$latest" ]; then
+        echo "No nightly backup under ${root}/nightly." >&2
+        exit 1
+    fi
+    backup="${root}/nightly/${latest}"
+fi
+dump="${backup}/haus.dump"
+if [ ! -s "$dump" ]; then
+    echo "${dump} is missing or empty." >&2
+    exit 1
+fi
+
+drop_check_database() {
+    pg psql --username "$admin" --dbname postgres --quiet \
+        --command 'SET client_min_messages = warning' \
+        --command "DROP DATABASE IF EXISTS ${check_database}"
+}
+drop_check_database
+pg createdb --username "$admin" "$check_database"
+trap drop_check_database EXIT
+
+pg pg_restore --username "$admin" --dbname "$check_database" \
+    --no-owner --no-privileges --exit-on-error <"$dump"
+
+expected=$(pg pg_restore --list <"$dump" | /usr/bin/grep -c ' TABLE DATA ')
+restored=$(pg psql --username "$admin" --dbname "$check_database" --tuples-only --no-align \
+    --command "SELECT count(*) FROM pg_tables WHERE schemaname IN ('public', 'drizzle')")
+migrations=$(pg psql --username "$admin" --dbname "$check_database" --tuples-only --no-align \
+    --command 'SELECT count(*) FROM drizzle.__drizzle_migrations')
+if [ "$restored" -ne "$expected" ]; then
+    echo "Restored ${restored} tables but the dump holds ${expected}." >&2
+    exit 1
+fi
+
+runner=absent
+if [ -e "${backup}/runner-data.tar.gz" ]; then
+    listing=$(/usr/bin/tar -tzf "${backup}/runner-data.tar.gz")
+    entries=$(printf '%s\n' "$listing" | /usr/bin/wc -l | /usr/bin/tr -d ' ')
+    runner="entries=${entries}"
+fi
+
+log "ok ${backup} tables=${restored} migrations=${migrations} runner=${runner}"
