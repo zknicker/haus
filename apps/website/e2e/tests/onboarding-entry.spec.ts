@@ -64,7 +64,7 @@ test('fresh owner reload keeps a neutral frame until setup resolves and can swit
     await expect(page).toHaveURL(/\/s\/opening-demo$/u);
     await page.reload();
     await expect(page.getByRole('heading', { name: 'Connect a device' })).toBeVisible();
-    await expect(page.getByRole('textbox', { name: 'Message all' })).toHaveCount(0);
+    await expect(page.getByRole('textbox', { name: 'Message haus' })).toHaveCount(0);
     const setupGhost = await mark.elementHandle();
     if (!setupGhost) {
         throw new Error('Setup must keep the ghost mounted.');
@@ -130,7 +130,7 @@ for (const role of ['member', 'admin'] as const) {
         await expect(page).toHaveURL(new RegExp(`/s/${slug}/tasks$`, 'u'));
         // No Computer exists even after completion. This must not restart onboarding.
         await page.goto(`/s/${slug}`);
-        await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();
+        await expect(page.getByRole('textbox', { name: 'Message haus' })).toBeVisible();
         await expect(page.getByText(waitingCopy)).toHaveCount(0);
     });
 }

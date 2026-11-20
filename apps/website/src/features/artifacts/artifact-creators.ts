@@ -6,7 +6,7 @@ export interface ArtifactCreatorDirectory {
     /** The identity mark: the creator's real name (never "You") and uploaded image. */
     avatar(creator: ArtifactAuthor): { name: string; src: string | null };
     isSelf(creator: ArtifactAuthor): boolean;
-    /** "You" for the viewer, else the Agent's or person's display name; a Worker reads as its Agent. */
+    /** "You" for the viewer, else the Agent's or person's display name. */
     name(creator: ArtifactAuthor): string;
 }
 
@@ -28,8 +28,11 @@ export function artifactCreatorDirectory(
                   },
         isSelf,
         name: (creator) => {
-            if (creator.type !== 'user') {
+            if (creator.type === 'agent') {
                 return agentName(creator.agent_id);
+            }
+            if (creator.type === 'worker') {
+                return `Worker for ${agentName(creator.agent_id)}`;
             }
             return isSelf(creator) ? 'You' : humans.name(creator.user_id);
         },

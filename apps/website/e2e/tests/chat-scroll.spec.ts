@@ -62,7 +62,7 @@ test('human sends jump to latest; agent messages preserve following across backg
         .toBeGreaterThan(700);
     await atBottom(viewport);
     await scrollUp(viewport);
-    const composer = page.getByRole('textbox', { name: 'Message all' });
+    const composer = page.getByRole('textbox', { name: 'Message haus' });
     await composer.fill('My send returns to the bottom');
     await page.getByRole('button', { name: 'Send', exact: true }).click();
     await atBottom(viewport);
