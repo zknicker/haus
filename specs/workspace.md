@@ -28,7 +28,8 @@ The host filesystem reports `ENOSPC` when actual storage is exhausted.
 
 Computer reports actual available and total bytes at attachment and hourly.
 Server keeps the latest sample with the live attachment, clears it on disconnect,
-and exposes it to Owners and Admins through `computer.list`. Measurement failure
+and exposes it through `computer.list` to Owners and Admins, and to the member who attached that
+Computer. Measurement failure
 clears the sample and never blocks Agent execution. Disk is low only when both
 less than 10% and less than 20 GiB remain. `computer.onUpdated` invalidates the
 Computer query when the sample changes.

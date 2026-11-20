@@ -115,7 +115,7 @@ afterAll(async () => {
 });
 
 test('Members read every durable Computer usage snapshot while Computers are offline', async () => {
-    await expect(member.trpc.computer.list.query({ serverId })).rejects.toThrow(/Owner or Admin/i);
+    expect(await member.trpc.computer.list.query({ serverId })).toEqual([]);
 
     const overview = await member.trpc.stats.live.query({ serverId });
     expect(overview.computers).toEqual([

@@ -1,6 +1,9 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { sql } from 'drizzle-orm';
 import { listServerComputers } from '../src/computers/list-computers.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
+import { createOpaqueId } from '../src/postgres/opaque-id.ts';
+import { serverMembershipsTable, usersTable } from '../src/postgres/schema.ts';
 import { listProjects } from '../src/projects/project-read.ts';
 import { setProjectDefaultWorkerPlace } from '../src/projects/project-worker-defaults.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
@@ -95,3 +98,63 @@ test("computer.list shows each Computer's switch and limit and whether the viewe
         [other]: { canChangeWorkers: true, workerLimit: 4, workersEnabled: false },
     });
 });
+
+test('computer.list shows a plain member only the Computers they attached, and an Owner every one', async () => {
+    const board = await seedWorkerBoard(connection.db);
+    await setComputerPlace(connection.db, board, board.seed.computerId, { name: 'mini' });
+    const studio = await attachAnotherComputer(connection.db, board, { name: 'studio' });
+    const attacher = await addMember(board);
+    const bystander = await addMember(board);
+    await connection.db.execute(
+        sql`update computers set attached_by_user_id = ${attacher} where id = ${studio}`
+    );
+    const rows = async (userId: string) =>
+        (
+            await listServerComputers(
+                connection.db,
+                connections(),
+                { id: userId },
+                board.seed.serverId
+            )
+        ).map(({ attachedByCurrentUser, canChangeWorkers, id, name, workersEnabled }) => ({
+            attachedByCurrentUser,
+            canChangeWorkers,
+            id,
+            name,
+            workersEnabled,
+        }));
+    const studioRow = {
+        canChangeWorkers: true,
+        id: studio,
+        name: 'studio',
+        workersEnabled: true,
+    };
+
+    expect(await rows(bystander)).toEqual([]);
+    expect(await rows(attacher)).toEqual([{ ...studioRow, attachedByCurrentUser: true }]);
+    expect(await rows(board.seed.userId)).toEqual([
+        { ...studioRow, attachedByCurrentUser: false },
+        {
+            attachedByCurrentUser: true,
+            canChangeWorkers: true,
+            id: board.seed.computerId,
+            name: 'mini',
+            workersEnabled: true,
+        },
+    ]);
+});
+
+async function addMember(board: WorkerBoard) {
+    const userId = createOpaqueId('usr');
+    await connection.db
+        .insert(usersTable)
+        .values({ authSubject: createOpaqueId('clk'), id: userId });
+    await connection.db.insert(serverMembershipsTable).values({
+        handle: `member-${crypto.randomUUID().slice(0, 6)}`,
+        id: createOpaqueId('mem'),
+        role: 'member',
+        serverId: board.seed.serverId,
+        userId,
+    });
+    return userId;
+}
