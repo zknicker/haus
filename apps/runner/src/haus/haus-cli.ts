@@ -20,7 +20,6 @@ const computerEntrypoint = join(
     'index.ts'
 );
 
-const inlineFileBytesMax = 700 * 1024;
 const machineFileReadMaxBytes = 256 * 1024 ** 2;
 
 export async function runHausCommand(input: {
@@ -147,25 +146,9 @@ async function writeMachineFiles(
     const notes: string[] = [];
     for (const file of await filesUnder(workdir)) {
         const machinePath = machinePathOf(relative(workdir, file), paths);
-        const bytes = await readFile(file);
-        if (bytes.byteLength > inlineFileBytesMax) {
-            notes.push(
-                `${machinePath} was not written: files over ${inlineFileBytesMax / 1024} KiB cannot reach the machine until large machine payloads land.`
-            );
-            continue;
-        }
-        const answer = await input.invocations.invoke(
+        const answer = await input.invocations.writeFile(
             input.toolCallId,
-            {
-                bytes: {
-                    base64: bytes.toString('base64'),
-                    kind: 'inline',
-                    mediaType: 'application/octet-stream',
-                },
-                kind: 'file-write',
-                mode: 0o600,
-                path: machinePath,
-            },
+            { bytes: await readFile(file), mode: 0o600, path: machinePath },
             { signal: input.signal }
         );
         if (answer.frame.outcome !== 'completed') {

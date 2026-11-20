@@ -1,5 +1,5 @@
 import { EXECUTION_JOURNAL_RETENTION_DAYS } from '@haus/api';
-import { and, eq, inArray, lt } from 'drizzle-orm';
+import { and, eq, inArray, isNull, lt } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import { type SweepTimers, startBootSweep } from '../boot-sweep.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -66,6 +66,49 @@ export async function deleteExpiredInvocations(db: HausDatabase, root: Attachmen
                     );
             });
             return payloads;
+        });
+    }
+    await deleteUnboundUploads(db, root, cutoff);
+}
+
+async function deleteUnboundUploads(db: HausDatabase, root: AttachmentRoot, cutoff: Date) {
+    const unbound = and(
+        isNull(agentInvocationPayloadsTable.invocationId),
+        lt(agentInvocationPayloadsTable.uploadedAt, cutoff)
+    );
+    const servers = await db
+        .select({ serverId: agentInvocationPayloadsTable.serverId })
+        .from(agentInvocationPayloadsTable)
+        .where(unbound)
+        .groupBy(agentInvocationPayloadsTable.serverId);
+    for (const { serverId } of servers) {
+        await root.discardAttachments(serverId, async () => {
+            const uploads = await db
+                .select({
+                    attachmentId: agentInvocationPayloadsTable.attachmentId,
+                    stagingKey: attachmentsTable.stagingKey,
+                })
+                .from(agentInvocationPayloadsTable)
+                .innerJoin(
+                    attachmentsTable,
+                    and(
+                        eq(attachmentsTable.serverId, agentInvocationPayloadsTable.serverId),
+                        eq(attachmentsTable.id, agentInvocationPayloadsTable.attachmentId)
+                    )
+                )
+                .where(and(eq(agentInvocationPayloadsTable.serverId, serverId), unbound));
+            if (uploads.length > 0) {
+                await db.delete(attachmentsTable).where(
+                    and(
+                        eq(attachmentsTable.serverId, serverId),
+                        inArray(
+                            attachmentsTable.id,
+                            uploads.map((upload) => upload.attachmentId)
+                        )
+                    )
+                );
+            }
+            return uploads;
         });
     }
 }

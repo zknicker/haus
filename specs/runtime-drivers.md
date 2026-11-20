@@ -639,9 +639,9 @@ frame carries a reference: `{ kind: 'attachment', attachmentId, mediaType, sizeB
   is a dispatch's first effect and is never repeated. The Server answers the same
   `{ attachmentId, mediaType, sha256, sizeBytes }`, and the runner refuses an answer whose digest
   or size differs. A dispatch key holds one upload; a second answers 409. The upload runs under
-  the `file-write` timeout and the tool call's abort signal, and an upload that fails settles the
-  dispatch `failed` (or `timed-out`, `cancelled`) with no `invocation-request` sent and nothing
-  written.
+  the `file-write` timeout and the tool call's abort signal. An upload that fails or times out
+  settles the dispatch `failed`, and one the tool call's abort stopped settles it `cancelled`,
+  with no `invocation-request` sent and nothing written.
 - When the router mints the invocation for an `invocation-request` whose `file-write` carries a
   reference, it binds the upload with the same dispatch key to that invocation before it sends
   `invoke`. A reference that names no upload under that key (another run's, another Agent's, a
