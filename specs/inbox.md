@@ -89,12 +89,20 @@ only what is addressed to it or what it follows. A message reaches an Agent when
 | Another Project's channel, inline reply | It @mentions the Agent, or the Agent follows the reply chain |
 | A Task of another Project | It @mentions the Agent, or the Agent follows the Task |
 | A DM with the Agent | Always |
+| `#all`, the team room | Always, as in its home, for every active Agent |
 
+- `#all` is no Agent's home and no Project, but every active Agent on the Server hears it the way
+  it hears its home: its top-level messages, and its inline replies before anyone has
+  participated. Its ADR 0030 candidates are every active Agent, and Jev narrows there as in any
+  channel. A retired Agent never hears it, and an Agent never hears its own message. One
+  function decides hearers for both cases (`hearersOf` in `agent-delivery/hearing.ts`), keyed on
+  `chats.is_all`. Decided by Zach 2026-11-20, so team-wide updates reach every Captain.
 - Delivery splits in two. Every active Agent on the Server is **reachable**: it can be
   @mentioned, can follow a Task or reply chain, and can read and post anywhere
   (`resolveAgentTarget`, `listMentionOptions`, `mentionedAgentIds`,
-  `ensureInlineReplyParticipants`). Only home Agents are **ambient listeners**, hearing a
-  Project's top-level messages and inline replies without being addressed.
+  `ensureInlineReplyParticipants`). Only a channel's hearers are **ambient listeners**, hearing
+  its top-level messages and inline replies without being addressed: a Project's home Agents,
+  or in `#all` every active Agent.
 - A Project's **hearers** are its non-retired home Agents, and no one else. They hear the
   channel, its inline replies, and the Tasks, and they are the ADR 0030 candidates. A Project
   with no home Agent delivers only @mentions, assignments, follows and DMs; nothing else hears
@@ -135,7 +143,8 @@ absolute home hearing.
 
 Hearing lands with J3. Each row of the table, and a Project with no home Agent, has a delivery test in
 `apps/server/test/agent-hearing.test.ts`, inline replies in
-`apps/server/test/agent-reply-hearing.test.ts`, and the migration has one for each step of
+`apps/server/test/agent-reply-hearing.test.ts`, `#all` in
+`apps/server/test/agent-all-hearing.test.ts`, and the migration has one for each step of
 [projects.md](projects.md#migration-from-channels).
 
 ### Planning

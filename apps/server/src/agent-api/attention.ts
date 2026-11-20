@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm';
-import { isHomeAgent } from '../agent-delivery/hearing.ts';
+import { isHearer } from '../agent-delivery/hearing.ts';
 import { deleteQueuedOrdinaryItems } from '../agent-delivery/store.ts';
 import { openAgentChatRead } from '../agent-reads/agent-chat-reads.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
@@ -43,8 +43,8 @@ export async function unfollowAgentTask(db: HausDatabase, runner: ResolvedRunner
                     agentTaskFollowsTable.taskChatId,
                 ],
             });
-        // A Project's home Agents hear its Tasks whatever the follow says, so the queue stays.
-        if (!(await isHomeAgent(tx, runner, task.projectId))) {
+        // A Project's hearers hear its Tasks whatever the follow says, so the queue stays.
+        if (!(await isHearer(tx, runner, task.projectId))) {
             await deleteQueuedOrdinaryItems(tx, {
                 agentId: runner.agentId,
                 chatIds: [taskChatId],

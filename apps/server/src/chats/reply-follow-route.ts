@@ -1,6 +1,6 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { AgentTargetError, resolveAgentTarget } from '../agent-api/resolve-target.ts';
-import { isHomeAgent } from '../agent-delivery/hearing.ts';
+import { isHearer } from '../agent-delivery/hearing.ts';
 import { deleteQueuedInlineReplyItems } from '../agent-delivery/inline-reply-queue.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -116,7 +116,7 @@ async function unfollowInlineReply(
                 eq(agentMessageFollowsTable.agentId, runner.agentId)
             )
         );
-    if (kind === 'channel' && (await isHomeAgent(db, runner, chatId))) {
+    if (kind === 'channel' && (await isHearer(db, runner, chatId))) {
         return;
     }
     await deleteQueuedInlineReplyItems(db, {

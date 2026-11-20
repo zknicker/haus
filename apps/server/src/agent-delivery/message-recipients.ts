@@ -3,7 +3,13 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { ensureInlineReplyParticipants, mentionedAgentIds } from '../chats/reply-subscriptions.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, agentTaskFollowsTable, chatsTable } from '../postgres/schema.ts';
-import { type HearingPlace, hears, listHearingCandidates } from './hearing.ts';
+import {
+    type HearingPlace,
+    hearersOf,
+    hears,
+    listHearingCandidates,
+    readHearingPlace,
+} from './hearing.ts';
 import { readInlineReplyChain } from './inline-reply-recipients.ts';
 import { followMentionedIntoTask } from './task-recipients.ts';
 
@@ -58,9 +64,10 @@ export async function planAgentMessageRecipients(
     // Sequential, not Promise.all: `db` is often the caller's transaction, and
     // overlapping reads on that one connection deadlocked the send against the
     // Server row lock the same transaction already held.
-    const candidates = (await listHearingCandidates(db, input.serverId)).filter(
-        (agent) => agent.id !== input.authorAgentId
-    );
+    const everyone = await listHearingCandidates(db, input.serverId);
+    const place = await readHearingPlace(db, { projectId, serverId: input.serverId });
+    const hearerIds = new Set(hearersOf(everyone, place).map((agent) => agent.id));
+    const candidates = everyone.filter((agent) => agent.id !== input.authorAgentId);
     const mentioned = mentionedAgentIds(input.content, candidates);
     const heard =
         chat.kind === 'task'
@@ -68,8 +75,8 @@ export async function planAgentMessageRecipients(
             : await readChannelPlace(db, input);
     return candidates.flatMap((agent) => {
         const hearer = {
+            ambient: hearerIds.has(agent.id),
             follows: heard.follows.get(agent.id) === true,
-            home: agent.homeProjectId === projectId,
             mentioned: mentioned.has(agent.id),
         };
         if (!hears(heard.place, hearer)) {
