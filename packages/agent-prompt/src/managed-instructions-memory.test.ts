@@ -26,9 +26,12 @@ test('memory arrives in the turn input under a cap, with no re-read ritual (ADR 
     expect(prompt).not.toContain('Re-read MEMORY.md');
 });
 
-test('sends a "from now on" rule to its rule file, not MEMORY.md (ADR 0054 decision 10)', () => {
+test('describes the rule files beside MEMORY.md (ADR 0054 decisions 7 and 10)', () => {
     expect(prompt).toContain(
-        '- **Rules live in rule files**: a standing rule someone sets ("from now on…") goes in `WORKER.md` beside MEMORY.md when it governs what your Workers do, else in `AGENTS.md` there, never in MEMORY.md (`rules` Manual topic).'
+        '- `AGENTS.md` beside MEMORY.md holds your standing rules, and Haus puts it in your turn input whenever it changed. `WORKER.md` there holds the rules your Workers follow. The `rules` Manual topic covers both.'
+    );
+    expect(prompt).toContain(
+        "## Standing Preferences\n<preferences people show in passing: terse lines; merge, don't append>"
     );
     expect(prompt).not.toContain('standing directives');
 });

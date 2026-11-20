@@ -250,7 +250,7 @@ with no rule set, stay under Standing Preferences in `MEMORY.md`. Wrong: a rule 
 rule in the wrong file, a second post, a question back, or an offer to do more.
 
 - Owner: [ADR 0054](../adr/0054-drive-holds-what-agents-know-and-follow.md) decision 10; the
-  "Rules live in rule files" bullet and the Standing Preferences placeholder in
+  bullet describing `AGENTS.md` and `WORKER.md` and the Standing Preferences placeholder in
   `packages/agent-prompt/src/workspace-memory-instructions.ts`; the `rules` Manual topic
   (`packages/agent-manual/src/rules-topic.ts`); the Agent's own `AGENTS.md` reaches every later
   session through rule delivery ([context management](context-management.md)).
