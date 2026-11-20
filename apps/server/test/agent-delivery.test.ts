@@ -31,6 +31,7 @@ import {
 import { configureAgent } from '../src/server-agents/configure-agent.ts';
 import { testAgentHome } from './agent-home.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
+import { RecordingRunner } from './recording-runner.ts';
 
 let cluster: TestDatabase;
 let connection: HausConnection;
@@ -123,6 +124,15 @@ async function seedAgent(runtimeId = 'fake'): Promise<Seed> {
         serverId,
     });
     return { agentHandle, agentId, chatId, computerId, serverId, userId };
+}
+
+function attachedDelivery(seed: Seed) {
+    const transport = new FakeTransport();
+    const runner = new RecordingRunner();
+    transport.online.add(seed.computerId);
+    runner.attach(seed.agentId);
+    const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
+    return { delivery, runner, transport };
 }
 
 function turnSummary(
@@ -255,9 +265,7 @@ async function addDmChat(seed: Seed): Promise<string> {
 
 test('offers ordinary Chat work as a notice and does not loop when it is deferred', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
     const lifecycleController = new AbortController();
     const lifecycle = subscribeToAgentLifecycle(lifecycleController.signal)[Symbol.asyncIterator]();
     const working = lifecycle.next();
@@ -270,7 +278,7 @@ test('offers ordinary Chat work as a notice and does not loop when it is deferre
         serverId: seed.serverId,
     });
 
-    const starts = transport.framesOfType('start');
+    const starts = runner.starts();
     expect(starts).toHaveLength(1);
     expect(starts[0]?.agentName).toBe(seed.agentHandle);
     expect(starts[0]?.homeTimezone).toBe('UTC');
@@ -300,7 +308,7 @@ test('offers ordinary Chat work as a notice and does not loop when it is deferre
     const settled = await readDeliveryState(connection.db, seed.agentId);
     expect(settled?.activeRunId).toBeNull();
     expect(await countQueuedInboxItems(connection.db, seed.agentId)).toBe(1);
-    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(runner.starts()).toHaveLength(1);
     expect(await completed).toMatchObject({
         done: false,
         value: {
@@ -318,8 +326,8 @@ test('offers ordinary Chat work as a notice and does not loop when it is deferre
         dedupeKey: 'msg-2',
         serverId: seed.serverId,
     });
-    expect(transport.framesOfType('start')).toHaveLength(2);
-    expect(transport.framesOfType('start')[1]?.inbox.map((item) => item.content)).toEqual([
+    expect(runner.starts()).toHaveLength(2);
+    expect(runner.starts()[1]?.inbox.map((item) => item.content)).toEqual([
         'hello there',
         'new identity',
     ]);
@@ -327,9 +335,7 @@ test('offers ordinary Chat work as a notice and does not loop when it is deferre
 });
 test('preserves direct-attention metadata independently through wire replay', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -342,7 +348,7 @@ test('preserves direct-attention metadata independently through wire replay', as
     });
     await delivery.dispatchAgent(seed.agentId, seed.serverId, { resendActive: true });
 
-    const starts = transport.framesOfType('start');
+    const starts = runner.starts();
     expect(starts).toHaveLength(2);
     expect(starts.map((frame) => frame.inbox[0]?.mentioned)).toEqual([true, true]);
     expect(starts.map((frame) => frame.inbox[0]?.taskFollowReactivated)).toEqual([true, true]);
@@ -385,8 +391,11 @@ test('keeps a queued message bound to its retired author after handle reuse', as
         .values({ ...echo, description: 'Replacement teammate', id: replacementId });
 
     const transport = new FakeTransport();
+
+    const runner = new RecordingRunner();
     transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    runner.attach(seed.agentId);
+    const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
     await delivery.deliver({
         agentId: seed.agentId,
         chatId: seed.chatId,
@@ -397,7 +406,7 @@ test('keeps a queued message bound to its retired author after handle reuse', as
         source: `agent:${handle}`,
     });
 
-    expect(transport.framesOfType('start')[0]?.inbox[0]).toMatchObject({
+    expect(runner.starts()[0]?.inbox[0]).toMatchObject({
         senderDescription: 'Original teammate',
         senderHandle: handle,
         senderType: 'agent',
@@ -406,9 +415,7 @@ test('keeps a queued message bound to its retired author after handle reuse', as
 
 test('projects a trigger fire as its own sender type from @trigger', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -420,7 +427,7 @@ test('projects a trigger fire as its own sender type from @trigger', async () =>
         source: 'trigger',
     });
 
-    expect(transport.framesOfType('start')[0]?.inbox[0]).toMatchObject({
+    expect(runner.starts()[0]?.inbox[0]).toMatchObject({
         senderHandle: 'trigger',
         senderType: 'trigger',
     });
@@ -428,9 +435,7 @@ test('projects a trigger fire as its own sender type from @trigger', async () =>
 
 test('resends an unacknowledged delivery idempotently on the retry sweep', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -439,11 +444,11 @@ test('resends an unacknowledged delivery idempotently on the retry sweep', async
         dedupeKey: 'msg-1',
         serverId: seed.serverId,
     });
-    const runId = transport.framesOfType('start')[0]?.runId;
+    const runId = runner.starts()[0]?.runId;
 
     // No ack arrives; the sweep resends the same run, never a second one.
     await delivery.sweep();
-    const starts = transport.framesOfType('start');
+    const starts = runner.starts();
     expect(starts).toHaveLength(2);
     expect(starts[1]?.runId).toBe(runId);
 });
@@ -451,7 +456,8 @@ test('resends an unacknowledged delivery idempotently on the retry sweep', async
 test('ignores a duplicate delivery of the same message', async () => {
     const seed = await seedAgent();
     const transport = new FakeTransport();
-    const delivery = new AgentDelivery(connection.db, transport);
+    const runner = new RecordingRunner();
+    const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
     // Offline, so work stays queued and the dedupe is observable as a count.
 
     await delivery.deliver({
@@ -473,6 +479,8 @@ test('ignores a duplicate delivery of the same message', async () => {
     expect(await countUnsettledPending(seed.agentId)).toBe(1);
 
     transport.online.add(seed.computerId);
+
+    runner.attach(seed.agentId);
     await delivery.onComputerReconnect(seed.computerId);
     expect(transport.framesOfType('agent-configure')).toEqual([
         {
@@ -490,7 +498,7 @@ test('ignores a duplicate delivery of the same message', async () => {
             type: 'agent-configure',
         },
     ]);
-    const starts = transport.framesOfType('start');
+    const starts = runner.starts();
     expect(starts).toHaveLength(1);
     expect(starts[0]?.inbox.map((item) => item.content)).toEqual(['once']);
 });
@@ -498,8 +506,10 @@ test('ignores a duplicate delivery of the same message', async () => {
 test('replays durable Agent retirement tombstones on Computer reconnect', async () => {
     const seed = await seedAgent();
     const transport = new FakeTransport();
-    const delivery = new AgentDelivery(connection.db, transport);
+    const runner = new RecordingRunner();
+    const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
     transport.online.add(seed.computerId);
+    runner.attach(seed.agentId);
 
     delivery.retireAgent({ agentId: seed.agentId, computerId: seed.computerId });
     expect(transport.framesOfType('agent-retire')).toEqual([
@@ -518,14 +528,12 @@ test('replays durable Agent retirement tombstones on Computer reconnect', async 
         { agentId: seed.agentId, type: 'agent-retire' },
     ]);
     expect(transport.framesOfType('agent-configure')).toEqual([]);
-    expect(transport.framesOfType('start')).toEqual([]);
+    expect(runner.starts()).toEqual([]);
 });
 
 test.each([false, true])('busy notice acknowledgment=%s', async (acknowledged) => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
     const firstMessageId = await insertHumanMessage(seed, 'first', 1);
     const secondMessageId = await insertHumanMessage(seed, 'second', 2);
 
@@ -537,7 +545,7 @@ test.each([false, true])('busy notice acknowledgment=%s', async (acknowledged) =
         sequence: 1,
         serverId: seed.serverId,
     });
-    const firstRun = transport.framesOfType('start')[0]?.runId ?? '';
+    const firstRun = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId: firstRun });
 
     await delivery.deliver({
@@ -548,12 +556,12 @@ test.each([false, true])('busy notice acknowledgment=%s', async (acknowledged) =
         sequence: 2,
         serverId: seed.serverId,
     });
-    expect(transport.framesOfType('start')).toHaveLength(1);
-    const notices = transport.framesOfType('notice');
+    expect(runner.starts()).toHaveLength(1);
+    const notices = runner.framesOfType('notice');
     expect(notices).toHaveLength(1);
     expect(notices[0]?.inbox.map((item) => item.content)).toEqual(['first', 'second']);
     expect(notices[0]?.totalPending).toBe(2);
-    const firstInbox = transport.framesOfType('start')[0]?.inbox.map((item) => item.content);
+    const firstInbox = runner.starts()[0]?.inbox.map((item) => item.content);
     expect(firstInbox).toEqual(['first']);
     if (acknowledged) {
         await delivery.onNoticeAck({
@@ -565,7 +573,7 @@ test.each([false, true])('busy notice acknowledgment=%s', async (acknowledged) =
 
     // An unacknowledged notice must earn a turn; a delivered notice permits silence.
     await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, firstRun, 'completed'));
-    const starts = transport.framesOfType('start');
+    const starts = runner.starts();
     expect(starts).toHaveLength(acknowledged ? 1 : 2);
     if (!acknowledged) {
         expect(starts[1]?.inbox.some((item) => item.id === secondMessageId)).toBe(true);
@@ -575,9 +583,7 @@ test.each([false, true])('busy notice acknowledgment=%s', async (acknowledged) =
 
 test('settles explicitly pulled busy work with the active run without a second turn', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
     const firstMessageId = await insertHumanMessage(seed, 'first', 1);
 
     await delivery.deliver({
@@ -587,7 +593,7 @@ test('settles explicitly pulled busy work with the active run without a second t
         dedupeKey: firstMessageId,
         serverId: seed.serverId,
     });
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
 
     const followUpMessageId = await insertHumanMessage(seed, 'follow up', 2);
@@ -614,16 +620,14 @@ test('settles explicitly pulled busy work with the active run without a second t
 
     await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, runId, 'completed'));
 
-    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(runner.starts()).toHaveLength(1);
     expect(await countUnsettledPending(seed.agentId)).toBe(0);
     expect((await readExactVisibility(seed.agentId)).every((row) => row.seenAt)).toBe(true);
 });
 
 test('settles exact Computer-local visibility carried by the turn summary', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
     const messageId = await insertHumanMessage(seed, 'local cache body', 1);
 
     await delivery.deliver({
@@ -634,7 +638,7 @@ test('settles exact Computer-local visibility carried by the turn summary', asyn
         sequence: 1,
         serverId: seed.serverId,
     });
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
     await delivery.onTurnSettled(seed.computerId, {
         ...turnSummary(seed.agentId, runId, 'completed'),
@@ -650,9 +654,7 @@ test('settles exact Computer-local visibility carried by the turn summary', asyn
 
 test('settlement tolerates valid visibility whose pending row was already removed', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
     const messageId = await insertHumanMessage(seed, 'removed after visibility', 1);
 
     await delivery.deliver({
@@ -663,7 +665,7 @@ test('settlement tolerates valid visibility whose pending row was already remove
         sequence: 1,
         serverId: seed.serverId,
     });
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
     await connection.db.delete(agentInboxTable).where(eq(agentInboxTable.agentId, seed.agentId));
 
@@ -677,9 +679,7 @@ test('settlement tolerates valid visibility whose pending row was already remove
 
 test('a bounded notice window always contains the newly unnoticed identity', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -688,7 +688,7 @@ test('a bounded notice window always contains the newly unnoticed identity', asy
         dedupeKey: 'msg-initial',
         serverId: seed.serverId,
     });
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
     for (let index = 0; index < 50; index += 1) {
         await delivery.deliver({
@@ -699,7 +699,7 @@ test('a bounded notice window always contains the newly unnoticed identity', asy
             serverId: seed.serverId,
         });
     }
-    const fullWindow = transport.framesOfType('notice').at(-1);
+    const fullWindow = runner.framesOfType('notice').at(-1);
     await delivery.onNoticeAck({
         agentId: seed.agentId,
         workIds: fullWindow?.inbox.map((item) => item.id) ?? [],
@@ -715,18 +715,18 @@ test('a bounded notice window always contains the newly unnoticed identity', asy
     });
 
     expect(
-        transport
+        runner
             .framesOfType('notice')
             .at(-1)
             ?.inbox.map((item) => item.id)
     ).toContain('msg-newest');
 
     await delivery.onComputerReconnect(seed.computerId);
-    const resentStart = transport.framesOfType('start').at(-1);
+    const resentStart = runner.starts().at(-1);
     expect(resentStart?.inbox.map((item) => item.id)).toEqual(['msg-initial']);
     await delivery.onAck({ agentId: seed.agentId, runId });
     expect(
-        transport
+        runner
             .framesOfType('notice')
             .at(-1)
             ?.inbox.map((item) => item.id)
@@ -735,9 +735,7 @@ test('a bounded notice window always contains the newly unnoticed identity', asy
 
 test('accepts a repeated Computer-local visibility receipt after a committed receipt crash', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
     const messageId = await insertHumanMessage(seed, 'local cache retry', 1);
     const oldHistoryId = await insertHumanMessage(seed, 'old history', 2);
 
@@ -749,9 +747,9 @@ test('accepts a repeated Computer-local visibility receipt after a committed rec
         sequence: 1,
         serverId: seed.serverId,
     });
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
-    const runner = {
+    const claimant = {
         agentId: seed.agentId,
         chatId: seed.chatId,
         computerId: seed.computerId,
@@ -762,21 +760,19 @@ test('accepts a repeated Computer-local visibility receipt after a committed rec
     const identities = [{ chatId: seed.chatId, id: messageId, sequence: 1 }];
 
     await expect(
-        attestAgentEvents(connection.db, runner, [
+        attestAgentEvents(connection.db, claimant, [
             ...identities,
             { chatId: seed.chatId, id: oldHistoryId, sequence: 2 },
         ])
     ).resolves.toEqual({ accepted: [messageId, oldHistoryId] });
-    await expect(attestAgentEvents(connection.db, runner, identities)).resolves.toEqual({
+    await expect(attestAgentEvents(connection.db, claimant, identities)).resolves.toEqual({
         accepted: [messageId],
     });
 });
 
 test('attests a multi-message Computer-local pull without wedging the transaction', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
     const messageIds = await Promise.all([
         insertHumanMessage(seed, 'claim anchor one', 1),
         insertHumanMessage(seed, 'claim anchor two', 2),
@@ -852,7 +848,7 @@ test('attests a multi-message Computer-local pull without wedging the transactio
         sequence: 1,
         serverId: seed.serverId,
     });
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
     await connection.db.insert(agentInboxTable).values([
         {
@@ -874,7 +870,7 @@ test('attests a multi-message Computer-local pull without wedging the transactio
             source: 'human',
         },
     ]);
-    const runner = {
+    const claimant = {
         agentId: seed.agentId,
         chatId: seed.chatId,
         computerId: seed.computerId,
@@ -886,7 +882,7 @@ test('attests a multi-message Computer-local pull without wedging the transactio
     await expect(
         attestAgentEvents(
             connection.db,
-            runner,
+            claimant,
             messageIds.map((id, index) => ({
                 chatId: index === 2 ? taskChatId : seed.chatId,
                 id,
@@ -898,9 +894,7 @@ test('attests a multi-message Computer-local pull without wedging the transactio
 
 test('reconnect replays busy work pulled by an unsettled active run', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
     const firstMessageId = await insertHumanMessage(seed, 'first', 1);
 
     await delivery.deliver({
@@ -910,7 +904,7 @@ test('reconnect replays busy work pulled by an unsettled active run', async () =
         dedupeKey: firstMessageId,
         serverId: seed.serverId,
     });
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
 
     const followUpMessageId = await insertHumanMessage(seed, 'pull then crash', 2);
@@ -941,9 +935,9 @@ test('reconnect replays busy work pulled by an unsettled active run', async () =
         serverId: seed.serverId,
     });
 
-    await delivery.onComputerReconnect(seed.computerId);
+    await delivery.onRunnerReconnect();
 
-    const starts = transport.framesOfType('start');
+    const starts = runner.starts();
     expect(starts).toHaveLength(2);
     expect(starts[1]?.runId).toBe(runId);
     expect(starts[1]?.inbox.map((item) => item.content)).toEqual(['first', 'pull then crash']);
@@ -961,9 +955,7 @@ test('reconnect replays busy work pulled by an unsettled active run', async () =
 
 test('Stop persists across a restart, suppresses wakes, and keeps accumulating', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner, transport } = attachedDelivery(seed);
     const generationBefore = await connection.db
         .select({ generation: agentsTable.sessionGeneration })
         .from(agentsTable)
@@ -976,11 +968,11 @@ test('Stop persists across a restart, suppresses wakes, and keeps accumulating',
         dedupeKey: 'msg-1',
         serverId: seed.serverId,
     });
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
 
     await delivery.stop({ agentId: seed.agentId, serverId: seed.serverId });
-    const stops = transport.framesOfType('stop');
+    const stops = runner.framesOfType('stop');
     expect(stops).toHaveLength(1);
     expect(stops[0]?.runId).toBe(runId);
     const stopped = await readDeliveryState(connection.db, seed.agentId);
@@ -995,13 +987,13 @@ test('Stop persists across a restart, suppresses wakes, and keeps accumulating',
         dedupeKey: 'msg-2',
         serverId: seed.serverId,
     });
-    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(runner.starts()).toHaveLength(1);
     expect(await countQueuedInboxItems(connection.db, seed.agentId)).toBe(2);
 
     // A fresh Server process (new orchestrator, same durable state) resumes.
-    const restarted = new AgentDelivery(connection.db, transport);
+    const restarted = new AgentDelivery(connection.db, transport, undefined, runner);
     await restarted.start({ agentId: seed.agentId, serverId: seed.serverId });
-    const starts = transport.framesOfType('start');
+    const starts = runner.starts();
     expect(starts).toHaveLength(2);
     expect(starts[1]?.inbox.map((item) => item.content)).toEqual(['live work', 'while stopped']);
     expect((await readDeliveryState(connection.db, seed.agentId))?.stopped).toBe(false);
@@ -1015,7 +1007,8 @@ test('Stop persists across a restart, suppresses wakes, and keeps accumulating',
 test('queues while the Computer is offline and redelivers on reconnect', async () => {
     const seed = await seedAgent();
     const transport = new FakeTransport();
-    const delivery = new AgentDelivery(connection.db, transport);
+    const runner = new RecordingRunner();
+    const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -1031,8 +1024,10 @@ test('queues while the Computer is offline and redelivers on reconnect', async (
     expect(pending?.activeRunId).toBeNull();
 
     transport.online.add(seed.computerId);
+
+    runner.attach(seed.agentId);
     await delivery.onComputerReconnect(seed.computerId);
-    const starts = transport.framesOfType('start');
+    const starts = runner.starts();
     expect(starts).toHaveLength(1);
     expect(starts[0]?.runId).toBe(
         (await readDeliveryState(connection.db, seed.agentId))?.activeRunId
@@ -1042,7 +1037,8 @@ test('queues while the Computer is offline and redelivers on reconnect', async (
 test('repeated reconnects settle one durable result for one delivery', async () => {
     const seed = await seedAgent();
     const transport = new FakeTransport();
-    const delivery = new AgentDelivery(connection.db, transport);
+    const runner = new RecordingRunner();
+    const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -1054,12 +1050,14 @@ test('repeated reconnects settle one durable result for one delivery', async () 
     });
 
     transport.online.add(seed.computerId);
-    await delivery.onComputerReconnect(seed.computerId);
-    await delivery.onComputerReconnect(seed.computerId);
-    await delivery.onComputerReconnect(seed.computerId);
 
-    const starts = transport.framesOfType('start');
-    expect(starts).toHaveLength(3);
+    runner.attach(seed.agentId);
+    await delivery.onComputerReconnect(seed.computerId);
+    await delivery.onRunnerReconnect();
+    await delivery.onRunnerReconnect();
+
+    const starts = runner.starts();
+    expect(starts).toHaveLength(5);
     expect(new Set(starts.map((frame) => frame.runId)).size).toBe(1);
     const runId = starts[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
@@ -1067,16 +1065,14 @@ test('repeated reconnects settle one durable result for one delivery', async () 
     await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, runId, 'completed'));
     await delivery.onComputerReconnect(seed.computerId);
 
-    expect(transport.framesOfType('start')).toHaveLength(3);
+    expect(runner.starts()).toHaveLength(5);
     expect(await countTurns(seed.agentId)).toBe(1);
     expect(await countUnsettledPending(seed.agentId)).toBe(0);
 });
 
 test('records a duplicate turn summary exactly once', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -1085,7 +1081,7 @@ test('records a duplicate turn summary exactly once', async () => {
         dedupeKey: 'msg-1',
         serverId: seed.serverId,
     });
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
 
     await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, runId, 'completed'));
@@ -1097,9 +1093,7 @@ test('records a duplicate turn summary exactly once', async () => {
 
 test('reconnect resends an acknowledged in-flight run (Computer lost its turn)', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -1108,25 +1102,23 @@ test('reconnect resends an acknowledged in-flight run (Computer lost its turn)',
         dedupeKey: 'msg-1',
         serverId: seed.serverId,
     });
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
 
     // The Computer restarts mid-turn (accepted, never settled). Reconnect must
     // resend the same run so it is not stranded; the sweep alone would not.
     await delivery.sweep();
-    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(runner.starts()).toHaveLength(1);
 
-    await delivery.onComputerReconnect(seed.computerId);
-    const starts = transport.framesOfType('start');
+    await delivery.onRunnerReconnect();
+    const starts = runner.starts();
     expect(starts).toHaveLength(2);
     expect(starts[1]?.runId).toBe(runId);
 });
 
 test('a failed turn backs off instead of tight-looping', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -1135,12 +1127,12 @@ test('a failed turn backs off instead of tight-looping', async () => {
         dedupeKey: 'msg-1',
         serverId: seed.serverId,
     });
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
 
     await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, runId, 'failed'));
     // No immediate re-drive, the work is requeued, and a backoff is scheduled.
-    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(runner.starts()).toHaveLength(1);
     expect(await countUnsettledPending(seed.agentId)).toBe(1);
     const state = await readDeliveryState(connection.db, seed.agentId);
     expect(state?.consecutiveFailures).toBe(1);
@@ -1148,14 +1140,12 @@ test('a failed turn backs off instead of tight-looping', async () => {
 
     // The sweep respects the backoff window: no resend while retry_after is future.
     await delivery.sweep();
-    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(runner.starts()).toHaveLength(1);
 });
 
 test('an expired backoff redrives and settles the queued work once', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -1165,7 +1155,7 @@ test('an expired backoff redrives and settles the queued work once', async () =>
         serverId: seed.serverId,
         source: 'delivery_problem',
     });
-    const firstRunId = transport.framesOfType('start')[0]?.runId ?? '';
+    const firstRunId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId: firstRunId });
     await delivery.onTurnSettled(seed.computerId, turnSummary(seed.agentId, firstRunId, 'failed'));
     await connection.db
@@ -1174,7 +1164,7 @@ test('an expired backoff redrives and settles the queued work once', async () =>
         .where(eq(agentDeliveryTable.agentId, seed.agentId));
 
     await delivery.sweep();
-    const starts = transport.framesOfType('start');
+    const starts = runner.starts();
     expect(starts).toHaveLength(2);
     expect(starts[1]?.runId).not.toBe(firstRunId);
     expect(starts[1]?.inbox.map((item) => item.content)).toEqual(['retry me']);
@@ -1191,16 +1181,14 @@ test('an expired backoff redrives and settles the queued work once', async () =>
     );
     await delivery.sweep();
 
-    expect(transport.framesOfType('start')).toHaveLength(2);
+    expect(runner.starts()).toHaveLength(2);
     expect(await countTurns(seed.agentId)).toBe(2);
     expect(await countUnsettledPending(seed.agentId)).toBe(0);
 });
 
 test('an operator-action failure pauses immediately instead of spending retries', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -1209,7 +1197,7 @@ test('an operator-action failure pauses immediately instead of spending retries'
         dedupeKey: 'msg-auth',
         serverId: seed.serverId,
     });
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
     await delivery.onTurnSettled(
         seed.computerId,
@@ -1223,14 +1211,15 @@ test('an operator-action failure pauses immediately instead of spending retries'
     expect(state?.retryAfter?.getTime()).toBeGreaterThan(Date.now() + 59 * 60_000);
     expect(await countUnsettledPending(seed.agentId)).toBe(1);
     await delivery.sweep();
-    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(runner.starts()).toHaveLength(1);
 });
 
 test('a floating-session run drains queued work across every target', async () => {
     const seed = await seedAgent();
     const chatB = await addDmChat(seed);
     const transport = new FakeTransport();
-    const delivery = new AgentDelivery(connection.db, transport);
+    const runner = new RecordingRunner();
+    const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -1247,10 +1236,11 @@ test('a floating-session run drains queued work across every target', async () =
         serverId: seed.serverId,
     });
 
-    expect(transport.framesOfType('start')).toHaveLength(0);
+    expect(runner.starts()).toHaveLength(0);
     transport.online.add(seed.computerId);
+    runner.attach(seed.agentId);
     await delivery.onComputerReconnect(seed.computerId);
-    const first = transport.framesOfType('start')[0];
+    const first = runner.starts()[0];
     expect(first?.chatId).toBe(seed.chatId);
     expect(first?.inbox.map((item) => item.content)).toEqual(['from chat A', 'from chat B']);
     expect(first?.inbox.map((item) => item.chatId)).toEqual([seed.chatId, chatB]);
@@ -1258,9 +1248,7 @@ test('a floating-session run drains queued work across every target', async () =
 
 test('Stop revokes the run credential so it holds even without the socket', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -1270,7 +1258,7 @@ test('Stop revokes the run credential so it holds even without the socket', asyn
         serverId: seed.serverId,
         source: 'delivery_problem',
     });
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
 
     const runnerId = createOpaqueId('arc');
@@ -1295,9 +1283,7 @@ test('Stop revokes the run credential so it holds even without the socket', asyn
 
 test('Restart preserves the session generation and immediately redrives pending work', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -1306,18 +1292,18 @@ test('Restart preserves the session generation and immediately redrives pending 
         dedupeKey: 'msg-restart',
         serverId: seed.serverId,
     });
-    const first = transport.framesOfType('start')[0];
+    const first = runner.starts()[0];
 
     await delivery.restart({ agentId: seed.agentId, serverId: seed.serverId });
 
-    expect(transport.framesOfType('stop')).toEqual([
+    expect(runner.framesOfType('stop')).toEqual([
         { agentId: seed.agentId, runId: first?.runId, type: 'stop' },
     ]);
-    expect(transport.framesOfType('agent-restart')).toEqual([
+    expect(runner.framesOfType('agent-restart')).toEqual([
         { agentId: seed.agentId, type: 'agent-restart' },
     ]);
-    expect(transport.framesOfType('start')).toHaveLength(2);
-    expect(transport.framesOfType('start')[1]?.runId).not.toBe(first?.runId);
+    expect(runner.starts()).toHaveLength(2);
+    expect(runner.starts()[1]?.runId).not.toBe(first?.runId);
     const [agent] = await connection.db
         .select({ generation: agentsTable.sessionGeneration })
         .from(agentsTable)
@@ -1328,9 +1314,7 @@ test('Restart preserves the session generation and immediately redrives pending 
 test('Restart resumes a stopped Agent and redrives its preserved inbox in the same session', async () => {
     const seed = await seedAgent();
     await insertHumanMessage(seed, 'restart me', 1);
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -1339,17 +1323,17 @@ test('Restart resumes a stopped Agent and redrives its preserved inbox in the sa
         dedupeKey: 'msg-restart',
         serverId: seed.serverId,
     });
-    const first = transport.framesOfType('start')[0];
+    const first = runner.starts()[0];
     await delivery.stop({ agentId: seed.agentId, serverId: seed.serverId });
     await delivery.restart({ agentId: seed.agentId, serverId: seed.serverId });
 
     expect((await readDeliveryState(connection.db, seed.agentId))?.stopped).toBe(false);
-    const starts = transport.framesOfType('start');
+    const starts = runner.starts();
     expect(starts).toHaveLength(2);
     expect(starts[1]?.runId).not.toBe(first?.runId);
     expect(starts[1]?.sessionGeneration).toBe(first?.sessionGeneration);
     expect(starts[1]?.inbox).toEqual(first?.inbox);
-    expect(transport.framesOfType('agent-restart')).toEqual([
+    expect(runner.framesOfType('agent-restart')).toEqual([
         { agentId: seed.agentId, type: 'agent-restart' },
     ]);
 });
@@ -1357,13 +1341,14 @@ test('Restart resumes a stopped Agent and redrives its preserved inbox in the sa
 test('Restart fails without disturbing pending work when the assigned Computer is offline', async () => {
     const seed = await seedAgent();
     const transport = new FakeTransport();
-    const delivery = new AgentDelivery(connection.db, transport);
+    const runner = new RecordingRunner();
+    const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
     await delivery.stop({ agentId: seed.agentId, serverId: seed.serverId });
 
     await expect(
         delivery.restart({ agentId: seed.agentId, serverId: seed.serverId })
-    ).rejects.toThrow('The assigned Computer must be online');
-    expect(transport.sent).toEqual([]);
+    ).rejects.toThrow('The runner must be online');
+    expect(runner.sent).toEqual([]);
     expect((await readDeliveryState(connection.db, seed.agentId))?.stopped).toBe(true);
     const [agent] = await connection.db
         .select({ generation: agentsTable.sessionGeneration })
@@ -1374,14 +1359,16 @@ test('Restart fails without disturbing pending work when the assigned Computer i
 
 test('Restart keeps a stopped Agent paused when the Computer disconnects before the command', async () => {
     const seed = await seedAgent();
-    class DisconnectedTransport extends FakeTransport {
+    class DisconnectedRunner extends RecordingRunner {
         override send(): boolean {
             return false;
         }
     }
-    const transport = new DisconnectedTransport();
+    const transport = new FakeTransport();
+    const runner = new DisconnectedRunner();
     transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    runner.attach(seed.agentId);
+    const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
     await delivery.stop({ agentId: seed.agentId, serverId: seed.serverId });
     await delivery.deliver({
         agentId: seed.agentId,
@@ -1402,9 +1389,7 @@ test('Restart keeps a stopped Agent paused when the Computer disconnects before 
 
 test('Reset rotates the session and tells the assigned Computer to clear local state', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -1413,7 +1398,7 @@ test('Reset rotates the session and tells the assigned Computer to clear local s
         dedupeKey: 'msg-reset',
         serverId: seed.serverId,
     });
-    const first = transport.framesOfType('start')[0];
+    const first = runner.starts()[0];
     const runnerId = createOpaqueId('arc');
     await connection.db.insert(agentRunnerCredentialsTable).values({
         agentId: seed.agentId,
@@ -1427,10 +1412,10 @@ test('Reset rotates the session and tells the assigned Computer to clear local s
 
     await delivery.reset({ agentId: seed.agentId, kind: 'session', serverId: seed.serverId });
 
-    expect(transport.framesOfType('stop')).toEqual([
+    expect(runner.framesOfType('stop')).toEqual([
         { agentId: seed.agentId, runId: first?.runId, type: 'stop' },
     ]);
-    expect(transport.framesOfType('agent-reset')).toEqual([
+    expect(runner.framesOfType('agent-reset')).toEqual([
         {
             agentId: seed.agentId,
             kind: 'session',
@@ -1458,7 +1443,8 @@ test('Reset rotates the session and tells the assigned Computer to clear local s
 test('offline reset reconnects with authoritative configuration before redelivery', async () => {
     const seed = await seedAgent();
     const transport = new FakeTransport();
-    const delivery = new AgentDelivery(connection.db, transport);
+    const runner = new RecordingRunner();
+    const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -1471,15 +1457,20 @@ test('offline reset reconnects with authoritative configuration before redeliver
     expect(transport.sent).toEqual([]);
 
     transport.online.add(seed.computerId);
+
+    runner.attach(seed.agentId);
     await delivery.onComputerReconnect(seed.computerId);
 
-    expect(transport.sent.map(({ frame }) => frame.type)).toEqual(['agent-configure', 'start']);
+    expect(transport.sent.map(({ frame }) => frame.type)).toEqual([
+        'agent-configure',
+        'drive-pull',
+    ]);
     expect(transport.framesOfType('agent-configure')[0]).toMatchObject({
         agentId: seed.agentId,
         sessionGeneration: 2,
         sessionResetKind: 'full',
     });
-    expect(transport.framesOfType('start')[0]).toMatchObject({
+    expect(runner.starts()[0]).toMatchObject({
         agentId: seed.agentId,
         sessionGeneration: 2,
     });
@@ -1487,9 +1478,7 @@ test('offline reset reconnects with authoritative configuration before redeliver
 
 test('resume rejection rotates on the Server and retries from a fresh session', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner, transport } = attachedDelivery(seed);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -1498,23 +1487,23 @@ test('resume rejection rotates on the Server and retries from a fresh session', 
         dedupeKey: 'msg-resume-rejected',
         serverId: seed.serverId,
     });
-    const firstRunId = transport.framesOfType('start')[0]?.runId ?? '';
+    const firstRunId = runner.starts()[0]?.runId ?? '';
     await delivery.onTurnSettled(
         seed.computerId,
         turnSummary(seed.agentId, firstRunId, 'failed', false, 'session-resume')
     );
 
     expect(transport.sent.map(({ frame }) => frame.type)).toEqual([
-        'start',
+        'drive-pull',
         'agent-configure',
-        'start',
+        'drive-pull',
     ]);
     expect(transport.framesOfType('agent-configure')[0]).toMatchObject({
         agentId: seed.agentId,
         sessionGeneration: 2,
         sessionResetKind: 'session',
     });
-    const retry = transport.framesOfType('start')[1];
+    const retry = runner.starts()[1];
     expect(retry).toMatchObject({
         agentId: seed.agentId,
         inbox: [expect.objectContaining({ content: 'continue this work' })],
@@ -1572,9 +1561,7 @@ test('only a contiguous seen boundary subsumes queued work', async () => {
 
 test('agent-only chain ceiling preserves work until human intent arrives', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
     await connection.db.insert(agentDeliveryTable).values({
         agentChainTurns: 16,
         agentId: seed.agentId,
@@ -1591,7 +1578,7 @@ test('agent-only chain ceiling preserves work until human intent arrives', async
     });
 
     await delivery.sweep();
-    expect(transport.framesOfType('start')).toHaveLength(0);
+    expect(runner.starts()).toHaveLength(0);
     expect(await countUnsettledPending(seed.agentId)).toBe(1);
 
     await delivery.deliver({
@@ -1601,15 +1588,13 @@ test('agent-only chain ceiling preserves work until human intent arrives', async
         dedupeKey: 'msg-human-reset',
         serverId: seed.serverId,
     });
-    expect(transport.framesOfType('start')).toHaveLength(1);
-    expect(transport.framesOfType('start')[0]?.inbox).toHaveLength(2);
+    expect(runner.starts()).toHaveLength(1);
+    expect(runner.starts()[0]?.inbox).toHaveLength(2);
 });
 
 test('an output sent from agent-authored notice metadata still spends chain budget', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
     await delivery.deliver({
         agentId: seed.agentId,
         chatId: seed.chatId,
@@ -1619,7 +1604,7 @@ test('an output sent from agent-authored notice metadata still spends chain budg
         source: 'agent:wren',
     });
 
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
     await delivery.onTurnSettled(
         seed.computerId,
@@ -1632,9 +1617,7 @@ test('an output sent from agent-authored notice metadata still spends chain budg
 
 test('a resent run stays frozen and the next delivery uses the changed runtime and model', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -1644,7 +1627,7 @@ test('a resent run stays frozen and the next delivery uses the changed runtime a
         serverId: seed.serverId,
         source: 'delivery_problem',
     });
-    const first = transport.framesOfType('start')[0];
+    const first = runner.starts()[0];
     expect(first).toMatchObject({ modelId: 'fake-model', runtimeId: 'fake' });
     await delivery.onAck({ agentId: seed.agentId, runId: first?.runId ?? '' });
 
@@ -1654,8 +1637,8 @@ test('a resent run stays frozen and the next delivery uses the changed runtime a
         .set({ desiredModelId: 'new-model', desiredRuntimeId: 'new-runtime' })
         .where(eq(agentsTable.id, seed.agentId));
 
-    await delivery.onComputerReconnect(seed.computerId);
-    const resent = transport.framesOfType('start')[1];
+    await delivery.onRunnerReconnect();
+    const resent = runner.starts()[1];
     expect(resent?.runId).toBe(first?.runId);
     expect(resent).toMatchObject({ modelId: 'fake-model', runtimeId: 'fake' });
 
@@ -1672,22 +1655,20 @@ test('a resent run stays frozen and the next delivery uses the changed runtime a
         source: 'delivery_problem',
     });
 
-    const next = transport.framesOfType('start')[2];
+    const next = runner.starts()[2];
     expect(next?.runId).not.toBe(first?.runId);
     expect(next).toMatchObject({ modelId: 'new-model', runtimeId: 'new-runtime' });
     expect(next?.inbox.map((item) => item.content)).toEqual(['next work']);
     expect(
-        transport
-            .framesOfType('start')
+        runner
+            .starts()
             .filter((frame) => frame.modelId === 'new-model' && frame.runtimeId === 'new-runtime')
     ).toHaveLength(1);
 });
 
 test('defers a public Agent configuration change until the active run settles', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner, transport } = attachedDelivery(seed);
     const runnerId = createOpaqueId('arc');
 
     await connection.db
@@ -1717,7 +1698,7 @@ test('defers a public Agent configuration change until the active run settles', 
         serverId: seed.serverId,
         source: 'delivery_problem',
     });
-    const first = transport.framesOfType('start')[0];
+    const first = runner.starts()[0];
     if (!first) {
         throw new Error('Expected the active run to start.');
     }
@@ -1748,9 +1729,9 @@ test('defers a public Agent configuration change until the active run settles', 
     await delivery.applyAgentConfiguration(configured);
 
     expect(configured.agent).toMatchObject({ desiredModelId: 'new-model' });
-    expect(transport.framesOfType('stop')).toEqual([]);
+    expect(runner.framesOfType('stop')).toEqual([]);
     expect(transport.framesOfType('agent-configure')).toEqual([]);
-    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(runner.starts()).toHaveLength(1);
     expect(await readDeliveryState(connection.db, seed.agentId)).toMatchObject({
         activeRunId: first.runId,
         activeRunModelId: 'fake-model',
@@ -1790,8 +1771,8 @@ test('defers a public Agent configuration change until the active run settles', 
         );
     expect(failedActivity).toEqual([]);
 
-    await delivery.onComputerReconnect(seed.computerId);
-    const replayed = transport.framesOfType('start')[1];
+    await delivery.onRunnerReconnect();
+    const replayed = runner.starts()[1];
     expect(transport.framesOfType('agent-configure')).toEqual([]);
     expect(replayed).toMatchObject({
         modelId: 'fake-model',
@@ -1826,7 +1807,7 @@ test('defers a public Agent configuration change until the active run settles', 
         serverId: seed.serverId,
         source: 'delivery_problem',
     });
-    const starts = transport.framesOfType('start');
+    const starts = runner.starts();
     expect(starts).toHaveLength(3);
     expect(starts[2]).toMatchObject({
         modelId: 'new-model',
@@ -1841,8 +1822,10 @@ test.each(['fake', 'grok-build'])(
         const seed = await seedAgent(runtimeId);
         const expectedGeneration = runtimeId === 'grok-build' ? 2 : 1;
         const transport = new FakeTransport();
+        const runner = new RecordingRunner();
         transport.online.add(seed.computerId);
-        const delivery = new AgentDelivery(connection.db, transport);
+        runner.attach(seed.agentId);
+        const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
 
         await connection.db
             .update(computersTable)
@@ -1868,7 +1851,7 @@ test.each(['fake', 'grok-build'])(
             serverId: seed.serverId,
             source: 'delivery_problem',
         });
-        const first = transport.framesOfType('start')[0];
+        const first = runner.starts()[0];
         if (!first) {
             throw new Error('Expected the active run to start.');
         }
@@ -1891,7 +1874,7 @@ test.each(['fake', 'grok-build'])(
         await delivery.applyAgentConfiguration(configured);
 
         expect(configured.agent).toMatchObject({ desiredReasoningEffort: 'high' });
-        expect(transport.framesOfType('stop')).toEqual([]);
+        expect(runner.framesOfType('stop')).toEqual([]);
         expect(transport.framesOfType('agent-configure')).toEqual([]);
         expect(await readRotations(seed.agentId)).toEqual([]);
 
@@ -1917,9 +1900,7 @@ test.each(['fake', 'grok-build'])(
 
 test('applies deferred configuration at Stop without auto-starting, then starts explicitly', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner, transport } = attachedDelivery(seed);
 
     await connection.db
         .update(computersTable)
@@ -1948,7 +1929,7 @@ test('applies deferred configuration at Stop without auto-starting, then starts 
         serverId: seed.serverId,
         source: 'delivery_problem',
     });
-    const first = transport.framesOfType('start')[0];
+    const first = runner.starts()[0];
     if (!first) {
         throw new Error('Expected the active run to start.');
     }
@@ -1971,10 +1952,10 @@ test('applies deferred configuration at Stop without auto-starting, then starts 
 
     await delivery.stop({ agentId: seed.agentId, serverId: seed.serverId });
 
-    expect(transport.framesOfType('stop')).toEqual([
+    expect(runner.framesOfType('stop')).toEqual([
         { agentId: seed.agentId, runId: first.runId, type: 'stop' },
     ]);
-    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(runner.starts()).toHaveLength(1);
     expect(transport.framesOfType('agent-configure')).toHaveLength(1);
     expect(transport.framesOfType('agent-configure')[0]).toMatchObject({
         modelId: 'new-model',
@@ -1992,7 +1973,7 @@ test('applies deferred configuration at Stop without auto-starting, then starts 
 
     await delivery.start({ agentId: seed.agentId, serverId: seed.serverId });
 
-    const starts = transport.framesOfType('start');
+    const starts = runner.starts();
     expect(starts).toHaveLength(2);
     expect(starts[1]).toMatchObject({
         modelId: 'new-model',
@@ -2003,9 +1984,7 @@ test('applies deferred configuration at Stop without auto-starting, then starts 
 
 test('applies deferred configuration before Restart redrives pending work', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner, transport } = attachedDelivery(seed);
 
     await connection.db
         .update(computersTable)
@@ -2034,7 +2013,7 @@ test('applies deferred configuration before Restart redrives pending work', asyn
         serverId: seed.serverId,
         source: 'delivery_problem',
     });
-    const first = transport.framesOfType('start')[0];
+    const first = runner.starts()[0];
     if (!first) {
         throw new Error('Expected the active run to start.');
     }
@@ -2057,7 +2036,7 @@ test('applies deferred configuration before Restart redrives pending work', asyn
 
     await delivery.restart({ agentId: seed.agentId, serverId: seed.serverId });
 
-    expect(transport.framesOfType('stop')).toEqual([
+    expect(runner.framesOfType('stop')).toEqual([
         { agentId: seed.agentId, runId: first.runId, type: 'stop' },
     ]);
     expect(transport.framesOfType('agent-configure')).toHaveLength(1);
@@ -2066,10 +2045,10 @@ test('applies deferred configuration before Restart redrives pending work', asyn
         runtimeId: 'fake',
         sessionGeneration: 2,
     });
-    expect(transport.framesOfType('agent-restart')).toEqual([
+    expect(runner.framesOfType('agent-restart')).toEqual([
         { agentId: seed.agentId, type: 'agent-restart' },
     ]);
-    const starts = transport.framesOfType('start');
+    const starts = runner.starts();
     expect(starts).toHaveLength(2);
     expect(starts[1]).toMatchObject({
         modelId: 'new-model',
@@ -2087,9 +2066,7 @@ test('applies deferred configuration before Restart redrives pending work', asyn
 
 test('applies deferred configuration with one strongest Reset generation', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner, transport } = attachedDelivery(seed);
 
     await connection.db
         .update(computersTable)
@@ -2118,7 +2095,7 @@ test('applies deferred configuration with one strongest Reset generation', async
         serverId: seed.serverId,
         source: 'delivery_problem',
     });
-    const first = transport.framesOfType('start')[0];
+    const first = runner.starts()[0];
     if (!first) {
         throw new Error('Expected the active run to start.');
     }
@@ -2142,15 +2119,15 @@ test('applies deferred configuration with one strongest Reset generation', async
     await delivery.reset({ ...seed, kind: 'full', resetBy: `user:${seed.userId}` });
 
     expect(transport.sent.map(({ frame }) => frame.type)).toEqual([
-        'start',
-        'stop',
+        'drive-pull',
         'agent-configure',
         'agent-reset',
     ]);
-    expect(transport.framesOfType('stop')).toEqual([
+    expect(runner.sent.map((frame) => frame.type)).toEqual(['runner-start', 'stop', 'agent-reset']);
+    expect(runner.framesOfType('stop')).toEqual([
         { agentId: seed.agentId, runId: first.runId, type: 'stop' },
     ]);
-    expect(transport.framesOfType('agent-reset')).toEqual([
+    expect(runner.framesOfType('agent-reset')).toEqual([
         {
             agentId: seed.agentId,
             kind: 'full',
@@ -2165,7 +2142,7 @@ test('applies deferred configuration with one strongest Reset generation', async
         sessionGeneration: 2,
         sessionResetKind: 'full',
     });
-    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(runner.starts()).toHaveLength(1);
     expect((await readDeliveryState(connection.db, seed.agentId))?.activeRunId).toBeNull();
 
     const [afterReset] = await connection.db
@@ -2178,9 +2155,7 @@ test('applies deferred configuration with one strongest Reset generation', async
 
 test('rotates deferred configuration when an empty notice run is retired', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner, transport } = attachedDelivery(seed);
     const messageId = await insertHumanMessage(seed, 'notice to retire', 2);
 
     await delivery.deliver({
@@ -2190,7 +2165,7 @@ test('rotates deferred configuration when an empty notice run is retired', async
         dedupeKey: messageId,
         serverId: seed.serverId,
     });
-    const first = transport.framesOfType('start')[0];
+    const first = runner.starts()[0];
     if (!first) {
         throw new Error('Expected the notice run to start.');
     }
@@ -2211,9 +2186,9 @@ test('rotates deferred configuration when an empty notice run is retired', async
     // Reconnect reconstructs the old notice run after its only queued row has
     // been subsumed. The empty notice is a retired run boundary, not a reason
     // to launch a stale model or silently lose the desired configuration.
-    await delivery.onComputerReconnect(seed.computerId);
+    await delivery.onRunnerReconnect();
 
-    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(runner.starts()).toHaveLength(1);
     expect(transport.framesOfType('agent-configure')).toMatchObject([
         {
             modelId: 'new-model',
@@ -2231,16 +2206,16 @@ test('rotates deferred configuration when an empty notice run is retired', async
         serverId: seed.serverId,
     });
 
-    const starts = transport.framesOfType('start');
+    const starts = runner.starts();
     expect(starts).toHaveLength(2);
     expect(starts[1]).toMatchObject({
         modelId: 'new-model',
         sessionGeneration: 2,
     });
     expect(transport.sent.map(({ frame }) => frame.type)).toEqual([
-        'start',
+        'drive-pull',
         'agent-configure',
-        'start',
+        'drive-pull',
     ]);
     const [agent] = await connection.db
         .select({ sessionGeneration: agentsTable.sessionGeneration })
@@ -2251,9 +2226,7 @@ test('rotates deferred configuration when an empty notice run is retired', async
 
 test('bounds one drain and carries the overflow in a later run', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
 
     // Three ~10k-char messages exceed the 24k drain budget, so the first run
     // carries two and the third waits for the next.
@@ -2274,7 +2247,7 @@ test('bounds one drain and carries the overflow in a later run', async () => {
         .values({ agentId: seed.agentId, serverId: seed.serverId });
 
     await delivery.sweep();
-    const first = transport.framesOfType('start')[0];
+    const first = runner.starts()[0];
     expect(first?.inbox.map((item) => item.content.slice(0, 6))).toEqual(['msg-1-', 'msg-2-']);
 
     await delivery.onAck({ agentId: seed.agentId, runId: first?.runId ?? '' });
@@ -2282,15 +2255,13 @@ test('bounds one drain and carries the overflow in a later run', async () => {
         seed.computerId,
         turnSummary(seed.agentId, first?.runId ?? '', 'completed')
     );
-    const second = transport.framesOfType('start')[1];
+    const second = runner.starts()[1];
     expect(second?.inbox.map((item) => item.content.slice(0, 6))).toEqual(['msg-3-']);
 });
 
 test('retains a settled delivery as proof the Agent read an FYI and answered nothing', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
     const messageId = await insertHumanMessage(seed, 'fyi, the deploy finished', 1);
 
     await delivery.deliver({
@@ -2300,7 +2271,7 @@ test('retains a settled delivery as proof the Agent read an FYI and answered not
         dedupeKey: messageId,
         serverId: seed.serverId,
     });
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
     await pullAgentEvents(connection.db, {
         agentId: seed.agentId,
@@ -2341,14 +2312,12 @@ test('retains a settled delivery as proof the Agent read an FYI and answered not
         outputProduced: false,
         status: 'completed',
     });
-    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(runner.starts()).toHaveLength(1);
 });
 
 test('exact visibility does not consume an unseen message across a gap', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
     const firstMessageId = await insertHumanMessage(seed, 'earlier note', 1);
     const secondMessageId = await insertHumanMessage(seed, 'later note', 2);
 
@@ -2362,7 +2331,7 @@ test('exact visibility does not consume an unseen message across a gap', async (
             serverId: seed.serverId,
         });
     }
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
 
     // Only the later message is attested. Exact visibility must not imply that
@@ -2399,9 +2368,7 @@ test('exact visibility does not consume an unseen message across a gap', async (
 
 test('wakes an idle Agent with the Trigger fire envelope already in its frame', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
     const fireId = createOpaqueId('trf');
     const envelope = `\u26a1 Trigger: nightly\nfire=${fireId}`;
 
@@ -2417,7 +2384,7 @@ test('wakes an idle Agent with the Trigger fire envelope already in its frame', 
 
     // A fire exists nowhere but the inbox, so it rides the concrete lane: the
     // body is in the prompt the Agent wakes with, not behind a pull it may skip.
-    const start = transport.framesOfType('start')[0];
+    const start = runner.starts()[0];
     expect(start).toMatchObject({ inboxDelivery: 'concrete' });
     expect(start?.inbox.map((item) => item.id)).toEqual([fireId]);
     expect(start?.inbox[0]).toMatchObject({
@@ -2468,21 +2435,19 @@ test('wakes an idle Agent with the Trigger fire envelope already in its frame', 
         sequence: 1,
         serverId: seed.serverId,
     });
-    expect(transport.framesOfType('start')[1]?.inbox.map((item) => item.id)).toEqual([messageId]);
+    expect(runner.starts()[1]?.inbox.map((item) => item.id)).toEqual([messageId]);
 
     // A reconnect resends the in-flight run without duplicating its work.
-    await delivery.onComputerReconnect(seed.computerId);
-    const resent = transport.framesOfType('start')[2];
-    expect(resent?.runId).toBe(transport.framesOfType('start')[1]?.runId);
+    await delivery.onRunnerReconnect();
+    const resent = runner.starts()[2];
+    expect(resent?.runId).toBe(runner.starts()[1]?.runId);
     expect(resent?.inbox.map((item) => item.id)).toEqual([messageId]);
     expect(await readDeliveryLedger(seed.agentId)).toHaveLength(2);
 });
 
 test('wakes an idle Agent concretely for a Reminder fire and a claim assignment', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
     const fireId = createOpaqueId('rmf');
     const assignmentKey = 'claim-assign:msg_assignment_concrete:1';
 
@@ -2495,7 +2460,7 @@ test('wakes an idle Agent concretely for a Reminder fire and a claim assignment'
         serverId: seed.serverId,
         source: 'reminder',
     });
-    const reminderStart = transport.framesOfType('start')[0];
+    const reminderStart = runner.starts()[0];
     expect(reminderStart).toMatchObject({ inboxDelivery: 'concrete' });
     expect(reminderStart?.inbox.map((item) => item.id)).toEqual([fireId]);
     expect(reminderStart?.inbox[0]).toMatchObject({
@@ -2517,10 +2482,8 @@ test('wakes an idle Agent concretely for a Reminder fire and a claim assignment'
         serverId: seed.serverId,
         source: 'claim_assignment',
     });
-    expect(transport.framesOfType('start')).toHaveLength(1);
-    expect(transport.framesOfType('notice')[0]?.inbox.map((item) => item.id)).toEqual([
-        assignmentKey,
-    ]);
+    expect(runner.starts()).toHaveLength(1);
+    expect(runner.framesOfType('notice')[0]?.inbox.map((item) => item.id)).toEqual([assignmentKey]);
     await delivery.onNoticeAck({
         agentId: seed.agentId,
         runId: reminderRun,
@@ -2531,7 +2494,7 @@ test('wakes an idle Agent concretely for a Reminder fire and a claim assignment'
         turnSummary(seed.agentId, reminderRun, 'completed')
     );
 
-    const assignmentStart = transport.framesOfType('start')[1];
+    const assignmentStart = runner.starts()[1];
     expect(assignmentStart).toMatchObject({ inboxDelivery: 'concrete' });
     expect(assignmentStart?.inbox.map((item) => item.id)).toEqual([assignmentKey]);
     expect(assignmentStart?.inbox[0]).toMatchObject({
@@ -2549,9 +2512,7 @@ test('wakes an idle Agent concretely for a Reminder fire and a claim assignment'
 
 test('re-drives a Trigger fire that arrived while the Agent was busy', async () => {
     const seed = await seedAgent();
-    const transport = new FakeTransport();
-    transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    const { delivery, runner } = attachedDelivery(seed);
     const messageId = await insertHumanMessage(seed, 'look into the deploy', 1);
     await delivery.deliver({
         agentId: seed.agentId,
@@ -2561,7 +2522,7 @@ test('re-drives a Trigger fire that arrived while the Agent was busy', async () 
         sequence: 1,
         serverId: seed.serverId,
     });
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
 
     const fireId = createOpaqueId('trf');
@@ -2576,8 +2537,8 @@ test('re-drives a Trigger fire that arrived while the Agent was busy', async () 
     });
     // A busy Agent is never interrupted with a body: the live turn gets only
     // the content-free notice, exactly as a committed action attention does.
-    expect(transport.framesOfType('start')).toHaveLength(1);
-    const notice = transport.framesOfType('notice')[0];
+    expect(runner.starts()).toHaveLength(1);
+    const notice = runner.framesOfType('notice')[0];
     expect(notice?.inbox.map((item) => item.id)).toEqual([messageId, fireId]);
     // The Computer acknowledges the busy notice for both identities.
     await delivery.onNoticeAck({ agentId: seed.agentId, runId, workIds: [messageId, fireId] });
@@ -2586,7 +2547,7 @@ test('re-drives a Trigger fire that arrived while the Agent was busy', async () 
     // The deferred Chat message stays deferred — it is still readable from
     // history — but the fire's envelope exists only in the queue, so it earns
     // its own concrete wake instead of being buried by the notice it missed.
-    const next = transport.framesOfType('start')[1];
+    const next = runner.starts()[1];
     expect(next).toMatchObject({ inboxDelivery: 'concrete' });
     expect(next?.inbox.map((item) => item.id)).toEqual([fireId]);
     expect(next?.runId).not.toBe(runId);
@@ -2609,5 +2570,5 @@ test('re-drives a Trigger fire that arrived while the Agent was busy', async () 
     );
     const ledger = await readDeliveryLedger(seed.agentId);
     expect(ledger.find((row) => row.dedupeKey === fireId)).toMatchObject({ state: 'seen' });
-    expect(transport.framesOfType('start')).toHaveLength(2);
+    expect(runner.starts()).toHaveLength(2);
 });

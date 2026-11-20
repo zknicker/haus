@@ -7,6 +7,7 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import { agentDeliveryTable, agentInboxTable } from '../src/postgres/schema.ts';
 import { FakeTransport, seedAgent } from './agent-inbox-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
+import { RecordingRunner } from './recording-runner.ts';
 
 let cluster: TestDatabase;
 let connection: HausConnection;
@@ -22,7 +23,7 @@ afterAll(async () => {
 });
 
 test('a human message queues behind an active backoff instead of cutting it short', async () => {
-    const { delivery, seed, transport } = await onlineAgent();
+    const { delivery, runner, seed } = await onlineAgent();
     const retryAfter = new Date(Date.now() + 60_000);
     await connection.db.insert(agentDeliveryTable).values({
         agentId: seed.agentId,
@@ -39,7 +40,7 @@ test('a human message queues behind an active backoff instead of cutting it shor
         serverId: seed.serverId,
     });
 
-    expect(transport.framesOfType('start')).toHaveLength(0);
+    expect(runner.starts()).toHaveLength(0);
     const state = await readDeliveryState(connection.db, seed.agentId);
     expect(state?.consecutiveFailures).toBe(1);
     expect(state?.retryAfter?.getTime()).toBe(retryAfter.getTime());
@@ -47,7 +48,7 @@ test('a human message queues behind an active backoff instead of cutting it shor
 });
 
 test('repeated rate limits keep backing off and redriving without pausing', async () => {
-    const { delivery, seed, transport } = await onlineAgent();
+    const { delivery, runner, seed } = await onlineAgent();
     await delivery.deliver({
         agentId: seed.agentId,
         chatId: seed.dmChatId,
@@ -59,7 +60,7 @@ test('repeated rate limits keep backing off and redriving without pausing', asyn
 
     const delays: number[] = [];
     for (let attempt = 1; attempt <= 6; attempt += 1) {
-        const runId = transport.framesOfType('start')[attempt - 1]?.runId ?? '';
+        const runId = runner.starts()[attempt - 1]?.runId ?? '';
         await delivery.onAck({ agentId: seed.agentId, runId });
         const settledAt = Date.now();
         await delivery.onTurnSettled(
@@ -74,7 +75,7 @@ test('repeated rate limits keep backing off and redriving without pausing', asyn
             .set({ retryAfter: new Date(Date.now() - 1) })
             .where(eq(agentDeliveryTable.agentId, seed.agentId));
         await delivery.sweep();
-        expect(transport.framesOfType('start')).toHaveLength(attempt + 1);
+        expect(runner.starts()).toHaveLength(attempt + 1);
     }
     // Exponential from 10s, jittered by at most 10%, capped at five minutes.
     expect(delays[0]).toBeGreaterThanOrEqual(10_000);
@@ -85,7 +86,7 @@ test('repeated rate limits keep backing off and redriving without pausing', asyn
 });
 
 test('a failed turn that produced output counts without requeueing its work', async () => {
-    const { delivery, seed, transport } = await onlineAgent();
+    const { delivery, runner, seed } = await onlineAgent();
     await delivery.deliver({
         agentId: seed.agentId,
         chatId: seed.dmChatId,
@@ -94,7 +95,7 @@ test('a failed turn that produced output counts without requeueing its work', as
         serverId: seed.serverId,
         source: 'delivery_problem',
     });
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
     await delivery.onTurnSettled(seed.computerId, failedTurn(seed.agentId, runId, 'unknown', true));
 
@@ -104,14 +105,20 @@ test('a failed turn that produced output counts without requeueing its work', as
     expect(state?.activeRunId).toBeNull();
     expect(await countUnsettledPending(seed.agentId)).toBe(0);
     await delivery.sweep();
-    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(runner.starts()).toHaveLength(1);
 });
 
 async function onlineAgent() {
     const seed = await seedAgent(connection.db);
     const transport = new FakeTransport();
+    const runner = new RecordingRunner();
     transport.online.add(seed.computerId);
-    return { delivery: new AgentDelivery(connection.db, transport), seed, transport };
+    runner.attach(seed.agentId);
+    return {
+        delivery: new AgentDelivery(connection.db, transport, undefined, runner),
+        runner,
+        seed,
+    };
 }
 
 async function countUnsettledPending(agentId: string): Promise<number> {

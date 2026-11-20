@@ -32,6 +32,7 @@ import {
     startPostgresCluster,
     type TestDatabase,
 } from './postgres-cluster.ts';
+import { testRunnerToken } from './runner.fixture.ts';
 
 export interface TestHumanAuth {
     mintExpiredSessionToken(subject: string): Promise<string>;
@@ -126,7 +127,7 @@ export async function startHausServerHarness(
 
         const startApplication = async () => {
             const next = await createHausServerApplication({
-                runnerToken: options.runnerToken,
+                runnerToken: options.runnerToken ?? testRunnerToken,
                 secretsKey: options.secretsKey === undefined ? testSecretsKey : options.secretsKey,
                 appOrigin,
                 ...(options.cloudflareAccess ? { cloudflareAccess: options.cloudflareAccess } : {}),
