@@ -112,6 +112,14 @@ class FakeElement extends FakeNode {
         return this.nodeName;
     }
 
+    get options() {
+        return this.nodeName === 'SELECT' ? [] : undefined;
+    }
+
+    focus() {
+        // No focus model: autoFocus fields mount without one.
+    }
+
     setAttribute(name: string, value: string) {
         this.attributes.set(name, String(value));
     }

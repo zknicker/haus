@@ -1,6 +1,6 @@
-import type { Agent } from '@haus/api';
+import type { Agent, Chat } from '@haus/api';
 import * as React from 'react';
-import { useChats } from '../../hooks/servers/use-chats.ts';
+import { useChatListSelection } from '../../hooks/servers/use-chats.ts';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
@@ -22,7 +22,6 @@ export function CapyHomePage({
     slug: string;
 }) {
     useWindowTitle('Home');
-    const chats = useChats(serverId).data;
     const captains = hausTrpc.agent.list.useQuery(
         { serverId },
         { ...queryPolicy.syncedSnapshot, select: selectCaptainChoices }
@@ -33,17 +32,11 @@ export function CapyHomePage({
         { ...queryPolicy.syncedSnapshot, enabled: needsDeviceCount, select: countDevices }
     );
     const deviceCount = needsDeviceCount && !devices.isError ? devices.data : null;
-    const projects = React.useMemo(() => {
-        if (!chats) {
-            return undefined;
-        }
-        const channels = new Map(
-            chats.filter((chat) => chat.kind === 'channel').map((chat) => [chat.id, chat])
-        );
-        return orderChannelIds([...channels.keys()], storedChannelOrder(serverId)).flatMap(
-            (id) => channels.get(id) ?? []
-        );
-    }, [chats, serverId]);
+    const selectProjects = React.useCallback(
+        (chats: Chat[]) => homeProjects(chats, storedChannelOrder(serverId)),
+        [serverId]
+    );
+    const projects = useChatListSelection(serverId, selectProjects);
     const state = homeState({
         captains,
         deviceCount,
@@ -94,4 +87,24 @@ function selectCaptainChoices(agents: Agent[]) {
         displayName: agent.displayName,
         id: agent.id,
     }));
+}
+
+function homeProjects(chats: Chat[], storedOrder: readonly string[]) {
+    const channels = new Map(
+        chats
+            .filter((chat) => chat.kind === 'channel')
+            .map((chat) => [
+                chat.id,
+                {
+                    color: chat.color,
+                    icon: chat.icon,
+                    id: chat.id,
+                    name: chat.name,
+                    participantAgentIds: chat.participantAgentIds,
+                },
+            ])
+    );
+    return orderChannelIds([...channels.keys()], storedOrder).flatMap(
+        (id) => channels.get(id) ?? []
+    );
 }
