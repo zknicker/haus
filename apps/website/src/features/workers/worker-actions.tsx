@@ -1,4 +1,4 @@
-import { type Worker, requireCloudWorkerPlace } from '@haus/api';
+import type { Worker } from '@haus/api';
 import { Button, ButtonGroup, Dropdown, Label, toast } from '@heroui/react';
 import {
     ArrowDown01Icon,
@@ -40,10 +40,10 @@ export function WorkerActions({
     const context = useTranscriptRenderContextOptional();
     const cancel = useWorkerCancelAction(work);
     const conversationChatId = context?.chatId ?? null;
-    const provider = requireCloudWorkerPlace(work.place);
-    const providerTarget = { ...work, provider };
-    const providerLabel = openInCloudAgentProviderLabel(provider);
-    const canOpenProvider = canOpenCloudAgentProvider(providerTarget);
+    const provider = work.place.kind === 'computer' ? null : work.place.kind;
+    const providerTarget = provider ? { ...work, provider } : null;
+    const providerLabel = provider ? openInCloudAgentProviderLabel(provider) : 'Open';
+    const canOpenProvider = providerTarget !== null && canOpenCloudAgentProvider(providerTarget);
 
     const runAction = (key: React.Key) => {
         if (key === 'link' && conversationChatId && server) {
@@ -68,7 +68,7 @@ export function WorkerActions({
             <ButtonGroup size="sm" variant="secondary">
                 <Button
                     isDisabled={!canOpenProvider}
-                    onPress={() => openCloudAgentProvider(providerTarget)}
+                    onPress={() => providerTarget && openCloudAgentProvider(providerTarget)}
                 >
                     <Icon aria-hidden="true" icon={ArrowUpRight01Icon} size={16} />
                     {providerLabel}

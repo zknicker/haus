@@ -1,4 +1,4 @@
-import { type Agent, type WorkerAutomation, requireCloudWorkerPlace } from '@haus/api';
+import type { Agent, WorkerAutomation } from '@haus/api';
 import { ItemCard, PressableFeedback } from '@heroui-pro/react';
 import { Button, Chip, Separator, Tooltip } from '@heroui/react';
 import { HistoryIcon } from '@hugeicons-pro/core-stroke-rounded';
@@ -79,7 +79,7 @@ function CloudAutomationRow({ now, row }: { now: number; row: WorkerAutomation }
             <PressableFeedback.Highlight />
             <ItemCard.Icon aria-hidden="true" className="automation-mark">
                 <WorkerKeycapFace
-                    provider={requireCloudWorkerPlace(row.worker.place)}
+                    provider={row.worker.place.kind === 'computer' ? null : row.worker.place.kind}
                     size={workerRowKeySize}
                 />
             </ItemCard.Icon>
