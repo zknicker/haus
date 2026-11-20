@@ -71,7 +71,8 @@ test('seeds Cove exact inventory and 12 valid separately authored Manual summari
     expect(corpus.join('\n')).toContain('**It introduces itself.**');
     expect(corpus.join('\n')).not.toContain('**Introduce it in #all after creation.**');
     expect(corpus.join('\n')).not.toContain('haus message send --target "#all"');
-    expect(corpus.join('\n')).toContain('**Put it where the work is.**');
+    expect(corpus.join('\n')).toContain('**Give it a home.** Pass `--project <KEY>`');
+    expect(corpus.join('\n')).not.toMatch(/--channel|haus channel add|always joined/u);
     expect(corpus.join('\n')).toContain('**Give it a brief.**');
     expect(corpus.join('\n')).toContain('at most 280 characters');
     expect(corpus.join('\n')).not.toContain('haus message send --target dm:@handle');
