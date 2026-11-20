@@ -8,6 +8,7 @@ import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
+import type { WorkerFrame } from '../workers/worker-effects.ts';
 import { isOnboardingChannel, purgeDeletedChannel } from './channel-deletion.ts';
 import { prepareLifecycleEvent } from './lifecycle-events.ts';
 
@@ -104,7 +105,7 @@ export async function deleteChannel(
     attachmentRoot: AttachmentRoot,
     member: HausUser | null,
     input: { chatId: string; confirmation: string; serverId: string }
-): Promise<{ events: PreparedRealtimeEvent[]; receipt: ChannelDeleteReceipt }> {
+) {
     const events = await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         await requireOperator(tx, member, input.serverId);
@@ -133,8 +134,9 @@ export async function deleteChannel(
 
     // The committed tombstone is the deletion. A failed purge must not report
     // failure for it; the boot sweep retries every tombstoned channel.
+    let workerFrames: WorkerFrame[] = [];
     try {
-        await purgeDeletedChannel(db, attachmentRoot, input);
+        workerFrames = await purgeDeletedChannel(db, attachmentRoot, input);
     } catch (error) {
         console.error('[haus] channel purge failed; boot sweep will retry', {
             chatId: input.chatId,
@@ -142,7 +144,11 @@ export async function deleteChannel(
             serverId: input.serverId,
         });
     }
-    return { events, receipt: { chatId: input.chatId, serverId: input.serverId } };
+    return {
+        events,
+        receipt: { chatId: input.chatId, serverId: input.serverId } satisfies ChannelDeleteReceipt,
+        workerFrames,
+    };
 }
 
 async function requireOperator(db: HausDatabase, member: HausUser | null, serverId: string) {

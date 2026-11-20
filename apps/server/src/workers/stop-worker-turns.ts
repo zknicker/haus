@@ -8,7 +8,6 @@ import {
     workersTable,
 } from '../postgres/schema.ts';
 import { WorkerClosedError, WorkerHistoryReadOnlyError, WorkerNotFoundError } from './errors.ts';
-import type { WorkerFrame } from './worker-effects.ts';
 
 type WorkerRow = typeof workersTable.$inferSelect;
 
@@ -81,20 +80,25 @@ export async function stopWorkerTurns(
         .update(workersTable)
         .set({ updatedAt: sql`now()` })
         .where(and(eq(workersTable.serverId, worker.serverId), eq(workersTable.id, worker.id)));
-    const frames: WorkerFrame[] = carrierOnline
-        ? dispatched.map((turn) => ({
-              computerId: worker.carrierComputerId,
-              frame: {
-                  place: worker.place,
-                  providerAgentId: worker.providerAgentId,
-                  providerRunId: turn.providerRunId,
-                  turnId: turn.id,
-                  type: 'worker-stop',
-                  workerId: worker.id,
-              } satisfies WorkerStopCommand,
-          }))
-        : [];
+    const frames = carrierOnline ? dispatched.map((turn) => workerStopFrame(worker, turn)) : [];
     return { frames, stoppedTurnIds: [...undispatched, ...settledNow], stopped: true };
+}
+
+export function workerStopFrame(
+    worker: WorkerRow,
+    turn: { id: string; providerRunId: string | null }
+) {
+    return {
+        computerId: worker.carrierComputerId,
+        frame: {
+            place: worker.place,
+            providerAgentId: worker.providerAgentId,
+            providerRunId: turn.providerRunId,
+            turnId: turn.id,
+            type: 'worker-stop',
+            workerId: worker.id,
+        } satisfies WorkerStopCommand,
+    };
 }
 
 async function settleUnsentAsStopped(tx: HausDatabase, worker: WorkerRow, turnIds: string[]) {
@@ -159,7 +163,7 @@ async function settleStoppedOnServer(tx: HausDatabase, worker: WorkerRow, turnId
         );
 }
 
-async function isCarrierOnline(tx: HausDatabase, worker: WorkerRow) {
+export async function isCarrierOnline(tx: HausDatabase, worker: WorkerRow) {
     const [carrier] = await tx
         .select({ health: computersTable.health })
         .from(computersTable)

@@ -49,7 +49,7 @@ export async function purgeDeletedChannel(
             .update(chatsTable)
             .set({ deletedAt: null, deletedByUserId: null })
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
-        return;
+        return [];
     }
 
     const chats = await db
@@ -63,7 +63,7 @@ export async function purgeDeletedChannel(
         );
     const chatIds = chats.map(({ id }) => id);
     if (chatIds.length === 0) {
-        return;
+        return [];
     }
 
     await root.discardAttachments(
@@ -83,7 +83,7 @@ export async function purgeDeletedChannel(
                 )
     );
 
-    const taskEvents = await db.transaction(async (tx) => {
+    const purged = await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const [deleted] = await tx
             .select({ id: chatsTable.id })
@@ -97,7 +97,7 @@ export async function purgeDeletedChannel(
                 )
             );
         if (!deleted) {
-            return [];
+            return { events: [], workerFrames: [] };
         }
 
         const anchored = remindersAnchoredIn(tx, { chatIds, serverId: input.serverId });
@@ -124,7 +124,7 @@ export async function purgeDeletedChannel(
                     inArray(triggersTable.anchorChatId, chatIds)
                 )
             );
-        const deletedTaskEvents = await deleteTasksOfRemovedChats(tx, {
+        const deletedTasks = await deleteTasksOfRemovedChats(tx, {
             chatIds,
             serverId: input.serverId,
         });
@@ -136,9 +136,13 @@ export async function purgeDeletedChannel(
         await tx
             .delete(chatsTable)
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
-        return [...events, ...deletedTaskEvents];
+        return {
+            events: [...events, ...deletedTasks.events],
+            workerFrames: deletedTasks.workerFrames,
+        };
     });
-    publishRealtime(taskEvents);
+    publishRealtime(purged.events);
+    return purged.workerFrames;
 }
 
 /** Deletion refuses a Project with home Agents; a retired Agent homed here moves to Haus. */
