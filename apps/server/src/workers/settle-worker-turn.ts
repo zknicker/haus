@@ -1,4 +1,5 @@
 import {
+    type WorkerFailure,
     type WorkerObservation,
     type WorkerOutcome,
     parseGithubPullRequestUrl,
@@ -8,7 +9,12 @@ import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { taskPullRequestsTable, workerTurnsTable, workersTable } from '../postgres/schema.ts';
+import {
+    agentInboxTable,
+    taskPullRequestsTable,
+    workerTurnsTable,
+    workersTable,
+} from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { readTask } from '../tasks/task-read.ts';
 import { isLiveChat } from './worker-attention.ts';
@@ -31,15 +37,7 @@ export async function settleWorkerTurn(
     const task = worker.taskId ? await readTask(tx, worker.serverId, worker.taskId) : null;
     const taskChatId = task?.chatId ?? null;
     const { messageId, person, recorded } = await recordedOutcome(tx, { ...input, taskChatId });
-    await tx
-        .update(workerTurnsTable)
-        .set({ outcome: recorded })
-        .where(
-            and(
-                eq(workerTurnsTable.serverId, worker.serverId),
-                eq(workerTurnsTable.id, observation.turnId)
-            )
-        );
+    await recordOutcome(tx, { outcome: recorded, turnId: observation.turnId, worker });
     const events: PreparedRealtimeEvent[] = [];
     const wakes: Array<{ agentId: string; serverId: string }> = [];
     if (recorded.kind === 'report' && messageId && taskChatId && task) {
@@ -69,6 +67,25 @@ export async function settleWorkerTurn(
     });
     await closeWhenSettled(tx, worker);
     return { events, wakes: delivered ? [...wakes, delivered] : wakes };
+}
+
+export async function settleWorkerTurnAsFailed(
+    tx: HausDatabase,
+    agentDelivery: AgentDelivery,
+    input: { reason: WorkerFailure; turnId: string; worker: WorkerRow }
+) {
+    const { worker } = input;
+    const outcome: WorkerOutcome = { detail: null, kind: 'failed', reason: input.reason };
+    await recordOutcome(tx, { outcome, turnId: input.turnId, worker });
+    const task = worker.taskId ? await readTask(tx, worker.serverId, worker.taskId) : null;
+    const delivered = await queueWorkerReport(tx, agentDelivery, {
+        outcome,
+        taskChatId: task?.chatId ?? null,
+        turnId: input.turnId,
+        worker,
+    });
+    await closeWhenSettled(tx, worker);
+    return delivered;
 }
 
 export async function queueWorkerReport(
@@ -155,6 +172,32 @@ async function recordedOutcome(
             ? { ...outcome, report: { ...outcome.report, messageId } }
             : outcome;
     return { messageId, person: resolved.person, recorded };
+}
+
+async function recordOutcome(
+    tx: HausDatabase,
+    input: { outcome: WorkerOutcome; turnId: string; worker: WorkerRow }
+) {
+    const { worker } = input;
+    await tx
+        .update(workerTurnsTable)
+        .set({ outcome: input.outcome, stallCode: null, stallSince: null })
+        .where(
+            and(
+                eq(workerTurnsTable.serverId, worker.serverId),
+                eq(workerTurnsTable.id, input.turnId)
+            )
+        );
+    await tx
+        .delete(agentInboxTable)
+        .where(
+            and(
+                eq(agentInboxTable.serverId, worker.serverId),
+                eq(agentInboxTable.workerTurnId, input.turnId),
+                eq(agentInboxTable.source, 'worker_stall'),
+                eq(agentInboxTable.state, 'queued')
+            )
+        );
 }
 
 async function attachReportedPullRequests(
