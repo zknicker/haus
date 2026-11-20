@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import type { Locator, Page } from '@playwright/test';
+import { routeFileTransport } from './artifact-transport.ts';
 import { assertOpaqueId, runPsql } from './server.ts';
 
 interface SeededFile {
@@ -11,31 +12,61 @@ interface SeededFile {
     type: string;
 }
 
-/** Root files keep their earlier titles; the drive adds folders, one file by an Agent. */
+/** Everything lives in the Haus area: files with their own titles, then folders, one file by an Agent. */
 const seededFiles: readonly SeededFile[] = [
-    { key: 'concept', path: 'concept.png', size: 2048, title: 'Concept render', type: 'image/png' },
-    { key: 'report', path: 'notes.txt', size: 512, title: 'Project notes', type: 'text/plain' },
-    { key: 'large', path: 'large.png', size: 1_048_576, title: 'Large image', type: 'image/png' },
+    {
+        key: 'concept',
+        path: 'haus/concept.png',
+        size: 2048,
+        title: 'Concept render',
+        type: 'image/png',
+    },
+    {
+        key: 'report',
+        path: 'haus/notes.txt',
+        size: 512,
+        title: 'Project notes',
+        type: 'text/plain',
+    },
+    {
+        key: 'large',
+        path: 'haus/large.png',
+        size: 1_048_576,
+        title: 'Large image',
+        type: 'image/png',
+    },
     {
         key: 'archive',
-        path: 'source.zip',
+        path: 'haus/source.zip',
         size: 4096,
         title: 'Source archive',
         type: 'application/zip',
     },
-    { key: 'audio', path: 'draft.mp3', size: 8192, title: 'Audio draft', type: 'audio/mpeg' },
-    { key: 'readme', path: 'readme.md', size: 256, title: 'Release notes', type: 'text/markdown' },
-    { key: 'log', path: 'server.log', size: 2_000_000, title: 'Server log', type: 'text/plain' },
+    { key: 'audio', path: 'haus/draft.mp3', size: 8192, title: 'Audio draft', type: 'audio/mpeg' },
+    {
+        key: 'readme',
+        path: 'haus/readme.md',
+        size: 256,
+        title: 'Release notes',
+        type: 'text/markdown',
+    },
+    {
+        key: 'log',
+        path: 'haus/server.log',
+        size: 2_000_000,
+        title: 'Server log',
+        type: 'text/plain',
+    },
     {
         key: 'kitreadme',
-        path: 'starter-kit/README.md',
+        path: 'haus/starter-kit/README.md',
         size: 300,
         title: 'README.md',
         type: 'text/markdown',
     },
     {
         key: 'logo',
-        path: 'starter-kit/assets/logo.png',
+        path: 'haus/starter-kit/assets/logo.png',
         size: 1024,
         title: 'logo.png',
         type: 'image/png',
@@ -43,26 +74,32 @@ const seededFiles: readonly SeededFile[] = [
     {
         agent: true,
         key: 'tmcheck',
-        path: 'starter-kit/scripts/tm_check.py',
+        path: 'haus/starter-kit/scripts/tm_check.py',
         size: 900,
         title: 'tm_check.py',
         type: 'text/x-python',
     },
     {
         key: 'setup',
-        path: 'starter-kit/scripts/setup.sh',
+        path: 'haus/starter-kit/scripts/setup.sh',
         size: 400,
         title: 'setup.sh',
         type: 'text/x-shellscript',
     },
-    { key: 'guide', path: 'docs/guide.md', size: 700, title: 'guide.md', type: 'text/markdown' },
+    {
+        key: 'guide',
+        path: 'haus/docs/guide.md',
+        size: 700,
+        title: 'guide.md',
+        type: 'text/markdown',
+    },
 ];
 
-/** The seeded Agent that created `starter-kit/scripts/tm_check.py`. */
+/** The seeded Agent that created `haus/starter-kit/scripts/tm_check.py`. */
 export const seededArtifactAgent = 'Drive Helper';
 
 /**
- * The library is one grid ("Files") whose sections are row groups: "Folders", then each date
+ * The library is one grid ("Drive") whose sections are row groups: "Folders", then each date
  * group ("Today") or, for other sorts, "All files".
  */
 export function librarySection(page: Page, name: string): Locator {
@@ -102,8 +139,8 @@ export async function seedArtifactLibrary(page: Page, databaseUrl: string, serve
             select '${id}_r' || n, '${id}', '${serverId}', ${author}, ${file.size}, '${file.type}', '${file.path.split('/').at(-1)}', 'test/${id}/' || n, '${id}_request_' || n, 0, n, repeat('a', 64), 'ready', '${file.title}' from generate_series(1, 2) n;`
         );
     }
-    await routeFileTransport(page);
-    return { conceptId: `art_${serverId}_concept` };
+    await routeFileTransport({ databaseUrl, page, userId });
+    return { conceptId: `art_${serverId}_concept`, notesId: `art_${serverId}_report` };
 }
 
 /**
@@ -170,12 +207,6 @@ export async function routeArtifactUploads(page: Page, databaseUrl: string, serv
     });
 }
 
-/** Markdown and plain text the seeded text revisions read back as. */
-export const seededArtifactText = {
-    readme: '# Release notes\n\nShipped **inline text previews** for shared files.',
-    notes: 'Plain project notes, revision two.',
-} as const;
-
 function seedMember(databaseUrl: string, serverId: string) {
     const userId = runPsql(
         databaseUrl,
@@ -184,42 +215,3 @@ function seedMember(databaseUrl: string, serverId: string) {
     assertOpaqueId(userId);
     return userId;
 }
-
-// File transport is isolated here; metadata, membership, search and revisions use the real Server.
-async function routeFileTransport(page: Page) {
-    await page.route('**/trpc/**', async (route) => {
-        const url = new URL(route.request().url());
-        const procedures = url.pathname.split('/trpc/')[1]?.split(',') ?? [];
-        if (!procedures.some((procedure) => procedure in fileTransport)) {
-            await route.continue();
-            return;
-        }
-        const request = `${decodeURIComponent(url.search)} ${route.request().postData() ?? ''}`;
-        const response = await route.fetch();
-        const payload = await response.json();
-        const replace = (procedure: string | undefined, result: unknown) =>
-            procedure && procedure in fileTransport
-                ? { result: { data: fileTransport[procedure]?.(page, request) } }
-                : result;
-        await route.fulfill({
-            json: Array.isArray(payload)
-                ? payload.map((result, index) => replace(procedures[index], result))
-                : replace(procedures[0], payload),
-        });
-    });
-}
-
-const fileTransport: Record<string, (page: Page, request: string) => unknown> = {
-    'artifact.download': (page) => ({
-        download_url: new URL('/prototypes/cove-avatar.png', page.url()).href,
-    }),
-    'artifact.thumbnail': (page) => ({
-        expires_at: new Date(Date.now() + 300_000).toISOString(),
-        status: 'ready',
-        thumbnail_url: new URL('/prototypes/cove-avatar.png', page.url()).href,
-    }),
-    'artifact.text': (_page, request) => ({
-        status: 'text',
-        text: request.includes('_readme_') ? seededArtifactText.readme : seededArtifactText.notes,
-    }),
-};

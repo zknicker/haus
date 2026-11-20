@@ -1,3 +1,4 @@
+import { driveDeletedRetentionDays } from '@haus/api';
 import { AlertDialog, Button, toast } from '@heroui/react';
 import { useArtifactDeleteMany } from '../../hooks/artifacts/use-artifact-delete-many.ts';
 import type { BulkDeletePlan } from './library-bulk.ts';
@@ -53,7 +54,10 @@ export function ArtifactBulkDeleteDialog({
                                 or Admin can delete.
                             </p>
                         ) : null}
-                        <p>Every revision and its links stop working for everyone right away.</p>
+                        <p>
+                            Its links stop working until someone restores it from Recently deleted,
+                            within {driveDeletedRetentionDays} days.
+                        </p>
                         {remove.error ? (
                             <p className="text-danger" role="alert">
                                 {remove.error}

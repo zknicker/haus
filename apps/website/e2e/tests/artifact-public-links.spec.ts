@@ -31,7 +31,7 @@ test('a member copies a file’s public link, sees it marked public, and disable
     await expect(page.getByText('Public link', { exact: true })).toBeVisible();
 
     // The library row carries the mark too.
-    await page.goto(`/s/${slug}/artifacts?folder=starter-kit%2Fscripts`);
+    await page.goto(`/s/${slug}/artifacts?folder=haus%2Fstarter-kit%2Fscripts`);
     const row = page.getByRole('row', { name: /tm_check\.py/u });
     await expect(row.getByRole('img', { name: 'Public link' })).toBeVisible();
     await row.getByRole('button', { name: 'Actions for tm_check.py' }).click();

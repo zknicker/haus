@@ -218,12 +218,16 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // and its Manual pointer went (-80), and the welcome rule names #haus for #all (+1).
     // Lowered by exactly 100 (37,844 → 37,744) when cloud agents became Workers (ADR 0056, W2): reports post in the Task and reach the Agent as inbox items, and `start` names `--on`.
     // Lowered by exactly 13 (37,744 → 37,731) when `--on` became optional again: a start without it runs on the Computer's default place.
-    // Lowered by exactly 265 (37,731 → 37,466) when Agents came to hear their home Project (ADR 0055,
+    // Raised by exactly 232 (37,731 → 37,963): How to organize memory describes AGENTS.md (standing
+    // rules, delivered on change) and WORKER.md beside MEMORY.md (ADR 0054 decisions 7 and 10, +208);
+    // the Standing Preferences placeholder says "preferences people show in passing: terse imperative
+    // lines; the rules people set live in AGENTS.md and WORKER.md" (+24).
+    // Lowered by exactly 265 (37,963 → 37,698) when Agents came to hear their home Project (ADR 0055,
     // J3): channel join/leave/mute/unmute went from the attention family (-87), Discovering's
     // membership paragraph became the hearing description (-437), and Tasks gained placement (+259).
-    // Raised by exactly 130 (37,466 → 37,596) when generalists came to hear Projects with no home
+    // Raised by exactly 130 (37,698 → 37,828) when generalists came to hear Projects with no home
     // Agent (+98) and placement named generalists first and ownerless handoffs (+32).
-    expect(prompt.length).toBeLessThanOrEqual(37_596);
+    expect(prompt.length).toBeLessThanOrEqual(37_828);
     expect(prompt.toLowerCase()).not.toContain('thread');
 });
 

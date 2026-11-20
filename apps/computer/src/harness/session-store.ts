@@ -26,6 +26,8 @@ export interface AgentSessionState {
      * means none, so the next turn carries the file when one exists.
      */
     deliveredMemoryDigest: string | null;
+    /** Digests of the rule layers this native session holds, by Drive path (`rules-delivery.ts`). */
+    deliveredRuleDigests: Readonly<Record<string, string>>;
     effectiveModel: { modelId: string; runtimeId: string };
     effectiveReasoningEffort?: AgentReasoningEffort;
     generation: number;
@@ -79,6 +81,7 @@ export async function readAgentSessionState(agentRoot: string): Promise<AgentSes
                     parsed.deliveredInstructionFingerprint
                 ),
                 deliveredMemoryDigest: parseFingerprint(parsed.deliveredMemoryDigest),
+                deliveredRuleDigests: parseDigests(parsed.deliveredRuleDigests),
                 hausAgentAppliedAt: parseTimestamp(parsed.hausAgentAppliedAt),
                 hausAgentStatus: parseHausAgentStatus(parsed.hausAgentStatus),
                 hausAgentVersion: parseSemver(parsed.hausAgentVersion),
@@ -107,13 +110,21 @@ export async function writeAgentSessionState(
 }
 
 /**
- * Clears the memory receipt after a compaction outside any turn (idle compaction), so the next
- * turn carries MEMORY.md again. No stored session means nothing to clear.
+ * Clears the memory and rule receipts after a compaction outside any turn (idle compaction), so
+ * the next turn carries MEMORY.md and the rule layers again. No stored session means nothing to
+ * clear.
  */
-export async function clearDeliveredMemoryDigest(agentRoot: string): Promise<void> {
+export async function clearDeliveredFileReceipts(agentRoot: string): Promise<void> {
     const stored = await readAgentSessionState(agentRoot);
-    if (stored?.deliveredMemoryDigest) {
-        await writeAgentSessionState(agentRoot, { ...stored, deliveredMemoryDigest: null });
+    if (
+        stored &&
+        (stored.deliveredMemoryDigest || Object.keys(stored.deliveredRuleDigests).length > 0)
+    ) {
+        await writeAgentSessionState(agentRoot, {
+            ...stored,
+            deliveredMemoryDigest: null,
+            deliveredRuleDigests: {},
+        });
     }
 }
 
@@ -136,6 +147,7 @@ export function resolveTurnSession(
             bootstrapFingerprint: null,
             deliveredInstructionFingerprint: null,
             deliveredMemoryDigest: null,
+            deliveredRuleDigests: {},
             effectiveModel: { modelId: assigned.modelId, runtimeId: assigned.runtimeId },
             generation: assigned.generation,
             hausAgentAppliedAt: null,
@@ -168,6 +180,17 @@ export async function writeFailedTurnSession(
 
 function parseFingerprint(value: unknown): string | null {
     return typeof value === 'string' && value.length > 0 ? value : null;
+}
+
+function parseDigests(value: unknown): Record<string, string> {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+        return {};
+    }
+    return Object.fromEntries(
+        Object.entries(value).filter(
+            (entry): entry is [string, string] => parseFingerprint(entry[1]) !== null
+        )
+    );
 }
 
 function parseHausAgentStatus(value: unknown): AgentSessionState['hausAgentStatus'] {
