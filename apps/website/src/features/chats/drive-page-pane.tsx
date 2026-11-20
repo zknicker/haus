@@ -1,6 +1,5 @@
 import { type ArtifactRecord, artifactTextMaxBytes } from '@haus/api';
 import { useArtifactText } from '../../hooks/artifacts/use-artifact-text.ts';
-import { useArtifact } from '../../hooks/artifacts/use-artifact.ts';
 import { useDrivePage } from '../../hooks/artifacts/use-drive-page.ts';
 import { ArtifactFileCard } from '../artifacts/artifact-file-card.tsx';
 import { artifactTextRenderer } from '../artifacts/artifact-text.ts';
@@ -13,40 +12,29 @@ export function DrivePagePane({ serverId, target }: { serverId: string; target: 
     if (page.status === 'loading') {
         return null;
     }
-    if (page.status === 'missing') {
-        return <DrivePageMissing path={target.path} />;
+    if (page.status === 'ready') {
+        return <DrivePageDocument artifact={page.artifact} serverId={serverId} />;
     }
+    return <DrivePageUnavailable path={target.path} status={page.status} />;
+}
+
+export function DrivePageUnavailable({
+    path,
+    status,
+}: {
+    path: string;
+    status: 'failed' | 'missing';
+}) {
     return (
-        <DrivePageRevision
-            artifactId={page.artifactId}
-            path={target.path}
-            revisionId={page.revisionId}
-            serverId={serverId}
+        <WorkspaceArtifactEmpty
+            detail={
+                status === 'missing'
+                    ? 'This page was moved or deleted.'
+                    : 'Haus could not open this page. Try again in a moment.'
+            }
+            title={path}
         />
     );
-}
-
-export function DrivePageMissing({ path }: { path: string }) {
-    return <WorkspaceArtifactEmpty detail="This page was moved or deleted." title={path} />;
-}
-
-function DrivePageRevision({
-    artifactId,
-    path,
-    revisionId,
-    serverId,
-}: {
-    artifactId: string;
-    path: string;
-    revisionId?: string;
-    serverId: string;
-}) {
-    const query = useArtifact(serverId, artifactId, revisionId);
-    const artifact = query.data?.artifact;
-    if (query.error) {
-        return <DrivePageMissing path={path} />;
-    }
-    return artifact ? <DrivePageDocument artifact={artifact} serverId={serverId} /> : null;
 }
 
 function DrivePageDocument({ artifact, serverId }: { artifact: ArtifactRecord; serverId: string }) {

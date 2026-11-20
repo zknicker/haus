@@ -70,9 +70,10 @@ Clicking opens a `drivePage` target carrying the fence path, the authoring
 Agent, and any pinned revision. `useDrivePage`
 (`apps/website/src/hooks/artifacts/use-drive-page.ts`) maps the cwd-relative
 path to Drive (`drive/<path>` is `<path>`; a pre-Drive `workbench/<file>` is
-`agents/<handle>/workbench/<file>`, read with the Agent's handle), then finds
-the file with `artifact.list` on its folder narrowed to its name. Any other
-path, or a path Drive does not hold, shows the not-found state. On the web the
+`agents/<handle>/workbench/<file>`, read with the Agent's handle), then reads
+the file with one `artifact.byPath` query, at the pinned revision if any. Any
+other path, or a `NOT_FOUND` answer, shows the not-found state; any other
+failure says the page could not open. On the web the
 chat's Workspace pane shows the page (`features/chats/drive-page-pane.tsx`);
 on desktop the tab (`routes/app/drive-page-route.tsx`) becomes the file's Files
 viewer at the pinned revision. Both draw HTML with the shared

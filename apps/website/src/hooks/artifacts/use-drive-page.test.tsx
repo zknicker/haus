@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { httpBatchLink } from '@trpc/client';
+import { httpBatchLink, TRPCClientError } from '@trpc/client';
 import { getQueryKey } from '@trpc/react-query';
 import * as React from 'react';
 import type { Root } from 'react-dom/client';
@@ -12,7 +12,6 @@ import {
 import { splitArtifactFences } from '../../features/servers/chat/artifact-message.tsx';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { installFakeDom } from '../../test-support/fake-dom.ts';
-import { drivePageListInput } from './drive-page.ts';
 import { useDrivePage } from './use-drive-page.ts';
 
 let restoreDom: () => void;
@@ -23,28 +22,30 @@ afterAll(() => restoreDom());
 
 const serverId = 'srv_1';
 const agentId = 'agt_scout';
+const planPath = 'agents/scout/workbench/plan.html';
 
 test('a page card opens its Drive file at the revision the message pins', async () => {
     const harness = await mount();
-    harness.seedLookup('agents/scout/workbench/plan.html', [
-        { artifact_id: 'art_plan', path: 'agents/scout/workbench/plan.html' },
-    ]);
+    harness.seedFile(planPath, 'rev_1', { artifact_id: 'art_plan', revision_id: 'rev_1' });
+    harness.seedFile(planPath, undefined, { artifact_id: 'art_plan', revision_id: 'rev_2' });
 
     await harness.render(
         cardTarget(
             'Plan:\n```page\n{"path":"drive/agents/scout/workbench/plan.html","revision":"rev_1"}\n```'
         )
     );
-    expect(harness.page()).toEqual({
-        artifactId: 'art_plan',
-        revisionId: 'rev_1',
+    expect(harness.page()).toMatchObject({
+        artifact: { artifact_id: 'art_plan', revision_id: 'rev_1' },
         status: 'ready',
     });
 
     await harness.render(
         cardTarget('```page\n{"path":"drive/agents/scout/workbench/plan.html"}\n```')
     );
-    expect(harness.page()).toEqual({ artifactId: 'art_plan', status: 'ready' });
+    expect(harness.page()).toMatchObject({
+        artifact: { artifact_id: 'art_plan', revision_id: 'rev_2' },
+        status: 'ready',
+    });
 
     await harness.unmount();
 });
@@ -52,31 +53,38 @@ test('a page card opens its Drive file at the revision the message pins', async 
 test('a pre-Drive workbench card finds its page in the Agent area by handle', async () => {
     const harness = await mount();
     harness.seedHandle('scout');
-    harness.seedLookup('agents/scout/workbench/pages/fleet.html', [
-        { artifact_id: 'art_fleet', path: 'agents/scout/workbench/pages/fleet.html' },
-    ]);
+    harness.seedFile('agents/scout/workbench/pages/fleet.html', undefined, {
+        artifact_id: 'art_fleet',
+        revision_id: 'rev_9',
+    });
 
     await harness.render(cardTarget('```page\n{"path":"workbench/pages/fleet.html"}\n```'));
-    expect(harness.page()).toEqual({ artifactId: 'art_fleet', status: 'ready' });
+    expect(harness.page()).toMatchObject({
+        artifact: { artifact_id: 'art_fleet', revision_id: 'rev_9' },
+        status: 'ready',
+    });
 
     await harness.unmount();
 });
 
-test('a card whose path Drive does not hold is missing', async () => {
-    const harness = await mount();
-    harness.seedLookup('agents/scout/workbench/plan.html', [
-        { artifact_id: 'art_plan', path: 'agents/scout/workbench/old-plan.html' },
-    ]);
-
-    await harness.render(
+test('a path Drive does not hold is missing, and any other failure is not', async () => {
+    const missing = await mount();
+    missing.seedError(planPath, 'NOT_FOUND');
+    await missing.render(
         cardTarget('```page\n{"path":"drive/agents/scout/workbench/plan.html"}\n```')
     );
-    expect(harness.page()).toEqual({ status: 'missing' });
+    expect(missing.page()).toEqual({ status: 'missing' });
+    await missing.render(cardTarget('```page\n{"path":"audits/deterministic.html"}\n```'));
+    expect(missing.page()).toEqual({ status: 'missing' });
+    await missing.unmount();
 
-    await harness.render(cardTarget('```page\n{"path":"audits/deterministic.html"}\n```'));
-    expect(harness.page()).toEqual({ status: 'missing' });
-
-    await harness.unmount();
+    const failed = await mount();
+    failed.seedError(planPath, 'INTERNAL_SERVER_ERROR');
+    await failed.render(
+        cardTarget('```page\n{"path":"drive/agents/scout/workbench/plan.html"}\n```')
+    );
+    expect(failed.page()).toEqual({ status: 'failed' });
+    await failed.unmount();
 });
 
 function cardTarget(content: string) {
@@ -100,6 +108,8 @@ async function mount() {
     const client = hausTrpc.createClient({
         links: [httpBatchLink({ url: 'http://127.0.0.1:1/trpc' })],
     });
+    const lookupKey = (path: string, revisionId?: string) =>
+        getQueryKey(hausTrpc.artifact.byPath, { path, revision_id: revisionId, serverId }, 'query');
     let latest: ReturnType<typeof useDrivePage> | undefined;
     let root: Root | undefined;
     function Probe({ target }: { target: DrivePageTarget }) {
@@ -121,15 +131,23 @@ async function mount() {
                 await nextTask();
             });
         },
-        seedLookup: (drivePath: string, artifacts: { artifact_id: string; path: string }[]) =>
-            queryClient.setQueryData(
-                getQueryKey(
-                    hausTrpc.artifact.list,
-                    drivePageListInput(serverId, drivePath),
-                    'query'
-                ),
-                { artifacts }
-            ),
+        seedError: (path: string, code: string) =>
+            queryClient
+                .getQueryCache()
+                .build(queryClient, { queryKey: lookupKey(path) })
+                .setState({
+                    error: TRPCClientError.from({
+                        error: { code: -32_000, data: { code }, message: code },
+                    }),
+                    errorUpdatedAt: Date.now(),
+                    fetchStatus: 'idle',
+                    status: 'error',
+                }),
+        seedFile: (
+            path: string,
+            revisionId: string | undefined,
+            artifact: { artifact_id: string; revision_id: string }
+        ) => queryClient.setQueryData(lookupKey(path, revisionId), { artifact }),
         seedHandle: (handle: string) =>
             queryClient.setQueryData(
                 getQueryKey(hausTrpc.agent.get, { agentId, serverId }, 'query'),
