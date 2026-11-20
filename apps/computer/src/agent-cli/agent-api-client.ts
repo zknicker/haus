@@ -34,7 +34,7 @@ export class AgentApiTransportError extends AgentCliError {}
 
 export class AgentApiClient implements AgentApiRequester {
     constructor(
-        private readonly context: AgentContext,
+        private readonly context: Pick<AgentContext, 'serverUrl' | 'token'>,
         private readonly fetcher: typeof fetch = fetch
     ) {}
 

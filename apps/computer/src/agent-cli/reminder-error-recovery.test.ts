@@ -7,12 +7,7 @@ for (const code of ['REMINDER_COMMAND_CONFLICT', 'REMINDER_FIRE_TIME_PASSED']) {
     test(`reminder CLI preserves ${code} and its recovery action`, async () => {
         const nextAction = 'Run haus reminder list; a changed revision needs a new command id.';
         const client = new AgentApiClient(
-            {
-                agentId: 'agt_synthetic',
-                serverUrl: 'http://127.0.0.1:1',
-                token: 'synthetic',
-                tokenFile: '/tmp/synthetic-token',
-            },
+            { serverUrl: 'http://127.0.0.1:1', token: 'synthetic' },
             (async () =>
                 Response.json(
                     { code, message: 'Synthetic refusal.', nextAction },
