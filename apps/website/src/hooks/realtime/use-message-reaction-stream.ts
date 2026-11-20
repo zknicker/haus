@@ -10,7 +10,7 @@ import { useSubscriptionRestart } from './use-subscription-restart.ts';
 
 /**
  * `chat.onMessageReactionUpdated`: the message's entity, search (which shows
- * reactions), active Cloud Agent work, and claims (work and claim rows carry
+ * reactions), active Worker, and claims (work and claim rows carry
  * their message's reactions). The message is marked live so the arriving
  * reaction stamps in.
  */
@@ -50,7 +50,7 @@ export function applyMessageReaction(
 function invalidateReactionReads(coalescer: TargetedReadCoalescer, serverId: string) {
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.chat.search, { serverId }) });
     coalescer.invalidate({
-        queryKey: getQueryKey(hausTrpc.cloudAgentWork.listActive, { serverId }),
+        queryKey: getQueryKey(hausTrpc.worker.listActive, { serverId }),
     });
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.claim.list, { serverId }) });
 }

@@ -3,13 +3,16 @@ import { agentExecutionJournalAckSchema } from './agent-execution-journal-upload
 import { invocationCommandSchemas } from './agent-invocations.ts';
 import { agentStopBackgroundCommandSchema, agentStopCommandSchema } from './agent-stop-commands.ts';
 import { agentSubagentWakeResultSchema } from './agent-subagent-wake-frames.ts';
-import { agentTurnRejectedItemSchema } from './agent-turn-rejected-item.ts';
 import { browserRequestSchema } from './browser-frames.ts';
 import {
-    cloudAgentCancelCommandSchema,
+    workerStopCommandSchema,
     cloudAgentCapabilityRequestSchema,
-    cloudAgentReconcileCommandSchema,
-} from './cloud-agent-protocol.ts';
+    workerReconcileCommandSchema,
+} from './worker-protocol.ts';
+import {
+    workerFollowUpDrainAckFrameSchema,
+    workerTurnStartFrameSchema,
+} from './worker-turn-frames.ts';
 
 export * from './agent-delivery-frames.ts';
 export * from './agent-execution-journal.ts';
@@ -18,23 +21,14 @@ export * from './agent-inbox.ts';
 export * from './agent-stop-commands.ts';
 export * from './agent-subagent-wake-frames.ts';
 export * from './browser-frames.ts';
-export * from './cloud-agent-protocol.ts';
+export * from './worker-protocol.ts';
 export * from './reminder-script-frames.ts';
 
 import * as z from 'zod';
-import { agentTurnActivitySummarySchema } from './agent-activity.ts';
 import { agentReasoningEffortSchema } from './agent-execution.ts';
 import {
-    agentTurnFailureCodeSchema,
-    agentTurnFailureFingerprintSchema,
-    agentTurnFailureKindSchema,
-} from './agent-turn-failure.ts';
-import {
     agentSkillFileRequestSchema,
-    agentSkillFileSchema,
     agentWorkspaceRequestSchema,
-    workspaceFileContentSchema,
-    workspaceFileListSchema,
 } from './agent-workspace-files.ts';
 import { idSchema } from './chat.ts';
 import { computerInventoryRefreshRequestSchema } from './computer-inventory-refresh.ts';
@@ -45,8 +39,6 @@ import {
     serverDeleteCommandSchema,
     serverRuntimeSettingsCommandSchema,
 } from './server-commands.ts';
-
-const timestampSchema = z.iso.datetime({ offset: true });
 
 /**
  * Recreates one Agent's harness runner while preserving its native conversation.
@@ -152,9 +144,11 @@ export const agentCommandSchema = z.discriminatedUnion('type', [
     computerSecretsRequestSchema,
     reminderScriptCommandSchema,
     agentNoticeCommandSchema,
-    cloudAgentCancelCommandSchema,
+    workerStopCommandSchema,
     cloudAgentCapabilityRequestSchema,
-    cloudAgentReconcileCommandSchema,
+    workerReconcileCommandSchema,
+    workerTurnStartFrameSchema,
+    workerFollowUpDrainAckFrameSchema,
     serverDeleteCommandSchema,
     serverRuntimeSettingsCommandSchema,
     ...invocationCommandSchemas,
@@ -189,214 +183,11 @@ export const agentNoticeAckSchema = z
 
 export type AgentNoticeAck = z.infer<typeof agentNoticeAckSchema>;
 
-/** Durable Computer acknowledgement for the dedicated Cove factory operation. */
-export const coveApplyResultSchema = z.discriminatedUnion('status', [
-    z
-        .object({
-            agentId: idSchema,
-            applicationId: idSchema,
-            factoryKind: z.literal('cove'),
-            status: z.literal('applied'),
-            type: z.literal('cove-apply-result'),
-        })
-        .strict(),
-    z
-        .object({
-            agentId: idSchema,
-            applicationId: idSchema,
-            error: z.string().trim().min(1).max(300),
-            factoryKind: z.literal('cove'),
-            status: z.literal('failed'),
-            type: z.literal('cove-apply-result'),
-        })
-        .strict(),
-]);
+export * from './agent-command-results.ts';
 
-export type CoveApplyResult = z.infer<typeof coveApplyResultSchema>;
-
-export const agentSkillImportResultSchema = z.discriminatedUnion('status', [
-    z
-        .object({
-            agentId: idSchema,
-            requestId: idSchema,
-            sourceId: idSchema,
-            status: z.literal('accepted'),
-            type: z.literal('agent-skill-import-result'),
-            updatedAt: timestampSchema,
-        })
-        .strict(),
-    z
-        .object({
-            agentId: idSchema,
-            requestId: idSchema,
-            skill: z
-                .object({
-                    description: z.string().max(500),
-                    hash: z.string().regex(/^[a-f0-9]{64}$/u),
-                    modifiedAt: timestampSchema,
-                    name: z.string().trim().min(1).max(128),
-                })
-                .strict(),
-            sourceId: idSchema,
-            status: z.literal('applied'),
-            type: z.literal('agent-skill-import-result'),
-            updatedAt: timestampSchema,
-        })
-        .strict(),
-    z
-        .object({
-            agentId: idSchema,
-            error: z.string().trim().min(1).max(300),
-            requestId: idSchema,
-            sourceId: idSchema,
-            status: z.literal('failed'),
-            type: z.literal('agent-skill-import-result'),
-            updatedAt: timestampSchema,
-        })
-        .strict(),
-]);
-
-export type AgentSkillImportResult = z.infer<typeof agentSkillImportResultSchema>;
-
-export const agentSkillFileResultSchema = z
-    .object({
-        agentId: idSchema,
-        error: z.string().trim().min(1).max(300).optional(),
-        requestId: idSchema,
-        result: z
-            .discriminatedUnion('kind', [
-                z.object({ kind: z.literal('read'), value: agentSkillFileSchema }).strict(),
-                z.object({ kind: z.literal('updated'), value: agentSkillFileSchema }).strict(),
-                z.object({ kind: z.literal('deleted') }).strict(),
-            ])
-            .optional(),
-        type: z.literal('agent-skill-file-result'),
-    })
-    .strict()
-    .refine((value) => Boolean(value.error) !== Boolean(value.result));
-
-export type AgentSkillFileResult = z.infer<typeof agentSkillFileResultSchema>;
-
-export const agentWorkspaceResultSchema = z
-    .object({
-        agentId: idSchema,
-        error: z.string().trim().min(1).max(300).optional(),
-        requestId: idSchema,
-        result: z
-            .discriminatedUnion('kind', [
-                z
-                    .object({
-                        kind: z.literal('list'),
-                        value: workspaceFileListSchema,
-                    })
-                    .strict(),
-                z
-                    .object({
-                        kind: z.literal('read'),
-                        value: workspaceFileContentSchema,
-                    })
-                    .strict(),
-            ])
-            .optional(),
-        type: z.literal('agent-workspace-result'),
-    })
-    .strict()
-    .refine((value) => Boolean(value.error) !== Boolean(value.result));
-
-export type AgentWorkspaceResult = z.infer<typeof agentWorkspaceResultSchema>;
-
-/**
- * A Computer mints a per-launch runner credential from its Computer credential
- * before spawning the Agent. The credential is scoped to exactly one Agent,
- * run, and Server. The launch chat (null for a chatless run) is context only; Agent
- * API routes still resolve each target and membership Server-side.
- */
-export const runnerMintRequestSchema = z
-    .object({
-        agentId: idSchema,
-        chatId: idSchema.nullable(),
-        credentialHash: z.string().regex(/^[a-f0-9]{64}$/u),
-        runId: idSchema,
-    })
-    .strict();
-
-export type RunnerMintRequest = z.infer<typeof runnerMintRequestSchema>;
-
-export const runnerTokenSchema = z.string().regex(/^grtr_[A-Za-z0-9_-]{43}$/u);
-
-export const runnerMintResponseSchema = z
-    .object({ runnerId: idSchema, runnerToken: runnerTokenSchema })
-    .strict();
-
-export type RunnerMintResponse = z.infer<typeof runnerMintResponseSchema>;
-
-export const runnerRevokeRequestSchema = z
-    .object({
-        credentialHash: z.string().regex(/^[a-f0-9]{64}$/u),
-        runnerId: idSchema,
-    })
-    .strict();
-
-export type RunnerRevokeRequest = z.infer<typeof runnerRevokeRequestSchema>;
+export * from './runner-credentials.ts';
 
 export * from './agent-message-input.ts';
 export * from './agent-turn-failure.ts';
 
-/**
- * The compact turn summary a Computer pushes after a launch settles. Durable
- * collaboration and this compact activity live Server-side; the raw transcript,
- * logs, and workspace stay Computer-local behind the authorized live relay.
- */
-export const agentTurnStatusSchema = z.enum(['completed', 'failed', 'interrupted']);
-export const agentTokenUsageSchema = z
-    .object({
-        cacheReadTokens: z.number().int().nonnegative(),
-        cacheWriteTokens: z.number().int().nonnegative(),
-        inputTokens: z.number().int().nonnegative(),
-        outputTokens: z.number().int().nonnegative(),
-        totalTokens: z.number().int().nonnegative(),
-    })
-    .strict();
-
-export const agentTurnSummarySchema = z
-    .object({
-        /** Older settled Computer run markers replay with an empty aggregate. */
-        activity: agentTurnActivitySummarySchema.default({ operations: [] }),
-        agentId: idSchema,
-        endedAt: timestampSchema,
-        failureCode: agentTurnFailureCodeSchema.optional(),
-        failureFingerprint: agentTurnFailureFingerprintSchema.optional(),
-        failureKind: agentTurnFailureKindSchema.optional(),
-        messageCount: z.number().int().nonnegative().max(10_000),
-        modelId: z.string().trim().min(1),
-        /**
-         * Whether the turn produced model-visible output (any durable send).
-         * A failed turn that produced output must not have its work requeued —
-         * doing so would re-trigger the output. Acceptance alone never sets
-         * this flag; an accepted crash replays at least once.
-         */
-        outputProduced: z.boolean(),
-        /** Inbox items a rejected start could not accept, so the retry leaves them out. */
-        rejectedItems: z.array(agentTurnRejectedItemSchema).max(100).optional(),
-        runId: idSchema,
-        runtimeId: z.string().trim().min(1),
-        startedAt: timestampSchema,
-        status: agentTurnStatusSchema,
-        summary: z.string().max(2000),
-        tokenUsage: agentTokenUsageSchema.nullable(),
-        type: z.literal('turn'),
-        visibleMessages: z
-            .array(
-                z.object({
-                    chatId: idSchema,
-                    id: idSchema,
-                    sequence: z.number().int().positive(),
-                })
-            )
-            .max(10_000)
-            .default([]),
-    })
-    .strict();
-
-export type AgentTurnSummary = z.infer<typeof agentTurnSummarySchema>;
-export type AgentTokenUsage = z.infer<typeof agentTokenUsageSchema>;
+export * from './agent-turn-summary.ts';

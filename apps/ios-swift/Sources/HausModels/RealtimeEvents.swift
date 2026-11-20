@@ -118,7 +118,7 @@ public struct CloudAgentWorkUpdatedEvent: Decodable, Sendable, Equatable {
         case serverID = "serverId"
         case chatID = "chatId"
         case messageID = "messageId"
-        case workID = "workId"
+        case workID = "workerId"
     }
 }
 

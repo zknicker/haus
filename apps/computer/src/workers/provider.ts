@@ -1,0 +1,264 @@
+import type {
+    WorkerBranch,
+    CloudAgentEnvironment,
+    CloudAgentProvider as CloudAgentProviderId,
+    WorkerObservedResult,
+    WorkerProviderResult,
+    WorkerTurnModel,
+    WorkerStallCode,
+    WorkerTurnStatus,
+    CloudAgentUnreadyReason,
+    WorkerUsage,
+} from '@haus/api';
+
+export type { CloudAgentUnreadyReason };
+
+export type CloudAgentReadiness =
+    | { account: { email: string | null; expiresAt: string | null }; ready: true }
+    | { ready: false; reason: CloudAgentUnreadyReason };
+
+/**
+ * Everything a provider needs to address one Run it is already hosting. A
+ * provider that acknowledges a prompt before naming its execution (Claude)
+ * leaves `providerRunId` null until a reading finds it.
+ */
+export interface WorkerTurnRef {
+    provider: CloudAgentProviderId;
+    providerAgentId: string | null;
+    providerRunId: string | null;
+    turnId: string;
+    workerId: string;
+}
+
+/** One provider parameter value, under the provider's own parameter id. */
+export interface CloudAgentModelParamValue {
+    id: string;
+    value: string;
+}
+
+/** The model a Run sends: a provider model id and the parameters chosen for it. */
+export interface CloudAgentModelSelection {
+    id: string;
+    params: CloudAgentModelParamValue[];
+}
+
+/**
+ * One raw entry of the provider's model catalog, before Haus maps it. Cursor
+ * lists parameters per model and precomputes variants, one marked default.
+ */
+export interface CloudAgentModelListing {
+    description?: string | null;
+    displayName: string;
+    id: string;
+    parameters?: Array<{
+        displayName?: string | null;
+        id: string;
+        values: Array<{ displayName?: string | null; value: string }>;
+    }>;
+    variants?: Array<{ isDefault?: boolean; params: CloudAgentModelParamValue[] }>;
+}
+
+export interface WorkerStartInput {
+    /** Haus's own Run id, handed to the provider as its idempotency key. */
+    idempotencyKey: string;
+    /** The work the provider-hosted agent performs. It never reaches Server. */
+    instructions: string;
+    /** The model Server resolved for this Run (`default` is Auto); `null` sends none. */
+    model: CloudAgentModelSelection | null;
+    ref: string | null;
+    repository: string;
+    title: string;
+    /** Haus's work id; a provider without Run ids tags its prompt with it. */
+    workerId: string;
+}
+
+export interface WorkerLaunch {
+    /** The Claude cloud environment this launch landed on; null off Claude or when unpinned. */
+    environmentId: string | null;
+    /** The environment's name, when the provider could name it, for display. */
+    environmentName: string | null;
+    providerAgentId: string;
+    /** Null when the provider acknowledges delivery before naming the execution. */
+    providerRunId: string | null;
+    providerUrl: string | null;
+    /** Provider-reported Run creation time, when available. */
+    startedAt?: string;
+    status: WorkerTurnStatus;
+}
+
+/**
+ * A `WorkerLaunch`'s nullable fields become present only when set, the
+ * same "presence means set it" convention `CloudAgentProviderObservation`
+ * (and the Server observation it travels as) already use for these fields.
+ * `extra` merges in after, for fields the launch itself doesn't carry (an
+ * auto-interrupt note, for instance).
+ */
+export function workerLaunchObservation(
+    launch: WorkerLaunch,
+    observedAt: string,
+    extra: Partial<CloudAgentProviderObservation> = {}
+): CloudAgentProviderObservation {
+    const { environmentId, environmentName, providerRunId, providerUrl, ...rest } = launch;
+    return {
+        ...rest,
+        ...(environmentId ? { environmentId } : {}),
+        ...(environmentName ? { environmentName } : {}),
+        ...(providerRunId ? { providerRunId } : {}),
+        ...(providerUrl ? { providerUrl } : {}),
+        ...extra,
+        observedAt,
+    };
+}
+
+export interface WorkerSendInput {
+    idempotencyKey: string;
+    instructions: string;
+    /** The model Server resolved for this Run (`default` is Auto); `null` sends none. */
+    model: CloudAgentModelSelection | null;
+    providerAgentId: string;
+    workerId: string;
+}
+
+/** One bounded provider reading, before Haus's own work and Run identities. */
+export interface CloudAgentProviderObservation {
+    activity?: { at: string; summary: string };
+    branches?: WorkerBranch[];
+    environmentId?: string;
+    environmentName?: string;
+    errorCode?: string;
+    observedAt: string;
+    providerAgentId?: string;
+    providerRunId?: string;
+    providerUrl?: string;
+    rawStatus?: string;
+    /** The full report `summary` was cut from (TECH-8); absent before any Run observes one. */
+    report?: WorkerProviderResult;
+    /** A settled turn's final answer with its `Haus-` lines read; null when it had none. */
+    result?: WorkerObservedResult | null;
+    /** Set on every reading of a stuck live Run. */
+    stallCode?: WorkerStallCode;
+    /** Provider-reported Run creation time, when available. */
+    startedAt?: string;
+    status: WorkerTurnStatus;
+    summary?: string;
+    usage?: WorkerUsage;
+}
+
+/**
+ * Computer-local access to one Cloud Agent provider. Everything above this
+ * boundary — the Agent CLI, the Server record, the durable events — is
+ * provider-neutral; everything below it, including credentials, prompts, and
+ * raw provider status mapping, belongs to the adapter.
+ *
+ * `subscribe` is the live edge and `read` is reconciliation: Haus reads a Run
+ * on reconnect, restart, and after a missed event, and never polls a Run it has
+ * already settled.
+ */
+export interface CloudAgentProvider {
+    cancel(ref: WorkerTurnRef, signal?: AbortSignal): Promise<void>;
+    /**
+     * Runs the provider's own browser sign-in on this Computer and stores the
+     * credential where the provider keeps it. Only an explicit human action in
+     * Computer settings reaches this; an Agent turn never does.
+     */
+    connect(options?: {
+        onLoginUrl?: (url: string) => void;
+        signal?: AbortSignal;
+    }): Promise<CloudAgentReadiness>;
+    /** Forgets the stored credential. The provider-side key stays revocable. */
+    disconnect(): Promise<CloudAgentReadiness>;
+    /** This Computer's cloud environments to pin this provider's launches to; Claude only. */
+    listEnvironments(): Promise<CloudAgentEnvironment[]>;
+    /** The provider's raw model catalog for the connected account. */
+    listModels(): Promise<CloudAgentModelListing[]>;
+    readonly provider: CloudAgentProviderId;
+    read(ref: WorkerTurnRef, signal?: AbortSignal): Promise<CloudAgentProviderObservation>;
+    readiness(): Promise<CloudAgentReadiness>;
+    send(input: WorkerSendInput): Promise<WorkerLaunch>;
+    start(input: WorkerStartInput, signal?: AbortSignal): Promise<WorkerLaunch>;
+    subscribe(
+        ref: WorkerTurnRef,
+        onObservation: (observation: CloudAgentProviderObservation) => void,
+        signal: AbortSignal
+    ): Promise<void>;
+}
+
+/**
+ * The provider's definite refusal of a `start` or `send`: resending the same
+ * request cannot succeed. The message is the provider's own words. Any other
+ * error from `start` or `send` is retryable under the same idempotency key.
+ */
+export class WorkerLaunchRejectedError extends Error {
+    override readonly name = 'WorkerLaunchRejectedError';
+    /** The provider's own error code, when it reported one. */
+    readonly providerCode: string | null;
+
+    constructor(message: string, options: { providerCode?: string | null } = {}) {
+        super(message);
+        this.providerCode = options.providerCode ?? null;
+    }
+}
+
+export class CloudAgentProviderUnavailableError extends Error {
+    readonly reason: CloudAgentUnreadyReason;
+
+    constructor(reason: CloudAgentUnreadyReason) {
+        super(cloudAgentUnreadyMessage(reason));
+        this.name = 'CloudAgentProviderUnavailableError';
+        this.reason = reason;
+    }
+}
+
+/** The one place an unready reason becomes words a human reads. */
+export function cloudAgentUnreadyMessage(reason: CloudAgentUnreadyReason): string {
+    switch (reason) {
+        case 'not-connected':
+            return 'This Computer has no Worker credential. Connect the provider in Computer settings.';
+        case 'expired':
+            return "This Computer's Worker credential expired. Reconnect the provider in Computer settings.";
+        case 'provider-unavailable':
+            return 'This Computer cannot reach the Cloud Agent provider.';
+    }
+}
+
+/** The provider selection for a Run's recorded model: Haus names map back to provider ids. */
+export function cloudAgentModelSelectionOf(
+    model: WorkerTurnModel | undefined
+): CloudAgentModelSelection | null {
+    if (!model?.id) {
+        return null;
+    }
+    return {
+        id: model.id,
+        params: model.params.map((param) => ({ id: param.providerParamId, value: param.value })),
+    };
+}
+
+/**
+ * The provider a Computer reports until a real adapter is installed. It is
+ * truthfully not ready, so a launch fails before any Message is created.
+ */
+export function unavailableCloudAgentProvider(
+    provider: CloudAgentProviderId = 'cursor'
+): CloudAgentProvider {
+    const unavailable = () => {
+        throw new CloudAgentProviderUnavailableError('provider-unavailable');
+    };
+    return {
+        cancel: () => Promise.resolve(),
+        connect: () =>
+            Promise.reject(new CloudAgentProviderUnavailableError('provider-unavailable')),
+        disconnect: () =>
+            Promise.resolve({ ready: false, reason: 'provider-unavailable' as const }),
+        listEnvironments: () =>
+            Promise.reject(new CloudAgentProviderUnavailableError('provider-unavailable')),
+        listModels: () =>
+            Promise.reject(new CloudAgentProviderUnavailableError('provider-unavailable')),
+        provider,
+        read: () => Promise.reject(new CloudAgentProviderUnavailableError('provider-unavailable')),
+        readiness: () => Promise.resolve({ ready: false, reason: 'provider-unavailable' as const }),
+        send: () => Promise.reject(new CloudAgentProviderUnavailableError('provider-unavailable')),
+        start: () => Promise.reject(new CloudAgentProviderUnavailableError('provider-unavailable')),
+        subscribe: () => unavailable(),
+    };
+}

@@ -10,25 +10,37 @@ public enum CloudAgentStatus: String, Codable, Hashable, Sendable {
 public struct CloudAgentWork: Codable, Identifiable, Hashable, Sendable {
     public let id: String
     public let agentId: String
-    public let chatId: String
-    public let messageId: String
+    /// The Task the Worker belongs to; nil only on read-only history.
+    public let taskId: String?
+    /// Where the Worker runs: `cursor` or `claude`.
     public let provider: String
     public let providerUrl: String?
     public let repository: String
     public let startingRef: String?
     public let title: String
-    public let status: CloudAgentStatus
     public let createdAt: Date
     public let updatedAt: Date
     public let startedAt: Date?
     public let terminalAt: Date?
-    public let cancelRequestedAt: Date?
     public let activity: CloudAgentActivity?
     /// The Server's reading of the whole job across its Runs (`deriveCloudAgentJob`).
     public let job: CloudAgentJob
     public let runs: [CloudAgentRun]
     /// The Server's live reading, which outlives a Run's frozen snapshot.
     public var pullRequest: CloudAgentPullRequest? = nil
+
+    /// The provider's status for the newest turn, which the card's lifecycle copy reads.
+    public var status: CloudAgentStatus { runs.first?.status ?? .queued }
+    /// When someone asked the newest turn to stop.
+    public var cancelRequestedAt: Date? { runs.first?.stopRequestedAt }
+
+    enum CodingKeys: String, CodingKey {
+        case id, agentId, taskId, providerUrl, repository, startingRef, title
+        case provider = "place"
+        case createdAt, updatedAt, startedAt, terminalAt, activity, job
+        case runs = "turns"
+        case pullRequest
+    }
 }
 
 public struct CloudAgentActivity: Codable, Hashable, Sendable {
@@ -48,6 +60,13 @@ public struct CloudAgentRun: Codable, Hashable, Sendable {
     public let errorCode: String?
     /// Nil only for a Server older than the model contract.
     public let model: CloudAgentRunModel?
+    public let stopRequestedAt: Date?
+
+    enum CodingKeys: String, CodingKey {
+        case runId = "turnId"
+        case status, createdAt, branches, startedAt, terminalAt, summary, errorCode, model
+        case stopRequestedAt
+    }
 }
 
 public struct CloudAgentBranch: Codable, Hashable, Sendable {

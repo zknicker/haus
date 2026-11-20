@@ -144,7 +144,7 @@ export const TASK_SUBCOMMANDS: SubCommand[] = [
         flags: [],
         name: 'attach-pr',
         notes: [
-            'A pull request a cloud agent opens for the Task attaches on its own; use this for one opened another way. Its changes wake you on the Task.',
+            'A pull request a Worker opens for the Task attaches on its own; use this for one opened another way. Its changes wake you on the Task.',
         ],
         positionals: [keyPositional, '<url>'],
         run: (args) => runTaskAttachPullRequest(args, defaultDeps()),

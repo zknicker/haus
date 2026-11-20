@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import type { CloudAgentStatus, MessageClaim } from '@haus/api';
+import type { WorkerTurnStatus, MessageClaim } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -125,7 +125,7 @@ async function seedClaimExamples(db: HausDatabase, context: GalleryContext) {
 }
 
 async function seedCloudExamples(db: HausDatabase, context: GalleryContext) {
-    const states: CloudAgentStatus[] = [
+    const states: WorkerTurnStatus[] = [
         'queued',
         'running',
         'pending_input',
@@ -134,7 +134,7 @@ async function seedCloudExamples(db: HausDatabase, context: GalleryContext) {
         'cancelled',
         'expired',
     ];
-    const stateTitles: Record<CloudAgentStatus, string> = {
+    const stateTitles: Record<WorkerTurnStatus, string> = {
         queued: 'Compact attachment previews',
         running: 'Tighten sidebar spacing',
         pending_input: 'Pick the onboarding copy variant',

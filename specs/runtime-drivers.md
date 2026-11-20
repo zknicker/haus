@@ -171,7 +171,7 @@ execution journal upload (including journaling dispatches the ledger recovers as
 thoughts, idle compaction, rich-reference projection of message content, Cove guidance, the
 managed-skill change notice, Claude plan usage after a turn, Agent restart and reset frames to
 the runner, and
-`haus cloud-agent start`, which the Computer handled locally. R4 also sends `drive-pull` when a
+`haus worker start`, which the Computer's proxy handled. R4 also sends `drive-pull` when a
 runner run starts and `drive-push` when it settles (Drive folder below), because runner-hosted
 Agents depend on their `drive/` folder from the cutover on.
 
@@ -367,7 +367,7 @@ built-in, `browser`, which relays agent-browser on the machine as a `browser` in
 
 These end at R4 and are named here as intentional capability removals:
 
-- **Sub-agents.** `Task`/`Agent` is off. Parallel work goes to cloud agents until W2, then to
+- **Sub-agents.** `Task`/`Agent` is off. Parallel work goes to
   Workers ([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md)).
 - **Background shells.** A command runs within its invocation's timeout. Work longer than ten
   minutes goes to a Worker.
@@ -709,7 +709,7 @@ and only clear the Agent's directory on that machine. A session reset no longer 
 Computer.
 
 **Computer protocol, unchanged:** `browser-request` and `browser-result` for Browser settings,
-`reminder-script`, inventory, disk, update, secrets, heartbeat, and cloud-agent frames until W2.
+`reminder-script`, inventory, disk, update, secrets, heartbeat, and Worker frames.
 
 **Runner protocol.** The runner socket carries the Agent frames removed above, with the same
 schemas, except the sub-agent and background-work frames, which are deleted. It adds

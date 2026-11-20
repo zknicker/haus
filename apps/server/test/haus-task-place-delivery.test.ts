@@ -6,12 +6,12 @@ import { listInboxItemsByDedupeKeys } from '../src/agent-delivery/store.ts';
 import { inferMessageCause } from '../src/automations/infer-message-cause.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { tickReminders } from '../src/reminders/scheduler.ts';
-import { cloudAgentFixture } from './cloud-agent-fixture.ts';
-import { cloudAgentLinkHelpers } from './cloud-agent-link-helpers.ts';
 import { startTestTask } from './task-place-fixture.ts';
+import { workerLinkHelpers } from './worker-link-helpers.ts';
+import { workerRecordFixture } from './worker-record-fixture.ts';
 
-const fixture = cloudAgentFixture();
-const { agentPost } = cloudAgentLinkHelpers(fixture);
+const fixture = workerRecordFixture();
+const { agentPost } = workerLinkHelpers(fixture);
 let connection: HausConnection;
 let novaId: string;
 let target: string;

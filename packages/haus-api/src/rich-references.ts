@@ -2,7 +2,7 @@ export type HausRichReferenceKind =
     | 'agent'
     | 'app'
     | 'chat'
-    | 'cloud-agent-work'
+    | 'worker'
     | 'directory'
     | 'file'
     | 'image-generation'
@@ -15,7 +15,7 @@ export type HausRichReferenceProjection =
     | 'agent-reference'
     | 'capability-reference'
     | 'chat-reference'
-    | 'cloud-agent-work-reference'
+    | 'worker-reference'
     | 'image-generation-reference'
     | 'path-reference'
     | 'skill-activation'
@@ -54,9 +54,9 @@ export function formatChatMessageReferenceTarget(chatId: string, messageId: stri
     return `${formatChatReferenceTarget(chatId)}?thread=${encodeReferenceId(messageId)}`;
 }
 
-/** `cloud-agent://<workId>`. Build whole links with `formatCloudAgentWorkLink`. */
-export function formatCloudAgentWorkReferenceTarget(workId: string) {
-    return `cloud-agent://${encodeReferenceId(workId)}`;
+/** `worker://<workId>`. Build whole links with `formatWorkerLink`. */
+export function formatWorkerReferenceTarget(workId: string) {
+    return `worker://${encodeReferenceId(workId)}`;
 }
 
 /** `image-generation://<generationId>`. Build whole links with `formatImageGenerationLink`. */
@@ -108,8 +108,8 @@ export function parseChatMessageReferenceTarget(target: string) {
     return chatId && messageId ? { chatId, messageId } : null;
 }
 
-export function parseCloudAgentWorkReferenceTarget(target: string) {
-    return parseSchemeReferenceTarget(target, 'cloud-agent');
+export function parseWorkerReferenceTarget(target: string) {
+    return parseSchemeReferenceTarget(target, 'worker');
 }
 
 export function parseImageGenerationReferenceTarget(target: string) {
@@ -196,12 +196,12 @@ function parseRichReferenceLink({
         };
     }
 
-    if (parseCloudAgentWorkReferenceTarget(target)) {
+    if (parseWorkerReferenceTarget(target)) {
         return {
-            kind: 'cloud-agent-work',
-            // Undo the label escapes `formatCloudAgentWorkLink` writes.
+            kind: 'worker',
+            // Undo the label escapes `formatWorkerLink` writes.
             label: rawLabel.replace(/\\([\\[])/gu, '$1'),
-            projection: 'cloud-agent-work-reference',
+            projection: 'worker-reference',
         };
     }
 

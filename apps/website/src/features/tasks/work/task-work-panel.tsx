@@ -1,8 +1,8 @@
 import type { TaskDetail } from '@haus/api';
-import { CloudAgentWorkCard } from '../../cloud-agents/cloud-agent-work-card.tsx';
-import { CloudAgentRunSummary } from './cloud-agent-run-summary.tsx';
+import { WorkerCard } from '../../workers/worker-card.tsx';
 import { TaskPullRequestCard } from './task-pull-request-card.tsx';
 import { pendingTaskReminders, reminderLine, standalonePullRequests } from './task-work-model.ts';
+import { WorkerTurnSummary } from './worker-turn-summary.tsx';
 
 export function TaskWorkPanel({
     task,
@@ -19,9 +19,9 @@ export function TaskWorkPanel({
         <aside aria-label="Attached work" className="flex min-w-0 flex-col gap-3">
             {task.attachedWork.map((work) => (
                 <div className="scroll-my-4" data-work-id={work.id} key={work.id} tabIndex={-1}>
-                    <CloudAgentWorkCard work={work}>
-                        <CloudAgentRunSummary work={work} />
-                    </CloudAgentWorkCard>
+                    <WorkerCard work={work}>
+                        <WorkerTurnSummary work={work} />
+                    </WorkerCard>
                 </div>
             ))}
             {pullRequests.map((reading) => (

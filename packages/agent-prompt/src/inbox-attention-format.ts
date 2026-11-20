@@ -1,67 +1,55 @@
-import { type CloudAgentBranch, TASK_TARGET_PATTERN } from '@haus/api';
-import type {
-    AgentCloudAgentWorkAttention,
-    CloudAgentPullRequestChange,
-} from './agent-inbox-item.ts';
+import { TASK_TARGET_PATTERN, type WorkerBranch } from '@haus/api';
+import type { AgentWorkerAttention, WorkerPullRequestChange } from './agent-inbox-item.ts';
 import { indentContinuationLines } from './inbox-header-format.ts';
 
-export function formatCloudAgentWorkAttention(
-    work: AgentCloudAgentWorkAttention,
-    target: string
-): string {
-    const branches = work.branches.map(formatCloudAgentBranch);
-    const notice = work.notice === 'pull_request' ? ' notice=pull_request' : '';
+export function formatWorkerAttention(work: AgentWorkerAttention, target: string) {
+    return work.notice === 'stall'
+        ? formatStall(work, target)
+        : formatWorkerPullRequest(work, target);
+}
+
+export function formatPullRequestNotice(notice: WorkerPullRequestChange, target: string) {
     return [
-        `[Haus cloud agent attention${notice} status=${work.status} work=${work.workId} run=${work.runId} target=${target}]`,
-        indentContinuationLines(`${work.title} — ${work.repository} (${work.provider})`),
-        ...(work.notice === 'pull_request' ? [pullRequestLine(work)] : []),
-        `summary=${work.summary ? indentContinuationLines(work.summary) : '-'}`,
-        `errorCode=${work.errorCode ?? work.stallCode ?? '-'}`,
-        `branches=${branches.length > 0 ? branches.join(', ') : '-'}`,
-        `url=${work.providerUrl ?? '-'}`,
-        ...(work.status === 'pending_input'
-            ? [
-                  `The cloud agent stopped to ask the question in summary. Answer it yourself when the request settles it, or ask the requester first; send the answer with: haus cloud-agent send --work ${work.workId}`,
-              ]
-            : []),
-        ...((work.status === 'completed' || work.status === 'failed') && work.hasFullReport === true
-            ? [`More: haus cloud-agent inspect --work ${work.workId} --report`]
-            : []),
-        ...taskLine(target),
+        `[pull request · ${subjectOf(target)} · ${describeChange(notice.change)}]`,
+        `The pull request attached to ${subjectOf(target)} ${describeChange(notice.change)}: ${notice.url}`,
+        reportLine(target),
     ].join('\n');
 }
 
-export function formatPullRequestNotice(
-    notice: CloudAgentPullRequestChange,
-    target: string
-): string {
-    const key = TASK_TARGET_PATTERN.exec(target)?.[1];
-    const subject = key ? `Task ${key}` : target;
+function formatStall(work: AgentWorkerAttention, target: string) {
+    const branches = work.branches.map(formatWorkerBranch);
     return [
-        `[Haus pull request attention change=${notice.change} target=${target}]`,
-        `The pull request attached to ${subject} ${describeChange(notice.change)}: ${notice.url}`,
-        ...(key ? [`Report what you learn in the Task: haus message send --target ${target}`] : []),
+        `[worker stall · ${subjectOf(target)} · Worker on ${work.place} (${work.workerId}) · turn ${work.turnId}]`,
+        indentContinuationLines(`${work.title} — ${work.repository}`),
+        work.stallCode ? stallReasons[work.stallCode] : 'The turn is stuck without settling.',
+        ...(work.summary ? [indentContinuationLines(work.summary)] : []),
+        ...(branches.length > 0 ? [`Branches: ${branches.join(', ')}`] : []),
+        ...(work.providerUrl ? [`Provider: ${work.providerUrl}`] : []),
+        `Nothing settled, so nothing was posted. Wait, stop it with haus worker stop --worker ${work.workerId}, or replace its waiting follow-up with haus worker send --worker ${work.workerId} --interrupt.`,
     ].join('\n');
 }
 
-function taskLine(target: string): string[] {
-    const key = TASK_TARGET_PATTERN.exec(target)?.[1];
-    return key
-        ? [
-              `This work is for Task ${key}. Report what you learn in the Task: haus message send --target ${target}`,
-          ]
-        : [];
-}
-
-function pullRequestLine(work: AgentCloudAgentWorkAttention): string {
+function formatWorkerPullRequest(work: AgentWorkerAttention, target: string) {
     const change = work.pullRequestChange;
     const url =
         change?.url ?? work.branches.find((branch) => branch.pullRequestUrl)?.pullRequestUrl;
     const what = change ? describeChange(change.change) : 'changed';
-    return `Its pull request ${what} after the run settled: ${url ?? 'URL not recorded'}`;
+    return [
+        `[pull request · ${subjectOf(target)} · ${what} · Worker on ${work.place} (${work.workerId})]`,
+        `The pull request from ${indentContinuationLines(work.title)} ${what} after the Worker's turn settled: ${url ?? 'URL not recorded'}`,
+        reportLine(target),
+    ].join('\n');
 }
 
-function describeChange(change: CloudAgentPullRequestChange['change']): string {
+function subjectOf(target: string) {
+    return TASK_TARGET_PATTERN.exec(target)?.[1] ?? target;
+}
+
+function reportLine(target: string) {
+    return `Post what you learn in the Task: haus message send --target ${target}`;
+}
+
+function describeChange(change: WorkerPullRequestChange['change']) {
     switch (change) {
         case 'ready_for_review':
             return 'is ready for review';
@@ -74,7 +62,14 @@ function describeChange(change: CloudAgentPullRequestChange['change']): string {
     }
 }
 
-function formatCloudAgentBranch(branch: CloudAgentBranch): string {
+const stallReasons = {
+    'claude-prompt-not-found':
+        "Claude's session log is too large to find this turn in it, so Haus cannot tell when it finishes.",
+    'followup-auto-interrupt-failed':
+        'Haus interrupted the hosted session to deliver a follow-up, and it still did not go through. Haus keeps retrying.',
+} as const;
+
+function formatWorkerBranch(branch: WorkerBranch) {
     const pullRequest = branch.pullRequest;
     const diff = pullRequest
         ? ` state=${pullRequest.state} files=${pullRequest.changedFiles} +${pullRequest.additions} -${pullRequest.deletions}`

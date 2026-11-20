@@ -4,6 +4,7 @@ import { removeServerComputer } from '../../computers/remove-computer.ts';
 import { ComputerSetupDeniedError } from '../../computers/service.ts';
 import { computerUpdatedTopic } from '../../realtime/topics.ts';
 import { serverIdSchema } from '../../servers/contracts.ts';
+import { commitWorkerEffects } from '../../workers/worker-effects.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
 export const removeComputerProcedure = memberProcedure
@@ -18,13 +19,23 @@ export const removeComputerProcedure = memberProcedure
     )
     .mutation(async ({ ctx, input }) => {
         try {
-            const removed = await removeServerComputer(ctx.hausDb, ctx.member, input);
+            const removed = await removeServerComputer(
+                ctx.hausDb,
+                ctx.agentDelivery,
+                ctx.member,
+                input
+            );
             ctx.computerConnections.disconnectComputer(removed.computerId);
             computerUpdatedTopic.announce({
                 computerId: input.computerId,
                 serverId: input.serverId,
             });
-            return removed;
+            await commitWorkerEffects(removed.workers, {
+                agentDelivery: ctx.agentDelivery,
+                connections: ctx.computerConnections,
+                postCommitWork: ctx.postCommitWork,
+            });
+            return { computerId: removed.computerId };
         } catch (cause) {
             if (cause instanceof ComputerSetupDeniedError) {
                 throw new TRPCError({ cause, code: 'FORBIDDEN', message: cause.message });

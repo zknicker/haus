@@ -7,7 +7,7 @@ extension HausStore {
     func cancelCloudAgent(workID: String) async throws {
         guard let serverID = activeServer?.id else { throw HausStoreError.serverUnavailable }
         let _: CloudAgentCancelReceipt = try await client.mutation(
-            "cloudAgentWork.cancel", input: CloudAgentCancelInput(serverId: serverID, workId: workID)
+            "worker.stop", input: CloudAgentCancelInput(serverId: serverID, workerId: workID)
         )
     }
 
@@ -62,7 +62,7 @@ extension HausStore {
 
 private struct CloudAgentCancelInput: Encodable {
     let serverId: String
-    let workId: String
+    let workerId: String
 }
 
 private struct CloudAgentCancelReceipt: Decodable {

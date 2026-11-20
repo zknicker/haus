@@ -5,9 +5,9 @@ import type {
     ComputerModelFeature,
 } from '@haus/api';
 import { type ComputerRuntimeId, computerRuntimeCatalog } from '@haus/api/computer-runtime';
-import { detectCloudAgentProviders } from './cloud-agents/registry.ts';
 import { resolveRuntimeById } from './runtime-discovery.ts';
 import { supportsSubagents } from './runtime/runtime-subagents.ts';
+import { detectCloudAgentProviders } from './workers/registry.ts';
 
 type ComputerRuntime = ComputerInventory['runtimes'][number];
 
@@ -47,7 +47,7 @@ const knownRuntimes: ComputerRuntime[] = [
 
 /**
  * Reports the sanitized runtime/model inventory, plus Cloud Agent provider
- * readiness. Cloud Agent access is its own Computer capability, separate from
+ * readiness. Worker access is its own Computer capability, separate from
  * the runtime harnesses even when a provider shares a vendor with one.
  */
 export async function detectFullInventory(options: {

@@ -6,11 +6,11 @@ test('an Owner connects a Computer to Cursor Cloud Agents from Settings', async 
     page,
 }, testInfo) => {
     const { client: owner } = await createTestServer(page, {
-        displayName: 'Cloud Agent HQ',
-        slug: 'cloud-agent-hq',
+        displayName: 'Worker HQ',
+        slug: 'worker-hq',
     });
-    const credential = 'computer-cloud-agent-credential-1234';
-    const { computerId } = await attachComputer(owner, { credential, slug: 'cloud-agent-hq' });
+    const credential = 'computer-worker-credential-123456789';
+    const { computerId } = await attachComputer(owner, { credential, slug: 'worker-hq' });
 
     const computer = new WebSocket(
         `ws://127.0.0.1:${process.env.HAUS_SERVER_PORT}/computer/attachment`
@@ -19,10 +19,10 @@ test('an Owner connects a Computer to Cursor Cloud Agents from Settings', async 
     const accepted = socketMessage(computer);
     sendBootstrap(computer, credential, 'complete');
     expect(await accepted).toMatchObject({ mode: 'ordinary' });
-    sendCloudAgentReport(computer, { ready: false, reason: 'not-connected' });
+    sendWorkerReport(computer, { ready: false, reason: 'not-connected' });
     const signIn = answerCloudAgentCapability(computer);
 
-    await page.goto(`/s/cloud-agent-hq/settings/computers/${computerId}`);
+    await page.goto(`/s/worker-hq/settings/computers/${computerId}`);
     const detail = page.getByRole('main', { name: 'Scrollable main content' });
     await expect(detail.getByText('Cursor Cloud Agents')).toBeVisible();
     // Each provider has its own row; this test drives Cursor's.
@@ -89,10 +89,7 @@ test('an Owner connects a Computer to Cursor Cloud Agents from Settings', async 
  * The Computer's own inventory line. It renders the capability row before the
  * settings read answers, so the row is truthful on first paint.
  */
-function sendCloudAgentReport(
-    socket: WebSocket,
-    readiness: { ready: boolean; reason: string | null }
-) {
+function sendWorkerReport(socket: WebSocket, readiness: { ready: boolean; reason: string | null }) {
     socket.send(
         JSON.stringify({
             agents: [],
@@ -122,7 +119,7 @@ function answerCloudAgentCapability(socket: WebSocket) {
             type?: string;
         };
         if (frame.type === 'browser-request') {
-            // The page batches Browser and Cloud Agent reads; both need a reply.
+            // The page batches Browser and Worker reads; both need a reply.
             socket.send(
                 JSON.stringify({
                     error: 'Browser is unavailable on this test Computer.',
@@ -174,7 +171,7 @@ function answerCloudAgentCapability(socket: WebSocket) {
                 type: 'cloud-agent-capability-result',
             })
         );
-        sendCloudAgentReport(
+        sendWorkerReport(
             socket,
             connected ? { ready: true, reason: null } : { ready: false, reason: 'not-connected' }
         );

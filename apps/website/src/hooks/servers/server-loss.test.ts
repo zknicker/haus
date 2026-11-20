@@ -67,7 +67,7 @@ describe('Chat-loss purge', () => {
         ];
         for (const chatId of ['cht_gone', 'cht_kept']) {
             queryClient.setQueryData(key('chat.get', chatId), { id: chatId });
-            queryClient.setQueryData(key('cloudAgentWork.listForChat', chatId), []);
+            queryClient.setQueryData(key('worker.listForChat', chatId), []);
         }
 
         await runChatLoss({

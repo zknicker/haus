@@ -67,7 +67,7 @@ export async function seedServerDemoTasks(
                     { author: owner, content: 'Keep the crop square for now.' },
                     {
                         author: blippy,
-                        content: 'Square it is. Handing the build to a cloud agent.',
+                        content: 'Square it is. Handing the build to a Worker.',
                     },
                 ],
                 createdBy: blippy,
