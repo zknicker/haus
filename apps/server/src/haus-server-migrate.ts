@@ -1,3 +1,4 @@
+import { describeMigrationFailure } from './postgres/migration-failure.ts';
 import { migrateHausDatabase } from './postgres/migrations.ts';
 
 const databaseUrl = process.env.HAUS_DATABASE_MIGRATION_URL;
@@ -19,7 +20,8 @@ try {
             : 'No database migrations were required.'
     );
 } catch (error) {
-    const reason = error instanceof Error ? error.message : 'Unknown PostgreSQL error.';
-    console.error(`Haus PostgreSQL migration failed: ${reason}`);
+    console.error(
+        `Haus PostgreSQL migration failed: ${describeMigrationFailure(error, databaseUrl)}`
+    );
     process.exit(1);
 }
