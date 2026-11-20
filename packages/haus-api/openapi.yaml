@@ -3167,8 +3167,8 @@ components:
           type: string
           pattern: '^[A-Z][A-Z0-9]{1,4}$'
           description: >-
-            The Task's Project by key, like `SEC`. Defaults to the origin's channel, or for a DM
-            origin to the caller's home Project.
+            The Task's Project by key, like `SEC`. Defaults to the origin's channel, or for a DM or
+            `#all` origin to the caller's home Project.
         state:
           description: Defaults to open.
           type: string

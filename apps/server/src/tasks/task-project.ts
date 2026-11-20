@@ -16,12 +16,13 @@ export async function resolveStartProject(
     }
 ) {
     const home = await readAgentHome(db, input);
+    const originProject =
+        input.origin.kind === 'channel' && !(await isAllChannel(db, input.origin.chatId))
+            ? input.origin.chatId
+            : home.projectId;
     const project = await (input.projectKey !== undefined
         ? readProjectByKey(db, { key: input.projectKey, serverId: input.serverId })
-        : readProject(db, {
-              projectId: input.origin.kind === 'channel' ? input.origin.chatId : home.projectId,
-              serverId: input.serverId,
-          }));
+        : readProject(db, { projectId: originProject, serverId: input.serverId }));
     if (project.projectId !== home.projectId) {
         throw new TaskProjectNotHomeError({
             channelName: project.name,
@@ -42,6 +43,15 @@ export async function requireFilingProject(
     const project = await readProject(db, input);
     await requireChatWritable(db, { chatId: project.projectId, serverId: input.serverId });
     return { projectId: project.projectId, taskKeyId: project.taskKeyId };
+}
+
+async function isAllChannel(db: Reader, chatId: string) {
+    const [chat] = await db
+        .select({ isAll: chatsTable.isAll })
+        .from(chatsTable)
+        .where(eq(chatsTable.id, chatId))
+        .limit(1);
+    return chat?.isAll === true;
 }
 
 async function readAgentHome(db: Reader, input: { agentId: string; serverId: string }) {

@@ -7,6 +7,7 @@ const fixture = agentCreationFixture();
 let runner: { token: string };
 let bea: HausClient;
 let allId: string;
+let allTarget: string;
 let opsId: string;
 
 interface StartReceipt {
@@ -55,10 +56,11 @@ beforeAll(async () => {
         insert into channel_participants (server_id, chat_id, user_id)
         values (${serverId}, ${fixture.channelId}, ${await fixture.readUserId('user_task_project_bea')})
     `;
-    const [haus] = (await fixture.harness.sql`
-        select id from chats where server_id = ${serverId} and is_all
-    `) as { id: string }[];
-    allId = haus?.id ?? '';
+    const [all] = (await fixture.harness.sql`
+        select id, name from chats where server_id = ${serverId} and is_all
+    `) as { id: string; name: string }[];
+    allId = all?.id ?? '';
+    allTarget = `#${all?.name}`;
     opsId = (await owner.trpc.project.create.mutate({ key: 'OPS', name: 'ops', serverId })).chat.id;
 });
 
@@ -93,6 +95,28 @@ test('a DM origin starts a Task in the Agent’s home Project, shown only to tha
     const page = await owner.trpc.chat.messages.query({ chatId: dm.message.chatId, serverId });
     expect(page.tasks.map((task) => [task.key, task.originMessageId])).toEqual([
         ['PROD-1', dm.message.id],
+    ]);
+});
+
+test('an #all origin starts a Task in the Agent’s home Project, and #all previews it', async () => {
+    const { serverId } = fixture;
+    const origin = await send(allId, '@orbit the changelog is stale');
+    const started = await startTask({
+        from: origin.message.id,
+        target: allTarget,
+        title: 'Refresh the changelog',
+    });
+    expect(started).toMatchObject({ body: { target: 'task:PROD-2' }, status: 200 });
+
+    const seen = await fixture.owner.trpc.task.get.query({ key: 'PROD-2', serverId });
+    expect(seen).toMatchObject({
+        origin: { chatId: allId, messageId: origin.message.id },
+        projectId: fixture.channelId,
+    });
+    expect(await taskChatParent(seen.chatId ?? '')).toBe(fixture.channelId);
+    const page = await fixture.owner.trpc.chat.messages.query({ chatId: allId, serverId });
+    expect(page.tasks.map((task) => [task.key, task.originMessageId])).toEqual([
+        ['PROD-2', origin.message.id],
     ]);
 });
 

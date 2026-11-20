@@ -57,11 +57,11 @@ they wake an Agent, which decides. There is no Convert to Task.
   the Task from it. A request made in a DM gets a reply there carrying the Task chip.
   `TASK_ORIGIN_DM` is deleted.
 - `haus task start --project <key>` names the Project. Without it the Project is the one the
-  origin Message is in, or the Agent's home Project when the origin is a DM.
-- A non-generalist Agent starts Tasks only in its home Project; any other Project is refused with
-  `TASK_PROJECT_NOT_HOME`, which says to @mention that Project's Agent in its channel. A
-  generalist, whose home is the Haus project, may start a Task in any Project
-  ([projects.md](projects.md#generalists)).
+  origin Message is in, or the Agent's home Project when the origin is a DM or `#all`, which is
+  no Project.
+- An Agent starts Tasks only in its home Project; any other Project is refused with
+  `TASK_PROJECT_NOT_HOME`, which says to @mention that Project's Agent in its channel.
+  Generalists, who were exempt, are retired ([projects.md](projects.md#generalists)).
 - An Agent starts a Task when its reply will not finish the work: more steps, more time, or a
   cloud agent. A reply that is the whole of the work stays a reply. The Agent prompt's Tasks
   section teaches this ([ADR 0053](../docs/adr/0053-channels-and-tasks-are-the-only-places.md)

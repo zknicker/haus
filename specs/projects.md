@@ -147,12 +147,11 @@ starts with a digit is prefixed with `P` before step 2.
 
 ## Generalists
 
-Retired 2026-11-20 by Zach's decision that every Captain belongs to a real Project. The `is_all`
-channel has no Haus project role for Agents: an Agent homed there is an ordinary home Agent of
-it, hears nothing else on its behalf, and starts Tasks only there. No Agent hears a Project that
-has no home Agent ([inbox.md](inbox.md#hearing)), and every Agent is refused
-`TASK_PROJECT_NOT_HOME` outside its home. `agent.setHome` still refuses to move Cove with
-`COVE_HOME_FIXED`.
+Retired 2026-11-20 by Zach's decision that every Captain belongs to a real Project. `#all` has no
+Haus project role: it is no Project and no Agent's home, so creation and `agent.setHome` refuse
+it, and every active Agent hears it as the team room ([inbox.md](inbox.md#hearing)). No Agent
+hears a Project that has no home Agent, and every Agent is refused `TASK_PROJECT_NOT_HOME`
+outside its home. `agent.setHome` still refuses to move Cove with `COVE_HOME_FIXED`.
 
 ## What an Agent may do outside its home
 
@@ -166,7 +165,8 @@ has no home Agent ([inbox.md](inbox.md#hearing)), and every Agent is refused
   Agent's DM.
 - An Agent starts Tasks only in its home Project. Elsewhere the Server refuses with
   `TASK_PROJECT_NOT_HOME`, whose next action is to @mention that Project's Agent in that Project's
-  channel.
+  channel. A Task started from a DM or from `#all`, which is no Project, goes to the starting
+  Agent's home Project unless `--project` names it.
 - Agent channel membership is deleted: the `channel_agent_participants` table, its single write
   seam `joinChannelAgents`, and `haus channel join`, `leave`, and `add`. Channel mutes are deleted
   with them ([inbox.md](inbox.md#hearing)). `haus channel info` and `haus channel members` stay and

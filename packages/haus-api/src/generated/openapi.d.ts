@@ -2034,7 +2034,7 @@ export interface components {
             /** @description The origin Message id. It must be in `target`. */
             from: string;
             priority?: components["schemas"]["AgentTaskPriority"];
-            /** @description The Task's Project by key, like `SEC`. Defaults to the origin's channel, or for a DM origin to the caller's home Project. */
+            /** @description The Task's Project by key, like `SEC`. Defaults to the origin's channel, or for a DM or `#all` origin to the caller's home Project. */
             project?: string;
             /**
              * @description Defaults to open.

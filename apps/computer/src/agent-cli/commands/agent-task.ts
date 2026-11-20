@@ -54,7 +54,7 @@ export const TASK_SUBCOMMANDS: SubCommand[] = [
             },
             {
                 description:
-                    "The Project's key, like APP; defaults to the origin's channel, or your home Project for a DM",
+                    "The Project's key, like APP; defaults to the origin's channel, or your home Project for a DM or #all",
                 name: '--project',
                 valueName: '<KEY>',
             },
@@ -76,7 +76,7 @@ export const TASK_SUBCOMMANDS: SubCommand[] = [
         name: 'start',
         notes: [
             "A Task starts from a message in a channel or DM and takes its Project's key. Several Tasks may start from one message.",
-            'Unless your home is the Haus project, you start Tasks only in your home Project; elsewhere the Server refuses with TASK_PROJECT_NOT_HOME.',
+            'You start Tasks only in your home Project; elsewhere the Server refuses with TASK_PROJECT_NOT_HOME.',
             'Not idempotent: if a start goes unanswered, check haus task list before repeating it.',
         ],
         positionals: [],
