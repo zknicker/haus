@@ -26,7 +26,7 @@ test('an image send renders as an image while pending and after the Server confi
 }) => {
     await signInAsAppHuman(page);
     await page.goto('/s/attachment-images');
-    await openChannel(page, 'haus');
+    await openChannel(page, 'all');
 
     // Hold the byte upload so the pending row is observable.
     let releaseUpload: () => void = () => undefined;
@@ -63,7 +63,7 @@ test('a PNG uploaded with no type and no extension is stored and shown as an ima
 }) => {
     await signInAsAppHuman(page);
     await page.goto('/s/attachment-images');
-    await openChannel(page, 'haus');
+    await openChannel(page, 'all');
 
     await attach(page, { mimeType: '', name: 'clipboard-paste' });
     await chat(page).getByRole('button', { name: 'Send' }).click();
@@ -73,7 +73,7 @@ test('a PNG uploaded with no type and no extension is stored and shown as an ima
 
     // After a reload nothing local remains: the image comes from the stored type and bytes.
     await page.reload();
-    await openChannel(page, 'haus');
+    await openChannel(page, 'all');
     const image = chat(page).getByRole('button', { name: 'Open clipboard-paste' }).locator('img');
     await expect(image).toBeVisible();
     expect(await image.evaluate((element: HTMLImageElement) => element.naturalWidth)).toBe(48);
@@ -87,7 +87,7 @@ test('the image viewer steps through a message’s images and keeps focus at the
 }) => {
     await signInAsAppHuman(page);
     await page.goto('/s/attachment-images');
-    await openChannel(page, 'haus');
+    await openChannel(page, 'all');
 
     const chooser = page.waitForEvent('filechooser');
     await chat(page).getByLabel('Add attachments', { exact: true }).click();
@@ -117,9 +117,9 @@ test('the image viewer steps through a message’s images and keeps focus at the
     await expect(viewer).toHaveCount(0);
 });
 
-/** The open #haus chat; a kept, hidden chat view can hold a second composer. */
+/** The open #all chat; a kept, hidden chat view can hold a second composer. */
 function chat(page: import('@playwright/test').Page) {
-    return page.getByRole('region', { name: 'haus' });
+    return page.getByRole('region', { name: 'all' });
 }
 
 async function attach(

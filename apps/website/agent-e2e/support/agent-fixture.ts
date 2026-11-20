@@ -1,4 +1,4 @@
-import { type Agent, chatSchema } from '@haus/api';
+import { type Agent, chatSchema, type Project } from '@haus/api';
 import { createEvalHarness } from '../../../../scripts/eval-harness.mjs';
 import { cleanupEvalChats } from './cleanup-eval-chats.ts';
 
@@ -34,8 +34,9 @@ export async function createAgentFixture(options: CreateAgentFixtureOptions) {
 
     try {
         const template = await findTemplate(harness, options.modelHint);
+        const homeProjectId = await findOpenProjectId(harness);
         for (const [index, profile] of options.profiles.entries()) {
-            const created = await createAgent(harness, template, profile, index);
+            const created = await createAgent(harness, template, profile, index, homeProjectId);
             agents.push(created);
             if (created.dmChatId) {
                 chatIds.add(created.dmChatId);
@@ -89,7 +90,8 @@ async function createAgent(
     harness: EvalHarness,
     template: Agent,
     profile: AgentProfile,
-    index: number
+    index: number,
+    homeProjectId: string
 ) {
     const suffix = `${harness.stamp.slice(-6)}-${crypto.randomUUID().slice(0, 6)}`.toLowerCase();
     const displayName = `${profile.name} ${suffix}`;
@@ -98,6 +100,7 @@ async function createAgent(
         description: `Temporary Agent E2E fixture. Act only when explicitly addressed or assigned. ${profile.description}`,
         displayName,
         handle: createHandle(profile.name, suffix, index),
+        homeProjectId,
         modelId: template.desiredModelId,
         runtimeId: template.desiredRuntimeId,
         serverId: harness.serverId,
@@ -109,6 +112,17 @@ async function createAgent(
         })
     );
     return { ...created.agent, dmChatId: dm.id, name: created.agent.displayName };
+}
+
+async function findOpenProjectId(harness: EvalHarness) {
+    const projects = (await harness.trpc('project.list', {
+        serverId: harness.serverId,
+    })) as Project[];
+    const project = projects.find((entry) => !(entry.isHaus || entry.archived));
+    if (!project) {
+        throw new Error('Agent E2E needs one open Project to home its Agents.');
+    }
+    return project.chatId;
 }
 
 async function waitForReadyAgent(harness: EvalHarness, agentId: string) {

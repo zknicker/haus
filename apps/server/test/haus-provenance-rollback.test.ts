@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { reminderCadenceSummary } from '../src/automations/automation-summary.ts';
+import { testSqlAgentHome } from './agent-home.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -22,7 +23,7 @@ beforeAll(async () => {
     chatId = server.channels[0].id;
     anchorId = await message('anchor');
     await harness.sql`INSERT INTO agents (id, server_id, handle, display_name, home_timezone, home_project_id)
-        VALUES (${agentId}, ${serverId}, 'rollback-agent', 'Rollback Agent', 'UTC', (select id from chats where server_id = ${serverId} and is_all))`;
+        VALUES (${agentId}, ${serverId}, 'rollback-agent', 'Rollback Agent', 'UTC', ${await testSqlAgentHome(harness.sql, serverId)})`;
     await harness.sql`INSERT INTO triggers
         (id, server_id, owner_agent_id, anchor_chat_id, kind, status, title, secret_hash, created_at, updated_at)
         VALUES ('trg_rollback', ${serverId}, ${agentId}, ${chatId}, 'webhook', 'armed',

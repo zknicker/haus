@@ -3,7 +3,7 @@ summary: Agent inbox — the `agent_inbox` item kinds and their one lifecycle, e
 read_when:
   - adding an agent inbox item kind, or changing an item's identity or lifecycle
   - changing the drive_conflict item, who receives it, or its wording
-  - changing which agents wake for a chat message, home Project hearing, follow semantics, or mentions outside the home Project
+  - changing which agents wake for a chat message, Project hearing, follow semantics, or mentions outside its Project
   - changing exact model visibility, freshness catch-up, or pull acknowledgement
   - changing mid-turn notices, drain batching, or chain limits
   - changing how the Server infers which fire caused an Agent's message
@@ -83,8 +83,8 @@ only what is addressed to it or what it follows. A message reaches an Agent when
 
 | Where the message is | It reaches the Agent when |
 | --- | --- |
-| Its home Project's channel | Always, as ordinary delivery |
-| A Task of its home Project | Always |
+| Its Project's channel | Always, as ordinary delivery |
+| A Task of its Project | Always |
 | Another Project's channel, top level | It @mentions the Agent |
 | Another Project's channel, inline reply | It @mentions the Agent, or the Agent follows the reply chain |
 | A Task of another Project | It @mentions the Agent, or the Agent follows the Task |
@@ -103,7 +103,7 @@ only what is addressed to it or what it follows. A message reaches an Agent when
 - Posting in a Project does not make an Agent hear it. Moving an Agent's home changes delivery
   for messages planned after the move. Items already queued stay queued.
 - There are no channel mutes. `agent_channel_mutes` and `haus channel mute` and `unmute` are
-  deleted: a home Project is the place an Agent answers first, and other Projects already reach it
+  deleted: a Project is the place an Agent answers first, and other Projects already reach it
   only by mention. Home hearing is absolute: a home Agent hears every message in its Project's
   channel and Tasks, and unfollowing a home Task changes nothing for it. Outside its home, an Agent
   stops hearing a Task by unfollowing it (`haus task unfollow`).
@@ -139,7 +139,7 @@ A durable `message.created` is planned once by Server delivery
   other eligible Channel participants retain ambient visibility without that attention flag.
 - A direct claim assignment to another Agent keeps the canonical claim message as ordinary work and
   adds one `claim_assignment` item to only the assignee's inbox. It is `mentioned=true` so it
-  reaches the assignee outside its home Project, and renders in Agent inbox envelopes the way a reminder fire does. The
+  reaches the assignee outside its Project, and renders in Agent inbox envelopes the way a reminder fire does. The
   human's representation of that fact is the claim chip on the message.
 - A settled Cloud Agent Run creates one terminal attention for only the Agent that delegated it,
   keyed by the Run id and carrying the work's title, repository, provider URL, and the Run's status,
@@ -358,7 +358,7 @@ the Agent (`N new, not yet delivered`) come first, and pending Cloud Agent resul
 print as one `Cloud Agent results · N pending · fetch with haus message check` line.
 The output pages with `More: haus inbox check --before <key>` and ends with exactly
 one `Next:` line. `--view mentions` keeps only conversations that mention the Agent;
-a channel outside its home Project appears only when it mentions the Agent. A 503 `INBOX_UNAVAILABLE`
+a channel outside its Project appears only when it mentions the Agent. A 503 `INBOX_UNAVAILABLE`
 teaches a retry, and `haus message check` still drains. Listing advances nothing.
 
 The read position advances when `haus message read --unread` returns messages, when a
@@ -424,7 +424,7 @@ composing a reply. Chat renders only durable messages. The typing strip is a sep
 exact run visibility, not of attachment ([ADR 0035](../docs/adr/0035-chat-engagement-shows-as-typing.md)). Status dots, semantic Agent activity, and
 detailed execution evidence remain separate Agent-level projections
 ([agent-activity.md](agent-activity.md)). Inbox visibility for humans is read-only (I4): pending
-targets, the home Project, and follows on the Agent profile; humans steer attention by asking in Chat.
+targets, the Project, and follows on the Agent profile; humans steer attention by asking in Chat.
 
 ## Worker items
 

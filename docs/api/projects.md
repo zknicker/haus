@@ -17,6 +17,7 @@ product logic in `apps/server/src/projects/`. Every procedure runs for an active
 | --- | --- | --- |
 | `project.create` | `projectCreateInputSchema`: `serverId`, `name`, `key?`, `description?`, `icon?`, `color?` | `{ chat, project }` |
 | `project.update` | `projectUpdateInputSchema`: `serverId`, `chatId`, and any of `name`, `description`, `icon`, `color`, `key`; `null` clears a description, icon, or color | `{ chat, project }` |
+| `chat.updateAllChannel` | `allChannelUpdateInputSchema`: `project.update`'s input without `key`, on the `#all` chat | `{ chat }` |
 | `project.list` (query) | `projectListInputSchema`: `serverId` | Every live or archived Project, by name |
 | `project.onUpdated` (subscription) | `serverId` | `{ serverId, projectId }` on create and on every update that changed something |
 
@@ -34,6 +35,10 @@ non-retired Agents whose home it is, oldest first).
 - `project.update` renames the Project's ledger entry in place while no Task holds it. It
   needs the same access as a channel write: a member outside the channel gets `FORBIDDEN`, and an
   archived channel `CONFLICT`, before anything commits.
+- `#all` has no `projects` row, so `project.update` answers it `NOT_FOUND`. The App's channel
+  settings save its description, icon, and color through `chat.updateAllChannel`, with the same
+  access check. A new name refuses with `PROJECT_NAME_FIXED`; sending its current name is a no-op.
+  It publishes `chat.onLifecycle` `updated` when a field changed.
 - Both publish `chat.onLifecycle` (`created`, or `updated` when a channel field changed) for the
   chat list, and `project.onUpdated`.
 - Archiving or deleting a Project goes through `chat.archiveChannel` and `chat.deleteChannel`.

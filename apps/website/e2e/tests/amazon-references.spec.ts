@@ -11,7 +11,7 @@ test('Amazon chips resolve prose and links, preview on focus, and turn back into
         displayName: 'Amazon references',
         slug: 'amazon-references',
     });
-    const chatId = server.channels.find((channel) => channel.name === 'haus')?.id;
+    const chatId = server.channels.find((channel) => channel.name === 'all')?.id;
     assertOpaqueId(chatId);
     const connection = await client.mcp.addPresetAccount.mutate({
         serverId: server.id,

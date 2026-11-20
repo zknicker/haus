@@ -9,7 +9,7 @@ test('inline reports track the reply column and grow and shrink with their docum
         displayName: 'Visual Reports',
         slug: 'visual-reports',
     });
-    const chat = server.channels.find((channel) => channel.name === 'haus');
+    const chat = server.channels.find((channel) => channel.name === 'all');
     if (!chat) {
         throw new Error('Missing all channel');
     }
@@ -25,7 +25,7 @@ test('inline reports track the reply column and grow and shrink with their docum
         update chats set last_message_sequence = 1 where id = '${chat.id}';
     `
     );
-    await openChannel(page, 'haus');
+    await openChannel(page, 'all');
     const frame = page.locator('iframe[title="Responsive sales report"]');
     const report = page.frameLocator('iframe[title="Responsive sales report"]');
     await expect(frame).toBeVisible();

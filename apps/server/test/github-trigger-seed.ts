@@ -1,9 +1,10 @@
 import { signGithubPayload } from '../src/github/webhook-signature.ts';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { fixtureInstallationId, fixtureRepository } from './github-delivery-fixtures.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import type { HausServerHarness } from './haus-server-harness.ts';
 
-// One Server wired for GitHub Triggers: an Agent in #haus with a message to
+// One Server wired for GitHub Triggers: an Agent in #all with a message to
 // anchor on, a connected GitHub connection the Agent holds a grant on, and an
 // active installation whose access cache reaches acme/api.
 
@@ -39,7 +40,7 @@ export async function seedGithubTriggerWorld(
         insert into computers (id, server_id, attached_by_user_id, credential_hash, reported_inventory, health)
         values (${computerId}, ${serverId}, ${userId}, ${credentialHash}, ${{ runtimes: [codexRuntime] }}::jsonb, 'healthy')
     `;
-    const created = await owner.trpc.agent.create.mutate({
+    const created = await createHomedAgent(owner, {
         computerId,
         displayName: 'Sage',
         handle: 'sage',

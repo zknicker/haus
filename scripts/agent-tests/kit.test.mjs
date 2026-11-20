@@ -34,6 +34,8 @@ const readyAgent = {
     status: 'applied',
 };
 
+const evalProject = { archived: false, chatId: 'cht_product', isHaus: false, name: 'product' };
+
 const codexComputer = {
     health: 'healthy',
     id: 'cmp_1',
@@ -121,6 +123,7 @@ describe('provisioning', () => {
         expect(worker.description).toBe(agentKindDescriptions.worker);
         expect(worker).toMatchObject({
             computerId: 'cmp_1',
+            homeProjectId: 'cht_product',
             modelId: 'gpt-5.6-terra',
             runtimeId: 'codex',
             serverId: 'srv_1',
@@ -380,6 +383,9 @@ function createFakeHarness({
         calls.push({ input, path });
         if (path === 'computer.list') {
             return [codexComputer];
+        }
+        if (path === 'project.list') {
+            return [evalProject];
         }
         if (path === 'agent.create') {
             inFlightCreates += 1;

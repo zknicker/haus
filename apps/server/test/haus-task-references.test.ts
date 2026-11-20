@@ -8,6 +8,7 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import { scheduleReminder } from '../src/reminders/reminders.ts';
 import { updateReminder } from '../src/reminders/reschedule.ts';
 import { assignTask } from '../src/tasks/task-assign.ts';
+import { testSqlAgentHome } from './agent-home.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { captureAllTopics, publishedSince } from './realtime-capture.ts';
@@ -34,7 +35,7 @@ beforeAll(async () => {
     chatId = server.channels[0]?.id ?? '';
     await harness.sql`
         insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
-        values (${agentId}, ${serverId}, 'refs-cove', 'Cove', 'America/New_York', (select id from chats where server_id = ${serverId} and is_all))
+        values (${agentId}, ${serverId}, 'refs-cove', 'Cove', 'America/New_York', ${await testSqlAgentHome(harness.sql, serverId)})
     `;
     await harness.sql`
         insert into channel_agent_participants (server_id, chat_id, agent_id)

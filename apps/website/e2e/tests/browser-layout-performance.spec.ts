@@ -10,7 +10,7 @@ test('desktop browser ignores unrelated DOM updates and still covers overlapping
         displayName: 'Browser performance',
         slug: 'browser-performance',
     });
-    const chatId = server.channels.find((chat) => chat.name === 'haus')?.id;
+    const chatId = server.channels.find((chat) => chat.name === 'all')?.id;
     assertOpaqueId(chatId);
     await client.chat.send.mutate({
         chatId,
@@ -18,7 +18,7 @@ test('desktop browser ignores unrelated DOM updates and still covers overlapping
         nonce: 'browser-performance-link',
         content: '[Example](https://example.com)',
     });
-    await openChannel(page, 'haus');
+    await openChannel(page, 'all');
     await page.getByRole('link', { name: 'Open Example', exact: true }).click();
     await expect(
         page.getByRole('region', { name: 'Browser: example.com', exact: true })

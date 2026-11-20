@@ -38,6 +38,7 @@ export const createAgentInputSchema = z
         description: agentDescriptionInputSchema.nullable().optional(),
         displayName: z.string().trim().min(1).max(80),
         handle: participantHandleSchema,
+        homeProjectId: appIdSchema,
         modelId: z.string().trim().min(1).max(128),
         reasoningEffort: agentReasoningEffortSchema.default('medium'),
         runtimeId: z.string().trim().min(1).max(64),
