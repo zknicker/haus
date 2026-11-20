@@ -1,7 +1,7 @@
 import type {
-    CloudAgentPullRequestReading,
-    CloudAgentPullRequestState,
-    CloudAgentWork,
+    PullRequestReading,
+    WorkerPullRequestState,
+    Worker,
     TaskReminderRef,
 } from '@haus/api';
 
@@ -21,7 +21,7 @@ const reviewLabels = {
 } as const;
 
 export const pullRequestStateChip: Record<
-    CloudAgentPullRequestState,
+    WorkerPullRequestState,
     { color: 'accent' | 'default' | 'success'; label: string }
 > = {
     closed: { color: 'default', label: 'Closed' },
@@ -30,15 +30,15 @@ export const pullRequestStateChip: Record<
     open: { color: 'accent', label: 'Open' },
 };
 
-export function pullRequestFacts(reading: CloudAgentPullRequestReading): string {
+export function pullRequestFacts(reading: PullRequestReading): string {
     const files = `${reading.changedFiles} ${reading.changedFiles === 1 ? 'file' : 'files'}`;
     return `${checkLabels[reading.checks]} · ${reviewLabels[reading.review]} · ${files}`;
 }
 
 export function standalonePullRequests(
-    works: readonly Pick<CloudAgentWork, 'pullRequest'>[],
-    pullRequests: readonly CloudAgentPullRequestReading[]
-): CloudAgentPullRequestReading[] {
+    works: readonly Pick<Worker, 'pullRequest'>[],
+    pullRequests: readonly PullRequestReading[]
+): PullRequestReading[] {
     const shown = new Set(
         works.flatMap((work) => (work.pullRequest ? [work.pullRequest.url] : []))
     );

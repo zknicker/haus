@@ -1,3 +1,4 @@
+import { dispatchKeySchema } from '@haus/api';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import * as z from 'zod';
 import { authorizeAgentRunner } from '../agent-api/auth.ts';
@@ -16,6 +17,7 @@ import {
     openComputerPayload,
     openRunPayload,
     storeInvocationPayload,
+    storeRunnerUpload,
 } from './invocation-payloads.ts';
 
 const invocationParamsSchema = z.object({
@@ -25,6 +27,10 @@ const payloadParamsSchema = invocationParamsSchema.extend({
     attachmentId: z.string().regex(/^att_[A-Za-z0-9_-]{16}$/u),
 });
 const mediaTypeSchema = z.string().trim().min(1).max(255);
+const uploadQuerySchema = z.object({
+    seq: z.coerce.number().int().nonnegative(),
+    toolCallId: dispatchKeySchema.shape.toolCallId,
+});
 
 export function registerInvocationPayloadRoutes(
     app: FastifyInstance,
@@ -69,12 +75,33 @@ export function registerInvocationPayloadRoutes(
             }
         }
     );
+    app.put(
+        '/api/agent/invocation-payloads',
+        {
+            onRequest: async (request, reply) => {
+                try {
+                    const runner = await authorizeRunner(db, request);
+                    const { seq, toolCallId } = parse(uploadQuerySchema, request.query);
+                    const mediaType = parse(mediaTypeSchema, request.headers['content-type']);
+                    const stored = await storeRunnerUpload(db, root, options.runtime, {
+                        declaredLength: contentLength(request.headers['content-length']),
+                        mediaType,
+                        runner,
+                        seq,
+                        stream: request.raw,
+                        toolCallId,
+                    });
+                    await reply.send(stored);
+                } catch (error) {
+                    await sendPayloadError(reply, error);
+                }
+            },
+        },
+        async (_request, reply) => reply
+    );
     app.get('/api/agent/invocation-payloads/:attachmentId', async (request, reply) => {
         try {
-            const runner = await authorizeAgentRunner(db, request);
-            if (!runner) {
-                throw new InvocationPayloadError('The run credential was rejected.', 401);
-            }
+            const runner = await authorizeRunner(db, request);
             const { attachmentId } = parse(
                 payloadParamsSchema.omit({ invocationId: true }),
                 request.params
@@ -84,6 +111,14 @@ export function registerInvocationPayloadRoutes(
             return await sendPayloadError(reply, error);
         }
     });
+}
+
+async function authorizeRunner(db: HausDatabase, request: FastifyRequest) {
+    const runner = await authorizeAgentRunner(db, request);
+    if (!runner) {
+        throw new InvocationPayloadError('The run credential was rejected.', 401);
+    }
+    return runner;
 }
 
 async function authorizeComputer(db: HausDatabase, request: FastifyRequest) {

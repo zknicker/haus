@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import { unavailableCloudAgentProvider } from './cloud-agents/provider.ts';
-import { setCloudAgentProvider } from './cloud-agents/registry.ts';
 import { toReportedAgentState } from './computer-report.ts';
+import { unavailableCloudAgentProvider } from './workers/provider.ts';
+import { setCloudAgentProvider } from './workers/registry.ts';
 
 const restores: Array<() => void> = [];
 

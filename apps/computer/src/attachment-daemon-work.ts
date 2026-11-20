@@ -7,7 +7,6 @@ import {
     type BackgroundWorkReporter,
     createBackgroundWorkReporter,
 } from './background-work-reporter.ts';
-import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import type { DaemonRuntime } from './daemon-runtime.ts';
 import { harnessSessionOwner } from './harness/session-lifecycle.ts';
 import { createIdleCompactionReporter } from './idle-compaction-reporter.ts';
@@ -18,6 +17,7 @@ import {
     fenceWarmRuntime,
     setIdleCompaction,
 } from './runtime/runtime-context.ts';
+import type { WorkerSupervisor } from './workers/work-runner.ts';
 
 export interface AttachmentFrameSender {
     send(frame: unknown): boolean;
@@ -46,7 +46,7 @@ export class AttachmentDaemonWork {
 
     constructor(
         private readonly runtime: DaemonRuntime,
-        readonly cloudAgents?: CloudAgentWorkSupervisor,
+        readonly workers?: WorkerSupervisor,
         partition?: { dataRoot: string; serverId: string }
     ) {
         this.agentWork = new AgentWorkCoordinator(runtime);
@@ -151,11 +151,7 @@ export class AttachmentDaemonWork {
                 const results = await settle(
                     this.runtime,
                     shutdownStage(
-                        () =>
-                            Promise.allSettled([
-                                ...this.writerSnapshot(),
-                                this.cloudAgents?.close(),
-                            ]),
+                        () => Promise.allSettled([...this.writerSnapshot(), this.workers?.close()]),
                         'Computer shutdown timed out while draining accepted work.'
                     ),
                     { mapFailure: (failure) => failure.cause }

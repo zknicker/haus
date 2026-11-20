@@ -3,7 +3,7 @@ import { agentInboxItemSchema } from '@haus/api';
 import { eq } from 'drizzle-orm';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
-import { cloudAgentRunsTable, cloudAgentWorkTable } from '../src/postgres/schema.ts';
+import { workerTurnsTable, workersTable } from '../src/postgres/schema.ts';
 import { deliverHuman, offlineDelivery, type Seed, seedAgent } from './agent-inbox-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
@@ -23,17 +23,17 @@ afterAll(async () => {
 test('a stall notice reaches the Agent as a valid inbox item', async () => {
     const seed = await seedAgent(connection.db);
     const { delivery, wake } = offlineDelivery(connection.db, seed);
-    const runId = await seedRun(seed);
-    const key = `${runId}:stall:1793941134000:0`;
-    await queueNotice(delivery, seed, runId, key);
+    const turnId = await seedRun(seed);
+    const key = `${turnId}:stall:1793941134000:0`;
+    await queueNotice(delivery, seed, turnId, key);
 
     const frame = await wake();
 
     const items = (frame?.inbox ?? []).map((item) => agentInboxItemSchema.parse(item));
     expect(items.map((item) => item.id)).toEqual([key]);
-    expect(items[0]?.cloudAgentWork).toMatchObject({
+    expect(items[0]?.worker).toMatchObject({
         notice: 'stall',
-        runId,
+        turnId,
         stallCode: 'claude-prompt-not-found',
     });
 });
@@ -41,10 +41,10 @@ test('a stall notice reaches the Agent as a valid inbox item', async () => {
 test('a deleted Run takes its queued notice with it, so the message behind it is delivered', async () => {
     const seed = await seedAgent(connection.db);
     const { delivery, wake } = offlineDelivery(connection.db, seed);
-    const runId = await seedRun(seed);
-    await queueNotice(delivery, seed, runId, runId);
+    const turnId = await seedRun(seed);
+    await queueNotice(delivery, seed, turnId, turnId);
     const messageId = await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
-    await connection.db.delete(cloudAgentRunsTable).where(eq(cloudAgentRunsTable.id, runId));
+    await connection.db.delete(workerTurnsTable).where(eq(workerTurnsTable.id, turnId));
 
     const frame = await wake();
 
@@ -54,43 +54,43 @@ test('a deleted Run takes its queued notice with it, so the message behind it is
 async function queueNotice(
     delivery: ReturnType<typeof offlineDelivery>['delivery'],
     seed: Seed,
-    runId: string,
+    turnId: string,
     dedupeKey: string
 ) {
     await delivery.deliver({
         agentId: seed.agentId,
         chatId: seed.dmChatId,
-        cloudAgentNotice: dedupeKey === runId ? 'settled' : 'stall',
-        cloudAgentRunId: runId,
+        workerTurnId: turnId,
         content: '',
         dedupeKey,
         serverId: seed.serverId,
-        source: 'cloud_agent_work',
+        source: dedupeKey === turnId ? 'worker_report' : 'worker_stall',
     });
 }
 
 async function seedRun(seed: Seed): Promise<string> {
-    const workId = createOpaqueId('caw');
-    const runId = createOpaqueId('car');
-    await connection.db.insert(cloudAgentWorkTable).values({
+    const workerId = createOpaqueId('caw');
+    const turnId = createOpaqueId('car');
+    await connection.db.insert(workersTable).values({
         agentId: seed.agentId,
-        chatId: seed.dmChatId,
-        computerId: seed.computerId,
-        id: workId,
+        carrierComputerId: seed.computerId,
+        closedAt: new Date(),
+        id: workerId,
         launchMessageId: createOpaqueId('msg'),
-        provider: 'claude',
+        originChatId: seed.dmChatId,
+        place: 'claude',
         repository: 'haus/haus',
         serverId: seed.serverId,
         status: 'running',
         title: 'Fix the flaky delivery test',
     });
-    await connection.db.insert(cloudAgentRunsTable).values({
+    await connection.db.insert(workerTurnsTable).values({
         stallCode: 'claude-prompt-not-found',
         stallSince: new Date(),
-        id: runId,
+        id: turnId,
         serverId: seed.serverId,
         status: 'running',
-        workId,
+        workerId,
     });
-    return runId;
+    return turnId;
 }

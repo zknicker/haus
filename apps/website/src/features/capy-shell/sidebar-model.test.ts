@@ -7,7 +7,7 @@ import {
     projectIds,
     waitingChatIds,
 } from './sidebar-layout.ts';
-import { agentDm, captainTile, openTaskRow, projectRow, taskUnread } from './sidebar-model.ts';
+import { agentDm, captainTile, openTaskRow, taskUnread } from './sidebar-model.ts';
 
 const chat = (fields: Partial<Chat> & Pick<Chat, 'id' | 'kind'>) =>
     ({
@@ -110,28 +110,38 @@ test('People and open Tasks are hidden when there are none', () => {
     expect(sections.map((section) => section.kind)).toEqual(['captains', 'projects']);
 });
 
-test('a Captain tile is working while its Agent works and counts its DM unread', () => {
+test('a Captain tile shows its working state and counts its DM unread', () => {
     const chats = [chat({ id: 'dm-forge', kind: 'dm', peerAgentId: 'forge', unreadCount: 3 })];
     expect(captainTile(forge, agentDm(chats, 'forge'))).toEqual({
         agentId: 'forge',
         avatarUrl: null,
         dmChatId: 'dm-forge',
         name: 'Forge',
+        presence: 'working',
         unreadCount: 3,
-        working: true,
     });
     expect(captainTile({ ...forge, availability: 'idle' }, null)).toMatchObject({
         dmChatId: null,
+        presence: null,
         unreadCount: 0,
-        working: false,
     });
 });
 
-test('Projects follow the stored order and carry their unread count', () => {
+test('a Captain tile flags an Agent that needs attention or is paused', () => {
+    expect(captainTile({ ...forge, availability: 'error' }, null).presence).toBe('error');
+    expect(
+        captainTile(
+            { ...forge, availability: 'idle', wakePause: { reason: 'budget' } as never },
+            null
+        ).presence
+    ).toBe('paused');
+    expect(captainTile({ ...forge, availability: 'offline' }, null).presence).toBeNull();
+});
+
+test('Projects follow the stored order', () => {
     const eng = chat({ id: 'eng', kind: 'channel', name: 'eng', participantAgentIds: ['forge'] });
     const sec = chat({ id: 'sec', kind: 'channel', name: 'sec', unreadCount: 4 });
     expect(projectIds([eng, sec], ['sec'])).toEqual(['sec', 'eng']);
-    expect(projectRow(sec).unreadCount).toBe(4);
 });
 
 test('a Task that @mentions you in an unread message waits on you and sorts first', () => {

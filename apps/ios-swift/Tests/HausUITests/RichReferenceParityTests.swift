@@ -143,7 +143,7 @@ struct RichReferenceParityTests {
             mark: .glyph(.pullRequest)
         ),
         Row(
-            markdown: #"[Open \[draft C:\\fix](cloud-agent://caw_1)"#,
+            markdown: #"[Open \[draft C:\\fix](worker://caw_1)"#,
             kind: .cloudAgentWork,
             id: "caw_1",
             label: #"Open [draft C:\fix"#,

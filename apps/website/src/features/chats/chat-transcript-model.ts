@@ -180,7 +180,7 @@ export function buildTranscriptEntries(input: {
 
 // Widgets, clarifications, stop notes, and artifacts are parts of a turn's
 // contribution rather than contributions of their own. Execution evidence
-// (tools, workers, thinking, narration) never rides the timeline, but when a
+// (tools, sub-agents, thinking, narration) never rides the timeline, but when a
 // caller feeds a run's evidence in — the status stack building the live
 // drawer's entry — it folds into the same turn.
 function isTurnAttachmentItem(item: TranscriptItem) {
@@ -195,7 +195,7 @@ function isTurnAttachmentItem(item: TranscriptItem) {
     return (
         item.row.kind === 'widget' ||
         item.row.kind === 'tool' ||
-        item.row.kind === 'worker' ||
+        item.row.kind === 'subagent' ||
         (item.row.kind === 'system' &&
             (item.row.systemKind === 'turnStatus' ||
                 item.row.systemKind === 'artifact' ||
@@ -250,8 +250,8 @@ export function getItemRunId(item: TranscriptItem) {
         return item.row.runId;
     }
 
-    if (item.row.kind === 'worker') {
-        return item.row.worker.runId;
+    if (item.row.kind === 'subagent') {
+        return item.row.subagent.runId;
     }
 
     if (item.row.kind === 'system' && item.row.systemKind === 'thinking') {
@@ -429,7 +429,7 @@ function getItemParticipant(item: TranscriptItem): 'agent' | 'system' | 'user' {
               : 'agent';
     }
 
-    if (row.kind === 'tool' || row.kind === 'widget' || row.kind === 'worker') {
+    if (row.kind === 'tool' || row.kind === 'widget' || row.kind === 'subagent') {
         return row.sessionKey?.trim() || row.actor?.kind === 'agent' ? 'agent' : 'system';
     }
 
@@ -565,7 +565,7 @@ export function getItemSessionKey(item: TranscriptItem) {
         return sessionKey.length > 0 ? sessionKey : null;
     }
 
-    if (row.kind === 'tool' || row.kind === 'widget' || row.kind === 'worker') {
+    if (row.kind === 'tool' || row.kind === 'widget' || row.kind === 'subagent') {
         return row.sessionKey;
     }
 
@@ -587,7 +587,7 @@ export function getItemTimestamp(item: TranscriptItem) {
         return row.message.timestamp;
     }
 
-    if (row.kind === 'tool' || row.kind === 'widget' || row.kind === 'worker') {
+    if (row.kind === 'tool' || row.kind === 'widget' || row.kind === 'subagent') {
         return row.startedAt ?? row.completedAt;
     }
 

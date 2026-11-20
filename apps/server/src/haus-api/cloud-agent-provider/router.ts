@@ -1,10 +1,10 @@
 import type { CloudAgentCapabilityRequest, CloudAgentProvider } from '@haus/api';
 import { TRPCError } from '@trpc/server';
+import type { HausUser } from '../../users/haus-user.ts';
 import {
     CloudAgentCapabilityDeniedError,
     requestCloudAgentCapability,
-} from '../../cloud-agents/request-cloud-agent-capability.ts';
-import type { HausUser } from '../../users/haus-user.ts';
+} from '../../workers/request-cloud-agent-capability.ts';
 import type { HausContext } from '../context.ts';
 import { memberProcedure } from '../server/procedure.ts';
 import { createRouter } from '../trpc.ts';

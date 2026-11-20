@@ -2,9 +2,9 @@ import { Sidebar } from '@heroui-pro/react';
 import { Button } from '@heroui/react';
 import { Plus } from '@hugeicons/core-free-icons';
 import * as React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
-import { SidebarNavigateProvider } from '../../hooks/shell/sidebar-navigate.tsx';
+import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import {
     resolveSelectedAgentDmId,
     resolveSelectedChatId,
@@ -14,32 +14,26 @@ import { serverAgentDmRoute, serverChatRoute, taskRoute } from '../servers/serve
 import { NewProjectDialog } from '../shell/new-project-dialog.tsx';
 import { sidebarActionIconSize } from '../shell/section-header.tsx';
 import { ShellSidebarPageContent } from '../shell/shell-sidebar.tsx';
+import { SortableChannelList } from '../shell/sortable-channel-list.tsx';
 import { CaptainTiles } from './captain-tiles.tsx';
 import { CapySection } from './capy-section.tsx';
-import { CapySidebarHeader } from './capy-sidebar-header.tsx';
-import {
-    OpenTaskNavigationRow,
-    PersonNavigationRow,
-    ProjectNavigationRow,
-} from './capy-sidebar-rows.tsx';
+import { OpenTaskNavigationRow, PersonNavigationRow } from './capy-sidebar-rows.tsx';
 import type { CapySidebarSection } from './sidebar-layout.ts';
 import { useCapySidebarSections } from './use-capy-sidebar.ts';
 import { useUnreadRowWalk } from './use-unread-row-walk.ts';
 
 export function CapySidebar({
     canManage,
-    lead,
     serverId,
     slug,
 }: {
     canManage: boolean;
-    lead: 'row' | 'strip';
     serverId: string;
     slug: string;
 }) {
     const sections = useCapySidebarSections(serverId);
     const { pathname } = useLocation();
-    const navigate = useNavigate();
+    const navigate = useSidebarNavigate();
     const [creating, setCreating] = React.useState<'captain' | 'project' | null>(null);
     const openNewProject = React.useCallback(() => setCreating('project'), []);
     const openNewCaptain = React.useCallback(() => setCreating('captain'), []);
@@ -50,8 +44,7 @@ export function CapySidebar({
     };
 
     return (
-        <SidebarNavigateProvider>
-            {lead === 'row' ? <CapySidebarHeader slug={slug} /> : null}
+        <>
             <UnreadRowWalkKeys sections={sections} serverId={serverId} slug={slug} />
             <ShellSidebarPageContent>
                 <div className="capy-sidebar flex flex-col gap-6 pt-2">
@@ -83,7 +76,7 @@ export function CapySidebar({
                 open={creating === 'project'}
                 serverId={serverId}
             />
-        </SidebarNavigateProvider>
+        </>
     );
 }
 
@@ -130,17 +123,12 @@ function CapySidebarSectionView({
                     label="Projects"
                 >
                     {section.chatIds.length > 0 ? (
-                        <Sidebar.Menu aria-label="Projects">
-                            {section.chatIds.map((chatId) => (
-                                <ProjectNavigationRow
-                                    chatId={chatId}
-                                    isCurrent={chatId === selection.selectedChatId}
-                                    key={chatId}
-                                    serverId={serverId}
-                                    slug={slug}
-                                />
-                            ))}
-                        </Sidebar.Menu>
+                        <SortableChannelList
+                            channelIds={section.chatIds}
+                            selectedChatId={selection.selectedChatId}
+                            serverId={serverId}
+                            slug={slug}
+                        />
                     ) : null}
                 </CapySection>
             );

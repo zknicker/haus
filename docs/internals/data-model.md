@@ -50,9 +50,9 @@ Computer into `agent_execution_journals` (one row per run, with its outline) and
 `agent_execution_journal_records` (one redacted record per sequence), kept 30 days after the run
 started ([ADR 0048](../adr/0048-execution-journals-sync-to-the-server.md)).
 
-`chat_messages.body_kind` is the Message body discriminator (ADR 0025). It is `text` (the default)
-or `agent-created`, which remains for historical reads; optional feature columns never define a
-Message's type. Cloud Agent work is not a body kind: `text` Messages link it (ADR 0044). One Server Message reader projects the stored kind and its record together, and fails the
+`chat_messages.body_kind` is the Message body discriminator (ADR 0025). It is `text` (the default),
+`agent-created` (kept for historical reads), `worker-report`, or `worker-follow-up`; optional feature columns never define a
+Message's type. One Server Message reader projects the stored kind and its record together, and fails the
 mapping rather than downgrading a typed Message to text.
 
 `message_reactions` is the durable relation behind a Message's grouped emoji reactions. Each row
@@ -110,7 +110,7 @@ with its own `next_number`; `tasks.key_id` names a Task's entry and `projects.ta
 Project's (one per channel, unique). Migration 0130 made every live or archived channel a Project,
 renamed `#all` to `haus`, and gave channels that shared a key new entries by the key rule
 ([specs/projects.md](../../specs/projects.md#migration-from-channels)). `task_pull_requests` attaches pull requests by repository and number, and
-`cloud_agent_work.task_id` attaches cloud work. Followers ride `thread_follows` (people) and
+`workers.task_id` attaches Workers. Followers ride `thread_follows` (people) and
 `agent_thread_follows` (Agents) with `thread_chat_kind = 'task'`. Migrations 0124–0128 made Tasks
 places: 0124 added the ledger, states, and Task Chats (every board became a ledger entry); 0125
 let reminders anchor on a Task; 0126 turned every Thread into inline replies on its anchor and
@@ -122,31 +122,34 @@ done and canceled ones as read-only history, and dropped boards, columns, and th
 Task its Project (its Task Chat's channel, else the Project holding its key, else Haus), and homed
 every Agent in the Haus project.
 
-`cloud_agent_work` is the standalone Cloud Agent work record (ADR 0044). Its `chat_id`,
-`launch_message_id`, and `computer_id` name the requesting Chat, launch Message, and launching
-Computer as historical pointers with no uniqueness or foreign key, so the work outlives all three. `cloud_agent_work_links` holds one row per
-`(server_id, message_id, work_id)` with the link's `ordinal` in the Message; it cascades from both
-the work and the linking Message, and it drives visibility, Message annotations, the per-Chat and
-active work lists, and realtime fan-out. The work row carries the delegating Agent, the Computer that holds the
-provider access, the provider and its agent id and URL, the title, repository, and starting ref,
-the lifecycle status with its started and terminal timestamps, the bounded one-line `activity`, and
-the cancel request with exactly one of the requesting human or Agent. `cloud_agent_runs` holds one
-row per provider Run — normalized and raw status, timestamps, the model it requested (`model_id`,
-`default` for Auto or `null` when none was sent, with the `model_params` sent and any
-`model_dropped_params`; `model_fallback_from` when the Server's saved model was unlisted and the
-Run fell back to Auto, never beside a catalog model), bounded
-summary, error code, reported
-branches with their optional pull-request URLs and the Computer's optional dated GitHub snapshot of
-each (number, state, changed files, additions, deletions), optional token and cost usage, and the
-newest applied observation timestamp that makes a stale report a no-op. A branch report merges by
-that snapshot's own timestamp, so a read that failed never erases a snapshot the Run already had.
-CHECKs keep each terminal status in agreement with its terminal timestamp, and composite foreign
-keys keep the work, its Agent, its Computer, and its canceller, and each link with its work and
-Message, in one Server tenant. Lifecycle changes publish the `cloudAgentWork.updated` realtime
-topic, once per linking Message in a live Chat, after commit; no event row
-is stored. Provider prompts, credentials, transcripts, and
-workspace files never reach Server. A settled Run creates one `agent_inbox` row keyed by that Run id for the delegating
-Agent, in the same transaction that settles it. `cloud_agent_model_settings`
+`workers` is the Worker record ([Workers](../../specs/workers.md#record)), renamed from
+`cloud_agent_work` by migration 0135. It carries the delegating Agent, its Task (`task_id`, null
+only on read-only history, which `closed_at` must then mark: Workers from before Tasks, and Workers
+whose Task a Project purge deleted, whose unsettled turns settle `stopped`), its `place`, its
+`carrier_computer_id`, the title, repository, and starting ref, the provider agent id and URL, the
+newest turn's provider lifecycle with its timestamps, the bounded one-line `activity`,
+`start_nonce` (unique per Server and Agent, for start idempotency), and `closing_at` and
+`closed_at`. `origin_chat_id` and `launch_message_id` are history pointers with no foreign key;
+new Workers write null. `worker_history_links` keeps one row per Message link to history only,
+`(server_id, message_id, worker_id)` with its `ordinal`; a Message never links a Worker with a
+Task. `worker_turns` holds one row per turn: its `input` (`WorkerTurnInput[]`, null only on a
+migrated turn whose follow-up still sits on its Computer until the drain fills it),
+`follow_up_nonces` (the Agent send nonces it holds, from migration 0136), `dispatched_at` and
+`acknowledged_at`, `outcome` (`WorkerOutcome`, set exactly when Haus settles the turn), the
+provider status and raw status, the stop request with exactly one requester, the model it
+requested (`model_id`, `default` for Auto or `null` when none was sent, with `model_params`,
+`model_dropped_params`, and `model_fallback_from`), the bounded summary and the 64 KiB
+`provider_result` it was cut from, error code, reported branches with the Computer's optional
+pull request snapshot, usage, and the newest applied observation time that makes a stale report a
+no-op. A turn holds a slot on its place from dispatch until its outcome is set;
+`worker_place_limits` sets the per-Server limit (no row is 10). `pull_request_readings` holds the
+pull request readings. A report's Message (`body_kind = 'worker-report'`) and a person's follow-up
+(`worker-follow-up`) project their bodies from the turn's `outcome` and `input`. Changes publish
+`worker.updated` scoped to the Task's Chat after commit. Provider prompts, credentials,
+transcripts, and workspace files never reach the Server. Settling a turn queues at most one
+`agent_inbox` row (`worker_report`, `worker-report:<turnId>`) for the delegating Agent in the same
+transaction; stalls queue `worker_stall` and pull request changes `pull_request`.
+`cloud_agent_model_settings`
 holds one row per Server and provider (`server_id`, `provider`, `model_id`, `model_params`) with
 the human-chosen Cloud Agent model and its effort and fast choices; no row is Auto. Migration
 `0089_cloud-agent-claude` moved the former `servers.cloud_agent_model_id` and

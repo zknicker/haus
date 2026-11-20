@@ -1,13 +1,16 @@
 import { Badge, Tooltip } from '@heroui/react';
 import * as React from 'react';
-import { Link } from 'react-router-dom';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
+import { TooltipLink } from '../../components/ui/tooltip-link.tsx';
+import { usePreloadAgentRecord } from '../../hooks/members/use-preload-agent-profile.ts';
 import { usePreloadChat } from '../../hooks/servers/use-preload-chat.ts';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.ts';
 import { cn } from '../../lib/utils.ts';
 import { serverAgentDmRoute, serverChatRoute } from '../servers/server-routes.ts';
+import { DmNavigationContextMenu } from '../shell/dm-navigation-context-menu.tsx';
 import { CapySection } from './capy-section.tsx';
+import type { CaptainPresence } from './sidebar-model.ts';
 import { useCaptainTile } from './use-capy-sidebar-rows.ts';
 
 const tileAvatarSize = 38;
@@ -33,7 +36,7 @@ export function CaptainTiles({
     return (
         <CapySection action={action} label="Captains">
             {agentIds.length > 0 ? (
-                <ul aria-label="Captains" className="flex flex-wrap gap-y-[2px] ps-[1px]">
+                <ul aria-label="Captains" className="flex flex-wrap gap-y-0.5 ps-0.25">
                     {agentIds.map((agentId) => (
                         <li key={agentId}>
                             <CaptainTileLink
@@ -68,7 +71,12 @@ const CaptainTileLink = React.memo(function CaptainTileLink({
 }) {
     const tile = useCaptainTile(serverId, agentId);
     const dmChatId = tile?.dmChatId ?? undefined;
-    const { preload } = usePreloadChat(serverId, dmChatId);
+    const { preload: preloadChat } = usePreloadChat(serverId, dmChatId);
+    const preloadAgent = usePreloadAgentRecord(serverId, agentId);
+    const preload = React.useCallback(() => {
+        preloadChat();
+        preloadAgent();
+    }, [preloadAgent, preloadChat]);
     const href = dmChatId ? serverChatRoute(slug, dmChatId) : serverAgentDmRoute(slug, agentId);
     const pressRef = usePressNavigationWith(useSidebarNavigate(), href, preload);
     const name = useTruncation(tile?.name);
@@ -77,20 +85,26 @@ const CaptainTileLink = React.memo(function CaptainTileLink({
     }
     const label = [
         tile.name,
-        tile.working ? 'working' : null,
+        tile.presence ? presenceLabels[tile.presence] : null,
         tile.unreadCount > 0 ? `${tile.unreadCount} unread` : null,
     ]
         .filter(Boolean)
         .join(', ');
 
     return (
-        <Tooltip delay={400} isDisabled={!name.truncated}>
-            <Tooltip.Trigger role="presentation" tabIndex={-1}>
-                <Link
+        <DmNavigationContextMenu
+            agentId={agentId}
+            chatId={tile.dmChatId}
+            chatName={tile.name}
+            href={href}
+            slug={slug}
+        >
+            <Tooltip delay={400} isDisabled={!name.truncated}>
+                <TooltipLink
                     aria-current={isCurrent ? 'page' : undefined}
                     aria-label={label}
                     className={cn(
-                        'hover:bg-default flex cursor-[var(--cursor-interactive)] flex-col items-center gap-[3px] rounded-xl pt-[5px] pb-[4px]',
+                        'hover:bg-default flex cursor-[var(--cursor-interactive)] flex-col items-center gap-1 rounded-xl pt-1.5 pb-1.25',
                         isCurrent && 'bg-default'
                     )}
                     onFocus={preload}
@@ -106,10 +120,10 @@ const CaptainTileLink = React.memo(function CaptainTileLink({
                                 {tile.unreadCount > 99 ? '99+' : tile.unreadCount}
                             </Badge>
                         ) : null}
-                        {tile.working ? (
+                        {tile.presence ? (
                             <Badge
-                                color="warning"
-                                data-agent-status="working"
+                                color={presenceBadgeColors[tile.presence]}
+                                data-agent-status={tile.presence}
                                 placement="bottom-right"
                                 size="sm"
                             />
@@ -117,17 +131,29 @@ const CaptainTileLink = React.memo(function CaptainTileLink({
                     </Badge.Anchor>
                     <span
                         aria-hidden="true"
-                        className="text-muted w-full truncate px-[2px] text-center text-xs leading-tight"
+                        className="text-muted w-full truncate px-0.5 text-center text-xs leading-tight"
                         ref={name.ref}
                     >
                         {tile.name}
                     </span>
-                </Link>
-            </Tooltip.Trigger>
-            <Tooltip.Content>{tile.name}</Tooltip.Content>
-        </Tooltip>
+                </TooltipLink>
+                <Tooltip.Content>{tile.name}</Tooltip.Content>
+            </Tooltip>
+        </DmNavigationContextMenu>
     );
 });
+
+const presenceLabels = {
+    error: 'needs attention',
+    paused: 'paused',
+    working: 'working',
+} as const satisfies Record<CaptainPresence, string>;
+
+const presenceBadgeColors = {
+    error: 'danger',
+    paused: 'default',
+    working: 'warning',
+} as const satisfies Record<CaptainPresence, string>;
 
 function useTruncation(text: string | undefined) {
     const ref = React.useRef<HTMLSpanElement>(null);

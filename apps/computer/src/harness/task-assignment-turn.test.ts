@@ -139,7 +139,10 @@ test('a busy notice for assignments alone is a content-free count, and acks thei
         workIds: ['task-assign:tsk_one:3', 'task-assign:tsk_two:1'],
     });
 
-    expect(composeInboxNotice([], 0, 10)).toBe(
+    const assigned = (total: number) => ({
+        taskAssignments: { ids: ['task-assign:tsk_one:3'], total },
+    });
+    expect(composeInboxNotice([], 0, assigned(10))).toBe(
         [
             '[Haus inbox notice:',
             '10 tasks assigned to you',
@@ -147,7 +150,7 @@ test('a busy notice for assignments alone is a content-free count, and acks thei
             'Their details arrive in your next turn. Keep working; the notice is not itself a request, so do not acknowledge it.',
         ].join('\n')
     );
-    expect(composeInboxNotice([], 0, 1)).toContain('1 task assigned to you');
+    expect(composeInboxNotice([], 0, assigned(1))).toContain('1 task assigned to you');
     expect(composeInboxNotice([], 0)).toBeNull();
 
     expect(parseNoticeCommand({ ...frame, taskAssignments: undefined })).toBeNull();

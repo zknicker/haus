@@ -1,9 +1,10 @@
-import type { Agent } from '@haus/api';
+import type { Agent, Chat } from '@haus/api';
 import * as React from 'react';
-import { useChats } from '../../hooks/servers/use-chats.ts';
+import { useChatListSelection } from '../../hooks/servers/use-chats.ts';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
+import { ComputerDiskNotices } from '../computers/computer-disk-notices.tsx';
 import { HomeBackground } from '../home-background/home-background.tsx';
 import { readLastChatId } from '../servers/server-choice.ts';
 import { orderChannelIds } from '../shell/channel-order.ts';
@@ -23,27 +24,21 @@ export function CapyHomePage({
     slug: string;
 }) {
     useWindowTitle('Home');
-    const chats = useChats(serverId).data;
     const captains = hausTrpc.agent.list.useQuery(
         { serverId },
         { ...queryPolicy.syncedSnapshot, select: selectCaptainChoices }
     ).data;
+    const needsDeviceCount = canManage && captains?.length === 0;
     const devices = hausTrpc.computer.list.useQuery(
         { serverId },
-        { ...queryPolicy.syncedSnapshot, enabled: canManage, select: countDevices }
-    ).data;
-    const deviceCount = canManage ? devices : null;
-    const projects = React.useMemo(() => {
-        if (!chats) {
-            return undefined;
-        }
-        const channels = new Map(
-            chats.filter((chat) => chat.kind === 'channel').map((chat) => [chat.id, chat])
-        );
-        return orderChannelIds([...channels.keys()], storedChannelOrder(serverId)).flatMap(
-            (id) => channels.get(id) ?? []
-        );
-    }, [chats, serverId]);
+        { ...queryPolicy.syncedSnapshot, enabled: needsDeviceCount, select: countDevices }
+    );
+    const deviceCount = needsDeviceCount && !devices.isError ? devices.data : null;
+    const selectProjects = React.useCallback(
+        (chats: Chat[]) => homeProjects(chats, storedChannelOrder(serverId)),
+        [serverId]
+    );
+    const projects = useChatListSelection(serverId, selectProjects);
     const state = homeState({
         captains,
         deviceCount,
@@ -58,11 +53,13 @@ export function CapyHomePage({
             </PageBand>
             <HomeBackground />
             <div className="relative isolate flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 pb-[8vh]">
-                <div className="relative w-full max-w-xl">
+                <div className="relative flex w-full max-w-xl flex-col gap-4">
+                    <ComputerDiskNotices />
                     {state.kind === 'ready' ? (
                         <HomeComposer
                             captains={state.captains}
                             initialProjectId={state.initialProjectId}
+                            key={serverId}
                             projects={state.projects}
                             serverId={serverId}
                             slug={slug}
@@ -94,4 +91,24 @@ function selectCaptainChoices(agents: Agent[]) {
         displayName: agent.displayName,
         id: agent.id,
     }));
+}
+
+function homeProjects(chats: Chat[], storedOrder: readonly string[]) {
+    const channels = new Map(
+        chats
+            .filter((chat) => chat.kind === 'channel')
+            .map((chat) => [
+                chat.id,
+                {
+                    color: chat.color,
+                    icon: chat.icon,
+                    id: chat.id,
+                    name: chat.name,
+                    participantAgentIds: chat.participantAgentIds,
+                },
+            ])
+    );
+    return orderChannelIds([...channels.keys()], storedOrder).flatMap(
+        (id) => channels.get(id) ?? []
+    );
 }

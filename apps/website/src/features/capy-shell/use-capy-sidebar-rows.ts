@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useAgentDmEntry, useChatListSelection } from '../../hooks/servers/use-chats.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
-import { captainTile, openTaskRow, personRow, projectRow, taskUnread } from './sidebar-model.ts';
+import { captainTile, openTaskRow, personRow, taskUnread } from './sidebar-model.ts';
 
 export function useCaptainTile(serverId: string, agentId: string) {
     const select = React.useCallback(
@@ -16,6 +16,7 @@ export function useCaptainTile(serverId: string, agentId: string) {
                       avatarUrl: agent.avatarUrl,
                       displayName: agent.displayName,
                       id: agent.id,
+                      wakePause: agent.wakePause,
                   }
                 : undefined;
         },
@@ -27,17 +28,6 @@ export function useCaptainTile(serverId: string, agentId: string) {
     ).data;
     const dm = useAgentDmEntry(serverId, agentId);
     return agent ? captainTile(agent, dm) : undefined;
-}
-
-export function useProjectRow(serverId: string, chatId: string) {
-    const select = React.useCallback(
-        (chats: Chat[]) => {
-            const chat = chats.find((entry) => entry.id === chatId);
-            return chat ? projectRow(chat) : undefined;
-        },
-        [chatId]
-    );
-    return useChatListSelection(serverId, select);
 }
 
 export function usePersonRow(serverId: string, chatId: string) {

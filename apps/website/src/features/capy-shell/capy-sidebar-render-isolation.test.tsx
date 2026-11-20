@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import type { Task } from '@haus/api';
 import { Sidebar } from '@heroui-pro/react';
+import { SidebarNavigateProvider } from '../../hooks/shell/sidebar-navigate.tsx';
 import { installKeptChatViewTestDom } from '../../test-support/kept-chat-views-harness.tsx';
 import {
     agents,
@@ -60,7 +61,9 @@ async function mountCapySidebar() {
     const view = await harness.mount(
         <CommandMenuProvider>
             <Sidebar.Provider>
-                <CapySidebar canManage lead="strip" serverId={serverId} slug="render" />
+                <SidebarNavigateProvider>
+                    <CapySidebar canManage serverId={serverId} slug="render" />
+                </SidebarNavigateProvider>
             </Sidebar.Provider>
         </CommandMenuProvider>
     );
@@ -81,8 +84,8 @@ test('an unread count in one Project renders that Project’s row and nothing el
         ]);
     });
 
-    expect(census.count('ProjectNavigationRow')).toBe(1);
-    expect(census.count('ProjectNavigationRow', 'cht_b')).toBe(1);
+    expect(census.count('SortableChannelRow')).toBe(1);
+    expect(census.count('SortableChannelRow', 'cht_b')).toBe(1);
     expect(census.count('CapySidebar')).toBe(0);
     expect(census.count('CaptainTileLink')).toBe(0);
     expect(census.count('OpenTaskNavigationRow')).toBe(0);
@@ -104,7 +107,7 @@ test('a message that moves only activity renders no Capy sidebar row', async () 
         ]);
     });
 
-    expect(census.count('ProjectNavigationRow')).toBe(0);
+    expect(census.count('SortableChannelRow')).toBe(0);
     expect(census.count('CaptainTileLink')).toBe(0);
     expect(census.count('CapySidebar')).toBe(0);
 
@@ -119,7 +122,7 @@ test('an unread count in a Captain DM renders only that Captain’s tile', async
 
     expect(census.count('CaptainTileLink')).toBe(1);
     expect(census.count('CaptainTileLink', 'agt_blippy')).toBe(1);
-    expect(census.count('ProjectNavigationRow')).toBe(0);
+    expect(census.count('SortableChannelRow')).toBe(0);
     expect(census.count('CapySidebar')).toBe(0);
 
     await harness.unmount();
@@ -138,7 +141,7 @@ test('a Captain starting work renders only that Captain’s tile', async () => {
 
     expect(census.count('CaptainTileLink')).toBe(1);
     expect(census.count('CaptainTileLink', 'agt_blippy')).toBe(1);
-    expect(census.count('ProjectNavigationRow')).toBe(0);
+    expect(census.count('SortableChannelRow')).toBe(0);
     expect(census.count('OpenTaskNavigationRow')).toBe(0);
     expect(census.count('CapySidebar')).toBe(0);
 
@@ -161,7 +164,7 @@ test('an @mention of you in a Task renders that Task’s row and moves it first'
     });
 
     expect(census.count('OpenTaskNavigationRow', 'tsk_1')).toBe(1);
-    expect(census.count('ProjectNavigationRow')).toBe(0);
+    expect(census.count('SortableChannelRow')).toBe(0);
     expect(census.count('CaptainTileLink')).toBe(0);
     expect(harness.container.textContent).toContain('Waiting on you');
 

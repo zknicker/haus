@@ -53,7 +53,7 @@ export function AgentHubCards({
     const canView = server.role !== 'member';
     const computers = useComputers(server.id);
     const connections = useConnections(server.id);
-    const cloudAgents = useAgentCloudAutomations(server.id, agent.id);
+    const workers = useAgentCloudAutomations(server.id, agent.id);
     const reminders = useAgentReminders(server.id, agent.id, canView);
     const triggers = useAgentTriggers(server.id, agent.id, canView);
     const computer = computers.data?.find((candidate) => candidate.id === agent.computerId);
@@ -99,12 +99,12 @@ export function AgentHubCards({
             />
             <AgentHubCard
                 fact={
-                    revealed && reminders.data && triggers.data && cloudAgents.data
+                    revealed && reminders.data && triggers.data && workers.data
                         ? formatAutomationsFact(
                               countAgentAutomations(
                                   reminders.data,
                                   triggers.data,
-                                  cloudAgents.data.length
+                                  workers.data.length
                               )
                           )
                         : undefined

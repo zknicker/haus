@@ -151,11 +151,8 @@ export function formatDayLabel(date: Date, now: number): string {
     });
 }
 
-const workTitles: Record<
-    'cloud_agent' | 'greeting' | 'onboarding' | 'reminder' | 'trigger',
-    string
-> = {
-    cloud_agent: 'Cloud agent update',
+const workTitles: Record<'worker' | 'greeting' | 'onboarding' | 'reminder' | 'trigger', string> = {
+    worker: 'Worker update',
     greeting: 'Greeting',
     onboarding: 'Onboarding',
     reminder: 'Reminder',

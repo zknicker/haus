@@ -51,7 +51,7 @@ test('Claude Code learns sub-agent delegation between work splitting and @Mentio
     );
     expect(prompt).not.toContain('Hand anything beyond a few tool calls');
     expect(prompt).toContain(
-        'Splitting work into Haus Tasks for other named agents (above) and starting cloud agents are separate tools; do not turn each sub-agent job into a Task or a cloud agent.'
+        'Splitting work into Haus Tasks for other named agents (above) and starting Workers are separate tools; do not turn each sub-agent job into a Task or a Worker.'
     );
     // The section is the only difference, so other runtimes keep their prompt byte for byte.
     const section = prompt.slice(subagents, mentions);

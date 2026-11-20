@@ -28,6 +28,7 @@ const previews = [
     } as ChatUnreadPreview,
 ];
 const rows = walkRows({
+    channelOrder: [],
     chats,
     previews,
     sections: buildCapySidebar({
@@ -77,4 +78,15 @@ test('Alt+Up goes to the previous unread row, and nothing unread goes nowhere', 
             'next'
         )
     ).toBeNull();
+});
+
+test('Projects walk in the order they were dragged to since the sidebar mounted', () => {
+    const reordered = walkRows({
+        channelOrder: ['sec', 'eng'],
+        chats,
+        previews,
+        sections: [{ chatIds: ['eng', 'sec'], kind: 'projects' }],
+        slug: 'dev',
+    });
+    expect(reordered.map((row) => row.href)).toEqual(['/s/dev/chats/sec', '/s/dev/chats/eng']);
 });

@@ -4,7 +4,7 @@ import { firstRunCopy, homeState } from './home-state.ts';
 const captain = { displayName: 'Forge', id: 'forge' };
 const project = (id: string) => ({ id, name: id });
 
-test('Home renders nothing until Captains, Projects and Devices have loaded', () => {
+test('Home renders nothing until Captains and Projects have loaded, and Devices when no Captain exists', () => {
     expect(
         homeState({ captains: undefined, deviceCount: 0, lastChatId: null, projects: [] })
     ).toEqual({ kind: 'loading' });
@@ -14,6 +14,20 @@ test('Home renders nothing until Captains, Projects and Devices have loaded', ()
     expect(
         homeState({ captains: [], deviceCount: undefined, lastChatId: null, projects: [] })
     ).toEqual({ kind: 'loading' });
+});
+
+test('Home with Captains and Projects never waits on the Device list', () => {
+    expect(
+        homeState({
+            captains: [captain],
+            deviceCount: undefined,
+            lastChatId: null,
+            projects: [project('eng')],
+        }).kind
+    ).toBe('ready');
+    expect(
+        homeState({ captains: [captain], deviceCount: undefined, lastChatId: null, projects: [] })
+    ).toEqual({ kind: 'first-run', needsCaptain: false, needsDevice: false, needsProject: true });
 });
 
 test('a new Haus with nothing needs a device, a Project and a Captain', () => {

@@ -168,3 +168,22 @@ test('the new tab page reads as New tab with a globe', () => {
         place: null,
     });
 });
+
+test('with the Capy shell on, the Server root is Home; off, it stays Chat', () => {
+    const home = { label: 'Home', mark: { glyph: 'home', kind: 'glyph' }, place: null };
+    expect(resolveTabIdentity(parseTabPage(app('/s/acme'), { capyShell: true }), records)).toEqual(
+        home
+    );
+    expect(resolveTabIdentity(parseTabPage(app('/s/acme/'), { capyShell: true }), records)).toEqual(
+        home
+    );
+    expect(resolveTabIdentity(parseTabPage(app('/s/acme')), records)).toEqual({
+        label: 'Chat',
+        mark: { glyph: 'chat', kind: 'glyph' },
+        place: null,
+    });
+    expect(parseTabPage(app('/s/acme/inbox'), { capyShell: true })).toEqual({
+        kind: 'section',
+        section: 'inbox',
+    });
+});

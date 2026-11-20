@@ -1,6 +1,6 @@
 import { type AgentTaskAssignment, formatTaskTarget } from '@haus/api';
 
-export const taskAssignmentNoticeGuidance =
+export const nextTurnNoticeGuidance =
     'Their details arrive in your next turn. Keep working; the notice is not itself a request, so do not acknowledge it.';
 
 const taskAssignmentGuidance =

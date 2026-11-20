@@ -30,9 +30,17 @@ export function planHomeTask(ask: HomeAsk) {
     } satisfies HomeTaskInput;
 }
 
-export function defaultCaptainId(
-    projectCaptainIds: readonly string[],
-    captainIds: readonly string[]
-) {
+export function homeCaptainId({
+    captainIds,
+    picked,
+    projectCaptainIds,
+}: {
+    captainIds: readonly string[];
+    picked: string | null;
+    projectCaptainIds: readonly string[];
+}) {
+    if (picked !== null && captainIds.includes(picked)) {
+        return picked;
+    }
     return projectCaptainIds.find((id) => captainIds.includes(id)) ?? captainIds[0] ?? null;
 }

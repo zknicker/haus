@@ -1,10 +1,10 @@
-import type { CloudAgentWork } from '@haus/api';
+import type { Worker } from '@haus/api';
 import type * as React from 'react';
 import { cn } from '../../../lib/utils.ts';
 import { claimVisibleInChat, useShowClaimsInChat } from '../../claims/show-claims-in-chat.ts';
 import { TranscriptClaimChip } from '../../claims/transcript-claim-chip.tsx';
-import { MessageCloudAgentWork } from '../../cloud-agents/docked-cloud-agent-work.tsx';
 import { TaskOriginPreviews } from '../../tasks/preview/task-origin-previews.tsx';
+import { MessageWorker } from '../../workers/docked-worker.tsx';
 import {
     type TranscriptMessageRow,
     useTranscriptRenderContextOptional,
@@ -12,7 +12,7 @@ import {
 import { ReactionPile } from '../reactions/reaction-pile.tsx';
 import { MessageContextMenu } from './message-context-menu.tsx';
 
-const noWork: readonly CloudAgentWork[] = [];
+const noWork: readonly Worker[] = [];
 
 export function MessageSurface({
     children,
@@ -25,7 +25,7 @@ export function MessageSurface({
 }) {
     const context = useTranscriptRenderContextOptional();
     const showClaims = useShowClaimsInChat();
-    const linked = row.message.cloudAgentWork ?? noWork;
+    const linked = row.message.worker ?? noWork;
     const flashing = context?.flashMessageId === row.message.id;
     const claim = row.message.claim ?? null;
 
@@ -46,7 +46,7 @@ export function MessageSurface({
                 </div>
             ) : null}
             {linked.map((work) => (
-                <MessageCloudAgentWork key={work.id} work={work} />
+                <MessageWorker key={work.id} work={work} />
             ))}
             {row.taskPreviews && context?.turnDetails?.serverId ? (
                 <TaskOriginPreviews

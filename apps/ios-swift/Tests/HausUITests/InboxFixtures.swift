@@ -39,13 +39,16 @@ enum InboxFixtures {
             """
             {"agentName":\(quoted(agentName)),"chatKind":"channel","chatName":"all","chatPeerUserId":null,
              "conversationChatId":"chat_1",
-             "location":{"chatId":"chat_1","kind":"message","messageId":"message_work"},
-             "work":{"activity":null,"agentId":\(quoted(agentID)),"cancelRequestedAt":null,
-               "chatId":"chat_1","createdAt":"2026-09-11T09:00:00.000Z","id":"work_1",
-               "messageId":"message_work","provider":"cursor","providerUrl":null,
-               "job":\(job),"repository":"zknicker/haus","runs":[],
+             "location":{"chatId":"chat_task","kind":"task","taskId":"task_1"},
+             "worker":{"activity":null,"agentId":\(quoted(agentID)),
+               "createdAt":"2026-09-11T09:00:00.000Z","id":"work_1",
+               "place":"cursor","providerUrl":null,
+               "job":\(job),"repository":"zknicker/haus",
+               "turns":[{"branches":[],"createdAt":"2026-09-11T09:00:00.000Z","errorCode":null,
+                 "turnId":"wkt_1","startedAt":\(started),"status":"running","summary":null,
+                 "terminalAt":null}],
                "startedAt":\(started),
-               "startingRef":"main","status":"running","terminalAt":null,
+               "startingRef":"main","status":"working","taskId":"task_1","terminalAt":null,
                "title":\(quoted(title)),"updatedAt":"2026-09-11T09:00:00.000Z"}}
             """
         )

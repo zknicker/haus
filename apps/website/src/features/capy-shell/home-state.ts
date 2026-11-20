@@ -25,7 +25,7 @@ export function homeState<Project extends { id: string }, Captain>({
     lastChatId: string | null;
     projects: readonly Project[] | undefined;
 }) {
-    if (!(projects && captains) || deviceCount === undefined) {
+    if (!(projects && captains) || (captains.length === 0 && deviceCount === undefined)) {
         return { kind: 'loading' } satisfies HomeState<Project, Captain>;
     }
     const initialProject = projects.find((project) => project.id === lastChatId) ?? projects[0];

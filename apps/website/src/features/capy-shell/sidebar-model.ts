@@ -8,17 +8,11 @@ export interface CaptainTile {
     avatarUrl: string | null;
     dmChatId: string | null;
     name: string;
+    presence: CaptainPresence | null;
     unreadCount: number;
-    working: boolean;
 }
 
-export interface ProjectRow {
-    chatId: string;
-    color: Chat['color'];
-    icon: Chat['icon'];
-    name: string;
-    unreadCount: number;
-}
+export type CaptainPresence = 'error' | 'paused' | 'working';
 
 export interface OpenTaskRow {
     chatId: string | null;
@@ -37,7 +31,9 @@ export interface PersonRow {
     unreadCount: number;
 }
 
-export type CaptainSource = Pick<Agent, 'availability' | 'avatarUrl' | 'displayName' | 'id'>;
+export type CaptainSource = Pick<Agent, 'availability' | 'avatarUrl' | 'displayName' | 'id'> & {
+    wakePause?: Agent['wakePause'];
+};
 export type MemberSource = Pick<ServerMember, 'avatarUrl' | 'displayName' | 'userId'>;
 export interface TaskUnread {
     mentionsViewer: boolean;
@@ -50,24 +46,21 @@ export function captainTile(agent: CaptainSource, dm: { id: string; unreadCount:
         avatarUrl: agent.avatarUrl,
         dmChatId: dm?.id ?? null,
         name: agent.displayName,
+        presence: captainPresence(agent),
         unreadCount: dm?.unreadCount ?? 0,
-        working: agent.availability === 'working',
     } satisfies CaptainTile;
+}
+
+function captainPresence(agent: CaptainSource) {
+    if (agent.availability === 'working' || agent.availability === 'error') {
+        return agent.availability;
+    }
+    return agent.wakePause ? ('paused' as const) : null;
 }
 
 export function agentDm(chats: readonly Chat[], agentId: string) {
     const dm = chats.find((chat) => chat.kind === 'dm' && chat.peerAgentId === agentId);
     return dm ? { id: dm.id, unreadCount: dm.unreadCount } : null;
-}
-
-export function projectRow(chat: Chat) {
-    return {
-        chatId: chat.id,
-        color: chat.color,
-        icon: chat.icon,
-        name: chat.name ?? 'project',
-        unreadCount: chat.unreadCount,
-    } satisfies ProjectRow;
 }
 
 export function taskUnread(preview: ChatUnreadPreview | undefined, viewerUserId: string | null) {
