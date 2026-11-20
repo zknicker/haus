@@ -598,9 +598,10 @@ holds whole-App renders per interaction to the ratchet in
   navigate through `useSidebarNavigate`, not router hooks, which re-render on
   every location change. `features/shell/sidebar-render-isolation.test.tsx`
   pins this. On the web, that navigate and the shell's HeroUI link router
-  (`useStableNavigate`) skip a push to the route the window already shows
-  (`skipsSameRoutePush`), so Back never lands on a duplicate entry; desktop tabs
-  make the same push a no-op in the tab model (`navigateTab`).
+  (`useStableNavigate`) never push the route the window router shows or is
+  loading (`useRouteHistoryMode`, read from live router state), so Back never
+  lands on a duplicate entry; desktop tabs make the same push a no-op in the tab
+  model (`navigateTab`).
 * A context that carries both a high-churn value and a stable function splits
   them (`AgentActivityProvider`'s snapshot and its listener subscription).
 * A render context that reaches rows through React context must hold its

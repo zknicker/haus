@@ -1,7 +1,6 @@
 import * as React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { useOptionalDesktopTabs } from '../desktop-tabs/desktop-tabs-context.ts';
-import { skipsSameRoutePush } from './same-route-push.ts';
+import { useNavigate } from 'react-router-dom';
+import { useRouteHistoryMode } from './same-route-push.ts';
 
 export type SidebarNavigate = (
     href: string,
@@ -15,22 +14,20 @@ const SidebarNavigateContext = React.createContext<SidebarNavigate | null>(null)
  * hooks re-render their caller on every location change, and a desktop tab
  * switch moves the location, so every row read through `useNavigate`
  * re-rendered on each switch. The provider reads the router once; rows read
- * this context. A web push to the current route is skipped (`skipsSameRoutePush`).
+ * this context. A web push never duplicates the current route (`useRouteHistoryMode`).
  */
 export function SidebarNavigateProvider({ children }: { children: React.ReactNode }) {
     const navigate = useNavigate();
-    const location = useLocation();
-    const desktop = useOptionalDesktopTabs() !== null;
-    const latest = React.useRef({ desktop, location, navigate });
+    const historyMode = useRouteHistoryMode();
+    const latest = React.useRef({ historyMode, navigate });
     React.useLayoutEffect(() => {
-        latest.current = { desktop, location, navigate };
+        latest.current = { historyMode, navigate };
     });
     const stable = React.useCallback<SidebarNavigate>((href, options) => {
-        const current = latest.current;
-        if (skipsSameRoutePush({ ...current, href, replace: options?.replace })) {
-            return;
+        const mode = latest.current.historyMode(href, options?.replace);
+        if (mode !== 'skip') {
+            latest.current.navigate(href, { ...options, replace: mode === 'replace' });
         }
-        current.navigate(href, options);
     }, []);
     return <SidebarNavigateContext value={stable}>{children}</SidebarNavigateContext>;
 }

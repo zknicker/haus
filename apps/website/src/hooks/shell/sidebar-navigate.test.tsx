@@ -11,6 +11,8 @@ beforeAll(() => {
 });
 afterAll(() => restoreDom());
 
+type Step = string | { inFlight: string } | 'release slow page';
+
 const routeSteps = [
     '/s/one/chats/haus',
     '/s/one/tasks',
@@ -37,6 +39,8 @@ function useRowPress() {
     return (href: string) => navigate(href, { flushSync: true });
 }
 
+const rowNavigates = [useRowPress, useStableNavigate];
+
 test('a sidebar row press on the route the landing replaced to adds no history entry', async () => {
     expect(await walkBackAfter(useRowPress, routeSteps)).toEqual(routeTrail);
 });
@@ -46,11 +50,28 @@ test('keyboard Enter on that row, through the shell link router, adds no history
 });
 
 test('a push that changes only the hash is its own entry; the same hash is not', async () => {
-    expect(await walkBackAfter(useRowPress, hashSteps)).toEqual(hashTrail);
-    expect(await walkBackAfter(useStableNavigate, hashSteps)).toEqual(hashTrail);
+    for (const useRowNavigate of rowNavigates) {
+        expect(await walkBackAfter(useRowNavigate, hashSteps)).toEqual(hashTrail);
+    }
 });
 
-async function walkBackAfter(useRowNavigate: () => (href: string) => void, steps: string[]) {
+test('mid-navigation, the loading route is not pushed twice and the shown route wins back', async () => {
+    for (const useRowNavigate of rowNavigates) {
+        const loadingAgain = [{ inFlight: '/s/one/slow' }, '/s/one/slow', 'release slow page'];
+        expect(await walkBackAfter(useRowNavigate, loadingAgain)).toEqual([
+            '/s/one/slow',
+            '/s/one/chats/haus',
+            '/s/one/inbox',
+        ]);
+        const shownAgain = [{ inFlight: '/s/one/slow' }, '/s/one/chats/haus', 'release slow page'];
+        expect(await walkBackAfter(useRowNavigate, shownAgain)).toEqual([
+            '/s/one/chats/haus',
+            '/s/one/inbox',
+        ]);
+    }
+});
+
+async function walkBackAfter(useRowNavigate: () => (href: string) => void, steps: Step[]) {
     const { act } = React;
     const { createRoot } = await import('react-dom/client');
     let navigate: (href: string) => void = () => undefined;
@@ -58,6 +79,7 @@ async function walkBackAfter(useRowNavigate: () => (href: string) => void, steps
         navigate = useRowNavigate();
         return <Outlet />;
     }
+    const slowPage = Promise.withResolvers<null>();
     const router = createMemoryRouter(
         [
             {
@@ -69,6 +91,7 @@ async function walkBackAfter(useRowNavigate: () => (href: string) => void, steps
                 ),
                 children: [
                     { index: true, element: <Navigate replace to="/s/one/chats/haus" /> },
+                    { path: 'slow', element: null, loader: () => slowPage.promise },
                     { path: '*', element: null },
                 ],
             },
@@ -83,7 +106,16 @@ async function walkBackAfter(useRowNavigate: () => (href: string) => void, steps
     };
 
     for (const step of steps) {
-        await act(async () => navigate(step));
+        if (step === 'release slow page') {
+            await act(async () => slowPage.resolve(null));
+        } else if (typeof step === 'string') {
+            await act(async () => navigate(step));
+        } else {
+            await act(async () => {
+                router.navigate(step.inFlight);
+            });
+            expect(router.state.navigation.location?.pathname).toBe(step.inFlight);
+        }
     }
 
     const trail = [visited()];
