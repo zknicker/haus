@@ -52,7 +52,7 @@ export async function withWeeklyCove(
         { mode: 0o700 }
     );
     await fixture.harness
-        .sql`insert into channel_agent_participants(server_id,chat_id,agent_id) values (${fixture.serverId},${fixture.channelId},${subjectAgentId}) on conflict do nothing`;
+        .sql`update agents set home_project_id=${fixture.channelId} where id=${subjectAgentId}`;
     const tokenPath = join(root, 'token');
     const localToken = `grta_${randomBytes(32).toString('base64url')}`;
     await writeFile(tokenPath, localToken, { mode: 0o600 });

@@ -77,12 +77,12 @@ export function renderSearchFooter(): string {
 
 export function renderServerInfo(
     response: AgentServerInfo,
-    filters: { joined?: boolean; query?: string } = {}
+    filters: { home?: boolean; query?: string } = {}
 ): string {
     const lines = [
         '## Server summary',
         `${response.total.channels} channels · ${response.total.agents} agents · ${response.total.humans} humans`,
-        'Use --channels, --agents, --humans, --joined, or --query <text> to narrow this view.',
+        'Use --channels, --agents, --humans, --home, or --query <text> to narrow this view.',
         'Copy a person or Agent link into notes and messages to keep its identity across handle changes.',
     ];
     if (response.channels.length > 0) {
@@ -91,7 +91,7 @@ export function renderServerInfo(
             '## Server Channels',
             ...response.channels.map(
                 (channel) =>
-                    `#${channel.handle} [${channel.joined ? 'joined' : 'not joined'}]${descriptionSuffix(channel.description)}`
+                    `#${channel.handle} [${channel.project}${channel.home ? ', your home' : ''}] Agents: ${handleList(channel.homeAgents)}${descriptionSuffix(channel.description)}`
             )
         );
     }
@@ -119,7 +119,9 @@ export function renderServerInfo(
 export function renderChannelInfo(channel: AgentChannel): string {
     return [
         `## Channel #${channel.handle}`,
-        `Joined: ${channel.joined ? 'yes' : 'no'}`,
+        `Project: ${channel.project}`,
+        `Home Agents: ${handleList(channel.homeAgents)}`,
+        `Your home: ${channel.home ? 'yes' : 'no'}`,
         `Description: ${channel.description ?? 'No description.'}`,
         `Members: ${channel.memberCount}`,
         '',
@@ -135,10 +137,11 @@ export function renderChannelMembers(response: AgentChannelMembers): string {
         }
         const handle = member.handle;
         const zone = member.role === 'human' ? timezoneSuffix(member.timezone) : '';
-        return `@${handle} [${member.role}]${zone}${descriptionSuffix(member.description)}`;
+        const role = member.role === 'agent' ? 'home agent' : member.role;
+        return `@${handle} [${role}]${zone}${descriptionSuffix(member.description)}`;
     });
     return [
-        `## Channel Members for ${response.target} (${members.length} members)`,
+        `## Channel Members for ${response.target}, Project ${response.project} (${members.length} members)`,
         ...members,
         '',
     ].join('\n');
@@ -233,9 +236,13 @@ function descriptionSuffix(description: string | null): string {
     return description ? ` — ${description}` : '';
 }
 
+function handleList(handles: readonly string[]) {
+    return handles.length > 0 ? handles.map((handle) => `@${handle}`).join(', ') : 'none';
+}
+
 function serverInfoNextCommands(
     response: AgentServerInfo,
-    filters: { joined?: boolean; query?: string }
+    filters: { home?: boolean; query?: string }
 ): string[] {
     const sectionFlags = [
         ['channels', '--channels'],
@@ -249,7 +256,7 @@ function serverInfoNextCommands(
         const command = [
             'haus server info',
             flag,
-            ...(filters.joined ? ['--joined'] : []),
+            ...(filters.home ? ['--home'] : []),
             ...(filters.query ? ['--query', quoteCommandValue(filters.query)] : []),
             `--offset ${response.offset + response.limit}`,
             `--limit ${response.limit}`,

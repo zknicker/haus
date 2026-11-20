@@ -12,7 +12,7 @@ export const cliFamilyTopicsA: readonly ManualNavigationTopic[] = [
 
 **Freshness hold.** If newer messages arrived since you last read, the send is held and saved as a draft, with the new context shown. Revise by sending a new message, send the draft unchanged with \`--send-draft\`, or stay silent. \`--anyway\` exists only for repeated holds.
 
-**Read.** \`haus message check\` drains and acknowledges pending deliveries; run it again while it says more are pending. \`haus message read --target <t> --unread\` reads one conversation's unread messages: it starts right after your read position and moves it, so no seq is needed. It prints \`Read position: seq <a> → <b>\` with the \`haus message read --target "<t>" --after <a>\` command that re-reads those messages, then either \`More unread remain\` (run the same command again) or \`No more unread in this target.\` It cannot be combined with \`--before\`, \`--after\`, or \`--around\`; inbox notices name this command. \`haus message read --target <t>\` reads history, with one of \`--before\`, \`--after\`, or \`--around\` a message id or sequence. Browsing with \`--after <seq>\` does not move your read position when older unread sit below that seq; use \`--unread\` to read what is unread. \`haus message search --query <text>\` searches joined channels and DMs (\`--target\`, \`--sender\`, \`--sort relevance|recent\`). \`haus message resolve <id>\` expands a short ID.
+**Read.** \`haus message check\` drains and acknowledges pending deliveries; run it again while it says more are pending. \`haus message read --target <t> --unread\` reads one conversation's unread messages: it starts right after your read position and moves it, so no seq is needed. It prints \`Read position: seq <a> → <b>\` with the \`haus message read --target "<t>" --after <a>\` command that re-reads those messages, then either \`More unread remain\` (run the same command again) or \`No more unread in this target.\` It cannot be combined with \`--before\`, \`--after\`, or \`--around\`; inbox notices name this command. \`haus message read --target <t>\` reads history, with one of \`--before\`, \`--after\`, or \`--around\` a message id or sequence. Browsing with \`--after <seq>\` does not move your read position when older unread sit below that seq; use \`--unread\` to read what is unread. \`haus message search --query <text>\` searches every channel, Task, and DM you can read (\`--target\`, \`--sender\`, \`--sort relevance|recent\`). \`haus message resolve <id>\` expands a short ID.
 
 **Attention.** \`haus message react --message-id <id> --emoji <emoji>\` acknowledges a human's message that needs no answer. \`haus message unfollow\` and \`follow\` (\`--target\`, \`--message-id\`) leave or rejoin an inline-reply exchange.
 
@@ -27,11 +27,11 @@ See replies for inline-reply etiquette, inbox for what is waiting, and recipes/t
     {
         body: `# Inbox
 
-Your inbox is what needs your attention: unread messages in the channels and DMs you are in and the Tasks you follow, mentions of you, and the work delivered to you (claim assignments, trigger and reminder fires, cloud agent results). For people, the Haus App's Inbox is the same idea; \`haus inbox check\` is yours.
+Your inbox is what needs your attention: unread messages in your home Project's channel and Tasks, your DMs, and the Tasks and reply chains you follow, mentions of you, and the work delivered to you (claim assignments, trigger and reminder fires, cloud agent results). For people, the Haus App's Inbox is the same idea; \`haus inbox check\` is yours.
 
-**See what is unread.** \`haus inbox check\` lists every channel, DM, and followed Task with unread messages for you, newest activity first, under a header such as \`Inbox: 3 unread conversations (2 DMs, 1 with mentions). Newest activity first.\` No flags needed. Each row shows the target, the unread count, whether it mentions you, and who posted last, as in \`#general · 4 unread · mentions you · latest @zach 3m ago\`. The row's \`open:\` line is the exact \`haus message read --target "<target>" --after <seq>\` command that reads from your read position.
+**See what is unread.** \`haus inbox check\` lists your home channel, DMs, and followed Tasks with unread messages for you, newest activity first, under a header such as \`Inbox: 3 unread conversations (2 DMs, 1 with mentions). Newest activity first.\` No flags needed. Each row shows the target, the unread count, whether it mentions you, and who posted last, as in \`#general · 4 unread · mentions you · latest @zach 3m ago\`. The row's \`open:\` line is the exact \`haus message read --target "<target>" --after <seq>\` command that reads from your read position.
 
-The output ends with one \`Next:\` line naming the single next step. When there are more conversations than fit on one page, a \`More: haus inbox check --before <key>\` line comes first; run it as printed for the next page. \`--view mentions\` narrows the list to conversations with unread mentions of you. A muted channel appears only when it mentions you.
+The output ends with one \`Next:\` line naming the single next step. When there are more conversations than fit on one page, a \`More: haus inbox check --before <key>\` line comes first; run it as printed for the next page. \`--view mentions\` narrows the list to conversations with unread mentions of you. A channel outside your home appears only when it mentions you.
 
 Rows whose new messages have not been handed to you yet say \`N new, not yet delivered\` and come first. Cloud agent results waiting for you appear as one line, \`Cloud Agent results · N pending · fetch with haus message check\`.
 
@@ -41,7 +41,7 @@ If it answers \`INBOX_UNAVAILABLE\`, the unread list is briefly unreachable. Ret
 
 **Drain.** \`haus message check\` reads the pending deliveries and acknowledges them. Run it again while it says more messages are pending; the output is ordered oldest first.
 
-Muting a channel (\`haus channel mute\`) stops its ordinary delivery; personal mentions and DMs still arrive. Unfollowing a Task (\`haus task unfollow --target task:SEC-12\`) or an inline-reply exchange (\`haus message unfollow\`) narrows attention the same way.
+**What reaches you.** You hear everything in your home Project's channel and its Tasks. In other Projects you hear what mentions you, what is assigned to you, and the Tasks and reply chains you follow. DMs always reach you. You can read and post in every Project, and posting there does not make you hear it. Unfollowing a Task (\`haus task unfollow --target task:SEC-12\`) or an inline-reply exchange (\`haus message unfollow\`) narrows attention; a Task in your home Project still reaches you.
 
 Delivery is the only wake-up you need for cloud agent results and trigger fires. Do not poll; use a reminder only for follow-up that depends on future state.`,
         id: 'inbox',
@@ -54,11 +54,9 @@ Delivery is the only wake-up you need for cloud agent results and trigger fires.
     {
         body: `# Channels
 
-\`haus channel info <target>\` shows one channel and whether you have joined it. \`haus channel members <target>\` lists its members and their role labels.
+\`haus channel info <target>\` shows one channel: its Project key, its home Agents, and whether it is your home. \`haus channel members <target>\` lists its people and home Agents.
 
-\`haus channel join --target "#name"\` makes ordinary channel delivery reach your inbox; \`leave\` reverses it. \`haus channel mute --target "#name"\` stops ordinary delivery from the channel while personal mentions and DMs still arrive; \`unmute\` reverses it.
-
-\`haus channel add --target "#name" --agent @handle\` puts another Agent in an open channel. Cove's channel membership is product-owned and refuses.
+**Homes.** Every channel is a Project, and every Agent has one home Project. You hear your home's channel and Tasks; elsewhere, only mentions, assignments, and what you follow reach you (see inbox). You read and post in every channel without joining. A person moves an Agent's home in the App; no Agent moves itself or another.
 
 **New channels.** Every channel is a Project, and only people create Projects, in the App, so when someone asks you for a new channel or Project, say that they create it there.
 
@@ -66,13 +64,13 @@ To find channels, Agents, or humans, use \`haus server info\` (see server). Chan
         id: 'channel',
         kind: 'overview',
         related: ['server', 'inbox', 'agent'],
-        summary: 'Inspect channels and members; join, leave, mute, and add an Agent.',
+        summary: 'Inspect channels, their Project keys, and their home Agents.',
         title: 'Channels',
     },
     {
         body: `# Server directory
 
-\`haus server info\` reads a bounded view of this Server: its channels, Agents, and humans. Narrow it with \`--channels\`, \`--agents\`, or \`--humans\`, and \`--joined\` to limit channels to the ones you joined. \`--query <text>\` filters handles and descriptions; \`--limit\` and \`--offset\` page large sections.
+\`haus server info\` reads a bounded view of this Server: its channels with their Project keys and home Agents, its Agents, and its humans. Narrow it with \`--channels\`, \`--agents\`, or \`--humans\`, and \`--home\` to limit channels to your home Project. \`--query <text>\` filters handles and descriptions; \`--limit\` and \`--offset\` page large sections.
 
 The \`--humans\` and \`--agents\` rows carry ID-backed Markdown references. Copy that reference when a brief, note, or reminder names someone for later: a saved \`user://\` or \`agent://\` target still names the same actor after a rename, while a plain \`@handle\` can go stale.
 

@@ -16,11 +16,11 @@ const createdAgent = {
 const createReceipt = {
     agent: createdAgent,
     avatar: { byteSize: 4096, status: 'generated' },
-    channels: ['#haus', '#product'],
     chatId: 'cht_product',
     computerId: 'cmp_studio',
     idempotent: false,
     modelId: 'gpt-5.6-sol',
+    project: 'PRD',
     reasoningEffort: 'medium',
     runtimeId: 'codex',
     target: '#product',
@@ -96,18 +96,18 @@ test('create says the new Agent introduces itself, without sending a message', a
     expect(seen[0]?.body).toEqual({
         avatarConcept: 'a moonlit raccoon',
         brief: 'Own release notes and report verified results in #product.',
-        channels: [],
         description: 'Keeps release notes current.',
         displayName: 'Orbit',
         nonce: deriveAgentCreateNonce('agt_caller', {
             avatarConcept: 'a moonlit raccoon',
             brief: 'Own release notes and report verified results in #product.',
-            channels: [],
             description: 'Keeps release notes current.',
             displayName: 'Orbit',
+            project: null,
             signatureEmoji: null,
             target: '#product',
         }),
+        project: null,
         signatureEmoji: null,
         target: '#product',
     });
@@ -125,31 +125,31 @@ test('create says the new Agent introduces itself, without sending a message', a
     );
     expect(printed).not.toMatch(/Next: introduce|haus message send --target "#haus"/u);
     expect(printed).not.toContain('Message ID:');
-    expect(printed).toContain('In #haus, #product.');
+    expect(printed).toContain("Home Project: PRD. It hears that Project's channel and Tasks.");
 });
 
-test('the brief and repeated channels ride the create, and the receipt says so', async () => {
+test('the brief and the home Project key ride the create, and the receipt says so', async () => {
     const seen: AgentApiRequest[] = [];
     const output: string[] = [];
 
     await runAgentCreate(
-        {
-            ...args(),
-            valueLists: { '--channel': ['#product', '#product', '#design'] },
-            values: {
-                ...args().values,
-                '--brief': '  Own release notes. Post a Friday digest in #product.  ',
-                '--channel': '#design',
-            },
-        },
+        args({
+            '--brief': '  Own release notes. Post a Friday digest in #product.  ',
+            '--project': ' prd ',
+        }),
         deps({ client: requester(seen), write: (text) => output.push(text) })
     );
+    await runAgentCreate(args({ '--project': 'PRD' }), deps({ client: requester(seen) }));
+    await runAgentCreate(args({ '--project': 'OPS' }), deps({ client: requester(seen) }));
 
-    const body = seen[0]?.body as { brief: string; channels: string[] };
-    expect(body.brief).toBe('Own release notes. Post a Friday digest in #product.');
-    // Repeats collapse; #haus is the Server's business, not a flag.
-    expect(body.channels).toEqual(['#product', '#design']);
+    const [lowercase, uppercase, other] = seen.map(
+        (request) => request.body as { brief: string; nonce: string; project: string }
+    );
+    expect(lowercase?.brief).toBe('Own release notes. Post a Friday digest in #product.');
+    expect(lowercase?.project).toBe('PRD');
     expect(output.join('')).toContain('Its brief is in its memory');
+    expect(uppercase?.project).toBe('PRD');
+    expect(other?.nonce).not.toBe(uppercase?.nonce);
 });
 
 test('--emoji rides the create normalized, and the nonce tells it apart', async () => {
@@ -233,7 +233,7 @@ test('create refuses locally before spending a request on a bad flag', async () 
         [{ '--description': 'x'.repeat(281) }, /--description must be 280 characters/u],
         [{ '--avatar-concept': 'x'.repeat(281) }, /--avatar-concept must be 280 characters/u],
         [{ '--brief': 'x'.repeat(4001) }, /--brief must be 4000 characters/u],
-        [{ '--channel': 'product' }, /Invalid channel "product"/u],
+        [{ '--project': '#product' }, /Invalid Project key "#product"/u],
         [{ '--emoji': 'fox' }, /exactly one emoji/u],
         [{ '--emoji': '🦊🦊' }, /exactly one emoji/u],
     ];

@@ -109,7 +109,7 @@ test('publishes the Agent reference topic as the Agent-creation contract', () =>
     expect(getManualTopic('action-cards')).toBeNull();
     expect(agent?.kind).toBe('overview');
     expect(agent?.body).toContain(
-        'haus agent create --target <current-chat> --name <name> --description <text> --brief <text> [--channel "#name"] [--avatar-concept <text>]'
+        'haus agent create --target <current-chat> --name <name> --description <text> --brief <text> [--project <KEY>] [--avatar-concept <text>]'
     );
     expect(agent?.body).toContain(
         'Create an Agent only when a human in the Chat you are working in has asked for one'
@@ -135,12 +135,12 @@ test('publishes the Agent reference topic as the Agent-creation contract', () =>
     // follow-up DM.
     expect(agent?.body).toContain('**It introduces itself.**');
     expect(agent?.body).not.toContain('**Introduce it in #all after creation.**');
-    expect(agent?.body).toContain('**Put it where the work is.**');
+    expect(agent?.body).toMatch(/\*\*Give it a home\.\*\*.*a generalist in the Haus project/u);
     expect(agent?.body).toContain('**Give it a brief.**');
     expect(agent?.body).toContain('copy their ID-backed Markdown reference');
     expect(agent?.body).not.toContain('@zach-knickerbocker');
     expect(agent?.body).toContain('you do not DM the new Agent');
-    expect(agent?.body).toContain('haus channel add --target "#name" --agent @handle');
+    expect(agent?.body).not.toMatch(/haus channel add|--channel/u);
     expect(agent?.body).not.toContain('haus message send --target dm:@handle');
     expect(agent?.body).toContain('haus agent update --agent @handle --description <text>');
     expect(agent?.body).toContain('haus agent avatar --agent @handle --concept <text>');
@@ -207,7 +207,7 @@ test('publishes the claims topic the prompt points to for claim mechanics', () =
     expect(claims?.body).toContain('`assign` is not `claim`');
     expect(claims?.body).toContain('"not assignable in this chat"');
     expect(claims?.body).toContain('only an Agent ever holds one');
-    expect(claims?.body).toContain('hands a claim to any Agent member of that chat');
+    expect(claims?.body).toContain('hands a claim to any active Agent, in any Project');
     expect(claims?.body).not.toContain('any human or Agent member');
     expect(claims?.body).toContain('**Handing work to a human.**');
     expect(claims?.body).toContain('@mention them in an inline reply where the request arrived');

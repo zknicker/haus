@@ -27,11 +27,11 @@ const createdAgent = {
 const createReceipt = {
     agent: createdAgent,
     avatar: { byteSize: 4096, status: 'generated' },
-    channels: ['#haus', '#product'],
     chatId: 'cht_product',
     computerId: 'cmp_studio',
     idempotent: false,
     modelId: 'gpt-5.6-sol',
+    project: 'PRD',
     reasoningEffort: 'medium',
     runtimeId: 'codex',
     target: '#product',
@@ -201,9 +201,9 @@ test('the create nonce is the request itself, so an identical re-issue replays',
     const request = {
         avatarConcept: 'a moonlit raccoon',
         brief: 'Own release notes.',
-        channels: ['#product', '#design'],
         description: 'Keeps release notes current.',
         displayName: 'Orbit',
+        project: 'PRD' as string | null,
         signatureEmoji: null,
         target: '#product',
     };
@@ -211,20 +211,14 @@ test('the create nonce is the request itself, so an identical re-issue replays',
 
     expect(nonce).toMatch(/^agent-create-[0-9a-f]{64}$/u);
     expect(deriveAgentCreateNonce('agt_caller', { ...request })).toBe(nonce);
-    // Channel order and repeats say nothing about which Agent this is.
-    expect(
-        deriveAgentCreateNonce('agt_caller', {
-            ...request,
-            channels: ['#design', '#product', '#product'],
-        })
-    ).toBe(nonce);
 
     const changed = [
         { ...request, avatarConcept: 'a brass compass' },
         { ...request, avatarConcept: null },
         { ...request, brief: 'Own the changelog.' },
         { ...request, brief: 'Own a different lane.' },
-        { ...request, channels: ['#product'] },
+        { ...request, project: 'OPS' },
+        { ...request, project: null },
         { ...request, description: 'Keeps the changelog current.' },
         { ...request, displayName: 'Orbit II' },
         { ...request, signatureEmoji: '🦊' },
