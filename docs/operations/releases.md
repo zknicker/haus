@@ -155,10 +155,11 @@ its own operator order: see
 
 ### iOS is temporarily non-blocking
 
-Until iPhone releases are reliable again, a failed or skipped `Upload iOS` job does not block
-Server. `Publish Server` neither waits for the upload nor requires a processed build, so Server
-can deploy while the iPhone build still speaks the previous App protocol. Older iPhone installs
-cannot connect until a compatible TestFlight build ships.
+For the rest of the Capy-direction epic, iPhone does not gate releases and may stay broken. A
+failed or skipped `Upload iOS` job does not block Server. `Publish Server` neither waits for the
+upload nor requires a processed build, so Server can deploy while the iPhone build still speaks
+the previous App protocol. Older iPhone installs cannot connect until a compatible TestFlight
+build ships.
 
 `Finalize release` still runs. When iOS was selected and its upload did not succeed, it prints a
 `::warning`, marks iOS `not shipped` in the run summary, and pushes the tag
@@ -169,8 +170,8 @@ the iOS target. The marker is permanent: a later rerun of that release's upload 
 To ship iOS later, cut a new release that publishes iOS with a new version and an unused build
 number. Do not rerun the old `Upload iOS` job after Finalize has recorded the marker.
 
-To make iOS blocking again, restore `upload_ios` to `publish_server`'s `needs` and `if:` and its
-"Require processed iOS before Server publication" step, return `ios` to
+After the Capy-direction epic lands, make iOS blocking again: restore `upload_ios` to
+`publish_server`'s `needs` and `if:` and its "Require processed iOS before Server publication" step, return `ios` to
 `assertSelectedJobResults` in `scripts/release/verify-release.mjs`, and remove the unshipped-iOS
 recording there. Keep `scripts/release/unshipped-ios.mjs` and its readers while any
 `unshipped/ios/*` tag exists, because older ledger entries still depend on it.

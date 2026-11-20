@@ -79,8 +79,8 @@ The canonical Info.plist owns the matching icon metadata, including the `CFBundl
 entry that `setAlternateIconName` requires, so Xcode's later plist processing cannot erase it; the
 archive check fails when the primary or any alternate entry is missing. The artifact remains a compiled form of the canonical source, not a flattened fallback.
 
-For now, Server publication does not wait for the iPhone build, and a failed upload does not
-block Server. See
+Until the Capy-direction epic lands, Server publication does not wait for the iPhone build, and a
+failed upload does not block Server. See
 [iOS is temporarily non-blocking](releases.md#ios-is-temporarily-non-blocking) for what Finalize
 records and how to restore the gate.
 
