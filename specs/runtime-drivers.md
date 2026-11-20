@@ -436,6 +436,11 @@ These end at R4 and are named here as intentional capability removals:
   for its model comes with that read.
 - **PDFs for GPT models.** GPT Agents have `view_image`, not the editor's `view`, so a PDF reaches
   them only through shell tools on the machine.
+- **Host fonts for page images.** A PDF that names a standard font without embedding it renders
+  that text with the host's fonts, because `unpdf`'s build carries no standard font data. The
+  runner image installs no fonts, and no container run has yet shown whether such text appears
+  in its page images. The page's extracted text carries it either way, and embedded fonts render
+  from the PDF itself.
 - **Pi compaction between turns.** A Pi compaction that lands outside a Haus turn has no observer,
   so the memory and rules receipts do not reset for it.
 - **A cross-process lock on the login file.** Pi locks a token refresh inside the runner process
