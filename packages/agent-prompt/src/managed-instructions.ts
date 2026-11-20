@@ -7,7 +7,7 @@
  * delivery mechanics ride the event input (for example the inbox notice in inbox-format.ts).
  *
  * PROMPT CONTRACT: text changes need explicit operator approval for removed capabilities and
- * must remain covered by the Computer harness instruction tests. See AGENTS.md.
+ * must remain covered by this package's instruction tests. See AGENTS.md.
  */
 
 import { CLAIM_IN_REVIEW_STALE_DAYS, type ConnectionChipKind } from '@haus/api';

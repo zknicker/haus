@@ -48,12 +48,24 @@ What it never holds: database credentials, the Server's own secrets, MCP credent
 credentials, or any Server-valid credential beyond a run's. Oxlint rules in the repo plugin stop
 `apps/runner/**` importing `apps/server/**`, PostgreSQL clients, or Server secrets modules (R3).
 The container's network reaches the Server's runner endpoint and the internet, and is denied the
-database port and private address ranges. R3 proves the deny from inside the container.
+database port and private address ranges. The container entrypoint installs that deny and drops
+its capabilities before the runner starts, and `apps/runner/container/prove-network-deny.sh`
+proves it from inside the container on the Server host.
 
 A run's authority comes in its start frame: a run credential the Server mints for that Agent and
-run, with the Agent API scopes a Computer mints today, revoked when the run settles. The runner
-uses it for `haus` commands, `execute`, Drive reads, and invocation requests. Nothing else in the
-runner can act as an Agent.
+run, with the Agent API scopes a Computer mints today, revoked when the run settles, stops, or
+fails. Its row in `agent_runner_credentials` has no Computer. The start frame on the runner socket
+is `runner-start { start, runCredential, reasoningEffort? }`, so the Agent start schema itself is
+unchanged. `reasoningEffort` is the effort frozen onto the run, which a Computer learns from
+`agent-configure` instead; without it the runner launches at the model's default. The
+runner uses the credential for `haus` commands, `execute`, Drive reads, and invocation requests.
+Nothing else in the runner can act as an Agent.
+
+The runner socket is `/runner/attachment`. Its first frame is `runner-hello` with the runner
+token, which the Server compares in constant time to its own `HAUS_RUNNER_TOKEN`. Until R4, the
+Server delivers to the runner only when `HAUS_AGENT_LOOP=runner`, one switch for every Agent so
+there is never a mixed state; Computers keep the default `computer`. R4 deletes the switch with
+the Computer path.
 
 In development, `bun run dev` runs the runner as a local process with the same environment
 contract and no container. The Oxlint rules hold the boundary there.
@@ -135,6 +147,13 @@ cold-starts once.
 
 ### Cutover
 
+R3 left these Computer turn features unported, and R4 ports each before it moves an Agent:
+execution journal upload (including journaling dispatches the ledger recovers as `unknown`),
+thoughts, idle compaction, rich-reference projection of message content, Cove guidance, the
+managed-skill change notice, Claude plan usage after a turn, Agent restart and reset frames to
+the runner, and
+`haus cloud-agent start`, which the Computer handled locally.
+
 R5 lands Pi Durable before R4, so the cutover has both harnesses and every Agent has one for
 its model. R4 moves every Agent at once and resets every session. No native session is copied from a
 Computer. Codex and Grok Build stores cannot load in Pi, and a Claude Code session would resume
@@ -196,12 +215,25 @@ type TurnEvent =
 
 The runner composes every turn's instructions from the Server's current Drive revisions
 ([ADR 0054](../docs/adr/0054-drive-holds-what-agents-know-and-follow.md) decision 7), read with
-the run credential, never from a machine. The prompt contract (the size cap, the divergence
-register, `test:prompt-contract`, `instructions.test.ts`, and `managed-instructions.test.ts`)
-moves with the composition code to `apps/runner/` in R3.
+the run credential, never from a machine. The guarded prompt text, the inbox formatters, and the
+memory block live in `packages/agent-prompt` (`@haus/agent-prompt`), so the Computer and the
+runner render the same text from one source until R4 deletes the Computer's composition. The
+prompt contract (the size cap, the divergence register, `test:prompt-contract`, and
+`managed-instructions.test.ts`) moved there in R3.
 
 A resumed native session keeps the instructions it started with on both harnesses. The executor
 keeps resumed sessions current as it does today (specs/sessions.md "Instruction updates").
+
+Rules and memory ride the turn input, ahead of the turn content, as ADR 0052 delivers
+`MEMORY.md`. The runner reads the rule layers broadest first, `haus/AGENTS.md` then
+`agents/<handle>/AGENTS.md`, by path with the run credential; an absent file is no layer. A fresh
+session receives every present layer. A resumed session receives a layer only when its digest
+differs from the session's rule receipt, and a layer the session saw that is now gone is announced
+once as deleted. The receipts sit in `session.json` beside the memory receipt and move the same
+way: they advance after a completed turn, hold after an interrupted one, and reset after a
+compacted one. A layer the runner could not read keeps its receipt. Home Projects arrive in J3,
+and the home Project's `projects/<key>/AGENTS.md` joins between the two layers then. The block
+text is `formatRulesBlock` in `@haus/agent-prompt`.
 
 Skills load from Drive. The runner lists the Agent's skills in its instructions by name and
 description, from `agents/<handle>/skills/*/SKILL.md`, and the Agent opens one with
@@ -271,14 +303,29 @@ here-string. Otherwise:
 - Every command without `haus` goes to the machine as an invocation.
 
 A `haus` flag that names a machine path reads or writes it through a `file-read` or `file-write`
-invocation: `attachment upload --path`, `image generate --reference <path>`,
-`image wait --out`, and `trigger create|rotate --output`. The CLI's flag table marks these flags,
-and only those commands need the machine. A webhook secret written by `--output` crosses the
-Server once, inside the invocation, and is never stored in an invocation record or the journal.
+invocation: `attachment upload --path`, `attachment view --output`,
+`image generate --reference <path>`, `image wait --out`, `trigger preview --payload-file`, and
+`trigger create|rotate --output`. Only those commands need the machine. A webhook secret written
+by `--output` crosses the Server once, inside the invocation, and is never stored in an
+invocation record or the journal.
+
+A `haus` argument never resolves against the runner's disk, which holds every Agent's sessions.
+The runner's command table (`apps/runner/src/haus/command-access.ts`) classifies every Agent CLI
+command as Server-only, routed through the flags above, or refused. `files push`, `files pull`,
+and `files view` walk workspace folders and the Computer's Files cache, so they are refused with
+`Code: HAUS_WORKSPACE_UNREACHABLE` until `haus drive` replaces them (D4). A command the table
+does not know is refused with `Code: UNKNOWN_HAUS_COMMAND`, so a new CLI command cannot touch a
+local path until it is classified. The CLI child runs in a fresh per-call directory with an
+empty `HOME`.
 
 The machine has no `haus` wrapper, proxy, or runner token for Agents. The Computer's loopback
 proxy, its local inbox answers, its visibility receipts, and its send-outcome tracking move into
 the runner's `haus` handler. Workers get their own CLI scope (W1).
+
+In R3 the runner runs the existing Agent CLI from the `@haus/computer` package (`__agent`) as a
+child process against a runner-local loopback proxy. The proxy holds the run credential and adds
+`Haus-Dispatch-Id`, so the CLI never sees a Server-valid credential. Moving the CLI into its own
+package comes before R4 deletes the Computer's Agent paths.
 
 ### `execute`
 
@@ -321,23 +368,38 @@ record.
 The runner keeps a ledger per Agent at `/data/agents/<agent-id>/runtime/dispatches/`, one
 `<runId>.<toolCallId>.<seq>.json` per dispatch with `{ kind, state, acceptedAt, finishedAt?,
 outcome? }`, written by atomic replace. The runner writes `accepted` and syncs it to disk before it
-sends the request, then writes the outcome when the answer arrives. A record is pruned 24 hours
-after its run settles.
+sends the request, then writes the outcome when the answer arrives. A finished record is pruned 24
+hours after its run settles. The runner stores a run's turn summary, then writes its settle time
+once to `/data/agents/<agent-id>/runtime/settled-runs/<runId>.json`, then reports the run. A run
+with no settle time keeps every record however long the runner was down, and a settle time goes
+with its run's last record.
 
 A runner that starts with records still `accepted` marks each `unknown`, writes it to the Agent's
-execution journal for that run, and never sends it again. The run itself fails as a crashed turn
-does today, and its next turn is a new model decision, never a replay.
+execution journal for that run, and never sends it again. A run the runner finds still `accepted`
+is never relaunched: when the Server resends its start, the runner settles it failed with
+`runner-crashed`. Every settled run, crashed or not, reports `outputProduced` when it sent a
+message or the ledger holds any dispatch for it, so the Server does not requeue work whose effects
+may already exist; a failed run with neither reports none, and its inbox requeues. The Agent's next turn opens by naming the tool calls left
+`unknown`, once, so its next move is a new model decision that checks their effects first, never
+a replay.
 
 ### Agent API requests
 
 Every request the runner sends to `/api/agent/*` for a `haus` command carries
-`Haus-Dispatch-Id: <runId>:<toolCallId>:<seq>`. Every mutating route stores the dispatch id with
-its result in the same transaction as the mutation, keyed by Agent and dispatch id. A repeat of
-a stored id returns the stored result and changes nothing. A repeat of an id whose first request
-is still in flight waits for it. The same id with a different request body is refused with
-`IDEMPOTENCY_KEY_REUSED`. The CLI's existing keys (a message or claim `nonce`, a reminder
-`commandId`) are set from the dispatch id. R3 adds the header to the routes that have no key
-today, such as `task start` and `trigger create`. Read routes ignore it.
+`Haus-Dispatch-Id: <runId>:<toolCallId>:<seq>`. One layer over every mutating route keeps the
+dispatch contract, with records in `agent_dispatches` keyed by Agent and dispatch id. It records
+the dispatch `accepted` before the route runs and stores the response status and body after. A
+repeat of a stored id returns the stored response and changes nothing. A repeat of an id whose
+first request is still in flight waits for it. The same id with a different request body is
+refused with `IDEMPOTENCY_KEY_REUSED`. An id still `accepted` with no live request, because the
+Server stopped mid-request, turns `unknown` and answers `DISPATCH_OUTCOME_UNKNOWN`; the route
+never runs again, and the Agent checks the effect before acting again. The header's run must be
+the credential's run. Read routes ignore it.
+
+The routes with their own keys (a message or claim `nonce`, a reminder `commandId`) keep them,
+and the runner sets them from the dispatch id, so those mutations stay exact even across a Server
+crash. A per-route transaction for every other route is not worth its cost while unknown is
+terminal.
 
 ### MCP calls
 
@@ -420,10 +482,18 @@ invocation's timeout plus 30 seconds for a reconnect. A reconnect inside it rese
 `invoke` frames and receives pending results. Past it the invocation turns `unknown` and the
 runner gets that answer.
 
+The runner holds the same bound on its side. A drop of its own Server socket abandons nothing: a
+start the Server resends for a run already running only re-acknowledges it, so the run keeps its
+tools and its open invocations still receive their results. Each open invocation resolves
+`unknown` at its timeout plus 30 seconds if no result arrives, so no tool call waits forever.
+`haus` commands and `execute` programs end at their own timeouts, and their machine paths and
+`browser` calls are invocations under the same bound.
+
 ### Cancellation
 
 Stop, a fatal turn event, or the no-progress deadline makes the runner send `invocation-cancel`
-for each open invocation of the run. The Server forwards `invoke-cancel`. The Computer sends
+for each open invocation of the run. The no-progress deadline is 15 minutes with no turn event,
+whether or not a tool call is open; every tool call resolves well inside it. The Server forwards `invoke-cancel`. The Computer sends
 `SIGTERM` to the process group, then `SIGKILL` after five seconds, and reports `cancelled` with
 the output so far. A cancel for an id still waiting its turn removes it, reported `cancelled`
 with "Cancelled before it started.". A timeout kills the group at once with `SIGKILL`, stopping
@@ -606,12 +676,17 @@ settings, reminder scripts, host skill discovery, inventory, updates, and Worker
 | An Agent with no machine or an offline one gets `offline` at once, and a turn with only `haus` calls completes | `apps/server/test/agent-invocations-offline.test.ts` | R3 |
 | After an acknowledgement is lost and the Computer reconnects, an invocation already `unknown` is never sent again, and a late result is recorded without reaching the model | `apps/server/test/agent-invocations-unknown.test.ts` | R3 |
 | A result or write over 1 MiB moves as an attachment reference, and no frame exceeds 1 MiB | `apps/computer/src/invocations/large-payload.test.ts` | R2 |
-| A lone `haus` command runs on the runner, and a composed one is refused with `HAUS_NOT_ALONE` | `apps/runner/src/haus-command.test.ts` | R3 |
-| A runner crash after recording a dispatch accepted reports `unknown` and never sends it again | `apps/runner/src/dispatch-ledger-crash.test.ts` | R3 |
+| A lone `haus` command runs on the runner, and a composed one is refused with `HAUS_NOT_ALONE` | `apps/runner/src/haus/haus-command.test.ts` | R3 |
+| A `haus` path argument never reads the runner's disk: workspace commands are refused, path flags read the machine, and every CLI command is classified | `apps/runner/src/haus/haus-cli.test.ts`, `command-access.test.ts` | R3 |
+| A runner crash after recording a dispatch accepted reports `unknown` and never sends it again | `apps/runner/src/dispatch/dispatch-ledger-crash.test.ts` | R3 |
+| A run a crashed runner left accepted settles `runner-crashed` without relaunching, with output when it dispatched anything, and the next turn names its unknown tool calls | `apps/runner/src/turn/crash-recovery.test.ts`, `turn-input.test.ts` | R3 |
 | A repeated `Haus-Dispatch-Id` on a mutating Agent API route returns the stored result and mutates nothing; one with a different body is refused with `IDEMPOTENCY_KEY_REUSED` | `apps/server/test/agent-api-dispatch-id.test.ts` | R3 |
 | A repeated MCP dispatch id never calls upstream twice | `apps/server/test/mcp-dispatch-id.test.ts` | R3 |
-| The runner cannot import Server or PostgreSQL modules | Oxlint rule tests in `scripts/lint/haus-rules` | R3 |
-| The SDK runs with native tools off and only `mcp__haus__*` tools reachable | `apps/runner/src/claude/claude-tools-live.test.ts` | R3 |
+| A turn stuck on an open tool call trips the no-progress deadline | `apps/runner/src/turn/observe-turn.test.ts` | R3 |
+| A start resent after a runner reconnect reattaches the running run, its open invocation still resolves, and an invocation never answered resolves `unknown` at its timeout plus the grace | `apps/runner/src/server-link.test.ts` | R3 |
+| The runner socket refuses a wrong token, a start reaches the runner with a working run credential while the Computer is offline, and settle, Stop, and reconnect behave as on Computers | `apps/server/test/runner-socket-auth.test.ts`, `runner-delivery.test.ts`, `runner-invocation-offline.test.ts` | R3 |
+| The runner cannot import Server or PostgreSQL modules, and Computer code makes no model calls | `scripts/lint/haus-rules/runner-boundary.cases.mjs`, `computer-no-model-calls.cases.mjs` | R3 |
+| The SDK runs with native tools off and only `mcp__haus__*` tools reachable | `apps/runner/src/claude/claude-tools-live.test.ts`, `claude-driver-live.test.ts` | R3 |
 | Ported Pi tools keep their upstream behavior | Ported upstream tests, listed in `pi/PROVENANCE.md` | R2 |
 | The ported Codex patch grammar keeps its upstream behavior | Ported upstream tests | R5 |
 

@@ -868,6 +868,17 @@
                 "timer": 0
             }
         },
+        "apps/server/src/agent-api/dispatch-gate.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Each dispatch flight is one HTTP request: its Promise.withResolvers settles exactly once in land(), which also deletes the flight entry, and a running flight lands when that request's onSend hook finishes it, so concurrent duplicates wait on one response.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
         "apps/server/src/server-mcp/requests.ts": {
             "disposition": "external-adapter",
             "reason": "Bounded request cancellation registry adapting HTTP messages to AbortSignals. Entries release with handlers, expire on access, and abort at Fastify shutdown; no background work is launched.",

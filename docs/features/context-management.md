@@ -101,7 +101,7 @@ model session. Per-turn message delivery is an inbox concern; see
   rest of its local state without reseeding.
 
 The composed instructions are bounded by a size cap asserted in
-`apps/computer/src/harness/managed-instructions.test.ts`. It is a ratchet that forces a deliberate
+`packages/agent-prompt/src/managed-instructions.test.ts`. It is a ratchet that forces a deliberate
 decision, not a hard or runtime limit: a justified addition raises the cap with a recorded reason,
 and other prompt text is never cut just to make room. Raft-verbatim text is never trimmed. See
 AGENTS.md and [the divergence register](../../specs/raft-alignment/prompt-divergences.md).

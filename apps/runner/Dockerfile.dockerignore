@@ -1,0 +1,9 @@
+**/node_modules
+.git
+.claude
+.context
+.design
+apps/ios-swift
+apps/server/dist
+apps/website/dist
+apps/website/src-tauri

@@ -20,7 +20,8 @@ export interface ResolvedRunner {
     capabilities: string[];
     /** The launch Chat; null for a chatless run. */
     chatId: string | null;
-    computerId: string;
+    /** The minting Computer; null for a run credential the Server minted for the runner. */
+    computerId: string | null;
     runId: string;
     runnerId: string;
     serverId: string;
@@ -56,20 +57,44 @@ export async function mintRunnerCredential(db: HausDatabase, input: RunnerMintRe
         await requireChat(db, computer.serverId, input.chatId);
     }
 
-    const runnerToken = `grtr_${randomBytes(32).toString('base64url')}`;
-    const runnerId = createOpaqueId('arc');
-    await db.insert(agentRunnerCredentialsTable).values({
+    return await insertRunnerCredential(db, {
         agentId: input.agentId,
         chatId: input.chatId,
-        capabilities: [manualRunnerCapability],
         computerId: computer.id,
-        expiresAt: new Date(Date.now() + runnerLifetimeMs),
-        id: runnerId,
         runId: input.runId,
         serverId: computer.serverId,
-        tokenHash: hashComputerSecret(runnerToken),
     });
-    return { runnerId, runnerToken };
+}
+
+/**
+ * Mints the run credential the Server hands the runner in `runner-start`. No
+ * Computer proves it, so it binds no Computer; it dies with the run like any other.
+ */
+export async function mintServerRunCredential(
+    db: HausDatabase,
+    input: { agentId: string; chatId: string | null; runId: string; serverId: string }
+) {
+    const { runnerToken } = await insertRunnerCredential(db, { ...input, computerId: null });
+    return runnerToken;
+}
+
+/**
+ * The machine a run's Computer-scoped work belongs to: the minting Computer, or
+ * for a Server-minted run credential the Agent's assigned Computer.
+ */
+export async function readRunnerMachineId(db: HausDatabase, runner: ResolvedRunner) {
+    if (runner.computerId) {
+        return runner.computerId;
+    }
+    const [agent] = await db
+        .select({ computerId: agentsTable.computerId })
+        .from(agentsTable)
+        .where(and(eq(agentsTable.serverId, runner.serverId), eq(agentsTable.id, runner.agentId)))
+        .limit(1);
+    if (!agent?.computerId) {
+        throw new ComputerSetupDeniedError('This Agent has no assigned Computer.');
+    }
+    return agent.computerId;
 }
 
 /** Revokes a runner credential at launch end. Idempotent for an already-gone row. */
@@ -136,6 +161,28 @@ export async function resolveRunnerCredential(
         )
         .limit(1);
     return row ?? null;
+}
+
+async function insertRunnerCredential(
+    db: HausDatabase,
+    input: {
+        agentId: string;
+        chatId: string | null;
+        computerId: string | null;
+        runId: string;
+        serverId: string;
+    }
+) {
+    const runnerToken = `grtr_${randomBytes(32).toString('base64url')}`;
+    const runnerId = createOpaqueId('arc');
+    await db.insert(agentRunnerCredentialsTable).values({
+        ...input,
+        capabilities: [manualRunnerCapability],
+        expiresAt: new Date(Date.now() + runnerLifetimeMs),
+        id: runnerId,
+        tokenHash: hashComputerSecret(runnerToken),
+    });
+    return { runnerId, runnerToken };
 }
 
 async function requireChat(db: HausDatabase, serverId: string, chatId: string) {

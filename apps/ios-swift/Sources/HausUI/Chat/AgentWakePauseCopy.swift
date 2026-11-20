@@ -82,6 +82,7 @@ public enum AgentWakePauseCopy {
         case "provider-error": "The provider kept erroring."
         case "provider-unavailable": "The provider was unreachable."
         case "rate-limited": "The provider kept hitting its rate limit."
+        case "runner-crashed": "The run was cut off by a restart."
         case "runner-credential-failed": "The device couldn't hand the Captain its credentials."
         case "runtime-not-installed": "The runtime isn't installed on this device."
         case "session-resume-rejected": "The Captain's session couldn't be resumed."
