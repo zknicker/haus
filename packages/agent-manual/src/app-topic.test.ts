@@ -8,6 +8,7 @@ test.each([
     'agent not responding',
     'iphone app',
     'mobile app',
+    'product help',
 ])('the common question "%s" leads to the app topic', (query) => {
     expect(resolveManualTopic(query)?.id).toBe('app');
     expect(

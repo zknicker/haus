@@ -38,7 +38,7 @@ The Manual contains 33 complete recipe cards: 12 seeded cards for the situations
 
 Product reference topics describe current Haus capabilities without turning them into prescriptive recipes. Every haus command family has one named after its noun: ${cliFamilyTopicList()}. Get accepts the family noun in singular or plural form.
 
-Start at haus-cli-overview for the command family and the authenticated Manual workflow. When a person asks where something is in Haus App, get app for the verified place and who can use it. The app topic also answers common product questions: what a Computer gives an Agent, what Agents can see, an Agent that does not respond, and the iPhone app. Search by useful words, then fetch the stable topic id before acting. A get that misses lists the closest topics; a search that finds nothing suggests the nearest topics and a retry.
+Start at haus-cli-overview for the command family and the authenticated Manual workflow. When a person asks where something is in Haus App, get app for the verified place and who can use it. The app topic also answers common product questions: what a Computer gives an Agent, what Agents can see, an Agent that does not respond, the iPhone app, and product help. Search by useful words, then fetch the stable topic id before acting. A get that misses lists the closest topics; a search that finds nothing suggests the nearest topics and a retry.
 
 Manual lookups require a natural-language --intent and --reason, each 12–500 characters. Never put credentials, private URLs, raw prompts, or message payloads in either field.`,
         id: 'index',
