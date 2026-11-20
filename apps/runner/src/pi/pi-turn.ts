@@ -80,6 +80,7 @@ export class PiTurn {
 
     private async begin(prompt: string) {
         const { harness, root, signal } = this.deps;
+        this.deps.searches.clear();
         this.observation = await harness.observeConversation(
             root.id,
             { advance: (call) => this.onView(call), end: (end) => this.onEnded(end) },
@@ -179,6 +180,7 @@ export class PiTurn {
         this.finished = true;
         this.deps.signal.removeEventListener('abort', this.onAbort);
         this.observation?.detach();
+        this.deps.searches.clear();
         if (this.aborting && !this.failed) {
             this.events.push({ type: 'abort' });
         } else if (!this.failed) {

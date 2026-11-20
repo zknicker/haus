@@ -45,28 +45,41 @@ export async function searchTurn(input: {
     modelId: string;
     webSearch: boolean;
 }) {
+    const { requests, session } = await standInSession(input);
+    const turn = await session.startTurn({ prompt: 'When does Haus ship?', signal: live() });
+    return { events: await collect(turn.events), requests };
+}
+
+export async function standInSession(input: {
+    answers: readonly Answer[];
+    modelId: string;
+    webSearch: boolean;
+}) {
     const standIn = providerStandIn(input.answers);
-    const connection = standInConnection(modelProviderFor(input.modelId), input.webSearch);
-    const book = createConnectionBook();
-    await book.replace([connection]);
-    const harness = createPiHarness({
-        log: () => undefined,
-        maxWarm: 1,
-        models: (started) =>
-            connectionModels({
-                book,
-                connectionId: started.connection.id,
-                link: { send: () => undefined },
-                provider: standInProvider(started.connection.provider, standIn.origin),
-            }),
-    });
+    const { connection, opened } = await standInModels(input, standIn.origin);
+    const harness = createPiHarness({ log: () => undefined, maxWarm: 1, models: () => opened });
     cleanups.push(() => harness.close());
     const { run } = await startedRun();
     const session = await harness
         .factory({ ...launch(await agentDir(), run.tools, input.modelId), connection })
         .openSession({ resumeFrom: undefined, sessionId: 'agt_1-1' });
-    const turn = await session.startTurn({ prompt: 'When does Haus ship?', signal: live() });
-    return { events: await collect(turn.events), requests: standIn.requests };
+    return { requests: standIn.requests, session };
+}
+
+export async function standInModels(
+    input: { modelId: string; webSearch: boolean },
+    origin: string
+) {
+    const connection = standInConnection(modelProviderFor(input.modelId), input.webSearch);
+    const book = createConnectionBook();
+    await book.replace([connection]);
+    const opened = connectionModels({
+        book,
+        connectionId: connection.id,
+        link: { send: () => undefined },
+        provider: standInProvider(connection.provider, origin),
+    });
+    return { connection, opened };
 }
 
 export function toolsOf(body: Record<string, unknown>) {

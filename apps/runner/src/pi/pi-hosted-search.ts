@@ -17,9 +17,14 @@ interface HostedSearchCall {
     readonly sources: SearchSource[];
 }
 
+interface HostedSearchRequest {
+    readonly cited: SearchSource[];
+    done: boolean;
+    readonly searches: HostedSearchCall[];
+}
+
 export class HostedSearchLog {
-    private searches: HostedSearchCall[] = [];
-    private cited: SearchSource[] = [];
+    private requests: HostedSearchRequest[] = [];
     private readonly readers: Partial<Record<Api, (event: unknown) => readonly SearchNote[]>>;
 
     constructor() {
@@ -36,32 +41,54 @@ export class HostedSearchLog {
         return this.readers[api] !== undefined;
     }
 
-    observe(event: unknown, api: Api) {
+    request() {
+        const request: HostedSearchRequest = { cited: [], done: false, searches: [] };
+        this.requests.push(request);
+        return request;
+    }
+
+    settle(request: HostedSearchRequest, answered: boolean) {
+        request.done = true;
+        if (!answered) {
+            this.requests = this.requests.filter((known) => known !== request);
+        }
+    }
+
+    clear() {
+        this.requests = [];
+    }
+
+    observe(request: HostedSearchRequest, event: unknown, api: Api) {
+        if (!this.requests.includes(request)) {
+            return;
+        }
         for (const note of this.readers[api]?.(event) ?? []) {
             if (note.kind === 'cited') {
-                addSources(this.cited, note.sources);
+                addSources(request.cited, note.sources);
                 continue;
             }
-            const known = this.searches.find((search) => search.id === note.id);
+            const known = request.searches.find((search) => search.id === note.id);
             if (known) {
                 known.query ??= note.query;
                 addSources(known.sources, note.sources);
             } else {
                 const search: HostedSearchCall = { id: note.id, query: note.query, sources: [] };
                 addSources(search.sources, note.sources);
-                this.searches.push(search);
+                request.searches.push(search);
             }
         }
     }
 
     drain() {
-        const searches = this.searches;
-        const last = searches.at(-1);
-        if (last) {
-            addSources(last.sources, this.cited);
-        }
-        this.searches = [];
-        this.cited = [];
+        const answered = this.requests.filter((request) => request.done);
+        this.requests = this.requests.filter((request) => !request.done);
+        const searches = answered.flatMap((request) => {
+            const last = request.searches.at(-1);
+            if (last) {
+                addSources(last.sources, request.cited);
+            }
+            return request.searches;
+        });
         return searches.flatMap((search) => {
             const facts = {
                 nativeName: 'web_search',
@@ -83,8 +110,9 @@ export class HostedSearchLog {
 }
 
 export function withHostedSearch(models: Models, log: HostedSearchLog) {
-    const streamSimple: Models['streamSimple'] = (model, context, options) =>
-        models.streamSimple(model, context, {
+    const streamSimple: Models['streamSimple'] = (model, context, options) => {
+        const request = log.request();
+        const stream = models.streamSimple(model, context, {
             ...options,
             onPayload: async (payload, requestModel) =>
                 withHostedTool(
@@ -94,9 +122,19 @@ export function withHostedSearch(models: Models, log: HostedSearchLog) {
                 ),
             onProviderStreamEvent: async (event, eventModel) => {
                 await options?.onProviderStreamEvent?.(event, eventModel);
-                log.observe(event, eventModel.api);
+                log.observe(request, event, eventModel.api);
             },
         });
+        stream.result().then(
+            (message) =>
+                log.settle(
+                    request,
+                    message.stopReason !== 'error' && message.stopReason !== 'aborted'
+                ),
+            () => log.settle(request, false)
+        );
+        return stream;
+    };
     return new Proxy(models, {
         get(target, key) {
             if (key === 'streamSimple') {

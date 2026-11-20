@@ -519,6 +519,10 @@ sources. The shim reads a search from each wire API:
 Every source URL drops its fragment and its `utm_*`, `ref`, and similar tracking parameters, so
 one page cited twice is one source. An Agent with a hosted search has no `web_search` tool.
 
+Each search belongs to the request that ran it. A request that ends in an error or a stop drops
+its searches, and every turn starts and ends with an empty search log, so a retried attempt or a
+stopped turn never reports a search in a later answer or turn on the same warm session.
+
 The response parsing that came from [pi-web-search](https://github.com/ttttmr/pi-web-search)
 1.7.0 (MIT) is vendored, adapted to Haus types, in `apps/runner/src/pi/vendor/pi-web-search/`
 with its license and a `PROVENANCE.md` that maps each file to its upstream path and commit:
@@ -958,6 +962,7 @@ settings, reminder scripts, host skill discovery, inventory, updates, and Worker
 | The SDK runs with native tools off and only `mcp__haus__*` tools reachable | `apps/runner/src/claude/claude-tools-live.test.ts`, `claude-driver-live.test.ts` | R3 |
 | `web_fetch` turns HTML into Markdown, caps redirects, size, and time, refuses a non-public address at every hop, connects only to the address it vetted when the host rebinds, and describes a non-text body without its bytes | `apps/runner/src/web/web-fetch.test.ts`, `web-fetch-rebinding.test.ts`, `public-address.test.ts` | R3c |
 | Hosted search reaches the ChatGPT plan and xAI requests, Gemini's grounded request carries only `googleSearch`, citations reach the turn events, a connection with search off sends no hosted tool and its Agent hears that search is not configured, and the switch changes the Pi launch fingerprint | `apps/runner/src/pi/pi-web-search.test.ts`, `pi-openrouter-search.test.ts`, `pi-driver.test.ts`, `apps/runner/src/web/web-search.test.ts` | R3c |
+| A stopped or failed request drops its hosted searches, and a stopped turn reports none in the next turn | `apps/runner/src/pi/pi-hosted-search-turns.test.ts` | R3c |
 | Each provider's native search answers a live turn | `apps/runner/src/pi/pi-web-search-live.test.ts` (`HAUS_RUN_LIVE_RUNNER_PI_SEARCH_TEST=1`) | R3c |
 | Ported Pi tools keep their upstream behavior | Ported upstream tests, listed in `pi/PROVENANCE.md` | R2 |
 | The ported Codex patch grammar keeps its upstream behavior | Ported upstream tests | R5 |
