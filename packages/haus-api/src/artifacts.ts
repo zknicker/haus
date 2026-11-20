@@ -35,6 +35,13 @@ export const artifactTargetInputSchema = z
         serverId: id,
     })
     .strict();
+/**
+ * The live file at a drive path, matched by the case-folded path key, or its `revision_id`
+ * revision. A path with no live file, or a revision of another file, is `NOT_FOUND`.
+ */
+export const artifactByPathInputSchema = z
+    .object({ path: artifactPathSchema, revision_id: id.optional(), serverId: id })
+    .strict();
 /** `save` signs the link to download as a file (`Content-Disposition: attachment`) instead of rendering inline. */
 export const artifactDownloadInputSchema = artifactTargetInputSchema.extend({
     save: z.boolean().default(false),

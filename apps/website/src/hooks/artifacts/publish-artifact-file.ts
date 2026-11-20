@@ -1,4 +1,9 @@
-import { type ArtifactMetadata, artifactPublishResultSchema } from '@haus/api';
+import {
+    type ArtifactMetadata,
+    type ArtifactRevisionConflict,
+    artifactPublishResultSchema,
+    artifactRevisionConflictSchema,
+} from '@haus/api';
 import { getHausServerOrigin } from '../../lib/haus-server.tsx';
 
 const contentTypePattern = /^[\w!#$&^_.+-]+\/[\w!#$&^_.+-]+$/u;
@@ -17,14 +22,27 @@ export class ArtifactUploadCancelled extends Error {
     }
 }
 
+/** The Server refused a write from `baseRevisionId`: the head moved and no merge applied. */
+export class ArtifactRevisionConflictError extends Error {
+    readonly conflict: ArtifactRevisionConflict;
+
+    constructor(conflict: ArtifactRevisionConflict) {
+        super(conflict.message);
+        this.conflict = conflict;
+    }
+}
+
 /**
  * Publishes one file through the member upload route
  * (`PUT /artifacts/:serverId/publish`): raw bytes, metadata in the query, a
  * fresh `request_id` per write. XHR rather than fetch so the upload reports
- * bytes sent. `replace` deliberately overwrites whatever head the path has.
+ * bytes sent. `replace` deliberately overwrites whatever head the path has;
+ * `baseRevisionId` writes from that revision, which the Server merges onto a
+ * newer head or refuses with `ArtifactRevisionConflictError`.
  * Fails after `stallMs` without progress, and aborts with `signal`.
  */
 export function publishArtifactFile(input: {
+    baseRevisionId?: string;
     file: Blob;
     onProgress: (sentBytes: number) => void;
     path: string;
@@ -42,6 +60,9 @@ export function publishArtifactFile(input: {
     url.searchParams.set('request_id', `upl_${crypto.randomUUID()}`);
     if (input.replace) {
         url.searchParams.set('replace', 'true');
+    }
+    if (input.baseRevisionId) {
+        url.searchParams.set('base_revision_id', input.baseRevisionId);
     }
     if (contentTypePattern.test(input.file.type)) {
         url.searchParams.set('content_type', input.file.type);
@@ -98,6 +119,11 @@ export function publishArtifactFile(input: {
                         return;
                     }
                     reject(new Error('The Server returned an invalid upload response.'));
+                    return;
+                }
+                const conflict = artifactRevisionConflictSchema.safeParse(body);
+                if (request.status === 409 && conflict.success) {
+                    reject(new ArtifactRevisionConflictError(conflict.data));
                     return;
                 }
                 reject(new Error(errorMessage(body) ?? `Upload failed (${request.status}).`));

@@ -1,7 +1,9 @@
+import { readMarkdownSpans } from '@haus/api';
 import { Markdown } from '@heroui-pro/react/markdown';
 import * as React from 'react';
 import { MarkdownCodeBlock } from '../../components/code/markdown-code-block.tsx';
 import { escapeBareOrderedMarkers } from '../chats/bare-ordered-marker.ts';
+import { isDriveCitationHref } from '../chats/drive-citation-link.ts';
 import { parseHausResourceLink } from '../chats/haus-resource-link.ts';
 import { amazonMarkdownComponents } from './amazon-markdown-components.tsx';
 import { areMentionsEqual, readMentionsFromMarkdown } from './mention-metadata.ts';
@@ -14,7 +16,6 @@ import {
 } from './reference-link.tsx';
 
 const referenceOrigin = 'https://references.haus.invalid';
-const markdownLinkPattern = /\[([^\]\n]+)\]\(([^)\n]+)\)/gu;
 
 interface ReferenceMarkdownProps {
     chatId?: string;
@@ -117,26 +118,20 @@ export function prepareMarkdownReferences(content: string, suppliedMentions?: re
 /** The source's own reference and resource links, retargeted at a token. */
 function linkEdits(content: string, mentions: readonly Mention[]): MarkdownReferenceEdit[] {
     const mentionsByStart = new Map(mentions.map((mention) => [mention.start, mention]));
-    return [...content.matchAll(markdownLinkPattern)].flatMap((match) => {
-        const start = match.index;
-        const text = match[0];
-        const target = match[2]?.trim();
-        if (!(text && target) || content[start - 1] === '!') {
-            return [];
-        }
+    return readMarkdownSpans(content).links.flatMap(({ end, labelEnd, start, url }) => {
         const reference = mentionsByStart.get(start);
-        const resource = parseHausResourceLink(target);
+        // react-markdown's URL sanitizer empties custom schemes, so `haus://` and `drive://` ride a token.
+        const resource = parseHausResourceLink(url) || isDriveCitationHref(url);
         if (!(reference || resource)) {
             return [];
         }
-        const targetStart = text.indexOf('](') + 2;
         return [
             {
-                end: start + text.length,
+                end,
                 link: reference
                     ? ({ kind: 'reference', reference } as const)
-                    : ({ href: target, kind: 'resource' } as const),
-                linkText: (token: string) => `${text.slice(0, targetStart)}${token})`,
+                    : ({ href: url, kind: 'resource' } as const),
+                linkText: (token: string) => `${content.slice(start, labelEnd + 1)}(${token})`,
                 start,
             },
         ];

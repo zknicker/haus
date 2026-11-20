@@ -7,10 +7,11 @@ import { ArtifactPanelChrome } from './chat-artifact-panel-chrome.tsx';
 import type { ChatArtifactPanelState } from './chat-artifact-panel-state.ts';
 import { WorkspaceBrowserContent } from './chat-artifact-workspace-content.tsx';
 import { ChatSidePaneShell } from './chat-side-pane-shell.tsx';
+import { DrivePagePane } from './drive-page-pane.tsx';
 import {
     getArtifactPanelTargetKey,
     type HausResourceTarget,
-    isWorkspaceChatPaneTarget,
+    isWorkspaceResourceTarget,
 } from './haus-resource-link.ts';
 
 export function ChatArtifactPanel({
@@ -87,7 +88,7 @@ function ArtifactPanelBody({
                         // morphs the target; a stable key keeps the browser
                         // (tree state, loaded folders) mounted across morphs.
                         key={
-                            isWorkspaceChatPaneTarget(activeTarget)
+                            isWorkspaceResourceTarget(activeTarget)
                                 ? `workspace:${activeAgentId}`
                                 : state.activeKey
                         }
@@ -130,6 +131,10 @@ function ArtifactPanelContent({
         },
         [agentId, onOpenTarget, target]
     );
+
+    if (target.kind === 'drivePage') {
+        return <DrivePagePane serverId={serverId} target={{ ...target, agentId }} />;
+    }
 
     // The workspace is one unified tab: file content plus the workspace tree.
     // Picking a file in the tree morphs this tab's target in place, so the

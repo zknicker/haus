@@ -80,10 +80,12 @@ drive/agents/<handle>/
 ```
 
 A page is written under `drive/agents/<handle>/workbench/`, and its `page` fence names that
-cwd-relative path, which the App opens through the workspace read. A card written before Drive
-names `workbench/<file>`; when no such file exists in the workspace, the read resolves it under the
-Agent's area. That fallback (`apps/computer/src/legacy-workbench-path.ts`) is the one legacy path
-read Drive keeps, and it goes once pages open from Drive (D5).
+cwd-relative path, which the App opens from Drive by path
+([pages.md](../docs/internals/pages.md#card-and-pane-flow)). A card written before Drive names
+`workbench/<file>`, which the App reads as `agents/<handle>/workbench/<file>`. Page cards no longer
+reach the workspace read; the Computer's fallback for `workbench/` paths
+(`apps/computer/src/legacy-workbench-path.ts`) now serves only `haus://workspace` links and goes
+with the workspace frames in R4.
 
 Everyone on the team can read the area, and Drive keeps every revision. The Agent's working
 directory stays `workspace/`; everything there outside `drive/` is local scratch, not Drive. The
