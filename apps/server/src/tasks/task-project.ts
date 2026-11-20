@@ -57,10 +57,10 @@ async function readAgentHome(db: Reader, input: { agentId: string; serverId: str
         )
         .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
         .limit(1);
-    if (!home) {
+    if (!home?.projectId) {
         throw new Error(`Agent ${input.agentId} has no home Project.`);
     }
-    return home;
+    return { generalist: home.generalist, projectId: home.projectId };
 }
 
 const projectColumns = {

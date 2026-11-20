@@ -1,3 +1,4 @@
+import { createHomedAgent } from '../support/project.ts';
 import { assertOpaqueId, createTestServer, openChannel, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -25,7 +26,7 @@ test('an Agent reading a message types until its reply lands', async ({ page }) 
         `insert into computers (id, server_id, attached_by_user_id, credential_hash, reported_inventory, health)
          values ('${computerId}', '${server.id}', '${ownerUserId}', '${credentialHash}', '${JSON.stringify(inventory)}'::jsonb, 'healthy')`
     );
-    const { agent } = await client.agent.create.mutate({
+    const { agent } = await createHomedAgent(client, {
         computerId,
         displayName: 'Scout',
         handle: 'scout',

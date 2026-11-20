@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
+import { createHomedAgent } from './agent-home.fixture.ts';
 
 const fixture = agentCreationFixture();
 const tooLong = 'x'.repeat(281);
@@ -7,7 +8,7 @@ const tooLong = 'x'.repeat(281);
 test('every description write path refuses more than 280 characters', async () => {
     const { computerId, orbitAgentId: agentId, owner, serverId } = fixture;
     await expect(
-        owner.trpc.agent.create.mutate({
+        createHomedAgent(owner, {
             computerId,
             description: tooLong,
             displayName: 'Longwind',

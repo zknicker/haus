@@ -1,5 +1,6 @@
 import type { ExecutionJournalUploadRecord } from '@haus/api';
 import { sendBootstrap, socketMessage, socketOpen } from '../support/computer-socket.ts';
+import { createHomedAgent } from '../support/project.ts';
 import { assertOpaqueId, attachComputer, createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -29,7 +30,7 @@ test('live turn retains open tool evidence and scroll through refresh, reasoning
             session.databaseUrl,
             `update computers set reported_inventory = '${JSON.stringify(inventory)}'::jsonb where id = '${computerId}'`
         );
-        const { agent } = await client.agent.create.mutate({
+        const { agent } = await createHomedAgent(client, {
             serverId: server.id,
             computerId,
             displayName: 'Scout',

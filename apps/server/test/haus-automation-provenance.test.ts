@@ -4,6 +4,7 @@ import { advanceSeenCursor } from '../src/agent-delivery/cursors.ts';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { scheduleReminder, tickReminders } from '../src/reminders/reminders.ts';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -697,7 +698,7 @@ async function agentRequest(
 }
 
 async function createAgent(displayName: string, handle: string) {
-    const created = await owner.trpc.agent.create.mutate({
+    const created = await createHomedAgent(owner, {
         computerId,
         displayName,
         handle,

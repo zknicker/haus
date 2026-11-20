@@ -104,7 +104,7 @@ test('a Project with home Agents refuses archive and delete with PROJECT_HAS_AGE
         )?.homeAgentIds
     ).toEqual([fixture.peerAgentId]);
 
-    await harness.sql`update agents set home_project_id = ${hausId} where id = ${fixture.peerAgentId}`;
+    await harness.sql`update agents set home_project_id = ${fixture.channelId} where id = ${fixture.peerAgentId}`;
     await expect(owner.trpc.chat.archiveChannel.mutate(target)).resolves.toMatchObject({
         chatId: ops.chat.id,
     });

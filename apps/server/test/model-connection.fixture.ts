@@ -1,4 +1,5 @@
 import { modelConnectionsUpdatedTopic } from '../src/realtime/topics.ts';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import type { HausServerHarness } from './haus-server-harness.ts';
 import { frameOfType, type RunnerClient, type RunnerFrame } from './runner.fixture.ts';
@@ -47,7 +48,7 @@ export async function createAgent(
     handle: string,
     runtime: 'claude' | 'codex'
 ) {
-    const created = await seed.owner.trpc.agent.create.mutate({
+    const created = await createHomedAgent(seed.owner, {
         computerId: seed.computerId,
         displayName: handle,
         handle,

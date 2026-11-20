@@ -1,4 +1,5 @@
 import { sendBootstrap, socketMessage, socketOpen } from '../support/computer-socket.ts';
+import { createHomedAgent } from '../support/project.ts';
 import {
     assertOpaqueId,
     attachComputer,
@@ -32,7 +33,7 @@ test('Inbox elapsed time ticks through activity changes and reloads', async ({ p
             session.databaseUrl,
             `update computers set reported_inventory = '${JSON.stringify(inventory)}'::jsonb where id = '${computerId}'`
         );
-        const { agent } = await client.agent.create.mutate({
+        const { agent } = await createHomedAgent(client, {
             serverId: server.id,
             computerId,
             displayName: 'Scout',

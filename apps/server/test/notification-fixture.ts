@@ -2,6 +2,7 @@ import { expect } from 'bun:test';
 import { recordExactMessagesServed } from '../src/agent-delivery/cursors.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';
 import type { PushSender } from '../src/push/push-sender.ts';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { createTestProject } from './project.fixture.ts';
@@ -69,7 +70,7 @@ export async function startNotificationFixture(
     `;
     const createAgent = async (displayName: string, handle: string) =>
         (
-            await owner.trpc.agent.create.mutate({
+            await createHomedAgent(owner, {
                 computerId,
                 displayName,
                 handle,

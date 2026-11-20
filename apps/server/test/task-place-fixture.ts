@@ -7,6 +7,7 @@ export interface TestTask {
     id: string;
     key: string;
     originMessageId: string;
+    projectId: string;
 }
 
 type Sql = HausServerHarness['sql'];
@@ -58,7 +59,13 @@ export async function startTestTask(
         values (${taskId}, ${input.serverId}, ${entry.id}, ${entry.number}, ${input.title},
             ${chatId}, ${creator.user_id}, ${project.id}, ${input.channelId}, ${originMessageId})
     `;
-    return { chatId, id: taskId, key: `${entry.key}-${entry.number}`, originMessageId };
+    return {
+        chatId,
+        id: taskId,
+        key: `${entry.key}-${entry.number}`,
+        originMessageId,
+        projectId: project.id,
+    };
 }
 
 async function taskProject(sql: Sql, serverId: string, channelId: string) {

@@ -1,4 +1,5 @@
 import type { Locator } from '@playwright/test';
+import { createHomedAgent } from '../support/project.ts';
 import { assertOpaqueId, createTestServer, openChannel, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -134,7 +135,7 @@ test('human sends jump to latest; agent messages preserve following across backg
             `insert into computers (id, server_id, attached_by_user_id, credential_hash, reported_inventory, health)
             values ('cmp_scrolltest000000', '${server.id}', '${userId}', '${credentialHash}', '${JSON.stringify(inventory)}'::jsonb, 'healthy')`
         );
-        const { agent } = await client.agent.create.mutate({
+        const { agent } = await createHomedAgent(client, {
             computerId: 'cmp_scrolltest000000',
             displayName: 'Scroll agent',
             handle: 'scroll-agent',

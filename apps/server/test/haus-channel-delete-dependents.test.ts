@@ -193,6 +193,30 @@ test('purging a Project deletes a reminder anchored there from a Task in another
     ).toEqual([{ origin: 0, reminders: 0, task: 1 }]);
 });
 
+test('deleting a Project leaves a retired Agent homed there with no home', async () => {
+    const channel = await createTestProject(harness, owner, {
+        agentIds: [],
+        name: 'retirees',
+        serverId,
+    });
+    await harness.sql`INSERT INTO agents
+        (id, server_id, handle, display_name, home_timezone, home_project_id, retired_at)
+        VALUES ('agt_delete_retired', ${serverId}, 'retired-one', 'Retired', 'UTC', ${channel.id},
+            now())`;
+
+    await expect(
+        owner.trpc.chat.deleteChannel.mutate({
+            chatId: channel.id,
+            confirmation: 'retirees',
+            serverId,
+        })
+    ).resolves.toEqual({ chatId: channel.id, serverId });
+
+    expect(
+        await harness.sql`select home_project_id from agents where id = 'agt_delete_retired'`
+    ).toEqual([{ home_project_id: null }]);
+});
+
 async function insertTrigger(id: string, anchorChatId: string, removedAt: Date | null) {
     await harness.sql`INSERT INTO triggers
         (id, server_id, owner_agent_id, anchor_chat_id, kind, status, title, secret_hash,
