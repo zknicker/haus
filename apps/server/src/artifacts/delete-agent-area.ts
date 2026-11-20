@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, artifactsTable as artifacts } from '../postgres/schema.ts';
 import { artifactUpdatedTopic } from '../realtime/topics.ts';
@@ -20,6 +20,10 @@ export async function deleteAgentArea(db: HausDatabase, actor: ArtifactActor, ag
         if (!agent) {
             throw new ArtifactError('Agent was not found.', 404, 'NOT_FOUND');
         }
+        await tx
+            .update(agentsTable)
+            .set({ fullResetAt: sql`now()` })
+            .where(and(eq(agentsTable.serverId, access.serverId), eq(agentsTable.id, agent.id)));
         const root = `agents/${agent.handle}`;
         const rows = await tx
             .select()

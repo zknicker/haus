@@ -1,10 +1,10 @@
-import { and, eq, isNull, ne } from 'drizzle-orm';
+import { and, eq, isNull, lt, ne } from 'drizzle-orm';
 import type { AgentDelivery } from '../../agent-delivery/delivery.ts';
 import type { ArtifactAccess } from '../../artifacts/access.ts';
 import { lockLiveServer } from '../../artifacts/move.ts';
 import { ArtifactError } from '../../artifacts/storage.ts';
 import type { HausDatabase } from '../../postgres/connection.ts';
-import { agentRunTriggersTable, drivePushesTable } from '../../postgres/schema.ts';
+import { agentRunTriggersTable, agentsTable, drivePushesTable } from '../../postgres/schema.ts';
 import { taskIdOfAssignmentKey } from '../../tasks/task-assignment-envelope.ts';
 import { findTaskByChatId } from '../../tasks/task-chat.ts';
 import { closePushIn } from './close.ts';
@@ -51,6 +51,35 @@ export async function requireOpenPush(tx: HausDatabase, access: PushAgentAccess,
         throw pushClosed(pushId);
     }
     return push;
+}
+
+export async function requireRunSinceReset(tx: HausDatabase, push: DrivePush) {
+    const [stale] = await tx
+        .select({ runId: agentRunTriggersTable.runId })
+        .from(agentRunTriggersTable)
+        .innerJoin(
+            agentsTable,
+            and(
+                eq(agentsTable.serverId, agentRunTriggersTable.serverId),
+                eq(agentsTable.id, agentRunTriggersTable.agentId)
+            )
+        )
+        .where(
+            and(
+                eq(agentRunTriggersTable.serverId, push.serverId),
+                eq(agentRunTriggersTable.agentId, push.agentId),
+                eq(agentRunTriggersTable.runId, push.id),
+                lt(agentRunTriggersTable.createdAt, agentsTable.fullResetAt)
+            )
+        )
+        .limit(1);
+    if (stale) {
+        throw new ArtifactError(
+            `A full reset replaced run \`${push.id}\`, so its push writes nothing.`,
+            409,
+            'AGENT_RESET'
+        );
+    }
 }
 
 async function openPushIn(

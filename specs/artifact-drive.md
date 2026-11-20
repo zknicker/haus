@@ -276,7 +276,7 @@ or an author to fill it.
 | `deleted` | A delete whose base is the head | A tombstone |
 | `kept_both` | A put whose merge failed, or a create at a path someone else filled | The other version at the path, and the incoming bytes in a copy |
 | `kept_edit` | An edit met a delete, on either side | The edited file, live at its path |
-| `refused` | Path rules, area write access, a file and folder clash, size, or content type | Nothing new |
+| `refused` | Path rules, area write access, a file and folder clash, size, content type, or a run a full reset replaced (`AGENT_RESET`) | Nothing new |
 
 The path rules apply after the request parses, so a bad path is a `refused` outcome, not a 400.
 A clean merge whose result equals the head answers `unchanged`. A create at a filled path, or a base
@@ -321,7 +321,10 @@ it.
 
 The Server records each file's outcome under the push id. A push closes on `close`, or when the
 same writer opens its next push, so a machine that crashed mid-push still reaches the Agent.
-Closing twice changes nothing. A new request for a closed push fails with `PUSH_CLOSED`, and the
+A full reset stamps the Agent's `full_reset_at`. A put or delete under a push whose run was
+dispatched before that stamp is refused with `AGENT_RESET`, so a turn the reset interrupted cannot
+revive a deleted file or add one to the reseeded area. Those refusals stay out of the push's
+`drive_conflict` item. Closing twice changes nothing. A new request for a closed push fails with `PUSH_CLOSED`, and the
 machine sends that file in its next push. On close, a push with any `kept_both`, `kept_edit`, or
 `refused` outcome queues one `drive_conflict` item ([Agent inbox](inbox.md)). A Worker's item goes
 to its Agent.
@@ -418,7 +421,8 @@ Agent routes answer `{ code, message }`, plus `current` for `REVISION_CONFLICT`.
 API and `BAD_REQUEST` on tRPC. Codes: `INVALID_ARG`, `INVALID_PATH`, `NOT_FOUND`,
 `UNAUTHORIZED`, `FORBIDDEN`, `REVISION_CONFLICT`, `PATH_TAKEN`, `PATH_CONFLICT`,
 `IDEMPOTENCY_KEY_REUSED`, `UPLOAD_CONFLICT`, `DELETED`, `CURRENT_REVISION`, `CONTENT_TYPE`,
-`SIZE_LIMIT`, `STORAGE_LIMIT`, `STORAGE_UNAVAILABLE`, `AUTH_UNAVAILABLE`, `PUSH_CLOSED`.
+`SIZE_LIMIT`, `STORAGE_LIMIT`, `STORAGE_UNAVAILABLE`, `AUTH_UNAVAILABLE`, `PUSH_CLOSED`,
+`AGENT_RESET`.
 
 ## Migration
 

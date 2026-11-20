@@ -17,7 +17,7 @@ import {
     recordRefusal,
     storedOutcome,
 } from './replay.ts';
-import { type DrivePush, openPush, requireOpenPush } from './session.ts';
+import { type DrivePush, openPush, requireOpenPush, requireRunSinceReset } from './session.ts';
 
 const deleteBody = drivePushDeleteInputSchema.extend({ path: z.string().min(1).max(4096) });
 
@@ -85,6 +85,7 @@ async function deleteIn(
         if (prior) {
             return { deletedArtifactId: null, outcome: prior.outcome };
         }
+        await requireRunSinceReset(tx, write.push);
         const placement = await writableDrivePath(tx, access, requirePushPath(write.path));
         const occupant = await liveArtifactAtPath(tx, access.serverId, placement.path);
         const current = occupant ? await headOf(tx, occupant) : null;
