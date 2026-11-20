@@ -8,7 +8,7 @@ import {
     SearchField,
     ToggleButton,
 } from '@heroui/react';
-import { Layers02Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { LayerIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { ModelAccountLogo } from '../settings/models/connections/model-account-mark.tsx';
@@ -39,6 +39,7 @@ export function AgentModelPicker({
         <Autocomplete
             disabledKeys={options.filter((option) => !option.connected).map((option) => option.key)}
             fullWidth
+            placeholder="Choose a model"
             onChange={(key) => {
                 const picked = options.find((option) => option.key === key);
                 if (picked) {
@@ -75,7 +76,7 @@ export function AgentModelPicker({
                             size="sm"
                             variant="ghost"
                         >
-                            <Icon className="size-4" icon={Layers02Icon} />
+                            <Icon className="size-4" icon={LayerIcon} />
                             By provider
                         </ToggleButton>
                     </div>
@@ -110,10 +111,12 @@ function ModelItem({ option }: { option: AgentModelOption }) {
         : 'Connect in Settings → Models';
     return (
         <ListBox.Item id={option.key} textValue={option.label}>
-            <ModelAccountLogo account={option.provider} />
-            <div className="flex flex-col">
-                <Label>{option.label}</Label>
-                {detail ? <Description>{detail}</Description> : null}
+            <div className="flex items-center gap-2">
+                <ModelAccountLogo account={option.provider} />
+                <div className="flex flex-col">
+                    <Label>{option.label}</Label>
+                    {detail ? <Description>{detail}</Description> : null}
+                </div>
             </div>
             <ListBox.ItemIndicator />
         </ListBox.Item>
