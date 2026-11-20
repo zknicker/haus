@@ -1,8 +1,8 @@
 import * as z from 'zod';
 import { cloudAgentEnvironmentSchema } from './cloud-agent-environment.ts';
 import { cloudAgentProviderSchema } from './cloud-agent-provider.ts';
-import { cloudAgentTimestampSchema } from './cloud-agent-time.ts';
 import { cloudAgentUnreadyReasonSchema } from './cloud-agent-unready-reason.ts';
+import { workerTimestampSchema } from './worker-time.ts';
 
 /**
  * One Cloud Agent provider capability on one Computer: whether its credential
@@ -18,7 +18,7 @@ export const cloudAgentCapabilityStateSchema = z
         /** This Computer's Claude cloud environments to pin to; null off Claude. */
         environments: z.array(cloudAgentEnvironmentSchema).max(200).nullable().optional(),
         /** When the resolved credential expires, when the provider dates it. */
-        expiresAt: cloudAgentTimestampSchema.nullable(),
+        expiresAt: workerTimestampSchema.nullable(),
         /** Whether a launch that names no provider uses this one on this Computer. */
         isDefault: z.boolean().default(false),
         provider: cloudAgentProviderSchema,
@@ -45,7 +45,7 @@ export const cloudAgentCapabilityStateSchema = z
                                     !url.port
                                 );
                             }),
-                        expiresAt: cloudAgentTimestampSchema,
+                        expiresAt: workerTimestampSchema,
                     })
                     .strict(),
                 z

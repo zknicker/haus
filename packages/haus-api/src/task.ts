@@ -1,9 +1,9 @@
 import * as z from 'zod';
 import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
-import { cloudAgentPullRequestReadingSchema, cloudAgentWorkSchema } from './cloud-agent-shared.ts';
 import { taskKeySchema, taskLinkSchema } from './task-key.ts';
 import { taskPriorities } from './task-labels.ts';
 import { isClosedTaskState, type TaskState, taskStateSchema } from './task-state.ts';
+import { pullRequestReadingSchema, workerSchema } from './worker-shared.ts';
 
 export const TASK_TITLE_MAX_CHARS = 200;
 export const TASK_DESCRIPTION_MAX_CHARS = 20_000;
@@ -113,7 +113,7 @@ export const taskReminderRefSchema = z
 export const taskDetailSchema = z
     .object({
         ...taskFields,
-        attachedWork: z.array(cloudAgentWorkSchema),
+        attachedWork: z.array(workerSchema),
         /**
          * The description as clients render it, resolved when read: the bare
          * `@handle`, `#channel`, and `#channel:shortid` tokens an Agent's Message
@@ -125,7 +125,7 @@ export const taskDetailSchema = z
         descriptionTaskLinks: z.array(taskLinkSchema),
         followed: z.boolean(),
         mentions: z.array(taskMentionSchema),
-        pullRequests: z.array(cloudAgentPullRequestReadingSchema),
+        pullRequests: z.array(pullRequestReadingSchema),
         reminders: z.array(taskReminderRefSchema),
         unreadCount: z.number().int().nonnegative(),
     })

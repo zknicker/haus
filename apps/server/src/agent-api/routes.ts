@@ -11,7 +11,6 @@ import { unfollowAgentTask } from './attention.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
 import { registerAgentChannelRoutes } from './channel-routes.ts';
 import { registerAgentClaimRoutes } from './claim-routes.ts';
-import { registerAgentCloudAgentRoutes } from './cloud-agent-routes.ts';
 import { registerAgentConnectionRoutes } from './connection-routes.ts';
 import { readAgentServerDirectory } from './directory.ts';
 import { registerAgentDispatchIds } from './dispatch-hooks.ts';
@@ -28,6 +27,7 @@ import { registerAgentReactionRoutes } from './reaction-routes.ts';
 import { registerAgentReminderRoutes } from './reminder-routes.ts';
 import { registerAgentTaskRoutes } from './task-routes.ts';
 import { registerAgentTriggerRoutes } from './trigger-routes.ts';
+import { registerAgentWorkerRoutes } from './worker-routes.ts';
 
 const historyQuerySchema = z.object({
     after: z.string().min(1).optional(),
@@ -97,7 +97,7 @@ export function registerAgentApiRoutes(
     });
     registerAgentChannelRoutes(app, { db: options.db });
     registerAgentConnectionRoutes(app, options.db);
-    registerAgentCloudAgentRoutes(app, {
+    registerAgentWorkerRoutes(app, {
         agentDelivery: options.agentDelivery,
         computers: options.computers,
         db: options.db,
@@ -119,6 +119,7 @@ export function registerAgentApiRoutes(
     });
     registerAgentTaskRoutes(app, {
         agentDelivery: options.agentDelivery,
+        computers: options.computers,
         db: options.db,
         postCommitWork: options.postCommitWork,
     });

@@ -3,8 +3,8 @@ import type { ChatMessageLayout } from '../../../hooks/servers/chat-message-layo
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';
 import type { TranscriptActor } from '../../chats/chat-transcript-model.ts';
 import type { TranscriptMessageRow } from '../../chats/transcript-contract.ts';
-import { messageCloudAgentWork } from '../../cloud-agents/message-cloud-agent-work.ts';
 import { messageImageGenerations } from '../../image-generation/message-image-generations.ts';
+import { messageWorker } from '../../workers/message-worker.ts';
 
 export type ProjectedChatMessageRow = TranscriptMessageRow;
 
@@ -45,7 +45,7 @@ export function projectChatMessage(
         message: {
             actor,
             ...(message.cause ? { cause: message.cause } : {}),
-            cloudAgentWork: messageCloudAgentWork(message),
+            worker: messageWorker(message),
             content: message.content,
             id: message.id,
             imageGenerations: messageImageGenerations(message),

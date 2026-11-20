@@ -402,7 +402,7 @@ test('a test fire rides the same path a real delivery takes', async () => {
     expect(pending.content).toContain('Instruction: Post the failing job.');
     expect(pending.content).toContain('"test":true');
     expect(pending.content.split('\n').at(-1)).toBe(
-        `reply with: --cause ${fireId} on the command that posts (haus message send or haus cloud-agent start)`
+        `reply with: --cause ${fireId} on haus message send`
     );
     await expect(
         admin.trpc.trigger.runs.query({ serverId, triggerId: created.trigger.id })

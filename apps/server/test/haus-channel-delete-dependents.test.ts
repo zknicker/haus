@@ -132,8 +132,8 @@ test('archiving then deleting a Project deletes its Tasks and their Chats; cloud
         VALUES ('rem_tasks_go', ${serverId}, ${agentId}, ${open.chatId}, ${progress.message.id},
             'Check the Task', now() + interval '1 hour', 'UTC', 'scheduled', now(), now())`;
     await harness.sql`
-        insert into cloud_agent_work
-            (id, server_id, agent_id, chat_id, computer_id, launch_message_id, provider,
+        insert into workers
+            (id, server_id, agent_id, origin_chat_id, carrier_computer_id, launch_message_id, place,
              repository, title, task_id, status, terminal_at)
         values ('caw_tasksgo000000001', ${serverId}, ${agentId}, ${open.chatId}, 'cmp_tasks_go',
             ${progress.message.id}, 'cursor', 'acme/api', 'Task work', ${open.id}, 'completed', now())
@@ -178,8 +178,8 @@ test('archiving then deleting a Project deletes its Tasks and their Chats; cloud
                 (select count(*)::int from agent_task_follows where task_chat_id = ${open.chatId})
                     as agent_follows,
                 (select count(*)::int from reminders where id = 'rem_tasks_go') as reminders,
-                (select count(*)::int from cloud_agent_work
-                    where id = 'caw_tasksgo000000001' and task_id is null) as work,
+                (select count(*)::int from workers
+                    where id = 'caw_tasksgo000000001' and task_id is null and closed_at is not null) as work,
                 (select count(*)::int from task_pull_requests where task_id = ${open.id}) as pulls
         `
     ).toEqual([{ agent_follows: 0, follows: 0, messages: 0, pulls: 0, reminders: 0, work: 1 }]);

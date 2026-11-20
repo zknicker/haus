@@ -6,9 +6,9 @@ import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { startEmptyDatabase } from './postgres-cluster.ts';
 
-const migrationTag = '0135_agents-hear-their-home';
+const migrationTag = '0137_agents-hear-their-home';
 
-test('0135 homes every Agent where it wrote most, then drops channel memberships and mutes', async () => {
+test('0137 homes every Agent where it wrote most, then drops channel memberships and mutes', async () => {
     const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), 'haus-agent-homes-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
@@ -21,11 +21,11 @@ test('0135 homes every Agent where it wrote most, then drops channel memberships
                 ...journal,
                 entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= idx),
             });
-        await writeFile(journalPath, through(134));
+        await writeFile(journalPath, through(136));
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
         await seedAgentsBeforeHomes(database);
 
-        await writeFile(journalPath, through(135));
+        await writeFile(journalPath, through(137));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
             migrationTag,
         ]);

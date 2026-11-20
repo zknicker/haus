@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
-import { resolveCloudAgentRunModel } from './cloud-agent-model-choice.ts';
+import { resolveWorkerTurnModel } from './cloud-agent-model-choice.ts';
 import {
     cloudAgentModelCatalogSchema,
     cloudAgentModelSettingSchema,
-    cloudAgentRunModelSchema,
+    workerTurnModelSchema,
 } from './cloud-agent-model.ts';
 import { computerInventorySchema } from './computer-inventory.ts';
 
@@ -42,17 +42,17 @@ const none = { droppedParams: [], fallbackFrom: null, id: null, params: [] };
 const auto = { ...none, id: 'default' };
 
 test("Auto sends Cursor's default id whenever the catalog offers it, and never falls back", () => {
-    expect(resolveCloudAgentRunModel({ kind: 'auto' }, catalog)).toEqual(auto);
+    expect(resolveWorkerTurnModel({ kind: 'auto' }, catalog)).toEqual(auto);
 });
 
 test('Auto sends no model when the catalog lacks Auto or there is no catalog', () => {
-    expect(resolveCloudAgentRunModel({ kind: 'auto' }, noAutoCatalog)).toEqual(none);
-    expect(resolveCloudAgentRunModel({ kind: 'auto' }, null)).toEqual(none);
+    expect(resolveWorkerTurnModel({ kind: 'auto' }, noAutoCatalog)).toEqual(none);
+    expect(resolveWorkerTurnModel({ kind: 'auto' }, null)).toEqual(none);
 });
 
 test('a listed saved model is sent with its chosen parameters under the provider id', () => {
     expect(
-        resolveCloudAgentRunModel(
+        resolveWorkerTurnModel(
             { id: 'gpt-5.4-nano', kind: 'model', params: { effort: 'low' } },
             catalog
         )
@@ -63,7 +63,7 @@ test('a listed saved model is sent with its chosen parameters under the provider
         params: [{ name: 'effort', providerParamId: 'reasoning', value: 'low' }],
     });
     expect(
-        resolveCloudAgentRunModel(
+        resolveWorkerTurnModel(
             { id: 'composer-2.5', kind: 'model', params: { fast: false } },
             catalog
         ).params
@@ -72,13 +72,13 @@ test('a listed saved model is sent with its chosen parameters under the provider
 
 test('an unset parameter sends nothing, so the model default applies', () => {
     expect(
-        resolveCloudAgentRunModel({ id: 'gpt-5.4-nano', kind: 'model', params: {} }, catalog)
+        resolveWorkerTurnModel({ id: 'gpt-5.4-nano', kind: 'model', params: {} }, catalog)
     ).toEqual({ droppedParams: [], fallbackFrom: null, id: 'gpt-5.4-nano', params: [] });
 });
 
 test('a saved parameter the model no longer offers is dropped and recorded', () => {
     expect(
-        resolveCloudAgentRunModel(
+        resolveWorkerTurnModel(
             { id: 'gpt-5.4-nano', kind: 'model', params: { effort: 'max', fast: true } },
             catalog
         )
@@ -92,17 +92,17 @@ test('a saved parameter the model no longer offers is dropped and recorded', () 
 
 test('an unlisted saved model or a missing catalog falls back to Auto and says so', () => {
     const retired = { id: 'retired-model', kind: 'model' as const, params: { effort: 'low' } };
-    expect(resolveCloudAgentRunModel(retired, catalog)).toEqual({
+    expect(resolveWorkerTurnModel(retired, catalog)).toEqual({
         ...auto,
         fallbackFrom: 'retired-model',
     });
-    expect(resolveCloudAgentRunModel(retired, noAutoCatalog)).toEqual({
+    expect(resolveWorkerTurnModel(retired, noAutoCatalog)).toEqual({
         ...none,
         fallbackFrom: 'retired-model',
     });
-    expect(
-        resolveCloudAgentRunModel({ id: 'gpt-5.4-nano', kind: 'model', params: {} }, null)
-    ).toEqual({ ...none, fallbackFrom: 'gpt-5.4-nano' });
+    expect(resolveWorkerTurnModel({ id: 'gpt-5.4-nano', kind: 'model', params: {} }, null)).toEqual(
+        { ...none, fallbackFrom: 'gpt-5.4-nano' }
+    );
 });
 
 test('the setting is a narrow union; an empty params object means the model defaults', () => {
@@ -129,23 +129,23 @@ test('the setting is a narrow union; an empty params object means the model defa
 });
 
 test('a Run cannot both send a catalog model and fall back, nor carry parameters without one', () => {
+    expect(workerTurnModelSchema.safeParse({ ...none, fallbackFrom: 'a', id: 'b' }).success).toBe(
+        false
+    );
+    expect(workerTurnModelSchema.safeParse({ ...auto, fallbackFrom: 'a' }).success).toBe(true);
     expect(
-        cloudAgentRunModelSchema.safeParse({ ...none, fallbackFrom: 'a', id: 'b' }).success
-    ).toBe(false);
-    expect(cloudAgentRunModelSchema.safeParse({ ...auto, fallbackFrom: 'a' }).success).toBe(true);
-    expect(
-        cloudAgentRunModelSchema.safeParse({
+        workerTurnModelSchema.safeParse({
             ...auto,
             params: [{ name: 'fast', providerParamId: 'fast', value: 'true' }],
         }).success
     ).toBe(false);
     expect(
-        cloudAgentRunModelSchema.safeParse({
+        workerTurnModelSchema.safeParse({
             ...none,
             params: [{ name: 'fast', providerParamId: 'fast', value: 'true' }],
         }).success
     ).toBe(false);
-    expect(cloudAgentRunModelSchema.safeParse({ ...none, droppedParams: ['effort'] }).success).toBe(
+    expect(workerTurnModelSchema.safeParse({ ...none, droppedParams: ['effort'] }).success).toBe(
         false
     );
 });

@@ -4,7 +4,6 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { requireActiveDmPeer } from '../chats/active-dm-peer.ts';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
-import { replayCloudAgentWorkLinks } from '../chats/cloud-agent-work-links.ts';
 import { replayImageGenerationLinks } from '../chats/image-generation-links.ts';
 import { mentionedUserIds } from '../chats/mentioned-user-ids.ts';
 import { prepareMessageCreatedEvent } from '../chats/message-created-event.ts';
@@ -14,6 +13,7 @@ import {
     resolveMessageLinks,
 } from '../chats/message-links.ts';
 import { ChatNonceConflictError } from '../chats/send-message.ts';
+import { replayWorkerLinks } from '../chats/worker-links.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { chatMessagesTable, chatsTable, messageClaimsTable } from '../postgres/schema.ts';
@@ -80,7 +80,7 @@ export async function createClaim(
             .limit(1);
         if (existing) {
             const replayed = await replayImageGenerationLinks(tx, {
-                content: await replayCloudAgentWorkLinks(tx, {
+                content: await replayWorkerLinks(tx, {
                     content: input.content,
                     messageId: existing.id,
                     serverId: input.serverId,
@@ -190,7 +190,6 @@ export async function createClaim(
                 messageEvent,
                 claimEvent,
                 ...(await prepareMessageLinkEvents(tx, {
-                    cloudLinks,
                     imageLinks,
                     serverId: input.serverId,
                     taskLinks,

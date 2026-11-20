@@ -1,11 +1,11 @@
 import { expect, test } from 'bun:test';
-import { cloudAgentFixture } from './cloud-agent-fixture.ts';
-import { cloudAgentLinkHelpers } from './cloud-agent-link-helpers.ts';
 import { createTestProject } from './project.fixture.ts';
 import { startTestTask } from './task-place-fixture.ts';
+import { workerLinkHelpers } from './worker-link-helpers.ts';
+import { workerRecordFixture } from './worker-record-fixture.ts';
 
-const fixture = cloudAgentFixture();
-const { agentPost } = cloudAgentLinkHelpers(fixture);
+const fixture = workerRecordFixture();
+const { agentPost } = workerLinkHelpers(fixture);
 
 test('a followed Task outside the home wakes the Agent; unfollow quiets it until a mention', async () => {
     const design = await createTestProject(fixture.owner, {

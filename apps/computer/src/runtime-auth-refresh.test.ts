@@ -2,10 +2,10 @@ import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { chmod, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { unavailableCloudAgentProvider } from './cloud-agents/provider.ts';
-import { setCloudAgentProvider } from './cloud-agents/registry.ts';
 import { refreshRuntimeAuthentication } from './runtime-auth-refresh.ts';
 import { readRuntimeIssues, recordRuntimeOutcome } from './runtime-issues.ts';
+import { unavailableCloudAgentProvider } from './workers/provider.ts';
+import { setCloudAgentProvider } from './workers/registry.ts';
 
 const roots: string[] = [];
 const restores: Array<() => void> = [];

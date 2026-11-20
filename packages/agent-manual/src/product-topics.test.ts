@@ -55,51 +55,26 @@ test('inline reply guidance is discoverable and separates attention from ownersh
     ).toContain('replies');
 });
 
-test('cloud work keeps review rounds and requester outcomes in its Task', () => {
-    const body = getManualTopic('cloud-agents')?.body;
-    expect(body).toContain('`haus cloud-agent send --work <workId>`');
+test('a Worker keeps review rounds and requester outcomes in its Task', () => {
+    const body = getManualTopic('workers')?.body;
+    expect(body).toContain('`haus worker send --worker <workerId>`');
+    expect(body).toContain('`haus worker stop --worker <workerId>`');
     expect(body).toContain(
         'keep review rounds, revision requests, and progress in the Task, and @mention the requester there only for a real state change'
     );
-    expect(body).toContain('newest first');
-    expect(body).toContain('providerRunId');
     expect(body).toContain('followup-auto-interrupt-failed');
-    expect(body).toContain('background work the provider agent left running');
-    // The design refinement past TECH-7: a busy provider never fails a follow-up, and
-    // auto-interrupt is the fallback, not the normal path.
-    expect(body).toContain('one automatic interrupt to clear whatever holds the session busy');
-    expect(body).toContain('keeps retrying underneath that notice');
-    // Round 4: Claude never waits behind a predecessor's turn; Cursor still does.
-    expect(body).toContain('takes the follow-up right away, even mid-turn');
-    expect(body).toContain('a Cursor agent queues it until its active run finishes');
-    // TECH-8: `summary` is a capped head; `--report` reads the full report it was cut from.
-    expect(body).toContain('`summary` is only a capped head, up to 2000 characters');
-    expect(body).toContain('More: haus cloud-agent inspect --work <id> --report');
-    expect(body).toContain('[clipped at 64 KiB]');
-});
-
-test('a cloud agent launches for a Task, and several can work one Task', () => {
-    const body = getManualTopic('cloud-agents')?.body;
-    expect(body).toContain('**It works for a Task.**');
-    expect(body).toContain('then launch with `--task SEC-12`');
-    expect(body).toContain('A Task can hold several cloud agents');
-    expect(body).not.toContain('--reply-to');
-    expect(body).not.toContain('**The launch card is your reply.**');
-});
-
-test('cloud work is shown elsewhere by pasting its printed link, which moves nothing', () => {
-    const body = getManualTopic('cloud-agents')?.body;
-    // ADR 0044: Agents link work they can see; they never invent the syntax.
-    expect(body).toContain('**Linking work elsewhere.**');
-    expect(body).toContain('paste the link as printed into `haus message send`');
-    expect(body).toContain('Never write a work link by hand.');
-    expect(body).toContain('the Task, the Work ID, and where completion arrives stay the same');
+    expect(body).toContain('`--report` prints a turn');
     expect(
-        searchManualTopics('show cloud agent work in another channel', {
-            limit: 5,
-            scope: 'all',
-        }).map(({ id }) => id)
-    ).toContain('cloud-agents');
+        searchManualTopics('stop a Worker', { limit: 5, scope: 'all' }).map(({ id }) => id)
+    ).toContain('workers');
+});
+
+test('a Worker starts for a Task, and several can work one Task', () => {
+    const body = getManualTopic('workers')?.body;
+    expect(body).toContain('**It works for a Task.**');
+    expect(body).toContain('then the Worker with `--task SEC-12`');
+    expect(body).toContain('A Task can hold several Workers');
+    expect(body).not.toContain('--reply-to');
 });
 
 test('publishes the Agent reference topic as the Agent-creation contract', () => {
@@ -169,8 +144,8 @@ test('retires the Ask topic and teaches asking a human by @mention', () => {
     expect(recipe?.body).toContain('any other message only shows as unread');
     expect(recipe?.body).toContain('Every message in their DM notifies them too');
     expect(recipe?.body).toContain('Their reply there wakes you');
-    expect(getManualTopic('cloud-agents')?.body).toContain('**Launch approval.**');
-    expect(getManualTopic('cloud-agents')?.body).toContain(
+    expect(getManualTopic('workers')?.body).toContain('**Launch approval.**');
+    expect(getManualTopic('workers')?.body).toContain(
         'wait for an explicit yes in reply before `start`'
     );
     expect(

@@ -115,7 +115,7 @@ export const cloudAgentModelSettingSchema = z.discriminatedUnion('kind', [
 ]);
 
 /** One parameter a Run sent, under Haus's name and the provider's own id. */
-export const cloudAgentRunModelParamSchema = z
+export const workerTurnModelParamSchema = z
     .object({
         name: cloudAgentModelParamNameSchema,
         providerParamId: providerParamIdSchema,
@@ -133,12 +133,12 @@ export const cloudAgentRunModelParamSchema = z
  * had no catalog); that Run used Auto, or no model. `droppedParams` names saved parameters that model no longer offered with the
  * saved value, so they took the model's default.
  */
-export const cloudAgentRunModelSchema = z
+export const workerTurnModelSchema = z
     .object({
         droppedParams: z.array(cloudAgentModelParamNameSchema).max(2),
         fallbackFrom: cloudAgentModelIdSchema.nullable(),
         id: cloudAgentModelIdSchema.nullable(),
-        params: z.array(cloudAgentRunModelParamSchema).max(2),
+        params: z.array(workerTurnModelParamSchema).max(2),
     })
     .strict()
     .refine((model) => !(model.fallbackFrom && sentCatalogModel(model.id)), {
@@ -193,8 +193,8 @@ export type CloudAgentModelFamily = z.infer<typeof cloudAgentModelFamilySchema>;
 export type CloudAgentModelParamName = z.infer<typeof cloudAgentModelParamNameSchema>;
 export type CloudAgentModelParams = z.infer<typeof cloudAgentModelParamsSchema>;
 export type CloudAgentModelSetting = z.infer<typeof cloudAgentModelSettingSchema>;
-export type CloudAgentRunModel = z.infer<typeof cloudAgentRunModelSchema>;
-export type CloudAgentRunModelParam = z.infer<typeof cloudAgentRunModelParamSchema>;
+export type WorkerTurnModel = z.infer<typeof workerTurnModelSchema>;
+export type WorkerTurnModelParam = z.infer<typeof workerTurnModelParamSchema>;
 export type CloudAgentSettings = z.infer<typeof cloudAgentSettingsSchema>;
 
 function sentCatalogModel(id: string | null): boolean {

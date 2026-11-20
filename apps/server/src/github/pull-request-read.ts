@@ -1,4 +1,4 @@
-import type { CloudAgentPullRequestReading, CloudAgentPullRequestState } from '@haus/api';
+import type { PullRequestReading, WorkerPullRequestState } from '@haus/api';
 import * as z from 'zod';
 import {
     GithubApiError,
@@ -11,12 +11,12 @@ import {
 export interface GithubPullRequestFacts {
     additions: number;
     changedFiles: number;
-    checks: CloudAgentPullRequestReading['checks'];
+    checks: PullRequestReading['checks'];
     deletions: number;
     headSha: string;
-    review: CloudAgentPullRequestReading['review'];
+    review: PullRequestReading['review'];
     settledAt: Date | null;
-    state: CloudAgentPullRequestState;
+    state: WorkerPullRequestState;
     title: string;
 }
 
@@ -139,7 +139,7 @@ async function readReviews(
     return reviews;
 }
 
-function pullRequestState(pull: z.infer<typeof pullRequestSchema>): CloudAgentPullRequestState {
+function pullRequestState(pull: z.infer<typeof pullRequestSchema>): WorkerPullRequestState {
     if (pull.merged_at) {
         return 'merged';
     }

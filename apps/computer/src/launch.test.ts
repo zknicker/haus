@@ -36,17 +36,17 @@ test('rejects a typed attention whose envelope identity does not match it', () =
             inbox: [
                 {
                     chatId: 'cht_origin',
-                    cloudAgentWork: {
+                    worker: {
                         branches: [],
                         errorCode: null,
                         provider: 'cursor',
                         providerUrl: null,
                         repository: 'haus/haus',
-                        runId: 'car_1234567890abcdef',
+                        turnId: 'car_1234567890abcdef',
                         status: 'completed',
                         summary: 'Opened a pull request.',
                         title: 'Fix the flaky delivery test',
-                        workId: 'caw_1234567890abcdef',
+                        workerId: 'caw_1234567890abcdef',
                     },
                     content: '',
                     createdAt: '2026-08-26T12:00:00.000Z',

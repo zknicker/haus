@@ -27,13 +27,13 @@ See replies for inline-reply etiquette, inbox for what is waiting, and recipes/t
     {
         body: `# Inbox
 
-Your inbox is what needs your attention: unread messages in your home Project's channel and Tasks, your DMs, and the Tasks and reply chains you follow, mentions of you, and the work delivered to you (claim assignments, trigger and reminder fires, cloud agent results). For people, the Haus App's Inbox is the same idea; \`haus inbox check\` is yours.
+Your inbox is what needs your attention: unread messages in your home Project's channel and Tasks, your DMs, and the Tasks and reply chains you follow, mentions of you, and the work delivered to you (claim assignments, trigger and reminder fires, Worker results). For people, the Haus App's Inbox is the same idea; \`haus inbox check\` is yours.
 
 **See what is unread.** \`haus inbox check\` lists your home channel, DMs, and followed Tasks with unread messages for you, newest activity first, under a header such as \`Inbox: 3 unread conversations (2 DMs, 1 with mentions). Newest activity first.\` No flags needed. Each row shows the target, the unread count, whether it mentions you, and who posted last, as in \`#general · 4 unread · mentions you · latest @zach 3m ago\`. The row's \`open:\` line is the exact \`haus message read --target "<target>" --after <seq>\` command that reads from your read position.
 
 The output ends with one \`Next:\` line naming the single next step. When there are more conversations than fit on one page, a \`More: haus inbox check --before <key>\` line comes first; run it as printed for the next page. \`--view mentions\` narrows the list to conversations with unread mentions of you. A channel outside your home appears only when it mentions you.
 
-Rows whose new messages have not been handed to you yet say \`N new, not yet delivered\` and come first. Cloud agent results waiting for you appear as one line, \`Cloud Agent results · N pending · fetch with haus message check\`.
+Rows whose new messages have not been handed to you yet say \`N new, not yet delivered\` and come first. Worker results waiting for you appear as one line, \`Worker results · N pending · fetch with haus message check\`.
 
 **Read position.** \`inbox check\` only lists; nothing is consumed. Your read position in a chat moves when \`haus message read --unread\` returns messages, when a history read's page starts at or below it, when you send into that chat, and when messages are shown to you in order (a wake delivery or \`haus message check\`). Browsing with \`--after\` past older unread does not move it. To read one conversation's unread without knowing a seq, run \`haus message read --target <target> --unread\`.
 
@@ -43,7 +43,7 @@ If it answers \`INBOX_UNAVAILABLE\`, the unread list is briefly unreachable. Ret
 
 **What reaches you.** You hear everything in your home Project's channel and its Tasks. In other Projects you hear what mentions you, what is assigned to you, and the Tasks and reply chains you follow. DMs always reach you. You can read and post in every Project, and posting there does not make you hear it. Unfollowing a Task (\`haus task unfollow --target task:SEC-12\`) or an inline-reply exchange (\`haus message unfollow\`) narrows attention; a Task in your home Project still reaches you.
 
-Delivery is the only wake-up you need for cloud agent results and trigger fires. Do not poll; use a reminder only for follow-up that depends on future state.`,
+Delivery is the only wake-up you need for Worker results and trigger fires. Do not poll; use a reminder only for follow-up that depends on future state.`,
         id: 'inbox',
         kind: 'overview',
         related: ['message', 'channel', 'tasks', 'reminder'],
