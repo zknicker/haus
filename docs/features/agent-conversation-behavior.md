@@ -251,12 +251,16 @@ rule in the wrong file, a second post, a question back, or an offer to do more.
 
 - Owner: [ADR 0054](../adr/0054-drive-holds-what-agents-know-and-follow.md) decision 10; the
   "Rules live in rule files" bullet and the Standing Preferences placeholder in
-  `apps/computer/src/harness/workspace-memory-instructions.ts`; the `rules` Manual topic
-  (`packages/agent-manual/src/rules-topic.ts`).
-- Guards: `managed-instructions-memory.test.ts`, `packages/agent-manual/src/rules-topic.test.ts`;
-  the `rules` eval (`bun run eval rules`, scenarios `rule-files-worker`, `rule-files-agent`, and
+  `packages/agent-prompt/src/workspace-memory-instructions.ts`; the `rules` Manual topic
+  (`packages/agent-manual/src/rules-topic.ts`); the Agent's own `AGENTS.md` reaches every later
+  session through rule delivery ([context management](context-management.md)).
+- Guards: `managed-instructions-memory.test.ts`, `packages/agent-manual/src/rules-topic.test.ts`,
+  `apps/computer/src/harness/executor-rules-delivery.test.ts`; the `rules` eval
+  (`bun run eval rules`, scenarios `rule-files-worker`, `rule-files-agent`, and
   `rule-files-fact`), which reads each fresh Agent's Drive area on the Server, with grader
-  profiles M7 and M8 in `scripts/eval/profiles.mjs` (specs/agent-e2e/README.md). Not yet run against this build.
+  profiles M7 and M8 in `scripts/eval/profiles.mjs` (specs/agent-e2e/README.md).
+  `rule-files-agent` also resets the session and checks that a question in a new channel gets a
+  reply of three sentences or fewer. Not yet run against this build.
 
 ## Anti-patterns this replaced
 
@@ -291,11 +295,9 @@ rule in the wrong file, a second post, a question back, or an offer to do more.
   Agent waits and ignores a peer's guess.
 - The chat register (plain sentences, structure only for data) has a live output check only for
   bold-label walls.
-- Nothing delivers an Agent's own `AGENTS.md` into its session yet. `MEMORY.md` arrives in the
-  turn input on change (ADR 0052), but ADR 0054 decision 7, which delivers the rule files the same
-  way, waits for the runner. A rule written to `AGENTS.md` applies for the rest of the session
-  and is gone after a reset or compaction unless the Agent reads the file. `projects/` in Drive
-  also refuses writes until Projects get their Drive areas.
+- Nothing hands `WORKER.md` to a cloud agent until Workers ship (ADR 0056), so the Manual tells
+  the Agent to put those rules in the launch brief. `projects/` in Drive refuses writes until
+  Projects get their Drive areas, so a Project rule has no home yet and the prompt leaves it out.
 - Ack variety (a single default emoji on every thanks) has no live guard since
   `ack-reaction-variety` retired on 2026-10-15; `managed-instructions.test.ts` keeps literal
   emoji out of the prompt, which was its cause.

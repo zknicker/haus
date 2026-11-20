@@ -1,3 +1,4 @@
+import { planRulesDelivery } from '@haus/agent-prompt';
 import type { AgentReasoningEffort, AgentStartCommand } from '@haus/api';
 import type { RunAuthority, RunnerLink, RunTools } from '../run-context.ts';
 import { readAgentContext } from './agent-context.ts';
@@ -8,7 +9,6 @@ import {
     composeTurnPrompt,
     planInstructionsUpdate,
     planMemoryDelivery,
-    planRulesDelivery,
     sessionAfterTurn,
 } from './instructions.ts';
 import { observeTurn, turnNoProgress } from './observe-turn.ts';

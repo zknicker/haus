@@ -2,6 +2,7 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { planRulesDelivery } from '@haus/agent-prompt';
 import {
     cleanups,
     drainCleanups,
@@ -11,12 +12,7 @@ import {
     serverStandIn,
 } from '../runner-test-server.ts';
 import { readAgentContext } from './agent-context.ts';
-import {
-    composeTurnPrompt,
-    planMemoryDelivery,
-    planRulesDelivery,
-    sessionAfterTurn,
-} from './instructions.ts';
+import { composeTurnPrompt, planMemoryDelivery, sessionAfterTurn } from './instructions.ts';
 import { readAgentSession, resolveTurnSession, writeAgentSession } from './session-file.ts';
 
 afterEach(drainCleanups);

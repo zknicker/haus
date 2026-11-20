@@ -24,5 +24,5 @@ The rule's audience picks the file. "From now on, every Worker attaches before/a
 
 Edit the file in your \`drive/\` folder with your edit tool, and create it if it is missing. Write each rule as one terse imperative line, and rewrite a rule it changes rather than adding a second line beside it. A rule you find in MEMORY.md belongs in its rule file: move it there.
 
-Haus sends the change when your turn ends and keeps it as a revision with you as its author, so anyone can read the file and its history (\`haus drive versions <path>\`). Cite the file in your reply, such as \`[WORKER.md](drive://agents/<your handle>/WORKER.md)\`, so people can open what changed. The \`drive\` topic covers the folder, conflicts, and citations.`,
+Haus sends the change when your turn ends and keeps it as a revision with you as its author, so anyone can read the file and its history (\`haus drive versions <path>\`). Your \`AGENTS.md\` and \`drive/haus/AGENTS.md\` arrive in your turn input whenever they change and after a reset or compaction, like MEMORY.md. Cite the file in your reply, such as \`[WORKER.md](drive://agents/<your handle>/WORKER.md)\`, so people can open what changed. The \`drive\` topic covers the folder, conflicts, and citations.`,
 };
