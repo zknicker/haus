@@ -7,6 +7,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { linkedMessage } from '../../../../../packages/haus-api/src/worker-fixture.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
+import { testAgent } from '../members/agent-fixtures.ts';
 import { WorkerCard, WorkerPullRequestRow } from './worker-card.tsx';
 import { workerTurnFixture as turn, workerFixture as work } from './worker-fixture.ts';
 
@@ -85,6 +86,24 @@ test('a history Worker outside any Task keeps Copy link and has no composer', ()
 
     expect(html).toContain('Copy link');
     expect(html).not.toContain('prompt-input');
+});
+
+test('a follow-up from another Agent is attributed to that Agent, not the delegator', () => {
+    const fromTiny = {
+        at: '2026-09-04T12:02:00.000Z',
+        author: { id: 'agt_tiny', kind: 'agent' as const },
+        kind: 'follow-up' as const,
+        messageId: null,
+        text: 'Narrow it down.',
+    };
+    const html = renderCard(
+        work({
+            turns: [turn({ input: [fromTiny], status: 'running' })],
+            updatedAt: new Date().toISOString(),
+        })
+    );
+
+    expect(html).toContain('On Tiny&#x27;s follow-up');
 });
 
 test('a closed Worker shows its record with no composer', () => {
@@ -177,7 +196,10 @@ function renderCard(worker: Worker, reportMessage?: typeof linkedMessage) {
         role: 'member',
         slug: 'cards',
     } as never);
-    utils.agent.list.setData({ serverId }, []);
+    utils.agent.list.setData({ serverId }, [
+        testAgent({ displayName: 'Forge', id: 'agt_one', serverId }),
+        testAgent({ displayName: 'Tiny', id: 'agt_tiny', serverId }),
+    ]);
     if (reportMessage) {
         utils.chat.message.setData(
             { chatId: 'cht_task', messageId: reportMessage.id, serverId },

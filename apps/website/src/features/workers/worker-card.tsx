@@ -5,12 +5,12 @@ import { useParams } from 'react-router-dom';
 import { ActionCard } from '../../components/chats/action-card.tsx';
 import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
+import { useAgentAppearances } from '../../hooks/members/use-agents.ts';
 import { useHumanDirectory } from '../../hooks/servers/use-human-directory.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
 import { openExternalLink } from '../../lib/open-external-link.ts';
 import { useTranscriptRenderContextOptional } from '../chats/chat-transcript-render-context.tsx';
 import { WorkerKeycap } from './cloud-agent-provider-mark.tsx';
-import { useWorkerAgentName } from './use-worker-agent-name.ts';
 import {
     canFollowUpWorker,
     isWorkerTurnLive,
@@ -23,7 +23,11 @@ import {
 import { WorkerCopyLink } from './worker-copy-link.tsx';
 import { WorkerFollowUpComposer } from './worker-follow-up-composer.tsx';
 import { WorkerPlace } from './worker-place.tsx';
-import { workerBranch, workerBranchPullRequestNumber } from './worker-presentation.ts';
+import {
+    workerAgentFallbackName,
+    workerBranch,
+    workerBranchPullRequestNumber,
+} from './worker-presentation.ts';
 import { WorkerReport } from './worker-report.tsx';
 import { WorkerStatusDisc } from './worker-status-disc.tsx';
 
@@ -32,12 +36,15 @@ export function WorkerCard({ chatId: chatIdProp, work }: { chatId?: null | strin
     const chatId = chatIdProp === undefined ? transcriptChatId : chatIdProp;
     const { slug = '' } = useParams();
     const server = useServer(slug, Boolean(slug)).data;
-    const agentName = useWorkerAgentName(work);
+    const agents = useAgentAppearances(server?.id);
     const humans = useHumanDirectory(server?.id);
     const now = useRelativeNow(isWorkerTurnLive(work) ? 5000 : 60_000);
     const report = newestWorkerReport(work);
     const name = (author: WorkerTurnInput['author']) =>
-        author.kind === 'agent' ? agentName : humans.name(author.id);
+        author.kind === 'agent'
+            ? (agents.find((agent) => agent.id === author.id)?.displayName ??
+              workerAgentFallbackName(author.id))
+            : humans.name(author.id);
     const line = workerCardLine(work, { name, now });
     const branch = workerBranch(work);
 
