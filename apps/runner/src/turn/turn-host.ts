@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import type { AgentTurnSummary } from '@haus/api';
+import { type AgentTurnSummary, agentPathSegment } from '@haus/api';
 import type { RunnerConfig } from '../config.ts';
 import type { DispatchLedger, RecoveredDispatch } from '../dispatch/ledger.ts';
 import {
@@ -10,18 +10,20 @@ import {
 import type { CapacityReader } from '../model-connections/connection-capacity.ts';
 import { createConnectionStatus } from '../model-connections/connection-status.ts';
 import type { RunnerLink, RunStart, TurnHost } from '../run-context.ts';
+import { agentSessions } from './agent-sessions.ts';
 import { createHarnesses } from './harnesses.ts';
 import { inboxStore } from './inbox-store.ts';
+import { recoverDispatches } from './recovered-dispatches.ts';
 import { createRunActivity } from './run-activity.ts';
 import { runRecords } from './run-records.ts';
 import { type NoticeSink, type RunTurnResult, runTurn } from './run-turn.ts';
 import type { RuntimeDriverFactory } from './runtime-driver.ts';
 import { RunnerCrashedError, SessionFailureError } from './turn-failure.ts';
 import { turnSummary } from './turn-summary.ts';
-import { unknownToolCalls } from './unknown-tool-calls.ts';
 
 interface ActiveRun {
     readonly controller: AbortController;
+    readonly generation: number;
     readonly runId: string;
     sink: NoticeSink | null;
 }
@@ -49,6 +51,7 @@ export function createTurnHost(input: {
         ledger: input.ledger,
         link: input.link,
         log,
+        release: harnesses.release,
     });
     return { ...host, close: harnesses.close };
 }
@@ -61,17 +64,65 @@ export function createTurnHostWith(input: {
     ledger: DispatchLedger;
     link: RunnerLink;
     log: (line: string) => void;
+    release: (agentId: string) => unknown;
 }) {
     const status = createConnectionStatus(input.link);
     const active = new Map<string, ActiveRun>();
     const queues = new Map<string, Promise<unknown>>();
     const paths = (agentId: string) => {
-        const agentDir = join(input.dataDir, 'agents', agentId);
+        const agentDir = join(input.dataDir, 'agents', agentPathSegment(agentId));
         return { agentDir, runtimeDir: join(agentDir, 'runtime') };
     };
 
-    const execute = async (run: RunStart) => {
+    const sessions = agentSessions({
+        agentDir: (agentId) => paths(agentId).agentDir,
+        dataDir: input.dataDir,
+        release: input.release,
+    });
+
+    const enqueue = (agentId: string, work: () => Promise<void>) => {
+        const previous = queues.get(agentId) ?? Promise.resolve();
+        const next = previous.then(work);
+        queues.set(
+            agentId,
+            next.catch(() => undefined)
+        );
+        return next;
+    };
+
+    const skipStale = async (run: RunStart) => {
         const { start } = run;
+        input.log(
+            `Runner skipped run ${start.runId} for ${start.agentId} from session generation ${start.sessionGeneration}, which a reset replaced.`
+        );
+        input.link.send({ agentId: start.agentId, runId: start.runId, type: 'ack' });
+        await run.tools.settle();
+        await input.ledger.settled(start.agentId, start.runId);
+    };
+
+    const execute = async (run: RunStart, restartEpoch: number) => {
+        const current: ActiveRun = {
+            controller: new AbortController(),
+            generation: run.start.sessionGeneration,
+            runId: run.start.runId,
+            sink: null,
+        };
+        active.set(run.start.agentId, current);
+        try {
+            await executeRun(run, current, restartEpoch);
+        } finally {
+            if (active.get(run.start.agentId) === current) {
+                active.delete(run.start.agentId);
+            }
+        }
+    };
+
+    const executeRun = async (run: RunStart, current: ActiveRun, restartEpoch: number) => {
+        const { start } = run;
+        if (!(await sessions.enter(run, restartEpoch))) {
+            await skipStale(run);
+            return;
+        }
         const { agentDir, runtimeDir } = paths(start.agentId);
         const records = runRecords(runtimeDir, start.runId);
         const marker = await records.marker();
@@ -90,12 +141,6 @@ export function createTurnHostWith(input: {
         await store.acceptRun(start);
         await records.accepted();
         const startedAt = new Date().toISOString();
-        const current: ActiveRun = {
-            controller: new AbortController(),
-            runId: start.runId,
-            sink: null,
-        };
-        active.set(start.agentId, current);
         const activity = createRunActivity({
             agentId: start.agentId,
             now: () => Date.now(),
@@ -137,10 +182,6 @@ export function createTurnHostWith(input: {
             });
         } catch (error) {
             result = { failure: error, status: 'failed', tokenUsage: null };
-        } finally {
-            if (active.get(start.agentId) === current) {
-                active.delete(start.agentId);
-            }
         }
         activity.close(result.status === 'completed' ? 'completed' : result.status);
         if (connection && status.afterTurn(connection, result) === 'failed') {
@@ -203,18 +244,11 @@ export function createTurnHostWith(input: {
         await settle(start, records, summary);
     };
 
-    const recover = async (dispatches: readonly RecoveredDispatch[]) => {
-        const byAgent = new Map<string, string[]>();
-        for (const { agentId, key } of dispatches) {
-            input.log(
-                `Runner recovered dispatch ${key.runId}:${key.toolCallId}:${key.seq} for ${agentId} as unknown.`
-            );
-            byAgent.set(agentId, [...(byAgent.get(agentId) ?? []), key.toolCallId]);
-        }
-        for (const [agentId, toolCallIds] of byAgent) {
-            await unknownToolCalls(paths(agentId).runtimeDir).add(toolCallIds);
-        }
-    };
+    const recover = (dispatches: readonly RecoveredDispatch[]) =>
+        recoverDispatches(dispatches, {
+            log: input.log,
+            runtimeDir: (agentId) => paths(agentId).runtimeDir,
+        });
 
     const host: TurnHost = {
         async notice(notice) {
@@ -240,14 +274,17 @@ export function createTurnHostWith(input: {
                 });
             }
         },
+        async resetAgent(agentId, reset) {
+            sessions.announce(agentId, reset);
+            const run = active.get(agentId);
+            if (run && sessions.supersedes(reset, run.generation)) {
+                run.controller.abort();
+            }
+            await enqueue(agentId, () => sessions.apply(agentId, reset));
+        },
         start(run) {
-            const previous = queues.get(run.start.agentId) ?? Promise.resolve();
-            const next = previous.then(() => execute(run));
-            queues.set(
-                run.start.agentId,
-                next.catch(() => undefined)
-            );
-            return next;
+            const restartEpoch = sessions.restartEpoch(run.start.agentId);
+            return enqueue(run.start.agentId, () => execute(run, restartEpoch));
         },
         stop(agentId, runId) {
             const run = active.get(agentId);

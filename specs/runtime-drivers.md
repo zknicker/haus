@@ -169,10 +169,20 @@ cold-starts once.
 R3 left these Computer turn features unported, and R4 ports each before it moves an Agent:
 execution journal upload (including journaling dispatches the ledger recovers as `unknown`),
 thoughts, idle compaction, rich-reference projection of message content, Claude plan usage after a
-turn, Agent restart and reset frames to the runner, and
-`haus worker start`, which the Computer's proxy handled. R4 also sends `drive-pull` when a
-runner run starts and `drive-push` when it settles (Drive folder below), because runner-hosted
-Agents depend on their `drive/` folder from the cutover on.
+turn, and `haus worker start`, which the Computer's proxy handled.
+
+R4b already moved these: `drive-pull` when a runner run starts and `drive-push` when it settles
+(Drive folder below); voice calls that no longer need a healthy Computer; and restart, session
+reset, and full reset on the runner. `agent-restart`, `agent-reset`, and `agent-retire` ride the
+runner socket. Restart and a session reset close the Agent's warm harness process, so the next
+turn resumes cold or, after a generation change, starts fresh. A full reset and retire also
+delete `/data/agents/<agent-id>/`. The runner records the session generation it last applied in
+`/data/agent-sessions/<agent-id>.json`, outside the Agent's directory. A reset applies only when
+its generation is newer, aborts a turn from an older generation, and refuses queued runs that a
+reset replaced. A restart also refuses the runs queued before it, since the Server interrupts
+the Agent's active run before it restarts. `runner-start` carries `sessionResetKind`, so the first run of a newer generation
+applies a reset the runner missed while it was offline. Restart and retire abort the turn in progress; resets abort a turn from an older generation. The Server sends
+`agent-retire` to the runner from R4d, when the Computer path that sends it today is deleted.
 
 Managed skills are ported. The Server seeds the factory-managed skills into each Agent's Drive
 area as Haus-authored revisions at creation, after a full reset, and at Server start
@@ -902,10 +912,20 @@ R2 bumps the protocol to 39 for these frames. Their schemas live in
 `agentCommandSchema`. R3's invocation router (`apps/server/src/agent-invocations/`) sends
 `invoke`, and the Computer ingest chain hands it the two upstream frames.
 
-**Computer protocol, added with runner turns:** `drive-pull` and `drive-push`
-(Server → Computer, `agentId` and `runId`). They come with the PR that first sends them, when the
-runner reports a run started or settled, and D4's pull and push code handles them. R2 does not add
-them, because a frame with no sender and no handler is dead contract.
+**Computer protocol, added by R4b (version 43):** `drive-pull` and `drive-push`
+(Server → Computer, `agentId`, `runId`, and `sessionGeneration`, in `packages/haus-api/src/agent-drive-sync.ts`). The
+Server sends `drive-pull` beside each `runner-start`, and `drive-push` when the runner's `turn`
+reports the Agent's active run, before settling it starts the next run. Each goes only to the
+Agent's Computer when it is online, and the Computer ignores frames from an older session
+generation than one it has seen. When the Computer reconnects, the Server sends `drive-push` for each
+Agent's active run, or else its last settled run, and `drive-pull` for an active run. Those
+frames go out right after the bootstrap, before the connection carries any other frame.
+Settling or stopping a run revokes its run credentials but not a `drive-sync` one, so a push
+still landing the run's edits completes. The Computer mints its own
+`drive-sync` credential for the run, which reaches only the Drive sync routes and expires in 15
+minutes, runs D4's pull or push under the Agent's folder lock, and revokes the
+credential. Its invocations for that Agent run under the same folder lock, so a machine tool never sees a
+half-pulled folder and a sync never runs beside a tool; a cancelled invocation stops waiting.
 
 **Computer protocol, removed by R4:** `start`, `notice`, `stop`, `ack`, `notice-ack`, `turn`,
 `agent-activity`, `agent-thought`, `agent-execution-journal-records`,

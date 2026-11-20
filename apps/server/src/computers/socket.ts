@@ -8,6 +8,7 @@ import {
 } from '@haus/api';
 import { WebSocket, WebSocketServer } from 'ws';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { driveReconcileFrames } from '../agent-delivery/drive-reconcile.ts';
 import { clearStartRejectedHolds } from '../agent-delivery/failure-hold.ts';
 import { onAgentLifecycle } from '../agent-delivery/lifecycle.ts';
 import type { InvocationRouter } from '../agent-invocations/invocation-router.ts';
@@ -163,6 +164,14 @@ export function startComputerAttachmentSocket(
                 return;
             }
             ordinary = hello.protocolVersion === computerProtocolVersion;
+            const driveFrames =
+                ordinary && delivery.route.hostOf(computer.id).kind === 'runner'
+                    ? await driveReconcileFrames(db, computer.id)
+                    : [];
+            if (closed) {
+                markClosedOffline();
+                return;
+            }
             connections.register(computer.id, {
                 disconnect: (reason) => socket.close(4000, reason),
                 ordinary,
@@ -184,6 +193,9 @@ export function startComputerAttachmentSocket(
             });
             if (!ordinary) {
                 return;
+            }
+            for (const frame of driveFrames) {
+                socket.send(JSON.stringify(frame));
             }
             invocations.computerAttached(computer.id);
             // A Computer holds every runtime setting off until an attach turns one on.
