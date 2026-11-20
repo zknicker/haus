@@ -7,7 +7,7 @@ import {
     messageBodyKinds,
 } from '@haus/api';
 import * as z from 'zod';
-import { chatMessageReplyResponseSchema } from '../chat-message-reply-response-schema.ts';
+import { chatMessageReplyResponseSchema } from './chat-message-reply-response-schema.ts';
 import { messageWorkerSchema } from './message-worker-schema.ts';
 import { agentWorkerReceiptResponseSchema } from './worker-response-schema.ts';
 

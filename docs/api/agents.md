@@ -296,7 +296,7 @@ Claim results (1 claimed, 1 refused):
 
 It exits non-zero only when no row was granted. A lone refused claim with a `claimConflict`
 renders the structured block in place of the generic error line —
-`apps/computer/src/agent-cli/agent-claim-conflict.ts` is the only place that prose is composed —
+`packages/agent-cli/src/agent-claim-conflict.ts` is the only place that prose is composed —
 and a batch refusal repeats one line per refused claim. A granted row names the inline reply to
 the claim's message as a fact of the claim; the receipt carries no routing advice. Where posts
 are seen is taught once by the Manual `replies` topic (ADR 0029).

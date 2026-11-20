@@ -280,7 +280,7 @@ one generated migration (all GitHub tables, the Trigger kind check and nullable 
 deletion), the Server Trigger mapper (`triggers/trigger-queries.ts`, `triggers/operator-triggers.ts`,
 `agent-api/triggers.ts`, `haus-api/trigger/rotate.ts`), every App and Computer consumer of the
 Trigger union (`apps/website/src/features/members/agent-profile/{agent-trigger-model.ts,trigger-*}`,
-`apps/computer/src/agent-cli/commands/agent-trigger-actions.ts` and test), `.env.schema`,
+`packages/agent-cli/src/commands/agent-trigger-actions.ts` and test), `.env.schema`,
 `config/env.ts`, `docs/operations/environment.md`, `CONTEXT.md` (Built-in connection, GitHub
 installation), `github/app-auth.ts`, `github/github-api.ts`, `github/routes.ts` with `501` stubs,
 an empty `github` tRPC router, and signature stubs `reconcileGithubInstallation` and
@@ -359,7 +359,7 @@ test harness); `github/deliveries.ts` binding ingest to the running Server; and
 `.design/guidelines.md`. Proof: website gate plus focused tests, Browser pane walkthrough, scoped App e2e for
 GitHub Trigger creation, `swift test` and a Simulator build.
 
-**Slice E: Agent CLI and Manual.** Owns `apps/computer/src/agent-cli/commands/agent-trigger*.ts`,
+**Slice E: Agent CLI and Manual.** Owns `packages/agent-cli/src/commands/agent-trigger*.ts`,
 `packages/agent-manual/src/corpus/*` (rewrite `trigger-webhook` in `techniques-b.ts`),
 `specs/haus-cli.md`. GitHub adds no CLI family, Manual topic, or recipe; its Trigger vocabulary
 lives in `haus trigger create --help`. Proof: computer gate,

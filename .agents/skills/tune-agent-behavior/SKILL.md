@@ -38,7 +38,7 @@ List every place the Agent is told what to do for this situation, and quote each
 
 1. Managed prompt sections: `packages/agent-prompt/src/managed-instructions.ts` and its siblings.
 2. Manual topics: `packages/agent-manual/src/` (topics, corpus, task-thread routing).
-3. CLI help and post-command receipts: `apps/computer/src/agent-cli/`.
+3. CLI help and post-command receipts: `packages/agent-cli/src/`.
 4. Inbox and event text: `packages/agent-prompt/src/inbox-format.ts`.
 5. Seeded skills the Agent loads.
 

@@ -1,5 +1,3 @@
-import computerPackage from '../../package.json' with { type: 'json' };
-
 /** ANSI styling, gated on TTY + NO_COLOR. All CLI output routes through here. */
 
 const CODES = {
@@ -34,16 +32,6 @@ export const ui = {
     dim: (text: string, stream?: NodeJS.WriteStream) =>
         paint(text, 'dim', stream ?? process.stdout),
 };
-
-/**
- * Banner: name + version + one-line tagline, accent color. ≤ 6 lines including
- * the trailing blank. Compact wordmark, no figlet.
- */
-export function banner(): string {
-    const title = ui.accent(ui.bold('🟠 Haus Computer'));
-    const version = ui.dim(`v${computerPackage.version}`);
-    return `${title} ${version}\n${ui.dim('The local execution home for your agents.')}\n`;
-}
 
 /** Section heading, bold. */
 export function heading(label: string, stream: NodeJS.WriteStream = process.stdout): string {

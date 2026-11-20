@@ -1,3 +1,4 @@
+import { workerReconcileEntryResponseSchema, workerTurnModelResponseSchema } from '@haus/agent-cli';
 import {
     cloudAgentCapabilityRequestSchema,
     workerFollowUpDrainAckFrameSchema,
@@ -6,10 +7,6 @@ import {
     workerTurnStartFrameSchema,
 } from '@haus/api';
 import * as z from 'zod';
-import {
-    workerReconcileEntryResponseSchema,
-    workerTurnModelResponseSchema,
-} from '../agent-cli/worker-response-schema.ts';
 
 /**
  * Parses the same shapes as `@haus/api`'s `.strict()` Server→Computer Worker

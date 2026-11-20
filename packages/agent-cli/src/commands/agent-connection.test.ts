@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
-import { commandGroups } from '../../agent-cli.ts';
 import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts';
+import { commandGroups } from '../agent-cli.ts';
 import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
 import { runConnectionGrant, runConnectionList } from './agent-connection.ts';

@@ -1,23 +1,23 @@
-import { AgentCliError, renderAgentCliError } from './agent-cli/agent-error.ts';
-import { AGENT_SUBCOMMANDS } from './agent-cli/commands/agent-agent.ts';
-import { ATTACHMENT_SUBCOMMANDS } from './agent-cli/commands/agent-attachment.ts';
-import { CLAIM_SUBCOMMANDS } from './agent-cli/commands/agent-claim.ts';
-import { CONNECTION_SUBCOMMANDS } from './agent-cli/commands/agent-connection.ts';
-import { CHANNEL_SUBCOMMANDS, SERVER_SUBCOMMANDS } from './agent-cli/commands/agent-directory.ts';
-import { DRIVE_SUBCOMMANDS } from './agent-cli/commands/agent-drive.ts';
-import { IMAGE_SUBCOMMANDS } from './agent-cli/commands/agent-image.ts';
-import { INBOX_SUBCOMMANDS } from './agent-cli/commands/agent-inbox.ts';
-import { MANUAL_EXAMPLE_FLOWS, MANUAL_SUBCOMMANDS } from './agent-cli/commands/agent-manual.ts';
-import { MESSAGE_SUBCOMMANDS } from './agent-cli/commands/agent-message.ts';
-import { PROFILE_SUBCOMMANDS } from './agent-cli/commands/agent-profile.ts';
-import { REMINDER_SUBCOMMANDS } from './agent-cli/commands/agent-reminder.ts';
-import { SKILL_SUBCOMMANDS } from './agent-cli/commands/agent-skill.ts';
-import { TASK_SUBCOMMANDS } from './agent-cli/commands/agent-task.ts';
-import { TRIGGER_SUBCOMMANDS } from './agent-cli/commands/agent-trigger.ts';
-import { WORKER_SUBCOMMANDS } from './agent-cli/commands/agent-worker.ts';
-import { UsageError } from './agent-cli/parse.ts';
-import { dispatchSubcommand, type SubCommand } from './agent-cli/subcommand.ts';
-import { errorBlock } from './agent-cli/ui.ts';
+import { AgentCliError, renderAgentCliError } from './agent-error.ts';
+import { AGENT_SUBCOMMANDS } from './commands/agent-agent.ts';
+import { ATTACHMENT_SUBCOMMANDS } from './commands/agent-attachment.ts';
+import { CLAIM_SUBCOMMANDS } from './commands/agent-claim.ts';
+import { CONNECTION_SUBCOMMANDS } from './commands/agent-connection.ts';
+import { CHANNEL_SUBCOMMANDS, SERVER_SUBCOMMANDS } from './commands/agent-directory.ts';
+import { DRIVE_SUBCOMMANDS } from './commands/agent-drive.ts';
+import { IMAGE_SUBCOMMANDS } from './commands/agent-image.ts';
+import { INBOX_SUBCOMMANDS } from './commands/agent-inbox.ts';
+import { MANUAL_EXAMPLE_FLOWS, MANUAL_SUBCOMMANDS } from './commands/agent-manual.ts';
+import { MESSAGE_SUBCOMMANDS } from './commands/agent-message.ts';
+import { PROFILE_SUBCOMMANDS } from './commands/agent-profile.ts';
+import { REMINDER_SUBCOMMANDS } from './commands/agent-reminder.ts';
+import { SKILL_SUBCOMMANDS } from './commands/agent-skill.ts';
+import { TASK_SUBCOMMANDS } from './commands/agent-task.ts';
+import { TRIGGER_SUBCOMMANDS } from './commands/agent-trigger.ts';
+import { WORKER_SUBCOMMANDS } from './commands/agent-worker.ts';
+import { UsageError } from './parse.ts';
+import { dispatchSubcommand, type SubCommand } from './subcommand.ts';
+import { errorBlock } from './ui.ts';
 
 export const commandGroups = {
     agent: AGENT_SUBCOMMANDS,
