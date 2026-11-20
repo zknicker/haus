@@ -193,6 +193,32 @@ describe('device sign-in', () => {
         await mounted.unmount();
     });
 
+    test('a sign-in that starts after its dialog closed is cancelled at once', async () => {
+        let answerStart: (value: ModelSignIn) => void = () => undefined;
+        const started = new Promise<ModelSignIn>((resolve) => {
+            answerStart = resolve;
+        });
+        const { harness, hook, mounted } = await mountHook(
+            () => useStartModelSignIn(serverId),
+            (call) =>
+                call.path === 'modelConnections.startSignIn'
+                    ? started
+                    : { cancelled: true, signIn: { ...signIn, state: 'cancelled' } }
+        );
+        const opened = hook().start({ label: 'ChatGPT plan', provider: 'chatgpt', serverId });
+        await mounted.unmount();
+        answerStart(signIn);
+        expect(await opened).toBeNull();
+        expect(harness.calls).toEqual([
+            mutation('modelConnections.startSignIn', {
+                label: 'ChatGPT plan',
+                provider: 'chatgpt',
+                serverId,
+            }),
+            mutation('modelConnections.cancelSignIn', { serverId, signInId: 'msi_1' }),
+        ]);
+    });
+
     test('an accepted cancel shows the cancelled sign-in; a refused one refetches it and the list', async () => {
         const cancelled = { ...signIn, state: 'cancelled' as const };
         let answer: unknown = { cancelled: true, signIn: cancelled };

@@ -1,11 +1,8 @@
-import type { ModelSignIn, ModelSignInProvider } from '@haus/api';
+import type { ModelSignIn } from '@haus/api';
 import { Button, Form, Input, Label, Link, Modal, Spinner, TextField, toast } from '@heroui/react';
 import * as React from 'react';
 import { CopyButton } from '../../../../components/copy-button.tsx';
-import {
-    useModelSignIn,
-    useStartModelSignIn,
-} from '../../../../hooks/servers/use-model-sign-in.ts';
+import { useModelSignIn } from '../../../../hooks/servers/use-model-sign-in.ts';
 import { openSystemBrowserLink } from '../../../../lib/open-external-link.ts';
 import { SettingsRowError } from '../../layout/settings-text.tsx';
 import { connectionErrorMessage, signInProviderNames } from './model-connection-model.ts';
@@ -13,6 +10,7 @@ import { connectionErrorMessage, signInProviderNames } from './model-connection-
 const FORM_ID = 'model-sign-in-form';
 
 export function DeviceSignInFlow({
+    busy,
     cancelling,
     children,
     defaultLabel,
@@ -20,12 +18,12 @@ export function DeviceSignInFlow({
     onCancel,
     onConnected,
     onRestart,
-    onStarted,
-    provider,
-    replaceConnectionId,
+    onStart,
     serverId,
     signInId,
+    starting,
 }: {
+    busy: boolean;
     cancelling: boolean;
     children?: React.ReactNode;
     defaultLabel: string;
@@ -33,11 +31,10 @@ export function DeviceSignInFlow({
     onCancel: () => void;
     onConnected: (connectionId: string, label: string) => void;
     onRestart: () => void;
-    onStarted: (signInId: string) => void;
-    provider: ModelSignInProvider;
-    replaceConnectionId?: string;
+    onStart: (label: string) => Promise<void>;
     serverId: string;
     signInId: string | null;
+    starting: boolean;
 }) {
     const signIn = useModelSignIn(serverId, signInId);
     const landed = signIn.data?.state === 'connected' ? signIn.data.connectionId : null;
@@ -54,13 +51,12 @@ export function DeviceSignInFlow({
     if (signInId === null) {
         return (
             <SignInLabelStep
+                busy={busy}
                 defaultLabel={defaultLabel}
                 labelLocked={labelLocked}
                 onCancel={onCancel}
-                onStarted={onStarted}
-                provider={provider}
-                {...(replaceConnectionId ? { replaceConnectionId } : {})}
-                serverId={serverId}
+                onStart={onStart}
+                starting={starting}
             >
                 {children}
             </SignInLabelStep>
@@ -79,14 +75,14 @@ export function DeviceSignInFlow({
             <Modal.Footer>
                 {signIn.data?.state === 'failed' || signIn.error ? (
                     <>
-                        <Button onPress={onCancel} variant="secondary">
+                        <Button isDisabled={busy} onPress={onCancel} variant="secondary">
                             Close
                         </Button>
                         <Button onPress={onRestart}>Try again</Button>
                     </>
                 ) : (
                     <Button
-                        isDisabled={signIn.data?.state === 'storing' || landed !== null}
+                        isDisabled={busy || signIn.data?.state === 'storing' || landed !== null}
                         isPending={cancelling}
                         onPress={onCancel}
                         variant="secondary"
@@ -145,38 +141,29 @@ export function DeviceSignInStatus({ signIn }: { signIn: ModelSignIn }) {
 }
 
 function SignInLabelStep({
+    busy,
     children,
     defaultLabel,
     labelLocked,
     onCancel,
-    onStarted,
-    provider,
-    replaceConnectionId,
-    serverId,
+    onStart,
+    starting,
 }: {
+    busy: boolean;
     children?: React.ReactNode;
     defaultLabel: string;
     labelLocked: boolean;
     onCancel: () => void;
-    onStarted: (signInId: string) => void;
-    provider: ModelSignInProvider;
-    replaceConnectionId?: string;
-    serverId: string;
+    onStart: (label: string) => Promise<void>;
+    starting: boolean;
 }) {
-    const start = useStartModelSignIn(serverId);
     const [label, setLabel] = React.useState(defaultLabel);
     const [error, setError] = React.useState<string | null>(null);
 
     const submit = async () => {
         setError(null);
         try {
-            const signIn = await start.mutateAsync({
-                label: label.trim(),
-                provider,
-                ...(replaceConnectionId ? { replaceConnectionId } : {}),
-                serverId,
-            });
-            onStarted(signIn.signInId);
+            await onStart(label.trim());
         } catch (cause) {
             setError(connectionErrorMessage(cause));
         }
@@ -191,7 +178,7 @@ function SignInLabelStep({
                     id={FORM_ID}
                     onSubmit={(event) => {
                         event.preventDefault();
-                        if (label.trim() && !start.isPending) {
+                        if (label.trim() && !busy) {
                             void submit();
                         }
                     }}
@@ -215,13 +202,13 @@ function SignInLabelStep({
                 </Form>
             </Modal.Body>
             <Modal.Footer>
-                <Button onPress={onCancel} variant="secondary">
+                <Button isDisabled={busy} onPress={onCancel} variant="secondary">
                     Cancel
                 </Button>
                 <Button
                     form={FORM_ID}
                     isDisabled={label.trim().length === 0}
-                    isPending={start.isPending}
+                    isPending={starting}
                     type="submit"
                 >
                     Sign in

@@ -1,4 +1,4 @@
-import type { ModelProvider } from '@haus/api';
+import type { ModelConnection, ModelConnectionCredential } from '@haus/api';
 import {
     Button,
     Description,
@@ -10,7 +10,6 @@ import {
     TextField,
 } from '@heroui/react';
 import * as React from 'react';
-import { useModelConnectionEdits } from '../../../../hooks/servers/use-model-connections.ts';
 import { SettingsRowError } from '../../layout/settings-text.tsx';
 import {
     connectionErrorMessage,
@@ -21,32 +20,28 @@ import {
 const FORM_ID = 'model-connection-credential-form';
 
 export function PastedCredentialForm({
+    busy,
     children,
     defaultLabel,
     kind,
     labelLocked,
     onCancel,
     onConnected,
-    provider,
-    replaceConnectionId,
-    serverId,
+    onSave,
 }: {
+    busy: boolean;
     children?: React.ReactNode;
     defaultLabel: string;
     kind: PastedCredentialKind;
     labelLocked: boolean;
     onCancel: () => void;
     onConnected: (connectionId: string, label: string) => void;
-    provider: ModelProvider;
-    replaceConnectionId?: string;
-    serverId: string;
+    onSave: (credential: ModelConnectionCredential, label: string) => Promise<ModelConnection>;
 }) {
-    const { add, replaceCredential } = useModelConnectionEdits(serverId);
     const [label, setLabel] = React.useState(defaultLabel);
     const [secret, setSecret] = React.useState('');
     const [secretError, setSecretError] = React.useState<string | null>(null);
     const [error, setError] = React.useState<string | null>(null);
-    const [saving, setSaving] = React.useState(false);
     const ready = label.trim().length > 0 && secret.trim().length > 0;
 
     const submit = async () => {
@@ -55,26 +50,12 @@ export function PastedCredentialForm({
             setSecretError(pasted.message);
             return;
         }
-        setSaving(true);
         setError(null);
         try {
-            const connection = replaceConnectionId
-                ? await replaceCredential.mutateAsync({
-                      connectionId: replaceConnectionId,
-                      credential: pasted.credential,
-                      serverId,
-                  })
-                : await add.mutateAsync({
-                      credential: pasted.credential,
-                      label: label.trim(),
-                      provider,
-                      serverId,
-                  });
+            const connection = await onSave(pasted.credential, label.trim());
             onConnected(connection.id, connection.label);
         } catch (cause) {
             setError(connectionErrorMessage(cause));
-        } finally {
-            setSaving(false);
         }
     };
 
@@ -87,7 +68,7 @@ export function PastedCredentialForm({
                     id={FORM_ID}
                     onSubmit={(event) => {
                         event.preventDefault();
-                        if (ready && !saving) {
+                        if (ready && !busy) {
                             void submit();
                         }
                     }}
@@ -133,10 +114,10 @@ export function PastedCredentialForm({
                 </Form>
             </Modal.Body>
             <Modal.Footer>
-                <Button onPress={onCancel} variant="secondary">
+                <Button isDisabled={busy} onPress={onCancel} variant="secondary">
                     Cancel
                 </Button>
-                <Button form={FORM_ID} isDisabled={!ready} isPending={saving} type="submit">
+                <Button form={FORM_ID} isDisabled={!ready} isPending={busy} type="submit">
                     Connect
                 </Button>
             </Modal.Footer>

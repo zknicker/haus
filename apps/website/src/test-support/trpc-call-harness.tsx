@@ -27,12 +27,16 @@ export function createCallHarness(answer: (call: RecordedCall) => unknown = () =
                     observable((observer) => {
                         const call = { input: op.input, path: op.path, type: op.type };
                         calls.push(call);
-                        try {
-                            observer.next({ result: { data: answer(call) } });
-                            observer.complete();
-                        } catch (cause) {
-                            observer.error(TRPCClientError.from(cause as Error));
-                        }
+                        Promise.resolve()
+                            .then(() => answer(call))
+                            .then(
+                                (data) => {
+                                    observer.next({ result: { data } });
+                                    observer.complete();
+                                },
+                                (cause: unknown) =>
+                                    observer.error(TRPCClientError.from(cause as Error))
+                            );
                         return () => undefined;
                     }),
         ],

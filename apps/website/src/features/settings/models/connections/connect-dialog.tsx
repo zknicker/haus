@@ -1,11 +1,18 @@
-import type { ModelConnection, ModelProvider } from '@haus/api';
+import type {
+    ModelConnection,
+    ModelConnectionCredential,
+    ModelProvider,
+    ModelSignInProvider,
+} from '@haus/api';
 import { Segment } from '@heroui-pro/react';
 import { Modal, toast } from '@heroui/react';
 import { TRPCClientError } from '@trpc/client';
 import * as React from 'react';
+import { useModelConnectionEdits } from '../../../../hooks/servers/use-model-connections.ts';
 import {
     useCancelModelSignIn,
     useModelSignIn,
+    useStartModelSignIn,
 } from '../../../../hooks/servers/use-model-sign-in.ts';
 import { DeviceSignInFlow } from './device-sign-in.tsx';
 import {
@@ -39,7 +46,10 @@ export function ConnectDialog({
     const [signInId, setSignInId] = React.useState<string | null>(null);
     const signIn = useModelSignIn(serverId, signInId);
     const cancel = useCancelModelSignIn(serverId);
-    const replaceTarget = replacing ? { replaceConnectionId: replacing.id } : {};
+    const start = useStartModelSignIn(serverId);
+    const { add, replaceCredential } = useModelConnectionEdits(serverId);
+    const busy =
+        start.isPending || add.isPending || replaceCredential.isPending || cancel.isPending;
     const flow = flows[flowIndex] ?? flows[0];
     if (!flow) {
         return null;
@@ -48,7 +58,7 @@ export function ConnectDialog({
     const defaultLabel = connectLabel(flow, replacing, takenLabels);
 
     const requestClose = async () => {
-        if (cancel.isPending) {
+        if (busy) {
             return;
         }
         const step = signInId ? signInCloseStep(signIn.data) : 'close';
@@ -74,6 +84,23 @@ export function ConnectDialog({
         }
     };
 
+    const startSignIn = async (signInProvider: ModelSignInProvider, label: string) => {
+        const started = await start.start({
+            label,
+            provider: signInProvider,
+            ...(replacing ? { replaceConnectionId: replacing.id } : {}),
+            serverId,
+        });
+        if (started) {
+            setSignInId(started.signInId);
+        }
+    };
+
+    const saveCredential = (credential: ModelConnectionCredential, label: string) =>
+        replacing
+            ? replaceCredential.mutateAsync({ connectionId: replacing.id, credential, serverId })
+            : add.mutateAsync({ credential, label, provider, serverId });
+
     const onConnected = (_connectionId: string, label: string) => {
         toast.success(`${name} ${replacing ? 'reconnected' : 'connected'}`, {
             description: label,
@@ -85,6 +112,7 @@ export function ConnectDialog({
         flows.length > 1 && !replacing ? (
             <Segment
                 aria-label={`How to connect ${modelProviderNames[provider]}`}
+                isDisabled={busy}
                 onSelectionChange={(key) =>
                     setFlowIndex(
                         Math.max(
@@ -106,7 +134,8 @@ export function ConnectDialog({
 
     return (
         <Modal.Backdrop
-            isDismissable
+            isDismissable={!busy}
+            isKeyboardDismissDisabled={busy}
             isOpen
             onOpenChange={(open) => {
                 if (!open) {
@@ -124,6 +153,7 @@ export function ConnectDialog({
                     </Modal.Header>
                     {flow.kind === 'oauth' ? (
                         <DeviceSignInFlow
+                            busy={busy}
                             cancelling={cancel.isPending}
                             defaultLabel={defaultLabel}
                             key={flow.choice}
@@ -131,25 +161,23 @@ export function ConnectDialog({
                             onCancel={() => void requestClose()}
                             onConnected={onConnected}
                             onRestart={() => setSignInId(null)}
-                            onStarted={setSignInId}
-                            provider={flow.signInProvider}
-                            {...replaceTarget}
+                            onStart={(label) => startSignIn(flow.signInProvider, label)}
                             serverId={serverId}
                             signInId={signInId}
+                            starting={start.isPending}
                         >
                             {choice}
                         </DeviceSignInFlow>
                     ) : (
                         <PastedCredentialForm
+                            busy={busy}
                             defaultLabel={defaultLabel}
                             key={flow.choice}
                             kind={flow.kind}
                             labelLocked={replacing !== undefined}
-                            onCancel={onClose}
+                            onCancel={() => void requestClose()}
                             onConnected={onConnected}
-                            provider={provider}
-                            {...replaceTarget}
-                            serverId={serverId}
+                            onSave={saveCredential}
                         >
                             {choice}
                         </PastedCredentialForm>
