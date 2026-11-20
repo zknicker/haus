@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { SQL } from 'bun';
 import { eq } from 'drizzle-orm';
 import type { WebSocket } from 'ws';
+import type { InvocationClock } from '../src/agent-invocations/invocation-clock.ts';
 import type { ArtifactStorage } from '../src/artifacts/storage.ts';
 import type {
     AvatarGenerationLogger,
@@ -61,6 +62,8 @@ export const harnessAppOrigin = 'https://app.haus.test';
 
 export async function startHausServerHarness(
     options: {
+        agentLoop?: 'computer' | 'runner';
+        runnerToken?: string;
         appOrigin?: string;
         artifactStorage?: ArtifactStorage;
         artifactStorageBytes?: number;
@@ -73,6 +76,7 @@ export async function startHausServerHarness(
         openAiApiKey?: string;
         connectLive?: () => WebSocket;
         computerSocketLiveness?: ComputerSocketLivenessTiming;
+        invocationClock?: InvocationClock;
         /** The Haus GitHub App, usually over a faked GitHub transport. */
         githubApp?: GithubApp | null;
         enableDevelopmentAuth?: boolean;
@@ -117,6 +121,8 @@ export async function startHausServerHarness(
 
         const startApplication = async () => {
             const next = await createHausServerApplication({
+                agentLoop: options.agentLoop,
+                runnerToken: options.runnerToken,
                 appOrigin,
                 ...(options.cloudflareAccess ? { cloudflareAccess: options.cloudflareAccess } : {}),
                 ...(options.cloudflareOAuthMetadataFetch
@@ -134,6 +140,7 @@ export async function startHausServerHarness(
                 openAiApiKey: options.openAiApiKey,
                 connectLive: options.connectLive,
                 computerSocketLiveness: options.computerSocketLiveness,
+                invocationClock: options.invocationClock,
                 githubApp: options.githubApp,
                 imageGenerationAdapters: options.imageGenerationAdapters,
                 // Tests drive GitHub delivery recovery directly, never on a timer.

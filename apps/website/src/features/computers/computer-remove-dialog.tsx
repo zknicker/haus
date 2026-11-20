@@ -4,13 +4,15 @@ import { DeleteDialog } from '../../routes/app/delete-dialog.tsx';
 export function ComputerRemoveDialog({
     computerId,
     onOpenChange,
+    onRemoved,
     serverId,
 }: {
     computerId: string;
     onOpenChange: (open: boolean) => void;
+    onRemoved: () => void;
     serverId: string;
 }) {
-    const remove = useComputerRemove(serverId, () => onOpenChange(false));
+    const remove = useComputerRemove(serverId, onRemoved);
 
     return (
         <DeleteDialog

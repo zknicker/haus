@@ -5,8 +5,8 @@ import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { useUsage } from '../../hooks/servers/use-usage.ts';
 import { computerLabel } from '../computers/presentation.ts';
+import { SettingsPageColumn } from '../settings/layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../settings/layout/settings-page-header.tsx';
-import { PageColumn } from '../shell/page-column.tsx';
 import { AgentUsageScopePicker } from '../stats/agent-usage-scope.tsx';
 import { TokenUsageDashboard, TokenUsageRangePicker } from '../stats/token-usage-module.tsx';
 import { buildTokenUsageView, type TokenUsageRange } from '../stats/token-usage-view.ts';
@@ -86,11 +86,8 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
         // A Settings section: the settings frame owns the band's breadcrumb.
         // Scope and range stay in the column with the cards they filter; the
         // 3rem band fits compact chrome only (Select has no compact size).
-        <PageColumn>
-            <SettingsPageHeader
-                description="Processed tokens across this Server's Captains."
-                title="Usage"
-            />
+        <SettingsPageColumn width="table">
+            <SettingsPageHeader title="Usage" />
             {filterChips.length > 0 ? (
                 <ActiveUsageFilters
                     chips={filterChips}
@@ -112,6 +109,7 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
                 <TokenUsageDashboard
                     controls={
                         <>
+                            <TokenUsageRangePicker days={days} onChange={setDays} />
                             {view.agents.length > 0 ? (
                                 <AgentUsageScopePicker
                                     agents={view.agents}
@@ -119,7 +117,6 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
                                     selectedAgentId={view.selectedAgent?.agentId ?? null}
                                 />
                             ) : null}
-                            <TokenUsageRangePicker days={days} onChange={setDays} />
                         </>
                     }
                     view={view}
@@ -134,7 +131,7 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
             ) : (
                 <TokenUsageSkeleton />
             )}
-        </PageColumn>
+        </SettingsPageColumn>
     );
 }
 

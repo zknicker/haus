@@ -19,7 +19,7 @@ test('an Owner connects an existing browser, sees its identity, and disconnects'
     const slug = 'shared-browser-hq';
     const { client } = await createTestServer(page, { displayName: 'Shared Browser HQ', slug });
     const credential = 'shared-browser-test-credential-1234';
-    await attachComputer(client, { credential, slug });
+    const { computerId } = await attachComputer(client, { credential, slug });
     const computer = new WebSocket(
         `ws://127.0.0.1:${process.env.HAUS_SERVER_PORT}/computer/attachment`
     );
@@ -29,7 +29,7 @@ test('an Owner connects an existing browser, sees its identity, and disconnects'
     expect(await accepted).toMatchObject({ mode: 'ordinary' });
     const fixture = answerBrowserRequests(computer);
     try {
-        await page.goto(`/s/${slug}/computers`);
+        await page.goto(`/s/${slug}/settings/computers/${computerId}`);
         await page.getByRole('button', { name: 'Configure', exact: true }).click();
         const dialog = page.getByRole('dialog', { name: 'Browser', exact: true });
         await expect(dialog.getByRole('button', { name: 'Running browser' })).toContainText(

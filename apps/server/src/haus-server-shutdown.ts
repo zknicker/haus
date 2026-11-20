@@ -4,6 +4,7 @@ import type { startComputerAttachmentSocket } from './computers/socket.ts';
 import type { startHausWebSocketServer } from './haus-api/ws.ts';
 import type { HausConnection } from './postgres/connection.ts';
 import type { ServerRecurringWork } from './recurring-work.ts';
+import type { startRunnerSocket } from './runner/socket.ts';
 import type { McpRuntime } from './server-mcp/runtime.ts';
 import type { ServerPostCommitWork } from './server-post-commit-work.ts';
 import type { startVoiceSocket } from './voice/voice-socket.ts';
@@ -32,6 +33,7 @@ export interface HausServerHandles {
     mcpRuntime: McpRuntime | null;
     postCommitWork: ServerPostCommitWork | null;
     recurringWork: ServerRecurringWork | null;
+    runnerSocket: ReturnType<typeof startRunnerSocket> | null;
     voiceSocket: ReturnType<typeof startVoiceSocket> | null;
     webSocketServer: ReturnType<typeof startHausWebSocketServer> | null;
 }
@@ -44,6 +46,7 @@ export function emptyHausServerHandles(): HausServerHandles {
         mcpRuntime: null,
         postCommitWork: null,
         recurringWork: null,
+        runnerSocket: null,
         voiceSocket: null,
         webSocketServer: null,
     };
@@ -60,7 +63,10 @@ export function hausServerShutdownResources(
     return {
         broadcastReconnectNotification: () =>
             handles.webSocketServer?.broadcastReconnectNotification(),
-        closeComputerSocket: () => handles.computerSocket?.close(),
+        closeComputerSocket: () => {
+            handles.runnerSocket?.close();
+            handles.computerSocket?.close();
+        },
         closeDatabase: async () => {
             await handles.haus?.close();
         },

@@ -9,7 +9,7 @@ test('a populated Computer page never presents its attach flow while inventory l
         displayName: 'Loading Computer HQ',
         slug: 'loading-computer-hq',
     });
-    await attachComputer(owner, {
+    const { computerId } = await attachComputer(owner, {
         credential: 'computer-loading-test-credential-1234',
         slug: 'loading-computer-hq',
     });
@@ -30,14 +30,14 @@ test('a populated Computer page never presents its attach flow while inventory l
         }
     );
     try {
-        await page.goto('/s/loading-computer-hq/computers');
+        await page.goto(`/s/loading-computer-hq/settings/computers/${computerId}`);
         await expect(page.getByRole('heading', { name: 'Runtimes', exact: true })).toBeVisible();
         await expect(page.getByText('Attach a device')).toHaveCount(0);
         await expect(page.locator('.skeleton')).toHaveCount(0);
     } finally {
         release();
     }
-    await expect(page.getByText('Devices · 1', { exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Runtimes', exact: true })).toBeVisible();
     await expect(page.getByText('Attach a device')).toHaveCount(0);
 });
 
@@ -58,7 +58,7 @@ test('an offline Computer with an old reported version cannot start an update', 
          update_target_version = '1.1.0' where id = '${computerId}'`
     );
 
-    await page.goto('/s/offline-computer-hq/computers');
+    await page.goto(`/s/offline-computer-hq/settings/computers/${computerId}`);
     await expect(page.getByText('v1.0.0', { exact: true }).first()).toBeVisible();
     await expect(page.getByRole('button', { name: 'Offline', exact: true })).toBeDisabled();
     await expect(page.getByRole('button', { name: 'Update to v1.1.0' })).toHaveCount(0);
@@ -77,7 +77,11 @@ test('an Owner updates one Computer from Settings through isolated progress', as
     });
 
     await page.goto('/s/computer-hq/computers');
-    await expect(page.getByText('Devices · 1', { exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/\/s\/computer-hq\/settings\/computers$/u);
+    const devices = page.getByRole('grid', { name: 'Devices' });
+    await expect(devices.getByRole('row')).toHaveCount(2);
+    await devices.getByRole('row').nth(1).click();
+    await expect(page).toHaveURL(/\/s\/computer-hq\/settings\/computers\/[^/]+$/u);
     await expect(page.getByText('Awaiting first report')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Recovery Commands' })).toBeVisible();
 
@@ -95,7 +99,7 @@ test('an Owner updates one Computer from Settings through isolated progress', as
     await page.reload();
     const detail = page.getByRole('main', { name: 'Scrollable main content' });
     await expect(detail.getByText('v1.0.0', { exact: true })).toBeVisible();
-    await expect(page.getByRole('gridcell', { name: /Update required Mac Device/u })).toBeVisible();
+    await expect(detail.getByText('Update required', { exact: true }).first()).toBeVisible();
 
     await page.getByRole('button', { name: 'Check', exact: true }).click();
     await expect(page.getByText('Update available')).toBeVisible();
@@ -138,7 +142,7 @@ test('an Owner updates one Computer from Settings through isolated progress', as
     const reconnected = socketMessage(reconnectedComputer);
     sendBootstrap(reconnectedComputer, credential, 'complete');
     expect(await reconnected).toMatchObject({ mode: 'ordinary' });
-    await expect(page.getByRole('gridcell', { name: /Online Mac Device v1.1.0/u })).toBeVisible();
+    await expect(detail.getByText('v1.1.0', { exact: true }).first()).toBeVisible();
 
     await page.getByRole('button', { name: 'Check', exact: true }).click();
     await expect(page.getByText('Haus Computer is up to date', { exact: true })).toBeVisible();

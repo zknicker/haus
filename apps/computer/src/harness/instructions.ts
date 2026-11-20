@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
 import { hostname, release, type } from 'node:os';
+import { type AgentPromptRenderInput, renderAgentInstructions } from '@haus/agent-prompt';
 import type { ConnectionChipKind } from '@haus/api';
 import computerPackage from '../../package.json' with { type: 'json' };
 import { supportsSubagents } from '../runtime/runtime-subagents.ts';
-import { type AgentPromptRenderInput, renderAgentInstructions } from './managed-instructions.ts';
 
 /**
  * Ported composition seam (Runtime's `agent-instructions.ts` +

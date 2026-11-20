@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { resolveColorTheme } from '../../lib/appearance-root.ts';
 import {
     type ColorTheme,
     colorThemeStorageKey,
@@ -6,14 +7,16 @@ import {
     writeStoredColorTheme,
 } from '../../lib/color-theme.ts';
 import { type ColorThemeDefinition, colorThemeDefinition } from '../../lib/color-themes.ts';
+import { useCustomThemes } from './use-custom-themes.ts';
 
 // One per-device choice shared by every consumer in this window, on the web and desktop alike.
 let colorTheme: ColorTheme = readStoredColorTheme(safeLocalStorage());
 const listeners = new Set<() => void>();
 
-/** The live color theme. */
+/** The live color theme; a custom theme deleted elsewhere reads as the default. */
 export function useColorTheme(): ColorTheme {
-    return React.useSyncExternalStore(subscribe, getColorTheme, getColorTheme);
+    const selection = React.useSyncExternalStore(subscribe, getColorTheme, getColorTheme);
+    return resolveColorTheme(selection, useCustomThemes());
 }
 
 /** The live theme's definition: what consumers read instead of comparing theme ids. */
@@ -22,12 +25,10 @@ export function useColorThemeDefinition(): ColorThemeDefinition {
 }
 
 /**
- * Mounted once, by `ThemeProvider` at the app root: stamps `data-color-theme`
- * on the document root for the theme layers and follows picks made in other
- * windows (storage events).
+ * Mounted once, by `ThemeProvider` at the app root, which stamps the result on
+ * the document root: follows picks made in other windows (storage events).
  */
 export function useColorThemeSync(): ColorTheme {
-    const theme = useColorTheme();
     React.useEffect(() => {
         const follow = (event: StorageEvent) => {
             if (event.key === colorThemeStorageKey || event.key === null) {
@@ -37,15 +38,7 @@ export function useColorThemeSync(): ColorTheme {
         window.addEventListener('storage', follow);
         return () => window.removeEventListener('storage', follow);
     }, []);
-    // Layout effect: the theme keys off this attribute, so it lands before the first paint.
-    React.useLayoutEffect(() => {
-        const root = document.documentElement;
-        root.dataset.colorTheme = theme;
-        return () => {
-            delete root.dataset.colorTheme;
-        };
-    }, [theme]);
-    return theme;
+    return useColorTheme();
 }
 
 export function getColorTheme(): ColorTheme {

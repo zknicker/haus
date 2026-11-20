@@ -12,7 +12,6 @@ function render(backRoute: string | null) {
                     backRoute={backRoute}
                     canOperate={false}
                     currentSection={undefined}
-                    serverId="server_one"
                     slug="acme"
                 />
             </Sidebar.Provider>

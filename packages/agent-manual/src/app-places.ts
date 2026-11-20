@@ -31,13 +31,13 @@ export const appPlaces: readonly AppPlace[] = [
     {
         area: 'you',
         task: 'Change the theme or light and dark mode',
-        path: ['Settings', 'Preferences', 'Theme'],
+        path: ['Settings', 'Appearance', 'Theme'],
         who: 'anyone',
-        note: 'Mode sits beside it.',
+        note: 'Mode sits above it. Create theme makes a custom one.',
         anchors: [
             settingsEntry(),
-            settingsSection('preferences'),
-            label('features/settings/preferences/color-theme-row.tsx', 'Theme'),
+            settingsSection('appearance'),
+            label('features/settings/appearance/theme-gallery.tsx', 'Theme'),
         ],
     },
     {
@@ -68,12 +68,12 @@ export const appPlaces: readonly AppPlace[] = [
     {
         area: 'people-and-agents',
         task: 'Invite someone to this Server',
-        path: ['Settings', 'Members', 'Invite by email'],
+        path: ['Settings', 'Members', 'Invite'],
         who: 'owner-or-admin',
         anchors: [
             settingsEntry(),
             settingsSection('members'),
-            label('features/servers/invite-popover.tsx', 'Invite by email'),
+            label('features/servers/invite-popover.tsx', 'Invite'),
         ],
     },
     {
@@ -192,7 +192,7 @@ export const appPlaces: readonly AppPlace[] = [
         task: 'Add a Computer',
         path: ['Settings', 'Devices', 'Add device'],
         who: 'owner-or-admin',
-        note: 'It is the + beside Devices.',
+        note: 'It is the Add device button on Devices.',
         anchors: [settingsEntry(), computers(), label(computersGroup, 'Add device')],
     },
     {

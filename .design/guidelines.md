@@ -449,10 +449,31 @@ Tailwind's own scale. That remapping lives in `agent-html/tokens.ts`.
 
 ### Color themes
 
-A color theme is a palette family, picked per device in Settings > Preferences >
-Appearance > **Theme** (`lib/color-theme.ts`), and orthogonal to the Light/Dark/System
-**Mode**. `Default` is the system above; every other theme is a thin layer over it,
-stamped as `data-color-theme` on the document root by `ThemeProvider`, on every route.
+A color theme is a palette family, picked per device in Settings > Appearance > **Theme**
+(`lib/color-theme.ts`), and orthogonal to the Light/Dark/System **Mode**. Haus (id
+`default`) is the system above. `stampAppearance` (`lib/appearance-root.ts`) stamps
+`data-color-theme`, `data-theme` and, for a palette theme, `data-palette` on the document
+root, once before the first render and then from `ThemeProvider`, on every route.
+
+Themes come in two grounds (the definition's `ground`):
+
+- **`haus`**: Haus, OLED and the seasonal themes are thin token layers over the default
+  ladder, as described below.
+- **`palette`**: the open-license palettes (Catppuccin, Gruvbox, Everforest, Nord, One),
+  Mauve (HeroUI Pro's Mouve colors, without its radius, shadows or component overrides), and
+  every custom theme set base colors only: `--accent`, `--background`, `--foreground`, and
+  optionally `--sidebar-surface`, `--surface`, `--overlay`, `--field-background`, `--default`,
+  `--muted`, `--border`, `--link`, `--accent-foreground`. `styles/themes/palette-ground.css`
+  derives every other ground from those, per mode, with the same `color-mix` steps HeroUI uses
+  for hover and soft fills. A palette's block is
+  `[data-color-theme="<id>"][data-palette][data-theme="<mode>"]`, (0,3,0), over the
+  derivation's (0,2,0). Custom themes (`lib/custom-themes.ts`) are generated into one
+  `<style id="haus-custom-themes">` in exactly that shape.
+
+Theme selectors key on attributes, never on `:root`, so a theme preview
+(`styles/themes/theme-preview.css`) that carries the same three attributes renders the real
+theme in place. HeroUI declares `--accent` on `:root` only, so the preview re-declares the
+stock accent for themes that keep it.
 
 Each theme is one `ColorThemeDefinition` in `lib/color-themes.ts`:
 
@@ -476,10 +497,10 @@ Soft, Icicles) is app-local presentation in `lib/roofline-snow.ts`, read and set
 active definition's `scene` is `snowy-roofline`.
 
 - **Tokens only.** A theme's colors live in `styles/themes/<name>-tokens.css` under
-  `:root[data-color-theme="<name>"]`, and for one mode under
-  `:root[data-color-theme="<name>"]:is([data-theme="dark"], .dark)` (or the light
-  equivalent). Those selectors outrank the default theme's `[data-theme]`/`.dark` blocks
-  by specificity, not import order. No BEM overrides and no component restyling: a theme
+  `[data-color-theme="<name>"][data-theme]`, and for one mode under
+  `[data-color-theme="<name>"][data-theme="dark"]` (or the light equivalent). Those
+  selectors outrank the default theme's `[data-theme]`/`.dark` blocks by specificity, not
+  import order. No BEM overrides and no component restyling: a theme
   that needs a rule the tokens cannot express gets the token first. The one exception is a
   token the default theme re-seats on a descendant (light's `--default` on `.sidebar` and
   `.shell-window-band`): a root value never reaches it, so the theme re-seats the same token
@@ -578,23 +599,22 @@ chat body size while trace evidence stays at `xs`.
 
 ### Document type roles
 
-Settings, member profiles, and every other page built from `PageColumn` use four
-roles and nothing else. Two are call-site classes on `SettingsPageHeader`; the
+Settings, member profiles, and every other page built from `PageColumn` use these
+roles and nothing else. The page title is a call-site class on `SettingsPageHeader`; the
 rest are BEM overrides in `default-theme.css`, so a stock component already
 carries the right step and a call site never sets its own size.
 
 | Role | Step | Weight | Carried by |
 | --- | --- | --- | --- |
 | Page title | `2xl` (22px), `tracking-tight` | 600 | `SettingsPageHeader`, `MemberProfileHeader` |
-| Page description | `sm` (13px) | 400, muted | `SettingsPageHeader` |
 | Dialog title | `lg` (17px) | 600 | `.modal__heading`, `.drawer__heading`, `.alert-dialog__heading` |
 | Section heading | `base` (14px) | 600 | `ItemCardGroup.Title`, `SettingsSection` |
 | Sub-section inside one | `sm` (13px) | 600 | `Widget.Title` |
 | Body: row titles, descriptions, table headers and cells, facts, errors | `sm` (13px) | 500 title / 400 rest | `ItemCard`, `DataGrid`, `SettingsFact` |
 
-A page description is body copy, not a third heading: what separates it from
-the title is the space around it, not a larger step. Stepping it up made it the
-biggest thing on the page after the title.
+A settings page has no description under its title: the title is the page's
+identity, and guidance a reader needs rides an info tooltip beside it
+(`SettingsPageHeader`'s `info`).
 
 `xs` (11px) is not a body size. It belongs to Chip, Badge, and the other
 component-owned labels that set it themselves — not to prose, a table, or
@@ -969,10 +989,14 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   freshness, a connected state the section title already states) never take a row
   description; they go in that row's info tooltip. The only lines that may break a row's
   shape are `SettingsRowWarning` and `SettingsRowError`, since the taller row is the alarm.
-  Every settings list row has a 60px floor (`.settings-frame` in `default-theme.css`): the
-  height a field, an icon, or a title + description already gives a row, so a Switch or
-  fact row matches a Select row beside it. Controls in one group share one width, and rows in
-  one list box are divided by a stock `Separator`.
+  Every settings list row has a ×14 (~53px) floor (`.settings-frame` in `default-theme.css`):
+  the row's padding around the compact ×8 (30px) field, so a Switch or fact row matches a
+  Select row beside it. Fields in a settings row or section header are that compact height,
+  the height of the `sm` buttons beside them, set once in the theme because HeroUI 3.2 has no
+  field `size`. A settings page reads in one of two measures (`SettingsPageColumn`): a ×153
+  (~574px) form column, or a ×212 (~795px) column for pages led by a table or catalog.
+  Controls in one group share one width, and rows in one list box are divided by a stock
+  `Separator`.
   Connection logos use `ConnectionGlyph` inside the shared surface tile: artwork occupies
   75% of the box with `object-fit: contain`, preserving circular and irregular brand shapes
   without cropping them. Artwork inherits the tile's corner radius so square brand

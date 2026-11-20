@@ -36,7 +36,9 @@ test('Profile settings renders disabled identity fields before its directory res
 });
 
 test('Computer profile reserves all its sections before its roster resolves', () => {
-    const markup = render(<ComputerPage serverId={server.id} serverSlug={server.slug} />);
+    const markup = render(
+        <ComputerPage computerId="cmp_one" serverId={server.id} serverSlug={server.slug} />
+    );
     for (const label of [
         'Runtimes',
         'Browser',

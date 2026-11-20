@@ -6,6 +6,13 @@ describe('color theme definitions', () => {
     test('every listed theme parses and resolves to its own definition', () => {
         expect(colorThemes.map(({ id }) => id)).toEqual([
             'default',
+            'oled',
+            'catppuccin',
+            'gruvbox',
+            'everforest',
+            'nord',
+            'one',
+            'mauve',
             'halloween',
             'christmas-eve',
             'christmas-morning',
@@ -16,16 +23,26 @@ describe('color theme definitions', () => {
         }
     });
 
-    test('Default changes nothing: the ghost, no scene, the standard greeting, the own mode', () => {
+    test('Haus changes nothing: the ghost, no scene, the standard greeting, the own mode', () => {
         expect(colorThemeDefinition('default')).toEqual({
             appIcon: 'ghost',
             forcedMode: null,
             greetings: null,
+            ground: 'haus',
             id: 'default',
-            label: 'Default',
+            label: 'Haus',
             mascot: 'ghost',
             scene: 'none',
         });
+    });
+
+    test('palette presets and custom themes derive the ladder; Haus, OLED and seasons layer over it', () => {
+        expect(
+            colorThemes.filter((theme) => theme.ground === 'palette').map(({ id }) => id)
+        ).toEqual(['catppuccin', 'gruvbox', 'everforest', 'nord', 'one', 'mauve']);
+        expect(colorThemeDefinition('custom-abc123').ground).toBe('palette');
+        expect(colorThemeDefinition('custom-abc123').forcedMode).toBeNull();
+        expect(colorThemeDefinition('custom-abc123').mascot).toBe('ghost');
     });
 
     test('Halloween pins dark, wears the pumpkin, and draws the moonlit sky', () => {

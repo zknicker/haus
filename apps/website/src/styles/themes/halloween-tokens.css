@@ -3,11 +3,11 @@
  * Decorations live in `halloween-decorations.css`.
  *
  * Dark only: `ThemeProvider` pins the mode to dark while Halloween is active,
- * so these are dark values with no mode qualifier. `:root[data-color-theme]`
+ * so these are dark values with no mode qualifier. `[data-color-theme][data-theme]`
  * is (0,2,0) and outranks the default theme's `[data-theme]`/`.dark` blocks
  * (0,1,0) without relying on order.
  */
-:root[data-color-theme="halloween"] {
+[data-color-theme="halloween"][data-theme] {
     /*
      * The night tint: one hue and one chroma for every dark neutral ground, so
      * the page, the shell, the sidebar, surfaces, fields, overlays and fills

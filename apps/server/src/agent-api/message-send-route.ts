@@ -6,6 +6,7 @@ import {
     endChatEngagement,
 } from '../agent-delivery/chat-engagement-events.ts';
 import { publishAgentLifecycle } from '../agent-delivery/lifecycle.ts';
+import { AttachmentAssociationError } from '../attachments/message-attachments.ts';
 import { resolveAgentMessageCause } from '../automations/infer-message-cause.ts';
 import { MessageCauseError } from '../automations/message-cause.ts';
 import { ChatArchivedError } from '../chats/chat-access.ts';
@@ -153,6 +154,7 @@ export function registerAgentMessageSendRoute(
 function sendAgentMessageError(reply: import('fastify').FastifyReply, cause: unknown) {
     if (
         cause instanceof AgentMessageContentTooLongError ||
+        cause instanceof AttachmentAssociationError ||
         cause instanceof MessageCauseError ||
         cause instanceof InvalidInlineReplyError
     ) {
