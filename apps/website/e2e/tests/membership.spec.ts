@@ -53,6 +53,7 @@ test('an Owner invites, promotes, and removes a human', async ({ browser, page }
     const peerPage = await peerContext.newPage();
     await signInAsAppHuman(peerPage, 'peer');
     await peerPage.goto(invitePath);
+    await expect(peerPage.getByText('You will join as a member of Membership HQ.')).toBeVisible();
     await peerPage.getByRole('button', { name: 'Accept invitation' }).click();
 
     await expect(peerPage).toHaveURL(new RegExp(`/s/${slug}/chats/[^/]+$`, 'u'));

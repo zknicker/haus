@@ -45,7 +45,7 @@ export function AcceptInvitationPage() {
     return (
         <ActivationShell>
             <ActivationStep
-                description={`You will join /${preview.data.serverSlug} as a member of #haus.`}
+                description={`You will join as a member of ${preview.data.serverDisplayName}.`}
                 footer={
                     <Button isPending={accept.isPending} onPress={() => accept.mutate({ token })}>
                         Accept Invitation
