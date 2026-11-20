@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { settingsNavGroups, settingsNavItems, settingsPages } from './navigation.ts';
 
-function railShape(input: { canOperate: boolean; query: string }) {
-    return settingsNavGroups(input).map((group) => ({
+function railShape(input: { canOperate: boolean; capyShell?: boolean; query: string }) {
+    return settingsNavGroups({ capyShell: false, ...input }).map((group) => ({
         label: group.label,
         rows: group.matches.map((match) =>
             match.row ? `${match.item.label} · ${match.row}` : match.item.label
@@ -63,6 +63,17 @@ test('search does not reveal operator pages to members', () => {
     assert.deepEqual(railShape({ canOperate: false, query: '1password' }), []);
     assert.deepEqual(railShape({ canOperate: true, query: '1password' }), [
         { label: 'Haus', rows: ['Devices · 1Password'] },
+    ]);
+});
+
+test('search finds Background rows only while the Capy shell is on', () => {
+    assert.deepEqual(railShape({ canOperate: true, capyShell: false, query: 'blur' }), []);
+    assert.deepEqual(railShape({ canOperate: true, capyShell: false, query: 'background' }), []);
+    assert.deepEqual(railShape({ canOperate: true, capyShell: true, query: 'blur' }), [
+        { label: 'You', rows: ['Appearance · Blur'] },
+    ]);
+    assert.deepEqual(railShape({ canOperate: true, capyShell: true, query: 'background' }), [
+        { label: 'You', rows: ['Appearance · Background'] },
     ]);
 });
 

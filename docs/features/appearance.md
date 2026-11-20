@@ -32,8 +32,9 @@ the default palette.
   shows the derived value as its placeholder; clearing a field hands the color back to
   derivation. Deleting the selected theme returns to Haus.
 - **Snow** (only while a Christmas theme is on), under the gallery.
-- **Background**, last: what Home draws behind its composer under the selected theme. See
-  [Home backgrounds](#home-backgrounds).
+- **Background**, last: what Home draws behind its composer under the selected theme. Home
+  lives in the [Capy shell](capy-shell.md), so the section and its settings-search rows show
+  only while that flag is on. See [Home backgrounds](#home-backgrounds).
 - **Window layout** (desktop only) stays in Settings > Preferences: see
   [Desktop Window Layout](desktop-window-layout.md).
 
