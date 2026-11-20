@@ -8,7 +8,7 @@ test('a hosted claim message projects its status in the Chat', async ({ page }) 
     });
     await openChannel(page, 'haus');
 
-    await page.getByRole('textbox', { name: 'Message all' }).fill('Projected claim message');
+    await page.getByRole('textbox', { name: 'Message haus' }).fill('Projected claim message');
     await page.getByRole('button', { name: 'Send' }).click();
     await expect(page.getByText('Projected claim message', { exact: true })).toBeVisible();
 
