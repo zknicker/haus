@@ -5,6 +5,7 @@ import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { useChannelUpdate } from '../../hooks/servers/use-channel-update.ts';
 import { type ChannelAppearance, ChannelAppearanceFields } from './channel-appearance-fields.tsx';
 import { ChannelDialogError } from './channel-dialog-error.tsx';
+import { channelNoun } from './channel-noun.ts';
 
 /** A channel's icon and color, with the catalog open in the dialog itself. */
 export function ChannelAppearanceDialog({ chat, onClose }: { chat: Chat; onClose: () => void }) {
@@ -30,7 +31,7 @@ export function ChannelAppearanceDialog({ chat, onClose }: { chat: Chat; onClose
                 icon: appearance.icon,
                 serverId: chat.serverId,
             });
-            toast.success('Project appearance updated');
+            toast.success(`${channelNoun(chat).label} appearance updated`);
             onClose();
         } catch {
             // The dialog stays open and shows the failure inline.

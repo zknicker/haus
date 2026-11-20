@@ -14,9 +14,11 @@ import * as React from 'react';
 import { useChannelUpdate } from '../../hooks/servers/use-channel-update.ts';
 import { ChannelDialogError } from './channel-dialog-error.tsx';
 import { channelHandleIssue } from './channel-handle.ts';
+import { channelNoun } from './channel-noun.ts';
 
 export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: () => void }) {
     const updateChannel = useChannelUpdate(chat);
+    const noun = channelNoun(chat);
     const currentName = chat.name ?? '';
     const currentDescription = chat.description ?? '';
     const [name, setName] = React.useState(currentName);
@@ -46,7 +48,7 @@ export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: (
                 name: trimmedName,
                 serverId: chat.serverId,
             });
-            toast.success('Project updated');
+            toast.success(noun.updated);
             onClose();
         } catch {
             // The dialog stays open and shows the failure inline.
@@ -59,10 +61,10 @@ export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: (
                 <Modal.Dialog>
                     <Modal.CloseTrigger />
                     <Modal.Header>
-                        <Modal.Heading>Edit project</Modal.Heading>
+                        <Modal.Heading>Edit {noun.lower}</Modal.Heading>
                         <p className="text-muted text-sm leading-5">
-                            Captains address the project by its name and read the description to
-                            learn what belongs here.
+                            Captains address the {noun.lower} by its name and read the description
+                            to learn what belongs here.
                         </p>
                     </Modal.Header>
                     <Modal.Body>
@@ -79,7 +81,7 @@ export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: (
                                 value={name}
                                 variant="secondary"
                             >
-                                <Label>Project name</Label>
+                                <Label>{noun.label} name</Label>
                                 <Input autoFocus={!chat.isAll} placeholder="planning" type="text" />
                                 {handleIssue ? <FieldError>{handleIssue}</FieldError> : null}
                             </TextField>
@@ -94,7 +96,7 @@ export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: (
                                 <TextArea
                                     autoFocus={chat.isAll}
                                     maxLength={channelDescriptionMaxLength}
-                                    placeholder="What this project is for"
+                                    placeholder={`What this ${noun.lower} is for`}
                                     rows={3}
                                 />
                             </TextField>
