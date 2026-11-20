@@ -18,7 +18,11 @@ import { createTestProject } from './project.fixture.ts';
 
 export function agentCreationFixture(
     messageRouter?: MessageRouter,
-    artifacts: { artifactStorage?: ArtifactStorage; artifactStorageBytes?: number } = {}
+    artifacts: {
+        artifactStorage?: ArtifactStorage;
+        artifactStorageBytes?: number;
+        seedManagedSkills?: boolean;
+    } = {}
 ) {
     let harness: HausServerHarness;
     let owner: HausClient;

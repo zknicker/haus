@@ -3,6 +3,7 @@ import * as z from 'zod';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { AvatarImageService } from '../avatar-generation/service.ts';
 import { setAgentInlineReplyFollow } from '../chats/reply-follow-route.ts';
+import type { ManagedSkillSeeder } from '../managed-skills/seeder.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { registerAgentAgentRoutes } from './agent-routes.ts';
@@ -83,6 +84,7 @@ export function registerAgentApiRoutes(
         db: HausDatabase;
         githubApp: import('../github/github-app.ts').GithubApp | null;
         imageGeneration: import('../image-generation/image-generation-service.ts').ImageGenerationService;
+        managedSkills: ManagedSkillSeeder;
         mcpRuntime: import('../server-mcp/runtime.ts').McpRuntime;
         postCommitWork: ServerPostCommitWork;
     }
@@ -93,6 +95,7 @@ export function registerAgentApiRoutes(
         agentDelivery: options.agentDelivery,
         avatarImageService: options.avatarImageService,
         db: options.db,
+        managedSkills: options.managedSkills,
         postCommitWork: options.postCommitWork,
     });
     registerAgentChannelRoutes(app, { db: options.db });

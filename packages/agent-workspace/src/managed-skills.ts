@@ -46,9 +46,11 @@ export const visualsSkillFiles: Record<string, string> = {
     ),
 };
 
-const factoryManagedSkillFiles: Record<string, Record<string, string>> = {
-    [visualsSkillId]: { 'SKILL.md': defaultVisualsSkill, ...visualsSkillFiles },
-};
+/** Every release-owned skill by id, each as its files by path relative to the skill folder. */
+export const factoryManagedSkillFiles: Readonly<Record<string, Readonly<Record<string, string>>>> =
+    {
+        [visualsSkillId]: { 'SKILL.md': defaultVisualsSkill, ...visualsSkillFiles },
+    };
 
 /** Writes the named release-owned skills, every one by default, and leaves every other skill alone. */
 export async function seedFactoryManagedSkills(

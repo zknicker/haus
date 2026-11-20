@@ -70,16 +70,20 @@ overwriting it. Successful changes refresh from a Computer event, not a timer.
 
 ## Factory-managed skills
 
-Haus ships a small set of release-owned skills, presently `visuals`. Computer seeds them into an
-Agent's library at launch by comparing the bytes the Agent holds with the release, so an edit made
-in Drive always stands. Agent-authored and imported skills are never touched.
+Haus ships a small set of release-owned skills, presently `visuals`. The Server seeds them into
+each Agent's Drive area, `agents/<handle>/skills/<skill-id>/`, as revisions authored by Haus: when
+the Agent is created, after a full reset, and when a Server start finds an Agent still on an older
+release. Drive's history names Haus as the writer. Seeding compares what the Agent's folder holds
+with the release, so an edit made in Drive always stands. Agent-authored and imported skills are
+never touched.
 
-Each seed records the release hash of every managed skill in the Agent's machine-local
-`runtime/managed-skills.json`, then hashes each held copy the same way. A missing skill is written
-with no notice. A held copy equal to the release is left alone. A held copy equal to the release
-this Agent was last seeded with is updated and queued as changed. Anything else, an edit in Drive
-or bytes that differ with no record, is left alone and queues nothing. Several changes before the
-Agent's next turn coalesce into one pending entry per skill.
+The Server records, per Agent and skill, the release last applied and the folder as Haus left it.
+A missing skill is written with no notice. A folder equal to the release is left alone. A folder
+equal to what Haus last left is updated and queued as changed. Anything else, an edit in Drive, is
+left alone and queues nothing. Several changes before the Agent's next turn coalesce into one
+pending entry per skill. Seeding twice writes nothing the second time. The Computer still seeds the
+same bytes into its local folder at launch until Computer Agent paths are removed, which leaves
+Drive unchanged ([Skills spec](../../specs/skills.md#managed-skills)).
 
 The next turn carries one private notice in its event input, never a Chat message and never the
 standing system prompt:
