@@ -37,7 +37,7 @@ test('an Agent page card opens its Drive file beside the chat', async ({ page })
     await page.goto(`/s/${slug}/chats/${chatId}`);
     await page.setViewportSize({ height: 720, width: 1200 });
 
-    const composer = page.getByRole('textbox', { name: 'Message all' });
+    const composer = page.getByRole('textbox', { name: 'Message haus' });
     await expect(page.getByText('```page', { exact: false })).toHaveCount(0);
     await composer.fill('Preserved draft');
     await page.getByRole('button', { name: 'Open Deterministic audit' }).press('Enter');
@@ -74,8 +74,9 @@ function seedPageMessage(
     runPsql(
         databaseUrl,
         `begin;
-         insert into agents (id, server_id, handle, display_name, home_timezone)
-         values ('${input.agentId}', '${input.serverId}', 'page-author', 'Page Author', 'America/New_York');
+         insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
+         values ('${input.agentId}', '${input.serverId}', 'page-author', 'Page Author', 'America/New_York',
+           (select id from chats where server_id = '${input.serverId}' and is_all));
          insert into channel_agent_participants (server_id, chat_id, agent_id)
          values ('${input.serverId}', '${input.chatId}', '${input.agentId}');
          insert into chat_messages (id, server_id, chat_id, sequence, author_agent_id, content, nonce)
