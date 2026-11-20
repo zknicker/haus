@@ -21,7 +21,7 @@ const tokenShapes: readonly RegExp[] = [
     /\bnpm_[A-Za-z0-9]{30,}/gu,
     /\bAKIA[0-9A-Z]{16}\b/gu,
     /\bAIza[0-9A-Za-z_-]{30,}/gu,
-    /\b(?:grta|ops)_[A-Za-z0-9_-]{20,}/gu,
+    /\b(?:grta|grtr|ops)_[A-Za-z0-9_-]{20,}/gu,
 ];
 
 const schemePattern = /(\b(?:Bearer|Basic|Token)\s+)[A-Za-z0-9._~+/=-]{8,}/giu;
