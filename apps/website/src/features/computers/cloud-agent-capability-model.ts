@@ -41,8 +41,8 @@ const providerAccess: Record<
         connectLabel: 'Connect',
         missing: 'This device cannot reach Cursor’s Cloud Agents.',
         notConnected:
-            'Connect this device to Cursor so Captains can delegate work to Cloud Agents.',
-        plan: 'Cloud Agent work bills to that Cursor plan.',
+            'Connect this device to Cursor so Captains can delegate work to Workers on Cursor.',
+        plan: 'Workers on Cursor bill to that Cursor plan.',
     },
 };
 
