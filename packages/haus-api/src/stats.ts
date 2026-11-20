@@ -171,43 +171,6 @@ const openRouterUsageStateSchema = z
         status: z.enum(['error', 'ok']),
     })
     .strict();
-const runtimeTokenTotalsSchema = z
-    .object({
-        cacheReadTokens: z.number().int().nonnegative(),
-        cacheWriteTokens: z.number().int().nonnegative(),
-        inputTokens: z.number().int().nonnegative(),
-        outputTokens: z.number().int().nonnegative(),
-        totalTokens: z.number().int().nonnegative(),
-    })
-    .strict();
-const runtimeTokenUsageSnapshotSchema = z
-    .object({
-        capturedAt: timestampSchema,
-        days: z.literal(30),
-        models: z.array(
-            runtimeTokenTotalsSchema.extend({ modelId: z.string().trim().min(1) }).strict()
-        ),
-        runtimeId: z.enum(['claude-code', 'grok-build']),
-        source: z.enum(['claude-code-jsonl', 'grok-build-jsonl']),
-        totals: runtimeTokenTotalsSchema,
-    })
-    .strict();
-const runtimeTokenUsageStateSchema = z.discriminatedUnion('status', [
-    z
-        .object({
-            error: usageErrorSchema,
-            runtimeId: z.enum(['claude-code', 'grok-build']),
-            status: z.literal('error'),
-        })
-        .strict(),
-    z
-        .object({
-            runtimeId: z.enum(['claude-code', 'grok-build']),
-            snapshot: runtimeTokenUsageSnapshotSchema,
-            status: z.literal('ok'),
-        })
-        .strict(),
-]);
 
 export const serverStatsInputSchema = z.object({ serverId: z.string().trim().min(1) }).strict();
 
@@ -231,7 +194,6 @@ export const usageOverviewSchema = z
         ),
         grok: grokUsageStateSchema,
         openRouter: openRouterUsageStateSchema,
-        runtimeUsage: z.array(runtimeTokenUsageStateSchema).default([]),
     })
     .strict();
 
@@ -296,5 +258,3 @@ export type UsageOverview = z.infer<typeof usageOverviewSchema>;
 export type UsageReport = z.infer<typeof usageReportSchema>;
 export type UsageErrorCode = z.infer<typeof usageErrorCodeSchema>;
 export type UsageStale = z.infer<typeof usageStaleSchema>;
-export type RuntimeTokenUsageSnapshot = z.infer<typeof runtimeTokenUsageSnapshotSchema>;
-export type RuntimeTokenUsageState = z.infer<typeof runtimeTokenUsageStateSchema>;

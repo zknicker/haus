@@ -17,7 +17,7 @@ async function followedTask(page: Page, slug: string) {
         serverId: server.id,
     });
     const agent = await createChannelAgent({
-        channelName: 'haus',
+        channelName: 'all',
         databaseUrl: session.databaseUrl,
         serverId: server.id,
         slug,
@@ -50,7 +50,7 @@ test('an assigned Task is followed: its message is an Inbox card, and a reply po
 
     await page.goto('/s/task-inbox-reply/inbox');
     await expect(card).toContainText('It needs an admin login to renew.');
-    await expect(card).toContainText('#haus');
+    await expect(card).toContainText('#captains');
     await card.click();
     await expect(card).toHaveAttribute('data-selected', 'true');
 

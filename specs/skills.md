@@ -62,6 +62,45 @@ rejects a stale hash rather than overwriting a change made by the Agent or
 another operator. Mutations wait for an active turn to settle, use an atomic
 file replacement for edits, and publish a new Computer inventory event.
 
+## Managed skills
+
+Haus ships a few release-owned skills (`factoryManagedSkillFiles` in `@haus/agent-workspace`,
+presently `visuals`). The Server seeds them into each Agent's Drive area at
+`agents/<handle>/skills/<skill-id>/` as Haus-authored revisions
+([Drive](artifact-drive.md#revisions-and-attribution)). Owner: `apps/server/src/managed-skills/`.
+
+Seeding runs after an Agent's creating commit, after a full reset, and at Server start and hourly
+for every live Agent whose record misses a release skill or names an older release. Each skill
+compares three fingerprints, each one digest over the folder's files by folded relative path and
+content SHA-256:
+
+| Drive holds | Step |
+| --- | --- |
+| no live file in the folder | write the release, no notice |
+| exactly the release | nothing |
+| what Haus last seeded, and the release differs | write the changed files, queue a notice |
+| anything else | the Agent or a person edited it, so nothing |
+
+`agent_managed_skills` keeps one row per Agent and skill: the release last applied, the folder as
+Haus left it, and the release of an update not yet announced. Full reset deletes the rows with the
+area, so the reseed after it writes fresh and queues nothing.
+
+An update the Agent has not been told about is its pending notice. `GET
+/api/agent/managed-skills/notice` answers `{ pending: { <skill-id>: <release> } }` for the
+calling Agent, and the runner puts `managedSkillChangeText` (`@haus/agent-prompt`) after the next
+turn's content. After a completed turn, `POST /api/agent/managed-skills/notice/ack` with
+`{ announced }` clears each skill whose pending release still equals the announced one, so an update
+that landed meanwhile is announced on the following turn. Session reset keeps a pending notice
+([Runtime drivers](runtime-drivers.md#instructions)).
+
+Seeding is idempotent. A file whose head already holds the release bytes gets no revision, so a
+rerun, a restart, or a Computer pushing the same bytes changes nothing. A skill's writes land in
+one transaction and only on the heads they were planned against. When a head moved in between,
+someone edited the skill or another seeder landed first, so the writes are dropped and the next
+run decides again. The Computer still seeds the same release bytes into its local `drive/skills/`
+at launch until R4d removes Computer Agent paths. It keeps any copy that differs from its own
+last-seeded release, so it never writes back over a newer Server seed.
+
 ## Tools
 
 Skills teach; tools act. Harness-native tools, Computer host capabilities, and

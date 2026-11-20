@@ -133,8 +133,12 @@ and `files` (files directly in the folder). `recursive` changes the listed files
 
 Each revision records four facts.
 
-- `author` is the writer. It is `{ type: 'agent', agent_id }`, `{ type: 'user', user_id }`, or
-  `{ type: 'worker', worker_id, agent_id }`. The Worker variant lands with Workers (W2).
+- `author` is the writer. It is `{ type: 'agent', agent_id }`, `{ type: 'user', user_id }`,
+  `{ type: 'worker', worker_id, agent_id }`, or `{ type: 'haus' }`. The Worker variant lands with
+  Workers (W2). Haus is the author of the factory-managed skills it seeds into each Agent's
+  area ([Skills](skills.md#managed-skills)). A Haus revision stores author key `haus` with no
+  Agent or person column, and a file Haus creates names the Agent whose area holds it as its
+  `creator`, so `creator` stays an Agent or a person for deployed CLIs.
 - `task_id` is the Task the write was for, or null. A push names its run, and the Server takes the
   Task from that run. That is the Task whose chat the run answered in, or the Task a
   `task_assignment` run carried. A Worker's write takes the Worker's Task. A person's write, and an

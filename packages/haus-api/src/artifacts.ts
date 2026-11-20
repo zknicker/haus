@@ -87,11 +87,15 @@ export const artifactCreatorSchema = z.discriminatedUnion('type', [
     z.object({ type: z.literal('user'), user_id: id }).strict(),
 ]);
 export type ArtifactCreator = z.infer<typeof artifactCreatorSchema>;
-/** Who wrote one revision: an Agent, a person, or a Worker of an Agent (lands with W2). */
+/**
+ * Who wrote one revision: an Agent, a person, a Worker of an Agent (lands with W2), or Haus
+ * itself, which writes the factory-managed skills into each Agent's area.
+ */
 export const artifactAuthorSchema = z.discriminatedUnion('type', [
     z.object({ type: z.literal('agent'), agent_id: id }).strict(),
     z.object({ type: z.literal('user'), user_id: id }).strict(),
     z.object({ type: z.literal('worker'), worker_id: id, agent_id: id }).strict(),
+    z.object({ type: z.literal('haus') }).strict(),
 ]);
 export type ArtifactAuthor = z.infer<typeof artifactAuthorSchema>;
 export const artifactMetadataSchema = z

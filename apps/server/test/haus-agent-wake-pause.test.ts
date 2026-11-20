@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
+import { createHomedAgent } from './agent-home.fixture.ts';
 
 const fixture = agentCreationFixture();
 const inventory = {
@@ -18,7 +19,7 @@ const inventory = {
 test('projects a wake pause, and only a runtime or model change lifts it', async () => {
     const { computerId, harness, owner, serverId } = fixture;
     await harness.sql`update computers set reported_inventory = ${inventory}::jsonb where id = ${computerId}`;
-    const { agent } = await owner.trpc.agent.create.mutate({
+    const { agent } = await createHomedAgent(owner, {
         computerId,
         displayName: 'Pauser',
         handle: 'pauser',

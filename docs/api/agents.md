@@ -377,7 +377,9 @@ haus agent avatar --agent @orbit --concept "a small brass orbit at dusk"
 `POST /api/agent/agents` takes `target`, `displayName` (1–80), `description` (1–280), optional
 `avatarConcept` (1–280), `brief` (1–4000), `channels`, `signatureEmoji` (one emoji, validated like
 self-update; null keeps 👀), and a `nonce`. The App's `agent.create` takes the same optional
-`signatureEmoji`. The Server resolves the
+`signatureEmoji` and a required `homeProjectId`, an open Project that is never `#all`; an Agent
+the route creates lives in its creator's home Project, and the route refuses when that home is not
+an open Project. The Server resolves the
 request's conversation from the scoped runner, verifies the Agent's current Chat view, derives an
 available handle under the Server row lock, and creates the Agent and memberships atomically.
 It writes no Message or inbox delivery. Runtime, model, reasoning effort, and Computer

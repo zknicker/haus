@@ -24,6 +24,10 @@ test('replaces an Agent the Computer had no workspace capacity for', async () =>
             switch (path) {
                 case 'computer.list':
                     return Promise.resolve([terraComputer]);
+                case 'project.list':
+                    return Promise.resolve([
+                        { archived: false, chatId: 'cht_product', isHaus: false, name: 'product' },
+                    ]);
                 case 'agent.create':
                     return Promise.resolve({ agent: { id: `agt_${created.length}` } });
                 case 'chat.ensureAgentDm':

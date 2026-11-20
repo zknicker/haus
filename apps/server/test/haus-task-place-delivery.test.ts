@@ -6,6 +6,7 @@ import { listInboxItemsByDedupeKeys } from '../src/agent-delivery/store.ts';
 import { inferMessageCause } from '../src/automations/infer-message-cause.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { tickReminders } from '../src/reminders/scheduler.ts';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { startTestTask } from './task-place-fixture.ts';
 import { workerLinkHelpers } from './worker-link-helpers.ts';
 import { workerRecordFixture } from './worker-record-fixture.ts';
@@ -20,7 +21,7 @@ beforeAll(async () => {
     connection = await connectHausDatabase(fixture.harness.databaseUrl);
     target = `task:${fixture.task.key}`;
     novaId = (
-        await fixture.owner.trpc.agent.create.mutate({
+        await createHomedAgent(fixture.owner, {
             computerId: fixture.computerId,
             displayName: 'Nova',
             handle: 'nova',

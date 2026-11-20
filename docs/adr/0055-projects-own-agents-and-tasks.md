@@ -1,11 +1,11 @@
 ---
 status: accepted
-summary: Humans create Projects, and each Project is its channel; there are no freestanding channels. A Project carries one key, repos, rules, its Agents, and the default place for Workers. Every Task belongs to one Project explicitly. Each Agent belongs to one Project, hears everything there and only @mentions elsewhere; Agents in the Haus project are generalists. Humans can file a Task assigned to an Agent. Amends ADR 0053. Accepted 2026-11-19, not yet implemented.
+summary: Humans create Projects, and each Project is its channel; there are no freestanding channels. A Project carries one key, repos, rules, its Agents, and the default place for Workers. Every Task belongs to one Project explicitly. Each Agent belongs to one Project, hears everything there and in the team room `#all`, and only @mentions elsewhere. `#all` is the only channel that is not a Project. Humans can file a Task assigned to an Agent. Amends ADR 0053. Accepted 2026-11-19, not yet implemented.
 read_when:
   - creating, configuring, or listing channels or Projects, or changing Project keys
   - deciding which Project a Task belongs to, or who can create a Task
   - changing which messages reach an Agent (ordinary delivery, mutes, mentions) across channels
-  - changing an Agent's home Project, generalist Agents, or handoffs between Agents
+  - changing an Agent's home Project, the team room `#all`, or handoffs between Agents
   - changing the sidebar, Agent tiles, or the Agent page Overview
 ---
 
@@ -27,6 +27,10 @@ unchanged. Decision 10 reads accordingly.
 Amended 2026-11-19 by [ADR 0059](0059-haus-starts-empty-without-cove.md): Cove is deleted, so
 decision 9 no longer places it in the Haus project, and a new Server's Haus project holds no Agent.
 
+Amended 2026-11-20 by [ADR 0059](0059-haus-starts-empty-without-cove.md) after a council review:
+`#all` stays the everyone channel and is not a Project (decision 1), and generalists are withdrawn
+(decision 9). An existing Server's Haus project becomes an ordinary `#general` Project.
+
 ## Context
 
 A channel is half a project. It has a Task key, but no repos, no rules, and no place for its work
@@ -42,8 +46,11 @@ someone @mentions it. Haus is a team, so it takes Capy's ownership and Amp's qui
 ## Decision
 
 1. **Only humans create Projects, and each Project is its channel.** "New project" creates the
-   channel; there is no "New channel". Every existing channel becomes a Project, and `#all`
-   becomes the Haus project.
+   channel; there is no "New channel". Every existing channel becomes a Project except `#all`.
+   `#all` stays the everyone channel and is not a Project: it is the team room and the only
+   channel that is not a Project, by design. Every Agent hears `#all`; it is for talking to the
+   whole team, and work lives in Projects. No Agent is homed there. A Project with no home Agent
+   hears only @mentions. There are no generalists.
 
 2. **A Project's settings** sit behind the channel header menu: its key, its Agents, its repos and
    which Computers have each one linked, its `AGENTS.md`
@@ -68,7 +75,8 @@ someone @mentions it. Haus is a team, so it takes Capy's ownership and Amp's qui
    machine its tools run on are unchanged ([ADR 0057](0057-agents-run-on-the-server-and-machines-run-their-tools.md)).
 
 7. **An Agent hears its own Project and @mentions elsewhere.** It receives every message in its
-   Project's channel and Tasks, and is that Project's first responder. In other Projects it
+   Project's channel and Tasks, and is that Project's first responder. It also hears the team room
+   `#all`. In other Projects it
    receives @mentions, assignments, and the Tasks and inline reply chains it follows, since
    following is how it stays in work it was pulled into. DMs always reach it. Channel mutes go.
 
@@ -76,10 +84,9 @@ someone @mentions it. Haus is a team, so it takes Capy's ownership and Amp's qui
    elsewhere it hands to that Project's Agent in that Project's channel, by @mention or assignment,
    where everyone can see it.
 
-9. **The Haus project holds generalists.** An Agent there can start Tasks in any Project and loads
-   a Project's rules when it acts there. Amended by
-   [ADR 0059](0059-haus-starts-empty-without-cove.md): Cove is deleted, and the Haus project may
-   hold no Agent at all.
+9. **Withdrawn: generalists.** This decision gave the Haus project generalist Agents that could start
+   Tasks in any Project. [ADR 0059](0059-haus-starts-empty-without-cove.md) decision 5 withdraws
+   it: there are no generalists, and every Agent is homed in a real Project.
 
 10. **The sidebar leads with Agents.** Search, then Agent tiles (a dot means working;
     a click opens your DM with its Overview), then Projects with their Agents' faces, then open
@@ -137,5 +144,5 @@ Follow-up:
 - Done: `specs/projects.md` holds Projects, keys, home Agents and the migration, and
   `specs/tasks.md`, `specs/inbox.md` and `specs/chats.md` follow. At migration an Agent's home is
   the Project it wrote the most in over the last 30 days, and a person moves it after.
-- `CONTEXT.md` gains Project, home Project and generalist when J2 lands.
+- `CONTEXT.md` gains Project and home Project when J2 lands.
 - The prompt's placement and handoff text goes through the guarded prompt contract.

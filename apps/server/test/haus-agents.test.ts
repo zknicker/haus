@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { hausAgentVersion } from '@haus/api';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -65,7 +66,7 @@ afterAll(async () => {
 });
 
 test('provisions an ordinary Agent without pre-creating an Owner DM', async () => {
-    const created = await owner.trpc.agent.create.mutate({
+    const created = await createHomedAgent(owner, {
         computerId: computerA,
         description: 'Reviews launch copy and records concrete risks.',
         displayName: 'Scout',
@@ -126,7 +127,7 @@ test('materializes one canonical Agent DM only when requested', async () => {
 });
 
 test('first human sends materialize exactly one pair DM under retries and per-human isolation', async () => {
-    const created = await owner.trpc.agent.create.mutate({
+    const created = await createHomedAgent(owner, {
         computerId: computerB,
         displayName: 'Relay',
         handle: 'relay',
@@ -202,7 +203,7 @@ test('restricts one-run execution detail to Server Owners and Admins', async () 
 
 test('fails closed on a runtime or model the assigned Computer never reported', async () => {
     await expect(
-        owner.trpc.agent.create.mutate({
+        createHomedAgent(owner, {
             computerId: computerA,
             displayName: 'Ghost',
             handle: 'ghost',
@@ -214,7 +215,7 @@ test('fails closed on a runtime or model the assigned Computer never reported', 
 
     // Grok Build lives only on Computer B, so referencing it on Computer A fails closed.
     await expect(
-        owner.trpc.agent.create.mutate({
+        createHomedAgent(owner, {
             computerId: computerA,
             displayName: 'Ghost',
             handle: 'ghost',
@@ -227,7 +228,7 @@ test('fails closed on a runtime or model the assigned Computer never reported', 
 
 test('fails closed when configuration references another Server’s Computer', async () => {
     await expect(
-        owner.trpc.agent.create.mutate({
+        createHomedAgent(owner, {
             computerId: foreignComputer,
             displayName: 'Ghost',
             handle: 'ghost',
@@ -240,7 +241,7 @@ test('fails closed when configuration references another Server’s Computer', a
 
 test('only an Owner or Admin can create an Agent', async () => {
     await expect(
-        member.trpc.agent.create.mutate({
+        createHomedAgent(member, {
             computerId: computerA,
             displayName: 'Nope',
             handle: 'nope',
@@ -493,7 +494,7 @@ test('retires an Agent immediately, preserves authored history, and then permits
 });
 
 test('hides a retired Agent DM, preserves its transcript, and rejects new sends', async () => {
-    const created = await owner.trpc.agent.create.mutate({
+    const created = await createHomedAgent(owner, {
         computerId: computerB,
         displayName: 'Fen',
         handle: 'fen',
@@ -584,7 +585,7 @@ test('hides a retired Agent DM, preserves its transcript, and rejects new sends'
 });
 
 test('releases a retired Agent handle without conflating the replacement identity', async () => {
-    const original = await owner.trpc.agent.create.mutate({
+    const original = await createHomedAgent(owner, {
         computerId: computerB,
         displayName: 'Echo',
         handle: 'echo',
@@ -598,7 +599,7 @@ test('releases a retired Agent handle without conflating the replacement identit
     });
 
     await expect(
-        owner.trpc.agent.create.mutate({
+        createHomedAgent(owner, {
             computerId: computerB,
             displayName: 'Other Echo',
             handle: 'echo',
@@ -614,7 +615,7 @@ test('releases a retired Agent handle without conflating the replacement identit
         serverId,
     });
 
-    const replacement = await owner.trpc.agent.create.mutate({
+    const replacement = await createHomedAgent(owner, {
         computerId: computerB,
         displayName: 'Echo',
         handle: 'echo',

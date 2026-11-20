@@ -29,6 +29,7 @@ import { requireAgentCreationGuidance } from './creation-guidance.ts';
 import {
     agentCreationRequestHash,
     readAgentCreationReplay,
+    requireCreationHome,
     resolveCreationContext,
 } from './creation-request.ts';
 import { AgentCreateNoComputerError } from './errors.ts';
@@ -77,6 +78,7 @@ export async function createAgentFromAgent(
         // Nothing is written until every requested channel is there to join, so
         // a typo in `--channel` creates nothing.
         const channels = await requireCreationChannels(tx, runner.serverId, input.channels);
+        const homeProjectId = await requireCreationHome(tx, runner);
         const execution = await requireCallerExecution(tx, runner);
         const handle = await suggestAvailableParticipantHandle(
             tx,
@@ -93,6 +95,7 @@ export async function createAgentFromAgent(
                 description: input.description,
                 displayName: input.displayName,
                 handle,
+                homeProjectId,
                 modelId: execution.modelId,
                 reasoningEffort: execution.reasoningEffort,
                 runtimeId: execution.runtimeId,
@@ -122,7 +125,7 @@ export async function createAgentFromAgent(
             ? prepareLifecycleEvent({ chatId: dm.id, serverId: runner.serverId }, 'created')
             : null;
 
-        // `#haus` is joined by the shared creation seam; these are the lanes the
+        // `#all` is joined by the shared creation seam; these are the lanes the
         // request named on top of it.
         await joinCreationChannels(tx, runner.serverId, created.agent.id, channels);
         const joined = await readAgentChannels(tx, runner.serverId, created.agent.id);

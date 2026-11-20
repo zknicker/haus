@@ -6,15 +6,15 @@ test('a hosted claim message projects its status in the Chat', async ({ page }) 
         displayName: 'Claim Projection',
         slug: 'claim-projection',
     });
-    await openChannel(page, 'haus');
+    await openChannel(page, 'all');
 
-    await page.getByRole('textbox', { name: 'Message haus' }).fill('Projected claim message');
+    await page.getByRole('textbox', { name: 'Message all' }).fill('Projected claim message');
     await page.getByRole('button', { name: 'Send' }).click();
     await expect(page.getByText('Projected claim message', { exact: true })).toBeVisible();
 
-    const allChatId = server.channels.find((chat) => chat.name === 'haus')?.id;
+    const allChatId = server.channels.find((chat) => chat.name === 'all')?.id;
     if (!allChatId) {
-        throw new Error('The claim projection flow did not resolve #haus.');
+        throw new Error('The claim projection flow did not resolve #all.');
     }
     // The visible row above may still be the optimistic one, so wait for the
     // Server to own the message before promoting it.

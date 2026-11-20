@@ -1,4 +1,5 @@
 import { beforeAll, expect, test } from 'bun:test';
+import { testSqlAgentHome } from './agent-home.ts';
 import { artifactDriveFixture } from './artifact-drive-fixture.ts';
 
 const { publish, state } = artifactDriveFixture('full-reset-drive');
@@ -18,7 +19,7 @@ beforeAll(async () => {
         values (
             ${agentId}, ${state.serverId}, ${computerId}, 'Scout', 'scout', 'UTC',
             'gpt-5.6-sol', 'codex',
-            (select id from chats where server_id = ${state.serverId} and is_all)
+            ${await testSqlAgentHome(state.harness.sql, state.serverId)}
         )
     `;
 });

@@ -270,13 +270,18 @@ App-to-Computer-to-model behavior belongs to the agent-test lanes below.
 ### Fresh-Server proof
 
 A new Server starts empty ([ADR 0059](../adr/0059-haus-starts-empty-without-cove.md)).
-`apps/server/test/haus-server-create.test.ts` proves it has its first Owner, the Haus project and
-nothing else: zero Agents, zero Computers, and no onboarding field on `server.bySlug`.
+`apps/server/test/haus-server-create.test.ts` proves it has its first Owner, the everyone channel `#all` and
+nothing else: zero Agents, zero Projects, zero Computers, and no onboarding field on `server.bySlug`.
 `apps/website/e2e/tests/servers.spec.ts` creates a Server in the real App and proves it opens
 straight into the Server with no setup gate, and that a non-member cannot open it.
 `apps/server/test/haus-cove-removal-migration.test.ts` proves migration 0138 keeps an existing Cove
 as an ordinary editable Agent, keeps `#onboarding-owner` with its members, settles unsettled
 `onboarding` inbox items, and keeps past onboarding turn causes.
+`apps/server/test/haus-all-is-a-chat-migration.test.ts` proves migration 0142 moves an existing
+Server's Haus project to a new `#general` with its key, members and open Tasks, rehomes the Agents
+homed in `#all` by activity, clears retired Agents' homes, renames `#all` back to `all` after moving
+any other channel named `all`, refuses a `projects` row on `#all` in Postgres, and changes nothing on
+replay.
 `apps/computer/src/agent-configuration.test.ts` proves a former Cove's stored `configuration.json`,
 with its `seed.factoryKind`, still loads and reapplies as an ordinary Agent without touching its
 Drive files.

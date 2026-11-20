@@ -21,7 +21,7 @@ test('web: idle, realtime messages, a warm switch, and a profile stay within bud
     const budget = await installRenderBudget(page, testInfo, 'web');
     const app = await openKeptChannels(page, 'render-budget-web');
 
-    // Shown: #design. Kept: #haus and #ops.
+    // Shown: #design. Kept: #all and #ops.
     await budget.measure('idle-30s', async () => {
         await page.clock.fastForward(30_000);
     });
@@ -48,8 +48,8 @@ test('web: idle, realtime messages, a warm switch, and a profile stay within bud
 
     // Bursts (specs/realtime-events.md, "Perf gates"): appended rows render,
     // existing rows do not; one tail read in flight per list at a time.
-    await openChannel(page, 'haus');
-    await expect(composer(page, 'haus')).toBeVisible();
+    await openChannel(page, 'all');
+    await expect(composer(page, 'all')).toBeVisible();
     const tails = trackTailReads(page);
     await budget.measure('agent-burst-in-open-chat', async () => {
         for (let index = 0; index < 30; index += 1) {
@@ -104,20 +104,20 @@ test('desktop: a warm tab switch stays within budget', async ({ page }, testInfo
     const tabs = page
         .getByRole('navigation', { exact: true, name: 'Tabs' })
         .locator('.workspace-tab');
-    // Command-click opens #haus in a background tab beside #design's.
-    await sidebarRow(page, 'haus').click({ modifiers: ['Meta'] });
+    // Command-click opens #all in a background tab beside #design's.
+    await sidebarRow(page, 'all').click({ modifiers: ['Meta'] });
     await expect(tabs).toHaveCount(2);
     // Reveal each tab once so both switches below are warm.
-    await tabs.nth(1).getByRole('button', { exact: true, name: 'haus' }).click();
-    await expect(composer(page, 'haus')).toBeVisible();
+    await tabs.nth(1).getByRole('button', { exact: true, name: 'all' }).click();
+    await expect(composer(page, 'all')).toBeVisible();
     // A tab reads only while shown: leave too soon and the measured switch pays for the read.
     await budget.settle();
     await tabs.nth(0).getByRole('button', { exact: true, name: 'design' }).click();
     await expect(composer(page, 'design')).toBeVisible();
 
     await budget.measure('warm-tab-switch', async () => {
-        await tabs.nth(1).getByRole('button', { exact: true, name: 'haus' }).click();
-        await expect(composer(page, 'haus')).toBeVisible();
+        await tabs.nth(1).getByRole('button', { exact: true, name: 'all' }).click();
+        await expect(composer(page, 'all')).toBeVisible();
     });
     await budget.measure('message-in-background-tab', async () => {
         await app.sendAsPeerDevice('design', 'A note for the background tab');
@@ -159,7 +159,7 @@ function trackTailReads(page: Page) {
 
 /**
  * A Server with an Agent and three channels holding history, visited in turn
- * so #haus and #ops are kept views behind the shown #design.
+ * so #all and #ops are kept views behind the shown #design.
  */
 async function openKeptChannels(
     page: Page,
@@ -172,7 +172,7 @@ async function openKeptChannels(
     }
     const { client, server, session } = await createTestServer(page, { displayName: slug, slug });
     const agent = await createChannelAgent({
-        channelName: 'haus',
+        channelName: 'all',
         databaseUrl: session.databaseUrl,
         serverId: server.id,
         slug,
@@ -200,8 +200,8 @@ async function openKeptChannels(
     for (const [channel, chatId] of Object.entries(channelIds)) {
         for (let index = 0; index < 12; index += 1) {
             const content = `History ${index} in ${channel}: a line long enough to wrap once on a laptop.`;
-            // The Agent writes #haus's history, so it has read everything there and may post.
-            if (channel === 'haus') {
+            // The Agent writes #all's history, so it has read everything there and may post.
+            if (channel === 'all') {
                 await agent.send(content, `render-budget-history-all-${index}`);
                 continue;
             }
@@ -218,7 +218,7 @@ async function openKeptChannels(
     } else {
         await page.reload();
     }
-    for (const channel of ['haus', 'ops', 'design']) {
+    for (const channel of ['all', 'ops', 'design']) {
         await openChannel(page, channel);
         await expect(composer(page, channel)).toBeVisible();
         await expect(visibleSurface(page).getByText(`History 11 in ${channel}`)).toBeVisible();

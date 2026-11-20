@@ -1,4 +1,5 @@
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { createFakeGithub, type FakeGithub, fakeGithubClient } from './github-fake.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
@@ -173,7 +174,7 @@ async function createAgent(
         values (${computerId}, ${serverId}, ${ownerUserId}, ${'b'.repeat(64)},
                 ${{ runtimes: [codexRuntime] }}::jsonb, 'healthy')
     `;
-    const created = await owner.trpc.agent.create.mutate({
+    const created = await createHomedAgent(owner, {
         computerId,
         displayName: 'Sage',
         handle: 'sage',

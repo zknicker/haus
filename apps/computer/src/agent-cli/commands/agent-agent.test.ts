@@ -27,7 +27,7 @@ const createdAgent = {
 const createReceipt = {
     agent: createdAgent,
     avatar: { byteSize: 4096, status: 'generated' },
-    channels: ['#haus', '#product'],
+    channels: ['#all', '#product'],
     chatId: 'cht_product',
     computerId: 'cmp_studio',
     idempotent: false,
@@ -228,7 +228,7 @@ test('the create nonce is the request itself, so an identical re-issue replays',
         { ...request, description: 'Keeps the changelog current.' },
         { ...request, displayName: 'Orbit II' },
         { ...request, signatureEmoji: '🦊' },
-        { ...request, target: '#haus' },
+        { ...request, target: '#all' },
     ];
     for (const request_ of changed) {
         expect(deriveAgentCreateNonce('agt_caller', request_)).not.toBe(nonce);

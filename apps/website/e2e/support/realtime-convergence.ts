@@ -48,7 +48,7 @@ export async function expectStaleEntityReadLoses(page: Page, scene: Scene) {
  * order converge on the Server's state.
  */
 export async function expectEventsConverge(page: Page, scene: Scene, proxy: RealtimeProxy) {
-    await showTab(page, 'haus');
+    await showTab(page, 'all');
     proxy.duplicateNext('chat.onMessageCreated');
     await scene.changes.allReply('A reply exactly once', 'converge-duplicate');
     await expect(visibleSurface(page).getByText('A reply exactly once')).toHaveCount(1, {
@@ -79,7 +79,7 @@ export async function expectEventsConverge(page: Page, scene: Scene, proxy: Real
  * sidebar row goes, and no retained view keeps rendering its transcript.
  */
 export async function expectDeletedChatPurged(page: Page, scene: Scene) {
-    await showTab(page, 'haus');
+    await showTab(page, 'all');
     await scene.client.chat.deleteChannel.mutate({
         chatId: scene.work.chatId,
         confirmation: 'product',

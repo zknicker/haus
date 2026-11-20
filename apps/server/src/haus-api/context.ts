@@ -10,6 +10,7 @@ import type { GithubApp } from '../github/github-app.ts';
 import type { CloudflareAdmissions } from '../identity/cloudflare-access.ts';
 import type { HausSessions } from '../identity/haus-sessions.ts';
 import type { SessionConnections } from '../identity/session-connections.ts';
+import type { ManagedSkillSeeder } from '../managed-skills/seeder.ts';
 import type { MessageRouter } from '../message-routing/jev.ts';
 import type { ModelConnectionRelay } from '../model-connections/model-connection-relay.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -50,6 +51,7 @@ export interface HausContext {
     hausSessions: HausSessions;
     /** HTTP response handle for ending SSE subscriptions on local sign-out. */
     httpSessionConnection: HttpSessionConnection | null;
+    managedSkills: ManagedSkillSeeder;
     mcpIconResolver: McpIconResolver;
     mcpOAuthRelay: McpOAuthRelay;
     mcpRuntime: McpRuntime;
@@ -101,6 +103,7 @@ export interface HausContextDependencies {
     githubApp: GithubApp | null;
     hausDb: HausDatabase;
     hausSessions: HausSessions;
+    managedSkills: ManagedSkillSeeder;
     mcpIconResolver: McpIconResolver;
     mcpOAuthRelay: McpOAuthRelay;
     mcpRuntime: McpRuntime;

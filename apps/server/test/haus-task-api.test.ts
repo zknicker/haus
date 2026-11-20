@@ -144,9 +144,10 @@ describe('states', () => {
         await harness.sql`
             insert into tasks (id, server_id, key_id, number, title, state, completed_at,
                 created_by_user_id, project_id)
-            select 'tsk_task_api_history', ${serverId}, id, 900, 'Old', 'done', now(), ${ownerUserId},
-                ${allChatId}
-            from task_keys where server_id = ${serverId} and key = 'GEN'
+            select 'tsk_task_api_history', ${serverId}, task_keys.id, 900, 'Old', 'done', now(),
+                ${ownerUserId}, projects.chat_id
+            from task_keys join projects on projects.task_key_id = task_keys.id
+            where task_keys.server_id = ${serverId} and task_keys.key = 'GEN'
         `;
         const history = await owner.trpc.task.get.query({ key: 'GEN-900', serverId });
         expect(history).toMatchObject({ chatId: null, origin: null, state: 'done' });

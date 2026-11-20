@@ -57,8 +57,8 @@ they wake an Agent, which decides. There is no Convert to Task.
   the Task from it. A request made in a DM gets a reply there carrying the Task chip.
   `TASK_ORIGIN_DM` is deleted.
 - `haus task start --project <key>` names the Project. Without it the Project is the one the
-  origin Message is in, or the Agent's home Project when the origin is a DM.
-- A non-generalist Agent starts Tasks only in its home Project; any other Project is refused with
+  origin Message is in, or the Agent's Project when the origin is a DM.
+- A non-generalist Agent starts Tasks only in its Project; any other Project is refused with
   `TASK_PROJECT_NOT_HOME`, which says to @mention that Project's Agent in its channel. A
   generalist, whose home is the Haus project, may start a Task in any Project
   ([projects.md](projects.md#generalists)).
@@ -117,7 +117,7 @@ the Task gets no join context quoting it.
   is a quiet row with its state and never reaches their Inbox. There is no attention tier
   ([ADR 0038](../docs/adr/0038-inbox-is-unread-not-attention.md)).
 - Following is human unread. What reaches an Agent is [inbox.md](inbox.md#hearing): an Agent hears
-  every Task of its home Project and every Task it follows anywhere.
+  every Task of its Project and every Task it follows anywhere.
 
 ## Where Tasks show
 

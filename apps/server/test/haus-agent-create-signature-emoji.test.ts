@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
+import { createHomedAgent } from './agent-home.fixture.ts';
 
 const fixture = agentCreationFixture();
 
@@ -11,7 +12,7 @@ async function readSignatureEmoji(agentId: string): Promise<string | null> {
 }
 
 function appCreate(overrides: Record<string, unknown>) {
-    return fixture.owner.trpc.agent.create.mutate({
+    return createHomedAgent(fixture.owner, {
         computerId: fixture.computerId,
         displayName: 'Ember',
         handle: 'ember',

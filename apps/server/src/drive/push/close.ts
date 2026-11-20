@@ -120,7 +120,9 @@ function boundRevision(outcome: DrivePushOutcome) {
 
 async function authorHandles(tx: HausDatabase, serverId: string, current: DriveRevision[]) {
     const agentIds = current.flatMap((revision) =>
-        revision.author.type === 'user' ? [] : [revision.author.agent_id]
+        revision.author.type === 'agent' || revision.author.type === 'worker'
+            ? [revision.author.agent_id]
+            : []
     );
     const userIds = current.flatMap((revision) =>
         revision.author.type === 'user' ? [revision.author.user_id] : []
@@ -160,7 +162,12 @@ async function authorHandles(tx: HausDatabase, serverId: string, current: DriveR
 }
 
 function authorKey(revision: DriveRevision) {
-    return revision.author.type === 'user'
-        ? `user:${revision.author.user_id}`
-        : `agent:${revision.author.agent_id}`;
+    switch (revision.author.type) {
+        case 'user':
+            return `user:${revision.author.user_id}`;
+        case 'haus':
+            return 'haus';
+        default:
+            return `agent:${revision.author.agent_id}`;
+    }
 }

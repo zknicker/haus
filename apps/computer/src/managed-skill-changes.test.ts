@@ -2,12 +2,12 @@ import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { managedSkillChangeText } from '@haus/agent-prompt';
 import { factoryManagedSkillHashes } from '@haus/agent-workspace';
 import { agentDrive } from './drive/agent-drive.ts';
 import {
     clearManagedSkillChangeNotice,
     type ManagedSkillFactory,
-    managedSkillChangeText,
     readManagedSkillChangeNotice,
     seedAgentManagedSkills,
 } from './managed-skill-changes.ts';
@@ -179,12 +179,6 @@ test('the release seed records the shipped skill hashes', async () => {
     );
     expect(record).toEqual({ pending: {}, seeded: factoryManagedSkillHashes() });
     expect(await readManagedSkillChangeNotice(agentRoot)).toBeNull();
-});
-
-test('the notice text is generic and points shared changes at #haus', () => {
-    expect(managedSkillChangeText(['visuals'])).toBe(
-        '[Haus skill update: these Haus skills were updated: visuals.] Re-read each before you next use it, and rebuild any scripts, notes, memory, or recipes you derived from it. If that changed something you rely on, post one short note in #haus saying what you updated; otherwise do not post.'
-    );
 });
 
 function fail(): never {

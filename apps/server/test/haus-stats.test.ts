@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { testSqlAgentHome } from './agent-home.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -55,7 +56,6 @@ const normalizedUsage = {
         provider: 'grok',
         status: 'error',
     },
-    runtimeUsage: [],
 };
 
 beforeAll(async () => {
@@ -92,7 +92,7 @@ beforeAll(async () => {
             id, server_id, computer_id, desired_runtime_id, desired_model_id,
             display_name, handle, home_timezone, home_project_id) values (
             'agt_1234567890abcdef', ${serverId}, ${computerId}, 'codex', 'gpt-5.6-sol',
-            'Cove', 'stats-cove', 'UTC', (select id from chats where server_id = ${serverId} and is_all)
+            'Cove', 'stats-cove', 'UTC', ${await testSqlAgentHome(harness.sql, serverId)}
         )
     `;
     await harness.sql`
@@ -173,7 +173,7 @@ test('An Agent profile reads only its own token rows', async () => {
             id, server_id, computer_id, desired_runtime_id, desired_model_id,
             display_name, handle, home_timezone, home_project_id) values (
             'agt_abcdef1234567890', ${serverId}, ${computerId}, 'codex', 'gpt-5.6-sol',
-            'Wren', 'stats-wren', 'UTC', (select id from chats where server_id = ${serverId} and is_all)
+            'Wren', 'stats-wren', 'UTC', ${await testSqlAgentHome(harness.sql, serverId)}
         )
     `;
     await harness.sql`

@@ -96,16 +96,16 @@ test('an Agent outside #ops assigned a filed Task there reads it, posts in it, a
     ).toMatchObject({ body: { task: { key: 'OPS-1', state: 'done' } }, status: 200 });
 });
 
-test('a generalist that starts a Task in #ops posts in it but still cannot post in #ops', async () => {
+test('an Agent assigned a Task in #ops posts in it but still cannot post in #ops', async () => {
     const orbit = await fixture.mintRunner('run_open_access_orbit');
-    const origin = await humanSend(fixture.channelId, 'The ops dashboard is down');
-    const started = await agentCall(orbit, '/api/agent/tasks/start', {
-        from: origin.message.id,
-        project: 'OPS',
-        target: '#product',
+    await humanSend(fixture.channelId, 'The ops dashboard is down');
+    const { task: filed } = await fixture.owner.trpc.task.create.mutate({
+        assigneeAgentId: fixture.orbitAgentId,
+        projectId: opsId,
+        serverId: fixture.serverId,
         title: 'Restore the ops dashboard',
     });
-    expect(started).toMatchObject({ body: { target: 'task:OPS-2' }, status: 200 });
+    expect(filed.key).toBe('OPS-2');
 
     expect(
         await agentCall(orbit, '/api/agent/messages/send', {

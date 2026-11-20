@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -35,7 +36,7 @@ test('concurrent Agent DM sends commit while Server-scoped reads keep arriving',
                 'healthy'
             )
         `;
-        const created = await owner.trpc.agent.create.mutate({
+        const created = await createHomedAgent(owner, {
             computerId,
             displayName: 'Blippy',
             handle: 'blippy',

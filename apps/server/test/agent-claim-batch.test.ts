@@ -3,6 +3,7 @@ import { claimAgentClaims } from '../src/agent-api/claim-claim.ts';
 import { CLAIM_LIST_LIMIT, listAgentClaims } from '../src/agent-api/claim-list.ts';
 import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
+import { testSqlAgentHome } from './agent-home.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -164,7 +165,7 @@ async function seedAgentRunner(
     const agentId = `agt_${handle}${server.id.slice(4, 12)}`;
     await harness.sql`
         insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
-        values (${agentId}, ${server.id}, ${handle}, ${handle}, 'UTC', (select id from chats where server_id = ${server.id} and is_all))
+        values (${agentId}, ${server.id}, ${handle}, ${handle}, 'UTC', ${await testSqlAgentHome(harness.sql, server.id)})
     `;
     await harness.sql`
         insert into channel_agent_participants (server_id, chat_id, agent_id)

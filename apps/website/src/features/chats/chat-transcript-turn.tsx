@@ -2,7 +2,6 @@ import { ChatMessage, ChatMessageActions } from '@heroui-pro/react';
 import { Separator } from '@heroui/react';
 import { Activity01Icon, AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-import { RelativeTime } from '../../components/time/relative-time.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { writeClipboardText } from '../../lib/clipboard.ts';
 import { cn } from '../../lib/utils.ts';
@@ -43,7 +42,7 @@ import {
 } from './chat-transcript-render-context.tsx';
 import type { SessionNoticeRow } from './chat-transcript-row-model.ts';
 import { RuntimeNoticeEntry, SessionNoticeAction } from './chat-transcript-system-step.tsx';
-import { getTurnCause, TurnContext } from './chat-transcript-turn-context.tsx';
+import { readTurnContext, TurnContext } from './chat-transcript-turn-context.tsx';
 import { transcriptTurnGeometry } from './chat-transcript-turn-geometry.ts';
 import { resolveMentionAgentId, TurnHeader } from './chat-transcript-turn-header.tsx';
 import { UserTurnItem } from './chat-transcript-user-turn-item.tsx';
@@ -57,8 +56,8 @@ import { AgentWidget } from './legacy-widget-row.tsx';
 import { isLocalTimelineMessageMetadata } from './local-timeline-message.ts';
 import { MessageContextActionsProvider } from './message/message-context-actions.tsx';
 import { MessageReactionActions } from './message/message-reactions.tsx';
-import { MessageSurface } from './message/message-surface.tsx';
 import { ServerTurnDetailsDrawer } from './server-turn-details-drawer.tsx';
+import { SystemMessageEntry } from './system-message-entry.tsx';
 import type { TranscriptActiveReply, TranscriptActorProfile } from './transcript-contract.ts';
 import { WorkspaceChangesChip } from './workspace-changes-chip.tsx';
 
@@ -104,20 +103,7 @@ export function TranscriptEntryView({
 }) {
     if (entry.kind === 'system') {
         if (entry.item.kind === 'row' && entry.item.row.kind === 'message') {
-            return (
-                <MessageSurface row={entry.item.row}>
-                    {/* pl-11.5 + the surface's px-5 = avatar + gap: the message text column. */}
-                    <p className="text-muted flex items-baseline gap-2 py-2 pr-5 pl-11.5 text-sm">
-                        <span className="min-w-0 truncate" title={entry.item.row.message.content}>
-                            {entry.item.row.message.content}
-                        </span>
-                        <span aria-hidden="true">·</span>
-                        <span className="shrink-0 text-xs">
-                            <RelativeTime value={entry.item.row.message.timestamp} />
-                        </span>
-                    </p>
-                </MessageSurface>
-            );
+            return <SystemMessageEntry row={entry.item.row} />;
         }
         if (
             entry.item.kind === 'row' &&
@@ -198,7 +184,7 @@ function UserTurnPresentation({
     // absolute and invisible until hover, so confirmation moves nothing.
     const actionsRow = hasPendingMessage ? null : lastMessageRow;
     const inlineReplyHover = useInlineReplyHoverState(entry.items, lastMessageRow);
-    const continues = entry.continuesPrevious;
+    const { continues } = readTurnContext(entry);
 
     return (
         <InlineReplyHoverProvider state={inlineReplyHover}>
@@ -344,9 +330,7 @@ function AgentTurnPresentation({
         openAgentProfile,
         repliedRunIds,
     } = context;
-    const cause = getTurnCause(items);
-    // A follow-up with a cause line keeps its header: the cause is why it was said.
-    const continues = entry.continuesPrevious && !cause;
+    const { cause, continues } = readTurnContext(entry);
     const showIdentity = layout.showAgentIdentity && !continues;
     const segments = groupAgentItems(items);
     const visibleSegments = filterPaneSegments(segments, repliedRunIds);

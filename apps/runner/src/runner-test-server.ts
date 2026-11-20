@@ -242,6 +242,7 @@ export function driveRoutes(handle: string, files: Map<string, string>) {
                 ? Response.json({ artifact: { artifact_id: id, path } })
                 : Response.json({ code: 'NOT_FOUND', message: path }, { status: 404 });
         },
+        '/api/agent/managed-skills/notice': () => Response.json({ pending: {} }),
         '/api/agent/profile': () => Response.json({ profile: { handle } }),
     };
     for (const [path, id] of ids) {
