@@ -13,7 +13,7 @@ import {
 import { serversTable } from './servers.ts';
 
 export const pullRequestReadingsTable = pgTable(
-    'cloud_agent_pull_requests',
+    'pull_request_readings',
     {
         additions: integer('additions').notNull(),
         changedFiles: integer('changed_files').notNull(),
@@ -36,35 +36,28 @@ export const pullRequestReadingsTable = pgTable(
     (table) => [
         primaryKey({
             columns: [table.serverId, table.repository, table.number],
-            name: 'cloud_agent_pull_requests_pkey',
+            name: 'pull_request_readings_pkey',
         }),
         foreignKey({
             columns: [table.serverId],
             foreignColumns: [serversTable.id],
-            name: 'cloud_agent_pull_requests_server_fk',
+            name: 'pull_request_readings_server_fk',
         }).onDelete('cascade'),
-        index('cloud_agent_pull_requests_head_idx').on(
-            table.serverId,
-            table.repository,
-            table.headSha
-        ),
-        index('cloud_agent_pull_requests_refresh_idx')
+        index('pull_request_readings_head_idx').on(table.serverId, table.repository, table.headSha),
+        index('pull_request_readings_refresh_idx')
             .on(table.refreshRequestedAt)
             .where(sql`${table.refreshRequestedAt} is not null`),
         check(
-            'cloud_agent_pull_requests_checks_check',
+            'pull_request_readings_checks_check',
             sql`${table.checks} in ('none', 'pending', 'passing', 'failing', 'unknown')`
         ),
         check(
-            'cloud_agent_pull_requests_review_check',
+            'pull_request_readings_review_check',
             sql`${table.review} in ('none', 'approved', 'changes-requested', 'unknown')`
         ),
+        check('pull_request_readings_source_check', sql`${table.source} in ('computer', 'github')`),
         check(
-            'cloud_agent_pull_requests_source_check',
-            sql`${table.source} in ('computer', 'github')`
-        ),
-        check(
-            'cloud_agent_pull_requests_state_check',
+            'pull_request_readings_state_check',
             sql`${table.state} in ('draft', 'open', 'merged', 'closed')`
         ),
     ]

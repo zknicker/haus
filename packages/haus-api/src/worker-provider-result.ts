@@ -5,7 +5,7 @@ import * as z from 'zod';
  * final report needs cutting, measured the same length-based way as
  * `workerSummaryMaxLength` rather than exact UTF-8 bytes.
  */
-export const workerReportMaxLength = 65_536;
+export const workerProviderResultMaxLength = 65_536;
 
 /**
  * A Run's full final report (TECH-8), alongside its bounded `summary`. The
@@ -14,11 +14,11 @@ export const workerReportMaxLength = 65_536;
  * sibling that can drift from it. `clipped` is explicit rather than an
  * in-band ellipsis, so a reader never silently loses the hard-cap boundary.
  */
-export const workerReportSchema = z
+export const workerProviderResultSchema = z
     .object({
         clipped: z.boolean(),
-        text: z.string().trim().min(1).max(workerReportMaxLength),
+        text: z.string().trim().min(1).max(workerProviderResultMaxLength),
     })
     .strict();
 
-export type WorkerReport = z.infer<typeof workerReportSchema>;
+export type WorkerProviderResult = z.infer<typeof workerProviderResultSchema>;

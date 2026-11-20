@@ -22,9 +22,9 @@ export async function readWorkerAttentions(
         .select({
             branches: workerTurnsTable.branches,
             errorCode: workerTurnsTable.errorCode,
-            provider: workersTable.provider,
+            provider: workersTable.place,
             providerUrl: workersTable.providerUrl,
-            report: workerTurnsTable.report,
+            report: workerTurnsTable.providerResult,
             repository: workersTable.repository,
             turnId: workerTurnsTable.id,
             stallCode: workerTurnsTable.stallCode,

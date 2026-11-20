@@ -182,7 +182,7 @@ test('every Run records the model and params it asked for, falling back to Auto 
     ).toMatchObject({ model: { id: nano.id, kind: 'model' }, savedModelUnavailable: true });
 
     await fixture.harness.sql`
-        update cloud_agent_work set provider_agent_id = 'cursor_model_agent'
+        update workers set provider_agent_id = 'cursor_model_agent'
         where id = ${chosen.receipt.worker.id}
     `;
     const followUp = await fetch(new URL('/api/agent/workers/send', fixture.harness.url), {

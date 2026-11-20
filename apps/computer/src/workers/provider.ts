@@ -2,7 +2,7 @@ import type {
     WorkerBranch,
     CloudAgentEnvironment,
     CloudAgentProvider as CloudAgentProviderId,
-    WorkerReport,
+    WorkerProviderResult,
     WorkerTurnModel,
     WorkerStallCode,
     WorkerTurnStatus,
@@ -131,7 +131,7 @@ export interface CloudAgentProviderObservation {
     providerUrl?: string;
     rawStatus?: string;
     /** The full report `summary` was cut from (TECH-8); absent before any Run observes one. */
-    report?: WorkerReport;
+    report?: WorkerProviderResult;
     /** Set on every reading of a stuck live Run. */
     stallCode?: WorkerStallCode;
     /** Provider-reported Run creation time, when available. */

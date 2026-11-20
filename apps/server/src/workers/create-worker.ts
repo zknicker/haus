@@ -96,11 +96,11 @@ export async function createWorker(
 
         await tx.insert(workersTable).values({
             agentId: runner.agentId,
-            chatId: plan.chatId,
-            computerId,
+            carrierComputerId: computerId,
             id: workerId,
             launchMessageId: written.messageId,
-            provider: input.provider,
+            originChatId: plan.chatId,
+            place: input.provider,
             repository: input.repository,
             serverId: runner.serverId,
             startingRef: input.startingRef,

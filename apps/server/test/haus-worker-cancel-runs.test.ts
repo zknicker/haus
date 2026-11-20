@@ -39,8 +39,8 @@ test('a cancel reaches every live Run, not only the newest', async () => {
 
     expect((await fixture.postCancel(runner, started.worker.id)).status).toBe(200);
 
-    expect((await fixture.readRun(started.turnId))?.cancel_requested_at).not.toBeNull();
-    expect((await fixture.readRun(followUp.turnId))?.cancel_requested_at).not.toBeNull();
+    expect((await fixture.readRun(started.turnId))?.stop_requested_at).not.toBeNull();
+    expect((await fixture.readRun(followUp.turnId))?.stop_requested_at).not.toBeNull();
     await fixture.waitFor(() =>
         Promise.resolve(frames.filter((frame) => frame.type === 'worker-stop').length === 2)
     );
@@ -59,9 +59,9 @@ test('a follow-up after a cancel leaves the running predecessor cancelling', asy
 
     const next = await send(runner.token, started.worker.id, 'cancel-then-send-next');
 
-    expect((await fixture.readRun(started.turnId))?.cancel_requested_at).not.toBeNull();
-    expect((await fixture.readRun(followUp.turnId))?.cancel_requested_at).not.toBeNull();
-    expect((await fixture.readRun(next.turnId))?.cancel_requested_at).toBeNull();
+    expect((await fixture.readRun(started.turnId))?.stop_requested_at).not.toBeNull();
+    expect((await fixture.readRun(followUp.turnId))?.stop_requested_at).not.toBeNull();
+    expect((await fixture.readRun(next.turnId))?.stop_requested_at).toBeNull();
     socket.close();
 });
 

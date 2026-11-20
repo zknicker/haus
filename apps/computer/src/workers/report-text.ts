@@ -1,4 +1,8 @@
-import { type WorkerReport, workerReportMaxLength, workerSummaryMaxLength } from '@haus/api';
+import {
+    type WorkerProviderResult,
+    workerProviderResultMaxLength,
+    workerSummaryMaxLength,
+} from '@haus/api';
 
 /**
  * A provider Run's full report (TECH-8), explicitly flagged when the hard
@@ -7,7 +11,10 @@ import { type WorkerReport, workerReportMaxLength, workerSummaryMaxLength } from
  * non-empty (post-trim) text — every call site already guards on the
  * provider's own result text being present before reaching here.
  */
-export function boundedReport(text: string, limit = workerReportMaxLength): WorkerReport {
+export function boundedReport(
+    text: string,
+    limit = workerProviderResultMaxLength
+): WorkerProviderResult {
     const trimmed = text.trim();
     return trimmed.length > limit
         ? { clipped: true, text: trimmed.slice(0, limit) }
@@ -20,7 +27,10 @@ export function boundedReport(text: string, limit = workerReportMaxLength): Work
  * `summary` is always a truncation-consistent prefix of `report.text` and
  * never an independently cut sibling that can drift from it.
  */
-export function boundedSummary(report: WorkerReport, limit = workerSummaryMaxLength): string {
+export function boundedSummary(
+    report: WorkerProviderResult,
+    limit = workerSummaryMaxLength
+): string {
     const { text } = report;
     return text.length > limit ? `${text.slice(0, limit - 1)}…` : text;
 }

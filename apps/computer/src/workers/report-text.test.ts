@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { workerReportMaxLength } from '@haus/api';
+import { workerProviderResultMaxLength } from '@haus/api';
 import { boundedReport, boundedSummary } from './report-text.ts';
 
 test('a report under its limit keeps the trimmed text unclipped', () => {
@@ -21,9 +21,9 @@ test('a report over its limit is cut to exactly the limit and flagged clipped', 
 });
 
 test('a report over the real default hard cap is cut at 64 KiB and flagged clipped', () => {
-    const result = boundedReport('x'.repeat(workerReportMaxLength + 100));
+    const result = boundedReport('x'.repeat(workerProviderResultMaxLength + 100));
     expect(result.clipped).toBe(true);
-    expect(result.text).toHaveLength(workerReportMaxLength);
+    expect(result.text).toHaveLength(workerProviderResultMaxLength);
 });
 
 test('a summary under its limit matches the report text exactly', () => {

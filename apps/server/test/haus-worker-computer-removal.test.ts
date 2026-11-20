@@ -53,7 +53,7 @@ test('removing a Computer keeps its Worker, Runs, links, and cards, and refuses 
 
     const workerIds = [active.worker.id, settled.worker.id].sort();
     const works = (await fixture.harness.sql`
-        select id, computer_id, status from cloud_agent_work
+        select id, carrier_computer_id as computer_id, status from workers
         where server_id = ${fixture.serverId} order by id
     `) as { computer_id: string; id: string; status: string }[];
     expect(works.map((row) => row.id)).toEqual(workerIds);
@@ -61,8 +61,8 @@ test('removing a Computer keeps its Worker, Runs, links, and cards, and refuses 
     expect(await fixture.readRun(active.turnId)).toMatchObject({ status: 'running' });
     expect(await fixture.readRun(settled.turnId)).toMatchObject({ status: 'completed' });
     const links = (await fixture.harness.sql`
-        select work_id from cloud_agent_work_links
-        where server_id = ${fixture.serverId} order by work_id
+        select worker_id as work_id from worker_history_links
+        where server_id = ${fixture.serverId} order by worker_id
     `) as { work_id: string }[];
     expect(links.map((row) => row.work_id)).toEqual(workerIds);
 
@@ -96,7 +96,7 @@ test('removing a Computer keeps its Worker, Runs, links, and cards, and refuses 
         })
     ).rejects.toThrow(/already settled/i);
     expect(await fixture.readWork(active.worker.id)).toMatchObject({
-        cancel_requested_by_user_id: null,
+        stop_requested_by_user_id: null,
         status: 'running',
     });
 
@@ -123,7 +123,7 @@ test('removing a Computer keeps its Worker, Runs, links, and cards, and refuses 
         await connection.close();
     }
     const runs = (await fixture.harness.sql`
-        select count(*)::int as total from cloud_agent_runs where work_id = ${active.worker.id}
+        select count(*)::int as total from worker_turns where worker_id = ${active.worker.id}
     `) as { total: number }[];
     expect(runs).toEqual([{ total: 1 }]);
 });

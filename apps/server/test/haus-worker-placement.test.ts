@@ -16,7 +16,7 @@ test('a launch on a Task posts in the Task, attaches to it, and reports there', 
     expect(await chatOf(placed.messageId)).toBe(fixture.task.chatId);
     expect(await chatsUnder(fixture.task.chatId, placed.messageId)).toEqual([]);
     const [work] = (await fixture.harness.sql`
-        select chat_id, task_id from cloud_agent_work where id = ${placed.worker.id}
+        select origin_chat_id as chat_id, task_id from workers where id = ${placed.worker.id}
     `) as { chat_id: string; task_id: string }[];
     expect(work).toEqual({ chat_id: fixture.task.chatId, task_id: fixture.task.id });
     expect(await settleTarget(placed)).toBe(fixture.task.chatId);
@@ -158,7 +158,7 @@ async function settleTarget(placed: { turnId: string; worker: Worker }) {
     socket.close();
     const [row] = (await fixture.harness.sql`
         select chat_id from agent_inbox
-        where source = 'cloud_agent_work' and dedupe_key = ${placed.turnId}
+        where source = 'worker_report' and dedupe_key = ${placed.turnId}
     `) as { chat_id: string }[];
     return row?.chat_id;
 }

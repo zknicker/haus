@@ -75,7 +75,7 @@ export async function readVisibleWorkLinks(
 }
 
 export function chooseWorkLocation(
-    launchMessageId: string,
+    launchMessageId: string | null,
     links: VisibleWorkLink[]
 ): ChosenWorkLocation | null {
     const link = links.find((candidate) => candidate.messageId === launchMessageId) ?? links[0];

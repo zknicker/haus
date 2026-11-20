@@ -43,7 +43,7 @@ test('automations follow durable work and per-Run inbox handoffs without creatin
     );
     const inbox = await fixture.harness.sql`
         select id from agent_inbox where server_id = ${fixture.serverId}
-            and source = 'cloud_agent_work' and dedupe_key = ${created.turnId}
+            and source = 'worker_report' and dedupe_key = ${created.turnId}
     `;
     expect(inbox).toHaveLength(1);
     await fixture.harness.sql`

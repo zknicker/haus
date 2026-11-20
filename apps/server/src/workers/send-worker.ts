@@ -39,14 +39,14 @@ export async function sendWorker(
                     eq(workersTable.serverId, runner.serverId),
                     eq(workersTable.id, input.workerId),
                     eq(workersTable.agentId, runner.agentId),
-                    eq(workersTable.computerId, runner.computerId),
+                    eq(workersTable.carrierComputerId, runner.computerId),
                     eq(agentsTable.computerId, runner.computerId)
                 )
             )
             .limit(1);
         if (!row) {
             const [own] = await tx
-                .select({ computerId: workersTable.computerId })
+                .select({ computerId: workersTable.carrierComputerId })
                 .from(workersTable)
                 .where(
                     and(
@@ -79,7 +79,7 @@ export async function sendWorker(
         if (!existing) {
             const model = await resolveRunModel(tx, {
                 computerId: runner.computerId,
-                provider: row.work.provider,
+                provider: row.work.place,
                 serverId: runner.serverId,
             });
             await tx.insert(workerTurnsTable).values({
@@ -90,7 +90,7 @@ export async function sendWorker(
                 modelParams: model.params,
                 serverId: runner.serverId,
                 workerId: input.workerId,
-                createdAt: sql`greatest(clock_timestamp(), (select max(created_at) + interval '1 millisecond' from cloud_agent_runs where server_id = ${runner.serverId} and work_id = ${input.workerId}))`,
+                createdAt: sql`greatest(clock_timestamp(), (select max(created_at) + interval '1 millisecond' from worker_turns where server_id = ${runner.serverId} and worker_id = ${input.workerId}))`,
             });
             await tx
                 .update(workersTable)

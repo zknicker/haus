@@ -3,7 +3,7 @@ import {
     pullRequestReadingSchema,
     workerPullRequestSchema,
     workerReconcileEntrySchema,
-    workerReportSchema,
+    workerProviderResultSchema,
     workerTurnModelParamSchema,
     workerTurnModelSchema,
     workerTurnSchema,
@@ -36,7 +36,7 @@ export const workerBranchResponseSchema = z.looseObject({
 const workerUsageResponseSchema = z.looseObject(workerUsageSchema.shape);
 
 /** The full report `summary` is cut from (TECH-8); loosened like every other nested object here. */
-const workerReportResponseSchema = z.looseObject(workerReportSchema.shape);
+const workerProviderResultResponseSchema = z.looseObject(workerProviderResultSchema.shape);
 
 const workerTurnModelParamResponseSchema = z.looseObject(workerTurnModelParamSchema.shape);
 
@@ -50,7 +50,7 @@ const workerTurnResponseSchema = z.looseObject({
     branches: z.array(workerBranchResponseSchema).max(50),
     model: workerTurnModelResponseSchema,
     // A Server older than this Computer sends no report.
-    report: workerReportResponseSchema.nullable().default(null),
+    report: workerProviderResultResponseSchema.nullable().default(null),
     usage: workerUsageResponseSchema.nullable(),
 });
 

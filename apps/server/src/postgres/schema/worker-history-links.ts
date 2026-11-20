@@ -13,13 +13,13 @@ import { chatMessagesTable } from './chat-messages.ts';
 import { workersTable } from './workers.ts';
 
 /**
- * One Message's link to Worker (ADR 0044), recorded at send time
- * only when the author could already see the work. Links decide who may see
- * the work and which Chats hear its lifecycle. Losing the Message or the work
- * loses the link, never the other side.
+ * One Message's link to a Worker from before Tasks (ADR 0044). Only links to
+ * taskless history remain: W2 turned every link to a Worker with a Task into a
+ * reference to that Task. Links decide who may read that history. Losing the
+ * Message or the Worker loses the link, never the other side.
  */
 export const workerHistoryLinksTable = pgTable(
-    'cloud_agent_work_links',
+    'worker_history_links',
     {
         chatId: text('chat_id').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -27,17 +27,17 @@ export const workerHistoryLinksTable = pgTable(
         /** First-occurrence position among this Message's links; cards render in this order. */
         ordinal: integer('ordinal').notNull(),
         serverId: text('server_id').notNull(),
-        workerId: text('work_id').notNull(),
+        workerId: text('worker_id').notNull(),
     },
     (table) => [
         primaryKey({
             columns: [table.serverId, table.messageId, table.workerId],
-            name: 'cloud_agent_work_links_pkey',
+            name: 'worker_history_links_pkey',
         }),
         foreignKey({
             columns: [table.serverId, table.workerId],
             foreignColumns: [workersTable.serverId, workersTable.id],
-            name: 'cloud_agent_work_links_work_fk',
+            name: 'worker_history_links_worker_fk',
         }).onDelete('cascade'),
         foreignKey({
             columns: [table.serverId, table.chatId, table.messageId],
@@ -46,15 +46,15 @@ export const workerHistoryLinksTable = pgTable(
                 chatMessagesTable.chatId,
                 chatMessagesTable.id,
             ],
-            name: 'cloud_agent_work_links_message_fk',
+            name: 'worker_history_links_message_fk',
         }).onDelete('cascade'),
-        index('cloud_agent_work_links_work_idx').on(
+        index('worker_history_links_worker_idx').on(
             table.serverId,
             table.workerId,
             table.createdAt.desc(),
             table.messageId.desc()
         ),
-        index('cloud_agent_work_links_chat_idx').on(table.serverId, table.chatId),
-        check('cloud_agent_work_links_ordinal', sql`${table.ordinal} >= 0`),
+        index('worker_history_links_chat_idx').on(table.serverId, table.chatId),
+        check('worker_history_links_ordinal', sql`${table.ordinal} >= 0`),
     ]
 );

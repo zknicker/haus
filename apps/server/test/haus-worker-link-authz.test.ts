@@ -161,7 +161,7 @@ test('replay compares against the links the send recorded, not current access', 
 
     const linked = `Linked [A](worker://${work.id})`;
     const kept = await links.humanSend(fixture.owner, sideId, linked, 'owner-retry');
-    await fixture.harness.sql`update cloud_agent_work set title = 'Renamed' where id = ${work.id}`;
+    await fixture.harness.sql`update workers set title = 'Renamed' where id = ${work.id}`;
     const again = await links.humanSend(fixture.owner, sideId, linked, 'owner-retry');
     expect(again).toMatchObject({ idempotent: true, message: { id: kept.message.id } });
     await expect(

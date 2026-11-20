@@ -149,8 +149,8 @@ async function countActivity() {
         select
             (select count(*) from chat_messages where server_id = ${serverId}) as messages,
             (select count(*) from message_claims where server_id = ${serverId}) as claims,
-            (select count(*) from cloud_agent_work where server_id = ${serverId}) as work,
-            (select count(*) from cloud_agent_runs where server_id = ${serverId}) as runs,
+            (select count(*) from workers where server_id = ${serverId}) as work,
+            (select count(*) from worker_turns where server_id = ${serverId}) as runs,
             (select count(*) from agent_turns where server_id = ${serverId}) as turns,
             (select count(*) from chats where server_id = ${serverId}) as chats
     `) as Record<string, string>[];

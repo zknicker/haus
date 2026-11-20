@@ -42,7 +42,7 @@ export async function listWorkerAutomations(
             computersTable,
             and(
                 eq(computersTable.serverId, workersTable.serverId),
-                eq(computersTable.id, workersTable.computerId)
+                eq(computersTable.id, workersTable.carrierComputerId)
             )
         )
         .where(
@@ -90,22 +90,22 @@ function notificationSql() {
     return sql<string>`case
         when exists (
             select 1 from agent_inbox i
-            join cloud_agent_runs r on r.server_id = i.server_id and r.id = i.cloud_agent_run_id
+            join worker_turns r on r.server_id = i.server_id and r.id = i.worker_turn_id
             where r.server_id = ${workersTable.serverId}
-                and r.work_id = ${workersTable.id}
+                and r.worker_id = ${workersTable.id}
                 and i.agent_id = ${workersTable.agentId}
-                and i.source = 'cloud_agent_work' and i.state <> 'seen'
+                and i.source in ('worker_report', 'worker_stall', 'pull_request') and i.state <> 'seen'
         ) then case when ${agentsTable.retiredAt} is not null
             then 'agent-retired' else 'pending' end
         when ${workersTable.status} not in ('queued', 'running') and exists (
             select 1 from agent_inbox i
-            join cloud_agent_runs r on r.server_id = i.server_id and r.id = i.cloud_agent_run_id
+            join worker_turns r on r.server_id = i.server_id and r.id = i.worker_turn_id
             where r.server_id = ${workersTable.serverId}
-                and r.work_id = ${workersTable.id}
+                and r.worker_id = ${workersTable.id}
                 and i.agent_id = ${workersTable.agentId}
-                and i.cloud_agent_notice = 'settled' and i.state = 'seen'
-                and r.id = (select latest.id from cloud_agent_runs latest
-                    where latest.server_id = r.server_id and latest.work_id = r.work_id
+                and i.source = 'worker_report' and i.state = 'seen'
+                and r.id = (select latest.id from worker_turns latest
+                    where latest.server_id = r.server_id and latest.worker_id = r.worker_id
                     order by latest.created_at desc limit 1)
         ) then 'delivered'
         when ${agentsTable.retiredAt} is not null then 'agent-retired'
@@ -115,7 +115,7 @@ function notificationSql() {
             select 1 from chats c left join chats p
                 on p.server_id = c.server_id and p.id = c.parent_chat_id
             where c.server_id = ${workersTable.serverId}
-                and c.id = ${workersTable.chatId} and c.deleted_at is null
+                and c.id = ${workersTable.originChatId} and c.deleted_at is null
                 and (c.parent_chat_id is null or (p.id is not null and p.deleted_at is null))
         ) then 'chat-removed'
         when ${workersTable.status} not in ('queued', 'running') then 'unavailable'

@@ -21,6 +21,7 @@ import { mergeBranchEvidence } from './merge-branch-evidence.ts';
 import { seedPullRequestReadings } from './pull-request-readings.ts';
 import { isLiveChat, noticeDedupeKey } from './worker-attention.ts';
 import { prepareWorkerEvents } from './worker-events.ts';
+import { workerInboxSources } from './worker-inbox-sources.ts';
 import { findWorker } from './worker-shape.ts';
 
 type RecordedRunStep = Extract<WorkerTurnStep, { kind: 'recorded' }>;
@@ -55,9 +56,9 @@ export async function applyWorkerObservation(
             .select({
                 agentId: workersTable.agentId,
                 branches: workerTurnsTable.branches,
-                cancelRequestedAt: workerTurnsTable.cancelRequestedAt,
-                chatId: workersTable.chatId,
-                computerId: workersTable.computerId,
+                cancelRequestedAt: workerTurnsTable.stopRequestedAt,
+                chatId: workersTable.originChatId,
+                computerId: workersTable.carrierComputerId,
                 observedAt: workerTurnsTable.observedAt,
                 runStartedAt: workerTurnsTable.startedAt,
                 runStatus: workerTurnsTable.status,
@@ -155,20 +156,19 @@ export async function applyWorkerObservation(
         // The notice goes to the Chat that asked for the work, never to a later
         // link (ADR 0044). If that Chat is gone, the work settles (or keeps
         // retrying) silently.
-        const notice = await deliverableNotice(tx, step, {
-            chatId: row.chatId,
-            serverId: input.serverId,
-        });
-        if (notice) {
+        const noticeChatId = row.chatId;
+        const notice = noticeChatId
+            ? await deliverableNotice(tx, step, { chatId: noticeChatId, serverId: input.serverId })
+            : null;
+        if (noticeChatId && notice) {
             await agentDelivery.enqueue(tx, {
                 agentId: row.agentId,
-                chatId: row.chatId,
-                workerNotice: notice.kind,
+                chatId: noticeChatId,
                 workerTurnId: observation.turnId,
                 content: '',
                 dedupeKey: noticeDedupeKey(observation.turnId, notice, step.stall),
                 serverId: input.serverId,
-                source: 'cloud_agent_work',
+                source: workerInboxSources[notice.kind],
             });
         }
 
@@ -207,7 +207,7 @@ function runObservationUpdate(
         ...(observation.rawStatus ? { rawStatus: observation.rawStatus } : {}),
         stallCode: step.stall?.code ?? null,
         stallSince: step.stall?.since ?? null,
-        report: observation.report ?? null,
+        providerResult: observation.report ?? null,
         summary: observation.summary ?? null,
         ...(observation.usage ? { usage: observation.usage } : {}),
     };
@@ -254,7 +254,7 @@ async function deleteQueuedStallNotices(db: HausDatabase, serverId: string, turn
             and(
                 eq(agentInboxTable.serverId, serverId),
                 eq(agentInboxTable.workerTurnId, turnId),
-                eq(agentInboxTable.workerNotice, 'stall'),
+                eq(agentInboxTable.source, workerInboxSources.stall),
                 eq(agentInboxTable.state, 'queued')
             )
         );

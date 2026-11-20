@@ -19,6 +19,11 @@ import {
     type WorkerTurnAttention,
     readWorkerAttentions,
 } from '../workers/read-worker-attentions.ts';
+import {
+    isWorkerInboxSource,
+    workerInboxSources,
+    workerNoticeOf,
+} from '../workers/worker-inbox-sources.ts';
 import { chatOf } from './inbox-lanes.ts';
 import { inboxSender } from './inbox-sender.ts';
 import type * as store from './store.ts';
@@ -53,7 +58,7 @@ export async function buildInboxItems(
     const apiMessages = serverId ? await toAgentMessages(db, serverId, messageRows) : [];
     const apiMessageById = new Map(apiMessages.map((message) => [message.id, message]));
     const workerByRun =
-        serverId && rows.some((row) => row.source === 'cloud_agent_work')
+        serverId && rows.some((row) => isWorkerInboxSource(row.source))
             ? await readWorkerAttentions(
                   db,
                   serverId,
@@ -88,11 +93,11 @@ export async function buildInboxItems(
         toInboxItem(row, {
             apiMessage: apiMessageById.get(row.dedupeKey),
             worker:
-                row.source === 'cloud_agent_work' && row.workerTurnId
+                isWorkerInboxSource(row.source) && row.workerTurnId
                     ? requireAttention(row, workerByRun)
                     : undefined,
             pullRequestNotice:
-                row.source === 'cloud_agent_work' && !row.workerTurnId
+                row.source === workerInboxSources.pull_request && !row.workerTurnId
                     ? requirePullRequestNotice(row)
                     : undefined,
             sequence: sequenceByMessageId.get(row.dedupeKey) ?? 1,
@@ -160,11 +165,12 @@ function requireAttention(
     attentions: Map<string, WorkerTurnAttention>
 ): WorkerAttention {
     const attention = row.workerTurnId ? attentions.get(row.workerTurnId) : undefined;
-    if (!(attention && row.workerNotice)) {
+    const notice = workerNoticeOf(row.source);
+    if (!(attention && notice)) {
         throw new WorkerAttentionMissingError(row.dedupeKey);
     }
-    if (row.workerNotice !== 'pull_request') {
-        return { ...attention, notice: row.workerNotice };
+    if (notice !== 'pull_request') {
+        return { ...attention, notice };
     }
     const change = parsePullRequestChangeKey(row.dedupeKey);
     if (!change) {
@@ -174,8 +180,7 @@ function requireAttention(
 }
 
 function requirePullRequestNotice(row: store.InboxItemRow): WorkerPullRequestChange {
-    const change =
-        row.workerNotice === 'pull_request' ? parsePullRequestChangeKey(row.dedupeKey) : null;
+    const change = parsePullRequestChangeKey(row.dedupeKey);
     if (!change) {
         throw new WorkerAttentionMissingError(row.dedupeKey);
     }

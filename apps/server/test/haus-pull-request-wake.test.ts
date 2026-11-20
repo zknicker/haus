@@ -68,7 +68,7 @@ beforeAll(async () => {
         now: new Date('2026-11-01T12:00:00.000Z'),
         serverId: world.serverId,
     });
-    await harness.sql`update cloud_agent_pull_requests set checks = 'pending'`;
+    await harness.sql`update pull_request_readings set checks = 'pending'`;
 });
 
 afterAll(async () => {
@@ -78,14 +78,14 @@ afterAll(async () => {
 });
 
 test('nothing wakes while the newest Run is still working', async () => {
-    await harness.sql`update cloud_agent_runs set status = 'running', terminal_at = null where id = ${runId}`;
+    await harness.sql`update worker_turns set status = 'running', terminal_at = null where id = ${runId}`;
     await refresh();
     expect(await notices()).toEqual([]);
     expect(wakes).toEqual([]);
     await harness.sql`
-        update cloud_agent_pull_requests set state = 'draft', checks = 'pending', refresh_requested_at = now()
+        update pull_request_readings set state = 'draft', checks = 'pending', refresh_requested_at = now()
     `;
-    await harness.sql`update cloud_agent_runs set status = 'completed', terminal_at = now() where id = ${runId}`;
+    await harness.sql`update worker_turns set status = 'completed', terminal_at = now() where id = ${runId}`;
 });
 
 test('a draft turning ready after settlement wakes the Agent in the Task, once', async () => {
@@ -123,7 +123,7 @@ test('checks finishing wake once per head, even when the reading repeats', async
     expect((await notices()).map((row) => row.dedupe_key)).toContain(
         `acme/api#1423:checks_passing:${headSha}`
     );
-    await harness.sql`update cloud_agent_pull_requests set checks = 'pending'`;
+    await harness.sql`update pull_request_readings set checks = 'pending'`;
     await markAndRefresh();
     expect(await notices()).toHaveLength(2);
 });
@@ -221,14 +221,14 @@ async function refresh() {
 }
 
 async function markAndRefresh() {
-    await harness.sql`update cloud_agent_pull_requests set refresh_requested_at = now()`;
+    await harness.sql`update pull_request_readings set refresh_requested_at = now()`;
     await refresh();
 }
 
 async function notices() {
     return (await harness.sql`
         select chat_id, dedupe_key from agent_inbox
-        where agent_id = ${world.agentId} and cloud_agent_notice = 'pull_request'
+        where agent_id = ${world.agentId} and source = 'pull_request'
         order by created_at
     `) as { chat_id: string; dedupe_key: string }[];
 }
@@ -237,15 +237,15 @@ async function insertSettledWork(): Promise<string> {
     const workId = createOpaqueId('caw');
     const id = createOpaqueId('car');
     await harness.sql`
-        insert into cloud_agent_work
-            (id, server_id, agent_id, chat_id, computer_id, launch_message_id, provider,
+        insert into workers
+            (id, server_id, agent_id, origin_chat_id, carrier_computer_id, launch_message_id, place,
              repository, title, task_id, status, terminal_at)
         values (${workId}, ${world.serverId}, ${world.agentId}, ${task.chatId},
                 'cmp_githubtriggers01', ${world.anchorMessageId}, 'cursor', 'acme/api',
                 'Fix the flaky login test', ${task.id}, 'completed', now())
     `;
     await harness.sql`
-        insert into cloud_agent_runs (id, server_id, work_id, status, terminal_at, branches)
+        insert into worker_turns (id, server_id, worker_id, status, terminal_at, branches)
         values (${id}, ${world.serverId}, ${workId}, 'completed', now(),
                 ${[{ branch: 'fix-login', pullRequestUrl: url, repository: 'github.com/acme/api' }]}::jsonb)
     `;

@@ -148,7 +148,7 @@ async function readCause(messageId: string) {
 
 async function workCount() {
     const [row] = (await fixture.harness.sql`
-        select count(*)::int as count from cloud_agent_work where server_id = ${fixture.serverId}
+        select count(*)::int as count from workers where server_id = ${fixture.serverId}
     `) as { count: number }[];
     return row?.count ?? 0;
 }

@@ -17,7 +17,7 @@ import { bunJsonb } from './bun-jsonb.ts';
 import { chatMessagesTable } from './chat-messages.ts';
 import { chatsTable } from './chats.ts';
 import { serversTable } from './servers.ts';
-import { workerTurnsTable } from './workers.ts';
+import { workerTurnsTable } from './worker-turns.ts';
 
 export const agentInboxCursorsTable = pgTable(
     'agent_inbox_cursors',
@@ -175,9 +175,8 @@ export const agentInboxTable = pgTable(
          * Chat when it has one.
          */
         chatId: text('chat_id'),
-        /** Why a `cloud_agent_work` row reached this Agent. */
-        workerNotice: text('cloud_agent_notice').$type<'settled' | 'stall' | 'pull_request'>(),
-        workerTurnId: text('cloud_agent_run_id'),
+        /** The Worker turn a `worker_report`, `worker_stall`, or `pull_request` row is about. */
+        workerTurnId: text('worker_turn_id'),
         content: text('content').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         dedupeKey: text('dedupe_key').notNull(),
@@ -220,17 +219,14 @@ export const agentInboxTable = pgTable(
         foreignKey({
             columns: [table.serverId, table.workerTurnId],
             foreignColumns: [workerTurnsTable.serverId, workerTurnsTable.id],
-            name: 'agent_inbox_cloud_agent_run_fk',
+            name: 'agent_inbox_worker_turn_fk',
         }).onDelete('cascade'),
         check(
-            'agent_inbox_cloud_agent_notice',
-            sql`(${table.source} = 'cloud_agent_work') = (${table.workerNotice} is not null)
-                and (${table.workerNotice} is null
-                    or ${table.workerNotice} in ('settled', 'stall', 'pull_request'))
-                and (${table.workerTurnId} is null or ${table.workerNotice} is not null)
-                and (${table.workerTurnId} is not null
-                    or ${table.workerNotice} is null
-                    or ${table.workerNotice} = 'pull_request')`
+            'agent_inbox_worker_shape',
+            sql`(${table.workerTurnId} is null
+                    or ${table.source} in ('worker_report', 'worker_stall', 'pull_request'))
+                and (${table.source} not in ('worker_report', 'worker_stall')
+                    or ${table.workerTurnId} is not null)`
         ),
         uniqueIndex('agent_inbox_dedupe_key').on(table.serverId, table.agentId, table.dedupeKey),
         index('agent_inbox_queue_idx').on(table.serverId, table.agentId, table.createdAt),

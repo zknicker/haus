@@ -70,7 +70,7 @@ export function workerLinkHelpers(fixture: WorkerFixture) {
 
     async function linkRows(messageId: string) {
         return (await fixture.harness.sql`
-            select work_id, ordinal, chat_id from cloud_agent_work_links
+            select worker_id as work_id, ordinal, chat_id from worker_history_links
             where server_id = ${fixture.serverId} and message_id = ${messageId}
             order by ordinal
         `) as { chat_id: string; ordinal: number; work_id: string }[];

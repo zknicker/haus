@@ -26,7 +26,7 @@ test('a launch into a Task with unseen newer messages is held and creates nothin
     expect(await fixture.countWork()).toBe(before);
     expect(await countAgentMessages()).toBe(0);
     const [runs] = (await fixture.harness.sql`
-        select count(*)::int as total from cloud_agent_runs where server_id = ${fixture.serverId}
+        select count(*)::int as total from worker_turns where server_id = ${fixture.serverId}
     `) as { total: number }[];
     expect(runs?.total).toBe(0);
 

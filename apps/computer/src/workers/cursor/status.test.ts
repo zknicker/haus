@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { workerBranchSchema, workerReportMaxLength } from '@haus/api';
+import { workerBranchSchema, workerProviderResultMaxLength } from '@haus/api';
 import { boundedReport, boundedSummary } from '../report-text.ts';
 import { branchesOf, observationOf, repositoryOf } from './status.ts';
 
@@ -105,7 +105,7 @@ test('a result past the summary limit but under the report cap truncates only th
 });
 
 test('a result past the report’s own hard cap is clipped the same way Claude’s path would clip it', () => {
-    const text = 'x'.repeat(workerReportMaxLength + 1000);
+    const text = 'x'.repeat(workerProviderResultMaxLength + 1000);
     const observation = observationOf(
         {
             branches: [],
@@ -121,7 +121,7 @@ test('a result past the report’s own hard cap is clipped the same way Claude�
 
     expect(observation.report).toEqual(boundedReport(text));
     expect(observation.report?.clipped).toBe(true);
-    expect(observation.report?.text).toHaveLength(workerReportMaxLength);
+    expect(observation.report?.text).toHaveLength(workerProviderResultMaxLength);
     expect(observation.summary).toBe(boundedSummary(boundedReport(text)));
 });
 

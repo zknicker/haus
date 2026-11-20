@@ -40,7 +40,7 @@ export function toWorkerTurn(row: RunRow): WorkerTurn {
         },
         providerRunId: row.providerRunId,
         rawStatus: row.rawStatus,
-        report: row.report ?? null,
+        report: row.providerResult ?? null,
         turnId: row.id,
         stall:
             row.stallCode && row.stallSince
@@ -66,17 +66,17 @@ export function toWorker(row: WorkRow, details: WorkDetails = noDetails): Worker
                 ? { at: row.activityAt.toISOString(), summary: row.activitySummary }
                 : null,
         agentId: row.agentId,
-        cancelRequestedAt: newest?.cancelRequestedAt?.toISOString() ?? null,
+        cancelRequestedAt: newest?.stopRequestedAt?.toISOString() ?? null,
         cancelRequestedBy: newest ? readCancelRequestedBy(newest) : null,
-        chatId: row.chatId,
-        computerId: row.computerId,
+        chatId: row.originChatId,
+        computerId: row.carrierComputerId,
         createdAt: row.createdAt.toISOString(),
         environmentId: row.environmentId,
         environmentName: row.environmentName,
         id: row.id,
         job: deriveWorkerJob({ turns: recent, startedAt, status: row.status, terminalAt }),
         messageId: row.launchMessageId,
-        provider: row.provider,
+        provider: row.place,
         providerAgentId: row.providerAgentId,
         providerUrl: row.providerUrl,
         pullRequest: details.pullRequest,
@@ -173,11 +173,11 @@ async function readRuns(
 }
 
 function readCancelRequestedBy(row: RunRow): Worker['cancelRequestedBy'] {
-    if (row.cancelRequestedByUserId) {
-        return { id: row.cancelRequestedByUserId, kind: 'user' };
+    if (row.stopRequestedByUserId) {
+        return { id: row.stopRequestedByUserId, kind: 'user' };
     }
-    if (row.cancelRequestedByAgentId) {
-        return { id: row.cancelRequestedByAgentId, kind: 'agent' };
+    if (row.stopRequestedByAgentId) {
+        return { id: row.stopRequestedByAgentId, kind: 'agent' };
     }
     return null;
 }

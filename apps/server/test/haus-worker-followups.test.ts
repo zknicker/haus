@@ -150,7 +150,7 @@ test('send requires delegator identity and its current assigned Computer', async
         serverId: fixture.serverId,
     });
     await fixture.harness
-        .sql`update cloud_agent_work set agent_id = ${other.id} where id = ${started.worker.id}`;
+        .sql`update workers set agent_id = ${other.id} where id = ${started.worker.id}`;
     expect((await send(runner.token, started.worker.id, 'wrong-agent')).status).toBe(404);
     expect(
         (
@@ -161,7 +161,7 @@ test('send requires delegator identity and its current assigned Computer', async
         ).status
     ).toBe(404);
     await fixture.harness
-        .sql`update cloud_agent_work set agent_id = ${fixture.orbitAgentId} where id = ${started.worker.id}`;
+        .sql`update workers set agent_id = ${fixture.orbitAgentId} where id = ${started.worker.id}`;
     await fixture.harness
         .sql`update agents set computer_id = null, desired_model_id = null, desired_runtime_id = null where id = ${fixture.orbitAgentId}`;
     expect((await send(runner.token, started.worker.id, 'wrong-computer')).status).toBe(404);
@@ -186,7 +186,7 @@ test('reconnect includes live predecessors beyond the retained card Runs even af
         (await fixture.postStart(runner, fixture.startBody({ nonce: 'followup-reconnect' }))).body
     );
     await fixture.harness
-        .sql`update cloud_agent_work set provider_agent_id = 'cursor_reconnect' where id = ${started.worker.id}`;
+        .sql`update workers set provider_agent_id = 'cursor_reconnect' where id = ${started.worker.id}`;
     const turnIds = [started.turnId];
     let latest = started.turnId;
     for (let index = 0; index < workerTurnsRetained + 1; index += 1) {
@@ -198,9 +198,9 @@ test('reconnect includes live predecessors beyond the retained card Runs even af
     }
     expect((await fixture.postCancel(runner, started.worker.id)).status).toBe(200);
     await fixture.harness
-        .sql`update cloud_agent_runs set status = 'completed', terminal_at = now() where id = ${latest}`;
+        .sql`update worker_turns set status = 'completed', terminal_at = now() where id = ${latest}`;
     await fixture.harness
-        .sql`update cloud_agent_work set status = 'completed', terminal_at = now() where id = ${started.worker.id}`;
+        .sql`update workers set status = 'completed', terminal_at = now() where id = ${started.worker.id}`;
     const socket = new WebSocket(fixture.computerSocketUrl());
     await fixture.opened(socket);
     const reconciled = new Promise<string[]>((resolve) =>
@@ -233,7 +233,7 @@ test('reconnect chunks more than 200 live Runs into valid frames without droppin
         (await fixture.postStart(runner, fixture.startBody({ nonce: 'reconcile-chunks' }))).body
     );
     await fixture.harness.sql`
-        insert into cloud_agent_runs (id, server_id, work_id, created_at)
+        insert into worker_turns (id, server_id, worker_id, created_at)
         select 'car_' || lpad(number::text, 16, '0'), ${fixture.serverId}, ${started.worker.id},
                now() + number * interval '1 millisecond'
         from generate_series(1, 401) as number

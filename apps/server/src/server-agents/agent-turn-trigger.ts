@@ -100,8 +100,10 @@ function triggerFor(
             return { chatId, kind: 'reminder' };
         case 'trigger':
             return { chatId, kind: 'trigger' };
-        case 'cloud_agent_work':
-            return { chatId, kind: 'cloud_agent' };
+        case 'worker_report':
+        case 'worker_stall':
+        case 'pull_request':
+            return { chatId, kind: 'worker' };
         case 'onboarding':
             return { chatId, kind: 'onboarding' };
         case 'greeting':

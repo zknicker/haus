@@ -32,7 +32,7 @@ test("a Run's full report persists and round-trips through findWorker", async ()
     await fixture.waitForWorkStatus(work.id, 'completed');
     socket.close();
 
-    expect(await fixture.readRun(turnId)).toMatchObject({ report });
+    expect(await fixture.readRun(turnId)).toMatchObject({ provider_result: report });
 
     const connection = await connectHausDatabase(fixture.harness.databaseUrl);
     try {

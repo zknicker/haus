@@ -1,53 +1,45 @@
-import type {
-    WorkerBranch,
-    CloudAgentModelParamName,
-    CloudAgentProvider,
-    WorkerReport,
-    WorkerTurnModelParam,
-    WorkerStallCode,
-    WorkerTurnStatus,
-    WorkerUsage,
-} from '@haus/api';
+import type { CloudAgentProvider, WorkerTurnStatus } from '@haus/api';
 import { sql } from 'drizzle-orm';
 import { check, foreignKey, index, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
-import { bunJsonb } from './bun-jsonb.ts';
-import { serverMembershipsTable } from './server-memberships.ts';
 import { tasksTable } from './tasks.ts';
 
-const statuses =
+export const workerStatuses =
     "('queued', 'running', 'pending_input', 'completed', 'failed', 'cancelled', 'expired')";
-const settled = "('pending_input', 'completed', 'failed', 'cancelled', 'expired')";
+export const settledWorkerStatuses =
+    "('pending_input', 'completed', 'failed', 'cancelled', 'expired')";
 
 /**
- * One Agent's delegation of bounded development work to a provider-hosted
- * agent (ADR 0044). The work is its own record: Messages link to it through
- * `cloud_agent_work_links`. `chat_id` (the requesting Chat),
- * `launch_message_id`, and `computer_id` (the launching Computer) are
- * historical pointers with no foreign key, so the work survives losing any of
- * them; work whose Computer was removed is no longer reachable. A composite
+ * One Worker: an Agent's scoped run attached to one Task (ADR 0056). Messages
+ * link to taskless history through `worker_history_links`. `origin_chat_id` and
+ * `launch_message_id` are history pointers from before Workers, with no
+ * foreign key; new Workers write null. `carrier_computer_id` runs or carries
+ * the Worker. A Worker with no Task is closed, read-only history. A composite
  * foreign key keeps its Agent inside one Server tenant. Provider prompts,
  * credentials, and transcripts never land here.
  */
 export const workersTable = pgTable(
-    'cloud_agent_work',
+    'workers',
     {
         activityAt: timestamp('activity_at', { withTimezone: true }),
         activitySummary: text('activity_summary'),
         agentId: text('agent_id').notNull(),
-        chatId: text('chat_id').notNull(),
-        computerId: text('computer_id').notNull(),
+        carrierComputerId: text('carrier_computer_id').notNull(),
+        closedAt: timestamp('closed_at', { withTimezone: true }),
+        closingAt: timestamp('closing_at', { withTimezone: true }),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         environmentId: text('environment_id'),
         environmentName: text('environment_name'),
         id: text('id').primaryKey(),
-        /** The Message `haus worker start` wrote; wire name stays `messageId`. */
-        launchMessageId: text('launch_message_id').notNull(),
-        provider: text('provider').notNull().$type<CloudAgentProvider>(),
+        launchMessageId: text('launch_message_id'),
+        originChatId: text('origin_chat_id'),
+        place: text('place').notNull().$type<CloudAgentProvider>(),
         providerAgentId: text('provider_agent_id'),
         providerUrl: text('provider_url'),
         repository: text('repository').notNull(),
         serverId: text('server_id').notNull(),
+        /** The Agent's start idempotency key, now that a start writes no Message to carry it. */
+        startNonce: text('start_nonce'),
         startedAt: timestamp('started_at', { withTimezone: true }),
         startingRef: text('starting_ref'),
         status: text('status').notNull().default('queued').$type<WorkerTurnStatus>(),
@@ -57,161 +49,52 @@ export const workersTable = pgTable(
         updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
     },
     (table) => [
-        unique('cloud_agent_work_server_id_key').on(table.serverId, table.id),
+        unique('workers_server_id_key').on(table.serverId, table.id),
+        unique('workers_start_nonce_key').on(table.serverId, table.agentId, table.startNonce),
         foreignKey({
             columns: [table.serverId, table.taskId],
             foreignColumns: [tasksTable.serverId, tasksTable.id],
-            name: 'cloud_agent_work_task_fk',
+            name: 'workers_task_fk',
         }),
-        index('cloud_agent_work_task_idx')
+        index('workers_task_idx')
             .on(table.serverId, table.taskId)
             .where(sql`${table.taskId} is not null`),
-        index('cloud_agent_work_launch_message_idx').on(table.serverId, table.launchMessageId),
+        index('workers_launch_message_idx').on(table.serverId, table.launchMessageId),
         foreignKey({
             columns: [table.serverId, table.agentId],
             foreignColumns: [agentsTable.serverId, agentsTable.id],
-            name: 'cloud_agent_work_agent_fk',
+            name: 'workers_agent_fk',
         }).onDelete('cascade'),
-        index('cloud_agent_work_active_idx')
+        index('workers_active_idx')
             .on(table.serverId, table.createdAt)
             .where(sql`${table.status} in ('queued', 'running', 'pending_input')`),
-        index('cloud_agent_work_computer_active_idx')
-            .on(table.computerId, table.createdAt)
+        index('workers_carrier_active_idx')
+            .on(table.carrierComputerId, table.createdAt)
             .where(sql`${table.status} in ('queued', 'running')`),
-        check('cloud_agent_work_id_shape', sql`${table.id} ~ '^caw_[A-Za-z0-9_-]{16}$'`),
-        check('cloud_agent_work_provider', sql`${table.provider} in ('cursor', 'claude')`),
-        check('cloud_agent_work_status', sql.raw(`"cloud_agent_work"."status" in ${statuses}`)),
-        check('cloud_agent_work_title_length', sql`char_length(${table.title}) between 1 and 120`),
+        check('workers_id_shape', sql`${table.id} ~ '^(caw|wkr)_[A-Za-z0-9_-]{16}$'`),
+        check('workers_place', sql`${table.place} in ('cursor', 'claude')`),
+        check('workers_status', sql.raw(`"workers"."status" in ${workerStatuses}`)),
+        check('workers_title_length', sql`char_length(${table.title}) between 1 and 120`),
         check(
-            'cloud_agent_work_repository_shape',
+            'workers_repository_shape',
             sql`${table.repository} ~ '^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$'`
         ),
         check(
-            'cloud_agent_work_activity_shape',
+            'workers_activity_shape',
             sql`(${table.activitySummary} is null) = (${table.activityAt} is null)
                 and (${table.activitySummary} is null
                     or char_length(${table.activitySummary}) between 1 and 120)`
         ),
         check(
-            'cloud_agent_work_terminal_shape',
+            'workers_terminal_shape',
             sql.raw(
-                `("cloud_agent_work"."status" in ${settled})
-                = ("cloud_agent_work"."terminal_at" is not null)`
-            )
-        ),
-    ]
-);
-
-/**
- * One provider Run inside a work record. A follow-up, correction, or retry adds
- * a Run rather than replacing the work, so earlier outcomes stay inspectable.
- */
-export const workerTurnsTable = pgTable(
-    'cloud_agent_runs',
-    {
-        branches: bunJsonb('branches').notNull().$type<WorkerBranch[]>().default([]),
-        /** A cancel reaches each live Run, so the intent survives a later follow-up. */
-        cancelRequestedAt: timestamp('cancel_requested_at', { withTimezone: true }),
-        cancelRequestedByAgentId: text('cancel_requested_by_agent_id'),
-        cancelRequestedByUserId: text('cancel_requested_by_user_id'),
-        createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-        errorCode: text('error_code'),
-        id: text('id').primaryKey(),
-        /** Saved params the sent model no longer offered, so they took its default. */
-        modelDroppedParams: bunJsonb('model_dropped_params')
-            .notNull()
-            .$type<CloudAgentModelParamName[]>()
-            .default([]),
-        /** The saved model this Run could not send, so it fell back to Auto. */
-        modelFallbackFrom: text('model_fallback_from'),
-        /**
-         * The model sent to the provider: a catalog id, `default` for Auto, or
-         * `null` when none was sent, so the account's default model chose.
-         */
-        modelId: text('model_id'),
-        /** The params sent with `modelId`; an unsent one took the model's default. */
-        modelParams: bunJsonb('model_params').notNull().$type<WorkerTurnModelParam[]>().default([]),
-        /** The Computer's newest applied observation, so a stale one is a no-op. */
-        observedAt: timestamp('observed_at', { withTimezone: true }),
-        providerRunId: text('provider_run_id'),
-        rawStatus: text('raw_status'),
-        /** The full report `summary` is cut from (TECH-8); null until a Run observes one. */
-        report: bunJsonb('report').$type<WorkerReport | null>(),
-        serverId: text('server_id').notNull(),
-        /** Why a live Run is stuck, and since when; a settled Run has neither. */
-        stallCode: text('stall_code').$type<WorkerStallCode>(),
-        stallSince: timestamp('stall_since', { withTimezone: true }),
-        startedAt: timestamp('started_at', { withTimezone: true }),
-        status: text('status').notNull().default('queued').$type<WorkerTurnStatus>(),
-        summary: text('summary'),
-        terminalAt: timestamp('terminal_at', { withTimezone: true }),
-        usage: bunJsonb('usage').$type<WorkerUsage | null>(),
-        workerId: text('work_id').notNull(),
-    },
-    (table) => [
-        unique('cloud_agent_runs_server_id_key').on(table.serverId, table.id),
-        index('cloud_agent_runs_work_idx').on(table.serverId, table.workerId, table.createdAt),
-        foreignKey({
-            columns: [table.serverId, table.workerId],
-            foreignColumns: [workersTable.serverId, workersTable.id],
-            name: 'cloud_agent_runs_work_fk',
-        }).onDelete('cascade'),
-        foreignKey({
-            columns: [table.serverId, table.cancelRequestedByAgentId],
-            foreignColumns: [agentsTable.serverId, agentsTable.id],
-            name: 'cloud_agent_runs_cancel_agent_fk',
-        }),
-        foreignKey({
-            columns: [table.serverId, table.cancelRequestedByUserId],
-            foreignColumns: [serverMembershipsTable.serverId, serverMembershipsTable.userId],
-            name: 'cloud_agent_runs_cancel_membership_fk',
-        }),
-        check('cloud_agent_runs_id_shape', sql`${table.id} ~ '^car_[A-Za-z0-9_-]{16}$'`),
-        check('cloud_agent_runs_status', sql.raw(`"cloud_agent_runs"."status" in ${statuses}`)),
-        check(
-            'cloud_agent_runs_error_shape',
-            sql.raw(
-                `"cloud_agent_runs"."error_code" is null
-                or "cloud_agent_runs"."status" in ${settled}`
+                `("workers"."status" in ${settledWorkerStatuses})
+                = ("workers"."terminal_at" is not null)`
             )
         ),
         check(
-            'cloud_agent_runs_stall_shape',
-            sql.raw(
-                `("cloud_agent_runs"."stall_code" is null)
-                = ("cloud_agent_runs"."stall_since" is null)
-                and ("cloud_agent_runs"."stall_code" is null
-                    or "cloud_agent_runs"."status" not in ${settled})`
-            )
-        ),
-        check(
-            'cloud_agent_runs_cancel_shape',
-            sql`(${table.cancelRequestedAt} is not null) = (num_nonnulls(
-                ${table.cancelRequestedByUserId}, ${table.cancelRequestedByAgentId}
-            ) = 1)`
-        ),
-        check(
-            'cloud_agent_runs_model_shape',
-            sql`${table.modelFallbackFrom} is null or coalesce(${table.modelId}, 'default') = 'default'`
-        ),
-        check(
-            'cloud_agent_runs_model_params_shape',
-            sql`jsonb_typeof(${table.modelParams}) = 'array' and jsonb_typeof(${table.modelDroppedParams}) = 'array' and (coalesce(${table.modelId}, 'default') <> 'default' or (${table.modelParams} = '[]'::jsonb and ${table.modelDroppedParams} = '[]'::jsonb))`
-        ),
-        check(
-            'cloud_agent_runs_terminal_shape',
-            sql.raw(
-                `("cloud_agent_runs"."status" in ${settled})
-                = ("cloud_agent_runs"."terminal_at" is not null)`
-            )
-        ),
-        check(
-            'cloud_agent_runs_report_shape',
-            sql`${table.report} is null or (
-                jsonb_typeof(${table.report}) = 'object'
-                and char_length(${table.report}->>'text') between 1 and 65536
-                and jsonb_typeof(${table.report}->'clipped') = 'boolean'
-            )`
+            'workers_task_or_closed',
+            sql`${table.taskId} is not null or ${table.closedAt} is not null`
         ),
     ]
 );

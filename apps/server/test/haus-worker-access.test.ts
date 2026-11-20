@@ -14,8 +14,8 @@ test('the delegating Agent and an Admin cancel; an ordinary Member cannot', asyn
     const byAgent = await fixture.postCancel(runner, agentWork.id);
     expect(byAgent.status).toBe(200);
     expect(await fixture.readWork(agentWork.id)).toMatchObject({
-        cancel_requested_by_agent_id: fixture.orbitAgentId,
-        cancel_requested_by_user_id: null,
+        stop_requested_by_agent_id: fixture.orbitAgentId,
+        stop_requested_by_user_id: null,
         status: 'queued',
     });
 
@@ -37,8 +37,8 @@ test('the delegating Agent and an Admin cancel; an ordinary Member cannot', asyn
         })
     ).resolves.toEqual({ cancelRequested: true });
     expect(await fixture.readWork(humanWork.id)).toMatchObject({
-        cancel_requested_by_agent_id: null,
-        cancel_requested_by_user_id: fixture.ownerUserId,
+        stop_requested_by_agent_id: null,
+        stop_requested_by_user_id: fixture.ownerUserId,
     });
 
     // Cancelling settled work is a conflict, not a silent no-op.

@@ -2,8 +2,8 @@ import * as z from 'zod';
 import { workerTurnModelSchema } from './cloud-agent-model.ts';
 import { cloudAgentProviderSchema } from './cloud-agent-provider.ts';
 import { workerJobSchema } from './worker-job.ts';
+import { workerProviderResultSchema } from './worker-provider-result.ts';
 import { pullRequestReadingSchema, workerPullRequestSchema } from './worker-pull-request.ts';
-import { workerReportSchema } from './worker-report.ts';
 import { workerStallCodeSchema } from './worker-stall.ts';
 import { workerTimestampSchema } from './worker-time.ts';
 
@@ -40,7 +40,11 @@ export {
     workerPullRequestStates,
     parseGithubPullRequestUrl,
 } from './worker-pull-request.ts';
-export { type WorkerReport, workerReportMaxLength, workerReportSchema } from './worker-report.ts';
+export {
+    type WorkerProviderResult,
+    workerProviderResultMaxLength,
+    workerProviderResultSchema,
+} from './worker-provider-result.ts';
 export {
     type CloudAgentUnreadyReason,
     cloudAgentUnreadyReasonSchema,
@@ -152,7 +156,7 @@ export const workerTurnSchema = z
         providerRunId: z.string().trim().min(1).max(200).nullable(),
         rawStatus: z.string().trim().min(1).max(120).nullable(),
         /** The full report `summary` was cut from; null until a Run observes one. */
-        report: workerReportSchema.nullable(),
+        report: workerProviderResultSchema.nullable(),
         turnId: workerIdSchema,
         startedAt: workerTimestampSchema.nullable(),
         stall: z

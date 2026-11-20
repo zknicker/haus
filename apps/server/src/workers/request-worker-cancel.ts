@@ -41,8 +41,8 @@ export async function requestWorkerCancel(
         await lockServerRow(tx, input.serverId);
         const [row] = await tx
             .select({
-                computerId: workersTable.computerId,
-                provider: workersTable.provider,
+                computerId: workersTable.carrierComputerId,
+                provider: workersTable.place,
                 providerAgentId: workersTable.providerAgentId,
             })
             .from(workersTable)
@@ -55,7 +55,7 @@ export async function requestWorkerCancel(
         }
         const runs = await tx
             .select({
-                cancelRequestedAt: workerTurnsTable.cancelRequestedAt,
+                cancelRequestedAt: workerTurnsTable.stopRequestedAt,
                 id: workerTurnsTable.id,
                 providerRunId: workerTurnsTable.providerRunId,
                 status: workerTurnsTable.status,
@@ -81,10 +81,10 @@ export async function requestWorkerCancel(
             await tx
                 .update(workerTurnsTable)
                 .set({
-                    cancelRequestedAt: sql`now()`,
-                    cancelRequestedByAgentId:
+                    stopRequestedAt: sql`now()`,
+                    stopRequestedByAgentId:
                         input.requestedBy.kind === 'agent' ? input.requestedBy.id : null,
-                    cancelRequestedByUserId:
+                    stopRequestedByUserId:
                         input.requestedBy.kind === 'user' ? input.requestedBy.id : null,
                 })
                 .where(

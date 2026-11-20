@@ -174,7 +174,7 @@ test('a Run that never reached the provider settles with the reason its Agent re
     await fixture.waitForWorkStatus(work.id, 'failed');
     // The inbox attention projects these Run columns for the delegating Agent.
     const [run] = (await fixture.harness.sql`
-        select error_code, provider_run_id, status, summary from cloud_agent_runs where id = ${turnId}
+        select error_code, provider_run_id, status, summary from worker_turns where id = ${turnId}
     `) as Record<string, unknown>[];
     expect(run).toEqual({
         error_code: 'followup-delivery-timeout',

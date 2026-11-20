@@ -9,6 +9,7 @@ import {
     tasksTable,
 } from '../postgres/schema.ts';
 import { isLiveChat } from '../workers/worker-attention.ts';
+import { workerInboxSources } from '../workers/worker-inbox-sources.ts';
 import { type PullRequestTransition, pullRequestChangeKey } from './pull-request-change.ts';
 import { readUnworkedTaskWakes } from './pull-request-task-wakes.ts';
 
@@ -65,12 +66,11 @@ export async function enqueuePullRequestWakes(
             await delivery.enqueue(tx, {
                 agentId: work.agentId,
                 chatId: work.chatId,
-                workerNotice: 'pull_request',
                 workerTurnId: work.runId,
                 content: describeTransition(reading, transition),
                 dedupeKey: pullRequestChangeKey(reading, transition),
                 serverId: reading.serverId,
-                source: 'cloud_agent_work',
+                source: workerInboxSources.pull_request,
             });
         }
         wakes.set(work.agentId, { agentId: work.agentId, serverId: reading.serverId });
@@ -83,11 +83,10 @@ export async function enqueuePullRequestWakes(
             await delivery.enqueue(tx, {
                 agentId: task.agentId,
                 chatId: task.chatId,
-                workerNotice: 'pull_request',
                 content: describeTransition(reading, transition),
                 dedupeKey: pullRequestChangeKey(reading, transition),
                 serverId: reading.serverId,
-                source: 'cloud_agent_work',
+                source: workerInboxSources.pull_request,
             });
         }
         wakes.set(task.agentId, { agentId: task.agentId, serverId: reading.serverId });
@@ -103,7 +102,7 @@ async function readSettledWork(db: HausDatabase, reading: PullRequestWakeReading
     const works = await db
         .select({
             agentId: workersTable.agentId,
-            chatId: sql<string>`coalesce(${tasksTable.chatId}, ${workersTable.chatId})`,
+            chatId: sql<string>`coalesce(${tasksTable.chatId}, ${workersTable.originChatId})`,
             id: workersTable.id,
         })
         .from(workersTable)

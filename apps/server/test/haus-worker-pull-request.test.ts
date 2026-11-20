@@ -10,7 +10,7 @@ const fixture = workerRecordFixture();
 test('work reads the live reading while its Run keeps the snapshot it reported', async () => {
     const { work, turnId } = await reportPullRequest();
     await fixture.harness.sql`
-        update cloud_agent_pull_requests set state = 'merged', source = 'github'
+        update pull_request_readings set state = 'merged', source = 'github'
     `;
     const listed = await fixture.owner.trpc.worker.listForChat.query({
         chatId: fixture.channelId,

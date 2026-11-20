@@ -28,7 +28,7 @@ export type AgentTurnTriggerPreview = z.infer<typeof agentTurnTriggerPreviewSche
  *
  * - `message`: a Chat message from a human or another Agent.
  * - `claim`: a claim assignment; `messageId` is the claim's message.
- * - `reminder`, `trigger`, `cloud_agent`, `onboarding`: typed work anchored to a Chat
+ * - `reminder`, `trigger`, `worker`, `onboarding`: typed work anchored to a Chat
  *   with no message of its own.
  * - `greeting`: a new Agent's one-time wake to introduce itself in `#all`, when it led
  *   the run alone.
@@ -58,7 +58,7 @@ export const agentTurnTriggerSchema = z.discriminatedUnion('kind', [
         .strict(),
     z.object({ chatId: idSchema, kind: z.literal('reminder') }).strict(),
     z.object({ chatId: idSchema, kind: z.literal('trigger') }).strict(),
-    z.object({ chatId: idSchema, kind: z.literal('cloud_agent') }).strict(),
+    z.object({ chatId: idSchema, kind: z.literal('worker') }).strict(),
     z.object({ chatId: idSchema, kind: z.literal('onboarding') }).strict(),
     z.object({ chatId: idSchema, kind: z.literal('greeting') }).strict(),
     z.object({ kind: z.literal('subagent') }).strict(),

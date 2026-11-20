@@ -1,4 +1,4 @@
-import type { AddressedReason, AgentReasoningEffort, WorkerAttention } from '@haus/api';
+import type { AddressedReason, AgentReasoningEffort } from '@haus/api';
 import { and, eq, inArray, isNotNull, isNull, lte, ne, notInArray, or, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -36,7 +36,6 @@ export interface InboxItemRow {
     /** Why this item names the Agent personally; null is an ambient delivery. */
     addressedReason: AddressedReason | null;
     chatId: string | null;
-    workerNotice: WorkerAttention['notice'] | null;
     workerTurnId: string | null;
     content: string;
     createdAt: Date;
@@ -53,7 +52,6 @@ export interface InboxItemRow {
 export const inboxItemColumns = {
     addressedReason: agentInboxTable.addressedReason,
     chatId: agentInboxTable.chatId,
-    workerNotice: agentInboxTable.workerNotice,
     workerTurnId: agentInboxTable.workerTurnId,
     content: agentInboxTable.content,
     createdAt: agentInboxTable.createdAt,

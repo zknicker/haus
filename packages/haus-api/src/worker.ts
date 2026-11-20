@@ -7,7 +7,7 @@ import {
     workerBranchSchema,
     cloudAgentProviderSchema,
     workerRefSchema,
-    workerReportSchema,
+    workerProviderResultSchema,
     workerRepositorySchema,
     workerTurnStatusSchema,
     workerSummaryMaxLength,
@@ -167,7 +167,7 @@ export const workerObservationSchema = z.object({
     providerUrl: z.url().max(2000).optional(),
     rawStatus: z.string().trim().min(1).max(120).optional(),
     /** The full report `summary` was cut from (TECH-8); absent before any Run observes one. */
-    report: workerReportSchema.optional(),
+    report: workerProviderResultSchema.optional(),
     turnId: idSchema,
     /** Set on every reading of a stuck live Run; absent means it is not stalled. */
     stallCode: workerStallCodeSchema.optional(),

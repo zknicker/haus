@@ -1,6 +1,6 @@
 import {
     type WorkerBranch,
-    type WorkerReport,
+    type WorkerProviderResult,
     type WorkerTurnStatus,
     type WorkerUsage,
     workerActivityMaxLength,
@@ -143,7 +143,7 @@ export function usageOf(reading: CursorRunReading): WorkerUsage | null {
 }
 
 /** The Run's own words: its result when it has one, its error when it failed. */
-function reportOf(reading: CursorRunReading): WorkerReport | null {
+function reportOf(reading: CursorRunReading): WorkerProviderResult | null {
     const text = reading.result ?? reading.errorMessage;
     return text ? boundedReport(collapse(text)) : null;
 }

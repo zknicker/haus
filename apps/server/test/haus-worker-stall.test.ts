@@ -13,7 +13,7 @@ test('a follow-up an auto-interrupt still could not deliver notifies once per wi
     const readStallAttentions = () =>
         fixture.harness.sql`
             select id from agent_inbox
-            where source = 'cloud_agent_work' and dedupe_key like ${`${turnId}:stall:%`}
+            where source = 'worker_stall' and dedupe_key like ${`${turnId}:stall:%`}
         ` as Promise<{ id: string }[]>;
     const stallSummary =
         "Haus automatically interrupted the session to deliver this follow-up, but it still didn't go through. Last error: busy.";
@@ -95,7 +95,7 @@ test('a Run already running never regresses to queued when its prompt briefly go
     const readNotFoundAttentions = () =>
         fixture.harness.sql`
             select id from agent_inbox
-            where source = 'cloud_agent_work' and dedupe_key like ${`${turnId}:stall:%`}
+            where source = 'worker_stall' and dedupe_key like ${`${turnId}:stall:%`}
         ` as Promise<{ id: string }[]>;
 
     socket.send(
@@ -132,7 +132,7 @@ test('a Run already running never regresses to queued when its prompt briefly go
     await fixture.waitFor(async () => (await readNotFoundAttentions()).length > 0 || null);
     expect(await fixture.readRun(turnId)).toMatchObject({ status: 'running', terminal_at: null });
     const [runRow] = (await fixture.harness.sql`
-        select stall_code from cloud_agent_runs where id = ${turnId}
+        select stall_code from worker_turns where id = ${turnId}
     `) as { stall_code: string | null }[];
     expect(runRow?.stall_code).toBe('claude-prompt-not-found');
     expect(await fixture.readWork(work.id)).toMatchObject({ status: 'running' });
@@ -150,7 +150,7 @@ test('a job already cancelled raises no stall attention', async () => {
     const turnId = created.body.turnId as string;
     const socket = await fixture.attachComputer();
     await fixture.harness.sql`
-        update cloud_agent_work set status = 'cancelled', terminal_at = now() where id = ${work.id}
+        update workers set status = 'cancelled', terminal_at = now() where id = ${work.id}
     `;
 
     socket.send(
@@ -167,7 +167,7 @@ test('a job already cancelled raises no stall attention', async () => {
     );
     await fixture.waitFor(async () => {
         const [run] = (await fixture.harness.sql`
-            select stall_code from cloud_agent_runs where id = ${turnId}
+            select stall_code from worker_turns where id = ${turnId}
         `) as { stall_code: string | null }[];
         return run?.stall_code;
     });
@@ -190,8 +190,8 @@ test('settling a Run replaces its unread stall notices with the one outcome', as
     const socket = await fixture.attachComputer();
     const readNotices = () =>
         fixture.harness.sql`
-            select cloud_agent_notice from agent_inbox where cloud_agent_run_id = ${turnId}
-        ` as Promise<{ cloud_agent_notice: string }[]>;
+            select source from agent_inbox where worker_turn_id = ${turnId}
+        ` as Promise<{ source: string }[]>;
 
     socket.send(
         JSON.stringify({
@@ -219,7 +219,7 @@ test('settling a Run replaces its unread stall notices with the one outcome', as
     );
     await fixture.waitForWorkStatus(work.id, 'cancelled');
 
-    expect(await readNotices()).toEqual([{ cloud_agent_notice: 'settled' }]);
+    expect(await readNotices()).toEqual([{ source: 'worker_report' }]);
     socket.close();
 });
 
@@ -248,13 +248,13 @@ test('a Run being cancelled earns no stall notice', async () => {
     );
     await fixture.waitFor(async () => {
         const [run] = (await fixture.harness.sql`
-            select stall_code from cloud_agent_runs where id = ${turnId}
+            select stall_code from worker_turns where id = ${turnId}
         `) as { stall_code: string | null }[];
         return run?.stall_code;
     });
 
     expect(
-        await fixture.harness.sql`select id from agent_inbox where cloud_agent_run_id = ${turnId}`
+        await fixture.harness.sql`select id from agent_inbox where worker_turn_id = ${turnId}`
     ).toHaveLength(0);
     socket.close();
 });

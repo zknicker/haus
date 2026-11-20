@@ -60,12 +60,11 @@ async function queueNotice(
     await delivery.deliver({
         agentId: seed.agentId,
         chatId: seed.dmChatId,
-        workerNotice: dedupeKey === turnId ? 'settled' : 'stall',
         workerTurnId: turnId,
         content: '',
         dedupeKey,
         serverId: seed.serverId,
-        source: 'cloud_agent_work',
+        source: dedupeKey === turnId ? 'worker_report' : 'worker_stall',
     });
 }
 
@@ -74,11 +73,12 @@ async function seedRun(seed: Seed): Promise<string> {
     const turnId = createOpaqueId('car');
     await connection.db.insert(workersTable).values({
         agentId: seed.agentId,
-        chatId: seed.dmChatId,
-        computerId: seed.computerId,
+        carrierComputerId: seed.computerId,
+        closedAt: new Date(),
         id: workerId,
         launchMessageId: createOpaqueId('msg'),
-        provider: 'claude',
+        originChatId: seed.dmChatId,
+        place: 'claude',
         repository: 'haus/haus',
         serverId: seed.serverId,
         status: 'running',

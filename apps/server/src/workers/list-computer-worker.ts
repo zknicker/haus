@@ -15,9 +15,9 @@ export async function listComputerWorker(
 ): Promise<WorkerReconcileEntry[]> {
     const rows = await db
         .select({
-            cancelRequestedAt: workerTurnsTable.cancelRequestedAt,
+            cancelRequestedAt: workerTurnsTable.stopRequestedAt,
             workerId: workersTable.id,
-            provider: workersTable.provider,
+            provider: workersTable.place,
             providerAgentId: workersTable.providerAgentId,
             status: workerTurnsTable.status,
             turnId: workerTurnsTable.id,
@@ -34,7 +34,7 @@ export async function listComputerWorker(
         .where(
             and(
                 eq(workersTable.serverId, input.serverId),
-                eq(workersTable.computerId, input.computerId),
+                eq(workersTable.carrierComputerId, input.computerId),
                 input.workerId ? eq(workersTable.id, input.workerId) : undefined,
                 inArray(workerTurnsTable.status, ['queued', 'running'])
             )
