@@ -178,7 +178,8 @@ export type WorkerObservation = z.infer<typeof workerObservationSchema>;
 
 /**
  * One dispatched, unsettled turn the carrier must reconcile with the provider
- * after a reconnect, plus whether a stop was recorded while it was offline.
+ * after a reconnect, plus whether to stop it: a stop was recorded while it
+ * was offline, or the Server already settled it stopped (a purged Task).
  */
 export const workerReconcileEntrySchema = z
     .object({

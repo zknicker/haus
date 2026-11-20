@@ -14,6 +14,7 @@ export async function listComputerWorker(
 ): Promise<WorkerReconcileEntry[]> {
     const rows = await db
         .select({
+            outcome: workerTurnsTable.outcome,
             place: workersTable.place,
             providerAgentId: workersTable.providerAgentId,
             providerRunId: workerTurnsTable.providerRunId,
@@ -36,9 +37,9 @@ export async function listComputerWorker(
             )
         )
         .orderBy(asc(workerTurnsTable.createdAt), asc(workerTurnsTable.id));
-    return rows.map(({ stopRequestedAt, ...row }) => ({
+    return rows.map(({ outcome, stopRequestedAt, ...row }) => ({
         ...row,
-        stopRequested: stopRequestedAt !== null,
+        stopRequested: stopRequestedAt !== null || outcome?.kind === 'stopped',
     }));
 }
 

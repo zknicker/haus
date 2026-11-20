@@ -38,7 +38,8 @@ lost. An intent without an acknowledgement stops at its five-minute launch deadl
 stop. Disconnecting joins local monitoring without stopping the hosted run. While the carrier is
 offline the Worker reads **Status unconfirmed**. On reconnect the Server pushes reconcile frames, at
 most 200 entries each, naming every unsettled turn the carrier holds and any stop recorded while it
-was offline. Removing the carrier settles its cloud Workers' unsettled turns as failed
+was offline. A turn the Server settled `stopped` while the hosted run was live, as a deleted
+Project's Task does, is named with a stop too. Removing the carrier settles its cloud Workers' unsettled turns as failed
 `machine-removed`, with the provider URL kept so the Agent can still look. The provider login left
 with the carrier, so the Worker takes no more turns: a later follow-up is refused with
 `WORKER_CARRIER_REMOVED`, and the Agent starts a new Worker.

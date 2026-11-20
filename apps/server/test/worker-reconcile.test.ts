@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import { workerTurnsTable } from '../src/postgres/schema.ts';
+import { deleteTasksOfRemovedChats } from '../src/tasks/task-chat-removal.ts';
 import {
     acceptWorkerTurn,
     drainWorkerFollowUp,
@@ -14,6 +15,7 @@ import {
     observe,
     readTurns,
     seedWorkerBoard,
+    setReadyPlaces,
     startOn,
     type WorkerBoard,
 } from './worker-board.fixture.ts';
@@ -160,6 +162,53 @@ test('a drain for a turn the Server never had creates it, and another carrier is
         .where(eq(workerTurnsTable.id, missing));
     expect(created).toMatchObject({ providerRunId: 'run_recovered', workerId: worker.id });
     expect(created?.acknowledgedAt).not.toBeNull();
+});
+
+test('a Project purge while the carrier is offline stops the hosted run when the carrier reconnects', async () => {
+    const board = await seedWorkerBoard(connection.db);
+    const { delivery } = offlineDelivery(connection.db, board.seed);
+    const { worker } = (await startOn(connection.db, board)).receipt;
+    const turnId = worker.turns[0]?.turnId ?? '';
+    await acceptWorkerTurn(connection.db, { ...scope(board), turnId });
+    await observe(connection.db, delivery, board, {
+        providerAgentId: 'bc_purged',
+        status: 'running',
+        turnId,
+        workerId: worker.id,
+    });
+    await setReadyPlaces(connection.db, board.seed.serverId, board.seed.computerId, [], 'offline');
+
+    const purged = await connection.db.transaction(
+        async (tx) =>
+            await deleteTasksOfRemovedChats(tx, {
+                chatIds: [board.task.chatId],
+                serverId: board.seed.serverId,
+            })
+    );
+    const reconnect = await planCarrierReconnect(connection.db, {
+        id: board.seed.computerId,
+        serverId: board.seed.serverId,
+    });
+
+    expect(purged.workerFrames).toEqual([]);
+    expect((await readTurns(connection.db, worker.id)).map((turn) => turn.outcome)).toEqual([
+        { kind: 'stopped' },
+    ]);
+    expect(
+        reconnect.frames.flatMap(({ frame }) =>
+            frame.type === 'worker-reconcile' ? frame.workers : []
+        )
+    ).toEqual([
+        {
+            place: 'cursor',
+            providerAgentId: 'bc_purged',
+            providerRunId: null,
+            status: 'running',
+            stopRequested: true,
+            turnId,
+            workerId: worker.id,
+        },
+    ]);
 });
 
 function scope(board: WorkerBoard) {
