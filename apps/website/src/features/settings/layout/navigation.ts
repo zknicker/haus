@@ -81,7 +81,6 @@ export const settingsNavItems = [
             'Cloud Agents',
             'Effort',
             'Fast',
-            'Detected runtimes',
             'Reported models',
         ],
     },
@@ -107,7 +106,7 @@ export const settingsNavItems = [
         id: 'computers',
         kind: 'page',
         label: 'Devices',
-        rows: ['Add device', 'Runtimes', 'Browser', 'Secrets', '1Password', 'Updates'],
+        rows: ['Add device', 'Browser', 'Secrets', '1Password', 'Updates'],
     },
     {
         access: 'everyone',

@@ -8,7 +8,7 @@ export function ComputerProfilePending() {
             <SettingsPageHeader title="Device" />
 
             {[
-                'Runtimes',
+                'Plan usage',
                 'Browser',
                 'Cloud Agents',
                 'Captains on this device',

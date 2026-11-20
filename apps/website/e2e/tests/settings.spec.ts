@@ -169,9 +169,9 @@ test('reports current Computer models and skills in Server Settings', async ({ p
     await page.goto(`/s/${slug}/settings/models`);
 
     await expect(page.getByRole('heading', { level: 1, name: 'Models' })).toBeVisible();
-    await expect(page.getByText('Codex', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('GPT-5.6 Terra', { exact: true })).toBeVisible();
     await expect(page.getByText('gpt-5.6-terra', { exact: true })).toBeVisible();
+    await expect(page.getByText('Detected Runtimes')).toHaveCount(0);
 
     await page.goto(`/s/${slug}/settings/skills`);
     await page.getByRole('button', { name: /Durable Testing/u }).click();
