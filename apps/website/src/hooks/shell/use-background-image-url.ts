@@ -1,34 +1,52 @@
 import * as React from 'react';
 import { readBackgroundImage } from '../../lib/background-images.ts';
-import type { BackgroundImageRef } from '../../lib/home-background.ts';
+import type { BackgroundImageRef, BackgroundImageType } from '../../lib/home-background.ts';
 
 export type BackgroundImageUrl =
     | { readonly status: 'loading' }
     | { readonly status: 'missing' }
     | { readonly status: 'ready'; readonly url: string };
 
+const reducedMotionQuery = '(prefers-reduced-motion: reduce)';
+const animatableTypes: ReadonlySet<BackgroundImageType> = new Set([
+    'image/avif',
+    'image/gif',
+    'image/webp',
+]);
+
+export function showsStillFrame(type: BackgroundImageType, reducedMotion: boolean) {
+    return reducedMotion && animatableTypes.has(type);
+}
+
 export function useBackgroundImageUrl(image: BackgroundImageRef | null) {
-    const [state, setState] = React.useState<{ id: string; url: BackgroundImageUrl } | null>(null);
+    const [state, setState] = React.useState<{ key: string; url: BackgroundImageUrl } | null>(null);
+    const canAnimate = image ? animatableTypes.has(image.type) : false;
+    const reducedMotion = React.useSyncExternalStore(
+        canAnimate ? subscribeReducedMotion : subscribeNever,
+        canAnimate ? prefersReducedMotion : never,
+        never
+    );
     const id = image?.id ?? null;
-    const isGif = image?.type === 'image/gif';
+    const still = image ? showsStillFrame(image.type, reducedMotion) : false;
+    const key = id ? `${id}:${still}` : null;
 
     React.useEffect(() => {
-        if (!id) {
+        if (!(id && key)) {
             return;
         }
         let url: string | null = null;
         let live = true;
-        loadImageBlob(id, isGif && prefersReducedMotion())
+        loadImageBlob(id, still)
             .then((blob) => {
                 if (!live) {
                     return;
                 }
                 url = blob ? URL.createObjectURL(blob) : null;
-                setState({ id, url: url ? { status: 'ready', url } : { status: 'missing' } });
+                setState({ key, url: url ? { status: 'ready', url } : { status: 'missing' } });
             })
             .catch(() => {
                 if (live) {
-                    setState({ id, url: { status: 'missing' } });
+                    setState({ key, url: { status: 'missing' } });
                 }
             });
         return () => {
@@ -37,12 +55,12 @@ export function useBackgroundImageUrl(image: BackgroundImageRef | null) {
                 URL.revokeObjectURL(url);
             }
         };
-    }, [id, isGif]);
+    }, [id, key, still]);
 
-    if (!id) {
+    if (!key) {
         return null;
     }
-    return state?.id === id ? state.url : ({ status: 'loading' } as const);
+    return state?.key === key ? state.url : ({ status: 'loading' } as const);
 }
 
 async function loadImageBlob(id: string, still: boolean) {
@@ -52,12 +70,29 @@ async function loadImageBlob(id: string, still: boolean) {
 
 async function firstFrame(blob: Blob) {
     const bitmap = await createImageBitmap(blob);
-    const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-    canvas.getContext('2d')?.drawImage(bitmap, 0, 0);
-    bitmap.close();
-    return canvas.convertToBlob({ type: 'image/png' });
+    try {
+        const canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+        canvas.getContext('2d')?.drawImage(bitmap, 0, 0);
+        return await canvas.convertToBlob({ type: 'image/png' });
+    } finally {
+        bitmap.close();
+    }
+}
+
+function subscribeReducedMotion(onChange: () => void) {
+    const query = window.matchMedia(reducedMotionQuery);
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
 }
 
 function prefersReducedMotion() {
-    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    return window.matchMedia(reducedMotionQuery).matches;
+}
+
+function subscribeNever() {
+    return () => undefined;
+}
+
+function never() {
+    return false;
 }
