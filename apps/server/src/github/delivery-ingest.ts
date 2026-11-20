@@ -2,13 +2,13 @@ import type { GithubTriggerProblem } from '@haus/api';
 import { type EffectRuntime, tracePromise } from '@haus/effect';
 import { and, eq, inArray, lt, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import { markPullRequestReadings } from '../cloud-agents/pull-request-readings.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { githubTriggerConfigsTable, githubWebhookDeliveriesTable } from '../postgres/schema.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { recordTriggerFire } from '../triggers/trigger-fire.ts';
 import type { TriggerRateLimiter } from '../triggers/trigger-rate-limit.ts';
+import { markPullRequestReadings } from '../workers/pull-request-readings.ts';
 import {
     type GithubIgnoredReason,
     type GithubTriggerMatch,

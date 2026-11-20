@@ -5,12 +5,12 @@
  * drifting (Raft prints both with one row formatter too).
  */
 export interface InboxTargetSummary {
-    /** A typed attention (Cloud Agent result, pull request notice) waits here, so the target counts work items. */
+    /** A typed attention (Worker result, pull request notice) waits here, so the target counts work items. */
     attention: boolean;
     /** The latest item's claim number, when it is a claim. */
     claimNumber: number | null;
-    /** A settled Cloud Agent Run waits here. */
-    cloudAgentResult: boolean;
+    /** A settled Worker Run waits here. */
+    workerResult: boolean;
     firstShortId: string;
     latestSender: string;
     latestShortId: string;
@@ -35,7 +35,7 @@ function formatInboxTags(row: InboxTargetSummary): string {
     const tags = [
         targetTag(row.target),
         row.claimNumber === null ? null : `claim #${row.claimNumber}`,
-        row.cloudAgentResult ? 'cloud agent result' : null,
+        row.workerResult ? 'Worker result' : null,
         row.mentioned ? 'you were mentioned' : null,
     ].filter(Boolean);
     return tags.length > 0 ? ` · ${tags.join(' · ')}` : '';

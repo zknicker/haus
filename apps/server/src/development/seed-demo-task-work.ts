@@ -1,14 +1,14 @@
-import { formatCloudAgentWorkLink } from '@haus/api';
+import { formatWorkerLink } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     chatMessagesTable,
     chatsTable,
-    cloudAgentPullRequestsTable,
-    cloudAgentRunsTable,
-    cloudAgentWorkLinksTable,
-    cloudAgentWorkTable,
+    pullRequestReadingsTable,
+    workerTurnsTable,
+    workerHistoryLinksTable,
+    workersTable,
     taskPullRequestsTable,
 } from '../postgres/schema.ts';
 import type { SeededDemoTask } from './seed-demo-tasks.ts';
@@ -26,13 +26,13 @@ export async function seedDemoTaskWork(
     const { serverId, task } = input;
     const now = new Date();
     const messageId = createOpaqueId('msg');
-    const workId = createOpaqueId('caw');
+    const workerId = createOpaqueId('caw');
     const sequence = task.messageCount + 1;
     const pullRequestUrl = `https://github.com/${repository}/pull/${pullRequestNumber}`;
     await tx.insert(chatMessagesTable).values({
         authorAgentId: input.agentId,
         chatId: task.chatId,
-        content: `A cloud agent built it and opened a draft pull request.\n\n${formatCloudAgentWorkLink(title, workId)}`,
+        content: `A Worker built it and opened a draft pull request.\n\n${formatWorkerLink(title, workerId)}`,
         id: messageId,
         nonce: `dev-${task.chatId}-${sequence}`,
         replyRootMessageId: messageId,
@@ -43,15 +43,15 @@ export async function seedDemoTaskWork(
         .update(chatsTable)
         .set({ lastActivityAt: now, lastMessageSequence: sequence })
         .where(and(eq(chatsTable.serverId, serverId), eq(chatsTable.id, task.chatId)));
-    await tx.insert(cloudAgentWorkTable).values({
+    await tx.insert(workersTable).values({
         activityAt: now,
         activitySummary: 'Opened a draft pull request with the crop step',
         agentId: input.agentId,
-        chatId: task.chatId,
-        computerId: input.computerId,
-        id: workId,
+        carrierComputerId: input.computerId,
+        id: workerId,
         launchMessageId: messageId,
-        provider: 'cursor',
+        originChatId: task.chatId,
+        place: 'cursor',
         repository,
         serverId,
         startedAt: now,
@@ -61,7 +61,7 @@ export async function seedDemoTaskWork(
         terminalAt: now,
         title,
     });
-    await tx.insert(cloudAgentRunsTable).values({
+    await tx.insert(workerTurnsTable).values({
         branches: [{ branch: 'cloud/avatar-upload', pullRequestUrl, repository }],
         id: createOpaqueId('car'),
         observedAt: now,
@@ -70,16 +70,16 @@ export async function seedDemoTaskWork(
         status: 'completed',
         summary: 'Added square cropping and a resize step before upload. Checks are still running.',
         terminalAt: now,
-        workId,
+        workerId,
     });
-    await tx.insert(cloudAgentWorkLinksTable).values({
+    await tx.insert(workerHistoryLinksTable).values({
         chatId: task.chatId,
         messageId,
         ordinal: 0,
         serverId,
-        workId,
+        workerId,
     });
-    await tx.insert(cloudAgentPullRequestsTable).values({
+    await tx.insert(pullRequestReadingsTable).values({
         additions: 214,
         changedFiles: 9,
         checks: 'pending',

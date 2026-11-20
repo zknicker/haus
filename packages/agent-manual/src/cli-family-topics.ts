@@ -8,7 +8,7 @@ export const cliFamilyTopics = {
     attachment: 'attachment',
     channel: 'channel',
     claim: 'claims',
-    'cloud-agent': 'cloud-agents',
+    worker: 'workers',
     connection: 'connection',
     drive: 'drive',
     image: 'images',

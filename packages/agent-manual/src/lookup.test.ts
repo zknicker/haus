@@ -17,8 +17,8 @@ const topIds = (query: string, scope: 'all' | 'recipes' = 'all') =>
 
 test('search ranks partial matches instead of requiring every term', () => {
     // Observed misses: both returned "No Manual topics matched" under all-terms search.
-    expect(topIds('cloud agent model')[0]).toBe('cloud-agents');
-    expect(topIds('cursor')[0]).toBe('cloud-agents');
+    expect(topIds('cloud agent model')[0]).toBe('workers');
+    expect(topIds('cursor')[0]).toBe('workers');
     expect(topIds('schedule a follow up')).toContain('reminder');
     expect(topIds('upload a file').slice(0, 2)).toEqual(['attachment', 'drive']);
 });
@@ -68,13 +68,13 @@ test('get resolves normalized ids, titles, plurals, and observed aliases', () =>
     expect(resolveManualTopic('technique/task-claim-lock')?.id).toBe(
         'recipes/technique/task-claim-lock'
     );
-    expect(resolveManualTopic('Cloud Agents')?.id).toBe('cloud-agents');
-    expect(resolveManualTopic('cloud_agent')?.id).toBe('cloud-agents');
-    expect(resolveManualTopic('cloud agent model')?.id).toBe('cloud-agents');
-    expect(resolveManualTopic('cursor')?.id).toBe('cloud-agents');
+    expect(resolveManualTopic('Workers')?.id).toBe('workers');
+    expect(resolveManualTopic('worker')?.id).toBe('workers');
+    expect(resolveManualTopic('cloud agent model')?.id).toBe('workers');
+    expect(resolveManualTopic('cursor')?.id).toBe('workers');
     expect(resolveManualTopic('merchbase')).toBeNull();
     // Stable-id get stays exact for seeded callers.
-    expect(getManualTopic('Cloud Agents')).toBeNull();
+    expect(getManualTopic('Workers')).toBeNull();
 });
 
 test('every command family noun resolves to its topic, singular and plural', () => {

@@ -16,8 +16,8 @@ import { agentsTable } from './agents.ts';
 import { bunJsonb } from './bun-jsonb.ts';
 import { chatMessagesTable } from './chat-messages.ts';
 import { chatsTable } from './chats.ts';
-import { cloudAgentRunsTable } from './cloud-agents.ts';
 import { serversTable } from './servers.ts';
+import { workerTurnsTable } from './worker-turns.ts';
 
 export const agentInboxCursorsTable = pgTable(
     'agent_inbox_cursors',
@@ -149,7 +149,7 @@ export const agentMessageDraftsTable = pgTable(
 
 /**
  * The Agent inbox: the durable ledger of everything offered to one Agent.
- * Ordinary Chat deliveries, Cloud Agent attentions, claim assignments, and Trigger
+ * Ordinary Chat deliveries, Worker attentions, claim assignments, and Trigger
  * and Reminder fires all ride these rows, each keyed by its own identity.
  * `state` is the live-queue gate: only a `queued` row is deliverable, and every
  * queue read filters on it. `noticeRunId` records
@@ -175,9 +175,8 @@ export const agentInboxTable = pgTable(
          * Chat when it has one.
          */
         chatId: text('chat_id'),
-        /** Why a `cloud_agent_work` row reached this Agent. */
-        cloudAgentNotice: text('cloud_agent_notice').$type<'settled' | 'stall' | 'pull_request'>(),
-        cloudAgentRunId: text('cloud_agent_run_id'),
+        /** The Worker turn a `worker_report`, `worker_stall`, or `pull_request` row is about. */
+        workerTurnId: text('worker_turn_id'),
         content: text('content').notNull(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         dedupeKey: text('dedupe_key').notNull(),
@@ -218,19 +217,16 @@ export const agentInboxTable = pgTable(
             name: 'agent_inbox_chat_fk',
         }).onDelete('cascade'),
         foreignKey({
-            columns: [table.serverId, table.cloudAgentRunId],
-            foreignColumns: [cloudAgentRunsTable.serverId, cloudAgentRunsTable.id],
-            name: 'agent_inbox_cloud_agent_run_fk',
+            columns: [table.serverId, table.workerTurnId],
+            foreignColumns: [workerTurnsTable.serverId, workerTurnsTable.id],
+            name: 'agent_inbox_worker_turn_fk',
         }).onDelete('cascade'),
         check(
-            'agent_inbox_cloud_agent_notice',
-            sql`(${table.source} = 'cloud_agent_work') = (${table.cloudAgentNotice} is not null)
-                and (${table.cloudAgentNotice} is null
-                    or ${table.cloudAgentNotice} in ('settled', 'stall', 'pull_request'))
-                and (${table.cloudAgentRunId} is null or ${table.cloudAgentNotice} is not null)
-                and (${table.cloudAgentRunId} is not null
-                    or ${table.cloudAgentNotice} is null
-                    or ${table.cloudAgentNotice} = 'pull_request')`
+            'agent_inbox_worker_shape',
+            sql`(${table.workerTurnId} is null
+                    or ${table.source} in ('worker_report', 'worker_stall', 'pull_request'))
+                and (${table.source} not in ('worker_report', 'worker_stall')
+                    or ${table.workerTurnId} is not null)`
         ),
         uniqueIndex('agent_inbox_dedupe_key').on(table.serverId, table.agentId, table.dedupeKey),
         index('agent_inbox_queue_idx').on(table.serverId, table.agentId, table.createdAt),

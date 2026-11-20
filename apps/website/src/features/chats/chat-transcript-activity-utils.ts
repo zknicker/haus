@@ -46,7 +46,7 @@ export function isActiveActivityItem(item: ActivityItem) {
         return !(item.row.completedAt || hasFailedToolStatus(item.row.toolCall.status));
     }
 
-    if (item.row.kind === 'worker') {
+    if (item.row.kind === 'subagent') {
         return !item.row.completedAt;
     }
 
@@ -74,7 +74,7 @@ function getActivityStartTimestamp(item: ActivityItem | undefined): string | nul
         return null;
     }
 
-    if (item.row.kind === 'tool' || item.row.kind === 'worker') {
+    if (item.row.kind === 'tool' || item.row.kind === 'subagent') {
         return item.row.startedAt ?? item.row.completedAt;
     }
 
@@ -90,7 +90,7 @@ function getActivityEndTimestamp(item: ActivityItem | undefined): string | null 
         return null;
     }
 
-    if (item.row.kind === 'tool' || item.row.kind === 'worker') {
+    if (item.row.kind === 'tool' || item.row.kind === 'subagent') {
         return item.row.completedAt;
     }
 

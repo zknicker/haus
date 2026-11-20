@@ -19,7 +19,6 @@ import { createAgentThoughts } from '../server-agents/agent-thought.ts';
 import { clearHausAgentState } from '../server-agents/record-haus-agent-state.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { readServerRuntimeSettingsCommand } from '../servers/server-settings.ts';
-import { sendCloudAgentReconcile } from './cloud-agent-reports.ts';
 import type { ComputerConnections } from './connections.ts';
 import { ingestReport } from './ingest-report.ts';
 import {
@@ -33,6 +32,7 @@ import {
     defaultComputerSocketLiveness,
     watchComputerSocketLiveness,
 } from './socket-liveness.ts';
+import { reconnectWorkerCarrier } from './worker-reports.ts';
 
 // The app-level heartbeat keeps Raft's cadence; transport pings detect silence sooner.
 const heartbeatConfiguration = {
@@ -199,8 +199,8 @@ export function startComputerAttachmentSocket(
             void clearStartRejectedHolds(db, computer.id)
                 .then(() => delivery.onComputerReconnect(computer.id))
                 .catch(() => undefined);
-            void postCommitWork.run('cloud-agent.reconcile-on-connect', () =>
-                sendCloudAgentReconcile(db, connections, computer)
+            void postCommitWork.run('worker.reconcile-on-connect', () =>
+                reconnectWorkerCarrier(db, { connections, delivery, postCommitWork }, computer)
             );
         };
         socket.on('message', (raw) => {

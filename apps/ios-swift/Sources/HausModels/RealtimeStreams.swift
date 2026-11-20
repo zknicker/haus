@@ -7,7 +7,7 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
     case messageReactionUpdated = "chat.onMessageReactionUpdated"
     case chatRead = "chat.onRead"
     case chatLifecycle = "chat.onLifecycle"
-    case cloudAgentWorkUpdated = "cloudAgentWork.onUpdated"
+    case cloudAgentWorkUpdated = "worker.onUpdated"
     case claimChanged = "claim.onChanged"
     case taskLabelUpdated = "taskLabel.onUpdated"
     case taskCreated = "task.onCreated"

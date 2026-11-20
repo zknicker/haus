@@ -1,4 +1,4 @@
-import type { CloudAgentPullRequestReading } from '@haus/api';
+import type { PullRequestReading } from '@haus/api';
 import { Button, Chip, toast } from '@heroui/react';
 import { GitPullRequestIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { ActionCard } from '../../../components/chats/action-card.tsx';
@@ -6,7 +6,7 @@ import { Icon } from '../../../components/ui/icon.tsx';
 import { openExternalLink } from '../../../lib/open-external-link.ts';
 import { pullRequestFacts, pullRequestStateChip } from './task-work-model.ts';
 
-export function TaskPullRequestCard({ reading }: { reading: CloudAgentPullRequestReading }) {
+export function TaskPullRequestCard({ reading }: { reading: PullRequestReading }) {
     const chip = pullRequestStateChip[reading.state];
     return (
         <ActionCard

@@ -15,7 +15,7 @@ import {
     avatarsTable,
     chatMessagesTable,
     chatsTable,
-    cloudAgentWorkTable,
+    workersTable,
     computersTable,
     mcpConnectionsTable,
     messageClaimsTable,
@@ -209,7 +209,7 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     expect(followedNumbers.map((task) => task.number).sort()).toEqual([1, 3, 4, 5]);
     const [open] = byNumber(tasks);
     expect(messages.filter((message) => message.chatId === open?.chatId)).toHaveLength(4);
-    const works = await connection.db.select().from(cloudAgentWorkTable);
+    const works = await connection.db.select().from(workersTable);
     const openWork = works.filter((work) => work.taskId === open?.id);
     expect(openWork.map((work) => work.status)).toEqual(['completed']);
     expect(await connection.db.select().from(taskPullRequestsTable)).toMatchObject([

@@ -8,10 +8,10 @@ import {
 import { useChatLifecycleStream } from './use-chat-lifecycle-stream.ts';
 import { useChatReadStream } from './use-chat-read-stream.ts';
 import { useClaimChangeStream } from './use-claim-change-stream.ts';
-import { useCloudAgentWorkStream } from './use-cloud-agent-work-stream.ts';
 import { useMessageCreatedStream } from './use-message-created-stream.ts';
 import { useMessageReactionStream } from './use-message-reaction-stream.ts';
 import { useTaskLabelStream } from './use-task-label-stream.ts';
+import { useWorkerStream } from './use-worker-stream.ts';
 
 installRealtimeTestDom();
 
@@ -94,7 +94,7 @@ describe('Chat stream hooks', () => {
         expect<unknown>(onEvent[0]).toEqual({ op: 'noteMessageAnnotated', target: event });
         const reads = [
             listKey('chat.search', { serverId }),
-            listKey('cloudAgentWork.listActive', { serverId }),
+            listKey('worker.listActive', { serverId }),
             listKey('claim.list', { serverId }),
         ];
         expect(invalidated(onEvent)).toEqual(reads);
@@ -135,10 +135,10 @@ describe('Chat stream hooks', () => {
             listKey('chat.get', { chatId: 'cht_a', serverId }),
             listKey('agent.chats', { serverId }),
             listKey('chat.unreadPreviews', { serverId }),
-            // Linked Cloud Agent work may leave the viewer's lists (ADR 0044).
-            listKey('cloudAgentWork.listAutomations', { serverId }),
-            listKey('cloudAgentWork.listActive', { serverId }),
-            listKey('cloudAgentWork.listForChat', { serverId }),
+            // Linked Worker may leave the viewer's lists (ADR 0044).
+            listKey('worker.listAutomations', { serverId }),
+            listKey('worker.listActive', { serverId }),
+            listKey('worker.listForChat', { serverId }),
         ]);
         // Lifecycle owns no transcript lists: its recovery is its own table row.
         expect(onRecovery.some((entry) => entry.op === 'recoverTranscriptLists')).toBe(false);
@@ -166,34 +166,30 @@ describe('Chat stream hooks', () => {
         expect(invalidated(onRecovery)).toEqual(reads);
     });
 
-    test('cloudAgentWork.onUpdated invalidates the work entity and its Chat work list', async () => {
+    test('worker.onUpdated invalidates the work entity and its Chat work list', async () => {
         const event = {
             chatId: 'cht_task',
             messageId: 'msg_work',
             serverId,
             workId: 'wrk_1',
         };
-        const { onEvent, onRecovery } = await drive(
-            'cloudAgentWork.onUpdated',
-            useCloudAgentWorkStream,
-            event
-        );
+        const { onEvent, onRecovery } = await drive('worker.onUpdated', useWorkerStream, event);
         expect<unknown>(onEvent[0]).toEqual({
             op: 'noteMessageAnnotated',
             target: { chatId: 'cht_task', messageId: 'msg_work', serverId },
         });
         expect(invalidated(onEvent)).toEqual([
-            listKey('cloudAgentWork.listForChat', { chatId: 'cht_task', serverId }),
-            listKey('cloudAgentWork.listLinks', { serverId }),
-            listKey('cloudAgentWork.listAutomations', { serverId }),
-            listKey('cloudAgentWork.listActive', { serverId }),
+            listKey('worker.listForChat', { chatId: 'cht_task', serverId }),
+            listKey('worker.listLinks', { serverId }),
+            listKey('worker.listAutomations', { serverId }),
+            listKey('worker.listActive', { serverId }),
         ]);
         expect<unknown>(onRecovery[0]).toEqual(bulkLists);
         expect(invalidated(onRecovery)).toEqual([
-            listKey('cloudAgentWork.listForChat', { serverId }),
-            listKey('cloudAgentWork.listLinks', { serverId }),
-            listKey('cloudAgentWork.listAutomations', { serverId }),
-            listKey('cloudAgentWork.listActive', { serverId }),
+            listKey('worker.listForChat', { serverId }),
+            listKey('worker.listLinks', { serverId }),
+            listKey('worker.listAutomations', { serverId }),
+            listKey('worker.listActive', { serverId }),
             listKey('task.get', { serverId }),
         ]);
     });

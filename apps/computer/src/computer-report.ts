@@ -1,5 +1,4 @@
 import type { AgentEffectiveState } from '@haus/api';
-import { readDefaultCloudAgentProvider } from './cloud-agents/settings.ts';
 import { type EffectiveAgentState, readEffectiveAgentStates } from './effective-state.ts';
 import {
     listAgentSkillImportReports,
@@ -11,6 +10,7 @@ import { refreshRuntimeAuthentication } from './runtime-auth-refresh.ts';
 import { readRuntimeIssues } from './runtime-issues.ts';
 import { loginKeychain } from './secrets/keychain.ts';
 import { readSecretsStatus } from './secrets/store.ts';
+import { readDefaultCloudAgentProvider } from './workers/settings.ts';
 
 export function createComputerReporter(dataRoot: string) {
     return async (

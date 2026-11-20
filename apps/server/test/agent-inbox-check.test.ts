@@ -52,7 +52,7 @@ test('inbox check rows carry the facts the notice tags a target with', async () 
     expect(inbox.totalPending).toBe(3);
     expect(inbox.rows.find((row) => row.target === '#product')).toEqual({
         chatId: seed.channelId,
-        cloudAgentResult: false,
+        workerResult: false,
         dm: false,
         // The fire after it has no Chat message; the first pending message does.
         firstSequence: await sequenceOf(claimMessageId),

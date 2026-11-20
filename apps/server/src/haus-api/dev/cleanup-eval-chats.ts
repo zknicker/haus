@@ -30,7 +30,7 @@ export function createCleanupEvalChatsProcedure(
         await requireServerMembership(ctx.hausDb, ctx.member, input.serverId);
 
         const requestedChatIds = [...new Set(input.chatIds)];
-        const { deleted, taskEvents } = await ctx.hausDb.transaction(async (tx) => {
+        const { deleted, deletedTasks } = await ctx.hausDb.transaction(async (tx) => {
             const taskChats = await tx
                 .select({ id: chatsTable.id })
                 .from(chatsTable)
@@ -79,10 +79,13 @@ export function createCleanupEvalChatsProcedure(
                 .returning({ id: chatsTable.id });
             return {
                 deleted: [...removed, ...taskChatIds.map((id) => ({ id }))],
-                taskEvents: deletedTasks,
+                deletedTasks,
             };
         });
-        publishRealtime(taskEvents);
+        publishRealtime(deletedTasks.events);
+        for (const { computerId, frame } of deletedTasks.workerFrames) {
+            ctx.computerConnections.send(computerId, frame);
+        }
         const deletedChatIds = deleted.map((chat) => chat.id).sort();
 
         return { count: deletedChatIds.length, deletedChatIds };

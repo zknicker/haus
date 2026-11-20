@@ -220,7 +220,7 @@ test('settlement invalidates the Agent turn reads once, never older activity pag
         'infinite'
     );
     const cloudHandoffs = getQueryKey(
-        hausTrpc.cloudAgentWork.listAutomations,
+        hausTrpc.worker.listAutomations,
         { ...scope, history: false },
         'query'
     );
