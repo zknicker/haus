@@ -237,5 +237,19 @@ function crashed(frame: Launchable | null, detail: string) {
 }
 
 function messageOf(error: unknown) {
-    return error instanceof Error ? error.message : String(error);
+    const text = error instanceof Error ? error.message : String(error);
+    return providerMessage(text) ?? text;
+}
+
+export function providerMessage(text: string) {
+    try {
+        const parsed: unknown = JSON.parse(text);
+        const body = typeof parsed === 'object' && parsed !== null ? parsed : {};
+        const nested = 'error' in body && typeof body.error === 'object' ? body.error : body;
+        return nested && 'message' in nested && typeof nested.message === 'string'
+            ? nested.message
+            : null;
+    } catch {
+        return null;
+    }
 }
