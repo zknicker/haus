@@ -1,10 +1,11 @@
-import type {
-    InvocationBytes,
-    InvocationOperation,
-    InvocationOutput,
-    InvokeAccepted,
-    InvokeResult,
-    MachineInvocationOutcome,
+import {
+    type InvocationBytes,
+    type InvocationOperation,
+    type InvocationOutput,
+    type InvokeAccepted,
+    type InvokeResult,
+    invocationInlineBytesMax,
+    type MachineInvocationOutcome,
 } from '@haus/api';
 
 export type StopReason = 'cancel' | 'timeout';
@@ -53,8 +54,6 @@ export interface InvocationHandler {
     settled: () => Promise<void>;
 }
 
-export const inlineByteBudget = 700 * 1024;
-
 export class PayloadTooLargeError extends Error {
     constructor(readonly sizeBytes: number) {
         super(`Payload of ${sizeBytes} bytes does not fit in a frame.`);
@@ -69,7 +68,7 @@ export const inlinePayloads: InvocationPayloads = {
         return Buffer.from(bytes.base64, 'base64');
     },
     store: async (bytes, mediaType) => {
-        if (bytes.byteLength > inlineByteBudget) {
+        if (bytes.byteLength > invocationInlineBytesMax) {
             throw new PayloadTooLargeError(bytes.byteLength);
         }
         return { base64: Buffer.from(bytes).toString('base64'), kind: 'inline', mediaType };

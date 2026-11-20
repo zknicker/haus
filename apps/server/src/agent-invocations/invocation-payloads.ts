@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import { uploadStagedAttachment } from '../attachments/staged-attachment-upload.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
@@ -14,7 +14,7 @@ import type { ServerRuntime } from '../server-runtime.ts';
 export class InvocationPayloadError extends Error {
     constructor(
         message: string,
-        readonly status: 400 | 401 | 404 | 413 | 415
+        readonly status: 400 | 401 | 404 | 409 | 413 | 415
     ) {
         super(message);
         this.name = 'InvocationPayloadError';
@@ -26,55 +26,70 @@ interface ComputerIdentity {
     serverId: string;
 }
 
+type RunIdentity = Pick<ResolvedRunner, 'agentId' | 'runId' | 'serverId'>;
+
+interface PayloadBody {
+    declaredLength: number | null;
+    mediaType: string;
+    stream: AsyncIterable<Uint8Array>;
+}
+
 export async function storeInvocationPayload(
     db: HausDatabase,
     root: AttachmentRoot,
     runtime: ServerRuntime,
-    input: {
-        computer: ComputerIdentity;
-        declaredLength: number | null;
-        invocationId: string;
-        mediaType: string;
-        stream: AsyncIterable<Uint8Array>;
-    }
+    input: PayloadBody & { computer: ComputerIdentity; invocationId: string }
 ) {
     const invocation = await requireComputerInvocation(db, input.computer, input.invocationId);
-    const attachmentId = createOpaqueId('att');
-    await db.transaction(async (tx) => {
-        await tx.insert(attachmentsTable).values({
-            filename: 'invocation-payload',
-            id: attachmentId,
-            mediaType: input.mediaType,
-            serverId: invocation.serverId,
-            state: 'pending',
-            uploadNonce: attachmentId,
-            uploaderAgentId: invocation.agentId,
-        });
-        await tx.insert(agentInvocationPayloadsTable).values({
-            attachmentId,
-            invocationId: invocation.id,
-            serverId: invocation.serverId,
-        });
+    return await storePayload(db, root, runtime, {
+        ...input,
+        agentId: invocation.agentId,
+        binding: { invocationId: invocation.id },
+        serverId: invocation.serverId,
     });
-    const release = root.beginServerWrite(invocation.serverId);
-    try {
-        await uploadStagedAttachment(db, root, runtime, {
-            attachmentId,
-            declaredLength: input.declaredLength,
-            member: null,
-            serverId: invocation.serverId,
-            stream: input.stream,
-        });
-    } finally {
-        release();
+}
+
+export async function storeRunnerUpload(
+    db: HausDatabase,
+    root: AttachmentRoot,
+    runtime: ServerRuntime,
+    input: PayloadBody & {
+        runner: RunIdentity;
+        seq: number;
+        toolCallId: string;
     }
-    const stored = await readReadyPayload(db, invocation.serverId, attachmentId);
-    return {
-        attachmentId,
-        mediaType: stored.mediaType,
-        sha256: stored.sha256,
-        sizeBytes: stored.sizeBytes,
-    };
+) {
+    const { agentId, runId, serverId } = input.runner;
+    return await storePayload(db, root, runtime, {
+        ...input,
+        agentId,
+        binding: { agentId, runId, seq: input.seq, toolCallId: input.toolCallId },
+        serverId,
+    });
+}
+
+export async function bindRunnerUpload(
+    db: HausDatabase,
+    invocation: Pick<
+        typeof agentInvocationsTable.$inferSelect,
+        'agentId' | 'id' | 'runId' | 'seq' | 'serverId' | 'toolCallId'
+    >,
+    attachmentId: string
+) {
+    await db
+        .update(agentInvocationPayloadsTable)
+        .set({ invocationId: invocation.id })
+        .where(
+            and(
+                eq(agentInvocationPayloadsTable.attachmentId, attachmentId),
+                eq(agentInvocationPayloadsTable.serverId, invocation.serverId),
+                eq(agentInvocationPayloadsTable.agentId, invocation.agentId),
+                eq(agentInvocationPayloadsTable.runId, invocation.runId),
+                eq(agentInvocationPayloadsTable.toolCallId, invocation.toolCallId),
+                eq(agentInvocationPayloadsTable.seq, invocation.seq),
+                isNull(agentInvocationPayloadsTable.invocationId)
+            )
+        );
 }
 
 export async function openComputerPayload(
@@ -102,7 +117,7 @@ export async function openComputerPayload(
 export async function openRunPayload(
     db: HausDatabase,
     root: AttachmentRoot,
-    runner: Pick<ResolvedRunner, 'agentId' | 'runId' | 'serverId'>,
+    runner: RunIdentity,
     attachmentId: string
 ) {
     const [bound] = await db
@@ -125,6 +140,60 @@ export async function openRunPayload(
         throw new InvocationPayloadError('That payload does not belong to this run.', 404);
     }
     return await openPayload(db, root, runner.serverId, bound.attachmentId);
+}
+
+async function storePayload(
+    db: HausDatabase,
+    root: AttachmentRoot,
+    runtime: ServerRuntime,
+    input: PayloadBody & {
+        agentId: string;
+        binding:
+            | { invocationId: string }
+            | { agentId: string; runId: string; seq: number; toolCallId: string };
+        serverId: string;
+    }
+) {
+    const { serverId } = input;
+    const attachmentId = createOpaqueId('att');
+    await db.transaction(async (tx) => {
+        await tx.insert(attachmentsTable).values({
+            filename: 'invocation-payload',
+            id: attachmentId,
+            mediaType: input.mediaType,
+            serverId,
+            state: 'pending',
+            uploadNonce: attachmentId,
+            uploaderAgentId: input.agentId,
+        });
+        const bound = await tx
+            .insert(agentInvocationPayloadsTable)
+            .values({ ...input.binding, attachmentId, serverId })
+            .onConflictDoNothing()
+            .returning({ attachmentId: agentInvocationPayloadsTable.attachmentId });
+        if (bound.length === 0) {
+            throw new InvocationPayloadError('This tool call already uploaded its payload.', 409);
+        }
+    });
+    const release = root.beginServerWrite(serverId);
+    try {
+        await uploadStagedAttachment(db, root, runtime, {
+            attachmentId,
+            declaredLength: input.declaredLength,
+            member: null,
+            serverId,
+            stream: input.stream,
+        });
+    } finally {
+        release();
+    }
+    const stored = await readReadyPayload(db, serverId, attachmentId);
+    return {
+        attachmentId,
+        mediaType: stored.mediaType,
+        sha256: stored.sha256,
+        sizeBytes: stored.sizeBytes,
+    };
 }
 
 async function requireComputerInvocation(
