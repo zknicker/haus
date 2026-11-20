@@ -9,7 +9,11 @@ import { useChats } from '../../hooks/servers/use-chats.ts';
 export function ServerDefaultPage() {
     const { server } = useServerContext();
     return useCapyShell() ? (
-        <CapyHomePage serverId={server.id} slug={server.slug} />
+        <CapyHomePage
+            canManage={server.role === 'owner' || server.role === 'admin'}
+            serverId={server.id}
+            slug={server.slug}
+        />
     ) : (
         <EntryChatRedirect serverId={server.id} slug={server.slug} />
     );

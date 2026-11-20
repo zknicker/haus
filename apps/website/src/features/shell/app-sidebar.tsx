@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useInboxUnreadCount } from '../../hooks/servers/use-inbox-unread-count.ts';
 import type { ServerSummary } from '../../lib/haus-server.tsx';
 import { CreateAgentDialog } from '../members/create-agent-dialog.tsx';
-import { serverAgentDmRoute } from '../servers/server-routes.ts';
+import { serverAgentDmRoute, serverChatRoute } from '../servers/server-routes.ts';
 import { ChatNavigation } from './chat-navigation.tsx';
 import { NewProjectDialog } from './new-project-dialog.tsx';
 
@@ -51,9 +51,9 @@ export function AppSidebar({
             />
             <NewProjectDialog
                 onClose={() => setCreatingChannel(false)}
+                onCreated={(chatId) => navigate(serverChatRoute(slug, chatId))}
                 open={creatingChannel}
                 serverId={currentServer.id}
-                slug={slug}
             />
         </>
     );

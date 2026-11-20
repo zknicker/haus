@@ -10,7 +10,7 @@ import {
     resolveSelectedChatId,
 } from '../../routes/app/server-route-state.ts';
 import { CreateAgentDialog } from '../members/create-agent-dialog.tsx';
-import { serverAgentDmRoute, taskRoute } from '../servers/server-routes.ts';
+import { serverAgentDmRoute, serverChatRoute, taskRoute } from '../servers/server-routes.ts';
 import { NewProjectDialog } from '../shell/new-project-dialog.tsx';
 import { sidebarActionIconSize } from '../shell/section-header.tsx';
 import { ShellSidebarPageContent } from '../shell/shell-sidebar.tsx';
@@ -79,9 +79,9 @@ export function CapySidebar({
             />
             <NewProjectDialog
                 onClose={() => setCreating(null)}
+                onCreated={(chatId) => navigate(serverChatRoute(slug, chatId))}
                 open={creating === 'project'}
                 serverId={serverId}
-                slug={slug}
             />
         </SidebarNavigateProvider>
     );
@@ -129,17 +129,19 @@ function CapySidebarSectionView({
                     action={<AddButton label="New project" onPress={onCreateProject} />}
                     label="Projects"
                 >
-                    <Sidebar.Menu aria-label="Projects">
-                        {section.chatIds.map((chatId) => (
-                            <ProjectNavigationRow
-                                chatId={chatId}
-                                isCurrent={chatId === selection.selectedChatId}
-                                key={chatId}
-                                serverId={serverId}
-                                slug={slug}
-                            />
-                        ))}
-                    </Sidebar.Menu>
+                    {section.chatIds.length > 0 ? (
+                        <Sidebar.Menu aria-label="Projects">
+                            {section.chatIds.map((chatId) => (
+                                <ProjectNavigationRow
+                                    chatId={chatId}
+                                    isCurrent={chatId === selection.selectedChatId}
+                                    key={chatId}
+                                    serverId={serverId}
+                                    slug={slug}
+                                />
+                            ))}
+                        </Sidebar.Menu>
+                    ) : null}
                 </CapySection>
             );
         case 'open-tasks':

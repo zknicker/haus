@@ -6,7 +6,7 @@ export function CapySection({
     label,
 }: {
     action?: React.ReactNode;
-    children: React.ReactNode;
+    children?: React.ReactNode;
     label: string;
 }) {
     const [collapsed, setCollapsed] = React.useState(false);
@@ -26,7 +26,7 @@ export function CapySection({
                 </button>
                 {action ? <div className="flex shrink-0 items-center">{action}</div> : null}
             </div>
-            <div className={collapsed ? 'hidden' : undefined}>{children}</div>
+            {children ? <div className={collapsed ? 'hidden' : undefined}>{children}</div> : null}
         </section>
     );
 }

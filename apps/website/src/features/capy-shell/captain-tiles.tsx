@@ -32,23 +32,25 @@ export function CaptainTiles({
 }) {
     return (
         <CapySection action={action} label="Captains">
-            <ul aria-label="Captains" className="flex flex-wrap gap-y-[2px] ps-[1px]">
-                {agentIds.map((agentId) => (
-                    <li key={agentId}>
-                        <CaptainTileLink
-                            agentId={agentId}
-                            isCurrent={
-                                agentId === selectedAgentDmId ||
-                                (selectedChatId !== undefined &&
-                                    agentDmChatIds[agentId] === selectedChatId)
-                            }
-                            key={agentId}
-                            serverId={serverId}
-                            slug={slug}
-                        />
-                    </li>
-                ))}
-            </ul>
+            {agentIds.length > 0 ? (
+                <ul aria-label="Captains" className="flex flex-wrap gap-y-[2px] ps-[1px]">
+                    {agentIds.map((agentId) => (
+                        <li key={agentId}>
+                            <CaptainTileLink
+                                agentId={agentId}
+                                isCurrent={
+                                    agentId === selectedAgentDmId ||
+                                    (selectedChatId !== undefined &&
+                                        agentDmChatIds[agentId] === selectedChatId)
+                                }
+                                key={agentId}
+                                serverId={serverId}
+                                slug={slug}
+                            />
+                        </li>
+                    ))}
+                </ul>
+            ) : null}
         </CapySection>
     );
 }
