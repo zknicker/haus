@@ -3,7 +3,6 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { ServerWebSocket } from 'bun';
 
 const entrypoint = fileURLToPath(new URL('./index.ts', import.meta.url));
 
@@ -77,7 +76,7 @@ test('setup preserves a missing-Server attach error without trying another proto
 test('attach adopts an existing attachment instead of issuing a duplicate Computer', async () => {
     const dataRoot = await mkdtemp(join(tmpdir(), 'haus-computer-attach-existing-'));
     const requests: string[] = [];
-    const sockets = new Set<ServerWebSocket<undefined>>();
+    const bootstrapCredentials: unknown[] = [];
     const peer = Bun.serve({
         fetch(request, server) {
             const path = new URL(request.url).pathname;
@@ -93,10 +92,13 @@ test('attach adopts an existing attachment instead of issuing a duplicate Comput
         port: 0,
         websocket: {
             message(socket, message) {
-                sockets.add(socket);
-                const frame = JSON.parse(String(message)) as { type?: string };
+                const frame = JSON.parse(String(message)) as {
+                    credential?: unknown;
+                    type?: string;
+                };
                 if (frame.type === 'bootstrap') {
-                    socket.send(JSON.stringify({ mode: 'ordinary', type: 'bootstrap-accepted' }));
+                    bootstrapCredentials.push(frame.credential);
+                    socket.close();
                 }
             },
         },
@@ -126,13 +128,11 @@ test('attach adopts an existing attachment instead of issuing a duplicate Comput
         expect(result.exitCode, result.stderr).toBe(0);
         expect(requests.length).toBeGreaterThan(0);
         expect(requests.every((path) => path === '/computer/validate')).toBe(true);
+        expect(bootstrapCredentials).toEqual(['existing-attachment-credential']);
         await expect(readFile(attachmentPath, 'utf8')).resolves.toContain(
             'existing-attachment-credential'
         );
     } finally {
-        for (const socket of sockets) {
-            socket.close();
-        }
         peer.stop(true);
         await rm(dataRoot, { force: true, recursive: true });
     }
