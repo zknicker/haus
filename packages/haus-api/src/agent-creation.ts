@@ -174,7 +174,7 @@ export type AgentSetAgentAvatarReceipt = z.infer<typeof agentSetAgentAvatarRecei
 /**
  * Put an Agent in a channel. Any active Agent may add any active Agent; the
  * add is idempotent and wakes nobody, so it is a membership correction rather
- * than a delivery. Cove's membership stays product-owned.
+ * than a delivery.
  */
 export const agentAddChannelAgentInputSchema = z
     .object({

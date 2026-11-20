@@ -71,8 +71,6 @@ export async function configureAgent(
                 desiredModelId: agentsTable.desiredModelId,
                 desiredReasoningEffort: agentsTable.desiredReasoningEffort,
                 desiredRuntimeId: agentsTable.desiredRuntimeId,
-                factoryAppliedAt: agentsTable.factoryAppliedAt,
-                factoryKind: agentsTable.factoryKind,
             })
             .from(agentsTable)
             .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
@@ -80,11 +78,6 @@ export async function configureAgent(
 
         if (!agent?.computerId) {
             throw new AgentConfigDeniedError('No configured Agent exists with that id.');
-        }
-        if (agent.factoryKind === 'cove' && !agent.factoryAppliedAt) {
-            throw new AgentConfigDeniedError(
-                'Cove setup must finish before configuration changes.'
-            );
         }
 
         const { health: computerHealth, inventory } = await resolveAssignedComputer(tx, {
@@ -186,7 +179,6 @@ export async function configureAgent(
                 effectiveReasoningEffort: agentsTable.effectiveReasoningEffort,
                 effectiveReportedAt: agentsTable.effectiveReportedAt,
                 effectiveRuntimeId: agentsTable.effectiveRuntimeId,
-                factoryKind: agentsTable.factoryKind,
                 handle: agentsTable.handle,
                 id: agentsTable.id,
                 serverId: agentsTable.serverId,

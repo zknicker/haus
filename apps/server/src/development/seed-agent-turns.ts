@@ -71,15 +71,6 @@ export async function seedAgentTurns(
                 'Checked the build questions piling up in #product.',
             ],
         },
-        {
-            agentId: context.coveId,
-            countsByDay: [0, 0, 1, 0, 0, 0, 1],
-            failedDaysAgo: null,
-            summaries: [
-                'Walked the owner through connecting a Computer.',
-                'Asked the owner about the channel rename.',
-            ],
-        },
     ];
     const execution = await readAgentExecution(
         tx,
