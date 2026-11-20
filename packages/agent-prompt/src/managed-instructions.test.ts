@@ -227,6 +227,7 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // Lowered by exactly 1 (37,963 → 37,962): the welcome rule says #all again, the team room (ADR 0059 amended).
     // Raised by exactly 37 (37,962 → 37,999): Discovering says "You always hear #all, the team room." (ADR 0059 decision 5).
     expect(prompt.length).toBeLessThanOrEqual(37_999);
+    expect(prompt).toContain('You always hear #all, the team room.');
     expect(prompt.toLowerCase()).not.toContain('thread');
 });
 
@@ -282,10 +283,6 @@ test('pins the rendered visuals and page fence contract', () => {
     expect(prompt).toContain(
         'Page fences render a card the reader clicks to open in the Workspace pane; nothing auto-opens.'
     );
-});
-
-test('every Agent hears #all, the team room', () => {
-    expect(renderPrompt()).toContain('You always hear #all, the team room.');
 });
 
 function renderPrompt(overrides: Partial<AgentPromptRenderInput> = {}) {
