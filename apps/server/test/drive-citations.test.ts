@@ -163,6 +163,23 @@ test('a send reads titles, escapes, angle spaces and every kind of code as Markd
     ]);
 });
 
+test('a pipe in a table cell splits the cell, so its broken link cites nothing', async () => {
+    await insertFile('haus/pipe|x.md');
+    const note = await insertFile('haus/note.md');
+    const messageId = await agentSend(
+        'run_citations_gfm_pipe',
+        [
+            '| File | Rest | Note |',
+            '| --- | --- | --- |',
+            '| [p](drive://haus/pipe|x.md) | [n](drive://haus/note.md) |',
+        ].join('\n')
+    );
+
+    expect(await citationsOf(notesChatId, messageId)).toEqual([
+        { artifactId: note.artifactId, path: 'haus/note.md', revisionId: note.revisionId },
+    ]);
+});
+
 test('a human send binds to the head, and a later revision does not move it', async () => {
     const { channelId, owner, serverId } = fixture;
     const brief = await insertFile('haus/brief.md');

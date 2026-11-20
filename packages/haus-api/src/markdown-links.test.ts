@@ -57,6 +57,20 @@ test('image syntax and autolinks are not written links', () => {
     ]);
 });
 
+test('GFM tables split cells at a pipe, and literal autolinks are not written links', () => {
+    expect(
+        urls(
+            '| A | B | C |\n| --- | --- | --- |\n| [p](drive://pipe|x.md) | [c](drive://cell.md) |\n\n~~[s](drive://s.md)~~ www.haus.test'
+        )
+    ).toEqual(['drive://cell.md', 'drive://s.md']);
+});
+
+test('a table row cell past the header width is dropped, as the renderer drops it', () => {
+    expect(urls('| A |\n| --- |\n| [a](drive://a.md) | [extra](drive://extra.md) |')).toEqual([
+        'drive://a.md',
+    ]);
+});
+
 test('an unclosed or line-crossing destination reads nothing', () => {
     expect(urls('[a](drive://a.md')).toEqual([]);
     expect(urls('[a](drive://a\n.md)')).toEqual([]);

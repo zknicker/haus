@@ -1,4 +1,6 @@
 import { fromMarkdown } from 'mdast-util-from-markdown';
+import { gfmFromMarkdown } from 'mdast-util-gfm';
+import { gfm } from 'micromark-extension-gfm';
 
 export interface MarkdownLinkSpan {
     end: number;
@@ -16,6 +18,7 @@ export interface MarkdownCodeSpan {
 }
 
 interface SourceNode {
+    align?: unknown[] | null;
     children?: SourceNode[];
     position?: { end: { offset?: number }; start: { offset?: number } };
     type: string;
@@ -23,9 +26,10 @@ interface SourceNode {
 }
 
 /**
- * The inline links and code a CommonMark reader sees, in source order. Links
- * inside code or image syntax are never links, and an autolink is not a
- * written `[label](target)`, so neither is listed.
+ * The inline links and code a GFM reader sees, the way the App's remark-gfm
+ * renderer reads them, in source order. Links inside code or image syntax are
+ * never links, and an autolink (`<…>` or a GFM literal) is not a written
+ * `[label](target)`, so neither is listed.
  */
 export function readMarkdownSpans(content: string) {
     const links: MarkdownLinkSpan[] = [];
@@ -34,7 +38,7 @@ export function readMarkdownSpans(content: string) {
         const start = node.position?.start.offset;
         const end = node.position?.end.offset;
         if (start === undefined || end === undefined) {
-            node.children?.forEach(visit);
+            renderedChildren(node).forEach(visit);
             return;
         }
         if (node.type === 'link' && node.url !== undefined && content[start] === '[') {
@@ -57,8 +61,22 @@ export function readMarkdownSpans(content: string) {
             code.push({ contentEnd: end, contentStart: start, end, kind: 'block', start });
             return;
         }
-        node.children?.forEach(visit);
+        renderedChildren(node).forEach(visit);
     };
-    visit(fromMarkdown(content) as SourceNode);
+    visit(
+        fromMarkdown(content, {
+            extensions: [gfm()],
+            mdastExtensions: [gfmFromMarkdown()],
+        }) as SourceNode
+    );
     return { code, links };
+}
+
+function renderedChildren(node: SourceNode) {
+    const children = node.children ?? [];
+    if (node.type !== 'table') {
+        return children;
+    }
+    const headerWidth = node.align?.length ?? 0;
+    return children.map((row) => ({ ...row, children: row.children?.slice(0, headerWidth) }));
 }

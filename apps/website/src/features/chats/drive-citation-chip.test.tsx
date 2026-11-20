@@ -19,6 +19,7 @@ const citations: DriveCitation[] = [
     { artifactId: 'art_escaped', path: 'plans/a(draft.md', revisionId: 'rev_e' },
     { artifactId: 'art_spaced', path: 'plans/space.md ', revisionId: 'rev_s' },
     { artifactId: 'art_cell', path: 'plans/cell.md', revisionId: 'rev_c' },
+    { artifactId: 'art_pipe', path: 'plans/pipe|x.md', revisionId: 'rev_p' },
 ];
 
 test('titles, escapes and angle-bracket spaces read as Markdown does in both renderers', () => {
@@ -39,6 +40,16 @@ test('a citation in a table cell or strikethrough still opens when settled', () 
 
     expect(markup).toContain('href="/s/acme/artifacts/art_cell?revision=rev_c"');
     expect(markup).toContain('href="/s/acme/artifacts/art_worker?revision=rev_3"');
+});
+
+test('a pipe in a table cell splits the cell, so its broken link stays text when settled', () => {
+    const markup = renderSettled(
+        '| File | Rest | Note |\n| --- | --- | --- |\n| [p](drive://plans/pipe|x.md) | [c](drive://plans/cell.md) |'
+    );
+
+    expect(markup).not.toContain('art_pipe');
+    expect(markup).not.toContain('references.haus.invalid');
+    expect(markup).toContain('href="/s/acme/artifacts/art_cell?revision=rev_c"');
 });
 
 test('multiline spans, mismatched tick runs and quoted fences stay code in both renderers', () => {
