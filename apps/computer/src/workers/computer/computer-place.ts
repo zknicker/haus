@@ -77,7 +77,7 @@ export class ComputerWorkerPlace {
     async accept(frame: WorkerTurnStartFrame) {
         const turn = await this.journal.accept(frame);
         this.context.send({
-            attempt: frame.attempt,
+            attempt: turn.attempt,
             turnId: frame.turnId,
             type: 'worker-turn-accepted',
         });

@@ -15,6 +15,7 @@ import {
     workersTable,
 } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { currentTurnAttempt } from './worker-turn-attempt.ts';
 
 type CredentialKind = 'push' | 'turn';
 
@@ -47,7 +48,7 @@ export async function mintWorkerTurnCredential(
         if (turn.stopRequestedAt) {
             return refuse('stop-requested');
         }
-        if (turn.dispatchAttempt !== input.attempt) {
+        if (currentTurnAttempt(turn) !== input.attempt) {
             return refuse('stale-attempt');
         }
         if (worker.closingAt || worker.closedAt) {
@@ -87,7 +88,7 @@ export async function mintWorkerPushCredential(
             } satisfies WorkerPushCredentialResponse;
         }
         const minted = await mint(tx, {
-            attempt: Math.max(1, found.turn.dispatchAttempt),
+            attempt: Math.max(1, currentTurnAttempt(found.turn)),
             kind: 'push',
             serverId: computer.serverId,
             turnId: found.turn.id,

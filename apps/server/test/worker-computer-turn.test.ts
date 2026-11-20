@@ -3,6 +3,7 @@ import type { WorkerTurnExit } from '@haus/api';
 import { eq, sql } from 'drizzle-orm';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { messageDriveCitationsTable, workersTable } from '../src/postgres/schema.ts';
+import { acceptWorkerTurn, planCarrierReconnect } from '../src/workers/carrier-frames.ts';
 import {
     acceptComputerTurnInput,
     answerHeldWorkers,
@@ -154,6 +155,44 @@ test('WORKER.md advances only on the current attempt, and the native session is 
     await session('first');
     expect(await session('second')).toBeNull();
     expect((await readWorker(workerId))?.nativeSessionId).toBe('first');
+});
+
+test('a lost accept, then a resend, leaves the running attempt current: its frames settle the turn and advance WORKER.md', async () => {
+    const board = await computerPlaceBoard(connection.db);
+    const { delivery } = offlineDelivery(connection.db, board.seed);
+    const { turnId, workerId } = await startComputerWorker(connection.db, board);
+    const scope = { computerId: board.seed.computerId, serverId: board.seed.serverId };
+
+    const reconnect = await planCarrierReconnect(
+        connection.db,
+        { id: board.seed.computerId, serverId: board.seed.serverId },
+        null
+    );
+    expect(
+        reconnect.frames.flatMap(({ frame }) =>
+            frame.type === 'worker-turn-start' ? [[frame.turnId, frame.attempt]] : []
+        )
+    ).toEqual([[turnId, 2]]);
+    await connection.db.execute(sql`update worker_turns
+        set worker_md_revision_id = 'rev_worker_md' where id = ${turnId}`);
+    await acceptWorkerTurn(connection.db, { ...scope, attempt: 1, turnId }, null);
+    await acceptComputerTurnInput(connection.db, scope, {
+        attempt: 1,
+        turnId,
+        type: 'worker-turn-input-accepted',
+        workerMdRevisionId: 'rev_worker_md',
+    });
+    await setDraft(connection.db, turnId, 'Done on the first attempt.');
+    await endTurn(connection.db, delivery, board, { attempt: 1, exit: 'exited', turnId });
+
+    const turn = await readTurn(connection.db, turnId);
+    expect(turn?.outcome?.kind === 'report' ? turn.outcome.report.text : turn?.outcome).toBe(
+        'Done on the first attempt.'
+    );
+    expect(await readWorker(workerId)).toMatchObject({
+        status: 'completed',
+        workerMdRevisionId: 'rev_worker_md',
+    });
 });
 
 test('activity updates the Worker at most once per cadence and posts nothing', async () => {

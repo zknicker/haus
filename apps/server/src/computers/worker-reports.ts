@@ -89,7 +89,12 @@ async function applyCarrierFrame(input: CarrierFrameInput) {
     if (accepted.success) {
         return await acceptWorkerTurn(
             db,
-            { computerId, serverId, turnId: accepted.data.turnId },
+            {
+                attempt: accepted.data.attempt,
+                computerId,
+                serverId,
+                turnId: accepted.data.turnId,
+            },
             storage
         );
     }

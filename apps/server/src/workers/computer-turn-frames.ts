@@ -13,6 +13,7 @@ import { heldWorkerCloseFrames } from './worker-close-frames.ts';
 import type { WorkerEffects } from './worker-effects.ts';
 import { prepareWorkerEvents } from './worker-events.ts';
 import { syncWorkerLifecycle } from './worker-lifecycle.ts';
+import { currentTurnAttempt } from './worker-turn-attempt.ts';
 
 interface FrameScope {
     computerId: string;
@@ -29,7 +30,7 @@ export async function acceptComputerTurnInput(
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, scope.serverId);
         const row = await readCarriedTurn(tx, scope, frame.turnId);
-        if (!row || row.turn.outcome || row.turn.dispatchAttempt !== frame.attempt) {
+        if (!row || row.turn.outcome || currentTurnAttempt(row.turn) !== frame.attempt) {
             return null;
         }
         const { turn, worker } = row;

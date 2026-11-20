@@ -9,6 +9,7 @@ import { decideComputerTurn } from './computer-turn-outcome.ts';
 import { applyComputerOutcome } from './computer-turn-settlement.ts';
 import { withDispatch } from './dispatch-worker-turns.ts';
 import { mergeBranchEvidence } from './merge-branch-evidence.ts';
+import { currentTurnAttempt } from './worker-turn-attempt.ts';
 
 export async function settleComputerTurn(
     db: HausDatabase,
@@ -46,7 +47,7 @@ export async function settleComputerTurn(
         }
         const { turn, worker } = row;
         await recordEnd(tx, { frame, turn, worker });
-        if (turn.outcome || turn.dispatchAttempt !== frame.attempt) {
+        if (turn.outcome || currentTurnAttempt(turn) !== frame.attempt) {
             return null;
         }
         const effects = await applyComputerOutcome(tx, agentDelivery, {

@@ -44,14 +44,14 @@ export async function planCarrierReconnect(
 
 export async function acceptWorkerTurn(
     db: HausDatabase,
-    input: { computerId: string; serverId: string; turnId: string },
+    input: { attempt: number; computerId: string; serverId: string; turnId: string },
     storage: ArtifactStorage | null
 ) {
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const accepted = await tx
             .update(workerTurnsTable)
-            .set({ acknowledgedAt: sql`now()` })
+            .set({ acceptedAttempt: input.attempt, acknowledgedAt: sql`now()` })
             .where(
                 and(
                     eq(workerTurnsTable.serverId, input.serverId),

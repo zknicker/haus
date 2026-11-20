@@ -47,6 +47,7 @@ ALTER TABLE "computers" ADD COLUMN IF NOT EXISTS "workers_enabled" boolean DEFAU
 ALTER TABLE "drive_pushes" ADD COLUMN IF NOT EXISTS "worker_id" text;--> statement-breakpoint
 ALTER TABLE "projects" ADD COLUMN IF NOT EXISTS "default_worker_computer_id" text;--> statement-breakpoint
 ALTER TABLE "projects" ADD COLUMN IF NOT EXISTS "default_worker_place" text;--> statement-breakpoint
+ALTER TABLE "worker_turns" ADD COLUMN IF NOT EXISTS "accepted_attempt" integer;--> statement-breakpoint
 ALTER TABLE "worker_turns" ADD COLUMN IF NOT EXISTS "dispatch_attempt" integer DEFAULT 0 NOT NULL;--> statement-breakpoint
 ALTER TABLE "worker_turns" ADD COLUMN IF NOT EXISTS "ended_at" timestamp with time zone;--> statement-breakpoint
 ALTER TABLE "worker_turns" ADD COLUMN IF NOT EXISTS "report_draft" jsonb;--> statement-breakpoint

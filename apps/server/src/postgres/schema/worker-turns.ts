@@ -34,6 +34,8 @@ import { settledWorkerStatuses, workerStatuses, workersTable } from './workers.t
 export const workerTurnsTable = pgTable(
     'worker_turns',
     {
+        /** The attempt the place said it runs when it acknowledged the turn; frames for it are current. */
+        acceptedAttempt: integer('accepted_attempt'),
         acknowledgedAt: timestamp('acknowledged_at', { withTimezone: true }),
         branches: bunJsonb('branches').notNull().$type<WorkerBranch[]>().default([]),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

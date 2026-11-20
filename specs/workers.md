@@ -407,7 +407,10 @@ link with a null `checkoutPath` means "clone into the data root".
    The frame is idempotent by turn id. Each send or resend is a new attempt
    (`worker_turns.dispatch_attempt`), and only the current attempt may launch.
 2. The Computer journals the turn and answers `worker-turn-accepted` with the attempt. From here
-   the turn is never run twice.
+   the turn is never run twice. A resent start for a turn it already holds past `accepted` answers
+   with the attempt it is actually running. The Server records that as the turn's
+   `accepted_attempt`, and from then on frames for that attempt are current, so a lost accept and a
+   resend still let the running attempt settle the turn.
 3. It mints the turn credential with its own Computer credential,
    `POST /computer/workers/turn-credential { turnId, attempt }`. This is the launch fence. The
    Server refuses when the turn is settled, a stop was requested, the attempt is stale, the Worker

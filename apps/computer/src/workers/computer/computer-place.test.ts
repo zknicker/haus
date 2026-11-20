@@ -179,6 +179,26 @@ describe('a Worker turn on a Computer', () => {
         ]);
     });
 
+    test('a start resent while a turn runs answers with the running attempt and never runs it twice', async () => {
+        const { fake, frames, place, sent } = computerPlaces().place({ turn: untilStopped });
+        await place.accept(computerStart());
+        await sent('worker-turn-input-accepted');
+        await place.accept(computerStart({ attempt: 2 }));
+        await place.stop(ref);
+
+        expect(
+            frames.flatMap((frame) =>
+                'attempt' in frame ? [`${frame.type} ${frame.attempt}`] : []
+            )
+        ).toEqual([
+            'worker-turn-accepted 1',
+            'worker-turn-input-accepted 1',
+            'worker-turn-accepted 1',
+            'worker-turn-ended 1',
+        ]);
+        expect(fake.record.launches).toHaveLength(1);
+    });
+
     test('a stop ends the harness, pushes, and settles the turn stopped', async () => {
         const { fake, frames, place, sent } = computerPlaces().place({ turn: untilStopped });
         await place.accept(computerStart());

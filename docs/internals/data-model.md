@@ -157,8 +157,9 @@ the Workers that have a Task. `projects.default_worker_place` and `default_worke
 the default, tied by a check, so removing a Computer or switching it off clears both first.
 `workers` gains `runtime` (set exactly for a Computer place), `model`, `branch`,
 `native_session_id` (set once), and `worker_md_revision_id` (the delivered `WORKER.md`).
-`worker_turns` gains `dispatch_attempt`, `worker_md_revision_id` (what the current attempt
-inlines), `report_draft`, and `ended_at`. `worker_turn_credentials` keeps only token hashes of the
+`worker_turns` gains `dispatch_attempt`, `accepted_attempt` (the attempt the Computer said it runs
+when it acknowledged the turn, which is then the current one), `worker_md_revision_id` (what the
+current attempt inlines), `report_draft`, and `ended_at`. `worker_turn_credentials` keeps only token hashes of the
 turn and push credentials, at most one live per turn, kind, and attempt, revoked at settle.
 `drive_pushes.worker_id` keys a Worker push's source, and `artifact_revisions.author_worker_id`
 names the Worker beside its Agent in `author_agent_id`.

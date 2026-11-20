@@ -14392,6 +14392,12 @@
       "name": "worker_turns",
       "schema": "",
       "columns": {
+        "accepted_attempt": {
+          "name": "accepted_attempt",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "acknowledged_at": {
           "name": "acknowledged_at",
           "type": "timestamp with time zone",
