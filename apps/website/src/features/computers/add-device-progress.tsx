@@ -1,12 +1,13 @@
-import { Button, Spinner } from '@heroui/react';
+import { Button, Spinner, Tooltip } from '@heroui/react';
+import { ArrowReloadHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-import { CodeSnippet } from '../../components/code-snippet.tsx';
+import { Icon } from '../../components/ui/icon.tsx';
 import { useComputerInventoryRefresh } from '../../hooks/servers/use-computer-inventory-refresh.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { cn } from '../../lib/utils.ts';
 import { type AddDeviceStatus, addDeviceStatus } from './add-device-status.ts';
 
-export function AddDeviceProgress({ serverId }: { serverId: string }) {
+export function useAddDeviceStatus(serverId: string) {
     const computers = useComputers(serverId);
     const [baselineIds, setBaselineIds] = React.useState<ReadonlySet<string> | null>(null);
     const settledIds =
@@ -16,56 +17,76 @@ export function AddDeviceProgress({ serverId }: { serverId: string }) {
     if (baselineIds === null && settledIds !== null) {
         setBaselineIds(new Set(settledIds.split(',').filter(Boolean)));
     }
+    if (computers.error && !computers.data) {
+        return null;
+    }
+    return addDeviceStatus(baselineIds, computers.data ?? []);
+}
 
+export function AddDeviceStatusLine({
+    serverId,
+    status,
+}: {
+    serverId: string;
+    status: AddDeviceStatus | null;
+}) {
     return (
-        <div aria-live="polite" className="grid min-w-0 gap-3">
-            {computers.error && !computers.data ? (
-                <p className="text-danger text-sm" role="alert">
-                    Couldn’t load devices.
-                </p>
+        <div aria-live="polite" className="me-auto flex min-w-0 items-center gap-2 text-sm">
+            {status ? (
+                <>
+                    <StatusMark tone={status.tone} />
+                    <span className={status.tone === 'pending' ? 'text-muted' : undefined}>
+                        {status.label}
+                    </span>
+                    {status.recheckComputerId ? (
+                        <RecheckButton computerId={status.recheckComputerId} serverId={serverId} />
+                    ) : null}
+                </>
             ) : (
-                <AddDeviceStatusLine
-                    serverId={serverId}
-                    status={addDeviceStatus(baselineIds, computers.data ?? [])}
-                />
+                <span className="text-danger" role="alert">
+                    Couldn’t load devices.
+                </span>
             )}
         </div>
     );
 }
 
-function AddDeviceStatusLine({ serverId, status }: { serverId: string; status: AddDeviceStatus }) {
-    const refresh = useComputerInventoryRefresh();
-    const recheckComputerId = status.recheckComputerId;
+function StatusMark({ tone }: { tone: AddDeviceStatus['tone'] }) {
+    if (tone === 'pending') {
+        return <Spinner size="sm" />;
+    }
     return (
-        <>
-            <div className="flex min-h-8 items-center gap-2 text-sm">
-                {status.tone === 'pending' ? (
-                    <Spinner size="sm" />
-                ) : (
-                    <span
-                        aria-hidden="true"
-                        className={cn(
-                            'size-2 shrink-0 rounded-full',
-                            status.tone === 'success' ? 'bg-success' : 'bg-warning'
-                        )}
-                    />
-                )}
-                <span className={status.tone === 'pending' ? 'text-muted' : undefined}>
-                    {status.label}
-                </span>
-                {recheckComputerId ? (
-                    <Button
-                        className="ms-auto"
-                        isPending={refresh.isPending}
-                        onPress={() => refresh.mutate({ computerId: recheckComputerId, serverId })}
-                        size="sm"
-                        variant="ghost"
-                    >
-                        Check again
-                    </Button>
-                ) : null}
-            </div>
-            {status.command ? <CodeSnippet lines={status.command} wrap /> : null}
-        </>
+        <span
+            aria-hidden="true"
+            className={cn(
+                'size-2 shrink-0 rounded-full',
+                tone === 'success' ? 'bg-success' : 'bg-warning'
+            )}
+        />
+    );
+}
+
+function RecheckButton({ computerId, serverId }: { computerId: string; serverId: string }) {
+    const refresh = useComputerInventoryRefresh();
+    return (
+        <Tooltip delay={0}>
+            <Button
+                aria-label="Check again"
+                isIconOnly
+                isPending={refresh.isPending}
+                onPress={() => refresh.mutate({ computerId, serverId })}
+                size="sm"
+                variant="ghost"
+            >
+                {({ isPending }) =>
+                    isPending ? (
+                        <Spinner color="current" size="sm" />
+                    ) : (
+                        <Icon icon={ArrowReloadHorizontalIcon} size={16} />
+                    )
+                }
+            </Button>
+            <Tooltip.Content>Check again</Tooltip.Content>
+        </Tooltip>
     );
 }

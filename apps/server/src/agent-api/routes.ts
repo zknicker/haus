@@ -87,6 +87,7 @@ export function registerAgentApiRoutes(
         imageGeneration: import('../image-generation/image-generation-service.ts').ImageGenerationService;
         managedSkills: ManagedSkillSeeder;
         mcpRuntime: import('../server-mcp/runtime.ts').McpRuntime;
+        modelCatalog: import('../server-agents/agent-model-catalog.ts').AgentModelCatalog;
         postCommitWork: ServerPostCommitWork;
     }
 ) {
@@ -97,6 +98,7 @@ export function registerAgentApiRoutes(
         avatarImageService: options.avatarImageService,
         db: options.db,
         managedSkills: options.managedSkills,
+        modelCatalog: options.modelCatalog,
         postCommitWork: options.postCommitWork,
     });
     registerAgentChannelRoutes(app, { db: options.db });

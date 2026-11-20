@@ -1,5 +1,5 @@
 import { Button, Modal } from '@heroui/react';
-import { AddDeviceProgress } from './add-device-progress.tsx';
+import { AddDeviceStatusLine, useAddDeviceStatus } from './add-device-progress.tsx';
 import { ComputerSetupCommands } from './computer-setup-commands.tsx';
 
 export function AddComputerDialog({
@@ -24,19 +24,29 @@ export function AddComputerDialog({
                             Run Captains on your own Mac.
                         </p>
                     </Modal.Header>
-                    <Modal.Body>
-                        <div className="flex flex-col gap-4 pt-2">
-                            <ComputerSetupCommands serverSlug={serverSlug} />
-                            {open ? <AddDeviceProgress key={serverId} serverId={serverId} /> : null}
-                        </div>
-                    </Modal.Body>
-                    <Modal.Footer>
-                        <Button slot="close" variant="secondary">
-                            Done
-                        </Button>
-                    </Modal.Footer>
+                    <AddDeviceSteps key={serverId} serverId={serverId} serverSlug={serverSlug} />
                 </Modal.Dialog>
             </Modal.Container>
         </Modal.Backdrop>
+    );
+}
+
+function AddDeviceSteps({ serverId, serverSlug }: { serverId: string; serverSlug: string }) {
+    const status = useAddDeviceStatus(serverId);
+    return (
+        <>
+            <Modal.Body>
+                <ComputerSetupCommands
+                    serverSlug={serverSlug}
+                    updateCommand={status?.command ?? null}
+                />
+            </Modal.Body>
+            <Modal.Footer>
+                <AddDeviceStatusLine serverId={serverId} status={status} />
+                <Button slot="close" variant={status?.tone === 'success' ? 'primary' : 'secondary'}>
+                    Done
+                </Button>
+            </Modal.Footer>
+        </>
     );
 }
