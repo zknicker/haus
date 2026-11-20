@@ -241,6 +241,14 @@ The App test wrapper runs preflight before Playwright starts service readiness
 timers. Preflight verifies Playwright Chromium and builds the SDK with visible
 terminal progress.
 
+The hosted Server starts the Server-owned Skool connector, so App E2E needs its package built
+first. `bun run dev` builds it on boot; a checkout that has not run the dev stack builds it once by
+hand:
+
+```bash
+node scripts/package-hosted-mcp.mjs .context/hosted-mcp/skool
+```
+
 Browser E2E uses the hosted product boundary by default:
 
 ```bash

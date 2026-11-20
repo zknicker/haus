@@ -84,8 +84,9 @@ export async function seedArtifactLibrary(page: Page, databaseUrl: string, serve
         // The App lists Agents assigned to a Computer; an offline one is enough to name the creator.
         `insert into computers (id, server_id, attached_by_user_id, credential_hash, health)
          values ('${computerId}', '${serverId}', '${userId}', md5(random()::text) || md5(random()::text), 'offline');
-         insert into agents (id, server_id, computer_id, handle, display_name, home_timezone, desired_runtime_id, desired_model_id)
-         values ('${agentId}', '${serverId}', '${computerId}', 'drive-helper', '${seededArtifactAgent}', 'America/New_York', 'codex', 'gpt-5.6-sol')`
+         insert into agents (id, server_id, computer_id, handle, display_name, home_timezone, desired_runtime_id, desired_model_id, home_project_id)
+         values ('${agentId}', '${serverId}', '${computerId}', 'drive-helper', '${seededArtifactAgent}', 'America/New_York', 'codex', 'gpt-5.6-sol',
+             (select id from chats where server_id = '${serverId}' and is_all))`
     );
     for (const file of seededFiles) {
         const id = `art_${serverId}_${file.key}`;

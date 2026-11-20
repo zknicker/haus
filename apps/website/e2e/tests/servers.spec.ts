@@ -39,7 +39,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
         page.getByText('curl -fsSL https://releases.haus.chat/computer/install.sh | sh')
     ).toBeVisible();
     await expect(page.getByText('$HOME/.local/bin/haus-computer setup /haus-hq')).toBeVisible();
-    await expect(page.getByRole('textbox', { name: 'Message all' })).toHaveCount(0);
+    await expect(page.getByRole('textbox', { name: 'Message haus' })).toHaveCount(0);
 
     // Even a direct destination stays behind the route-level gate.
     await page.goto('/s/haus-hq/members');
@@ -313,7 +313,7 @@ test('a human without membership cannot open the Server', async ({ page }) => {
     await signInAsAppHuman(page, 'peer');
     await page.goto('/s/haus-hq');
     await expect(page.getByText('Server unavailable')).toBeVisible();
-    await expect(page.getByRole('textbox', { name: 'Message all' })).toHaveCount(0);
+    await expect(page.getByRole('textbox', { name: 'Message haus' })).toHaveCount(0);
 });
 
 const usableInventory = {

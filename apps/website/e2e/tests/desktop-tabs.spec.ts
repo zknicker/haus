@@ -22,7 +22,7 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
 
     // The sidebar navigates the one tab rather than opening another.
     await openChannel(page, 'haus');
-    await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Message haus' })).toBeVisible();
     await expect(tabs).toHaveCount(1);
     await expect(tabs).toContainText('haus');
     await openSection(page, 'Tasks');
@@ -31,7 +31,7 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
 
     // Back (⌘[, the Go menu) walks the tab's own history.
     await desktopEvent(page, 'test:desktop-history');
-    await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Message haus' })).toBeVisible();
     await expect(tabs).toContainText('haus');
 
     // Command-click on a sidebar row opens a background tab after the left pane's tab.
@@ -41,7 +41,7 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
     await expect(tabs.nth(1)).toContainText('Tasks');
     await expect(tabs.nth(0)).toHaveAttribute('data-active', 'true');
     await expect(tabs.nth(1)).not.toHaveAttribute('data-active', 'true');
-    await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Message haus' })).toBeVisible();
 
     // Command-Shift-click opens a selected tab; ⌘W closes it back to the background one.
     await page
@@ -51,7 +51,7 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
     // After the opener's earlier background tab, as in Chrome.
     await expect(tabs.nth(2)).toContainText('Inbox');
     await expect(tabs.nth(2)).toHaveAttribute('data-active', 'true');
-    await expect(page.getByRole('textbox', { name: 'Message all' })).toBeHidden();
+    await expect(page.getByRole('textbox', { name: 'Message haus' })).toBeHidden();
     await desktopEvent(page, 'test:desktop-close');
     await expect(tabs).toHaveCount(2);
     await tabs.nth(1).getByRole('button', { exact: true, name: 'Tasks' }).click();
@@ -60,7 +60,7 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
     // ⌘W closes the current tab; ⌘⇧T reopens it with its history.
     await desktopEvent(page, 'test:desktop-close');
     await expect(tabs).toHaveCount(1);
-    await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Message haus' })).toBeVisible();
     await page.evaluate(() =>
         window.dispatchEvent(new CustomEvent('test:desktop-shortcut', { detail: 'reopen-tab' }))
     );
@@ -72,7 +72,7 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
     await expect(tabs).toHaveCount(2);
     await expect(tabs.nth(1)).toHaveAttribute('data-active', 'true');
     await tabs.nth(0).getByRole('button', { name: 'haus', exact: true }).click();
-    await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();
+    await expect(page.getByRole('textbox', { name: 'Message haus' })).toBeVisible();
     await desktopEvent(page, 'test:desktop-history');
     await expect(tabs.nth(0)).not.toContainText('haus');
 
@@ -102,7 +102,7 @@ test('panes: a Task opens in the right pane, Move to right pane splits, and an e
     await openDesktopWindow(page, `/s/${server.slug}/chats/${agent.chatId}`);
     const left = tabRow(page, 'Left pane tabs').locator('.workspace-tab');
     const right = tabRow(page, 'Right pane tabs').locator('.workspace-tab');
-    const composer = page.getByRole('textbox', { name: 'Message all' });
+    const composer = page.getByRole('textbox', { name: 'Message haus' });
     const openTask = new RegExp(`^Open task ${key},`, 'u');
 
     // (Open, ADR 0046); the chat stays in the left pane.
@@ -159,7 +159,7 @@ test('a hidden chat tab keeps its draft and leaves its unread alone', async ({ p
     });
     await openDesktopWindow(page, `/s/${server.slug}`);
     await openChannel(page, 'haus');
-    const composer = page.getByRole('textbox', { name: 'Message all' });
+    const composer = page.getByRole('textbox', { name: 'Message haus' });
     await composer.fill('Keep this draft');
     const tabs = tabRow(page, 'Tabs').locator('.workspace-tab');
 
