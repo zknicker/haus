@@ -20,6 +20,7 @@ import {
     readUsablePlaces,
 } from './resolve-worker-place.ts';
 import { chooseCarrier, readDefaultPlace } from './worker-carrier.ts';
+import { chooseWorkerModel } from './worker-model.ts';
 
 export interface WorkerStartPlan {
     addRepository: boolean;
@@ -73,10 +74,17 @@ export async function resolveWorkerStart(
     if (!(repo.id && (await isLinked(tx, serverId, repo.id, computer.computerId)))) {
         throw new WorkerRepoNotLinkedError(repo.repository, label);
     }
+    const model = await chooseWorkerModel(tx, {
+        agentId: runner.agentId,
+        place: computer,
+        requested: input.model ?? null,
+        runtime,
+        serverId,
+    });
     return {
         addRepository: false,
         carrierComputerId: computer.computerId,
-        model: input.model ?? null,
+        model,
         place,
         repository: repo.repository,
         runtime,

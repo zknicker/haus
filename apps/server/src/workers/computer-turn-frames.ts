@@ -3,6 +3,7 @@ import {
     type WorkerTurnActivityFrame,
     type WorkerTurnInputAcceptedFrame,
     type WorkerTurnSessionFrame,
+    type WorkerTurnStepsFrame,
     projectWorker,
 } from '@haus/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
@@ -104,6 +105,28 @@ export async function recordComputerTurnActivity(
         )
         .returning({ id: workersTable.id });
     return updated.length > 0 ? await touched(db, scope.serverId, row.worker.id) : null;
+}
+
+export async function recordComputerTurnSteps(
+    db: HausDatabase,
+    scope: FrameScope,
+    frame: WorkerTurnStepsFrame
+) {
+    const row = await readCarriedTurn(db, scope, frame.turnId);
+    if (!row || row.turn.endedAt || currentTurnAttempt(row.turn) !== frame.attempt) {
+        return null;
+    }
+    await db
+        .update(workerTurnsTable)
+        .set({ steps: frame.steps })
+        .where(
+            and(
+                eq(workerTurnsTable.serverId, row.turn.serverId),
+                eq(workerTurnsTable.id, row.turn.id),
+                isNull(workerTurnsTable.endedAt)
+            )
+        );
+    return await touched(db, scope.serverId, row.worker.id);
 }
 
 export async function answerHeldWorkers(

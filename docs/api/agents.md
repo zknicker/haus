@@ -457,7 +457,9 @@ default that cannot take one now; the message lists the usable places), `WORKER_
 Computer's switch is off), `WORKER_PLACE_AMBIGUOUS` (two Computers share the name; the message lists
 their `computer:<id>` forms), `WORKER_REPO_UNKNOWN` (no `repository` while the Project has none or
 several), `WORKER_REPO_NOT_LINKED` (the Computer has no link for it), `WORKER_RUNTIME_UNAVAILABLE`,
-and `WORKER_OPTION_CLOUD` (`runtime` or `model` on a cloud place). A named `repository` the Project
+`WORKER_MODEL_UNAVAILABLE` (the runtime there cannot run that `model`, or reports none; the message
+lists the ones it can; an omitted `model` is the Agent's own when it runs there, else the first
+reported), and `WORKER_OPTION_CLOUD` (`runtime` or `model` on a cloud place). A named `repository` the Project
 lacks joins its repos at start (R15, until Project settings ship repos). A start then passes the
 Task Chat's freshness hold like `haus message send` and answers `held` with the newer messages.
 Otherwise it records the Worker (`wkr_`) and its first turn (`wkt_`, input `[{ kind: 'brief' }]`),

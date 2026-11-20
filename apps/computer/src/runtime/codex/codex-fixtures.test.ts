@@ -151,8 +151,16 @@ describe('Codex fixtures', () => {
         const [patch, ...files] = only(events, 'tool-call');
         expect(patch).toMatchObject({ input: {}, providerExecuted: true, toolName: 'apply_patch' });
         expect(files.map((file) => [file.toolName, file.sourceToolCallId, file.input])).toEqual([
-            ['fileChange', patch?.toolCallId, { event: 'create', path: 'notes.txt' }],
-            ['fileChange', patch?.toolCallId, { event: 'create', path: 'todo.txt' }],
+            [
+                'fileChange',
+                patch?.toolCallId,
+                { additions: 1, deletions: 0, event: 'create', path: 'notes.txt' },
+            ],
+            [
+                'fileChange',
+                patch?.toolCallId,
+                { additions: 1, deletions: 0, event: 'create', path: 'todo.txt' },
+            ],
         ]);
         expect(eventSequence(events)).toContain('tool-result:apply_patch');
         // The patch call and the reply are separate model requests; the turn counts both.

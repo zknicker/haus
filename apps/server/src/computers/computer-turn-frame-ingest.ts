@@ -1,6 +1,7 @@
 import {
     workerHeldFrameSchema,
     workerTurnActivityFrameSchema,
+    workerTurnStepsFrameSchema,
     workerTurnEndedFrameSchema,
     workerTurnInputAcceptedFrameSchema,
     workerTurnSessionFrameSchema,
@@ -12,6 +13,7 @@ import {
     acceptComputerTurnInput,
     answerHeldWorkers,
     recordComputerTurnActivity,
+    recordComputerTurnSteps,
     recordComputerTurnSession,
 } from '../workers/computer-turn-frames.ts';
 import { settleComputerTurn } from '../workers/settle-computer-turn.ts';
@@ -44,6 +46,10 @@ export async function applyComputerTurnFrame(input: {
     const activity = workerTurnActivityFrameSchema.safeParse(frame);
     if (activity.success) {
         return await recordComputerTurnActivity(db, scope, activity.data);
+    }
+    const steps = workerTurnStepsFrameSchema.safeParse(frame);
+    if (steps.success) {
+        return await recordComputerTurnSteps(db, scope, steps.data);
     }
     const held = workerHeldFrameSchema.safeParse(frame);
     if (held.success) {

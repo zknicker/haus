@@ -23,6 +23,7 @@ import {
     WorkerProjectDefaultUnusableError,
     WorkerProjectReposError,
     WorkerRepoNotLinkedError,
+    WorkerModelUnavailableError,
     WorkerRuntimeUnavailableError,
     WorkerTurnSettledError,
 } from '../workers/place-errors.ts';
@@ -41,6 +42,7 @@ const refusals = [
     [WorkerProjectReposError, 400, 'WORKER_REPO_UNKNOWN'],
     [WorkerRepoNotLinkedError, 409, 'WORKER_REPO_NOT_LINKED'],
     [WorkerRuntimeUnavailableError, 409, 'WORKER_RUNTIME_UNAVAILABLE'],
+    [WorkerModelUnavailableError, 409, 'WORKER_MODEL_UNAVAILABLE'],
     [WorkerTurnSettledError, 409, 'WORKER_TURN_SETTLED'],
     [WorkerPersonUnknownError, 400, 'WORKER_PERSON_UNKNOWN'],
     [WorkerOptionCloudError, 400, 'WORKER_OPTION_CLOUD'],

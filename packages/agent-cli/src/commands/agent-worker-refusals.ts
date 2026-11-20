@@ -4,6 +4,8 @@ import { AgentCliError } from '../agent-error.ts';
 const placesStep = 'Run haus worker places --task <KEY-n> to see where Workers can run';
 
 const nextActions: Partial<Record<WorkerRefusalCode, string>> = {
+    WORKER_MODEL_UNAVAILABLE:
+        'Start again with --model set to one the message lists, or leave --model out.',
     WORKER_OPTION_CLOUD:
         'Drop --runtime and --model for a cloud place; its model is the Server’s cloud model setting.',
     WORKER_PLACE_AMBIGUOUS: `${placesStep}, then start again with --on computer:<id>.`,
