@@ -7,10 +7,10 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded';
 import type { IconSvgElement } from '@hugeicons/react';
 import * as React from 'react';
-import { Focusable } from 'react-aria-components';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
+import { TooltipLink } from '../../components/ui/tooltip-link.tsx';
 import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.ts';
 import { useAgentAppearances } from '../../hooks/members/use-agents.ts';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
@@ -102,21 +102,19 @@ function FooterLink({
     const pressRef = usePressNavigationWith(useSidebarNavigate(), href, preload);
     return (
         <Tooltip>
-            <Focusable>
-                <Link
-                    aria-current={
-                        pathname === href || pathname.startsWith(`${href}/`) ? 'page' : undefined
-                    }
-                    aria-label={label}
-                    className="button button--icon-only button--sm button--ghost"
-                    onFocus={preload}
-                    onMouseEnter={preload}
-                    ref={pressRef}
-                    to={href}
-                >
-                    <Icon aria-hidden="true" className="text-muted" icon={icon} />
-                </Link>
-            </Focusable>
+            <TooltipLink
+                aria-current={
+                    pathname === href || pathname.startsWith(`${href}/`) ? 'page' : undefined
+                }
+                aria-label={label}
+                className="button button--icon-only button--sm button--ghost"
+                onFocus={preload}
+                onMouseEnter={preload}
+                ref={pressRef}
+                to={href}
+            >
+                <Icon aria-hidden="true" className="text-muted" icon={icon} />
+            </TooltipLink>
             <Tooltip.Content>{label}</Tooltip.Content>
         </Tooltip>
     );

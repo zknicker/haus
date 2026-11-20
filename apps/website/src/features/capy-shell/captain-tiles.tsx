@@ -1,7 +1,7 @@
 import { Badge, Tooltip } from '@heroui/react';
 import * as React from 'react';
-import { Link } from 'react-router-dom';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
+import { TooltipLink } from '../../components/ui/tooltip-link.tsx';
 import { usePreloadAgentRecord } from '../../hooks/members/use-preload-agent-profile.ts';
 import { usePreloadChat } from '../../hooks/servers/use-preload-chat.ts';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
@@ -92,60 +92,54 @@ const CaptainTileLink = React.memo(function CaptainTileLink({
         .join(', ');
 
     return (
-        <Tooltip delay={400} isDisabled={!name.truncated}>
-            <Tooltip.Trigger role="presentation" tabIndex={-1}>
-                <DmNavigationContextMenu
-                    agentId={agentId}
-                    chatId={tile.dmChatId}
-                    chatName={tile.name}
-                    href={href}
-                    slug={slug}
+        <DmNavigationContextMenu
+            agentId={agentId}
+            chatId={tile.dmChatId}
+            chatName={tile.name}
+            href={href}
+            slug={slug}
+        >
+            <Tooltip delay={400} isDisabled={!name.truncated}>
+                <TooltipLink
+                    aria-current={isCurrent ? 'page' : undefined}
+                    aria-label={label}
+                    className={cn(
+                        'hover:bg-default flex cursor-[var(--cursor-interactive)] flex-col items-center gap-[3px] rounded-xl pt-[5px] pb-[4px]',
+                        isCurrent && 'bg-default'
+                    )}
+                    onFocus={preload}
+                    onMouseEnter={preload}
+                    ref={pressRef}
+                    style={{ width: tileSize }}
+                    to={href}
                 >
-                    <Link
-                        aria-current={isCurrent ? 'page' : undefined}
-                        aria-label={label}
-                        className={cn(
-                            'hover:bg-default flex cursor-[var(--cursor-interactive)] flex-col items-center gap-[3px] rounded-xl pt-[5px] pb-[4px]',
-                            isCurrent && 'bg-default'
-                        )}
-                        onFocus={preload}
-                        onMouseEnter={preload}
-                        ref={pressRef}
-                        style={{ width: tileSize }}
-                        to={href}
-                    >
-                        <Badge.Anchor style={{ height: tileAvatarSize, width: tileAvatarSize }}>
-                            <EntityAvatar
-                                name={tile.name}
-                                size={tileAvatarSize}
-                                src={tile.avatarUrl}
+                    <Badge.Anchor style={{ height: tileAvatarSize, width: tileAvatarSize }}>
+                        <EntityAvatar name={tile.name} size={tileAvatarSize} src={tile.avatarUrl} />
+                        {tile.unreadCount > 0 ? (
+                            <Badge className="tabular-nums" color="accent" size="sm">
+                                {tile.unreadCount > 99 ? '99+' : tile.unreadCount}
+                            </Badge>
+                        ) : null}
+                        {tile.presence ? (
+                            <Badge
+                                color={presenceBadgeColors[tile.presence]}
+                                data-agent-status={tile.presence}
+                                placement="bottom-right"
+                                size="sm"
                             />
-                            {tile.unreadCount > 0 ? (
-                                <Badge className="tabular-nums" color="accent" size="sm">
-                                    {tile.unreadCount > 99 ? '99+' : tile.unreadCount}
-                                </Badge>
-                            ) : null}
-                            {tile.presence ? (
-                                <Badge
-                                    color={presenceBadgeColors[tile.presence]}
-                                    data-agent-status={tile.presence}
-                                    placement="bottom-right"
-                                    size="sm"
-                                />
-                            ) : null}
-                        </Badge.Anchor>
-                        <span
-                            aria-hidden="true"
-                            className="text-muted w-full truncate px-[2px] text-center text-xs leading-tight"
-                            ref={name.ref}
-                        >
-                            {tile.name}
-                        </span>
-                    </Link>
-                </DmNavigationContextMenu>
-            </Tooltip.Trigger>
-            <Tooltip.Content>{tile.name}</Tooltip.Content>
-        </Tooltip>
+                        ) : null}
+                    </Badge.Anchor>
+                    <span
+                        aria-hidden="true"
+                        className="text-muted w-full truncate px-[2px] text-center text-xs leading-tight"
+                        ref={name.ref}
+                    >
+                        {tile.name}
+                    </span>
+                </TooltipLink>
+                <Tooltip.Content>{tile.name}</Tooltip.Content>
+            </Tooltip>
+        </DmNavigationContextMenu>
     );
 });
 

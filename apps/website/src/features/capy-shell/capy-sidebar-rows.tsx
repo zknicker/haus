@@ -116,7 +116,6 @@ function WaitingOnYouKey({ taskKey }: { taskKey: string }) {
             <Tooltip.Trigger
                 className="pointer-events-auto me-1.5 inline-flex items-center gap-1"
                 role="presentation"
-                tabIndex={-1}
             >
                 <span className="sr-only">Waiting on you, </span>
                 <span aria-hidden="true" className="bg-accent size-1.5 rounded-full" />
