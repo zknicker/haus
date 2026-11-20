@@ -9,6 +9,7 @@ import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.t
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useColorThemeDefinition } from '../../hooks/shell/use-color-theme.ts';
+import { useCustomThemes } from '../../hooks/shell/use-custom-themes.ts';
 import type { ServerSummary } from '../../lib/haus-server.tsx';
 import { setShowClaimsInChat, useShowClaimsInChat } from '../claims/show-claims-in-chat.ts';
 import { serverChatMessageRoute, serverSearchRoute } from '../servers/server-routes.ts';
@@ -22,6 +23,7 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
     const { forcedTheme, setTheme } = useTheme();
     const modeLocked = forcedTheme !== null;
     const { scene } = useColorThemeDefinition();
+    const customThemes = useCustomThemes();
     const showClaimsInChat = useShowClaimsInChat();
     const openAgentProfile = useOpenAgentProfile();
     const agents = useAgents(server.id);
@@ -48,11 +50,12 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
                 setDevMode,
             }),
             buildClaimCommandGroup({ setShowClaimsInChat, showClaimsInChat }),
-            buildThemeCommandGroup({ modeLocked, scene, setTheme }),
+            buildThemeCommandGroup({ customThemes, modeLocked, scene, setTheme }),
         ],
         [
             agentItems,
             chatItems,
+            customThemes,
             devMode,
             modeLocked,
             navigate,

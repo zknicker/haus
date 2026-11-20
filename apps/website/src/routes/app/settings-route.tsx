@@ -10,6 +10,7 @@ import {
     serverArchivedChatsRoute,
     serverSettingsSectionRoute,
 } from '../../features/servers/server-routes.ts';
+import { AppearanceSettings } from '../../features/settings/appearance/page.tsx';
 import type { SettingsNavLinkId } from '../../features/settings/layout/navigation.ts';
 import { ConnectionPage } from '../../features/settings/mcp/connection-page.tsx';
 import { ConnectionsPage } from '../../features/settings/mcp/connections-page.tsx';
@@ -32,6 +33,7 @@ interface SectionContext {
 
 /** Section registry: one renderer per settings section, no dispatch chain. */
 const sections: Record<string, (context: SectionContext) => ReactNode> = {
+    appearance: () => <AppearanceSettings />,
     computers: ({ server }) => (
         <RequireOperator
             description="Devices are attached and removed by Server operators."
@@ -72,7 +74,6 @@ const linkedSections = new Map<string, (server: ServerSummary) => string>(
 
 /** Sections that moved; old links still resolve. */
 const renamedSections: Record<string, string> = {
-    appearance: 'preferences',
     browser: 'computers',
     updates: 'preferences',
 };

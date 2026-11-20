@@ -1,0 +1,28 @@
+/*
+ * One: One Light and One Dark, blue accent. Base colors only;
+ * `palette-ground.css` derives the ladder. Palette from the Atom editor's
+ * One themes (MIT), https://github.com/atom/atom/tree/master/packages.
+ */
+[data-color-theme="one"][data-palette][data-theme="light"] {
+    --accent: #4078f2;
+    --accent-foreground: #ffffff;
+    --background: #fafafa;
+    --foreground: #383a42;
+    --sidebar-surface: #eaeaeb;
+    --surface: #ffffff;
+    --default: #e5e5e6;
+    --muted: #696c77;
+    --border: #dbdbdc;
+}
+
+[data-color-theme="one"][data-palette][data-theme="dark"] {
+    --accent: #61afef;
+    --accent-foreground: #282c34;
+    --background: #282c34;
+    --foreground: #abb2bf;
+    --sidebar-surface: #21252b;
+    --surface: #2c313a;
+    --default: #3e4451;
+    --muted: #7f848e;
+    --border: #3b4048;
+}
