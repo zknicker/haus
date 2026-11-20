@@ -20,6 +20,9 @@ Accepted 2026-11-19. Not yet implemented. Part of the direction in
 [ADR 0053](0053-channels-and-tasks-are-the-only-places.md) and
 [ADR 0011](0011-agents-own-one-global-session.md).
 
+Amended 2026-11-19 by [ADR 0059](0059-haus-starts-empty-without-cove.md): Cove is deleted, so
+decision 9 no longer places it in the Haus project, and a new Server's Haus project holds no Agent.
+
 ## Context
 
 A channel is half a project. It has a Task key, but no repos, no rules, and no place for its work
