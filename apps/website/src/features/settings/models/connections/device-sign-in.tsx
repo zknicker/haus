@@ -22,6 +22,7 @@ export function DeviceSignInFlow({
     onRestart,
     onStarted,
     provider,
+    replaceConnectionId,
     serverId,
     signInId,
 }: {
@@ -34,6 +35,7 @@ export function DeviceSignInFlow({
     onRestart: () => void;
     onStarted: (signInId: string) => void;
     provider: ModelSignInProvider;
+    replaceConnectionId?: string;
     serverId: string;
     signInId: string | null;
 }) {
@@ -57,6 +59,7 @@ export function DeviceSignInFlow({
                 onCancel={onCancel}
                 onStarted={onStarted}
                 provider={provider}
+                {...(replaceConnectionId ? { replaceConnectionId } : {})}
                 serverId={serverId}
             >
                 {children}
@@ -148,6 +151,7 @@ function SignInLabelStep({
     onCancel,
     onStarted,
     provider,
+    replaceConnectionId,
     serverId,
 }: {
     children?: React.ReactNode;
@@ -156,6 +160,7 @@ function SignInLabelStep({
     onCancel: () => void;
     onStarted: (signInId: string) => void;
     provider: ModelSignInProvider;
+    replaceConnectionId?: string;
     serverId: string;
 }) {
     const start = useStartModelSignIn(serverId);
@@ -165,7 +170,12 @@ function SignInLabelStep({
     const submit = async () => {
         setError(null);
         try {
-            const signIn = await start.mutateAsync({ label: label.trim(), provider, serverId });
+            const signIn = await start.mutateAsync({
+                label: label.trim(),
+                provider,
+                ...(replaceConnectionId ? { replaceConnectionId } : {}),
+                serverId,
+            });
             onStarted(signIn.signInId);
         } catch (cause) {
             setError(connectionErrorMessage(cause));

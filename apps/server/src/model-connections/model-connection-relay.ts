@@ -12,9 +12,14 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { modelConnectionsUpdatedTopic } from '../realtime/topics.ts';
 import { type SecretsKey, SecretsKeyMissingError } from '../secrets/sealed-secret.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { ModelSignInNotFoundError, RunnerNotConnectedError } from './model-connection-errors.ts';
+import {
+    ModelConnectionNotFoundError,
+    ModelSignInNotFoundError,
+    RunnerNotConnectedError,
+} from './model-connection-errors.ts';
 import { ModelSignIns } from './model-sign-ins.ts';
 import { requireConnectionsOwner } from './read-model-connections.ts';
+import { replaceSignedInCredential, requireSignInTarget } from './replace-model-connection.ts';
 import {
     readRunnerConnections,
     recordConnectionStatus,
@@ -65,11 +70,24 @@ export class ModelConnectionRelay {
         if (!this.secretsKey) {
             throw new SecretsKeyMissingError();
         }
+        const replaceConnectionId = input.replaceConnectionId ?? null;
+        if (replaceConnectionId) {
+            await requireSignInTarget(this.db, {
+                connectionId: replaceConnectionId,
+                provider: input.provider,
+                serverId: input.serverId,
+            });
+        }
         this.sweep();
         if (!this.runner.isOnline()) {
             throw new RunnerNotConnectedError();
         }
-        const signIn = this.signIns.start(input.serverId, input.provider, input.label);
+        const signIn = this.signIns.start(
+            input.serverId,
+            input.provider,
+            input.label,
+            replaceConnectionId
+        );
         const sent = this.runner.send({
             provider: input.provider,
             serverId: input.serverId,
@@ -179,20 +197,36 @@ export class ModelConnectionRelay {
         if (!storing) {
             return;
         }
-        const { serverId, view } = storing;
+        const { replaceConnectionId, serverId, view } = storing;
         modelConnectionsUpdatedTopic.announce({ serverId });
+        const credential = { credential: result.credential, kind: 'oauth' as const };
         try {
-            const connectionId = await insertSignedInConnection(this.db, this.secretsKey, {
-                credential: { credential: result.credential, kind: 'oauth' },
-                label: view.label,
-                provider: view.provider,
-                serverId,
-            });
+            let connectionId = replaceConnectionId;
+            if (connectionId) {
+                await replaceSignedInCredential(this.db, this.secretsKey, {
+                    connectionId,
+                    credential,
+                    provider: view.provider,
+                    serverId,
+                });
+            } else {
+                connectionId = await insertSignedInConnection(this.db, this.secretsKey, {
+                    credential,
+                    label: view.label,
+                    provider: view.provider,
+                    serverId,
+                });
+            }
             this.signIns.settle(signInId, { connectionId });
             await this.connectionsChanged(serverId);
         } catch (error) {
             console.error(`[haus] sign-in ${signInId} could not be stored`, error);
-            this.signIns.settle(signInId, { detail: 'The Server could not store this sign-in.' });
+            this.signIns.settle(signInId, {
+                detail:
+                    error instanceof ModelConnectionNotFoundError
+                        ? 'The connection was removed during sign-in.'
+                        : 'The Server could not store this sign-in.',
+            });
             modelConnectionsUpdatedTopic.announce({ serverId });
         }
     }

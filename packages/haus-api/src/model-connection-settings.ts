@@ -64,6 +64,22 @@ export const modelConnectionAddInputSchema = z
     );
 export type ModelConnectionAddInput = z.infer<typeof modelConnectionAddInputSchema>;
 
+/** A new pasted setup-token or API key for an existing connection of that kind; the id, label, order, web search and Agent pins stay. */
+export const modelConnectionReplaceCredentialInputSchema = z
+    .object({
+        connectionId: idSchema,
+        credential: modelConnectionCredentialSchema,
+        serverId: idSchema,
+    })
+    .strict()
+    .refine((input) => input.credential.kind !== 'oauth', {
+        message: 'Signed-in connections reconnect by signing in again.',
+        path: ['credential'],
+    });
+export type ModelConnectionReplaceCredentialInput = z.infer<
+    typeof modelConnectionReplaceCredentialInputSchema
+>;
+
 export const modelConnectionTargetInputSchema = z
     .object({ connectionId: idSchema, serverId: idSchema })
     .strict();
@@ -81,10 +97,12 @@ export type ModelConnectionSetWebSearchInput = z.infer<
     typeof modelConnectionSetWebSearchInputSchema
 >;
 
+/** With `replaceConnectionId`, the signed-in credential replaces that connection's in place instead of adding one. */
 export const modelSignInStartInputSchema = z
     .object({
         label: modelConnectionLabelSchema,
         provider: modelSignInProviderSchema,
+        replaceConnectionId: idSchema.optional(),
         serverId: idSchema,
     })
     .strict();

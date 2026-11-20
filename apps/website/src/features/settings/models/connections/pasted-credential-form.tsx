@@ -28,6 +28,7 @@ export function PastedCredentialForm({
     onCancel,
     onConnected,
     provider,
+    replaceConnectionId,
     serverId,
 }: {
     children?: React.ReactNode;
@@ -35,11 +36,12 @@ export function PastedCredentialForm({
     kind: PastedCredentialKind;
     labelLocked: boolean;
     onCancel: () => void;
-    onConnected: (connectionId: string, label: string) => Promise<void>;
+    onConnected: (connectionId: string, label: string) => void;
     provider: ModelProvider;
+    replaceConnectionId?: string;
     serverId: string;
 }) {
-    const { add } = useModelConnectionEdits(serverId);
+    const { add, replaceCredential } = useModelConnectionEdits(serverId);
     const [label, setLabel] = React.useState(defaultLabel);
     const [secret, setSecret] = React.useState('');
     const [secretError, setSecretError] = React.useState<string | null>(null);
@@ -56,13 +58,19 @@ export function PastedCredentialForm({
         setSaving(true);
         setError(null);
         try {
-            const connection = await add.mutateAsync({
-                credential: pasted.credential,
-                label: label.trim(),
-                provider,
-                serverId,
-            });
-            await onConnected(connection.id, connection.label);
+            const connection = replaceConnectionId
+                ? await replaceCredential.mutateAsync({
+                      connectionId: replaceConnectionId,
+                      credential: pasted.credential,
+                      serverId,
+                  })
+                : await add.mutateAsync({
+                      credential: pasted.credential,
+                      label: label.trim(),
+                      provider,
+                      serverId,
+                  });
+            onConnected(connection.id, connection.label);
         } catch (cause) {
             setError(connectionErrorMessage(cause));
         } finally {

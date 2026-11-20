@@ -3,7 +3,6 @@ import { Segment } from '@heroui-pro/react';
 import { Modal, toast } from '@heroui/react';
 import { TRPCClientError } from '@trpc/client';
 import * as React from 'react';
-import { useReplaceModelConnection } from '../../../../hooks/servers/use-model-connections.ts';
 import {
     useCancelModelSignIn,
     useModelSignIn,
@@ -39,7 +38,7 @@ export function ConnectDialog({
     const [signInId, setSignInId] = React.useState<string | null>(null);
     const signIn = useModelSignIn(serverId, signInId);
     const cancel = useCancelModelSignIn(serverId);
-    const replace = useReplaceModelConnection(serverId);
+    const replaceTarget = replacing ? { replaceConnectionId: replacing.id } : {};
     const flow = flows[flowIndex] ?? flows[0];
     if (!flow) {
         return null;
@@ -71,17 +70,10 @@ export function ConnectDialog({
         }
     };
 
-    const onConnected = async (connectionId: string, label: string) => {
-        try {
-            if (replacing) {
-                await replace(replacing, connectionId);
-            }
-            toast.success(`${name} connected`, { description: replacing?.label ?? label });
-        } catch (cause) {
-            toast.danger(`${name} connected, but the old connection is still there`, {
-                description: connectionErrorMessage(cause),
-            });
-        }
+    const onConnected = (_connectionId: string, label: string) => {
+        toast.success(`${name} ${replacing ? 'reconnected' : 'connected'}`, {
+            description: label,
+        });
         onClose();
     };
 
@@ -133,12 +125,11 @@ export function ConnectDialog({
                             key={flow.choice}
                             labelLocked={replacing !== undefined}
                             onCancel={() => void requestClose()}
-                            onConnected={(connectionId, label) => {
-                                void onConnected(connectionId, label);
-                            }}
+                            onConnected={onConnected}
                             onRestart={() => setSignInId(null)}
                             onStarted={setSignInId}
                             provider={flow.signInProvider}
+                            {...replaceTarget}
                             serverId={serverId}
                             signInId={signInId}
                         >
@@ -153,6 +144,7 @@ export function ConnectDialog({
                             onCancel={onClose}
                             onConnected={onConnected}
                             provider={provider}
+                            {...replaceTarget}
                             serverId={serverId}
                         >
                             {choice}
