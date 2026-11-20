@@ -1,6 +1,5 @@
 import { and, eq, sql } from 'drizzle-orm';
-import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import { enqueueInboxItem, ensureDeliveryState } from '../agent-delivery/store.ts';
+import { inboxWork } from '../agent-delivery/inbox-work.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     projectRepoLinksTable,
@@ -51,17 +50,10 @@ export async function refuseUnlinkedTurn(
     tx: HausDatabase,
     input: { turnId: string; worker: WorkerRow }
 ) {
-    return await settleWorkerTurnAsFailed(tx, workerReportInbox, {
+    return await settleWorkerTurnAsFailed(tx, inboxWork, {
         detail: repoUnlinkedDetail,
         reason: 'launch-refused',
         turnId: input.turnId,
         worker: input.worker,
     });
 }
-
-const workerReportInbox = {
-    enqueue: async (tx, input) => {
-        await ensureDeliveryState(tx, { agentId: input.agentId, serverId: input.serverId });
-        await enqueueInboxItem(tx, { ...input, source: 'worker_report' });
-    },
-} satisfies Pick<AgentDelivery, 'enqueue'>;

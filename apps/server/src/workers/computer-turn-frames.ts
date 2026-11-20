@@ -9,10 +9,10 @@ import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { workerTurnsTable, workersTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { syncWorkerLifecycle } from './stop-worker-turns.ts';
 import { heldWorkerCloseFrames } from './worker-close-frames.ts';
 import type { WorkerEffects } from './worker-effects.ts';
 import { prepareWorkerEvents } from './worker-events.ts';
+import { syncWorkerLifecycle } from './worker-lifecycle.ts';
 
 interface FrameScope {
     computerId: string;

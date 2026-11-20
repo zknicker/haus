@@ -32,9 +32,7 @@ export async function sendAgentFollowUp(
             worker,
         });
         const effects = await withDispatch(tx, storage, runner.serverId, {
-            events: [],
-            frames: queued.frames,
-            wakes: [],
+            ...queued.effects,
             workerIds: queued.idempotent ? [] : [worker.id],
         });
         return {
@@ -100,9 +98,7 @@ async function stopLockedWorker(
     }
     return {
         effects: await withDispatch(tx, storage, worker.serverId, {
-            events: [],
-            frames: stopped.frames,
-            wakes: [],
+            ...stopped.effects,
             workerIds: [worker.id],
         }),
         worker: await requireWorker(tx, worker.serverId, worker.id),

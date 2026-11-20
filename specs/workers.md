@@ -486,7 +486,9 @@ When a Task becomes done or canceled, the Server closes each of its Workers in t
    keeps them. `worker-close` is idempotent.
 
 A place that is offline gets steps 3 and 5 when it reconnects. The Server settles the turn on its
-own side at step 3 and never waits on the place to deliver step 4. On every connect the Computer
+own side at step 3, through the settlement table's `stopped` rows: a recorded draft posts as the
+report with its citations and pull requests, and no draft settles `stopped`. It never waits on the
+place to deliver step 4. A `stop` of an offline Worker settles the same way. On every connect the Computer
 sends `worker-held { workerIds }`, the Workers whose checkout or drive folder it still holds, even
 when the list is empty, and the Server answers with `worker-close` for each one that is closed.
 

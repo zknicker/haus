@@ -32,7 +32,9 @@ export async function closeTaskWorkers(
             : ({ id: input.actor.userId, kind: 'user' } as const);
     for (const worker of closing) {
         const stopped = await stopWorkerTurns(tx, { requestedBy, worker });
-        effects.frames.push(...stopped.frames);
+        effects.events.push(...stopped.effects.events);
+        effects.frames.push(...stopped.effects.frames);
+        effects.wakes.push(...stopped.effects.wakes);
         const [newest] = await tx
             .select({ id: workerTurnsTable.id, outcome: workerTurnsTable.outcome })
             .from(workerTurnsTable)
@@ -47,7 +49,7 @@ export async function closeTaskWorkers(
         const settledByClose =
             newest?.outcome &&
             stopped.stoppedTurnIds.includes(newest.id) &&
-            stopped.frames.length === 0;
+            stopped.effects.frames.length === 0;
         if (newest?.outcome && settledByClose) {
             const wake = await queueWorkerReport(tx, agentDelivery, {
                 outcome: newest.outcome,

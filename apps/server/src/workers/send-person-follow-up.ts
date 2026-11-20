@@ -12,7 +12,7 @@ import { withDispatch } from './dispatch-worker-turns.ts';
 import { WorkerNotFoundError } from './errors.ts';
 import { queueWorkerFollowUp } from './queue-worker-follow-up.ts';
 import { lockWorker, requireOpenWorker } from './stop-worker-turns.ts';
-import type { WorkerFrame } from './worker-effects.ts';
+import type { WorkerEffects, WorkerFrame } from './worker-effects.ts';
 import { requireWorker } from './worker-shape.ts';
 import { canSeeWorker } from './worker-visibility.ts';
 
@@ -32,6 +32,7 @@ export async function sendPersonFollowUp(
     const taskChatId = await readTaskChatId(db, input.serverId, worker.taskId ?? '');
     const frames: WorkerFrame[] = [];
     const workerEvents: PreparedRealtimeEvent[] = [];
+    const workerWakes: WorkerEffects['wakes'] = [];
     const sent = await sendChatMessage(
         db,
         member,
@@ -61,18 +62,21 @@ export async function sendPersonFollowUp(
                     worker: requireOpenWorker(await lockWorker(tx, input.serverId, worker.id)),
                 });
                 const dispatched = await withDispatch(tx, storage, input.serverId, {
-                    events: [],
-                    frames: queued.frames,
-                    wakes: [],
+                    ...queued.effects,
                     workerIds: [worker.id],
                 });
                 frames.push(...dispatched.frames);
                 workerEvents.push(...dispatched.events);
+                workerWakes.push(...dispatched.wakes);
             },
         }
     );
     return {
-        effects: { events: [...sent.events, ...workerEvents], frames, wakes: sent.wakes },
+        effects: {
+            events: [...sent.events, ...workerEvents],
+            frames,
+            wakes: [...sent.wakes, ...workerWakes],
+        },
         messageId: sent.receipt.message.id,
         worker: await requireWorker(db, input.serverId, worker.id),
     };

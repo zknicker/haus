@@ -7,6 +7,7 @@ import {
 } from '@haus/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import type { InboxWork } from '../agent-delivery/inbox-work.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
@@ -72,7 +73,7 @@ export async function settleWorkerTurn(
 
 export async function settleWorkerTurnAsFailed(
     tx: HausDatabase,
-    agentDelivery: Pick<AgentDelivery, 'enqueue'>,
+    agentDelivery: InboxWork,
     input: { detail?: string; reason: WorkerFailure; turnId: string; worker: WorkerRow }
 ) {
     const { worker } = input;
@@ -95,7 +96,7 @@ export async function settleWorkerTurnAsFailed(
 
 export async function queueWorkerReport(
     tx: HausDatabase,
-    agentDelivery: Pick<AgentDelivery, 'enqueue'>,
+    agentDelivery: InboxWork,
     input: {
         outcome: WorkerOutcome;
         taskChatId: string | null;

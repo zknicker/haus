@@ -6,7 +6,7 @@ import { computersTable, workerTurnsTable, workersTable } from '../postgres/sche
 import { WorkerCarrierRemovedError } from './errors.ts';
 import { WorkerPlaceOffError } from './place-errors.ts';
 import { requireOpenWorker, stopWorkerTurns } from './stop-worker-turns.ts';
-import type { WorkerFrame } from './worker-effects.ts';
+import type { WorkerEffects } from './worker-effects.ts';
 import { workerPlaceOf } from './worker-row-place.ts';
 import { turnModel } from './worker-turn-model.ts';
 
@@ -23,13 +23,14 @@ export async function queueWorkerFollowUp(
 ) {
     const worker = requireOpenWorker(input.worker);
     const replayed = input.nonce ? await findTurnByNonce(tx, worker, input.nonce) : null;
+    const none: WorkerEffects = { events: [], frames: [], wakes: [] };
     if (replayed) {
-        return { frames: [] as WorkerFrame[], idempotent: true, turnId: replayed };
+        return { effects: none, idempotent: true, turnId: replayed };
     }
     await requireCarrier(tx, worker);
     const stopped = input.interrupt
         ? await stopWorkerTurns(tx, { requestedBy: input.followUp.author, worker })
-        : { frames: [] };
+        : { effects: none };
     const nonces = input.nonce ? [input.nonce] : [];
     const waiting = await findWaitingTurn(tx, worker);
     if (waiting) {
@@ -46,7 +47,7 @@ export async function queueWorkerFollowUp(
                 )
             );
         await touchWorker(tx, worker);
-        return { frames: stopped.frames, idempotent: false, turnId: waiting.id };
+        return { effects: stopped.effects, idempotent: false, turnId: waiting.id };
     }
     const model = await turnModel(tx, worker.serverId, {
         carrierComputerId: worker.carrierComputerId,
@@ -75,7 +76,7 @@ export async function queueWorkerFollowUp(
             updatedAt: sql`now()`,
         })
         .where(and(eq(workersTable.serverId, worker.serverId), eq(workersTable.id, worker.id)));
-    return { frames: stopped.frames, idempotent: false, turnId };
+    return { effects: stopped.effects, idempotent: false, turnId };
 }
 
 async function findTurnByNonce(tx: HausDatabase, worker: WorkerRow, nonce: string) {
