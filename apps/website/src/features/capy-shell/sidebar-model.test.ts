@@ -49,7 +49,7 @@ const forge = {
 
 const sources = (fields: Partial<CapySidebarSources>) =>
     ({
-        agentIds: ['forge', 'cove'],
+        agentIds: ['forge', 'orbit'],
         channelOrder: [],
         chats: [],
         openTasks: [],
@@ -69,10 +69,32 @@ test('the sidebar runs Captains, Projects, open Tasks, then People', () => {
         })
     );
     expect(sections).toEqual([
-        { agentDmChatIds: {}, agentIds: ['forge', 'cove'], kind: 'captains' },
+        { agentDmChatIds: {}, agentIds: ['forge', 'orbit'], kind: 'captains' },
         { chatIds: ['eng'], kind: 'projects' },
         { kind: 'open-tasks', tasks: [{ chatId: null, key: 'ENG-1', taskId: 't1' }] },
         { chatIds: ['dm-ada'], kind: 'people' },
+    ]);
+});
+
+test('a new Haus with no Captains and no Projects keeps both headers with nothing below', () => {
+    expect(buildCapySidebar(sources({ agentIds: [], chats: [] }))).toEqual([
+        { agentDmChatIds: {}, agentIds: [], kind: 'captains' },
+        { chatIds: [], kind: 'projects' },
+    ]);
+});
+
+test('one Project and no Captain, or one Captain and no Project, keeps the empty header', () => {
+    expect(
+        buildCapySidebar(
+            sources({ agentIds: [], chats: [chat({ id: 'eng', kind: 'channel', name: 'eng' })] })
+        )
+    ).toEqual([
+        { agentDmChatIds: {}, agentIds: [], kind: 'captains' },
+        { chatIds: ['eng'], kind: 'projects' },
+    ]);
+    expect(buildCapySidebar(sources({ agentIds: ['forge'], chats: [] }))).toEqual([
+        { agentDmChatIds: {}, agentIds: ['forge'], kind: 'captains' },
+        { chatIds: [], kind: 'projects' },
     ]);
 });
 

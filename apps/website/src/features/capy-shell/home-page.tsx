@@ -1,34 +1,45 @@
-import { EmptyState } from '@heroui-pro/react';
-import { Folder01Icon } from '@hugeicons-pro/core-stroke-rounded';
+import type { Agent } from '@haus/api';
 import * as React from 'react';
-import { Icon } from '../../components/ui/icon.tsx';
-import { useAgentAppearances } from '../../hooks/members/use-agents.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
+import { hausTrpc } from '../../lib/haus-server.tsx';
+import { queryPolicy } from '../../lib/query-policy.ts';
 import { HomeBackground } from '../home-background/home-background.tsx';
 import { readLastChatId } from '../servers/server-choice.ts';
 import { orderChannelIds } from '../shell/channel-order.ts';
 import { PageBand } from '../shell/page-band.tsx';
 import { HomeComposer } from './home-composer.tsx';
+import { HomeFirstRun } from './home-first-run.tsx';
+import { homeState } from './home-state.ts';
 import { storedChannelOrder } from './use-capy-sidebar.ts';
 
-export function CapyHomePage({ serverId, slug }: { serverId: string; slug: string }) {
+export function CapyHomePage({
+    canManage,
+    serverId,
+    slug,
+}: {
+    canManage: boolean;
+    serverId: string;
+    slug: string;
+}) {
     useWindowTitle('Home');
     const chats = useChats(serverId).data;
-    const captains = useAgentAppearances(serverId);
+    const captains = hausTrpc.agent.list.useQuery(
+        { serverId },
+        { ...queryPolicy.syncedSnapshot, select: selectCaptainChoices }
+    ).data;
     const projects = React.useMemo(() => {
+        if (!chats) {
+            return undefined;
+        }
         const channels = new Map(
-            (chats ?? []).filter((chat) => chat.kind === 'channel').map((chat) => [chat.id, chat])
+            chats.filter((chat) => chat.kind === 'channel').map((chat) => [chat.id, chat])
         );
         return orderChannelIds([...channels.keys()], storedChannelOrder(serverId)).flatMap(
             (id) => channels.get(id) ?? []
         );
     }, [chats, serverId]);
-    const lastChatId = readLastChatId(slug);
-    const initialProject =
-        projects.find((project) => project.id === lastChatId) ??
-        projects.find((project) => project.isAll) ??
-        projects[0];
+    const state = homeState({ captains, lastChatId: readLastChatId(slug), projects });
 
     return (
         <>
@@ -38,34 +49,33 @@ export function CapyHomePage({ serverId, slug }: { serverId: string; slug: strin
             <HomeBackground />
             <div className="relative isolate flex min-h-0 flex-1 flex-col items-center justify-center overflow-y-auto px-6 pb-[8vh]">
                 <div className="relative w-full max-w-xl">
-                    {chats && initialProject ? (
+                    {state.kind === 'ready' ? (
                         <HomeComposer
-                            captains={captains}
-                            initialProjectId={initialProject.id}
-                            projects={projects}
+                            captains={state.captains}
+                            initialProjectId={state.initialProjectId}
+                            projects={state.projects}
                             serverId={serverId}
                             slug={slug}
                         />
                     ) : null}
-                    {chats && !initialProject ? <NoProjects /> : null}
+                    {state.kind === 'first-run' ? (
+                        <HomeFirstRun
+                            canManage={canManage}
+                            needsCaptain={state.needsCaptain}
+                            needsProject={state.needsProject}
+                            serverId={serverId}
+                        />
+                    ) : null}
                 </div>
             </div>
         </>
     );
 }
 
-function NoProjects() {
-    return (
-        <EmptyState>
-            <EmptyState.Header>
-                <EmptyState.Media variant="icon">
-                    <Icon icon={Folder01Icon} />
-                </EmptyState.Media>
-                <EmptyState.Title>No projects yet</EmptyState.Title>
-                <EmptyState.Description>
-                    Create a project from the sidebar to begin.
-                </EmptyState.Description>
-            </EmptyState.Header>
-        </EmptyState>
-    );
+function selectCaptainChoices(agents: Agent[]) {
+    return agents.map((agent) => ({
+        avatarUrl: agent.avatarUrl,
+        displayName: agent.displayName,
+        id: agent.id,
+    }));
 }

@@ -939,6 +939,13 @@
       "when": 1795134880950,
       "tag": "0133_agent-invocations",
       "breakpoints": true
+    },
+    {
+      "idx": 134,
+      "version": "7",
+      "when": 1795138772546,
+      "tag": "0134_model-connections",
+      "breakpoints": true
     }
   ]
 }

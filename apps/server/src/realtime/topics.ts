@@ -13,6 +13,7 @@ import {
     memberUpdatedEventSchema,
     messageCreatedEventSchema,
     messageReactionUpdatedEventSchema,
+    modelConnectionsUpdatedEventSchema,
     projectUpdatedEventSchema,
     reminderUpdatedEventSchema,
     serverUpdatedEventSchema,
@@ -65,6 +66,10 @@ export const invitationUpdatedTopic = createTopic(
 export const cloudAgentSettingsUpdatedTopic = createTopic(
     'cloudAgentSettings.updated',
     cloudAgentSettingsUpdatedEventSchema
+);
+export const modelConnectionsUpdatedTopic = createTopic(
+    'modelConnections.updated',
+    modelConnectionsUpdatedEventSchema
 );
 
 export const projectUpdatedTopic = createTopic('project.updated', projectUpdatedEventSchema);

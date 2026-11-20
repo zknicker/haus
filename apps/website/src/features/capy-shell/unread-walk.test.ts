@@ -31,7 +31,7 @@ const rows = walkRows({
     chats,
     previews,
     sections: buildCapySidebar({
-        agentIds: ['forge', 'cove'],
+        agentIds: ['forge', 'orbit'],
         channelOrder: [],
         chats,
         openTasks: [
@@ -52,7 +52,7 @@ const rows = walkRows({
 test('the walk reads the sidebar top to bottom: Captains, Projects, open Tasks, People', () => {
     expect(rows).toEqual([
         { href: '/s/dev/chats/dm-forge', unread: true },
-        { href: '/s/dev/dm/cove', unread: false },
+        { href: '/s/dev/dm/orbit', unread: false },
         { href: '/s/dev/chats/eng', unread: false },
         { href: '/s/dev/chats/sec', unread: true },
         { href: '/s/dev/tasks/ENG-1', unread: true },

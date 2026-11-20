@@ -35,7 +35,7 @@ test('a first line longer than a title keeps the whole ask as the description', 
 });
 
 test("the Captain defaults to the Project's Captain, else the Server's first", () => {
-    expect(defaultCaptainId(['retired', 'cove'], ['forge', 'cove'])).toBe('cove');
-    expect(defaultCaptainId([], ['forge', 'cove'])).toBe('forge');
-    expect(defaultCaptainId(['cove'], [])).toBeNull();
+    expect(defaultCaptainId(['retired', 'orbit'], ['forge', 'orbit'])).toBe('orbit');
+    expect(defaultCaptainId([], ['forge', 'orbit'])).toBe('forge');
+    expect(defaultCaptainId(['orbit'], [])).toBeNull();
 });
