@@ -5,7 +5,7 @@ import type { InvocationClock } from '../src/agent-invocations/invocation-clock.
 import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
-import { type RunnerFrame, testRunnerToken } from './runner.fixture.ts';
+import { type RunnerFrame, reportRunnerModels, testRunnerToken } from './runner.fixture.ts';
 
 export interface FrameClient {
     close(): void;
@@ -83,6 +83,7 @@ export async function startInvocationHarness(input: { clock?: InvocationClock; s
             'healthy'
         )
     `;
+    await reportRunnerModels(harness);
     const agentId = (
         await createHomedAgent(owner, {
             computerId,

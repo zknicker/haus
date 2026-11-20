@@ -11,6 +11,7 @@ import {
 import type { RunnerConfig } from './config.ts';
 import type { DispatchLedger } from './dispatch/ledger.ts';
 import { type InvocationClock, systemInvocationClock } from './invocations/invocation-clock.ts';
+import { runnerModelCatalog } from './model-catalog.ts';
 import type { ConnectionBook } from './model-connections/connection-book.ts';
 import { createSignIns } from './pi/pi-sign-ins.ts';
 import type { RunnerLink, TurnHost } from './run-context.ts';
@@ -198,7 +199,11 @@ export function openServerLink(input: {
     };
 }
 
-const inventory: RunnerInventoryFrame = { harnesses: [...harnessIds], type: 'runner-inventory' };
+const inventory: RunnerInventoryFrame = {
+    harnesses: [...harnessIds],
+    runtimes: runnerModelCatalog(),
+    type: 'runner-inventory',
+};
 
 function parseJson(text: string) {
     try {

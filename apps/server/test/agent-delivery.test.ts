@@ -28,6 +28,7 @@ import {
     serversTable,
     usersTable,
 } from '../src/postgres/schema.ts';
+import { computerModelCatalog } from '../src/server-agents/agent-model-catalog.ts';
 import { configureAgent } from '../src/server-agents/configure-agent.ts';
 import { testAgentHome } from './agent-home.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
@@ -1743,7 +1744,8 @@ test('defers a public Agent configuration change until the active run settles', 
             modelId: 'new-model',
             runtimeId: 'fake',
             serverId: seed.serverId,
-        }
+        },
+        computerModelCatalog
     );
     await delivery.applyAgentConfiguration(configured);
 
@@ -1886,7 +1888,8 @@ test.each(['fake', 'grok-build'])(
                 reasoningEffort: 'high',
                 runtimeId,
                 serverId: seed.serverId,
-            }
+            },
+            computerModelCatalog
         );
         await delivery.applyAgentConfiguration(configured);
 
@@ -1965,7 +1968,8 @@ test('applies deferred configuration at Stop without auto-starting, then starts 
             modelId: 'new-model',
             runtimeId: 'fake',
             serverId: seed.serverId,
-        }
+        },
+        computerModelCatalog
     );
     await delivery.applyAgentConfiguration(configured);
 
@@ -2051,7 +2055,8 @@ test('applies deferred configuration before Restart redrives pending work', asyn
             modelId: 'new-model',
             runtimeId: 'fake',
             serverId: seed.serverId,
-        }
+        },
+        computerModelCatalog
     );
     await delivery.applyAgentConfiguration(configured);
 
@@ -2135,7 +2140,8 @@ test('applies deferred configuration with one strongest Reset generation', async
             modelId: 'new-model',
             runtimeId: 'fake',
             serverId: seed.serverId,
-        }
+        },
+        computerModelCatalog
     );
     await delivery.applyAgentConfiguration(configured);
 

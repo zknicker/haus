@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { invocationGraceMs, invocationRunnerMarginMs } from '@haus/api';
 import { openDispatchLedger } from './dispatch/ledger.ts';
 import { manualClock } from './manual-clock.ts';
+import { runnerModelCatalog } from './model-catalog.ts';
 import {
     attachRunner,
     drainCleanups,
@@ -18,6 +19,7 @@ describe('runner server link', () => {
         const runner = await attachRunner(server);
         expect(await server.frame('runner-inventory')).toEqual({
             harnesses: ['claude-agent-sdk', 'pi-durable'],
+            runtimes: runnerModelCatalog(),
             type: 'runner-inventory',
         });
         server.start({ modelConnectionId: 'mc_claude', reasoningEffort: 'xhigh' });

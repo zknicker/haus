@@ -108,6 +108,7 @@ export async function registerHausServerRoutes(
         githubApp: dependencies.githubApp,
         imageGeneration,
         mcpRuntime: dependencies.mcpRuntime,
+        modelCatalog: dependencies.modelConnections.catalog,
         postCommitWork: dependencies.postCommitWork,
     });
     registerMcpOAuthCallback(app, dependencies.mcpOAuthRelay);

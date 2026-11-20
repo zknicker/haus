@@ -84,6 +84,7 @@ export function registerAgentApiRoutes(
         githubApp: import('../github/github-app.ts').GithubApp | null;
         imageGeneration: import('../image-generation/image-generation-service.ts').ImageGenerationService;
         mcpRuntime: import('../server-mcp/runtime.ts').McpRuntime;
+        modelCatalog: import('../server-agents/agent-model-catalog.ts').AgentModelCatalog;
         postCommitWork: ServerPostCommitWork;
     }
 ) {
@@ -93,6 +94,7 @@ export function registerAgentApiRoutes(
         agentDelivery: options.agentDelivery,
         avatarImageService: options.avatarImageService,
         db: options.db,
+        modelCatalog: options.modelCatalog,
         postCommitWork: options.postCommitWork,
     });
     registerAgentChannelRoutes(app, { db: options.db });

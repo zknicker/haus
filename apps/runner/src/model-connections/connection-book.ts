@@ -1,7 +1,7 @@
 import {
     type ModelOAuthCredential,
-    type ModelProvider,
     modelProviderFor,
+    modelProviderNames,
     type RunnerConnectionCredentialAckFrame,
     type RunnerModelConnection,
 } from '@haus/api';
@@ -156,17 +156,10 @@ export function connectionForRun(
 }
 
 export function missingConnectionMessage(modelId: string) {
-    return `No ${providerNames[modelProviderFor(modelId)]} connection. Connect one in Settings → Models.`;
+    return `No ${modelProviderNames[modelProviderFor(modelId)]} connection. Connect one in Settings → Models.`;
 }
 
 function rotatingOf(entry: BookEntry | undefined) {
     return entry?.local.kind === 'rotating' ? entry.local.rotation : null;
 }
 
-const providerNames: Record<ModelProvider, string> = {
-    chatgpt: 'ChatGPT',
-    claude: 'Claude',
-    gemini: 'Gemini',
-    openrouter: 'OpenRouter',
-    xai: 'xAI',
-};

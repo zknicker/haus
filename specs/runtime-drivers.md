@@ -863,8 +863,15 @@ device-code sign-ins for the App, and sends refreshed tokens back for the Server
 that fails mid-turn is a fatal `session-failure` with category `access`, and it marks the
 connection failed.
 
-`runner-inventory` reports harnesses only. The Agent model picker moves from Computer inventory to
-the runner's model catalog in R4.
+`runner-inventory` reports the harnesses and the runner's model catalog as `runtimes`, in the
+Computer inventory's shape: one runtime per model family (`claude-code`, `codex`, `grok-build`,
+`gemini`, `openrouter`), each model with its label, context window, and reasoning efforts. The
+catalog's model ids are curated in `apps/runner/src/model-catalog.ts`; labels, context windows, and
+efforts come from Pi's model registry. On the runner loop the Server validates an Agent's runtime,
+model, and effort against the last catalog the runner reported, kept in memory across a runner
+reconnect, and `modelConnections.list` returns it as `runnerModels` for the App picker. A model
+whose provider has no connection is still accepted; its turns fail with the connection message
+until one is added.
 
 ## Protocol frames
 
