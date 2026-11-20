@@ -83,7 +83,6 @@ test('runtime sign-in help stays open while hovering and copying the command', a
                             totalUsageUsd: 0,
                         },
                     },
-                    runtimeUsage: [],
                 }),
             })
         );
