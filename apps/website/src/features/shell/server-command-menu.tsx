@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { buildCapyShellCommandGroup } from '../../commands/capy-shell-commands.ts';
 import { buildClaimCommandGroup } from '../../commands/claim-commands.ts';
 import { buildCommandGroups } from '../../commands/server-commands.ts';
 import { buildThemeCommandGroup } from '../../commands/theme-commands.ts';
@@ -11,6 +12,7 @@ import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useColorThemeDefinition } from '../../hooks/shell/use-color-theme.ts';
 import { useCustomThemes } from '../../hooks/shell/use-custom-themes.ts';
 import type { ServerSummary } from '../../lib/haus-server.tsx';
+import { setCapyShell, useCapyShell } from '../capy-shell/capy-shell-preference.ts';
 import { setShowClaimsInChat, useShowClaimsInChat } from '../claims/show-claims-in-chat.ts';
 import { serverChatMessageRoute, serverSearchRoute } from '../servers/server-routes.ts';
 import { CommandMenuMessageResults } from './command-menu-messages.tsx';
@@ -25,6 +27,7 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
     const { scene } = useColorThemeDefinition();
     const customThemes = useCustomThemes();
     const showClaimsInChat = useShowClaimsInChat();
+    const capyShell = useCapyShell();
     const openAgentProfile = useOpenAgentProfile();
     const agents = useAgents(server.id);
     const chats = useChats(server.id);
@@ -40,6 +43,7 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
         () => [
             ...buildCommandGroups({
                 agents: agentItems,
+                capyShell,
                 chats: chatItems,
                 devMode,
                 navigate,
@@ -51,9 +55,11 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
             }),
             buildClaimCommandGroup({ setShowClaimsInChat, showClaimsInChat }),
             buildThemeCommandGroup({ customThemes, modeLocked, scene, setTheme }),
+            buildCapyShellCommandGroup({ capyShell, setCapyShell }),
         ],
         [
             agentItems,
+            capyShell,
             chatItems,
             customThemes,
             devMode,
