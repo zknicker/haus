@@ -2,14 +2,15 @@ import { Sidebar } from '@heroui-pro/react';
 import { Button } from '@heroui/react';
 import { Plus } from '@hugeicons/core-free-icons';
 import * as React from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { SidebarNavigateProvider } from '../../hooks/shell/sidebar-navigate.tsx';
 import {
     resolveSelectedAgentDmId,
     resolveSelectedChatId,
 } from '../../routes/app/server-route-state.ts';
-import { taskRoute } from '../servers/server-routes.ts';
+import { CreateAgentDialog } from '../members/create-agent-dialog.tsx';
+import { serverAgentDmRoute, taskRoute } from '../servers/server-routes.ts';
 import { ChatGroup } from '../shell/chat-navigation-group.tsx';
 import { NewProjectDialog } from '../shell/new-project-dialog.tsx';
 import { sidebarActionIconSize } from '../shell/section-header.tsx';
@@ -23,20 +24,25 @@ import {
 } from './capy-sidebar-rows.tsx';
 import type { CapySidebarSection } from './sidebar-layout.ts';
 import { useCapySidebarSections } from './use-capy-sidebar.ts';
+import { useUnreadRowWalk } from './use-unread-row-walk.ts';
 
 export function CapySidebar({
+    canManage,
     lead,
     serverId,
     slug,
 }: {
+    canManage: boolean;
     lead: 'row' | 'strip';
     serverId: string;
     slug: string;
 }) {
     const sections = useCapySidebarSections(serverId);
     const { pathname } = useLocation();
-    const [creatingProject, setCreatingProject] = React.useState(false);
-    const openNewProject = React.useCallback(() => setCreatingProject(true), []);
+    const navigate = useNavigate();
+    const [creating, setCreating] = React.useState<'captain' | 'project' | null>(null);
+    const openNewProject = React.useCallback(() => setCreating('project'), []);
+    const openNewCaptain = React.useCallback(() => setCreating('captain'), []);
     const selection = {
         pathname,
         selectedAgentDmId: resolveSelectedAgentDmId(pathname, slug),
@@ -46,10 +52,12 @@ export function CapySidebar({
     return (
         <SidebarNavigateProvider>
             {lead === 'row' ? <CapySidebarHeader slug={slug} /> : null}
+            <UnreadRowWalkKeys sections={sections} serverId={serverId} slug={slug} />
             <ShellSidebarPageContent>
                 {sections?.map((section) => (
                     <CapySidebarSectionView
                         key={section.kind}
+                        onCreateCaptain={canManage ? openNewCaptain : undefined}
                         onCreateProject={openNewProject}
                         section={section}
                         selection={selection}
@@ -58,9 +66,18 @@ export function CapySidebar({
                     />
                 ))}
             </ShellSidebarPageContent>
+            <CreateAgentDialog
+                onCreated={(agentId) => {
+                    setCreating(null);
+                    navigate(serverAgentDmRoute(slug, agentId));
+                }}
+                onOpenChange={(open) => setCreating(open ? 'captain' : null)}
+                open={creating === 'captain'}
+                serverId={serverId}
+            />
             <NewProjectDialog
-                onClose={() => setCreatingProject(false)}
-                open={creatingProject}
+                onClose={() => setCreating(null)}
+                open={creating === 'project'}
                 serverId={serverId}
                 slug={slug}
             />
@@ -69,12 +86,14 @@ export function CapySidebar({
 }
 
 function CapySidebarSectionView({
+    onCreateCaptain,
     onCreateProject,
     section,
     selection,
     serverId,
     slug,
 }: {
+    onCreateCaptain: (() => void) | undefined;
     onCreateProject: () => void;
     section: CapySidebarSection;
     selection: {
@@ -89,6 +108,11 @@ function CapySidebarSectionView({
         case 'captains':
             return (
                 <CaptainTiles
+                    action={
+                        onCreateCaptain ? (
+                            <AddButton label="New Captain" onPress={onCreateCaptain} />
+                        ) : undefined
+                    }
                     agentDmChatIds={section.agentDmChatIds}
                     agentIds={section.agentIds}
                     selectedAgentDmId={selection.selectedAgentDmId}
@@ -100,17 +124,7 @@ function CapySidebarSectionView({
         case 'projects':
             return (
                 <ChatGroup
-                    action={
-                        <Button
-                            aria-label="New project"
-                            isIconOnly
-                            onPress={onCreateProject}
-                            size="sm"
-                            variant="ghost"
-                        >
-                            <Icon aria-hidden="true" icon={Plus} size={sidebarActionIconSize} />
-                        </Button>
-                    }
+                    action={<AddButton label="New project" onPress={onCreateProject} />}
                     label="Projects"
                 >
                     <Sidebar.Menu aria-label="Projects">
@@ -159,4 +173,17 @@ function CapySidebarSectionView({
                 </ChatGroup>
             );
     }
+}
+
+function AddButton({ label, onPress }: { label: string; onPress: () => void }) {
+    return (
+        <Button aria-label={label} isIconOnly onPress={onPress} size="sm" variant="ghost">
+            <Icon aria-hidden="true" icon={Plus} size={sidebarActionIconSize} />
+        </Button>
+    );
+}
+
+function UnreadRowWalkKeys(props: Parameters<typeof useUnreadRowWalk>[0]) {
+    useUnreadRowWalk(props);
+    return null;
 }

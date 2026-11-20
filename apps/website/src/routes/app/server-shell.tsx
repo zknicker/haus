@@ -139,6 +139,7 @@ export function ServerShell({
                                     <ShellSidebarPage ariaLabel="Server" value="server">
                                         {capyShell ? (
                                             <CapySidebar
+                                                canManage={canOperate}
                                                 lead={topbarInWindow ? 'row' : 'strip'}
                                                 serverId={server.id}
                                                 slug={slug}

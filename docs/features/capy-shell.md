@@ -23,21 +23,25 @@ stored in `localStorage` under `haus.capy-shell` and follows into other open win
   the titlebar strip; on the desktop they take the sidebar's first line, since the window band
   holds the strip.
   - A Captain tile shows a dot while the Captain works and a badge for unread DM messages. A
-    click opens your DM with that Captain.
+    click opens your DM with that Captain. Owners and Admins get a + that opens New Captain.
   - Each Project row shows its Captains' small avatars. The + opens New project.
   - Each open Task row has a second line: Captain · workers · places, or "waiting on <you>" when
     an unread message in it @mentions you. Waiting Tasks sort first.
   - People lists person-to-person DMs and appears only when you have any.
+  - Alt+Down and Alt+Up open the next or previous row with unread messages, in sidebar order
+    across Captains, Projects, open Tasks and People, wrapping at the ends.
 - **Footer.** Your avatar menu (Settings, Sign out, the version) and icons for Tasks, Drive,
   Automations (a menu of Captains, each opening its Automations), and Activity. Drive opens the
   Files route (`/s/<slug>/artifacts`), which D5 turns into the Drive page. The update status
-  stays above them; the offline Device chip does not.
-- **Removed.** The Inbox row and page, the Direct messages section, the Files row, the top
-  Settings gear, and the Device chip. `/inbox` redirects to Home. Every row carries its own
+  and the offline Device chip stay above them, as in the old sidebar.
+- **Removed.** The Inbox row and page, the Direct messages section, the Files row, and the top
+  Settings gear. `/inbox` redirects to Home. Every row carries its own
   unread state, so ADR 0038's unread-only rule still holds.
 - **Home.** The Server's default route renders Home: a Project chip and a Captain chip above a
   composer. The Captain defaults to the Project's first Captain. The background is the theme's
   plain background; wallpapers come later.
+- **Activity.** The Inbox's Captain activity strip (each Captain's 7-day tokens with the spike
+  flag, and "N running" with its popover) heads the Activity page.
 
 ## Live and placeholder data
 

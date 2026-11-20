@@ -29,7 +29,7 @@ export function CapySidebarFooter({
     const navigate = useNavigate();
     return (
         <div className="flex w-full flex-col gap-2">
-            <HausUpdateFooterContainer devices="hidden" slug={slug} />
+            <HausUpdateFooterContainer slug={slug} />
             <div className="flex w-full items-center justify-between gap-1">
                 <AccountMenu onOpenSettings={onOpenSettings} serverId={serverId} />
                 <nav aria-label="Sections" className="flex items-center">

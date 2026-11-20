@@ -60,7 +60,7 @@ async function mountCapySidebar() {
     const view = await harness.mount(
         <CommandMenuProvider>
             <Sidebar.Provider>
-                <CapySidebar lead="strip" serverId={serverId} slug="render" />
+                <CapySidebar canManage lead="strip" serverId={serverId} slug="render" />
             </Sidebar.Provider>
         </CommandMenuProvider>
     );

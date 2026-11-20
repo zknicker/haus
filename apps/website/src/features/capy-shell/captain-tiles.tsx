@@ -14,6 +14,7 @@ const tileAvatarSize = 34;
 const tileSize = 44;
 
 export function CaptainTiles({
+    action,
     agentDmChatIds,
     agentIds,
     selectedAgentDmId,
@@ -21,6 +22,7 @@ export function CaptainTiles({
     serverId,
     slug,
 }: {
+    action?: React.ReactNode;
     agentDmChatIds: Readonly<Record<string, string>>;
     agentIds: readonly string[];
     selectedAgentDmId: string | undefined;
@@ -29,7 +31,7 @@ export function CaptainTiles({
     slug: string;
 }) {
     return (
-        <ChatGroup label="Captains">
+        <ChatGroup action={action} label="Captains">
             <ul aria-label="Captains" className="flex flex-wrap gap-x-0.5 gap-y-[2px] ps-[2px]">
                 {agentIds.map((agentId) => (
                     <li key={agentId}>

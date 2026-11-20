@@ -20,6 +20,10 @@ Accepted 2026-11-19. Not yet implemented. Part of the direction in
 [ADR 0053](0053-channels-and-tasks-are-the-only-places.md) and
 [ADR 0011](0011-agents-own-one-global-session.md).
 
+Amended 2026-11-19: Zach decided in the UI track that the App has no Inbox page. Home is the
+prompt box, each sidebar row carries its own unread state, and the Agent inbox (delivery) is
+unchanged. Decision 10 reads accordingly.
+
 ## Context
 
 A channel is half a project. It has a Task key, but no repos, no rules, and no place for its work
@@ -72,10 +76,11 @@ someone @mentions it. Haus is a team, so it takes Capy's ownership and Amp's qui
 9. **The Haus project holds generalists.** An Agent there can start Tasks in any Project and loads
    a Project's rules when it acts there. Cove lives here.
 
-10. **The sidebar leads with Agents.** Search and Inbox, then Agent tiles (a dot means working;
+10. **The sidebar leads with Agents.** Search, then Agent tiles (a dot means working;
     a click opens your DM with its Overview), then Projects with their Agents' faces, then open
     Tasks, then a footer with Tasks, Drive, Activity and Settings. Agent DMs are the tiles; the
-    Direct messages section goes, and person-to-person DMs are reached from the Inbox and Search.
+    Direct messages section goes, and person-to-person DMs sit in a People section shown only when
+    you have any, and in Search. There is no Inbox page; each row carries its own unread state.
 
 11. **The Agent page** is your DM on the left and an Overview on the right: Working (its open Tasks
     with their Workers, places and PR state), Drive (its folder), and Rules (links to the rule
@@ -120,6 +125,7 @@ Deleted:
 - Agent channel membership (join, leave, add) and channel mutes. An Agent reads and posts in every
   Project, and what reaches it follows decision 7.
 - The Direct messages sidebar section.
+- The human Inbox page (amended 2026-11-19). The Agent inbox stays.
 
 Follow-up:
 
