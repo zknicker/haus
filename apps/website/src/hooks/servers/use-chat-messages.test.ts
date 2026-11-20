@@ -32,6 +32,7 @@ test('a list page keeps ids and layout facts, never prose or annotations', () =>
     expect(Object.keys(entry).sort()).toEqual([
         'attachments',
         'author',
+        'body',
         'chatId',
         'createdAt',
         'id',

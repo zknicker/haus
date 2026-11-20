@@ -136,6 +136,7 @@ export function projectChatMessageLayout(
             sourceSessionId: null,
             sourceSessionKey: `hosted:${agentId ?? layout.author.kind}`,
             timestamp: layout.createdAt,
+            workerBody: workerMessageBody(layout.body),
         },
         responseId: agentId ? layout.id : undefined,
         runId: layout.author.kind === 'agent' ? layout.runId : null,

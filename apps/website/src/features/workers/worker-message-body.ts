@@ -11,8 +11,10 @@ export function workerMessageBody(body: MessageBody) {
 }
 
 export function turnWorkerBody(items: readonly TranscriptItem[]) {
-    const first = items.find((item) => item.kind === 'row' && item.row.kind === 'message');
-    return first?.kind === 'row' && first.row.kind === 'message'
-        ? (first.row.message.workerBody ?? null)
-        : null;
+    for (const item of items) {
+        if (item.kind === 'row' && item.row.kind === 'message' && item.row.message.workerBody) {
+            return item.row.message.workerBody;
+        }
+    }
+    return null;
 }
