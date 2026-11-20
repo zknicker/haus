@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { getManualTopic, manualTopics } from './index.ts';
+import { getManualTopic, manualTopics, searchManualTopics } from './index.ts';
 
 test('the tasks topic says what a Task is and when to start one (ADR 0053)', () => {
     const body = getManualTopic('tasks')?.body ?? '';
@@ -77,11 +77,14 @@ test('no Manual topic teaches boards, columns, pickup-note threads, or work thre
     }
 });
 
-test("a Worker starts on a Task at its Computer's default place or --on, and reports there", () => {
+test('a Worker starts on a Task at --on, the Project default, or the cloud default, and reports there', () => {
     const body = getManualTopic('workers')?.body ?? '';
-    expect(body).toContain('`haus worker start --task <KEY-n> [--on <cursor|claude>]');
-    expect(body).toContain("Without `--on` a Worker runs on your Computer's default place");
-    expect(body).toContain('Cloud Agents → Make default');
+    expect(body).toContain(
+        '`haus worker start --task <KEY-n> --title <text> [--on <place>] [--repo <owner/name>] [--ref <ref>] [--runtime <claude-code|codex>] [--model <id>]`'
+    );
+    expect(body).toContain(
+        "Without `--on` a start runs on the Task's Project default, else on your Computer's ready cloud default (Settings → Devices → (your device) → Cloud Agents → Make default)."
+    );
     expect(body).toContain('`WORKER_TASK_REQUIRED`');
     expect(body).toContain('`WORKER_PLACE_REQUIRED`');
     expect(body).toContain('Starting posts nothing');
@@ -90,8 +93,49 @@ test("a Worker starts on a Task at its Computer's default place or --on, and rep
     expect(body).toContain(
         'When a pull request a Worker reported later becomes ready for review, or its checks pass or fail, another attention says what changed and gives the URL.'
     );
-    for (const retired of ['--say', '--cause', 'Link:', 'cancel', '--run', 'mid-turn']) {
+    for (const retired of ['--say', '--cause', 'Link:', 'cancel', 'mid-turn']) {
         expect(body).not.toContain(retired);
+    }
+    expect(body).not.toMatch(/--run\b/);
+});
+
+test('haus worker places lists Computers and cloud agents, and --on names one', () => {
+    const body = getManualTopic('workers')?.body ?? '';
+    expect(body).toContain(
+        "`haus worker places --task SEC-12` lists where a Worker can run: each Computer with its **Workers can run here** switch, runtimes, linked repos, and free slots, then `cursor` and `claude`, with the Project's default marked."
+    );
+    expect(body).toContain(
+        '(`computer:mini` or `mini`, or the `computer:<id>` that `places` prints'
+    );
+    expect(searchManualTopics('workers can run here', { limit: 3, scope: 'all' })[0]?.id).toBe(
+        'workers'
+    );
+});
+
+test('a Worker on a Computer uses its own worktree and logins, reports with haus worker report, and writes per-Task Drive folders', () => {
+    const body = getManualTopic('workers')?.body ?? '';
+    expect(body).toContain(
+        "runs Claude Code or Codex on that machine with the machine's own logins, in its own git worktree on its own branch, and records its report with `haus worker report`."
+    );
+    expect(body).toContain(
+        '`agents/<handle>/reports/<KEY-n>/`, `renders/<KEY-n>/`, or `handoffs/<KEY-n>/`'
+    );
+    expect(body).not.toContain('no flag carries one');
+});
+
+test('every W3 start refusal code reads in plain words', () => {
+    const body = getManualTopic('workers')?.body ?? '';
+    for (const code of [
+        'WORKER_PLACE_REQUIRED',
+        'WORKER_PLACE_OFF',
+        'WORKER_PLACE_UNAVAILABLE',
+        'WORKER_PLACE_AMBIGUOUS',
+        'WORKER_REPO_UNKNOWN',
+        'WORKER_REPO_NOT_LINKED',
+        'WORKER_RUNTIME_UNAVAILABLE',
+        'WORKER_OPTION_CLOUD',
+    ]) {
+        expect(body).toContain(`\`${code}\` means`);
     }
 });
 
