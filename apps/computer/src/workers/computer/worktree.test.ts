@@ -70,19 +70,23 @@ describe('Worker worktrees', () => {
     test('a first turn branches from the remote default, and later turns reuse it', async () => {
         const repoPath = await resolveWorkerRepo(source, { dataRoot, remoteUrl });
         const { checkout } = workerLayout(dataRoot, 'srv_1', 'wrk_1');
-        const request = { branch: 'haus/sec-12-wrk_1', checkout, repoPath, startingRef: null };
+        const request = { branch: 'haus/wrk_1/sec-12', checkout, repoPath, startingRef: null };
         await addWorkerWorktree(request);
         git(checkout, 'commit', '--quiet', '--allow-empty', '-m', 'worker commit');
         await addWorkerWorktree(request);
 
-        expect(git(checkout, 'branch', '--show-current')).toBe('haus/sec-12-wrk_1');
+        expect(git(checkout, 'branch', '--show-current')).toBe('haus/wrk_1/sec-12');
         expect(git(checkout, 'log', '--format=%s')).toBe('worker commit\nfirst');
         expect(Bun.spawnSync(['git', 'rev-parse', '@{u}'], { cwd: checkout }).exitCode).toBe(128);
-        expect(await worktreeGitRoots(checkout)).toEqual([
+        expect(await worktreeGitRoots(checkout, 'haus/wrk_1/sec-12')).toEqual([
             join(repoPath, '.git', 'worktrees', 'checkout'),
             join(repoPath, '.git', 'objects'),
-            join(repoPath, '.git', 'refs'),
-            join(repoPath, '.git', 'logs'),
+            join(repoPath, '.git', 'refs', 'heads', 'haus', 'wrk_1'),
+            join(repoPath, '.git', 'logs', 'refs', 'heads', 'haus', 'wrk_1'),
+        ]);
+        expect(await worktreeGitRoots(checkout, 'main')).toEqual([
+            join(repoPath, '.git', 'worktrees', 'checkout'),
+            join(repoPath, '.git', 'objects'),
         ]);
     });
 

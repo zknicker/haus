@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { parseRunnerConfig, type RunnerConfig } from './config.ts';
 import { type DispatchLedger, openDispatchLedger } from './dispatch/ledger.ts';
+import { createJournalUploads, type JournalUploads } from './journal/journal-uploads.ts';
 import { type ConnectionBook, createConnectionBook } from './model-connections/connection-book.ts';
 import { createCapacityReader } from './model-connections/connection-capacity.ts';
 import type { RunnerLink } from './run-context.ts';
@@ -24,7 +25,13 @@ if (process.argv[2] === '__mcp-executor') {
         log: (line) => process.stderr.write(`${line}\n`),
     });
     setInterval(() => void capacity.sweep(), capacitySweepMs).unref();
-    const turnHost = createTurnHost({ book, capacity, config, ledger, link });
+    const journal = createJournalUploads({
+        dataDir: config.dataDir,
+        environment: process.env,
+        log: (line) => process.stderr.write(`${line}\n`),
+        runnerToken: config.runnerToken,
+    });
+    const turnHost = createTurnHost({ book, capacity, config, journal, ledger, link });
     const shutdown = async (signal: NodeJS.Signals) => {
         process.stderr.write(
             `Runner received ${signal}; closing warm sessions and the Server link.\n`
@@ -35,20 +42,21 @@ if (process.argv[2] === '__mcp-executor') {
     };
     process.once('SIGTERM', shutdown);
     process.once('SIGINT', shutdown);
-    await startRunner({ book, config, ledger, turnHost });
+    await startRunner({ book, config, journal, ledger, turnHost });
 }
 
 async function startRunner(input: {
     book: ConnectionBook;
     config: RunnerConfig;
+    journal: JournalUploads;
     ledger: DispatchLedger;
     turnHost: ReturnType<typeof createTurnHost>;
 }) {
-    const { book, config, ledger, turnHost } = input;
+    const { book, config, journal, ledger, turnHost } = input;
     await turnHost.recover(await ledger.recover());
     await ledger.prune();
     setInterval(() => void ledger.prune(), pruneIntervalMs).unref();
-    const link = openServerLink({ book, config, ledger, turnHost });
+    const link = openServerLink({ book, config, journal, ledger, turnHost });
     attached = link;
     process.stderr.write(`Runner connecting to ${config.serverUrl}.\n`);
     await link.ready;

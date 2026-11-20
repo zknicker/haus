@@ -2,6 +2,9 @@ import { join } from 'node:path';
 import { type AgentTurnSummary, agentPathSegment } from '@haus/api';
 import type { RunnerConfig } from '../config.ts';
 import type { DispatchLedger, RecoveredDispatch } from '../dispatch/ledger.ts';
+import type { JournalUploads } from '../journal/journal-uploads.ts';
+import type { RunJournal } from '../journal/run-journal.ts';
+import { createTurnJournals } from '../journal/turn-journals.ts';
 import {
     type ConnectionBook,
     connectionForRun,
@@ -15,10 +18,11 @@ import { createHarnesses } from './harnesses.ts';
 import { inboxStore } from './inbox-store.ts';
 import { recoverDispatches } from './recovered-dispatches.ts';
 import { createRunActivity } from './run-activity.ts';
+import { crashedRunSummary, skipReplacedRun } from './run-endings.ts';
 import { runRecords } from './run-records.ts';
 import { type NoticeSink, type RunTurnResult, runTurn } from './run-turn.ts';
 import type { RuntimeDriverFactory } from './runtime-driver.ts';
-import { RunnerCrashedError, SessionFailureError } from './turn-failure.ts';
+import { SessionFailureError } from './turn-failure.ts';
 import { turnSummary } from './turn-summary.ts';
 
 interface ActiveRun {
@@ -32,6 +36,7 @@ export function createTurnHost(input: {
     book: ConnectionBook;
     capacity?: CapacityReader;
     config: Pick<RunnerConfig, 'dataDir' | 'maxWarm'>;
+    journal?: JournalUploads;
     ledger: DispatchLedger;
     link: RunnerLink;
     log?: (line: string) => void;
@@ -48,6 +53,7 @@ export function createTurnHost(input: {
         ...(input.capacity ? { capacity: input.capacity } : {}),
         dataDir: input.config.dataDir,
         factory: harnesses.factory,
+        ...(input.journal ? { journal: input.journal } : {}),
         ledger: input.ledger,
         link: input.link,
         log,
@@ -61,6 +67,7 @@ export function createTurnHostWith(input: {
     capacity?: CapacityReader;
     dataDir: string;
     factory: RuntimeDriverFactory;
+    journal?: JournalUploads;
     ledger: DispatchLedger;
     link: RunnerLink;
     log: (line: string) => void;
@@ -73,6 +80,11 @@ export function createTurnHostWith(input: {
         const agentDir = join(input.dataDir, 'agents', agentPathSegment(agentId));
         return { agentDir, runtimeDir: join(agentDir, 'runtime') };
     };
+    const journals = createTurnJournals({
+        agentDirOf: (agentId) => paths(agentId).agentDir,
+        log: input.log,
+        ...(input.journal ? { uploads: input.journal } : {}),
+    });
 
     const sessions = agentSessions({
         agentDir: (agentId) => paths(agentId).agentDir,
@@ -88,16 +100,6 @@ export function createTurnHostWith(input: {
             next.catch(() => undefined)
         );
         return next;
-    };
-
-    const skipStale = async (run: RunStart) => {
-        const { start } = run;
-        input.log(
-            `Runner skipped run ${start.runId} for ${start.agentId} from session generation ${start.sessionGeneration}, which a reset replaced.`
-        );
-        input.link.send({ agentId: start.agentId, runId: start.runId, type: 'ack' });
-        await run.tools.settle();
-        await input.ledger.settled(start.agentId, start.runId);
     };
 
     const execute = async (run: RunStart, restartEpoch: number) => {
@@ -120,7 +122,7 @@ export function createTurnHostWith(input: {
     const executeRun = async (run: RunStart, current: ActiveRun, restartEpoch: number) => {
         const { start } = run;
         if (!(await sessions.enter(run, restartEpoch))) {
-            await skipStale(run);
+            await skipReplacedRun(run, input);
             return;
         }
         const { agentDir, runtimeDir } = paths(start.agentId);
@@ -148,8 +150,10 @@ export function createTurnHostWith(input: {
             send: (frame) => input.link.send(frame),
         });
         const connection = connectionForRun(input.book, run.modelConnectionId, start.modelId);
+        let journal: RunJournal | null = null;
         let result: RunTurnResult;
         try {
+            journal = await journals.open(start.agentId, start.runId);
             if (!connection) {
                 throw new SessionFailureError({
                     category: 'access',
@@ -164,6 +168,7 @@ export function createTurnHostWith(input: {
                 authority: run.authority,
                 connection,
                 factory: input.factory,
+                journal,
                 link: input.link,
                 log: input.log,
                 reasoningEffort: run.reasoningEffort,
@@ -184,6 +189,7 @@ export function createTurnHostWith(input: {
             result = { failure: error, status: 'failed', tokenUsage: null };
         }
         activity.close(result.status === 'completed' ? 'completed' : result.status);
+        await journals.close(journal, start.runId, result);
         if (connection && status.afterTurn(connection, result) === 'failed') {
             void input.capacity?.afterAccessFailure(connection.id);
         }
@@ -226,29 +232,19 @@ export function createTurnHostWith(input: {
         records: ReturnType<typeof runRecords>,
         runtimeDir: string
     ) => {
-        const { start } = run;
         await run.tools.settle();
-        const visible = await records.visible();
-        await inboxStore(runtimeDir).consume(visible.map((message) => message.id));
-        const at = new Date().toISOString();
-        const summary = turnSummary({
-            activity: { operations: [] },
-            dispatched: await input.ledger.dispatchedIn(start.agentId, start.runId),
-            endedAt: at,
-            result: { failure: new RunnerCrashedError(), status: 'failed', tokenUsage: null },
-            sendCount: 0,
-            start,
-            startedAt: at,
-            visibleMessages: visible,
-        });
-        await settle(start, records, summary);
+        await journals.crashed(run.start.agentId, run.start.runId);
+        const summary = await crashedRunSummary(run.start, records, runtimeDir, input.ledger);
+        await settle(run.start, records, summary);
     };
 
-    const recover = (dispatches: readonly RecoveredDispatch[]) =>
-        recoverDispatches(dispatches, {
+    const recover = async (dispatches: readonly RecoveredDispatch[]) => {
+        await recoverDispatches(dispatches, {
             log: input.log,
             runtimeDir: (agentId) => paths(agentId).runtimeDir,
         });
+        await journals.recovered(dispatches);
+    };
 
     const host: TurnHost = {
         async notice(notice) {

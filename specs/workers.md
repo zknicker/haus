@@ -396,7 +396,7 @@ servers/<serverId>/workers/<worker-id>/runtime/tmp/         the harness's TMPDIR
 The checkout is a `git worktree` of the repo's linked clone on that Computer (the link's
 `checkoutPath`, used after its `origin` matches `owner/name`), or of a clone in
 `repos/<owner>/<name>` under the data root, made once through a temp sibling and a rename. The
-branch is new, `haus/<key>-<n>-<worker-id>` in lower case, from `--ref`, or from the remote
+branch is new, `haus/<worker-id>/<key>-<n>` with the key in lower case, from `--ref`, or from the remote
 default branch after a fetch. Later turns reuse the checkout. Worktree add and remove for one repo
 run one at a time. The drive folder sits outside the checkout ([Drive folder](drive-folder.md)),
 so the repo never sees it. A new drive folder pulls in full
@@ -433,8 +433,10 @@ link with a null `checkoutPath` means "clone into the data root".
    session. Later turns resume it. Claude Code runs with `bypassPermissions`, the machine user's
    HOME, every settings layer, and no Haus MCP or system prompt. Codex runs with its
    `workspace-write` sandbox and network access, the user's `CODEX_HOME`, native `AGENTS.md`
-   loading, and the checkout, the drive folder, the report folder, `runtime/tmp`, and the
-   worktree's git dirs as writable roots. `/tmp` and the inherited `$TMPDIR` are excluded. Both
+   loading, and the checkout, the drive folder, the report folder, `runtime/tmp`, the worktree's
+   own git dir, the shared object store, and only its own branch's ref and reflog folders
+   (`refs/heads/haus/<worker-id>`) as writable roots, so it cannot move `main` or another
+   Worker's branch. `/tmp` and the inherited `$TMPDIR` are excluded. Both
    harnesses get `TMPDIR`, `TMP`, and `TEMP` pointed at the Worker's `runtime/tmp`. Both run
    unattended and use none of the Agent host tools, warm pool, or background work.
 6. The harness gets `haus` on `PATH` and the turn credential in `HAUS_WORKER_TOKEN`. That `haus`

@@ -59,14 +59,25 @@ export function removeWorkerWorktree(input: { checkout: string; repoPath: string
     return repoPath === null ? remove() : serialized(`repo:${repoPath}`, remove);
 }
 
-export async function worktreeGitRoots(checkout: string) {
+export async function worktreeGitRoots(checkout: string, branch: string) {
     const read = (flag: string) =>
         runGit(['rev-parse', '--path-format=absolute', flag], {
             action: 'read the worktree git dirs',
             cwd: checkout,
         });
     const [gitDir, common] = await Promise.all([read('--git-dir'), read('--git-common-dir')]);
-    return [gitDir, join(common, 'objects'), join(common, 'refs'), join(common, 'logs')];
+    const refDir = ownRefDir(branch);
+    const ownRefs = refDir
+        ? [join(common, 'refs', 'heads', refDir), join(common, 'logs', 'refs', 'heads', refDir)]
+        : [];
+    return [gitDir, join(common, 'objects'), ...ownRefs];
+}
+
+function ownRefDir(branch: string) {
+    const parts = branch.split('/');
+    return parts.length === 3 && parts[0] === 'haus' && parts.every(Boolean)
+        ? `${parts[0]}/${parts[1]}`
+        : null;
 }
 
 async function startPoint(repoPath: string, ref: string | null, signal?: AbortSignal) {

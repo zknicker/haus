@@ -167,7 +167,8 @@ cold-starts once.
 ### Cutover
 
 R3 left these Computer turn features unported, and R4 ports each before it moves an Agent:
-execution journal upload (including journaling dispatches the ledger recovers as `unknown`),
+execution journal upload (including journaling dispatches the ledger recovers as `unknown`;
+ported, see [Execution journal](#execution-journal)),
 thoughts, idle compaction, rich-reference projection of message content, Claude plan usage after a
 turn, and `haus worker start`, which the Computer's proxy handled.
 
@@ -287,6 +288,33 @@ session reset must not drop them. The runner reads them with
 sends `POST /api/agent/managed-skills/notice/ack` naming the releases it announced, so an update
 that landed during the turn stays pending. An interrupted or failed turn sends no receipt, and the
 next turn carries the notice again. A notice the runner could not read is left for the next turn.
+
+### Execution journal
+
+Each runner run writes the execution journal a Computer turn writes
+([ADR 0048](../docs/adr/0048-execution-journals-sync-to-the-server.md)), with the Computer's
+journal store, presenter, redaction, and uploader (`apps/runner/src/journal/`). The run's log and
+snapshot sit in `/data/agents/<agent-id>/runtime/execution-journal/`. Its tool calls, tool
+results and errors, and reasoning come from the run's `TurnEvent` stream, and a machine tool
+result whose invocation did not complete journals as `{ invocation, output }`. The runner uploads
+`agent-execution-journal-records` over its socket while the run runs, the Server answers each
+frame with `agent-execution-journal-ack`, and a `<runId>.uploaded` marker records a settled run
+the Server stored. On every connect the runner resends each unmarked run younger than 30 days
+whole from disk, so a run a restart cut off reaches the Server. A run's journal files and marker are
+deleted once the run is uploaded and older than those 30 days.
+
+The Server stores a runner frame only for a run it minted the runner a run credential for, with
+the same storage, retention, and reads as a Computer's; any other frame is refused. The runner's
+known secrets are its runner token and its secret-named environment values, and run credentials
+redact by shape.
+
+Recovery journals what the ledger recovers. For each run holding a dispatch the runner marks
+`unknown` at start, it reopens that run's journal, records each such tool call as failed with
+`{ outcome: 'unknown', dispatches, message }`, and settles the journal: `failed` with
+`RunnerCrashedError` when the run was still running, or its earlier status when it had settled.
+A crashed run with no such dispatch settles its journal `failed` when the Server resends its
+start. A reopened journal marks a tool still running as interrupted with the journal's one
+restart reason, `computer_restart`.
 
 ### Idle compaction
 
@@ -721,9 +749,9 @@ for a reconnect: the Server drops every pending send for an invocation the momen
 `unknown`. An `invocation-request` that repeats its key gets `unknown` back. A result that already
 exists still reconciles: the Server records a late `invoke-result` on the invocation (its
 `late_outcome`, `late_exit_code`, and `late_result_at`), confirms it with `invoke-result-ack`, and
-does not deliver it to the model or change the outcome the model saw. Runner runs upload no
-execution journal yet, so the invocation record is the only place a late result lands; the
-journal gains it when runner runs start uploading one.
+does not deliver it to the model or change the outcome the model saw. The run's execution
+journal keeps the `unknown` the model saw, so the invocation record is the only place a late
+result lands.
 
 **Grace.** Each invocation gets its timeout plus 30 seconds (`invocationGraceMs`). The Server is
 canonical: it decides `unknown`, and the runner relays that answer, so the record never disagrees

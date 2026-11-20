@@ -46,7 +46,7 @@ version when projecting an Agent. Computer remains authoritative for whether a s
 actually applied that version.
 
 Semantic Agent activity is durable Server metadata. Detailed execution journals are synced by the
-Computer into `agent_execution_journals` (one row per run, with its outline) and
+Computer, or the runner for a runner run, into `agent_execution_journals` (one row per run, with its outline) and
 `agent_execution_journal_records` (one redacted record per sequence), kept 30 days after the run
 started ([ADR 0048](../adr/0048-execution-journals-sync-to-the-server.md)).
 

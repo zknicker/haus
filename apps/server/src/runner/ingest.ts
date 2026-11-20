@@ -30,6 +30,7 @@ type LoopReport = Exclude<
     RunnerUpFrame,
     {
         type:
+            | 'agent-execution-journal-records'
             | 'invocation-cancel'
             | 'invocation-request'
             | 'runner-connection-capacity'
@@ -59,6 +60,13 @@ export async function ingestRunnerFrame(ingest: RunnerIngest, raw: string) {
             return;
         case 'invocation-request':
             await ingest.invocations.request(frame);
+            return;
+        case 'agent-execution-journal-records':
+            await ingestExecutionJournalUpload(ingest.db, {
+                acknowledge: (ack) => ingest.link.send(ack),
+                frame,
+                writer: { kind: 'runner' },
+            });
             return;
         case 'runner-connection-capacity':
         case 'runner-connection-credential':
@@ -94,28 +102,18 @@ async function ingestLoopReport(ingest: RunnerIngest, frame: LoopReport) {
 
 async function ingestRunPresentation(
     ingest: RunnerIngest,
-    frame: Extract<
-        LoopReport,
-        { type: 'agent-activity' | 'agent-thought' | 'agent-execution-journal-records' }
-    >
+    frame: Extract<LoopReport, { type: 'agent-activity' | 'agent-thought' }>
 ) {
     const placement = await readAgentPlacement(ingest.db, frame.agentId);
     if (!placement) {
         return;
     }
-    const input = { ...placement, frame };
-    if (frame.type === 'agent-execution-journal-records') {
-        await ingestExecutionJournalUpload(
-            ingest.db,
-            {
-                send: (_computerId, ack) =>
-                    ack.type === 'agent-execution-journal-ack' && ingest.link.send(ack),
-            },
-            input
-        );
-        return;
-    }
-    await ingestAgentRunFrame(ingest.db, input, ingest.thoughts, ingest.postCommitWork);
+    await ingestAgentRunFrame(
+        ingest.db,
+        { ...placement, frame },
+        ingest.thoughts,
+        ingest.postCommitWork
+    );
 }
 
 async function pushDrive(ingest: RunnerIngest, run: { agentId: string; runId: string }) {

@@ -483,7 +483,7 @@ variant that reports with `haus worker report`), then on the first turn `haus/AG
 revision; a later turn carries `WORKER.md` only when its revision differs from the one the Worker
 last received. It sends `worker-turn-start` with `agentId`, `attempt` (bumped on every send),
 `workerMdRevisionId`, and for a Computer place the `runtime`, the `checkout` (the link's path or
-null, the `haus/<key>-<n>-<worker-id>` branch, the starting ref), and `resumeSessionId`;
+null, the `haus/<worker-id>/<key>-<n>` branch, the starting ref), and `resumeSessionId`;
 `worker-turn-accepted` records the acknowledgement. Dispatch runs after start, follow-up, settle, stop, accept, drain, and reconnect.
 On reconnect the Server resends every unaccepted start, then `worker-reconcile` frames (at most 200
 entries) for accepted unsettled turns and migrated turns whose input still sits on the Computer,
@@ -643,7 +643,7 @@ and `apps/server/src/haus-api/agent/`; Computer proxy and launch behavior live i
 
 Hosted Agent execution detail is a separate, explicit `agent.executionJournal` query. It accepts
 one `serverId`, `agentId`, and `runId`; Server authorizes only Owners/Admins and answers from the
-journal the Agent's Computer synced
+journal the Agent's Computer, or the runner for a runner run, synced
 ([ADR 0048](../adr/0048-execution-journals-sync-to-the-server.md)): `{ status: 'available',
 agentId, runId, journal }`, or `{ status: 'missing', agentId, runId }` when nothing is stored yet
 or the run is past the 30-day retention. The Server never asks a Computer for evidence, so the

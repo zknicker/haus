@@ -13,10 +13,13 @@ const datePattern = /^\d{4}-\d{2}-\d{2}$/u;
 const snapshotKeys = ['components', 'date', 'schemaVersion', 'sourceRevision', 'version'];
 const componentKeys = ['agent', 'computer', 'desktopApp', 'ios', 'server'];
 
-export function resolveReleaseSnapshot(ledger, { sourceRevision }) {
+export function resolveReleaseSnapshot(ledger, { sourceRevision, unshippedIOSVersions }) {
     const { latest } = assertReleaseLedger(ledger, { requireComplete: true });
     if (!fullShaPattern.test(sourceRevision ?? '')) {
         throw new Error('release snapshot source revision must be a full lowercase Git SHA');
+    }
+    if (!Array.isArray(unshippedIOSVersions)) {
+        throw new Error('release snapshot needs the list of unshipped iOS release versions');
     }
 
     return {
@@ -24,7 +27,7 @@ export function resolveReleaseSnapshot(ledger, { sourceRevision }) {
             agent: latestTargetVersion(ledger, 'agent'),
             computer: latestTargetVersion(ledger, 'computer'),
             desktopApp: latestTargetVersion(ledger, 'app'),
-            ios: latestIOSVersion(ledger),
+            ios: latestIOSVersion(ledger, unshippedIOSVersions),
             server: latestTargetVersion(ledger, 'server'),
         },
         date: latest.date,
@@ -34,12 +37,15 @@ export function resolveReleaseSnapshot(ledger, { sourceRevision }) {
     };
 }
 
-export function resolveExpectedPublicHausRelease(ledger, { version, sourceRevision }) {
+export function resolveExpectedPublicHausRelease(
+    ledger,
+    { version, sourceRevision, unshippedIOSVersions }
+) {
     if (!isSemver(version)) {
         throw new Error('expected public Haus version must be X.Y.Z');
     }
 
-    const snapshot = resolveReleaseSnapshot(ledger, { sourceRevision });
+    const snapshot = resolveReleaseSnapshot(ledger, { sourceRevision, unshippedIOSVersions });
     if (snapshot.version !== version) {
         throw new Error(
             `expected public Haus version ${version} does not match latest release ${snapshot.version}`
@@ -91,9 +97,12 @@ export function assertPublicHausSnapshot(
     }
 }
 
-function latestIOSVersion(ledger) {
+function latestIOSVersion(ledger, unshippedIOSVersions) {
     for (let index = ledger.length - 1; index >= 0; index -= 1) {
-        if (!releasePublishesTarget(ledger[index], 'ios')) {
+        if (
+            !releasePublishesTarget(ledger[index], 'ios') ||
+            unshippedIOSVersions.includes(ledger[index].version)
+        ) {
             continue;
         }
         return {

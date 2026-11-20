@@ -45,8 +45,11 @@ test('summary and Apple lifecycle helpers expose outcomes and clean temporary fi
             summaryPath,
             verification: { message: 'verified release' },
             targets: { computer: true, agent: false, app: false, ios: false, server: true },
+            iosShipped: false,
         });
         const summary = readFileSync(summaryPath, 'utf8');
+        assert.match(summary, /\| iOS \| unchanged \|/);
+        assert.doesNotMatch(summary, /iOS did not ship/);
         assert.match(summary, /\| Computer \| published \|/);
         assert.match(summary, /\| Haus Agent \| unchanged \|/);
         assert.match(summary, /\| App \| unchanged \|/);

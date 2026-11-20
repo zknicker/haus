@@ -1,4 +1,5 @@
 import type { WorkerRuntime, WorkerTurnStartFrame } from '@haus/api';
+import { createJournalRedactor } from '../../execution-journal-upload/journal-redaction.ts';
 import type { RuntimeSession } from '../../runtime/driver.ts';
 import { activityLine, activityThrottle } from './activity.ts';
 import { mintTurnCredential } from './credentials.ts';
@@ -130,7 +131,7 @@ async function prepare(
             layout.drive,
             layout.report,
             layout.tmp,
-            ...(await worktreeGitRoots(layout.checkout)),
+            ...(await worktreeGitRoots(layout.checkout, frame.checkout.branch)),
         ],
     };
 }
@@ -170,6 +171,7 @@ async function runHarness(
         if (frame.runtime === 'codex') {
             await acceptInput();
         }
+        const redact = createJournalRedactor([launch.env.HAUS_WORKER_TOKEN]);
         const offer = activityThrottle({
             now: context.now,
             send: (line) =>
@@ -186,7 +188,7 @@ async function runHarness(
         for await (const event of turn.events) {
             await acceptInput();
             failure = failureOf(event) ?? failure;
-            offer(activityLine(event));
+            offer(activityLine(event, redact));
             steps.offer(event);
         }
         steps.flush();

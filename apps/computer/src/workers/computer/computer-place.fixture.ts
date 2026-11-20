@@ -24,7 +24,7 @@ import type { ComputerPlaceFrame } from './turn-finish.ts';
 export const agentId = 'agt_alpha';
 export const turnToken = `hwt_${'t'.repeat(43)}`;
 export const pushToken = `hwp_${'p'.repeat(43)}`;
-export const branch = 'haus/sec-12-wrk_1';
+export const branch = 'haus/wrk_1/sec-12';
 
 type Refusal = Extract<WorkerTurnCredentialResponse, { state: 'refused' }>['reason'];
 
