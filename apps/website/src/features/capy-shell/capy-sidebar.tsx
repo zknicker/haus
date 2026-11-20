@@ -17,7 +17,6 @@ import { ShellSidebarPageContent } from '../shell/shell-sidebar.tsx';
 import { SortableChannelList } from '../shell/sortable-channel-list.tsx';
 import { CaptainTiles } from './captain-tiles.tsx';
 import { CapySection } from './capy-section.tsx';
-import { CapySidebarHeader } from './capy-sidebar-header.tsx';
 import { OpenTaskNavigationRow, PersonNavigationRow } from './capy-sidebar-rows.tsx';
 import type { CapySidebarSection } from './sidebar-layout.ts';
 import { useCapySidebarSections } from './use-capy-sidebar.ts';
@@ -25,12 +24,10 @@ import { useUnreadRowWalk } from './use-unread-row-walk.ts';
 
 export function CapySidebar({
     canManage,
-    lead,
     serverId,
     slug,
 }: {
     canManage: boolean;
-    lead: 'row' | 'strip';
     serverId: string;
     slug: string;
 }) {
@@ -48,7 +45,6 @@ export function CapySidebar({
 
     return (
         <>
-            {lead === 'row' ? <CapySidebarHeader slug={slug} /> : null}
             <UnreadRowWalkKeys sections={sections} serverId={serverId} slug={slug} />
             <ShellSidebarPageContent>
                 <div className="capy-sidebar flex flex-col gap-6 pt-2">

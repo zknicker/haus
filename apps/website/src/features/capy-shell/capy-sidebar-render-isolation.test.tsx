@@ -62,7 +62,7 @@ async function mountCapySidebar() {
         <CommandMenuProvider>
             <Sidebar.Provider>
                 <SidebarNavigateProvider>
-                    <CapySidebar canManage lead="strip" serverId={serverId} slug="render" />
+                    <CapySidebar canManage serverId={serverId} slug="render" />
                 </SidebarNavigateProvider>
             </Sidebar.Provider>
         </CommandMenuProvider>

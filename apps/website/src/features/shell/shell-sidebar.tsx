@@ -44,6 +44,7 @@ export function useSidebarSurface(): SidebarSurface {
 interface ShellSidebarPageProps {
     ariaLabel: string;
     children: React.ReactNode;
+    header?: React.ReactNode;
     value: ShellSidebarPageId;
 }
 
@@ -125,6 +126,7 @@ export function ShellSidebar({
                         settingsAction={settingsSlot === 'titlebar' ? settingsAction : null}
                         slug={slug}
                     />
+                    {activePageContent.header}
                     {/* `contents` carries the scale to every navigation row without adding a box. */}
                     <div
                         className="contents"

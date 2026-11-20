@@ -5,7 +5,10 @@ import { useLocation } from 'react-router-dom';
 import { AppShell, AppShellDragRegion } from '../../components/ui/app-shell.tsx';
 import { useCapyShell } from '../../features/capy-shell/capy-shell-preference.ts';
 import { CapySidebarFooter } from '../../features/capy-shell/capy-sidebar-footer.tsx';
-import { CapySidebarActions } from '../../features/capy-shell/capy-sidebar-header.tsx';
+import {
+    CapySidebarActions,
+    CapySidebarHeader,
+} from '../../features/capy-shell/capy-sidebar-header.tsx';
 import { CapySidebar } from '../../features/capy-shell/capy-sidebar.tsx';
 import { AgentLifecycleProvider } from '../../features/servers/agent-lifecycle.tsx';
 import { readLastChatId, rememberLastChatId } from '../../features/servers/server-choice.ts';
@@ -136,12 +139,19 @@ export function ServerShell({
                                     settingsSlot={topbarInWindow ? 'footer' : 'titlebar'}
                                     slug={slug}
                                 >
-                                    <ShellSidebarPage ariaLabel="Server" value="server">
+                                    <ShellSidebarPage
+                                        ariaLabel="Server"
+                                        header={
+                                            capyShell && topbarInWindow ? (
+                                                <CapySidebarHeader slug={slug} />
+                                            ) : null
+                                        }
+                                        value="server"
+                                    >
                                         {capyShell ? (
                                             <CapySidebar
                                                 canManage={canOperate}
                                                 key={server.id}
-                                                lead={topbarInWindow ? 'row' : 'strip'}
                                                 serverId={server.id}
                                                 slug={slug}
                                             />
