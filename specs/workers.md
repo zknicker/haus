@@ -501,7 +501,8 @@ names, then pending reminders. W4 builds it, following how a Capy parent shows i
   failed, additions, deletions, output }` that a carrier reports per turn: a path for read and
   edit, the command line for run, the query for search, line counts only on edit, and `output`
   only on run, as the tail of its terminal output up to 4,000 characters. It never carries file
-  contents. Each field drives one stock `ChatTool` prop. It is optional: without it the Worker's
+  contents, and the Computer redacts known secret patterns (tokens, keys, credentials, the turn
+  credential) from `output` and `label` before sending. Each field drives one stock `ChatTool` prop. It is optional: without it the Worker's
   message shows its report and activity. W3b adds the carrier and Server side.
 
 The Task summary exposes the count and place labels of its live Workers, and the people named by

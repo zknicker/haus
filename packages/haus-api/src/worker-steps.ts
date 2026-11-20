@@ -10,7 +10,10 @@ export const workerStepOutputMaxLength = 4000;
  * a repo path for `read` and `edit`, the command line for `run`, and the
  * query for `search`. Line counts are set only on `edit`. `output` is the
  * tail of a `run` step's terminal output, bounded; it is null for every other
- * kind, and file contents never ride here.
+ * kind, and file contents never ride here. Commands can print secrets, so the
+ * Computer redacts known secret patterns (tokens, keys, credentials, the
+ * Worker's own turn credential) from `output` and `label` before it sends a
+ * step, and the Server stores only what arrives redacted.
  */
 export const workerStepSchema = z
     .object({
