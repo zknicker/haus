@@ -147,7 +147,6 @@ export function reconcileConfigureFrame(
         agentName: agent.agentName,
         brief: agent.brief,
         briefAuthorHandle: agent.briefAuthorHandle,
-        factoryKind: 'ordinary',
         modelId: agent.desiredModelId,
         reasoningEffort: agent.desiredReasoningEffort,
         runtimeId: agent.desiredRuntimeId,

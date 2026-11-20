@@ -1,11 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { lstat, mkdir, readdir, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
-import {
-    seedAgentWorkspace,
-    seedCoveWorkspace,
-    seedFactoryManagedSkills,
-} from '@haus/agent-workspace';
+import { seedAgentWorkspace, seedFactoryManagedSkills } from '@haus/agent-workspace';
 import type { AgentSeedConfiguration } from '../agent-configuration.ts';
 import type { AgentDrive } from '../drive/agent-drive.ts';
 
@@ -65,17 +61,13 @@ export async function seedEntries(
     const skills = join(scratch, 'skills');
     await mkdir(workspace, { mode: 0o700, recursive: true });
     try {
-        if (seed.factoryKind === 'cove') {
-            await seedCoveWorkspace(workspace);
-        } else {
-            await seedAgentWorkspace({
-                agentName: seed.agentName,
-                bio: seed.agentDescription,
-                brief: seed.brief,
-                briefAuthorHandle: seed.briefAuthorHandle,
-                workspaceDir: workspace,
-            });
-        }
+        await seedAgentWorkspace({
+            agentName: seed.agentName,
+            bio: seed.agentDescription,
+            brief: seed.brief,
+            briefAuthorHandle: seed.briefAuthorHandle,
+            workspaceDir: workspace,
+        });
         await seedFactoryManagedSkills(skills);
         const entries: DriveSeedEntry[] = [];
         for (const relative of await regularFiles(skills)) {

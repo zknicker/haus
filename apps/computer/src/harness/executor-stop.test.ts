@@ -114,7 +114,6 @@ function turnInput(driver: ReturnType<typeof stopDriver>, signal: AbortSignal): 
         agentRoot: root,
         dataRoot: root,
         env: {},
-        factoryKind: 'ordinary',
         homeDir: join(root, 'home'),
         homeTimezone: 'UTC',
         initialRole: null,

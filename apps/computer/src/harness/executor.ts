@@ -22,8 +22,6 @@ import {
 } from '../usage/claude-plan-usage-state.ts';
 import { createHarnessActivityProjector } from './activity-projector.ts';
 import { readAgentSkillNames } from './agent-skill-names.ts';
-import { clearPendingCoveGuidanceRefresh } from './cove-guidance-refresh.ts';
-import { prepareCoveGuidanceForTurn } from './cove-guidance-turn.ts';
 import {
     type ComputerExecutionJournal,
     createComputerExecutionJournal,
@@ -62,7 +60,6 @@ export interface HarnessTurnInput extends TurnDelivery {
     agentRoot: string;
     conversationStyle?: string | null;
     env: Record<string, string>;
-    factoryKind: 'cove' | 'ordinary';
     homeDir: string;
     initialRole: string | null;
     modelId: string;
@@ -174,13 +171,6 @@ async function executeHarnessTurn(
     try {
         const sessionId = session.runtimeSessionId ?? `${input.agentId}-${session.generation}`;
         const resumeFrom = session.resumeState ?? undefined;
-        const coveGuidance = await prepareCoveGuidanceForTurn({
-            activity: input.activity,
-            activityKey: instructionActivityKey,
-            agentRoot: input.agentRoot,
-            factoryKind: input.factoryKind,
-            drive: input.drive,
-        });
         // Remove only an unresumable cold generation; successful sessions retain resume state.
         if (!(resumeFrom || session.runtimeSessionId)) {
             await rm(join(input.agentRoot, '.agent-runs', sessionId), {
@@ -196,7 +186,6 @@ async function executeHarnessTurn(
             resumed: resumeFrom !== undefined,
             // What a resume will carry; the live session's own `isResume` decides it after start.
             update: updateFor(resumeFrom !== undefined),
-            versionCanApply: coveGuidance.versionCanApply,
             versionDrift: hausAgentVersionDrift,
         });
         const reasoningChanged = session.effectiveReasoningEffort !== input.reasoningEffort;
@@ -256,9 +245,7 @@ async function executeHarnessTurn(
                 withMemory(
                     memory,
                     projectMessageForAgent({
-                        content: [coveGuidance.notice, turnContent, skillNotice?.text]
-                            .filter(Boolean)
-                            .join('\n\n'),
+                        content: [turnContent, skillNotice?.text].filter(Boolean).join('\n\n'),
                         enabledSkillIds: skillNames,
                     })
                 )
@@ -337,15 +324,11 @@ async function executeHarnessTurn(
             input.agentRoot,
             record.completed(ended, {
                 bootstrapFingerprint,
-                coveGuidanceCanApply: coveGuidance.versionCanApply,
                 memoryDigest: await readMemoryDigest(input.drive.memory),
                 modelId: input.modelId,
                 runtimeId: input.runtimeId,
             })
         );
-        if (coveGuidance.refreshPending && coveGuidance.refreshCanComplete) {
-            await clearPendingCoveGuidanceRefresh(input.agentRoot);
-        }
         if (skillNotice) {
             await clearManagedSkillChangeNotice(input.agentRoot, skillNotice);
         }

@@ -23,8 +23,6 @@ export interface EndedTurn {
 
 export interface CompletedTurnFacts {
     bootstrapFingerprint: string | null;
-    /** False when a Cove factory-guidance conflict keeps the version unapplied. */
-    coveGuidanceCanApply: boolean;
     /** The digest of MEMORY.md at turn end; null when the file is missing. */
     memoryDigest: string | null;
     modelId: string;
@@ -79,7 +77,7 @@ export function turnSessionRecord(session: AgentSessionState, facts: TurnSession
         ): AgentSessionState => {
             const versionDrift = session.hausAgentVersion !== hausAgentVersion;
             const instructionsDelivered = facts.instructionsUpdate.kind !== 'deferred';
-            const applies = !versionDrift || (run.coveGuidanceCanApply && instructionsDelivered);
+            const applies = !versionDrift || instructionsDelivered;
             return {
                 ...receipt({ compacted, completed: true }),
                 bootstrapFingerprint: run.bootstrapFingerprint,
@@ -93,11 +91,7 @@ export function turnSessionRecord(session: AgentSessionState, facts: TurnSession
                 generation: session.generation,
                 hausAgentAppliedAt:
                     versionDrift && applies ? new Date().toISOString() : session.hausAgentAppliedAt,
-                hausAgentStatus: applies
-                    ? 'current'
-                    : run.coveGuidanceCanApply
-                      ? 'pending'
-                      : 'failed',
+                hausAgentStatus: applies ? 'current' : 'pending',
                 hausAgentVersion: applies ? hausAgentVersion : session.hausAgentVersion,
                 resumeState,
                 runtimeSessionId: facts.runtimeSessionId,
