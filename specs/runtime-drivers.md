@@ -152,7 +152,9 @@ execution journal upload (including journaling dispatches the ledger recovers as
 thoughts, idle compaction, rich-reference projection of message content, Cove guidance, the
 managed-skill change notice, Claude plan usage after a turn, Agent restart and reset frames to
 the runner, and
-`haus cloud-agent start`, which the Computer handled locally.
+`haus cloud-agent start`, which the Computer handled locally. R4 also sends `drive-pull` when a
+runner run starts and `drive-push` when it settles (Drive folder below), because runner-hosted
+Agents depend on their `drive/` folder from the cutover on.
 
 R5 lands Pi Durable before R4, so the cutover has both harnesses and every Agent has one for
 its model. R4 moves every Agent at once and resets every session. No native session is copied from a
