@@ -14,14 +14,11 @@ import { serverAgentDmRoute, serverChatRoute, taskRoute } from '../servers/serve
 import { NewProjectDialog } from '../shell/new-project-dialog.tsx';
 import { sidebarActionIconSize } from '../shell/section-header.tsx';
 import { ShellSidebarPageContent } from '../shell/shell-sidebar.tsx';
+import { SortableChannelList } from '../shell/sortable-channel-list.tsx';
 import { CaptainTiles } from './captain-tiles.tsx';
 import { CapySection } from './capy-section.tsx';
 import { CapySidebarHeader } from './capy-sidebar-header.tsx';
-import {
-    OpenTaskNavigationRow,
-    PersonNavigationRow,
-    ProjectNavigationRow,
-} from './capy-sidebar-rows.tsx';
+import { OpenTaskNavigationRow, PersonNavigationRow } from './capy-sidebar-rows.tsx';
 import type { CapySidebarSection } from './sidebar-layout.ts';
 import { useCapySidebarSections } from './use-capy-sidebar.ts';
 import { useUnreadRowWalk } from './use-unread-row-walk.ts';
@@ -130,17 +127,12 @@ function CapySidebarSectionView({
                     label="Projects"
                 >
                     {section.chatIds.length > 0 ? (
-                        <Sidebar.Menu aria-label="Projects">
-                            {section.chatIds.map((chatId) => (
-                                <ProjectNavigationRow
-                                    chatId={chatId}
-                                    isCurrent={chatId === selection.selectedChatId}
-                                    key={chatId}
-                                    serverId={serverId}
-                                    slug={slug}
-                                />
-                            ))}
-                        </Sidebar.Menu>
+                        <SortableChannelList
+                            channelIds={section.chatIds}
+                            selectedChatId={selection.selectedChatId}
+                            serverId={serverId}
+                            slug={slug}
+                        />
                     ) : null}
                 </CapySection>
             );

@@ -14,14 +14,6 @@ export interface CaptainTile {
 
 export type CaptainPresence = 'error' | 'paused' | 'working';
 
-export interface ProjectRow {
-    chatId: string;
-    color: Chat['color'];
-    icon: Chat['icon'];
-    name: string;
-    unreadCount: number;
-}
-
 export interface OpenTaskRow {
     chatId: string | null;
     key: string;
@@ -69,16 +61,6 @@ function captainPresence(agent: CaptainSource) {
 export function agentDm(chats: readonly Chat[], agentId: string) {
     const dm = chats.find((chat) => chat.kind === 'dm' && chat.peerAgentId === agentId);
     return dm ? { id: dm.id, unreadCount: dm.unreadCount } : null;
-}
-
-export function projectRow(chat: Chat) {
-    return {
-        chatId: chat.id,
-        color: chat.color,
-        icon: chat.icon,
-        name: chat.name ?? 'project',
-        unreadCount: chat.unreadCount,
-    } satisfies ProjectRow;
 }
 
 export function taskUnread(preview: ChatUnreadPreview | undefined, viewerUserId: string | null) {

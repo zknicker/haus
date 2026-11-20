@@ -1,5 +1,6 @@
 import type { Chat, ChatUnreadPreview } from '@haus/api';
 import { serverAgentDmRoute, serverChatRoute, taskRoute } from '../servers/server-routes.ts';
+import { orderChannelIds } from '../shell/channel-order.ts';
 import type { CapySidebarSection } from './sidebar-layout.ts';
 import { taskUnread } from './sidebar-model.ts';
 
@@ -11,11 +12,13 @@ export interface WalkRow {
 export type WalkDirection = 'next' | 'previous';
 
 export function walkRows({
+    channelOrder,
     chats,
     previews,
     sections,
     slug,
 }: {
+    channelOrder: readonly string[];
     chats: readonly Chat[];
     previews: readonly ChatUnreadPreview[];
     sections: readonly CapySidebarSection[];
@@ -36,6 +39,7 @@ export function walkRows({
                         : { href: serverAgentDmRoute(slug, agentId), unread: false };
                 });
             case 'projects':
+                return orderChannelIds(section.chatIds, channelOrder).map(chatRow);
             case 'people':
                 return section.chatIds.map(chatRow);
             default:

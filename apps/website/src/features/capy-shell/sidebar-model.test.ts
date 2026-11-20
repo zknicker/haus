@@ -7,7 +7,7 @@ import {
     projectIds,
     waitingChatIds,
 } from './sidebar-layout.ts';
-import { agentDm, captainTile, openTaskRow, projectRow, taskUnread } from './sidebar-model.ts';
+import { agentDm, captainTile, openTaskRow, taskUnread } from './sidebar-model.ts';
 
 const chat = (fields: Partial<Chat> & Pick<Chat, 'id' | 'kind'>) =>
     ({
@@ -138,11 +138,10 @@ test('a Captain tile flags an Agent that needs attention or is paused', () => {
     expect(captainTile({ ...forge, availability: 'offline' }, null).presence).toBeNull();
 });
 
-test('Projects follow the stored order and carry their unread count', () => {
+test('Projects follow the stored order', () => {
     const eng = chat({ id: 'eng', kind: 'channel', name: 'eng', participantAgentIds: ['forge'] });
     const sec = chat({ id: 'sec', kind: 'channel', name: 'sec', unreadCount: 4 });
     expect(projectIds([eng, sec], ['sec'])).toEqual(['sec', 'eng']);
-    expect(projectRow(sec).unreadCount).toBe(4);
 });
 
 test('a Task that @mentions you in an unread message waits on you and sorts first', () => {

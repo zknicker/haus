@@ -4,6 +4,7 @@ import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import type { CapySidebarSection } from './sidebar-layout.ts';
 import { nextUnreadHref, walkRows } from './unread-walk.ts';
+import { storedChannelOrder } from './use-capy-sidebar.ts';
 
 export function useUnreadRowWalk({
     sections,
@@ -29,6 +30,7 @@ export function useUnreadRowWalk({
                 return;
             }
             const rows = walkRows({
+                channelOrder: storedChannelOrder(serverId),
                 chats: utils.chat.list.getData({ serverId }) ?? [],
                 previews: utils.chat.unreadPreviews.getData({ serverId })?.previews ?? [],
                 sections: latest.current.sections ?? [],

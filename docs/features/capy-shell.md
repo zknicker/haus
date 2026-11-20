@@ -30,7 +30,9 @@ stored in `localStorage` under `haus.capy-shell` and follows into other open win
     badge for unread DM messages. A click opens your DM with that Captain; hover warms the DM and
     the Captain's record. Right-click opens the old sidebar's DM menu (open in a new tab or
     pane, View agent profile, Attachments on desktop), and People rows carry the same menu. Owners and Admins get a + that opens New Captain.
-  - A Project row is its mark, its name and its unread badge. The + opens New project.
+  - A Project row is its mark, its name and its unread badge. The + opens New project. Projects
+    reorder by drag or from the keyboard (Space picks a row up, the arrows move it, Space drops),
+    through the old sidebar's `SortableChannelList` and its stored order.
   - An open Task row is one line: the state disc, the key, the title and the unread badge. When
     an unread message in it @mentions you, the key turns accent with a small accent dot and the
     row reads and tooltips "Waiting on you". Waiting Tasks sort first.
