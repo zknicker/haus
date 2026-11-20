@@ -115,7 +115,7 @@ export const chatsTable = pgTable(
                     and ${table.dmMemberTwoUserId} is null
                     and ${table.parentChatId} is null
                     and ${table.parentChatKind} is null
-                    and (not ${table.isAll} or ${table.name} = 'all')
+                    and (not ${table.isAll} or ${table.name} = 'haus')
                 )
                 or (
                     ${table.kind} = 'dm'

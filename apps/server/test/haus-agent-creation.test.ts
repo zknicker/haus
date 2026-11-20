@@ -33,7 +33,7 @@ test('creation records the Agent and memberships without messages, Tasks, or inb
     });
     expect(await conversationCounts()).toEqual(before);
     await settleRealtime();
-    // The Server Owner's new DM with the Agent is announced, then the #all join.
+    // The Server Owner's new DM with the Agent is announced, then the #haus join.
     expect(lifecycle.events.map((event) => event.action)).toEqual(['created', 'updated']);
     expect(await updates.next()).toMatchObject({ agentId, serverId: fixture.serverId });
     lifecycle.stop();
@@ -54,7 +54,7 @@ test('the creator introduces the returned handle through ordinary send with a se
     const sent = await fixture.post('/api/agent/messages/send', runner, {
         content: `Meet @${handle}, our delivery teammate.`,
         nonce: 'ordinary-introduction',
-        target: '#all',
+        target: '#haus',
     });
     expect(sent.status).toBe(200);
     const [message] = await fixture.harness.sql`

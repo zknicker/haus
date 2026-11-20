@@ -195,7 +195,7 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     const inTask = named.some((message) => tasks.some((task) => task.chatId === message?.chatId));
     expect(inTask).toBe(false);
 
-    // The Inbox seed's stalled claim is the only one in `#all`. The channel's
+    // The Inbox seed's stalled claim is the only one in `#haus`. The channel's
     // counter is past it, so promoting a message there does not collide with a
     // seeded claim number.
     expect(claims).toHaveLength(11);

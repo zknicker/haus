@@ -72,7 +72,7 @@ export async function ensureDevelopmentChatAttachment(
             .limit(1)
             .for('update');
         if (!chat) {
-            throw new Error('The development image attachment needs the #all Chat.');
+            throw new Error('The development image attachment needs the #haus Chat.');
         }
 
         const now = new Date();

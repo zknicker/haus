@@ -25,7 +25,7 @@ export async function testAgentHome(db: HausDatabase, serverId: string) {
     if (!haus) {
         await db
             .insert(chatsTable)
-            .values({ id: chatId, isAll: true, kind: 'channel', name: 'all', serverId });
+            .values({ id: chatId, isAll: true, kind: 'channel', name: 'haus', serverId });
     }
     const taskKeyId = await freeGeneralKey(db, serverId);
     await db.insert(projectsTable).values({ chatId, serverId, taskKeyId });
@@ -66,7 +66,7 @@ async function freeGeneralKey(db: HausDatabase, serverId: string) {
     if (general) {
         return general.id;
     }
-    const key = await allocateProjectKey(db, serverId, 'all');
+    const key = await allocateProjectKey(db, serverId, 'haus');
     return await insertProjectKey(db, { key, serverId });
 }
 
@@ -82,7 +82,7 @@ export async function testSqlAgentHome(sql: SQL, serverId: string) {
     await sql`insert into task_keys (id, server_id, key) values (${taskKeyId}, ${serverId}, 'HAUS')`;
     await sql`
         insert into chats (id, server_id, kind, name, is_all)
-        values (${chatId}, ${serverId}, 'channel', 'all', true)
+        values (${chatId}, ${serverId}, 'channel', 'haus', true)
     `;
     await sql`
         insert into projects (chat_id, server_id, task_key_id)

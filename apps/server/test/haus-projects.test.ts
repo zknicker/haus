@@ -27,7 +27,7 @@ function refusedWith(code: 'PROJECT_KEY_FIXED' | 'TASK_KEY_TAKEN') {
 
 test('a new Server holds only the Haus project on GEN', async () => {
     expect(await owner.trpc.project.list.query({ serverId })).toEqual([
-        expect.objectContaining({ isHaus: true, key: 'GEN', keyEditable: true, name: 'all' }),
+        expect.objectContaining({ isHaus: true, key: 'GEN', keyEditable: true, name: 'haus' }),
     ]);
 });
 

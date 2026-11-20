@@ -111,7 +111,7 @@ export async function seedServerDemoTasks(
             {
                 assignee: tiny,
                 conversation: [
-                    { author: tiny, content: 'Drafted the welcome copy and posted it in #all.' },
+                    { author: tiny, content: 'Drafted the welcome copy and posted it in #haus.' },
                     { author: owner, content: 'Reads well. Ship it.' },
                     { author: tiny, content: 'Shipped. Marking this done.' },
                 ],

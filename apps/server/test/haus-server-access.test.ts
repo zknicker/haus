@@ -27,7 +27,7 @@ test('opens a Server by slug with #haus', async () => {
     expect(server.slug).toBe('haus-hq');
     expect(server.displayName).toBe('Haus HQ');
     expect(server.role).toBe('owner');
-    expect(server.channels.map((channel) => channel.name)).toEqual(['all']);
+    expect(server.channels.map((channel) => channel.name)).toEqual(['haus']);
 });
 
 test('switches between the Servers a human can access', async () => {

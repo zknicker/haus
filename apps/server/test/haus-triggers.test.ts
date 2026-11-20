@@ -68,7 +68,7 @@ test('mints one readable secret, publishes a curl probe, and stores only the has
     );
     expect(created.body.curl).toContain(`Authorization: Bearer ${created.body.secret}`);
     expect(created.body.trigger).toMatchObject({
-        anchorTarget: '#all',
+        anchorTarget: '#haus',
         // An Agent-created trigger has no human creator and anchors on the
         // asking message rather than on a DM receipt.
         createdByHandle: null,

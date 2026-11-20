@@ -17,7 +17,7 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('atomically creates a Server, its first Owner, and #all', async () => {
+test('atomically creates a Server, its first Owner, and #haus', async () => {
     const client = await signIn('user_cf_owner');
 
     const created = await client.trpc.server.create.mutate({
@@ -30,7 +30,7 @@ test('atomically creates a Server, its first Owner, and #all', async () => {
     expect(created.role).toBe('owner');
     expect(created.id).not.toBe(created.slug);
     expect(created.id).toMatch(/^srv_[A-Za-z0-9_-]{16,}$/);
-    expect(created.channels).toEqual([{ id: expect.any(String), name: 'all' }]);
+    expect(created.channels).toEqual([{ id: expect.any(String), name: 'haus' }]);
     expect(created).not.toHaveProperty('onboarding');
 
     const rows = (await harness.sql`
@@ -42,9 +42,9 @@ test('atomically creates a Server, its first Owner, and #all', async () => {
         where chats.server_id = ${created.id}
         order by chats.name
     `) as { name: string; user_id: string }[];
-    expect(rows).toEqual([{ name: 'all', user_id: created.viewerUserId }]);
+    expect(rows).toEqual([{ name: 'haus', user_id: created.viewerUserId }]);
     await expect(client.trpc.chat.list.query({ serverId: created.id })).resolves.toMatchObject([
-        { id: created.channels[0]?.id, name: 'all' },
+        { id: created.channels[0]?.id, name: 'haus' },
     ]);
 
     await expect(client.trpc.server.list.query()).resolves.toEqual([
@@ -80,7 +80,7 @@ test('rejects a slug that is not a valid Server address', async () => {
     ).rejects.toThrow();
 });
 
-test('a new Server starts empty: #all and no Agent, Computer, or other channel', async () => {
+test('a new Server starts empty: the Haus project and nothing else', async () => {
     const client = await signIn('user_cf_bare');
     const created = await client.trpc.server.create.mutate({
         displayName: 'Bare',
@@ -102,14 +102,12 @@ test('a new Server starts empty: #all and no Agent, Computer, or other channel',
         computer_count: number;
     }[];
     expect(counts).toEqual({ agent_count: 0, channel_count: 1, computer_count: 0 });
-    expect(
-        await harness.sql`
-            select name from chats where server_id = ${created.id} and is_all
-        `
-    ).toEqual([{ name: 'all' }]);
+    expect(await client.trpc.project.list.query({ serverId: created.id })).toEqual([
+        expect.objectContaining({ isHaus: true, name: 'haus' }),
+    ]);
     const opened = await client.trpc.server.bySlug.query({ slug: 'bare' });
     expect(opened).not.toHaveProperty('onboarding');
-    expect(opened.channels).toEqual([{ id: created.channels[0]?.id, name: 'all' }]);
+    expect(opened.channels).toEqual([{ id: created.channels[0]?.id, name: 'haus' }]);
 });
 
 test('PostgreSQL refuses a Server role outside owner, admin, and member', async () => {

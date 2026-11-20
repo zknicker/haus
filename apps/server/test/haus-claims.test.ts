@@ -621,7 +621,7 @@ test('assigns a claim to an Agent, wakes it with typed work, and writes no messa
     `) as { content: string; dedupe_key: string; mentioned: boolean; source: string }[];
     expect([...deliveries].filter((row) => row.source === 'claim_assignment')).toEqual([
         {
-            content: `[Haus claim assignment claim=#${assigned.claim.number} target=#all assignedBy=@claim-owner] Hand this to an Agent`,
+            content: `[Haus claim assignment claim=#${assigned.claim.number} target=#haus assignedBy=@claim-owner] Hand this to an Agent`,
             dedupe_key: `claim-assign:${created.claim.messageId}:${assigned.claim.version}`,
             mentioned: true,
             source: 'claim_assignment',

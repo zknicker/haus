@@ -118,8 +118,8 @@ test('the Haus project’s channel cannot be renamed', async () => {
     const renamedDescription = await owner.trpc.project.update.mutate({
         chatId: hausId,
         description: 'Everyone',
-        name: 'all',
+        name: 'haus',
         serverId,
     });
-    expect(renamedDescription.chat).toMatchObject({ description: 'Everyone', name: 'all' });
+    expect(renamedDescription.chat).toMatchObject({ description: 'Everyone', name: 'haus' });
 });

@@ -4,7 +4,7 @@ import { createTestProject } from './project.fixture.ts';
 
 const fixture = agentCreationFixture();
 
-test('a created Agent lands in #all plus every channel the request named', async () => {
+test('a created Agent lands in #haus plus every channel the request named', async () => {
     const runner = await fixture.mintRunner('run_create_channels');
 
     const created = await fixture.postCreate(
@@ -17,12 +17,12 @@ test('a created Agent lands in #all plus every channel the request named', async
     );
 
     expect(created.status).toBe(200);
-    // `#all` first, because that membership is the Server's own guarantee.
-    expect(created.body.channels).toEqual(['#all', '#product']);
-    expect(await readChannelNames(created.body.agent?.agentId ?? '')).toEqual(['all', 'product']);
+    // `#haus` first, because that membership is the Server's own guarantee.
+    expect(created.body.channels).toEqual(['#haus', '#product']);
+    expect(await readChannelNames(created.body.agent?.agentId ?? '')).toEqual(['haus', 'product']);
 });
 
-test('an Agent created with no --channel still belongs to #all', async () => {
+test('an Agent created with no --channel still belongs to #haus', async () => {
     const runner = await fixture.mintRunner('run_create_all_only');
 
     const created = await fixture.postCreate(
@@ -31,13 +31,13 @@ test('an Agent created with no --channel still belongs to #all', async () => {
     );
 
     expect(created.status).toBe(200);
-    expect(created.body.channels).toEqual(['#all']);
+    expect(created.body.channels).toEqual(['#haus']);
 });
 
-test('a human-created Agent joins #all through the same seam', async () => {
+test('a human-created Agent joins #haus through the same seam', async () => {
     const agentId = await fixture.createAgent('Ledger', 'ledger');
 
-    expect(await readChannelNames(agentId)).toEqual(['all']);
+    expect(await readChannelNames(agentId)).toEqual(['haus']);
 });
 
 test('a channel that does not exist refuses the whole creation before generation', async () => {
