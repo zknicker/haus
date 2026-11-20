@@ -5,6 +5,9 @@ import { workerTimestampSchema } from './worker-time.ts';
 
 const tokenSchema = z.string().min(32).max(512);
 
+/** The Computer's attachment credential hash, as `/computer/runner/mint` takes it. */
+const credentialHashSchema = z.string().regex(/^[a-f0-9]{64}$/u);
+
 const mintedShape = {
     expiresAt: workerTimestampSchema,
     state: z.literal('minted'),
@@ -14,10 +17,17 @@ const mintedShape = {
 /**
  * `POST /computer/workers/turn-credential`, with the Computer's attachment
  * credential, after it journaled the turn. The minted token becomes the
- * Worker's `HAUS_WORKER_TOKEN`. Asking again for the same attempt is safe.
+ * Worker's `HAUS_WORKER_TOKEN`. It reaches `POST /api/worker/report` and the
+ * Drive reads (`/api/agent/drive/changes`, `/api/agent/artifacts/by-path`,
+ * `/api/agent/artifacts/:id/download`) as a Bearer token, and nothing else.
+ * Asking again for the same attempt revokes the earlier token and mints a new one.
  */
 export const workerTurnCredentialRequestSchema = z
-    .object({ attempt: workerTurnAttemptSchema, turnId: idSchema })
+    .object({
+        attempt: workerTurnAttemptSchema,
+        credentialHash: credentialHashSchema,
+        turnId: idSchema,
+    })
     .strict();
 export type WorkerTurnCredentialRequest = z.infer<typeof workerTurnCredentialRequestSchema>;
 
@@ -46,9 +56,14 @@ export type WorkerTurnCredentialResponse = z.infer<typeof workerTurnCredentialRe
 
 /**
  * `POST /computer/workers/push-credential`: the daemon's own authority to push
- * the turn's drive folder under the turn id. It never enters the harness.
+ * the turn's drive folder under `push_id` = the turn id, through
+ * `/api/agent/drive/push/{put,delete,close}` as a Bearer token. It also reads
+ * Drive like the turn token, so the push can fetch merged revisions. It never
+ * enters the harness. Asking again revokes the earlier push token.
  */
-export const workerPushCredentialRequestSchema = z.object({ turnId: idSchema }).strict();
+export const workerPushCredentialRequestSchema = z
+    .object({ credentialHash: credentialHashSchema, turnId: idSchema })
+    .strict();
 export type WorkerPushCredentialRequest = z.infer<typeof workerPushCredentialRequestSchema>;
 
 export const workerPushCredentialResponseSchema = z.discriminatedUnion('state', [

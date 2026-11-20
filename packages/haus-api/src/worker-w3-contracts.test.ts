@@ -110,10 +110,13 @@ test('a report needs its ask exactly when it is needs-you, and drafts drop the M
 });
 
 test('a turn credential mints for its attempt or names why the fence refused', () => {
-    expect(workerTurnCredentialRequestSchema.parse({ attempt: 1, turnId: 'wkt_1' })).toEqual({
-        attempt: 1,
-        turnId: 'wkt_1',
-    });
+    const credentialHash = 'a'.repeat(64);
+    expect(
+        workerTurnCredentialRequestSchema.parse({ attempt: 1, credentialHash, turnId: 'wkt_1' })
+    ).toEqual({ attempt: 1, credentialHash, turnId: 'wkt_1' });
+    expect(
+        workerTurnCredentialRequestSchema.safeParse({ attempt: 1, turnId: 'wkt_1' }).success
+    ).toBe(false);
     const minted: WorkerTurnCredentialResponse = {
         attempt: 1,
         expiresAt: '2026-11-20T00:00:00.000Z',
