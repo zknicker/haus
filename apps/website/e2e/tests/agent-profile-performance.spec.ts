@@ -23,6 +23,10 @@ test('a cold Agent profile keeps identity and navigation available before its co
         credential: 'agent-performance-computer-credential-1234',
         slug: server.slug,
     });
+    const { chat: home } = await client.project.create.mutate({
+        name: 'performance',
+        serverId: server.id,
+    });
     runPsql(
         session.databaseUrl,
         `insert into agents (
@@ -30,7 +34,7 @@ test('a cold Agent profile keeps identity and navigation available before its co
         desired_runtime_id, desired_model_id, created_at, home_project_id
     ) values ('agt_performance', '${server.id}', '${computer.computerId}',
         'iris', 'Iris', 'America/New_York', 'codex', 'gpt-5.6-sol', now(),
-        (select id from chats where server_id = '${server.id}' and is_all))`
+        '${home.id}')`
     );
     await page.reload();
     const row = page.getByRole('row', { name: 'Iris', exact: true });
