@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { parsePath, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useOptionalDesktopTabs } from '../desktop-tabs/desktop-tabs-context.ts';
+import { skipsSameRoutePush } from './same-route-push.ts';
 
 export type SidebarNavigate = (
     href: string,
@@ -14,23 +15,19 @@ const SidebarNavigateContext = React.createContext<SidebarNavigate | null>(null)
  * hooks re-render their caller on every location change, and a desktop tab
  * switch moves the location, so every row read through `useNavigate`
  * re-rendered on each switch. The provider reads the router once; rows read
- * this context.
- *
- * On the web a push to the route the window already shows is skipped, so
- * Back never lands on a duplicate entry. Desktop tabs already make that push
- * a no-op against the left pane's tab, which chrome navigates (ADR 0039).
+ * this context. A web push to the current route is skipped (`skipsSameRoutePush`).
  */
 export function SidebarNavigateProvider({ children }: { children: React.ReactNode }) {
     const navigate = useNavigate();
     const location = useLocation();
-    const tabs = useOptionalDesktopTabs();
-    const latest = React.useRef({ location, navigate, tabs });
+    const desktop = useOptionalDesktopTabs() !== null;
+    const latest = React.useRef({ desktop, location, navigate });
     React.useLayoutEffect(() => {
-        latest.current = { location, navigate, tabs };
+        latest.current = { desktop, location, navigate };
     });
     const stable = React.useCallback<SidebarNavigate>((href, options) => {
         const current = latest.current;
-        if (!(current.tabs || options?.replace) && isCurrentRoute(current.location, href)) {
+        if (skipsSameRoutePush({ ...current, href, replace: options?.replace })) {
             return;
         }
         current.navigate(href, options);
@@ -44,12 +41,4 @@ export function useSidebarNavigate(): SidebarNavigate {
         throw new Error('Sidebar rows render inside SidebarNavigateProvider.');
     }
     return navigate;
-}
-
-function isCurrentRoute(location: { pathname: string; search: string }, href: string) {
-    const target = parsePath(href);
-    return (
-        (target.pathname ?? location.pathname) === location.pathname &&
-        (target.search ?? '') === location.search
-    );
 }
