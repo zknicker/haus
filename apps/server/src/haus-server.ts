@@ -4,14 +4,16 @@ import { DeterministicAvatarImageProvider } from './avatar-generation/determinis
 import { env } from './config/env.ts';
 import { githubAppFromEnvironment } from './github/github-app.ts';
 import { readHausReleaseIdentity } from './haus-release-identity.ts';
-import { createHausServerApplication } from './haus-server-application.ts';
+import {
+    createHausServerApplication,
+    type HausServerApplication,
+} from './haus-server-application.ts';
 import { handleStopSignals } from './haus-server-stop.ts';
 import { skoolHostedDefinition } from './hosted-mcp/catalog.ts';
 import { cloudflareAccessIssuer } from './identity/cloudflare-access.ts';
 import { createJevRouter } from './message-routing/jev-client.ts';
 import { describeDatabaseUrl } from './postgres/database-url.ts';
 import { createPushSender } from './push/push-configuration.ts';
-import { startRunnerListener } from './runner/runner-listener.ts';
 import { createGeminiThoughtSummarizer } from './server-agents/agent-thought-summarizer.ts';
 import {
     logStartupBanner,
@@ -80,17 +82,8 @@ async function start() {
     });
 
     await application.listen(env.HAUS_SERVER_PORT);
-    const runnerListener = env.HAUS_RUNNER_LISTEN_HOST
-        ? await startRunnerListener(application.app, {
-              host: env.HAUS_RUNNER_LISTEN_HOST,
-              port: env.HAUS_SERVER_PORT,
-          })
-        : null;
 
-    registerShutdown(async () => {
-        await runnerListener?.close();
-        await application.close();
-    });
+    registerShutdown(application);
 
     logStartupSection('Haus Server');
     if (release) {
@@ -171,9 +164,9 @@ function createAvatarImageProvider() {
     );
 }
 
-function registerShutdown(close: () => Promise<void>) {
+function registerShutdown(application: HausServerApplication) {
     handleStopSignals(process, {
-        close,
+        close: () => application.close(),
         exit: (code) => process.exit(code),
         log: (line) => console.log(line),
         reportFailure: (error) => {
