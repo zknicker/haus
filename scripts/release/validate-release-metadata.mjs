@@ -4,7 +4,8 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { assertRequiredTargetsSelected, calculateReleaseImpact } from './release-impact.mjs';
+import { assertComputerProtocolOrder } from './computer-protocol-order.mjs';
+import { calculateReleaseImpact } from './release-impact.mjs';
 import {
     assertReleaseLedger,
     latestProductVersion,
@@ -87,7 +88,7 @@ const main = async () => {
         }
         if (result.complete) {
             const impact = await calculateReleaseImpact({ ledger });
-            assertRequiredTargetsSelected({
+            await assertComputerProtocolOrder({
                 impact,
                 selectedTargets: Object.fromEntries(
                     releaseTargetNames.map((target) => [

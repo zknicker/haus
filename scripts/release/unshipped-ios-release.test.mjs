@@ -63,7 +63,7 @@ test('an unshipped iOS release does not become the iOS baseline', async () => {
         listChangedFiles,
     });
     assert.equal(unshipped.targets.ios.baseline.tag, 'v1.8.24');
-    assert.equal(unshipped.targets.ios.status, 'required');
+    assert.equal(unshipped.targets.ios.status, 'changed');
     assert.equal(unshipped.targets.server.baseline.tag, 'v1.8.26');
 });
 

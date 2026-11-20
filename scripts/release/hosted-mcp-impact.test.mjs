@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { assertRequiredTargetsSelected, calculateReleaseImpact } from './release-impact.mjs';
+import { calculateReleaseImpact } from './release-impact.mjs';
 
 for (const file of [
     'apps/hosted-mcp/hosted/managed.py',
@@ -8,7 +8,7 @@ for (const file of [
     'scripts/package-hosted-mcp.mjs',
     'scripts/build-haus-server-artifact.mjs',
 ]) {
-    test(`${file} requires its owning Server release`, async () => {
+    test(`${file} marks its owning Server release changed`, async () => {
         const impact = await calculateReleaseImpact({
             ledger: [
                 {
@@ -26,11 +26,7 @@ for (const file of [
             resolveTag: async (tag) => (tag.startsWith('unshipped/') ? null : 'a'.repeat(40)),
             listChangedFiles: async () => [file],
         });
-        assert.equal(impact.targets.server.status, 'required');
-        assert.deepEqual(impact.targets.server.requiredFiles, [file]);
-        assert.throws(
-            () => assertRequiredTargetsSelected({ impact, selectedTargets: { server: false } }),
-            /server:/u
-        );
+        assert.equal(impact.targets.server.status, 'changed');
+        assert.deepEqual(impact.targets.server.ownedFiles, [file]);
     });
 }

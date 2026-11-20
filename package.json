@@ -46,6 +46,7 @@
         "release:bump": "node scripts/release/bump-version.mjs",
         "release:changed": "node scripts/release/changed-release.mjs",
         "release:check": "node scripts/release/validate-release-metadata.mjs",
+        "release:rehearse-migrations": "node scripts/release/rehearse-migrations.mjs",
         "release:check-desktop-artifacts": "node scripts/release/check-desktop-artifacts.mjs",
         "release:collect-changelog-context": "node scripts/release/collect-changelog-context.mjs",
         "release:notes": "node scripts/release/extract-release-notes-from-changelog.mjs",
