@@ -1,5 +1,5 @@
 import type { ModelConnection, ModelProvider } from '@haus/api';
-import { ItemCardGroup } from '@heroui-pro/react';
+import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Button, Separator } from '@heroui/react';
 import * as React from 'react';
 import { useModelConnections } from '../../../../hooks/servers/use-model-connections.ts';
@@ -75,19 +75,23 @@ function ProviderCard({
 
     return (
         <ItemCardGroup className="overflow-hidden">
-            <ItemCardGroup.Header className="flex items-center justify-between gap-3">
-                <ItemCardGroup.Title>{name}</ItemCardGroup.Title>
+            <ItemCard>
+                <ItemCard.Content>
+                    <ItemCard.Title>{name}</ItemCard.Title>
+                </ItemCard.Content>
                 {isOwner ? (
-                    <Button
-                        aria-label={`Connect ${name}`}
-                        onPress={() => setDialog({})}
-                        size="sm"
-                        variant="secondary"
-                    >
-                        Connect
-                    </Button>
+                    <ItemCard.Action>
+                        <Button
+                            aria-label={`Connect ${name}`}
+                            onPress={() => setDialog({})}
+                            size="sm"
+                            variant="secondary"
+                        >
+                            Connect
+                        </Button>
+                    </ItemCard.Action>
                 ) : null}
-            </ItemCardGroup.Header>
+            </ItemCard>
             {connections.map((connection) => (
                 <React.Fragment key={connection.id}>
                     <Separator />

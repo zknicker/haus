@@ -71,8 +71,8 @@ export function ModelConnectionRow({
                         onChange={(enabled) => edits.setWebSearch.mutate({ ...target, enabled })}
                         size="sm"
                     >
-                        <Switch.Content className="text-sm">
-                            Web search
+                        <Switch.Content>
+                            <Label>Web search</Label>
                             <Switch.Control>
                                 <Switch.Thumb />
                             </Switch.Control>

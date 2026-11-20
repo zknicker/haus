@@ -163,7 +163,7 @@ function SignInLabelStep({
 
     return (
         <>
-            <Modal.Body>
+            <Modal.Body className="flex flex-col gap-4">
                 {children}
                 <Form
                     className="flex flex-col gap-3"

@@ -1,8 +1,12 @@
 import { expect, test } from 'bun:test';
+import { QueryClient } from '@tanstack/react-query';
+import { getQueryKey } from '@trpc/react-query';
 import { MemoryRouter } from 'react-router-dom';
+import { hausTrpc } from '../../../lib/haus-server.tsx';
 import { renderWithTrpc } from '../../../test-support/trpc-test-provider.tsx';
 import { testConnection } from '../../settings/models/connections/model-connection.fixture.ts';
-import { AgentConnectionControl } from './agent-model-connection-row.tsx';
+import { testAgent } from '../agent-fixtures.ts';
+import { AgentConnectionControl, AgentModelConnectionRow } from './agent-model-connection-row.tsx';
 
 const connections = [
     testConnection({ id: 'mcn_team', label: 'Team plan' }),
@@ -31,4 +35,23 @@ function closedValue(modelConnectionId: string | null) {
 test('the closed connection select reads only the chosen name', () => {
     expect(closedValue(null)).toBe('Default');
     expect(closedValue('mcn_side')).toBe('Side plan');
+});
+
+test('a connections read that failed reads as an alert under the row title', () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retryOnMount: false } } });
+    queryClient
+        .getQueryCache()
+        .build(queryClient, {
+            queryKey: getQueryKey(hausTrpc.modelConnections.list, { serverId: 'srv_1' }, 'query'),
+        })
+        .setState({ error: new Error('The Server is unreachable.'), status: 'error' });
+    const html = renderWithTrpc(
+        <MemoryRouter>
+            <AgentModelConnectionRow agent={testAgent({ serverId: 'srv_1' })} canEdit />
+        </MemoryRouter>,
+        queryClient
+    );
+    expect(html).toContain(
+        '<div class="item-card__content" data-slot="item-card-content"><span class="item-card__title" data-slot="item-card-title">Connection</span><p class="text-danger mt-1 text-sm" data-selectable-text="" role="alert">The Server is unreachable.</p></div>'
+    );
 });

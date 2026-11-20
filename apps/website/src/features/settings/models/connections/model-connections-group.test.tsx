@@ -22,7 +22,11 @@ function render(connections: ModelConnection[], isOwner: boolean) {
 }
 
 function headings(html: string) {
-    return [...html.matchAll(/<h3[^>]*>([^<]+)<\/h3>/g)].map((match) => match[1]);
+    return [
+        ...html.matchAll(
+            /data-slot="item-card-content"><span class="item-card__title" data-slot="item-card-title">([^<]+)</gu
+        ),
+    ].map((match) => match[1]);
 }
 
 function count(html: string, text: string) {
@@ -59,6 +63,7 @@ test('each row reports its state, and a failure reads under it', () => {
 
 test('web search shows on Gemini but not on Claude, and only the Owner can flip it', () => {
     const member = render([gemini, claude], false);
+    expect(count(member, '<span class="label" data-slot="label">Web search</span>')).toBe(1);
     expect(count(member, 'aria-label="Web search for Gemini API key"')).toBe(1);
     expect(count(member, 'aria-label="Web search for Team plan"')).toBe(0);
     const memberSwitch = /<input aria-label="Web search for Gemini API key"[^>]*>/u.exec(

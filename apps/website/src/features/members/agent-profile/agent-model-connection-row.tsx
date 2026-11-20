@@ -5,7 +5,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useAgentModelConnection } from '../../../hooks/members/use-agent-model-connection.ts';
 import { useModelConnections } from '../../../hooks/servers/use-model-connections.ts';
 import { serverSettingsSectionRoute } from '../../servers/server-routes.ts';
-import { SettingsFact } from '../../settings/layout/settings-text.tsx';
+import { SettingsFact, SettingsRowError } from '../../settings/layout/settings-text.tsx';
 import {
     agentConnectionChoice,
     connectionIdForKey,
@@ -19,6 +19,7 @@ export function AgentModelConnectionRow({ agent, canEdit }: { agent: Agent; canE
         <ItemCard>
             <ItemCard.Content>
                 <ItemCard.Title>Connection</ItemCard.Title>
+                <SettingsRowError>{connections.error?.message}</SettingsRowError>
             </ItemCard.Content>
             <ItemCard.Action>
                 {connections.data ? (
@@ -27,9 +28,7 @@ export function AgentModelConnectionRow({ agent, canEdit }: { agent: Agent; canE
                         canEdit={canEdit}
                         connections={connections.data.connections}
                     />
-                ) : (
-                    <SettingsFact>{connections.error?.message}</SettingsFact>
-                )}
+                ) : null}
             </ItemCard.Action>
         </ItemCard>
     );
