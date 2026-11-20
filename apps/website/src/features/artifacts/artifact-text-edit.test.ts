@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import { artifactPublishResultSchema, artifactRevisionConflictSchema } from '@haus/api';
 import {
     artifactTextEditable,
+    artifactTextEditorGate,
     artifactTextSaveInput,
     artifactTextSaveOutcome,
 } from './artifact-text-edit.ts';
@@ -92,5 +93,23 @@ test('a revision conflict is a refused save naming the current head', () => {
         current: head,
         kind: 'refused',
         message: 'The file moved on.',
+    });
+});
+
+test('while a save is pending the text cannot change and a second save cannot start', () => {
+    expect(artifactTextEditorGate({ changed: true, pending: true })).toEqual({
+        canSave: false,
+        readOnly: true,
+    });
+});
+
+test('an idle editor takes typing and saves only once something changed', () => {
+    expect(artifactTextEditorGate({ changed: true, pending: false })).toEqual({
+        canSave: true,
+        readOnly: false,
+    });
+    expect(artifactTextEditorGate({ changed: false, pending: false })).toEqual({
+        canSave: false,
+        readOnly: false,
     });
 });

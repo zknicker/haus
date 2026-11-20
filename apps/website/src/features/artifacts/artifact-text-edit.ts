@@ -35,6 +35,10 @@ export function artifactTextEditable(file: EditableFile, view: { pinned: boolean
     );
 }
 
+export function artifactTextEditorGate(state: { changed: boolean; pending: boolean }) {
+    return { canSave: state.changed && !state.pending, readOnly: state.pending };
+}
+
 export function artifactTextSaveInput(
     file: { content_type: string; path: string },
     baseRevisionId: string,

@@ -12,7 +12,7 @@ import {
     settleArtifactTextDraft,
     writeArtifactTextDraft,
 } from './artifact-text-drafts.ts';
-import { artifactTextSaveInput } from './artifact-text-edit.ts';
+import { artifactTextEditorGate, artifactTextSaveInput } from './artifact-text-edit.ts';
 
 export function ArtifactTextEditor({
     artifact,
@@ -91,7 +91,7 @@ function TextDraft({
         restored?.refusal ?? null
     );
     const changed = text !== original || refusal !== null;
-    const canSave = changed && !save.isPending;
+    const { canSave, readOnly } = artifactTextEditorGate({ changed, pending: save.isPending });
 
     const edit = (next: string) => {
         setText(next);
@@ -167,9 +167,12 @@ function TextDraft({
                 onKeyDown={(event) => {
                     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
                         event.preventDefault();
-                        submit();
+                        if (!event.repeat) {
+                            submit();
+                        }
                     }
                 }}
+                readOnly={readOnly}
                 spellCheck={false}
                 value={text}
                 variant="secondary"
