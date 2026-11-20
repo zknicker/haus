@@ -47,7 +47,9 @@ stored in `localStorage` under `haus.capy-shell` and follows into other open win
   `useOpenAgentProfile`. The update status
   and the offline Device chip stay above them, as in the old sidebar.
 - **Removed.** The Inbox row and page, the Direct messages section, the Files row, and the top
-  Settings gear. `/inbox` redirects to Home. Every row carries its own
+  Settings gear. `/inbox` redirects to Home, and nothing links there: the
+  breadcrumb's "Haus" opens Home, a new desktop window starts on Home, a desktop tab on Home reads
+  "Home" with a home glyph, and Cmd+K offers Home in place of Chat and Inbox. Every row carries its own
   unread state, so ADR 0038's unread-only rule still holds.
 - **Home.** The Server's default route renders Home: a Project chip and a Captain chip, left-aligned
   above a compact stock `PromptInput` (size `sm`, a `max-w-xl` measure) placed a little above the

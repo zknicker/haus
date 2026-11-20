@@ -20,7 +20,7 @@ export type TabMark =
     | { kind: 'avatar'; name: string; src: string | null }
     | { kind: 'channel'; color: string | null; icon: string | null }
     | { kind: 'favicon'; loading: boolean; url: string | null }
-    | { kind: 'glyph'; glyph: 'artifact' | 'files' | 'newTab' | 'task' | AppSection }
+    | { kind: 'glyph'; glyph: 'artifact' | 'files' | 'home' | 'newTab' | 'task' | AppSection }
     | { kind: 'none' };
 
 /** What a location shows, before any record is looked up. */
@@ -36,6 +36,7 @@ export type TabPage =
     | { kind: 'chat'; chatId: string }
     | { kind: 'dm'; agentId: string }
     | { kind: 'files'; chatId: string }
+    | { kind: 'home' }
     | { kind: 'newTab' }
     | { kind: 'section'; section: AppSection }
     | { kind: 'task'; taskKey: string };
@@ -46,7 +47,7 @@ export type TabPage =
  * `artifacts/<key>?title=…`; a shared library file is
  * `artifacts/<artifactId>`, titled from its record. A Task is `tasks/<KEY>`.
  */
-export function parseTabPage(location: TabLocation): TabPage {
+export function parseTabPage(location: TabLocation, { capyShell = false } = {}): TabPage {
     if (location.kind === 'browser') {
         return {
             kind: 'browser',
@@ -62,6 +63,9 @@ export function parseTabPage(location: TabLocation): TabPage {
     const segments = pathname.split('/').map(decodeSegment);
     const slug = segments[2] ?? '';
     const [section = '', first = '', second = ''] = segments.slice(3);
+    if (capyShell && section === '' && segments.length <= 4) {
+        return { kind: 'home' };
+    }
     switch (section) {
         case 'chats':
             return first ? { kind: 'chat', chatId: first } : sectionPage(pathname, slug);
@@ -137,6 +141,8 @@ export function resolveTabIdentity(page: TabPage, records: TabIdentityRecords): 
             return { label: page.taskKey, mark: { kind: 'glyph', glyph: 'task' }, place: null };
         case 'newTab':
             return { label: 'New tab', mark: { kind: 'glyph', glyph: 'newTab' }, place: null };
+        case 'home':
+            return { label: 'Home', mark: { kind: 'glyph', glyph: 'home' }, place: null };
         case 'section':
             return {
                 label: sectionLabels[page.section],

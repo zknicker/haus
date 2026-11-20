@@ -43,6 +43,7 @@ export function CommandMenu({ server }: { server: ServerSummary }) {
         () => [
             ...buildCommandGroups({
                 agents: agentItems,
+                capyShell,
                 chats: chatItems,
                 devMode,
                 navigate,
