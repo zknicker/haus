@@ -20,7 +20,7 @@ export type TabMark =
     | { kind: 'avatar'; name: string; src: string | null }
     | { kind: 'channel'; color: string | null; icon: string | null }
     | { kind: 'favicon'; loading: boolean; url: string | null }
-    | { kind: 'glyph'; glyph: 'artifact' | 'files' | 'newTab' | 'task' | AppSection }
+    | { kind: 'glyph'; glyph: 'artifact' | 'files' | 'home' | 'newTab' | 'task' | AppSection }
     | { kind: 'none' };
 
 /** What a location shows, before any record is looked up. */
@@ -36,6 +36,7 @@ export type TabPage =
     | { kind: 'chat'; chatId: string }
     | { kind: 'dm'; agentId: string }
     | { kind: 'files'; chatId: string }
+    | { kind: 'home' }
     | { kind: 'newTab' }
     | { kind: 'section'; section: AppSection }
     | { kind: 'task'; taskKey: string }
@@ -47,7 +48,7 @@ export type TabPage =
  * `artifacts/<key>?title=…`; a shared library file is
  * `artifacts/<artifactId>`, titled from its record. A Task is `tasks/<KEY>`.
  */
-export function parseTabPage(location: TabLocation): TabPage {
+export function parseTabPage(location: TabLocation, { capyShell = false } = {}): TabPage {
     if (location.kind === 'browser') {
         return {
             kind: 'browser',
@@ -63,27 +64,34 @@ export function parseTabPage(location: TabLocation): TabPage {
     const segments = pathname.split('/').map(decodeSegment);
     const slug = segments[2] ?? '';
     const [section = '', first = '', second = ''] = segments.slice(3);
+    if (capyShell && section === '' && segments.length <= 4) {
+        return { kind: 'home' };
+    }
+    const idPage = first && Object.hasOwn(idPages, section) ? idPages[section as IdSection] : null;
+    if (idPage && first) {
+        return idPage(first);
+    }
     switch (section) {
-        case 'chats':
-            return first ? { kind: 'chat', chatId: first } : sectionPage(pathname, slug);
-        case 'dm':
-            return first ? { kind: 'dm', agentId: first } : sectionPage(pathname, slug);
-        case 'agents':
-            return first ? { kind: 'agent', agentId: first } : sectionPage(pathname, slug);
-        case 'files':
-            return first ? { kind: 'files', chatId: first } : sectionPage(pathname, slug);
         case 'artifacts':
             return first
                 ? artifactPage(first, new URLSearchParams(search))
                 : sectionPage(pathname, slug);
         case 'tasks':
             return tasksPage(first, second) ?? sectionPage(pathname, slug);
-        case 'workers':
-            return first ? { kind: 'worker', workerId: first } : sectionPage(pathname, slug);
         default:
             return sectionPage(pathname, slug);
     }
 }
+
+const idPages = {
+    agents: (agentId: string) => ({ agentId, kind: 'agent' }),
+    chats: (chatId: string) => ({ chatId, kind: 'chat' }),
+    dm: (agentId: string) => ({ agentId, kind: 'dm' }),
+    files: (chatId: string) => ({ chatId, kind: 'files' }),
+    workers: (workerId: string) => ({ kind: 'worker', workerId }),
+} as const satisfies Record<string, (id: string) => TabPage>;
+
+type IdSection = keyof typeof idPages;
 
 /** The records a page's identity reads; each is null until it loads. */
 export interface TabIdentityRecords {
@@ -135,6 +143,17 @@ export function resolveTabIdentity(page: TabPage, records: TabIdentityRecords): 
                 mark: { kind: 'glyph', glyph: 'task' },
                 place: null,
             };
+        default:
+            return glyphIdentity(page);
+    }
+}
+
+function glyphIdentity(
+    page: Extract<TabPage, { kind: 'home' | 'newTab' | 'section' }>
+): TabIdentity {
+    switch (page.kind) {
+        case 'home':
+            return { label: 'Home', mark: { kind: 'glyph', glyph: 'home' }, place: null };
         case 'newTab':
             return fixedIdentities.newTab;
         case 'section':

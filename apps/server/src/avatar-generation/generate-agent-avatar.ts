@@ -25,7 +25,7 @@ export async function generateAgentAvatar(
     }
 
     const [agent] = await db
-        .select({ factoryKind: agentsTable.factoryKind })
+        .select({ id: agentsTable.id })
         .from(agentsTable)
         .where(
             and(
@@ -38,10 +38,6 @@ export async function generateAgentAvatar(
 
     if (!agent) {
         throw new AvatarOwnerNotFoundError('No active Agent exists with that id.');
-    }
-
-    if (agent.factoryKind === 'cove') {
-        throw new AvatarDeniedError("Cove's product-owned avatar cannot be changed.");
     }
 
     return await avatarImageService.generate(input);

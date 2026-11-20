@@ -49,6 +49,7 @@ export function projectChatMessage(
             worker: messageWorker(message),
             workerBody: workerMessageBody(message.body),
             content: message.content,
+            driveCitations: message.driveCitations,
             id: message.id,
             imageGenerations: messageImageGenerations(message),
             sender: messageSender(message),

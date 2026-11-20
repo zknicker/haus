@@ -28,6 +28,7 @@ export const computersTable = pgTable(
         connectionGeneration: text('connection_generation'),
         health: text('health').notNull().default('offline').$type<ComputerHealth>(),
         id: text('id').primaryKey(),
+        inventoryInvalidAt: timestamp('inventory_invalid_at', { withTimezone: true }),
         lastConnectedAt: timestamp('last_connected_at', { withTimezone: true }),
         operatingSystem: text('operating_system'),
         productVersion: text('product_version'),

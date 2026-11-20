@@ -3,7 +3,7 @@ summary: Expand/contract release ordering and production smoke for reusable Haus
 read_when:
   - releasing a login, setup, attachment, or device-authorization change
   - removing a temporary Computer protocol compatibility path
-  - running the production first-Computer onboarding smoke
+  - running the production first-Computer smoke
 ---
 
 # Computer login cutover
@@ -89,11 +89,11 @@ recorded Server with an isolated `HAUS_COMPUTER_DATA_ROOT`.
 
 Verify device-code prefill, explicit account approval, **Finishing the connection**,
 and **Computer connected** only after the CLI stores the attachment. In Haus App, verify the
-Server observes the Computer, onboarding advances only after runtime/model inventory, the Owner
-selects Cove's model, and the App unlocks into the retained onboarding Channel. Verify Cove's
-implicit DM behavior and, when enabled, exactly one canonical greeting DM/message.
+Server observes the Computer and its runtime/model inventory under Settings → Devices, then create
+one Captain on it with New Captain and verify its implicit DM and exactly one greeting in the Haus
+project.
 
-Record the Computer id, isolated attachment path, Cove id, DM/message ids, release versions, and
+Record the Computer id, isolated attachment path, Captain id, message ids, release versions, and
 timestamps before cleanup. Inspect status and log out with the isolated root. Delete only the
 confirmed smoke Server through its Haus App flow when cleanup is authorized, then move only the
 recorded temporary root to Trash. Never sweep Servers, Computers, attachments, or local roots by

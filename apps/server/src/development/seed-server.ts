@@ -6,12 +6,12 @@ import {
     agentsTable,
     agentTokenUsageDailyTable,
     channelAgentParticipantsTable,
+    channelParticipantsTable,
     chatMessagesTable,
     chatsTable,
     computersTable,
     mcpConnectionsTable,
     serverMembershipsTable,
-    serverOnboardingTable,
     serversTable,
     usersTable,
 } from '../postgres/schema.ts';
@@ -56,7 +56,6 @@ export async function seedDevelopmentServer(
         const membershipId = createOpaqueId('mem');
         const channelId = createOpaqueId('cht');
         const demoChannelId = createOpaqueId('cht');
-        const onboardingChannelId = createOpaqueId('cht');
         const blippyDmId = createOpaqueId('cht');
         const tinyDmId = createOpaqueId('cht');
         const computerId = createOpaqueId('cmp');
@@ -85,31 +84,25 @@ export async function seedDevelopmentServer(
             .update(usersTable)
             .set({ avatarId: avatarIds.owner })
             .where(eq(usersTable.id, userId));
+        await tx.insert(chatsTable).values({
+            description: allChannelDescription,
+            id: channelId,
+            isAll: true,
+            kind: 'channel',
+            lastActivityAt: now,
+            lastMessageSequence: 9,
+            name: allChannelName,
+            serverId,
+        });
+        await tx.insert(channelParticipantsTable).values({ chatId: channelId, serverId, userId });
         const { taskKeyId: generalKeyId } = await insertProject(tx, {
-            chat: {
-                description: allChannelDescription,
-                id: channelId,
-                isAll: true,
-                lastActivityAt: now,
-                lastMessageSequence: 9,
-                name: allChannelName,
-            },
-            key: GENERAL_TASK_KEY,
-            serverId,
-            userIds: [userId],
-        });
-        await insertProject(tx, {
-            chat: { id: onboardingChannelId, name: 'onboarding-owner' },
-            serverId,
-            userIds: [userId],
-        });
-        await insertProject(tx, {
             chat: {
                 id: demoChannelId,
                 lastActivityAt: now,
                 lastMessageSequence: 2,
                 name: 'product',
             },
+            key: GENERAL_TASK_KEY,
             serverId,
             userIds: [userId],
         });
@@ -125,9 +118,6 @@ export async function seedDevelopmentServer(
             reportedInventory: demoInventory,
             serverId,
         });
-        await tx
-            .insert(serverOnboardingTable)
-            .values({ channelId: onboardingChannelId, computerId, phase: 'complete', serverId });
         await tx.insert(agentsTable).values([
             demoAgent({
                 avatarId: avatarIds.blippy,
@@ -136,7 +126,7 @@ export async function seedDevelopmentServer(
                 description: 'Keeps the plan tight and surfaces decisions early.',
                 displayName: 'Blippy',
                 handle: 'blippy',
-                homeProjectId: channelId,
+                homeProjectId: demoChannelId,
                 id: blippyId,
                 modelId: 'gpt-5.6-sol',
                 reportedAt: now,
@@ -149,7 +139,7 @@ export async function seedDevelopmentServer(
                 description: 'Pressure-tests the details and keeps the work grounded.',
                 displayName: 'Tiny',
                 handle: 'tiny',
-                homeProjectId: channelId,
+                homeProjectId: demoChannelId,
                 id: tinyId,
                 modelId: 'gpt-5.6-terra',
                 reportedAt: now,

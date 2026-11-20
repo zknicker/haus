@@ -1,68 +1,30 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { makeTestRuntime } from '@haus/effect';
-import { openAttachmentRoot } from '../src/attachments/attachment-root.ts';
-import { purgeDeletedChannels } from '../src/chats/channel-lifecycle.ts';
-import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
+import { testSqlAgentHome } from './agent-home.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { createTestProject } from './project.fixture.ts';
 import { startTestTask } from './task-place-fixture.ts';
 
 let harness: HausServerHarness;
-let connection: HausConnection;
 let owner: HausClient;
 let serverId: string;
-let onboardingChannelId: string;
 const agentId = 'agt_delete_dependents';
-const runtime = makeTestRuntime();
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    connection = await connectHausDatabase(harness.databaseUrl);
     owner = createHausClient(harness, await harness.humans.mintSessionToken('delete-dependents'));
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Delete Dependents',
         slug: 'delete-dependents',
     });
     serverId = server.id;
-    const [onboarding] = (await harness.sql`
-        select channel_id from server_onboarding where server_id = ${serverId}
-    `) as Array<{ channel_id: string }>;
-    onboardingChannelId = onboarding.channel_id;
     await harness.sql`INSERT INTO agents (id, server_id, handle, display_name, home_timezone, home_project_id)
-        VALUES (${agentId}, ${serverId}, 'dependents-agent', 'Dependents Agent', 'UTC', (select id from chats where server_id = ${serverId} and is_all))`;
+        VALUES (${agentId}, ${serverId}, 'dependents-agent', 'Dependents Agent', 'UTC', ${await testSqlAgentHome(harness.sql, serverId)})`;
 });
 
 afterAll(async () => {
-    await runtime.dispose();
     owner?.close();
-    await connection?.close();
     await harness?.close();
-});
-
-test('refuses to delete the onboarding channel and leaves it intact', async () => {
-    await expect(
-        owner.trpc.chat.deleteChannel.mutate({
-            chatId: onboardingChannelId,
-            confirmation: 'onboarding-owner',
-            serverId,
-        })
-    ).rejects.toThrow(/onboarding channel cannot be deleted/u);
-    expect(await deletedAt(onboardingChannelId)).toEqual([{ deleted_at: null }]);
-});
-
-test('restores a pre-refusal onboarding channel tombstone instead of purging it', async () => {
-    await harness.sql`
-        update chats
-        set deleted_at = now(),
-            deleted_by_user_id = (select id from users where auth_subject = 'delete-dependents')
-        where id = ${onboardingChannelId}
-    `;
-    const root = await openAttachmentRoot(harness.attachmentRoot, runtime);
-
-    await purgeDeletedChannels(connection.db, root);
-
-    expect(await deletedAt(onboardingChannelId)).toEqual([{ deleted_at: null }]);
 });
 
 test('deletes Triggers anchored in the channel aggregate with the channel', async () => {
@@ -231,6 +193,30 @@ test('purging a Project deletes a reminder anchored there from a Task in another
     ).toEqual([{ origin: 0, reminders: 0, task: 1 }]);
 });
 
+test('deleting a Project leaves a retired Agent homed there with no home', async () => {
+    const channel = await createTestProject(harness, owner, {
+        agentIds: [],
+        name: 'retirees',
+        serverId,
+    });
+    await harness.sql`INSERT INTO agents
+        (id, server_id, handle, display_name, home_timezone, home_project_id, retired_at)
+        VALUES ('agt_delete_retired', ${serverId}, 'retired-one', 'Retired', 'UTC', ${channel.id},
+            now())`;
+
+    await expect(
+        owner.trpc.chat.deleteChannel.mutate({
+            chatId: channel.id,
+            confirmation: 'retirees',
+            serverId,
+        })
+    ).resolves.toEqual({ chatId: channel.id, serverId });
+
+    expect(
+        await harness.sql`select home_project_id from agents where id = 'agt_delete_retired'`
+    ).toEqual([{ home_project_id: null }]);
+});
+
 async function insertTrigger(id: string, anchorChatId: string, removedAt: Date | null) {
     await harness.sql`INSERT INTO triggers
         (id, server_id, owner_agent_id, anchor_chat_id, kind, status, title, secret_hash,
@@ -238,10 +224,4 @@ async function insertTrigger(id: string, anchorChatId: string, removedAt: Date |
         VALUES (${id}, ${serverId}, ${agentId}, ${anchorChatId}, 'webhook',
             ${removedAt ? 'disabled' : 'armed'}, 'Anchored trigger', 'unused', now(), now(),
             ${removedAt})`;
-}
-
-async function deletedAt(chatId: string) {
-    return (await harness.sql`
-        select deleted_at from chats where id = ${chatId}
-    `) as Array<{ deleted_at: Date | null }>;
 }

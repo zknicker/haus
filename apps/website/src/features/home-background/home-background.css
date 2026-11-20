@@ -1,0 +1,218 @@
+/*
+ * Home backgrounds (`home-background-layers.tsx`, .design/guidelines.md
+ * "Home backgrounds"). Every pattern is drawn from the live tokens, so it
+ * recolors with each theme in both modes. Nothing animates.
+ */
+@layer components {
+    :where(:has(> .home-background--page)) {
+        position: relative;
+        isolation: isolate;
+    }
+
+    .home-background {
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        overflow: hidden;
+        pointer-events: none;
+        --home-pattern-scale: 1;
+    }
+
+    .home-background[data-faded] {
+        mask-image: linear-gradient(
+            to bottom,
+            black calc(100% - var(--home-background-fade)),
+            transparent 100%
+        );
+    }
+
+    .home-background[data-filtered] {
+        contain: strict;
+    }
+
+    .home-background__art,
+    .home-background__overlay,
+    .home-background__effect {
+        position: absolute;
+        inset: 0;
+    }
+
+    .home-background__art {
+        inset: calc(var(--home-background-blur) * -2);
+        opacity: var(--home-background-image-opacity);
+    }
+
+    .home-background[data-filtered] .home-background__art {
+        filter: brightness(var(--home-background-brightness)) blur(var(--home-background-blur));
+    }
+
+    .home-background__overlay {
+        background-color: var(--background);
+        opacity: var(--home-background-overlay);
+    }
+
+    .home-background[data-art="image"] .home-background__art {
+        background: var(--home-background-art) center / cover no-repeat;
+    }
+
+    .home-background[data-art="dots"] .home-background__art {
+        background-image: radial-gradient(
+            circle,
+            color-mix(in oklab, var(--foreground) 20%, transparent) 1px,
+            transparent 1.6px
+        );
+        background-position: center;
+        background-size: calc(22px * var(--home-pattern-scale)) calc(22px * var(--home-pattern-scale));
+    }
+
+    .home-background[data-art="contours"] .home-background__art {
+        --home-contour: color-mix(in oklab, var(--foreground) 10%, transparent);
+        --home-contour-gap: calc(34px * var(--home-pattern-scale));
+        background-image:
+            repeating-radial-gradient(
+                ellipse 150% 110% at 6% 112%,
+                transparent 0 calc(var(--home-contour-gap) - 2px),
+                var(--home-contour) calc(var(--home-contour-gap) - 1px),
+                transparent var(--home-contour-gap)
+            ),
+            radial-gradient(
+                70% 60% at 6% 100%,
+                color-mix(in oklab, var(--accent) 10%, transparent),
+                transparent 70%
+            );
+    }
+
+    .home-background[data-art="aurora"] .home-background__art {
+        background-image:
+            radial-gradient(
+                55% 45% at 16% 10%,
+                oklch(from var(--accent) l c h / 0.24),
+                transparent 72%
+            ),
+            radial-gradient(
+                45% 40% at 84% 18%,
+                oklch(from var(--accent) l c calc(h + 35) / 0.18),
+                transparent 72%
+            ),
+            radial-gradient(
+                65% 50% at 58% 98%,
+                oklch(from var(--accent) l c calc(h - 30) / 0.14),
+                transparent 72%
+            );
+    }
+
+    .home-background[data-art="horizon"] .home-background__art {
+        background-image:
+            radial-gradient(
+                90% 55% at 50% 108%,
+                color-mix(in oklab, var(--accent) 26%, transparent),
+                transparent 72%
+            ),
+            linear-gradient(
+                to top,
+                color-mix(in oklab, var(--accent) 8%, transparent),
+                transparent 60%
+            );
+    }
+
+    .home-background[data-art="ghosts"] .home-background__art {
+        background-color: color-mix(in oklab, var(--foreground) 5%, transparent);
+        mask-image: var(--home-background-art);
+        mask-position: center;
+        mask-repeat: repeat;
+        mask-size: calc(360px * var(--home-pattern-scale)) calc(360px * var(--home-pattern-scale));
+    }
+
+    .home-background[data-effect="grain"] .home-background__effect {
+        background-image: var(--home-background-grain);
+        mix-blend-mode: overlay;
+        opacity: 0.45;
+    }
+
+    .home-background[data-effect="dither"] .home-background__effect {
+        background-image: repeating-conic-gradient(var(--black) 0 25%, var(--white) 0 50%);
+        background-size: 4px 4px;
+        image-rendering: pixelated;
+        mix-blend-mode: soft-light;
+        opacity: 0.35;
+    }
+
+    .home-background[data-effect="vignette"] .home-background__effect {
+        background-image: radial-gradient(
+            ellipse 75% 70% at 50% 45%,
+            transparent 50%,
+            color-mix(in oklab, var(--background) 92%, transparent) 100%
+        );
+    }
+
+    .home-background-preview .home-background {
+        --home-pattern-scale: 0.6;
+    }
+
+    .home-background-tile .home-background {
+        --home-pattern-scale: 0.4;
+    }
+
+    .home-background-tile .home-background[data-art="ghosts"] .home-background__art {
+        mask-position: 29px 9px;
+    }
+
+    .home-background-preview {
+        position: relative;
+        isolation: isolate;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        aspect-ratio: 21 / 9;
+        overflow: hidden;
+        padding-inline: 18%;
+        border-radius: var(--radius-lg);
+        background-color: var(--background);
+        box-shadow: inset 0 0 0 var(--hairline-width, 1px) var(--border);
+    }
+
+    .home-background-preview__composer {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+        padding: 12px;
+        border: var(--hairline-width, 1px) solid var(--border);
+        border-radius: var(--radius-2xl, 1rem);
+        background-color: color-mix(
+            in oklab,
+            var(--surface) calc(var(--home-input-opacity, 1) * 100%),
+            transparent
+        );
+    }
+
+    .home-background-preview__line {
+        width: 52%;
+        height: 4px;
+        border-radius: 9999px;
+        background-color: var(--muted);
+        opacity: 0.6;
+    }
+
+    .home-background-preview__send {
+        align-self: flex-end;
+        width: 18px;
+        height: 18px;
+        border-radius: 9999px;
+        background-color: var(--accent);
+    }
+
+    .home-background-tile {
+        position: relative;
+        isolation: isolate;
+        display: grid;
+        place-items: center;
+        width: 100%;
+        aspect-ratio: 16 / 10;
+        overflow: hidden;
+        border-radius: var(--theme-preview-radius, var(--radius-lg));
+        background-color: var(--background);
+        box-shadow: inset 0 0 0 var(--hairline-width, 1px) var(--border);
+        color: var(--muted);
+    }
+}

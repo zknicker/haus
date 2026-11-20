@@ -11,7 +11,7 @@ import { agentsTable, mcpConnectionsTable } from '../postgres/schema.ts';
 
 /**
  * What the Server tells a Computer to run an Agent as: identity, desired
- * runtime and model, factory state, and the standing brief the Computer seeds
+ * runtime and model, and the standing brief the Computer seeds
  * into a fresh workspace. Read on every dispatch and every reconnect, so it
  * lives apart from the delivery queue's own row bookkeeping.
  */
@@ -32,8 +32,6 @@ export interface AgentDispatchConfig {
     desiredModelId: string | null;
     desiredReasoningEffort: AgentReasoningEffort;
     desiredRuntimeId: string | null;
-    factoryAppliedAt: Date | null;
-    factoryKind: 'cove' | 'ordinary';
     homeTimezone: string;
     retiredAt: Date | null;
     sessionGeneration: number;
@@ -59,8 +57,6 @@ export async function readAgentDispatchConfig(
             desiredModelId: agentsTable.desiredModelId,
             desiredReasoningEffort: agentsTable.desiredReasoningEffort,
             desiredRuntimeId: agentsTable.desiredRuntimeId,
-            factoryAppliedAt: agentsTable.factoryAppliedAt,
-            factoryKind: agentsTable.factoryKind,
             homeTimezone: agentsTable.homeTimezone,
             retiredAt: agentsTable.retiredAt,
             serverId: agentsTable.serverId,
@@ -103,8 +99,6 @@ export interface ComputerAgentRow {
     desiredModelId: string | null;
     desiredReasoningEffort: AgentReasoningEffort;
     desiredRuntimeId: string | null;
-    factoryAppliedAt: Date | null;
-    factoryKind: 'cove' | 'ordinary';
     retiredAt: Date | null;
     serverId: string;
     sessionGeneration: number;
@@ -126,8 +120,6 @@ export async function listComputerAgents(
             desiredModelId: agentsTable.desiredModelId,
             desiredReasoningEffort: agentsTable.desiredReasoningEffort,
             desiredRuntimeId: agentsTable.desiredRuntimeId,
-            factoryAppliedAt: agentsTable.factoryAppliedAt,
-            factoryKind: agentsTable.factoryKind,
             retiredAt: agentsTable.retiredAt,
             sessionGeneration: agentsTable.sessionGeneration,
             sessionResetKind: agentsTable.sessionResetKind,
@@ -155,7 +147,6 @@ export function reconcileConfigureFrame(
         agentName: agent.agentName,
         brief: agent.brief,
         briefAuthorHandle: agent.briefAuthorHandle,
-        factoryKind: agent.factoryKind,
         modelId: agent.desiredModelId,
         reasoningEffort: agent.desiredReasoningEffort,
         runtimeId: agent.desiredRuntimeId,

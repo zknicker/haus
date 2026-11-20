@@ -548,6 +548,17 @@ the shown tab) stay white: L 100% carries no chroma. Its `--accent` is candy-can
 (`oklch(57% 0.21 27)`, white ink on it). Both themes' decorations share
 `christmas-decorations.css`.
 
+### Home backgrounds
+
+A theme's Home background (`lib/home-background.ts`) is presentation, not tokens: built-in
+patterns are CSS drawn from `--foreground`, `--accent` and `--background` in
+`features/home-background/home-background.css`, so they recolor with every theme and mode and
+never ship raster art. The layer sits at `z-index: -1` in an isolated Home container. Input
+opacity reaches the composer only as `--home-input-opacity` on that container, read by the
+theme layer's `.home-composer` rule; nothing restyles the composer at a call site. Settings
+tiles and the preview reuse the same layers at half pattern scale (`--home-pattern-scale`).
+See [Appearance](../docs/features/appearance.md#home-backgrounds).
+
 ## Typography
 Use the generated font and text scale through HeroUI components and Tailwind text utilities. The raw values below are normalized to px for design handoff.
 | Token | Font family | Font size | Line height | HeroUI variable | Tailwind equivalent |
@@ -918,6 +929,16 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   The bar occupies the reserved transcript space above the input without changing layout or
   scrolling messages. The typing row rides above the bar in the same stack, so both stay visible; while the bar is open the stack paints `background`, so transcript text never shows behind the typing row. Its cancel button preserves pointer focus instead of flashing input focus;
   keyboard focus remains available.
+- **Capy shell sidebar marks:** Inside `.capy-sidebar` the row icon slot takes the 24px mark box (a
+  Project's `sidebar` `ChannelIconBox`, a person's avatar) instead of HeroUI's spacing-scaled
+  `size-5`, so marks, section labels and Captain tiles share one left edge. The old shell keeps
+  the stock slot.
+- **Home composer (Capy shell):** Capy's elevated card rather than a field. The stock `sm`
+  `PromptInput` sits inside `.home-composer`, and one theme-layer rule gives its shell a `--surface`
+  fill and `--surface-shadow` with no field border. Dark surfaces cast no shadow, so dark rims it with
+  a `--border-width` ring in `--border`. `--home-input-opacity` (default 1, set by a Home background)
+  thins the fill, never the text. Focus anywhere in the editor draws the stock field focus, a 2px
+  `--focus` ring over the card's shadow, in both themes. Every other composer keeps the field look.
 - **Composer file drop:** A file drag over a chat or Task recedes that surface behind a 90%
   `background` scrim and draws an inset dashed `accent` frame at the shell radius tier
   (`.card-shell`), with a filled accent icon, "Drop files to attach", and a muted limit line.

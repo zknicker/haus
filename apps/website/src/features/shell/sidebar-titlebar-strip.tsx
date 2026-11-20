@@ -38,10 +38,12 @@ import { resolveAgentActivityGhostTempo } from './agent-activity-ghost-tempo.ts'
  */
 export function SidebarTitlebarStrip({
     leadsWithMark,
+    markHref,
     settingsAction,
     slug,
 }: {
     leadsWithMark: boolean;
+    markHref?: string;
     settingsAction?: React.ReactNode;
     slug: string;
 }) {
@@ -53,7 +55,7 @@ export function SidebarTitlebarStrip({
                 <Link
                     aria-label="Haus"
                     className="app-shell-titlebar-mark inline-flex rounded-md"
-                    to={inboxRoute(slug)}
+                    to={markHref ?? inboxRoute(slug)}
                 >
                     {/* 22, the same box the mark takes on the Inbox row's icon
                         column on the macOS desktop, so the ghost is one size

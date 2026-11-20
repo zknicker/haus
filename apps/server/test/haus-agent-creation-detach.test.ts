@@ -5,6 +5,13 @@ const fixture = agentCreationFixture();
 
 test('deleting a legacy creation announcement detaches its link and preserves the Agent', async () => {
     const runner = await fixture.mintRunner('run_create_detach');
+    const spare = await fixture.owner.trpc.project.create.mutate({
+        name: 'spare',
+        serverId: fixture.serverId,
+    });
+    await fixture.harness.sql`
+        update agents set home_project_id = ${spare.chat.id} where id = ${fixture.orbitAgentId}
+    `;
 
     const created = await fixture.postCreate(
         runner,

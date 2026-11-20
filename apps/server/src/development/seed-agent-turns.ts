@@ -57,7 +57,7 @@ export async function seedAgentTurns(
             summaries: [
                 'Traced the sidebar badge count to the cached chat row.',
                 'Split the unread rollup out of the chat list query.',
-                'Answered the weekly digest question in #haus.',
+                'Answered the weekly digest question in #all.',
                 'Handed the last-message preview to a Worker.',
             ],
         },
@@ -69,15 +69,6 @@ export async function seedAgentTurns(
                 'Audited the member directory for stale copy.',
                 'Pressure-tested the rename proposal for #product.',
                 'Checked the build questions piling up in #product.',
-            ],
-        },
-        {
-            agentId: context.coveId,
-            countsByDay: [0, 0, 1, 0, 0, 0, 1],
-            failedDaysAgo: null,
-            summaries: [
-                'Walked the owner through connecting a Computer.',
-                'Asked the owner about the channel rename.',
             ],
         },
     ];

@@ -19,13 +19,10 @@ export async function updateAgentProfile(
     }
 
     const [identity] = await db
-        .select({ description: agentsTable.description, factoryKind: agentsTable.factoryKind })
+        .select({ description: agentsTable.description })
         .from(agentsTable)
         .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
         .limit(1);
-    if (identity?.factoryKind === 'cove') {
-        throw new AgentConfigDeniedError("Cove's product-owned identity cannot be changed.");
-    }
     assertAgentDescriptionWrite(input.description, identity?.description ?? null);
 
     const [updated] = await db

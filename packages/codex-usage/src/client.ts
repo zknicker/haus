@@ -81,6 +81,7 @@ export async function getCodexUsage(options: CodexUsageOptions = {}): Promise<Co
         accountId: credentials.accountId,
         fetch: fetchImpl,
         signal,
+        url: options.usageUrl ?? CODEX_USAGE_URL,
     });
 
     if (usageResponse.status === 401 || usageResponse.status === 403) {
@@ -90,7 +91,8 @@ export async function getCodexUsage(options: CodexUsageOptions = {}): Promise<Co
     if (usageResponse.status !== 200) {
         throw new CodexUsageRequestError(
             `Codex usage request failed with HTTP ${usageResponse.status}`,
-            usageResponse.status
+            usageResponse.status,
+            parseRetryAfter(usageResponse.headers.get('retry-after'), options.now ?? new Date())
         );
     }
 
@@ -110,11 +112,24 @@ export async function getCodexUsage(options: CodexUsageOptions = {}): Promise<Co
     }
 }
 
+function parseRetryAfter(value: string | null, now: Date) {
+    if (!value) {
+        return null;
+    }
+    const seconds = Number(value);
+    if (Number.isFinite(seconds) && seconds >= 0) {
+        return seconds * 1000;
+    }
+    const timestamp = Date.parse(value);
+    return Number.isFinite(timestamp) ? Math.max(0, timestamp - now.getTime()) : null;
+}
+
 async function fetchCodexUsageResponse(options: {
     accessToken: string;
     accountId: string | null;
     fetch: typeof fetch;
     signal: AbortSignal;
+    url: string;
 }): Promise<Response> {
     const headers = new Headers({
         accept: 'application/json',
@@ -125,7 +140,7 @@ async function fetchCodexUsageResponse(options: {
         headers.set('ChatGPT-Account-Id', options.accountId);
     }
 
-    return options.fetch(CODEX_USAGE_URL, {
+    return options.fetch(options.url, {
         headers,
         method: 'GET',
         signal: options.signal,

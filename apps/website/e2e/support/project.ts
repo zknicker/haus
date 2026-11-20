@@ -18,3 +18,21 @@ export async function createProjectWithAgents(
     }
     return chat;
 }
+
+type CreateAgentRequest = Parameters<
+    ReturnType<typeof createClient>['agent']['create']['mutate']
+>[0];
+
+const captainsProject = { key: 'CAP', name: 'captains' };
+
+export async function createHomedAgent(
+    client: ReturnType<typeof createClient>,
+    input: Omit<CreateAgentRequest, 'homeProjectId'>
+) {
+    const projects = await client.project.list.query({ serverId: input.serverId });
+    const homeProjectId =
+        projects.find((project) => project.name === captainsProject.name)?.chatId ??
+        (await client.project.create.mutate({ ...captainsProject, serverId: input.serverId })).chat
+            .id;
+    return await client.agent.create.mutate({ ...input, homeProjectId });
+}

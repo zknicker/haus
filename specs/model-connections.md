@@ -3,7 +3,7 @@ summary: Normative contract for model connections. A Server holds Agents' model 
 read_when:
   - changing Settings → Models connections, sign-in dialogs, or the Agent's connection picker
   - changing how the Server stores, encrypts, or resolves model logins
-  - changing the runner-model-connections, runner-sign-in, runner-connection-credential (and its ack), or runner-connection-status frames
+  - changing the runner-model-connections, runner-sign-in, runner-connection-credential (and its ack), runner-connection-status, or runner-connection-capacity frames
   - changing HAUS_SECRETS_KEY or sealed secrets
   - changing plan capacity per connection
 ---
@@ -46,6 +46,9 @@ connection's provider.
   OpenRouter. It can be on only for those four, and starts on for them. Claude keeps its native
   WebSearch outside this switch. The runner receives it in the snapshot, and the Pi launch reads
   it from the run's connection ([Web reach](runtime-drivers.md#web-reach)).
+- Each connection has an on switch, starting on. A connection that is off stays stored with its
+  credential, but the Server never resolves it and the runner's snapshot leaves it out. Only the
+  Owner can turn it on or off (`modelConnections.setEnabled`).
 - An Agent stores an optional connection id. Removing that connection clears it, and the Agent
   falls back to its provider's default.
 
@@ -57,8 +60,9 @@ connection's provider.
 
 ## Resolution
 
-At run start the Server picks the Agent's connection if it is set and serves the model's provider.
-Otherwise it picks that provider's first connection on the Agent's Server, and otherwise none. It
+At run start the Server picks the Agent's connection if it is set, on, and serves the model's
+provider. Otherwise it picks that provider's first connection that is on, so a default that is off
+falls through to the next one, and otherwise none. It
 sends the choice as `runner-start.modelConnectionId`. The runner never picks. A run with no
 connection, or with one the runner doesn't hold, fails before any model call as an access
 `session-failure`: "No <provider> connection. Connect one in Settings → Models."
@@ -66,7 +70,7 @@ connection, or with one the runner doesn't hold, fails before any model call as 
 ## The runner
 
 - **Snapshot.** The Server sends `runner-model-connections` after `runner-hello-accepted` and after
-  every change. It carries every Server's connections, with credentials opened. The runner keeps
+  every change. It carries every Server's connections that are on, with credentials opened. The runner keeps
   the latest snapshot in memory and never writes a credential to disk or reads one from its
   environment.
 - **Claude.** The run's setup-token goes into that launch's environment. A changed token changes
@@ -98,7 +102,9 @@ connection, or with one the runner doesn't hold, fails before any model call as 
   3. The runner runs Pi's device-code login and sends `runner-sign-in-code` with the verification
      link and code. The App shows both.
   4. The runner sends `runner-sign-in-finished` with the credential, or why it failed.
-  5. The Server seals the credential and stores it as a new connection.
+  5. The Server seals the credential and stores it as a new connection. A Reconnect sign-in
+     names the connection it replaces, and the credential replaces that connection's in place.
+     The target must be an OAuth connection of the same provider on the same Server.
   - Finishing and cancelling are one serialized transition. A finish moves the sign-in to
     `storing` before the Server writes anything. A cancel before that moves it to `cancelled`,
     sends `runner-sign-in-cancel`, and the finished credential is discarded. A cancel during
@@ -108,30 +114,71 @@ connection, or with one the runner doesn't hold, fails before any model call as 
 
 ## Settings → Models
 
-- A Connections group sits at the top of the page, with one card per provider.
-- Each connection is a row: its label, Connected or the failure, and its plan capacity. The row
-  menu has Rename, Make default, Reconnect and Remove.
+- One connections table sits at the top of the page. Its header counts the accounts ("1
+  connection") and, for the Owner, holds a + that picks a provider and opens its connect dialog.
+- The columns are Account, 5h left, 7d left and Resets. A row leads with the provider's logo in a
+  tile, then its label over the provider name (with "Default" on the first). Each window shows a
+  bar and the percentage left (100 minus used), or a dash when it was not read. Resets is the
+  soonest upcoming reset. A failed connection shows Failed in place of the bars.
+- A connection row ends with its on switch, a menu (Rename, Make default, Reconnect, Remove) and an
+  expand chevron. Its details hold how it signed in, the failure detail, and the Web search switch.
+  A failed connection opens on its details. Members see the switches but cannot change them, and
+  get no menu or +.
+- While the Server's Captains run on Devices (`agentLoop: 'computer'`), the table also lists each
+  Device's detected runtime logins, labeled by runtime and Device, with the plan windows that
+  Device reports. They only read: no switch, menu or details.
+- Reconnect replaces the credential in place: `modelConnections.replaceCredential` for a pasted
+  setup-token or API key, and a sign-in with `replaceConnectionId` for ChatGPT and SuperGrok. The
+  connection keeps its id, label, order, web search switch and every Agent's choice of it. Its
+  `credentialVersion` goes up and its status returns to `ready`.
 - ChatGPT, xAI, Gemini and OpenRouter rows have a Web search switch, starting on. Only the Owner
   can change it.
-- Each provider card has a Connect action:
+- Each provider's connect dialog:
   - Claude: paste a setup-token.
   - ChatGPT and SuperGrok: a dialog shows the link and code, and closes when the connection lands.
   - xAI, Gemini and OpenRouter: enter an API key.
 - The page's other groups stay: the Cloud Agent model, image-generation keys, and the runtimes and
   models that Devices report.
 - On the Agent profile, a Connection select sits beside the model. A failed connection shows on
-  the profile with "Reconnect in Settings → Models".
+  the profile with "Reconnect in Settings → Models", and a chosen connection that is off shows
+  "<label> is turned off" with "Turn it on in Settings → Models".
+- `modelConnections.list` carries the Server's `agentLoop` (`HAUS_AGENT_LOOP`). The profile and
+  hover card warn about a missing or failed connection only when it is `runner`, since an Agent
+  on its Computer signs in there. The warning shows beside a wake pause, never instead of it, so
+  Restart stays in reach.
 
 ## Plan capacity
 
-The runner reads each plan connection's capacity, at most every 15 minutes and after an access
-failure, and sends it to the Server. Settings → Models shows it on the connection's row. Readers:
+The runner reads each plan connection's capacity and sends it up as `runner-connection-capacity
+{ connectionId, credentialVersion, windows, readAt }`, tagged with the credential version it read
+with. Settings → Models shows it on the connection's row.
 
-- ChatGPT plans: the ChatGPT usage endpoint.
-- Claude plans: Anthropic's OAuth usage endpoint with the setup-token.
-- SuperGrok: none until xAI exposes one.
-
-R6c builds the readers.
+- **When.** A sweep every minute reads each plan connection whose last read finished 15 minutes
+  ago, or whose `credentialVersion` changed since. A turn that marks the connection `failed` reads
+  it right away when its last read finished at least a minute ago. Reads run one connection at a
+  time per provider, and a connection already queued or in flight is never queued again.
+- **Readers.**
+  - ChatGPT plans: ChatGPT's `wham/usage` endpoint with the connection's access token and account
+    id, through `@haus/codex-usage`. An expired access token is not refreshed for a read; the next
+    turn refreshes it.
+  - Claude plans: Anthropic's OAuth usage endpoint with the setup-token, through
+    `@haus/claude-usage`. Whether that endpoint accepts a setup-token is not yet proven live.
+  - SuperGrok: none. The only xAI capacity endpoint Haus knows takes the Grok CLI's key and user
+    id, which a Pi sign-in does not hold.
+  - API-key connections have no plan capacity.
+- **Windows** are `{ id, label, resetsAt, usedPercent }`: `5-hour` and `Weekly` for both plans,
+  plus `Weekly Sonnet` and `Weekly Opus` when Claude reports them.
+- **Failures.** A failed read sends nothing and never changes the connection's status. The runner
+  logs that capacity is unavailable. A `429` holds every read on that provider for its
+  `Retry-After` (seconds or an HTTP date), 15 minutes when it gives none, and never more than an
+  hour. A `401` or `403` stops reading that connection for 6 hours or until its `credentialVersion`
+  changes, failed turns included.
+- **Storage.** The Server stores the windows and `readAt` on the connection, dropping a reading
+  whose `credentialVersion` is not the stored credential's. The list shows `capacity: null` when
+  nothing was read or the reading is older than 6 hours, and leaves out a window whose `resetsAt`
+  has passed. A reading announces `modelConnections` updated only when it changes what the list
+  shows, so a fresh reading after a stale one announces even when its windows match. Replacing a
+  credential clears it.
 
 ## Retired
 

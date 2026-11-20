@@ -26,6 +26,7 @@ describe('color theme definitions', () => {
     test('Haus changes nothing: the ghost, no scene, the standard greeting, the own mode', () => {
         expect(colorThemeDefinition('default')).toEqual({
             appIcon: 'ghost',
+            background: 'none',
             forcedMode: null,
             greetings: null,
             ground: 'haus',
@@ -33,6 +34,24 @@ describe('color theme definitions', () => {
             label: 'Haus',
             mascot: 'ghost',
             scene: 'none',
+        });
+    });
+
+    test('Haus and OLED keep Home plain; the opt-in looks bring a pattern that suits them', () => {
+        expect(
+            Object.fromEntries(colorThemes.map(({ background, id }) => [id, background]))
+        ).toEqual({
+            catppuccin: 'aurora',
+            'christmas-eve': 'horizon',
+            'christmas-morning': 'horizon',
+            default: 'none',
+            everforest: 'contours',
+            gruvbox: 'dots',
+            halloween: 'ghosts',
+            mauve: 'aurora',
+            nord: 'horizon',
+            oled: 'none',
+            one: 'dots',
         });
     });
 

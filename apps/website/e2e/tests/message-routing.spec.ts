@@ -8,9 +8,9 @@ test('Dev Mode shows saved routing, persists on reload, and hides it when disabl
         displayName: 'Routing debug',
         slug: 'routing-debug',
     });
-    const channel = server.channels.find((chat) => chat.name === 'haus');
+    const channel = server.channels.find((chat) => chat.name === 'all');
     if (!channel) {
-        throw new Error('The Server must create #haus.');
+        throw new Error('The Server must create #all.');
     }
     await client.chat.send.mutate({
         serverId: server.id,
@@ -18,14 +18,14 @@ test('Dev Mode shows saved routing, persists on reload, and hides it when disabl
         content: 'Please investigate the export path too.',
         nonce: 'routing-debug-browser',
     });
-    await openChannel(page, 'haus');
+    await openChannel(page, 'all');
     const routing = page.getByRole('button', {
         name: '→ None · fewer than two Captains',
         exact: true,
     });
     await expect(page.getByText('Please investigate the export path too.')).toBeVisible();
     await expect(routing).toHaveCount(0);
-    const composer = page.getByRole('textbox', { name: 'Message haus', exact: true });
+    const composer = page.getByRole('textbox', { name: 'Message all', exact: true });
     await composer.press('ControlOrMeta+k');
     await page.getByRole('menuitem', { name: 'Turn Dev Mode On', exact: true }).click();
     await routing.click();

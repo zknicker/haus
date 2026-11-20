@@ -3,6 +3,7 @@ import { lstat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { makeTestRuntime } from '@haus/effect';
 import { openAttachmentRoot } from '../src/attachments/attachment-root.ts';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { createTestProject } from './project.fixture.ts';
@@ -54,7 +55,7 @@ beforeAll(async () => {
             'healthy'
         )
     `;
-    const created = await owner.trpc.agent.create.mutate({
+    const created = await createHomedAgent(owner, {
         computerId: 'cmp_lifecycle0000000',
         displayName: 'Sage',
         handle: 'sage',
@@ -149,14 +150,14 @@ test('archives a regular channel as preserved, searchable, frozen history', asyn
     });
 });
 
-test('limits lifecycle authority and excludes #haus', async () => {
+test('limits lifecycle authority and excludes #all', async () => {
     const channel = await createChannel('guarded-lifecycle');
     await expect(
         member.trpc.chat.archiveChannel.mutate({ chatId: channel.id, serverId })
     ).rejects.toThrow(/Owner or Admin/u);
     await expect(
         owner.trpc.chat.archiveChannel.mutate({ chatId: allChatId, serverId })
-    ).rejects.toThrow(/#haus/u);
+    ).rejects.toThrow(/#all/u);
 });
 
 test('deletes the channel aggregate and announces its deletion', async () => {

@@ -127,7 +127,7 @@ function codexBurstWindow(windows: CodexWindows): DisplayPlanWindow | null {
 
 export const runtimeOrder: ComputerRuntimeId[] = ['codex', 'claude-code', 'grok-build'];
 
-const runtimeLabels: Record<ComputerRuntimeId, string> = {
+export const runtimeLabels: Record<ComputerRuntimeId, string> = {
     'claude-code': 'Claude Code',
     codex: 'Codex',
     'grok-build': 'Grok Build',

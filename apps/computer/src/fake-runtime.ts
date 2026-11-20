@@ -17,7 +17,7 @@ async function main(): Promise<number> {
         return 1;
     }
 
-    const child = Bun.spawn([haus, 'message', 'send', '--target', ask?.target ?? '#haus'], {
+    const child = Bun.spawn([haus, 'message', 'send', '--target', ask?.target ?? '#all'], {
         stderr: 'inherit',
         stdin: new TextEncoder().encode(reply),
         stdout: 'inherit',

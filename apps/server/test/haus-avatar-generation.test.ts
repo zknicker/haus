@@ -3,6 +3,7 @@ import type {
     AvatarImageProvider,
     AvatarProviderRequest,
 } from '../src/avatar-generation/service.ts';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -64,7 +65,7 @@ beforeAll(async () => {
         )
     `;
 
-    const created = await owner.trpc.agent.create.mutate({
+    const created = await createHomedAgent(owner, {
         computerId,
         displayName: 'Scout',
         handle: 'scout',

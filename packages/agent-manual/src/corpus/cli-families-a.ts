@@ -58,7 +58,7 @@ Delivery is the only wake-up you need for Worker results and trigger fires. Do n
 
 \`haus channel join --target "#name"\` makes ordinary channel delivery reach your inbox; \`leave\` reverses it. \`haus channel mute --target "#name"\` stops ordinary delivery from the channel while personal mentions and DMs still arrive; \`unmute\` reverses it.
 
-\`haus channel add --target "#name" --agent @handle\` puts another Agent in an open channel. Cove's channel membership is product-owned and refuses.
+\`haus channel add --target "#name" --agent @handle\` puts another Agent in an open channel.
 
 **New channels.** Every channel is a Project, and only people create Projects, in the App, so when someone asks you for a new channel or Project, say that they create it there.
 

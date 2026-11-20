@@ -3,7 +3,6 @@ import type { FastifyInstance } from 'fastify';
 import * as z from 'zod';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentUpdatedTopic } from '../realtime/topics.ts';
-import { AgentConfigDeniedError } from '../server-agents/agent-config-errors.ts';
 import { AgentDescriptionTooLongError } from '../server-agents/errors.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
 import {
@@ -56,9 +55,6 @@ export function registerAgentProfileRoutes(app: FastifyInstance, db: HausDatabas
         } catch (cause) {
             if (cause instanceof AgentDescriptionTooLongError) {
                 return sendAgentApiError(reply, 400, 'INVALID_ARG', agentDescriptionTooLongRefusal);
-            }
-            if (cause instanceof AgentConfigDeniedError) {
-                return sendAgentApiError(reply, 403, 'AGENT_IDENTITY_PROTECTED', cause.message);
             }
             return sendAgentReadError(reply, cause);
         }

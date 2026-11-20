@@ -38,6 +38,7 @@ export const createAgentInputSchema = z
         description: agentDescriptionInputSchema.nullable().optional(),
         displayName: z.string().trim().min(1).max(80),
         handle: participantHandleSchema,
+        homeProjectId: appIdSchema,
         modelId: z.string().trim().min(1).max(128),
         reasoningEffort: agentReasoningEffortSchema.default('medium'),
         runtimeId: z.string().trim().min(1).max(64),
@@ -174,7 +175,7 @@ export type AgentSetAgentAvatarReceipt = z.infer<typeof agentSetAgentAvatarRecei
 /**
  * Put an Agent in a channel. Any active Agent may add any active Agent; the
  * add is idempotent and wakes nobody, so it is a membership correction rather
- * than a delivery. Cove's membership stays product-owned.
+ * than a delivery.
  */
 export const agentAddChannelAgentInputSchema = z
     .object({

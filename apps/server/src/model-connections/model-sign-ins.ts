@@ -12,6 +12,7 @@ const runnerStates = new Set<ModelSignIn['state']>(['waiting-for-code', 'code'])
 
 interface PendingSignIn {
     expiresAt: number;
+    replaceConnectionId: string | null;
     serverId: string;
     view: ModelSignIn;
 }
@@ -24,7 +25,12 @@ type FailedResult = Extract<
 export class ModelSignIns {
     private readonly pending = new Map<string, PendingSignIn>();
 
-    start(serverId: string, provider: ModelSignInProvider, label: string) {
+    start(
+        serverId: string,
+        provider: ModelSignInProvider,
+        label: string,
+        replaceConnectionId: string | null
+    ) {
         const expiresAt = Date.now() + signInLifetimeMs;
         const signInId = createOpaqueId('msi');
         const view: ModelSignIn = {
@@ -34,7 +40,7 @@ export class ModelSignIns {
             signInId,
             state: 'waiting-for-code',
         };
-        this.pending.set(signInId, { expiresAt, serverId, view });
+        this.pending.set(signInId, { expiresAt, replaceConnectionId, serverId, view });
         return view;
     }
 
@@ -63,7 +69,11 @@ export class ModelSignIns {
             return null;
         }
         signIn.view = { ...base(signIn.view), state: 'storing' };
-        return { serverId: signIn.serverId, view: signIn.view };
+        return {
+            replaceConnectionId: signIn.replaceConnectionId,
+            serverId: signIn.serverId,
+            view: signIn.view,
+        };
     }
 
     settle(signInId: string, outcome: { connectionId: string } | { detail: string }) {

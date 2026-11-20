@@ -19,7 +19,6 @@ final class HausModelsTests: XCTestCase {
           "effectiveModelId": "model_1",
           "effectiveReportedAt": "2026-08-15T14:00:01+00:00",
           "effectiveRuntimeId": "runtime_1",
-          "factoryKind": "cove",
           "handle": "cove-agent",
           "id": "agent_1",
           "missingResources": [],

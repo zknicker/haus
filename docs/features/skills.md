@@ -91,8 +91,8 @@ standing system prompt:
 
 The notice clears only after a completed turn included it, so a turn that fails or is interrupted
 retries it. A skill that changes again after the notice was composed stays pending. Session reset
-keeps a pending notice; full reset discards the record and keeps the library in Drive, and the
-next launch writes only missing skills and queues nothing. The
+keeps a pending notice; full reset deletes the library from Drive with the rest of the Agent's
+area and discards the record, and the next launch seeds the factory skills and queues nothing. The
 visuals skill also tells Agents to mark anything they derive from it and rebuild it when the skill
 changes. Owner: `apps/computer/src/managed-skill-changes.ts`.
 

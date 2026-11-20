@@ -30,7 +30,7 @@ export async function seedStalledClaim(
         .where(and(eq(chatsTable.serverId, context.serverId), eq(chatsTable.id, context.allChatId)))
         .returning({ number: chatsTable.lastClaimNumber });
     if (!numbered) {
-        throw new Error('The development Inbox seed found no #haus Chat to number a claim in.');
+        throw new Error('The development Inbox seed found no #all Chat to number a claim in.');
     }
     await tx.insert(messageClaimsTable).values({
         assigneeAgentId: context.blippyId,

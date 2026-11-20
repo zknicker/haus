@@ -31,6 +31,12 @@ test('admits only the exact App protocol before a Server procedure runs', async 
     expect(await response.text()).toContain('Update required');
 });
 
+test('an App that still decodes Server onboarding and Agent factory kind hits the update gate', async () => {
+    const response = await request(13);
+    expect(response.status).toBe(412);
+    expect(await response.text()).toContain('Update required');
+});
+
 test('missing App protocol fails closed', async () => {
     expect((await request(null)).status).toBe(412);
 });

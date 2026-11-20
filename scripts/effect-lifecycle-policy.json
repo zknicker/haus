@@ -186,6 +186,17 @@
                 "timer": 0
             }
         },
+        "apps/computer/src/drive/drive-launch.fixture.ts": {
+            "disposition": "test-support",
+            "reason": "The Drive launch fixture holds one push put open on a promise the test releases, so a test can reset mid-push without sleeping; its server and data root close in the test's afterEach.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 2,
+                "timer": 0
+            }
+        },
         "apps/computer/src/workers/worker-supervisor.fixture.ts": {
             "disposition": "test-support",
             "reason": "The supervisor test fixture resolves a waiter when a matching frame is sent, so tests await an event instead of polling; every supervisor and runtime it makes closes in the registered afterEach.",
@@ -738,10 +749,10 @@
         },
         "apps/server/src/computers/socket.ts": {
             "disposition": "external-adapter",
-            "reason": "ServerPostCommitWork owns reconnect work; the remaining Promise only adapts WebSocketServer close callbacks. Best-effort attach sends (pending Cove application, Server runtime settings) ignore a failure because the next attach resends them.",
+            "reason": "ServerPostCommitWork owns reconnect work; the remaining Promise only adapts WebSocketServer close callbacks. Best-effort attach sends (Server runtime settings) ignore a failure because the next attach resends them.",
             "risks": {
                 "abortController": 0,
-                "catchAndIgnore": 3,
+                "catchAndIgnore": 2,
                 "finallyBlock": 0,
                 "manualPromise": 0,
                 "timer": 2
@@ -1574,11 +1585,11 @@
         },
         "apps/computer/src/drive/turn-sync.ts": {
             "disposition": "finite-cleanup",
-            "reason": "The post-turn push revokes the runner credential it minted once the push ends, and the per-folder queue drops its settled turn; a failed revoke leaves a credential that expires on its own.",
+            "reason": "The post-turn push revokes the runner credential it minted once the push ends, and the per-folder queue drops its settled turn; a failed revoke leaves a credential that expires on its own. Each push owns one AbortController a full reset aborts, removed in the push's finally.",
             "risks": {
-                "abortController": 0,
+                "abortController": 2,
                 "catchAndIgnore": 1,
-                "finallyBlock": 2,
+                "finallyBlock": 3,
                 "manualPromise": 0,
                 "timer": 0
             }

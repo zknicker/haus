@@ -56,7 +56,6 @@ function render(target: TranscriptMessageRow) {
     const utils = createTRPCQueryUtils({ client, queryClient });
     utils.server.bySlug.setData({ slug: 'cards' }, {
         id: serverId,
-        onboarding: { phase: 'complete' },
         role: 'member',
     } as never);
     utils.agent.list.setData({ serverId }, [

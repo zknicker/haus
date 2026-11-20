@@ -247,7 +247,7 @@ async function seedWakeRuleReminder(
         isAll: true,
         kind: 'channel',
         lastMessageSequence: 1,
-        name: 'haus',
+        name: 'all',
         serverId,
     });
     await haus.db.insert(computersTable).values({

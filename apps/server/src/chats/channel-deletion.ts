@@ -6,10 +6,8 @@ import {
     attachmentsTable,
     chatsTable,
     remindersTable,
-    serverOnboardingTable,
     triggersTable,
 } from '../postgres/schema.ts';
-import { requireHausProjectId } from '../projects/haus-project.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import { remindersAnchoredIn } from '../reminders/anchored-reminders.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
@@ -42,16 +40,6 @@ export async function purgeDeletedChannel(
     root: AttachmentRoot,
     input: DeletedChannelTarget
 ) {
-    if (await isOnboardingChannel(db, input)) {
-        // Deletion now refuses this channel; a tombstone from before that
-        // refusal is restored instead of purged, before any bytes are discarded.
-        await db
-            .update(chatsTable)
-            .set({ deletedAt: null, deletedByUserId: null })
-            .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
-        return [];
-    }
-
     const chats = await db
         .select({ id: chatsTable.id })
         .from(chatsTable)
@@ -145,7 +133,7 @@ export async function purgeDeletedChannel(
     return purged.workerFrames;
 }
 
-/** Deletion refuses a Project with home Agents; a retired Agent homed here moves to Haus. */
+/** Deletion refuses a Project with home Agents; a retired Agent homed here keeps no home. */
 async function rehomeRetiredAgents(tx: HausDatabase, input: DeletedChannelTarget) {
     const homedHere = and(
         eq(agentsTable.serverId, input.serverId),
@@ -157,23 +145,6 @@ async function rehomeRetiredAgents(tx: HausDatabase, input: DeletedChannelTarget
         .where(homedHere)
         .limit(1);
     if (homed) {
-        await tx
-            .update(agentsTable)
-            .set({ homeProjectId: await requireHausProjectId(tx, input.serverId) })
-            .where(homedHere);
+        await tx.update(agentsTable).set({ homeProjectId: null }).where(homedHere);
     }
-}
-
-/** The durable onboarding record names this channel forever, so it is never purged. */
-export async function isOnboardingChannel(db: HausDatabase, input: DeletedChannelTarget) {
-    const [row] = await db
-        .select({ channelId: serverOnboardingTable.channelId })
-        .from(serverOnboardingTable)
-        .where(
-            and(
-                eq(serverOnboardingTable.serverId, input.serverId),
-                eq(serverOnboardingTable.channelId, input.chatId)
-            )
-        );
-    return row !== undefined;
 }

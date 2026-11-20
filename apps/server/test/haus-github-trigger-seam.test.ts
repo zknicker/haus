@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -42,7 +43,7 @@ beforeAll(async () => {
         insert into computers (id, server_id, attached_by_user_id, credential_hash, reported_inventory, health)
         values (${computerId}, ${serverId}, ${user.id}, ${credentialHash}, ${{ runtimes: [codexRuntime] }}::jsonb, 'healthy')
     `;
-    const created = await owner.trpc.agent.create.mutate({
+    const created = await createHomedAgent(owner, {
         computerId,
         displayName: 'Sage',
         handle: 'sage',
@@ -106,7 +107,7 @@ test('a stored github Trigger reads as the github variant with no URL', async ()
 
     const shown = await agentRequest('GET', `/api/agent/triggers/${githubTriggerId}`);
     expect(shown.status).toBe(200);
-    expect(shown.body.trigger).toMatchObject({ anchorTarget: '#haus', kind: 'github' });
+    expect(shown.body.trigger).toMatchObject({ anchorTarget: '#all', kind: 'github' });
     expect(shown.body.trigger).not.toHaveProperty('url');
 });
 

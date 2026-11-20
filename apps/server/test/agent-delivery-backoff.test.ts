@@ -54,7 +54,7 @@ test('repeated rate limits keep backing off and redriving without pausing', asyn
         content: 'wait out the limit',
         dedupeKey: 'msg-rate-limit',
         serverId: seed.serverId,
-        source: 'onboarding',
+        source: 'delivery_problem',
     });
 
     const delays: number[] = [];
@@ -92,7 +92,7 @@ test('a failed turn that produced output counts without requeueing its work', as
         content: 'do a thing',
         dedupeKey: 'msg-progress',
         serverId: seed.serverId,
-        source: 'onboarding',
+        source: 'delivery_problem',
     });
     const runId = transport.framesOfType('start')[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });

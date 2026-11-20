@@ -1,15 +1,13 @@
-import { GENERAL_TASK_KEY } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { serverMembershipsTable, serverOnboardingTable, serversTable } from '../postgres/schema.ts';
-import { insertProject } from '../projects/insert-project.ts';
 import {
-    allChannelDescription,
-    allChannelName,
-    onboardingOwnerChannelName,
-    type ServerDetail,
-} from './contracts.ts';
+    channelParticipantsTable,
+    chatsTable,
+    serverMembershipsTable,
+    serversTable,
+} from '../postgres/schema.ts';
+import { allChannelDescription, allChannelName, type ServerDetail } from './contracts.ts';
 
 export interface CreateServerInput {
     displayName: string;
@@ -36,7 +34,6 @@ export async function createServer(
         isAll: true,
         name: allChannelName,
     };
-    const onboardingChannel = { id: createOpaqueId('cht'), name: onboardingOwnerChannelName };
 
     try {
         await db.transaction(async (tx) => {
@@ -49,22 +46,12 @@ export async function createServer(
                 serverId: server.id,
                 userId: input.userId,
             });
-            await insertProject(tx, {
-                chat: channel,
-                key: GENERAL_TASK_KEY,
-                serverId: server.id,
-                userIds: [input.userId],
-            });
-            await insertProject(tx, {
-                chat: onboardingChannel,
-                serverId: server.id,
-                userIds: [input.userId],
-            });
-            await tx.insert(serverOnboardingTable).values({
-                channelId: onboardingChannel.id,
-                phase: 'awaiting-computer',
-                serverId: server.id,
-            });
+            await tx
+                .insert(chatsTable)
+                .values({ ...channel, kind: 'channel', serverId: server.id });
+            await tx
+                .insert(channelParticipantsTable)
+                .values({ chatId: channel.id, serverId: server.id, userId: input.userId });
         });
     } catch (cause) {
         if (violatesConstraint(cause, 'servers_slug_key')) {
@@ -78,16 +65,6 @@ export async function createServer(
         channels: [{ id: channel.id, name: channel.name }],
         displayName: server.displayName,
         id: server.id,
-        onboarding: {
-            agentId: null,
-            applicationId: null,
-            channelId: onboardingChannel.id,
-            computerId: null,
-            failure: null,
-            modelId: null,
-            phase: 'awaiting-computer',
-            runtimeId: null,
-        },
         role: 'owner',
         slug: server.slug,
         viewerUserId,

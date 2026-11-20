@@ -5,6 +5,7 @@ import { resolveAgentSendTarget } from '../src/agent-api/resolve-send-target.ts'
 import { resolveAgentTarget } from '../src/agent-api/resolve-target.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { chatMessagesTable } from '../src/postgres/schema.ts';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -61,7 +62,7 @@ beforeAll(async () => {
             'healthy'
         )
     `;
-    const created = await owner.trpc.agent.create.mutate({
+    const created = await createHomedAgent(owner, {
         computerId,
         displayName: 'Wren',
         handle: 'wren',
@@ -104,7 +105,7 @@ test('rejects human-Agent collisions case-insensitively in both claim directions
     ).rejects.toThrow(/already taken/i);
 
     await expect(
-        owner.trpc.agent.create.mutate({
+        createHomedAgent(owner, {
             computerId,
             displayName: 'Other Ada',
             handle: 'ADA-LOVELACE',
@@ -220,11 +221,11 @@ test('channel autocomplete offers visible channels with chat-reference metadata'
         serverId,
     });
 
-    const channelOption = options.options.find((option) => option.label === 'haus');
+    const channelOption = options.options.find((option) => option.label === 'all');
     expect(channelOption).toMatchObject({
-        insertText: '#haus',
+        insertText: '#all',
         kind: 'chat',
-        label: 'haus',
+        label: 'all',
         projection: 'chat-reference',
         sourceLabel: 'Channels',
     });

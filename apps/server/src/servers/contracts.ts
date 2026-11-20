@@ -33,33 +33,12 @@ export interface ServerChannel {
     name: string;
 }
 
-export interface ServerOnboarding {
-    agentId: string | null;
-    applicationId: string | null;
-    channelId: string;
-    computerId: string | null;
-    failure: null | {
-        code:
-            | 'computer-disconnected'
-            | 'computer-incompatible'
-            | 'inventory-empty'
-            | 'inventory-invalid'
-            | 'application-failed';
-        detail: string;
-    };
-    modelId: string | null;
-    phase: 'applying' | 'awaiting-computer' | 'awaiting-cove' | 'complete';
-    runtimeId: string | null;
-}
-
 export interface ServerDetail extends ServerSummary {
     channels: ServerChannel[];
-    onboarding: ServerOnboarding;
     viewerUserId: string;
 }
 
-/** The Haus project's channel, which every Haus server creates for its whole membership. */
-export const allChannelName = 'haus';
-/** Seeded on every new `#haus`; migration 0068 backfilled the same text. */
+/** The everyone channel, `#all`, which every Haus server creates for its whole membership. */
+export const allChannelName = 'all';
+/** Seeded on every new `#all`; migration 0068 backfilled the same text. */
 export const allChannelDescription = 'General channel for all members and team-wide announcements.';
-export const onboardingOwnerChannelName = 'onboarding-owner';

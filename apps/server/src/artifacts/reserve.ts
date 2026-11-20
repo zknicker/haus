@@ -107,7 +107,7 @@ export async function insertUploadingRevision(
             objectKey: `servers/${access.serverId}/artifacts/${artifact.id}/${revisionId}`,
             requestId: write.requestId,
             reservedBytes: artifactMaxBytes,
-            revisionNumber: artifact.nextRevision,
+            revisionNumber: -artifact.nextRevision,
             serverId: access.serverId,
             state: 'uploading',
             taskId: write.taskId,

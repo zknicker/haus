@@ -50,7 +50,11 @@ export function useChatNavigationLayout(serverId: string): ChatNavigationLayout 
 export interface ChatNavigationLayout {
     /** Each Agent's DM chat, by Agent id; an Agent without one has no entry. */
     agentDmChatIds: Readonly<Record<string, string>>;
+    /** The everyone channel `#all`, which is not a Project. */
+    allChannelId: string | undefined;
     channelIds: readonly string[];
+    /** Every channel except `#all`. */
+    projectIds: readonly string[];
     humanDmIds: readonly string[];
 }
 
@@ -133,7 +137,13 @@ export function useChatAppearances(serverId: string): ReadonlyMap<string, Chat> 
 }
 
 const noChats: ReadonlyMap<string, Chat> = new Map();
-const noLayout: ChatNavigationLayout = { agentDmChatIds: {}, channelIds: [], humanDmIds: [] };
+const noLayout: ChatNavigationLayout = {
+    agentDmChatIds: {},
+    allChannelId: undefined,
+    channelIds: [],
+    humanDmIds: [],
+    projectIds: [],
+};
 
 // React Query shares a selected result structurally, so equal id lists keep
 // the previous object.
@@ -145,12 +155,15 @@ function selectNavigationLayout(chats: Chat[]): ChatNavigationLayout {
             agentDmChatIds[chat.peerAgentId] = chat.id;
         }
     }
+    const channels = chats.filter((chat) => chat.kind === 'channel');
     return {
         agentDmChatIds,
-        channelIds: chats.filter((chat) => chat.kind === 'channel').map((chat) => chat.id),
+        allChannelId: channels.find((chat) => chat.isAll)?.id,
+        channelIds: channels.map((chat) => chat.id),
         humanDmIds: chats
             .filter((chat) => chat.kind === 'dm' && !chat.peerAgentId)
             .map((chat) => chat.id),
+        projectIds: channels.filter((chat) => !chat.isAll).map((chat) => chat.id),
     };
 }
 

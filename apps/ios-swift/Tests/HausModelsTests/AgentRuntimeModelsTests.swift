@@ -23,7 +23,6 @@ final class AgentRuntimeModelsTests: XCTestCase {
               "effectiveReasoningEffort":"\(effort)",
               "effectiveReportedAt":null,
               "effectiveRuntimeId":"runtime_1",
-              "factoryKind":"ordinary",
               "handle":"agent-\(index)",
               "id":"agent_\(index)",
               "missingResources":[],

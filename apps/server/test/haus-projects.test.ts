@@ -25,11 +25,8 @@ function refusedWith(code: 'PROJECT_KEY_FIXED' | 'TASK_KEY_TAKEN') {
     return expect.objectContaining({ data: expect.objectContaining({ project: { code } }) });
 }
 
-test('a new Server holds the Haus project on GEN and its onboarding channel', async () => {
-    expect(await owner.trpc.project.list.query({ serverId })).toEqual([
-        expect.objectContaining({ isHaus: true, key: 'GEN', keyEditable: true, name: 'haus' }),
-        expect.objectContaining({ isHaus: false, key: 'ONBO', name: 'onboarding-owner' }),
-    ]);
+test('a new Server holds no Project: #all is not one', async () => {
+    expect(await owner.trpc.project.list.query({ serverId })).toEqual([]);
 });
 
 test('a person creates a Project with a chosen key or one the key rule allocates', async () => {
@@ -66,6 +63,7 @@ test('a person creates a Project with a chosen key or one the key rule allocates
 });
 
 test('a key already in the ledger is TASK_KEY_TAKEN on create and on update', async () => {
+    await owner.trpc.project.create.mutate({ key: 'GEN', name: 'general', serverId });
     await expect(
         owner.trpc.project.create.mutate({ key: 'GEN', name: 'general-two', serverId })
     ).rejects.toEqual(refusedWith('TASK_KEY_TAKEN'));
