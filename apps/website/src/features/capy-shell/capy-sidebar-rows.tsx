@@ -2,6 +2,7 @@ import { Sidebar } from '@heroui-pro/react';
 import { Tooltip } from '@heroui/react';
 import { mergeRefs } from '@react-aria/utils';
 import * as React from 'react';
+import { useHover } from 'react-aria';
 import { UnreadCountChip } from '../../components/chats/unread-count-chip.tsx';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { usePreloadChat } from '../../hooks/servers/use-preload-chat.ts';
@@ -111,17 +112,21 @@ export const PersonNavigationRow = React.memo(function PersonNavigationRow({
 });
 
 function WaitingOnYouKey({ taskKey }: { taskKey: string }) {
+    const keyRef = React.useRef<HTMLSpanElement>(null);
+    const [isOpen, setOpen] = React.useState(false);
+    const { hoverProps } = useHover({ onHoverChange: setOpen });
     return (
-        <Tooltip delay={400}>
-            <Tooltip.Trigger
+        <Tooltip isOpen={isOpen} onOpenChange={setOpen}>
+            <span
+                {...hoverProps}
                 className="pointer-events-auto me-1.5 inline-flex items-center gap-1"
-                role="presentation"
+                ref={keyRef}
             >
                 <span className="sr-only">Waiting on you, </span>
                 <span aria-hidden="true" className="bg-accent size-1.5 rounded-full" />
                 <span className="text-accent tabular-nums">{taskKey}</span>
-            </Tooltip.Trigger>
-            <Tooltip.Content>Waiting on you</Tooltip.Content>
+            </span>
+            <Tooltip.Content triggerRef={keyRef}>Waiting on you</Tooltip.Content>
         </Tooltip>
     );
 }
