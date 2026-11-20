@@ -5,6 +5,7 @@ import type { TabLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
+import { useWorkerSummary } from '../../hooks/servers/use-worker.ts';
 import { useCapyShell } from '../capy-shell/capy-shell-preference.ts';
 import {
     parseTabPage,
@@ -21,7 +22,7 @@ import {
  */
 export function useTabIdentity(
     location: TabLocation,
-    extras: Partial<Pick<TabIdentityRecords, 'artifactTitle'>> = {}
+    extras: Partial<Pick<TabIdentityRecords, 'artifactTitle' | 'workerTitle'>> = {}
 ): TabIdentity {
     const serverId = useTabServerId();
     const chats = useChats(serverId);
@@ -34,6 +35,7 @@ export function useTabIdentity(
         artifactTitle: extras.artifactTitle ?? null,
         browserTab,
         chats: chats.data ?? null,
+        workerTitle: extras.workerTitle ?? null,
     });
 }
 
@@ -44,6 +46,12 @@ export function useSharedArtifactTabTitle(
     const serverId = useTabServerId() ?? '';
     const artifact = useArtifact(serverId, shared.artifactId, shared.revisionId ?? undefined);
     return artifact.data?.artifact.title ?? null;
+}
+
+/** A Worker page's title, from the summary its page already reads; mount only for those tabs. */
+export function useWorkerTabTitle(workerId: string) {
+    const serverId = useTabServerId() ?? null;
+    return useWorkerSummary(serverId, workerId, serverId !== null)?.title ?? null;
 }
 
 function useTabServerId(): string | undefined {
