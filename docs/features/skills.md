@@ -93,12 +93,15 @@ standing system prompt:
 > something you rely on, post one short note in #all saying what you updated; otherwise do not
 > post.
 
+The text comes from `@haus/agent-prompt`, so the runner and the Computer send the same words.
 The notice clears only after a completed turn included it, so a turn that fails or is interrupted
 retries it. A skill that changes again after the notice was composed stays pending. Session reset
 keeps a pending notice; full reset deletes the library from Drive with the rest of the Agent's
-area and discards the record, and the next launch seeds the factory skills and queues nothing. The
-visuals skill also tells Agents to mark anything they derive from it and rebuild it when the skill
-changes. Owner: `apps/computer/src/managed-skill-changes.ts`.
+area and discards the record, and the Server then seeds the factory skills fresh and queues
+nothing. The visuals skill also tells Agents to mark anything they derive from it and rebuild it
+when the skill changes. Owners: `apps/server/src/managed-skills/` (seeding and pending notices),
+`apps/runner/src/turn/managed-skill-notice.ts` (delivery on the runner), and
+`apps/computer/src/managed-skill-changes.ts` (Computer-run Agents until R4d).
 
 ## Agent authoring
 

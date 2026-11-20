@@ -85,6 +85,14 @@ content SHA-256:
 Haus left it, and the release of an update not yet announced. Full reset deletes the rows with the
 area, so the reseed after it writes fresh and queues nothing.
 
+An update the Agent has not been told about is its pending notice. `GET
+/api/agent/managed-skills/notice` answers `{ pending: { <skill-id>: <release> } }` for the
+calling Agent, and the runner puts `managedSkillChangeText` (`@haus/agent-prompt`) after the next
+turn's content. After a completed turn, `POST /api/agent/managed-skills/notice/ack` with
+`{ announced }` clears each skill whose pending release still equals the announced one, so an update
+that landed meanwhile is announced on the following turn. Session reset keeps a pending notice
+([Runtime drivers](runtime-drivers.md#instructions)).
+
 Seeding is idempotent. A file whose head already holds the release bytes gets no revision, so a
 rerun, a restart, or a Computer pushing the same bytes changes nothing. A skill's writes land in
 one transaction and only on the heads they were planned against. When a head moved in between,
