@@ -6,10 +6,14 @@ import type { Provider } from '@earendil-works/pi-ai';
 import { createModels } from '@earendil-works/pi-ai/models';
 import { googleProvider } from '@earendil-works/pi-ai/providers/google';
 import { openaiCodexProvider } from '@earendil-works/pi-ai/providers/openai-codex';
+import { openrouterProvider } from '@earendil-works/pi-ai/providers/openrouter';
 import { xaiProvider } from '@earendil-works/pi-ai/providers/xai';
-import { cleanups } from '../runner-test-server.ts';
+import { cleanups, live, startedRun } from '../runner-test-server.ts';
 import { openFileCredentialStore } from './pi-credentials.ts';
+import { createPiHarness } from './pi-driver.ts';
+import { agentDir, collect, launch } from './pi-faux-run.ts';
 import { piAuthContext } from './pi-models.ts';
+import type { WebSearchProvider } from './pi-web-search.ts';
 
 export interface StandInRequest {
     readonly body: Record<string, unknown>;
@@ -58,7 +62,7 @@ export async function standInModels(origin: string) {
     const models = createModels({
         authContext: piAuthContext({
             geminiApiKey: 'gemini-key',
-            openrouterApiKey: null,
+            openrouterApiKey: 'openrouter-key',
             xaiApiKey: 'xai-key',
         }),
         credentials,
@@ -66,7 +70,51 @@ export async function standInModels(origin: string) {
     models.setProvider(rebased(openaiCodexProvider(), `${origin}/chatgpt`));
     models.setProvider(rebased(xaiProvider(), `${origin}/xai/v1`));
     models.setProvider(rebased(googleProvider(), `${origin}/google`));
+    models.setProvider(
+        rebased(openrouterProvider(), (upstream) => `${origin}/openrouter${upstream.pathname}`)
+    );
     return models;
+}
+
+export async function searchTurn(input: {
+    answers: readonly Answer[];
+    modelId: string;
+    webSearch: readonly WebSearchProvider[];
+}) {
+    const standIn = providerStandIn(input.answers);
+    const harness = createPiHarness({
+        log: () => undefined,
+        maxWarm: 1,
+        models: await standInModels(standIn.origin),
+        webSearch: input.webSearch,
+    });
+    cleanups.push(() => harness.close());
+    const { run } = await startedRun();
+    const session = await harness
+        .factory(launch(await agentDir(), run.tools, input.modelId))
+        .openSession({ resumeFrom: undefined, sessionId: 'agt_1-1' });
+    const turn = await session.startTurn({ prompt: 'When does Haus ship?', signal: live() });
+    return { events: await collect(turn.events), requests: standIn.requests };
+}
+
+export function toolsOf(body: Record<string, unknown>) {
+    const tools: { function?: { name?: string }; name?: string; type?: string }[] = Array.isArray(
+        body.tools
+    )
+        ? body.tools
+        : [];
+    return tools.map((tool) =>
+        tool.type === undefined || tool.type === 'function'
+            ? `function ${tool.name ?? tool.function?.name}`
+            : tool.type
+    );
+}
+
+export function completionsStream(chunks: readonly Record<string, unknown>[]) {
+    const body = [...chunks.map((chunk) => JSON.stringify(chunk)), '[DONE]']
+        .map((data) => `data: ${data}\n\n`)
+        .join('');
+    return new Response(body, { headers: { 'content-type': 'text/event-stream' } });
 }
 
 export function responsesStream(events: readonly Record<string, unknown>[]) {
@@ -78,11 +126,11 @@ export function responsesStream(events: readonly Record<string, unknown>[]) {
 
 export function responsesAnswer(input: {
     citations?: readonly { title: string; url: string }[];
-    searches?: readonly { id: string; query: string }[];
+    searches?: readonly { action?: Record<string, unknown>; id: string; query?: string }[];
     text: string;
 }) {
     const searches = (input.searches ?? []).map((search) => ({
-        action: { query: search.query, type: 'search' },
+        action: search.action ?? { query: search.query, type: 'search' },
         id: search.id,
         status: 'completed',
         type: 'web_search_call',
@@ -148,8 +196,12 @@ export function geminiParts(parts: readonly Record<string, unknown>[], extra = {
     };
 }
 
-function rebased(provider: Provider, baseUrl: string) {
-    const models = () => provider.getModels().map((model) => ({ ...model, baseUrl }));
+function rebased(provider: Provider, baseUrl: string | ((upstream: URL) => string)) {
+    const models = () =>
+        provider.getModels().map((model) => ({
+            ...model,
+            baseUrl: typeof baseUrl === 'string' ? baseUrl : baseUrl(new URL(model.baseUrl)),
+        }));
     const moved: Provider = { ...provider, getAllModels: models, getModels: models };
     return moved;
 }

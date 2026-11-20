@@ -19,7 +19,7 @@ async function searchedTurn(provider: WebSearchProvider, modelId: string) {
         models: createPiModels({
             apiKeys: {
                 geminiApiKey: process.env.HAUS_RUNNER_GEMINI_API_KEY ?? null,
-                openrouterApiKey: null,
+                openrouterApiKey: process.env.HAUS_RUNNER_OPENROUTER_API_KEY ?? null,
                 xaiApiKey: process.env.HAUS_RUNNER_XAI_API_KEY ?? null,
             },
             credentials: openFileCredentialStore(piLoginsDir(dataDir)),
@@ -80,6 +80,28 @@ describe('native web search against live providers', () => {
             const events = await searchedTurn('google', 'gemini-2.5-pro');
 
             expect(String(searchResults(events)[0])).toContain('Sources:');
+            expect(events.at(-1)?.type).toBe('turn-finish');
+        },
+        180_000
+    );
+
+    liveTest(
+        'an OpenRouter Chat Completions model searches through the server tool',
+        async () => {
+            const events = await searchedTurn('openrouter', 'moonshotai/kimi-k2.6');
+
+            expect(searchResults(events).length).toBeGreaterThan(0);
+            expect(events.at(-1)?.type).toBe('turn-finish');
+        },
+        180_000
+    );
+
+    liveTest(
+        'an OpenRouter Claude model searches through the server tool on the Messages API',
+        async () => {
+            const events = await searchedTurn('openrouter', 'anthropic/claude-fable-5');
+
+            expect(searchResults(events).length).toBeGreaterThan(0);
             expect(events.at(-1)?.type).toBe('turn-finish');
         },
         180_000

@@ -1,38 +1,14 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { drainCleanups, live, startedRun, cleanups } from '../runner-test-server.ts';
-import { createPiHarness } from './pi-driver.ts';
-import { agentDir, collect, launch } from './pi-faux-run.ts';
-import type { WebSearchProvider } from './pi-web-search.ts';
+import { drainCleanups } from '../runner-test-server.ts';
 import {
     geminiParts,
     geminiStream,
-    providerStandIn,
     responsesAnswer,
-    standInModels,
+    searchTurn,
+    toolsOf,
 } from './provider-stand-in.ts';
 
 afterEach(drainCleanups);
-
-async function searchTurn(input: {
-    answers: Parameters<typeof providerStandIn>[0];
-    modelId: string;
-    webSearch: readonly WebSearchProvider[];
-}) {
-    const standIn = providerStandIn(input.answers);
-    const harness = createPiHarness({
-        log: () => undefined,
-        maxWarm: 1,
-        models: await standInModels(standIn.origin),
-        webSearch: input.webSearch,
-    });
-    cleanups.push(() => harness.close());
-    const { run } = await startedRun();
-    const session = await harness
-        .factory(launch(await agentDir(), run.tools, input.modelId))
-        .openSession({ resumeFrom: undefined, sessionId: 'agt_1-1' });
-    const turn = await session.startTurn({ prompt: 'When does Haus ship?', signal: live() });
-    return { events: await collect(turn.events), requests: standIn.requests };
-}
 
 const hostedSearch = () =>
     responsesAnswer({
@@ -65,11 +41,6 @@ const hostedEvents = [
     { type: 'turn-finish', usage: true },
 ];
 
-function toolsOf(body: Record<string, unknown>) {
-    const tools: { name?: string; type?: string }[] = Array.isArray(body.tools) ? body.tools : [];
-    return tools.map((tool) => (tool.type === 'function' ? `function ${tool.name}` : tool.type));
-}
-
 describe('native web search on Pi', () => {
     test('the ChatGPT plan request carries the hosted web_search tool and its citations reach the turn', async () => {
         const { events, requests } = await searchTurn({
@@ -100,6 +71,60 @@ describe('native web search on Pi', () => {
             'web_search',
         ]);
         expect(events.steps).toEqual(hostedEvents);
+    });
+
+    test('an opened page is a source, and a page cited twice with tracking parameters is one source', async () => {
+        const { events } = await searchTurn({
+            answers: [
+                () =>
+                    responsesAnswer({
+                        citations: [
+                            {
+                                title: 'Haus releases',
+                                url: 'https://haus.example/releases?utm_source=openai',
+                            },
+                            { title: 'Haus releases', url: 'https://haus.example/releases#latest' },
+                        ],
+                        searches: [
+                            {
+                                action: {
+                                    type: 'open_page',
+                                    url: 'https://haus.example/changelog',
+                                },
+                                id: 'ws_2',
+                            },
+                        ],
+                        text: 'Haus ships on Tuesdays.',
+                    }),
+            ],
+            modelId: 'grok-4.7',
+            webSearch: ['xai'],
+        });
+
+        expect(events.steps.slice(0, 2)).toEqual([
+            {
+                input: {},
+                nativeName: 'web_search',
+                providerExecuted: true,
+                toolCallId: 'ws_2',
+                toolName: 'webSearch',
+                type: 'tool-call',
+            },
+            {
+                nativeName: 'web_search',
+                output: {
+                    query: null,
+                    sources: [
+                        { title: null, url: 'https://haus.example/changelog' },
+                        { title: 'Haus releases', url: 'https://haus.example/releases' },
+                    ],
+                },
+                providerExecuted: true,
+                toolCallId: 'ws_2',
+                toolName: 'webSearch',
+                type: 'tool-result',
+            },
+        ]);
     });
 
     test('with search off, no hosted tool is sent and the Agent has the web_search tool instead', async () => {

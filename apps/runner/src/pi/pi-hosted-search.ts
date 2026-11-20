@@ -1,64 +1,64 @@
-import type { Models } from '@earendil-works/pi-ai';
+import type { Api, Model, Models } from '@earendil-works/pi-ai';
 import * as z from 'zod';
 import type { TurnEvent } from '../turn/turn-event.ts';
-
-interface Source {
-    readonly title: string | null;
-    readonly url: string;
-}
+import {
+    completionsNotes,
+    responsesNotes,
+    type SearchNote,
+    type SearchSource,
+} from './hosted-search-notes.ts';
+import { hostedSearchTool } from './pi-web-search.ts';
+import { MessagesSearchReader } from './vendor/pi-web-search/anthropic-search-events.ts';
+import { normalizeSearchUrl } from './vendor/pi-web-search/search-url.ts';
 
 interface HostedSearchCall {
     readonly id: string;
-    readonly query: string | null;
-    readonly sources: Source[];
+    query: string | null;
+    readonly sources: SearchSource[];
 }
 
 export class HostedSearchLog {
     private searches: HostedSearchCall[] = [];
-    private cited: Source[] = [];
+    private cited: SearchSource[] = [];
+    private readonly readers: Partial<Record<Api, (event: unknown) => readonly SearchNote[]>>;
 
-    observe(event: unknown) {
-        const parsed = streamEventSchema.safeParse(event);
-        if (!parsed.success) {
-            return;
-        }
-        const { data } = parsed;
-        if (data.type === 'response.completed') {
-            this.cite((data.response.citations ?? []).map((url) => ({ title: null, url })));
-            return;
-        }
-        const { item } = data;
-        if (item.type === 'web_search_call') {
-            if (this.searches.some((search) => search.id === item.id)) {
-                return;
+    constructor() {
+        const messages = new MessagesSearchReader();
+        this.readers = {
+            'anthropic-messages': (event) => messages.read(event),
+            'openai-codex-responses': responsesNotes,
+            'openai-completions': completionsNotes,
+            'openai-responses': responsesNotes,
+        };
+    }
+
+    reads(api: Api) {
+        return this.readers[api] !== undefined;
+    }
+
+    observe(event: unknown, api: Api) {
+        for (const note of this.readers[api]?.(event) ?? []) {
+            if (note.kind === 'cited') {
+                addSources(this.cited, note.sources);
+                continue;
             }
-            const action = item.action;
-            this.searches.push({
-                id: item.id,
-                query: action?.query ?? action?.queries?.join(' | ') ?? null,
-                sources: (action?.sources ?? []).map((source) => ({
-                    title: source.title ?? null,
-                    url: source.url,
-                })),
-            });
-            return;
+            const known = this.searches.find((search) => search.id === note.id);
+            if (known) {
+                known.query ??= note.query;
+                addSources(known.sources, note.sources);
+            } else {
+                const search: HostedSearchCall = { id: note.id, query: note.query, sources: [] };
+                addSources(search.sources, note.sources);
+                this.searches.push(search);
+            }
         }
-        this.cite(
-            item.content.flatMap((part) =>
-                (part.annotations ?? []).flatMap((annotation) =>
-                    annotation.type === 'url_citation' && annotation.url
-                        ? [{ title: annotation.title ?? null, url: annotation.url }]
-                        : []
-                )
-            )
-        );
     }
 
     drain() {
         const searches = this.searches;
         const last = searches.at(-1);
         if (last) {
-            last.sources.push(...this.cited.filter((source) => !hasUrl(last.sources, source.url)));
+            addSources(last.sources, this.cited);
         }
         this.searches = [];
         this.cited = [];
@@ -80,14 +80,6 @@ export class HostedSearchLog {
             return events;
         });
     }
-
-    private cite(sources: readonly Source[]) {
-        for (const source of sources) {
-            if (!hasUrl(this.cited, source.url)) {
-                this.cited.push(source);
-            }
-        }
-    }
 }
 
 export function withHostedSearch(models: Models, log: HostedSearchLog) {
@@ -95,10 +87,14 @@ export function withHostedSearch(models: Models, log: HostedSearchLog) {
         models.streamSimple(model, context, {
             ...options,
             onPayload: async (payload, requestModel) =>
-                withHostedTool((await options?.onPayload?.(payload, requestModel)) ?? payload),
+                withHostedTool(
+                    (await options?.onPayload?.(payload, requestModel)) ?? payload,
+                    requestModel,
+                    log
+                ),
             onProviderStreamEvent: async (event, eventModel) => {
                 await options?.onProviderStreamEvent?.(event, eventModel);
-                log.observe(event);
+                log.observe(event, eventModel.api);
             },
         });
     return new Proxy(models, {
@@ -112,60 +108,28 @@ export function withHostedSearch(models: Models, log: HostedSearchLog) {
     });
 }
 
-function withHostedTool(payload: unknown) {
-    const parsed = responsesPayloadSchema.safeParse(payload);
-    if (!parsed.success) {
+function withHostedTool(payload: unknown, model: Model<Api>, log: HostedSearchLog) {
+    const tool = hostedSearchTool(model.provider);
+    const parsed = payloadSchema.safeParse(payload);
+    if (!(tool && log.reads(model.api) && parsed.success)) {
         throw new Error(
-            'The provider request was not a Responses request, so Haus could not add web search.'
+            `The ${model.provider} request (${model.api}) is not one Haus can add web search to.`
         );
     }
     const tools = parsed.data.tools ?? [];
-    return { ...parsed.data, tools: [...tools, { type: 'web_search' }] };
+    return { ...parsed.data, tools: [...tools, tool] };
 }
 
-function hasUrl(sources: readonly Source[], url: string) {
-    return sources.some((source) => source.url === url);
+function addSources(into: SearchSource[], sources: readonly SearchSource[]) {
+    for (const source of sources) {
+        const url = normalizeSearchUrl(source.url);
+        const known = into.find((candidate) => candidate.url === url);
+        if (!known) {
+            into.push({ title: source.title, url });
+        } else if (known.title === null && source.title !== null) {
+            into.splice(into.indexOf(known), 1, { title: source.title, url });
+        }
+    }
 }
 
-const responsesPayloadSchema = z.looseObject({ tools: z.array(z.unknown()).optional() });
-
-const sourceSchema = z.looseObject({ title: z.string().optional(), url: z.string() });
-
-const streamEventSchema = z.discriminatedUnion('type', [
-    z.looseObject({
-        item: z.discriminatedUnion('type', [
-            z.looseObject({
-                action: z
-                    .looseObject({
-                        queries: z.array(z.string()).optional(),
-                        query: z.string().optional(),
-                        sources: z.array(sourceSchema).optional(),
-                    })
-                    .optional(),
-                id: z.string(),
-                type: z.literal('web_search_call'),
-            }),
-            z.looseObject({
-                content: z.array(
-                    z.looseObject({
-                        annotations: z
-                            .array(
-                                z.looseObject({
-                                    title: z.string().optional(),
-                                    type: z.string(),
-                                    url: z.string().optional(),
-                                })
-                            )
-                            .optional(),
-                    })
-                ),
-                type: z.literal('message'),
-            }),
-        ]),
-        type: z.literal('response.output_item.done'),
-    }),
-    z.looseObject({
-        response: z.looseObject({ citations: z.array(z.string()).optional() }),
-        type: z.literal('response.completed'),
-    }),
-]);
+const payloadSchema = z.looseObject({ tools: z.array(z.unknown()).optional() });

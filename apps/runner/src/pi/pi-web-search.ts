@@ -1,23 +1,40 @@
 import type { Api, Model, Models } from '@earendil-works/pi-ai';
 import * as z from 'zod';
 import type { SearchBackend, SearchResult } from '../web/web-search.ts';
+import {
+    isGroundingRedirect,
+    resolveRedirects,
+} from './vendor/pi-web-search/grounding-redirects.ts';
+import { normalizeSearchUrl } from './vendor/pi-web-search/search-url.ts';
 
-export const webSearchProviders = ['openai-codex', 'xai', 'google'] as const;
+export const webSearchProviders = ['openai-codex', 'xai', 'google', 'openrouter'] as const;
 
 export type WebSearchProvider = (typeof webSearchProviders)[number];
 
 export type WebSearchRoute = 'grounded' | 'hosted' | 'off';
 
-const routes = {
-    google: 'grounded',
-    'openai-codex': 'hosted',
-    xai: 'hosted',
-} as const satisfies Record<WebSearchProvider, WebSearchRoute>;
+type ProviderSearch = { route: 'grounded' } | { route: 'hosted'; tool: { type: string } };
 
-export function webSearchRoute(provider: string, enabled: readonly WebSearchProvider[]) {
-    const configured = enabled.find((candidate) => candidate === provider);
-    const route: WebSearchRoute = configured ? routes[configured] : 'off';
+const searches = {
+    google: { route: 'grounded' },
+    'openai-codex': { route: 'hosted', tool: { type: 'web_search' } },
+    openrouter: { route: 'hosted', tool: { type: 'openrouter:web_search' } },
+    xai: { route: 'hosted', tool: { type: 'web_search' } },
+} as const satisfies Record<WebSearchProvider, ProviderSearch>;
+
+export function webSearchOn(provider: string, enabled: readonly WebSearchProvider[]) {
+    return enabled.find((candidate) => candidate === provider) ?? null;
+}
+
+export function webSearchRoute(provider: WebSearchProvider | null) {
+    const route: WebSearchRoute = provider ? searches[provider].route : 'off';
     return route;
+}
+
+export function hostedSearchTool(provider: string) {
+    const known = webSearchProviders.find((candidate) => candidate === provider);
+    const search: ProviderSearch | null = known ? searches[known] : null;
+    return search?.route === 'hosted' ? search.tool : null;
 }
 
 export function groundedSearch(models: Models, model: Model<Api>) {
@@ -45,10 +62,24 @@ export function groundedSearch(models: Models, model: Model<Api>) {
             const answer = message.content
                 .map((block) => (block.type === 'text' ? block.text : ''))
                 .join('');
-            return { answer: answer.trim() || null, results: groundedResults(grounding, count) };
+            const results = await canonicalResults(groundedResults(grounding), signal);
+            return { answer: answer.trim() || null, results: results.slice(0, count) };
         },
     };
     return backend;
+}
+
+async function canonicalResults(results: readonly SearchResult[], signal: AbortSignal | undefined) {
+    const redirects = results.map((result) => result.url).filter(isGroundingRedirect);
+    const resolved = await resolveRedirects(redirects, signal);
+    const canonical: SearchResult[] = [];
+    for (const result of results) {
+        const url = normalizeSearchUrl(resolved.get(result.url) ?? result.url);
+        if (!canonical.some((known) => known.url === url)) {
+            canonical.push({ ...result, url });
+        }
+    }
+    return canonical;
 }
 
 function withGoogleSearch(payload: unknown) {
@@ -59,7 +90,7 @@ function withGoogleSearch(payload: unknown) {
     return { ...parsed.data, config: { ...parsed.data.config, tools: [{ googleSearch: {} }] } };
 }
 
-function groundedResults(grounding: readonly GroundingMetadata[], count: number) {
+function groundedResults(grounding: readonly GroundingMetadata[]) {
     const results: SearchResult[] = [];
     for (const metadata of grounding) {
         const chunks = metadata.groundingChunks ?? [];
@@ -76,7 +107,7 @@ function groundedResults(grounding: readonly GroundingMetadata[], count: number)
             results.push({ snippet, title: chunk.web?.title ?? new URL(url).hostname, url });
         }
     }
-    return results.slice(0, count);
+    return results;
 }
 
 const googlePayloadSchema = z.looseObject({ config: z.looseObject({}).optional() });

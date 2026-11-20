@@ -5,7 +5,7 @@ const apiKey = z.string().trim().min(1).optional();
 const dataDir = z.string().trim().min(1).default('/data');
 const webSearch = z
     .string()
-    .default('')
+    .default(webSearchProviders.join(','))
     .transform((list) =>
         list
             .split(',')

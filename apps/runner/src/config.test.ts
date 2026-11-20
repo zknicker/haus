@@ -23,7 +23,7 @@ describe('runner config', () => {
             openrouterApiKey: null,
             runnerToken: 'runner-token-0123456789abcdef0123456789',
             serverUrl: 'http://host.docker.internal:18791',
-            webSearch: [],
+            webSearch: ['openai-codex', 'xai', 'google', 'openrouter'],
             xaiApiKey: 'xai-key',
         });
         expect(parseRunnerDataDir(environment)).toBe('/data');
@@ -36,8 +36,8 @@ describe('runner config', () => {
         };
 
         expect(
-            parseRunnerConfig({ ...base, HAUS_RUNNER_WEB_SEARCH: 'openai-codex, google' }).webSearch
-        ).toEqual(['openai-codex', 'google']);
+            parseRunnerConfig({ ...base, HAUS_RUNNER_WEB_SEARCH: 'openrouter, google' }).webSearch
+        ).toEqual(['openrouter', 'google']);
         expect(() => parseRunnerConfig({ ...base, HAUS_RUNNER_WEB_SEARCH: 'brave' })).toThrow(
             'Runner environment is invalid: HAUS_RUNNER_WEB_SEARCH.0.'
         );

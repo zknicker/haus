@@ -24,6 +24,7 @@ import {
     groundedSearch,
     type WebSearchProvider,
     type WebSearchRoute,
+    webSearchOn,
     webSearchRoute,
 } from './pi-web-search.ts';
 
@@ -85,7 +86,7 @@ export function createPiHarness(options: {
         const ref = piModelRef(options.models, launch.modelId);
         const toolset: { family: PiToolFamily; search: WebSearchRoute } = {
             family: piToolFamily(launch.modelId),
-            search: webSearchRoute(ref?.provider ?? '', options.webSearch),
+            search: webSearchRoute(webSearchOn(ref?.provider ?? '', options.webSearch)),
         };
         return {
             bootstrapFingerprint: () => piBootstrapFingerprint(toolset),
