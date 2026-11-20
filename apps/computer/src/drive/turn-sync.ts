@@ -1,3 +1,4 @@
+import { once } from 'node:events';
 import { settle } from '@haus/effect';
 import { Effect } from 'effect';
 import type { RunAgentLaunchOptions } from '../launch.ts';
@@ -193,14 +194,10 @@ async function warn(options: RunAgentLaunchOptions, event: string, detail: strin
     );
 }
 
-function abortOf(signal: AbortSignal) {
-    return new Promise<void>((resolve) => {
-        if (signal.aborted) {
-            resolve();
-            return;
-        }
-        signal.addEventListener('abort', () => resolve(), { once: true });
-    });
+async function abortOf(signal: AbortSignal) {
+    if (!signal.aborted) {
+        await once(signal, 'abort');
+    }
 }
 
 function messageOf(error: unknown) {
