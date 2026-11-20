@@ -91,13 +91,39 @@ test('a replaced credential clears the capacity', async () => {
     expect(row).toEqual({ capacity: null, capacity_read_at: null });
 });
 
-function capacity(connectionId: string, readAt: Date, windows: unknown[]) {
+test('a reading taken with a replaced credential is dropped', async () => {
+    const stale = [{ ...weekly[0], usedPercent: 99 }];
+    runner.send(capacity(planId, new Date(), stale, 1));
+    await framesProcessed();
+    expect(await listedCapacity(planId)).toBeNull();
+
+    const announced = connectionsAnnounced(seed.serverId);
+    runner.send(capacity(planId, new Date(), weekly, 2));
+    await announced;
+    expect(await listedCapacity(planId)).toEqual(weekly);
+});
+
+function capacity(connectionId: string, readAt: Date, windows: unknown[], credentialVersion = 1) {
     return {
         connectionId,
+        credentialVersion,
         readAt: readAt.toISOString(),
         type: 'runner-connection-capacity',
         windows,
     };
+}
+
+async function framesProcessed() {
+    const rotationId = crypto.randomUUID();
+    runner.send({
+        baseVersion: 1,
+        connectionId: 'mc_barrier',
+        credential: { access: 'barrier', expires: 0, refresh: 'barrier' },
+        previousRefresh: 'barrier',
+        rotationId,
+        type: 'runner-connection-credential',
+    });
+    await runner.next(frameOfType('runner-connection-credential-ack', { rotationId }));
 }
 
 async function listedCapacity(connectionId: string) {

@@ -245,6 +245,7 @@ describe('model connections in turns', () => {
         });
         expect(await runner.server.frame('runner-connection-capacity')).toEqual({
             connectionId: 'mc_chatgpt',
+            credentialVersion: 1,
             readAt: expect.any(String),
             type: 'runner-connection-capacity',
             windows: [{ id: 'current-session', label: '5-hour', resetsAt: null, usedPercent: 100 }],

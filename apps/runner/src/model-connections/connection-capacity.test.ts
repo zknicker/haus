@@ -23,6 +23,7 @@ describe('plan capacity readers', () => {
         expect(await capacityFrames(server)).toEqual([
             {
                 connectionId: 'mc_claude',
+                credentialVersion: 1,
                 readAt: '2026-11-19T12:00:00.000Z',
                 type: 'runner-connection-capacity',
                 windows: [
@@ -72,6 +73,7 @@ describe('plan capacity readers', () => {
         expect(await capacityFrames(server)).toEqual([
             {
                 connectionId: 'mc_chatgpt',
+                credentialVersion: 1,
                 readAt: '2026-11-19T12:00:00.000Z',
                 type: 'runner-connection-capacity',
                 windows: [

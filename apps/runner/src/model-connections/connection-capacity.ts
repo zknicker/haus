@@ -54,6 +54,7 @@ export function createCapacityReader(input: {
             const windows = await readWindows(connection, readAt, input.usageUrls ?? {});
             const frame: RunnerConnectionCapacityFrame = {
                 connectionId: connection.id,
+                credentialVersion: connection.credentialVersion,
                 readAt: readAt.toISOString(),
                 type: 'runner-connection-capacity',
                 windows,

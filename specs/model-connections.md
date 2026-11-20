@@ -135,7 +135,8 @@ connection, or with one the runner doesn't hold, fails before any model call as 
 ## Plan capacity
 
 The runner reads each plan connection's capacity and sends it up as `runner-connection-capacity
-{ connectionId, windows, readAt }`. Settings → Models shows it on the connection's row.
+{ connectionId, credentialVersion, windows, readAt }`, tagged with the credential version it read
+with. Settings → Models shows it on the connection's row.
 
 - **When.** A sweep every minute reads each plan connection whose last read finished 15 minutes
   ago, or whose `credentialVersion` changed since. A turn that marks the connection `failed` reads
@@ -157,7 +158,8 @@ The runner reads each plan connection's capacity and sends it up as `runner-conn
   `Retry-After` (seconds or an HTTP date), 15 minutes when it gives none, and never more than an
   hour. A `401` or `403` stops reading that connection for 6 hours or until its `credentialVersion`
   changes, failed turns included.
-- **Storage.** The Server stores the windows and `readAt` on the connection and announces
+- **Storage.** The Server stores the windows and `readAt` on the connection, dropping a reading
+  whose `credentialVersion` is not the stored credential's, and announces
   `modelConnections` updated only when the windows changed. The list shows `capacity: null` when
   nothing was read or the reading is older than 6 hours. Replacing a credential clears it.
 

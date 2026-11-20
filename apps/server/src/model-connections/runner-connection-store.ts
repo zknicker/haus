@@ -117,6 +117,7 @@ export async function recordConnectionCapacity(
             .where(
                 and(
                     eq(modelConnectionsTable.id, frame.connectionId),
+                    eq(modelConnectionsTable.credentialVersion, frame.credentialVersion),
                     or(
                         isNull(modelConnectionsTable.capacityReadAt),
                         lte(modelConnectionsTable.capacityReadAt, readAt)

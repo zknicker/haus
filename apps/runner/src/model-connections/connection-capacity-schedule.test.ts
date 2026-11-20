@@ -37,11 +37,13 @@ describe('plan capacity schedule', () => {
         await runner.book.replace([{ ...claudePlan, credentialVersion: 2 }, ...keys]);
         await reader.sweep();
         expect(reads(server)).toEqual([claudePath, claudePath, claudePath, claudePath]);
-        expect((await capacityFrames(server)).map((frame) => frame.readAt)).toEqual([
-            '2026-11-19T12:00:00.000Z',
-            '2026-11-19T12:14:00.000Z',
-            '2026-11-19T12:29:00.000Z',
-            '2026-11-19T12:29:00.000Z',
+        expect(
+            (await capacityFrames(server)).map((frame) => [frame.readAt, frame.credentialVersion])
+        ).toEqual([
+            ['2026-11-19T12:00:00.000Z', 1],
+            ['2026-11-19T12:14:00.000Z', 1],
+            ['2026-11-19T12:29:00.000Z', 1],
+            ['2026-11-19T12:29:00.000Z', 2],
         ]);
     });
 

@@ -145,10 +145,14 @@ export const modelConnectionCapacityWindowSchema = z
     .strict();
 export type ModelConnectionCapacityWindow = z.infer<typeof modelConnectionCapacityWindowSchema>;
 
-/** Runner → Server: a plan connection's capacity as its provider reported it at `readAt`. A failed read sends nothing. */
+/**
+ * Runner → Server: a plan connection's capacity as its provider reported it at `readAt`, read with
+ * the credential at `credentialVersion`. A failed read sends nothing.
+ */
 export const runnerConnectionCapacityFrameSchema = z
     .object({
         connectionId: idSchema,
+        credentialVersion: z.number().int().positive(),
         readAt: timestampSchema,
         type: z.literal('runner-connection-capacity'),
         windows: z.array(modelConnectionCapacityWindowSchema).max(8),
