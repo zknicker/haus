@@ -50,7 +50,6 @@ export function AgentRuntime({
                     />
                     <Separator />
                     <AgentModelConnectionRow agent={agent} canEdit={canEdit} />
-                    <Separator />
                     <ExecutionRow
                         color={execution.runtime ? 'default' : 'warning'}
                         label="Runtime"

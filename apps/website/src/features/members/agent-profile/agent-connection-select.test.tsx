@@ -70,7 +70,9 @@ function rowWithList(agentLoop: 'computer' | 'runner') {
     );
 }
 
-test('a Captain on its Device has no Connection row; on the runner it does', () => {
+test('a Captain on its Device has no Connection row or separator; on the runner it has both', () => {
     expect(rowWithList('computer')).toBe('');
-    expect(rowWithList('runner')).toContain('>Connection</span>');
+    const runner = rowWithList('runner');
+    expect(runner).toContain('>Connection</span>');
+    expect(runner.match(/role="separator"/gu)?.length).toBe(1);
 });

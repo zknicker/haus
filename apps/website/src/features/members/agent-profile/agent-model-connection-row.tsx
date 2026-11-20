@@ -1,6 +1,6 @@
 import type { Agent, ModelConnection } from '@haus/api';
 import { ItemCard } from '@heroui-pro/react';
-import { Description, Label, ListBox, Select } from '@heroui/react';
+import { Description, Label, ListBox, Select, Separator } from '@heroui/react';
 import { Link, useParams } from 'react-router-dom';
 import { useAgentModelConnection } from '../../../hooks/members/use-agent-model-connection.ts';
 import { useModelConnections } from '../../../hooks/servers/use-model-connections.ts';
@@ -19,21 +19,24 @@ export function AgentModelConnectionRow({ agent, canEdit }: { agent: Agent; canE
     }
 
     return (
-        <ItemCard>
-            <ItemCard.Content>
-                <ItemCard.Title>Connection</ItemCard.Title>
-                <SettingsRowError>{connections.error?.message}</SettingsRowError>
-            </ItemCard.Content>
-            <ItemCard.Action>
-                {connections.data ? (
-                    <AgentConnectionControl
-                        agent={agent}
-                        canEdit={canEdit}
-                        connections={connections.data.connections}
-                    />
-                ) : null}
-            </ItemCard.Action>
-        </ItemCard>
+        <>
+            <ItemCard>
+                <ItemCard.Content>
+                    <ItemCard.Title>Connection</ItemCard.Title>
+                    <SettingsRowError>{connections.error?.message}</SettingsRowError>
+                </ItemCard.Content>
+                <ItemCard.Action>
+                    {connections.data ? (
+                        <AgentConnectionControl
+                            agent={agent}
+                            canEdit={canEdit}
+                            connections={connections.data.connections}
+                        />
+                    ) : null}
+                </ItemCard.Action>
+            </ItemCard>
+            <Separator />
+        </>
     );
 }
 
