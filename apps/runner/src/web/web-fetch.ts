@@ -69,7 +69,7 @@ async function follow(
                 text: `${current.href} resolves to ${vetted.address}, a private or local address, so web_fetch did not fetch it.`,
             } as const;
         }
-        const response = await pinnedRequest(current, vetted.address, {
+        const response = await pinnedRequest(current, vetted.addresses, {
             headers: { accept: acceptHeader },
             signal: options.signal,
         });

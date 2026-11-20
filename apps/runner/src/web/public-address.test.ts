@@ -39,7 +39,7 @@ test('only public addresses pass, IPv4-mapped IPv6 included', () => {
     ]);
 });
 
-test('a hostname is checked by every address it resolves to and pinned to the first', async () => {
+test('a hostname is checked by every address it resolves to and pinned to all of them', async () => {
     const answer = (addresses: readonly string[]) => () => Promise.resolve(addresses);
 
     expect(await vetHost('localhost', isPublicAddress, resolveHost)).toMatchObject({
@@ -53,11 +53,11 @@ test('a hostname is checked by every address it resolves to and pinned to the fi
         await vetHost('haus.example', isPublicAddress, answer(['8.8.8.8', '127.0.0.1']))
     ).toEqual({ address: '127.0.0.1', kind: 'blocked' });
     expect(await vetHost('haus.example', isPublicAddress, answer(['8.8.8.8', '1.1.1.1']))).toEqual({
-        address: '8.8.8.8',
+        addresses: ['8.8.8.8', '1.1.1.1'],
         kind: 'pinned',
     });
     expect(await vetHost('8.8.8.8', isPublicAddress, answer([]))).toEqual({
-        address: '8.8.8.8',
+        addresses: ['8.8.8.8'],
         kind: 'pinned',
     });
 });

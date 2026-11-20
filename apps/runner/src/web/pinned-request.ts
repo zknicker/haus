@@ -5,15 +5,16 @@ import { Readable } from 'node:stream';
 
 export function pinnedRequest(
     url: URL,
-    address: string,
+    addresses: readonly [string, ...string[]],
     init: { headers: Record<string, string>; signal: AbortSignal }
 ) {
-    const family = isIP(address);
+    const pinned = addresses.map((address) => ({ address, family: isIP(address) }));
+    const [first] = addresses;
     const lookup: LookupFunction = (_hostname, options, callback) => {
         if (options.all) {
-            callback(null, [{ address, family }]);
+            callback(null, pinned);
         } else {
-            callback(null, address, family);
+            callback(null, first, isIP(first));
         }
     };
     const send = url.protocol === 'https:' ? httpsRequest : httpRequest;
