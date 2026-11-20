@@ -17,6 +17,7 @@ test('masks credential shapes wherever they appear', () => {
         ['AKIAABCDEFGHIJKLMNOP', '[redacted]'],
         ['eyJhbGciOiJI.eyJzdWIiOiIx.SflKxwRJSMeK', '[redacted]'],
         [`grta_${'x'.repeat(43)}`, '[redacted]'],
+        [`grtr_${'x'.repeat(43)}`, '[redacted]'],
         [
             '-----BEGIN OPENSSH PRIVATE KEY-----\nAAAA\n-----END OPENSSH PRIVATE KEY-----',
             '[redacted]',

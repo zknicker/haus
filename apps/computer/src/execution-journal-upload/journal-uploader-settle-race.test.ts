@@ -26,7 +26,7 @@ test('a run the Server stores while a backfill pass is listing is not resent int
     const sent: AgentExecutionJournalRecordsFrame[] = [];
     let accepting = false;
     const uploader = new ExecutionJournalUploader({
-        dataRoot,
+        agentsDir: join(dataRoot, 'servers', 'srv_race', 'agents'),
         knownSecrets: [],
         log: () => undefined,
         send: (frame) => {
@@ -35,7 +35,6 @@ test('a run the Server stores while a backfill pass is listing is not resent int
             }
             return accepting;
         },
-        serverId: 'srv_race',
     });
     const agentRoot = join(dataRoot, 'servers', 'srv_race', 'agents', 'agt_race');
     const journal = await createComputerExecutionJournal(

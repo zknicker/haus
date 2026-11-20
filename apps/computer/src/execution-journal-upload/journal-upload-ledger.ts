@@ -19,12 +19,12 @@ export interface UnsyncedJournal {
     runId: string;
 }
 
-/** Every unmarked journal under one Server partition changed since `since`, newest first. */
+/** Every unmarked journal under one directory of Agents changed since `since`, newest first. */
 export async function listUnsyncedJournals(input: {
-    serverRoot: string;
+    agentsDir: string;
     since: number;
 }): Promise<UnsyncedJournal[]> {
-    const agentsDir = join(input.serverRoot, 'agents');
+    const { agentsDir } = input;
     const entries = await readdir(agentsDir, { withFileTypes: true }).catch(
         whenMissing<Dirent[]>([])
     );
