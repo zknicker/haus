@@ -210,13 +210,24 @@
         },
         "apps/computer/src/workers/computer/computer-place.ts": {
             "disposition": "finite-cleanup",
-            "reason": "Each Computer-place turn owns one AbortController that a stop, close, or shutdown aborts before it ends the harness session and awaits the turn; a session that already ended is ignored on destroy.",
+            "reason": "Each Computer-place turn owns one AbortController that a stop, close, or shutdown aborts before it ends the harness session and awaits the turn; a session that already ended is ignored on destroy. A turn whose drive push failed stays owned until its push retry lands or a close or shutdown releases it.",
             "risks": {
                 "abortController": 1,
                 "catchAndIgnore": 1,
                 "finallyBlock": 0,
                 "manualPromise": 0,
                 "timer": 0
+            }
+        },
+        "apps/computer/src/workers/computer/push-retry.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A failed Worker drive push waits for one scheduled retry at a time on a capped backoff; the release AbortController cancels the pending timer and settles the wait, and a nudge runs it early.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 1
             }
         },
         "apps/computer/src/workers/computer/computer-place.fixture.ts": {

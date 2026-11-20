@@ -18,6 +18,7 @@ import {
 import { createPullRequestReader } from '../github/pull-request-reader.ts';
 import { ComputerWorkerPlace } from './computer-place.ts';
 import type { WorkerHarnessLaunch } from './harness.ts';
+import type { Schedule } from './push-retry.ts';
 import type { ComputerPlaceFrame } from './turn-finish.ts';
 
 export const agentId = 'agt_alpha';
@@ -53,7 +54,7 @@ export function registerComputerPlaces() {
             drive,
             mints,
             root,
-            place: (script: FakeRuntimeScript<WorkerHarnessLaunch> = {}) => {
+            place: (script: FakeRuntimeScript<WorkerHarnessLaunch> = {}, schedule?: Schedule) => {
                 const fake = fakeRuntimeDriver<WorkerHarnessLaunch>(script);
                 const frames: ComputerPlaceFrame[] = [];
                 let clock = 0;
@@ -73,6 +74,7 @@ export function registerComputerPlaces() {
                     repos: {
                         remoteUrl: (repository) => join(root, 'remotes', `${repository}.git`),
                     },
+                    schedule,
                     server: { credential: 'computer-credential', serverOrigin: drive.origin },
                     serverId: 'srv_1',
                 });

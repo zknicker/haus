@@ -195,8 +195,10 @@ Task, and its conflicts go to the Agent's inbox as `drive_conflict` naming the W
   before it reports the turn ended. A Worker push never closes the Agent's own run push or another
   Worker's, because open pushes are keyed by source (`drive_pushes.worker_id`).
 - **Push before end.** A push that cannot finish, from a network failure, a 5xx or 401, or a
-  failed mint, leaves the turn `pushing` and sends no end. The next connect or restart pushes again
-  under the same turn id, then ends the turn. A per-file `refused` outcome is a result, not a
+  failed mint, leaves the turn `pushing` and sends no end. The Computer keeps the turn and pushes
+  again under the same turn id after 5 seconds, 30 seconds, 2 minutes, then every 10 minutes, and
+  a connect, restart, or `worker-stop` pushes at once. The first push that finishes ends the turn.
+  `worker-close` and shutdown cancel the wait and leave the turn for the next connect or restart. A per-file `refused` outcome is a result, not a
   failure, and does not hold the end. A refused mint means the turn is no longer this Computer's,
   so the turn ends without a push. `worker-close` leaves a Worker whose turn is `pushing` in place,
   and the next `worker-held` round closes it.

@@ -2,6 +2,7 @@ import type { WorkerHeldFrame, WorkerTurnStartFrame } from '@haus/api';
 import type { PullRequestReader } from '../github/pull-request-reader.ts';
 import type { WorkerServer } from './credentials.ts';
 import { type WorkerDriverFactory, workerDriverFactory } from './harness.ts';
+import { PushRetry, type Schedule, timerSchedule } from './push-retry.ts';
 import { removeTree } from './remove-tree.ts';
 import type { RepoOptions } from './repos.ts';
 import {
@@ -22,20 +23,28 @@ export interface ComputerPlaceOptions {
     now?: () => number;
     reader: PullRequestReader;
     repos?: Omit<RepoOptions, 'dataRoot' | 'signal'>;
+    schedule?: Schedule;
     server: WorkerServer;
     serverId: string;
 }
 
-type Running = ActiveTurn & { done: Promise<void>; workerId: string };
+type Running = ActiveTurn & {
+    done: Promise<void>;
+    finished: Promise<void>;
+    retry: PushRetry;
+    workerId: string;
+};
 
 export class ComputerWorkerPlace {
     private readonly active = new Map<string, Running>();
     private send: ((frame: ComputerPlaceFrame) => unknown) | null = null;
     private readonly context: ComputerPlaceContext;
+    private readonly schedule: Schedule;
     readonly journal: ComputerTurnJournal;
 
     constructor(options: ComputerPlaceOptions) {
         this.journal = new ComputerTurnJournal(options.dataRoot, options.serverId);
+        this.schedule = options.schedule ?? timerSchedule;
         this.context = {
             driver: options.driver ?? workerDriverFactory(),
             journal: this.journal,
@@ -61,7 +70,10 @@ export class ComputerWorkerPlace {
             return [];
         });
         for (const { ref, turn } of unended) {
-            if (!this.active.has(ref.turnId)) {
+            const owned = this.active.get(ref.turnId);
+            if (owned) {
+                owned.retry.now();
+            } else {
                 await this.recover(ref, turn).catch((cause: unknown) =>
                     logFailure('worker.computer-recovery', ref, cause)
                 );
@@ -99,7 +111,9 @@ export class ComputerWorkerPlace {
         await this.journal.advance(ref, (current) => ({ ...current, stopRequested: true }));
         const running = this.active.get(ref.turnId);
         if (running) {
-            await this.end(running, 'stop');
+            running.retry.now();
+            await halt(running, 'stop');
+            await running.finished;
         } else if (turn.phase === 'accepted') {
             await endBeforeLaunch(this.context, ref, {
                 branch: turn.frame.checkout?.branch ?? null,
@@ -169,37 +183,69 @@ export class ComputerWorkerPlace {
                 exit: 'crashed-before-launch',
             });
         } else if (turn.phase === 'running') {
-            await finishTurn(this.context, ref, {
-                branch: turn.frame.checkout?.branch ?? null,
-                detail: 'The Computer lost the harness process.',
-                exit: 'uncertain',
-            });
+            await this.own(ref, () =>
+                finishTurn(this.context, ref, {
+                    branch: turn.frame.checkout?.branch ?? null,
+                    detail: 'The Computer lost the harness process.',
+                    exit: 'uncertain',
+                })
+            );
         } else if (turn.phase === 'pushing') {
-            await finishTurn(this.context, ref, null);
+            await this.own(ref, () => finishTurn(this.context, ref, null));
         }
     }
 
     private launch(frame: WorkerTurnStartFrame) {
-        if (this.active.has(frame.turnId)) {
-            return;
+        void this.own(refOf(frame), (running) => launchComputerTurn(this.context, frame, running));
+    }
+
+    private own(ref: ComputerTurnRef, work: (running: Running) => Promise<void>) {
+        const owned = this.active.get(ref.turnId);
+        if (owned) {
+            return owned.finished;
         }
         const running: Running = {
             abort: new AbortController(),
             done: Promise.resolve(),
+            finished: Promise.resolve(),
+            retry: new PushRetry(this.schedule),
             session: null,
-            workerId: frame.workerId,
+            workerId: ref.workerId,
         };
-        this.active.set(frame.turnId, running);
-        running.done = launchComputerTurn(this.context, frame, running)
-            .catch((cause: unknown) => logFailure('worker.computer-turn', refOf(frame), cause))
-            .finally(() => this.active.delete(frame.turnId));
+        this.active.set(ref.turnId, running);
+        const first = work(running)
+            .then(() => this.awaitsPush(ref))
+            .catch((cause: unknown) => {
+                logFailure('worker.computer-turn', ref, cause);
+                return false;
+            });
+        running.done = first
+            .then((pushing) => (pushing ? running.retry.run(() => this.pushAgain(ref)) : undefined))
+            .catch((cause: unknown) => logFailure('worker.computer-push', ref, cause))
+            .finally(() => this.active.delete(ref.turnId));
+        running.finished = first.then(() => undefined);
+        return running.finished;
+    }
+
+    private async pushAgain(ref: ComputerTurnRef) {
+        await finishTurn(this.context, ref, null);
+        return !(await this.awaitsPush(ref));
+    }
+
+    private async awaitsPush(ref: ComputerTurnRef) {
+        return (await this.journal.turn(ref))?.phase === 'pushing';
     }
 
     private async end(running: Running, reason: string) {
-        running.abort.abort(reason);
-        await running.session?.destroy().catch(() => undefined);
+        running.retry.release();
+        await halt(running, reason);
         await running.done;
     }
+}
+
+async function halt(running: Running, reason: string) {
+    running.abort.abort(reason);
+    await running.session?.destroy().catch(() => undefined);
 }
 
 function refOf(frame: WorkerTurnStartFrame) {

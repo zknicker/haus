@@ -145,7 +145,68 @@ describe('a drive push that fails', () => {
         await place.close('wrk_1');
         expect(existsSync(place.journal.layout('wrk_1').root)).toBe(false);
     });
+
+    test('keeps the turn owned and pushes again on the backoff until it lands, then ends', async () => {
+        const computer = computerPlaces();
+        const timers = recordedSchedule();
+        computer.drive.failPushes(true);
+        const { frames, place, sent } = computer.place(
+            { sessionId: 'thread-9', turn: writeThenWait },
+            timers.schedule
+        );
+        await place.accept(computerStart());
+        await sent('worker-turn-input-accepted');
+        await place.stop(ref);
+
+        expect(timers.delays).toEqual([5000]);
+        expect(frames.map((frame) => frame.type)).not.toContain('worker-turn-ended');
+
+        computer.drive.failPushes(false);
+        timers.run(0);
+        await sent('worker-turn-ended');
+
+        expect(computer.drive.text('agents/alpha/notes.md')).toBe('Written before the stop.');
+        expect(frames.at(-1)).toMatchObject({ exit: 'stopped', type: 'worker-turn-ended' });
+        expect(timers.cancelled).toEqual([]);
+    });
+
+    test('a close while the push waits cancels its retry and leaves it for the next connect', async () => {
+        const computer = computerPlaces();
+        const timers = recordedSchedule();
+        computer.drive.failPushes(true);
+        const { frames, place, sent } = computer.place({ turn: writeThenWait }, timers.schedule);
+        await place.accept(computerStart());
+        await sent('worker-turn-input-accepted');
+        await place.stop(ref);
+
+        await place.close('wrk_1');
+
+        expect(timers.delays).toEqual([5000]);
+        expect(timers.cancelled).toEqual([0]);
+        expect((await place.journal.turn(ref))?.phase).toBe('pushing');
+        expect(frames.map((frame) => frame.type)).not.toContain('worker-turn-ended');
+    });
 });
+
+const ref = { turnId: 'wkt_1', workerId: 'wrk_1' };
+
+function recordedSchedule() {
+    const delays: number[] = [];
+    const runs: Array<() => void> = [];
+    const cancelled: number[] = [];
+    return {
+        cancelled,
+        delays,
+        run: (index: number) => runs[index]?.(),
+        schedule: (delayMs: number, run: () => void) => {
+            const index = delays.push(delayMs) - 1;
+            runs.push(run);
+            return () => {
+                cancelled.push(index);
+            };
+        },
+    };
+}
 
 describe('closing a Worker', () => {
     test('removes its worktree and folder, twice over, and keeps its branch', async () => {
