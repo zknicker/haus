@@ -69,7 +69,7 @@ console.log('');
 console.log(
     '- Choose the targets this release ships; any subset may ship, and unshipped changes stay pending.'
 );
-console.log('- Ship Computer with or before a Server that needs a newer Computer protocol.');
+console.log('- A Computer protocol change ships Server and Computer together.');
 console.log('- Resolve each review target from the diff and record the reason.');
 console.log(
     '- Assign SemVer and the next unused iOS build number only after target scope is settled.'

@@ -7,15 +7,17 @@ export async function assertComputerProtocolOrder({
     selectedTargets,
     readProtocol = readComputerProtocolAt,
 }) {
-    if (!selectedTargets.server || selectedTargets.computer) {
+    if (selectedTargets.server === selectedTargets.computer) {
         return;
     }
-    const published = impact.targets.computer.baseline;
+    const shipping = selectedTargets.server ? 'Server' : 'Computer';
+    const staying = selectedTargets.server ? 'Computer' : 'Server';
+    const published = impact.targets[staying.toLowerCase()].baseline;
     const candidateProtocol = await readProtocol(impact.candidateRef);
     const publishedProtocol = await readProtocol(published.sourceRevision);
-    if (candidateProtocol > publishedProtocol) {
+    if (candidateProtocol !== publishedProtocol) {
         throw new Error(
-            `Server requires Computer protocol ${candidateProtocol}, but the last published Computer (${published.tag}) speaks ${publishedProtocol}. Publish Computer in this release or an earlier one.`
+            `${shipping} speaks Computer protocol ${candidateProtocol}, but the last published ${staying} (${published.tag}) speaks ${publishedProtocol}, and the Server accepts only an exact match. Ship Server and Computer together.`
         );
     }
 }

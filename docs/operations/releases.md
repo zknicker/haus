@@ -128,10 +128,11 @@ recorded release commit for legacy entries that predate reliable tagging. Direct
 
 A release ships any subset of targets. Impact is evidence for that choice, not a floor: a changed
 target may stay `null` when its change isn't ready or worth shipping yet. The one rule
-`release:check` and the Release workflow enforce is the Computer protocol order: when the Server ships
-and `packages/haus-api/computer-protocol.json` at the candidate is newer than at the last published
-Computer, Computer must ship in the same release. The workflow then publishes Computer before it
-promotes the Server. For every review file, the release agent traces the
+`release:check` and the Release workflow enforce is the Computer protocol pairing. The Server
+accepts only a Computer speaking its exact protocol, so when Server ships without Computer,
+`packages/haus-api/computer-protocol.json` at the candidate must equal the last published Computer's,
+and when Computer ships without Server, it must equal the last published Server's. A protocol
+change ships both, and the workflow publishes Computer before it promotes the Server. For every review file, the release agent traces the
 changed export, dependency, or generated input to each named target and records `affects` or `does
 not affect` with a reason. Files may share one disposition only when the same evidence applies. The
 agent may widen the release for compatibility or an explicit operational reason. Because every
@@ -143,8 +144,8 @@ churn and filler before the release PR.
 
 ## Prerequisites
 
-When a Server change raises the required Computer protocol, the compatible Computer artifact must
-be published and publicly verified before the Server is promoted. Use the
+When the Computer protocol changes, Server and Computer ship in the same release, and the compatible
+Computer artifact must be published and publicly verified before the Server is promoted. Use the
 [Computer release and update spec](../../specs/raft-alignment/computer-release-and-update.md) for
 the signed standalone artifact, descriptor, updater, rollback, and acceptance contract.
 

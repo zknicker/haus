@@ -56,9 +56,9 @@ bun run release:collect-changelog-context
 The helper compares each target with its own last recorded release source and classifies pending
 inputs as `changed`, `review`, or `unchanged`. A release ships any subset of targets: choose the
 targets whose changes are ready and worth shipping now, and leave the rest `null`. A target left out
-keeps its own baseline, so its pending changes show again at the next release. The one ordering
-rule is the Computer protocol: a Server that needs a newer Computer protocol than the last published
-Computer ships with Computer in the same release or after a release that published it.
+keeps its own baseline, so its pending changes show again at the next release. The one pairing
+rule is the Computer protocol: the Server accepts only a Computer speaking its exact protocol, so a
+change to `packages/haus-api/computer-protocol.json` ships Server and Computer in the same release.
 `release:check` and the Release workflow enforce that rule and nothing else about target choice.
 Inspect the complete evidence, including generated files and shared contracts. Record a target as
 `publish` when its shipped behavior or artifact should reach people in this release:
@@ -74,8 +74,8 @@ Inspect the complete evidence, including generated files and shared contracts. R
 After reading the impact report, ask:
 
 1. Which target owns the changed behavior, and which shared dependency consumers ship with it?
-2. Does the Server require a higher Computer protocol floor? If yes, Computer publishes in this
-   release or already did; the workflow publishes Computer before it promotes the Server.
+2. Did the Computer protocol change? If yes, Server and Computer both publish; the workflow publishes
+   Computer before it promotes the Server.
 3. Does iOS publish? Choose a new positive build number; never reuse a number that reached Apple.
 4. For every listed `review` file, does its diff affect each named target? Trace changed exports,
    dependencies, and generated inputs to their consumers. Record `affects` or `does not affect` with
@@ -123,7 +123,7 @@ writing it, read
 [Haus changelog writing](references/changelog-writing.md). Draft from the target-scoped evidence,
 compare the draft with recent entries to avoid repeating an already shipped outcome, then run the
 guide's deslop pass over only the new entry. Keep operational evidence in the PR and final handoff.
-Run `release:check`; it rejects a Server that ships ahead of the Computer protocol it needs, and
+Run `release:check`; it rejects Server or Computer shipping alone across a protocol change, and
 version metadata that does not match the ledger. Run `git diff --check` and the documentation
 check before opening the PR.
 
