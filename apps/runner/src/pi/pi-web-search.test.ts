@@ -1,14 +1,45 @@
 import { afterEach, describe, expect, test } from 'bun:test';
+import { webSearchNotConfigured } from '@haus/agent-prompt';
 import { drainCleanups } from '../runner-test-server.ts';
 import {
     geminiParts,
     geminiStream,
     responsesAnswer,
+    responsesStream,
     searchTurn,
     toolsOf,
 } from './provider-stand-in.ts';
 
 afterEach(drainCleanups);
+
+const functionCall = {
+    arguments: '{"query":"haus release day"}',
+    call_id: 'call_1',
+    id: 'fc_1',
+    name: 'web_search',
+    status: 'completed',
+    type: 'function_call',
+};
+
+const searchCall = () =>
+    responsesStream([
+        { response: { id: 'resp_1', status: 'in_progress' }, type: 'response.created' },
+        {
+            item: { ...functionCall, arguments: '', status: 'in_progress' },
+            output_index: 0,
+            type: 'response.output_item.added',
+        },
+        { item: functionCall, output_index: 0, type: 'response.output_item.done' },
+        {
+            response: {
+                id: 'resp_1',
+                output: [functionCall],
+                status: 'completed',
+                usage: { input_tokens: 10, output_tokens: 5, total_tokens: 15 },
+            },
+            type: 'response.completed',
+        },
+    ]);
 
 const hostedSearch = () =>
     responsesAnswer({
@@ -46,7 +77,7 @@ describe('native web search on Pi', () => {
         const { events, requests } = await searchTurn({
             answers: [hostedSearch],
             modelId: 'gpt-5.6-sol',
-            webSearch: ['openai-codex'],
+            webSearch: true,
         });
 
         expect(requests.map((request) => request.path)).toEqual(['/chatgpt/codex/responses']);
@@ -59,7 +90,7 @@ describe('native web search on Pi', () => {
         const { events, requests } = await searchTurn({
             answers: [hostedSearch],
             modelId: 'grok-4.7',
-            webSearch: ['xai'],
+            webSearch: true,
         });
 
         expect(requests.map((request) => request.path)).toEqual(['/xai/v1/responses']);
@@ -98,7 +129,7 @@ describe('native web search on Pi', () => {
                     }),
             ],
             modelId: 'grok-4.7',
-            webSearch: ['xai'],
+            webSearch: true,
         });
 
         expect(events.steps.slice(0, 2)).toEqual([
@@ -127,11 +158,11 @@ describe('native web search on Pi', () => {
         ]);
     });
 
-    test('with search off, no hosted tool is sent and the Agent has the web_search tool instead', async () => {
-        const { requests } = await searchTurn({
-            answers: [() => responsesAnswer({ text: 'Not sure.' })],
+    test('on a connection with search off, no hosted tool is sent and web_search answers that search is not configured', async () => {
+        const { events, requests } = await searchTurn({
+            answers: [searchCall, () => responsesAnswer({ text: 'I could not search.' })],
             modelId: 'grok-4.7',
-            webSearch: ['google'],
+            webSearch: false,
         });
 
         expect(toolsOf(requests[0]?.body ?? {})).toEqual([
@@ -141,6 +172,52 @@ describe('native web search on Pi', () => {
             'function web_fetch',
             'function web_search',
         ]);
+        expect(requests[1]?.body.input).toContainEqual({
+            call_id: 'call_1',
+            output: webSearchNotConfigured,
+            type: 'function_call_output',
+        });
+        expect(events.steps).toContainEqual({
+            isError: true,
+            output: webSearchNotConfigured,
+            toolCallId: 'call_1|fc_1',
+            toolName: 'web_search',
+            type: 'tool-result',
+        });
+    });
+
+    test('on a Gemini connection with search off, web_search answers without a grounded request', async () => {
+        const { events, requests } = await searchTurn({
+            answers: [
+                () =>
+                    geminiStream([
+                        geminiParts([
+                            {
+                                functionCall: {
+                                    args: { query: 'haus release day' },
+                                    id: 'call_1',
+                                    name: 'web_search',
+                                },
+                            },
+                        ]),
+                    ]),
+                () => geminiStream([geminiParts([{ text: 'I could not search.' }])]),
+            ],
+            modelId: 'gemini-2.5-pro',
+            webSearch: false,
+        });
+
+        expect(requests).toHaveLength(2);
+        expect(requests.map((request) => request.body.tools)).not.toContainEqual([
+            { googleSearch: {} },
+        ]);
+        expect(events.steps).toContainEqual({
+            isError: true,
+            output: webSearchNotConfigured,
+            toolCallId: 'call_1',
+            toolName: 'web_search',
+            type: 'tool-result',
+        });
     });
 
     test('a Gemini web_search call sends one grounded request with only googleSearch', async () => {
@@ -183,7 +260,7 @@ describe('native web search on Pi', () => {
                 () => geminiStream([geminiParts([{ text: 'Tuesdays.' }])]),
             ],
             modelId: 'gemini-2.5-pro',
-            webSearch: ['google'],
+            webSearch: true,
         });
 
         expect(requests.map((request) => request.path)).toEqual([

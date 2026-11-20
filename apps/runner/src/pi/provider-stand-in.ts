@@ -1,19 +1,11 @@
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { zstdDecompressSync } from 'node:zlib';
 import type { Provider } from '@earendil-works/pi-ai';
-import { createModels } from '@earendil-works/pi-ai/models';
-import { googleProvider } from '@earendil-works/pi-ai/providers/google';
-import { openaiCodexProvider } from '@earendil-works/pi-ai/providers/openai-codex';
-import { openrouterProvider } from '@earendil-works/pi-ai/providers/openrouter';
-import { xaiProvider } from '@earendil-works/pi-ai/providers/xai';
+import { type ModelProvider, modelProviderFor, type RunnerModelConnection } from '@haus/api';
+import { createConnectionBook } from '../model-connections/connection-book.ts';
 import { cleanups, live, startedRun } from '../runner-test-server.ts';
-import { openFileCredentialStore } from './pi-credentials.ts';
 import { createPiHarness } from './pi-driver.ts';
 import { agentDir, collect, launch } from './pi-faux-run.ts';
-import { piAuthContext } from './pi-models.ts';
-import type { WebSearchProvider } from './pi-web-search.ts';
+import { connectionModels, piProviderFor } from './pi-models.ts';
 
 export interface StandInRequest {
     readonly body: Record<string, unknown>;
@@ -48,50 +40,30 @@ export function providerStandIn(answers: readonly Answer[]) {
     return { origin: `http://127.0.0.1:${server.port}`, requests };
 }
 
-export async function standInModels(origin: string) {
-    const directory = await mkdtemp(join(tmpdir(), 'haus-pi-logins-'));
-    cleanups.push(() => rm(directory, { force: true, recursive: true }));
-    const credentials = openFileCredentialStore(directory);
-    await credentials.modify('openai-codex', async () => ({
-        access: fakeChatGptToken,
-        accountId: 'acct_1',
-        expires: Date.now() + 3_600_000,
-        refresh: 'refresh-1',
-        type: 'oauth',
-    }));
-    const models = createModels({
-        authContext: piAuthContext({
-            geminiApiKey: 'gemini-key',
-            openrouterApiKey: 'openrouter-key',
-            xaiApiKey: 'xai-key',
-        }),
-        credentials,
-    });
-    models.setProvider(rebased(openaiCodexProvider(), `${origin}/chatgpt`));
-    models.setProvider(rebased(xaiProvider(), `${origin}/xai/v1`));
-    models.setProvider(rebased(googleProvider(), `${origin}/google`));
-    models.setProvider(
-        rebased(openrouterProvider(), (upstream) => `${origin}/openrouter${upstream.pathname}`)
-    );
-    return models;
-}
-
 export async function searchTurn(input: {
     answers: readonly Answer[];
     modelId: string;
-    webSearch: readonly WebSearchProvider[];
+    webSearch: boolean;
 }) {
     const standIn = providerStandIn(input.answers);
+    const connection = standInConnection(modelProviderFor(input.modelId), input.webSearch);
+    const book = createConnectionBook();
+    await book.replace([connection]);
     const harness = createPiHarness({
         log: () => undefined,
         maxWarm: 1,
-        models: await standInModels(standIn.origin),
-        webSearch: input.webSearch,
+        models: (started) =>
+            connectionModels({
+                book,
+                connectionId: started.connection.id,
+                link: { send: () => undefined },
+                provider: standInProvider(started.connection.provider, standIn.origin),
+            }),
     });
     cleanups.push(() => harness.close());
     const { run } = await startedRun();
     const session = await harness
-        .factory(launch(await agentDir(), run.tools, input.modelId))
+        .factory({ ...launch(await agentDir(), run.tools, input.modelId), connection })
         .openSession({ resumeFrom: undefined, sessionId: 'agt_1-1' });
     const turn = await session.startTurn({ prompt: 'When does Haus ship?', signal: live() });
     return { events: await collect(turn.events), requests: standIn.requests };
@@ -194,6 +166,48 @@ export function geminiParts(parts: readonly Record<string, unknown>[], extra = {
         candidates: [{ content: { parts, role: 'model' }, finishReason: 'STOP', ...extra }],
         usageMetadata: { candidatesTokenCount: 5, promptTokenCount: 10, totalTokenCount: 15 },
     };
+}
+
+function standInConnection(provider: ModelProvider, webSearch: boolean) {
+    const connection: RunnerModelConnection = {
+        credential:
+            provider === 'chatgpt'
+                ? {
+                      credential: {
+                          access: fakeChatGptToken,
+                          accountId: 'acct_1',
+                          expires: Date.now() + 3_600_000,
+                          refresh: 'refresh-1',
+                      },
+                      kind: 'oauth',
+                  }
+                : { key: `${provider}-key`, kind: 'api-key' },
+        credentialVersion: 1,
+        id: `mc_${provider}`,
+        label: provider,
+        provider,
+        serverId: 'srv_1',
+        webSearch,
+    };
+    return connection;
+}
+
+function standInProvider(provider: ModelProvider, origin: string) {
+    switch (provider) {
+        case 'chatgpt':
+            return rebased(piProviderFor(provider), `${origin}/chatgpt`);
+        case 'xai':
+            return rebased(piProviderFor(provider), `${origin}/xai/v1`);
+        case 'gemini':
+            return rebased(piProviderFor(provider), `${origin}/google`);
+        case 'openrouter':
+            return rebased(
+                piProviderFor(provider),
+                (upstream) => `${origin}/openrouter${upstream.pathname}`
+            );
+        default:
+            return piProviderFor(provider);
+    }
 }
 
 function rebased(provider: Provider, baseUrl: string | ((upstream: URL) => string)) {

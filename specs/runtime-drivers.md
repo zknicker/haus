@@ -458,10 +458,10 @@ A provider either hosts the search inside the model's request, or Haus calls it 
 
 | Provider | Shape | Login | Cost |
 | --- | --- | --- | --- |
-| ChatGPT plan (`openai-codex`) | Hosted: OpenAI's `web_search` tool on every generation request, as Codex's `web_search = "live"` sends it | The Codex sign-in file | Draws on the plan's Codex usage; no per-call API charge |
-| xAI | Hosted: xAI's `web_search` server-side tool on the Responses request | `HAUS_RUNNER_XAI_API_KEY` | Each search call is billed to the key, $5 per 1,000 in xAI's pricing at 2026-11 |
-| Google | `web_search` tool: one `generateContent` request to the Agent's own model with only `googleSearch`, answered with the grounded text and its sources | `HAUS_RUNNER_GEMINI_API_KEY` | Gemini 3 bills each search query after 5,000 free a month, then $14 per 1,000 |
-| OpenRouter | Hosted: OpenRouter's `openrouter:web_search` server tool on every Chat Completions or Messages request, with its default `auto` engine | `HAUS_RUNNER_OPENROUTER_API_KEY` | Billed to the key. Anthropic, Google, OpenAI, Perplexity and xAI models search natively at their provider's price; every other model searches through Exa at $0.007 a request, at 2026-11 |
+| ChatGPT plan (`openai-codex`) | Hosted: OpenAI's `web_search` tool on every generation request, as Codex's `web_search = "live"` sends it | The ChatGPT connection's sign-in | Draws on the plan's Codex usage; no per-call API charge |
+| xAI | Hosted: xAI's `web_search` server-side tool on the Responses request | The xAI connection's key | Each search call is billed to the key, $5 per 1,000 in xAI's pricing at 2026-11 |
+| Google | `web_search` tool: one `generateContent` request to the Agent's own model with only `googleSearch`, answered with the grounded text and its sources | The Gemini connection's key | Gemini 3 bills each search query after 5,000 free a month, then $14 per 1,000 |
+| OpenRouter | Hosted: OpenRouter's `openrouter:web_search` server tool on every Chat Completions or Messages request, with its default `auto` engine | The OpenRouter connection's key | Billed to the key. Anthropic, Google, OpenAI, Perplexity and xAI models search natively at their provider's price; every other model searches through Exa at $0.007 a request, at 2026-11 |
 
 Haus sends OpenRouter's server tool, not its older `web` plugin: with the server tool the model
 decides when and how often to search, and OpenRouter runs every search inside the request.
@@ -504,14 +504,12 @@ the URL cleanup, Gemini's redirect resolution, the two `url_citation` shapes, an
 search blocks. Haus does not run pi-web-search as a Pi extension; its request side calls each
 provider from a tool of its own, where Haus hosts the search in the Agent's request.
 
-Search is on for every connection by default. Until each model connection carries its own
-`webSearch` setting, `HAUS_RUNNER_WEB_SEARCH` names the providers whose search is on, as a
-comma-separated list of `openai-codex`, `xai`, `google`, and `openrouter`, and an unset list
-means all four. `webSearchOn` in `apps/runner/src/pi/pi-web-search.ts` is the one place that
-answers whether a run's provider searches, so the move to the connection's setting changes that
-function alone. The setting's effect on the Agent's tools and requests is part of the Pi launch
-fingerprint, so a change restarts warm sessions. A Pi Agent without search keeps a `web_search`
-tool that answers that web search is not configured and points at `web_fetch`.
+Search is a per-connection setting in Settings → Models, on by default: each ChatGPT, xAI,
+Gemini, and OpenRouter connection carries `webSearch` ([Model connections](model-connections.md)).
+`webSearchOn` in `apps/runner/src/pi/pi-web-search.ts` answers from the run's connection whether
+it searches. The setting's effect on the Agent's tools and requests is part of the Pi launch
+fingerprint, so turning it off or on restarts warm sessions. A Pi Agent without search keeps a
+`web_search` tool that answers that web search is not configured and points at `web_fetch`.
 
 ### Removed
 
@@ -937,7 +935,7 @@ settings, reminder scripts, host skill discovery, inventory, updates, and Worker
 | The runner cannot import Server or PostgreSQL modules, and Computer code makes no model calls | `scripts/lint/haus-rules/runner-boundary.cases.mjs`, `computer-no-model-calls.cases.mjs` | R3 |
 | The SDK runs with native tools off and only `mcp__haus__*` tools reachable | `apps/runner/src/claude/claude-tools-live.test.ts`, `claude-driver-live.test.ts` | R3 |
 | `web_fetch` turns HTML into Markdown, caps redirects, size, and time, refuses a non-public address at every hop, and describes a non-text body without its bytes | `apps/runner/src/web/web-fetch.test.ts`, `public-address.test.ts` | R3c |
-| Hosted search reaches the ChatGPT plan and xAI requests, Gemini's grounded request carries only `googleSearch`, citations reach the turn events, and an unconfigured Agent hears that search is not configured | `apps/runner/src/pi/pi-web-search.test.ts`, `apps/runner/src/web/web-search.test.ts` | R3c |
+| Hosted search reaches the ChatGPT plan and xAI requests, Gemini's grounded request carries only `googleSearch`, citations reach the turn events, a connection with search off sends no hosted tool and its Agent hears that search is not configured, and the switch changes the Pi launch fingerprint | `apps/runner/src/pi/pi-web-search.test.ts`, `pi-openrouter-search.test.ts`, `pi-driver.test.ts`, `apps/runner/src/web/web-search.test.ts` | R3c |
 | Each provider's native search answers a live turn | `apps/runner/src/pi/pi-web-search-live.test.ts` (`HAUS_RUN_LIVE_RUNNER_PI_SEARCH_TEST=1`) | R3c |
 | Ported Pi tools keep their upstream behavior | Ported upstream tests, listed in `pi/PROVENANCE.md` | R2 |
 | The ported Codex patch grammar keeps its upstream behavior | Ported upstream tests | R5 |

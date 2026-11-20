@@ -134,7 +134,7 @@ describe('OpenRouter web search', () => {
         const { events, requests } = await searchTurn({
             answers: [searchedCompletion],
             modelId: 'moonshotai/kimi-k2.6',
-            webSearch: ['openrouter'],
+            webSearch: true,
         });
 
         expect(requests.map((request) => request.path)).toEqual([
@@ -168,7 +168,7 @@ describe('OpenRouter web search', () => {
         const { events, requests } = await searchTurn({
             answers: [searchedMessage],
             modelId: 'anthropic/claude-fable-5',
-            webSearch: ['openrouter'],
+            webSearch: true,
         });
 
         expect(requests.map((request) => request.path)).toEqual(['/openrouter/api/v1/messages']);
@@ -214,7 +214,7 @@ describe('OpenRouter web search', () => {
                     ]),
             ],
             modelId: 'moonshotai/kimi-k2.6',
-            webSearch: ['xai'],
+            webSearch: false,
         });
 
         expect(toolsOf(requests[0]?.body ?? {})).toEqual([

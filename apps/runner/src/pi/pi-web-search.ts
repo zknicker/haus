@@ -23,7 +23,10 @@ const searches = {
     xai: { route: 'hosted', tool: { type: 'web_search' } },
 } as const satisfies Record<WebSearchProvider, ProviderSearch>;
 
-export function webSearchOn(connection: Pick<RunnerModelConnection, 'webSearch'>, provider: string) {
+export function webSearchOn(
+    connection: Pick<RunnerModelConnection, 'webSearch'>,
+    provider: string
+) {
     return connection.webSearch
         ? (webSearchProviders.find((candidate) => candidate === provider) ?? null)
         : null;
