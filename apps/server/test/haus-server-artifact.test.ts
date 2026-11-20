@@ -13,7 +13,10 @@ test('builds one versioned Apple Silicon Server artifact with App and operations
         readFileSync(join(repoRoot, 'packages/haus-api/haus-product.json'), 'utf8')
     ) as { version: string };
     const ledger = JSON.parse(readFileSync(join(repoRoot, 'releases.json'), 'utf8'));
-    const serverVersion = resolveReleaseSnapshot(ledger, { sourceRevision }).components.server;
+    const serverVersion = resolveReleaseSnapshot(ledger, {
+        sourceRevision,
+        unshippedIOSVersions: [],
+    }).components.server;
     if (!serverVersion) {
         throw new Error('release ledger must contain a Server version');
     }

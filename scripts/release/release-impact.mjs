@@ -5,6 +5,7 @@ import {
     releaseTargetVersion,
 } from './release-ledger.mjs';
 import { runGit } from './release-utils.mjs';
+import { unshippedIOSTag } from './unshipped-ios.mjs';
 
 export const releaseImpactTargets = ['server', 'app', 'ios', 'computer', 'agent'];
 
@@ -125,6 +126,13 @@ async function findReleaseBaseline({ ledger, target, resolveTag, resolveReleaseC
     for (let index = ledger.length - 1; index >= 0; index -= 1) {
         const entry = ledger[index];
         if (!releasePublishesTarget(entry, target)) {
+            continue;
+        }
+        if (
+            target === 'ios' &&
+            entry.version &&
+            (await resolveTag(unshippedIOSTag(entry.version)))
+        ) {
             continue;
         }
         const tag = targetTag(entry, target);
