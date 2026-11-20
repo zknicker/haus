@@ -50,7 +50,6 @@ const forge = {
 const sources = (fields: Partial<CapySidebarSources>) =>
     ({
         agentIds: ['forge', 'orbit'],
-        channelOrder: [],
         chats: [],
         openTasks: [],
         unreadPreviews: [],
@@ -138,10 +137,10 @@ test('a Captain tile flags an Agent that needs attention or is paused', () => {
     expect(captainTile({ ...forge, availability: 'offline' }, null).presence).toBeNull();
 });
 
-test('Projects follow the stored order', () => {
+test('Projects list in Server order; the sortable list applies the stored order', () => {
     const eng = chat({ id: 'eng', kind: 'channel', name: 'eng', participantAgentIds: ['forge'] });
     const sec = chat({ id: 'sec', kind: 'channel', name: 'sec', unreadCount: 4 });
-    expect(projectIds([eng, sec], ['sec'])).toEqual(['sec', 'eng']);
+    expect(projectIds([eng, sec])).toEqual(['eng', 'sec']);
 });
 
 test('a Task that @mentions you in an unread message waits on you and sorts first', () => {

@@ -20,15 +20,6 @@ export function useCapySidebarSections(serverId: string) {
         { serverId },
         { ...queryPolicy.syncedSnapshot, select: selectAgentIds }
     ).data;
-    const [channelOrder] = React.useState(() => storedChannelOrder(serverId));
-    const selectChatLayout = React.useCallback(
-        (chats: Chat[]) => ({
-            agentDmChatIds: agentDmChatIds(chats),
-            personChatIds: personChatIds(chats),
-            projectIds: projectIds(chats, channelOrder),
-        }),
-        [channelOrder]
-    );
     const chatLayout = useChatListSelection(serverId, selectChatLayout);
     const openTasks = hausTrpc.task.listOpen.useQuery(
         { serverId },
@@ -60,6 +51,14 @@ export function useCapySidebarSections(serverId: string) {
 export function storedChannelOrder(serverId: string) {
     const storage = globalThis.window?.localStorage;
     return storage ? readChannelOrder(storage, `haus.sidebar.channels.${serverId}`) : [];
+}
+
+function selectChatLayout(chats: Chat[]) {
+    return {
+        agentDmChatIds: agentDmChatIds(chats),
+        personChatIds: personChatIds(chats),
+        projectIds: projectIds(chats),
+    };
 }
 
 function selectAgentIds(agents: Agent[]) {

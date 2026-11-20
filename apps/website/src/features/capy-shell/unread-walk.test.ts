@@ -33,7 +33,6 @@ const rows = walkRows({
     previews,
     sections: buildCapySidebar({
         agentIds: ['forge', 'orbit'],
-        channelOrder: [],
         chats,
         openTasks: [
             {
