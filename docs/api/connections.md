@@ -186,8 +186,8 @@ bodies with an HTML page, which would erase the typed error. `MCP_UNAVAILABLE` m
 safe upstream reason: the HTTP status, or the JSON-RPC code plus a short sanitized copy of the
 upstream message (single line, at most 200 characters, URLs and credential-shaped text redacted).
 Response bodies and URLs never leave Server (`apps/server/src/server-mcp/upstream-failure.ts`).
-Computer turns any unreadable, non-JSON, or mis-shaped Server response into `MCP_UNAVAILABLE`
-naming the HTTP status (`apps/computer/src/server-mcp-response.ts`), and its loopback proxy answers
+The runner turns any unreadable, non-JSON, or mis-shaped Server response into `MCP_UNAVAILABLE`
+naming the HTTP status (`apps/runner/src/tools/mcp-client.ts`), and its Haus proxy answers
 an unreadable or over-1-MiB Server body with a typed JSON error.
 
 `connected` describes retained connection identity, not momentary upstream health. These transient

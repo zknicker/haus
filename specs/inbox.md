@@ -1,5 +1,5 @@
 ---
-summary: Agent inbox — the `agent_inbox` item kinds and their one lifecycle, exact delivery planning, model-visibility accounting, notice turns, local-first pulls, and cause inference on send. Supersedes steering.md and addressing.md.
+summary: Agent inbox — the `agent_inbox` item kinds and their one lifecycle, exact delivery planning, model-visibility accounting, notice turns, runner-local pulls, and cause inference on send. Supersedes steering.md and addressing.md.
 read_when:
   - adding an agent inbox item kind, or changing an item's identity or lifecycle
   - changing the drive_conflict item, who receives it, or its wording
@@ -22,6 +22,13 @@ Agent pull discretion, and exact visibility plus a verified contiguous boundary 
 only truth about what an agent has seen. Decisions I1–I4 in
 [raft-alignment/README.md](raft-alignment/README.md); wire surface in
 [haus-cli.md](haus-cli.md).
+
+**Delivery host.** Every Agent runs on the runner ([Runtime drivers](runtime-drivers.md), R4d), so
+where this spec says the Computer accepts, caches, mirrors, or pulls local envelopes, read the
+runner: its inbox store (`apps/runner/src/turn/inbox-store.ts`), turn input and composed drain
+(`turn-input.ts`, `composed-drain.ts`), notices (`turn-notices.ts`, `pending-notice.ts`), and Haus
+proxy (`apps/runner/src/haus/haus-proxy.ts`) own those jobs, and the Server sends `runner-start` and
+notice frames over the runner socket. The Computer no longer holds an Agent inbox or accepts runs.
 
 ## Item kinds and lifecycle
 
@@ -396,25 +403,25 @@ turn starts when its creator sends the working brief.
 
 | Contract | Executable guard |
 | --- | --- |
-| Pending work is the first notice prompt; no `Start.` race or duplicate injection | `apps/computer/src/harness/executor.test.ts` |
+| Pending work is the first notice prompt; no `Start.` race or duplicate injection | `apps/runner/src/turn/turn-notices.test.ts` |
 | Notices contain no bodies and exact envelopes retain target/message identity | `packages/agent-prompt/src/inbox-format.test.ts` |
 | `haus inbox check` lists unread conversations from the durable read position, pending rows first, with one `Next:`; listing advances nothing | `packages/agent-cli/src/commands/agent-inbox.test.ts`, `apps/server/test/agent-inbox-check.test.ts` |
-| Local-first pull, exact visibility receipts, history/read consumption, and Server fallback | `apps/computer/src/proxy.test.ts` |
-| Stale notices cannot resurrect identities already made visible | `apps/computer/src/inbox-store.test.ts` |
-| Accepted work and pull evidence survive reconnect or replay correctly | `apps/computer/src/delivery.test.ts`, `apps/server/test/agent-delivery.test.ts` |
+| Local-first pull, exact visibility receipts, history/read consumption, and Server fallback | `apps/runner/src/haus/haus-cli.test.ts` |
+| Stale notices cannot resurrect identities already made visible | `apps/runner/src/turn/inbox-store.test.ts` |
+| Accepted work and pull evidence survive reconnect or replay correctly | `apps/server/test/agent-delivery.test.ts` |
 | Unpulled work is offered once; new identities wake again; subsets and targets settle independently | `apps/server/test/agent-delivery.test.ts` |
-| Notices inject only at safe tool boundaries or remain durable for the next turn | `apps/computer/src/harness/executor.test.ts`, `apps/server/test/agent-delivery.test.ts` |
+| Notices inject only at safe tool boundaries or remain durable for the next turn | `apps/runner/src/turn/turn-notices.test.ts`, `apps/server/test/agent-delivery.test.ts` |
 | Creating an Agent creates no inbox item and no empty bootstrap turn for the new Agent | `apps/server/test/haus-agent-creation.test.ts` |
-| The notice teaches Raft's `--unread` / `message check` pull plus non-request and read-before-you-stop semantics; the digest points at `haus inbox check`; the prompt teaches asynchronous collaboration and FYI silence without losing required capabilities | `packages/agent-prompt/src/inbox-format.test.ts`, `apps/computer/src/harness/turn-prompt.test.ts`, `packages/agent-prompt/src/managed-instructions.test.ts` |
-| A live session drains human bodies; a cold start drains only addressed items and notices the rest once | `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/executor.test.ts` |
-| A composed drain records exact run visibility and consumes its own notice rows | `apps/computer/src/harness/turn-prompt.test.ts` |
-| A drained wake message is exact-visible before settlement, and the freshness hold does not fire on it | `apps/server/test/agent-composed-drain-visibility.test.ts`, `apps/computer/src/harness/composed-drain-receipt.test.ts` |
+| The notice teaches Raft's `--unread` / `message check` pull plus non-request and read-before-you-stop semantics; the digest points at `haus inbox check`; the prompt teaches asynchronous collaboration and FYI silence without losing required capabilities | `packages/agent-prompt/src/inbox-format.test.ts`, `apps/runner/src/turn/turn-input.test.ts`, `packages/agent-prompt/src/managed-instructions.test.ts` |
+| A live session drains human bodies; a cold start drains only addressed items and notices the rest once | `apps/runner/src/turn/turn-input.test.ts`, `apps/runner/src/turn/turn-notices.test.ts` |
+| A composed drain records exact run visibility and consumes its own notice rows | `apps/runner/src/turn/turn-input.test.ts` |
+| A drained wake message is exact-visible before settlement, and the freshness hold does not fire on it | `apps/server/test/agent-composed-drain-visibility.test.ts`, `apps/runner/src/turn/turn-input.test.ts` |
 | Pre-join history never holds a send; a hold shows three, serves them to the active run once however deep the queued backlog, never walks back through what it omitted, and allows `--anyway` from the fourth hold | `apps/server/test/agent-send-hold.test.ts`, `apps/server/test/agent-send-hold-serving.test.ts` |
 | A queued greeting never holds or stales a send and survives the seen advance; the first send into a channel the Agent just created is not held | `apps/server/test/agent-freshness-new-chats.test.ts` |
 | Addressing is decided at enqueue and survives stale, uncertain or kept routing | `apps/server/test/message-routing-addressing.test.ts`, `apps/server/test/agent-inbox-lanes.test.ts` |
 | A single-Agent channel addresses `sole` without Jev for one human and judges it at the gate for more | `apps/server/test/haus-message-routing-sole.test.ts` |
 | The unread digest excludes notice-row chats and drained ids, so a bounded drain's remainder still shows | `apps/server/test/agent-inbox-digest.test.ts` |
-| Assignments coalesce into one main-session run, a busy Agent gets a count then the Tasks, and reassigning retires a queued item | `apps/server/test/haus-task-agent-delivery.test.ts`, `apps/computer/src/harness/task-assignment-turn.test.ts`, `apps/computer/src/inbox-store-task-assignments.test.ts` |
+| Assignments coalesce into one main-session run, a busy Agent gets a count then the Tasks, and reassigning retires a queued item | `apps/server/test/haus-task-agent-delivery.test.ts`, `apps/runner/src/turn/turn-input.test.ts`, `apps/runner/src/turn/inbox-store.test.ts` |
 | One `drive_conflict` item per push lists every file, wakes an idle Agent, reaches a Worker's Agent, and waits at the chain ceiling instead of dropping | `apps/server/test/drive-conflict-delivery.test.ts`, `apps/server/test/drive-conflict-chain.test.ts` |
 
 ## Presentation split (I1/I4)

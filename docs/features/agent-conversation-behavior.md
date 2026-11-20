@@ -74,7 +74,7 @@ dashes. An optional per-Agent conversation style layers voice on top and wins on
 rules. The signature emoji is the pickup reaction (default 👀) and is chosen at creation. The
 facts, privacy, and editing rules live in [Agents](agents.md#identity-and-instructions).
 
-- Owner: `apps/computer/src/harness/personality-sections.ts` (`housePersonalitySection`,
+- Owner: `packages/agent-prompt/src/personality-sections.ts` (`housePersonalitySection`,
   `conversationStyleSection`, `defaultSignatureEmoji`); Server storage in
   `apps/server/src/server-agents/agent-conversation-style.ts`.
 - Guards: `personality-instructions.test.ts` (house personality placement, conversation style
@@ -153,10 +153,10 @@ skipped for Agent housekeeping, paced by workstream, never persisted. Details li
 - Owner: [ADR 0035](../adr/0035-chat-engagement-shows-as-typing.md),
   [ADR 0036](../adr/0036-agent-thoughts-surface-as-condensed-phrases.md);
   `apps/server/src/server-agents/` (thought summarizer, cadence, novelty, housekeeping);
-  `apps/computer/src/harness/thought-narrator.ts`, `thought-action.ts`, `thought-result.ts`.
+  the runner reports the activity thoughts derive from (`apps/runner/src/turn/run-activity.ts`).
 - Guards: `apps/server/test/chat-engagement.test.ts`, `agent-thought*.test.ts`;
   `apps/server/src/server-agents/thought-*.test.ts`, `agent-thought-summarizer*.test.ts`;
-  `apps/computer/src/harness/thought-*.test.ts`; App e2e `apps/website/e2e/tests/chat-typing.spec.ts`;
+  `apps/runner/src/turn/run-activity.test.ts`; App e2e `apps/website/e2e/tests/chat-typing.spec.ts`;
   labeled eval `scripts/thought-housekeeping-eval.ts` with `scripts/thought-eval-checks.test.ts`.
 
 ## 7. Supporting reliability
@@ -166,9 +166,9 @@ Agents follow the current Raft prompt by default, pinned at Raft `v1.21.2-source
 can steer as an inbox notice, so the settled reply reflects it.
 
 - Owner: [Prompt divergences](../../specs/raft-alignment/prompt-divergences.md);
-  `apps/computer/src/harness/steer-inbox-notice.ts`, `packages/agent-prompt/src/inbox-format.ts`.
+  `apps/runner/src/turn/turn-notices.ts`, `packages/agent-prompt/src/inbox-format.ts`.
 - Guards: `bun run test:prompt-contract` (size cap ratchet in `managed-instructions.test.ts`);
-  `steer-inbox-notice.test.ts`; the `freshness` case in `bun run eval:sessions`.
+  `apps/runner/src/turn/turn-notices.test.ts`; the `freshness` case in `bun run eval:sessions`.
 
 ## 8. Working beside other Agents
 
@@ -225,8 +225,8 @@ rest `todo` until it is done or blocked. Tasks an Agent started itself, such as 
 one findings message, can run side by side.
 
 - Owner: [ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md); `tasksSection` and
-  `splittingWorkSection` in `apps/computer/src/harness/task-instructions.ts`; the fire-to-Task
-  sentences in `apps/computer/src/harness/automation-instructions.ts`; the `tasks` and
+  `splittingWorkSection` in `packages/agent-prompt/src/task-instructions.ts`; the fire-to-Task
+  sentences in `packages/agent-prompt/src/automation-instructions.ts`; the `tasks` and
   `workers` Manual topics in `packages/agent-manual/src/work-topics.ts`.
 - Guards: `task-instructions.test.ts`, `automation-instructions.test.ts`,
   `worker-instructions.test.ts`; `packages/agent-manual/src/work-topics.test.ts`; the
@@ -255,7 +255,7 @@ rule in the wrong file, a second post, a question back, or an offer to do more.
   (`packages/agent-manual/src/rules-topic.ts`); the Agent's own `AGENTS.md` reaches every later
   session through rule delivery ([context management](context-management.md)).
 - Guards: `managed-instructions-memory.test.ts`, `packages/agent-manual/src/rules-topic.test.ts`,
-  `apps/computer/src/harness/executor-rules-delivery.test.ts`; the `rules` eval
+  `apps/runner/src/turn/rules-delivery.test.ts`; the `rules` eval
   (`bun run eval rules`, scenarios `rule-files-worker`, `rule-files-agent`, and
   `rule-files-fact`), which reads each fresh Agent's Drive area on the Server, with grader
   profiles M7 and M8 in `scripts/eval/profiles.mjs` (specs/agent-e2e/README.md).
