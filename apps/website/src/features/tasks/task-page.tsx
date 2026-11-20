@@ -6,15 +6,15 @@ import * as React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useTask } from '../../hooks/tasks/use-task.ts';
+import { cn } from '../../lib/utils.ts';
 import { useServerContext } from '../servers/server-context.ts';
 import { tasksRoute, workerRoute } from '../servers/server-routes.ts';
 import { PageColumn } from '../shell/page-column.tsx';
-import { WorkerPane } from '../workers/log/worker-pane.tsx';
 import { WorkerOpenContext } from '../workers/worker-open-context.tsx';
 import { WorkerSummariesProvider } from '../workers/worker-summaries.tsx';
 import { TaskConversation } from './conversation/task-conversation.tsx';
-import { TaskDetailsCard } from './details/task-details-card.tsx';
 import { TaskHistoryDetails } from './details/task-history-details.tsx';
+import { overviewTab, TaskSidePane } from './task-side-pane.tsx';
 import { TaskWorkPanel } from './work/task-work-panel.tsx';
 
 export { TaskBandControls } from './task-band-controls.tsx';
@@ -53,29 +53,33 @@ function TaskDetailView({
     const [params, setParams] = useSearchParams();
     const navigate = useNavigate();
     const { server } = useServerContext();
-    const openWorkerId = panelShown ? params.get('worker') : null;
+    const openWorkerIds = params.getAll('worker');
+    const selected = panelShown ? (params.get('tab') ?? overviewTab) : overviewTab;
     const openWorker = React.useCallback(
         (workerId: string) => {
             if (panelShown) {
-                setParams((current) => withWorker(current, workerId));
+                setParams((current) => withTab(withWorkerOpen(current, workerId), workerId));
             } else {
                 navigate(workerRoute(server.slug, workerId));
             }
         },
         [navigate, panelShown, server.slug, setParams]
     );
-    const closeWorker = () => setParams((current) => withWorker(current, null));
+    const workerWide = selected !== overviewTab;
 
     return (
         <WorkerSummariesProvider workers={task.attachedWork}>
             <WorkerOpenContext value={openWorker}>
                 <div
                     className={
-                        openWorkerId
-                            ? 'grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(22rem,32rem)]'
-                            : panelShown
-                              ? 'grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_18rem] gap-8 pe-5'
-                              : 'flex min-h-0 flex-1'
+                        panelShown
+                            ? cn(
+                                  'grid min-h-0 flex-1 gap-6 pe-5',
+                                  workerWide
+                                      ? 'grid-cols-[minmax(0,1fr)_minmax(22rem,32rem)]'
+                                      : 'grid-cols-[minmax(0,1fr)_18rem]'
+                              )
+                            : 'flex min-h-0 flex-1'
                     }
                 >
                     <TaskConversation
@@ -83,13 +87,18 @@ function TaskDetailView({
                         origin={task.origin}
                         title={`${task.key} ${task.title}`}
                     />
-                    {openWorkerId ? (
-                        <WorkerPane onClose={closeWorker} workerId={openWorkerId} />
-                    ) : panelShown ? (
-                        <div className="flex min-h-0 flex-col gap-3 overflow-y-auto pt-4 pb-6">
-                            <TaskDetailsCard task={task} />
-                            <TaskWorkPanel task={task} />
-                        </div>
+                    {panelShown ? (
+                        <TaskSidePane
+                            onClose={(workerId) =>
+                                setParams((current) =>
+                                    withTab(withWorkerClosed(current, workerId), overviewTab)
+                                )
+                            }
+                            onSelect={(tab) => setParams((current) => withTab(current, tab))}
+                            openWorkerIds={openWorkerIds}
+                            selected={selected}
+                            task={task}
+                        />
                     ) : null}
                 </div>
             </WorkerOpenContext>
@@ -97,12 +106,30 @@ function TaskDetailView({
     );
 }
 
-function withWorker(params: URLSearchParams, workerId: null | string) {
+function withWorkerOpen(params: URLSearchParams, workerId: string) {
     const next = new URLSearchParams(params);
-    if (workerId) {
-        next.set('worker', workerId);
+    if (!next.getAll('worker').includes(workerId)) {
+        next.append('worker', workerId);
+    }
+    return next;
+}
+
+function withWorkerClosed(params: URLSearchParams, workerId: string) {
+    const next = new URLSearchParams(params);
+    const rest = next.getAll('worker').filter((id) => id !== workerId);
+    next.delete('worker');
+    for (const id of rest) {
+        next.append('worker', id);
+    }
+    return next;
+}
+
+function withTab(params: URLSearchParams, tab: string) {
+    const next = new URLSearchParams(params);
+    if (tab === overviewTab) {
+        next.delete('tab');
     } else {
-        next.delete('worker');
+        next.set('tab', tab);
     }
     return next;
 }

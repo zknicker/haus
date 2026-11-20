@@ -1,13 +1,16 @@
 import * as z from 'zod';
 
 export const workerStepKinds = ['read', 'edit', 'run', 'search'] as const;
+export const workerStepStates = ['running', 'done', 'failed'] as const;
 export const workerStepsRetained = 40;
+export const workerStepOutputMaxLength = 4000;
 
 /**
- * One tool step a Worker turn took, as its carrier summarizes it: never the
- * raw transcript, the command output, or file contents. `label` is a repo
- * path for `read` and `edit`, the command line for `run`, and the query for
- * `search`. Line counts are set only on `edit`; `ok` only on `run`.
+ * One tool step a Worker turn took, as its carrier summarizes it. `label` is
+ * a repo path for `read` and `edit`, the command line for `run`, and the
+ * query for `search`. Line counts are set only on `edit`. `output` is the
+ * tail of a `run` step's terminal output, bounded; it is null for every other
+ * kind, and file contents never ride here.
  */
 export const workerStepSchema = z
     .object({
@@ -15,7 +18,8 @@ export const workerStepSchema = z
         deletions: z.number().int().nonnegative().nullable(),
         kind: z.enum(workerStepKinds),
         label: z.string().trim().min(1).max(200),
-        ok: z.boolean().nullable(),
+        output: z.string().max(workerStepOutputMaxLength).nullable(),
+        state: z.enum(workerStepStates),
     })
     .strict();
 

@@ -14,12 +14,12 @@ export function workerStepLines(steps: readonly WorkerStep[]) {
     }
     return groups.map((group) => {
         const kind = group[0]?.kind ?? 'read';
-        const runs = group.filter((step) => step.ok !== null);
+        const runs = group.filter((step) => step.kind === 'run');
         return {
             additions: group.reduce((sum, step) => sum + (step.additions ?? 0), 0),
             deletions: group.reduce((sum, step) => sum + (step.deletions ?? 0), 0),
             kind,
-            ok: runs.length === 0 ? null : runs.every((step) => step.ok),
+            ok: runs.length === 0 ? null : runs.every((step) => step.state !== 'failed'),
             text: `${verbs[kind]} ${group.map((step) => stepName(step)).join(', ')}`,
         };
     });

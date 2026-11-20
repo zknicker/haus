@@ -3,7 +3,15 @@ import type { WorkerStep } from '@haus/api';
 import { workerStepLines } from './worker-step-lines.ts';
 
 const step = (kind: WorkerStep['kind'], label: string, extra: Partial<WorkerStep> = {}) =>
-    ({ additions: null, deletions: null, kind, label, ok: null, ...extra }) satisfies WorkerStep;
+    ({
+        additions: null,
+        deletions: null,
+        kind,
+        label,
+        output: null,
+        state: 'done',
+        ...extra,
+    }) satisfies WorkerStep;
 
 test('consecutive steps of a kind fold into one line, files by name', () => {
     expect(
@@ -15,7 +23,7 @@ test('consecutive steps of a kind fold into one line, files by name', () => {
                 deletions: 4,
             }),
             step('edit', 'apps/website/src/chat-composer.tsx', { additions: 2, deletions: 2 }),
-            step('run', 'bun test src/features/servers/chat', { ok: true }),
+            step('run', 'bun test src/features/servers/chat', { state: 'done' }),
             step('read', 'ComposerToolbar.swift'),
         ])
     ).toEqual([
@@ -46,8 +54,8 @@ test('consecutive steps of a kind fold into one line, files by name', () => {
 
 test('a failed run in a group marks the line failed, and searches name their queries', () => {
     const [run, search] = workerStepLines([
-        step('run', 'bun test', { ok: true }),
-        step('run', 'bun run lint', { ok: false }),
+        step('run', 'bun test', { state: 'done' }),
+        step('run', 'bun run lint', { state: 'failed' }),
         step('search', 'gap-2.5'),
     ]);
 

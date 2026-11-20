@@ -20,7 +20,7 @@ const followUp: WorkerTurnInput = {
     text: 'Match iPhone.',
 };
 
-test('the Worker page is a session log: the brief first, the report once, and the docked composer', () => {
+test('the Worker reads as channel messages: the Agent brief, the Worker report once, and the composer', () => {
     const worker = work({
         turns: [
             turn({ input: [followUp], status: 'running', turnId: 'wkt_two' }),
@@ -39,7 +39,8 @@ test('the Worker page is a session log: the brief first, the report once, and th
     expect(html).toContain('Forge');
     expect(html).toContain('Zach');
     expect(html.match(/Fixed five of six\./gu)).toHaveLength(1);
-    expect(html).toContain('Needs you · worked for');
+    expect(html).toContain('Needs you, worked for');
+    expect(html).toContain('Worker on Cursor');
     expect(html).toContain('aria-label="Stop Worker"');
 });
 
@@ -68,32 +69,43 @@ test('a turn that ended without a report says why', () => {
     });
 
     expect(renderWorkerSurface(<WorkerView workerId={worker.id} />, { task, worker })).toContain(
-        'Failed · Ended without a report'
+        'Failed: Ended without a report'
     );
 });
 
-test('step summaries render as one monospace line per kind, and the log works without them', () => {
+test('a turn with steps groups them in a collapsed group that says how long it worked', () => {
     const steps = [
         {
             additions: null,
             deletions: null,
             kind: 'read' as const,
             label: 'src/PromptInput.tsx',
-            ok: null,
+            output: null,
+            state: 'done' as const,
         },
         {
             additions: 6,
             deletions: 4,
             kind: 'edit' as const,
             label: 'styles/default-theme.css',
-            ok: null,
+            output: null,
+            state: 'done' as const,
         },
     ];
-    const worker = work({ turns: [turn({ input: [brief], status: 'completed', steps })] });
+    const worker = work({
+        turns: [
+            turn({
+                input: [brief],
+                outcome: { kind: 'report', report: { ...askReport, outcome: 'done', ask: null } },
+                startedAt: '2026-09-04T12:00:00.000Z',
+                status: 'completed',
+                steps,
+                terminalAt: '2026-09-04T12:06:00.000Z',
+            }),
+        ],
+    });
     const html = renderWorkerSurface(<WorkerView workerId={worker.id} />, { task, worker });
 
-    expect(html).toContain('› Read PromptInput.tsx');
-    expect(html).toContain('› Edited default-theme.css');
-    expect(html).toContain('+6');
-    expect(html.match(/data-testid="worker-step-line"/gu)).toHaveLength(2);
+    expect(html).toContain('Worked for 6m · 2 steps');
+    expect(html).toContain('>Finished<');
 });

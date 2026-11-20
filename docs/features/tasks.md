@@ -45,14 +45,15 @@ reminder the Agent set on the Task, such as "checks back at 7:35".
 A counted **Workers** section lists one two-line row per Worker: a status glyph and the title, then
 its needs-you question or place, and its age. Expanding a row shows its latest step or activity, its
 report in a line, its question, **Open full log**, and a compact composer to answer from the row. A
-counted **Pull requests** section lists the Task's pull requests. Opening a Worker replaces the
-panel with the Worker's pane beside the Task chat, so the Task never leaves the screen; ← and ✕
-return to the panel. The pane is a session log, not a chat: tinted prompt blocks, one monospace line
-per kind of step when the Worker reported its steps, the report behind a rule with its question,
-cited Drive files and pull requests, and a docked composer whose send button is Stop while a turn is
-live and the field is empty. In the conversation, a report is a centered muted line ("Fix iPad
-composer baseline needs you, worked for 17m") and a person's follow-up carries a "To Worker on
-Cursor" context line. Both open the Worker's pane.
+counted **Pull requests** section lists the Task's pull requests. Opening a Worker opens it as a tab
+in the right pane beside **Overview**, as Capy opens a subagent, so the Task chat stays on screen;
+✕ closes the tab. The tab reads like a channel: the brief from the Agent, the Worker's output as a
+message from the Worker with its provider logo, centered "Finished, worked for 28m" rows between
+turns, its tool steps as a collapsed "Worked for…" group of tool calls inside its message, and a
+docked composer whose send button is Stop while a turn is live and the field is empty. In the
+conversation, a report is a centered muted line ("Fix iPad composer baseline needs you, worked
+for 17m") and a person's follow-up carries a "To Worker on Cursor" context line. Both open the
+Worker's tab.
 
 **Mentioned in** lists the messages that reference the Task. A section with nothing to list is
 absent. **Copy reference** copies the bare key, which is what a message references.

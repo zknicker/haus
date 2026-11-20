@@ -475,29 +475,34 @@ names, then pending reminders. W4 builds it, following how a Capy parent shows i
   the title, then the needs-you ask or the place, and the age. A Worker reads Working while any turn
   runs. Expanding a row shows its tail (the last step line or activity), its report in a line, its
   ask, **Open full log**, and a compact composer. Pull requests sit in their own counted section.
-- **Opening a Worker** (Open full log, or a Worker link in the Task chat) replaces the Task panel
-  with the Worker's pane beside the Task chat, so the Task stays on screen. The pane's ← (Back to
-  Overview) and ✕ (Close) return to the panel, and the open Worker rides the Task URL
-  (`?worker=<id>`). On a pane too narrow for the panel it opens the Worker page
+- **Opening a Worker** (Open full log, or a Worker link in the Task chat) opens it as a tab in the
+  Task's right pane beside **Overview**, as Capy opens a subagent, so the Task chat stays on
+  screen. Several Workers can each have a tab. ✕ closes the selected Worker's tab, ••• beside it
+  holds **Open in `<provider>`** and **Copy link**, and the open tabs ride the Task URL
+  (`?worker=<id>&tab=<id>`). On a pane too narrow for the side pane it opens the Worker page
   (`/s/<slug>/workers/<workerId>`) instead.
-- **The session log** reads as a run, not a chat, and has no avatars or name rows. Each turn's
-  prompts (the brief, follow-ups) are tinted blocks with their author. Its step summary renders one
-  monospace line per run of a kind ("› Edited a.css, b.tsx +8 −6"). The report sits behind a rule
-  under a key line ("Needs you · worked for 17m") with its text, ask, person, cited files at their
-  cited revisions, and pull requests. An outcome nobody wrote shows its failure reason. A live turn
-  shows the one status line with a spinner.
-- **The composer** is docked under the log, enabled while the Task has a chat, is open, and the
-  Worker is not closed. While a turn is live and the field is empty, its send button is **Stop**.
-  **Open in `<provider>`** and **Copy link** sit behind the pane's ••• menu.
+- **The Worker's conversation** uses Haus channel message rows, left-aligned: the brief as a
+  Message from the Agent that started it, follow-ups from their authors, and the Worker's output as
+  a Message from the Worker (its place name, its provider logo as the avatar). Centered system rows
+  separate turns ("Finished, worked for 28m"). Fenced code in a report renders through the
+  transcript's code blocks.
+- **Steps** sit inside the Worker's message for that turn as a stock HeroUI Pro `ChainOfThought`,
+  collapsed, titled "Worked for 6m · 5 steps" (shimmering while the turn is live). Each step is a
+  stock `ChatTool` (status icon, verb, path or command, +/− lines), and a run's output opens in
+  the code block inside it.
+- **The composer** is docked under the conversation, enabled while the Task has a chat, is open,
+  and the Worker is not closed. While a turn is live and the field is empty, its send button is
+  **Stop**.
 - **In the Task chat** a report Message renders as a centered muted lifecycle line ("`<title>`
   needs you, worked for 17m") and a person's follow-up carries a "To Worker on `<place>`" context
   line. Both open the Worker, so the report text shows once.
 - **Step summaries.** `WorkerTurn.steps` (`packages/haus-api/src/worker-steps.ts`) is a bounded
-  list, the newest 40, of `{ kind: read | edit | run | search, label, additions, deletions, ok }`
-  that a carrier reports per turn: a path for read and edit, the command line for run, the query
-  for search, line counts only on edit, and `ok` only on run. It never carries output or file
-  contents. It is optional: without it the log shows prompts, activity, the report, files and pull
-  requests. W3 adds the carrier and Server side.
+  list, the newest 40, of `{ kind: read | edit | run | search, label, state: running | done |
+  failed, additions, deletions, output }` that a carrier reports per turn: a path for read and
+  edit, the command line for run, the query for search, line counts only on edit, and `output`
+  only on run, as the tail of its terminal output up to 4,000 characters. It never carries file
+  contents. Each field drives one stock `ChatTool` prop. It is optional: without it the Worker's
+  message shows its report and activity. W3b adds the carrier and Server side.
 
 The Task summary exposes the count and place labels of its live Workers, and the people named by
 needs-you reports that no later turn answered, for the sidebar row ("Forge · 6 workers · mini,
