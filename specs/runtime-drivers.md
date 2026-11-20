@@ -168,8 +168,9 @@ cold-starts once.
 
 R3 left these Computer turn features unported, and R4 ports each before it moves an Agent:
 execution journal upload (including journaling dispatches the ledger recovers as `unknown`),
-idle compaction, Server-side seeding of managed skills into Drive with their change notice, Claude plan usage after a turn, and `haus worker start`, which the
-Computer's proxy handled.
+idle compaction, Server-side seeding of managed skills into Drive with their change notice, and
+Claude plan usage after a turn. `haus worker start` already runs on the runner since W2: it is a
+Server route, and the runner's `haus` proxy records the messages a held start showed.
 
 R4b already moved these: thoughts (the runner narrates reasoning titles, started tool actions,
 and their findings as `agent-thought` frames, with the Computer's narrator and scrubbing); the
