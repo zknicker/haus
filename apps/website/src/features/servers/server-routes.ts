@@ -75,6 +75,10 @@ export function serverComputersRoute(slug: string) {
     return `${serverSettingsRoute(slug)}/computers`;
 }
 
+export function serverComputerRoute(slug: string, computerId: string) {
+    return `${serverComputersRoute(slug)}/${encodeURIComponent(computerId)}`;
+}
+
 export function serverSettingsRoute(slug: string) {
     return `${serverRoute(slug)}/settings`;
 }

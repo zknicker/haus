@@ -61,6 +61,10 @@ export function serverPageRoutes({ desktop }: { desktop: boolean }): RouteObject
                     Component: serverRouteComponent('DeferredSettingsConnectionRoute'),
                 },
                 {
+                    path: 'computers/:computerId',
+                    Component: serverRouteComponent('DeferredSettingsDeviceRoute'),
+                },
+                {
                     path: ':section',
                     Component: serverRouteComponent('DeferredSettingsSectionRoute'),
                 },

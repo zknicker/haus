@@ -2,42 +2,37 @@ import { EmptyState } from '@heroui-pro/react';
 import { Button, Description, Dropdown, Label } from '@heroui/react';
 import { ComputerIcon, MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
+import { serverComputersRoute } from '../servers/server-routes.ts';
 import { PageTopbar } from '../shell/shell-topbar.tsx';
-import { AddComputerDialog } from './add-computer-dialog.tsx';
 import { ComputerDetail } from './computer-detail.tsx';
-import { resolveComputerPageState } from './computer-page-state.ts';
 import { ComputerProfilePending } from './computer-profile-pending.tsx';
 import { computerRemovalDescription, useComputerRemovalAvailability } from './computer-removal.ts';
 import { ComputerRemoveDialog } from './computer-remove-dialog.tsx';
 
-export function ComputerPage({ serverId, serverSlug }: { serverId: string; serverSlug: string }) {
+export function ComputerPage({
+    computerId,
+    serverId,
+    serverSlug,
+}: {
+    computerId: string;
+    serverId: string;
+    serverSlug: string;
+}) {
     const computers = useComputers(serverId);
-    const [searchParams] = useSearchParams();
-    const [adding, setAdding] = React.useState(false);
-    const [removingId, setRemovingId] = React.useState<string | null>(null);
-    const state = resolveComputerPageState({
-        computers: computers.data,
-        requestedId: searchParams.get('computer'),
-    });
-
-    // The Computer in view names itself in the content column through
-    // SettingsPageHeader, the way every settings destination does; the band is
-    // left to this page's actions.
-    const selected =
-        state.status === 'ready'
-            ? computers.data?.find((item) => item.id === state.computerId)
-            : undefined;
+    const navigate = useNavigate();
+    const [removing, setRemoving] = React.useState(false);
+    const computer = computers.data?.find((item) => item.id === computerId);
 
     return (
         <div className="flex h-full min-h-0 w-full">
-            {selected ? (
+            {computer ? (
                 <PageTopbar>
                     <ComputerBandMenu
-                        computerId={selected.id}
-                        onRemove={() => setRemovingId(selected.id)}
+                        computerId={computer.id}
+                        onRemove={() => setRemoving(true)}
                         serverId={serverId}
                     />
                 </PageTopbar>
@@ -45,26 +40,24 @@ export function ComputerPage({ serverId, serverSlug }: { serverId: string; serve
             <main className="min-w-0 flex-1 overflow-y-auto">
                 {computers.error && !computers.data ? (
                     <ComputerUnavailable />
-                ) : state.status === 'loading' ? (
+                ) : computers.data === undefined ? (
                     <ComputerProfilePending />
-                ) : state.status === 'ready' ? (
+                ) : computer ? (
                     <ComputerDetail
-                        computerId={state.computerId}
-                        onRemove={() => setRemovingId(state.computerId)}
+                        computerId={computer.id}
+                        onRemove={() => setRemoving(true)}
                         serverId={serverId}
                         serverSlug={serverSlug}
                     />
-                ) : state.status === 'not-found' ? (
-                    <ComputerNotFound />
                 ) : (
-                    <ComputerEmpty onAdd={() => setAdding(true)} />
+                    <ComputerNotFound />
                 )}
             </main>
-            <AddComputerDialog onOpenChange={setAdding} open={adding} serverSlug={serverSlug} />
-            {removingId ? (
+            {removing ? (
                 <ComputerRemoveDialog
-                    computerId={removingId}
-                    onOpenChange={(open) => !open && setRemovingId(null)}
+                    computerId={computerId}
+                    onOpenChange={(open) => !open && setRemoving(false)}
+                    onRemoved={() => navigate(serverComputersRoute(serverSlug), { replace: true })}
                     serverId={serverId}
                 />
             ) : null}
@@ -73,9 +66,8 @@ export function ComputerPage({ serverId, serverSlug }: { serverId: string; serve
 }
 
 /**
- * Page-level actions for the Computer in view. Removal is destructive, so it sits
- * behind an overflow menu rather than as a bare button in the band; the update
- * card keeps its own check and install controls, which belong to that card's state.
+ * Removal is destructive, so it sits behind an overflow menu rather than as a
+ * bare button in the band.
  */
 function ComputerBandMenu({
     computerId,
@@ -106,9 +98,7 @@ function ComputerBandMenu({
                             <Label>Remove device</Label>
                         </Dropdown.Item>
                     ) : (
-                        // A disabled menu item takes no pointer events, so a tooltip
-                        // here would never fire and the reason would be unreachable.
-                        // The blocking reason rides in the item itself instead.
+                        // A disabled item takes no pointer events, so its reason rides in the item.
                         <Dropdown.Item id="remove" isDisabled textValue="Remove device">
                             <Label>Remove device</Label>
                             <Description>{computerRemovalDescription(availability)}</Description>
@@ -131,28 +121,6 @@ function ComputerUnavailable() {
     );
 }
 
-function ComputerEmpty({ onAdd }: { onAdd: () => void }) {
-    return (
-        <div className="flex min-h-full items-center justify-center p-6">
-            <EmptyState>
-                <EmptyState.Header>
-                    <EmptyState.Media variant="icon">
-                        <Icon icon={ComputerIcon} />
-                    </EmptyState.Media>
-                    <EmptyState.Title>Attach a device</EmptyState.Title>
-                    <EmptyState.Description>
-                        Devices run Captains and keep their workspaces, runtime access, and
-                        execution state on your machine.
-                    </EmptyState.Description>
-                </EmptyState.Header>
-                <EmptyState.Content>
-                    <Button onPress={onAdd}>Add device</Button>
-                </EmptyState.Content>
-            </EmptyState>
-        </div>
-    );
-}
-
 function ComputerNotFound() {
     return (
         <div className="flex min-h-full items-center justify-center p-6">
@@ -164,7 +132,7 @@ function ComputerNotFound() {
                     <EmptyState.Title>Device unavailable</EmptyState.Title>
                     <EmptyState.Description>
                         This device is no longer attached to the Server. Choose an attached device
-                        from the list; Haus will not redirect you to another machine.
+                        from Devices; Haus will not redirect you to another machine.
                     </EmptyState.Description>
                 </EmptyState.Header>
             </EmptyState>

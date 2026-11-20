@@ -16,7 +16,7 @@ test('old provider usage stays labeled until a fresh Computer snapshot arrives',
         slug: 'usage-hq',
     });
     const credential = 'computer-usage-test-credential-1234';
-    await attachComputer(owner, { credential, slug: 'usage-hq' });
+    const { computerId } = await attachComputer(owner, { credential, slug: 'usage-hq' });
     const computer = new WebSocket(
         `ws://127.0.0.1:${process.env.HAUS_SERVER_PORT}/computer/attachment`
     );
@@ -38,7 +38,7 @@ test('old provider usage stays labeled until a fresh Computer snapshot arrives',
         computer.send(
             JSON.stringify({ type: 'usage-report', usage: planUsage('2026-08-19T04:08:16.193Z') })
         );
-        await page.goto('/s/usage-hq/computers');
+        await page.goto(`/s/usage-hq/settings/computers/${computerId}`);
         const rows = page.getByRole('grid', { name: 'Runtimes on this device' });
         await expect(rows.getByText('Usage out of date')).toBeVisible({ timeout: 20_000 });
         await expect(rows.getByText('22%', { exact: true })).toBeVisible();
@@ -106,7 +106,7 @@ test('manual runtime refresh updates capacity and Agent model choices without re
         computer.send(
             JSON.stringify({ type: 'usage-report', usage: planUsage(new Date().toISOString()) })
         );
-        await page.goto(`/s/${slug}/computers`);
+        await page.goto(`/s/${slug}/settings/computers/${attachment.computerId}`);
         await expect(page.getByText('Not detected: Claude Code, Grok Build')).toBeVisible();
         const refreshRequest = new Promise<
             ReturnType<typeof computerInventoryRefreshRequestSchema.parse>
