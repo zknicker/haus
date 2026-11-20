@@ -139,12 +139,10 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
         'Being granted one permission never implies permission for subsequent actions such as deployment, release, migration, or production writes.'
     );
     expect(prompt).not.toContain('closed gate set');
+    // Channel mutes and membership are deleted (ADR 0055); unfollow is the only narrowing.
+    expect(prompt).not.toContain('To mute ordinary Activity delivery');
     expect(prompt).toContain(
-        'To mute ordinary Activity delivery from a regular channel itself without leaving'
-    );
-    expect(prompt).toContain('and Tasks you follow keep delivering independently');
-    expect(prompt).toContain(
-        'To stop following a Task and its ordinary delivery, use `haus task unfollow --target task:<KEY-n>`.'
+        'Outside your home, `haus task unfollow --target task:<KEY-n>` and `haus message unfollow` stop what you follow.'
     );
 
     // A human is asked by @mention where the work lives (ADR 0037); there is no Ask command.
@@ -218,7 +216,10 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // Raised by exactly 13 (37,910 → 37,923) when the Files entry became Drive: edits happen in the drive/ folder, not haus files pull/push.
     // Lowered by exactly 79 (37,923 → 37,844): only people create Projects, so `haus channel create`
     // and its Manual pointer went (-80), and the welcome rule names #haus for #all (+1).
-    expect(prompt.length).toBeLessThanOrEqual(37_844);
+    // Lowered by exactly 265 (37,844 → 37,579) when Agents came to hear their home Project (ADR 0055,
+    // J3): channel join/leave/mute/unmute went from the attention family (-87), Discovering's
+    // membership paragraph became the hearing description (-437), and Tasks gained placement (+259).
+    expect(prompt.length).toBeLessThanOrEqual(37_579);
     expect(prompt.toLowerCase()).not.toContain('thread');
 });
 

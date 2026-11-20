@@ -33,6 +33,13 @@ test('a Task starts from a channel message, with the command shape beside it', (
     expect(tasks).not.toContain('Never from a DM');
 });
 
+// ADR 0055 decision 8: work stays in its Project, handed off where everyone sees it.
+test('a Task starts in the home Project, and other Projects get an @mention in their channel', () => {
+    expect(tasks).toContain(
+        "A Task starts in your home Project. Work that belongs to another Project goes to that Project's Agent with an @mention in its channel, where everyone sees it. A generalist, whose home is the Haus project, may start one in any Project with `--project <KEY>`."
+    );
+});
+
 test('each Task has its own end, and the work goes in the Task', () => {
     expect(prompt).toContain('Work for a Task is posted with `--target task:<KEY-n>`.');
     expect(tasks).toContain(

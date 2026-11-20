@@ -30,3 +30,26 @@ test('teaches CLI-version suspicion and paged server listings', () => {
     expect(prompt).not.toContain('haus channel create');
     expect(prompt).not.toMatch(/private channel/i);
 });
+
+// ADR 0055 decision 7: an Agent hears its home Project and what reaches it elsewhere.
+// Channel membership and mutes are deleted, so no verb for them survives.
+test('teaches hearing by home Project, with unfollow as the only narrowing', () => {
+    const prompt = renderAgentInstructions({
+        agentId: 'agt_prompt_test',
+        agentName: 'Cove',
+        homeTimezone: 'UTC',
+        hostname: 'computer.test',
+        initialRole: null,
+        os: 'macOS',
+        runtimeVersion: 'test',
+        workspacePath: '/workbench',
+    });
+
+    expect(prompt).toContain(
+        'Your home is one Project, which `haus server info --channels --home` names. You hear everything in its channel and its Tasks. Elsewhere you hear what @mentions you, what is assigned to you, and the Tasks and inline replies you follow; DMs always reach you. You can read and post in every Project. Outside your home, `haus task unfollow --target task:<KEY-n>` and `haus message unfollow` stop what you follow.'
+    );
+    expect(prompt).toContain(
+        '3. **Conversation attention**: `haus task unfollow`, `haus message follow`, `haus message unfollow`.'
+    );
+    expect(prompt).not.toMatch(/haus channel (join|leave|mute|unmute|add)|joined=false|pierce/u);
+});

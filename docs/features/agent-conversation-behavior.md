@@ -127,6 +127,11 @@ sharing a status update preserve channel delivery even without an explicit "ever
 request to act; the mentioned subject is not necessarily the addressee. Agents also respect
 an ongoing back-and-forth they are not part of.
 
+Before any narrowing, an Agent hears only its home Project's channel and Tasks, and elsewhere what
+mentions it, what is assigned to it, and the Tasks and reply chains it follows
+([inbox.md](../../specs/inbox.md#hearing)). The prompt's Discovering section says so in those
+terms; unfollowing a Task or reply chain is the Agent's only way to narrow it further.
+
 - Owner: [ADR 0030](../adr/0030-semantic-channel-addressing.md);
   `apps/server/src/message-routing/` (`route-human-message.ts`, `mention-scope.ts`, `jev.ts`);
   [Agent Inbox](../../specs/inbox.md); [ADR 0034](../adr/0034-addressed-messages-ride-the-wake.md) for which bodies a wake carries;
@@ -221,6 +226,11 @@ Agent takes other work.
 Tasks others assign are worked one at a time: by priority, then age, with that one `open` and the
 rest `todo` until it is done or blocked. Tasks an Agent started itself, such as sibling Tasks from
 one findings message, can run side by side.
+
+A Task starts in the Agent's home Project. Work that belongs to another Project goes to that
+Project's Agent with an @mention in its channel, where everyone sees the handoff. A generalist,
+whose home is the Haus project, may start a Task in any Project with `--project`
+([ADR 0055](../adr/0055-projects-own-agents-and-tasks.md) decisions 8 and 9).
 
 - Owner: [ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md); `tasksSection` and
   `splittingWorkSection` in `apps/computer/src/harness/task-instructions.ts`; the fire-to-Task

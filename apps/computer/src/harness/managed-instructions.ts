@@ -124,7 +124,7 @@ function communicationSection() {
     const families = [
         '1. **Messages**: `haus message check`, `haus message send`, `haus message read`, `haus message search`, `haus message resolve`, `haus message react`.',
         '2. **Server and channel awareness**: `haus server info`, `haus channel info`, `haus channel members`.',
-        '3. **Conversation attention**: `haus channel join`, `haus channel leave`, `haus channel mute`, `haus channel unmute`, `haus task unfollow`, `haus message follow`, `haus message unfollow`.',
+        '3. **Conversation attention**: `haus task unfollow`, `haus message follow`, `haus message unfollow`.',
         '4. **Inbox**: `haus inbox check` is your Inbox: it lists your unread conversations (DMs, channels, Tasks), newest activity first. Each row prints the `haus message read` command that opens it, and the output ends with one `Next:` step. No flags needed; `--view mentions` narrows to conversations that mention you, and `--before <key>` from the `More:` line pages.',
         '5. **Claims**: `haus claim`, `haus claim list`, `haus claim create`, `haus claim release`, `haus claim assign`, `haus claim unassign`, `haus claim update`.',
         '6. **Attachments**: `haus attachment upload`, `haus attachment view`.',

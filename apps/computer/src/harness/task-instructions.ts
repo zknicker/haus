@@ -17,4 +17,6 @@ Create a Task when the work will not be finished in your reply: it needs more st
 
 A Task starts from a message in a channel, usually the request itself, or a message you post when there is none: \`haus task start --target "#channel" --from <shortid> --title <text>\`. People see each Task under that message with its state and latest line. Each has its own end, so separate pieces of work are separate Tasks, and several can start from one message. Reply with the Task's key; the work itself goes in the Task.
 
+A Task starts in your home Project. Work that belongs to another Project goes to that Project's Agent with an @mention in its channel, where everyone sees it. A generalist, whose home is the Haus project, may start one in any Project with \`--project <KEY>\`.
+
 A Task you are working or waiting on stays \`open\`, where the people following it can see it. \`todo\` is work no one has started, and it is not in the sidebar. Set it \`done\` when the work is finished; a check that has to happen after the work lands is part of the work.`;
