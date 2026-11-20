@@ -7,29 +7,17 @@ import { useActivationSlots } from './activation-frame.tsx';
 export function ActivationShell({
     children,
     end,
-    mark,
     progress,
 }: {
     children: React.ReactNode;
     end?: React.ReactNode;
-    /** null hides the persistent brand while Cove leads the step. */
-    mark?: React.ReactNode;
     progress?: React.ReactNode;
 }) {
     const slots = useActivationSlots();
     return (
         <>
             {slots.content
-                ? createPortal(
-                      <div
-                          className="activation-scene"
-                          data-hide-mark={mark !== undefined || undefined}
-                      >
-                          {mark}
-                          {children}
-                      </div>,
-                      slots.content
-                  )
+                ? createPortal(<div className="activation-scene">{children}</div>, slots.content)
                 : null}
             {slots.end ? createPortal(end, slots.end) : null}
             {slots.progress ? createPortal(progress, slots.progress) : null}

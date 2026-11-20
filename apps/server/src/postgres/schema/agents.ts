@@ -72,11 +72,6 @@ export const agentsTable = pgTable(
         effectiveReasoningEffort: text('effective_reasoning_effort').$type<AgentReasoningEffort>(),
         effectiveReportedAt: timestamp('effective_reported_at', { withTimezone: true }),
         effectiveRuntimeId: text('effective_runtime_id'),
-        factoryAppliedAt: timestamp('factory_applied_at', { withTimezone: true }),
-        factoryKind: text('factory_kind')
-            .notNull()
-            .default('ordinary')
-            .$type<'cove' | 'ordinary'>(),
         handle: text('handle').notNull(),
         /** The Agent's one home Project (specs/projects.md#agents); the Haus project makes it a generalist. */
         // Migration 0131 adds `agents_home_project_fk`; importing `projects` here would close a schema import cycle.
@@ -158,7 +153,6 @@ export const agentsTable = pgTable(
             'agents_effective_reasoning_effort',
             sql`${table.effectiveReasoningEffort} is null or ${table.effectiveReasoningEffort} in ('default', 'low', 'medium', 'high', 'xhigh', 'max')`
         ),
-        check('agents_factory_kind', sql`${table.factoryKind} in ('ordinary', 'cove')`),
         check(
             'agents_haus_agent_status',
             sql`${table.effectiveHausAgentStatus} is null or ${table.effectiveHausAgentStatus} in ('current', 'failed', 'pending')`
@@ -167,7 +161,7 @@ export const agentsTable = pgTable(
         check('agents_session_reset_kind', sql`${table.sessionResetKind} in ('full', 'session')`),
         check(
             'agents_handle_grammar',
-            sql`${table.handle} ~ '^[a-z0-9][a-z0-9-]{1,30}$' and ((${table.factoryKind} = 'cove' and ${table.handle} = 'cove') or lower(${table.handle}) not in ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'haus', 'here', 'human', 'humans', 'idle', 'system'))`
+            sql`${table.handle} ~ '^[a-z0-9][a-z0-9-]{1,30}$' and lower(${table.handle}) not in ('agent', 'agents', 'all', 'busy', 'everyone', 'haus', 'here', 'human', 'humans', 'idle', 'system')`
         ),
         check(
             'agents_description_length',

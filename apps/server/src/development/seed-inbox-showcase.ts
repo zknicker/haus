@@ -43,7 +43,6 @@ async function topUpTokenUsage(tx: HausDatabase, context: InboxSeedContext, now:
             demoTokenUsage(context.serverId, now, [
                 { id: context.blippyId, modelId: 'gpt-5.6-sol', weight: 1 },
                 { id: context.tinyId, modelId: 'gpt-5.6-terra', weight: 0.55 },
-                { id: context.coveId, modelId: 'gpt-5.6-sol', weight: 0.4 },
             ])
         )
         .onConflictDoNothing();

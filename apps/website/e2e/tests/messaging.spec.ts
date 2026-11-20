@@ -1,7 +1,6 @@
 import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
 import {
     assertOpaqueId,
-    completeOnboarding,
     createClient,
     openChannel,
     openSection,
@@ -29,7 +28,6 @@ test.beforeAll(async () => {
     assertOpaqueId(serverId);
     assertOpaqueId(allChatId);
     assertOpaqueId(peerUserId);
-    completeOnboarding(databaseUrl, serverId);
     runPsql(
         databaseUrl,
         `insert into server_memberships (id, server_id, user_id, role)

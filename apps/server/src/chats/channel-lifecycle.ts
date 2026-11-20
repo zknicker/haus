@@ -9,7 +9,7 @@ import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import type { WorkerFrame } from '../workers/worker-effects.ts';
-import { isOnboardingChannel, purgeDeletedChannel } from './channel-deletion.ts';
+import { purgeDeletedChannel } from './channel-deletion.ts';
 import { prepareLifecycleEvent } from './lifecycle-events.ts';
 
 export { purgeDeletedChannels } from './channel-deletion.ts';
@@ -112,11 +112,6 @@ export async function deleteChannel(
         const channel = await requireRegularChannel(tx, input);
         if (input.confirmation !== channel.name) {
             throw new ChannelLifecycleDeniedError('Type the channel name exactly to delete it.');
-        }
-        if (await isOnboardingChannel(tx, input)) {
-            throw new ChannelLifecycleConflictError(
-                'The onboarding channel cannot be deleted. Archive it instead.'
-            );
         }
         await refuseProjectWithHomeAgents(tx, input);
         if (channel.deletedAt) {

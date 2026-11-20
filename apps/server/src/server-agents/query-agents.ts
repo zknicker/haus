@@ -47,7 +47,6 @@ export async function queryAgents(
             effectiveReasoningEffort: agentsTable.effectiveReasoningEffort,
             effectiveReportedAt: agentsTable.effectiveReportedAt,
             effectiveRuntimeId: agentsTable.effectiveRuntimeId,
-            factoryKind: agentsTable.factoryKind,
             handle: agentsTable.handle,
             id: agentsTable.id,
             serverId: agentsTable.serverId,

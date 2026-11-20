@@ -46,7 +46,6 @@ export async function createTestServer(
     const client = createClient(session.accessToken);
     const created = await client.server.create.mutate(input);
     await seedHumanIdentity(client, created.id, session.session.user.displayName ?? '');
-    completeOnboarding(session.databaseUrl, created.id);
     const server = await client.server.bySlug.query({ slug: input.slug });
     await page.goto(`/s/${input.slug}`);
 
@@ -65,15 +64,6 @@ export async function seedHumanIdentity(
         name,
         serverId,
     });
-}
-
-/** Unrelated browser specs start after the mandatory first-run journey. */
-export function completeOnboarding(databaseUrl: string, serverId: string) {
-    runPsql(
-        databaseUrl,
-        `update server_onboarding set phase = 'complete', failure_code = null, failure_detail = null
-         where server_id = '${serverId}'`
-    );
 }
 
 export async function openChannel(page: Page, name: string) {

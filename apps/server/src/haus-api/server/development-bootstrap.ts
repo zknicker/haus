@@ -1,5 +1,4 @@
 import { TRPCError } from '@trpc/server';
-import { sendPendingDevelopmentCoveApplication } from '../../development/seed-cove.ts';
 import {
     readDevelopmentImageGenerationKeys,
     seedDevelopmentImageGenerationKeys,
@@ -18,6 +17,5 @@ export const developmentBootstrapProcedure = serverProcedure.mutation(async ({ c
         keys: readDevelopmentImageGenerationKeys(process.env),
         serverId: server.id,
     });
-    await sendPendingDevelopmentCoveApplication(ctx.hausDb, ctx.computerConnections, server.id);
     return server;
 });

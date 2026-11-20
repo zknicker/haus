@@ -81,9 +81,6 @@ public struct SettingsAgent: Identifiable, Hashable, Sendable {
     public let avatarURL: URL?
     public let presence: AgentPresence
     public let initials: String
-    /// Haus's own factory Agents keep a product-owned avatar the Server
-    /// refuses to replace, so only an ordinary Agent offers the generator.
-    public let canGenerateAvatar: Bool
     public let runtimeConfiguration: SettingsAgentRuntimeConfiguration?
 
     public init(
@@ -97,7 +94,6 @@ public struct SettingsAgent: Identifiable, Hashable, Sendable {
         avatarURL: URL? = nil,
         presence: AgentPresence = .idle,
         initials: String? = nil,
-        canGenerateAvatar: Bool = true,
         runtimeConfiguration: SettingsAgentRuntimeConfiguration? = nil
     ) {
         self.id = id
@@ -110,7 +106,6 @@ public struct SettingsAgent: Identifiable, Hashable, Sendable {
         self.avatarURL = avatarURL
         self.presence = presence
         self.initials = initials ?? Self.makeInitials(from: displayName)
-        self.canGenerateAvatar = canGenerateAvatar
         self.runtimeConfiguration = runtimeConfiguration
     }
 
@@ -199,12 +194,11 @@ public enum SettingsFixtures {
         id: "agent-cove",
         displayName: "Cove",
         handle: "cove",
-        description: "Onboarding Assistant",
+        description: "Keeps the Server's setup tidy.",
         runtime: "Computer",
         model: "Default",
         status: "Online",
-        initials: "CO",
-        canGenerateAvatar: false
+        initials: "CO"
     )
 
     public static let blippy = SettingsAgent(

@@ -41,7 +41,6 @@ export interface ConfiguredAgentRow extends Pick<
     effectiveReasoningEffort: AgentReasoningEffort | null;
     effectiveReportedAt: Date | null;
     effectiveRuntimeId: string | null;
-    factoryKind: 'cove' | 'ordinary';
     handle: string;
     id: string;
     modelConnectionId: string | null;
@@ -114,7 +113,6 @@ export function toAgent(row: ConfiguredAgentRow): Agent {
         effectiveReasoningEffort: row.effectiveReasoningEffort,
         effectiveReportedAt: row.effectiveReportedAt?.toISOString() ?? null,
         effectiveRuntimeId: row.effectiveRuntimeId,
-        factoryKind: row.factoryKind,
         hausAgent: {
             appliedAt: row.effectiveHausAgentAppliedAt?.toISOString() ?? null,
             appliedVersion: row.effectiveHausAgentVersion,

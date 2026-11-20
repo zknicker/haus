@@ -94,8 +94,6 @@ export interface ConfiguredAgent {
     desiredModelId: string;
     desiredReasoningEffort: Agent['desiredReasoningEffort'];
     desiredRuntimeId: string;
-    factoryAppliedAt: Date | null;
-    factoryKind: 'cove' | 'ordinary';
     homeTimezone: string;
     retiredAt: null;
     sessionGeneration: number;
@@ -107,8 +105,7 @@ export function isConfigured(config: AgentDispatchConfig | null): config is Conf
         config?.computerId &&
         config.desiredRuntimeId &&
         config.desiredModelId &&
-        config.retiredAt === null &&
-        (config.factoryKind === 'ordinary' || config.factoryAppliedAt)
+        config.retiredAt === null
     );
 }
 
@@ -119,7 +116,7 @@ export function configureFrame(agentId: string, config: ConfiguredAgent): AgentC
         agentName: config.agentDisplayName,
         brief: config.brief,
         briefAuthorHandle: config.briefAuthorHandle,
-        factoryKind: config.factoryKind,
+        factoryKind: 'ordinary',
         modelId: config.desiredModelId,
         reasoningEffort: config.desiredReasoningEffort,
         runtimeId: config.desiredRuntimeId,

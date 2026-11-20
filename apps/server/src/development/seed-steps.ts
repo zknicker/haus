@@ -8,7 +8,6 @@ import {
     developmentComputerDataRoot,
     ensureDevelopmentComputerAttachment,
 } from './seed-computer-attachment.ts';
-import { ensureDevelopmentCove } from './seed-cove.ts';
 import { seedDevelopmentInboxActivity } from './seed-inbox-activity.ts';
 import { seedDevelopmentInboxShowcase } from './seed-inbox-showcase.ts';
 import { seedDevelopmentUiGallery } from './seed-ui-gallery.ts';
@@ -26,7 +25,6 @@ export async function ensureDevelopmentSeedSteps(
     userId: string,
     options: SeedDevelopmentServerOptions
 ) {
-    await ensureDevelopmentCove(db, { serverId: server.id, userId });
     await ensureDevelopmentComputerAttachment(db, server, options);
     if (options.attachmentRoot) {
         await ensureDevelopmentChatAttachment(db, options.attachmentRoot, server.id);

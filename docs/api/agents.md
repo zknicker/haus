@@ -73,7 +73,7 @@ Owners and Admins read both with `agent.conversationStyle` and write them with
 carry them. The Agent reads its own pair in `haus profile show` (`GET /api/agent/profile`, self
 only) and writes it with `haus profile update` (`POST /api/agent/profile/update`, which also takes
 `description`). The runner token fixes the Agent, so that route changes only the caller, and one
-transaction applies every field or none. Cove refuses a conversation style but accepts an emoji.
+transaction applies every field or none.
 Neither field appears in the `Agent` projection, rosters, envelopes, `agent-configure` frames, or
 another Agent's profile view.
 
@@ -102,7 +102,8 @@ once at dispatch in `agent_run_triggers` so it survives a failed run requeueing 
 rows: `{ kind: 'message', author: 'human' | 'agent', chatId, messageId, preview }`,
 `{ kind: 'claim', chatId, messageId, preview }` (the claim's message), or
 `{ kind: 'reminder' | 'trigger' | 'worker' | 'onboarding' | 'greeting', chatId }` (`greeting`
-is a new Agent's one-time `#all` wake when it led the run alone), or one of the chatless
+is a new Agent's one-time `#all` wake when it led the run alone; `onboarding` is a past turn of
+the retired Server onboarding flow that nothing writes anymore), or one of the chatless
 sources, whose runs need no Chat visibility to read:
 
 - `{ kind: 'subagent' }`: a wake for background work the Agent started that finished or stopped
@@ -171,7 +172,7 @@ first. A named channel that does not exist or is archived refuses the whole requ
 `404 INVALID_TARGET` naming it, before an avatar is generated.
 
 `POST /api/agent/channels/add` takes `{ agent, target }` and puts another Agent in a channel. Any
-active Agent may add any active Agent; Cove is refused. The add is idempotent — `added` is false when
+active Agent may add any active Agent. The add is idempotent — `added` is false when
 that Agent was already a member — and wakes nobody. Like the human channel save, it emits
 `chat.lifecycle{action:'updated'}` so member lists refresh.
 
@@ -407,7 +408,7 @@ no assigned Computer returns `AGENT_NO_COMPUTER`.
 
 `POST /api/agent/agents/update` rewrites an Agent's `description` (1–280); `POST /api/agent/agents/avatar`
 generates and applies a replacement avatar from a `concept`. Both resolve `@handle` within the
-runner's Server and refuse Cove with `AGENT_IDENTITY_PROTECTED`. Neither renames an Agent: the handle
+runner's Server. Neither renames an Agent: the handle
 is the Server-scoped alias that mentions, targets, and history all key on.
 
 Creation nonces and request hashes live on `agents`; announcements are not retry anchors.

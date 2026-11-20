@@ -131,7 +131,7 @@ PostgreSQL owns the hosted collaboration tables
 | `browser_auth_intents` / `native_auth_intents` | One-use browser state and native PKCE callback bindings |
 | `haus_auth_rollback_recovery` | Small old-subject mapping retained to restore the pre-cutover auth columns if rollback is needed |
 | `avatars` | Uploaded square avatar bytes, media type, size, and digest, served publicly at `/api/avatars/:avatarId` |
-| `servers` / `server_onboarding` | Opaque id, address/display fields, Server settings (`idle_compaction`), and durable fresh-Server setup progress |
+| `servers` | Opaque id, address/display fields, and Server settings (`idle_compaction`) |
 | `server_memberships` | One human's standing access, Server role, numbered stint, stint start, and internal revocation marker |
 | `push_devices` | One human's iPhone APNs registrations keyed by device token: environment, bundle id, and the last APNs refusal ([iPhone Push](../operations/ios-push.md)) |
 | `computer_login_grants` / `computer_login_sessions` | Hashed one-use device codes, short-code approval state, origin-bound hashed management credentials, expiry, polling state, canonical Haus User owner, and the CLI's post-persistence acknowledgement |
@@ -247,8 +247,7 @@ version probe; Agent launch receives that same resolved environment, so
 advertised and runnable runtimes do not diverge. Creating an ordinary Agent
 (`agent.create`, Owner/Admin) binds it to exactly one attached
 Computer plus a runtime and model that exist in that Computer's last-reported
-inventory, then opens the ordinary Owner↔Agent DM; it does not use the private
-fresh-Server onboarding Channel. The Server owns that **desired** configuration; the Computer reports
+inventory, then opens the ordinary Owner↔Agent DM. The Server owns that **desired** configuration; the Computer reports
 **effective** state. `agent.configure` changes desired runtime/model on the
 same Computer — the assignment is immutable and absent from the input — and
 validates only against that Computer's inventory, so desired edits saved while
@@ -326,14 +325,6 @@ handling, so nothing is lost. A failed turn does not re-drive immediately — re
 failures back off (`retry_after`) and then degrade (`consecutive_failures`
 reaches its cap), so a broken runtime cannot tight-loop; fresh human intent
 (a new message or Start) clears the backoff.
-
-Fresh onboarding completion inserts Cove's one-shot system attention directly
-into this pending inbox in the same transaction that advances onboarding to
-`complete`. The application id is its stable delivery identity. It has no
-canonical Chat-message row and therefore advances no Chat cursor; Cove's normal
-Agent send creates the first canonical `#onboarding-owner` message. The retained
-onboarding phase is the once-ever authority after pending work settles, so a
-replayed factory acknowledgement cannot recreate the trigger.
 
 Human Stop/Start (`agent.stop` / `agent.start`, Owner/Admin) is persistent: Stop
 sets the durable flag, **revokes the live run's runner credential so the Stop
@@ -537,14 +528,15 @@ access.
 ## Creation
 
 `server.create` commits one transaction: the creator's Haus User, the opaque
-Server id, its slug and display name, the first human Owner membership, `#all`,
-durable `server_onboarding` progress, and private `#onboarding-owner`; the Owner
-participates in both Channels. `#all` starts with the description "General
-channel for all members and team-wide announcements." (`allChannelDescription`
-in `servers/contracts.ts`; migration 0068 backfilled existing `#all` rows that
-had none). It creates no Computer, Agent, or execution
-configuration. A taken slug is refused as `CONFLICT`, and the whole transaction
-rolls back — including a first-time creator's User and onboarding rows.
+Server id, its slug and display name, the first human Owner membership, and the
+Haus project (`#haus`), which the Owner participates in. `#haus` starts with the
+description "General channel for all members and team-wide announcements."
+(`allChannelDescription` in `servers/contracts.ts`; migration 0068 backfilled
+existing rows that had none). A new Server starts empty
+([ADR 0059](../adr/0059-haus-starts-empty-without-cove.md)): it creates no
+Computer, Agent, other Project, or execution configuration, and Haus App opens
+straight into it with no setup gate. A taken slug is refused as `CONFLICT`, and
+the whole transaction rolls back — including a first-time creator's User.
 
 Server deletion tombstones the Server and revokes its authority immediately, then asynchronously
 purges its attachment partition and Server-owned PostgreSQL rows. The immutable slug remains taken
@@ -553,22 +545,13 @@ between Server-owned descendants are deferred until transaction completion so Po
 the entire root cascade atomically without depending on constraint-trigger order. Failed purges
 remain observable and startup retries every tombstoned Server idempotently.
 
-Onboarding starts at `awaiting-computer`. A compatible Computer handshake records
-the candidate Computer without advancing. Empty or invalid inventory and
-incompatible or disconnected Computers retain the owning phase plus actionable
-failure detail. Only a report containing at least one runtime with at least one
-model advances durably to `awaiting-cove`; reconnect clears transient failure
-without reconstructing progress from Agent presence. Haus App reads this record
-before mounting the general Server shell.
-
-The dedicated Cove mutation takes the Server lock and turns `awaiting-cove`
-into one immutable `applying` reservation containing the Agent, application,
-Channel, Computer, runtime, and model ids. It atomically stores Cove's fixed
-Admin identity and product avatar, adds Cove to the retained onboarding
-Channel, and creates delivery state without dispatching a turn. Reconnect
-replays the factory command while excluding the unacknowledged Cove row from
-ordinary Agent reconciliation. Only the matching Computer application result
-marks the factory applied and onboarding `complete`.
+Migration 0138 retired fresh-Server onboarding without deleting data: an
+existing Cove is an ordinary Agent, an existing `#onboarding-owner` is an
+ordinary Project with its members and history, unsettled `onboarding` inbox
+items settle `seen` with an undelivered reason, and past onboarding turns keep
+their cause in Activity. A Computer whose last inventory report was invalid
+carries `computers.inventory_invalid_at` until a valid report clears it;
+`computer.list` exposes it as `inventoryInvalidAt` for repair copy.
 
 ## Authorization
 
@@ -601,7 +584,12 @@ A human without membership gets `FORBIDDEN`; an address with no Server gets
 ## Haus App routes
 
 - `/` signs the human in, then opens the last Server they used or their first
-  current membership. Server switching and creation live in the Haus App sidebar.
+  current membership. Creating, joining, and switching Servers live in
+  **Settings → Servers**; a human with no Server meets Create and Join on the
+  activation screen at `/s`, and `/s?choose` lists joined Servers without
+  resuming one. Session, route-module, and Server loading share one persistent
+  activation frame whose animated Haus mark stays mounted across sign-in and
+  loading.
 - `/s/<slug>` opens Server-owned Chats, transcript, composer, reads, search,
   attachments, Tasks, and the Tasks page. It reserves and streams local
   files to the hosted Server, renders only attachment metadata in messages,

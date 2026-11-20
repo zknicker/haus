@@ -10,7 +10,7 @@ export const activationPreviewBasePath = '/prototype/activation';
 
 export interface ActivationPreviewScene {
     description: string;
-    group: 'Sign in' | 'Servers' | 'Invitation' | 'Device login' | 'Cove onboarding';
+    group: 'Sign in' | 'Servers' | 'Invitation' | 'Device login';
     id: string;
     /** Path under the preview base; defaults to the scene id. */
     path?: string;
@@ -137,60 +137,6 @@ export const activationPreviewScenes: ActivationPreviewScene[] = [
         id: 'computer-login-expired',
         path: 'computer-login-expired?code=GROT-EXPD',
         render: () => <SignedInComputerLogin />,
-    },
-    {
-        description: 'Fresh Server: install and setup commands, nothing connected.',
-        group: 'Cove onboarding',
-        id: 'onboarding-connect',
-        path: 'onboarding/preview-connect-computer',
-    },
-    {
-        description: 'A member waits for the owner to finish setup.',
-        group: 'Cove onboarding',
-        id: 'onboarding-member',
-        path: 'onboarding/preview-member',
-    },
-    {
-        description: 'An admin also waits for the owner to finish setup.',
-        group: 'Cove onboarding',
-        id: 'onboarding-admin',
-        path: 'onboarding/preview-admin',
-    },
-    {
-        description: 'The device connected and is reporting runtimes.',
-        group: 'Cove onboarding',
-        id: 'onboarding-detecting',
-        path: 'onboarding/preview-detecting',
-    },
-    {
-        description: 'Setup stopped before runtimes were reported.',
-        group: 'Cove onboarding',
-        id: 'onboarding-connect-failed',
-        path: 'onboarding/preview-connect-failed',
-    },
-    {
-        description: 'Choose Cove’s runtime and model. Creating is stubbed.',
-        group: 'Cove onboarding',
-        id: 'onboarding-meet-cove',
-        path: 'onboarding/preview-meet-cove',
-    },
-    {
-        description: 'Cove is being created on the device.',
-        group: 'Cove onboarding',
-        id: 'onboarding-applying',
-        path: 'onboarding/preview-applying',
-    },
-    {
-        description: 'The device went offline mid-creation; reconnect recovers.',
-        group: 'Cove onboarding',
-        id: 'onboarding-apply-failed',
-        path: 'onboarding/preview-apply-failed',
-    },
-    {
-        description: 'Cove’s setup errored on a live device; retry with logs hint.',
-        group: 'Cove onboarding',
-        id: 'onboarding-apply-error',
-        path: 'onboarding/preview-apply-error',
     },
 ];
 

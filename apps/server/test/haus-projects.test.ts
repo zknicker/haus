@@ -25,10 +25,9 @@ function refusedWith(code: 'PROJECT_KEY_FIXED' | 'TASK_KEY_TAKEN') {
     return expect.objectContaining({ data: expect.objectContaining({ project: { code } }) });
 }
 
-test('a new Server holds the Haus project on GEN and its onboarding channel', async () => {
+test('a new Server holds only the Haus project on GEN', async () => {
     expect(await owner.trpc.project.list.query({ serverId })).toEqual([
         expect.objectContaining({ isHaus: true, key: 'GEN', keyEditable: true, name: 'haus' }),
-        expect.objectContaining({ isHaus: false, key: 'ONBO', name: 'onboarding-owner' }),
     ]);
 });
 

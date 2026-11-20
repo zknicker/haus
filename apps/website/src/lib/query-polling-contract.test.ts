@@ -23,8 +23,6 @@ const refetchIntervalAllowlist: Record<string, string> = {
         'Desktop release check every 10 min; releases are published outside Haus Server',
     'hooks/servers/use-cloud-agent-capability.ts':
         'Cloud Agent sign-in, 1 s only while sign-in is waiting; volatile Computer state',
-    'hooks/servers/use-server.ts':
-        'onboarding server.bySlug, 1 s only while onboarding is incomplete (missed-event fallback)',
     'hooks/updates/use-website-update.ts':
         'website build check every 60 s; deployments have no durable event',
 };
