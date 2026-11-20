@@ -13,7 +13,12 @@ import {
     cloudAgentCapabilityState,
     cloudAgentProvider,
 } from './registry.ts';
-import { readClaudeEnvironmentId, writeClaudeEnvironmentId } from './settings.ts';
+import {
+    readClaudeEnvironmentId,
+    readDefaultCloudAgentProvider,
+    writeClaudeEnvironmentId,
+    writeDefaultCloudAgentProvider,
+} from './settings.ts';
 
 export function parseCloudAgentCapabilityRequest(
     value: unknown
@@ -25,7 +30,8 @@ export function parseCloudAgentCapabilityRequest(
 /**
  * The Computer side of the Cloud Agent capability row in Computer settings.
  * `connect` returns a sign-in link while Computer waits for approval and owns
- * the credential store. No credential travels back. `set-environment` pins
+ * the credential store. No credential travels back. `make-default` names the
+ * provider an Agent's `start` uses when it names none. `set-environment` pins
  * this Computer's Claude launches to one Anthropic-hosted environment, or
  * clears the pin with `null`. Only a human action in settings reaches this
  * path, never an Agent turn.
@@ -37,9 +43,11 @@ export async function runCloudAgentCapabilityRequest(
 ): Promise<CloudAgentCapabilityResult> {
     const provider = cloudAgentProvider(request.provider, dataRoot);
     try {
+        const state = await resolve(request.operation);
+        const defaultProvider = await readDefaultCloudAgentProvider(dataRoot);
         return cloudAgentCapabilityResultSchema.parse({
             requestId: request.requestId,
-            result: await resolve(request.operation),
+            result: { ...state, isDefault: defaultProvider === request.provider },
             type: 'cloud-agent-capability-result',
         });
     } catch (error) {
@@ -66,6 +74,9 @@ export async function runCloudAgentCapabilityRequest(
                 return withEnvironments(
                     cloudAgentCapabilityState(provider, await provider.disconnect())
                 );
+            case 'make-default':
+                await writeDefaultCloudAgentProvider(dataRoot, request.provider);
+                return withEnvironments(await signIn.get());
             case 'set-environment':
                 if (provider.provider !== 'claude') {
                     throw new Error(`${provider.provider} has no cloud environment to pin.`);

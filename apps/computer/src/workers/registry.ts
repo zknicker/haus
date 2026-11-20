@@ -51,6 +51,7 @@ export function setCloudAgentProvider(provider: CloudAgentProvider): () => void 
  * cached per account and read from the provider at most daily.
  */
 export function detectCloudAgentProviders(
+    defaultProvider: CloudAgentProviderId,
     dataRoot: string
 ): Promise<CloudAgentProviderReadiness[]> {
     return Promise.all(
@@ -58,6 +59,7 @@ export function detectCloudAgentProviders(
             const provider = cloudAgentProvider(id, dataRoot);
             const readiness = await readCloudAgentReadiness(provider);
             return {
+                isDefault: id === defaultProvider,
                 models: await readCloudAgentModelCatalog(provider, readiness),
                 provider: id,
                 ready: readiness.ready,
@@ -67,8 +69,8 @@ export function detectCloudAgentProviders(
     );
 }
 
-/** One provider's access as Computer settings read it. */
-export type CloudAgentProviderAccess = CloudAgentCapabilityState;
+/** One provider's access as Computer settings read it, before the default is known. */
+export type CloudAgentProviderAccess = Omit<CloudAgentCapabilityState, 'isDefault'>;
 
 /** The same capability, plus the account it resolves to, for Computer settings. */
 export function cloudAgentCapabilityState(

@@ -6,6 +6,7 @@ import { CloudAgentCapabilityRow } from './cloud-agent-capability-row.tsx';
 const connected = {
     accountEmail: 'delegate@example.com',
     expiresAt: null,
+    isDefault: true,
     provider: 'claude',
     ready: true,
     reason: null,
@@ -17,6 +18,7 @@ function render(view: ReturnType<typeof cloudAgentCapabilityView>) {
             isBusy={false}
             onConnect={() => undefined}
             onDisconnect={() => undefined}
+            onMakeDefault={() => undefined}
             onSetEnvironment={() => undefined}
             view={view}
         />

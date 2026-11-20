@@ -105,6 +105,8 @@ export type ImportableSkill = z.infer<typeof importableSkillSchema>;
  */
 export const cloudAgentProviderReadinessSchema = z
     .object({
+        /** Absent from Computers that predate provider choice, which only ran Cursor. */
+        isDefault: z.boolean().default(false),
         models: cloudAgentModelCatalogSchema.nullable().default(null),
         provider: cloudAgentProviderSchema,
         ready: z.boolean(),

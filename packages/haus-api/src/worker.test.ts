@@ -162,18 +162,20 @@ test('Computer inventory reports Cloud Agent provider readiness on the current p
         }).cloudAgentProviders
     ).toHaveLength(1);
     expect(
-        computerInventorySchema.safeParse({
-            cloudAgentProviders: [
-                {
-                    isDefault: true,
-                    provider: 'cursor',
-                    ready: false,
-                    reason: 'provider-unavailable',
-                },
-            ],
-            runtimes: [],
-        }).success
-    ).toBe(false);
+        computerInventorySchema
+            .parse({
+                cloudAgentProviders: [
+                    {
+                        isDefault: true,
+                        provider: 'cursor',
+                        ready: false,
+                        reason: 'provider-unavailable',
+                    },
+                ],
+                runtimes: [],
+            })
+            .cloudAgentProviders?.map((provider) => provider.isDefault)
+    ).toEqual([true]);
     expect(computerProtocolVersion).toBe(40);
 });
 

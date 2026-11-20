@@ -213,6 +213,18 @@ export const appPlaces: readonly AppPlace[] = [
     },
     {
         area: 'connections-and-computers',
+        task: "Choose a Computer's default Cloud Agent provider",
+        path: ['Settings', 'Devices', '(your device)', 'Cloud Agents', 'Make default'],
+        who: 'owner-or-admin',
+        anchors: [
+            settingsEntry(),
+            computers(),
+            label('features/computers/cloud-agent-capability-card.tsx', 'Cloud Agents'),
+            label('features/computers/cloud-agent-capability-row.tsx', 'Make default'),
+        ],
+    },
+    {
+        area: 'connections-and-computers',
         task: 'Add an image generation provider key',
         path: ['Settings', 'Models', 'Image generation'],
         who: 'owner',

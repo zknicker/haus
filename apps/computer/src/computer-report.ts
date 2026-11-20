@@ -10,6 +10,7 @@ import { refreshRuntimeAuthentication } from './runtime-auth-refresh.ts';
 import { readRuntimeIssues } from './runtime-issues.ts';
 import { loginKeychain } from './secrets/keychain.ts';
 import { readSecretsStatus } from './secrets/store.ts';
+import { readDefaultCloudAgentProvider } from './workers/settings.ts';
 
 export function createComputerReporter(dataRoot: string) {
     return async (
@@ -40,7 +41,10 @@ export async function sendEffectiveComputerReport({
     send({
         agents: agents.map(toReportedAgentState),
         inventory: {
-            ...(await detectFullInventory({ dataRoot })),
+            ...(await detectFullInventory({
+                dataRoot,
+                defaultCloudAgentProvider: await readDefaultCloudAgentProvider(dataRoot),
+            })),
             runtimeIssues: await readRuntimeIssues(dataRoot),
             agentSkillImports: await listAgentSkillImportReports(dataRoot, serverId),
             agentSkills: await listAgentSkillReports(dataRoot, serverId),

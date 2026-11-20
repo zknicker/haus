@@ -6,6 +6,7 @@ import {
     useCloudAgentCapability,
     useCloudAgentConnect,
     useCloudAgentDisconnect,
+    useCloudAgentMakeDefault,
     useSetClaudeEnvironment,
 } from '../../hooks/servers/use-cloud-agent-capability.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
@@ -38,6 +39,7 @@ export function CloudAgentProviderCapability({
     const capability = useCloudAgentCapability(target, Boolean(computer) && !isOffline);
     const connect = useCloudAgentConnect(target);
     const disconnect = useCloudAgentDisconnect(target);
+    const makeDefault = useCloudAgentMakeDefault(target);
     const setEnvironment = useSetClaudeEnvironment(target);
     const cancel = useCloudAgentCancelSignIn(target);
     const [signInOpen, setSignInOpen] = useState(false);
@@ -96,6 +98,17 @@ export function CloudAgentProviderCapability({
         }
     };
 
+    const handleMakeDefault = async () => {
+        try {
+            await makeDefault.mutateAsync(target);
+            toast.success(`${view.providerName} is now the default place for Workers`);
+        } catch (error) {
+            toast.danger('Couldn’t change the default place for Workers', {
+                description: errorMessage(error),
+            });
+        }
+    };
+
     const handleDisconnect = async () => {
         try {
             await disconnect.mutateAsync(target);
@@ -121,9 +134,10 @@ export function CloudAgentProviderCapability({
     return (
         <>
             <CloudAgentCapabilityRow
-                isBusy={disconnect.isPending}
+                isBusy={disconnect.isPending || makeDefault.isPending}
                 onConnect={handleConnect}
                 onDisconnect={handleDisconnect}
+                onMakeDefault={handleMakeDefault}
                 onSetEnvironment={handleSetEnvironment}
                 view={view}
             />

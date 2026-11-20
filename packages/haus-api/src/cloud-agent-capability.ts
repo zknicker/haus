@@ -19,6 +19,8 @@ export const cloudAgentCapabilityStateSchema = z
         environments: z.array(cloudAgentEnvironmentSchema).max(200).nullable().optional(),
         /** When the resolved credential expires, when the provider dates it. */
         expiresAt: workerTimestampSchema.nullable(),
+        /** Whether a launch that names no provider uses this one on this Computer. */
+        isDefault: z.boolean().default(false),
         provider: cloudAgentProviderSchema,
         ready: z.boolean(),
         reason: cloudAgentUnreadyReasonSchema.nullable(),

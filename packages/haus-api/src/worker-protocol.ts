@@ -36,12 +36,13 @@ export const workerReconcileCommandSchema = z
 export type WorkerReconcileCommand = z.infer<typeof workerReconcileCommandSchema>;
 
 /**
- * One authenticated Server request against this Computer's Cloud Agent
+ * One authenticated Server request against this Computer's Worker
  * provider access, shaped like the Browser request for the same reason: the
  * App never touches a Computer socket, and provider credentials never leave
  * the machine. `connect` returns the sign-in link while Computer waits for
  * approval and stores the key in the provider's credential store; `disconnect`
- * forgets it. Haus never opens that flow during an Agent turn.
+ * forgets it; `make-default` names this provider as the Computer's default.
+ * Haus never opens that flow during an Agent turn.
  */
 export const cloudAgentCapabilityRequestSchema = z
     .object({
@@ -50,6 +51,7 @@ export const cloudAgentCapabilityRequestSchema = z
             z.object({ kind: z.literal('connect') }).strict(),
             z.object({ kind: z.literal('cancel-sign-in') }).strict(),
             z.object({ kind: z.literal('disconnect') }).strict(),
+            z.object({ kind: z.literal('make-default') }).strict(),
             /** Pins this Computer's Claude launches to one cloud environment; `null` unpins. */
             z
                 .object({

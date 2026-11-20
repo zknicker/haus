@@ -10,6 +10,7 @@ import { cloudAgentSignInView } from './cloud-agent-sign-in-model.ts';
 const connected = {
     accountEmail: 'delegate@example.com',
     expiresAt: '2026-12-03T21:03:33.000Z',
+    isDefault: true,
     provider: 'cursor',
     ready: true,
     reason: null,
@@ -19,6 +20,7 @@ function unready(reason: 'expired' | 'not-connected' | 'provider-unavailable') {
     return {
         accountEmail: null,
         expiresAt: null,
+        isDefault: true,
         provider: 'cursor',
         ready: false,
         reason,
@@ -31,6 +33,7 @@ function render(view: ReturnType<typeof cloudAgentCapabilityView>) {
             isBusy={false}
             onConnect={() => undefined}
             onDisconnect={() => undefined}
+            onMakeDefault={() => undefined}
             onSetEnvironment={() => undefined}
             view={view}
         />
@@ -129,6 +132,7 @@ test('the Computer report renders the row before the settings read answers', () 
             {
                 cloudAgentProviders: [
                     {
+                        isDefault: true,
                         models: null,
                         provider: 'cursor',
                         ready: false,
@@ -193,7 +197,7 @@ test('Claude reuses the Computer’s Claude Code login: it checks again and neve
         isConnecting: false,
         isOffline: false,
         provider: 'claude',
-        state: { ...unready('not-connected'), provider: 'claude' },
+        state: { ...unready('not-connected'), isDefault: false, provider: 'claude' },
     });
     expect(signedOut).toMatchObject({ canConnect: true, connectLabel: 'Check again' });
     expect(signedOut.description).toContain('Claude Code');
@@ -203,10 +207,21 @@ test('Claude reuses the Computer’s Claude Code login: it checks again and neve
         isConnecting: false,
         isOffline: false,
         provider: 'claude',
-        state: { ...connected, expiresAt: null, provider: 'claude' },
+        state: { ...connected, expiresAt: null, isDefault: false, provider: 'claude' },
     });
-    expect(ready).toMatchObject({ canDisconnect: false });
-    expect(render(ready)).not.toContain('aria-label="Claude Cloud Agents actions"');
+    expect(ready).toMatchObject({ canDisconnect: false, canMakeDefault: true, isDefault: false });
+    expect(render(ready)).toContain('aria-label="Claude Cloud Agents actions"');
+});
+
+test('the default provider wears a Default chip and cannot be made default again', () => {
+    const view = cloudAgentCapabilityView({
+        isConnecting: false,
+        isOffline: false,
+        provider: 'cursor',
+        state: connected,
+    });
+    expect(view).toMatchObject({ canMakeDefault: false, isDefault: true });
+    expect(render(view)).toContain('Default');
 });
 
 test('recovered Computer state supersedes a lost connect response', () => {

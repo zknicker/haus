@@ -9,6 +9,8 @@ import { cloudAgentProviderName } from '../workers/cloud-agent-provider-presenta
 export interface CloudAgentCapabilityView {
     canConnect: boolean;
     canDisconnect: boolean;
+    /** Only a ready provider that is not already the default can become it. */
+    canMakeDefault: boolean;
     /** Cursor signs in from Haus; Claude reuses the Computer's own Claude Code login. */
     connectLabel: string;
     description: string;
@@ -16,6 +18,7 @@ export interface CloudAgentCapabilityView {
     environmentId: string | null;
     /** This Computer's Claude cloud environments to pin to; null off Claude. */
     environments: CloudAgentEnvironment[] | null;
+    isDefault: boolean;
     provider: CloudAgentProvider;
     providerName: string;
     status: 'connecting' | 'not-connected' | 'ready' | 'unavailable';
@@ -56,9 +59,11 @@ export function cloudAgentCapabilityView(input: {
 }): CloudAgentCapabilityView {
     const access = providerAccess[input.provider];
     const identity = {
+        canMakeDefault: false,
         connectLabel: access.connectLabel,
         environmentId: input.state?.environmentId ?? null,
         environments: input.state?.environments ?? null,
+        isDefault: input.state?.isDefault ?? false,
         provider: input.provider,
         providerName: cloudAgentProviderName(input.provider),
     };
@@ -90,6 +95,7 @@ export function cloudAgentCapabilityView(input: {
             canConnect: false,
             // Haus never signs Claude Code out; that login belongs to the Computer.
             canDisconnect: input.provider === 'cursor',
+            canMakeDefault: !identity.isDefault,
             description: connectedDescription(input.state, access.plan),
             status: 'ready',
             statusLabel: 'Ready',
@@ -143,6 +149,7 @@ export function reportedCloudAgentCapability(
     return {
         accountEmail: null,
         expiresAt: null,
+        isDefault: reported.isDefault,
         provider: reported.provider,
         ready: reported.ready,
         reason: reported.ready ? null : (reported.reason ?? 'provider-unavailable'),
