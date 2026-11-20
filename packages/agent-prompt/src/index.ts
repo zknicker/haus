@@ -27,10 +27,14 @@ export {
 export { formatMemoryBlock, memoryCharacterCap, memoryFileName } from './memory-block.ts';
 export { formatRulesBlock, type RulesChange } from './rules-block.ts';
 export {
+    composePdfText,
+    composePdfTooLarge,
+    composePdfUnreadable,
     composeUnknownToolCalls,
     runnerMachineFacts,
     runnerRuntimeVersions,
     runnerToolDescriptions,
+    runnerUnsentWrite,
 } from './runner-text.ts';
 export { renderSkillListing, type SkillListingEntry } from './skill-listing.ts';
 export {
