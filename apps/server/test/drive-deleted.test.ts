@@ -72,7 +72,11 @@ test('restore brings a deleted file back on top of its last head', async () => {
             revision_id: second.artifact.revision_id,
             serverId: state.serverId,
         })
-    ).rejects.toMatchObject({ data: { artifact: { code: 'PATH_TAKEN' } } });
+    ).rejects.toMatchObject({
+        data: { artifact: { code: 'PATH_TAKEN' } },
+        message:
+            'A file already exists at `haus/restore/doc.md`. Move or rename that file first, then restore this one.',
+    });
 });
 
 test('a write from a deleted file revives it at the written path and records a put', async () => {

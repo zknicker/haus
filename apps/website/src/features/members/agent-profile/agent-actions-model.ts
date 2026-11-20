@@ -31,5 +31,5 @@ export function disabledAgentActions(input: {
 }
 
 export function fullResetConfirmation(displayName: string) {
-    return `Deletes ${displayName}'s memory, notes, skills and rules, then restores a starter MEMORY.md and the factory skills in a fresh session. You can restore any of them from Recently deleted in Drive for ${driveDeletedRetentionDays} days.`;
+    return `Deletes ${displayName}'s memory, notes, skills and rules, then restores a starter MEMORY.md and the factory skills in a fresh session. You can restore any of them from Recently deleted in Drive for ${driveDeletedRetentionDays} days. To restore MEMORY.md or a factory skill, move or rename the new file at that path first.`;
 }

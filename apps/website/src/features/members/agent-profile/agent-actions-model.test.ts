@@ -23,6 +23,6 @@ test('a lifecycle mutation in flight makes the whole menu inert', () => {
 
 test('the Full reset confirmation names what it deletes and how to get it back', () => {
     expect(fullResetConfirmation('Scout')).toBe(
-        "Deletes Scout's memory, notes, skills and rules, then restores a starter MEMORY.md and the factory skills in a fresh session. You can restore any of them from Recently deleted in Drive for 30 days."
+        "Deletes Scout's memory, notes, skills and rules, then restores a starter MEMORY.md and the factory skills in a fresh session. You can restore any of them from Recently deleted in Drive for 30 days. To restore MEMORY.md or a factory skill, move or rename the new file at that path first."
     );
 });
