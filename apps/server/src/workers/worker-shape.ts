@@ -75,6 +75,7 @@ export function toWorker(row: WorkerRow, details: WorkerDetails = noDetails): Wo
                 ? { at: row.activityAt.toISOString(), summary: row.activitySummary }
                 : null,
         agentId: row.agentId,
+        branch: row.branch,
         carrierComputerId: row.carrierComputerId,
         closedAt: row.closedAt?.toISOString() ?? null,
         closingAt: row.closingAt?.toISOString() ?? null,
@@ -84,12 +85,14 @@ export function toWorker(row: WorkerRow, details: WorkerDetails = noDetails): Wo
         id: row.id,
         job: deriveWorkerJob({ startedAt, status: row.status, terminalAt, turns: recent }),
         launchMessageId: row.launchMessageId,
+        model: row.model,
         originChatId: row.originChatId,
         place: workerPlaceViewOf(row, details.computerName),
         providerAgentId: row.providerAgentId,
         providerUrl: row.providerUrl,
         pullRequest: details.pullRequest,
         repository: row.repository,
+        runtime: row.runtime,
         startedAt,
         startingRef: row.startingRef,
         status: workerStatusOf(newest ?? { outcome: null, status: row.status }),
@@ -98,6 +101,7 @@ export function toWorker(row: WorkerRow, details: WorkerDetails = noDetails): Wo
         title: row.title,
         turns: recent,
         updatedAt: row.updatedAt.toISOString(),
+        workerMdRevisionId: row.workerMdRevisionId,
     });
 }
 

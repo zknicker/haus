@@ -21,7 +21,9 @@ import { withDispatch } from './dispatch-worker-turns.ts';
 import {
     WorkerConflictError,
     WorkerPlaceRequiredError,
+    WorkerOptionCloudError,
     WorkerPlaceUnavailableError,
+    WorkerRepoUnknownError,
 } from './errors.ts';
 import { chooseCarrier, readDefaultPlace, readReadyPlaces } from './worker-carrier.ts';
 import { type WorkerEffects, noWorkerEffects } from './worker-effects.ts';
@@ -61,6 +63,13 @@ export async function startWorker(
         if (!place) {
             throw new WorkerPlaceRequiredError(await readReadyPlaces(tx, runner.serverId));
         }
+        if (input.runtime || input.model) {
+            throw new WorkerOptionCloudError(place);
+        }
+        const { repository } = input;
+        if (!repository) {
+            throw new WorkerRepoUnknownError();
+        }
         const carrierComputerId = await chooseCarrier(tx, {
             agentId: runner.agentId,
             place,
@@ -81,7 +90,7 @@ export async function startWorker(
             carrierComputerId,
             id: workerId,
             place,
-            repository: input.repository,
+            repository,
             serverId: runner.serverId,
             startNonce: input.nonce,
             startingRef: input.startingRef,

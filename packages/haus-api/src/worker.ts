@@ -4,6 +4,7 @@ import type { components } from './generated/openapi.d.ts';
 import { taskKeySchema } from './task-key.ts';
 import { workerObservedResultSchema, workerTurnInputTextMaxLength } from './worker-outcome.ts';
 import { workerPlaceInputSchema, workerPlaceSchema } from './worker-place.ts';
+import { workerModelSchema, workerRuntimeSchema } from './worker-runtime.ts';
 import {
     workerActivitySchema,
     workerBranchSchema,
@@ -65,17 +66,21 @@ export const workerUpdatedEventSchema = z
 export type WorkerUpdatedEvent = z.infer<typeof workerUpdatedEventSchema>;
 
 /**
- * `haus worker start`: the brief and where it runs. A start without `place` or
- * `task` is refused with `WORKER_PLACE_REQUIRED` or `WORKER_TASK_REQUIRED`
- * before anything is written. `nonce` makes a retried start return the same
- * Worker.
+ * `haus worker start`: the brief and where it runs. `place` takes the object
+ * or any string form, a Computer name included; without it the Task's Project
+ * default applies. `repository` defaults to the Project's only repo. `runtime`
+ * and `model` are for Computer places and refuse `WORKER_OPTION_CLOUD`
+ * elsewhere. Every refusal comes before anything is written. `nonce` makes a
+ * retried start return the same Worker.
  */
 export const agentWorkerStartInputSchema = z
     .object({
         brief: workerTextSchema,
+        model: workerModelSchema.optional(),
         nonce: nonceSchema,
         place: workerPlaceInputSchema.optional(),
-        repository: workerRepositorySchema,
+        repository: workerRepositorySchema.optional(),
+        runtime: workerRuntimeSchema.optional(),
         startingRef: workerRefSchema.nullable().default(null),
         task: taskKeySchema.optional(),
         title: workerTitleSchema,

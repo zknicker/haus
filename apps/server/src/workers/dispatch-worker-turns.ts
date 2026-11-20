@@ -97,7 +97,19 @@ export async function workerTurnStartFrame(
             )
         )
         .orderBy(asc(workerTurnsTable.createdAt), asc(workerTurnsTable.id));
+    const [sent] = await tx
+        .update(workerTurnsTable)
+        .set({ dispatchAttempt: sql`${workerTurnsTable.dispatchAttempt} + 1` })
+        .where(
+            and(eq(workerTurnsTable.serverId, worker.serverId), eq(workerTurnsTable.id, turn.id))
+        )
+        .returning({ attempt: workerTurnsTable.dispatchAttempt });
+    if (!sent) {
+        throw new Error(`Worker turn ${turn.id} vanished before its start was sent.`);
+    }
     return {
+        attempt: sent.attempt,
+        checkout: null,
         input: await composeWorkerInput(tx, {
             inputs: turn.input,
             serverId: worker.serverId,
@@ -113,11 +125,14 @@ export async function workerTurnStartFrame(
         predecessorTurnIds: predecessors.map(({ id }) => id),
         providerAgentId: worker.providerAgentId,
         repository: worker.repository,
+        resumeSessionId: worker.nativeSessionId,
+        runtime: worker.runtime,
         startingRef: worker.startingRef,
         title: worker.title,
         turnId: turn.id,
         type: 'worker-turn-start',
         workerId: worker.id,
+        workerMdRevisionId: null,
     } satisfies WorkerTurnStartFrame;
 }
 

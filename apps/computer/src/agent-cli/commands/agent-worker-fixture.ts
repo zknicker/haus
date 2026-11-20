@@ -4,6 +4,7 @@ import type { ParsedArgs } from '../parse.ts';
 export const work = {
     activity: null,
     agentId: 'agt_orbit',
+    branch: null,
     carrierComputerId: 'cmp_studio',
     closedAt: null,
     closingAt: null,
@@ -13,12 +14,14 @@ export const work = {
     id: 'wkr_1234567890abcdef',
     job: { followUp: null, startedAt: null, state: 'working' },
     launchMessageId: null,
+    model: null,
     originChatId: null,
     place: { kind: 'cursor' },
     providerAgentId: null,
     providerUrl: null,
     pullRequest: null,
     repository: 'haus/haus',
+    runtime: null,
     startedAt: null,
     startingRef: 'main',
     status: 'queued',
@@ -27,6 +30,7 @@ export const work = {
     title: 'Fix the flaky delivery test',
     turns: [],
     updatedAt: '2026-09-04T12:00:00.000Z',
+    workerMdRevisionId: null,
 };
 
 export function args(overrides: Record<string, string> = {}): ParsedArgs {

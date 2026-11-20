@@ -49,6 +49,14 @@ test('the Computer response schema tolerates an unknown field on a reconcile com
 
 test('the Computer response schema tolerates an unknown field on a turn start, at every nesting level', () => {
     const parsed = workerTurnStartResponseSchema.parse({
+        attempt: 1,
+        checkout: {
+            branch: 'haus/sec-12-wkr_1234567890abcdef',
+            checkoutPath: null,
+            futureCheckoutField: true,
+            repository: 'haus/haus',
+            startingRef: null,
+        },
         futureStartField: true,
         input: 'Fix the flaky delivery test.',
         model: {
@@ -58,17 +66,21 @@ test('the Computer response schema tolerates an unknown field on a turn start, a
             id: null,
             params: [],
         },
-        place: { kind: 'claude' },
+        place: { futurePlaceField: true, kind: 'claude' },
         predecessorTurnIds: [],
         providerAgentId: null,
         repository: 'haus/haus',
+        resumeSessionId: null,
+        runtime: null,
         startingRef: null,
         title: 'Fix the flaky delivery test',
         turnId: 'wkt_1234567890abcdef',
         type: 'worker-turn-start',
         workerId: 'wkr_1234567890abcdef',
+        workerMdRevisionId: null,
     });
     expect(parsed.input).toBe('Fix the flaky delivery test.');
+    expect(parsed.checkout?.branch).toBe('haus/sec-12-wkr_1234567890abcdef');
 });
 
 test('the Computer response schema tolerates an unknown field on a capability request, at every nesting level', () => {

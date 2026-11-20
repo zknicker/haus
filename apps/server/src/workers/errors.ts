@@ -93,3 +93,19 @@ export class WorkerPlaceUnavailableError extends Error {
         this.name = 'WorkerPlaceUnavailableError';
     }
 }
+
+export class WorkerRepoUnknownError extends Error {
+    constructor() {
+        super('Name the repository this Worker works in with --repo <owner/name>.');
+        this.name = 'WorkerRepoUnknownError';
+    }
+}
+
+export class WorkerOptionCloudError extends Error {
+    constructor(place: string) {
+        super(
+            `--runtime and --model are for Computer places; ${place} runs the Server's cloud model setting. Drop them.`
+        );
+        this.name = 'WorkerOptionCloudError';
+    }
+}

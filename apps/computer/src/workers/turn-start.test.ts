@@ -10,7 +10,11 @@ import {
 } from './worker-supervisor.fixture.ts';
 
 const supervisors = registerSupervisorFixture();
-const accepted = { turnId: 'wkt_1234567890abcdef', type: 'worker-turn-accepted' } as const;
+const accepted = {
+    attempt: 1,
+    turnId: 'wkt_1234567890abcdef',
+    type: 'worker-turn-accepted',
+} as const;
 const launched = (frame: WorkerComputerFrame) =>
     frame.type === 'worker-observation' && frame.observation.providerRunId !== undefined;
 
@@ -75,8 +79,8 @@ test('a later turn is sent to the same hosted agent once, however often its star
     await daemon.work.accept(frame);
     await daemon.work.reconcile([reconcileEntry(frame)]);
     expect(daemon.frames.filter((sent) => sent.type === 'worker-turn-accepted')).toEqual([
-        { turnId: frame.turnId, type: 'worker-turn-accepted' },
-        { turnId: frame.turnId, type: 'worker-turn-accepted' },
+        { attempt: 1, turnId: frame.turnId, type: 'worker-turn-accepted' },
+        { attempt: 1, turnId: frame.turnId, type: 'worker-turn-accepted' },
     ]);
     expect(f.provider.sends).toEqual([
         {

@@ -3,6 +3,7 @@ import { agentReasoningEffortSchema } from './agent-execution.ts';
 import { idSchema } from './chat.ts';
 import { cloudAgentModelCatalogSchema } from './cloud-agent-model.ts';
 import { computerSecretsStatusSchema } from './computer-secrets.ts';
+import { workerRuntimeReadinessSchema } from './worker-runtime.ts';
 import { cloudAgentProviderSchema, cloudAgentUnreadyReasonSchema } from './worker-shared.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
@@ -152,6 +153,11 @@ export const computerInventorySchema = z
         runtimes: z.array(computerRuntimeSchema).max(50),
         /** The Computer's 1Password vault connection (Computer Secrets), names only. */
         secrets: computerSecretsStatusSchema.optional(),
+        /**
+         * The native harnesses a Computer-place Worker can run in here. Absent
+         * from Computers that predate Computer places, which run none.
+         */
+        workerRuntimes: z.array(workerRuntimeReadinessSchema).max(2).optional(),
     })
     .strict();
 

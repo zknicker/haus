@@ -15,7 +15,7 @@ import type { WorkerTurnJournal } from './turn-journal.ts';
 import type { WorkerTurnRecordInput } from './turn-record.ts';
 
 export interface WorkerTurnHost {
-    acknowledge(turnId: string): void;
+    acknowledge(frame: { attempt: number; turnId: string }): void;
     journal: WorkerTurnJournal;
     provider(id: CloudAgentProviderId): CloudAgentProvider;
     report(ref: WorkerTurnRef, observation: CloudAgentProviderObservation): void;
@@ -33,7 +33,7 @@ export async function acceptWorkerTurn(frame: WorkerTurnStartFrame, host: Worker
         workerId: frame.workerId,
     };
     const accepted = await host.journal.accept(host.serverId, ref, recordOf(frame));
-    host.acknowledge(frame.turnId);
+    host.acknowledge(frame);
     host.watch(ref);
     if (!(accepted && frame.providerAgentId === null)) {
         return;

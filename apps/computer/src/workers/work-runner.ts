@@ -95,8 +95,8 @@ export class WorkerSupervisor {
     /** Journals one turn the Server started, acknowledges it, then runs it at most once. */
     accept(frame: WorkerTurnStartFrame): Promise<void> {
         return acceptWorkerTurn(frame, {
-            acknowledge: (turnId) =>
-                this.connection?.send({ turnId, type: 'worker-turn-accepted' }),
+            acknowledge: ({ attempt, turnId }) =>
+                this.connection?.send({ attempt, turnId, type: 'worker-turn-accepted' }),
             journal: this.journal,
             provider: this.provider,
             report: (ref, observation) => this.report(ref, observation),

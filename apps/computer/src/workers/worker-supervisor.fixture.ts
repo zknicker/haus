@@ -14,17 +14,22 @@ export const workerId = 'wkr_1234567890abcdef';
 
 export function turnStartFrame(overrides: Partial<WorkerTurnStartFrame> = {}) {
     return {
+        attempt: 1,
+        checkout: null,
         input: 'Fix the flaky delivery test.',
         model: { droppedParams: [], fallbackFrom: null, id: null, params: [] },
         place: { kind: 'cursor' },
         predecessorTurnIds: [],
         providerAgentId: null,
         repository: 'haus/haus',
+        resumeSessionId: null,
+        runtime: null,
         startingRef: 'main',
         title: 'Fix the flaky delivery test',
         turnId: 'wkt_1234567890abcdef',
         type: 'worker-turn-start',
         workerId,
+        workerMdRevisionId: null,
         ...overrides,
     } satisfies WorkerTurnStartFrame;
 }
