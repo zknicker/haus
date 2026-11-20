@@ -20,7 +20,7 @@ export function AgentHomeProject({ agent }: { agent: Agent }) {
             <ItemCardGroup>
                 <ItemCard>
                     <ItemCard.Content>
-                        <ItemCard.Title>Home Project</ItemCard.Title>
+                        <ItemCard.Title>Project</ItemCard.Title>
                         {fixed ? (
                             <ItemCard.Description>
                                 Cove always lives in the Haus project.
@@ -32,7 +32,7 @@ export function AgentHomeProject({ agent }: { agent: Agent }) {
                     </ItemCard.Content>
                     <ItemCard.Action>
                         <ProjectSelect
-                            aria-label="Home Project"
+                            aria-label="Project"
                             className="w-56"
                             isDisabled={fixed || !projects.data || move.isPending}
                             onSelect={(projectId) =>

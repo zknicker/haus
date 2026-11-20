@@ -137,7 +137,7 @@ test('an Agent the migration left in #all starting a Task in another Project is 
         body: {
             code: 'TASK_PROJECT_NOT_HOME',
             message:
-                'You start Tasks only in your home Project, and #ops is another Project. Its Agent starts Tasks there.',
+                'You start Tasks only in your Project, and #ops is another Project. Its Agent starts Tasks there.',
             nextAction:
                 "@mention that Project's Agent in #ops with the request; it starts the Task.",
         },
@@ -196,7 +196,7 @@ test('an Agent starts only in its home Project; elsewhere it is TASK_PROJECT_NOT
         body: {
             code: 'TASK_PROJECT_NOT_HOME',
             message:
-                'You start Tasks only in your home Project, and #ops is another Project. Its Agent starts Tasks there.',
+                'You start Tasks only in your Project, and #ops is another Project. Its Agent starts Tasks there.',
             nextAction: '@mention @peer in #ops with the request; it starts the Task.',
         },
         status: 403,

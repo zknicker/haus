@@ -1224,7 +1224,7 @@ paths:
       description: >-
         Starts a Task, a place for one piece of work, in a Project from an origin Message in a
         Channel or DM (ADR 0055). The Task takes its Project's key. An Agent starting outside
-        its home Project is refused with `TASK_PROJECT_NOT_HOME`.
+        its Project is refused with `TASK_PROJECT_NOT_HOME`.
       requestBody:
         required: true
         content:
@@ -1933,7 +1933,7 @@ components:
           type: [string, 'null']
           default: null
           pattern: '^[A-Za-z][A-Za-z0-9]{1,4}$'
-          description: The new Agent's home Project key. Null homes it in the creating Agent's own home Project.
+          description: The new Agent's Project key. Null puts it in the creating Agent's own Project.
         signatureEmoji:
           type: [string, 'null']
           default: null
@@ -1983,7 +1983,7 @@ components:
         computerId: { type: string, minLength: 1 }
         idempotent: { type: boolean }
         modelId: { type: string }
-        project: { type: string, pattern: '^[A-Z][A-Z0-9]{1,4}$', description: The new Agent's home Project key. }
+        project: { type: string, pattern: '^[A-Z][A-Z0-9]{1,4}$', description: The new Agent's Project key. }
         reasoningEffort: { type: string, enum: [default, low, medium, high, xhigh, max] }
         runtimeId: { type: string }
         target: { type: string, minLength: 1 }
@@ -3168,7 +3168,7 @@ components:
           pattern: '^[A-Z][A-Z0-9]{1,4}$'
           description: >-
             The Task's Project by key, like `SEC`. Defaults to the origin's channel, or for a DM or
-            `#all` origin to the caller's home Project.
+            `#all` origin to the caller's Project.
         state:
           description: Defaults to open.
           type: string

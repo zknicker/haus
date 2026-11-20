@@ -16,7 +16,7 @@ test('a Task starts from the asking message in a channel or DM, in a Project; a 
     );
     expect(body).toContain('in a channel or a DM');
     expect(body).toContain(
-        "the one `--project SEC` names, else the origin's channel, else for a DM or `#all` your home Project"
+        "the one `--project SEC` names, else the origin's channel, else for a DM or `#all` your Project"
     );
     expect(body).toContain(
         "@mention that Project's Agent in its channel with the request; the Server refuses your start there with `TASK_PROJECT_NOT_HOME`."

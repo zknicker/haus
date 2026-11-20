@@ -308,7 +308,7 @@ and [Agent Inbox](../../specs/inbox.md).
   both through `agent.setHome`. Every Project choice is one searchable picker
   over `project.list` whose rows carry the Project's icon and color, and ends in
   New project, which creates a Project and picks it. An Agent's profile hub
-  carries the same picker as its Home Project row, New Captain requires one, and
+  carries the same picker as its Project row, New Captain requires one, and
   archiving or deleting a Project that is still home to Captains asks where they
   move first. The description (at most 500
   characters, blank clears it) tells people and Agents what the channel is for;

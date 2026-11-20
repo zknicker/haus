@@ -54,8 +54,7 @@ const CREATE_COMMAND: SubCommand = {
             valueName: '<text>',
         },
         {
-            description:
-                'Key of its home Project, which it hears; omitted, it lives in your own home Project',
+            description: 'Key of its Project, which it hears; omitted, it joins your own Project',
             name: '--project',
             valueName: '<KEY>',
         },
@@ -151,7 +150,7 @@ export async function runAgentCreate(args: ParsedArgs, deps: AgentAgentDeps): Pr
     const lines = [
         `Created @${agent.handle} (${agent.displayName}). Agent ID: ${agent.agentId}`,
         `Runtime ${receipt.runtimeId} · model ${receipt.modelId} · reasoning ${receipt.reasoningEffort} · Computer ${receipt.computerId} — inherited from you.`,
-        `Home Project: ${receipt.project}. It hears that Project's channel and Tasks.`,
+        `Project: ${receipt.project}. It hears that Project's channel and Tasks.`,
         'Its brief is in its memory; it reads it on every startup.',
         `@${agent.handle} introduces itself in #haus on its first turn; do not post an introduction for it. Answer the human in ${receipt.target}.`,
     ];

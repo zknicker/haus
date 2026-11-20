@@ -34,7 +34,7 @@ export class TaskProjectNotHomeError extends Error {
         const channel = `#${project.channelName}`;
         const agent = project.homeAgentHandles[0];
         super(
-            `You start Tasks only in your home Project, and ${channel} is another Project. Its Agent starts Tasks there.`
+            `You start Tasks only in your Project, and ${channel} is another Project. Its Agent starts Tasks there.`
         );
         this.name = 'TaskProjectNotHomeError';
         this.nextAction = agent

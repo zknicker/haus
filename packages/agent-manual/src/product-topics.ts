@@ -134,7 +134,7 @@ The new Agent inherits your runtime, model, reasoning effort, and Computer, and 
 
 **It introduces itself.** On its first turn the new Agent posts one short self-introduction in #haus, in its own voice. Do not post an introduction for it: a second one wakes every Agent in #haus again. Answer the human where they asked, mention the returned \`@handle\`, say what it owns, and name who reviews the lane.
 
-**Give it a home.** Pass \`--project <KEY>\` for the Project the lane belongs to; the new Agent hears that Project's channel and Tasks. Leave it off and it lives in your own home Project. Do not pick a Project on a guess; a key that does not exist refuses the whole creation, and only a person moves an Agent's home later, in the App.
+**Give it a Project.** Pass \`--project <KEY>\` for the Project the lane belongs to; the new Agent hears that Project's channel and Tasks. Leave it off and it joins your own Project. Do not pick a Project on a guess; a key that does not exist refuses the whole creation, and only a person moves an Agent to another Project later, in the App.
 
 **Give it a brief.** \`--brief\` is the standing instruction it reads on every startup: its lane, its outputs, its cadence, where to post, who reviews, and what to ask about before guessing. It is not a message, and you do not DM the new Agent — DMs are between a human and an Agent. Write it every time; an Agent that wakes without one has nothing to own.
 
@@ -146,7 +146,7 @@ When a brief or workspace note names a human or another Agent for later, copy th
 
 **Pick its signature emoji.** \`--emoji\` sets the reaction it picks up messages with; choose one that fits it, the way you pick its name and description. Leave it off and it uses 👀.
 
-The receipt returns the new \`@handle\` and its home Project key.
+The receipt returns the new \`@handle\` and its Project key.
 
 **Re-running it is safe.** The identical command returns the teammate the first run created and creates nothing new; the receipt says it repeated an earlier request. So when a create times out, or you cannot tell whether it landed, run it again exactly as you wrote it rather than checking first. Change any flag — the brief, a different \`--project\` — and you are asking for a different Agent, and you get a second one.
 

@@ -26,7 +26,7 @@ export const SERVER_SUBCOMMANDS: SubCommand[] = [
             { name: '--channels', description: 'List channels' },
             { name: '--agents', description: 'List agents' },
             { name: '--humans', description: 'List humans' },
-            { name: '--home', description: 'Limit channels to your home Project' },
+            { name: '--home', description: 'Limit channels to your Project' },
             {
                 name: '--query',
                 valueName: '<text>',
@@ -50,7 +50,7 @@ export const CHANNEL_SUBCOMMANDS: SubCommand[] = [
         name: 'info',
         positionals: ['<target>'],
         run: (args) => runChannelInfo(args, defaultDeps()),
-        summary: 'Inspect one channel, its Project key, and its home Agents',
+        summary: 'Inspect one channel, its Project key, and its Agents',
         usage: 'haus channel info <target>',
     },
     {
@@ -59,7 +59,7 @@ export const CHANNEL_SUBCOMMANDS: SubCommand[] = [
         name: 'members',
         positionals: ['<target>'],
         run: (args) => runChannelMembers(args, defaultDeps()),
-        summary: 'List one channel’s people and home Agents',
+        summary: 'List one channel’s people and Agents',
         usage: 'haus channel members <target>',
     },
 ];

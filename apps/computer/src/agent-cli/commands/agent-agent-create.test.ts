@@ -125,7 +125,7 @@ test('create says the new Agent introduces itself, without sending a message', a
     );
     expect(printed).not.toMatch(/Next: introduce|haus message send --target "#haus"/u);
     expect(printed).not.toContain('Message ID:');
-    expect(printed).toContain("Home Project: PRD. It hears that Project's channel and Tasks.");
+    expect(printed).toContain("Project: PRD. It hears that Project's channel and Tasks.");
 });
 
 test('the brief and the home Project key ride the create, and the receipt says so', async () => {

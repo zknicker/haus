@@ -142,7 +142,7 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
     // Channel mutes and membership are deleted (ADR 0055); unfollow is the only narrowing.
     expect(prompt).not.toContain('To mute ordinary Activity delivery');
     expect(prompt).toContain(
-        'Outside your home, `haus task unfollow --target task:<KEY-n>` and `haus message unfollow` stop what you follow.'
+        'Outside your Project, `haus task unfollow --target task:<KEY-n>` and `haus message unfollow` stop what you follow.'
     );
 
     // A human is asked by @mention where the work lives (ADR 0037); there is no Ask command.
@@ -227,7 +227,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // membership paragraph became the hearing description (-437), and Tasks gained placement (+259).
     // Raised by exactly 130 (37,698 → 37,828) for generalists hearing ownerless Projects (+98) and placement (+32);
     // lowered by exactly 232 (37,828 → 37,596) when Zach retired generalists (2026-11-20): -98 hearing, -134 placement.
-    expect(prompt.length).toBeLessThanOrEqual(37_596);
+    // Lowered by exactly 6 (37,596 → 37,590) when an Agent's home Project became just its Project in prose (Zach, 2026-11-20).
+    expect(prompt.length).toBeLessThanOrEqual(37_590);
     expect(prompt.toLowerCase()).not.toContain('thread');
 });
 

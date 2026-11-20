@@ -91,7 +91,7 @@ export function renderServerInfo(
             '## Server Channels',
             ...response.channels.map(
                 (channel) =>
-                    `#${channel.handle} [${channel.project}${channel.home ? ', your home' : ''}] Agents: ${handleList(channel.homeAgents)}${descriptionSuffix(channel.description)}`
+                    `#${channel.handle} [${channel.project}${channel.home ? ', your Project' : ''}] Agents: ${handleList(channel.homeAgents)}${descriptionSuffix(channel.description)}`
             )
         );
     }
@@ -120,8 +120,8 @@ export function renderChannelInfo(channel: AgentChannel): string {
     return [
         `## Channel #${channel.handle}`,
         `Project: ${channel.project}`,
-        `Home Agents: ${handleList(channel.homeAgents)}`,
-        `Your home: ${channel.home ? 'yes' : 'no'}`,
+        `Agents: ${handleList(channel.homeAgents)}`,
+        `Your Project: ${channel.home ? 'yes' : 'no'}`,
         `Description: ${channel.description ?? 'No description.'}`,
         `Members: ${channel.memberCount}`,
         '',

@@ -116,7 +116,7 @@ export async function requireCreationHome(
         const home = await findCreatorHome(db, runner);
         if (!home) {
             throw new AgentTargetError(
-                'Your home is not an open Project, so the new Agent cannot live there. Pass --project <KEY>.'
+                'Your Project is not open, so the new Agent cannot join it. Pass --project <KEY>.'
             );
         }
         return home;

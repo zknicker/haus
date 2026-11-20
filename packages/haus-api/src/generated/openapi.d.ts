@@ -872,7 +872,7 @@ export interface paths {
         put?: never;
         /**
          * Start a Task from a Message in a Channel or DM.
-         * @description Starts a Task, a place for one piece of work, in a Project from an origin Message in a Channel or DM (ADR 0055). The Task takes its Project's key. An Agent starting outside its home Project is refused with `TASK_PROJECT_NOT_HOME`.
+         * @description Starts a Task, a place for one piece of work, in a Project from an origin Message in a Channel or DM (ADR 0055). The Task takes its Project's key. An Agent starting outside its Project is refused with `TASK_PROJECT_NOT_HOME`.
          */
         post: operations["startAgentTask"];
         delete?: never;
@@ -1340,7 +1340,7 @@ export interface components {
             displayName: string;
             nonce: string;
             /**
-             * @description The new Agent's home Project key. Null homes it in the creating Agent's own home Project.
+             * @description The new Agent's Project key. Null puts it in the creating Agent's own Project.
              * @default null
              */
             project: string | null;
@@ -1380,7 +1380,7 @@ export interface components {
             computerId: string;
             idempotent: boolean;
             modelId: string;
-            /** @description The new Agent's home Project key. */
+            /** @description The new Agent's Project key. */
             project: string;
             /** @enum {string} */
             reasoningEffort: "default" | "low" | "medium" | "high" | "xhigh" | "max";
@@ -2034,7 +2034,7 @@ export interface components {
             /** @description The origin Message id. It must be in `target`. */
             from: string;
             priority?: components["schemas"]["AgentTaskPriority"];
-            /** @description The Task's Project by key, like `SEC`. Defaults to the origin's channel, or for a DM or `#all` origin to the caller's home Project. */
+            /** @description The Task's Project by key, like `SEC`. Defaults to the origin's channel, or for a DM or `#all` origin to the caller's Project. */
             project?: string;
             /**
              * @description Defaults to open.

@@ -50,8 +50,7 @@ test('no --project is refused when the creator lives in #all, which is no Projec
     expect(created.status).toBe(404);
     expect(created.body).toMatchObject({
         code: 'INVALID_TARGET',
-        message:
-            'Your home is not an open Project, so the new Agent cannot live there. Pass --project <KEY>.',
+        message: 'Your Project is not open, so the new Agent cannot join it. Pass --project <KEY>.',
     });
     expect(await readAgentIdByHandle('wisp')).toBeNull();
 });

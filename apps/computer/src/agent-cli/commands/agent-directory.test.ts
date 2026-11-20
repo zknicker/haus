@@ -54,7 +54,7 @@ test('server info --home asks for the home Project and keeps the filter when pag
     );
 
     expect(seen[0]?.query).toMatchObject({ channels: true, home: true });
-    expect(output.join('')).toContain('#product [PRD, your home] Agents: @orbit\n');
+    expect(output.join('')).toContain('#product [PRD, your Project] Agents: @orbit\n');
     expect(output.join('')).toContain(
         'Next: haus server info --channels --home --offset 1 --limit 1'
     );

@@ -36,7 +36,9 @@ test('server info lists each channel once-prefixed with its Project, home Agents
 
     const output = renderServerInfo(info);
 
-    expect(output).toContain(`#haus [GEN, your home] Agents: @cove, @tiny — ${hausDescription}\n`);
+    expect(output).toContain(
+        `#haus [GEN, your Project] Agents: @cove, @tiny — ${hausDescription}\n`
+    );
     expect(output).toContain('#product [PRD] Agents: none\n');
     expect(output).not.toMatch(/##[a-z]/u);
 });
@@ -53,7 +55,7 @@ test('channel info shows the Project key, home Agents, and description, or says 
         })
     );
     expect(described).toContain('## Channel #haus\n');
-    expect(described).toContain('Project: GEN\nHome Agents: @cove\nYour home: yes\n');
+    expect(described).toContain('Project: GEN\nAgents: @cove\nYour Project: yes\n');
     expect(described).toContain(`Description: ${hausDescription}\n`);
     expect(described).toContain('haus channel members "#haus"');
 
@@ -68,6 +70,6 @@ test('channel info shows the Project key, home Agents, and description, or says 
         })
     );
     expect(bare).toContain('## Channel #product\n');
-    expect(bare).toContain('Home Agents: none\nYour home: no\n');
+    expect(bare).toContain('Agents: none\nYour Project: no\n');
     expect(bare).toContain('Description: No description.\n');
 });
