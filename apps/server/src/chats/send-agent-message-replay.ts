@@ -3,11 +3,11 @@ import { and, eq } from 'drizzle-orm';
 import { readMessageAttachments } from '../attachments/message-attachments.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable } from '../postgres/schema.ts';
-import { replayCloudAgentWorkLinks } from './cloud-agent-work-links.ts';
 import { replayImageGenerationLinks } from './image-generation-links.ts';
 import { readInlineReplyContext } from './reply-context.ts';
 import { AgentSendConflictError } from './send-agent-message-errors.ts';
 import type { SendAgentMessageInput, SendAgentMessageResult } from './send-agent-message.ts';
+import { replayWorkerLinks } from './worker-links.ts';
 
 export async function readExistingAgentMessage(
     db: Pick<HausDatabase, 'select'>,
@@ -49,7 +49,7 @@ export async function replayAgentMessage(
     replyParentId: string | null
 ): Promise<SendAgentMessageResult> {
     const content = await replayImageGenerationLinks(db, {
-        content: await replayCloudAgentWorkLinks(db, {
+        content: await replayWorkerLinks(db, {
             content: canonical,
             messageId: existing.id,
             serverId: input.serverId,

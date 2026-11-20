@@ -1,14 +1,20 @@
 import { and, eq, isNull, ne } from 'drizzle-orm';
+import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, computersTable, serverOnboardingTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
+import { failRemovedCarrierTurns } from '../workers/fail-removed-carrier-turns.ts';
 import { ComputerSetupDeniedError } from './service.ts';
 
-/** A Computer credential is deleted only after every assigned Agent is retired. */
+/**
+ * A Computer credential is deleted only after every assigned Agent is retired.
+ * The Worker turns it carried fail `machine-removed` in the same transaction.
+ */
 export async function removeServerComputer(
     db: HausDatabase,
+    agentDelivery: AgentDelivery,
     member: HausUser | null,
     input: { computerId: string; confirmation: string; serverId: string }
 ) {
@@ -86,7 +92,11 @@ export async function removeServerComputer(
                     eq(agentsTable.computerId, computer.id)
                 )
             );
+        const workers = await failRemovedCarrierTurns(tx, agentDelivery, {
+            computerId: computer.id,
+            serverId: input.serverId,
+        });
         await tx.delete(computersTable).where(eq(computersTable.id, computer.id));
-        return { computerId: computer.id };
+        return { computerId: computer.id, workers };
     });
 }

@@ -40,8 +40,8 @@ while you read it.
   Computer-local token ledgers are not shown on this surface.
 
 * **Cloud Agents.** Beside the runtime capacity cards, the same Computer page carries one **Cursor
-  Cloud Agents** row and one **Claude Cloud Agents** row. **Make default** on a row chooses which
-  provider `haus cloud-agent start` uses on this Computer when the Agent names none (Cursor until
+  Cloud Agents** row and one **Claude Cloud Agents** row. **Make default** on a row chooses the place a
+  `haus worker start` without `--on` uses when the Agent is assigned to this Computer (Cursor until
   changed). Claude uses the Computer's own Claude Code sign-in, so its row offers **Check again** instead of a Connect flow. The Claude row also carries an environment picker that
   pins which Anthropic-hosted environment this Computer's Claude launches use, defaulting to
   **Claude's default (not pinned)**; a pin that goes stale (removed or archived) fails the next
@@ -142,9 +142,9 @@ responses. The usage reader checks the credential file before macOS Keychain, ma
 adapter's discovery order; a valid file does not require interactive Keychain access.
 Authentication and raw provider responses remain Computer-local.
 
-Cloud Agent usage is per-Run rather than per-window. Each terminal Run observation carries the
+Worker usage is per turn rather than per window. Each terminal turn observation carries the
 input and output tokens Cursor reports plus its optional cost, which is eventually consistent and
-can lag a settled Run. Haus makes no claim about a Cursor plan's capacity, remaining allowance, or
+can lag a settled turn. Haus makes no claim about a Cursor plan's capacity, remaining allowance, or
 reset time: Cursor exposes no supported public personal-account surface for them, so the Cloud
 Agents row shows readiness only and never a meter.
 

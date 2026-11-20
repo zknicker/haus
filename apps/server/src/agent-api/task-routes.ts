@@ -11,6 +11,7 @@ import {
 } from '@haus/api';
 import type { FastifyInstance } from 'fastify';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import type { ComputerConnections } from '../computers/connections.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { publishRealtime } from '../realtime/topic.ts';
@@ -39,15 +40,19 @@ export function registerAgentTaskRoutes(
     app: FastifyInstance,
     options: {
         agentDelivery: AgentDelivery;
+        computers: Pick<ComputerConnections, 'send'>;
         db: HausDatabase;
         postCommitWork: ServerPostCommitWork;
     }
 ) {
-    const { agentDelivery, db, postCommitWork } = options;
+    const { agentDelivery, computers, db, postCommitWork } = options;
 
-    /** After a write commits: publish, wake, and shape the receipt. */
+    /** After a write commits: publish, wake, stop closed Workers, and shape the receipt. */
     const commit = async (runner: ResolvedRunner, result: TaskWriteResult) => {
         publishRealtime(result.events);
+        for (const { computerId, frame } of result.workerFrames ?? []) {
+            computers.send(computerId, frame);
+        }
         await postCommitWork.wakeAgents(agentDelivery, result.wakes);
         return await taskRow(db, runner, result.task);
     };

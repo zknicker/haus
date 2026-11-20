@@ -86,7 +86,7 @@ test('deleting an Agent unassigns its Tasks, bumps each, and retires what is sti
     const queued = await create('Queued', assignee);
     const finished = await create('Finished', assignee);
     const elsewhere = await create('Someone else has it', { agentId: peerId, kind: 'agent' });
-    await setTaskState(connection.db, owner, {
+    await setTaskState(connection.db, owner, delivery, {
         expectedVersion: 2,
         serverId: seed.serverId,
         state: 'done',

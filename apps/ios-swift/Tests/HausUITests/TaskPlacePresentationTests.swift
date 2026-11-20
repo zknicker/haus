@@ -177,7 +177,7 @@ struct TaskPlacePresentationTests {
 
     private func run(id: String, status: String, summary: String) -> String {
         """
-        {"branches":[],"createdAt":"\(CloudAgentWorkFixture.start)","errorCode":null,"runId":"\(id)",
+        {"branches":[],"createdAt":"\(CloudAgentWorkFixture.start)","errorCode":null,"turnId":"\(id)",
          "startedAt":"\(CloudAgentWorkFixture.start)","status":"\(status)","summary":"\(summary)","terminalAt":null}
         """
     }

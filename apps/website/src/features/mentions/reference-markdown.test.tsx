@@ -43,16 +43,16 @@ test('keeps inline code inline', () => {
     expect(markup).toContain('bun test');
 });
 
-// A Cloud Agent work link is a quiet reference: a chip naming the work, never
-// an anchor to the cloud-agent:// target, and nothing to press (ADR 0044).
-test('renders a Cloud Agent work link as a quiet chip with its title', () => {
+// A Worker link is a quiet reference: a chip naming the work, never
+// an anchor to the worker:// target, and nothing to press (ADR 0044).
+test('renders a Worker link as a quiet chip with its title', () => {
     const markup = renderToStaticMarkup(
-        <ReferenceMarkdown content={'See [Fix \\[draft](cloud-agent://caw_one) now.'} />
+        <ReferenceMarkdown content={'See [Fix \\[draft](worker://caw_one) now.'} />
     );
 
     expect(markup).toContain('reference-chip');
     expect(markup).toContain('Fix [draft');
-    expect(markup).not.toContain('cloud-agent://');
+    expect(markup).not.toContain('worker://');
     expect(markup).not.toContain('<button');
     expect(markup).not.toContain('<a ');
 });

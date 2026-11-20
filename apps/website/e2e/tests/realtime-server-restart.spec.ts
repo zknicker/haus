@@ -32,7 +32,7 @@ test('A: one failed stream restarts alone and recovers only its owned reads', as
     await traffic.settled();
 
     const stream = proxy.latest('chat.onMessageCreated');
-    const work = proxy.latest('cloudAgentWork.onUpdated');
+    const work = proxy.latest('worker.onUpdated');
     const startsBefore = proxy.subscriptions.length;
     const mark = traffic.mark();
 

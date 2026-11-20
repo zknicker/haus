@@ -44,8 +44,8 @@ connection's provider.
 - Each connection has a web search switch. It turns on the provider's own search for Agents on
   that connection: native search for ChatGPT, xAI and Gemini, and OpenRouter's web server tool for
   OpenRouter. It can be on only for those four, and starts on for them. Claude keeps its native
-  WebSearch outside this switch. The runner receives it in the snapshot, and R3c turns it into the
-  provider's search tool.
+  WebSearch outside this switch. The runner receives it in the snapshot, and the Pi launch reads
+  it from the run's connection ([Web reach](runtime-drivers.md#web-reach)).
 - An Agent stores an optional connection id. Removing that connection clears it, and the Agent
   falls back to its provider's default.
 

@@ -1,5 +1,4 @@
 import { randomBytes } from 'node:crypto';
-import type { CloudAgentWorkSupervisor } from './cloud-agents/work-runner.ts';
 import { type LoopbackProxy, startLoopbackProxy } from './proxy.ts';
 
 interface AgentLaunchHost {
@@ -11,7 +10,6 @@ const launchHosts = new Map<string, AgentLaunchHost>();
 
 export function acquireAgentLaunchHost(input: {
     agentId: string;
-    cloudAgents?: CloudAgentWorkSupervisor;
     dataRoot: string;
     runnerToken: string;
     runId: string;
@@ -31,7 +29,6 @@ export function acquireAgentLaunchHost(input: {
     const created = {
         proxy: startLoopbackProxy({
             agentId: input.agentId,
-            cloudAgents: input.cloudAgents,
             dataRoot: input.dataRoot,
             proxyToken,
             runnerToken: input.runnerToken,

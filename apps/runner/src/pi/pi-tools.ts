@@ -4,19 +4,35 @@ import { arr, int, obj, oneOf, opt, str, tuple } from '@earendil-works/pi-schema
 import { runnerToolDescriptions } from '@haus/agent-prompt';
 import type { InvocationOutcome } from '@haus/api';
 import type { RunTools, ToolOutcome } from '../run-context.ts';
+import { webFetch } from '../web/web-fetch.ts';
+import { type SearchBackend, webSearch } from '../web/web-search.ts';
 import type { PiToolFamily } from './pi-models.ts';
+import type { WebSearchRoute } from './pi-web-search.ts';
 
-export const piToolNames = {
+type RunnerToolName = keyof typeof runnerToolDescriptions;
+
+const familyTools = {
     gpt: ['shell', 'apply_patch', 'view_image', 'execute'],
     'text-editor': ['bash', 'str_replace_based_edit_tool', 'execute'],
-} as const satisfies Record<PiToolFamily, readonly (keyof typeof runnerToolDescriptions)[]>;
+} as const satisfies Record<PiToolFamily, readonly RunnerToolName[]>;
+
+export function piToolNames(family: PiToolFamily, search: WebSearchRoute) {
+    const names: readonly RunnerToolName[] = [
+        ...familyTools[family],
+        'web_fetch',
+        ...(search === 'hosted' ? [] : ['web_search' as const]),
+    ];
+    return names;
+}
 
 export class PiToolBinding {
     readonly invocations = new Map<string, InvocationOutcome>();
+    search: SearchBackend | null = null;
     tools: RunTools | null = null;
 
-    bind(tools: RunTools | null) {
+    bind(tools: RunTools | null, search: SearchBackend | null) {
         this.tools = tools;
+        this.search = search;
         this.invocations.clear();
     }
 
@@ -49,7 +65,7 @@ export class PiToolBinding {
     }
 }
 
-export function piTools(family: PiToolFamily, binding: PiToolBinding) {
+export function piTools(family: PiToolFamily, search: WebSearchRoute, binding: PiToolBinding) {
     const all = {
         apply_patch: defineTool({
             ...shared('apply_patch'),
@@ -115,14 +131,38 @@ export function piTools(family: PiToolFamily, binding: PiToolBinding) {
                 ),
             parameters: obj({ path: str({ minLength: 1 }) }),
         }),
-    } satisfies Record<keyof typeof runnerToolDescriptions, ToolRegistration>;
-    return piToolNames[family].map((name) => {
+        web_fetch: defineTool({
+            ...shared('web_fetch'),
+            execute: (args, api, context) =>
+                binding.run(api.callId, context, (_tools, signal) =>
+                    webFetch({ signal, url: args.url })
+                ),
+            parameters: obj({ url: str({ minLength: 1 }) }),
+        }),
+        web_search: defineTool({
+            ...shared('web_search'),
+            execute: (args, api, context) =>
+                binding.run(api.callId, context, (_tools, signal) =>
+                    webSearch({
+                        backend: binding.search,
+                        count: args.count,
+                        query: args.query,
+                        signal,
+                    })
+                ),
+            parameters: obj({
+                count: opt(int({ maximum: 20, minimum: 1 })),
+                query: str({ minLength: 1 }),
+            }),
+        }),
+    } satisfies Record<RunnerToolName, ToolRegistration>;
+    return piToolNames(family, search).map((name) => {
         const tool: ToolRegistration = all[name];
         return tool;
     });
 }
 
-function shared(name: keyof typeof runnerToolDescriptions) {
+function shared(name: RunnerToolName) {
     return {
         description: runnerToolDescriptions[name],
         name,

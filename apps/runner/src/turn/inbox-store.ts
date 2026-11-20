@@ -42,11 +42,9 @@ export function inboxStore(runtimeDir: string) {
     };
     const write = async (state: PendingInbox, receipt?: NoticeReceipt) => {
         await writeJsonAtomic(pendingPath, state);
-        const notice = composeInboxNotice(
-            [...state.items],
-            state.totalPending,
-            state.taskAssignments?.total
-        );
+        const notice = composeInboxNotice([...state.items], state.totalPending, {
+            ...(state.taskAssignments ? { taskAssignments: state.taskAssignments } : {}),
+        });
         if (notice) {
             await writePendingNotice(runtimeDir, { notice, ...(receipt ? { receipt } : {}) });
         } else {

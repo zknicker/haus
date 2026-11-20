@@ -1,0 +1,40 @@
+import { expect, test } from 'bun:test';
+import { tabIntentState } from '../../hooks/desktop-tabs/tab-navigation.ts';
+import { trackOpenGestures } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
+import { createWorkerOpener } from './use-open-worker.ts';
+
+/** A desktop window tracking gestures, and a way to press with one in flight. */
+function window() {
+    const listeners = new Map<string, (event: Event) => void>();
+    const uninstall = trackOpenGestures({
+        addEventListener: (type: string, listener: (event: Event) => void) =>
+            listeners.set(type, listener),
+        removeEventListener: (type: string) => listeners.delete(type),
+    } as unknown as Window);
+    const middleClick = (press: () => void) => {
+        listeners.get('auxclick')?.({
+            button: 1,
+            ctrlKey: false,
+            isTrusted: true,
+            metaKey: false,
+            shiftKey: false,
+            type: 'auxclick',
+        } as unknown as Event);
+        press();
+    };
+    return { middleClick, uninstall };
+}
+
+test('a middle-click opens the Worker Task in a background tab', () => {
+    const calls: unknown[][] = [];
+    const open = createWorkerOpener({
+        navigate: (...args) => calls.push(['navigate', ...args]),
+        slug: 'acme',
+    });
+    const { middleClick, uninstall } = window();
+    middleClick(() => open({ id: 'w1', location: { chatId: 'c2', kind: 'task', taskId: 't3' } }));
+    uninstall();
+    expect(calls).toEqual([
+        ['navigate', '/s/acme/chats/c2', { state: tabIntentState('backgroundTab') }],
+    ]);
+});

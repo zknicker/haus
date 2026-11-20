@@ -14,6 +14,7 @@ import type { SteerResult } from '../turn/runtime-driver.ts';
 import { isFatalTurnEvent, type TurnEvent } from '../turn/turn-event.ts';
 import { PiTurnEvents } from './pi-events.ts';
 import { PiSessionEndedError, runFailureEvent } from './pi-failures.ts';
+import type { HostedSearchLog } from './pi-hosted-search.ts';
 import { PiTurnSteers } from './pi-turn-steers.ts';
 
 const context = BACKGROUND_CONTEXT;
@@ -23,6 +24,7 @@ export interface PiTurnDeps {
     readonly invocations: ReadonlyMap<string, InvocationOutcome>;
     readonly newId: () => string;
     readonly root: Conversation;
+    readonly searches: HostedSearchLog;
     readonly signal: AbortSignal;
 }
 
@@ -78,6 +80,7 @@ export class PiTurn {
 
     private async begin(prompt: string) {
         const { harness, root, signal } = this.deps;
+        this.deps.searches.clear();
         this.observation = await harness.observeConversation(
             root.id,
             { advance: (call) => this.onView(call), end: (end) => this.onEnded(end) },
@@ -177,6 +180,7 @@ export class PiTurn {
         this.finished = true;
         this.deps.signal.removeEventListener('abort', this.onAbort);
         this.observation?.detach();
+        this.deps.searches.clear();
         if (this.aborting && !this.failed) {
             this.events.push({ type: 'abort' });
         } else if (!this.failed) {

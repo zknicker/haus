@@ -16,10 +16,10 @@ const tasks = prompt.split('### Tasks\n')[1]?.split('## Working through sub-agen
 
 test('a Task is described by what people see, not by a placement ladder (ADR 0053)', () => {
     expect(tasks).toContain(
-        'A Task is how people follow work that takes longer than a reply. While it is open it sits in their sidebar with its state. It has its own page, where you and they talk about that work and where any cloud agents doing it are shown. When it is done, it leaves.'
+        'A Task is how people follow work that takes longer than a reply. While it is open it sits in their sidebar with its state. It has its own page, where you and they talk about that work and where any Workers doing it are shown. When it is done, it leaves.'
     );
     expect(tasks).toContain(
-        'Create a Task when the work will not be finished in your reply: it needs more steps, more time, or a cloud agent. When your reply is the whole of the work, just reply. A Task does not mark work as yours; your claim already does that.'
+        'Create a Task when the work will not be finished in your reply: it needs more steps, more time, or a Worker. When your reply is the whole of the work, just reply. A Task does not mark work as yours; your claim already does that.'
     );
     // Claims keep their own section and their concurrency-lock rule.
     expect(prompt).toContain('**Claim rule:**');

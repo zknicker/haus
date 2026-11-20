@@ -1,7 +1,7 @@
 export type {
-    AgentCloudAgentWorkAttention,
     AgentInboxItem,
-    CloudAgentPullRequestChange,
+    AgentWorkerAttention,
+    WorkerPullRequestChange,
 } from './agent-inbox-item.ts';
 export { composeDriveConflictInput } from './inbox-drive-conflict-format.ts';
 export {
@@ -9,6 +9,7 @@ export {
     composeInboxNotice,
     formatAttachmentSuffix,
     formatUnreadElsewhere,
+    type PendingCounts,
 } from './inbox-format.ts';
 export {
     formatInboxTime,
@@ -27,10 +28,18 @@ export {
 export { formatMemoryBlock, memoryCharacterCap, memoryFileName } from './memory-block.ts';
 export { formatRulesBlock, type RulesChange } from './rules-block.ts';
 export {
+    composePdfPage,
+    composePdfTooLarge,
+    composePdfTimedOut,
+    composePdfTooManyPages,
+    composePdfUnreadable,
     composeUnknownToolCalls,
+    pdfViewNotes,
     runnerMachineFacts,
     runnerRuntimeVersions,
     runnerToolDescriptions,
+    runnerUnsentWrite,
+    webSearchNotConfigured,
 } from './runner-text.ts';
 export { renderSkillListing, type SkillListingEntry } from './skill-listing.ts';
 export {

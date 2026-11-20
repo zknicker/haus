@@ -274,7 +274,7 @@ not itself a Chat message, keyed by fire identity: an idle Agent wakes with the
 envelope in its first prompt and the row is served the moment the Computer accepts
 that run, while a busy Agent still gets only the content-free notice and the item in
 its next turn. Both envelopes end with
-`reply with: --cause <fireId> on the command that posts (haus message send or haus cloud-agent start)`. That flag is the only way a
+`reply with: --cause <fireId> on haus message send`. That flag is the only way a
 fire reaches the transcript: the Server validates the fire against the sending
 Agent and records the provenance with the message. A fire the Agent does not
 answer stays in the automation's fire history and nowhere else.
@@ -342,7 +342,7 @@ commits. Start, Restart, a session reset, and a configure that changes runtime
 or model also lift it, without rotating the session beyond what that action
 already does. Outside a pause, a human message releases a counted hold only
 after its window passes and never cuts a short or rate-limit backoff short.
-Agent-authored, reminder, trigger, claim-assignment, Cloud Agent, onboarding, and
+Agent-authored, reminder, trigger, claim-assignment, Worker, onboarding, and
 greeting work never lifts a pause or releases a hold; it waits behind it. `agent.get`
 and `agent.list` project the pause as `wakePause` (failure count, last failure
 kind, code, and time, `pausedAt`, and `nextProbeAt`, null while the probe runs);

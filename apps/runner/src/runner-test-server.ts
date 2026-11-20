@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -132,8 +133,7 @@ export function serverStandIn(routes: StandInRoutes = {}) {
                     ? undefined
                     : new Response('upgrade failed', { status: 400 });
             }
-            const text = await request.text();
-            const body = text ? (JSON.parse(text) as Record<string, unknown>) : null;
+            const body = await requestBody(request);
             if (url.pathname !== '/api/agent/events/visible') {
                 const { nonce: _nonce, ...stable } = body ?? {};
                 requests.push({
@@ -245,6 +245,18 @@ export function driveRoutes(handle: string, files: Map<string, string>) {
         routes[`/drive-bytes/${id}`] = () => new Response(files.get(path) ?? '');
     }
     return routes;
+}
+
+async function requestBody(request: Request) {
+    if (request.headers.get('content-type') === 'application/octet-stream') {
+        const bytes = new Uint8Array(await request.arrayBuffer());
+        return {
+            sha256: createHash('sha256').update(bytes).digest('hex'),
+            sizeBytes: bytes.byteLength,
+        };
+    }
+    const text = await request.text();
+    return text ? (JSON.parse(text) as Record<string, unknown>) : null;
 }
 
 function startCommand() {

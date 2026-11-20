@@ -85,14 +85,30 @@ export const agentInvocationsTable = pgTable(
 export const agentInvocationPayloadsTable = pgTable(
     'agent_invocation_payloads',
     {
+        agentId: text('agent_id'),
         attachmentId: text('attachment_id').primaryKey(),
-        invocationId: text('invocation_id')
-            .notNull()
-            .references(() => agentInvocationsTable.id, { onDelete: 'cascade' }),
+        invocationId: text('invocation_id').references(() => agentInvocationsTable.id, {
+            onDelete: 'cascade',
+        }),
+        runId: text('run_id'),
+        seq: integer('seq'),
         serverId: text('server_id').notNull(),
+        toolCallId: text('tool_call_id'),
+        uploadedAt: timestamp('uploaded_at', { withTimezone: true }).notNull().defaultNow(),
     },
     (table) => [
         index('agent_invocation_payloads_invocation_idx').on(table.invocationId),
+        uniqueIndex('agent_invocation_payloads_dispatch_key').on(
+            table.serverId,
+            table.agentId,
+            table.runId,
+            table.toolCallId,
+            table.seq
+        ),
+        check(
+            'agent_invocation_payloads_owner_shape',
+            sql`${table.invocationId} is not null or (${table.agentId} is not null and ${table.runId} is not null and ${table.toolCallId} is not null and ${table.seq} is not null)`
+        ),
         foreignKey({
             columns: [table.serverId, table.attachmentId],
             foreignColumns: [attachmentsTable.serverId, attachmentsTable.id],
