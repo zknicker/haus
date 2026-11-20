@@ -2,6 +2,7 @@ import { expect } from 'bun:test';
 import type { CloudAgentStatus } from '@haus/api';
 import type { cloudAgentFixture } from './cloud-agent-fixture.ts';
 import type { HausClient } from './haus-client.ts';
+import { createTestProject } from './project.fixture.ts';
 
 type CloudAgentFixture = ReturnType<typeof cloudAgentFixture>;
 
@@ -11,7 +12,7 @@ export function cloudAgentLinkHelpers(fixture: CloudAgentFixture) {
 
     /** A Channel with Orbit, the owner, and the named extra members. */
     async function createChannel(name: string, memberUserIds: string[] = []) {
-        const { id } = await fixture.owner.trpc.chat.createChannel.mutate({
+        const { id } = await createTestProject(fixture.harness, fixture.owner, {
             agentIds: [fixture.orbitAgentId],
             name,
             serverId: fixture.serverId,

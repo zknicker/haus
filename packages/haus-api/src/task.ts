@@ -26,7 +26,11 @@ export const taskAssigneeSchema = taskActorSchema;
 export type TaskActor = z.infer<typeof taskActorSchema>;
 export type TaskAssignee = z.infer<typeof taskAssigneeSchema>;
 
-/** The Channel Message a Task started from (ADR 0053 decision 3). */
+/**
+ * The Message a Task started from: in a Channel, which need not be the Task's
+ * Project, or in a DM, shown only to readers of that DM. Null for a filed Task
+ * and once the origin's Chat is deleted.
+ */
 export const taskOriginSchema = z.object({ chatId: idSchema, messageId: idSchema }).strict();
 
 export type TaskOrigin = z.infer<typeof taskOriginSchema>;
@@ -46,6 +50,7 @@ const taskFields = {
     number: z.number().int().positive(),
     origin: taskOriginSchema.nullable(),
     priority: taskPrioritySchema,
+    projectId: idSchema,
     serverId: idSchema,
     state: taskStateSchema,
     title: taskTitleSchema,

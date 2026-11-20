@@ -111,23 +111,25 @@ public struct ServerScopeInput: Encodable, Equatable, Sendable {
     }
 }
 
-/// The exact input accepted by `chat.createChannel`.
+/// The input `project.create` accepts from this form: a new Project starts with no Agents.
 public struct CreateChannelInput: Encodable, Equatable, Sendable {
-    public let agentIDs: [String]
     public let name: String
     public let serverID: String
 
-    public init(agentIDs: [String], name: String, serverID: String) {
-        self.agentIDs = agentIDs
+    public init(name: String, serverID: String) {
         self.name = name
         self.serverID = serverID
     }
 
     private enum CodingKeys: String, CodingKey {
-        case agentIDs = "agentIds"
         case name
         case serverID = "serverId"
     }
+}
+
+/// The part of `project.create`'s result this app reads: the new channel.
+public struct CreatedProjectResult: Decodable, Sendable {
+    public let chat: ChatSummary
 }
 
 /// The receipt returned by `chat.unarchiveChannel`.

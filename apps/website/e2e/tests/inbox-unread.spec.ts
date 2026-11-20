@@ -18,7 +18,7 @@ test('an unread Channel is an Unread row until Mark read, and newer activity bri
         serverId: server.id,
     });
     const agent = await createChannelAgent({
-        channelName: 'all',
+        channelName: 'haus',
         databaseUrl: session.databaseUrl,
         serverId: server.id,
         slug: 'inbox-unread',
@@ -27,12 +27,12 @@ test('an unread Channel is an Unread row until Mark read, and newer activity bri
     await agent.send(`[@Ada](user://${agent.ownerUserId}) ${question}`, 'unread-1');
 
     await page.goto('/s/inbox-unread/inbox');
-    const row = page.getByRole('button', { exact: true, name: 'all' });
+    const row = page.getByRole('button', { exact: true, name: 'haus' });
     await expect(row).toBeVisible();
     // The only row is the open one, rendering the waiting message itself (ADR 0050).
     await expect(row.locator('xpath=ancestor::article')).toContainText(question);
 
-    await page.getByRole('button', { name: 'Mark read: #all' }).click();
+    await page.getByRole('button', { name: 'Mark read: #haus' }).click();
     await expect(row).toHaveCount(0);
     await expect(page.getByText('All caught up.')).toBeVisible();
     await page.reload();
@@ -65,7 +65,7 @@ test('a followed Task is a queue item among Chats: J reaches it, Return opens th
         serverId: server.id,
     });
     const agent = await createChannelAgent({
-        channelName: 'all',
+        channelName: 'haus',
         databaseUrl: session.databaseUrl,
         serverId: server.id,
         slug: 'inbox-tasks',
@@ -81,7 +81,7 @@ test('a followed Task is a queue item among Chats: J reaches it, Return opens th
     await agent.send('Deploy notes are posted.', 'tasks-channel');
 
     await page.goto('/s/inbox-tasks/inbox');
-    const channelCard = page.getByRole('article', { exact: true, name: '#all' });
+    const channelCard = page.getByRole('article', { exact: true, name: '#haus' });
     const taskCard = page.getByRole('article', { exact: true, name: `${key} Review the vault` });
     await expect(channelCard).toHaveAttribute('data-selected', 'true');
     await expect(taskCard).toContainText('Starting with the admin accounts.');
@@ -119,7 +119,7 @@ test('Unread is a feed of open cards: one selected, moved by keys and pressing, 
         serverId: server.id,
     });
     const agent = await createChannelAgent({
-        channelName: 'all',
+        channelName: 'haus',
         databaseUrl: session.databaseUrl,
         serverId: server.id,
         slug: 'inbox-triage',
@@ -135,7 +135,7 @@ test('Unread is a feed of open cards: one selected, moved by keys and pressing, 
     await agent.send('Deploy notes are posted.', 'triage-channel');
 
     await page.goto('/s/inbox-triage/inbox');
-    const channelRow = page.getByRole('article', { exact: true, name: '#all' });
+    const channelRow = page.getByRole('article', { exact: true, name: '#haus' });
     const taskRow = page.getByRole('article', { exact: true, name: `${key} Fix the flaky deploy` });
     const channelComposer = channelRow.getByRole('textbox', { name: 'Message all' });
     const taskComposer = taskRow.getByRole('textbox', {

@@ -26,6 +26,7 @@ export async function listTasks(
     await requireTaskActor(db, input.serverId, actor);
     return await readTasks(db, {
         serverId: input.serverId,
+        viewer: actor,
         where: and(
             assigneeFilter(input.assignee),
             input.states ? inArray(tasksTable.state, [...input.states]) : undefined,
@@ -42,6 +43,7 @@ export async function listOpenTasks(
     await requireTaskActor(db, input.serverId, actor);
     return await readTasks(db, {
         serverId: input.serverId,
+        viewer: actor,
         where: and(
             eq(tasksTable.state, 'open'),
             isNotNull(tasksTable.chatId),
@@ -58,7 +60,7 @@ export async function getTask(
     input: TaskGetInput
 ): Promise<TaskDetail> {
     await requireTaskActor(db, input.serverId, actor);
-    const task = await findTask(db, input);
+    const task = await findTask(db, input, actor);
     const scope = { serverId: input.serverId, taskId: task.id };
     return {
         ...task,
@@ -72,8 +74,8 @@ export async function getTask(
     };
 }
 
-/** Resolves a Task by id or by its current key (`SEC-12`). */
-export async function findTask(db: Reader, input: TaskGetInput): Promise<Task> {
+/** Resolves a Task by id or by its current key (`SEC-12`), as `viewer` may see it. */
+export async function findTask(db: Reader, input: TaskGetInput, viewer?: TaskActor): Promise<Task> {
     let where: SQL | undefined;
     if ('taskId' in input) {
         where = eq(tasksTable.id, input.taskId);
@@ -84,7 +86,11 @@ export async function findTask(db: Reader, input: TaskGetInput): Promise<Task> {
         }
         where = and(eq(taskKeysTable.key, parsed.boardKey), eq(tasksTable.number, parsed.number));
     }
-    const [task] = await readTasks(db, { serverId: input.serverId, where });
+    const [task] = await readTasks(db, {
+        serverId: input.serverId,
+        where,
+        ...(viewer ? { viewer } : {}),
+    });
     if (!task) {
         throw new TaskNotFoundError(
             'key' in input ? `No task has the key ${input.key}.` : undefined

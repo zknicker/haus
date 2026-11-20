@@ -22,7 +22,7 @@ test('inline replies send, survive reload, and navigate to an off-page parent', 
     });
     await signInAsAppHuman(page);
     await page.goto('/s/reply-preview');
-    await openChannel(page, server.channels[0].name ?? 'all');
+    await openChannel(page, server.channels[0].name ?? 'haus');
     // A turn's scroller id is its own identity, not a message id, so the row is
     // the one holding this message rather than the one named after it.
     const rootRow = page

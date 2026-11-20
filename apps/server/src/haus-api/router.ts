@@ -20,6 +20,7 @@ import { imageGenerationRouter } from './image-generation/router.ts';
 import { invitationRouter } from './invitation/router.ts';
 import { mcpRouter } from './mcp/router.ts';
 import { memberRouter } from './member/router.ts';
+import { projectRouter } from './project/router.ts';
 import { pushRouter } from './push/router.ts';
 import { reminderRouter } from './reminder/router.ts';
 import { serverRouter } from './server/router.ts';
@@ -56,6 +57,7 @@ export const hausRouter = createRouter({
     invitation: invitationRouter,
     member: memberRouter,
     mcp: mcpRouter,
+    project: projectRouter,
     push: pushRouter,
     reminder: reminderRouter,
     server: serverRouter,

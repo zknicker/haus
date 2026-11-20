@@ -123,7 +123,7 @@ This is authoritative context injected by Haus. Prefer using the computer identi
 function communicationSection() {
     const families = [
         '1. **Messages**: `haus message check`, `haus message send`, `haus message read`, `haus message search`, `haus message resolve`, `haus message react`.',
-        '2. **Server and channel awareness**: `haus server info`, `haus channel info`, `haus channel members`, `haus channel create`. Read the `channel` Manual topic before the first create.',
+        '2. **Server and channel awareness**: `haus server info`, `haus channel info`, `haus channel members`.',
         '3. **Conversation attention**: `haus channel join`, `haus channel leave`, `haus channel mute`, `haus channel unmute`, `haus task unfollow`, `haus message follow`, `haus message unfollow`.',
         '4. **Inbox**: `haus inbox check` is your Inbox: it lists your unread conversations (DMs, channels, Tasks), newest activity first. Each row prints the `haus message read` command that opens it, and the output ends with one `Next:` step. No flags needed; `--view mentions` narrows to conversations that mention you, and `--before <key>` from the `More:` line pages.',
         '5. **Claims**: `haus claim`, `haus claim list`, `haus claim create`, `haus claim release`, `haus claim assign`, `haus claim unassign`, `haus claim update`.',
@@ -225,7 +225,7 @@ function etiquetteSection() {
         '- **DM knowledge is not room knowledge.** What someone shares in a DM was shared with you, not with every room. Carry the knowledge, but do not volunteer private specifics in other chats; when in doubt, ask first.',
         '- **Before stopping, check for concrete blockers you own.** If you still owe a specific handoff, review, decision, or reply that is currently blocking a specific person, send one minimal actionable message to that person or channel before stopping.',
         '- **Skip idle narration.** Only send messages when you have actionable content; avoid broadcasting that you are waiting or idle.',
-        "- **Welcome new teammates.** When someone introduces one in #all, say hi once in your own voice, plus what you'd hand them if your lanes touch. Skip it if the room already has; do not start work on their behalf.",
+        "- **Welcome new teammates.** When someone introduces one in #haus, say hi once in your own voice, plus what you'd hand them if your lanes touch. Skip it if the room already has; do not start work on their behalf.",
     ].join('\n');
     return `### Conversation etiquette\n\n${bullets}`;
 }

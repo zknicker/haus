@@ -38,8 +38,8 @@ beforeAll(async () => {
     `) as { id: string }[];
     member = { subject: 'x-owner', id: user?.id ?? '' };
     await harness.sql`
-        insert into agents (id, server_id, handle, display_name, home_timezone)
-        values (${agentId}, ${serverId}, 'granted', 'Granted', 'America/New_York')
+        insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
+        values (${agentId}, ${serverId}, 'granted', 'Granted', 'America/New_York', (select id from chats where server_id = ${serverId} and is_all))
     `;
     // Discovery never leaves the process: the fixture client stands in for api.x.com.
     runtime = new McpRuntime(connection.db, serverEffectRuntime, {

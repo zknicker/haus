@@ -22,10 +22,11 @@ test('teaches CLI-version suspicion and paged server listings', () => {
         'every listing is paged: when more rows remain, it prints a `Next:` command',
         'So one page is one page; a claim about every channel needs the pages you actually read',
         'In `haus channel members`, human role labels such as owner/admin show server-level authority',
-        // Agents can open a channel; the `channel` topic carries when and how.
-        '`haus channel members`, `haus channel create`. Read the `channel` Manual topic before the first create.',
+        '`haus server info`, `haus channel info`, `haus channel members`.',
     ]) {
         expect(prompt).toContain(clause);
     }
+    // Only people create Projects (specs/projects.md), so the prompt names no create.
+    expect(prompt).not.toContain('haus channel create');
     expect(prompt).not.toMatch(/private channel/i);
 });

@@ -17,6 +17,7 @@ import {
     serversTable,
     usersTable,
 } from '../src/postgres/schema.ts';
+import { testAgentHome } from './agent-home.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 // Run accounting and the wake decision play out through the real settlement path,
@@ -246,7 +247,7 @@ async function seedWakeRuleReminder(
         isAll: true,
         kind: 'channel',
         lastMessageSequence: 1,
-        name: 'all',
+        name: 'haus',
         serverId,
     });
     await haus.db.insert(computersTable).values({
@@ -263,6 +264,7 @@ async function seedWakeRuleReminder(
         handle: 'wakerules-cove',
         homeTimezone: 'America/New_York',
         id: agentId,
+        homeProjectId: await testAgentHome(haus.db, serverId),
         serverId,
     });
     await haus.db.insert(chatMessagesTable).values({

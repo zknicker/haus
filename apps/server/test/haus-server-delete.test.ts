@@ -100,8 +100,8 @@ test('revokes immediately, never waits for an offline Computer, and asynchronous
         select id from chats where server_id = ${serverId} and is_all = true
     `) as { id: string }[];
     await harness.sql`
-        insert into agents (id, server_id, handle, display_name, home_timezone)
-        values ('agt_deleteauthor000', ${serverId}, 'delete-author', 'Delete Author', 'UTC')
+        insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
+        values ('agt_deleteauthor000', ${serverId}, 'delete-author', 'Delete Author', 'UTC', (select id from chats where server_id = ${serverId} and is_all))
     `;
     await harness.sql`
         update chats set last_message_sequence = 1 where id = ${allChannel.id}

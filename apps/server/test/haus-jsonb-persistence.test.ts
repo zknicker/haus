@@ -6,6 +6,7 @@ import {
     clearHausAgentState,
     recordHausAgentState,
 } from '../src/server-agents/record-haus-agent-state.ts';
+import { testSqlAgentHome } from './agent-home.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
 let harness: HausServerHarness;
@@ -62,8 +63,7 @@ beforeAll(async () => {
             handle,
             home_timezone,
             desired_runtime_id,
-            desired_model_id
-        )
+            desired_model_id, home_project_id)
         values
             (
                 ${agentId},
@@ -73,7 +73,8 @@ beforeAll(async () => {
                 'jsonb-cove',
                 'UTC',
                 'codex',
-                'gpt-5.6-sol'
+                'gpt-5.6-sol',
+            ${await testSqlAgentHome(harness.sql, 'srv_jsonbtest000000')}
             ),
             (
                 ${omittedAgentId},
@@ -83,7 +84,8 @@ beforeAll(async () => {
                 'jsonb-scout',
                 'UTC',
                 'codex',
-                'gpt-5.6-sol'
+                'gpt-5.6-sol',
+            ${await testSqlAgentHome(harness.sql, 'srv_jsonbtest000000')}
             ),
             (
                 ${otherAgentId},
@@ -93,7 +95,8 @@ beforeAll(async () => {
                 'jsonb-other',
                 'UTC',
                 'codex',
-                'gpt-5.6-sol'
+                'gpt-5.6-sol',
+            ${await testSqlAgentHome(harness.sql, 'srv_jsonbtest000000')}
             )
     `;
 });

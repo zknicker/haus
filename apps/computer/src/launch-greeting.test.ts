@@ -10,9 +10,9 @@ import type { HarnessTurnInput } from './harness/executor.ts';
 import { type AgentStartCommand, type Attachment, runAgentLaunch } from './launch.ts';
 import { fakeRuntimeDriver } from './runtime/testing/fake-runtime-driver.ts';
 
-// Raft db5e399's agentic #all greeting; turn-prompt.test.ts pins the full text.
+// Raft db5e399's agentic #haus greeting; turn-prompt.test.ts pins the full text.
 const greetingLead =
-    'Post one short, natural self-introduction to #all so the team knows who you are and what you can help with.';
+    'Post one short, natural self-introduction to #haus so the team knows who you are and what you can help with.';
 
 const runtime = makeDaemonRuntime();
 afterAll(() => runtime.dispose());

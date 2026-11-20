@@ -3,6 +3,7 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import { scheduleReminder, tickReminders } from '../src/reminders/reminders.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { createTestProject } from './project.fixture.ts';
 
 /**
  * `reminder.history` is the Agent's fire log: one entry per fire, newest first,
@@ -48,10 +49,10 @@ beforeAll(async () => {
     agentId = 'agt_history_cove';
     otherAgentId = 'agt_history_moss';
     await harness.sql`
-        insert into agents (id, server_id, handle, display_name, home_timezone)
+        insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
         values
-            (${agentId}, ${serverId}, 'history-cove', 'Cove', 'America/New_York'),
-            (${otherAgentId}, ${serverId}, 'history-moss', 'Moss', 'America/New_York')
+            (${agentId}, ${serverId}, 'history-cove', 'Cove', 'America/New_York', (select id from chats where server_id = ${serverId} and is_all)),
+            (${otherAgentId}, ${serverId}, 'history-moss', 'Moss', 'America/New_York', (select id from chats where server_id = ${serverId} and is_all))
     `;
     await harness.sql`
         insert into channel_agent_participants (server_id, chat_id, agent_id)
@@ -104,7 +105,7 @@ beforeAll(async () => {
 
     // The Agent answered the recurring reminder's first wake in another
     // Channel, so the entry's Chat can only come from the message row.
-    const otherChannel = await owner.trpc.chat.createChannel.mutate({
+    const otherChannel = await createTestProject(harness, owner, {
         agentIds: [agentId],
         name: 'history-answers',
         serverId,

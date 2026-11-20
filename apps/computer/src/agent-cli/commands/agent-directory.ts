@@ -10,7 +10,6 @@ import { AgentCliError } from '../agent-error.ts';
 import { renderChannelInfo, renderChannelMembers, renderServerInfo } from '../agent-render.ts';
 import type { ParsedArgs } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
-import { CHANNEL_CREATE_SUBCOMMAND } from './agent-channel-create.ts';
 import { optionalInteger } from './agent-command-utils.ts';
 
 interface DirectoryDeps {
@@ -65,7 +64,6 @@ export const CHANNEL_SUBCOMMANDS: SubCommand[] = [
         summary: 'List one channel’s members and role labels',
         usage: 'haus channel members <target>',
     },
-    CHANNEL_CREATE_SUBCOMMAND,
     {
         examples: ['haus channel add --target "#product" --agent @orbit'],
         flags: [

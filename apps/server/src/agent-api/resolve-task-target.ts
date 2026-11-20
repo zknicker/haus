@@ -2,12 +2,7 @@ import { parseTaskKey, TASK_TARGET_PATTERN } from '@haus/api';
 import { and, eq, isNotNull } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    channelAgentParticipantsTable,
-    chatsTable,
-    taskKeysTable,
-    tasksTable,
-} from '../postgres/schema.ts';
+import { chatsTable, taskKeysTable, tasksTable } from '../postgres/schema.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
@@ -17,7 +12,7 @@ export function parseTaskTarget(target: string): string | null {
 
 export async function resolveTaskTargetChat(
     db: Reader,
-    runner: Pick<ResolvedRunner, 'agentId' | 'serverId'>,
+    runner: Pick<ResolvedRunner, 'serverId'>,
     taskKey: string
 ): Promise<{ chatId: string; taskId: string } | null> {
     const parsed = parseTaskKey(taskKey);
@@ -37,14 +32,6 @@ export async function resolveTaskTargetChat(
         .innerJoin(
             chatsTable,
             and(eq(chatsTable.serverId, tasksTable.serverId), eq(chatsTable.id, tasksTable.chatId))
-        )
-        .innerJoin(
-            channelAgentParticipantsTable,
-            and(
-                eq(channelAgentParticipantsTable.serverId, chatsTable.serverId),
-                eq(channelAgentParticipantsTable.chatId, chatsTable.parentChatId),
-                eq(channelAgentParticipantsTable.agentId, runner.agentId)
-            )
         )
         .where(
             and(

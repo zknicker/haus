@@ -9,15 +9,22 @@ test('the tasks topic says what a Task is and when to start one (ADR 0053)', () 
     expect(body).toContain('It is unread only for its followers');
 });
 
-test('a Task starts from a channel message; a DM or a fire gets an origin message first', () => {
+test('a Task starts from the asking message in a channel or DM, in a Project; a fire posts one first', () => {
     const body = getManualTopic('tasks')?.body ?? '';
     expect(body).toContain(
         '`haus task start --target "#security" --from <messageId> --title "Rotate the signing key"`'
     );
+    expect(body).toContain('in a channel or a DM');
     expect(body).toContain(
-        "Post one in the channel where the work belongs (for a fire, its anchor channel), mention whoever asked, and start the Task from it; answer a DM request with the Task's key."
+        "the one `--project SEC` names, else the origin's channel, else for a DM your home Project"
     );
-    expect(body).toContain('`TASK_ORIGIN_DM`');
+    expect(body).toContain(
+        "@mention that Project's Agent in its channel with the request; the Server refuses your start there with `TASK_PROJECT_NOT_HOME`."
+    );
+    expect(body).toContain(
+        'Post one in the channel of the Project where the work belongs (for a fire, its anchor channel), mention whoever asked, and start the Task from it.'
+    );
+    expect(body).not.toContain('TASK_ORIGIN_DM');
     expect(body).toContain('post one message and start five Tasks from it');
 });
 

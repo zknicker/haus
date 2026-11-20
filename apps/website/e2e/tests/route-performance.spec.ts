@@ -119,7 +119,7 @@ test('default channel marks leave the icon catalog unloaded until the picker ope
         response.url().includes('/features/tasks/tasks-page.tsx')
     );
     await createTestServer(page, { displayName: 'Icon performance', slug: 'icon-performance' });
-    await expect(page.getByRole('row', { name: 'all', exact: true })).toBeVisible();
+    await expect(page.getByRole('row', { name: 'haus', exact: true })).toBeVisible();
     await warmed;
     expect(catalogRequests).toEqual([]);
     await page.getByRole('button', { name: 'New project', exact: true }).click();
@@ -171,9 +171,9 @@ test('cold channel navigation shows the selected identity while conversation cod
         slug: 'chat-shell-performance',
     });
     try {
-        await page.getByRole('row', { name: 'all', exact: true }).click();
-        await expect(page.getByRole('heading', { name: 'all', exact: true })).toBeVisible();
-        await expect(page.getByRole('region', { name: 'all', exact: true })).toHaveAttribute(
+        await page.getByRole('row', { name: 'haus', exact: true }).click();
+        await expect(page.getByRole('heading', { name: 'haus', exact: true })).toBeVisible();
+        await expect(page.getByRole('region', { name: 'haus', exact: true })).toHaveAttribute(
             'aria-busy',
             'true'
         );

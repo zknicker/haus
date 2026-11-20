@@ -95,9 +95,13 @@ describe('dev.cleanupEvalChats', () => {
         });
         const agentId = 'agt_eval_cleanup';
         const reminderId = 'rem_eval_cleanup';
+        const home = await owner.trpc.project.create.mutate({
+            name: 'eval-home',
+            serverId: server.id,
+        });
         await harness.sql`
-            insert into agents (id, server_id, handle, display_name, home_timezone)
-            values (${agentId}, ${server.id}, 'eval-cleanup', 'Eval Cleanup', 'UTC')
+            insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
+            values (${agentId}, ${server.id}, 'eval-cleanup', 'Eval Cleanup', 'UTC', ${home.chat.id})
         `;
         await harness.sql`
             insert into reminders (
@@ -162,7 +166,7 @@ describe('dev.cleanupEvalChats', () => {
         expect(preservedOtherChat?.id).toBe(otherChatId);
     });
 
-    test('deletes a Channel with its Task Chats and cancels their open Tasks', async () => {
+    test('deletes a Channel with its Task Chats and its Tasks', async () => {
         if (!(harness && owner)) {
             throw new Error('Expected Server test harness and owner client.');
         }
@@ -195,8 +199,8 @@ describe('dev.cleanupEvalChats', () => {
                 where id in (${channel.id}, ${task.chatId})
             `
         ).toEqual([{ count: 0 }]);
-        expect(
-            await owner.trpc.task.get.query({ serverId: server.id, taskId: task.id })
-        ).toMatchObject({ chatId: null, state: 'canceled' });
+        await expect(
+            owner.trpc.task.get.query({ serverId: server.id, taskId: task.id })
+        ).rejects.toThrow('No task exists with that id on this Server.');
     });
 });

@@ -73,45 +73,45 @@ export async function seedTaskFollowers(
     input: {
         assignee: TaskActor | null;
         chatId: string;
-        originChannelId: string;
-        originMessageId: string;
+        filerUserId?: string;
+        origin: { chatId: string; messageId: string } | null;
+        projectId: string;
         serverId: string;
     }
 ): Promise<void> {
-    const [origin] = await tx
-        .select({
-            authorAgentId: chatMessagesTable.authorAgentId,
-            authorUserId: chatMessagesTable.authorUserId,
-            content: chatMessagesTable.content,
-            mentionedUserIds: chatMessagesTable.mentionedUserIds,
-        })
-        .from(chatMessagesTable)
-        .where(
-            and(
-                eq(chatMessagesTable.serverId, input.serverId),
-                eq(chatMessagesTable.chatId, input.originChannelId),
-                eq(chatMessagesTable.id, input.originMessageId)
-            )
-        )
-        .limit(1);
-    if (!origin) {
-        throw new Error(`Origin Message ${input.originMessageId} disappeared mid-start.`);
-    }
+    const origin = input.origin
+        ? await readOrigin(tx, { ...input.origin, serverId: input.serverId })
+        : null;
     const scope = { chatId: input.chatId, serverId: input.serverId };
     const users = new Set([
-        ...(origin.authorUserId ? [origin.authorUserId] : []),
-        ...origin.mentionedUserIds,
+        ...(origin?.authorUserId ? [origin.authorUserId] : []),
+        ...(origin?.mentionedUserIds ?? []),
+        ...(input.filerUserId ? [input.filerUserId] : []),
         ...(input.assignee?.kind === 'user' ? [input.assignee.userId] : []),
     ]);
     for (const userId of users) {
-        if (await canSeeChannel(tx, { ...input, userId })) {
+        const visible = await canSeeChannel(tx, {
+            channelId: input.projectId,
+            serverId: input.serverId,
+            userId,
+        });
+        if (visible) {
             await setUserTaskFollow(tx, { ...scope, followed: true, userId });
         }
     }
-    const channelAgents = await readChannelAgents(tx, input);
+    const originAgents =
+        origin && input.origin
+            ? mentionedAgentIds(
+                  origin.content,
+                  await readChannelAgents(tx, {
+                      channelId: input.origin.chatId,
+                      serverId: input.serverId,
+                  })
+              )
+            : [];
     const agents = new Set([
-        ...(origin.authorAgentId ? [origin.authorAgentId] : []),
-        ...mentionedAgentIds(origin.content, channelAgents),
+        ...(origin?.authorAgentId ? [origin.authorAgentId] : []),
+        ...originAgents,
         ...(input.assignee?.kind === 'agent' ? [input.assignee.agentId] : []),
     ]);
     for (const agentId of agents) {
@@ -133,7 +133,7 @@ export async function followTaskMentions(
     }
     for (const userId of input.mentionedUserIds) {
         const visible = await canSeeChannel(tx, {
-            originChannelId: chat.parentChatId,
+            channelId: chat.parentChatId,
             serverId: input.serverId,
             userId,
         });
@@ -168,9 +168,35 @@ async function followTaskAsAgent(
     await openAgentChatRead(tx, input);
 }
 
+async function readOrigin(
+    db: Pick<HausDatabase, 'select'>,
+    input: { chatId: string; messageId: string; serverId: string }
+) {
+    const [origin] = await db
+        .select({
+            authorAgentId: chatMessagesTable.authorAgentId,
+            authorUserId: chatMessagesTable.authorUserId,
+            content: chatMessagesTable.content,
+            mentionedUserIds: chatMessagesTable.mentionedUserIds,
+        })
+        .from(chatMessagesTable)
+        .where(
+            and(
+                eq(chatMessagesTable.serverId, input.serverId),
+                eq(chatMessagesTable.chatId, input.chatId),
+                eq(chatMessagesTable.id, input.messageId)
+            )
+        )
+        .limit(1);
+    if (!origin) {
+        throw new Error(`Origin Message ${input.messageId} disappeared mid-start.`);
+    }
+    return origin;
+}
+
 async function canSeeChannel(
     db: Pick<HausDatabase, 'select'>,
-    input: { originChannelId: string; serverId: string; userId: string }
+    input: { channelId: string; serverId: string; userId: string }
 ): Promise<boolean> {
     const [row] = await db
         .select({ id: chatsTable.id })
@@ -186,7 +212,7 @@ async function canSeeChannel(
         .where(
             and(
                 eq(chatsTable.serverId, input.serverId),
-                eq(chatsTable.id, input.originChannelId),
+                eq(chatsTable.id, input.channelId),
                 visibleChats(input.userId)
             )
         )
@@ -196,7 +222,7 @@ async function canSeeChannel(
 
 async function readChannelAgents(
     db: Pick<HausDatabase, 'select'>,
-    input: { originChannelId: string; serverId: string }
+    input: { channelId: string; serverId: string }
 ) {
     return await db
         .select({ handle: agentsTable.handle, id: agentsTable.id })
@@ -211,7 +237,7 @@ async function readChannelAgents(
         .where(
             and(
                 eq(channelAgentParticipantsTable.serverId, input.serverId),
-                eq(channelAgentParticipantsTable.chatId, input.originChannelId),
+                eq(channelAgentParticipantsTable.chatId, input.channelId),
                 isNull(agentsTable.retiredAt)
             )
         );

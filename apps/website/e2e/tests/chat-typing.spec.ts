@@ -10,7 +10,7 @@ test('an Agent reading a message types until its reply lands', async ({ page }) 
         displayName: 'Chat typing',
         slug: 'chat-typing',
     });
-    const chatId = server.channels.find((channel) => channel.name === 'all')?.id;
+    const chatId = server.channels.find((channel) => channel.name === 'haus')?.id;
     assertOpaqueId(chatId);
     const ownerUserId = runPsql(
         session.databaseUrl,
@@ -55,7 +55,7 @@ test('an Agent reading a message types until its reply lands', async ({ page }) 
     );
     const runner = await mintRunner(agent.id, chatId);
 
-    await openChannel(page, 'all');
+    await openChannel(page, 'haus');
     // Recently opened Chats stay mounted hidden; target the one on screen.
     const typing = page.locator('[data-slot="chat-typing"]').filter({ visible: true });
     await expect(typing).toBeEmpty();
@@ -104,7 +104,7 @@ test('an Agent reading a message types until its reply lands', async ({ page }) 
         content: 'On it — the build is green.',
         done: true,
         nonce: 'e2e-chat-typing-reply',
-        target: '#all',
+        target: '#haus',
     });
     // The done reply ends the engagement as sent, so a face launches from the dots.
     await expect(typing.locator('[data-slot="chat-typing-launch"]')).toHaveCount(1);

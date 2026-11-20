@@ -69,14 +69,18 @@ test('a Task Chat sends to task: and its key; other Chats have no Task target', 
     expect(await taskTargetForChat(connection.db, { chatId: channelId, serverId })).toBeNull();
 });
 
-test('a task Chat must hang off a Channel Message, never a DM or nothing', async () => {
+test('a task Chat hangs off a Channel, and its Task names that Channel as its Project', async () => {
     const run = async (query: PromiseLike<unknown>) => await query;
     await expect(
         run(harness.sql`
-            insert into chats (id, server_id, kind, parent_chat_id, parent_chat_kind)
-            values (${createOpaqueId('cht')}, ${serverId}, 'task', ${channelId}, 'channel')
+            insert into chats (id, server_id, kind)
+            values (${createOpaqueId('cht')}, ${serverId}, 'task')
         `)
     ).rejects.toThrow(/chats_shape/u);
+    const other = await owner.trpc.project.create.mutate({ name: 'elsewhere', serverId });
+    await expect(
+        run(harness.sql`update tasks set project_id = ${other.chat.id} where id = ${first.id}`)
+    ).rejects.toThrow(/tasks_chat_project_fk/u);
     await expect(
         run(harness.sql`update tasks set chat_id = ${first.chatId} where id = ${second.id}`)
     ).rejects.toThrow(/tasks_chat_key/u);

@@ -1,18 +1,24 @@
 import { randomBytes } from 'node:crypto';
+import { GENERAL_TASK_KEY } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import type { HausDatabase } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
-import { agentInboxTable, agentsTable } from '../src/postgres/schema.ts';
+import { agentInboxTable, agentsTable, projectsTable } from '../src/postgres/schema.ts';
 import { assignTask } from '../src/tasks/task-assign.ts';
-import { insertGeneralTaskKey } from '../src/tasks/task-key-ledger.ts';
+import { insertTaskKeyEntry } from '../src/tasks/task-key-ledger.ts';
+import { testAgentHome } from './agent-home.ts';
 import { type Seed, seedAgent } from './agent-inbox-harness.ts';
 
 export type TaskBoard = Awaited<ReturnType<typeof seedTaskBoard>>;
 
 export async function seedTaskBoard(db: HausDatabase) {
     const seed = await seedAgent(db);
-    return { keyId: await insertGeneralTaskKey(db, seed.serverId), seed };
+    const keyId = await insertTaskKeyEntry(db, { key: GENERAL_TASK_KEY, serverId: seed.serverId });
+    await db
+        .insert(projectsTable)
+        .values({ chatId: seed.channelId, serverId: seed.serverId, taskKeyId: keyId });
+    return { keyId, seed };
 }
 
 export async function assignNewTask(
@@ -51,8 +57,8 @@ export async function insertTaskPlace(
         from channel
     `);
     await db.execute(sql`
-        insert into chats (id, server_id, kind, parent_chat_id, parent_chat_kind, anchor_message_id)
-        values (${chatId}, ${seed.serverId}, 'task', ${seed.channelId}, 'channel', ${messageId})
+        insert into chats (id, server_id, kind, parent_chat_id, parent_chat_kind)
+        values (${chatId}, ${seed.serverId}, 'task', ${seed.channelId}, 'channel')
     `);
     await db.execute(sql`
         with entry as (
@@ -60,9 +66,10 @@ export async function insertTaskPlace(
             where server_id = ${seed.serverId} and id = ${keyId}
             returning next_number - 1 as number
         )
-        insert into tasks (id, server_id, key_id, number, title, priority, chat_id, created_by_user_id)
+        insert into tasks (id, server_id, key_id, number, title, priority, chat_id, created_by_user_id,
+            project_id, origin_chat_id, origin_message_id)
         select ${taskId}, ${seed.serverId}, ${keyId}, entry.number, ${title}, 'high', ${chatId},
-            ${seed.userId}
+            ${seed.userId}, ${seed.channelId}, ${seed.channelId}, ${messageId}
         from entry
     `);
     return taskId;
@@ -76,6 +83,7 @@ export async function addPeerAgent(db: HausDatabase, seed: Seed): Promise<string
         handle: `peer-${randomBytes(4).toString('hex')}`,
         homeTimezone: 'UTC',
         id: peerId,
+        homeProjectId: await testAgentHome(db, seed.serverId),
         serverId: seed.serverId,
     });
     return peerId;

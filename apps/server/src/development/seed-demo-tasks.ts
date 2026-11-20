@@ -111,7 +111,7 @@ export async function seedServerDemoTasks(
             {
                 assignee: tiny,
                 conversation: [
-                    { author: tiny, content: 'Drafted the welcome copy and posted it in #all.' },
+                    { author: tiny, content: 'Drafted the welcome copy and posted it in #haus.' },
                     { author: owner, content: 'Reads well. Ship it.' },
                     { author: tiny, content: 'Shipped. Marking this done.' },
                 ],
@@ -149,7 +149,6 @@ export async function seedDemoTasks(
     }));
     await tx.insert(chatsTable).values(
         rows.map(({ chatId, task }) => ({
-            anchorMessageId: task.origin.messageId,
             id: chatId,
             kind: 'task' as const,
             lastActivityAt: task.conversation?.length ? now : null,
@@ -170,7 +169,10 @@ export async function seedDemoTasks(
             id,
             keyId,
             number,
+            originChatId: task.origin.chatId,
+            originMessageId: task.origin.messageId,
             priority: task.priority,
+            projectId: task.origin.chatId,
             serverId,
             state: task.state,
             title: task.title,
