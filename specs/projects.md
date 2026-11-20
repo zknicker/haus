@@ -33,7 +33,7 @@ Workers and their places are [ADR 0056](../docs/adr/0056-agents-run-quiet-worker
 
   The Haus project is the channel whose `chats.is_all` is true, exactly one per Server; the flag
   stays on the channel row and the wire `Chat.isAll` until an explicit rename, and `projectSchema`
-  exposes it as `isHaus`. The default place landed with W3 (migration 0137). A check keeps the
+  exposes it as `isHaus`. The default place landed with W3 (migration 0138). A check keeps the
   Computer id set exactly when the place is `computer`, and the API renders it as
   `computer:<computerId>`.
   Repos are `project_repos` rows ([Repos](#repos)). Home Agents are `agents.home_project_id`

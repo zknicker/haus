@@ -28,10 +28,18 @@ export {
 export { formatMemoryBlock, memoryCharacterCap, memoryFileName } from './memory-block.ts';
 export { formatRulesBlock, type RulesChange } from './rules-block.ts';
 export {
+    composePdfPage,
+    composePdfTooLarge,
+    composePdfTimedOut,
+    composePdfTooManyPages,
+    composePdfUnreadable,
     composeUnknownToolCalls,
+    pdfViewNotes,
     runnerMachineFacts,
     runnerRuntimeVersions,
     runnerToolDescriptions,
+    runnerUnsentWrite,
+    webSearchNotConfigured,
 } from './runner-text.ts';
 export { renderSkillListing, type SkillListingEntry } from './skill-listing.ts';
 export {

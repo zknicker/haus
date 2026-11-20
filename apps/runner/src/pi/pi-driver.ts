@@ -20,6 +20,12 @@ import {
 import { hausSectionKey } from './pi-prompt.ts';
 import { openPiSessionHandle, type PiSessionHandle, piSession, piSettings } from './pi-session.ts';
 import { PiToolBinding, piTools } from './pi-tools.ts';
+import {
+    groundedSearch,
+    type WebSearchRoute,
+    webSearchOn,
+    webSearchRoute,
+} from './pi-web-search.ts';
 
 const expiryIntervalMs = 60_000;
 
@@ -46,10 +52,10 @@ export function createPiHarness(options: {
     const connect = async (
         launch: RuntimeLaunch,
         opened: PiConnectionModels,
-        family: PiToolFamily,
+        toolset: PiToolset,
         resumeFrom: string | undefined
     ) => {
-        const launchKey = piLaunchKey(await piBootstrapFingerprint(family), launch);
+        const launchKey = piLaunchKey(await piBootstrapFingerprint(toolset), launch);
         if (resumeFrom) {
             const claim = pool.claim(
                 launch.agentId,
@@ -65,33 +71,41 @@ export function createPiHarness(options: {
         }
         return await openPiSessionHandle({
             agentDir: launch.agentDir,
-            family,
+            family: toolset.family,
             launchKey,
             log: options.log,
             models: opened.models,
             nativeSessionId: resumeFrom ?? crypto.randomUUID(),
             resume: resumeFrom !== undefined,
+            search: toolset.search,
         });
     };
 
     const driver = (launch: RuntimeLaunch) => {
-        const family = piToolFamily(launch.modelId);
+        const opened = options.models(launch);
+        const toolset: PiToolset = {
+            family: piToolFamily(launch.modelId),
+            search: webSearchRoute(webSearchOn(launch.connection, opened.providerId)),
+        };
         return {
-            bootstrapFingerprint: () => piBootstrapFingerprint(family),
+            bootstrapFingerprint: () => piBootstrapFingerprint(toolset),
             harness: 'pi-durable' as const,
             instructionsOnResume: 'current' as const,
             async openSession({ resumeFrom, signal }: OpenSessionOptions) {
                 signal?.throwIfAborted();
-                const opened = options.models(launch);
-                const model = piModelRef(opened, launch.modelId);
-                if (!model) {
+                const ref = piModelRef(opened, launch.modelId);
+                const model = ref && opened.models.getModel(ref.provider, ref.modelId);
+                if (!(ref && model)) {
                     throw new PiModelUnavailableError(launch.modelId, opened.providerId);
                 }
-                const handle = await connect(launch, opened, family, resumeFrom);
+                const handle = await connect(launch, opened, toolset, resumeFrom);
                 handle.prompt.instructions = launch.instructions;
-                handle.binding.bind(launch.tools);
+                handle.binding.bind(
+                    launch.tools,
+                    toolset.search === 'grounded' ? groundedSearch(opened.models, model) : null
+                );
                 await handle.root.configure(
-                    { model, thinkingLevel: thinkingLevelOf(launch.reasoningEffort) },
+                    { model: ref, thinkingLevel: thinkingLevelOf(launch.reasoningEffort) },
                     BACKGROUND_CONTEXT
                 );
                 return piSession({
@@ -129,9 +143,9 @@ export function createPiHarness(options: {
     };
 }
 
-export async function piBootstrapFingerprint(family: PiToolFamily) {
+export async function piBootstrapFingerprint(toolset: PiToolset) {
     packageVersion ??= readPiDurableVersion();
-    const tools = piTools(family, new PiToolBinding()).map((tool) => [
+    const tools = piTools(toolset.family, toolset.search, new PiToolBinding()).map((tool) => [
         tool.name,
         tool.description,
         tool.parameters,
@@ -143,6 +157,7 @@ export async function piBootstrapFingerprint(family: PiToolFamily) {
             JSON.stringify([
                 await packageVersion,
                 tools,
+                toolset.search,
                 { section: hausSectionKey, tag: false },
                 piSettings,
             ])
@@ -154,6 +169,11 @@ function piLaunchKey(bootstrapFingerprint: string, launch: RuntimeLaunch) {
     return createHash('sha256')
         .update(JSON.stringify([bootstrapFingerprint, launch.modelId, launch.connection.id]))
         .digest('hex');
+}
+
+interface PiToolset {
+    readonly family: PiToolFamily;
+    readonly search: WebSearchRoute;
 }
 
 function thinkingLevelOf(effort: AgentReasoningEffort) {

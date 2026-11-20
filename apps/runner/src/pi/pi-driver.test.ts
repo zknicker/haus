@@ -1,13 +1,24 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import type { TranscriptContext } from '@earendil-works/pi-ai';
+import { createModels } from '@earendil-works/pi-ai/models';
 import {
     fauxAssistantMessage,
     fauxText,
     fauxThinking,
     fauxToolCall,
 } from '@earendil-works/pi-ai/providers/faux';
-import { drainCleanups, live, startedRun } from '../runner-test-server.ts';
-import { agentDir, collect, fauxHarness, launch, roles } from './pi-faux-run.ts';
+import { xaiProvider } from '@earendil-works/pi-ai/providers/xai';
+import { cleanups, drainCleanups, live, startedRun } from '../runner-test-server.ts';
+import { createPiHarness } from './pi-driver.ts';
+import {
+    agentDir,
+    collect,
+    fauxConnection,
+    fauxHarness,
+    fauxProviderAs,
+    launch,
+    roles,
+} from './pi-faux-run.ts';
 
 afterEach(drainCleanups);
 
@@ -80,6 +91,8 @@ describe('Pi Durable driver', () => {
             'bash',
             'str_replace_based_edit_tool',
             'execute',
+            'web_fetch',
+            'web_search',
         ]);
         expect(await session.detach()).toBe(session.sessionId);
         expect(harness.warm).toBe(1);
@@ -190,7 +203,7 @@ describe('Pi Durable driver', () => {
         ).toEqual(['Sleep.', 'Next.']);
     });
 
-    test('GPT models get shell, apply_patch, and view_image', async () => {
+    test('GPT models get shell, apply_patch, view_image, and the web tools', async () => {
         const { run } = await startedRun();
         const seen: TranscriptContext[] = [];
         const harness = fauxHarness([
@@ -211,6 +224,32 @@ describe('Pi Durable driver', () => {
             'apply_patch',
             'view_image',
             'execute',
+            'web_fetch',
+            'web_search',
         ]);
+    });
+
+    test('turning search off on the connection changes the bootstrap fingerprint, so warm sessions restart', async () => {
+        const { run } = await startedRun();
+        const faux = fauxProviderAs('xai', xaiProvider().auth, ['grok-faux']);
+        const models = createModels();
+        models.setProvider(faux.provider);
+        const harness = createPiHarness({
+            log: () => undefined,
+            maxWarm: 1,
+            models: () => ({ models, providerId: 'xai' }),
+        });
+        cleanups.push(() => harness.close());
+        const dir = await agentDir();
+        const fingerprint = (webSearch: boolean) =>
+            harness
+                .driver({
+                    ...launch(dir, run.tools, 'grok-faux'),
+                    connection: { ...fauxConnection, webSearch },
+                })
+                .bootstrapFingerprint();
+
+        expect(await fingerprint(true)).toBe(await fingerprint(true));
+        expect(await fingerprint(false)).not.toBe(await fingerprint(true));
     });
 });
