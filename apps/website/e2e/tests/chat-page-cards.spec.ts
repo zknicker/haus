@@ -1,4 +1,5 @@
-import { routeAgentPageText, seedAgentPage } from '../support/artifacts.ts';
+import { routeAgentPageText } from '../support/artifact-transport.ts';
+import { seedAgentPage } from '../support/artifacts.ts';
 import { createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -30,9 +31,8 @@ test('an Agent page card opens its Drive file beside the chat', async ({ page })
     });
     await routeAgentPageText(
         page,
-        [`${artifactId}_r1`, `${artifactId}_r2`],
         (revisionId) =>
-            `<!doctype html><h1>${revisionId.endsWith('_r1') ? 'First draft' : 'Current audit'}</h1>`
+            `<!doctype html><h1>${revisionId === `${artifactId}_r1` ? 'First draft' : 'Current audit'}</h1>`
     );
     await page.goto(`/s/${slug}/chats/${chatId}`);
     await page.setViewportSize({ height: 720, width: 1200 });

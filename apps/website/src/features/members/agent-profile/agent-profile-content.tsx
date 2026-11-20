@@ -3,6 +3,7 @@ import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { AgentUsageTile } from '../../usage/agent-usage-tile.tsx';
 import { AgentChats } from './agent-chats.tsx';
 import { AgentActivity, AgentAutomations, AgentWorkspace } from './agent-content.tsx';
+import { AgentDrive } from './agent-drive.tsx';
 import { AgentProfileCard } from './agent-profile-card.tsx';
 import { AgentRecentActivity } from './agent-recent-activity.tsx';
 import type { AgentSection } from './agent-sections.ts';
@@ -29,6 +30,7 @@ export function AgentHubContent({
         <>
             <AgentStalledClaims agent={agent} server={server} />
             <AgentChats agent={agent} server={server} />
+            <AgentDrive agent={agent} server={server} />
             <AgentRecentActivity
                 agent={agent}
                 onSeeAll={() => onSectionChange('activity')}

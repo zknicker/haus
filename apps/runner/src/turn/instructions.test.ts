@@ -1,10 +1,10 @@
 import { expect, test } from 'bun:test';
+import { planRulesDelivery } from '@haus/agent-prompt';
 import { skillEntry } from './agent-drive.ts';
 import {
     composeTurnPrompt,
     planInstructionsUpdate,
     planMemoryDelivery,
-    planRulesDelivery,
     sessionAfterTurn,
 } from './instructions.ts';
 import { freshSession } from './session-file.ts';
