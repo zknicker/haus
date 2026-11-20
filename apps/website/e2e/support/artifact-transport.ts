@@ -21,12 +21,12 @@ export function libraryFileTransport(transport: Transport) {
     const { page } = transport;
     const handlers: FileTransport = {
         'artifact.download': () => ({
-            download_url: new URL('/prototypes/cove-avatar.png', page.url()).href,
+            download_url: new URL('/prototypes/agent-avatar.png', page.url()).href,
         }),
         'artifact.thumbnail': () => ({
             expires_at: new Date(Date.now() + 300_000).toISOString(),
             status: 'ready',
-            thumbnail_url: new URL('/prototypes/cove-avatar.png', page.url()).href,
+            thumbnail_url: new URL('/prototypes/agent-avatar.png', page.url()).href,
         }),
         'artifact.text': (input) => ({ status: 'text', text: revisionText(input) }),
         'artifact.restore': (input) => restoreRevision(transport, input),

@@ -1,7 +1,7 @@
 // Captures a screenshot, and optionally a video, of the running dev stack's website.
 //
 //   bun run ui:capture -- /s/dev --out shot.png
-//   bun run ui:capture -- /s/dev/chats/<id> --video out/ --send "Hi Cove" --wait 90000
+//   bun run ui:capture -- /s/dev/chats/<id> --video out/ --send "Hi Blippy" --wait 90000
 //
 // A bare path resolves against this checkout's website port (scripts/dev-ports.mjs).
 // Chromium is HAUS_CAPTURE_CHROMIUM, else Playwright's bundled build, else the

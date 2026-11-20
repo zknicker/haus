@@ -54,7 +54,6 @@ test('records native startup and stream boundaries without inventing message sen
             agentRoot: root,
             dataRoot: root,
             env: {},
-            factoryKind: 'ordinary',
             runtimeDriverFactory: factory,
             homeDir: join(root, 'home'),
             homeTimezone: 'UTC',

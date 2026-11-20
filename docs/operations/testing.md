@@ -282,6 +282,9 @@ Server's Haus project to a new `#general` with its key, members and open Tasks, 
 homed in `#all` by activity, clears retired Agents' homes, renames `#all` back to `all` after moving
 any other channel named `all`, refuses a `projects` row on `#all` in Postgres, and changes nothing on
 replay.
+`apps/computer/src/agent-configuration.test.ts` proves a former Cove's stored `configuration.json`,
+with its `seed.factoryKind`, still loads and reapplies as an ordinary Agent without touching its
+Drive files.
 
 ## Execution Runtime Driver Contracts
 
@@ -353,7 +356,7 @@ bun run test:agents --only mention             # scenarios whose name contains "
 bun run test:agents --list                     # scenario names, no live turns
 bun run test:agents --json                     # machine-readable run summary
 bun run test:agents --lanes 4                  # override the lane count
-bun run test:agents --include-opt-in --only cove-composes-agent-creation --lanes 1
+bun run test:agents --include-opt-in --only agent-composes-agent-creation --lanes 1
 ```
 
 Repeat `--only` to run a small named subset in one process.
@@ -370,7 +373,7 @@ them, and `bun run eval` always passes it:
   opt-in for the same reason.
 * `memory-feedback-implicit` and `memory-feedback-control` overwrite a test Agent's `MEMORY.md`
   on the stack's own Computer.
-* `cove-composes-agent-creation` is a standalone Cove smoke outside every eval (below).
+* `agent-composes-agent-creation` is a standalone Agent-creation smoke outside every eval (below).
 
 Scenarios that place answers or start work (`placement-*`, `ack-reaction-thanks`,
 `mention-wakes-only-addressed`, `claim-then-inline-reply`, `cloud-worker-start-and-stop`,
@@ -413,42 +416,39 @@ bun scripts/agent-tests/memory-feedback-grade.mjs [--since <stamp>] [--json]
 Run agent-test commands serially against one dev stack, because startup cleanup sweeps prior run
 records.
 
-The Cove creation scenario is opt-in because it needs a real active Cove on an
-attached healthy Computer plus the local deterministic avatar fixture. Start
-the dev stack with an absolute JSONL path, then run the scenario:
+The Agent-creation scenario is opt-in because it needs the local deterministic
+avatar fixture. It provisions its own Agent on an attached healthy Computer, as
+other scenarios do. Start the dev stack with an absolute JSONL path, then run
+the scenario:
 
 ```sh
 HAUS_AGENT_E2E_AVATAR_FIXTURE=1 \
-HAUS_AGENT_E2E_AVATAR_FIXTURE_PATH="$PWD/apps/website/public/prototypes/cove-avatar.png" \
-HAUS_AGENT_E2E_AVATAR_REQUEST_LOG=/tmp/haus-cove-avatar-requests.jsonl \
+HAUS_AGENT_E2E_AVATAR_FIXTURE_PATH="$PWD/apps/website/public/prototypes/agent-avatar.png" \
+HAUS_AGENT_E2E_AVATAR_REQUEST_LOG=/tmp/haus-agent-avatar-requests.jsonl \
 bun run dev
 
 HAUS_AGENT_E2E_AVATAR_FIXTURE=1 \
-HAUS_AGENT_E2E_AVATAR_FIXTURE_PATH="$PWD/apps/website/public/prototypes/cove-avatar.png" \
-HAUS_AGENT_E2E_AVATAR_REQUEST_LOG=/tmp/haus-cove-avatar-requests.jsonl \
-bun run test:agents --include-opt-in --only cove-composes-agent-creation --lanes 1
+HAUS_AGENT_E2E_AVATAR_FIXTURE_PATH="$PWD/apps/website/public/prototypes/agent-avatar.png" \
+HAUS_AGENT_E2E_AVATAR_REQUEST_LOG=/tmp/haus-agent-avatar-requests.jsonl \
+bun run test:agents --include-opt-in --only agent-composes-agent-creation --lanes 1
 ```
 
-It proves a prose proposal that creates nothing, then exactly one Agent created
-by `haus agent create` with Cove's own runtime, model, reasoning effort, and
-Computer, introduced by one ordinary Message in `#all` that mentions the
-confirmed handle and carries Cove's unchanged session generation, joined to `#all` and the requested `#product`, carrying its standing
-brief in the workspace `MEMORY.md`, and no second Agent when the request is
-repeated. The scenario never uses browser E2E or
-asserts model wording, selected name, character, aesthetics, or acknowledgment. Its report is written under
-`.context/agent-tests/<run>/`; if the required Cove/Computer/provider setup is
-unavailable, record that exact precondition gap rather than running a partial
-substitute.
+It proves an ordinary Agent composes Agent creation from its Manual
+prerequisites: a prose proposal that creates nothing, then exactly one Agent
+created by `haus agent create` with the creator's own runtime, model, reasoning
+effort, and Computer, no introduction from the creator in `#haus`, an answer in
+the asking channel that names the confirmed handle and keeps the creator's
+session generation, membership in `#haus` and the requested `#product`, its
+standing brief in the workspace `MEMORY.md`, and no second Agent when the
+request is repeated. The scenario never uses browser E2E or asserts model
+wording, selected name, character, aesthetics, or acknowledgment. Its report is
+written under `.context/agent-tests/<run>/`; if the required Agent, Computer, or
+provider setup is unavailable, record that exact precondition gap rather than
+running a partial substitute.
 
-Cove is the seeded factory Agent rather than a provisioned fixture, so the
-scenario owns its own starting state: it retires the Agents an earlier run had
-Cove create and runs a Full Reset (`agent.reset` with `kind: 'full'`) so Cove's
-session, workspace, and `MEMORY.md` are factory again. The Owner asks in a
-channel the run creates rather than in Cove's standing Owner DM, which
-accumulates — Cove reads its own earlier creation announcement there and repeats
-it in that chat instead of `#all`, and the DM cannot be cleared because a chat
-holding an Agent's creation Message cannot be deleted. Rerunning the scenario
-against one dev stack therefore needs no restart.
+The Owner asks in a channel the run creates, and the run tracks the Agent its
+creator made so cleanup retires both. Rerunning the scenario against one dev
+stack therefore needs no restart.
 
 A scenario is one file under `scripts/agent-tests/scenarios/`, exporting a
 `name`, a one-sentence `contract` stating exactly what must be true, and a

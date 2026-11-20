@@ -17,7 +17,6 @@ const seed: AgentSeedConfiguration = {
     agentName: 'Scout',
     brief: null,
     briefAuthorHandle: null,
-    factoryKind: 'ordinary',
 };
 const memory = '# Scout\n\n## Active Context\n\n- Bluebird launch on Friday.\n';
 
@@ -206,26 +205,24 @@ test('a seed never overwrites a Drive file someone else already wrote', async ()
     );
 });
 
-test('Cove is seeded with its four onboarding files', async () => {
-    const result = await prepare({ agentName: 'Cove', factoryKind: 'cove' });
+test('a former onboarding Agent is seeded like any Agent, with no onboarding notes', async () => {
+    const result = await prepare({ agentDescription: 'Onboarding Assistant', agentName: 'Harbor' });
 
-    expect((await readdir(result.drive.area)).sort()).toEqual(['MEMORY.md', 'notes', 'skills']);
-    expect((await readdir(join(result.drive.area, 'notes'))).sort()).toEqual([
-        'onboarding_knowledge_faq.md',
-        'onboarding_objectives.md',
-        'onboarding_playbook.md',
-    ]);
+    expect((await readdir(result.drive.area)).sort()).toEqual(['MEMORY.md', 'skills']);
+    expect(await readFile(result.drive.memory, 'utf8')).toContain(
+        '# Harbor\n\n## Role\n\nOnboarding Assistant\n'
+    );
 });
 
 test('the launch seed renders the standing brief its creator wrote', async () => {
     const result = await prepare({
         brief: 'Own competitor intel. Post a Friday digest in #product.',
-        briefAuthorHandle: 'cove',
+        briefAuthorHandle: 'harbor',
     });
 
     const seeded = await readFile(result.drive.memory, 'utf8');
     expect(seeded).toContain(
-        '## Standing brief from @cove\n\nOwn competitor intel. Post a Friday digest in #product.\n'
+        '## Standing brief from @harbor\n\nOwn competitor intel. Post a Friday digest in #product.\n'
     );
     expect(seeded).not.toContain('self-introduction');
 });

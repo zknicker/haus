@@ -3,11 +3,11 @@ import { supportsSubagents } from '../runtime/runtime-subagents.ts';
 import { composeAgentInstructions } from './instructions.ts';
 
 const facts = {
-    agentId: 'agt_cove',
-    agentName: 'Cove',
+    agentId: 'agt_harbor',
+    agentName: 'Harbor',
     homeTimezone: 'America/Los_Angeles',
     initialRole: 'the operator’s right hand',
-    workspacePath: '/home/agt_cove/workspace',
+    workspacePath: '/home/agt_harbor/workspace',
 } as const;
 
 test('only Claude Code supports sub-agents', () => {

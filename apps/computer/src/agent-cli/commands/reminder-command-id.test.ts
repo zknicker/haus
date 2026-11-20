@@ -5,7 +5,7 @@ import { runReminderSchedule } from './agent-reminder.ts';
 import { scheduleCommandId } from './reminder-command-id.ts';
 
 const values = {
-    '--command-id': 'cove-review-consent-1',
+    '--command-id': 'weekly-review-consent-1',
     '--fire-at': '2027-01-01T09:00:00.000Z',
     '--message-id': 'abcdef12',
     '--repeat': 'every:1d',
@@ -60,7 +60,7 @@ test('stable keys reject relative fire times and empty or unbounded ids', () => 
 test('a calendar repeat keeps a retry-stable command id without a saved first fire', () => {
     const { '--fire-at': _derived, ...calendar } = values;
     expect(scheduleCommandId({ ...args, values: { ...calendar, '--repeat': 'daily@09:00' } })).toBe(
-        'cove-review-consent-1'
+        'weekly-review-consent-1'
     );
     expect(() => scheduleCommandId({ ...args, values: calendar })).toThrow('--fire-at');
 });

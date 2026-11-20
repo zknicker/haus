@@ -44,8 +44,8 @@ describe('action thought scrubbing', () => {
         expect(shell('mytool --api-key=abc --password hunter2 -u admin:pw sync')).toBe(
             'mytool --api-key=… --password … -u … sync'
         );
-        expect(shell("curl -H 'User-Agent: cove (ops@example.com)' https://wttr.in/NYC")).toBe(
-            'curl -H User-Agent: cove wttr.in/NYC'
+        expect(shell("curl -H 'User-Agent: harbor (ops@example.com)' https://wttr.in/NYC")).toBe(
+            'curl -H User-Agent: harbor wttr.in/NYC'
         );
         expect(shell('echo sk-live-abcdefgh and QWxhZGRpbjpvcGVuIHNlc2FtZQQWxhZGRpbjpv')).toBe(
             'echo … and …'

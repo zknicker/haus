@@ -29,7 +29,6 @@ export async function prepareLaunchDrive(input: {
                 agentName: command.agentName,
                 brief: null,
                 briefAuthorHandle: null,
-                factoryKind: 'ordinary',
             },
             serverOrigin: input.options.serverOrigin,
         });
