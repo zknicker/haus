@@ -1,5 +1,5 @@
 import { createAppTestFixture, e2ePeerEmail, signInAsAppHuman } from '../support/app-session.ts';
-import { completeOnboarding, createClient, openChannel, openSection } from '../support/server.ts';
+import { createClient, openChannel, openSection } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 /**
@@ -11,13 +11,12 @@ import { expect, test } from '../support/test.ts';
 const slug = 'membership-hq';
 
 test.beforeAll(async () => {
-    const { accessToken, databaseUrl } = await createAppTestFixture();
+    const { accessToken } = await createAppTestFixture();
     await createAppTestFixture('peer');
-    const created = await createClient(accessToken).server.create.mutate({
+    await createClient(accessToken).server.create.mutate({
         displayName: 'Membership HQ',
         slug,
     });
-    completeOnboarding(databaseUrl, created.id);
 });
 
 test('an Owner invites, promotes, and removes a human', async ({ browser, page }) => {

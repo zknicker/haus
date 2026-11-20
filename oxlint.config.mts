@@ -199,15 +199,7 @@ export default defineConfig({
             files: ['apps/website/src/**/*.tsx'],
             excludeFiles: ['**/*.test.tsx'],
             rules: {
-                'haus/heroui-spacing-override': [
-                    'error',
-                    {
-                        allow: {
-                            'apps/website/src/features/onboarding/cove-meet-step.tsx':
-                                'Card.Content hosts a two-column split whose halves each carry their own padding and divider',
-                        },
-                    },
-                ],
+                'haus/heroui-spacing-override': ['error', { allow: {} }],
             },
         },
         {

@@ -84,19 +84,11 @@ export function createAppRouter() {
                         },
                         {
                             path: 's/:slug',
-                            lazy: lazyRoute(
-                                () => import('./features/onboarding/cove-onboarding-route.tsx'),
-                                'CoveOnboardingRoute'
-                            ),
+                            lazy: lazyRoute(loadServerShells, 'ServerLayout'),
                             children: [
                                 {
-                                    lazy: lazyRoute(loadServerShells, 'ServerLayout'),
-                                    children: [
-                                        {
-                                            errorElement: <ServerErrorBoundary />,
-                                            children: serverPageRoutes({ desktop }),
-                                        },
-                                    ],
+                                    errorElement: <ServerErrorBoundary />,
+                                    children: serverPageRoutes({ desktop }),
                                 },
                             ],
                         },

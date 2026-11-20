@@ -8,7 +8,7 @@ describe('createAgentHandle', () => {
     });
 
     test('chooses the next available handle', () => {
-        expect(createAgentHandle('Cove', [])).toBe('cove-2');
+        expect(createAgentHandle('Cove', [])).toBe('cove');
         expect(createAgentHandle('Cove', [{ handle: 'cove' }, { handle: 'cove-2' }])).toBe(
             'cove-3'
         );

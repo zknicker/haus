@@ -28,12 +28,6 @@
     transition: grid-template-rows 240ms ease-out, margin-bottom 240ms ease-out, opacity 180ms ease-out;
 }
 
-.activation-frame:has([data-hide-mark]) .activation-brand {
-    grid-template-rows: 0fr;
-    margin-bottom: 0;
-    opacity: 0;
-}
-
 .activation-topbar__progress > * {
     animation: activation-content-in 240ms ease-out both;
 }

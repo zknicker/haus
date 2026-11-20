@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Outlet, useParams } from 'react-router-dom';
 import { ConnectionNotice } from '../../features/servers/connection-notice.tsx';
+import { rememberLastServerSlug } from '../../features/servers/server-choice.ts';
 import { CommandMenuProvider } from '../../features/shell/command-menu-provider.tsx';
 import { ShellFrame, SidePaneProvider } from '../../features/shell/shell-side-pane.tsx';
 import { TopbarProvider } from '../../features/shell/shell-topbar.tsx';
@@ -33,6 +34,12 @@ export function ServerLayout() {
     // Desktop: the window layout's full-width band holds the tab rows. The web
     // has no layout and keeps its topbar in the main column.
     const topbarInWindow = useShellVariantSync() !== null;
+
+    React.useEffect(() => {
+        if (currentServerSlug === slug) {
+            rememberLastServerSlug(slug);
+        }
+    }, [currentServerSlug, slug]);
 
     React.useEffect(() => {
         if (!currentServerSlug) {

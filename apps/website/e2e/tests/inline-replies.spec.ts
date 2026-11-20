@@ -1,18 +1,17 @@
 import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
-import { completeOnboarding, createClient, openChannel } from '../support/server.ts';
+import { createClient, openChannel } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('inline replies send, survive reload, and navigate to an off-page parent', async ({
     page,
 }, testInfo) => {
     test.setTimeout(90_000);
-    const { accessToken, databaseUrl } = await createAppTestFixture();
+    const { accessToken } = await createAppTestFixture();
     const client = createClient(accessToken);
     const server = await client.server.create.mutate({
         displayName: 'Reply Preview',
         slug: 'reply-preview',
     });
-    completeOnboarding(databaseUrl, server.id);
     const chatId = server.channels[0].id;
     const root = await client.chat.send.mutate({
         chatId,
@@ -144,13 +143,12 @@ test('inline replies send, survive reload, and navigate to an off-page parent', 
 });
 
 test('a saved claim link lands on its Chat at the claimed Message', async ({ page }, testInfo) => {
-    const { accessToken, databaseUrl } = await createAppTestFixture();
+    const { accessToken } = await createAppTestFixture();
     const client = createClient(accessToken);
     const server = await client.server.create.mutate({
         displayName: 'Reply Claim',
         slug: 'reply-claim',
     });
-    completeOnboarding(databaseUrl, server.id);
     const chatId = server.channels[0].id;
     const root = await client.chat.send.mutate({
         chatId,

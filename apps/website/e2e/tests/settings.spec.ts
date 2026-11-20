@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import type { Page } from '@playwright/test';
 import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
-import { assertOpaqueId, completeOnboarding, createClient, runPsql } from '../support/server.ts';
+import { assertOpaqueId, createClient, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 const slug = 'settings-hq';
@@ -11,7 +11,6 @@ test.beforeAll(async () => {
     const owner = createClient(accessToken);
     await owner.server.create.mutate({ displayName: 'Settings HQ', slug });
     const server = await owner.server.bySlug.query({ slug });
-    completeOnboarding(databaseUrl, server.id);
     const ownerUserId = runPsql(databaseUrl, "select id from users where id = 'usr_e2e_human'");
     assertOpaqueId(ownerUserId);
     runPsql(
