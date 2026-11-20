@@ -15,20 +15,40 @@ import {
 
 export function useBackgroundUpload(theme: ColorTheme) {
     const inputRef = React.useRef<HTMLInputElement>(null);
-    const [error, setError] = React.useState<string | null>(null);
+    const session = React.useRef(0);
+    const [error, setError] = React.useState<{ message: string; theme: ColorTheme } | null>(null);
+    if (error && error.theme !== theme) {
+        setError(null);
+    }
+
+    React.useEffect(
+        () => () => {
+            session.current += 1;
+        },
+        [theme]
+    );
 
     const accept = async (file: File) => {
         const type = imageTypeOf(file.type);
         const problem = backgroundImageProblem(file);
         if (problem || !type) {
-            setError(problem);
+            setError(problem ? { message: problem, theme } : null);
             return;
         }
+        const started = session.current;
         const id = newBackgroundImageId();
-        try {
-            await putBackgroundImage(id, file);
-        } catch {
-            setError('This device could not save that image. Try another.');
+        const saved = await putBackgroundImage(id, file).then(
+            () => true,
+            () => false
+        );
+        if (session.current !== started) {
+            if (saved) {
+                void pruneUnusedBackgroundImages();
+            }
+            return;
+        }
+        if (!saved) {
+            setError({ message: 'This device could not save that image. Try another.', theme });
             return;
         }
         setError(null);
@@ -56,7 +76,11 @@ export function useBackgroundUpload(theme: ColorTheme) {
         />
     );
 
-    return { choose: () => inputRef.current?.click(), error, input };
+    return {
+        choose: () => inputRef.current?.click(),
+        error: error?.theme === theme ? error.message : null,
+        input,
+    };
 }
 
 export function removeBackgroundImage(theme: ColorTheme) {
