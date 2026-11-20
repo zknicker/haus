@@ -5,7 +5,7 @@ import {
     type WorkerTurnInput,
     workerPullRequestNumber,
 } from '@haus/api';
-import { Chip, Link, toast } from '@heroui/react';
+import { Chip, Link } from '@heroui/react';
 import { GitPullRequestIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { useParams } from 'react-router-dom';
 import { ActionCard } from '../../components/chats/action-card.tsx';
@@ -14,7 +14,6 @@ import { Icon } from '../../components/ui/icon.tsx';
 import { useAgentAppearances } from '../../hooks/members/use-agents.ts';
 import { useHumanDirectory } from '../../hooks/servers/use-human-directory.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
-import { openExternalLink } from '../../lib/open-external-link.ts';
 import { useTranscriptRenderContextOptional } from '../chats/chat-transcript-render-context.tsx';
 import { WorkerKeycap } from './cloud-agent-provider-mark.tsx';
 import {
@@ -86,10 +85,10 @@ export function WorkerCard({ chatId: chatIdProp, work }: { chatId?: null | strin
                             </Chip>
                         </ActionCard.Status>
                     </ActionCard.Title>
-                    <ActionCard.Description>
+                    <div className="text-muted flex min-w-0 items-center gap-1 text-sm leading-5">
                         <WorkerPlace work={work} />
-                        {` · ${work.repository}`}
-                    </ActionCard.Description>
+                        <ActionCard.Description>{`· ${work.repository}`}</ActionCard.Description>
+                    </div>
                 </ActionCard.Content>
             </ActionCard.Header>
             <WorkerPullRequestRow
@@ -136,20 +135,23 @@ export function WorkerPullRequestRow({
         workerPullRequestNumber(url);
     const facts = reading ?? branch?.pullRequest ?? null;
     return (
-        <ActionCard.Meta data-testid="worker-pull-request">
-            <Icon aria-hidden="true" icon={GitPullRequestIcon} />
-            <Link onPress={() => openPullRequest(url)}>
+        <div
+            className="text-muted flex min-w-0 items-center gap-1.5 text-sm leading-5"
+            data-testid="worker-pull-request"
+        >
+            <Icon aria-hidden="true" className="shrink-0" icon={GitPullRequestIcon} size={14} />
+            <Link className="shrink-0" href={url} rel="noreferrer" target="_blank">
                 {number === null ? 'Pull request' : `PR #${number}`}
             </Link>
             {facts ? (
-                <>
-                    {` · ${pullRequestStateLabels[facts.state]} · `}
+                <ActionCard.Meta>
+                    {`· ${pullRequestStateLabels[facts.state]} · `}
                     {`${facts.changedFiles} ${facts.changedFiles === 1 ? 'file' : 'files'}`}
                     <span className="text-success"> +{facts.additions}</span>
                     <span className="text-danger"> −{facts.deletions}</span>
-                </>
+                </ActionCard.Meta>
             ) : null}
-        </ActionCard.Meta>
+        </div>
     );
 }
 
@@ -159,7 +161,3 @@ const pullRequestStateLabels = {
     merged: 'Merged',
     open: 'Open',
 } as const;
-
-function openPullRequest(url: string) {
-    openExternalLink(url).catch(() => toast.danger('Could not open the pull request'));
-}

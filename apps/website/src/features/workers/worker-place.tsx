@@ -1,5 +1,6 @@
 import type { Worker } from '@haus/api';
 import { Link } from '@heroui/react';
+import { getDesktopBridge } from '../../lib/desktop-bridge.ts';
 import {
     canOpenCloudAgentProvider,
     cloudAgentProviderName,
@@ -15,12 +16,16 @@ export function WorkerPlace({
     const target = { ...work, provider: work.place };
     const name = cloudAgentProviderName(work.place);
     if (!canOpenCloudAgentProvider(target)) {
-        return <span>{name}</span>;
+        return <span className="shrink-0">{name}</span>;
     }
+    const opensApp = getDesktopBridge() !== null && work.providerAgentId !== null;
     return (
         <Link
             aria-label={openInCloudAgentProviderLabel(work.place)}
-            onPress={() => openCloudAgentProvider(target)}
+            className="shrink-0"
+            {...(opensApp || !work.providerUrl
+                ? { onPress: () => openCloudAgentProvider(target) }
+                : { href: work.providerUrl, rel: 'noreferrer', target: '_blank' })}
         >
             {name}
             <Link.Icon />

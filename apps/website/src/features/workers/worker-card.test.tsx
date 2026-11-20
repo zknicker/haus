@@ -140,6 +140,33 @@ test('on a narrow pane the card in the Task transcript still shows cited files',
     expect(html).toContain('render.png');
 });
 
+test('the pull request and provider links are real links', () => {
+    const html = renderCard(
+        work({
+            providerUrl: 'https://cursor.com/agents/bc_one',
+            pullRequest: {
+                additions: 1,
+                changedFiles: 1,
+                checks: 'passing',
+                deletions: 0,
+                headSha: 'abc123',
+                number: 56,
+                observedAt: '2026-11-05T12:00:00.000Z',
+                repository: 'haus/haus',
+                review: 'none',
+                settledAt: null,
+                source: 'github',
+                state: 'open',
+                title: 'Fix it',
+                url: 'https://github.com/haus/haus/pull/56',
+            },
+        })
+    );
+
+    expect(html).toContain('href="https://github.com/haus/haus/pull/56"');
+    expect(html).toContain('href="https://cursor.com/agents/bc_one"');
+});
+
 test('a closed Worker shows its record with no composer', () => {
     const html = renderCard(work({ closedAt: '2026-09-04T12:03:00.000Z', status: 'completed' }));
 
@@ -165,7 +192,7 @@ test('the pull request row states number, state, and diff size', () => {
     const html = renderToStaticMarkup(<WorkerPullRequestRow branch={pullRequestBranch} />);
 
     expect(html).toContain('PR #1');
-    expect(html).toContain(' · Draft · 1 file');
+    expect(html).toContain('· Draft · 1 file');
     expect(html).toContain('+10');
     expect(html).toContain('−0');
 });
