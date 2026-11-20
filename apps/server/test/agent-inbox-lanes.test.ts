@@ -55,7 +55,7 @@ test('an unaddressed channel message ships as a warm drain candidate only', asyn
 
 test('a resent active run reproduces the same drain sets and digest', async () => {
     const seed = await seedAgent(connection.db);
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
     await deliverHuman(connection.db, delivery, seed, { chatId: seed.channelId });
     await deliverHuman(connection.db, delivery, seed, {
         addressedReason: 'mention',
@@ -66,7 +66,7 @@ test('a resent active run reproduces the same drain sets and digest', async () =
     await delivery.onAck({ agentId: seed.agentId, runId: first?.runId ?? '' });
     await delivery.dispatchAgent(seed.agentId, seed.serverId, { resendActive: true });
 
-    const resent = transport.framesOfType('start').at(-1);
+    const resent = runner.starts().at(-1);
     expect(resent?.runId).toBe(first?.runId ?? '');
     expect(resent?.drainItemIds).toEqual(first?.drainItemIds ?? []);
     expect(resent?.warmDrainItemIds).toEqual(first?.warmDrainItemIds ?? []);
@@ -75,7 +75,7 @@ test('a resent active run reproduces the same drain sets and digest', async () =
 
 test('a resend does not widen the drain sets past the drain budget', async () => {
     const seed = await seedAgent(connection.db);
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
     const body = 'x'.repeat(10_000);
     const ids: string[] = [];
     for (let index = 0; index < 3; index += 1) {
@@ -96,7 +96,7 @@ test('a resend does not widen the drain sets past the drain budget', async () =>
     await delivery.onAck({ agentId: seed.agentId, runId: first?.runId ?? '' });
     await delivery.dispatchAgent(seed.agentId, seed.serverId, { resendActive: true });
 
-    const resent = transport.framesOfType('start').at(-1);
+    const resent = runner.starts().at(-1);
     expect(resent?.runId).toBe(first?.runId ?? '');
     expect(resent?.warmDrainItemIds).toEqual(first?.warmDrainItemIds ?? []);
     expect(resent?.drainItemIds).toEqual(first?.drainItemIds ?? []);

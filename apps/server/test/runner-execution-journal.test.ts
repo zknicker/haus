@@ -4,7 +4,6 @@ import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import {
-    reportRunnerModels,
     connectRunner,
     frameOfType,
     type RunnerClient,
@@ -22,7 +21,6 @@ let runId: string;
 
 beforeAll(async () => {
     harness = await startHausServerHarness({ runnerToken: testRunnerToken });
-    await reportRunnerModels(harness);
     harness.humans.setVerifiedEmails('user_journal_owner', ['grace@haus.test']);
     owner = createHausClient(harness, await harness.humans.mintSessionToken('user_journal_owner'));
     serverId = (

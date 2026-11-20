@@ -5,7 +5,6 @@ import { tickReminders } from '../src/reminders/reminders.ts';
 import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
-import { reportRunnerModels } from './runner.fixture.ts';
 
 /**
  * A Reminder's title is a short label and its description is the instruction
@@ -40,7 +39,6 @@ class OfflineTransport implements DeliveryTransport {
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    await reportRunnerModels(harness);
     connection = await connectHausDatabase(harness.databaseUrl);
     owner = createHausClient(harness, await harness.humans.mintSessionToken('user_labels_owner'));
     const server = await owner.trpc.server.create.mutate({

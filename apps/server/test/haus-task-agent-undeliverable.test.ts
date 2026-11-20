@@ -28,7 +28,7 @@ afterAll(async () => {
 test('one malformed Task assignment is set aside and the rest still drain together', async () => {
     const board = await seedTaskBoard(connection.db);
     const { seed } = board;
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
     await assignNewTask(connection.db, delivery, board, 'Rotate the keys');
     await assignNewTask(connection.db, delivery, board, 'Patch the host');
     await enqueueInboxItem(connection.db, {
@@ -42,7 +42,7 @@ test('one malformed Task assignment is set aside and the rest still drain togeth
 
     const start = await wake();
 
-    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(runner.starts()).toHaveLength(1);
     expect(start).toMatchObject({ chatId: null, inbox: [] });
     expect(start?.taskAssignments?.map((assignment) => assignment.title)).toEqual([
         'Rotate the keys',

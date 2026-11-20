@@ -32,7 +32,7 @@ import {
     startPostgresCluster,
     type TestDatabase,
 } from './postgres-cluster.ts';
-import { testRunnerToken } from './runner.fixture.ts';
+import { reportRunnerModels, testRunnerToken } from './runner.fixture.ts';
 
 export interface TestHumanAuth {
     mintExpiredSessionToken(subject: string): Promise<string>;
@@ -65,7 +65,7 @@ export const testSecretsKey = parseSecretsKey(Buffer.alloc(32, 11).toString('bas
 
 export async function startHausServerHarness(
     options: {
-        runnerToken?: string;
+        runnerToken?: string | null;
         appOrigin?: string;
         artifactStorage?: ArtifactStorage;
         artifactStorageBytes?: number;
@@ -125,9 +125,11 @@ export async function startHausServerHarness(
             url: new URL('http://127.0.0.1'),
         };
 
+        const runnerToken =
+            options.runnerToken === null ? undefined : (options.runnerToken ?? testRunnerToken);
         const startApplication = async () => {
             const next = await createHausServerApplication({
-                runnerToken: options.runnerToken ?? testRunnerToken,
+                runnerToken,
                 secretsKey: options.secretsKey === undefined ? testSecretsKey : options.secretsKey,
                 appOrigin,
                 ...(options.cloudflareAccess ? { cloudflareAccess: options.cloudflareAccess } : {}),
@@ -158,6 +160,9 @@ export async function startHausServerHarness(
             application = next;
             const { port } = next.app.server.address() as AddressInfo;
             harness.url = new URL(`http://127.0.0.1:${port}`);
+            if (runnerToken === testRunnerToken) {
+                await reportRunnerModels(harness);
+            }
         };
         await startApplication();
         return harness;

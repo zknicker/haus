@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 import { createHomedAgent } from './agent-home.fixture.ts';
+import { reportRunnerModels } from './runner.fixture.ts';
 
 const fixture = agentCreationFixture();
 const inventory = {
@@ -23,7 +24,7 @@ const inventory = {
 
 test('persists model-supported effort and rejects unsupported configuration without changing it', async () => {
     const { owner, harness, serverId, computerId: computerA } = fixture;
-    await harness.sql`update computers set reported_inventory = ${inventory}::jsonb where id = ${computerA}`;
+    await reportRunnerModels(harness, { runtimes: inventory.runtimes });
     const created = await createHomedAgent(owner, {
         computerId: computerA,
         displayName: 'Reasoner',

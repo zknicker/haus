@@ -6,7 +6,6 @@ import { readTargetAsAgent } from './agent-read-target.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { createTestProject } from './project.fixture.ts';
-import { reportRunnerModels } from './runner.fixture.ts';
 import { startTestTask, type TestTask } from './task-place-fixture.ts';
 import { workerComputerFixture } from './worker-computer-fixture.ts';
 import { workerFixtureReads } from './worker-fixture-reads.ts';
@@ -30,7 +29,6 @@ export function workerRecordFixture() {
 
     beforeAll(async () => {
         harness = await startHausServerHarness();
-        await reportRunnerModels(harness);
         owner = await signIn('user_cloud_owner', ['ada@haus.test']);
         peer = await signIn('user_cloud_peer', ['bo@haus.test']);
         outsider = await signIn('user_cloud_outsider', ['cass@haus.test']);

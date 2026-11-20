@@ -7,7 +7,6 @@ import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { RecordingRunner } from './recording-runner.ts';
-import { reportRunnerModels } from './runner.fixture.ts';
 
 /**
  * Automation provenance end to end (specs/automation-provenance.md): a fire
@@ -43,7 +42,6 @@ class OfflineTransport implements DeliveryTransport {
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    await reportRunnerModels(harness);
     connection = await connectHausDatabase(harness.databaseUrl);
     owner = await signIn('user_provenance_owner');
     const server = await owner.trpc.server.create.mutate({

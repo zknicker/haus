@@ -3,7 +3,6 @@ import { createHomedAgent } from './agent-home.fixture.ts';
 import { fixtureInstallationId, fixtureRepository } from './github-delivery-fixtures.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import type { HausServerHarness } from './haus-server-harness.ts';
-import { reportRunnerModels } from './runner.fixture.ts';
 
 // One Server wired for GitHub Triggers: an Agent in #all with a message to
 // anchor on, a connected GitHub connection the Agent holds a grant on, and an
@@ -41,7 +40,6 @@ export async function seedGithubTriggerWorld(
         insert into computers (id, server_id, attached_by_user_id, credential_hash, reported_inventory, health)
         values (${computerId}, ${serverId}, ${userId}, ${credentialHash}, ${{ runtimes: [codexRuntime] }}::jsonb, 'healthy')
     `;
-    await reportRunnerModels(harness);
     const created = await createHomedAgent(owner, {
         computerId,
         displayName: 'Sage',

@@ -58,7 +58,7 @@ async function wakeOn(content: string) {
         id: createOpaqueId('cap'),
         serverId: seed.serverId,
     });
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const { delivery, runner: wire, wake } = offlineDelivery(connection.db, seed);
     const wakeMessage = await postToChannel(seed, delivery, content);
     const start = await wake();
     expect(start?.warmDrainItemIds).toEqual([wakeMessage.id]);
@@ -73,7 +73,7 @@ async function wakeOn(content: string) {
         runnerId: createOpaqueId('arc'),
         serverId: seed.serverId,
     };
-    return { delivery, runner, seed, transport, wakeMessage };
+    return { delivery, runner, seed, wakeMessage, wire };
 }
 
 function reply(content: string) {
@@ -87,9 +87,7 @@ function reply(content: string) {
 }
 
 test('a drained wake message is exact-visible before the turn settles', async () => {
-    const { delivery, runner, seed, transport, wakeMessage } = await wakeOn(
-        'Can you check the deploy?'
-    );
+    const { delivery, runner, seed, wakeMessage, wire } = await wakeOn('Can you check the deploy?');
 
     // The receipt the Computer posts as it composes the warm drain.
     await expect(
@@ -112,8 +110,8 @@ test('a drained wake message is exact-visible before the turn settles', async ()
     expect((await readDeliveryState(connection.db, seed.agentId))?.activeRunId).toBe(runner.runId);
 
     // The row stays offered, so a resend still composes the same warm drain.
-    await delivery.onComputerReconnect(seed.computerId);
-    expect(transport.framesOfType('start').at(-1)).toMatchObject({
+    await delivery.onRunnerReconnect();
+    expect(wire.starts().at(-1)).toMatchObject({
         runId: runner.runId,
         warmDrainItemIds: [wakeMessage.id],
     });

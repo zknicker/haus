@@ -21,7 +21,6 @@ import { createMcpFixture } from './mcp-fixture.ts';
 import { createTestProject } from './project.fixture.ts';
 import { captureAllTopics, publishedKinds } from './realtime-capture.ts';
 import { RecordingRunner } from './recording-runner.ts';
-import { reportRunnerModels } from './runner.fixture.ts';
 import { registerServerRuntime, registerTestConnections } from './test-computer-connections.ts';
 
 let harness: HausServerHarness;
@@ -40,7 +39,6 @@ const codexRuntime = { id: 'codex', label: 'Codex', models: [{ id: 'gpt-5.6-sol'
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    await reportRunnerModels(harness);
     connection = await connectHausDatabase(harness.databaseUrl);
     owner = await signIn('user_run_owner');
 

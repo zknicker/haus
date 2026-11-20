@@ -8,7 +8,6 @@ import {
     createAgent,
     seedConnectionServer,
 } from './model-connection.fixture.ts';
-import { reportRunnerModels } from './runner.fixture.ts';
 
 const firstToken = 'sk-ant-oat01-first-setup-token';
 const xaiKey = 'xai-secret-api-key-value';
@@ -19,7 +18,6 @@ let member: HausClient;
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
-    await reportRunnerModels(harness);
     seed = await seedConnectionServer(harness, 'models-hq');
     other = await seedConnectionServer(harness, 'models-other');
     member = await addMember(harness, seed, 'user_models_member');
