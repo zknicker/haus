@@ -1,9 +1,15 @@
 import type { ComputerRuntime } from '@haus/api';
 import { and, eq, isNull } from 'drizzle-orm';
+import { markAllComputersOffline } from '../computers/service.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, bootStepsTable } from '../postgres/schema.ts';
 import { inheritedModel } from '../server-agents/agent-model-catalog.ts';
 import { resetInTransaction } from './reset-transaction.ts';
+
+export async function prepareAgentHosts(db: HausDatabase) {
+    await markAllComputersOffline(db);
+    await moveAgentsToRunner(db);
+}
 
 export async function moveAgentsToRunner(db: HausDatabase) {
     const [done] = await db
