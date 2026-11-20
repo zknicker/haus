@@ -1,11 +1,15 @@
 import { afterAll, expect, test } from 'bun:test';
 import * as React from 'react';
+import { parseCustomThemes } from '../../lib/custom-themes.ts';
 import { installFakeDom } from '../../test-support/fake-dom.ts';
 import { createRenderCensus } from '../../test-support/render-census.tsx';
 import { getCustomThemes, saveCustomThemes } from './use-custom-themes.ts';
 
-const colors = { accent: '#3b5de8', background: '#f2f2f4', foreground: '#1e1e20' } as const;
-saveCustomThemes([{ dark: colors, id: 'custom-drag01', light: colors, name: 'Drag' }], null);
+const colors = { accent: '#3b5de8', background: '#f2f2f4', foreground: '#1e1e20' };
+saveCustomThemes(
+    parseCustomThemes([{ dark: colors, id: 'custom-drag01', light: colors, name: 'Drag' }]),
+    null
+);
 
 const restoreDom = installFakeDom();
 afterAll(restoreDom);
