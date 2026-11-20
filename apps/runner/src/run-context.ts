@@ -33,6 +33,20 @@ export interface ExecuteToolInput {
     readonly code: string;
 }
 
+export interface ShellToolInput {
+    readonly command: readonly string[];
+    readonly timeout_ms?: number;
+    readonly workdir?: string;
+}
+
+export interface ApplyPatchToolInput {
+    readonly input: string;
+}
+
+export interface ViewImageToolInput {
+    readonly path: string;
+}
+
 export type ToolResultContent =
     | { readonly text: string; readonly type: 'text' }
     | { readonly data: string; readonly mimeType: string; readonly type: 'image' };
@@ -44,10 +58,21 @@ export interface ToolOutcome {
 }
 
 export interface RunTools {
+    applyPatch(
+        toolCallId: string,
+        input: ApplyPatchToolInput,
+        signal: AbortSignal
+    ): Promise<ToolOutcome>;
     bash(toolCallId: string, input: BashToolInput, signal: AbortSignal): Promise<ToolOutcome>;
     edit(toolCallId: string, input: EditToolInput, signal: AbortSignal): Promise<ToolOutcome>;
     execute(toolCallId: string, input: ExecuteToolInput, signal: AbortSignal): Promise<ToolOutcome>;
     settle(): Promise<RunVisibility>;
+    shell(toolCallId: string, input: ShellToolInput, signal: AbortSignal): Promise<ToolOutcome>;
+    viewImage(
+        toolCallId: string,
+        input: ViewImageToolInput,
+        signal: AbortSignal
+    ): Promise<ToolOutcome>;
 }
 
 export interface RunVisibility {

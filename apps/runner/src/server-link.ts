@@ -8,7 +8,7 @@ import {
 import type { RunnerConfig } from './config.ts';
 import type { DispatchLedger } from './dispatch/ledger.ts';
 import { type InvocationClock, systemInvocationClock } from './invocations/invocation-clock.ts';
-import { runnerInventory } from './logins.ts';
+import { type LoginConfig, runnerInventory } from './logins.ts';
 import type { RunnerLink, TurnHost } from './run-context.ts';
 import { createRunTools, type RunToolset } from './tools/run-tools.ts';
 
@@ -16,7 +16,7 @@ const backoffMs = [500, 1000, 2000, 5000, 10_000, 30_000];
 const queuedFramesMax = 1000;
 
 export function openServerLink(input: {
-    config: Pick<RunnerConfig, 'claudeSetupToken' | 'runnerToken' | 'serverUrl'>;
+    config: LoginConfig & Pick<RunnerConfig, 'runnerToken' | 'serverUrl'>;
     invocationClock?: InvocationClock;
     ledger: DispatchLedger;
     log?: (line: string) => void;

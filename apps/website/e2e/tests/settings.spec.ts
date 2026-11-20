@@ -82,9 +82,9 @@ test('settings navigation names the page and reaches Server deletion', async ({
     await page.goto(`/s/${slug}/settings/profile`);
     const personal = page.getByRole('treegrid', { name: 'Preferences', exact: true });
     const shared = page.getByRole('treegrid', { name: 'Server', exact: true });
-    // Personal: Profile, Preferences, Servers. Server: the five pages that
+    // Personal: Profile, Preferences, Appearance, Servers. Server: the five pages that
     // configure it, Usage, then Archived chats as a link-out.
-    await expect(personal.getByRole('row')).toHaveCount(3);
+    await expect(personal.getByRole('row')).toHaveCount(4);
     await expect(shared.getByRole('row')).toHaveCount(7);
     await expect(personal.getByRole('row', { name: 'Servers', exact: true })).toBeVisible();
     await expect(shared.getByRole('row', { name: 'Connections', exact: true })).toBeVisible();
@@ -92,6 +92,7 @@ test('settings navigation names the page and reaches Server deletion', async ({
     for (const label of [
         'Profile',
         'Preferences',
+        'Appearance',
         'Servers',
         'Server',
         'Members',

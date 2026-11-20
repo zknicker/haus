@@ -49,7 +49,7 @@ Settings is not in the band: a gear leads the sidebar footer, before the update 
 marks, its tooltip naming ⌘,. The macOS App menu's Haus › Settings… (⌘,) opens it too, including
 while a browser page has focus.
 
-Settings > Preferences > Appearance > **Window layout** picks what sits under the band. It applies
+Settings > Preferences > Window > **Window layout** picks what sits under the band. It applies
 instantly, is remembered per device, and stays in step across open windows.
 
 - **Band** (default): one rounded, bordered card, inset from the window edges, holds the off-white

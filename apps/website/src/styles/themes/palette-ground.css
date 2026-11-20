@@ -1,0 +1,96 @@
+/*
+ * The palette ground (.design/guidelines.md "Color themes"): the Haus ladder
+ * derived from a palette's base colors.
+ *
+ * A palette theme (a palette preset, or any custom theme) sets base colors:
+ * `--accent`, `--background`, `--foreground`, and optionally the advanced
+ * roles (`--sidebar-surface`, `--surface`, `--overlay`, `--field-background`,
+ * `--default`, `--muted`, `--border`, `--link`, `--accent-foreground`).
+ * `stampAppearance` marks the root `data-palette` while one is active, and
+ * this file derives every other ground from them, the way HeroUI derives
+ * hover and soft fills from its own base tokens. A palette's own block
+ * declares the same tokens at (0,3,0) and so wins over a derived default
+ * whatever the order; an advanced role left out falls back to these.
+ *
+ * Keyed by attribute, not `:root`, so a theme preview carrying the same
+ * attributes renders the same theme in place.
+ */
+[data-palette][data-theme="light"] {
+    --sidebar-surface: color-mix(in oklab, var(--background) 95%, var(--foreground) 5%);
+    --surface: color-mix(in oklab, var(--background) 35%, white);
+    --overlay: var(--surface);
+    --field-background: var(--surface);
+    --field-foreground: var(--foreground);
+    --default: color-mix(in oklab, var(--background) 92%, var(--foreground) 8%);
+    --default-foreground: var(--foreground);
+    --segment: var(--surface);
+    --segment-foreground: var(--foreground);
+    --muted: color-mix(in oklab, var(--foreground) 64%, var(--background));
+    --border: color-mix(in oklab, var(--background) 88%, var(--foreground) 12%);
+    --separator: color-mix(in oklab, var(--background) 90%, var(--foreground) 10%);
+    --surface-secondary: color-mix(in oklab, var(--background) 94%, var(--foreground) 6%);
+    --surface-tertiary: color-mix(in oklab, var(--background) 92%, var(--foreground) 8%);
+    --accent-foreground: oklch(from var(--accent) clamp(0.21, (0.7 - l) * 1000, 0.99) 0 0);
+
+    /* The shell: content on the palette's page, the sidebar on its panel, the canvas a step behind. */
+    --shell-canvas: var(--sidebar-surface);
+    --shell-card: var(--background);
+    --shell-band-canvas: color-mix(in oklab, var(--sidebar-surface) 94%, var(--foreground) 6%);
+    --shell-band-sidebar: var(--sidebar-surface);
+    --shell-card-border: color-mix(in oklab, var(--foreground) 10%, transparent);
+    --shell-band-divider: color-mix(in oklab, var(--foreground) 6%, transparent);
+
+    /* Tooltips stay the inverse of the page, as the default's near-black is. */
+    --tooltip: var(--foreground);
+    --tooltip-foreground: var(--background);
+    --tooltip-muted: color-mix(in oklab, var(--background) 70%, var(--foreground));
+}
+
+[data-palette][data-theme="dark"] {
+    --sidebar-surface: color-mix(in oklab, var(--background) 86%, black);
+    --surface: color-mix(in oklab, var(--background) 90%, var(--foreground) 10%);
+    --overlay: var(--surface);
+    --field-background: var(--surface);
+    --field-foreground: var(--foreground);
+    --default: color-mix(in oklab, var(--background) 84%, var(--foreground) 16%);
+    --default-foreground: var(--foreground);
+    --segment: color-mix(in oklab, var(--background) 74%, var(--foreground) 26%);
+    --segment-foreground: var(--foreground);
+    --muted: color-mix(in oklab, var(--foreground) 62%, var(--background));
+    --border: color-mix(in oklab, var(--background) 84%, var(--foreground) 16%);
+    --separator: color-mix(in oklab, var(--background) 88%, var(--foreground) 12%);
+    --surface-secondary: color-mix(in oklab, var(--background) 86%, var(--foreground) 14%);
+    --surface-tertiary: color-mix(in oklab, var(--background) 83%, var(--foreground) 17%);
+    --accent-foreground: oklch(from var(--accent) clamp(0.21, (0.7 - l) * 1000, 0.99) 0 0);
+    --nested-surface: color-mix(in oklab, var(--foreground) 7%, transparent);
+
+    /* Dark keeps the default's ladder: canvas below the sidebar, the page the brightest ground. */
+    --shell-canvas: color-mix(in oklab, var(--sidebar-surface) 80%, black);
+    --shell-card: var(--background);
+    --shell-band-canvas: var(--shell-canvas);
+    --shell-band-sidebar: var(--sidebar-surface);
+    --shell-tab-active-background: var(--surface);
+    --shell-field-background: var(--field-background);
+
+    --tooltip: color-mix(in oklab, var(--surface) 86%, var(--foreground) 14%);
+    --tooltip-foreground: var(--foreground);
+    --tooltip-muted: color-mix(in oklab, var(--foreground) 70%, var(--tooltip));
+}
+
+@layer components {
+    /*
+     * Light re-seats `--default` on the sidebar and the window band a step
+     * below their grey ground (`default-theme.css`); a palette re-seats it from
+     * its own ground. These are (0,2,1): above the default re-seats' (0,2,0),
+     * below the band shell's own sidebar re-seat (0,3,0).
+     */
+    html[data-palette]:where([data-theme="light"]) .sidebar,
+    html[data-palette]:where([data-theme="light"]) .shell-window-band {
+        --default: color-mix(in oklab, var(--sidebar-surface) 92%, var(--foreground) 8%);
+        --default-hover: color-mix(
+            in oklab,
+            color-mix(in oklab, var(--sidebar-surface) 92%, var(--foreground) 8%) 96%,
+            var(--foreground) 4%
+        );
+    }
+}

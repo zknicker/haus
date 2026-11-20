@@ -1,30 +1,21 @@
-import { ItemCard } from '@heroui-pro/react';
-import { Label, ListBox, Select, Separator } from '@heroui/react';
+import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { Label, ListBox, Select } from '@heroui/react';
 import { useColorThemeDefinition } from '../../../hooks/shell/use-color-theme.ts';
 import { selectRooflineSnow, useRooflineSnow } from '../../../hooks/shell/use-roofline-snow.ts';
 import { parseRooflineSnow, type RooflineSnow, rooflineSnows } from '../../../lib/roofline-snow.ts';
 
-/**
- * The snow on the roofline, offered only while the theme's scene is the snowy
- * roofline. Applies instantly.
- */
 export function SnowRow() {
     const { scene } = useColorThemeDefinition();
     const snow = useRooflineSnow();
     return <SnowField snow={scene === 'snowy-roofline' ? snow : null} />;
 }
 
-/**
- * The row for a given snow; nothing while the theme has no roofline. It
- * always follows the Theme row, so it brings its own divider.
- */
 export function SnowField({ snow }: { snow: RooflineSnow | null }) {
     if (!snow) {
         return null;
     }
     return (
-        <>
-            <Separator />
+        <ItemCardGroup className="overflow-hidden">
             <ItemCard>
                 <ItemCard.Content>
                     <ItemCard.Title>Snow</ItemCard.Title>
@@ -58,11 +49,10 @@ export function SnowField({ snow }: { snow: RooflineSnow | null }) {
                     </Select>
                 </ItemCard.Action>
             </ItemCard>
-        </>
+        </ItemCardGroup>
     );
 }
 
-/** The Select's change handler: ignores anything that is not a snow. */
 export function applyRooflineSnow(value: unknown) {
     const next = parseRooflineSnow(value);
     if (next) {

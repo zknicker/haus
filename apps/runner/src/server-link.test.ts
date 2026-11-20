@@ -17,7 +17,7 @@ describe('runner server link', () => {
         const server = serverStandIn();
         const runner = await attachRunner(server);
         expect(await server.frame('runner-inventory')).toEqual({
-            harnesses: ['claude-agent-sdk'],
+            harnesses: ['claude-agent-sdk', 'pi-durable'],
             logins: [
                 { provider: 'claude', state: 'missing' },
                 { provider: 'chatgpt', state: 'missing' },
