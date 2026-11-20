@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { verifyComputerOnlyRelease } from './computer-release-verifier.mjs';
 import { extractReleaseNotes } from './extract-release-notes-from-changelog.mjs';
 import { verifyNormalRelease, verifyProductRelease } from './github-release-verifier.mjs';
+import { releaseTargetJobs } from './record-shipped-targets.mjs';
 
 export { verifyComputerOnlyRelease, verifyNormalRelease, verifyProductRelease };
 
@@ -39,20 +40,13 @@ export function ensureProductRelease({ repository, sourceRevision, releaseVersio
 export function assertSelectedJobResults({ results, targets }) {
     assertRecord(results, 'release job results');
     assertRecord(targets, 'release target outcomes');
-    const selectedJobs = [
-        ['computer', 'publish_computer'],
-        ['app', 'publish_app'],
-        ['ios', 'upload_ios'],
-        ['server', 'publish_server'],
-    ];
-    if (targets.server) {
-        selectedJobs.push(['server', 'promote_server']);
-    }
-    for (const [target, job] of selectedJobs) {
-        if (targets[target] && results[job]?.result !== 'success') {
-            throw new Error(
-                `selected release job ${job} ended ${results[job]?.result ?? 'missing'}`
-            );
+    for (const [target, jobs] of Object.entries(releaseTargetJobs)) {
+        for (const job of targets[target] ? jobs : []) {
+            if (results[job]?.result !== 'success') {
+                throw new Error(
+                    `selected release job ${job} ended ${results[job]?.result ?? 'missing'}`
+                );
+            }
         }
     }
 }
