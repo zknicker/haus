@@ -78,7 +78,7 @@
         "apps/website/src/features/mentions/use-mention-composer.tsx": 366,
         "apps/website/src/hooks/agents/current-agent-activity.test.ts": 352,
         "packages/haus-sdk/src/client.ts": 415,
-        "scripts/agent-tests/kit.test.mjs": 439,
+        "scripts/agent-tests/kit.test.mjs": 445,
         "scripts/dev-stack-controller.mjs": 512,
         "scripts/dev-stack-shared.mjs": 342,
         "scripts/env-contract-check.ts": 327,
