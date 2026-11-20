@@ -29,7 +29,7 @@ export interface AgentStartCommand {
     driveConflict?: DriveConflictAttention;
     /** Drainable on any start: concrete work, and human work addressed to this Agent. */
     drainItemIds?: string[];
-    /** This run carries the new Agent's one-time `#haus` greeting, claimed once by the Server. */
+    /** This run carries the new Agent's one-time `#all` greeting, claimed once by the Server. */
     greets?: true;
     homeTimezone?: string;
     inbox?: AgentInboxItem[];

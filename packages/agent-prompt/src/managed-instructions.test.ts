@@ -224,7 +224,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // rules, delivered on change) and WORKER.md beside MEMORY.md (ADR 0054 decisions 7 and 10, +208);
     // the Standing Preferences placeholder says "preferences people show in passing: terse imperative
     // lines; the rules people set live in AGENTS.md and WORKER.md" (+24).
-    expect(prompt.length).toBeLessThanOrEqual(37_963);
+    // Lowered by exactly 1 (37,963 → 37,962): the welcome rule says #all again, the team room (ADR 0059 amended).
+    expect(prompt.length).toBeLessThanOrEqual(37_962);
     expect(prompt.toLowerCase()).not.toContain('thread');
 });
 

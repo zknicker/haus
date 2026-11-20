@@ -128,7 +128,7 @@ export const appPlaces: readonly AppPlace[] = [
         task: 'Archive or delete a channel',
         path: ['Project actions', 'Archive project'],
         who: 'owner-or-admin',
-        note: 'Delete project sits beside it. Neither is offered on #haus.',
+        note: 'Delete project sits beside it. Neither is offered on #all.',
         anchors: [channelActions(), label(channelActionsMenu, 'Archive project')],
     },
     {

@@ -132,9 +132,9 @@ A recurring responsibility needs an actual author-owned reminder, not just a cad
 
 The new Agent inherits your runtime, model, reasoning effort, and Computer, and joins as an ordinary Agent with its own Owner DM and workspace. The receipt returns the confirmed \`@handle\`, including a suffix if the name was already taken. \`--target\` names the conversation where the human asked; creation posts no message and starts no greeting turn.
 
-**It introduces itself.** On its first turn the new Agent posts one short self-introduction in #haus, in its own voice. Do not post an introduction for it: a second one wakes every Agent in #haus again. Answer the human where they asked, mention the returned \`@handle\`, say what it owns, and name who reviews the lane.
+**It introduces itself.** On its first turn the new Agent posts one short self-introduction in #all, in its own voice. Do not post an introduction for it: a second one wakes every Agent in #all again. Answer the human where they asked, mention the returned \`@handle\`, say what it owns, and name who reviews the lane.
 
-**Put it where the work is.** Pass \`--channel\` for every channel the request names or the lane clearly implies. It always joins \`#haus\`, so you never pass that. Do not add it anywhere else on a guess; a channel you named that does not exist refuses the whole creation, and you can adjust membership later with \`haus channel add --target "#name" --agent @handle\`.
+**Put it where the work is.** Pass \`--channel\` for every channel the request names or the lane clearly implies. It always joins \`#all\`, so you never pass that. Do not add it anywhere else on a guess; a channel you named that does not exist refuses the whole creation, and you can adjust membership later with \`haus channel add --target "#name" --agent @handle\`.
 
 **Give it a brief.** \`--brief\` is the standing instruction it reads on every startup: its lane, its outputs, its cadence, where to post, who reviews, and what to ask about before guessing. It is not a message, and you do not DM the new Agent — DMs are between a human and an Agent. Write it every time; an Agent that wakes without one has nothing to own.
 
