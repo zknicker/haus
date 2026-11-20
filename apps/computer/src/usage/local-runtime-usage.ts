@@ -1,5 +1,5 @@
 import type { Dirent } from 'node:fs';
-import { readdir, readFile, stat } from 'node:fs/promises';
+import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { RuntimeTokenUsageSnapshot } from '@haus/api';
 
@@ -19,8 +19,6 @@ export interface RecentUsageFile {
     path: string;
     size: number;
 }
-
-const jsonLineCache = new Map<string, { mtimeMs: number; rows: unknown[]; size: number }>();
 
 export async function collectRecentJsonlFiles(
     root: string,
@@ -62,8 +60,6 @@ export async function collectRecentJsonlFiles(
                         path,
                         size: metadata.size,
                     });
-                } else {
-                    jsonLineCache.delete(path);
                 }
             } catch {
                 // A session can disappear while the Computer scans it.
@@ -71,36 +67,6 @@ export async function collectRecentJsonlFiles(
         }
     }
     return files.sort((left, right) => left.path.localeCompare(right.path));
-}
-
-export async function readJsonLines(file: RecentUsageFile): Promise<unknown[]> {
-    const cached = jsonLineCache.get(file.path);
-    if (cached && cached.mtimeMs === file.mtimeMs && cached.size === file.size) {
-        return cached.rows;
-    }
-    let content: string;
-    try {
-        content = await readFile(file.path, 'utf8');
-    } catch {
-        return [];
-    }
-    const rows: unknown[] = [];
-    for (const line of content.split(/\r?\n/)) {
-        if (!line.trim()) {
-            continue;
-        }
-        try {
-            rows.push(JSON.parse(line));
-        } catch {
-            // Local runtime logs are append-only; ignore partial/corrupt rows.
-        }
-    }
-    jsonLineCache.set(file.path, {
-        mtimeMs: file.mtimeMs,
-        rows,
-        size: file.size,
-    });
-    return rows;
 }
 
 export function usageFilesFingerprint(files: RecentUsageFile[], now: Date): string {

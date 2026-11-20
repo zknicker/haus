@@ -1,11 +1,6 @@
-import type {
-    PullRequestReading,
-    WorkerPullRequestState,
-    Worker,
-    TaskReminderRef,
-} from '@haus/api';
+import type { PullRequestReading, WorkerPullRequestState, TaskReminderRef } from '@haus/api';
 
-const checkLabels = {
+export const pullRequestCheckLabels = {
     failing: 'Checks failing',
     none: 'No checks',
     passing: 'Checks passing',
@@ -32,17 +27,7 @@ export const pullRequestStateChip: Record<
 
 export function pullRequestFacts(reading: PullRequestReading): string {
     const files = `${reading.changedFiles} ${reading.changedFiles === 1 ? 'file' : 'files'}`;
-    return `${checkLabels[reading.checks]} · ${reviewLabels[reading.review]} · ${files}`;
-}
-
-export function standalonePullRequests(
-    works: readonly Pick<Worker, 'pullRequest'>[],
-    pullRequests: readonly PullRequestReading[]
-): PullRequestReading[] {
-    const shown = new Set(
-        works.flatMap((work) => (work.pullRequest ? [work.pullRequest.url] : []))
-    );
-    return pullRequests.filter((reading) => !shown.has(reading.url));
+    return `${pullRequestCheckLabels[reading.checks]} · ${reviewLabels[reading.review]} · ${files}`;
 }
 
 export function pendingTaskReminders(
