@@ -6,7 +6,7 @@ import { queryPolicy } from '../../lib/query-policy.ts';
 export function useModelSignIn(serverId: string, signInId: string | null) {
     return hausTrpc.modelConnections.signIn.useQuery(
         { serverId, signInId: signInId ?? '' },
-        { ...queryPolicy.syncedSnapshot, enabled: signInId !== null }
+        { ...queryPolicy.syncedSnapshot, enabled: signInId !== null, gcTime: 0 }
     );
 }
 

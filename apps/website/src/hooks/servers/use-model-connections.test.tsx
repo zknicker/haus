@@ -6,7 +6,7 @@ import { testConnection } from '../../features/settings/models/connections/model
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { installRealtimeTestDom } from '../../test-support/realtime-stream-harness.tsx';
 import { createCallHarness, type RecordedCall } from '../../test-support/trpc-call-harness.tsx';
-import { useModelConnectionEdits } from './use-model-connections.ts';
+import { useModelConnectionEdits, useSaveModelCredential } from './use-model-connections.ts';
 import { useCancelModelSignIn, useModelSignIn, useStartModelSignIn } from './use-model-sign-in.ts';
 
 installRealtimeTestDom();
@@ -41,17 +41,16 @@ async function mountHook<T>(useHook: () => T, answer?: (call: RecordedCall) => u
 }
 
 describe('model connection edits', () => {
-    test('Connect sends the pasted credential and refreshes the list', async () => {
+    test('Connect sends the pasted credential, refreshes the list, and keeps no copy of it', async () => {
         const { harness, hook, mounted } = await mountHook(
-            () => useModelConnectionEdits(serverId),
+            () => useSaveModelCredential(serverId),
             () => testConnection()
         );
         await harness.act(() =>
-            hook().add.mutateAsync({
+            hook().save({
                 credential: { kind: 'setup-token', token: 'sk-ant-oat01-token' },
                 label: 'Claude plan',
                 provider: 'claude',
-                serverId,
             })
         );
         expect(harness.calls).toEqual([
@@ -63,6 +62,8 @@ describe('model connection edits', () => {
             }),
         ]);
         expect(harness.queryClient.getQueryState(listKey)?.isInvalidated).toBe(true);
+        expect(harness.queryClient.getMutationCache().getAll()).toEqual([]);
+        expect(hook().isPending).toBe(false);
         await mounted.unmount();
     });
 
@@ -88,16 +89,15 @@ describe('model connection edits', () => {
 });
 
 describe('reconnect', () => {
-    test('a pasted Reconnect replaces the credential in place and refreshes the list', async () => {
+    test('a pasted Reconnect replaces the credential in place and keeps no copy of it', async () => {
         const { harness, hook, mounted } = await mountHook(
-            () => useModelConnectionEdits(serverId),
+            () => useSaveModelCredential(serverId),
             () => testConnection({ id: 'mcn_team', label: 'Team plan' })
         );
         await harness.act(() =>
-            hook().replaceCredential.mutateAsync({
+            hook().save({
                 connectionId: 'mcn_team',
                 credential: { kind: 'setup-token', token: 'sk-ant-oat01-renewed' },
-                serverId,
             })
         );
         expect(harness.calls).toEqual([
@@ -108,6 +108,7 @@ describe('reconnect', () => {
             }),
         ]);
         expect(harness.queryClient.getQueryState(listKey)?.isInvalidated).toBe(true);
+        expect(harness.queryClient.getMutationCache().getAll()).toEqual([]);
         await mounted.unmount();
     });
 

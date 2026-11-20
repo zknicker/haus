@@ -8,7 +8,7 @@ import { Segment } from '@heroui-pro/react';
 import { Modal, toast } from '@heroui/react';
 import { TRPCClientError } from '@trpc/client';
 import * as React from 'react';
-import { useModelConnectionEdits } from '../../../../hooks/servers/use-model-connections.ts';
+import { useSaveModelCredential } from '../../../../hooks/servers/use-model-connections.ts';
 import {
     useCancelModelSignIn,
     useModelSignIn,
@@ -47,9 +47,8 @@ export function ConnectDialog({
     const signIn = useModelSignIn(serverId, signInId);
     const cancel = useCancelModelSignIn(serverId);
     const start = useStartModelSignIn(serverId);
-    const { add, replaceCredential } = useModelConnectionEdits(serverId);
-    const busy =
-        start.isPending || add.isPending || replaceCredential.isPending || cancel.isPending;
+    const credential = useSaveModelCredential(serverId);
+    const busy = start.isPending || credential.isPending || cancel.isPending;
     const flow = flows[flowIndex] ?? flows[0];
     if (!flow) {
         return null;
@@ -96,10 +95,12 @@ export function ConnectDialog({
         }
     };
 
-    const saveCredential = (credential: ModelConnectionCredential, label: string) =>
-        replacing
-            ? replaceCredential.mutateAsync({ connectionId: replacing.id, credential, serverId })
-            : add.mutateAsync({ credential, label, provider, serverId });
+    const saveCredential = (pasted: ModelConnectionCredential, label: string) =>
+        credential.save(
+            replacing
+                ? { connectionId: replacing.id, credential: pasted }
+                : { credential: pasted, label, provider }
+        );
 
     const onConnected = (_connectionId: string, label: string) => {
         toast.success(`${name} ${replacing ? 'reconnected' : 'connected'}`, {
