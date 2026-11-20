@@ -27,7 +27,7 @@ test('Devices is an operator page, so members never see it', () => {
 });
 
 test('every registered item sits in exactly one rail group', () => {
-    const grouped = settingsNavGroups({ canOperate: true, query: '' })
+    const grouped = settingsNavGroups({ canOperate: true, capyShell: true, query: '' })
         .flatMap((group) => group.matches.map((match) => match.item.id))
         .sort();
     assert.deepEqual(grouped, settingsNavItems.map((item) => item.id).sort());
