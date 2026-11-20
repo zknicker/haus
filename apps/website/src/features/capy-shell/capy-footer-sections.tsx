@@ -1,4 +1,4 @@
-import { Button, Dropdown, Label, Tooltip } from '@heroui/react';
+import { Button, buttonVariants, Dropdown, Label, Tooltip } from '@heroui/react';
 import {
     Activity03Icon,
     CheckListIcon,
@@ -7,10 +7,10 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded';
 import type { IconSvgElement } from '@hugeicons/react';
 import * as React from 'react';
+import { Link } from 'react-aria-components';
 import { useLocation } from 'react-router-dom';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { TooltipLink } from '../../components/ui/tooltip-link.tsx';
 import { useOpenAgentProfileWith } from '../../hooks/agents/use-open-agent-profile.ts';
 import { useDesktopPageOpeners } from '../../hooks/desktop-tabs/use-desktop-page-openers.ts';
 import { useAgentAppearances } from '../../hooks/members/use-agents.ts';
@@ -107,23 +107,25 @@ function FooterLink({
     const pressRef = usePressNavigationWith(useSidebarNavigate(), href, preload);
     return (
         <Tooltip>
-            <TooltipLink
+            <Link
                 aria-current={
                     pathname === href || pathname.startsWith(`${href}/`) ? 'page' : undefined
                 }
                 aria-label={label}
-                className="button button--icon-only button--sm button--ghost"
+                className={footerLinkClass}
+                href={href}
                 onFocus={preload}
-                onMouseEnter={preload}
+                onHoverStart={preload}
                 ref={pressRef}
-                to={href}
             >
                 <Icon aria-hidden="true" className="text-muted" icon={icon} />
-            </TooltipLink>
+            </Link>
             <Tooltip.Content>{label}</Tooltip.Content>
         </Tooltip>
     );
 }
+
+const footerLinkClass = buttonVariants({ isIconOnly: true, size: 'sm', variant: 'ghost' });
 
 function usePreloadActivity(serverId: string) {
     const utils = hausTrpc.useUtils();
