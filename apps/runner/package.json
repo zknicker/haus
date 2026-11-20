@@ -22,6 +22,7 @@
         "@haus/computer": "workspace:*",
         "@haus/mcp-executor": "workspace:*",
         "@napi-rs/canvas": "1.1.0",
+        "pdfjs-dist": "6.4.299",
         "sh-syntax": "0.8.7",
         "turndown": "7.2.4",
         "unpdf": "2.1.0",

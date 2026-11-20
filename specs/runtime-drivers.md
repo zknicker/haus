@@ -359,6 +359,12 @@ ships prebuilt per platform as optional dependencies, and `bun.lock` records
 `bun install --frozen-lockfile --filter @haus/runner --production` on `oven/bun:*-debian` picks
 the binary for the image's architecture with no build step and no install script.
 
+A PDF may name one of the 14 standard fonts, such as Helvetica, without embedding it. The runner
+draws such text from the standard font data of `pdfjs-dist` (6.4.299, pinned exactly to the
+PDF.js version `unpdf` bundles), passed to PDF.js as `standardFontDataUrl` with system fonts off,
+so a page image looks the same on any host and the runner image needs no installed fonts. The
+same production install puts `pdfjs-dist`'s `standard_fonts` directory in the image.
+
 A live probe on 2026-11-19 (Claude Agent SDK 0.3.326, Haiku 4.5, `claude-pdf-live.test.ts`)
 returned an SDK MCP tool result holding an MCP `resource` block with an `application/pdf` blob.
 The SDK saved the blob to disk and sent the model only the text "Binary content
@@ -528,11 +534,6 @@ These end at R4 and are named here as intentional capability removals:
   for its model comes with that read.
 - **PDFs for GPT models.** GPT Agents have `view_image`, not the editor's `view`, so a PDF reaches
   them only through shell tools on the machine.
-- **Host fonts for page images.** A PDF that names a standard font without embedding it renders
-  that text with the host's fonts, because `unpdf`'s build carries no standard font data. The
-  runner image installs no fonts, and no container run has yet shown whether such text appears
-  in its page images. The page's extracted text carries it either way, and embedded fonts render
-  from the PDF itself.
 - **Pi compaction between turns.** A Pi compaction that lands outside a Haus turn has no observer,
   so the memory and rules receipts do not reset for it.
 - **A cross-process lock on the login file.** Pi locks a token refresh inside the runner process
@@ -933,6 +934,7 @@ settings, reminder scripts, host skill discovery, inventory, updates, and Worker
 | A runner upload binds to its dispatch key, a 2 MiB `haus` write reaches the machine through the Computer download with a matching digest, and another run, tool call, or Agent can neither bind nor read it | `apps/server/test/agent-invocation-uploads.test.ts`, `apps/runner/src/haus/haus-cli.test.ts` | R3c |
 | `view` of a PDF returns `application/pdf` bytes by its magic bytes, streams one over 5 MiB, and refuses one over 25 MiB | `apps/computer/src/invocations/editor-pdf.test.ts` | R3c |
 | The runner gives Pi and Claude models a PDF's paged text plus images of exactly its scanned and figure pages, `view_range` selects pages and returns each one's image, and the image bound names the pages it left out | `apps/runner/src/tools/pdf-view.test.ts`, `apps/runner/src/tools/pdf-view-bounds.test.ts` | R3c |
+| A page image draws text set in a standard font the PDF does not embed from PDF.js's own font data, not the host's | `apps/runner/src/tools/pdf-view.test.ts` | R3c |
 | An SDK MCP tool result cannot carry a PDF to Claude, so Claude gets text and page images | `apps/runner/src/claude/claude-pdf-live.test.ts` (live) | R3c |
 | A lone `haus` command runs on the runner, and a composed one is refused with `HAUS_NOT_ALONE` | `apps/runner/src/haus/haus-command.test.ts` | R3 |
 | A `haus` path argument never reads the runner's disk: workspace commands are refused, path flags read the machine, and every CLI command is classified | `apps/runner/src/haus/haus-cli.test.ts`, `command-access.test.ts` | R3 |

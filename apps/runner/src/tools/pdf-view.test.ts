@@ -3,7 +3,7 @@ import { BACKGROUND_CONTEXT } from '@earendil-works/chord/context';
 import { HausToolBinding } from '../claude/haus-tools.ts';
 import { PiToolBinding } from '../pi/pi-tools.ts';
 import { drainCleanups, live, startedRun } from '../runner-test-server.ts';
-import { answerWithPdf, imageFacts } from './pdf-view.test-support.ts';
+import { answerWithPdf, darkPixels, imageFacts } from './pdf-view.test-support.ts';
 
 afterEach(drainCleanups);
 
@@ -58,6 +58,31 @@ describe('view of a PDF on the runner', () => {
             { text: '[Page 2 of 3]\n(No text on this page.)', type: 'text' },
             scannedPage,
         ]);
+    });
+
+    test("a page image draws a label set in a standard font the PDF doesn't embed", async () => {
+        const { run, server } = await startedRun();
+
+        const viewed = run.tools.edit(
+            'toolu_label',
+            { command: 'view', path: 'label.pdf', view_range: [1, 1] },
+            live()
+        );
+        await answerWithPdf(server, 'toolu_label', 'helvetica-label.pdf');
+        const { content } = await viewed;
+
+        expect(content.map(imageFacts)).toEqual([
+            { text: '[Page 1 of 1]\nHAUS LABEL', type: 'text' },
+            { height: 1211, mimeType: 'image/png', type: 'image', width: 1568 },
+        ]);
+        const label = await darkPixels(content[1], {
+            bottom: 515,
+            left: 140,
+            right: 1040,
+            top: 380,
+        });
+        // pdf.js's Liberation Sans draws 25,923; host Helvetica draws 27,938 and a fontless host none.
+        expect(label).toBeWithin(25_800, 26_050);
     });
 
     test('a view_range past the last page names the pages a PDF has', async () => {

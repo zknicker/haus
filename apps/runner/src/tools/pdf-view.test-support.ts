@@ -1,6 +1,7 @@
 import { expect } from 'bun:test';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { createCanvas, loadImage } from '@napi-rs/canvas';
 import type { startedRun } from '../runner-test-server.ts';
 
 type Part =
@@ -35,6 +36,38 @@ export function imageFacts(part: Part) {
     }
     const bytes = Buffer.from(part.data, 'base64');
     return { ...encodedSize(bytes, part.mimeType), mimeType: part.mimeType, type: part.type };
+}
+
+export async function darkPixels(
+    part: Part,
+    region: {
+        readonly bottom: number;
+        readonly left: number;
+        readonly right: number;
+        readonly top: number;
+    }
+) {
+    if (part.type === 'text') {
+        throw new Error(`Expected an image, got text: ${part.text}`);
+    }
+    const image = await loadImage(Buffer.from(part.data, 'base64'));
+    const context = createCanvas(image.width, image.height).getContext('2d');
+    context.drawImage(image, 0, 0);
+    const width = region.right - region.left;
+    const { data } = context.getImageData(
+        region.left,
+        region.top,
+        width,
+        region.bottom - region.top
+    );
+    let dark = 0;
+    for (let index = 0; index < data.length; index += 4) {
+        const [red = 255, green = 255, blue = 255, alpha = 0] = data.subarray(index, index + 4);
+        if (alpha >= 128 && Math.max(red, green, blue) < 128) {
+            dark += 1;
+        }
+    }
+    return dark;
 }
 
 function encodedSize(bytes: Buffer, mimeType: string) {

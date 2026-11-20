@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { extractText, getDocumentProxy, getResolvedPDFJS, renderPageAsImage } from 'unpdf';
 
 export type PdfPages = Awaited<ReturnType<typeof openedPages>>;
@@ -12,9 +13,16 @@ const photographicImageCoverage = 0.5;
 const figurePathCount = 16;
 const imageLongSidePx = 1568;
 const jpegQuality = 0.8;
+const standardFontDataUrl = fileURLToPath(
+    new URL('standard_fonts/', import.meta.resolve('pdfjs-dist/package.json'))
+);
 
 export async function readPdf<T>(bytes: Uint8Array, view: (pdf: PdfPages) => Promise<T>) {
-    const document = await getDocumentProxy(new Uint8Array(bytes), { verbosity: 0 });
+    const document = await getDocumentProxy(new Uint8Array(bytes), {
+        standardFontDataUrl,
+        useSystemFonts: false,
+        verbosity: 0,
+    });
     try {
         return await view(await openedPages(document));
     } finally {
