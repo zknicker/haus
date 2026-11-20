@@ -221,7 +221,12 @@ or every runtime, is not ready there (`WORKER_RUNTIME_UNAVAILABLE`). `--repo` de
 Project's only repo. A named repo the Project lacks joins its repos until the Project settings UI
 ships them ([Migration](#w3-transitional-decisions)). A Computer place still needs a link, which a
 repo that just joined has none of. `--runtime` defaults to the first ready of Claude Code and Codex
-on that Computer, and `--model` to the runtime's own default. Both are refused for cloud places
+on that Computer. `--model` must be one the Computer reports that runtime can run (Claude Code's
+`opus`, `sonnet`, and `haiku` aliases included), or the start is refused with
+`WORKER_MODEL_UNAVAILABLE` listing the ones it can. Left out, it is the delegating Agent's own
+model when that runtime runs it there, else the first the Computer reports. A Worker never inherits
+the machine's own runtime default, because that default may be a model the login cannot run. Both
+are refused for cloud places
 with `WORKER_OPTION_CLOUD`, whose model is the Server's [cloud model setting](cloud-agents.md#model).
 `--ref` defaults to the remote's default branch.
 

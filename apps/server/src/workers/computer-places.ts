@@ -14,6 +14,7 @@ export interface ComputerPlace {
     attachedByUserId: string;
     computerId: string;
     limit: number;
+    models: Readonly<Record<WorkerRuntime, readonly string[]>>;
     name: string | null;
     online: boolean;
     runtimes: WorkerRuntimeReadiness[];
@@ -48,6 +49,7 @@ export async function readComputerPlaces(
                 attachedByUserId: row.attachedByUserId,
                 computerId: row.computerId,
                 limit: row.limit,
+                models: runtimeModels(row.inventory?.runtimes ?? []),
                 name: row.inventory?.name ?? null,
                 online: row.health === 'healthy' || row.health === 'degraded',
                 runtimes: (row.inventory?.workerRuntimes ?? []).flatMap((reported) => {
@@ -78,4 +80,13 @@ export function isComputerPlaceUsable(place: ComputerPlace) {
 
 export function computerPlaceLabel(place: Pick<ComputerPlace, 'computerId' | 'name'>) {
     return place.name ?? `computer:${place.computerId}`;
+}
+
+function runtimeModels(runtimes: readonly { id: string; models: readonly { id: string }[] }[]) {
+    const models: Record<WorkerRuntime, readonly string[]> = { 'claude-code': [], codex: [] };
+    for (const runtime of workerRuntimes) {
+        models[runtime] =
+            runtimes.find((reported) => reported.id === runtime)?.models.map((m) => m.id) ?? [];
+    }
+    return models;
 }
