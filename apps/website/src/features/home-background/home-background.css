@@ -130,7 +130,7 @@
     }
 
     .home-background[data-effect="dither"] .home-background__effect {
-        background-image: repeating-conic-gradient(black 0 25%, white 0 50%);
+        background-image: repeating-conic-gradient(var(--black) 0 25%, var(--white) 0 50%);
         background-size: 4px 4px;
         image-rendering: pixelated;
         mix-blend-mode: soft-light;
