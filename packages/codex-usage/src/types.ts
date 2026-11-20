@@ -52,4 +52,6 @@ export interface CodexUsageOptions extends CodexCredentialsLoadOptions {
     now?: Date;
     signal?: AbortSignal;
     timeoutMs?: number;
+    /** Defaults to ChatGPT's `wham/usage` endpoint. */
+    usageUrl?: string;
 }

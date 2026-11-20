@@ -60,4 +60,6 @@ export interface ClaudeUsageOptions extends ClaudeCredentialsLoadOptions {
     fetch?: typeof fetch;
     signal?: AbortSignal;
     timeoutMs?: number;
+    /** Defaults to Anthropic's OAuth usage endpoint. */
+    usageUrl?: string;
 }

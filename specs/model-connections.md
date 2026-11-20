@@ -3,7 +3,7 @@ summary: Normative contract for model connections. A Server holds Agents' model 
 read_when:
   - changing Settings → Models connections, sign-in dialogs, or the Agent's connection picker
   - changing how the Server stores, encrypts, or resolves model logins
-  - changing the runner-model-connections, runner-sign-in, runner-connection-credential (and its ack), or runner-connection-status frames
+  - changing the runner-model-connections, runner-sign-in, runner-connection-credential (and its ack), runner-connection-status, or runner-connection-capacity frames
   - changing HAUS_SECRETS_KEY or sealed secrets
   - changing plan capacity per connection
 ---
@@ -134,14 +134,28 @@ connection, or with one the runner doesn't hold, fails before any model call as 
 
 ## Plan capacity
 
-The runner reads each plan connection's capacity, at most every 15 minutes and after an access
-failure, and sends it to the Server. Settings → Models shows it on the connection's row. Readers:
+The runner reads each plan connection's capacity and sends it up as `runner-connection-capacity
+{ connectionId, windows, readAt }`. Settings → Models shows it on the connection's row.
 
-- ChatGPT plans: the ChatGPT usage endpoint.
-- Claude plans: Anthropic's OAuth usage endpoint with the setup-token.
-- SuperGrok: none until xAI exposes one.
-
-R6c builds the readers.
+- **When.** A sweep every minute reads each plan connection whose last read is 15 minutes old, or
+  whose `credentialVersion` changed since. A turn that marks the connection `failed` reads it right
+  away. Reads run one connection at a time per provider.
+- **Readers.**
+  - ChatGPT plans: ChatGPT's `wham/usage` endpoint with the connection's access token and account
+    id, through `@haus/codex-usage`. An expired access token is not refreshed for a read; the next
+    turn refreshes it.
+  - Claude plans: Anthropic's OAuth usage endpoint with the setup-token, through
+    `@haus/claude-usage`. Whether that endpoint accepts a setup-token is not yet proven live.
+  - SuperGrok: none. The only xAI capacity endpoint Haus knows takes the Grok CLI's key and user
+    id, which a Pi sign-in does not hold.
+  - API-key connections have no plan capacity.
+- **Windows** are `{ id, label, resetsAt, usedPercent }`: `5-hour` and `Weekly` for both plans,
+  plus `Weekly Sonnet` and `Weekly Opus` when Claude reports them.
+- **Failures.** A failed read sends nothing and never changes the connection's status. The runner
+  logs that capacity is unavailable.
+- **Storage.** The Server stores the windows and `readAt` on the connection and announces
+  `modelConnections` updated only when the windows changed. The list shows `capacity: null` when
+  nothing was read or the reading is older than 6 hours. Replacing a credential clears it.
 
 ## Retired
 

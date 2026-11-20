@@ -1,5 +1,5 @@
 import * as z from 'zod';
-import { idSchema } from './chat-contract-primitives.ts';
+import { idSchema, timestampSchema } from './chat-contract-primitives.ts';
 
 export const modelProviderSchema = z.enum(['claude', 'chatgpt', 'xai', 'gemini', 'openrouter']);
 export type ModelProvider = z.infer<typeof modelProviderSchema>;
@@ -134,6 +134,28 @@ export const runnerConnectionStatusFrameSchema = z
     .strict();
 export type RunnerConnectionStatusFrame = z.infer<typeof runnerConnectionStatusFrameSchema>;
 
+/** One plan window as the App's usage meters draw it: the share used and when it resets. */
+export const modelConnectionCapacityWindowSchema = z
+    .object({
+        id: z.string().min(1).max(64),
+        label: z.string().min(1).max(64),
+        resetsAt: timestampSchema.nullable(),
+        usedPercent: z.number().min(0).max(100),
+    })
+    .strict();
+export type ModelConnectionCapacityWindow = z.infer<typeof modelConnectionCapacityWindowSchema>;
+
+/** Runner → Server: a plan connection's capacity as its provider reported it at `readAt`. A failed read sends nothing. */
+export const runnerConnectionCapacityFrameSchema = z
+    .object({
+        connectionId: idSchema,
+        readAt: timestampSchema,
+        type: z.literal('runner-connection-capacity'),
+        windows: z.array(modelConnectionCapacityWindowSchema).max(8),
+    })
+    .strict();
+export type RunnerConnectionCapacityFrame = z.infer<typeof runnerConnectionCapacityFrameSchema>;
+
 /** Server → runner: run a provider's device-code sign-in for the App. */
 export const runnerSignInStartFrameSchema = z
     .object({
@@ -188,6 +210,7 @@ export const runnerModelConnectionDownFrameSchemas = [
 ] as const;
 
 export const runnerModelConnectionUpFrameSchemas = [
+    runnerConnectionCapacityFrameSchema,
     runnerConnectionCredentialFrameSchema,
     runnerConnectionStatusFrameSchema,
     runnerSignInCodeFrameSchema,
