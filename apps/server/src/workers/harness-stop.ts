@@ -3,14 +3,10 @@ import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { workerTurnCredentialsTable, workerTurnsTable } from '../postgres/schema.ts';
 
-type TurnColumns = Record<
-    'endedAt' | 'id' | 'outcome' | 'serverId' | 'stopRequestedAt',
-    AnyPgColumn
->;
+type TurnColumns = Record<'endedAt' | 'id' | 'outcome' | 'serverId', AnyPgColumn>;
 
 export function owesHarnessStop(turns: TurnColumns) {
-    return sql<boolean>`(${turns.stopRequestedAt} is not null
-        and ${turns.outcome} is not null
+    return sql<boolean>`(${turns.outcome} is not null
         and ${turns.endedAt} is null
         and exists (
             select 1 from ${workerTurnCredentialsTable} minted

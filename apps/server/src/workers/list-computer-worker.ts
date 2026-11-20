@@ -22,7 +22,7 @@ export async function listComputerWorker(
             providerAgentId: workersTable.providerAgentId,
             providerRunId: workerTurnsTable.providerRunId,
             status: workerTurnsTable.status,
-            stopRequested: stopPending,
+            stopRequested: sql<boolean>`(${stopPending} or ${owesHarnessStop(workerTurnsTable)})`,
             turnId: workerTurnsTable.id,
             workerId: workersTable.id,
         })

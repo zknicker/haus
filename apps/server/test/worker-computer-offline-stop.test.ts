@@ -10,6 +10,7 @@ import {
     workerTurnsTable,
 } from '../src/postgres/schema.ts';
 import { acceptWorkerTurn, planCarrierReconnect } from '../src/workers/carrier-frames.ts';
+import { failOfflineComputerTurns } from '../src/workers/fail-offline-computer-turns.ts';
 import { mintWorkerTurnCredential } from '../src/workers/worker-credentials.ts';
 import { sendAgentFollowUp, stopAgentWorker } from '../src/workers/worker-operations.ts';
 import { offlineDelivery } from './agent-inbox-harness.ts';
@@ -185,6 +186,29 @@ async function recordDraft(board: WorkerBoard, turnId: string, workerId: string)
         .where(eq(workerTurnsTable.id, turnId));
     return path;
 }
+
+test('a launched turn failed machine-offline is stopped on the Computer when it reconnects', async () => {
+    const board = await computerPlaceBoard(connection.db);
+    const { delivery } = offlineDelivery(connection.db, board.seed);
+    const { turnId, workerId } = await startComputerWorker(connection.db, board);
+    await acceptWorkerTurn(connection.db, { ...scope(board), attempt: 1, turnId }, null);
+    expect(await mintTurnCredential(board, turnId)).toMatchObject({ state: 'minted' });
+    await connection.db.execute(sql`update computers
+        set health = 'offline', disconnected_at = '2026-11-19T10:00:00Z'
+        where id = ${board.seed.computerId}`);
+    await failOfflineComputerTurns(connection.db, delivery, new Date('2026-11-19T10:30:00Z'));
+    await bringComputerOnline(board);
+
+    const reconnect = await planCarrierReconnect(
+        connection.db,
+        { id: board.seed.computerId, serverId: board.seed.serverId },
+        null
+    );
+
+    expect(reconnect.frames.map(({ frame }) => frame)).toMatchObject([
+        { type: 'worker-reconcile', workers: [{ stopRequested: true, turnId, workerId }] },
+    ]);
+});
 
 async function takeComputerOffline(board: WorkerBoard) {
     await connection.db.execute(sql`update computers

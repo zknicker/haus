@@ -501,7 +501,7 @@ settled queues a `pull_request` item ([Workers](../../specs/workers.md#pull-requ
 **Workers on a Computer.** After journaling a turn the Computer calls
 `POST /computer/workers/turn-credential { attempt, credentialHash, turnId }`. This launch fence
 refuses with `not-dispatched-here`, `settled`, `stop-requested`, `stale-attempt`,
-`earlier-turn-stopping` (an earlier stopped turn has not been reported ended), `closing`,
+`earlier-turn-stopping` (an earlier turn the Server settled after launch, stopped or failed `machine-offline`, has not been reported ended), `closing`,
 `place-off`, or `repo-unlinked`; a re-mint for the same attempt revokes the earlier token. The minted token is the
 Worker's `HAUS_WORKER_TOKEN` and reaches only `POST /api/worker/report` and the Drive reads
 (`/api/agent/drive/changes`, `/api/agent/artifacts/by-path`, `/api/agent/artifacts/:id/download`).
