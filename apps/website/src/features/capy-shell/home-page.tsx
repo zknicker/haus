@@ -27,6 +27,10 @@ export function CapyHomePage({
         { serverId },
         { ...queryPolicy.syncedSnapshot, select: selectCaptainChoices }
     ).data;
+    const deviceCount = hausTrpc.computer.list.useQuery(
+        { serverId },
+        { ...queryPolicy.syncedSnapshot, select: countDevices }
+    ).data;
     const projects = React.useMemo(() => {
         if (!chats) {
             return undefined;
@@ -38,7 +42,12 @@ export function CapyHomePage({
             (id) => channels.get(id) ?? []
         );
     }, [chats, serverId]);
-    const state = homeState({ captains, lastChatId: readLastChatId(slug), projects });
+    const state = homeState({
+        captains,
+        deviceCount,
+        lastChatId: readLastChatId(slug),
+        projects,
+    });
 
     return (
         <>
@@ -60,14 +69,20 @@ export function CapyHomePage({
                         <HomeFirstRun
                             canManage={canManage}
                             needsCaptain={state.needsCaptain}
+                            needsDevice={state.needsDevice}
                             needsProject={state.needsProject}
                             serverId={serverId}
+                            slug={slug}
                         />
                     ) : null}
                 </div>
             </div>
         </>
     );
+}
+
+function countDevices(devices: readonly unknown[]) {
+    return devices.length;
 }
 
 function selectCaptainChoices(agents: Agent[]) {
