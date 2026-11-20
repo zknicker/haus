@@ -19,7 +19,7 @@ export function grainTileBytes() {
     for (let gray = 0; gray < 256; gray += 1) {
         bytes.set([gray, gray, gray, 0], paletteOffset + gray * 4);
     }
-    const random = mulberry32(0x9e3779b9);
+    const random = xorshift32(0x9e3779b9);
     for (let index = pixelOffset; index < fileSize; index += 1) {
         bytes[index] = Math.round(128 + (random() + random() - 1) * 72);
     }
@@ -30,12 +30,12 @@ export const grainTile = `url("data:image/bmp;base64,${btoa(
     Array.from(grainTileBytes(), (byte) => String.fromCharCode(byte)).join('')
 )}")`;
 
-function mulberry32(seed: number) {
+function xorshift32(seed: number) {
     let state = seed;
     return () => {
-        state = (state + 0x6d2b79f5) | 0;
-        let mixed = Math.imul(state ^ (state >>> 15), 1 | state);
-        mixed = (mixed + Math.imul(mixed ^ (mixed >>> 7), 61 | mixed)) ^ mixed;
-        return ((mixed ^ (mixed >>> 14)) >>> 0) / 4_294_967_296;
+        state ^= state << 13;
+        state ^= state >>> 17;
+        state ^= state << 5;
+        return (state >>> 0) / 4_294_967_296;
     };
 }
