@@ -18,7 +18,7 @@ export const curatedModels = [
     {
         id: 'codex',
         label: 'ChatGPT',
-        modelIds: ['gpt-6.1-sol', 'gpt-6.1-terra', 'gpt-6-astra', 'gpt-6-luna'],
+        modelIds: ['gpt-6.1-sol', 'gpt-6.1-terra', 'gpt-6-luna'],
         provider: openaiCodexProvider,
     },
     {
@@ -37,11 +37,10 @@ export const curatedModels = [
         id: 'openrouter',
         label: 'OpenRouter',
         modelIds: [
-            'deepseek/deepseek-v4-pro',
-            'moonshotai/kimi-k3.1-pro',
-            'qwen/qwen3.5-plus-02-15',
-            'minimax/minimax-m3',
-            'mistralai/mistral-large-4-0',
+            'deepseek/deepseek-v4.1-flash',
+            'z-ai/glm-5.3',
+            'moonshotai/kimi-k3',
+            'xiaomi/mimo-v2.6-pro',
         ],
         provider: openrouterProvider,
     },
@@ -77,7 +76,7 @@ function catalogModel(model: Model<Api>) {
     return {
         contextWindow: model.contextWindow,
         id: model.id,
-        label: model.name,
+        label: model.name.replace(vendorPrefix, ''),
         ...(efforts.length > 0 ? { reasoningEfforts: efforts } : {}),
     };
 }
@@ -86,6 +85,8 @@ function reasoningEfforts(model: Model<Api>) {
     const levels = model.thinkingLevelMap ?? {};
     return effortLevels.filter((effort) => levels[effort] !== null);
 }
+
+const vendorPrefix = /^[^:]+:\s*/u;
 
 const effortLevels = ['low', 'medium', 'high', 'xhigh', 'max'] as const satisfies readonly Exclude<
     AgentReasoningEffort,
