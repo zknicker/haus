@@ -15,6 +15,14 @@ describe('Go: sidebar rows and the command menu (ADR 0039)', () => {
         );
     });
 
+    test('a Go to the address the left pane’s tab already shows adds no history entry', () => {
+        const state = run(start(), go('chats/a'), go('chats/a'));
+        expect(state.tabs.t0?.history.entries.map((entry) => entry.location)).toEqual([
+            app('inbox'),
+            app('chats/a'),
+        ]);
+    });
+
     test('targets the left pane even when the right pane is focused, and focuses the left', () => {
         const state = run(split(), { kind: 'focusPane', pane: 'secondary' }, go('chats/a'));
         expect(describeTabs(state)).toEqual({
