@@ -21,6 +21,7 @@ beforeAll(async () => {
         ['web', 'WEB', ['ari', 'cyl']],
         ['api', 'API', ['bex', 'dov']],
         ['empty', 'EMPTY', []],
+        ['spare', 'SPARE', []],
     ] as const) {
         const chat = await createTestProject(fixture.owner, {
             agentIds: homed.map((handle) => agents[handle] ?? ''),
@@ -121,11 +122,72 @@ test('ADR 0030 judges only among the Project home Agents', async () => {
     );
 });
 
-test('a Project with no home Agents delivers an unaddressed message to no Agent', async () => {
-    const message = await send(project('empty'), 'Anyone here?');
+test('a Project with no home Agents reaches every generalist and no other Agent', async () => {
+    expect(await heard(await send(project('empty'), 'Anyone here?'))).toEqual([
+        'cove',
+        'gus',
+        'peer',
+    ]);
+});
 
-    expect(await heard(message)).toEqual([]);
-    expect(await routingCandidates(message)).toEqual([]);
+test('a Task of a Project with no home Agents reaches the generalists, unfollow or not', async () => {
+    const task = await startTask('empty', 'Sort the backlog');
+    const queued = await send(task.chatId, 'Where do we start?');
+
+    expect(await heard(queued)).toEqual(['cove', 'gus', 'peer']);
+    expect(await unfollow('gus', task)).toBe(200);
+    expect(await heard(queued)).toEqual(['cove', 'gus', 'peer']);
+    expect(await heard(await send(task.chatId, 'Still on it?'))).toEqual(['cove', 'gus', 'peer']);
+});
+
+test('ADR 0030 judges a Project with no home Agents among the generalists', async () => {
+    const message = await send(project('empty'), 'Who picks this up?');
+
+    expect(await routingHandles('empty')).toEqual(['cove', 'gus', 'peer']);
+    expect(await routingCandidates(message)).toEqual(
+        [fixture.coveAgentId, agents.gus, fixture.peerAgentId].toSorted() as string[]
+    );
+});
+
+test('homing an Agent in a Project stops the generalists hearing it', async () => {
+    expect(await heard(await send(project('spare'), 'Before an owner.'))).toEqual([
+        'cove',
+        'gus',
+        'peer',
+    ]);
+    const eve = await fixture.createAgent('eve', 'eve');
+    await fixture.owner.trpc.agent.setHome.mutate({
+        agentId: eve,
+        projectId: project('spare'),
+        serverId: fixture.serverId,
+    });
+
+    expect(await heard(await send(project('spare'), 'After an owner.'))).toEqual(['eve']);
+});
+
+test('Cove hears the Owner in #onboarding-owner after its greeting', async () => {
+    const [onboarding] = (await fixture.harness.sql`
+        select id from chats where server_id = ${fixture.serverId} and name = 'onboarding-owner'
+    `) as { id: string }[];
+    const channelId = onboarding?.id ?? '';
+    const cove = await fixture.mintRunner(
+        createOpaqueId('run'),
+        fixture.coveAgentId,
+        channelId,
+        false
+    );
+    const greeting = await fixture.post('/api/agent/messages/send', cove, {
+        content: 'Hi, I’m Cove. What should we build first?',
+        nonce: createOpaqueId('n'),
+        target: '#onboarding-owner',
+    });
+
+    expect(greeting.status).toBe(200);
+    expect(await heard(await send(channelId, 'A tracker for my reading list.'))).toEqual([
+        'cove',
+        'gus',
+        'peer',
+    ]);
 });
 
 test('moving an Agent home changes delivery from the next message', async () => {

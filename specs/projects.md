@@ -146,8 +146,10 @@ starts with a digit is prefixed with `P` before step 2.
 
 - An Agent whose home is the Haus project is a **generalist**. Cove is one, and every Agent created
   without a named Project starts as one.
-- A generalist hears the Haus project the way any Agent hears its home. It may start a Task in any
-  Project. When it acts in a Project, its turn input carries that Project's `AGENTS.md` the first
+- A generalist hears the Haus project the way any Agent hears its home. It also hears every
+  Project that has no non-retired home Agent, its channel and Tasks, until a person homes an
+  Agent there ([inbox.md](inbox.md#hearing)). So a new Server's `#onboarding-owner` reaches Cove,
+  and no Project goes unheard. It may start a Task in any Project. When it acts in a Project, its turn input carries that Project's `AGENTS.md` the first
   time in a session ([ADR 0054](../docs/adr/0054-drive-holds-what-agents-know-and-follow.md)
   decision 7).
 

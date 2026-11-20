@@ -25,8 +25,10 @@ export interface InboxConversationsQuery {
  * `haus inbox check` (Raft's `listAgentInbox`): every conversation that reaches
  * the Agent (specs/inbox.md#hearing) with someone else's message past its read
  * position: its home Project's channel and Tasks, Tasks it follows elsewhere,
- * its DMs, and another channel while what reached the Agent there, a mention or
- * a followed reply chain, is unread. Such a channel counts only those messages.
+ * its DMs, and any other channel or Task while what reached the Agent there is
+ * unread: a mention, a followed reply chain, or a generalist's hearing of a
+ * Project with no home Agent. Such a place counts only those messages, since a
+ * generalist's read position there may predate its hearing.
  * One statement, so the list, its paging, and its totals share one snapshot.
  */
 export async function listAgentInboxConversations(
@@ -132,7 +134,17 @@ export function conversationsSql(runner: ResolvedRunner) {
             and chats.kind = 'dm'
             and dm_human.user_id = chats.dm_member_one_user_id
         cross join lateral (
-            select chats.kind = 'channel' and chats.id <> me.home_project_id as outside
+            select case chats.kind
+                when 'channel' then chats.id <> me.home_project_id
+                when 'task' then chats.parent_chat_id <> me.home_project_id and not exists (
+                    select 1 from agent_task_follows follow
+                    where follow.server_id = chats.server_id
+                      and follow.agent_id = ${agentId}
+                      and follow.task_chat_id = chats.id
+                      and follow.followed
+                )
+                else false
+            end as outside
         ) place
         cross join lateral (
             select coalesce((
@@ -144,7 +156,7 @@ export function conversationsSql(runner: ResolvedRunner) {
         ) position
         cross join lateral (
             select
-                -- A channel outside the home lists only what reached the Agent, so never scan its backlog.
+                -- A place outside the home lists only what reached the Agent, so never scan its backlog.
                 case when place.outside then 0 else (
                     select count(*)::integer from chat_messages unread
                     where unread.server_id = chats.server_id
@@ -190,19 +202,6 @@ export function conversationsSql(runner: ResolvedRunner) {
           and chats.deleted_at is null
           and (parent.id is null or parent.deleted_at is null)
           and ${visibleChatSql(runner)}
-          and (
-              -- Reading a Task is open, but this list follows hearing: the home
-              -- Project's Tasks, and elsewhere the Tasks the Agent follows.
-              chats.kind <> 'task'
-              or chats.parent_chat_id = me.home_project_id
-              or exists (
-                  select 1 from agent_task_follows follow
-                  where follow.server_id = chats.server_id
-                    and follow.agent_id = ${agentId}
-                    and follow.task_chat_id = chats.id
-                    and follow.followed
-              )
-          )
           and (chats.kind = 'channel' or parent.kind = 'channel' or dm_human.handle is not null)
           and case when place.outside then counts.heard > 0 else counts.unread > 0 end
     `;

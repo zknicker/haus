@@ -1303,7 +1303,7 @@ test('Agent claim creation is replay-safe and directly wakes an assigned peer', 
         select agent_id, dedupe_key, mentioned, source
         from agent_inbox
         where server_id = ${serverId}
-          and chat_id = ${channelId}
+          and chat_id = ${channelId} and (agent_id = ${peer.agent.id} or source = 'claim_assignment')
         order by created_at, id
     `) as Array<{ agent_id: string; dedupe_key: string; mentioned: boolean; source: string }>;
     // The handoff writes no Chat message: everything in `chat_messages` is

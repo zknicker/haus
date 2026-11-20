@@ -4,10 +4,13 @@ import { agentCreationFixture } from './agent-creation-fixture.ts';
 
 const fixture = agentCreationFixture();
 let opsId: string;
+let opsAgentId: string;
 
 beforeAll(async () => {
     const { owner, serverId } = fixture;
     opsId = (await owner.trpc.project.create.mutate({ key: 'OPS', name: 'ops', serverId })).chat.id;
+    opsAgentId = await fixture.createAgent('Opsy', 'opsy');
+    await owner.trpc.agent.setHome.mutate({ agentId: opsAgentId, projectId: opsId, serverId });
 });
 
 async function agentCall(runner: { token: string }, path: string, body?: unknown) {
@@ -43,12 +46,12 @@ async function historyContents(runner: { token: string }, target: string) {
     };
 }
 
-test('#ops is no Agent home', async () => {
+test('#ops is home to its own Agent only', async () => {
     expect(
         await fixture.harness.sql`
             select id from agents where home_project_id = ${opsId}
         `
-    ).toEqual([]);
+    ).toEqual([{ id: opsAgentId }]);
 });
 
 test('an Agent outside #ops assigned a filed Task there reads it, posts in it, and closes it', async () => {
@@ -69,7 +72,9 @@ test('an Agent outside #ops assigned a filed Task there reads it, posts in it, a
     });
     expect(sent).toMatchObject({ body: { state: 'sent' }, status: 200 });
     const reply = await humanSend(task.chatId ?? '', 'The old key expires Friday.');
-    expect(await inboxAgentsFor(reply.message.id)).toEqual([fixture.peerAgentId]);
+    expect(await inboxAgentsFor(reply.message.id)).toEqual(
+        [opsAgentId, fixture.peerAgentId].toSorted()
+    );
 
     expect(await historyContents(peer, 'task:OPS-1')).toEqual({
         contents: ['Picking this up now.', 'The old key expires Friday.'],
@@ -127,10 +132,13 @@ test('a generalist that starts a Task in #ops posts in it, hears it, and posts i
         serverId: fixture.serverId,
     });
     const reply = await humanSend(task.chatId ?? '', 'It went down at noon.');
-    expect(await inboxAgentsFor(reply.message.id)).toEqual([fixture.orbitAgentId]);
+    expect(await inboxAgentsFor(reply.message.id)).toEqual(
+        [opsAgentId, fixture.orbitAgentId].toSorted()
+    );
     const inbox = await agentCall(orbit, '/api/agent/inbox/conversations');
     expect((inbox.body.items as { target: string }[]).map((item) => item.target)).toEqual([
         'task:OPS-2',
+        '#product',
     ]);
     expect(await historyContents(orbit, 'task:OPS-2')).toEqual({
         contents: ['Looking at the dashboard host.', 'It went down at noon.'],

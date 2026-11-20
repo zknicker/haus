@@ -1,25 +1,18 @@
 import { and, eq } from 'drizzle-orm';
+import { listProjectHearers } from '../agent-delivery/hearing.ts';
 import { deleteQueuedOrdinaryItems } from '../agent-delivery/store.ts';
 import { openAgentChatRead } from '../agent-reads/agent-chat-reads.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, agentTaskFollowsTable, chatsTable } from '../postgres/schema.ts';
+import { agentTaskFollowsTable, chatsTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { AgentTargetError, resolveAgentTarget } from './resolve-target.ts';
 
 export async function unfollowAgentTask(db: HausDatabase, runner: ResolvedRunner, target: string) {
     const taskChatId = await resolveAgentTarget(db, runner, target);
     const [task] = await db
-        .select({ home: agentsTable.id })
+        .select({ projectId: chatsTable.parentChatId })
         .from(chatsTable)
-        .leftJoin(
-            agentsTable,
-            and(
-                eq(agentsTable.serverId, chatsTable.serverId),
-                eq(agentsTable.id, runner.agentId),
-                eq(agentsTable.homeProjectId, chatsTable.parentChatId)
-            )
-        )
         .where(
             and(
                 eq(chatsTable.serverId, runner.serverId),
@@ -28,9 +21,12 @@ export async function unfollowAgentTask(db: HausDatabase, runner: ResolvedRunner
             )
         )
         .limit(1);
-    if (!task) {
+    if (!task?.projectId) {
         throw new AgentTargetError('Unfollow requires a Task target.');
     }
+    const projectHearer = (
+        await listProjectHearers(db, { projectId: task.projectId, serverId: runner.serverId })
+    ).some((agent) => agent.id === runner.agentId);
     await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
         await tx
@@ -50,8 +46,8 @@ export async function unfollowAgentTask(db: HausDatabase, runner: ResolvedRunner
                     agentTaskFollowsTable.taskChatId,
                 ],
             });
-        // A home Task is heard whatever the follow says, so its queue stays.
-        if (!task.home) {
+        // A Project's hearers hear its Tasks whatever the follow says, so the queue stays.
+        if (!projectHearer) {
             await deleteQueuedOrdinaryItems(tx, {
                 agentId: runner.agentId,
                 chatIds: [taskChatId],
