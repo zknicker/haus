@@ -68,6 +68,17 @@
         line-height: 1.25rem;
     }
 
+    /*
+     * iPhone Safari zooms a focused field under 16px and the composer spacing
+     * changes with it. iPad Safari does not zoom. 16px keeps both on the inset
+     * the shell owns. Desktop Safari stays on the 14px body.
+     */
+    @supports (-webkit-touch-callout: none) {
+        .chat-composer-editor [role='textbox'] {
+            font-size: 16px;
+        }
+    }
+
     .chat-composer-editor .mention-editor__placeholder {
         inset: 0;
         line-height: 1.25rem;

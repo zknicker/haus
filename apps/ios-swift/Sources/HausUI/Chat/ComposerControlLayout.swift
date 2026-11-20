@@ -18,8 +18,8 @@ struct ComposerControlLayout: Layout {
     /// The same step as `expandedFieldInset`, so the line sits as close to the
     /// controls as it sits from the shell's leading edge.
     static let expandedRowSpacing: CGFloat = 10
-    /// Breathing room between the shell's inner edge and the text when expanded. With the shell's
-    /// own 10pt padding this lands the caret ~20pt in from the glass edge.
+    /// Expanded text inset, shared by iPhone and iPad. With the shell's own 10pt
+    /// padding this lands the caret ~20pt in from the glass edge.
     static let expandedFieldInset: CGFloat = 10
     /// Gap between the plus button and the placeholder in the collapsed pill.
     static let compactFieldGap: CGFloat = 12

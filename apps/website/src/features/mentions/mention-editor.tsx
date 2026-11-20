@@ -190,7 +190,7 @@ export function MentionEditor({
     return (
         <div className={cn('relative', className)}>
             {value.length === 0 && placeholder ? (
-                <div className="mention-editor__placeholder text-muted pointer-events-none absolute inset-x-3 top-2 truncate text-base leading-6">
+                <div className="mention-editor__placeholder text-muted pointer-events-none absolute inset-0 truncate text-base leading-6">
                     {placeholder}
                 </div>
             ) : null}
@@ -213,7 +213,7 @@ function mentionEditorAttributes({
         'aria-disabled': String(disabled),
         'aria-label': ariaLabel,
         class: cn(
-            'min-h-0 px-3 pt-2 pb-0 text-base leading-6 break-words whitespace-pre-wrap outline-none',
+            'min-h-0 text-base leading-6 break-words whitespace-pre-wrap outline-none',
             disabled && 'pointer-events-none'
         ),
         id: id ?? '',

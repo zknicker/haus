@@ -3,6 +3,11 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const themeCss = readFileSync(join(import.meta.dir, 'default-theme.css'), 'utf8');
+const chatCss = readFileSync(join(import.meta.dir, '../features/chats/chat.css'), 'utf8');
+const mentionEditor = readFileSync(
+    join(import.meta.dir, '../features/mentions/mention-editor.tsx'),
+    'utf8'
+);
 const composerTsx = readFileSync(
     join(import.meta.dir, '../features/servers/chat/chat-composer.tsx'),
     'utf8'
@@ -34,5 +39,15 @@ describe('expanded composer spacing', () => {
 
     test('the composer rests one step above the screen edge', () => {
         expect(composerTsx).toContain('className="shrink-0 px-5 pb-2"');
+    });
+
+    test('the editor does not add a second inset on top of the shell', () => {
+        expect(mentionEditor).not.toContain('px-3 pt-2');
+        expect(mentionEditor).toContain('absolute inset-0');
+    });
+
+    test('iOS Safari keeps a 16px field so focus does not zoom the inset', () => {
+        expect(chatCss).toContain('@supports (-webkit-touch-callout: none)');
+        expect(chatCss).toContain('font-size: 16px');
     });
 });
