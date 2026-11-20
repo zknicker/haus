@@ -1,6 +1,7 @@
 import { type RuleFile, ruleLayerPaths } from '@haus/agent-prompt';
 import type { RunAuthority } from '../run-context.ts';
 import { readAgentHandle, readDriveText, readSkillListing } from './agent-drive.ts';
+import { readManagedSkillNotice } from './managed-skill-notice.ts';
 
 interface ContextReader {
     readonly authority: RunAuthority;
@@ -13,9 +14,9 @@ export async function readAgentContext(input: ContextReader) {
         return null;
     });
     if (!handle) {
-        return { memory: null, rules: [], skills: [] };
+        return { memory: null, rules: [], skillNotice: null, skills: [] };
     }
-    const [memory, rules, skills] = await Promise.all([
+    const [memory, rules, skills, skillNotice] = await Promise.all([
         readDriveText(input.authority, `agents/${handle}/MEMORY.md`).catch((error: unknown) => {
             input.log(`Runner could not read ${handle}'s MEMORY.md: ${String(error)}`);
             return null;
@@ -25,8 +26,12 @@ export async function readAgentContext(input: ContextReader) {
             input.log(`Runner could not list ${handle}'s skills: ${String(error)}`);
             return [];
         }),
+        readManagedSkillNotice(input.authority).catch((error: unknown) => {
+            input.log(`Runner could not read ${handle}'s skill update notice: ${String(error)}`);
+            return null;
+        }),
     ]);
-    return { memory, rules, skills };
+    return { memory, rules, skillNotice, skills };
 }
 
 async function readRuleFiles(input: ContextReader, handle: string) {

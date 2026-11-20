@@ -202,7 +202,7 @@ second run changes nothing.
 4. **Agent Projects.** Migration 0142 (`all-is-a-chat`) moves `#all`'s old Project row to an
    ordinary `#general` and gives each active Agent the open Project where it wrote the most,
    falling back to `#general`.
-5. **Memberships (J3).** Migration 0143 (`agents-hear-their-home`) keeps those Projects, marks
+5. **Memberships (J3).** Migration 0144 (`agents-hear-their-home`) keeps those Projects, marks
    each Agent's Project read at the present so its backlog is not unread, and drops
    `channel_agent_participants` and `agent_channel_mutes`. Queued inbox items stay and drain
    under the rules they were planned with. It logs one line per Agent with the channels it had

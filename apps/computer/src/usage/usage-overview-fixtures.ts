@@ -21,7 +21,6 @@ export function usageAt(capturedAt: string): UsageOverview {
         connectedProviders: ['openai-codex'],
         grok: usageError('grok'),
         openRouter: { error: null, overview: unconfiguredOpenRouter(), status: 'ok' },
-        runtimeUsage: [],
     };
 }
 
@@ -57,12 +56,10 @@ export function claudeOnlyReadOptions(
     loadClaudeUsage: NonNullable<Parameters<typeof readComputerUsage>[0]>['loadClaudeUsage']
 ): Parameters<typeof readComputerUsage>[0] {
     return {
-        loadClaudeLocalUsage: async () => null,
         loadClaudeUsage,
         loadCodexUsage: async () => {
             throw new Error('No Codex session');
         },
-        loadGrokLocalUsage: async () => null,
         loadGrokUsage: async () => {
             throw new Error('No Grok session');
         },

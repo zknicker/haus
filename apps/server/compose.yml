@@ -29,6 +29,7 @@ services:
     build:
       context: ../..
       dockerfile: apps/runner/Dockerfile
+    image: haus-runner:${HAUS_RUNNER_IMAGE_TAG:-local}
     container_name: haus-runner
     cap_add:
       - NET_ADMIN
@@ -38,6 +39,11 @@ services:
       HAUS_SERVER_URL: ${HAUS_RUNNER_SERVER_URL:-http://host.docker.internal:18791}
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "test", "-f", "/run/haus-runner-firewall-ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
     profiles:
       - runner
     restart: unless-stopped

@@ -26,6 +26,7 @@ export function serverPageRoutes({ desktop }: { desktop: boolean }): RouteObject
         { path: 'inbox', Component: serverRouteComponent('InboxPage') },
         { path: 'tasks', Component: serverRouteComponent('TasksPageRoute') },
         { path: 'tasks/:taskKey', Component: serverRouteComponent('TaskPageRoute') },
+        { path: 'workers/:workerId', Component: serverRouteComponent('WorkerPageRoute') },
         { path: 'activity', Component: serverRouteComponent('ActivityPage') },
         { path: 'artifacts', Component: serverRouteComponent('SharedArtifactsPage') },
         { path: 'artifacts/:artifactKey', Component: serverRouteComponent('SharedArtifactsPage') },

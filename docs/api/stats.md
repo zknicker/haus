@@ -30,8 +30,8 @@ not require clients to parse logs or runtime internals.
   as `ok` may carry an optional `stale` stamp — the failure `code` and the time `at` which the
   Computer kept the previous snapshot instead of a new one — which the Server stores and returns
   verbatim.
-* Claude Code and Grok Build also expose 30-day Computer-local transcript totals by model.
-  These snapshots follow ccusage accounting and contain only normalized counts, not transcripts.
+* Plan usage never comes from scanning runtime transcripts. Computer asks each provider for its
+  limits and reads no `~/.claude/projects` or `~/.grok/sessions` logs.
 * Token usage comes from normalized Computer turn reports. The Server maintains
   a transactionally corrected daily cube keyed by Agent, runtime, and model;
   reads join current Agent presentation without scanning raw turns. Cache reads
