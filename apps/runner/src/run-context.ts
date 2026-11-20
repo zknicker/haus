@@ -89,6 +89,7 @@ export interface RunStart {
     readonly authority: RunAuthority;
     readonly modelConnectionId: string | null;
     readonly reasoningEffort: AgentReasoningEffort;
+    readonly sessionResetKind: 'full' | 'session';
     readonly start: AgentStartCommand;
     readonly tools: RunTools;
 }
@@ -97,7 +98,10 @@ export interface TurnHost {
     start(input: RunStart): Promise<void>;
     notice(notice: AgentNoticeCommand): Promise<void>;
     stop(agentId: string, runId: string): Promise<void>;
-    resetAgent(agentId: string, scope: AgentResetScope): Promise<void>;
+    resetAgent(agentId: string, reset: AgentReset): Promise<void>;
 }
 
-export type AgentResetScope = 'restart' | 'session' | 'full';
+export type AgentReset =
+    | { readonly scope: 'restart' }
+    | { readonly scope: 'retire' }
+    | { readonly scope: 'full' | 'session'; readonly sessionGeneration: number };

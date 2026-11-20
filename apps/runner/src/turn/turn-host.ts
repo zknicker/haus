@@ -1,4 +1,3 @@
-import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { type AgentTurnSummary, agentPathSegment } from '@haus/api';
 import type { RunnerConfig } from '../config.ts';
@@ -11,6 +10,7 @@ import {
 import type { CapacityReader } from '../model-connections/connection-capacity.ts';
 import { createConnectionStatus } from '../model-connections/connection-status.ts';
 import type { RunnerLink, RunStart, TurnHost } from '../run-context.ts';
+import { agentSessions } from './agent-sessions.ts';
 import { createHarnesses } from './harnesses.ts';
 import { inboxStore } from './inbox-store.ts';
 import { createRunActivity } from './run-activity.ts';
@@ -23,6 +23,7 @@ import { unknownToolCalls } from './unknown-tool-calls.ts';
 
 interface ActiveRun {
     readonly controller: AbortController;
+    readonly generation: number;
     readonly runId: string;
     sink: NoticeSink | null;
 }
@@ -73,6 +74,12 @@ export function createTurnHostWith(input: {
         return { agentDir, runtimeDir: join(agentDir, 'runtime') };
     };
 
+    const sessions = agentSessions({
+        agentDir: (agentId) => paths(agentId).agentDir,
+        dataDir: input.dataDir,
+        release: input.release,
+    });
+
     const enqueue = (agentId: string, work: () => Promise<void>) => {
         const previous = queues.get(agentId) ?? Promise.resolve();
         const next = previous.then(work);
@@ -83,8 +90,22 @@ export function createTurnHostWith(input: {
         return next;
     };
 
+    const skipStale = async (run: RunStart) => {
+        const { start } = run;
+        input.log(
+            `Runner skipped run ${start.runId} for ${start.agentId} from session generation ${start.sessionGeneration}, which a reset replaced.`
+        );
+        input.link.send({ agentId: start.agentId, runId: start.runId, type: 'ack' });
+        await run.tools.settle();
+        await input.ledger.settled(start.agentId, start.runId);
+    };
+
     const execute = async (run: RunStart) => {
         const { start } = run;
+        if (!(await sessions.enter(run))) {
+            await skipStale(run);
+            return;
+        }
         const { agentDir, runtimeDir } = paths(start.agentId);
         const records = runRecords(runtimeDir, start.runId);
         const marker = await records.marker();
@@ -105,6 +126,7 @@ export function createTurnHostWith(input: {
         const startedAt = new Date().toISOString();
         const current: ActiveRun = {
             controller: new AbortController(),
+            generation: start.sessionGeneration,
             runId: start.runId,
             sink: null,
         };
@@ -253,13 +275,13 @@ export function createTurnHostWith(input: {
                 });
             }
         },
-        resetAgent(agentId, scope) {
-            return enqueue(agentId, async () => {
-                await input.release(agentId);
-                if (scope === 'full') {
-                    await rm(paths(agentId).agentDir, { force: true, recursive: true });
-                }
-            });
+        async resetAgent(agentId, reset) {
+            sessions.announce(agentId, reset);
+            const run = active.get(agentId);
+            if (run && sessions.supersedes(reset, run.generation)) {
+                run.controller.abort();
+            }
+            await enqueue(agentId, () => sessions.apply(agentId, reset));
         },
         start(run) {
             return enqueue(run.start.agentId, () => execute(run));

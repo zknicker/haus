@@ -42,6 +42,7 @@ test('a runner run pulls the Agent drive folder on its machine when it starts an
     });
 
     const start = await runner.next(frameOfType('runner-start'));
+    expect(start.sessionResetKind).toBe('session');
     const { runId, sessionGeneration } = start.start as {
         runId: string;
         sessionGeneration: number;
@@ -64,6 +65,29 @@ test('a runner run pulls the Agent drive folder on its machine when it starts an
         sessionGeneration,
         type: 'drive-push',
     });
+});
+
+test('after a full reset the next runner start carries the new generation and its reset kind', async () => {
+    const { owner, serverId } = setup;
+    await owner.trpc.agent.reset.mutate({ agentId: setup.agentId, kind: 'full', serverId });
+    const reset = await runner.next(frameOfType('agent-reset'));
+    const chatId = (
+        await owner.trpc.chat.ensureAgentDm.mutate({ agentId: setup.agentId, serverId })
+    ).id;
+    await owner.trpc.chat.send.mutate({
+        chatId,
+        content: 'Start fresh.',
+        nonce: 'drive_sync_after_reset',
+        serverId,
+    });
+
+    const start = await runner.next(
+        (frame) =>
+            frame.type === 'runner-start' &&
+            (frame.start as { sessionGeneration: number }).sessionGeneration ===
+                reset.sessionGeneration
+    );
+    expect(start.sessionResetKind).toBe('full');
 });
 
 function settledTurn(runId: string) {

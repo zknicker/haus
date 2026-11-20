@@ -46,6 +46,8 @@ export const runnerStartFrameSchema = z
         /** The connection the Server chose for this run; null when the Agent's provider has none. */
         modelConnectionId: idSchema.nullable(),
         runCredential: runnerTokenSchema,
+        /** How the Agent's session last reset, applied once when the runner first sees its generation. */
+        sessionResetKind: z.enum(['full', 'session']),
         start: agentStartCommandSchema,
         type: z.literal('runner-start'),
     })

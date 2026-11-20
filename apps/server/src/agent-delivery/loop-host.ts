@@ -1,7 +1,9 @@
 import type { AgentCommand, RunnerDownFrame, RunnerStartFrame } from '@haus/api';
+import { eq } from 'drizzle-orm';
 import { mintServerRunCredential } from '../computers/runner-credentials.ts';
 import { resolveModelConnection } from '../model-connections/agent-model-connection.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { agentsTable } from '../postgres/schema.ts';
 import type { DeliveryTransport, DispatchPlan } from './delivery.ts';
 import { readDeliveryState } from './store.ts';
 
@@ -104,6 +106,15 @@ export class AgentLoopRoute {
         const state = await readDeliveryState(tx, start.agentId);
         const reasoningEffort =
             state?.activeRunId === start.runId ? state.activeRunReasoningEffort : null;
+        const [agent] = await tx
+            .select({ sessionResetKind: agentsTable.sessionResetKind })
+            .from(agentsTable)
+            .where(eq(agentsTable.id, start.agentId));
+        if (!agent) {
+            throw new Error(
+                `Agent ${start.agentId} is gone, so its run cannot start on the runner.`
+            );
+        }
         const modelConnectionId = await resolveModelConnection(tx, {
             agentId: start.agentId,
             modelId: start.modelId,
@@ -115,6 +126,7 @@ export class AgentLoopRoute {
                 ...(reasoningEffort ? { reasoningEffort } : {}),
                 modelConnectionId,
                 runCredential,
+                sessionResetKind: agent.sessionResetKind,
                 start,
                 type: 'runner-start',
             },

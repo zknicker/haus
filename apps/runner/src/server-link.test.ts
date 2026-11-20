@@ -222,9 +222,9 @@ describe('runner server link', () => {
 
         expect(runner.host.resets).toEqual([
             { agentId: 'agt_1', scope: 'restart' },
-            { agentId: 'agt_1', scope: 'session' },
-            { agentId: 'agt_1', scope: 'full' },
-            { agentId: 'agt_2', scope: 'full' },
+            { agentId: 'agt_1', scope: 'session', sessionGeneration: 2 },
+            { agentId: 'agt_1', scope: 'full', sessionGeneration: 3 },
+            { agentId: 'agt_2', scope: 'retire' },
         ]);
     });
 });
