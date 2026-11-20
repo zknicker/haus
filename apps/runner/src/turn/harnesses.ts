@@ -1,27 +1,27 @@
 import { createClaudeHarness } from '../claude/claude-driver.ts';
-import { setupTokenEnvironment } from '../claude/claude-launch.ts';
-import type { RunnerConfig } from '../config.ts';
-import type { LoginConfig } from '../logins.ts';
-import { openFileCredentialStore, piLoginsDir } from '../pi/pi-credentials.ts';
+import type { ConnectionBook } from '../model-connections/connection-book.ts';
 import { createPiHarness } from '../pi/pi-driver.ts';
-import { createPiModels } from '../pi/pi-models.ts';
+import { connectionModels, piProviderFor } from '../pi/pi-models.ts';
+import type { RunnerLink } from '../run-context.ts';
 import { harnessFor, type RuntimeDriverFactory } from './runtime-driver.ts';
 
-export function createHarnesses(
-    config: LoginConfig & Pick<RunnerConfig, 'maxWarm'>,
-    log: (line: string) => void
-) {
-    const claude = createClaudeHarness({
-        environment: setupTokenEnvironment(config.claudeSetupToken),
-        maxWarm: config.maxWarm,
-    });
+export function createHarnesses(input: {
+    book: ConnectionBook;
+    link: RunnerLink;
+    log: (line: string) => void;
+    maxWarm: number;
+}) {
+    const claude = createClaudeHarness({ maxWarm: input.maxWarm });
     const pi = createPiHarness({
-        log,
-        maxWarm: config.maxWarm,
-        models: createPiModels({
-            apiKeys: config,
-            credentials: openFileCredentialStore(piLoginsDir(config.dataDir)),
-        }),
+        log: input.log,
+        maxWarm: input.maxWarm,
+        models: (launch) =>
+            connectionModels({
+                book: input.book,
+                connectionId: launch.connection.id,
+                link: input.link,
+                provider: piProviderFor(launch.connection.provider),
+            }),
     });
     const factory: RuntimeDriverFactory = (launch) =>
         harnessFor(launch.modelId) === 'pi-durable' ? pi.factory(launch) : claude.factory(launch);

@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Options } from '@anthropic-ai/claude-agent-sdk';
 import type { AgentReasoningEffort } from '@haus/api';
+import type { RuntimeLaunch } from '../turn/runtime-driver.ts';
 import { hausAllowedTools } from './haus-tools.ts';
 
 export interface ClaudePaths {
@@ -11,10 +12,9 @@ export interface ClaudePaths {
     readonly homeDir: string;
 }
 
-export type ClaudeEnvironment = (paths: ClaudePaths) => Record<string, string | undefined>;
-
 export interface ClaudeLaunchFacts {
     readonly bootstrapFingerprint: string;
+    readonly connectionId: string;
     readonly environment: Record<string, string | undefined>;
     readonly instructions: string;
     readonly modelId: string;
@@ -31,14 +31,32 @@ export function claudePaths(agentDir: string) {
     return paths;
 }
 
-export function setupTokenEnvironment(setupToken: string | null) {
-    const environment: ClaudeEnvironment = (paths) => ({
-        ...(setupToken ? { CLAUDE_CODE_OAUTH_TOKEN: setupToken } : {}),
-        CLAUDE_CONFIG_DIR: paths.configDir,
-        HOME: paths.homeDir,
-        PATH: process.env.PATH,
-    });
-    return environment;
+export function claudeLaunchFacts(
+    launch: Pick<
+        RuntimeLaunch,
+        'agentDir' | 'connection' | 'instructions' | 'modelId' | 'reasoningEffort'
+    >,
+    bootstrapFingerprint: string
+) {
+    const { credential, id } = launch.connection;
+    if (credential.kind !== 'setup-token') {
+        throw new Error(`A Claude run needs a setup-token connection, not ${credential.kind}.`);
+    }
+    const paths = claudePaths(launch.agentDir);
+    const facts: ClaudeLaunchFacts = {
+        bootstrapFingerprint,
+        connectionId: id,
+        environment: {
+            CLAUDE_CODE_OAUTH_TOKEN: credential.token,
+            CLAUDE_CONFIG_DIR: paths.configDir,
+            HOME: paths.homeDir,
+            PATH: process.env.PATH,
+        },
+        instructions: launch.instructions,
+        modelId: launch.modelId,
+        reasoningEffort: launch.reasoningEffort,
+    };
+    return facts;
 }
 
 export function claudeQueryOptions(
@@ -70,6 +88,7 @@ export function claudeLaunchKey(launch: ClaudeLaunchFacts) {
         .update(
             JSON.stringify([
                 launch.bootstrapFingerprint,
+                launch.connectionId,
                 Object.entries(launch.environment).sort(([left], [right]) =>
                     left.localeCompare(right)
                 ),

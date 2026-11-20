@@ -6,34 +6,34 @@ import type { RunTools, ToolOutcome } from '../run-context.ts';
 import type { RuntimeTurn } from '../turn/runtime-driver.ts';
 import type { TurnEvent } from '../turn/turn-event.ts';
 import { createClaudeHarness } from './claude-driver.ts';
-import { type ClaudeEnvironment, setupTokenEnvironment } from './claude-launch.ts';
 
-const setupToken = process.env.HAUS_RUNNER_CLAUDE_SETUP_TOKEN;
-const liveTest = process.env.HAUS_RUN_LIVE_RUNNER_CLAUDE_TEST === '1' ? test : test.skip;
+const setupToken = process.env.HAUS_RUNNER_TEST_CLAUDE_SETUP_TOKEN;
+const liveTest =
+    process.env.HAUS_RUN_LIVE_RUNNER_CLAUDE_TEST === '1' && setupToken ? test : test.skip;
 const root = await mkdtemp(join(tmpdir(), 'haus-runner-driver-'));
 afterAll(() => rm(root, { force: true, recursive: true }));
-
-const hostLogin: ClaudeEnvironment = () => ({
-    HOME: process.env.HOME,
-    PATH: process.env.PATH,
-    USER: process.env.USER,
-});
 
 liveTest(
     'a driver session runs two turns, steers mid-tool, and resumes cold from the volume',
     async () => {
-        const environment = setupToken ? setupTokenEnvironment(setupToken) : hostLogin;
         const nonce = crypto.randomUUID().slice(0, 8);
         const launch = {
             agentDir: join(root, 'agents', 'agent-live'),
             agentId: 'agent-live',
+            connection: {
+                credential: { kind: 'setup-token' as const, token: setupToken ?? '' },
+                id: 'mc_live_claude',
+                label: 'Live Claude',
+                provider: 'claude' as const,
+                serverId: 'srv_live',
+            },
             instructions:
                 'You are a test agent. Use the bash tool when asked to run a command. Answer in one short line.',
             modelId: 'claude-haiku-4-5',
             reasoningEffort: 'default' as const,
             tools: localTools(),
         };
-        const warm = createClaudeHarness({ environment, maxWarm: 2 });
+        const warm = createClaudeHarness({ maxWarm: 2 });
         const session = await warm.driver(launch).openSession({
             resumeFrom: undefined,
             sessionId: 'agent-live-1',
@@ -71,7 +71,7 @@ liveTest(
         expect(warm.warm).toBe(1);
         warm.close();
 
-        const cold = createClaudeHarness({ environment, maxWarm: 2 });
+        const cold = createClaudeHarness({ maxWarm: 2 });
         const resumed = await cold.driver(launch).openSession({
             resumeFrom: nativeSessionId,
             sessionId: 'agent-live-1',
@@ -84,9 +84,7 @@ liveTest(
         expect(text(await collect(third))).toContain(nonce);
         expect(await resumed.stop()).toBe(nativeSessionId);
         cold.close();
-        if (setupToken) {
-            expect(await readdir(join(launch.agentDir, 'claude', 'projects'))).toHaveLength(1);
-        }
+        expect(await readdir(join(launch.agentDir, 'claude', 'projects'))).toHaveLength(1);
     }
 );
 

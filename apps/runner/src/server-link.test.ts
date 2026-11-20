@@ -11,21 +11,14 @@ import {
 afterEach(drainCleanups);
 
 describe('runner server link', () => {
-    test('attaches, reports logins, and runs a start through machine, refused, and lone haus tools', async () => {
+    test('attaches, reports its harnesses, and runs a start through machine, refused, and lone haus tools', async () => {
         const server = serverStandIn();
         const runner = await attachRunner(server);
         expect(await server.frame('runner-inventory')).toEqual({
             harnesses: ['claude-agent-sdk', 'pi-durable'],
-            logins: [
-                { provider: 'claude', state: 'missing' },
-                { provider: 'chatgpt', state: 'missing' },
-                { provider: 'xai', state: 'missing' },
-                { provider: 'gemini', state: 'missing' },
-                { provider: 'openrouter', state: 'missing' },
-            ],
             type: 'runner-inventory',
         });
-        server.start({ reasoningEffort: 'xhigh' });
+        server.start({ modelConnectionId: 'mc_claude', reasoningEffort: 'xhigh' });
         const run = await runner.host.started;
         expect(run.authority).toEqual({
             agentId: 'agt_1',
@@ -34,6 +27,7 @@ describe('runner server link', () => {
             serverUrl: server.url,
         });
         expect(run.reasoningEffort).toBe('xhigh');
+        expect(run.modelConnectionId).toBe('mc_claude');
 
         const machine = run.tools.bash('toolu_1', { command: 'ls -la', timeout: 900_000 }, live());
         expect(await server.frame('invocation-request')).toEqual({

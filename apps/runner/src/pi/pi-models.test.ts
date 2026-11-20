@@ -1,31 +1,26 @@
-import { afterEach, describe, expect, test } from 'bun:test';
-import { mkdtemp, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { describe, expect, test } from 'bun:test';
+import type { RunnerModelConnection } from '@haus/api';
+import { createConnectionBook } from '../model-connections/connection-book.ts';
 import { harnessFor } from '../turn/runtime-driver.ts';
-import { openFileCredentialStore } from './pi-credentials.ts';
-import { answerHeadless } from './pi-login.ts';
-import { createPiModels, piModelRef, piToolFamily } from './pi-models.ts';
+import { connectionModels, piModelRef, piProviderFor, piToolFamily } from './pi-models.ts';
 
-const directories: string[] = [];
+const xaiKey: RunnerModelConnection = {
+    credential: { key: 'xai-connection-key', kind: 'api-key' },
+    id: 'mc_xai',
+    label: 'xAI key',
+    provider: 'xai',
+    serverId: 'srv_1',
+};
 
-afterEach(async () => {
-    for (const directory of directories.splice(0)) {
-        await rm(directory, { force: true, recursive: true });
-    }
-});
-
-async function models(apiKeys: { xaiApiKey: string | null }) {
-    const directory = await mkdtemp(join(tmpdir(), 'haus-pi-models-'));
-    directories.push(directory);
-    const credentials = openFileCredentialStore(directory);
-    return {
-        credentials,
-        models: createPiModels({
-            apiKeys: { geminiApiKey: null, openrouterApiKey: null, ...apiKeys },
-            credentials,
-        }),
-    };
+function opened(connections: readonly RunnerModelConnection[], connection: RunnerModelConnection) {
+    const book = createConnectionBook();
+    book.replace(connections);
+    return connectionModels({
+        book,
+        connectionId: connection.id,
+        link: { send: () => undefined },
+        provider: piProviderFor(connection.provider),
+    });
 }
 
 describe('Pi model selection', () => {
@@ -47,12 +42,18 @@ describe('Pi model selection', () => {
         ]);
     });
 
-    test('a model id finds the first provider whose catalog lists it', async () => {
-        const { models: catalog } = await models({ xaiApiKey: null });
+    test('the connection’s provider picks the Pi provider, and the model must be in its catalog', () => {
+        const pairs = [
+            ['chatgpt', 'gpt-5.6-sol'],
+            ['xai', 'grok-4.7'],
+            ['gemini', 'gemini-2.5-pro'],
+            ['openrouter', 'anthropic/claude-fable-5'],
+            ['xai', 'gpt-5.6-sol'],
+        ] as const;
 
         expect(
-            ['gpt-5.6-sol', 'grok-4.7', 'gemini-2.5-pro', 'anthropic/claude-fable-5', 'nope-1'].map(
-                (modelId) => piModelRef(catalog, modelId)
+            pairs.map(([provider, modelId]) =>
+                piModelRef(opened([], { ...xaiKey, provider }), modelId)
             )
         ).toEqual([
             { modelId: 'gpt-5.6-sol', provider: 'openai-codex' },
@@ -61,6 +62,9 @@ describe('Pi model selection', () => {
             { modelId: 'anthropic/claude-fable-5', provider: 'openrouter' },
             null,
         ]);
+        expect(() => piProviderFor('claude')).toThrow(
+            'Claude connections run on the Claude Agent SDK, not Pi.'
+        );
     });
 
     test('GPT models get the Codex tool family, every other model the text editor family', () => {
@@ -69,16 +73,16 @@ describe('Pi model selection', () => {
         ).toEqual(['gpt', 'gpt', 'text-editor', 'text-editor']);
     });
 
-    test('provider keys come from runner settings, never from ambient XAI_API_KEY', async () => {
+    test('provider keys come from the connection, never from ambient XAI_API_KEY', async () => {
         const ambient = process.env.XAI_API_KEY;
         process.env.XAI_API_KEY = 'ambient-key';
         try {
-            const unset = await models({ xaiApiKey: null });
-            const set = await models({ xaiApiKey: 'runner-key' });
+            const missing = opened([], xaiKey);
+            const connected = opened([xaiKey], xaiKey);
 
-            expect(await unset.models.checkAuth('xai')).toBeUndefined();
-            expect(await set.models.getAuth('xai')).toMatchObject({
-                auth: { apiKey: 'runner-key' },
+            expect(await missing.models.checkAuth('xai')).toBeUndefined();
+            expect(await connected.models.getAuth('xai')).toMatchObject({
+                auth: { apiKey: 'xai-connection-key' },
             });
         } finally {
             if (ambient === undefined) {
@@ -89,34 +93,36 @@ describe('Pi model selection', () => {
         }
     });
 
-    test('the ChatGPT sign-in is read from the credential file', async () => {
-        const { credentials, models: catalog } = await models({ xaiApiKey: null });
-        expect(await catalog.checkAuth('openai-codex')).toBeUndefined();
+    test('a ChatGPT sign-in is read from the connection, and the book’s current value wins', async () => {
+        const chatgpt: RunnerModelConnection = {
+            credential: {
+                credential: {
+                    access: 'access-1',
+                    accountId: 'acct_1',
+                    expires: Date.now() + 3_600_000,
+                    refresh: 'refresh-1',
+                },
+                kind: 'oauth',
+            },
+            id: 'mc_chatgpt',
+            label: 'Plus',
+            provider: 'chatgpt',
+            serverId: 'srv_1',
+        };
+        const book = createConnectionBook();
+        const models = connectionModels({
+            book,
+            connectionId: chatgpt.id,
+            link: { send: () => undefined },
+            provider: piProviderFor('chatgpt'),
+        }).models;
+        expect(await models.checkAuth('openai-codex')).toBeUndefined();
 
-        await credentials.modify('openai-codex', async () => ({
-            access: 'access-1',
-            accountId: 'acct_1',
-            expires: Date.now() + 3_600_000,
-            refresh: 'refresh-1',
-            type: 'oauth',
-        }));
+        book.replace([chatgpt]);
 
-        expect(await catalog.checkAuth('openai-codex')).toMatchObject({ type: 'oauth' });
-    });
-
-    test('the headless login picks the device-code flow and answers nothing else', async () => {
-        expect(
-            await answerHeadless({
-                message: 'Select OpenAI Codex login method:',
-                options: [
-                    { id: 'browser', label: 'Browser login (default)' },
-                    { id: 'device_code', label: 'Device code login (headless)' },
-                ],
-                type: 'select',
-            })
-        ).toBe('device_code');
-        await expect(answerHeadless({ message: 'Paste the code:', type: 'text' })).rejects.toThrow(
-            'haus-runner login has no terminal prompt to answer "Paste the code:".'
-        );
+        expect(await models.checkAuth('openai-codex')).toEqual({ source: 'OAuth', type: 'oauth' });
+        expect(await models.getAuth('openai-codex')).toMatchObject({
+            auth: { apiKey: 'access-1' },
+        });
     });
 });
