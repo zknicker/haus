@@ -45,7 +45,7 @@ test('a full reset that fails partway commits nothing, Drive deletes included', 
     ).rejects.toThrow();
 
     expect(await agentState()).toEqual(before);
-    expect(before).toMatchObject({ active_run_id: 'run_live', full_reset_at: null });
+    expect(before).toMatchObject({ active_run_id: 'run_live', reset_generation: 0 });
     const live = await fixture.owner.trpc.artifact.list.query({
         prefix: 'agents/orbit',
         recursive: true,
@@ -66,13 +66,14 @@ test('a full reset that fails partway commits nothing, Drive deletes included', 
     });
     expect(await agentState()).toMatchObject({
         active_run_id: null,
+        reset_generation: 1,
         session_generation: (before?.session_generation as number) + 1,
     });
 });
 
 async function agentState() {
     const [row] = (await fixture.harness.sql`
-        select a.session_generation, a.session_reset_kind, a.full_reset_at, d.active_run_id
+        select a.session_generation, a.session_reset_kind, a.reset_generation, d.active_run_id
         from agents a left join agent_delivery d on d.agent_id = a.id
         where a.id = ${fixture.orbitAgentId}
     `) as Record<string, unknown>[];

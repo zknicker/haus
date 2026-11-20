@@ -59,4 +59,14 @@ test('a push from a run dispatched before a full reset cannot bring a deleted fi
         '# Orbit\n'
     );
     expect(seeded).toMatchObject({ outcome: 'committed', path: 'agents/orbit/MEMORY.md' });
+    expect(
+        await fixture.harness.sql`
+            select p.id, p.reset_generation as push, a.reset_generation as agent
+            from drive_pushes p join agents a on a.id = p.agent_id
+            where p.agent_id = ${fixture.orbitAgentId} order by p.id
+        `
+    ).toEqual([
+        { agent: 1, id: 'run_after_reset', push: 1 },
+        { agent: 1, id: 'run_before_reset', push: 0 },
+    ]);
 });

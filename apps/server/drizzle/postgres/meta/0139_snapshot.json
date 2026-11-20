@@ -2684,6 +2684,13 @@
           "notNull": true,
           "default": "now()"
         },
+        "reset_generation": {
+          "name": "reset_generation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
         "run_id": {
           "name": "run_id",
           "type": "text",
@@ -3489,30 +3496,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "computer_id": {
+          "name": "computer_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "connection_admin": {
           "name": "connection_admin",
           "type": "boolean",
           "primaryKey": false,
           "notNull": true,
           "default": false
-        },
-        "creation_nonce": {
-          "name": "creation_nonce",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "creation_request_hash": {
-          "name": "creation_request_hash",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "computer_id": {
-          "name": "computer_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -3539,6 +3534,24 @@
           "primaryKey": false,
           "notNull": false
         },
+        "creation_nonce": {
+          "name": "creation_nonce",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "creation_request_hash": {
+          "name": "creation_request_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "desired_model_id": {
           "name": "desired_model_id",
           "type": "text",
@@ -3554,12 +3567,6 @@
         },
         "desired_runtime_id": {
           "name": "desired_runtime_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "description": {
-          "name": "description",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -3638,12 +3645,6 @@
           "notNull": true,
           "default": "'ordinary'"
         },
-        "full_reset_at": {
-          "name": "full_reset_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
         "handle": {
           "name": "handle",
           "type": "text",
@@ -3668,17 +3669,24 @@
           "primaryKey": true,
           "notNull": true
         },
+        "model_connection_id": {
+          "name": "model_connection_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "personality": {
           "name": "personality",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "model_connection_id": {
-          "name": "model_connection_id",
-          "type": "text",
+        "reset_generation": {
+          "name": "reset_generation",
+          "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": 0
         },
         "retired_at": {
           "name": "retired_at",
@@ -3686,11 +3694,11 @@
           "primaryKey": false,
           "notNull": false
         },
-        "signature_emoji": {
-          "name": "signature_emoji",
+        "server_id": {
+          "name": "server_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "session_generation": {
           "name": "session_generation",
@@ -3706,11 +3714,11 @@
           "notNull": true,
           "default": "'session'"
         },
-        "server_id": {
-          "name": "server_id",
+        "signature_emoji": {
+          "name": "signature_emoji",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         }
       },
       "indexes": {
@@ -8452,6 +8460,13 @@
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        },
+        "reset_generation": {
+          "name": "reset_generation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
         },
         "server_id": {
           "name": "server_id",

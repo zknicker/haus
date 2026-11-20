@@ -77,8 +77,6 @@ export const agentsTable = pgTable(
             .notNull()
             .default('ordinary')
             .$type<'cove' | 'ordinary'>(),
-        /** The last Full reset; a Drive push from a run dispatched before it is refused. */
-        fullResetAt: timestamp('full_reset_at', { withTimezone: true }),
         handle: text('handle').notNull(),
         /** The Agent's one home Project (specs/projects.md#agents); the Haus project makes it a generalist. */
         // Migration 0131 adds `agents_home_project_fk`; importing `projects` here would close a schema import cycle.
@@ -94,6 +92,8 @@ export const agentsTable = pgTable(
         conversationStyle: text('personality'),
         /** The model connection a human chose; null runs on the default for its model's provider. */
         modelConnectionId: text('model_connection_id'),
+        /** Counts full resets; a Drive push from a run of an earlier generation is refused. */
+        resetGeneration: integer('reset_generation').notNull().default(0),
         retiredAt: timestamp('retired_at', { withTimezone: true }),
         /** One fully qualified emoji: the Agent's pickup reaction. Null means the default. */
         signatureEmoji: text('signature_emoji'),

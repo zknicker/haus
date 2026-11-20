@@ -1,4 +1,4 @@
-import { and, eq, isNull, lt, ne } from 'drizzle-orm';
+import { and, eq, isNull, ne } from 'drizzle-orm';
 import type { AgentDelivery } from '../../agent-delivery/delivery.ts';
 import type { ArtifactAccess } from '../../artifacts/access.ts';
 import { lockLiveServer } from '../../artifacts/move.ts';
@@ -54,26 +54,12 @@ export async function requireOpenPush(tx: HausDatabase, access: PushAgentAccess,
 }
 
 export async function requireRunSinceReset(tx: HausDatabase, push: DrivePush) {
-    const [stale] = await tx
-        .select({ runId: agentRunTriggersTable.runId })
-        .from(agentRunTriggersTable)
-        .innerJoin(
-            agentsTable,
-            and(
-                eq(agentsTable.serverId, agentRunTriggersTable.serverId),
-                eq(agentsTable.id, agentRunTriggersTable.agentId)
-            )
-        )
-        .where(
-            and(
-                eq(agentRunTriggersTable.serverId, push.serverId),
-                eq(agentRunTriggersTable.agentId, push.agentId),
-                eq(agentRunTriggersTable.runId, push.id),
-                lt(agentRunTriggersTable.createdAt, agentsTable.fullResetAt)
-            )
-        )
+    const [agent] = await tx
+        .select({ resetGeneration: agentsTable.resetGeneration })
+        .from(agentsTable)
+        .where(and(eq(agentsTable.serverId, push.serverId), eq(agentsTable.id, push.agentId)))
         .limit(1);
-    if (stale) {
+    if (agent && agent.resetGeneration !== push.resetGeneration) {
         throw new ArtifactError(
             `A full reset replaced run \`${push.id}\`, so its push writes nothing.`,
             409,
@@ -130,6 +116,7 @@ async function openPushIn(
         .values({
             agentId,
             id: pushId,
+            resetGeneration: trigger.resetGeneration,
             serverId: access.serverId,
             taskId: await runTask(tx, trigger),
         })

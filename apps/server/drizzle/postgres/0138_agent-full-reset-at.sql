@@ -1,1 +1,0 @@
-ALTER TABLE "agents" ADD COLUMN "full_reset_at" timestamp with time zone;

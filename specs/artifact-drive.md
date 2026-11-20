@@ -321,9 +321,12 @@ it.
 
 The Server records each file's outcome under the push id. A push closes on `close`, or when the
 same writer opens its next push, so a machine that crashed mid-push still reaches the Agent.
-A full reset stamps the Agent's `full_reset_at`. A put or delete under a push whose run was
-dispatched before that stamp is refused with `AGENT_RESET`, so a turn the reset interrupted cannot
-revive a deleted file or add one to the reseeded area. Those refusals stay out of the push's
+A full reset increments the Agent's `reset_generation` under the Server lock. Each dispatched run
+records the generation it was dispatched in (`agent_run_triggers.reset_generation`), and its push
+copies it (`drive_pushes.reset_generation`). A put or delete under a push whose generation is not
+the Agent's current one is refused with `AGENT_RESET`, so a turn the reset interrupted cannot
+revive a deleted file or add one to the reseeded area. The comparison is by counter, not by time,
+because a transaction's `now()` is its start, not the moment it took the lock. Those refusals stay out of the push's
 `drive_conflict` item. Closing twice changes nothing. A new request for a closed push fails with `PUSH_CLOSED`, and the
 machine sends that file in its next push. On close, a push with any `kept_both`, `kept_edit`, or
 `refused` outcome queues one `drive_conflict` item ([Agent inbox](inbox.md)). A Worker's item goes

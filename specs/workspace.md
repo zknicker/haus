@@ -230,7 +230,7 @@ and host import) land in the folder, and the turn-end push publishes them.
 The local root survives ordinary idle periods, Computer restarts, model or
 runtime changes, and session reset. Session reset creates fresh model context
 without erasing the workspace or the area. Full reset starts on the Server: `agent.reset` deletes
-every live file under `agents/<handle>/` and stamps `agents.full_reset_at` in the same transaction
+every live file under `agents/<handle>/` and increments `agents.reset_generation` in the same transaction
 that revokes the active run's credentials and rotates the session, so a reset that fails leaves
 all of it as it was. The files stay restorable from Recently deleted for
 `driveDeletedRetentionDays`. The Computer then discards the push of any turn the reset interrupted,

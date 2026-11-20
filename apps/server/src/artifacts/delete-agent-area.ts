@@ -13,7 +13,7 @@ export async function deleteAgentAreaIn(
     await lockLiveServer(tx, input.serverId);
     const [agent] = await tx
         .update(agentsTable)
-        .set({ fullResetAt: sql`now()` })
+        .set({ resetGeneration: sql`${agentsTable.resetGeneration} + 1` })
         .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
         .returning({ handle: agentsTable.handle, id: agentsTable.id });
     if (!agent) {
