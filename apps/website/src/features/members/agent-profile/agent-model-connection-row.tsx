@@ -14,6 +14,9 @@ import {
 
 export function AgentModelConnectionRow({ agent, canEdit }: { agent: Agent; canEdit: boolean }) {
     const connections = useModelConnections(agent.serverId);
+    if (!(connections.error || connections.data?.agentLoop === 'runner')) {
+        return null;
+    }
 
     return (
         <ItemCard>

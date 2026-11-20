@@ -55,3 +55,22 @@ test('a connections read that failed reads as an alert under the row title', () 
         '<div class="item-card__content" data-slot="item-card-content"><span class="item-card__title" data-slot="item-card-title">Connection</span><p class="text-danger mt-1 text-sm" data-selectable-text="" role="alert">The Server is unreachable.</p></div>'
     );
 });
+
+function rowWithList(agentLoop: 'computer' | 'runner') {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
+    queryClient.setQueryData(
+        getQueryKey(hausTrpc.modelConnections.list, { serverId: 'srv_1' }, 'query'),
+        { agentLoop, connections: [] }
+    );
+    return renderWithTrpc(
+        <MemoryRouter>
+            <AgentModelConnectionRow agent={testAgent({ serverId: 'srv_1' })} canEdit />
+        </MemoryRouter>,
+        queryClient
+    );
+}
+
+test('a Captain on its Device has no Connection row; on the runner it does', () => {
+    expect(rowWithList('computer')).toBe('');
+    expect(rowWithList('runner')).toContain('>Connection</span>');
+});
