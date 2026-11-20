@@ -1,4 +1,3 @@
-import { Sidebar } from '@heroui-pro/react';
 import { Badge, Tooltip } from '@heroui/react';
 import * as React from 'react';
 import { Link } from 'react-router-dom';
@@ -8,9 +7,11 @@ import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.ts';
 import { cn } from '../../lib/utils.ts';
 import { serverAgentDmRoute, serverChatRoute } from '../servers/server-routes.ts';
+import { ChatGroup } from '../shell/chat-navigation-group.tsx';
 import { useCaptainTile } from './use-capy-sidebar-rows.ts';
 
-const tileAvatarSize = 32;
+const tileAvatarSize = 34;
+const tileSize = 44;
 
 export function CaptainTiles({
     agentDmChatIds,
@@ -28,9 +29,8 @@ export function CaptainTiles({
     slug: string;
 }) {
     return (
-        <Sidebar.Group>
-            <Sidebar.GroupLabel>Captains</Sidebar.GroupLabel>
-            <ul aria-label="Captains" className="flex flex-wrap gap-1 px-1">
+        <ChatGroup label="Captains">
+            <ul aria-label="Captains" className="flex flex-wrap gap-x-0.5 ps-[2px]">
                 {agentIds.map((agentId) => (
                     <li key={agentId}>
                         <CaptainTileLink
@@ -47,7 +47,7 @@ export function CaptainTiles({
                     </li>
                 ))}
             </ul>
-        </Sidebar.Group>
+        </ChatGroup>
     );
 }
 
@@ -85,12 +85,13 @@ const CaptainTileLink = React.memo(function CaptainTileLink({
                     aria-current={isCurrent ? 'page' : undefined}
                     aria-label={label}
                     className={cn(
-                        'hover:bg-default flex size-10 cursor-[var(--cursor-interactive)] items-center justify-center rounded-xl',
+                        'hover:bg-default flex cursor-[var(--cursor-interactive)] items-center justify-center rounded-xl',
                         isCurrent && 'bg-default'
                     )}
                     onFocus={preload}
                     onMouseEnter={preload}
                     ref={pressRef}
+                    style={{ height: tileSize, width: tileSize }}
                     to={href}
                 >
                     <Badge.Anchor style={{ height: tileAvatarSize, width: tileAvatarSize }}>

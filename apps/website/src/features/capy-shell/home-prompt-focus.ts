@@ -1,28 +1,32 @@
 import * as React from 'react';
 
-let requests = 0;
+let pending = false;
 const listeners = new Set<() => void>();
 
 export function requestHomePromptFocus() {
-    requests += 1;
+    setPending(true);
+}
+
+export function useHomePromptFocusRequests(focus: () => void) {
+    const isPending = React.useSyncExternalStore(subscribe, readPending, readPending);
+    React.useEffect(() => {
+        if (!isPending) {
+            return;
+        }
+        setPending(false);
+        requestAnimationFrame(focus);
+    }, [isPending, focus]);
+}
+
+function setPending(next: boolean) {
+    pending = next;
     for (const listener of listeners) {
         listener();
     }
 }
 
-export function useHomePromptFocusRequests(focus: () => void) {
-    const count = React.useSyncExternalStore(subscribe, readRequests, readRequests);
-    const seen = React.useRef(count);
-    React.useEffect(() => {
-        if (count !== seen.current) {
-            seen.current = count;
-            focus();
-        }
-    }, [count, focus]);
-}
-
-function readRequests() {
-    return requests;
+function readPending() {
+    return pending;
 }
 
 function subscribe(listener: () => void) {

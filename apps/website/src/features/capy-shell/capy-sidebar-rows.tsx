@@ -64,7 +64,7 @@ export const ProjectNavigationRow = React.memo(function ProjectNavigationRow({
                         {row.name}
                     </Sidebar.MenuLabel>
                     {row.captainIds.value.length > 0 ? (
-                        <span aria-hidden="true" className="flex shrink-0 -space-x-1">
+                        <span aria-hidden="true" className="flex shrink-0 gap-[2px]">
                             {row.captainIds.value.slice(0, projectCaptainLimit).map((agentId) => (
                                 <CaptainFace agentId={agentId} key={agentId} serverId={serverId} />
                             ))}
@@ -141,7 +141,7 @@ export const PersonNavigationRow = React.memo(function PersonNavigationRow({
             textValue={row.name}
         >
             <Sidebar.MenuIcon>
-                <EntityAvatar name={row.name} size={20} src={row.avatarUrl} />
+                <EntityAvatar name={row.name} size={24} src={row.avatarUrl} />
             </Sidebar.MenuIcon>
             <Sidebar.MenuItemContent>
                 <Sidebar.MenuLabel

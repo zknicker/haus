@@ -117,7 +117,7 @@ function ProjectPicker({
                 <span className="truncate text-sm">{project?.name ?? 'Project'}</span>
                 <InlineSelect.Indicator />
             </InlineSelect.Trigger>
-            <InlineSelect.Popover className="w-56" placement="bottom start">
+            <InlineSelect.Popover className="w-64" placement="bottom start">
                 <ListBox>
                     {projects.map((entry) => (
                         <ListBox.Item id={entry.id} key={entry.id} textValue={entry.name ?? ''}>
