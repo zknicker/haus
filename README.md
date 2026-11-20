@@ -30,31 +30,41 @@ shape instead of a second protocol package.
 
 ## Development
 
+Prerequisites: Bun `1.4.4` (root `packageManager` pin), PostgreSQL 16 binaries,
+and `versitygw` on `PATH`. On macOS:
+
+```bash
+brew install postgresql@16 versitygw
+```
+
+Do not start a system PostgreSQL service; the stack owns its cluster.
+
 Install dependencies:
 
 ```bash
 bun run setup:worktree
 ```
 
-The setup keeps lifecycle scripts disabled, installs the frozen Bun dependency
-graph, and explicitly downloads the pinned HeroUI React Pro artifacts. Both
-licensed registry credentials it needs resolve from 1Password through the
-committed `.env.schema`; there is no `.env` step. See
-[docs/operations/environment.md](docs/operations/environment.md).
+That installs the frozen Bun graph with lifecycle scripts disabled, then
+downloads the pinned HeroUI React Pro artifacts. Licensed registry credentials
+resolve from 1Password through the committed `.env.schema`; there is no `.env`
+step. See [docs/operations/environment.md](docs/operations/environment.md).
 
-Run the full local stack:
+Run the local stack:
 
 ```bash
 bun run dev
 ```
 
-`bun run dev` starts PostgreSQL, Haus Server, Haus Computer, and the App dev
-server; `bun run dev-app` adds the Electron shell.
+This starts PostgreSQL, Files storage, Haus Server, Haus Computer, and the App
+dev server. The Services banner prints the Website, Server, and Computer URLs
+for this worktree — read those instead of assuming fixed ports. `bun run
+dev-app` runs the same stack in the Electron shell.
 
-Dev state is isolated under the worktree-specific Haus dev root.
+Dev state lives under `~/.haus/dev/<worktree-id>/`. Ports come from the
+worktree path so multiple checkouts can run at once.
 
-Local dev ports are derived from the worktree path so multiple worktrees can run
-at once. Use `dev-port` to inspect the assigned port group.
+Full workflow: [docs/operations/development.md](docs/operations/development.md).
 
 ## Desktop Build
 
