@@ -61,13 +61,11 @@ projects its own entry through `features/capy-shell/sidebar-model.ts` from a nar
 
 ## Home's send path
 
-`HomeSendPaths` in `features/capy-shell/home-send.ts` names both paths. The live path,
-`channel-mention`, posts the ask in the Project's channel as a message that @mentions the Captain,
-through the channel composer's optimistic send (pending row, receipt, and a failed send returned
-to that channel's composer), and opens the channel. J2 switches Home to `create-task`: a Task in
-that Project assigned to that Captain. `planHomeTask` (`home-task-plan.ts`) already builds the
-`task.create` input; once J2's `task.create` is on main, the swap is one change to `useHomeSend`
-(`use-home-send.ts`).
+Sending creates a Task with J2's `task.create`: in the chosen Project, assigned to the chosen
+Captain. The first line of the ask is the title (cut to 200 characters) and the rest is the
+description (`planHomeTask` in `features/capy-shell/home-send.ts`). `useHomeSend` creates the
+Task and then opens its page. While the create is in flight the composer shows its submitted
+state, and a failed create keeps the text and shows the error under the composer.
 
 ## Retiring the flag
 

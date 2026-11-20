@@ -1,43 +1,37 @@
 import { expect, test } from 'bun:test';
-import { defaultCaptainId, planHomeSend } from './home-send.ts';
+import { defaultCaptainId, planHomeTask } from './home-send.ts';
 
-test('a Home ask posts in the Project channel @mentioning its Captain', () => {
+const captain = { agentId: 'forge', name: 'Forge' };
+
+test('a Home ask becomes a Task in its Project for its Captain, first line as title', () => {
     expect(
-        planHomeSend({
-            captain: { agentId: 'agent:forge', name: 'Forge' },
-            projectChatId: 'eng',
-            text: '  Fix the composer fonts on Windows  ',
+        planHomeTask({
+            captain,
+            projectChatId: 'cht_eng',
+            text: ' Fix composer fonts \nThey fall back to Arial on Windows. ',
         })
     ).toEqual({
-        chatId: 'eng',
-        content: '[@Forge](agent://agent%3Aforge) Fix the composer fonts on Windows',
-        draft: {
-            attachments: [],
-            content: '@Forge Fix the composer fonts on Windows',
-            mentions: [
-                {
-                    end: 6,
-                    id: 'agent://agent%3Aforge',
-                    kind: 'agent',
-                    label: 'Forge',
-                    projection: 'agent-reference',
-                    start: 0,
-                    text: '@Forge',
-                },
-            ],
-        },
-        path: 'channel-mention',
+        assigneeAgentId: 'forge',
+        description: 'They fall back to Arial on Windows.',
+        projectId: 'cht_eng',
+        title: 'Fix composer fonts',
     });
 });
 
-test('an empty ask sends nothing', () => {
-    expect(
-        planHomeSend({
-            captain: { agentId: 'forge', name: 'Forge' },
-            projectChatId: 'eng',
-            text: ' \n ',
-        })
-    ).toBeNull();
+test('a one-line ask has no description, and an empty ask plans nothing', () => {
+    expect(planHomeTask({ captain, projectChatId: 'cht_eng', text: 'Ship it' })).toEqual({
+        assigneeAgentId: 'forge',
+        projectId: 'cht_eng',
+        title: 'Ship it',
+    });
+    expect(planHomeTask({ captain, projectChatId: 'cht_eng', text: ' \n ' })).toBeNull();
+});
+
+test('a first line longer than a title keeps the whole ask as the description', () => {
+    const long = 'x'.repeat(250);
+    const plan = planHomeTask({ captain, projectChatId: 'cht_eng', text: long });
+    expect(plan?.title.length).toBe(200);
+    expect(plan?.description).toBe(long);
 });
 
 test("the Captain defaults to the Project's Captain, else the Server's first", () => {

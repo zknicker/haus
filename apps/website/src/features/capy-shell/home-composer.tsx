@@ -33,13 +33,7 @@ export function HomeComposer({
     useHomePromptFocusRequests(focusPrompt);
 
     const project = projects.find((entry) => entry.id === projectId) ?? projects[0];
-    const captainId =
-        pickedCaptainId ??
-        defaultCaptainId(
-            project?.participantAgentIds ?? [],
-            captains.map((captain) => captain.id)
-        );
-    const captain = captains.find((entry) => entry.id === captainId);
+    const captain = resolveCaptain(captains, project, pickedCaptainId);
     const ask =
         project && captain && text.trim().length > 0
             ? {
@@ -49,110 +43,39 @@ export function HomeComposer({
               }
             : null;
 
-    const submit = () => {
-        if (ask && sendHome(ask)) {
-            setText('');
-        }
-    };
-
     return (
         <div className="flex w-full flex-col gap-2">
             <div className="flex items-center gap-1">
-                <InlineSelect
-                    aria-label="Project"
-                    onChange={(next) => {
-                        if (next !== null) {
-                            setProjectId(String(next));
-                            setPickedCaptainId(null);
-                        }
+                <ProjectPicker
+                    onChange={(id) => {
+                        setProjectId(id);
+                        setPickedCaptainId(null);
                     }}
-                    value={project?.id ?? null}
-                >
-                    <InlineSelect.Trigger className="gap-1.5">
-                        {project ? (
-                            <ChannelIconBox
-                                color={project.color}
-                                icon={project.icon}
-                                size="inline"
-                            />
-                        ) : null}
-                        <span className="truncate text-sm">{project?.name ?? 'Project'}</span>
-                        <InlineSelect.Indicator />
-                    </InlineSelect.Trigger>
-                    <InlineSelect.Popover className="w-56" placement="bottom start">
-                        <ListBox>
-                            {projects.map((entry) => (
-                                <ListBox.Item
-                                    id={entry.id}
-                                    key={entry.id}
-                                    textValue={entry.name ?? ''}
-                                >
-                                    <ChannelIconBox
-                                        color={entry.color}
-                                        icon={entry.icon}
-                                        size="inline"
-                                    />
-                                    <Label>{entry.name}</Label>
-                                    <ListBox.ItemIndicator />
-                                </ListBox.Item>
-                            ))}
-                        </ListBox>
-                    </InlineSelect.Popover>
-                </InlineSelect>
-                <InlineSelect
-                    aria-label="Captain"
-                    onChange={(next) => {
-                        if (next !== null) {
-                            setPickedCaptainId(String(next));
-                        }
-                    }}
-                    value={captain?.id ?? null}
-                >
-                    <InlineSelect.Trigger className="gap-1.5">
-                        {captain ? (
-                            <EntityAvatar
-                                name={captain.displayName}
-                                size={18}
-                                src={captain.avatarUrl}
-                            />
-                        ) : null}
-                        <span className="truncate text-sm">
-                            {captain?.displayName ?? 'Captain'}
-                        </span>
-                        <InlineSelect.Indicator />
-                    </InlineSelect.Trigger>
-                    <InlineSelect.Popover className="w-56" placement="bottom start">
-                        <ListBox>
-                            {captains.map((entry) => (
-                                <ListBox.Item
-                                    id={entry.id}
-                                    key={entry.id}
-                                    textValue={entry.displayName}
-                                >
-                                    <EntityAvatar
-                                        name={entry.displayName}
-                                        size={20}
-                                        src={entry.avatarUrl}
-                                    />
-                                    <Label>{entry.displayName}</Label>
-                                    <ListBox.ItemIndicator />
-                                </ListBox.Item>
-                            ))}
-                        </ListBox>
-                    </InlineSelect.Popover>
-                </InlineSelect>
+                    project={project}
+                    projects={projects}
+                />
+                <CaptainPicker
+                    captain={captain}
+                    captains={captains}
+                    onChange={setPickedCaptainId}
+                />
             </div>
-            <PromptInput onSubmit={submit} onValueChange={setText} value={text}>
+            <PromptInput
+                onSubmit={() => {
+                    if (ask) {
+                        sendHome.send(ask, () => setText(''));
+                    }
+                }}
+                onValueChange={setText}
+                status={sendHome.isPending ? 'submitted' : 'ready'}
+                value={text}
+            >
                 <PromptInput.Shell>
                     <PromptInput.Content>
                         <PromptInput.TextArea
                             aria-label="Ask a Captain"
                             autoFocus
-                            placeholder={
-                                captain
-                                    ? `What should ${captain.displayName} work on?`
-                                    : 'What should we work on?'
-                            }
+                            placeholder={`What should ${captain?.displayName ?? 'we'} work on?`}
                             ref={textAreaRef}
                         />
                     </PromptInput.Content>
@@ -163,6 +86,107 @@ export function HomeComposer({
                     </PromptInput.Toolbar>
                 </PromptInput.Shell>
             </PromptInput>
+            {sendHome.error ? <p className="text-danger text-sm">{sendHome.error}</p> : null}
         </div>
     );
+}
+
+function ProjectPicker({
+    onChange,
+    project,
+    projects,
+}: {
+    onChange: (projectId: string) => void;
+    project: HomeProject | undefined;
+    projects: readonly HomeProject[];
+}) {
+    return (
+        <InlineSelect
+            aria-label="Project"
+            onChange={(next) => {
+                if (next !== null) {
+                    onChange(String(next));
+                }
+            }}
+            value={project?.id ?? null}
+        >
+            <InlineSelect.Trigger className="gap-1.5">
+                {project ? (
+                    <ChannelIconBox color={project.color} icon={project.icon} size="inline" />
+                ) : null}
+                <span className="truncate text-sm">{project?.name ?? 'Project'}</span>
+                <InlineSelect.Indicator />
+            </InlineSelect.Trigger>
+            <InlineSelect.Popover className="w-56" placement="bottom start">
+                <ListBox>
+                    {projects.map((entry) => (
+                        <ListBox.Item id={entry.id} key={entry.id} textValue={entry.name ?? ''}>
+                            <ChannelIconBox color={entry.color} icon={entry.icon} size="inline" />
+                            <Label>{entry.name}</Label>
+                            <ListBox.ItemIndicator />
+                        </ListBox.Item>
+                    ))}
+                </ListBox>
+            </InlineSelect.Popover>
+        </InlineSelect>
+    );
+}
+
+function CaptainPicker({
+    captain,
+    captains,
+    onChange,
+}: {
+    captain: HomeCaptain | undefined;
+    captains: readonly HomeCaptain[];
+    onChange: (captainId: string) => void;
+}) {
+    return (
+        <InlineSelect
+            aria-label="Captain"
+            onChange={(next) => {
+                if (next !== null) {
+                    onChange(String(next));
+                }
+            }}
+            value={captain?.id ?? null}
+        >
+            <InlineSelect.Trigger className="gap-1.5">
+                {captain ? (
+                    <EntityAvatar name={captain.displayName} size={18} src={captain.avatarUrl} />
+                ) : null}
+                <span className="truncate text-sm">{captain?.displayName ?? 'Captain'}</span>
+                <InlineSelect.Indicator />
+            </InlineSelect.Trigger>
+            <InlineSelect.Popover className="w-56" placement="bottom start">
+                <ListBox>
+                    {captains.map((entry) => (
+                        <ListBox.Item id={entry.id} key={entry.id} textValue={entry.displayName}>
+                            <EntityAvatar
+                                name={entry.displayName}
+                                size={20}
+                                src={entry.avatarUrl}
+                            />
+                            <Label>{entry.displayName}</Label>
+                            <ListBox.ItemIndicator />
+                        </ListBox.Item>
+                    ))}
+                </ListBox>
+            </InlineSelect.Popover>
+        </InlineSelect>
+    );
+}
+
+function resolveCaptain(
+    captains: readonly HomeCaptain[],
+    project: HomeProject | undefined,
+    pickedCaptainId: string | null
+) {
+    const id =
+        pickedCaptainId ??
+        defaultCaptainId(
+            project?.participantAgentIds ?? [],
+            captains.map((captain) => captain.id)
+        );
+    return captains.find((captain) => captain.id === id);
 }
