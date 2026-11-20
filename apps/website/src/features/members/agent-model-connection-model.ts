@@ -16,7 +16,7 @@ export function agentConnectionChoice(
 ) {
     const provider = modelProviderFor(agent.desiredModelId);
     const options = providerConnections(provider, connections);
-    const [first] = options;
+    const first = options.find((connection) => connection.enabled) ?? options[0];
     if (!first) {
         return { kind: 'none' as const, provider, providerName: modelProviderNames[provider] };
     }
@@ -41,8 +41,11 @@ export function agentConnectionIssue(
     const provider = modelProviderFor(agent.desiredModelId);
     const providerName = modelProviderNames[provider];
     const options = providerConnections(provider, read.connections);
-    const resolved =
-        options.find((connection) => connection.id === agent.modelConnectionId) ?? options[0];
+    const pinned = options.find((connection) => connection.id === agent.modelConnectionId);
+    if (pinned && !pinned.enabled) {
+        return { connection: pinned, kind: 'disabled' as const, providerName };
+    }
+    const resolved = pinned ?? options.find((connection) => connection.enabled);
     if (!resolved) {
         return { kind: 'missing' as const, providerName };
     }
@@ -52,6 +55,23 @@ export function agentConnectionIssue(
 }
 
 export type AgentConnectionIssue = NonNullable<ReturnType<typeof agentConnectionIssue>>;
+
+export const connectionIssueFix: Record<AgentConnectionIssue['kind'], string> = {
+    disabled: 'Turn it on in Settings → Models',
+    failed: 'Reconnect in Settings → Models',
+    missing: 'Connect one in Settings → Models',
+};
+
+export function connectionIssueTitle(issue: AgentConnectionIssue) {
+    switch (issue.kind) {
+        case 'disabled':
+            return `${issue.connection.label} is turned off`;
+        case 'failed':
+            return `${issue.providerName} connection failed`;
+        case 'missing':
+            return `No ${issue.providerName} connection`;
+    }
+}
 
 export function connectionIdForKey(key: unknown) {
     return key === defaultConnectionKey || typeof key !== 'string' ? null : key;

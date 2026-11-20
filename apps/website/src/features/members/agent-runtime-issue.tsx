@@ -6,7 +6,12 @@ import { useModelConnections } from '../../hooks/servers/use-model-connections.t
 import { computerLabel } from '../computers/presentation.ts';
 import { agentRuntimeIssue, runtimeIssueLabel } from '../computers/runtime-issue-model.ts';
 import { serverComputerRoute, serverSettingsSectionRoute } from '../servers/server-routes.ts';
-import { type AgentConnectionIssue, agentConnectionIssue } from './agent-model-connection-model.ts';
+import {
+    type AgentConnectionIssue,
+    agentConnectionIssue,
+    connectionIssueFix,
+    connectionIssueTitle,
+} from './agent-model-connection-model.ts';
 import { AgentWakePauseAlert } from './agent-wake-pause-alert.tsx';
 
 /**
@@ -72,19 +77,12 @@ function AgentConnectionAlert({
     issue: AgentConnectionIssue;
     slug: string | undefined;
 }) {
-    const fix =
-        issue.kind === 'failed'
-            ? 'Reconnect in Settings → Models'
-            : 'Connect one in Settings → Models';
+    const fix = connectionIssueFix[issue.kind];
     return (
         <Alert status="warning">
             <Alert.Indicator />
             <Alert.Content>
-                <Alert.Title>
-                    {issue.kind === 'failed'
-                        ? `${issue.providerName} connection failed`
-                        : `No ${issue.providerName} connection`}
-                </Alert.Title>
+                <Alert.Title>{connectionIssueTitle(issue)}</Alert.Title>
                 <Alert.Description>
                     {issue.kind === 'failed'
                         ? `${issue.connection.label}: ${issue.connection.statusDetail ?? 'the provider refused it.'} `

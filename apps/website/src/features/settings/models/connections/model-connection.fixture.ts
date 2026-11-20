@@ -4,6 +4,7 @@ export function testConnection(overrides: Partial<ModelConnection> = {}) {
     return {
         authKind: 'setup-token',
         capacity: null,
+        enabled: true,
         id: 'mcn_claude',
         isDefault: true,
         label: 'Claude plan',

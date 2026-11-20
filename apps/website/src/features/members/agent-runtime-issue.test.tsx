@@ -71,3 +71,20 @@ test('on the runner a paused Agent with no connection shows both the fix and Res
     expect(html).toContain('data-testid="agent-wake-pause"');
     expect(html).toContain('>Restart</button>');
 });
+
+test('a Captain pinned to a turned-off connection names it and links to turn it on', () => {
+    const html = renderProfileWarning(
+        [
+            testConnection({
+                authKind: 'oauth',
+                enabled: false,
+                id: 'mcn_grok',
+                label: 'SuperGrok',
+                provider: 'xai',
+            }),
+        ],
+        { agent: testAgent({ desiredModelId: 'grok-4', modelConnectionId: 'mcn_grok', serverId }) }
+    );
+    expect(html).toContain('>SuperGrok is turned off<');
+    expect(html).toContain('>Turn it on in Settings → Models<');
+});

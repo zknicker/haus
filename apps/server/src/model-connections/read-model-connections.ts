@@ -17,6 +17,7 @@ const statusColumns = {
     authKind: modelConnectionsTable.authKind,
     capacity: modelConnectionsTable.capacity,
     capacityReadAt: modelConnectionsTable.capacityReadAt,
+    enabled: modelConnectionsTable.enabled,
     id: modelConnectionsTable.id,
     label: modelConnectionsTable.label,
     position: modelConnectionsTable.position,
@@ -96,6 +97,7 @@ function toModelConnection({
     authKind: ModelConnection['authKind'];
     capacity: ModelConnection['capacity'];
     capacityReadAt: Date | null;
+    enabled: boolean;
     id: string;
     label: string;
     position: number;

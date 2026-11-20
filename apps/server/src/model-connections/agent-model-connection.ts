@@ -31,7 +31,8 @@ export async function resolveModelConnection(
             and(
                 eq(agentsTable.serverId, input.serverId),
                 eq(agentsTable.id, input.agentId),
-                eq(modelConnectionsTable.provider, provider)
+                eq(modelConnectionsTable.provider, provider),
+                eq(modelConnectionsTable.enabled, true)
             )
         )
         .limit(1);
@@ -44,7 +45,8 @@ export async function resolveModelConnection(
         .where(
             and(
                 eq(modelConnectionsTable.serverId, input.serverId),
-                eq(modelConnectionsTable.provider, provider)
+                eq(modelConnectionsTable.provider, provider),
+                eq(modelConnectionsTable.enabled, true)
             )
         )
         .orderBy(asc(modelConnectionsTable.position), asc(modelConnectionsTable.createdAt))

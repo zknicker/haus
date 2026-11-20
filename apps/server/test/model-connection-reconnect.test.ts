@@ -61,6 +61,7 @@ describe('replaceCredential', () => {
         expect(replaced).toEqual({
             authKind: 'setup-token',
             capacity: null,
+            enabled: true,
             id: team.id,
             isDefault: false,
             label: 'Team plan',

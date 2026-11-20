@@ -4,6 +4,7 @@ import { testConnection } from '../settings/models/connections/model-connection.
 import {
     agentConnectionChoice,
     agentConnectionIssue,
+    connectionIssueTitle,
     connectionIdForKey,
 } from './agent-model-connection-model.ts';
 
@@ -113,6 +114,29 @@ test("an Agent whose own connection is gone runs on the provider's default witho
             onRunner([failedTeam])
         )
     ).toEqual({ connection: failedTeam, kind: 'failed', providerName: 'Claude' });
+});
+
+test('a Captain pinned to a turned-off connection warns by its label; an unpinned one skips it', () => {
+    const offSide = { ...claudeSide, enabled: false };
+    const pinned = agentConnectionIssue(
+        { desiredModelId: 'claude-sonnet-4-5', modelConnectionId: 'mcn_side' },
+        onRunner([claudeTeam, offSide])
+    );
+    expect(pinned).toEqual({ connection: offSide, kind: 'disabled', providerName: 'Claude' });
+    expect(pinned && connectionIssueTitle(pinned)).toBe('Side plan is turned off');
+    const offTeam = { ...claudeTeam, enabled: false };
+    expect(
+        agentConnectionIssue(
+            { desiredModelId: 'claude-sonnet-4-5', modelConnectionId: null },
+            onRunner([offTeam, claudeSide])
+        )
+    ).toBeNull();
+    expect(
+        agentConnectionIssue(
+            { desiredModelId: 'claude-sonnet-4-5', modelConnectionId: null },
+            onRunner([offTeam])
+        )
+    ).toEqual({ kind: 'missing', providerName: 'Claude' });
 });
 
 test('an Agent on its Computer never has a connection issue', () => {

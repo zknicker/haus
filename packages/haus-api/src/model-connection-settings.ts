@@ -17,6 +17,8 @@ export const modelConnectionSchema = z
         authKind: modelConnectionAuthKindSchema,
         /** The plan's capacity windows that have not reset yet, or null when the runner has not read them in the last 6 hours. */
         capacity: z.array(modelConnectionCapacityWindowSchema).nullable(),
+        /** Off leaves the connection stored but out of resolution and out of the runner's snapshot. */
+        enabled: z.boolean(),
         id: idSchema,
         isDefault: z.boolean(),
         label: modelConnectionLabelSchema,
@@ -96,6 +98,11 @@ export const modelConnectionSetWebSearchInputSchema = z
 export type ModelConnectionSetWebSearchInput = z.infer<
     typeof modelConnectionSetWebSearchInputSchema
 >;
+
+export const modelConnectionSetEnabledInputSchema = z
+    .object({ connectionId: idSchema, enabled: z.boolean(), serverId: idSchema })
+    .strict();
+export type ModelConnectionSetEnabledInput = z.infer<typeof modelConnectionSetEnabledInputSchema>;
 
 /** With `replaceConnectionId`, the signed-in credential replaces that connection's in place instead of adding one. */
 export const modelSignInStartInputSchema = z

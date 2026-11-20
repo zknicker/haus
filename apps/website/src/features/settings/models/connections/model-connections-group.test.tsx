@@ -1,109 +1,173 @@
-import { expect, test } from 'bun:test';
+import { describe, expect, test } from 'bun:test';
 import type { ModelConnection } from '@haus/api';
+import { installRealtimeTestDom } from '../../../../test-support/realtime-stream-harness.tsx';
+import { mountCallHook } from '../../../../test-support/trpc-call-harness.tsx';
 import { renderWithTrpc } from '../../../../test-support/trpc-test-provider.tsx';
+import { connectionRows } from './connections-table-model.ts';
 import { testConnection } from './model-connection.fixture.ts';
-import { ModelConnectionProviders } from './model-connections-group.tsx';
+import { ModelConnectionsTable } from './model-connections-group.tsx';
+import { useConnectionTableActions } from './use-connection-table-actions.ts';
 
-const claude = testConnection({ id: 'mcn_team', label: 'Team plan' });
+installRealtimeTestDom();
+
+const now = Date.parse('2026-11-20T12:00:00.000Z');
+const team = testConnection({
+    capacity: [
+        {
+            id: 'current-session',
+            label: '5-hour',
+            resetsAt: '2026-11-20T15:00:00.000Z',
+            usedPercent: 42,
+        },
+        {
+            id: 'current-week-all-models',
+            label: 'Weekly',
+            resetsAt: '2026-11-23T12:00:00.000Z',
+            usedPercent: 81.6,
+        },
+    ],
+    id: 'mcn_team',
+    label: 'Team plan',
+});
 const gemini = testConnection({
     authKind: 'api-key',
     id: 'mcn_gemini',
-    label: 'Gemini API key',
+    label: 'Gemini key',
     provider: 'gemini',
-    status: 'failed',
-    statusDetail: 'API key not valid.',
     webSearch: true,
 });
+const failedGemini = { ...gemini, status: 'failed' as const, statusDetail: 'API key not valid.' };
 
-function render(connections: ModelConnection[], isOwner: boolean) {
+function render(connections: ModelConnection[], isOwner = true) {
     return renderWithTrpc(
-        <ModelConnectionProviders connections={connections} isOwner={isOwner} serverId="srv_1" />
+        <ModelConnectionsTable
+            connections={connections}
+            isOwner={isOwner}
+            now={now}
+            rows={connectionRows(connections)}
+            serverId="srv_1"
+        />
     );
-}
-
-function headings(html: string) {
-    return [
-        ...html.matchAll(
-            /data-slot="item-card-content"><span class="item-card__title" data-slot="item-card-title">([^<]+)</gu
-        ),
-    ].map((match) => match[1]);
 }
 
 function count(html: string, text: string) {
     return html.split(text).length - 1;
 }
 
-test('one card per provider in product order, empty ones included', () => {
-    expect(headings(render([gemini, claude], false))).toEqual([
-        'Claude',
-        'ChatGPT',
-        'xAI',
-        'Gemini',
-        'OpenRouter',
-    ]);
+function cellTexts(html: string) {
+    return [...html.matchAll(/<td[^>]*>(.*?)<\/td>/gu)]
+        .map((match) => (match[1] ?? '').replaceAll(/<[^>]+>/gu, '').trim())
+        .filter(Boolean);
+}
+
+describe('the connections table', () => {
+    test('counts its accounts in the header, and reads none when empty', () => {
+        expect(render([team])).toContain('>1 connection</');
+        expect(render([team, gemini])).toContain('>2 connections</');
+        expect(render([])).toContain('>No connections</');
+        expect(render([])).not.toContain('role="grid"');
+    });
+
+    test('a row reads its logo tile, label, provider, what is left of each window, and the soonest reset', () => {
+        const html = render([team]);
+        expect(html).toContain('https://svgl.app/library/anthropic_black.svg');
+        expect(html).toContain('border-radius:calc(var(--radius) * 2);height:32px;width:32px');
+        expect(cellTexts(html)).toEqual(['Team planClaude · Default', '58%', '18%', '3h']);
+        expect(html).toContain('aria-label="Team plan 5-hour left"');
+        expect(html).toContain('aria-label="Team plan Weekly left"');
+        expect(count(html, 'role="progressbar"')).toBe(2);
+    });
+
+    test('a window the runner has not read shows a dash, never 0%', () => {
+        expect(cellTexts(render([{ ...team, capacity: null, isDefault: false }]))).toEqual([
+            'Team planClaude',
+            '—',
+            '—',
+            '—',
+        ]);
+    });
+
+    test('a failed connection shows Failed in place of the bars and opens on its failure', () => {
+        const html = render([failedGemini]);
+        expect(count(html, 'role="progressbar"')).toBe(0);
+        expect(cellTexts(html)).toEqual([
+            'Gemini keyGemini · Default',
+            'Failed',
+            '—',
+            'A pasted API key. The Server keeps it encrypted and never shows it again.API key not valid.Web search',
+        ]);
+    });
+
+    test('expanding a row shows its web search switch', () => {
+        expect(render([gemini])).not.toContain('Web search for Gemini key');
+        const expanded = render([failedGemini]);
+        expect(expanded).toContain('aria-label="Web search for Gemini key"');
+        expect(expanded).toContain('A pasted API key. The Server keeps it encrypted');
+    });
+
+    test('the Owner gets Add connection, a switch and a menu on each row', () => {
+        const html = render([team, gemini]);
+        expect(count(html, 'aria-label="Add connection"')).toBe(1);
+        expect(count(html, 'aria-label="Team plan actions"')).toBe(1);
+        expect(count(html, 'aria-label="Gemini key actions"')).toBe(1);
+        expect(/<input aria-label="Use Team plan"[^>]*>/u.exec(html)?.[0]).not.toContain(
+            'disabled=""'
+        );
+    });
+
+    test('a member sees no Add connection or menus, and the switches only read', () => {
+        const html = render([team, { ...failedGemini, enabled: false }], false);
+        expect(count(html, 'aria-label="Add connection"')).toBe(0);
+        expect(count(html, ' actions"')).toBe(0);
+        const enabled = /<input aria-label="Use Team plan"[^>]*>/u.exec(html)?.[0];
+        expect(enabled).toContain('disabled=""');
+        expect(enabled).toContain('checked=""');
+        expect(/<input aria-label="Use Gemini key"[^>]*>/u.exec(html)?.[0]).not.toContain(
+            'checked=""'
+        );
+        expect(/<input aria-label="Web search for Gemini key"[^>]*>/u.exec(html)?.[0]).toContain(
+            'disabled=""'
+        );
+    });
 });
 
-test('the Owner gets Connect on every card and a menu on every row; a member gets neither', () => {
-    const owner = render([gemini, claude], true);
-    expect(count(owner, '>Connect</button>')).toBe(5);
-    expect(count(owner, 'aria-label="Team plan actions"')).toBe(1);
-    expect(count(owner, 'aria-label="Gemini API key actions"')).toBe(1);
-
-    const member = render([gemini, claude], false);
-    expect(count(member, '>Connect</button>')).toBe(0);
-    expect(count(member, ' actions"')).toBe(0);
-});
-
-test('each row reports its state, and a failure reads under it', () => {
-    const html = render([gemini, claude], false);
-    expect(html).toContain('Default · Connected');
-    expect(html).toContain('Default · Failed');
-    expect(html).toContain('API key not valid.');
-});
-
-test('web search shows on Gemini but not on Claude, and only the Owner can flip it', () => {
-    const member = render([gemini, claude], false);
-    expect(count(member, '<span class="label" data-slot="label">Web search</span>')).toBe(1);
-    expect(count(member, 'aria-label="Web search for Gemini API key"')).toBe(1);
-    expect(count(member, 'aria-label="Web search for Team plan"')).toBe(0);
-    const memberSwitch = /<input aria-label="Web search for Gemini API key"[^>]*>/u.exec(
-        member
-    )?.[0];
-    expect(memberSwitch).toContain('disabled=""');
-    expect(memberSwitch).toContain('checked=""');
-    const ownerSwitch = /<input aria-label="Web search for Gemini API key"[^>]*>/u.exec(
-        render([gemini, claude], true)
-    )?.[0];
-    expect(ownerSwitch).not.toContain('disabled=""');
-    expect(ownerSwitch).toContain('checked=""');
-});
-
-test('capacity draws a meter per window, and nothing until the runner reports it', () => {
-    expect(count(render([claude], true), 'role="progressbar"')).toBe(0);
-    const reported = render(
-        [
+describe('the table actions', () => {
+    test('the enable switch saves through setEnabled for that one connection', async () => {
+        const { harness, hook, mounted } = await mountCallHook(
+            () => useConnectionTableActions({ isOwner: true, now, serverId: 'srv_1' }),
+            () => ({ ...team, enabled: false })
+        );
+        const settled = new Promise<void>((resolve) => {
+            const stop = harness.queryClient.getMutationCache().subscribe((event) => {
+                if (event.mutation?.state.status === 'success') {
+                    stop();
+                    resolve();
+                }
+            });
+        });
+        await harness.act(async () => {
+            hook().actions.onEnabled(team, false);
+            await settled;
+        });
+        expect(harness.calls).toEqual([
             {
-                ...claude,
-                capacity: [
-                    {
-                        id: 'current-session',
-                        label: '5h',
-                        resetsAt: '2026-11-19T15:00:00.000Z',
-                        usedPercent: 42,
-                    },
-                    {
-                        id: 'current-week-all-models',
-                        label: 'Weekly',
-                        resetsAt: null,
-                        usedPercent: 81.6,
-                    },
-                ],
+                input: { connectionId: 'mcn_team', enabled: false, serverId: 'srv_1' },
+                path: 'modelConnections.setEnabled',
+                type: 'mutation',
             },
-        ],
-        true
-    );
-    expect(count(reported, 'role="progressbar"')).toBe(2);
-    expect(reported).toContain('aria-label="Team plan 5h"');
-    expect(reported).toContain('>42%<');
-    expect(reported).toContain('>82%<');
+        ]);
+        await mounted.unmount();
+    });
+
+    test('Reconnect opens the provider dialog on that connection, and Rename its rename dialog', async () => {
+        const { harness, hook, mounted } = await mountCallHook(() =>
+            useConnectionTableActions({ isOwner: true, now, serverId: 'srv_1' })
+        );
+        await harness.act(() => hook().actions.onAction(gemini, 'reconnect'));
+        expect(hook().dialog).toEqual({ provider: 'gemini', replacing: gemini });
+        await harness.act(() => hook().actions.onAction(team, 'rename'));
+        expect(hook().renaming).toEqual(team);
+        expect(harness.calls).toEqual([]);
+        await mounted.unmount();
+    });
 });

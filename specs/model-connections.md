@@ -46,6 +46,9 @@ connection's provider.
   OpenRouter. It can be on only for those four, and starts on for them. Claude keeps its native
   WebSearch outside this switch. The runner receives it in the snapshot, and the Pi launch reads
   it from the run's connection ([Web reach](runtime-drivers.md#web-reach)).
+- Each connection has an on switch, starting on. A connection that is off stays stored with its
+  credential, but the Server never resolves it and the runner's snapshot leaves it out. Only the
+  Owner can turn it on or off (`modelConnections.setEnabled`).
 - An Agent stores an optional connection id. Removing that connection clears it, and the Agent
   falls back to its provider's default.
 
@@ -57,8 +60,9 @@ connection's provider.
 
 ## Resolution
 
-At run start the Server picks the Agent's connection if it is set and serves the model's provider.
-Otherwise it picks that provider's first connection on the Agent's Server, and otherwise none. It
+At run start the Server picks the Agent's connection if it is set, on, and serves the model's
+provider. Otherwise it picks that provider's first connection that is on, so a default that is off
+falls through to the next one, and otherwise none. It
 sends the choice as `runner-start.modelConnectionId`. The runner never picks. A run with no
 connection, or with one the runner doesn't hold, fails before any model call as an access
 `session-failure`: "No <provider> connection. Connect one in Settings → Models."
@@ -66,7 +70,7 @@ connection, or with one the runner doesn't hold, fails before any model call as 
 ## The runner
 
 - **Snapshot.** The Server sends `runner-model-connections` after `runner-hello-accepted` and after
-  every change. It carries every Server's connections, with credentials opened. The runner keeps
+  every change. It carries every Server's connections that are on, with credentials opened. The runner keeps
   the latest snapshot in memory and never writes a credential to disk or reads one from its
   environment.
 - **Claude.** The run's setup-token goes into that launch's environment. A changed token changes
@@ -110,23 +114,31 @@ connection, or with one the runner doesn't hold, fails before any model call as 
 
 ## Settings → Models
 
-- A Connections group sits at the top of the page, with one card per provider.
-- Each connection is a row: its label, Connected or the failure, and its plan capacity. The row
-  menu has Rename, Make default, Reconnect and Remove.
+- One connections table sits at the top of the page. Its header counts the accounts ("1
+  connection") and, for the Owner, holds a + that picks a provider and opens its connect dialog.
+- The columns are Account, 5h left, 7d left and Resets. A row leads with the provider's logo in a
+  tile, then its label over the provider name (with "Default" on the first). Each window shows a
+  bar and the percentage left (100 minus used), or a dash when it was not read. Resets is the
+  soonest upcoming reset. A failed connection shows Failed in place of the bars.
+- A connection row ends with its on switch, a menu (Rename, Make default, Reconnect, Remove) and an
+  expand chevron. Its details hold how it signed in, the failure detail, and the Web search switch.
+  A failed connection opens on its details. Members see the switches but cannot change them, and
+  get no menu or +.
 - Reconnect replaces the credential in place: `modelConnections.replaceCredential` for a pasted
   setup-token or API key, and a sign-in with `replaceConnectionId` for ChatGPT and SuperGrok. The
   connection keeps its id, label, order, web search switch and every Agent's choice of it. Its
   `credentialVersion` goes up and its status returns to `ready`.
 - ChatGPT, xAI, Gemini and OpenRouter rows have a Web search switch, starting on. Only the Owner
   can change it.
-- Each provider card has a Connect action:
+- Each provider's connect dialog:
   - Claude: paste a setup-token.
   - ChatGPT and SuperGrok: a dialog shows the link and code, and closes when the connection lands.
   - xAI, Gemini and OpenRouter: enter an API key.
 - The page's other groups stay: the Cloud Agent model, image-generation keys, and the runtimes and
   models that Devices report.
 - On the Agent profile, a Connection select sits beside the model. A failed connection shows on
-  the profile with "Reconnect in Settings → Models".
+  the profile with "Reconnect in Settings → Models", and a chosen connection that is off shows
+  "<label> is turned off" with "Turn it on in Settings → Models".
 - `modelConnections.list` carries the Server's `agentLoop` (`HAUS_AGENT_LOOP`). The profile and
   hover card warn about a missing or failed connection only when it is `runner`, since an Agent
   on its Computer signs in there. The warning shows beside a wake pause, never instead of it, so

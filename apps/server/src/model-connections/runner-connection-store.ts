@@ -25,7 +25,7 @@ export async function readRunnerConnections(db: HausDatabase, key: SecretsKey) {
         })
         .from(modelConnectionsTable)
         .innerJoin(serversTable, eq(serversTable.id, modelConnectionsTable.serverId))
-        .where(isNull(serversTable.deletedAt))
+        .where(and(isNull(serversTable.deletedAt), eq(modelConnectionsTable.enabled, true)))
         .orderBy(
             modelConnectionsTable.serverId,
             modelConnectionsTable.provider,

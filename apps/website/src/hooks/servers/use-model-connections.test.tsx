@@ -46,7 +46,7 @@ describe('model connection edits', () => {
         await mounted.unmount();
     });
 
-    test('rename, make default, remove and web search each name the one connection', async () => {
+    test('rename, make default, remove, web search and the enable switch each name the one connection', async () => {
         const { harness, hook, mounted } = await mountHook(
             () => useModelConnectionEdits(serverId),
             () => ({ connections: [] })
@@ -55,11 +55,13 @@ describe('model connection edits', () => {
         await harness.act(() => hook().rename.mutateAsync({ ...target, label: 'Team plan' }));
         await harness.act(() => hook().makeDefault.mutateAsync(target));
         await harness.act(() => hook().setWebSearch.mutateAsync({ ...target, enabled: false }));
+        await harness.act(() => hook().setEnabled.mutateAsync({ ...target, enabled: false }));
         await harness.act(() => hook().remove.mutateAsync(target));
         expect(harness.calls).toEqual([
             mutation('modelConnections.rename', { ...target, label: 'Team plan' }),
             mutation('modelConnections.makeDefault', target),
             mutation('modelConnections.setWebSearch', { ...target, enabled: false }),
+            mutation('modelConnections.setEnabled', { ...target, enabled: false }),
             mutation('modelConnections.remove', target),
         ]);
         expect(harness.queryClient.getQueryState(listKey)?.isInvalidated).toBe(true);
@@ -87,10 +89,10 @@ describe('row edits', () => {
         expect(hook().makeDefault.error?.message).toBe('Haus could not reorder the connections.');
         await harness.act(() => hook().setWebSearch.mutateAsync({ ...target, enabled: true }));
         expect(
-            [hook().makeDefault, hook().remove, hook().setWebSearch].map(
+            [hook().makeDefault, hook().remove, hook().setEnabled, hook().setWebSearch].map(
                 (edit) => edit.error?.message ?? null
             )
-        ).toEqual([null, null, null]);
+        ).toEqual([null, null, null, null]);
         await mounted.unmount();
     });
 });

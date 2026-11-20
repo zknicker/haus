@@ -3,7 +3,12 @@ import { Alert } from '@heroui/react';
 import type { HausOutputs } from '../../lib/haus-server.tsx';
 import { computerLabel } from '../computers/presentation.ts';
 import { agentRuntimeIssue, runtimeIssueLabel } from '../computers/runtime-issue-model.ts';
-import { type AgentConnectionIssue, agentConnectionIssue } from './agent-model-connection-model.ts';
+import {
+    type AgentConnectionIssue,
+    agentConnectionIssue,
+    connectionIssueFix,
+    connectionIssueTitle,
+} from './agent-model-connection-model.ts';
 import { wakePauseBannerDescription } from './agent-wake-pause-model.ts';
 
 type Computer = HausOutputs['computer']['list'][number];
@@ -60,12 +65,9 @@ export function AgentAttentionLine({
         );
     }
     if (line?.kind === 'connection-issue') {
-        const { providerName } = line.issue;
         return (
             <p className="text-warning text-xs">
-                {line.issue.kind === 'failed'
-                    ? `${providerName} connection failed. Reconnect in Settings → Models.`
-                    : `No ${providerName} connection. Connect one in Settings → Models.`}
+                {`${connectionIssueTitle(line.issue)}. ${connectionIssueFix[line.issue.kind]}.`}
             </p>
         );
     }

@@ -6,7 +6,6 @@ import {
     type ModelSignInCancelResult,
     type ModelSignInProvider,
     modelConnectionCredentialSchema,
-    modelProviderSchema,
     modelSignInProviderSchema,
 } from '@haus/api';
 import { TRPCClientError } from '@trpc/client';
@@ -73,28 +72,6 @@ export const connectFlows: Record<ModelProvider, readonly ConnectFlow[]> = {
         { choice: 'API key', defaultLabel: 'xAI API key', kind: 'api-key' },
     ],
 };
-
-export interface ProviderConnections {
-    connections: ModelConnection[];
-    provider: ModelProvider;
-}
-
-export function connectionsByProvider(connections: readonly ModelConnection[]) {
-    return modelProviderSchema.options.map(
-        (provider) =>
-            ({
-                connections: connections
-                    .filter((connection) => connection.provider === provider)
-                    .sort((left, right) => left.position - right.position),
-                provider,
-            }) satisfies ProviderConnections
-    );
-}
-
-export function connectionFact(connection: Pick<ModelConnection, 'isDefault' | 'status'>) {
-    const state = connection.status === 'ready' ? 'Connected' : 'Failed';
-    return connection.isDefault ? `Default · ${state}` : state;
-}
 
 export function connectionFailure(connection: Pick<ModelConnection, 'status' | 'statusDetail'>) {
     if (connection.status === 'ready') {

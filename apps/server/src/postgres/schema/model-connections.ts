@@ -26,6 +26,7 @@ export const modelConnectionsTable = pgTable(
         capacityReadAt: timestamp('capacity_read_at', { withTimezone: true }),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         credentialVersion: integer('credential_version').notNull().default(1),
+        enabled: boolean('enabled').notNull().default(true),
         id: text('id').primaryKey(),
         label: text('label').notNull(),
         position: integer('position').notNull(),

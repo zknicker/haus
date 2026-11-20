@@ -6,34 +6,15 @@ import {
     connectLabel,
     connectionActions,
     connectionErrorMessage,
-    connectionFact,
     connectionFailure,
     connectionInfo,
     connectionName,
-    connectionsByProvider,
     nextConnectionLabel,
     pastedCredential,
     signInCancelStep,
     signInCloseStep,
 } from './model-connection-model.ts';
 import { testConnection } from './model-connection.fixture.ts';
-
-test('every provider gets a card in product order, its connections default first', () => {
-    const groups = connectionsByProvider([
-        testConnection({ id: 'mcn_side', isDefault: false, label: 'Side', position: 1 }),
-        testConnection({ id: 'mcn_key', label: 'Key', provider: 'gemini', authKind: 'api-key' }),
-        testConnection({ id: 'mcn_team', label: 'Team', position: 0 }),
-    ]);
-    expect(
-        groups.map((group) => [group.provider, group.connections.map((item) => item.id)])
-    ).toEqual([
-        ['claude', ['mcn_team', 'mcn_side']],
-        ['chatgpt', []],
-        ['xai', []],
-        ['gemini', ['mcn_key']],
-        ['openrouter', []],
-    ]);
-});
 
 test('each provider offers exactly the sign-in kinds the Server accepts', () => {
     for (const [provider, flows] of Object.entries(connectFlows)) {
@@ -56,10 +37,7 @@ test('an xAI sign-in reads as SuperGrok, the plan people sign into; an xAI key s
     );
 });
 
-test('the fact says whether a connection works and marks the default', () => {
-    expect(connectionFact({ isDefault: true, status: 'ready' })).toBe('Default · Connected');
-    expect(connectionFact({ isDefault: false, status: 'ready' })).toBe('Connected');
-    expect(connectionFact({ isDefault: false, status: 'failed' })).toBe('Failed');
+test('a failure reads the provider detail, or a fallback when it gave none', () => {
     expect(connectionFailure({ status: 'failed', statusDetail: 'Token revoked.' })).toBe(
         'Token revoked.'
     );
