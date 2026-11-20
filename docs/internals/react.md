@@ -597,7 +597,9 @@ holds whole-App renders per interaction to the ratchet in
   is read in the smallest leaf that shows it (`LiveAgentAvatar`). Sidebar rows
   navigate through `useSidebarNavigate`, not router hooks, which re-render on
   every location change. `features/shell/sidebar-render-isolation.test.tsx`
-  pins this.
+  pins this. On the web, that navigate skips a push to the route the window
+  already shows, so Back never lands on a duplicate entry; desktop tabs make the
+  same push a no-op in the tab model (`navigateTab`).
 * A context that carries both a high-churn value and a stable function splits
   them (`AgentActivityProvider`'s snapshot and its listener subscription).
 * A render context that reaches rows through React context must hold its
