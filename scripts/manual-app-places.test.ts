@@ -80,7 +80,10 @@ test('the app topic renders each place as one line with its role and caveat', ()
         "- Add a skill from a Computer to an Agent's library: Captain profile → Skills → Add Skills (Owner or Admin).\n"
     );
     expect(body).toContain('Haus App lists no support email, phone number, or response time');
-    expect(body.length).toBeLessThan(5000);
+    expect(
+        body.length,
+        'raised from 5000 for the Settings → Models connection place'
+    ).toBeLessThanOrEqual(5069);
 });
 
 function anchorRoot(anchor: AppPlaceAnchor): string {

@@ -236,10 +236,9 @@ export const appPlaces: readonly AppPlace[] = [
     },
     {
         area: 'connections-and-computers',
-        task: 'Connect a model provider for Captains (a Claude or ChatGPT plan, SuperGrok, or an API key)',
+        task: "Connect a Captain's model account (Claude, ChatGPT, SuperGrok or an API key)",
         path: ['Settings', 'Models', 'Add connection'],
         who: 'owner',
-        note: 'Add connection (+) picks the provider. A row switch turns a connection off, and its menu renames, makes default, reconnects or removes it.',
         anchors: [
             settingsEntry(),
             settingsSection('models'),
