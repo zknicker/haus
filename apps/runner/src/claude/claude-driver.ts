@@ -5,7 +5,7 @@ import type {
     RuntimeSession,
     SteerResult,
 } from '../turn/runtime-driver.ts';
-import { WarmPool, warmIdleMs } from '../turn/warm-pool.ts';
+import { warmIdleMs } from '../turn/warm-pool.ts';
 import { ClaudeConnection } from './claude-connection.ts';
 import {
     claudeBootstrapFingerprint,
@@ -15,11 +15,23 @@ import {
     claudeQueryOptions,
 } from './claude-launch.ts';
 import { ClaudeTurn } from './claude-turn.ts';
+import { CompactingPool } from './compacting-pool.ts';
+import type { IdleCompactionGate, IdleCompactionHooks } from './idle-compaction-scheduler.ts';
+import { type IdleCompactionOwner, idleCompactionMinTokens } from './idle-compaction.ts';
 
 const expiryIntervalMs = 60_000;
 
-export function createClaudeHarness(options: { maxWarm: number }) {
-    const pool = new WarmPool<ClaudeConnection>({ idleMs: warmIdleMs, maxWarm: options.maxWarm });
+export function createClaudeHarness(options: {
+    env?: Readonly<Record<string, string | undefined>>;
+    hooks: IdleCompactionHooks<ClaudeConnection>;
+    maxWarm: number;
+}) {
+    const minTokens = idleCompactionMinTokens(options.env ?? process.env);
+    const pool = new CompactingPool<ClaudeConnection>({
+        hooks: options.hooks,
+        idleMs: warmIdleMs,
+        maxWarm: options.maxWarm,
+    });
     const closeAll = (connections: readonly ClaudeConnection[]) => {
         for (const connection of connections) {
             connection.close();
@@ -39,7 +51,7 @@ export function createClaudeHarness(options: { maxWarm: number }) {
         const facts = claudeLaunchFacts(launch, await bootstrapFingerprint());
         const launchKey = claudeLaunchKey(facts);
         if (resumeFrom) {
-            const claim = pool.claim(
+            const claim = await pool.claim(
                 launch.agentId,
                 { launchKey, nativeSessionId: resumeFrom },
                 Date.now()
@@ -54,6 +66,7 @@ export function createClaudeHarness(options: { maxWarm: number }) {
         const sessionId = resumeFrom ?? crypto.randomUUID();
         return await ClaudeConnection.open({
             launchKey,
+            minTokens,
             options: claudeQueryOptions(facts, {
                 cwd: paths.homeDir,
                 sessionId,
@@ -71,6 +84,7 @@ export function createClaudeHarness(options: { maxWarm: number }) {
             signal?.throwIfAborted();
             const connection = await connect(launch, resumeFrom);
             connection.binding.bind(launch.tools);
+            connection.owner = owner(launch);
             return claudeSession({
                 connection,
                 isResume: resumeFrom !== undefined,
@@ -86,6 +100,7 @@ export function createClaudeHarness(options: { maxWarm: number }) {
                 relaunch: async (nativeSessionId) => {
                     const next = await connect(launch, nativeSessionId);
                     next.binding.bind(launch.tools);
+                    next.owner = owner(launch);
                     return next;
                 },
             });
@@ -103,10 +118,25 @@ export function createClaudeHarness(options: { maxWarm: number }) {
         },
         driver,
         factory,
+        setIdleCompaction(gate: IdleCompactionGate) {
+            pool.setIdleCompaction(gate);
+        },
         get warm() {
             return pool.size;
         },
     };
+}
+
+function owner(launch: RuntimeLaunch) {
+    if (!launch.runtimeId) {
+        return null;
+    }
+    const idleOwner: IdleCompactionOwner = {
+        agentDir: launch.agentDir,
+        agentId: launch.agentId,
+        runtimeId: launch.runtimeId,
+    };
+    return idleOwner;
 }
 
 function claudeSession(deps: {

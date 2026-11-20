@@ -28,6 +28,16 @@ test('a channel work reads its title, ticking status, Chat, and live Agent name'
     ]);
 });
 
+test('a Worker on a Computer reads with no provider, so its key prints the terminal alone', () => {
+    const worker = {
+        ...workRecord(),
+        place: { computerId: 'cmp_mini', computerName: 'mini', kind: 'computer' as const },
+    };
+    const [row] = toHappeningNowWork([activeWork({ worker })], humans, agents, now);
+
+    expect(row?.provider).toBeNull();
+});
+
 test('a Worker carries its Task, and its subline leads with the key', () => {
     const [onTask] = toHappeningNowWork([activeWork()], humans, agents, now);
 

@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## v21.0.0 - 2026-11-20
+
+- The Haus Server deploy that v20.0.0 started now completes, so everything in v20.0.0 reaches the hosted Server and web App with this release: Projects, Drive, Workers, Settings → Models, and #all as a chat. Database migration 0142 had failed against existing data, and the deploy rolled back without changing production.
+- An Agent can run a Worker on a Computer: a Claude Code or Codex session in its own git worktree and branch, using that machine's logins. A Computer runs Workers only while its Workers switch is on, and every Computer starts with it off and a limit of 4. Each Project keeps its repos, their links to each Computer, and a default place for new Workers. `haus worker places` lists where a Worker can run. Settings controls for the switch and the repos come in a later release.
+- Adding a device shows its progress, from waiting to connected to ready. When a device needs an update, has disconnected, or has no Captain runtime, the dialog names the fix and the command to run. New Captain links to Add a device when no device is connected.
+- Pressing a sidebar row for the page that's already open no longer adds a duplicate history entry, so Back works the first time.
+- A failed Server migration now logs PostgreSQL's error code, constraint, and detail.
+- Haus for iPhone 12.0.1 (build 74) reads the new Worker place, so Worker cards keep loading once the Server updates. Older iPhone builds can't read them.
+- The Server deploy applies database migrations 0129 through 0144 together in one step. Rolling back the Server does not reverse them.
+- Update Haus Computer to 19.0.0 right after the Server deploys (`haus-computer upgrade`). The Server requires Computer protocol 44, so an older Computer runs no Captains until it upgrades. Haus Agent 15.1.0 ships with it. Haus for Desktop is unchanged.
+
 ## v20.0.0 - 2026-11-20
 
 - Channels are now Projects. Each Project has its own Tasks and its own area in Drive, and #all is the Server's team room: a plain chat that belongs to no Project. The App, Haus for iPhone 12.0.0, and the Agent CLI say Captain, Project, and Device.

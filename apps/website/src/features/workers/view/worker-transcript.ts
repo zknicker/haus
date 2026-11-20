@@ -1,7 +1,7 @@
 import type { ChatMessage, Worker, WorkerReport, WorkerStep, WorkerTurn } from '@haus/api';
 import { cloudAgentProviderPresentation } from '../cloud-agent-provider-presentation.ts';
 import { workerFailureLabels } from '../worker-card-model.ts';
-import { workerPlaceName } from '../worker-place.ts';
+import { workerPlaceName, workerPlaceProvider } from '../worker-place.ts';
 import { formatWorkerDuration } from '../worker-presentation.ts';
 
 export interface WorkerTranscriptMessage {
@@ -140,11 +140,12 @@ function turnSpan(turn: WorkerTurn) {
 }
 
 function workerAuthor(work: Pick<Worker, 'id' | 'place'>) {
+    const provider = workerPlaceProvider(work.place);
     return {
         agentId: workerActorId(work.id),
         kind: 'agent',
         profile: {
-            avatarUrl: cloudAgentProviderPresentation[work.place].logo.light,
+            avatarUrl: provider ? cloudAgentProviderPresentation[provider].logo.light : null,
             deleted: false,
             description: null,
             displayName: `Worker on ${workerPlaceName(work)}`,

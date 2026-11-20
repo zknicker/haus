@@ -180,7 +180,6 @@ export async function createHausServerApplication(
 
         const startedApp = Fastify(hausFastifyOptions);
         handles.app = startedApp;
-
         await startedApp.register(cors, {
             credentials: true,
             methods: ['GET', 'HEAD', 'POST', 'PUT'],
@@ -219,6 +218,7 @@ export async function createHausServerApplication(
             startedPostCommitWork,
             options.thoughtSummarizer ?? null,
             invocations,
+            artifactStorage,
             options.computerSocketLiveness
         );
         handles.runnerSocket = startRunnerSocket(startedApp.server, options, {

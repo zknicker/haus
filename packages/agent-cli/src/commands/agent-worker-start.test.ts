@@ -68,11 +68,12 @@ test('a start without --on leaves the place to the Server, which lists the ready
     const seen: AgentApiRequest[] = [];
     await runWorkerStart(args({ '--on': '' }), deps(seen));
     expect(seen[0]?.body).not.toHaveProperty('place');
-    await expect(runWorkerStart(args({ '--on': 'mini' }), deps(seen))).rejects.toMatchObject({
-        code: 'INVALID_ARG',
-        message: 'Invalid Worker place "mini".',
-    });
-    expect(seen).toHaveLength(1);
+});
+
+test('--on passes any place string through, since only the Server resolves a Computer name', async () => {
+    const seen: AgentApiRequest[] = [];
+    await runWorkerStart(args({ '--on': ' mini ' }), deps(seen));
+    expect(seen[0]?.body).toMatchObject({ place: 'mini' });
 });
 
 test('a Server WORKER_TASK_REQUIRED refusal gains the start-a-Task step', async () => {

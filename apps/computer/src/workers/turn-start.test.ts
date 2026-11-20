@@ -10,9 +10,15 @@ import {
 } from './worker-supervisor.fixture.ts';
 
 const supervisors = registerSupervisorFixture();
-const accepted = { turnId: 'wkt_1234567890abcdef', type: 'worker-turn-accepted' } as const;
+const accepted = {
+    attempt: 1,
+    turnId: 'wkt_1234567890abcdef',
+    type: 'worker-turn-accepted',
+} as const;
 const launched = (frame: WorkerComputerFrame) =>
     frame.type === 'worker-observation' && frame.observation.providerRunId !== undefined;
+const turnFrames = (frames: WorkerComputerFrame[]) =>
+    frames.filter((frame) => frame.type !== 'worker-held');
 
 test('a first turn is journaled and acknowledged before the provider launches it', async () => {
     const f = await supervisors(createFakeCloudAgentProvider());
@@ -21,14 +27,14 @@ test('a first turn is journaled and acknowledged before the provider launches it
     const launch = f.provider.start;
     f.provider.start = async (input, signal) => {
         seenAtLaunch.push((await f.journal.read(serverId, turnRef(frame)))?.phase);
-        seenAtLaunch.push(daemon.frames[0]?.type);
+        seenAtLaunch.push(turnFrames(daemon.frames)[0]?.type);
         return await launch(input, signal);
     };
     const daemon = f.start();
     await daemon.work.accept(frame);
     await daemon.sent(launched);
     expect(seenAtLaunch).toEqual(['launching', 'worker-turn-accepted']);
-    expect(daemon.frames[0]).toEqual(accepted);
+    expect(turnFrames(daemon.frames)[0]).toEqual(accepted);
     expect(f.provider.launches).toEqual([
         {
             idempotencyKey: frame.turnId,
@@ -58,7 +64,7 @@ test('a start sent again after a restart is acknowledged again and never launche
     const after = f.start();
     await after.work.accept(frame);
     await after.work.close();
-    expect(after.frames[0]).toEqual(accepted);
+    expect(turnFrames(after.frames)[0]).toEqual(accepted);
     expect(f.provider.launches).toHaveLength(1);
     expect((await f.journal.read(serverId, turnRef(frame)))?.phase).toBe('launched');
 });
@@ -75,8 +81,8 @@ test('a later turn is sent to the same hosted agent once, however often its star
     await daemon.work.accept(frame);
     await daemon.work.reconcile([reconcileEntry(frame)]);
     expect(daemon.frames.filter((sent) => sent.type === 'worker-turn-accepted')).toEqual([
-        { turnId: frame.turnId, type: 'worker-turn-accepted' },
-        { turnId: frame.turnId, type: 'worker-turn-accepted' },
+        { attempt: 1, turnId: frame.turnId, type: 'worker-turn-accepted' },
+        { attempt: 1, turnId: frame.turnId, type: 'worker-turn-accepted' },
     ]);
     expect(f.provider.sends).toEqual([
         {

@@ -1,3 +1,4 @@
+SET CONSTRAINTS ALL DEFERRED;--> statement-breakpoint
 ALTER TABLE "chats" DROP CONSTRAINT IF EXISTS "chats_shape";--> statement-breakpoint
 ALTER TABLE "projects" DROP CONSTRAINT IF EXISTS "projects_chat_fk";--> statement-breakpoint
 ALTER TABLE "projects" DROP CONSTRAINT IF EXISTS "projects_chat_not_all";--> statement-breakpoint

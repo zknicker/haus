@@ -50,6 +50,28 @@ test('a claim past the idle window returns the stale process to close', () => {
     });
 });
 
+test('an Agent the pool is told to hold is skipped by expiry until it is released', () => {
+    const held = new Set(['agent-1']);
+    const pool = new WarmPool<string>({
+        holds: (agentId) => held.has(agentId),
+        idleMs: warmIdleMs,
+        maxWarm: 16,
+    });
+    pool.park('agent-1', identity('s1'), 'process-1', 0);
+    pool.park('agent-2', identity('s2'), 'process-2', 0);
+    expect(pool.expire(60 * minute)).toEqual(['process-2']);
+    held.clear();
+    expect(pool.expire(60 * minute)).toEqual(['process-1']);
+});
+
+test('the pool reports which process is parked and when each would close', () => {
+    const pool = new WarmPool<string>({ idleMs: warmIdleMs, maxWarm: 16 });
+    pool.park('agent-1', identity('s1'), 'process-1', 5 * minute);
+    expect(pool.isParked('agent-1', 'process-1')).toBe(true);
+    expect(pool.isParked('agent-1', 'other')).toBe(false);
+    expect(pool.closingTimes()).toEqual([['agent-1', 'process-1', 65 * minute]]);
+});
+
 test('parking a new process for the same Agent displaces the old one', () => {
     const pool = new WarmPool<string>({ idleMs: warmIdleMs, maxWarm: 16 });
     pool.park('agent-1', identity('s1'), 'process-old', 0);

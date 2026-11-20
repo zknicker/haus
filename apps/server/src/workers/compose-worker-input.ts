@@ -1,21 +1,112 @@
-import type { WorkerTurnInput } from '@haus/api';
+import { type WorkerTurnInput, artifactTextMaxBytes } from '@haus/api';
 import { and, eq, inArray, isNotNull } from 'drizzle-orm';
+import { liveArtifactAtPath } from '../artifacts/path.ts';
+import { type ArtifactStorage, requireArtifactStorage } from '../artifacts/storage.ts';
+import { artifactTextFromBytes } from '../artifacts/text.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, serverMembershipsTable } from '../postgres/schema.ts';
+import { agentsTable, artifactRevisionsTable, serverMembershipsTable } from '../postgres/schema.ts';
 import { workerInstructions } from './worker-instructions.ts';
 
+interface DriveFile {
+    path: string;
+    revisionId: string;
+    text: string;
+}
+
+const inlinedFileMaxLength = 48_000;
+
 export async function composeWorkerInput(
-    db: Pick<HausDatabase, 'select'>,
-    input: { inputs: readonly WorkerTurnInput[]; serverId: string; taskKey: string }
+    tx: HausDatabase,
+    storage: ArtifactStorage | null,
+    input: {
+        agentHandle: string;
+        delivered: string | null;
+        inputs: readonly WorkerTurnInput[];
+        isHausProject: boolean;
+        place: 'cloud' | 'computer';
+        serverId: string;
+        taskKey: string;
+    }
 ) {
-    const handles = await readAuthorHandles(db, input.serverId, input.inputs);
+    const projectKey = input.taskKey.split('-')[0] ?? input.taskKey;
+    const firstTurn = input.inputs[0]?.kind === 'brief';
+    const read = (path: string) => readDriveFile(tx, storage, input.serverId, path);
+    const workerMd = await read(`agents/${input.agentHandle}/WORKER.md`);
+    const rules = firstTurn
+        ? [
+              await read('haus/AGENTS.md'),
+              input.isHausProject ? null : await read(`projects/${projectKey}/AGENTS.md`),
+              workerMd,
+          ]
+        : [workerMd && workerMd.revisionId !== input.delivered ? workerMd : null];
+    const inlined = rules.filter((file): file is DriveFile => file !== null);
+    const handles = await readAuthorHandles(tx, input.serverId, input.inputs);
     const sections = input.inputs.map((turnInput) => {
         const handle = handles.get(turnInput.author.id);
         const author = handle ? `@${handle}` : 'a teammate';
         const label = turnInput.kind === 'brief' ? 'Brief' : 'Follow-up';
         return `## ${label} from ${author}\n\n${turnInput.text}`;
     });
-    return [workerInstructions(input.taskKey), ...sections].join('\n\n');
+    const text = [
+        workerInstructions({
+            agentHandle: input.agentHandle,
+            place: input.place,
+            taskKey: input.taskKey,
+        }),
+        ...inlined.map(inlineFile),
+        ...sections,
+    ].join('\n\n');
+    return {
+        input: text,
+        workerMdRevisionId: inlined.includes(workerMd as DriveFile)
+            ? (workerMd?.revisionId ?? null)
+            : null,
+    };
+}
+
+function inlineFile(file: DriveFile) {
+    const text =
+        file.text.length > inlinedFileMaxLength
+            ? `${file.text.slice(0, inlinedFileMaxLength)}\n\n(Cut here. Read the whole file at ${file.path}.)`
+            : file.text;
+    return `## ${file.path} (revision ${file.revisionId})\n\n${text}`;
+}
+
+async function readDriveFile(
+    tx: HausDatabase,
+    storage: ArtifactStorage | null,
+    serverId: string,
+    path: string
+) {
+    const artifact = await liveArtifactAtPath(tx, serverId, path);
+    if (!artifact?.currentRevisionId) {
+        return null;
+    }
+    const [revision] = await tx
+        .select({ objectKey: artifactRevisionsTable.objectKey })
+        .from(artifactRevisionsTable)
+        .where(
+            and(
+                eq(artifactRevisionsTable.serverId, serverId),
+                eq(artifactRevisionsTable.id, artifact.currentRevisionId)
+            )
+        )
+        .limit(1);
+    if (!revision) {
+        return null;
+    }
+    const bytes = await requireArtifactStorage(storage).read(
+        revision.objectKey,
+        artifactTextMaxBytes + 1
+    );
+    const decoded = artifactTextFromBytes(bytes);
+    return decoded.status === 'text'
+        ? ({
+              path: artifact.path,
+              revisionId: artifact.currentRevisionId,
+              text: decoded.text,
+          } satisfies DriveFile)
+        : null;
 }
 
 async function readAuthorHandles(

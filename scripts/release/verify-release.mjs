@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { verifyComputerOnlyRelease } from './computer-release-verifier.mjs';
 import { extractReleaseNotes } from './extract-release-notes-from-changelog.mjs';
 import { verifyNormalRelease, verifyProductRelease } from './github-release-verifier.mjs';
+import { iosUploadFailed, readUnshippedIOSVersions, recordUnshippedIOS } from './unshipped-ios.mjs';
 
 export { verifyComputerOnlyRelease, verifyNormalRelease, verifyProductRelease };
 
@@ -42,7 +43,6 @@ export function assertSelectedJobResults({ results, targets }) {
     const selectedJobs = [
         ['computer', 'publish_computer'],
         ['app', 'publish_app'],
-        ['ios', 'upload_ios'],
         ['server', 'publish_server'],
     ];
     if (targets.server) {
@@ -57,7 +57,23 @@ export function assertSelectedJobResults({ results, targets }) {
     }
 }
 
-export function writeReleaseSummary({ summaryPath, verification, targets }) {
+export function preflightRelease({ results, targets, releaseVersion, sourceRevision, cwd }) {
+    if (iosUploadFailed({ results, targets })) {
+        console.log(iosUploadWarning({ results, releaseVersion }));
+        recordUnshippedIOS({ version: releaseVersion, sourceRevision, cwd });
+    }
+    assertSelectedJobResults({ results, targets });
+}
+
+export function iosUploadWarning({ results, releaseVersion }) {
+    return (
+        `::warning title=iOS did not ship::Upload iOS ended ${results.upload_ios?.result ?? 'missing'}. ` +
+        `Haus ${releaseVersion} continues without iOS and records iOS as not shipped, ` +
+        'so the next release must publish iOS with a new build number.'
+    );
+}
+
+export function writeReleaseSummary({ summaryPath, verification, targets, iosShipped }) {
     if (typeof summaryPath !== 'string' || !summaryPath) {
         throw new Error('GITHUB_STEP_SUMMARY is required for release finalization');
     }
@@ -66,6 +82,10 @@ export function writeReleaseSummary({ summaryPath, verification, targets }) {
     }
     const targetNames = ['computer', 'agent', 'app', 'ios', 'server'];
     assertRecord(targets, 'release target outcomes');
+    if (typeof iosShipped !== 'boolean') {
+        throw new Error('release summary needs whether iOS shipped');
+    }
+    const iosUnshipped = targets.ios === true && !iosShipped;
     const lines = [
         '## Coordinated release finalized',
         '',
@@ -81,17 +101,31 @@ export function writeReleaseSummary({ summaryPath, verification, targets }) {
                 '| ' +
                 capitalize(target) +
                 ' | ' +
-                (targets[target] ? 'published' : 'unchanged') +
+                outcomeLabel(target, targets[target], iosUnshipped) +
                 ' |'
             );
         }),
         '',
+        ...(iosUnshipped
+            ? [
+                  '> [!WARNING]',
+                  '> iOS did not ship. The next release must publish iOS with a new build number.',
+                  '',
+              ]
+            : []),
         targets.server
             ? 'Production Server deployed and publicly verified in this Release workflow.'
             : 'Production Server unchanged; no production promotion requested.',
         '',
     ];
     appendFileSync(summaryPath, lines.join('\n'));
+}
+
+function outcomeLabel(target, selected, iosUnshipped) {
+    if (target === 'ios' && iosUnshipped) {
+        return 'not shipped';
+    }
+    return selected ? 'published' : 'unchanged';
 }
 
 function assertRecord(value, label) {
@@ -169,12 +203,13 @@ async function main() {
     } catch {
         throw new Error('RELEASE_JOB_RESULTS must be valid JSON');
     }
-    assertSelectedJobResults({ results: jobResults, targets });
+    const releaseVersion = requiredEnvironment('RELEASE_VERSION');
     if (process.argv.includes('--preflight')) {
-        console.log('Selected release jobs succeeded.');
+        preflightRelease({ results: jobResults, targets, releaseVersion, sourceRevision });
+        console.log('Selected release jobs required for this release succeeded.');
         return;
     }
-    const releaseVersion = requiredEnvironment('RELEASE_VERSION');
+    assertSelectedJobResults({ results: jobResults, targets });
     ensureProductRelease({ repository, sourceRevision, releaseVersion, runGh });
     const productVerification = await verifyProductRelease({
         repository,
@@ -211,6 +246,7 @@ async function main() {
         summaryPath: requiredEnvironment('GITHUB_STEP_SUMMARY'),
         verification,
         targets,
+        iosShipped: targets.ios && !readUnshippedIOSVersions().includes(releaseVersion),
     });
 }
 

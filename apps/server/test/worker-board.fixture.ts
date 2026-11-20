@@ -1,4 +1,4 @@
-import type { AgentWorkerStartInput, WorkerObservation, WorkerPlace } from '@haus/api';
+import type { AgentWorkerStartInput, WorkerObservation, CloudAgentProvider } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../src/agent-delivery/delivery.ts';
 import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';
@@ -14,7 +14,7 @@ export type WorkerBoard = Awaited<ReturnType<typeof seedWorkerBoard>>;
 
 export async function seedWorkerBoard(
     db: HausDatabase,
-    places: WorkerPlace[] = ['cursor', 'claude']
+    places: CloudAgentProvider[] = ['cursor', 'claude']
 ) {
     const board = await seedTaskBoard(db);
     const { seed } = board;
@@ -57,9 +57,9 @@ export async function setReadyPlaces(
     db: HausDatabase,
     serverId: string,
     computerId: string,
-    places: WorkerPlace[],
+    places: CloudAgentProvider[],
     health: 'healthy' | 'offline' = 'healthy',
-    defaultPlace: WorkerPlace | null = null
+    defaultPlace: CloudAgentProvider | null = null
 ) {
     await db
         .update(computersTable)

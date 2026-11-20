@@ -6,6 +6,7 @@ import {
 import { TRPCError } from '@trpc/server';
 import { serverUpdatedTopic } from '../../realtime/topics.ts';
 import {
+    readRunnerRuntimeSettingsCommand,
     readServerRuntimeSettingsCommand,
     readServerSettings,
     ServerSettingsDeniedError,
@@ -20,8 +21,8 @@ export const serverSettingsProcedure = memberProcedure
     .query(({ ctx, input }) => readServerSettings(ctx.hausDb, ctx.member, input.serverId));
 
 /**
- * An Owner turns idle compaction on or off. Every attached Computer of the Server gets the new
- * runtime settings at once; one that is offline gets them when it attaches.
+ * An Owner turns idle compaction on or off. Every attached Computer of the Server and the runner
+ * get the new runtime settings at once; one that is offline gets them when it attaches.
  */
 export const setServerIdleCompactionProcedure = memberProcedure
     .input(serverSettingsSetIdleCompactionInputSchema)
@@ -31,6 +32,9 @@ export const setServerIdleCompactionProcedure = memberProcedure
             const settings = await setServerIdleCompaction(ctx.hausDb, ctx.member, input);
             await ctx.computerConnections.runtimeSettings.changed(input.serverId, () =>
                 readServerRuntimeSettingsCommand(ctx.hausDb, input.serverId)
+            );
+            await ctx.runnerLink.sendRuntimeSettings(() =>
+                readRunnerRuntimeSettingsCommand(ctx.hausDb)
             );
             serverUpdatedTopic.announce({ serverId: input.serverId });
             return settings;

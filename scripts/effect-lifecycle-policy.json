@@ -188,12 +188,12 @@
         },
         "apps/computer/src/workers/turn-journal.ts": {
             "disposition": "finite-cleanup",
-            "reason": "Finite journal writes close their file handles and remove only their own temporary file. Exclusive creation records a Worker turn before any provider call and survives process restarts. A finite per-turn write lock serializes acceptance, settlement, late acknowledgements, and drain removal across journal instances; the lock is released before the Promise returns.",
+            "reason": "Exclusive creation closes its file handle and records a Worker turn before any provider call, surviving process restarts. Durable replacement and the per-turn write lock live in durable-json.ts and serialized.ts.",
             "risks": {
                 "abortController": 0,
                 "catchAndIgnore": 0,
-                "finallyBlock": 3,
-                "manualPromise": 1,
+                "finallyBlock": 1,
+                "manualPromise": 0,
                 "timer": 0
             }
         },
@@ -1591,6 +1591,94 @@
                 "catchAndIgnore": 1,
                 "finallyBlock": 3,
                 "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/workers/computer/push-retry.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A failed Worker drive push waits for one scheduled retry at a time on a capped backoff; the release AbortController cancels the pending timer and settles the wait, and a nudge runs it early.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 1
+            }
+        },
+        "apps/computer/src/workers/serialized.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A finite per-key lock serializes Worker journal writes and per-repo git work; each lock releases before its Promise returns and the key is dropped once no successor waits.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/runtime/codex/codex-worker-driver.ts": {
+            "disposition": "external-adapter",
+            "reason": "A Worker's Codex app-server is registered with the Computer's process registry and released once, on stop, destroy, or a failed handshake; the handshake deadline is cleared either way.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/workers/computer/turn-launch.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A harness that failed mid-turn is destroyed before the turn ends; a session that already ended is ignored, and the turn still pushes and reports. The turn's AbortController is the one its place aborts on stop.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 1,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/workers/computer/repos.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A first clone lands in a temporary sibling that is removed after the rename into place, whether the clone finished or failed.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/workers/computer/computer-place.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Each Computer-place turn owns one AbortController that a stop, close, or shutdown aborts before it ends the harness session and awaits the turn; a session that already ended is ignored on destroy. A turn whose drive push failed stays owned until its push retry lands or a close or shutdown releases it.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 1,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/workers/durable-json.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A durable JSON write closes its file handle and removes only its own temporary file after the rename, whether or not the write finished.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/workers/computer/computer-place.fixture.ts": {
+            "disposition": "test-support",
+            "reason": "The Computer-place test harness resolves frame waiters as frames arrive and removes its temporary data root and fake Server after each test.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
                 "timer": 0
             }
         }

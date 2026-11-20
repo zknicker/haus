@@ -1,17 +1,17 @@
 import { drivePushCloseInputSchema } from '@haus/api';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import { artifactAccess } from '../artifacts/access.ts';
+import { type ArtifactActor, artifactAccess } from '../artifacts/access.ts';
 import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { ArtifactThumbnails } from '../artifacts/thumbnails.ts';
-import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import { pushDelete } from '../drive/push/delete.ts';
 import { type DrivePushOptions, pushPut } from '../drive/push/put.ts';
 import { closePush } from '../drive/push/session.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { sendArtifactError } from './artifact-errors.ts';
-import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
+import { sendAgentApiError } from './auth.ts';
+import { authorizeDrivePusher } from './worker-auth.ts';
 
 export function registerAgentDrivePushRoutes(
     app: FastifyInstance,
@@ -41,8 +41,8 @@ export function registerAgentDrivePushRoutes(
         {
             // WARNING: read the raw stream in onRequest, before Fastify's body parser buffers it.
             onRequest: async (request, reply) =>
-                await withRunner(options.db, request, reply, async (runner) =>
-                    pushPut(push, runner, {
+                await withRunner(options.db, request, reply, async (actor) =>
+                    pushPut(push, actor, {
                         contentType: request.headers['content-type'],
                         query: request.query,
                         stream: request.raw,
@@ -54,16 +54,16 @@ export function registerAgentDrivePushRoutes(
     app.post(
         '/api/agent/drive/push/delete',
         async (request, reply) =>
-            await withRunner(options.db, request, reply, async (runner) =>
-                pushDelete(push, runner, request.body ?? {})
+            await withRunner(options.db, request, reply, async (actor) =>
+                pushDelete(push, actor, request.body ?? {})
             )
     );
     app.post(
         '/api/agent/drive/push/close',
         async (request, reply) =>
-            await withRunner(options.db, request, reply, async (runner) => {
+            await withRunner(options.db, request, reply, async (actor) => {
                 const input = drivePushCloseInputSchema.parse(request.body ?? {});
-                const access = await artifactAccess(options.db, { kind: 'agent', runner });
+                const access = await artifactAccess(options.db, actor);
                 const closed = await closePush(
                     options.db,
                     options.agentDelivery,
@@ -80,11 +80,11 @@ async function withRunner(
     db: HausDatabase,
     request: FastifyRequest,
     reply: FastifyReply,
-    run: (runner: ResolvedRunner) => Promise<unknown>
+    run: (actor: ArtifactActor) => Promise<unknown>
 ) {
     try {
-        const runner = await authorizeAgentRunner(db, request);
-        if (!runner) {
+        const actor = await authorizeDrivePusher(db, request);
+        if (!actor) {
             return await sendAgentApiError(
                 reply,
                 401,
@@ -92,7 +92,7 @@ async function withRunner(
                 'A valid runner credential is required.'
             );
         }
-        return await reply.send(await run(runner));
+        return await reply.send(await run(actor));
     } catch (cause) {
         return await sendArtifactError(reply, cause);
     }

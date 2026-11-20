@@ -58,6 +58,7 @@ import type { EnqueueInput } from './enqueue-input.ts';
 import * as failureHold from './failure-hold.ts';
 import { buildInboxItems } from './inbox-items.ts';
 import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
+import { inboxWork } from './inbox-work.ts';
 import { interruptActiveRun } from './interrupt-active-run.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
 import {
@@ -127,8 +128,7 @@ export class AgentDelivery {
      */
     async enqueue(tx: HausDatabase, input: EnqueueInput): Promise<void> {
         const source = input.source ?? 'human';
-        await store.ensureDeliveryState(tx, { agentId: input.agentId, serverId: input.serverId });
-        await store.enqueueInboxItem(tx, { ...input, source });
+        await inboxWork.enqueue(tx, { ...input, source });
         // Only human intent lifts a wake pause, releases a failure hold, or
         // releases the automation chain ceiling, even when older Agent or
         // Trigger rows precede it. Agent and automation work queues behind any hold.

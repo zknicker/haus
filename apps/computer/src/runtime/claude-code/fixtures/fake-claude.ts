@@ -19,6 +19,7 @@ if (log) {
         log,
         `${JSON.stringify({
             args,
+            cwd: process.cwd(),
             env: {
                 CLAUDECODE: process.env.CLAUDECODE ?? null,
                 CLAUDE_CODE_DISABLE_BACKGROUND_TASKS:

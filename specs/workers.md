@@ -149,18 +149,34 @@ A place is where a Worker runs. The CLI and every surface write it as a string:
 
 | Place string | Meaning |
 | --- | --- |
-| `computer:<name>` | A native Claude Code or Codex session on that Computer ([Workers on a Computer](#workers-on-a-computer)) |
+| `computer:<computerId>` | A native Claude Code or Codex session on that Computer ([Workers on a Computer](#workers-on-a-computer)) |
 | `cursor` | A Cursor cloud agent ([Cloud places](cloud-agents.md)) |
 | `claude` | A Claude Code cloud session ([Cloud places](cloud-agents.md)) |
 
-`--on` also takes a bare Computer name. When two Computers share a name, `haus worker places`
-prints `computer:<computerId>` for each, and only that form resolves.
+`computer:<computerId>` is the stored and printed form. `--on` also takes `computer:<name>` or a
+bare Computer name, and the Server resolves it. When two Computers share a name, the start refuses
+with `WORKER_PLACE_AMBIGUOUS` and lists their `computer:<computerId>` forms, and only those
+resolve. The Worker record shows the place as `workerPlaceViewSchema`, which adds the Computer's
+reported name (`computerName`, null when unknown). Inputs, frames, and storage never carry the
+name.
 
 **The switch.** A Computer runs Workers locally only while its **Workers can run here** switch is on. The
-person who attached the Computer, or an Owner or Admin, sets it from the Computer's settings. The
-switch is Server state on the Computer record, and the Server checks it at every start and
+person who attached the Computer, or an Owner or Admin, sets it from the Computer's settings
+(`computer.setWorkers`, with the Worker limit; the App control is W4). `computer.list` shows
+`workersEnabled`, `workerLimit`, and `canChangeWorkers`, whether the viewer may set them. Owners
+and Admins see every Computer there, and a plain member sees only the Computers they attached. The
+switch is Server state on the Computer record (`computers.workers_enabled`), and the Server checks it at every start and
 follow-up. It is off for a newly attached Computer. Turning it on lets Agents run unattended Claude
-Code or Codex sessions there under that machine's logins ([Run](#run-a-turn)). Turning it off lets
+Code or Codex sessions there under that machine's logins ([Run](#run-a-turn)).
+
+**What turning it on trusts.** A Worker runs as the machine user, and a Claude Code Worker runs
+unsandboxed, so it can read anything that user can, including the Computer's own Haus credential.
+With it, a Worker can act as the Computer and as every Agent the Computer hosts, beyond its Task.
+Turning the switch on therefore gives that Server's Agents the machine user's full local access:
+the same trust as the machine's GitHub and model logins, which is why only the attacher, an Owner,
+or an Admin may set it. The turn credential scopes what a Worker is handed, not what the machine
+user can reach. OS isolation is the follow-up
+([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md) decision 7). Turning it off lets
 working turns finish, refuses new starts and follow-ups with `WORKER_PLACE_OFF`, and settles turns
 queued there as failed `place-off`. It also clears every Project default that names the Computer
 ([Projects](projects.md#default-place-for-workers)).
@@ -178,7 +194,13 @@ offline still starts cloud Workers
 **The default place.** Each Project has a default place for its Workers, set in its settings
 ([Projects](projects.md)). A start without `--on` uses the Task's Project default. A Project
 without one, or whose default is not usable now, refuses the start with `WORKER_PLACE_REQUIRED`
-and lists the usable places. Haus never falls back to another place on its own.
+and lists the usable places. Haus never falls back to another place on its own. Until the Project
+settings UI ships, a Project with no default falls back to the Agent's Computer's ready cloud
+default ([Migration](#w3-transitional-decisions)). A default that is set but unusable still
+refuses.
+
+A Computer place is usable when its switch is on, it is online, and some runtime it reports in
+`workerRuntimes` is ready. A cloud place is usable when an online Computer can carry it.
 
 **Limits.** Each Computer has a Worker limit, set beside its switch, default 4. Each cloud provider
 has a limit per Server, set by an Owner or Admin beside the cloud model setting, default 10. A
@@ -188,7 +210,7 @@ the limit waits as `queued`, first come first served per place, and starts when 
 ## The CLI
 
 `haus worker` is the Agent surface. After R4 an Agent calls it through `execute`, and the Server
-handles it. A Worker calls only `haus worker report`.
+handles it. A Worker calls only `haus worker report` and the Drive read commands.
 
 | Command | Who | What it does |
 | --- | --- | --- |
@@ -201,12 +223,24 @@ handles it. A Worker calls only `haus worker report`.
 
 **Start.** The Server refuses before writing anything when the Task is missing, closed, or one the
 Agent cannot post in (`WORKER_TASK_REQUIRED`, `WORKER_TASK_CLOSED`), when the place is unusable
-(`WORKER_PLACE_REQUIRED`, `WORKER_PLACE_OFF`, `WORKER_PLACE_UNAVAILABLE`), when the repo is not one
-of the Project's (`WORKER_REPO_UNKNOWN`), or when a Computer place has not linked it
-(`WORKER_REPO_NOT_LINKED`). `--repo` defaults to the Project's only repo and is required when it
-has several. `--runtime` defaults to the first ready of Claude Code and Codex on that Computer.
-`--runtime` and `--model` are refused for cloud places, whose model is the Server's
-[cloud model setting](cloud-agents.md#model).
+(`WORKER_PLACE_REQUIRED`, `WORKER_PLACE_OFF`, `WORKER_PLACE_UNAVAILABLE`, `WORKER_PLACE_AMBIGUOUS`),
+when `--repo` is omitted and the Project has no repo or several (`WORKER_REPO_UNKNOWN`), when a
+Computer place has not linked the repo (`WORKER_REPO_NOT_LINKED`), or when the requested runtime,
+or every runtime, is not ready there (`WORKER_RUNTIME_UNAVAILABLE`). `--repo` defaults to the
+Project's only repo. A named repo the Project lacks joins its repos until the Project settings UI
+ships them ([Migration](#w3-transitional-decisions)). A Computer place still needs a link, which a
+repo that just joined has none of. `--runtime` defaults to the first ready of Claude Code and Codex
+on that Computer. `--model` must be one the Computer reports that runtime can run (Claude Code's
+`opus`, `sonnet`, and `haiku` aliases included), or the start is refused with
+`WORKER_MODEL_UNAVAILABLE` listing the ones it can. Left out, it is the delegating Agent's own
+model when that runtime runs it there, else the first the Computer reports. A Worker never inherits
+the machine's own runtime default, because that default may be a model the login cannot run. Both
+are refused for cloud places
+with `WORKER_OPTION_CLOUD`, whose model is the Server's [cloud model setting](cloud-agents.md#model).
+`--ref` defaults to the remote's default branch.
+
+Each refusal's message says what to do, and the CLI adds the step that resolves it, usually
+`haus worker places --task <KEY-n>`.
 
 A start passes the freshness hold of the Task's chat, as `haus message send` does, because a newer
 message there may change the brief. A held start writes nothing and prints the shown messages.
@@ -249,8 +283,10 @@ because mid-turn steering is deferred.
 The Server composes a turn's input when it dispatches the turn, not when it queues it, so a
 `WORKER.md` change that lands while a turn waits rides that turn. A dispatch the place has not
 acknowledged is composed again when it is sent again. `workerMdRevisionId` advances only when the
-place acknowledges the input that carried the revision: the Computer once the harness accepted the
-turn's input, the carrier once the provider accepted the send. A turn that fails before that
+place acknowledges the input that carried the revision: the Computer with `worker-turn-input-accepted`
+once the harness accepted the turn's input (Claude Code: spawned, stdin written, first stream
+event; Codex: `turn/start` returned), for the turn's current attempt only, and the carrier once
+the provider accepted the send. A turn that fails before that
 acknowledgement leaves the revision undelivered, so the next turn carries it again.
 
 A cloud Worker has no Drive folder, so this inlining is how it gets its rules. A Worker on a
@@ -262,14 +298,17 @@ Report-handling guidance rides the [Worker inbox items](inbox.md#worker-items), 
 
 ## Reports
 
-A report ends each turn. `haus worker report` records it during the turn. Calling it again in the
-same turn replaces it. The turn settles when the Worker's process ends, after its Drive push
+A report ends each turn. `haus worker report` records it during the turn as the turn's report
+draft (`worker_turns.report_draft`), through `POST /api/worker/report`. Calling it again in the
+same turn replaces it. After the turn settles it refuses with `WORKER_TURN_SETTLED`. Once the
+Worker is closing it refuses new reports, but a draft recorded before that still settles as the
+report ([Closing](#closing)). The turn settles when the Worker's process ends, after its Drive push
 closes, and settlement posts the report.
 
 - `done` says the brief is met.
 - `needs-you` asks for something with `--ask`. With `--person`, the report @mentions that person.
   Without it, the ask is for the Agent. The Server refuses a handle that is not a human member who
-  can read the Task, and the error lists the Task's followers, so the Worker fixes the call
+  can read the Task with `WORKER_PERSON_UNKNOWN`, and the error lists the Task's followers, so the Worker fixes the call
   instead of the Server guessing.
 - `failed` says why the brief cannot be met.
 
@@ -294,12 +333,12 @@ and the delegating Agent hears it through its inbox and tells people what matter
 
 | Reason | When |
 | --- | --- |
-| `no-report` | The harness process ended and the turn has no report |
+| `no-report` | The harness process ended, or a Computer restart lost it mid-run, and the turn has no report |
 | `machine-offline` | The Computer stayed disconnected for 30 minutes during the turn |
 | `machine-removed` | The Computer was removed, or the cloud Worker's carrier was |
 | `place-off` | The switch went off while the turn was queued |
-| `launch-refused` | The runtime or provider definitely refused the launch |
-| `harness-error` | The native harness failed to start or crashed |
+| `launch-refused` | The runtime or provider definitely refused the launch, or the launch fence refused the turn credential |
+| `harness-error` | The native harness failed to start, or the Computer stopped between the credential and the launch |
 | `provider-error` | The provider ended the run in error with no result text |
 | `provider-expired` | The provider expired the run |
 
@@ -335,7 +374,10 @@ answer as its next turn.
 `stop` asks the place to end the working turn, or drops a queued one, and drops queued follow-ups.
 The turn records who asked and reads **Stopping** until it settles as `stopped`. A stopped Worker
 takes later follow-ups. A stop while the place is offline settles the turn on the Server at once,
-and the Computer ends the process when it reconnects.
+and the Computer ends the process when it reconnects. Every launched turn the Server settles on its
+own side, a stop or a `machine-offline` failure alike, owes the harness that stop: until the
+Computer reports the turn ended, reconcile keeps carrying it and no later turn of the Worker
+dispatches or launches.
 
 ## Workers on a Computer
 
@@ -346,43 +388,115 @@ Worker keeps its harness on the machine.
 
 ### Layout
 
-Everything a Worker owns on the machine sits under `workers/<worker-id>/` in the Computer's data
-root:
+Everything a Worker owns on the machine sits under its Server attachment's partition of the
+Computer data root, `servers/<serverId>/workers/<worker-id>/`:
 
 ```text
-workers/<worker-id>/checkout/        git worktree of the Project repo
-workers/<worker-id>/drive/           the Worker's drive/ folder
-workers/<worker-id>/runtime/drive.json
-workers/<worker-id>/runtime/turns.json
+servers/<serverId>/workers/<worker-id>/checkout/            git worktree of the Project repo
+servers/<serverId>/workers/<worker-id>/drive/               the Worker's drive/ folder
+servers/<serverId>/workers/<worker-id>/drive-refused/       files a push refused
+servers/<serverId>/workers/<worker-id>/runtime/drive.json   the folder's bookkeeping
+servers/<serverId>/workers/<worker-id>/runtime/turns.json   the turn journal
+servers/<serverId>/workers/<worker-id>/runtime/report/      the last report receipt
+servers/<serverId>/workers/<worker-id>/runtime/bin/         the Worker's haus wrapper
+servers/<serverId>/workers/<worker-id>/runtime/tmp/         the harness's TMPDIR
 ```
 
-The checkout is a `git worktree` of the repo's linked clone on that Computer, on a new branch
-`haus/<key>-<n>-<worker-id>` from `--ref`, or from the remote default branch after a fetch. The
-drive folder sits outside the checkout ([Drive folder](drive-folder.md)), so the repo never sees
-it. A new drive folder starts as a copy of the freshest folder already on the Computer, with its
-records and with permissions reset for this writer, then pulls the delta. A Computer with no folder
-pulls in full.
+The checkout is a `git worktree` of the repo's linked clone on that Computer (the link's
+`checkoutPath`, used after its `origin` matches `owner/name`), or of a clone in
+`repos/<owner>/<name>` under the data root, made once through a temp sibling and a rename. The
+branch is new, `haus/<worker-id>/<key>-<n>` with the key in lower case, from `--ref`, or from the remote
+default branch after a fetch. Later turns reuse the checkout. Worktree add and remove for one repo
+run one at a time. The drive folder sits outside the checkout ([Drive folder](drive-folder.md)),
+so the repo never sees it. A new drive folder pulls in full
+([Migration](#w3-transitional-decisions)).
 
 ### Run a turn
 
-1. The Server sends a turn-start frame with the turn id, the composed input, the runtime, the
-   model, and a credential for that turn. The frame is idempotent by turn id.
-2. The Computer journals the turn as accepted, then pulls the drive folder.
-3. It runs the harness in the checkout under the machine user's own environment, so Claude Code,
-   Codex, git, and `gh` use the logins already on that machine. The first turn starts a new
-   session. Later turns resume it. Claude Code runs with `bypassPermissions`. Codex runs with its
-   `workspace-write` sandbox and network access. Both run unattended.
-4. The harness gets `haus` on `PATH` and the turn credential in `HAUS_WORKER_TOKEN`. The credential
-   allows `haus worker report` for this turn and the Drive read commands, and nothing else. It dies
-   when the turn settles.
-5. The Computer reports a bounded `activity` line from the harness's events, at most every few
-   seconds.
-6. When the process ends, the Computer pushes the drive folder under the turn id, closes the push,
-   and reports the turn ended. The Server settles it.
+The Server dispatches a Computer-place turn only while the switch is on, the Computer is online,
+and the Computer has a free slot under its `worker_limit`. A queued turn whose repo has no link on
+that Computer, because it was unlinked or removed after the turn queued, settles failed
+`launch-refused` with detail `repo-unlinked` when dispatch reaches it, and no start is sent. Only a
+link with a null `checkoutPath` means "clone into the data root".
 
-A turn whose outcome is unknown after a Computer crash is never run again. On restart the Computer
-reports any accepted turn with no live process as ended, and the Server settles it with its report,
-or as failed `no-report`. A dead machine is a failed turn, not a moved Worker.
+1. The Server sends `worker-turn-start` with the turn id, the attempt, the composed input, the
+   `WORKER.md` revision it inlines, the runtime and model, the checkout (repository, linked
+   `checkoutPath` or null, branch, starting ref), and, from the second turn, `resumeSessionId`.
+   The frame is idempotent by turn id. Each send or resend is a new attempt
+   (`worker_turns.dispatch_attempt`), and only the current attempt may launch.
+2. The Computer journals the turn and answers `worker-turn-accepted` with the attempt. From here
+   the turn is never run twice. A resent start for a turn it already holds past `accepted` answers
+   with the attempt it is actually running. The Server records that as the turn's
+   `accepted_attempt`, and from then on frames for that attempt are current, so a lost accept and a
+   resend still let the running attempt settle the turn.
+3. It mints the turn credential with its own Computer credential,
+   `POST /computer/workers/turn-credential { turnId, attempt }`. This is the launch fence. The
+   Server refuses when the turn is settled, a stop was requested, the attempt is stale, the Worker
+   is closing, the switch is off, or the turn is not dispatched to that Computer. A refused mint
+   ends the turn `refused`, and nothing launches. A re-mint for the same attempt revokes the
+   earlier token. The Server keeps only the token's hash, and the Computer journals the newest
+   token before it launches.
+4. It adds or reuses the worktree, then pulls the drive folder with the turn credential.
+5. It runs the harness in the checkout under the machine user's own environment, so Claude Code,
+   Codex, git, and `gh` use the logins already on that machine. The first turn starts a new
+   session. Later turns resume it. Claude Code runs with `bypassPermissions`, the machine user's
+   HOME, every settings layer, and no Haus MCP or system prompt. Codex runs with its
+   `workspace-write` sandbox and network access, the user's `CODEX_HOME`, native `AGENTS.md`
+   loading, and the checkout, the drive folder, the report folder, `runtime/tmp`, the worktree's
+   own git dir, the shared object store, and only its own branch's ref and reflog folders
+   (`refs/heads/haus/<worker-id>`) as writable roots, so it cannot move `main` or another
+   Worker's branch. `/tmp` and the inherited `$TMPDIR` are excluded. Both
+   harnesses get `TMPDIR`, `TMP`, and `TEMP` pointed at the Worker's `runtime/tmp`. Both run
+   unattended and use none of the Agent host tools, warm pool, or background work.
+6. The harness gets `haus` on `PATH` and the turn credential in `HAUS_WORKER_TOKEN`. That `haus`
+   runs only `haus worker report` and the Drive read commands, and the credential reaches only
+   `POST /api/worker/report` for this turn and the Drive reads (changes, by-path, download). It
+   dies when the turn settles.
+7. The Computer sends `worker-turn-session` as soon as the harness allocates its session, and the
+   Server stores it once in `workers.native_session_id`. It sends `worker-turn-input-accepted`
+   once the harness accepted the input. It sends `worker-turn-activity`, one line of at most 120
+   characters from the harness's events, at most every 5 seconds.
+8. When the process ends, the daemon mints a push credential with its Computer credential,
+   `POST /computer/workers/push-credential { turnId }`, pushes the drive folder under the turn id,
+   and closes the push. The push credential reaches only the push routes for that turn and the
+   Drive reads, and never enters the harness environment. The Computer then takes bounded
+   `gh pr view` readings of the pull requests the report names and sends `worker-turn-ended` with
+   the attempt, the exit, the session id, the branch, and those readings. The Server settles it.
+
+The Computer journals each turn's phase, `accepted`, `credentialed`, `running`, `pushing`,
+`ended`, and a restart resumes from the phase it reached. It never runs a turn again.
+
+| Phase on restart | What the Computer does |
+| --- | --- |
+| `accepted` | Goes on to the mint, because nothing has run and the fence still decides |
+| `credentialed` | Ends it `crashed-before-launch` |
+| `running`, no live process | Pushes, then ends it `uncertain` |
+| `pushing` | Finishes the push, then reports the exit it recorded |
+
+A Computer that lost its journal still answers reconcile. Each entry carries the turn's current
+attempt, and a Computer-place turn the Computer holds no record of and runs no process for is
+reported ended `uncertain` with detail `journal-missing`. A turn the Server already settled
+records its end, so the turns behind it dispatch; an unsettled one settles through the table
+below. A turn whose process is still live is never reported missing.
+
+Settlement is one locked transaction through one table:
+
+| Exit | Report draft | Stop requested | Outcome |
+| --- | --- | --- | --- |
+| `exited` | yes | any | the report, `source: 'worker'` |
+| `exited` | no | yes | `stopped` |
+| `exited` | no | no | failed `no-report` |
+| `crashed-before-launch` | any | any | failed `harness-error` |
+| `uncertain` | yes | any | the report |
+| `uncertain` | no | any | failed `no-report` |
+| `refused` | any | any | failed `launch-refused` |
+| `stopped` (the Computer killed it on `worker-stop`) | yes | yes | the report |
+| `stopped` | no | yes | `stopped` |
+
+A failed outcome keeps the ended frame's detail, so the turn shows why it failed.
+
+A Computer-place turn whose Computer stays disconnected for 30 minutes settles as failed
+`machine-offline`. A dead machine is a failed turn, not a moved Worker.
 
 ### Closing
 
@@ -397,12 +511,17 @@ When a Task becomes done or canceled, the Server closes each of its Workers in t
 4. It delivers each Worker's final outcome to the delegating Agent as one `worker_report` item
    ([inbox](inbox.md#worker-items)). A written report posts as usual. A `stopped` outcome posts
    nothing.
-5. It sets `closedAt` and tells the place. Only then does the Computer run `git worktree remove`
-   on the checkout and delete the drive folder. The branch stays, so committed work survives. The
-   native session files stay where the harness keeps them.
+5. It sets `closedAt` and sends the Computer place `worker-close { workerId }`. Only then does the
+   Computer force-remove the worktree, run `git worktree prune`, and delete the drive folder. The
+   branch stays, so committed work survives. The native session files stay where the harness
+   keeps them. `worker-close` is idempotent.
 
 A place that is offline gets steps 3 and 5 when it reconnects. The Server settles the turn on its
-own side at step 3 and never waits on the place to deliver step 4.
+own side at step 3, through the settlement table's `stopped` rows: a recorded draft posts as the
+report with its citations and pull requests, and no draft settles `stopped`. It never waits on the
+place to deliver step 4. A `stop` of an offline Worker settles the same way. On every connect the Computer
+sends `worker-held { workerIds }`, the Workers whose checkout or drive folder it still holds, even
+when the list is empty, and the Server answers with `worker-close` for each one that is closed.
 
 ## Deliverables
 
@@ -414,9 +533,11 @@ agents/<handle>/renders/<KEY-n>/…
 agents/<handle>/handoffs/<KEY-n>/…
 ```
 
-A Worker writes what its Agent writes ([Areas](artifact-drive.md#areas)). Each revision names the
-Worker as author with the Worker's Task. Conflicts from a Worker's push go to its Agent's inbox as
-`drive_conflict`. A cloud Worker writes nothing to Drive. Its deliverables are its pull requests
+A Worker writes what its Agent writes ([Areas](artifact-drive.md#areas)): the folder's writer is
+the delegating Agent. Each revision names the Worker as author with the Worker's Task. Conflicts
+from a Worker's push go to its Agent's inbox as `drive_conflict`, naming the Worker. A Worker push
+(`drive_pushes.worker_id`, push id = turn id) never closes its Agent's own run push or another
+Worker's. A cloud Worker writes nothing to Drive. Its deliverables are its pull requests
 and its report.
 
 ## Commits and pull requests
@@ -554,19 +675,51 @@ W2 migrates every caller and deletes the cloud agent path in one change.
   ids, and instructions) and its acknowledged provider ids from the launch journal. The Server
   writes each into its turn, recovering the provider ids, and acknowledges each item. The
   Computer removes an entry only after its acknowledgement. The Server dispatches a migrated turn
-  only once it holds that turn's input. An offline carrier drains when it reconnects. W3 deletes
-  the drain path once every attached Computer reports an empty file.
+  only once it holds that turn's input. An offline carrier drains when it reconnects. The drain
+  path stays through W3 and goes once every attached Computer reports an empty file.
 - `cloud_agent_work` inbox rows become `worker_report`, `worker_stall`, or `pull_request` items by
   their notice.
 - Each Project's default place becomes the default provider of the Computer that launched the
-  Server's newest cloud agent work. A Server with none leaves defaults unset. The migration never
+  Server's newest cloud agent work (migration 0144, in W3). A Server with none leaves defaults
+  unset. The migration never
   turns **Workers can run here** on. Cloud places keep working without it, and local execution
   stays off until the attaching person, an Owner, or an Admin turns it on.
 - Deleted with no alias: `haus cloud-agent` and its `cancel` spelling, `--provider`, `--say`,
   `--cause` on start, the launch Message, **Make default** and `defaultProvider`, and the
-  Computer-local pending follow-up file once drained. Until W3 moves the default onto Projects,
-  **Make default** stays, and a start without `--on` runs on the Agent's Computer's ready default. The website's older `TranscriptWorker` row type is now `TranscriptSubagent`,
-  so the word means one thing.
+  Computer-local pending follow-up file once drained. **Make default** stays as a fallback
+  ([W3 transitional decisions](#w3-transitional-decisions)). The website's older
+  `TranscriptWorker` row type is now `TranscriptSubagent`, so the word means one thing.
+
+### W3 transitional decisions
+
+W3 (Workers on Computers) ships the Server and Computer halves with no App UI. People have no App
+control yet for a Computer's switch, a Project's repos, or its default place, so W3 keeps these
+until W4 and the Project settings UI replace them. Each says what retires it.
+
+- **Start precedence.** A start runs on `--on`. Otherwise on the Task's Project default, and a
+  default that is set but unusable refuses with `WORKER_PLACE_REQUIRED`, never falling through.
+  Otherwise on the Agent's Computer's ready cloud default. Otherwise it refuses with
+  `WORKER_PLACE_REQUIRED` and lists the usable places. The third step retires with
+  **Make default**, below, which leaves the order this spec's [default place](#places) names.
+- **Make default as the last fallback.** The per-Computer **Make default** cloud provider is the
+  third step above. It retires when the Project settings UI ships the default place.
+- **Repos until the Project settings UI ships them.** Migration 0144 backfills `project_repos`
+  from each Project's Workers' `repository`, skipping taskless history. A start that names a
+  `--repo` the Project lacks adds it to the Project's repos. `WORKER_REPO_UNKNOWN` applies only
+  when `--repo` is omitted and the Project has no repo or several. A Computer place still needs a
+  link on that Computer (`WORKER_REPO_NOT_LINKED`), so the auto-add only starts cloud Workers. It
+  retires when people manage repos in Project settings. A named repo the Project lacks then
+  refuses with `WORKER_REPO_UNKNOWN`.
+- **New Worker drive folders pull in full.** Seeding a new folder from a copy of the freshest
+  folder on the machine is deferred, because copying a live folder can carry another writer's
+  unpushed edits. It retires when a seed copies only files whose bytes match their records.
+- **Two credentials.** The turn credential is model-visible, so it carries only the report and the
+  Drive reads. The Drive push runs in the daemon under a separate host-only push credential minted
+  with the Computer credential. This replaces the single "credential for that turn" this spec
+  named before W3, and it is not transitional: nothing retires it, because any push authority in
+  `HAUS_WORKER_TOKEN` would let the model write the Agent's area outside the turn's push.
+
+W3 also bumps the Computer protocol to 42. Older Computers take the existing update-required path.
 
 ## Deferred
 
@@ -595,3 +748,8 @@ W2 to W4 add these.
 | Closing a Task stops and settles its Workers, delivers each outcome, then removes checkouts | `apps/server/test/worker-close.test.ts` |
 | A pending local follow-up becomes a Server turn and leaves the Computer only after acknowledgement | `apps/computer/src/workers/follow-up-drain.test.ts` |
 | A crash after acceptance never reruns the turn | `apps/computer/src/workers/turn-journal.test.ts` |
+| A Computer that restarts ends each turn it left mid-launch without running it, and finishes a push it left | `apps/computer/src/workers/computer/computer-place-recovery.test.ts` |
+| The launch fence mints only for the current attempt, and the turn token reaches only report and the Drive reads | `apps/server/test/worker-credential.test.ts` |
+| A start without `--on` takes the Project's Computer default before the Agent's cloud default, and an unusable Computer start writes nothing | `apps/server/test/worker-computer-start.test.ts` |
+| Switching Workers off refuses new work, settles queued turns `place-off`, and clears Project defaults | `apps/server/test/worker-computer-settings.test.ts` |
+| A Worker push writes as the Worker and never closes its Agent's run push | `apps/server/test/worker-drive-push.test.ts` |
