@@ -5,8 +5,7 @@ import { Fragment } from 'react';
 import { useArtifactDeleted } from '../../hooks/artifacts/use-artifact-deleted.ts';
 import { useDeletedArtifactRestore } from '../../hooks/artifacts/use-deleted-artifact-restore.ts';
 import { useAgentAppearances } from '../../hooks/members/use-agents.ts';
-import { artifactTimeLabel } from './artifact-format.ts';
-import { artifactFolderWithin } from './drive-folders.ts';
+import { deletedRowFacts } from './drive-deleted-row.ts';
 import { driveAgentName, driveFolderLabel } from './drive-places.ts';
 import { useArtifactCreatorDirectory } from './use-artifact-creator-directory.ts';
 
@@ -91,20 +90,17 @@ function DeletedRows({
     const now = Date.now();
     return (
         <ItemCardGroup aria-label="Deleted files" className="overflow-hidden">
-            {deleted.map(({ artifact, deleted_at }, index) => {
-                const within = artifactFolderWithin(artifact.path, folder);
-                const facts = [
-                    within,
-                    directory.name(artifact.author),
-                    `Deleted ${artifactTimeLabel(deleted_at, now)}`,
-                ].filter(Boolean);
+            {deleted.map((record, index) => {
+                const { artifact } = record;
                 return (
                     <Fragment key={artifact.artifact_id}>
                         {index > 0 ? <Separator /> : null}
                         <ItemCard>
                             <ItemCard.Content>
                                 <ItemCard.Title>{artifact.filename}</ItemCard.Title>
-                                <ItemCard.Description>{facts.join(' · ')}</ItemCard.Description>
+                                <ItemCard.Description>
+                                    {deletedRowFacts(record, folder, directory, now)}
+                                </ItemCard.Description>
                             </ItemCard.Content>
                             <ItemCard.Action>
                                 <Button

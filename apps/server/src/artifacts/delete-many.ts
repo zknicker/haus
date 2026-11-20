@@ -41,7 +41,7 @@ export async function deleteManyArtifacts(
             });
         }
         const allowed = placed.filter((file) => mayWriteDriveArea(access, file.placement.area));
-        await softDeleteArtifacts(tx, access.serverId, allowed);
+        await softDeleteArtifacts(tx, access.serverId, allowed, access.authorKey);
         const found = new Set(rows.map((row) => row.id));
         return {
             deleted: allowed.map((file) => file.artifact.id),

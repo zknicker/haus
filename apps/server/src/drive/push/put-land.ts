@@ -19,7 +19,7 @@ import { writableDrivePath } from '../areas.ts';
 import { freeCopyPath } from './copy-path.ts';
 import { driveRevisionOf, revisionOwner } from './outcomes.ts';
 import { type PushRequest, recordOutcome } from './replay.ts';
-import { type DrivePush, requireOpenPush } from './session.ts';
+import { type DrivePush, requireOpenPush, requireRunSinceReset } from './session.ts';
 
 type Artifact = typeof artifacts.$inferSelect;
 type Revision = typeof revisions.$inferSelect;
@@ -48,6 +48,7 @@ export async function landPushPut(db: HausDatabase, landing: PushPutLanding) {
         const { access, push } = landing;
         await lockLiveServer(tx, access.serverId);
         await requireOpenPush(tx, access, push.id);
+        await requireRunSinceReset(tx, push);
         await writableDrivePath(tx, access, landing.placed);
         const provisional = await readArtifact(tx, landing.revision.artifactId);
         const landed = await markUploaded(tx, provisional, landing.revision, landing.uploaded);

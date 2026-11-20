@@ -974,6 +974,20 @@
       "when": 1795144337421,
       "tag": "0138_remove-cove-onboarding",
       "breakpoints": true
+    },
+    {
+      "idx": 139,
+      "version": "7",
+      "when": 1795203768273,
+      "tag": "0139_agent-reset-generation",
+      "breakpoints": true
+    },
+    {
+      "idx": 140,
+      "version": "7",
+      "when": 1795203774571,
+      "tag": "0140_artifact-deleted-by",
+      "breakpoints": true
     }
   ]
 }

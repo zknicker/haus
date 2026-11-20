@@ -87,6 +87,8 @@ export const agentsTable = pgTable(
         conversationStyle: text('personality'),
         /** The model connection a human chose; null runs on the default for its model's provider. */
         modelConnectionId: text('model_connection_id'),
+        /** Counts full resets; a Drive push from a run of an earlier generation is refused. */
+        resetGeneration: integer('reset_generation').notNull().default(0),
         retiredAt: timestamp('retired_at', { withTimezone: true }),
         /** One fully qualified emoji: the Agent's pickup reaction. Null means the default. */
         signatureEmoji: text('signature_emoji'),
