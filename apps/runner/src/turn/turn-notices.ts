@@ -7,7 +7,7 @@ import {
 import type { RuntimeSession, RuntimeTurn } from './runtime-driver.ts';
 
 export interface ToolGate {
-    toolCallSettled(toolCallId: string): Promise<void>;
+    toolCallSettled(toolCallId: string): void;
     toolCallStarted(toolCallId: string): void;
 }
 
@@ -117,10 +117,10 @@ export function noticeCoordinator(deliver: (notice: string) => Promise<boolean>)
                 pending = { notice, resolvers: [...(pending?.resolvers ?? []), resolve] };
             });
         },
-        async toolCallSettled(toolCallId: string) {
+        toolCallSettled(toolCallId: string) {
             inFlightToolCalls.delete(toolCallId);
             if (inFlightToolCalls.size === 0) {
-                await flush();
+                flush().catch((error: unknown) => console.error('Notice delivery failed.', error));
             }
         },
         toolCallStarted(toolCallId: string) {
