@@ -8,8 +8,14 @@ import {
     useMemo,
     useState,
 } from 'react';
-import { useColorThemeSync } from '../hooks/shell/use-color-theme.ts';
+import { getColorTheme, useColorThemeSync } from '../hooks/shell/use-color-theme.ts';
+import { getCustomThemes, useCustomThemesSync } from '../hooks/shell/use-custom-themes.ts';
 import { useThemeAppIcon } from '../hooks/shell/use-theme-app-icon.ts';
+import {
+    installCustomThemeStyles,
+    resolveColorTheme,
+    stampAppearance,
+} from '../lib/appearance-root.ts';
 import type { ColorTheme } from '../lib/color-theme.ts';
 import { colorThemeDefinition } from '../lib/color-themes.ts';
 import { getDesktopBridge } from '../lib/desktop-bridge.ts';
@@ -39,6 +45,7 @@ export function ThemeProvider({ children }: PropsWithChildren) {
     const [theme, setThemeState] = useState<ThemePreference>(() => getStoredTheme());
     const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(() => getSystemTheme());
     const colorTheme = useColorThemeSync();
+    useCustomThemesSync();
     useThemeAppIcon();
     const forcedTheme = colorThemeDefinition(colorTheme).forcedMode;
     const resolvedTheme = resolveTheme(theme, colorTheme, systemTheme);
@@ -50,13 +57,10 @@ export function ThemeProvider({ children }: PropsWithChildren) {
         return () => mediaQuery.removeEventListener('change', handleChange);
     }, []);
 
-    // Layout effect: lands with `data-color-theme` before paint, so a pinned mode never flashes.
+    // Layout effect: mode and theme land together before paint, so a pinned mode never flashes.
     useLayoutEffect(() => {
-        const root = document.documentElement;
-        root.dataset.theme = resolvedTheme;
-        root.style.colorScheme = resolvedTheme;
-        root.classList.toggle('dark', resolvedTheme === 'dark');
-    }, [resolvedTheme]);
+        stampAppearance(document.documentElement, resolvedTheme, colorTheme);
+    }, [colorTheme, resolvedTheme]);
 
     useEffect(() => {
         window.localStorage.setItem(storageKey, theme);
@@ -98,6 +102,22 @@ export function useTheme() {
 // static markup in tests). Falls back to the app's default dark theme.
 export function useResolvedThemeOptional(): ResolvedTheme {
     return useContext(ThemeContext)?.resolvedTheme ?? 'dark';
+}
+
+/**
+ * Called once in `main.tsx` before the first render: the stored mode, theme
+ * and custom theme tokens land on the root before anything paints, so a
+ * reload never flashes the default palette.
+ */
+export function stampStoredAppearance() {
+    const themes = getCustomThemes();
+    const colorTheme = resolveColorTheme(getColorTheme(), themes);
+    installCustomThemeStyles(document, themes);
+    stampAppearance(
+        document.documentElement,
+        resolveTheme(getStoredTheme(), colorTheme, getSystemTheme()),
+        colorTheme
+    );
 }
 
 /** The mode in effect: a color theme's pinned mode, else the preference (System follows the OS). */

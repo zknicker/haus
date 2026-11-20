@@ -83,7 +83,7 @@ test('settings navigation names the page and reaches Server deletion', async ({
     const groups = {
         Captains: ['Models', 'Skills', 'Connections'],
         Haus: ['General', 'Members', 'Devices', 'Usage', 'Archived chats'],
-        You: ['Profile', 'Preferences', 'Servers'],
+        You: ['Profile', 'Preferences', 'Appearance', 'Servers'],
     };
     for (const [group, rows] of Object.entries(groups)) {
         await expect(

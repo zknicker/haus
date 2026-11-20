@@ -13,7 +13,7 @@ function railShape(input: { canOperate: boolean; query: string }) {
 
 test('the rail groups pages by whose settings they are', () => {
     assert.deepEqual(railShape({ canOperate: true, query: '' }), [
-        { label: 'You', rows: ['Profile', 'Preferences', 'Servers'] },
+        { label: 'You', rows: ['Profile', 'Preferences', 'Appearance', 'Servers'] },
         { label: 'Captains', rows: ['Models', 'Skills', 'Connections'] },
         { label: 'Haus', rows: ['General', 'Members', 'Devices', 'Usage', 'Archived chats'] },
     ]);

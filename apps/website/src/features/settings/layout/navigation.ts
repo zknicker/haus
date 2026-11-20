@@ -4,6 +4,7 @@ import {
     ArchiveIcon,
     ComputerIcon,
     Exchange01Icon,
+    PaintBoardIcon,
     Plug01Icon,
     PreferenceHorizontalIcon,
     ServerStack01Icon,
@@ -28,7 +29,15 @@ export const settingsNavItems = [
         id: 'preferences',
         kind: 'page',
         label: 'Preferences',
-        rows: ['Mode', 'Theme', 'Snow', 'Window layout', 'Notifications', 'Show claims in chat'],
+        rows: ['Window layout', 'Notifications', 'Show claims in chat'],
+    },
+    {
+        access: 'everyone',
+        icon: PaintBoardIcon,
+        id: 'appearance',
+        kind: 'page',
+        label: 'Appearance',
+        rows: ['Mode', 'Theme', 'Create theme', 'Colors', 'Snow'],
     },
     {
         access: 'everyone',
@@ -121,7 +130,7 @@ export const settingsPages = settingsNavItems.filter(
 );
 
 export const settingsNavSections = [
-    { id: 'you', itemIds: ['profile', 'preferences', 'servers'], label: 'You' },
+    { id: 'you', itemIds: ['profile', 'preferences', 'appearance', 'servers'], label: 'You' },
     { id: 'captains', itemIds: ['models', 'skills', 'connections'], label: 'Captains' },
     {
         id: 'haus',

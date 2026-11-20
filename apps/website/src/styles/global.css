@@ -12,6 +12,15 @@
 @import "./themes/christmas-eve-tokens.css";
 @import "./themes/christmas-morning-tokens.css";
 @import "./themes/christmas-decorations.css";
+@import "./themes/oled-tokens.css";
+@import "./themes/palette-ground.css";
+@import "./themes/catppuccin-tokens.css";
+@import "./themes/gruvbox-tokens.css";
+@import "./themes/everforest-tokens.css";
+@import "./themes/nord-tokens.css";
+@import "./themes/one-tokens.css";
+@import "./themes/mauve-tokens.css";
+@import "./themes/theme-preview.css";
 @import "../features/chats/chat.css";
 @import "../features/chats/reactions/reaction-stickers.css";
 @import "../features/shell/shell.css";
