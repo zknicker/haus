@@ -25,7 +25,7 @@ export function useUnreadRowWalk({
     React.useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
             const direction = walkDirection(event);
-            if (!direction || event.defaultPrevented || isInDialog(event.target)) {
+            if (!direction || event.defaultPrevented || ignoresTarget(event.target)) {
                 return;
             }
             const rows = walkRows({
@@ -55,6 +55,12 @@ function walkDirection(event: KeyboardEvent) {
     return event.key === 'ArrowUp' ? ('previous' as const) : null;
 }
 
-function isInDialog(target: EventTarget | null) {
-    return target instanceof Element && target.closest('[role="dialog"]') !== null;
+const ignoredTargets =
+    'input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="dialog"], [role="alertdialog"]';
+
+function ignoresTarget(target: EventTarget | null) {
+    if (target instanceof HTMLElement && target.isContentEditable) {
+        return true;
+    }
+    return target instanceof Element && target.closest(ignoredTargets) !== null;
 }
