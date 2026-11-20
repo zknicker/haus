@@ -319,11 +319,11 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   each exception's reason). Neither sees a `className`
   built through `cn()` or a variable, so read the component's anatomy before
   reaching for a wrapper.
-* One Settings page separates **Preferences** (Profile, Preferences, Servers)
-  from **Server** (Server, Members, Connections, Models, Skills, Usage, then
-  Archived chats), followed by the roster-driven **Computers**. Agent
-  capabilities belong to the shared Server scope, not a separate settings
-  category. Which Servers you belong to is about you, so switching, creating,
+* One Settings page groups its rail as **You** (Profile, Preferences, Appearance,
+  Notifications, Shortcuts, Servers), **Captains** (Models, Skills,
+  Connections), and **Haus** (General, Members, Devices, Usage, then Archived
+  chats). Shortcuts is generated from `features/shortcuts/shortcut-registry.ts`,
+  which its test holds to the real key handlers. Which Servers you belong to is about you, so switching, creating,
   and joining sit in the personal scope. Archived chats is a
   link-out, not a settings page: it keeps its own standalone route and the
   rail hands off to it (`settingsNavLinkItems`, resolved by

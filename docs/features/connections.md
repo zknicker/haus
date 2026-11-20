@@ -9,15 +9,15 @@ read_when:
 
 # Connections
 
-Server Settings -> Connections manages remote MCP server accounts. It shares Settings -> Skills'
-catalog layout: titled sections of borderless two-column rows, each an icon tile, name, one-line
-description, and a trailing control. **Recommended** lists presets not yet added, each with a **+**
-button that adds it; **Added** lists saved connections with their status, opens a connection's
-page on press, and carries the **+** (**Add connection**) that opens the add drawer. Adding a
-preset or a custom connection keeps you on the list. Product copy says "connection"; "MCP" appears
-only where the custom form asks for an MCP server's address.
+Server Settings -> Connections manages remote MCP server accounts. The page leads with
+**Connected**: one borderless row per saved connection, each a brand tile, its name over its
+account, and its status, opening the connection's page on press. **Explore connections** (beside the
+title, and in the empty state) opens a dialog listing the presets not yet added, each with a **+**
+button that adds it, and **Add custom connection**, which opens the add drawer. Adding a preset
+keeps the dialog open and the new account joins Connected behind it. Product copy says
+"connection"; "MCP" appears only where the custom form asks for an MCP server's address.
 
-**Add connection** saves a custom MCP entry in Haus. For OAuth MCPs, **Sign in** then opens the remote
+**Add custom connection** saves a custom MCP entry in Haus. For OAuth MCPs, **Sign in** then opens the remote
 account's authorization flow; until that completes, the entry says **Sign in required**. Header
 authentication uses **Add credentials** instead. Adding a connection does not grant Agents access.
 A server address that resolves to a private or local network is refused with "This address isn't
@@ -55,13 +55,13 @@ connection works from web and mobile while the desktop app is closed. Reconnect 
 Skool accounts use the same desktop flow. A community is content within an account, not a preset.
 Skool sessions can expire; reconnect in desktop when reads require sign-in again. This is browser
 session authentication, not Skool OAuth. Token presets offer **Add token** while disconnected and **Replace
-token** on the account menu instead of a header editor. Once added, a preset disappears from Recommended, even while disconnected. Another
+token** on the account menu instead of a header editor. Once added, a preset disappears from Explore connections, even while disconnected. Another
 account can be added deliberately from the connection's page with **Add another account**. For a
 sign-in preset (GitHub, MerchBase) one press opens the provider's sign-in tab, adds the account,
 and moves to its page, which shows it connecting until the sign-in finishes; the row shows a spinner
 and ignores further presses meanwhile, and a failed or untrusted sign-in leaves the new account on
 its page as **Sign in required**. Factory and X open the token form instead. Deleting the last account makes the
-preset available in Recommended again; the section is hidden when every preset has been added.
+preset available in Explore connections again; when every preset has been added the dialog says so.
 
 MerchBase Atlas connects to `https://atlas.merchbase.co/mcp` through Cloudflare Access
 OAuth. It exposes artwork search, asset management, and design exports. Adding it requires
@@ -136,7 +136,7 @@ an Agent writes into its execution runtime's own config are ignored (see
 A custom connection shows the MCP server's own icon when one can be resolved, and a tinted
 monogram otherwise. Haus Server resolves and stores the image during discovery, so the settings
 page makes no third-party image requests. Legacy curated presets show bundled marks. Handmade, Cloudflare, MerchBase Atlas, and Fulfillment use their service-owned
-MCP icon metadata or favicon. Presets share one branding lookup across Recommended and Added,
+MCP icon metadata or favicon. Presets share one branding lookup across Explore connections and Connected,
 preferring homepage icon links before legacy favicons. Adding, signing in, or disconnecting an
 account does not discard its service branding. Icons are stored when a connection is added,
 connected, or refreshed, so opening Connections never waits on a third-party site; existing presets

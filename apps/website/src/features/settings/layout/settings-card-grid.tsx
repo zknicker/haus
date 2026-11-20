@@ -23,6 +23,7 @@ export function SettingsCardGrid({
     children,
     count,
     footer,
+    layout = 'grid',
     status,
     title,
 }: {
@@ -32,6 +33,8 @@ export function SettingsCardGrid({
     count?: number;
     /** Under the grid — `SettingsCardGridMore` when the section is collapsed. */
     footer?: React.ReactNode;
+    /** `list` stacks one row per line, for a section read top to bottom. */
+    layout?: 'grid' | 'list';
     /** Replaces the grid while there is nothing to list: loading, error, or empty. */
     status?: React.ReactNode;
     title: React.ReactNode;
@@ -52,13 +55,16 @@ export function SettingsCardGrid({
                 </ItemCardGroup.Title>
                 {action}
             </ItemCardGroup.Header>
-            {status ?? (
-                // Stock grid is a fixed two columns; a narrow column takes one
-                // so titles keep room to read before they truncate.
-                <ItemCardGroup className="max-sm:grid-cols-1" columns={2} layout="grid">
-                    {children}
-                </ItemCardGroup>
-            )}
+            {status ??
+                (layout === 'list' ? (
+                    <ItemCardGroup variant="transparent">{children}</ItemCardGroup>
+                ) : (
+                    // Stock grid is a fixed two columns; a narrow column takes one
+                    // so titles keep room to read before they truncate.
+                    <ItemCardGroup className="max-sm:grid-cols-1" columns={2} layout="grid">
+                        {children}
+                    </ItemCardGroup>
+                ))}
             {footer}
         </ItemCardGroup>
     );
