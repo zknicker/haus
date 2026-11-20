@@ -16,6 +16,7 @@ export function useCaptainTile(serverId: string, agentId: string) {
                       avatarUrl: agent.avatarUrl,
                       displayName: agent.displayName,
                       id: agent.id,
+                      wakePause: agent.wakePause,
                   }
                 : undefined;
         },

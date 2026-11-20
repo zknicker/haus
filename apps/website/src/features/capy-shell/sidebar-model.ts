@@ -8,9 +8,11 @@ export interface CaptainTile {
     avatarUrl: string | null;
     dmChatId: string | null;
     name: string;
+    presence: CaptainPresence | null;
     unreadCount: number;
-    working: boolean;
 }
+
+export type CaptainPresence = 'error' | 'paused' | 'working';
 
 export interface ProjectRow {
     chatId: string;
@@ -37,7 +39,9 @@ export interface PersonRow {
     unreadCount: number;
 }
 
-export type CaptainSource = Pick<Agent, 'availability' | 'avatarUrl' | 'displayName' | 'id'>;
+export type CaptainSource = Pick<Agent, 'availability' | 'avatarUrl' | 'displayName' | 'id'> & {
+    wakePause?: Agent['wakePause'];
+};
 export type MemberSource = Pick<ServerMember, 'avatarUrl' | 'displayName' | 'userId'>;
 export interface TaskUnread {
     mentionsViewer: boolean;
@@ -50,9 +54,16 @@ export function captainTile(agent: CaptainSource, dm: { id: string; unreadCount:
         avatarUrl: agent.avatarUrl,
         dmChatId: dm?.id ?? null,
         name: agent.displayName,
+        presence: captainPresence(agent),
         unreadCount: dm?.unreadCount ?? 0,
-        working: agent.availability === 'working',
     } satisfies CaptainTile;
+}
+
+function captainPresence(agent: CaptainSource) {
+    if (agent.availability === 'working' || agent.availability === 'error') {
+        return agent.availability;
+    }
+    return agent.wakePause ? ('paused' as const) : null;
 }
 
 export function agentDm(chats: readonly Chat[], agentId: string) {

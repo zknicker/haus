@@ -11,6 +11,7 @@ import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.t
 import { cn } from '../../lib/utils.ts';
 import { serverChatRoute, taskRoute } from '../servers/server-routes.ts';
 import { ChatNavigationContextMenu } from '../shell/chat-navigation-context-menu.tsx';
+import { DmNavigationContextMenu } from '../shell/dm-navigation-context-menu.tsx';
 import { TaskStateDisc } from '../tasks/task-state-disc.tsx';
 import { taskStateLabels } from '../tasks/task-state.ts';
 import type { ProjectRow } from './sidebar-model.ts';
@@ -131,17 +132,28 @@ export const PersonNavigationRow = React.memo(function PersonNavigationRow({
             ref={rowRef}
             textValue={row.name}
         >
-            <Sidebar.MenuIcon>
-                <EntityAvatar name={row.name} size={24} src={row.avatarUrl} />
-            </Sidebar.MenuIcon>
-            <Sidebar.MenuItemContent>
-                <Sidebar.MenuLabel
-                    className={cn('ms-[2px]', row.unreadCount > 0 && 'text-foreground font-medium')}
-                >
-                    {row.name}
-                </Sidebar.MenuLabel>
-                {row.unreadCount > 0 ? <UnreadCountChip count={row.unreadCount} /> : null}
-            </Sidebar.MenuItemContent>
+            <DmNavigationContextMenu
+                agentId={null}
+                chatId={chatId}
+                chatName="DM"
+                href={href}
+                slug={slug}
+            >
+                <Sidebar.MenuIcon>
+                    <EntityAvatar name={row.name} size={24} src={row.avatarUrl} />
+                </Sidebar.MenuIcon>
+                <Sidebar.MenuItemContent>
+                    <Sidebar.MenuLabel
+                        className={cn(
+                            'ms-[2px]',
+                            row.unreadCount > 0 && 'text-foreground font-medium'
+                        )}
+                    >
+                        {row.name}
+                    </Sidebar.MenuLabel>
+                    {row.unreadCount > 0 ? <UnreadCountChip count={row.unreadCount} /> : null}
+                </Sidebar.MenuItemContent>
+            </DmNavigationContextMenu>
         </Sidebar.MenuItem>
     );
 });

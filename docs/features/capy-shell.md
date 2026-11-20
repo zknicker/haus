@@ -26,7 +26,10 @@ stored in `localStorage` under `haus.capy-shell` and follows into other open win
     with their actions at the right, as in Capy. Clicking a label folds its section; there is no
     caret. The logo, the section labels and the row icons share one left edge.
   - Captain tiles sit under their header, the face over the name. A tile shows a dot while the
-    Captain works and a badge for unread DM messages. A click opens your DM with that Captain. Owners and Admins get a + that opens New Captain.
+    Captain works, a danger dot when it needs attention, a muted dot while it is paused, and a
+    badge for unread DM messages. A click opens your DM with that Captain; hover warms the DM and
+    the Captain's record. Right-click opens the old sidebar's DM menu (open in a new tab or
+    pane, View agent profile, Attachments on desktop), and People rows carry the same menu. Owners and Admins get a + that opens New Captain.
   - A Project row is its mark, its name and its unread badge. The + opens New project.
   - An open Task row is one line: the state disc, the key, the title and the unread badge. When
     an unread message in it @mentions you, the key turns accent with a small accent dot and the

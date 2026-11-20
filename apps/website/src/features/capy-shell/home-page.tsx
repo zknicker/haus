@@ -1,10 +1,10 @@
 import type { Agent, Chat } from '@haus/api';
 import * as React from 'react';
 import { useChatListSelection } from '../../hooks/servers/use-chats.ts';
-import { ComputerDiskNotices } from '../computers/computer-disk-notices.tsx';
 import { useWindowTitle } from '../../hooks/shell/use-window-title.ts';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
+import { ComputerDiskNotices } from '../computers/computer-disk-notices.tsx';
 import { readLastChatId } from '../servers/server-choice.ts';
 import { orderChannelIds } from '../shell/channel-order.ts';
 import { PageBand } from '../shell/page-band.tsx';
