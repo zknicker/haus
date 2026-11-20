@@ -1,4 +1,4 @@
-import type { Worker } from '@haus/api';
+import { summarizeWorker } from '../../features/workers/worker-summaries.tsx';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
 
@@ -39,13 +39,9 @@ export function useWorkerSummary(serverId: null | string, workerId: string, enab
         {
             ...queryPolicy.syncedSnapshot,
             enabled: enabled && serverId !== null,
-            select: selectWorkerSummary,
+            select: summarizeWorker,
         }
     ).data;
-}
-
-function selectWorkerSummary(worker: { id: string; place: Worker['place']; title: string }) {
-    return { id: worker.id, place: worker.place, title: worker.title };
 }
 
 export function useWorkerStop() {

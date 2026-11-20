@@ -471,21 +471,21 @@ The Task page lists its Workers in the attached-work panel, then attached pull r
 names, then pending reminders. W4 builds it, following how a Capy parent shows its children
 (the note `w4-capy-research.md` in the program's notes folder).
 
-- **The row** shows the place mark, the title, a pull request chip from the newest reading or
-  report, and a status chip. A Worker reads Working while any turn runs, so a follow-up queued
-  behind a working turn never reads Queued. A needs-you report puts its ask on a second line.
-  Rows carry no composer and no report text.
-- **The Worker page** (`/s/<slug>/workers/<workerId>`) opens beside the Task. It shows each turn
-  oldest first: the inputs with their authors, then the outcome. A report shows in full with its
-  ask, its person, and the cited files at their cited revisions. An outcome nobody wrote shows its
-  failure reason. A live turn shows the one status line: no update in `<d>`, Stopping, a
-  follow-up waiting on the working turn, a wait for a slot, or the latest activity.
+- **The Workers section** is counted and collapsible. Each row has two lines: a place icon and
+  the title, then the status (Working while any turn runs, so a follow-up queued behind a working
+  turn never reads Queued), the needs-you ask or the place, and the age. Rows carry no composer and
+  no report text. Pull requests sit in their own counted section of two-line rows.
+- **The Worker page** (`/s/<slug>/workers/<workerId>`) opens beside the Task and reads like a
+  thread: the brief as the first message, then each turn's follow-ups with their authors, the
+  report in full with its ask, its person, and the cited files at their cited revisions, and a
+  centered line as the turn ends ("Needs you, worked for 17m", or the failure reason for an outcome
+  nobody wrote). A live turn shows the one status line. Its pull request sits in an Overview pane.
 - **The composer** sits at the bottom of the Worker page only, enabled while the Task has a chat,
   is open, and the Worker is not closed. While a turn is live and the field is empty, its send
   button is **Stop**. **Open in `<provider>`** and **Copy link** sit behind the page's ••• menu.
-- **In the Task chat** a report Message renders as a one-line notice ("`<title>` needs you") and a
-  person's follow-up carries a "To Worker on `<place>`" context line. Both open the Worker page,
-  so the report text shows once.
+- **In the Task chat** a report Message renders as a centered muted lifecycle line ("`<title>`
+  needs you, worked for 17m") and a person's follow-up carries a "To Worker on `<place>`" context
+  line. Both open the Worker page, so the report text shows once.
 
 The Task summary exposes the count and place labels of its live Workers, and the people named by
 needs-you reports that no later turn answered, for the sidebar row ("Forge · 6 workers · mini,

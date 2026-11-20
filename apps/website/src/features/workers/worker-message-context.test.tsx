@@ -5,7 +5,11 @@ import { WorkerReportNotice } from './worker-report-notice.tsx';
 import { WorkerSummariesProvider } from './worker-summaries.tsx';
 import { renderWorkerSurface } from './worker.test-utils.tsx';
 
-const work = workerFixture({ id: 'wkr_one', title: 'Fix the composer' });
+const work = workerFixture({
+    id: 'wkr_one',
+    terminalAt: '2026-09-04T12:17:00.000Z',
+    title: 'Fix the composer',
+});
 
 test('a follow-up names its Worker at once from the Task, before any Worker read', () => {
     const html = renderWorkerSurface(
@@ -27,12 +31,12 @@ test('a report is a one-line notice that names its Worker and outcome, never the
             <WorkerReportNotice
                 outcome="needs-you"
                 serverId="srv_one"
-                timestamp="2026-09-04T12:00:00.000Z"
+                turnId="car_one"
                 workerId="wkr_one"
             />
         </WorkerSummariesProvider>
     );
 
     expect(html).toContain('Fix the composer');
-    expect(html).toContain('needs you');
+    expect(html).toContain('needs you, worked for 17m');
 });

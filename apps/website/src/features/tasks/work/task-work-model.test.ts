@@ -1,11 +1,6 @@
 import { expect, test } from 'bun:test';
 import type { PullRequestReading, TaskReminderRef } from '@haus/api';
-import {
-    pendingTaskReminders,
-    pullRequestFacts,
-    reminderLine,
-    standalonePullRequests,
-} from './task-work-model.ts';
+import { pendingTaskReminders, pullRequestFacts, reminderLine } from './task-work-model.ts';
 
 const reading = (url: string) =>
     ({
@@ -28,13 +23,6 @@ const reminder = (
     reminderId: id,
     setBy: { agentId: 'agt_forge', displayName: 'Forge' },
     title: 'Check the deploy',
-});
-
-test('a pull request a Worker card already names is not stated twice', () => {
-    const shown = reading('https://github.com/haus/haus/pull/1');
-    const other = reading('https://github.com/haus/haus/pull/2');
-    expect(standalonePullRequests([{ pullRequest: shown }], [shown, other])).toEqual([other]);
-    expect(standalonePullRequests([{ pullRequest: null }], [shown])).toEqual([shown]);
 });
 
 test('a pull request reads its checks, review, and size on one line', () => {

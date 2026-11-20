@@ -20,7 +20,7 @@ const followUp: WorkerTurnInput = {
     text: 'Match iPhone.',
 };
 
-test('the Worker view shows each turn: who asked, the report once, and the composer at the bottom', () => {
+test('the Worker view reads as a thread: the brief first, the report once, and the composer at the bottom', () => {
     const worker = work({
         turns: [
             turn({ input: [followUp], status: 'running', turnId: 'wkt_two' }),
@@ -39,7 +39,9 @@ test('the Worker view shows each turn: who asked, the report once, and the compo
     expect(html).toContain('Forge');
     expect(html).toContain('Zach');
     expect(html.match(/Fixed five of six\./gu)).toHaveLength(1);
+    expect(html).toContain('Needs you, worked for');
     expect(html).toContain('aria-label="Stop Worker"');
+    expect(html).toContain('Cursor · haus/haus');
 });
 
 test('a Worker on a chatless legacy Task reads its summary and takes no follow-ups', () => {
@@ -67,6 +69,6 @@ test('a turn that ended without a report says why', () => {
     });
 
     expect(renderWorkerSurface(<WorkerView workerId={worker.id} />, { task, worker })).toContain(
-        'Ended without a report'
+        'Failed: Ended without a report'
     );
 });

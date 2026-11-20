@@ -11,7 +11,7 @@ export function SystemMessageEntry({ row }: { row: TranscriptMessageRow }) {
                 <WorkerReportNotice
                     outcome={body.outcome}
                     serverId={row.entity?.serverId ?? null}
-                    timestamp={row.message.timestamp}
+                    turnId={body.turnId}
                     workerId={body.workerId}
                 />
             ) : (

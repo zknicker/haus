@@ -1,32 +1,35 @@
 import type { TaskDetail } from '@haus/api';
 import { WorkerRows } from '../../workers/worker-rows.tsx';
-import { TaskPullRequestCard } from './task-pull-request-card.tsx';
-import { pendingTaskReminders, reminderLine, standalonePullRequests } from './task-work-model.ts';
+import { PanelSection } from './panel-section.tsx';
+import { PullRequestRows } from './pull-request-rows.tsx';
+import { pendingTaskReminders, reminderLine } from './task-work-model.ts';
 
 export function TaskWorkPanel({
     task,
 }: {
     task: Pick<TaskDetail, 'attachedWork' | 'pullRequests' | 'reminders'>;
 }) {
-    const pullRequests = standalonePullRequests(task.attachedWork, task.pullRequests);
     const reminders = pendingTaskReminders(task.reminders);
-    if (task.attachedWork.length === 0 && pullRequests.length === 0 && reminders.length === 0) {
+    if (
+        task.attachedWork.length === 0 &&
+        task.pullRequests.length === 0 &&
+        reminders.length === 0
+    ) {
         return null;
     }
 
     return (
         <aside aria-label="Attached work" className="flex min-w-0 flex-col gap-3">
             {task.attachedWork.length > 0 ? (
-                <section aria-label="Workers" className="flex min-w-0 flex-col gap-1">
-                    <h3 className="text-muted px-2 text-xs font-medium">
-                        Workers <span className="tabular-nums">{task.attachedWork.length}</span>
-                    </h3>
+                <PanelSection count={task.attachedWork.length} title="Workers">
                     <WorkerRows label="Workers" works={task.attachedWork} />
-                </section>
+                </PanelSection>
             ) : null}
-            {pullRequests.map((reading) => (
-                <TaskPullRequestCard key={reading.url} reading={reading} />
-            ))}
+            {task.pullRequests.length > 0 ? (
+                <PanelSection count={task.pullRequests.length} title="Pull requests">
+                    <PullRequestRows readings={task.pullRequests} />
+                </PanelSection>
+            ) : null}
             {reminders.length > 0 ? (
                 <ul aria-label="Reminders" className="text-muted flex flex-col gap-1 pt-1 text-sm">
                     {reminders.map((reminder) => (

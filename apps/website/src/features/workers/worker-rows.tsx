@@ -1,20 +1,26 @@
-import { type Worker, workerPullRequestNumber } from '@haus/api';
+import type { Worker } from '@haus/api';
 import { ListView } from '@heroui-pro/react';
-import { Chip } from '@heroui/react';
-import { GitPullRequestIcon } from '@hugeicons-pro/core-stroke-rounded';
+import { CloudIcon } from '@hugeicons-pro/core-stroke-rounded';
+import { useRelativeNow } from '../../components/time/relative-time.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
-import { WorkerKeycap } from './cloud-agent-provider-mark.tsx';
 import { useOpenWorkerView } from './use-open-worker-view.ts';
 import {
-    newestWorkerReport,
+    isWorkerTurnLive,
+    workerAge,
     workerRowQuestion,
     workerRowStatus,
-    workerStatusChipColors,
-    workerStatusDiscStates,
     workerStatusLabels,
 } from './worker-card-model.ts';
-import { workerBranch } from './worker-presentation.ts';
-import { WorkerStatusDisc } from './worker-status-disc.tsx';
+import { workerPlaceName } from './worker-place.ts';
+
+const statusTones = {
+    done: 'text-muted',
+    failed: 'text-danger',
+    'needs-you': 'text-warning',
+    queued: 'text-muted',
+    stopped: 'text-muted',
+    working: 'text-accent',
+} as const;
 
 export function WorkerRows({ label, works }: { label: string; works: readonly Worker[] }) {
     const openWorker = useOpenWorkerView();
@@ -35,39 +41,19 @@ export function WorkerRows({ label, works }: { label: string; works: readonly Wo
 }
 
 export function WorkerRowContent({ work }: { work: Worker }) {
+    const now = useRelativeNow(isWorkerTurnLive(work) ? 5000 : 60_000);
     const status = workerRowStatus(work);
     const question = workerRowQuestion(work);
-    const pullRequest = workerRowPullRequest(work);
     return (
         <ListView.ItemContent data-testid="worker-row">
-            <WorkerKeycap provider={work.place} size={20} />
+            <Icon aria-hidden="true" className="text-muted" icon={CloudIcon} size={16} />
             <div className="flex min-w-0 flex-1 flex-col">
                 <ListView.Title>{work.title}</ListView.Title>
-                {question ? <ListView.Description>{question}</ListView.Description> : null}
+                <ListView.Description>
+                    <span className={statusTones[status]}>{workerStatusLabels[status]}</span>
+                    {` · ${question ?? workerPlaceName(work)} · ${workerAge(work, now)}`}
+                </ListView.Description>
             </div>
-            {pullRequest ? (
-                <Chip size="sm" variant="tertiary">
-                    <Icon aria-hidden="true" icon={GitPullRequestIcon} size={12} />
-                    <Chip.Label>{pullRequest}</Chip.Label>
-                </Chip>
-            ) : null}
-            <Chip color={workerStatusChipColors[status]} size="sm" variant="soft">
-                <WorkerStatusDisc
-                    className="size-3 text-current"
-                    state={workerStatusDiscStates[status]}
-                />
-                <Chip.Label>{workerStatusLabels[status]}</Chip.Label>
-            </Chip>
         </ListView.ItemContent>
     );
-}
-
-function workerRowPullRequest(work: Pick<Worker, 'pullRequest' | 'turns'>) {
-    if (work.pullRequest) {
-        return `#${work.pullRequest.number}`;
-    }
-    const url =
-        newestWorkerReport(work)?.pullRequestUrls[0] ?? workerBranch(work)?.pullRequestUrl ?? null;
-    const number = url ? workerPullRequestNumber(url) : null;
-    return number === null ? (url ? 'PR' : null) : `#${number}`;
 }

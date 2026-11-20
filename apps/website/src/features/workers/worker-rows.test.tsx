@@ -12,7 +12,7 @@ const followUp: WorkerTurnInput = {
     text: 'Match iPhone.',
 };
 
-test('a row is one line: place mark, title, PR and status, with no composer or report text', () => {
+test('a row is two lines: title, then status, place and age, with no composer or report text', () => {
     const html = renderWorkerSurface(
         <WorkerRows
             label="Workers"
@@ -38,8 +38,8 @@ test('a row is one line: place mark, title, PR and status, with no composer or r
     );
 
     expect(html).toContain('Fix the failing migration');
-    expect(html).toContain('#7');
     expect(html).toContain('Done');
+    expect(html).toContain(' · Cursor · ');
     expect(html).not.toContain('Fixed five of six.');
     expect(html).not.toContain('prompt-input');
 });

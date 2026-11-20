@@ -104,6 +104,18 @@ export function workerRowQuestion(work: Pick<Worker, 'status' | 'turns'>) {
         : null;
 }
 
+export function workerAge(work: Pick<Worker, 'updatedAt'>, now: number) {
+    const minutes = Math.max(0, Math.floor((now - Date.parse(work.updatedAt)) / 60_000));
+    if (minutes < 1) {
+        return 'now';
+    }
+    if (minutes < 60) {
+        return `${minutes}m`;
+    }
+    const hours = Math.floor(minutes / 60);
+    return hours < 24 ? `${hours}h` : `${Math.floor(hours / 24)}d`;
+}
+
 export function canFollowUpWorker(work: Pick<Worker, 'closedAt' | 'closingAt' | 'taskId'>) {
     return work.taskId !== null && work.closedAt === null && work.closingAt === null;
 }

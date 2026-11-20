@@ -7,9 +7,11 @@ import { isWorkerStopping, isWorkerTurnLive, liveWorkerTurns } from './worker-ca
 import { workerFollowUpControls } from './worker-follow-up-controls.ts';
 
 export function WorkerFollowUpComposer({
+    context,
     serverId,
     work,
 }: {
+    context: string;
     serverId: string;
     work: Pick<Worker, 'id' | 'status' | 'title' | 'turns'>;
 }) {
@@ -97,6 +99,9 @@ export function WorkerFollowUpComposer({
                     />
                 </PromptInput.Content>
                 <PromptInput.Toolbar>
+                    <PromptInput.ToolbarStart>
+                        <span className="text-muted min-w-0 truncate px-1 text-xs">{context}</span>
+                    </PromptInput.ToolbarStart>
                     <PromptInput.ToolbarEnd>
                         <PromptInput.Send
                             aria-label={controls.label}
