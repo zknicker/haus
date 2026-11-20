@@ -33,7 +33,7 @@ describe('addDeviceStatus', () => {
             device({ inventoryInvalidAt: '2026-11-20T00:00:00Z' }),
         ]) {
             expect(addDeviceStatus(known, [entry], 'haus-hq')).toMatchObject({
-                command: 'haus-computer upgrade',
+                command: '$HOME/.local/bin/haus-computer upgrade',
                 title: 'Update needed',
             });
         }
@@ -51,7 +51,7 @@ describe('addDeviceStatus', () => {
 
     test('tells a disconnected device to run setup again for this Server', () => {
         expect(addDeviceStatus(known, [device({ health: 'offline' })], 'haus-hq')).toMatchObject({
-            command: 'haus-computer setup /haus-hq',
+            command: '$HOME/.local/bin/haus-computer setup /haus-hq',
             title: 'Device disconnected',
         });
     });

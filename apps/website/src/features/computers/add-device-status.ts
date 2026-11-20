@@ -1,4 +1,7 @@
 import type { ComputerInventory } from '@haus/api';
+import { buildComputerSetupCommands } from './computer-install-command.ts';
+
+const upgradeCommand = '$HOME/.local/bin/haus-computer upgrade';
 
 export interface AddedDevice {
     attachedByCurrentUser: boolean;
@@ -32,7 +35,7 @@ export function addDeviceStatus(
     }
     if (device.health === 'update-required') {
         return {
-            command: 'haus-computer upgrade',
+            command: upgradeCommand,
             kind: 'repair',
             message: 'This device runs an older Haus Computer. Update it, and it reconnects.',
             title: 'Update needed',
@@ -40,7 +43,7 @@ export function addDeviceStatus(
     }
     if (device.inventoryInvalidAt) {
         return {
-            command: 'haus-computer upgrade',
+            command: upgradeCommand,
             kind: 'repair',
             message: 'This device sent a report Haus could not read. Update Haus Computer on it.',
             title: 'Update needed',
@@ -51,7 +54,7 @@ export function addDeviceStatus(
     }
     if (device.health === 'offline') {
         return {
-            command: `haus-computer setup /${serverSlug}`,
+            command: buildComputerSetupCommands(serverSlug).setup,
             kind: 'repair',
             message: 'This device disconnected. Run setup on it again.',
             title: 'Device disconnected',
