@@ -8,7 +8,7 @@ test('a shared-artifact link in a message opens the artifact in the App', async 
         displayName: 'Chat Shared Artifacts',
         slug,
     });
-    const { conceptId } = await seedArtifactLibrary(page, session.databaseUrl, server.id);
+    const { conceptId } = await seedArtifactLibrary(page, session, server.id);
     const chatId = server.channels.find((channel) => channel.name === 'all')?.id;
     if (!chatId) {
         throw new Error('The shared-artifact chat test did not resolve #all.');

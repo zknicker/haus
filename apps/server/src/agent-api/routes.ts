@@ -3,6 +3,7 @@ import * as z from 'zod';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { AvatarImageService } from '../avatar-generation/service.ts';
 import { setAgentInlineReplyFollow } from '../chats/reply-follow-route.ts';
+import type { ManagedSkillSeeder } from '../managed-skills/seeder.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { registerAgentAgentRoutes } from './agent-routes.ts';
@@ -16,6 +17,7 @@ import { readAgentServerDirectory } from './directory.ts';
 import { registerAgentDispatchIds } from './dispatch-hooks.ts';
 import { registerAgentImageGenerationRoutes } from './image-generation-routes.ts';
 import { registerAgentInboxRoutes } from './inbox-routes.ts';
+import { registerAgentManagedSkillRoutes } from './managed-skill-routes.ts';
 import { registerAgentManualRoutes } from './manual.ts';
 import { registerAgentMcpRoutes } from './mcp-routes.ts';
 import { readAgentHistory } from './message-history.ts';
@@ -84,7 +86,9 @@ export function registerAgentApiRoutes(
         db: HausDatabase;
         githubApp: import('../github/github-app.ts').GithubApp | null;
         imageGeneration: import('../image-generation/image-generation-service.ts').ImageGenerationService;
+        managedSkills: ManagedSkillSeeder;
         mcpRuntime: import('../server-mcp/runtime.ts').McpRuntime;
+        modelCatalog: import('../server-agents/agent-model-catalog.ts').AgentModelCatalog;
         postCommitWork: ServerPostCommitWork;
         storage: import('../artifacts/storage.ts').ArtifactStorage | null;
     }
@@ -95,6 +99,8 @@ export function registerAgentApiRoutes(
         agentDelivery: options.agentDelivery,
         avatarImageService: options.avatarImageService,
         db: options.db,
+        managedSkills: options.managedSkills,
+        modelCatalog: options.modelCatalog,
         postCommitWork: options.postCommitWork,
     });
     registerAgentChannelRoutes(app, { db: options.db });
@@ -112,6 +118,7 @@ export function registerAgentApiRoutes(
         imageGeneration: options.imageGeneration,
     });
     registerAgentInboxRoutes(app, options);
+    registerAgentManagedSkillRoutes(app, options.db);
     registerAgentManualRoutes(app, options.db);
     registerAgentMcpRoutes(app, { db: options.db, runtime: options.mcpRuntime });
     registerAgentReactionRoutes(app, options.db);

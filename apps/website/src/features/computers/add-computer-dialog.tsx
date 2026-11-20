@@ -1,15 +1,16 @@
 import { Button, Modal } from '@heroui/react';
-import { ComputerIcon } from '@hugeicons-pro/core-stroke-rounded';
-import { Icon } from '../../components/ui/icon.tsx';
+import { AddDeviceStatusLine, useAddDeviceStatus } from './add-device-progress.tsx';
 import { ComputerSetupCommands } from './computer-setup-commands.tsx';
 
 export function AddComputerDialog({
     onOpenChange,
     open,
+    serverId,
     serverSlug,
 }: {
     onOpenChange: (open: boolean) => void;
     open: boolean;
+    serverId: string;
     serverSlug: string;
 }) {
     return (
@@ -18,26 +19,34 @@ export function AddComputerDialog({
                 <Modal.Dialog>
                     <Modal.CloseTrigger />
                     <Modal.Header>
-                        <Modal.Icon className="bg-default text-foreground">
-                            <Icon className="size-5" icon={ComputerIcon} />
-                        </Modal.Icon>
                         <Modal.Heading>Add device</Modal.Heading>
                         <p className="text-muted mt-1.5 text-sm leading-5">
-                            Run Captains on an Apple Silicon Mac you control.
+                            Run Captains on your own Mac.
                         </p>
                     </Modal.Header>
-                    <Modal.Body>
-                        <div className="pt-2">
-                            <ComputerSetupCommands serverSlug={serverSlug} />
-                        </div>
-                    </Modal.Body>
-                    <Modal.Footer>
-                        <Button slot="close" variant="secondary">
-                            Done
-                        </Button>
-                    </Modal.Footer>
+                    <AddDeviceSteps key={serverId} serverId={serverId} serverSlug={serverSlug} />
                 </Modal.Dialog>
             </Modal.Container>
         </Modal.Backdrop>
+    );
+}
+
+function AddDeviceSteps({ serverId, serverSlug }: { serverId: string; serverSlug: string }) {
+    const status = useAddDeviceStatus(serverId);
+    return (
+        <>
+            <Modal.Body>
+                <ComputerSetupCommands
+                    serverSlug={serverSlug}
+                    updateCommand={status?.command ?? null}
+                />
+            </Modal.Body>
+            <Modal.Footer>
+                <AddDeviceStatusLine serverId={serverId} status={status} />
+                <Button slot="close" variant={status?.tone === 'success' ? 'primary' : 'secondary'}>
+                    Done
+                </Button>
+            </Modal.Footer>
+        </>
     );
 }

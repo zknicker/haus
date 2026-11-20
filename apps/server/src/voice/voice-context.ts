@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, gt, isNull } from 'drizzle-orm';
+import type { AgentLoop } from '../agent-delivery/loop-host.ts';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -15,7 +16,12 @@ export interface VoiceChatScope {
     serverId: string;
 }
 
-export async function readVoiceTarget(db: HausDatabase, member: HausUser, scope: VoiceChatScope) {
+export async function readVoiceTarget(
+    db: HausDatabase,
+    member: HausUser,
+    scope: VoiceChatScope,
+    host: VoiceLoopHost
+) {
     const chat = await requireChatWriteAccess(db, member, scope);
     if (chat.kind !== 'dm' || !chat.dmAgentId) {
         throw new Error('Calls are available in an Agent direct message.');
@@ -56,15 +62,38 @@ export async function readVoiceTarget(db: HausDatabase, member: HausUser, scope:
             )
         )
         .limit(1);
-    if (!target || target.health !== 'healthy' || target.stopped) {
-        throw new Error(
-            'The Agent needs a connected Computer and must be running before you call.'
-        );
+    if (!target) {
+        throw new Error('The Agent is not in this direct message.');
+    }
+    const refusal = voiceCallRefusal(target, host);
+    if (refusal) {
+        throw new Error(refusal);
     }
     return target;
 }
 
 export type VoiceTarget = Awaited<ReturnType<typeof readVoiceTarget>>;
+
+export interface VoiceLoopHost {
+    loop: AgentLoop;
+    runnerOnline: () => boolean;
+}
+
+export function voiceCallRefusal(
+    target: Pick<VoiceTarget, 'health' | 'stopped'>,
+    host: VoiceLoopHost
+) {
+    if (target.stopped) {
+        return 'The Agent is stopped. Start it before you call.';
+    }
+    if (host.loop === 'runner' && !host.runnerOnline()) {
+        return 'Haus cannot reach the Agent runner right now. Try the call again shortly.';
+    }
+    if (host.loop === 'computer' && target.health !== 'healthy') {
+        return 'The Agent needs a connected Computer before you call.';
+    }
+    return null;
+}
 
 export async function readVoiceMessages(db: HausDatabase, scope: VoiceChatScope, after?: number) {
     const rows = await db

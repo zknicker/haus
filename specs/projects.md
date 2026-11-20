@@ -35,7 +35,7 @@ Workers and their places are [ADR 0056](../docs/adr/0056-agents-run-quiet-worker
   always named `all`. It has no `projects` row: `projects.chat_is_all` joins the composite
   `projects_chat_fk` to `chats.is_all` and `projects_chat_not_all` requires it false, so Postgres
   refuses a Project on `#all` (migration `0142_all-is-a-chat`, ADR 0059 decision 5). The default
-  place landed with W3 (migration 0143). A check keeps the Computer id set exactly when the place
+  place landed with W3 (migration 0144). A check keeps the Computer id set exactly when the place
   is `computer`, and the API renders it as `computer:<computerId>`.
   Repos are `project_repos` rows ([Repos](#repos)). Home Agents are `agents.home_project_id`
   ([Agents](#agents)). Name, description, icon, color, archive, and delete stay on the channel's

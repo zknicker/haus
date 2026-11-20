@@ -17,6 +17,7 @@
         "@earendil-works/pi-ai": "1.5.2",
         "@earendil-works/pi-durable": "1.5.2",
         "@earendil-works/pi-schema": "1.5.2",
+        "@haus/agent-cli": "workspace:*",
         "@haus/agent-prompt": "workspace:*",
         "@haus/api": "workspace:*",
         "@haus/claude-usage": "workspace:*",

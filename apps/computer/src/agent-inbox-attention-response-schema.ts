@@ -1,3 +1,4 @@
+import { workerBranchResponseSchema, workerOutcomeResponseSchema } from '@haus/agent-cli';
 import {
     pullRequestReadingSchema,
     workerAttentionSchema,
@@ -5,10 +6,6 @@ import {
     workerReportAttentionSchema,
 } from '@haus/api';
 import * as z from 'zod';
-import {
-    workerBranchResponseSchema,
-    workerOutcomeResponseSchema,
-} from './agent-cli/worker-response-schema.ts';
 
 /**
  * Parses the same shapes as `@haus/api`'s `.strict()` typed inbox attentions

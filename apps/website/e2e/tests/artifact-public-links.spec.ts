@@ -12,7 +12,7 @@ test('a member copies a file’s public link, sees it marked public, and disable
         displayName: 'Public Links',
         slug,
     });
-    await seedArtifactLibrary(page, session.databaseUrl, server.id);
+    await seedArtifactLibrary(page, session, server.id);
     const artifactId = `art_${server.id}_tmcheck`;
     await page.goto(`/s/${slug}/artifacts/${artifactId}`);
     await expect(page.getByRole('heading', { name: 'tm_check.py', exact: true })).toBeVisible();

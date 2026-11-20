@@ -6,9 +6,11 @@ import {
 import type { FastifyInstance } from 'fastify';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { AvatarImageService } from '../avatar-generation/service.ts';
+import type { ManagedSkillSeeder } from '../managed-skills/seeder.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import { agentUpdatedTopic } from '../realtime/topics.ts';
+import type { AgentModelCatalog } from '../server-agents/agent-model-catalog.ts';
 import { createAgentFromAgent } from '../server-agents/create-agent-from-agent.ts';
 import { precheckAgentCreation } from '../server-agents/creation-request.ts';
 import { setAgentAvatarFromAgent } from '../server-agents/set-agent-avatar-from-agent.ts';
@@ -33,6 +35,8 @@ export function registerAgentAgentRoutes(
         agentDelivery: AgentDelivery;
         avatarImageService: AvatarImageService;
         db: HausDatabase;
+        managedSkills: ManagedSkillSeeder;
+        modelCatalog: AgentModelCatalog;
         postCommitWork: ServerPostCommitWork;
     }
 ) {
@@ -68,17 +72,22 @@ export function registerAgentAgentRoutes(
                 dependencies.db,
                 runner,
                 parsed.data,
-                avatar
+                avatar,
+                dependencies.modelCatalog
             );
             for (const event of created.events) {
                 publishRealtime(event);
             }
             const configure = created.configure;
             if (configure) {
-                // Configure first, so the Computer knows the Agent its greeting wakes.
+                // Seed and configure first, so the greeting's turn finds its skills and Computer.
                 void dependencies.postCommitWork.run(
                     'agent.configure-after-agent-create',
                     async () => {
+                        await dependencies.managedSkills.seedAgent(
+                            { agentId: configure.agentId, serverId: runner.serverId },
+                            dependencies.postCommitWork
+                        );
                         await dependencies.agentDelivery.configureAgent(configure);
                         await dependencies.agentDelivery.dispatchAgent(
                             configure.agentId,

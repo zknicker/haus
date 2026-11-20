@@ -1,0 +1,140 @@
+import * as z from 'zod';
+import { type AgentContext, resolveAgentContext } from './agent-context.ts';
+import { AgentCliError } from './agent-error.ts';
+
+const REQUEST_TIMEOUT_MS = 15_000;
+const serverAcceptEncoding = 'gzip, deflate, br';
+const errorResponseSchema = z.object({
+    code: z.string().min(1),
+    draftSaved: z.boolean().optional(),
+    message: z.string().min(1),
+    nextAction: z.string().min(1).optional(),
+    retryable: z.boolean().optional(),
+});
+
+export interface AgentApiRequest {
+    body?: unknown;
+    method?: 'DELETE' | 'GET' | 'PATCH' | 'POST';
+    query?: Record<string, boolean | number | string | undefined>;
+    signal?: AbortSignal;
+    timeoutMs?: number;
+}
+
+export interface AgentApiRequester {
+    request<T>(route: string, schema: z.ZodType<T>, input?: AgentApiRequest): Promise<T>;
+}
+
+/**
+ * The request got no answer at all — timed out, dropped, unreachable host — so
+ * the Server may still have acted on it. An answered failure is never one of
+ * these, which is what lets a caller with a stable idempotency key retry this
+ * and only this.
+ */
+export class AgentApiTransportError extends AgentCliError {}
+
+export class AgentApiClient implements AgentApiRequester {
+    constructor(
+        private readonly context: Pick<AgentContext, 'serverUrl' | 'token'>,
+        private readonly fetcher: typeof fetch = fetch
+    ) {}
+
+    async request<T>(route: string, schema: z.ZodType<T>, input: AgentApiRequest = {}): Promise<T> {
+        const url = new URL(route, this.context.serverUrl);
+        for (const [name, value] of Object.entries(input.query ?? {})) {
+            if (value !== undefined) {
+                url.searchParams.set(name, String(value));
+            }
+        }
+        let response: Response;
+        try {
+            response = await this.fetcher(url, {
+                ...(input.body === undefined ? {} : { body: JSON.stringify(input.body) }),
+                headers: new Headers({
+                    'accept-encoding': serverAcceptEncoding,
+                    authorization: `Bearer ${this.context.token}`,
+                    ...(input.body === undefined ? {} : { 'content-type': 'application/json' }),
+                }),
+                method: input.method ?? 'GET',
+                signal: input.signal
+                    ? AbortSignal.any([
+                          input.signal,
+                          AbortSignal.timeout(input.timeoutMs ?? REQUEST_TIMEOUT_MS),
+                      ])
+                    : AbortSignal.timeout(input.timeoutMs ?? REQUEST_TIMEOUT_MS),
+            });
+        } catch {
+            throw transportFailure();
+        }
+        if (!response.ok) {
+            let payload: unknown;
+            try {
+                payload = await response.json();
+            } catch {
+                throw response.status >= 500 ? serverFailure() : invalidJson();
+            }
+            const parsedError = errorResponseSchema.safeParse(payload);
+            if (!parsedError.success) {
+                throw response.status >= 500 ? serverFailure() : invalidJson();
+            }
+            throw new AgentCliError(parsedError.data.code, parsedError.data.message, {
+                draftSaved: parsedError.data.draftSaved,
+                nextAction: parsedError.data.nextAction,
+                retryable: parsedError.data.retryable,
+            });
+        }
+        const payload = await readJson(response);
+        const parsed = schema.safeParse(payload);
+        if (!parsed.success) {
+            throw unexpectedResponseShape(parsed.error);
+        }
+        return parsed.data;
+    }
+}
+
+export function createAgentApiClient(): AgentApiClient {
+    return new AgentApiClient(resolveAgentContext());
+}
+
+async function readJson(response: Response): Promise<unknown> {
+    try {
+        return await response.json();
+    } catch {
+        throw invalidJson();
+    }
+}
+
+function invalidJson(): AgentCliError {
+    return new AgentCliError('INVALID_JSON_RESPONSE', 'The server returned invalid JSON.', {
+        nextAction: 'Retry the command. If it fails again, check the Haus Computer logs.',
+    });
+}
+
+/**
+ * The response parsed as JSON but did not match the schema this command
+ * expects. This is a different failure than `invalidJson`: the body was
+ * well-formed, just not the shape the Computer's current version reads.
+ */
+function unexpectedResponseShape(error: z.ZodError): AgentCliError {
+    const issue = error.issues[0];
+    const where = issue?.path.length ? ` at "${issue.path.join('.')}"` : '';
+    return new AgentCliError(
+        'UNEXPECTED_RESPONSE_SHAPE',
+        `The server's response did not match the expected shape${where}: ${issue?.message ?? 'unknown validation error'}.`,
+        {
+            nextAction:
+                'Update Haus Computer to a version that understands this response, then retry.',
+        }
+    );
+}
+
+function serverFailure(): AgentCliError {
+    return new AgentCliError('SERVER_5XX', 'The Haus server is unavailable.', {
+        nextAction: 'Retry after the Haus Server is reachable.',
+    });
+}
+
+function transportFailure(): AgentApiTransportError {
+    return new AgentApiTransportError('SERVER_5XX', 'The Haus server is unavailable.', {
+        nextAction: 'Retry after the Haus Server is reachable.',
+    });
+}

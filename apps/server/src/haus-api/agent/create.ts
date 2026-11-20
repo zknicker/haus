@@ -12,10 +12,19 @@ export const createAgentProcedure = memberProcedure
     .output(agentCreatedSchema)
     .mutation(async ({ ctx, input }) => {
         try {
-            const { events, ...created } = await createAgent(ctx.hausDb, ctx.member, input);
+            const { events, ...created } = await createAgent(
+                ctx.hausDb,
+                ctx.member,
+                input,
+                ctx.modelConnections.catalog
+            );
             for (const event of events) {
                 publishRealtime(event);
             }
+            await ctx.managedSkills.seedAgent(
+                { agentId: created.agent.id, serverId: input.serverId },
+                ctx.postCommitWork
+            );
             await ctx.agentDelivery.configureAgent({
                 agentDescription: created.agent.description,
                 agentId: created.agent.id,

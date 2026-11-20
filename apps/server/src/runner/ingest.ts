@@ -2,7 +2,9 @@ import { type RunnerUpFrame, runnerUpFrameSchema } from '@haus/api';
 import { eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { settleHostedTurn } from '../agent-delivery/settle-turn.ts';
+import { readDeliveryState } from '../agent-delivery/store.ts';
 import type { InvocationRouter } from '../agent-invocations/invocation-router.ts';
+import type { ComputerConnections } from '../computers/connections.ts';
 import { ingestAgentRunFrame } from '../computers/ingest-agent-run-frame.ts';
 import { ingestExecutionJournalUpload } from '../computers/ingest-execution-journal.ts';
 import type { ModelConnectionRelay } from '../model-connections/model-connection-relay.ts';
@@ -13,6 +15,7 @@ import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import type { RunnerLink } from './runner-link.ts';
 
 export interface RunnerIngest {
+    computers: Pick<ComputerConnections, 'isOnline' | 'send'>;
     db: HausDatabase;
     delivery: AgentDelivery;
     hostsLoops: boolean;
@@ -81,6 +84,7 @@ async function ingestLoopReport(ingest: RunnerIngest, frame: LoopReport) {
             await delivery.onNoticeAck(frame);
             return;
         case 'turn':
+            await pushDrive(ingest, frame);
             await settleHostedTurn(db, delivery, { kind: 'runner' }, frame);
             return;
         default:
@@ -114,13 +118,42 @@ async function ingestRunPresentation(
     await ingestAgentRunFrame(ingest.db, input, ingest.thoughts, ingest.postCommitWork);
 }
 
+async function pushDrive(ingest: RunnerIngest, run: { agentId: string; runId: string }) {
+    const [placement, state] = await Promise.all([
+        readAgentPlacement(ingest.db, run.agentId),
+        readDeliveryState(ingest.db, run.agentId),
+    ]);
+    if (
+        placement &&
+        state?.activeRunId === run.runId &&
+        ingest.computers.isOnline(placement.computerId)
+    ) {
+        ingest.computers.send(placement.computerId, {
+            agentId: run.agentId,
+            runId: run.runId,
+            sessionGeneration: placement.sessionGeneration,
+            type: 'drive-push',
+        });
+    }
+}
+
 async function readAgentPlacement(db: HausDatabase, agentId: string) {
     const [agent] = await db
-        .select({ computerId: agentsTable.computerId, serverId: agentsTable.serverId })
+        .select({
+            computerId: agentsTable.computerId,
+            serverId: agentsTable.serverId,
+            sessionGeneration: agentsTable.sessionGeneration,
+        })
         .from(agentsTable)
         .where(eq(agentsTable.id, agentId))
         .limit(1);
-    return agent?.computerId ? { computerId: agent.computerId, serverId: agent.serverId } : null;
+    return agent?.computerId
+        ? {
+              computerId: agent.computerId,
+              serverId: agent.serverId,
+              sessionGeneration: agent.sessionGeneration,
+          }
+        : null;
 }
 
 function parseRunnerFrame(raw: string) {

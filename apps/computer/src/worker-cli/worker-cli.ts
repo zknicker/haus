@@ -1,9 +1,13 @@
-import { AgentApiClient } from '../agent-cli/agent-api-client.ts';
-import { AgentCliError, renderAgentCliError } from '../agent-cli/agent-error.ts';
-import { UsageError } from '../agent-cli/parse.ts';
-import { readAgentStdin } from '../agent-cli/stdin.ts';
-import { dispatchSubcommand, type SubCommand } from '../agent-cli/subcommand.ts';
-import { errorBlock } from '../agent-cli/ui.ts';
+import {
+    AgentApiClient,
+    AgentCliError,
+    UsageError,
+    dispatchSubcommand,
+    errorBlock,
+    readAgentStdin,
+    renderAgentCliError,
+    type SubCommand,
+} from '@haus/agent-cli';
 import { driveViewCommand } from './worker-drive.ts';
 import { reportCommand, type WorkerCliDeps } from './worker-report.ts';
 

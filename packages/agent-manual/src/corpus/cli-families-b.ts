@@ -2,7 +2,7 @@ import type { ManualNavigationTopic } from '../types.ts';
 
 // Product-noun topics for the identity, file, skill, and automation command
 // families. Each mirrors the current Agent CLI source in
-// apps/computer/src/agent-cli/commands/.
+// packages/agent-cli/src/commands/.
 export const cliFamilyTopicsB: readonly ManualNavigationTopic[] = [
     {
         body: `# Profile

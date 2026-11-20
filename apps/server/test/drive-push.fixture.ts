@@ -13,11 +13,14 @@ import { MemoryArtifactStorage } from './artifact-drive-fixture.ts';
 
 type Body = string | Uint8Array;
 
-export function drivePushFixture(options: { artifactStorageBytes?: number } = {}) {
+export function drivePushFixture(
+    options: { artifactStorageBytes?: number; seedManagedSkills?: boolean } = {}
+) {
     const storage = new MemoryArtifactStorage();
     const fixture = agentCreationFixture(undefined, {
         artifactStorage: storage,
         artifactStorageBytes: options.artifactStorageBytes,
+        seedManagedSkills: options.seedManagedSkills,
     });
     let connection: HausConnection;
     let ownerToken: string;

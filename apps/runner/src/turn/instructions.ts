@@ -72,6 +72,7 @@ export function composeTurnPrompt(input: {
     instructions: InstructionsPlan;
     memoryBlock: string | null;
     rulesBlock: string | null;
+    skillNotice: { readonly text: string } | null;
     turnContent: string;
 }) {
     return [
@@ -79,6 +80,7 @@ export function composeTurnPrompt(input: {
         input.rulesBlock,
         input.memoryBlock,
         input.turnContent,
+        input.skillNotice?.text,
     ]
         .filter(Boolean)
         .join('\n\n');

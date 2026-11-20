@@ -1,8 +1,6 @@
 import { writeFile } from 'node:fs/promises';
+import { AgentCliError, type ParsedArgs, type SubCommand } from '@haus/agent-cli';
 import * as z from 'zod';
-import { AgentCliError } from '../agent-cli/agent-error.ts';
-import type { ParsedArgs } from '../agent-cli/parse.ts';
-import type { SubCommand } from '../agent-cli/subcommand.ts';
 import type { WorkerCliDeps } from './worker-report.ts';
 
 const headSchema = z.looseObject({

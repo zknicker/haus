@@ -56,7 +56,6 @@ const normalizedUsage = {
         provider: 'grok',
         status: 'error',
     },
-    runtimeUsage: [],
 };
 
 beforeAll(async () => {

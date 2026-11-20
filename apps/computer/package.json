@@ -1,6 +1,6 @@
 {
     "name": "@haus/computer",
-    "version": "17.0.0",
+    "version": "18.0.0",
     "private": true,
     "bin": {
         "haus-computer": "src/index.ts"
@@ -13,6 +13,7 @@
     },
     "dependencies": {
         "@cursor/sdk": "1.0.30",
+        "@haus/agent-cli": "workspace:*",
         "@haus/agent-prompt": "workspace:*",
         "@haus/agent-workspace": "workspace:*",
         "@haus/api": "workspace:*",

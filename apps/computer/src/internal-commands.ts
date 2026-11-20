@@ -1,4 +1,4 @@
-import { runAgentCli } from './agent-cli.ts';
+import { runAgentCli } from '@haus/agent-cli';
 import { validateMcpExecutor } from './mcp-executor-release.ts';
 import { validateComputerRuntimeAssets } from './runtime/runtime-assets.ts';
 import { runWorkerCli } from './worker-cli/worker-cli.ts';

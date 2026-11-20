@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
-import { commandGroups } from '../apps/computer/src/agent-cli.ts';
-import type { SubCommand } from '../apps/computer/src/agent-cli/subcommand.ts';
 import { workerCommandGroups } from '../apps/computer/src/worker-cli/worker-cli.ts';
+import { commandGroups } from '../packages/agent-cli/src/agent-cli.ts';
+import type { SubCommand } from '../packages/agent-cli/src/subcommand.ts';
 import { manualTopics, resolveManualTopic } from '../packages/agent-manual/src/index.ts';
 import { renderAgentInstructions } from '../packages/agent-prompt/src/index.ts';
 

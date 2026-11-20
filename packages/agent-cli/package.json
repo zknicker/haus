@@ -1,0 +1,22 @@
+{
+    "name": "@haus/agent-cli",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": "./src/index.ts",
+        "./bin": "./src/bin.ts"
+    },
+    "scripts": {
+        "test": "bun test --max-concurrency 1 --timeout 10000 src",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@haus/agent-prompt": "workspace:*",
+        "@haus/api": "workspace:*",
+        "zod": "4.6.6"
+    },
+    "devDependencies": {
+        "@types/bun": "1.3.13",
+        "typescript": "5.9.3"
+    }
+}

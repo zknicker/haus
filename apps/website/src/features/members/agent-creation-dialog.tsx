@@ -1,10 +1,16 @@
 import type { Agent, ComputerInventory, Project } from '@haus/api';
 import { Alert, Modal, Spinner } from '@heroui/react';
 import type * as React from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useOptionalDesktopTabs } from '../../hooks/desktop-tabs/desktop-tabs-context.ts';
+import { currentOpenGesture } from '../../hooks/desktop-tabs/tab-open-gesture.ts';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
+import { useModelConnections } from '../../hooks/servers/use-model-connections.ts';
 import { useProjects } from '../../hooks/servers/use-projects.ts';
+import { openSettingsTab } from '../../hooks/shell/use-settings-opener.ts';
 import { computerLabel } from '../computers/presentation.ts';
+import { serverComputersRoute } from '../servers/server-routes.ts';
 import {
     AgentCreationForm,
     type AgentCreationSubmitValues,
@@ -32,13 +38,33 @@ export function AgentCreationDialog({
     serverId,
 }: AgentCreationDialogProps) {
     const computers = useComputers(serverId, { enabled: open });
+    const modelConnections = useModelConnections(serverId).data;
+    const runnerModels =
+        modelConnections?.agentLoop === 'runner' ? (modelConnections.runnerModels ?? []) : null;
+    const navigate = useNavigate();
+    const tabs = useOptionalDesktopTabs();
+    const { slug } = useParams();
+    const addDevice = slug
+        ? () => {
+              onOpenChange(false);
+              const path = serverComputersRoute(slug);
+              if (tabs) {
+                  openSettingsTab(tabs, path, currentOpenGesture());
+              } else {
+                  navigate(path);
+              }
+          }
+        : undefined;
     const reported: ReportedComputer[] = (computers.data ?? [])
-        .filter((computer) => (computer.reportedInventory?.runtimes.length ?? 0) > 0)
         .map((computer) => ({
             id: computer.id,
-            inventory: computer.reportedInventory as ComputerInventory,
+            inventory: {
+                ...(computer.reportedInventory ?? {}),
+                runtimes: runnerModels ?? computer.reportedInventory?.runtimes ?? [],
+            } as ComputerInventory,
             label: computerLabel(computer),
-        }));
+        }))
+        .filter((computer) => computer.inventory.runtimes.length > 0);
 
     return (
         <Modal.Backdrop isDismissable isOpen={open} onOpenChange={onOpenChange}>
@@ -66,6 +92,7 @@ export function AgentCreationDialog({
                         <ServerAgentCreationForm
                             error={error}
                             isPending={isPending}
+                            onAddDevice={addDevice}
                             onCreated={onCreated}
                             onSubmit={onSubmit}
                             reported={reported}

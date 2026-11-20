@@ -18,6 +18,8 @@ export const computerModelSchema = z
     .object({
         id: z.string().trim().min(1).max(128),
         label: z.string().trim().min(1).max(200),
+        /** Tokens the model reads at once; the runner catalog reports it, Computers do not. */
+        contextWindow: z.number().int().positive().optional(),
         defaultReasoningEffort: agentReasoningEffortSchema.optional(),
         reasoningEfforts: z.array(agentReasoningEffortSchema).min(1).max(6).optional(),
         features: z.array(computerModelFeatureSchema).max(8).optional(),
@@ -39,6 +41,8 @@ export const computerRuntimeSchema = z
         models: z.array(computerModelSchema).max(200),
     })
     .strict();
+
+export type ComputerRuntime = z.infer<typeof computerRuntimeSchema>;
 
 export const agentSkillMetadataSchema = z
     .object({

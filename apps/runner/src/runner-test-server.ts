@@ -14,7 +14,7 @@ import {
 import { openDispatchLedger } from './dispatch/ledger.ts';
 import type { InvocationClock } from './invocations/invocation-clock.ts';
 import { createConnectionBook } from './model-connections/connection-book.ts';
-import type { RunStart, TurnHost } from './run-context.ts';
+import type { AgentReset, RunStart, TurnHost } from './run-context.ts';
 import { openServerLink } from './server-link.ts';
 
 export const runnerToken = 'runner-token-0123456789abcdef0123456789';
@@ -92,15 +92,19 @@ function turnHostDriver() {
         onStop = resolve;
     });
     const starts: string[] = [];
+    const resets: ({ agentId: string } & AgentReset)[] = [];
     const turnHost: TurnHost = {
         notice: async () => undefined,
+        resetAgent: async (agentId, reset) => {
+            resets.push({ agentId, ...reset });
+        },
         start: async (run) => {
             starts.push(run.start.runId);
             onStart(run);
         },
         stop: async (agentId, runId) => onStop({ agentId, runId }),
     };
-    return { started, starts, stopped, turnHost };
+    return { resets, started, starts, stopped, turnHost };
 }
 
 export type ServerStandIn = ReturnType<typeof serverStandIn>;
@@ -215,6 +219,7 @@ export function serverStandIn(routes: StandInRoutes = {}) {
                 modelConnectionId,
                 ...(reasoningEffort ? { reasoningEffort } : {}),
                 runCredential,
+                sessionResetKind: 'session',
                 start: {
                     ...startCommand(),
                     ...(modelId ? { modelId } : {}),
@@ -225,38 +230,6 @@ export function serverStandIn(routes: StandInRoutes = {}) {
         },
         url: `http://127.0.0.1:${server.port}`,
     };
-}
-
-export function driveRoutes(handle: string, files: Map<string, string>) {
-    const ids = new Map([...files.keys()].map((path, index) => [path, `art_${index}`]));
-    const routes: StandInRoutes = {
-        '/api/agent/artifacts/by-path': (_body, url) => {
-            const path = url.searchParams.get('path') ?? '';
-            const id = ids.get(path);
-            return id && files.has(path)
-                ? Response.json({ artifact: { artifact_id: id, path } })
-                : Response.json({ code: 'NOT_FOUND', message: path }, { status: 404 });
-        },
-        '/api/agent/profile': () => Response.json({ profile: { handle } }),
-    };
-    for (const [path, id] of ids) {
-        routes[`/api/agent/artifacts/${id}/download`] = (_body, url) =>
-            Response.json({ download_url: new URL(`/drive-bytes/${id}`, url).href });
-        routes[`/drive-bytes/${id}`] = () => new Response(files.get(path) ?? '');
-    }
-    return routes;
-}
-
-async function requestBody(request: Request) {
-    if (request.headers.get('content-type') === 'application/octet-stream') {
-        const bytes = new Uint8Array(await request.arrayBuffer());
-        return {
-            sha256: createHash('sha256').update(bytes).digest('hex'),
-            sizeBytes: bytes.byteLength,
-        };
-    }
-    const text = await request.text();
-    return text ? (JSON.parse(text) as Record<string, unknown>) : null;
 }
 
 function startCommand() {
@@ -293,4 +266,16 @@ function chatMessage(id: string, sequence: number) {
         sender: { description: null, handle: 'operator', type: 'human' },
         sequence,
     };
+}
+
+async function requestBody(request: Request) {
+    if (request.headers.get('content-type') === 'application/octet-stream') {
+        const bytes = new Uint8Array(await request.arrayBuffer());
+        return {
+            sha256: createHash('sha256').update(bytes).digest('hex'),
+            sizeBytes: bytes.byteLength,
+        };
+    }
+    const text = await request.text();
+    return text ? (JSON.parse(text) as Record<string, unknown>) : null;
 }

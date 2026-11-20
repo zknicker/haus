@@ -1,12 +1,14 @@
 import {
+    AgentCliError,
+    type AgentApiRequester,
+    type ParsedArgs,
+    type SubCommand,
+} from '@haus/agent-cli';
+import {
     workerReportInputSchema,
     workerReportOutcomes,
     workerReportReceiptSchema,
 } from '@haus/api';
-import type { AgentApiRequester } from '../agent-cli/agent-api-client.ts';
-import { AgentCliError } from '../agent-cli/agent-error.ts';
-import type { ParsedArgs } from '../agent-cli/parse.ts';
-import type { SubCommand } from '../agent-cli/subcommand.ts';
 import { writeDurableJson } from '../workers/durable-json.ts';
 
 export interface WorkerCliDeps {

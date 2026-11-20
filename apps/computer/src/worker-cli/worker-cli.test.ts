@@ -3,7 +3,7 @@ import { mkdtempSync } from 'node:fs';
 import { readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { AgentApiClient } from '../agent-cli/agent-api-client.ts';
+import { AgentApiClient } from '@haus/agent-cli';
 import { type DriveServer, startDriveServer } from '../drive/drive-server.fixture.ts';
 import { runWorkerCli } from './worker-cli.ts';
 
