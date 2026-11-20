@@ -11,7 +11,8 @@ import { useLocation } from 'react-router-dom';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { TooltipLink } from '../../components/ui/tooltip-link.tsx';
-import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.ts';
+import { useOpenAgentProfileWith } from '../../hooks/agents/use-open-agent-profile.ts';
+import { useDesktopPageOpeners } from '../../hooks/desktop-tabs/use-desktop-page-openers.ts';
 import { useAgentAppearances } from '../../hooks/members/use-agents.ts';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import { usePressNavigationWith } from '../../hooks/shell/use-press-navigation.ts';
@@ -36,7 +37,7 @@ export function CapyFooterSections({ serverId, slug }: { serverId: string; slug:
                 label="Drive"
                 onPreload={preloadDrive}
             />
-            <AutomationsMenu serverId={serverId} />
+            <AutomationsMenu serverId={serverId} slug={slug} />
             <FooterLink
                 href={activityRoute(slug)}
                 icon={Activity03Icon}
@@ -47,8 +48,10 @@ export function CapyFooterSections({ serverId, slug }: { serverId: string; slug:
     );
 }
 
-function AutomationsMenu({ serverId }: { serverId: string }) {
-    const openAgentProfile = useOpenAgentProfile();
+function AutomationsMenu({ serverId, slug }: { serverId: string; slug: string }) {
+    const sidebarNavigate = useSidebarNavigate();
+    const openers = useDesktopPageOpeners();
+    const openAgentProfile = useOpenAgentProfileWith(openers?.openPage ?? sidebarNavigate, slug);
     const captains = useAgentAppearances(serverId);
     return (
         <Dropdown>
