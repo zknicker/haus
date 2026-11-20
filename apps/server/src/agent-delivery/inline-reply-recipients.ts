@@ -12,7 +12,7 @@ export async function readInlineReplyChain(
         messageId: string;
         serverId: string;
     }
-): Promise<{ follows: Map<string, boolean>; participated: boolean } | null> {
+) {
     const [message] = await db
         .select({ id: chatMessagesTable.id, replyToMessageId: chatMessagesTable.replyToMessageId })
         .from(chatMessagesTable)
@@ -44,8 +44,5 @@ export async function readInlineReplyChain(
                 eq(agentMessageFollowsTable.rootMessageId, rootMessageId ?? message.id)
             )
         );
-    return {
-        follows: new Map(rows.map((row) => [row.agentId, row.followed])),
-        participated: rows.length > 0,
-    };
+    return new Map(rows.map((row) => [row.agentId, row.followed]));
 }

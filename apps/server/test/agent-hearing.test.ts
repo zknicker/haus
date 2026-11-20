@@ -2,39 +2,14 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { readRoutingAgents } from '../src/message-routing/context.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
-import { agentCreationFixture } from './agent-creation-fixture.ts';
-import { createTestProject } from './project.fixture.ts';
-import { startTestTask, type TestTask } from './task-place-fixture.ts';
+import { agentHearingFixture } from './agent-hearing.fixture.ts';
 
-const fixture = agentCreationFixture();
+const hearing = agentHearingFixture();
+const { agents, fixture, heard, project, send, startTask, unfollow } = hearing;
 let connection: HausConnection;
-const agents: Record<string, string> = {};
-const projects: Record<string, { id: string; key: string }> = {};
-let hausId: string;
 
 beforeAll(async () => {
     connection = await connectHausDatabase(fixture.harness.databaseUrl);
-    for (const handle of ['ari', 'cyl', 'bex', 'dov', 'gus']) {
-        agents[handle] = await fixture.createAgent(handle, handle);
-    }
-    for (const [name, key, homed] of [
-        ['web', 'WEB', ['ari', 'cyl']],
-        ['api', 'API', ['bex', 'dov']],
-        ['empty', 'EMPTY', []],
-        ['spare', 'SPARE', []],
-    ] as const) {
-        const chat = await createTestProject(fixture.owner, {
-            agentIds: homed.map((handle) => agents[handle] ?? ''),
-            key,
-            name,
-            serverId: fixture.serverId,
-        });
-        projects[name] = { id: chat.id, key };
-    }
-    const [haus] = (await fixture.harness.sql`
-        select id from chats where server_id = ${fixture.serverId} and is_all
-    `) as { id: string }[];
-    hausId = haus?.id ?? '';
 });
 
 afterAll(async () => {
@@ -58,14 +33,6 @@ test('another Project channel reaches an Agent at top level only on a mention', 
         'bex',
         'cyl',
     ]);
-});
-
-test('an inline reply reaches the home Agents first, then only mentions and chain followers', async () => {
-    const root = await send(project('web'), 'Which cache do we keep?');
-
-    expect(await heard(await send(project('web'), 'The edge one?', root))).toEqual(['ari', 'cyl']);
-    expect(await heard(await send(project('web'), '@bex do you agree?', root))).toEqual(['bex']);
-    expect(await heard(await send(project('web'), 'Waiting on that.', root))).toEqual(['bex']);
 });
 
 test('another Project Task reaches an Agent on a mention, then while it follows', async () => {
@@ -103,7 +70,11 @@ test('a DM reaches its Agent wherever it lives', async () => {
 });
 
 test('a generalist hears the Haus project and elsewhere only its mentions', async () => {
-    expect(await heard(await send(hausId, 'Haus-wide update.'))).toEqual(['cove', 'gus', 'peer']);
+    expect(await heard(await send(hearing.hausId, 'Haus-wide update.'))).toEqual([
+        'cove',
+        'gus',
+        'peer',
+    ]);
     expect(await heard(await send(project('api'), 'API only.'))).toEqual(['bex', 'dov']);
     expect(await heard(await send(project('api'), '@gus take a look.'))).toEqual([
         'bex',
@@ -206,50 +177,6 @@ test('moving an Agent home changes delivery from the next message', async () => 
     ]);
     expect(await heard(await send(project('api'), 'API after the move.'))).toEqual(['bex']);
 });
-
-function project(name: string) {
-    const found = projects[name];
-    if (!found) {
-        throw new Error(`No test Project ${name}.`);
-    }
-    return found.id;
-}
-
-async function send(chatId: string, content: string, replyToMessageId?: string) {
-    const sent = await fixture.owner.trpc.chat.send.mutate({
-        chatId,
-        content,
-        nonce: createOpaqueId('n'),
-        replyToMessageId,
-        serverId: fixture.serverId,
-    });
-    return sent.message.id;
-}
-
-async function startTask(name: string, title: string) {
-    return await startTestTask(fixture.harness, fixture.owner, {
-        channelId: project(name),
-        key: projects[name]?.key,
-        serverId: fixture.serverId,
-        title,
-    });
-}
-
-async function unfollow(handle: string, task: TestTask) {
-    const runner = await fixture.mintRunner(createOpaqueId('run'), agents[handle], task.chatId);
-    return (await fixture.post('/api/agent/tasks/unfollow', runner, { target: `task:${task.key}` }))
-        .status;
-}
-
-async function heard(messageId: string) {
-    const rows = (await fixture.harness.sql`
-        select agent.handle from agent_inbox item
-        join agents agent on agent.server_id = item.server_id and agent.id = item.agent_id
-        where item.server_id = ${fixture.serverId} and item.dedupe_key = ${messageId}
-        order by agent.handle
-    `) as { handle: string }[];
-    return rows.map((row) => row.handle);
-}
 
 async function routingHandles(name: string, mentioned: string[] = []) {
     const routing = await readRoutingAgents(

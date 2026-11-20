@@ -93,8 +93,7 @@ only what is addressed to it or what it follows. A message reaches an Agent when
 
 - A Project's **hearers** are its non-retired home Agents, or the Haus project's generalists
   when it has none. Every rule that names a home below means the hearers: they hear the
-  channel and the Tasks, they answer an inline reply before anyone has joined the chain, and
-  they are the ADR 0030 candidates. So a Project with no home Agent, such as a new Server's
+  channel, its inline replies, and the Tasks, and they are the ADR 0030 candidates. So a Project with no home Agent, such as a new Server's
   `#onboarding-owner`, still reaches Cove and the other generalists, and it stops reaching them
   once a person homes an Agent there.
 - A generalist's home is the Haus project, so it hears the Haus channel and its Tasks, every
@@ -132,7 +131,8 @@ ADR 0030 narrowing of top-level channel messages among several hearers is the on
 absolute home hearing.
 
 Hearing lands with J3. Each row of the table, and the generalist case, has a delivery test in
-`apps/server/test/agent-hearing.test.ts`, and the migration has one for each step of
+`apps/server/test/agent-hearing.test.ts`, inline replies in
+`apps/server/test/agent-reply-hearing.test.ts`, and the migration has one for each step of
 [projects.md](projects.md#migration-from-channels).
 
 ### Planning
@@ -244,13 +244,15 @@ by chat, root, and Agent, independently from the claim's single assignee.
 
 Root authors and mentions, reply authors and mentions, and successful claimants join that
 chain. Send and claim update follows in their existing transaction. Losing a claim adds no
-subscription. Ordinary top-level messages follow [hearing](#hearing); inline replies reach eligible
-followers and direct mentions, excluding the author. Before any Agent has participated, human
-inline replies reach the Project's home Agents as ordinary delivery. An empty chain after
-unfollow does not broadcast.
+subscription. Ordinary top-level messages follow [hearing](#hearing). An inline reply in a
+channel reaches the Project's [hearers](#hearing), the chain's followers, and its direct
+mentions, excluding the author. The hearers stay recipients however many Agents join, leave, or
+retire from the chain, as home hearing is absolute.
 
-Followed chains deliver in any Project, home or not. Unfollow suppresses ordinary chain
-delivery; an explicit follow, new post, successful claim, or direct mention restores it.
+Followed chains deliver in any Project, home or not. For an Agent that is not one of the
+Project's hearers, unfollow suppresses ordinary chain delivery and withdraws its queued chain
+items; an explicit follow, new post, successful claim, or direct mention restores it. A hearer's
+unfollow is recorded and changes nothing for it: its queued items stay.
 Unfollowing a chain never joined is a no-op. Claim completion preserves follows. Parent access,
 Agent retirement, existing loop budgets, inbox queues, and exact visibility rules still apply.
 Queued channel messages are not withdrawn when an Agent claims their request.

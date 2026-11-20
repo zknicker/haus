@@ -72,7 +72,7 @@ export async function planAgentMessageRecipients(
             mentioned: mentioned.has(agent.id),
             projectHearer: hearerIds.has(agent.id),
         };
-        if (!hears(heard.place, hearer, heard.participated)) {
+        if (!hears(heard.place, hearer)) {
             return [];
         }
         return [
@@ -88,7 +88,6 @@ export async function planAgentMessageRecipients(
 
 interface HeardPlace {
     follows: Map<string, boolean>;
-    participated: boolean;
     place: HearingPlace;
     reactivated: Set<string>;
 }
@@ -98,8 +97,7 @@ async function readChannelPlace(db: HausDatabase, input: PlanInput): Promise<Hea
         ? await readInlineReplyChain(db, { ...input, messageId: input.messageId })
         : null;
     return {
-        follows: chain?.follows ?? new Map(),
-        participated: chain?.participated ?? false,
+        follows: chain ?? new Map(),
         place: chain ? 'reply' : 'channel',
         reactivated: new Set(),
     };
@@ -132,7 +130,7 @@ async function readTaskFollows(
         serverId: input.serverId,
         taskChatId: input.chatId,
     });
-    return { follows, participated: false, place: 'task', reactivated };
+    return { follows, place: 'task', reactivated };
 }
 
 /**

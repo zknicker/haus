@@ -130,7 +130,8 @@ an ongoing back-and-forth they are not part of.
 Before any narrowing, an Agent hears only its home Project's channel and Tasks, and elsewhere what
 mentions it, what is assigned to it, and the Tasks and reply chains it follows
 ([inbox.md](../../specs/inbox.md#hearing)). The prompt's Discovering section says so in those
-terms; unfollowing a Task or reply chain is the Agent's only way to narrow it further.
+terms; outside its home, unfollowing a Task or reply chain is the Agent's only way to narrow it
+further.
 
 - Owner: [ADR 0030](../adr/0030-semantic-channel-addressing.md);
   `apps/server/src/message-routing/` (`route-human-message.ts`, `mention-scope.ts`, `jev.ts`);

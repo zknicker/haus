@@ -10,15 +10,17 @@ export interface Hearer {
     projectHearer: boolean;
 }
 
-const hearingRules: Record<HearingPlace, (hearer: Hearer, participated: boolean) => boolean> = {
+const hearsFollowedPlace = ({ follows, mentioned, projectHearer }: Hearer) =>
+    projectHearer || mentioned || follows;
+
+const hearingRules: Record<HearingPlace, (hearer: Hearer) => boolean> = {
     channel: ({ mentioned, projectHearer }) => projectHearer || mentioned,
-    reply: ({ follows, mentioned, projectHearer }, participated) =>
-        mentioned || (participated ? follows : projectHearer),
-    task: ({ follows, mentioned, projectHearer }) => projectHearer || mentioned || follows,
+    reply: hearsFollowedPlace,
+    task: hearsFollowedPlace,
 };
 
-export function hears(place: HearingPlace, hearer: Hearer, participated = false) {
-    return hearingRules[place](hearer, participated);
+export function hears(place: HearingPlace, hearer: Hearer) {
+    return hearingRules[place](hearer);
 }
 
 export function projectHearers<Agent extends { generalist: boolean; homeProjectId: string }>(
@@ -54,6 +56,16 @@ export async function listProjectHearers(
     input: { projectId: string; serverId: string }
 ) {
     return projectHearers(await listHearingCandidates(db, input.serverId), input.projectId);
+}
+
+export async function isProjectHearer(
+    db: Pick<HausDatabase, 'select'>,
+    agent: { agentId: string; serverId: string },
+    projectId: string
+) {
+    return (await listProjectHearers(db, { projectId, serverId: agent.serverId })).some(
+        (hearer) => hearer.id === agent.agentId
+    );
 }
 
 export async function listHomeAgents(

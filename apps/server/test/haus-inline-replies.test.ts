@@ -5,18 +5,14 @@ import { createInlineReplyHelpers } from './haus-inline-replies-helpers.ts';
 const fixture = agentCreationFixture();
 const { follows, recipients, sendInlineAgent } = createInlineReplyHelpers(fixture);
 
-test('inline replies deliver to exact chain subscribers', async () => {
+test('inline replies reach the home Agents and the exact chain subscribers', async () => {
     const orbit = await fixture.mintRunner('run_inline_orbit');
     const peer = await fixture.mintRunner(
         'run_inline_peer',
         fixture.peerAgentId,
         fixture.channelId
     );
-    await fixture.owner.trpc.agent.setHome.mutate({
-        agentId: fixture.peerAgentId,
-        projectId: fixture.channelId,
-        serverId: fixture.serverId,
-    });
+    const home = [{ agentId: fixture.orbitAgentId, mentioned: false }];
 
     const root = await fixture.owner.trpc.chat.send.mutate({
         chatId: fixture.channelId,
@@ -24,11 +20,7 @@ test('inline replies deliver to exact chain subscribers', async () => {
         nonce: 'inline_root_human',
         serverId: fixture.serverId,
     });
-    expect(await recipients(root.message.id)).toEqual(
-        [fixture.orbitAgentId, fixture.peerAgentId]
-            .sort()
-            .map((agentId) => ({ agentId, mentioned: false }))
-    );
+    expect(await recipients(root.message.id)).toEqual(home);
 
     const first = await sendInlineAgent(orbit.token, {
         content: 'Orbit replies first.',
@@ -55,7 +47,7 @@ test('inline replies deliver to exact chain subscribers', async () => {
     expect(followed).toMatchObject({ body: { followed: true, target: '#product' }, status: 200 });
 
     const second = await sendInlineAgent(orbit.token, {
-        content: 'The home Agent follows the chain explicitly.',
+        content: 'Peer follows the chain explicitly from outside its home.',
         nonce: 'inline_reply_second',
         replyToMessageId: first.body.message?.id ?? '',
         target: '#product',
@@ -73,11 +65,7 @@ test('inline replies deliver to exact chain subscribers', async () => {
         body: { followed: false, target: '#product' },
         status: 200,
     });
-    expect(await recipients(root.message.id)).toEqual(
-        [fixture.orbitAgentId, fixture.peerAgentId]
-            .sort()
-            .map((agentId) => ({ agentId, mentioned: false }))
-    );
+    expect(await recipients(root.message.id)).toEqual(home);
     expect(await recipients(second.body.message?.id)).toEqual([]);
     expect(await follows(root.message.id)).toEqual(
         [
@@ -124,9 +112,5 @@ test('inline replies deliver to exact chain subscribers', async () => {
         replyToMessageId: orphanRoot.message.id,
         serverId: fixture.serverId,
     });
-    expect(await recipients(orphanReply.message.id)).toEqual(
-        [fixture.orbitAgentId, fixture.peerAgentId]
-            .sort()
-            .map((agentId) => ({ agentId, mentioned: false }))
-    );
+    expect(await recipients(orphanReply.message.id)).toEqual(home);
 });

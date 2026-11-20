@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { beforeAll, expect, test } from 'bun:test';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 import { createInlineReplyHelpers } from './haus-inline-replies-helpers.ts';
 import { createTestProject } from './project.fixture.ts';
@@ -6,6 +6,21 @@ import { createTestProject } from './project.fixture.ts';
 const fixture = agentCreationFixture();
 const { follows, recipients, sendAgentMessage, sendAgentRequest } =
     createInlineReplyHelpers(fixture);
+let keelAgentId: string;
+
+beforeAll(async () => {
+    await createTestProject(fixture.owner, {
+        agentIds: [fixture.orbitAgentId],
+        name: 'inline-home',
+        serverId: fixture.serverId,
+    });
+    keelAgentId = await fixture.createAgent('Keel', 'keel');
+    await fixture.owner.trpc.agent.setHome.mutate({
+        agentId: keelAgentId,
+        projectId: fixture.channelId,
+        serverId: fixture.serverId,
+    });
+});
 
 test('inline reply claims stay isolated and nonce retries keep ancestry', async () => {
     const orbit = await fixture.mintRunner('run_inline_claim_orbit');
@@ -14,11 +29,6 @@ test('inline reply claims stay isolated and nonce retries keep ancestry', async 
         fixture.peerAgentId,
         fixture.channelId
     );
-    await fixture.owner.trpc.agent.setHome.mutate({
-        agentId: fixture.peerAgentId,
-        projectId: fixture.channelId,
-        serverId: fixture.serverId,
-    });
 
     const raceRoot = await fixture.owner.trpc.chat.send.mutate({
         chatId: fixture.channelId,
@@ -129,18 +139,12 @@ test('inline reply claims stay isolated and nonce retries keep ancestry', async 
         replyToMessageId: isolatedRoot.message.id,
         serverId: fixture.serverId,
     });
-    expect(await recipients(raceFollowUp.message.id)).toEqual([
-        {
-            agentId: winningIndex === 0 ? fixture.orbitAgentId : fixture.peerAgentId,
-            mentioned: false,
-        },
-    ]);
-    expect(await recipients(isolatedFollowUp.message.id)).toEqual([
-        {
-            agentId: winningIndex === 0 ? fixture.peerAgentId : fixture.orbitAgentId,
-            mentioned: false,
-        },
-    ]);
+    expect(await recipients(raceFollowUp.message.id)).toEqual(
+        withKeel(winningIndex === 0 ? fixture.orbitAgentId : fixture.peerAgentId)
+    );
+    expect(await recipients(isolatedFollowUp.message.id)).toEqual(
+        withKeel(winningIndex === 0 ? fixture.peerAgentId : fixture.orbitAgentId)
+    );
 
     const unfollowAllRoot = await fixture.owner.trpc.chat.send.mutate({
         chatId: fixture.channelId,
@@ -168,12 +172,12 @@ test('inline reply claims stay isolated and nonce retries keep ancestry', async 
     }
     const unfollowAllReply = await fixture.owner.trpc.chat.send.mutate({
         chatId: fixture.channelId,
-        content: 'An all-unfollowed chain stays quiet.',
+        content: 'An all-unfollowed chain reaches only its home Agent.',
         nonce: 'inline_unfollow_all_reply',
         replyToMessageId: unfollowAllRoot.message.id,
         serverId: fixture.serverId,
     });
-    expect(await recipients(unfollowAllReply.message.id)).toEqual([]);
+    expect(await recipients(unfollowAllReply.message.id)).toEqual(withKeel());
     expect(await follows(unfollowAllRoot.message.id)).toEqual(
         [fixture.orbitAgentId, fixture.peerAgentId]
             .sort()
@@ -268,5 +272,9 @@ test('unfollowing an older root preserves the author’s departure', async () =>
         serverId: fixture.serverId,
     });
     expect(await follows(rootId)).toEqual([{ agentId: fixture.orbitAgentId, followed: false }]);
-    expect(await recipients(reply.message.id)).toEqual([]);
+    expect(await recipients(reply.message.id)).toEqual(withKeel());
 });
+
+function withKeel(...agentIds: string[]) {
+    return [...agentIds, keelAgentId].toSorted().map((agentId) => ({ agentId, mentioned: false }));
+}
