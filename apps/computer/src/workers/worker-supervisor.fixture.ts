@@ -2,7 +2,7 @@ import { afterEach } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { type WorkerTurnStartFrame, requireCloudWorkerPlace } from '@haus/api';
+import { isCloudWorkerPlace, type WorkerTurnStartFrame } from '@haus/api';
 import { makeTestRuntime } from '@haus/effect';
 import type { CloudAgentProvider } from './provider.ts';
 import { WorkerTurnJournal } from './turn-journal.ts';
@@ -50,8 +50,11 @@ export function reconcileEntry(frame: WorkerTurnStartFrame, stopRequested = fals
 }
 
 export function turnRef(frame: WorkerTurnStartFrame) {
+    if (!isCloudWorkerPlace(frame.place)) {
+        throw new Error('The supervisor fixture builds cloud turns only.');
+    }
     return {
-        provider: requireCloudWorkerPlace(frame.place),
+        provider: frame.place.kind,
         providerAgentId: frame.providerAgentId,
         providerRunId: null,
         turnId: frame.turnId,
