@@ -495,7 +495,9 @@ parts, so a hosted search would break the next request. A separate grounded requ
 Agent's own transcript as ordinary function calls. Gemini names each grounded source by a
 `vertexaisearch.cloud.google.com/grounding-api-redirect/` link. The runner asks each one, with a
 `HEAD` request that does not follow the redirect, where it leads, and lists the page it names. A
-link that does not answer with a redirect stays as Gemini sent it, since it still works.
+link that does not answer with a redirect within 5 seconds stays as Gemini sent it, since it still
+works. A grounding chunk whose link is not a URL is skipped, and the search keeps its other
+sources.
 
 pi-ai 1.5.2 has no option for hosted tools, so each Pi session gets a thin shim over its model
 collection. On `streamSimple`, which carries generation requests, the shim appends the hosted
@@ -961,7 +963,7 @@ settings, reminder scripts, host skill discovery, inventory, updates, and Worker
 | The runner cannot import Server or PostgreSQL modules, and Computer code makes no model calls | `scripts/lint/haus-rules/runner-boundary.cases.mjs`, `computer-no-model-calls.cases.mjs` | R3 |
 | The SDK runs with native tools off and only `mcp__haus__*` tools reachable | `apps/runner/src/claude/claude-tools-live.test.ts`, `claude-driver-live.test.ts` | R3 |
 | `web_fetch` turns HTML into Markdown, caps redirects, size, and time, refuses a non-public address at every hop, connects only to the address it vetted when the host rebinds, and describes a non-text body without its bytes | `apps/runner/src/web/web-fetch.test.ts`, `web-fetch-rebinding.test.ts`, `public-address.test.ts` | R3c |
-| Hosted search reaches the ChatGPT plan and xAI requests, Gemini's grounded request carries only `googleSearch`, citations reach the turn events, a connection with search off sends no hosted tool and its Agent hears that search is not configured, and the switch changes the Pi launch fingerprint | `apps/runner/src/pi/pi-web-search.test.ts`, `pi-openrouter-search.test.ts`, `pi-driver.test.ts`, `apps/runner/src/web/web-search.test.ts` | R3c |
+| Hosted search reaches the ChatGPT plan and xAI requests, Gemini's grounded request carries only `googleSearch` and survives a hung redirect or a malformed chunk, citations reach the turn events, a connection with search off sends no hosted tool and its Agent hears that search is not configured, and the switch changes the Pi launch fingerprint | `apps/runner/src/pi/pi-web-search.test.ts`, `pi-openrouter-search.test.ts`, `pi-driver.test.ts`, `pi-grounded-search.test.ts`, `vendor/pi-web-search/grounding-redirects.test.ts`, `apps/runner/src/web/web-search.test.ts` | R3c |
 | A stopped or failed request drops its hosted searches, and a stopped turn reports none in the next turn | `apps/runner/src/pi/pi-hosted-search-turns.test.ts` | R3c |
 | Each provider's native search answers a live turn | `apps/runner/src/pi/pi-web-search-live.test.ts` (`HAUS_RUN_LIVE_RUNNER_PI_SEARCH_TEST=1`) | R3c |
 | Ported Pi tools keep their upstream behavior | Ported upstream tests, listed in `pi/PROVENANCE.md` | R2 |

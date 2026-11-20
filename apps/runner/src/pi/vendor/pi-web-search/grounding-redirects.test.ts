@@ -11,6 +11,9 @@ function redirectServer() {
             if (request.method === 'HEAD' && path === '/moved') {
                 return new Response(null, { headers: { location: '/page' }, status: 302 });
             }
+            if (path === '/hangs') {
+                return new Promise<Response>(() => undefined);
+            }
             if (request.method === 'HEAD' && path === '/elsewhere') {
                 return Response.redirect('https://haus.example/releases', 301);
             }
@@ -47,6 +50,16 @@ describe('grounding redirects', () => {
             [`${origin}/elsewhere`]: 'https://haus.example/releases',
             [`${origin}/moved`]: `${origin}/page`,
         });
+    });
+
+    test('a redirect that never answers times out and the others still resolve', async () => {
+        const origin = redirectServer();
+
+        const resolved = await resolveRedirects([`${origin}/hangs`, `${origin}/moved`], undefined, {
+            timeoutMs: 50,
+        });
+
+        expect(Object.fromEntries(resolved)).toEqual({ [`${origin}/moved`]: `${origin}/page` });
     });
 
     test('an aborted search stops instead of keeping its redirects', async () => {

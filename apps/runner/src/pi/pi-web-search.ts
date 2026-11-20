@@ -102,7 +102,7 @@ function groundedResults(grounding: readonly GroundingMetadata[]) {
         const chunks = metadata.groundingChunks ?? [];
         for (const [index, chunk] of chunks.entries()) {
             const url = chunk.web?.uri;
-            if (!url || results.some((result) => result.url === url)) {
+            if (!(url && URL.canParse(url)) || results.some((result) => result.url === url)) {
                 continue;
             }
             const snippet = (metadata.groundingSupports ?? [])
