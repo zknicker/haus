@@ -77,10 +77,11 @@ session generation, so it outlives rotation. `agent_inbox_cursors` stays the per
 ledger. Unread for an Agent is someone else's message above the position. The position only moves
 forward (`greatest`):
 
-- Membership opens it at the Chat's last message — channel join, DM creation, a new or restored
-  Task follow — except that a message which caused the membership (a mention following the Agent
-  into a Task) stays unread. Migration `0062_agent_chat_reads` backfilled current memberships the
-  same way. A missing row reads as 0.
+- Hearing a Chat opens it at the Chat's last message — a new home Project's channel and Tasks, DM
+  creation, a new or restored Task follow — except that a message which caused it (a mention
+  following the Agent into a Task) stays unread. Migration `0062_agent_chat_reads` backfilled the
+  memberships of its day the same way, and 0132 opened each Agent's new home. A missing row reads
+  as 0.
 - `message read --unread` moves it through the returned page; a plain history page moves it only
   when no message sits between the position and the page start.
 - The Agent's own send or claim create moves it like exact visibility below: its own messages count
@@ -104,7 +105,10 @@ A Task ([specs/tasks.md](../../specs/tasks.md)) is a `tasks` row plus its own `c
 (`tasks_chat_project_fk`); deleting the Project deletes its Tasks. `tasks.origin_chat_id` and
 `origin_message_id` name the Message the Task started from, in any Channel or a DM, both or
 neither: null for a filed Task, and set null when that Message goes. `agents.home_project_id` is
-each Agent's home Project, the Haus project for a generalist.
+each Agent's home Project, the Haus project for a generalist, and the only Agent-to-Project fact:
+it decides what reaches the Agent ([specs/inbox.md](../../specs/inbox.md#hearing)). Agents have no
+channel membership; migration 0132 set each home from the last 30 days of messages and dropped
+`channel_agent_participants` and `agent_channel_mutes`.
 `tasks.state` is `todo`, `open`, `done`, or `canceled`. `task_keys` is the key ledger, each entry
 with its own `next_number`; `tasks.key_id` names a Task's entry and `projects.task_key_id` a
 Project's (one per channel, unique). Migration 0130 made every live or archived channel a Project,

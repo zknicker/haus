@@ -141,7 +141,7 @@ PostgreSQL owns the hosted collaboration tables
 | `tasks` / `task_keys` / `task_pull_requests` | Tasks with their state, assignee, and origin; the per-Server key ledger; pull requests attached to a Task ([specs/tasks.md](../../specs/tasks.md)) |
 | `channel_participants` | One human's participation in one Channel |
 | `thread_follows` | Per-human Task follows (`thread_chat_kind = 'task'`); never membership |
-| `agents` / `channel_agent_participants` | Hosted Agent identity and uploaded avatar (`avatar_id`), immutable Computer assignment, Server-owned desired runtime/model, the Computer-reported effective snapshot, the creating human or Agent plus the announcement Message an Agent-created Agent anchors to, and Channel access for reminder authorship |
+| `agents` | Hosted Agent identity and uploaded avatar (`avatar_id`), immutable Computer assignment, Server-owned desired runtime/model, the Computer-reported effective snapshot, the creating human or Agent plus the announcement Message an Agent-created Agent anchors to, and the home Project (`home_project_id`) that decides what reaches it |
 | `agent_delivery` / `agent_inbox` | One-row-per-Agent Stop flag and single in-flight run (the per-Agent serialization boundary), and the agent inbox drained into runs — the only agent-only lane, including the items with no backing message: automation fires, claim assignments, Task assignments, and sub-agent wakes |
 | `agent_turns` | Compact per-run turn summary reported by a Computer after a launch settles |
 | `agent_run_triggers` | The inbox work (source, Chat, work id) the Server chose to wake each run, recorded at dispatch so a settled turn can name its trigger; Chat is null for a chatless run (a sub-agent wake or a Task assignment) |

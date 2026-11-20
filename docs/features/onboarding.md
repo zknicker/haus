@@ -67,7 +67,7 @@ pinned Computer's reported inventory. `server.createCove` is the one dedicated
 creation operation; ordinary Agent creation cannot supply Cove's identity. One
 Server transaction locks onboarding, fixes Cove's profile and Admin role,
 stores the release-owned avatar through the normal avatar contract, binds Cove
-immutably to the Computer, joins Cove to `#onboarding-owner`, reserves one
+immutably to the Computer, homes Cove in the Haus project, reserves one
 application id, and advances to `applying`. An identical retry returns that
 reservation. A different Computer/runtime/model conflicts and cannot rebind it.
 Cove appears in every human member's implicit DM roster like every Agent, but

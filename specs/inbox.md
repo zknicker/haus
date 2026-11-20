@@ -97,6 +97,8 @@ only what is addressed to it or what it follows. A message reaches an Agent when
   following by hand. So an assignment always reaches the Agent, in any Project, both as the
   `task_assignment` item and as every later message in the Task.
 - An Agent follows a reply chain by the rules in [Inline reply attention](#inline-reply-attention).
+- A DM reaches its Agent always, inline replies included: chain follows decide delivery only in
+  channels.
 - Claim assignments, reminder and Trigger fires, Cloud Agent notices, and the other concrete
   kinds reach their recipient wherever their Chat is. Hearing narrows only ordinary `human`
   delivery.
@@ -105,14 +107,16 @@ only what is addressed to it or what it follows. A message reaches an Agent when
 - There are no channel mutes. `agent_channel_mutes` and `haus channel mute` and `unmute` are
   deleted: a home Project is the place an Agent answers first, and other Projects already reach it
   only by mention. Home hearing is absolute: a home Agent hears every message in its Project's
-  channel and Tasks, and unfollowing a home Task changes nothing for it. Outside its home, an Agent
-  stops hearing a Task by unfollowing it (`haus task unfollow`).
+  channel and Tasks, and unfollowing a home Task changes nothing for it: the unfollow is recorded
+  and its queued items stay. Outside its home, an Agent stops hearing a Task by unfollowing it
+  (`haus task unfollow`).
 
 Across all Servers with the TypeSafe credential configured, [ADR 0030](../docs/adr/0030-semantic-channel-addressing.md)
 permits semantic narrowing of unaddressed human top-level channel messages. Its eligible Agents in
 a Project's channel are the Project's home Agents. The final recipient set is committed with the
 message; kept, uncertain, failed or stale judgments retain ordinary delivery. This does not change
-explicit mention, reply, Task, or DM rules. In a Project with one home Agent, the message is
+explicit mention, reply, Task, or DM rules. Jev also sees any Agent the message @mentions from
+outside the Project, but only home Agents can be narrowed away. In a Project with one home Agent, the message is
 addressed to it as `sole` when the author is the channel's only human member. With more human
 members, Jev judges whether the one Agent is the addressee, and recipients stay unchanged either
 way. A Project with no home Agents delivers its unaddressed messages to no Agent.
@@ -358,7 +362,8 @@ the Agent (`N new, not yet delivered`) come first, and pending Cloud Agent resul
 print as one `Cloud Agent results · N pending · fetch with haus message check` line.
 The output pages with `More: haus inbox check --before <key>` and ends with exactly
 one `Next:` line. `--view mentions` keeps only conversations that mention the Agent;
-a channel outside its home Project appears only when it mentions the Agent. A 503 `INBOX_UNAVAILABLE`
+a channel outside its home Project appears only while a message that reached the Agent there, a
+mention or a reply in a chain it follows, is unread, and counts only those. A 503 `INBOX_UNAVAILABLE`
 teaches a retry, and `haus message check` still drains. Listing advances nothing.
 
 The read position advances when `haus message read --unread` returns messages, when a

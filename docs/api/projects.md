@@ -4,6 +4,7 @@ read_when:
   - calling or changing `project.create`, `project.update`, `project.list`, or `project.onUpdated`
   - creating or renaming a channel, or changing its description, icon, color, or key
   - handling `TASK_KEY_TAKEN`, `PROJECT_KEY_FIXED`, `PROJECT_HAS_AGENTS`, or `PROJECT_NAME_FIXED`
+  - reading a Project's home Agents or moving an Agent's home (`agent.setHome`)
 ---
 
 # Projects API
@@ -22,7 +23,9 @@ product logic in `apps/server/src/projects/`. Every procedure runs for an active
 
 `project` carries `chatId`, `serverId`, `name`, `key`, `taskKeyId`, `keyEditable` (no Task holds
 the key yet), `isHaus` (the channel's `isAll`, the Haus project), and `homeAgentIds` (the
-non-retired Agents whose home it is, oldest first).
+non-retired Agents whose home it is, oldest first). The channel's `Chat.participantAgentIds` is the
+same set, ordered by id. `agent.setHome` moves an Agent between Projects and publishes
+`project.onUpdated` for both ([Agents API](agents.md)).
 
 - `project.create` makes the channel, its creator's membership, its ledger entry, and its
   `projects` row in one transaction. A new Project has no Agents. Without `key` the Server

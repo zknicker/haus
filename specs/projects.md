@@ -109,6 +109,8 @@ starts with a digit is prefixed with `P` before step 2.
   inbox items stay queued.
 - An Agent cannot move itself. A person moves it from either the Project's settings or the
   Agent's own settings.
+- Moving or creating an Agent starts its read position at the present in its new home's channel
+  and Tasks, so the history it never heard is not unread.
 
 ### Repos
 
@@ -156,6 +158,9 @@ starts with a digit is prefixed with `P` before step 2.
 - Reading or posting elsewhere does not change what reaches the Agent. Only its home, mentions,
   assignments, followed Tasks, and followed reply chains do ([inbox.md](inbox.md#hearing)).
 - Every non-retired Agent is offered as a mention in every Project.
+- Any active Agent may be assigned a claim in any Project; a claim in a DM goes only to that DM's
+  Agent. A reminder or Trigger anchor is out of an Agent's reach only in a deleted Chat or another
+  Agent's DM.
 - A non-generalist Agent starts Tasks only in its home Project. Elsewhere the Server refuses with
   `TASK_PROJECT_NOT_HOME`, whose next action is to @mention that Project's Agent in that Project's
   channel. A generalist is never refused.
