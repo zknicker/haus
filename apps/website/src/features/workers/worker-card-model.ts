@@ -77,14 +77,16 @@ export function newestWorkerReport(work: Pick<Worker, 'turns'>) {
     return noReport;
 }
 
+export function liveWorkerTurns(work: Pick<Worker, 'turns'>) {
+    return work.turns.filter((turn) => !isTerminalWorkerTurnStatus(turn.status));
+}
+
 export function isWorkerTurnLive(work: Pick<Worker, 'turns'>) {
-    const newest = work.turns[0];
-    return newest !== undefined && !isTerminalWorkerTurnStatus(newest.status);
+    return liveWorkerTurns(work).length > 0;
 }
 
 export function isWorkerStopping(work: Pick<Worker, 'turns'>) {
-    const newest = work.turns[0];
-    return isWorkerTurnLive(work) && Boolean(newest?.stopRequestedAt);
+    return liveWorkerTurns(work).some((turn) => turn.stopRequestedAt !== null);
 }
 
 export function canFollowUpWorker(work: Pick<Worker, 'closedAt' | 'closingAt' | 'taskId'>) {
@@ -96,53 +98,47 @@ export function workerStatusText(work: Pick<Worker, 'status' | 'turns'>) {
 }
 
 export function workerCardLine(work: CardWorker, input: CardLineInput) {
-    const [newest, previous] = work.turns;
-    if (!newest) {
-        return noLine;
+    const live = liveWorkerTurns(work);
+    if (live.length > 0) {
+        return liveTurnLine(work, live, input);
     }
-    if (newest.outcome?.kind === 'failed') {
+    const [newest] = work.turns;
+    if (newest?.outcome?.kind === 'failed') {
         return {
             text: workerFailureLabels[newest.outcome.reason],
             tone: 'danger',
         } satisfies WorkerCardLine;
     }
-    if (newest.outcome?.kind === 'stopped') {
+    if (newest?.outcome?.kind === 'stopped') {
         return { text: stoppedLine(newest, input), tone: 'muted' } satisfies WorkerCardLine;
     }
-    if (isTerminalWorkerTurnStatus(newest.status)) {
-        return noLine;
-    }
-    return liveTurnLine(work, newest, previous ?? null, input);
+    return noLine;
 }
 
-function liveTurnLine(
-    work: CardWorker,
-    newest: WorkerTurn,
-    previous: null | WorkerTurn,
-    input: CardLineInput
-) {
+function liveTurnLine(work: CardWorker, live: WorkerTurn[], input: CardLineInput) {
     const quiet = input.now - Date.parse(work.updatedAt);
-    if (newest.status === 'running' && quiet > workerStaleAfterMs) {
+    if (quiet > workerStaleAfterMs) {
         return {
             text: `No update in ${formatWorkerDuration(quiet)}`,
             tone: 'warning',
         } satisfies WorkerCardLine;
     }
-    if (newest.stopRequestedAt) {
+    if (live.some((turn) => turn.stopRequestedAt !== null)) {
         return { text: 'Stopping', tone: 'muted' } satisfies WorkerCardLine;
     }
-    const followUp = newest.input?.find((item) => item.kind === 'follow-up') ?? null;
-    if (newest.status === 'queued' && previous && !isTerminalWorkerTurnStatus(previous.status)) {
-        return followUp
-            ? ({
-                  text: `${input.name(followUp.author)}'s follow-up goes in next`,
-                  tone: 'muted',
-              } satisfies WorkerCardLine)
-            : noLine;
+    const working = live.find((turn) => turn.status === 'running') ?? null;
+    const waiting = working ? (live.find((turn) => turn.status === 'queued') ?? null) : null;
+    const waitingFollowUp = waiting ? followUpOf(waiting) : null;
+    if (waitingFollowUp) {
+        return {
+            text: `${input.name(waitingFollowUp.author)}'s follow-up goes in next`,
+            tone: 'muted',
+        } satisfies WorkerCardLine;
     }
-    if (newest.status === 'queued') {
+    if (!working) {
         return { text: 'Waiting for a free slot', tone: 'muted' } satisfies WorkerCardLine;
     }
+    const followUp = followUpOf(working);
     if (followUp) {
         return {
             text: `On ${input.name(followUp.author)}'s follow-up`,
@@ -152,9 +148,13 @@ function liveTurnLine(
     return {
         text:
             activityLine(work.activity?.summary ?? null) ??
-            `Started ${formatRelativeTime(newest.startedAt ?? newest.createdAt, input.now)}`,
+            `Started ${formatRelativeTime(working.startedAt ?? working.createdAt, input.now)}`,
         tone: 'muted',
     } satisfies WorkerCardLine;
+}
+
+function followUpOf(turn: WorkerTurn) {
+    return turn.input?.find((item) => item.kind === 'follow-up') ?? null;
 }
 
 function stoppedLine(turn: WorkerTurn, input: CardLineInput) {

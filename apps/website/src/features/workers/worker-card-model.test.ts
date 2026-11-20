@@ -2,6 +2,8 @@ import { expect, test } from 'bun:test';
 import type { WorkerReport, WorkerTurnInput } from '@haus/api';
 import {
     canFollowUpWorker,
+    isWorkerStopping,
+    isWorkerTurnLive,
     newestWorkerReport,
     workerCardLine,
     workerStatusText,
@@ -117,4 +119,63 @@ test('only an open Worker on a Task takes follow-ups', () => {
     expect(canFollowUpWorker(work({ closingAt: '2026-09-04T12:03:00.000Z' }))).toBe(false);
     expect(canFollowUpWorker(work({ closedAt: '2026-09-04T12:03:00.000Z' }))).toBe(false);
     expect(canFollowUpWorker(work({ taskId: null }))).toBe(false);
+});
+
+test('a stop on the working turn reads Stopping while a follow-up waits behind it', () => {
+    const worker = work({
+        turns: [
+            turn({ input: [followUp], status: 'queued', turnId: 'wkt_two' }),
+            turn({
+                status: 'running',
+                stopRequestedAt: '2026-09-04T12:03:00.000Z',
+                stopRequestedBy: { id: 'usr_zach', kind: 'user' },
+                turnId: 'wkt_one',
+            }),
+        ],
+        updatedAt: '2026-09-04T12:03:00.000Z',
+    });
+
+    expect(isWorkerStopping(worker)).toBe(true);
+    expect(workerStatusText(worker)).toBe('Stopping');
+    expect(line(worker)).toEqual({ text: 'Stopping', tone: 'muted' });
+});
+
+test('a hung working turn warns even with a follow-up queued, and so does a stuck queue', () => {
+    const hung = work({
+        turns: [
+            turn({ input: [followUp], status: 'queued', turnId: 'wkt_two' }),
+            turn({ status: 'running', turnId: 'wkt_one' }),
+        ],
+        updatedAt: '2026-09-04T11:50:00.000Z',
+    });
+
+    expect(line(hung)).toEqual({ text: 'No update in 14m', tone: 'warning' });
+    expect(line(work({ status: 'queued', updatedAt: '2026-09-04T11:50:00.000Z' }))).toEqual({
+        text: 'No update in 14m',
+        tone: 'warning',
+    });
+});
+
+test('a turn queued behind the working one without a follow-up still shows the work', () => {
+    const worker = work({
+        activity: { at: '2026-09-04T12:03:00.000Z', summary: 'Reading the failing test.' },
+        turns: [
+            turn({ status: 'queued', turnId: 'wkt_two' }),
+            turn({ status: 'running', turnId: 'wkt_one' }),
+        ],
+        updatedAt: '2026-09-04T12:03:00.000Z',
+    });
+
+    expect(line(worker)).toEqual({ text: 'Reading the failing test.', tone: 'muted' });
+});
+
+test('a Worker is live while any turn is, even after its newest turn settled', () => {
+    const worker = work({
+        turns: [
+            turn({ outcome: { kind: 'stopped' }, status: 'cancelled', turnId: 'wkt_two' }),
+            turn({ status: 'running', turnId: 'wkt_one' }),
+        ],
+    });
+
+    expect(isWorkerTurnLive(worker)).toBe(true);
 });

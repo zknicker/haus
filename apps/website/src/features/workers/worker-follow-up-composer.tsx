@@ -1,9 +1,9 @@
-import { isTerminalWorkerTurnStatus, type Worker } from '@haus/api';
+import type { Worker } from '@haus/api';
 import { PromptInput } from '@heroui-pro/react';
 import { toast } from '@heroui/react';
 import * as React from 'react';
 import { useWorkerSendFollowUp, useWorkerStop } from '../../hooks/servers/use-worker.ts';
-import { isWorkerStopping, isWorkerTurnLive } from './worker-card-model.ts';
+import { isWorkerStopping, isWorkerTurnLive, liveWorkerTurns } from './worker-card-model.ts';
 import { workerFollowUpControls } from './worker-follow-up-controls.ts';
 
 export function WorkerFollowUpComposer({
@@ -21,8 +21,7 @@ export function WorkerFollowUpComposer({
     const send = useWorkerSendFollowUp();
     const stop = useWorkerStop();
     const live = isWorkerTurnLive(work);
-    const liveTurnId =
-        work.turns.find((turn) => !isTerminalWorkerTurnStatus(turn.status))?.turnId ?? null;
+    const liveTurnId = liveWorkerTurns(work).at(-1)?.turnId ?? null;
     const draft = text.trim();
     const controls = workerFollowUpControls({
         canStop:
