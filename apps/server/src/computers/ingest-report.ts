@@ -90,7 +90,11 @@ export async function ingestReport(
             frame,
             postCommitWork,
         })) ||
-        (await ingestExecutionJournalUpload(db, connections, { computerId, frame, serverId })) ||
+        (await ingestExecutionJournalUpload(db, {
+            acknowledge: (ack) => connections.send(computerId, ack),
+            frame,
+            writer: { computerId, kind: 'computer', serverId },
+        })) ||
         (await ingestAgentRunFrame(
             db,
             { computerId, frame, serverId },
