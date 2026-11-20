@@ -15,6 +15,7 @@ import {
     workersTable,
 } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { readWorkerRepoLink } from './read-worker-repo-link.ts';
 import { currentTurnAttempt } from './worker-turn-attempt.ts';
 
 type CredentialKind = 'push' | 'turn';
@@ -56,6 +57,9 @@ export async function mintWorkerTurnCredential(
         }
         if (worker.place === 'computer' && !computer.workersEnabled) {
             return refuse('place-off');
+        }
+        if (worker.place === 'computer' && !(await readWorkerRepoLink(tx, worker))) {
+            return refuse('repo-unlinked');
         }
         const minted = await mint(tx, {
             attempt: input.attempt,

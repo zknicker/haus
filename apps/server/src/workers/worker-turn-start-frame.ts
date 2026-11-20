@@ -5,7 +5,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, chatsTable, workerTurnsTable, workersTable } from '../postgres/schema.ts';
 import { readTask } from '../tasks/task-read.ts';
 import { composeWorkerInput } from './compose-worker-input.ts';
-import { readWorkerRepoLink } from './worker-repo-link.ts';
+import { readWorkerRepoLink } from './read-worker-repo-link.ts';
 import { workerPlaceOf } from './worker-row-place.ts';
 
 type TurnRow = typeof workerTurnsTable.$inferSelect;

@@ -37,6 +37,7 @@ export const workerTurnCredentialRefusals = [
     'stale-attempt',
     'closing',
     'place-off',
+    'repo-unlinked',
     'not-dispatched-here',
 ] as const;
 export const workerTurnCredentialRefusalSchema = z.enum(workerTurnCredentialRefusals);

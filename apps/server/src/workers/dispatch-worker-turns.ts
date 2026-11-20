@@ -21,10 +21,11 @@ import {
     workerTurnsTable,
     workersTable,
 } from '../postgres/schema.ts';
+import { readWorkerRepoLink } from './read-worker-repo-link.ts';
 import { workerCloseFrames } from './worker-close-frames.ts';
 import type { WorkerEffects, WorkerFrame } from './worker-effects.ts';
 import { prepareWorkerEvents } from './worker-events.ts';
-import { readWorkerRepoLink, refuseUnlinkedTurn } from './worker-repo-link.ts';
+import { refuseUnlinkedTurn } from './worker-repo-link.ts';
 import { workerTurnStartFrame } from './worker-turn-start-frame.ts';
 
 export const defaultWorkerPlaceLimit = 10;

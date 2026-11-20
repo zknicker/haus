@@ -61,6 +61,13 @@ test('the launch fence mints for the current attempt and names each reason it re
     expect(await mint()).toMatchObject({ body: { reason: 'closing' } });
     await connection.db.execute(sql`update workers set closing_at = null where id in (
         select worker_id from worker_turns where id = ${turnId})`);
+    const moveLink = (from: string, to: string) =>
+        connection.db.execute(
+            sql`update project_repo_links set computer_id = ${to} where computer_id = ${from}`
+        );
+    await moveLink(board.seed.computerId, other);
+    expect(await mint()).toMatchObject({ body: { reason: 'repo-unlinked' } });
+    await moveLink(other, board.seed.computerId);
     await set(sql`stop_requested_at = now(), stop_requested_by_agent_id = ${board.seed.agentId}`);
     expect(await mint()).toMatchObject({ body: { reason: 'stop-requested' } });
     await set(sql`stop_requested_at = null, stop_requested_by_agent_id = null`);
