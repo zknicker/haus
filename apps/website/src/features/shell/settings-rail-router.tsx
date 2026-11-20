@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { RouterProvider } from 'react-aria-components';
+import { useNavigate } from 'react-router-dom';
 import {
     type DesktopTabCommands,
     useOptionalDesktopTabs,
@@ -25,6 +26,13 @@ export function SettingsRailRouter({ children }: { children: React.ReactNode }) 
         [tabId, tabs]
     );
     return navigate ? <RouterProvider navigate={navigate}>{children}</RouterProvider> : children;
+}
+
+export function useSettingsRailNavigate() {
+    const tabs = useOptionalDesktopTabs();
+    const tabId = React.use(ShellTabIdContext);
+    const navigate = useNavigate();
+    return tabs && tabId ? settingsRailNavigate(tabs, tabId) : (path: string) => navigate(path);
 }
 
 /** The tab the rail belongs to, for modified clicks on its links; null on the web. */

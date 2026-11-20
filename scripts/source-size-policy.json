@@ -66,7 +66,7 @@
         "apps/server/test/haus-trigger-api.test.ts": 595,
         "apps/server/test/haus-triggers.test.ts": 467,
         "apps/website/e2e/tests/messaging.spec.ts": 370,
-        "apps/website/e2e/tests/servers.spec.ts": 590,
+        "apps/website/e2e/tests/servers.spec.ts": 586,
         "apps/website/electron/main.cjs": 470,
         "apps/website/scripts/generate-channel-icon-catalog.ts": 1703,
         "apps/website/src/features/chats/chat-rendering-geometry.browser.test.tsx": 742,

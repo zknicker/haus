@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from 'bun:test';
+import { createHash } from 'node:crypto';
 import { drainCleanups, live, startedRun } from '../runner-test-server.ts';
 import { shellCommandOf } from './shell-command.ts';
 
@@ -169,8 +170,12 @@ describe('GPT machine tools', () => {
         });
     });
 
-    test('view_image returns inline bytes as an image and names an attachment it cannot read yet', async () => {
-        const { run, server } = await startedRun();
+    test('view_image returns inline bytes and attachment payloads as images', async () => {
+        const big = Buffer.alloc(9000, 7);
+        const { run, server } = await startedRun({
+            '/api/agent/invocation-payloads/att_1': () =>
+                new Response(big, { headers: { 'content-type': 'image/png' } }),
+        });
 
         const inline = run.tools.viewImage('call_6', { path: 'chart.png' }, live());
         expect(await server.frame('invocation-request')).toEqual({
@@ -203,20 +208,15 @@ describe('GPT machine tools', () => {
                 attachmentId: 'att_1',
                 kind: 'attachment',
                 mediaType: 'image/png',
-                sha256: 'a'.repeat(64),
-                sizeBytes: 9_000_000,
+                sha256: createHash('sha256').update(big).digest('hex'),
+                sizeBytes: big.byteLength,
             },
             runId: 'run_1',
             seq: 0,
             toolCallId: 'call_7',
         });
         expect(await attached).toEqual({
-            content: [
-                {
-                    text: 'The result arrived as attachment att_1 (image/png, 9000000 bytes), which this runner cannot read yet.',
-                    type: 'text',
-                },
-            ],
+            content: [{ data: big.toString('base64'), mimeType: 'image/png', type: 'image' }],
             invocation: 'completed',
             isError: false,
         });

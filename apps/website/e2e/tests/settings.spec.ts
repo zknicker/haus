@@ -80,27 +80,19 @@ test('settings navigation names the page and reaches Server deletion', async ({
 }, testInfo) => {
     await signInAsAppHuman(page);
     await page.goto(`/s/${slug}/settings/profile`);
-    const personal = page.getByRole('treegrid', { name: 'Preferences', exact: true });
-    const shared = page.getByRole('treegrid', { name: 'Server', exact: true });
-    // Personal: Profile, Preferences, Appearance, Servers. Server: the five pages that
-    // configure it, Usage, then Archived chats as a link-out.
-    await expect(personal.getByRole('row')).toHaveCount(4);
-    await expect(shared.getByRole('row')).toHaveCount(7);
-    await expect(personal.getByRole('row', { name: 'Servers', exact: true })).toBeVisible();
-    await expect(shared.getByRole('row', { name: 'Connections', exact: true })).toBeVisible();
-    await expect(shared.getByRole('row', { name: 'Skills', exact: true })).toBeVisible();
-    for (const label of [
-        'Profile',
-        'Preferences',
-        'Appearance',
-        'Servers',
-        'Server',
-        'Members',
-        'Connections',
-        'Models',
-        'Skills',
-        'Usage',
-    ]) {
+    const groups = {
+        Captains: ['Models', 'Skills', 'Connections'],
+        Haus: ['General', 'Members', 'Devices', 'Usage', 'Archived chats'],
+        You: ['Profile', 'Preferences', 'Appearance', 'Servers'],
+    };
+    for (const [group, rows] of Object.entries(groups)) {
+        await expect(
+            page.getByRole('treegrid', { exact: true, name: group }).getByRole('row')
+        ).toHaveText(rows);
+    }
+    for (const label of Object.values(groups)
+        .flat()
+        .filter((row) => row !== 'Archived chats')) {
         await page.getByRole('row', { exact: true, name: label }).click();
         await expect(
             page.getByRole('heading', { exact: true, level: 1, name: label })
@@ -110,17 +102,26 @@ test('settings navigation names the page and reaches Server deletion', async ({
         }
     }
     await expect(page.getByRole('row', { exact: true, name: 'Browser' })).toHaveCount(0);
-    await page.getByRole('row', { exact: true, name: 'Server' }).click();
+    await page.getByRole('row', { exact: true, name: 'General' }).click();
     await expect(page.getByText(slug, { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Copy Server ID' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Delete Server', exact: true })).toBeVisible();
     await page.getByRole('row', { name: 'Back to chat', exact: true }).hover();
     await page.screenshot({ path: testInfo.outputPath('settings-server.png') });
 
+    await page.goto(`/s/${slug}/settings/server`);
+    await expect(page).toHaveURL(new RegExp(`/s/${slug}/settings/general$`, 'u'));
+
     await page.goto(`/s/${slug}/settings/browser`);
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/settings/computers$`, 'u'));
+    await page.getByRole('row', { name: /Settings Computer/u }).click();
+    await expect(page).toHaveURL(
+        new RegExp(`/s/${slug}/settings/computers/cmp_e2esettings00000$`, 'u')
+    );
     await expect(
         page.getByRole('heading', { exact: true, level: 1, name: 'Settings Computer' })
     ).toBeVisible();
+    await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toContainText('Devices');
 });
 
 /**
@@ -133,7 +134,7 @@ test('Usage keeps the settings rail and Archived chats links out', async ({ page
     await page.getByRole('row', { exact: true, name: 'Usage' }).click();
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/settings/usage$`, 'u'));
     await expect(page.getByRole('heading', { exact: true, level: 1, name: 'Usage' })).toBeVisible();
-    await expect(page.getByRole('treegrid', { name: 'Server', exact: true })).toBeVisible();
+    await expect(page.getByRole('treegrid', { name: 'Haus', exact: true })).toBeVisible();
 
     await page.goto(`/s/${slug}/settings/profile`);
     await page.getByRole('row', { exact: true, name: 'Archived chats' }).click();

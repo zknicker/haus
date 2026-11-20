@@ -2,6 +2,7 @@ import {
     AiBrain01Icon,
     Analytics01Icon,
     ArchiveIcon,
+    ComputerIcon,
     Exchange01Icon,
     PaintBoardIcon,
     Plug01Icon,
@@ -12,129 +13,173 @@ import {
     ZapIcon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import type { IconSvgElement } from '@hugeicons/react';
-import { appRoutes } from '../../../lib/app-routes.ts';
 
-/**
- * Personal settings affect the reader; Server settings describe shared
- * membership and capabilities. Machine-specific controls live on each Computer.
- */
-export const staticSettingsNavItems = [
+export const settingsNavItems = [
     {
+        access: 'everyone',
         icon: UserCircleIcon,
         id: 'profile',
+        kind: 'page',
         label: 'Profile',
-        to: appRoutes.settingsProfile,
+        rows: ['Display name', 'Handle', 'Photo', 'Timezone', 'Sign out'],
     },
     {
+        access: 'everyone',
         icon: PreferenceHorizontalIcon,
         id: 'preferences',
+        kind: 'page',
         label: 'Preferences',
-        to: appRoutes.settingsPreferences,
+        rows: ['Window layout', 'Notifications', 'Show claims in chat'],
     },
     {
+        access: 'everyone',
         icon: PaintBoardIcon,
         id: 'appearance',
+        kind: 'page',
         label: 'Appearance',
-        to: appRoutes.settingsAppearance,
+        rows: ['Mode', 'Theme', 'Create theme', 'Colors', 'Snow'],
     },
     {
+        access: 'everyone',
         icon: Exchange01Icon,
         id: 'servers',
+        kind: 'page',
         label: 'Servers',
-        to: appRoutes.settingsServers,
+        rows: ['Your Servers', 'Switch Server', 'Create Server', 'Join Server'],
     },
     {
-        icon: ServerStack01Icon,
-        id: 'server',
-        label: 'Server',
-        to: appRoutes.settings,
-    },
-    {
-        icon: UserMultipleIcon,
-        id: 'members',
-        label: 'Members',
-        to: appRoutes.settingsMembers,
-    },
-    {
-        icon: Plug01Icon,
-        id: 'connections',
-        label: 'Connections',
-        to: appRoutes.settingsConnections,
-    },
-    {
+        access: 'everyone',
         icon: AiBrain01Icon,
         id: 'models',
+        kind: 'page',
         label: 'Models',
-        to: appRoutes.settingsModels,
+        rows: ['Cloud Agents', 'Effort', 'Fast', 'Detected runtimes', 'Reported models'],
     },
     {
+        access: 'everyone',
         icon: ZapIcon,
         id: 'skills',
+        kind: 'page',
         label: 'Skills',
-        to: appRoutes.settingsSkills,
+        rows: ['Skill library', 'Installed skills'],
     },
     {
+        access: 'everyone',
+        icon: Plug01Icon,
+        id: 'connections',
+        kind: 'page',
+        label: 'Connections',
+        rows: ['MCP', 'GitHub', 'Captain access'],
+    },
+    {
+        access: 'operator',
+        icon: ComputerIcon,
+        id: 'computers',
+        kind: 'page',
+        label: 'Devices',
+        rows: ['Add device', 'Runtimes', 'Browser', 'Secrets', '1Password', 'Updates'],
+    },
+    {
+        access: 'everyone',
+        icon: ServerStack01Icon,
+        id: 'general',
+        kind: 'page',
+        label: 'General',
+        rows: ['Name', 'Address', 'Server ID', 'Idle compaction', 'Delete Server'],
+    },
+    {
+        access: 'everyone',
+        icon: UserMultipleIcon,
+        id: 'members',
+        kind: 'page',
+        label: 'Members',
+        rows: ['Invite', 'Invitations', 'Roles', 'Remove member', 'Leave Server'],
+    },
+    {
+        access: 'everyone',
         icon: Analytics01Icon,
         id: 'usage',
+        kind: 'page',
         label: 'Usage',
-        to: appRoutes.settingsUsage,
+        rows: ['Tokens', 'Processed', 'Cache hit rate', 'Token usage detail'],
     },
-] as const satisfies ReadonlyArray<{
-    icon: IconSvgElement;
-    id: string;
-    label: string;
-    to: string;
-}>;
-
-/**
- * Entry points, not settings pages. Archived chats is a chat list with its own
- * standalone route, and the rail links out to it so it still has a home now
- * that the sidebar's Server menu is gone. `SettingsSectionRoute` maps each id
- * to its destination and hands off.
- *
- * It stays out of `staticSettingsNavItems` because the command palette builds
- * its Settings group from that list and already carries its own Archived chats
- * command.
- */
-export const settingsNavLinkItems = [
     {
+        access: 'everyone',
         icon: ArchiveIcon,
         id: 'archived',
+        kind: 'link',
         label: 'Archived chats',
-        to: appRoutes.archivedChats,
+        rows: [],
     },
 ] as const satisfies ReadonlyArray<{
+    access: 'everyone' | 'operator';
     icon: IconSvgElement;
     id: string;
+    kind: 'link' | 'page';
     label: string;
-    to: string;
+    rows: readonly string[];
 }>;
 
-export const settingsNavLinkIds = settingsNavLinkItems.map((item) => item.id);
-export type SettingsNavLinkId = (typeof settingsNavLinkItems)[number]['id'];
-
-export const settingsNavItems = [...staticSettingsNavItems, ...settingsNavLinkItems];
-
-/**
- * Computers is its own section because its rows come from the roster rather
- * than from this list; the sidebar renders it after these.
- */
-export const settingsNavSections = [
-    {
-        // Which Servers you belong to is about you, not about this Server.
-        id: 'personal',
-        itemIds: ['profile', 'preferences', 'appearance', 'servers'],
-        label: 'Preferences',
-    },
-    {
-        id: 'server',
-        // Usage reads the Server's activity after the pages that configure
-        // it; Archived chats closes the group as a link-out.
-        itemIds: ['server', 'members', 'connections', 'models', 'skills', 'usage', 'archived'],
-        label: 'Server',
-    },
-] as const;
-
 export type SettingsNavItem = (typeof settingsNavItems)[number];
-/** Static section ids plus the dynamic Computers section (rows come from the roster). */
-export type SettingsRouteTab = SettingsNavItem['id'] | 'computers';
+export type SettingsRouteTab = SettingsNavItem['id'];
+export type SettingsNavLinkId = Extract<SettingsNavItem, { kind: 'link' }>['id'];
+export type SettingsPageId = Extract<SettingsNavItem, { kind: 'page' }>['id'];
+
+export const settingsPages = settingsNavItems.filter(
+    (item): item is Extract<SettingsNavItem, { kind: 'page' }> => item.kind === 'page'
+);
+
+export const settingsNavSections = [
+    { id: 'you', itemIds: ['profile', 'preferences', 'appearance', 'servers'], label: 'You' },
+    { id: 'captains', itemIds: ['models', 'skills', 'connections'], label: 'Captains' },
+    {
+        id: 'haus',
+        itemIds: ['general', 'members', 'computers', 'usage', 'archived'],
+        label: 'Haus',
+    },
+] as const satisfies ReadonlyArray<{
+    id: string;
+    itemIds: readonly SettingsRouteTab[];
+    label: string;
+}>;
+
+export interface SettingsNavMatch {
+    item: SettingsNavItem;
+    row: string | null;
+}
+
+export interface SettingsNavGroup {
+    id: string;
+    label: string;
+    matches: SettingsNavMatch[];
+}
+
+export function settingsNavGroups({ canOperate, query }: { canOperate: boolean; query: string }) {
+    const needle = query.trim().toLowerCase();
+    return settingsNavSections.flatMap((section) => {
+        const matches = section.itemIds.flatMap((id) => {
+            const item = settingsNavItems.find((candidate) => candidate.id === id);
+            if (!item || (item.access === 'operator' && !canOperate)) {
+                return [];
+            }
+            return matchItem(item, needle);
+        });
+        const group = { id: section.id, label: section.label, matches } satisfies SettingsNavGroup;
+        return matches.length > 0 ? [group] : [];
+    });
+}
+
+function matchItem(item: SettingsNavItem, needle: string) {
+    const titleMatches = needle.length === 0 || startsWord(item.label, needle);
+    const rows: readonly string[] = item.rows;
+    const row = titleMatches
+        ? null
+        : (rows.find((candidate) => startsWord(candidate, needle)) ?? null);
+    const matches: SettingsNavMatch[] = titleMatches || row ? [{ item, row }] : [];
+    return matches;
+}
+
+function startsWord(text: string, needle: string) {
+    const normalized = text.toLowerCase();
+    return normalized.startsWith(needle) || normalized.includes(` ${needle}`);
+}

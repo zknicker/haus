@@ -2,6 +2,7 @@ import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Button, Separator } from '@heroui/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CopyButton } from '../../../components/copy-button.tsx';
 import type { ServerSummary } from '../../../lib/haus-server.tsx';
 import { hausTrpc } from '../../../lib/haus-server.tsx';
 import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
@@ -25,7 +26,7 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
 
     return (
         <SettingsPageColumn>
-            <SettingsPageHeader title="Server" />
+            <SettingsPageHeader title="General" />
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>
                     <ItemCardGroup.Title>Identity</ItemCardGroup.Title>
@@ -48,6 +49,16 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
                         </ItemCard.Content>
                         <ItemCard.Action>
                             <SettingsFact>{server.slug}</SettingsFact>
+                        </ItemCard.Action>
+                    </ItemCard>
+                    <Separator />
+                    <ItemCard>
+                        <ItemCard.Content>
+                            <ItemCard.Title>Server ID</ItemCard.Title>
+                        </ItemCard.Content>
+                        <ItemCard.Action className="flex items-center gap-1">
+                            <SettingsFact className="font-mono text-xs">{server.id}</SettingsFact>
+                            <CopyButton label="Copy Server ID" value={server.id} />
                         </ItemCard.Action>
                     </ItemCard>
                 </ItemCardGroup>
