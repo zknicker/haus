@@ -7,7 +7,7 @@ import {
     TaskConflictError,
     TaskInvariantError,
     TaskNotFoundError,
-    TaskOriginDmError,
+    TaskProjectNotHomeError,
 } from '../tasks/task-errors.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
 
@@ -93,12 +93,13 @@ function sendAgentTaskError(reply: FastifyReply, cause: unknown) {
     if (cause instanceof TaskNotFoundError) {
         return sendAgentApiError(reply, 404, 'TASK_NOT_FOUND', cause.message);
     }
-    if (cause instanceof TaskOriginDmError) {
+    if (cause instanceof TaskProjectNotHomeError) {
         return sendAgentApiError(
             reply,
-            400,
-            'TASK_ORIGIN_DM' satisfies AgentTaskRefusalCode,
-            cause.message
+            403,
+            'TASK_PROJECT_NOT_HOME' satisfies AgentTaskRefusalCode,
+            cause.message,
+            { nextAction: cause.nextAction }
         );
     }
     if (cause instanceof TaskConflictError) {

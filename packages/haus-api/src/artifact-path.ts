@@ -48,6 +48,15 @@ export function artifactPathBasename(path: string) {
     return path.slice(path.lastIndexOf('/') + 1);
 }
 
+/** The `n`th keep-both copy name: `notes/a.md` → `notes/a.conflict-blippy.md`, then `-2`. */
+export function artifactConflictCopyPath(path: string, handle: string, n: number) {
+    const name = artifactPathBasename(path);
+    const folder = path.slice(0, path.length - name.length);
+    const dot = name.lastIndexOf('.');
+    const [stem, extension] = dot > 0 ? [name.slice(0, dot), name.slice(dot)] : [name, ''];
+    return `${folder}${stem}.conflict-${handle}${n > 1 ? `-${n}` : ''}${extension}`;
+}
+
 /** The folder holding `path`, or `''` at the drive root. */
 export function artifactPathParent(path: string) {
     const slash = path.lastIndexOf('/');

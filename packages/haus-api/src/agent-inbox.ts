@@ -9,6 +9,7 @@ import {
     cloudAgentTitleSchema,
 } from './cloud-agent-shared.ts';
 import { cloudAgentStallCodeSchema } from './cloud-agent-stall.ts';
+import { driveConflictFileSchema } from './drive.ts';
 import { humanTimezoneSchema } from './membership.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
@@ -162,3 +163,29 @@ export const agentInboxItemSchema = z
     });
 
 export type AgentInboxItem = z.infer<typeof agentInboxItemSchema>;
+
+/**
+ * One Drive push's conflicts for the Agent that pushed, or for a Worker's push, the Worker's
+ * Agent (specs/inbox.md). It lists every kept-both, kept-edit, or refused file of the push,
+ * uncapped because conflicts are rare.
+ */
+export const driveConflictAttentionSchema = z
+    .object({
+        files: z.array(driveConflictFileSchema).min(1),
+        id: idSchema,
+        pushId: idSchema,
+        writer: z.discriminatedUnion('type', [
+            z.object({ agentId: idSchema, type: z.literal('agent') }).strict(),
+            z
+                .object({
+                    agentId: idSchema,
+                    taskId: idSchema,
+                    type: z.literal('worker'),
+                    workerId: idSchema,
+                })
+                .strict(),
+        ]),
+    })
+    .strict();
+
+export type DriveConflictAttention = z.infer<typeof driveConflictAttentionSchema>;

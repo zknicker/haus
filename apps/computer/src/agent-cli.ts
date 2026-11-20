@@ -1,11 +1,11 @@
 import { AgentCliError, renderAgentCliError } from './agent-cli/agent-error.ts';
 import { AGENT_SUBCOMMANDS } from './agent-cli/commands/agent-agent.ts';
-import { ARTIFACT_SUBCOMMANDS } from './agent-cli/commands/agent-artifact.ts';
 import { ATTACHMENT_SUBCOMMANDS } from './agent-cli/commands/agent-attachment.ts';
 import { CLAIM_SUBCOMMANDS } from './agent-cli/commands/agent-claim.ts';
 import { CLOUD_AGENT_SUBCOMMANDS } from './agent-cli/commands/agent-cloud-agent.ts';
 import { CONNECTION_SUBCOMMANDS } from './agent-cli/commands/agent-connection.ts';
 import { CHANNEL_SUBCOMMANDS, SERVER_SUBCOMMANDS } from './agent-cli/commands/agent-directory.ts';
+import { DRIVE_SUBCOMMANDS } from './agent-cli/commands/agent-drive.ts';
 import { IMAGE_SUBCOMMANDS } from './agent-cli/commands/agent-image.ts';
 import { INBOX_SUBCOMMANDS } from './agent-cli/commands/agent-inbox.ts';
 import { MANUAL_EXAMPLE_FLOWS, MANUAL_SUBCOMMANDS } from './agent-cli/commands/agent-manual.ts';
@@ -26,7 +26,7 @@ export const commandGroups = {
     claim: CLAIM_SUBCOMMANDS,
     'cloud-agent': CLOUD_AGENT_SUBCOMMANDS,
     connection: CONNECTION_SUBCOMMANDS,
-    files: ARTIFACT_SUBCOMMANDS,
+    drive: DRIVE_SUBCOMMANDS,
     image: IMAGE_SUBCOMMANDS,
     inbox: INBOX_SUBCOMMANDS,
     manual: MANUAL_SUBCOMMANDS,

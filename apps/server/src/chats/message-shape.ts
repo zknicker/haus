@@ -121,6 +121,8 @@ export interface StoredChatMessageRelations {
     cause?: MessageCause;
     /** The linked Cloud Agent work the viewer can see, in link order. */
     cloudAgentWork?: ChatMessage['cloudAgentWork'];
+    /** The Drive files the Message cites, in link order. */
+    driveCitations?: ChatMessage['driveCitations'];
     /** The linked image generations the viewer can see, in link order. */
     imageGenerations?: ChatMessage['imageGenerations'];
     reactions?: ChatMessage['reactions'];
@@ -140,6 +142,7 @@ export function toChatMessage(
         body,
         cause,
         cloudAgentWork = [],
+        driveCitations = [],
         imageGenerations = [],
         reactions = [],
         reply = null,
@@ -154,6 +157,7 @@ export function toChatMessage(
         cloudAgentWork,
         content: message.content,
         createdAt: message.createdAt.toISOString(),
+        driveCitations,
         id: message.id,
         imageGenerations,
         nonce: message.nonce,

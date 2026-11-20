@@ -24,14 +24,14 @@ const storage: ArtifactStorage = {
         return { sha256: createHash('sha256').update(bytes).digest('hex'), size: bytes.length };
     },
 };
-const fixture = agentCreationFixture(undefined, storage);
+const fixture = agentCreationFixture(undefined, { artifactStorage: storage });
 
 test('raw CLI publication streams through runner auth and other Agents can publish revisions', async () => {
     const firstRunner = await fixture.mintRunner('run_artifact_author');
     const secondRunner = await fixture.mintRunner('run_artifact_peer', fixture.peerAgentId);
     const first = await publish(
         firstRunner.token,
-        { path: 'shared/report.txt', request_id: 'raw-first-publish' },
+        { path: 'haus/shared/report.txt', request_id: 'raw-first-publish' },
         'first bytes'
     );
     expect(first.status).toBe(200);
@@ -41,7 +41,7 @@ test('raw CLI publication streams through runner auth and other Agents can publi
         secondRunner.token,
         {
             base_revision_id: published.revision_id,
-            path: 'shared/report.txt',
+            path: 'haus/shared/report.txt',
             request_id: 'raw-second-publish',
         },
         'second bytes'
@@ -52,19 +52,19 @@ test('raw CLI publication streams through runner auth and other Agents can publi
     expect(revision.revision_number).toBe(2);
     const taken = await publish(
         secondRunner.token,
-        { path: 'Shared/Report.txt', request_id: 'raw-taken-path' },
+        { path: 'haus/Shared/Report.txt', request_id: 'raw-taken-path' },
         'peer bytes'
     );
     expect(taken.status).toBe(409);
     expect(await taken.json()).toMatchObject({
         code: 'REVISION_CONFLICT',
-        current: { path: 'shared/report.txt', revision_id: revision.revision_id },
+        current: { path: 'haus/shared/report.txt', revision_id: revision.revision_id },
     });
     const stale = await publish(
         secondRunner.token,
         {
             base_revision_id: published.revision_id,
-            path: 'shared/report.txt',
+            path: 'haus/shared/report.txt',
             request_id: 'raw-stale-base',
         },
         'stale bytes'
@@ -74,7 +74,7 @@ test('raw CLI publication streams through runner auth and other Agents can publi
         code: 'REVISION_CONFLICT',
         current: { revision_id: revision.revision_id },
     });
-    const invalid = await publish(secondRunner.token, { path: '/shared/x.txt' }, 'bytes');
+    const invalid = await publish(secondRunner.token, { path: 'haus//shared/x.txt' }, 'bytes');
     expect(invalid.status).toBe(400);
     expect(await invalid.json()).toMatchObject({ code: 'INVALID_PATH' });
     const query = await fetch(
@@ -89,11 +89,17 @@ test('raw CLI publication streams through runner auth and other Agents can publi
         artifact: { revision_id: published.revision_id },
         download_url: expect.stringContaining('https://r2.test/'),
     });
+    const own = artifactPublishResultSchema.parse(
+        await (
+            await publish(firstRunner.token, { path: 'agents/orbit/own.txt' }, 'orbit only')
+        ).json()
+    ).artifact;
     const peerDelete = await fetch(
-        new URL(`/api/agent/artifacts/${published.artifact_id}/delete`, fixture.harness.url),
+        new URL(`/api/agent/artifacts/${own.artifact_id}/delete`, fixture.harness.url),
         { method: 'POST', headers: { authorization: `Bearer ${secondRunner.token}` } }
     );
     expect(peerDelete.status).toBe(403);
+    expect(await peerDelete.json()).toMatchObject({ code: 'FORBIDDEN' });
     const historicalDelete = await fetch(
         new URL(
             `/api/agent/artifacts/${published.artifact_id}/versions/${published.revision_id}/delete`,
@@ -110,14 +116,21 @@ test('raw CLI publication streams through runner auth and other Agents can publi
         { method: 'POST', headers: { authorization: `Bearer ${firstRunner.token}` } }
     );
     expect(currentDelete.status).toBe(409);
+    const peerHausDelete = await fetch(
+        new URL(`/api/agent/artifacts/${published.artifact_id}/delete`, fixture.harness.url),
+        { method: 'POST', headers: { authorization: `Bearer ${secondRunner.token}` } }
+    );
+    expect(peerHausDelete.status).toBe(200);
 });
 
 test('Agent list narrows by query and by the calling Agent as creator', async () => {
     const author = await fixture.mintRunner('run_artifact_list_author');
     const peer = await fixture.mintRunner('run_artifact_list_peer', fixture.peerAgentId);
-    expect((await publish(author.token, { path: 'quarterly-chart.txt' }, 'a')).status).toBe(200);
-    expect((await publish(peer.token, { path: 'quarterly-notes.txt' }, 'b')).status).toBe(200);
-    expect((await publish(peer.token, { path: 'roadmap-sketch.txt' }, 'c')).status).toBe(200);
+    expect((await publish(author.token, { path: 'haus/quarterly-chart.txt' }, 'a')).status).toBe(
+        200
+    );
+    expect((await publish(peer.token, { path: 'haus/quarterly-notes.txt' }, 'b')).status).toBe(200);
+    expect((await publish(peer.token, { path: 'haus/roadmap-sketch.txt' }, 'c')).status).toBe(200);
     const names = async (token: string, search: string) => {
         const response = await fetch(
             new URL(`/api/agent/artifacts?${search}`, fixture.harness.url),
@@ -130,19 +143,28 @@ test('Agent list narrows by query and by the calling Agent as creator', async ()
         return body.artifacts.map((artifact) => artifact.path.replace(/\.txt$/u, '')).sort();
     };
 
-    expect(await names(peer.token, 'query=quarterly')).toEqual([
-        'quarterly-chart',
-        'quarterly-notes',
+    expect(await names(peer.token, 'prefix=haus&query=quarterly')).toEqual([
+        'haus/quarterly-chart',
+        'haus/quarterly-notes',
     ]);
-    expect(await names(peer.token, 'query=quarterly&mine=true')).toEqual(['quarterly-notes']);
-    expect(await names(author.token, 'mine=true&query=sketch')).toEqual([]);
-    expect(await names(peer.token, 'mine=true&query=sketch')).toEqual(['roadmap-sketch']);
+    expect(await names(peer.token, 'prefix=haus&query=quarterly&mine=true')).toEqual([
+        'haus/quarterly-notes',
+    ]);
+    expect(await names(author.token, 'prefix=haus&mine=true&query=sketch')).toEqual([]);
+    expect(await names(peer.token, 'prefix=haus&mine=true&query=sketch')).toEqual([
+        'haus/roadmap-sketch',
+    ]);
 });
 
 test('raw publishing rejects missing auth and retired Agents', async () => {
     expect(
-        (await publish('invalid', { path: 'invalid.txt', request_id: 'raw-invalid-auth' }, 'bytes'))
-            .status
+        (
+            await publish(
+                'invalid',
+                { path: 'haus/invalid.txt', request_id: 'raw-invalid-auth' },
+                'bytes'
+            )
+        ).status
     ).toBe(401);
     const runner = await fixture.mintRunner('run_artifact_retired', fixture.peerAgentId);
     await fixture.harness
@@ -151,7 +173,7 @@ test('raw publishing rejects missing auth and retired Agents', async () => {
         (
             await publish(
                 runner.token,
-                { path: 'retired.txt', request_id: 'raw-retired-auth' },
+                { path: 'haus/retired.txt', request_id: 'raw-retired-auth' },
                 'bytes'
             )
         ).status
@@ -162,7 +184,7 @@ test('Raft action names publish without a nonce and read the same native artifac
     const runner = await fixture.mintRunner('run_artifact_actions');
     const url = new URL('/api/agent/actions/publish-artifact-raw', fixture.harness.url);
     url.search = new URLSearchParams({
-        path: 'raft/bytes.bin',
+        path: 'haus/raft/bytes.bin',
         title: 'Raft actions',
         content_type: 'application/octet-stream',
     }).toString();
@@ -211,7 +233,7 @@ test('Agents share public links; only the link creator or an Owner/Admin disable
     const author = await fixture.mintRunner('run_public_link_author');
     // The peer Agent was retired above; Cove stands in as another Agent.
     const peer = await fixture.mintRunner('run_public_link_peer', fixture.coveAgentId);
-    const created = await publish(author.token, { path: 'pod/design.txt' }, 'design');
+    const created = await publish(author.token, { path: 'haus/pod/design.txt' }, 'design');
     const { artifact_id } = artifactPublishResultSchema.parse(await created.json()).artifact;
     const route = (token: string, suffix = '') =>
         fetch(

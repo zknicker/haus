@@ -1,5 +1,9 @@
-import { ARTIFACT_REVISION_RETENTION_DAYS } from '@haus/api';
-import { and, eq, exists, gt, inArray, lt, notExists, sql } from 'drizzle-orm';
+import {
+    ARTIFACT_REVISION_RETENTION_DAYS,
+    artifactTextMaxBytes,
+    driveDeletedRetentionDays,
+} from '@haus/api';
+import { and, eq, exists, gt, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { type BootSweep, type SweepTimers, startBootSweep } from '../boot-sweep.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -14,15 +18,19 @@ import { type ArtifactStorage, deleteRevisionObjects } from './storage.ts';
 export const ARTIFACT_RETENTION_BATCH_SIZE = 200;
 
 const sweepIntervalMs = 60 * 60 * 1000;
-const retentionMs = ARTIFACT_REVISION_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+const dayMs = 24 * 60 * 60 * 1000;
+const replacedRetentionMs = ARTIFACT_REVISION_RETENTION_DAYS * dayMs;
+const deletedRetentionMs = driveDeletedRetentionDays * dayMs;
 
 type Revision = typeof revisions.$inferSelect;
 
 /**
- * Prunes revisions replaced more than the retention window ago: a ready revision goes once a
- * newer ready revision of the same file was created before the window. The current revision is
- * never selected. A pruned revision ends exactly like a deleted one (`deleted`, no reserved
- * bytes), so its row still answers request_id retries and conflict lookups.
+ * Prunes what retention lets go. A replaced revision larger than `artifactTextMaxBytes` goes once
+ * a newer ready revision of the same file was created before the replaced window; smaller ones
+ * stay for the life of the file. A file deleted before the deleted window loses every revision,
+ * while its row and change tombstone stay. A live file's current revision is never selected. A
+ * pruned revision ends exactly like a deleted one (`deleted`, no reserved bytes), so its row
+ * still answers request_id retries and conflict lookups.
  *
  * Revisions are claimed as `deleting` in bounded batches (`skip locked`, so two Servers sharing
  * the database never contend), and `closing` is checked between revisions: an aborted run hands
@@ -93,40 +101,13 @@ export function startArtifactRetentionSweep(
 }
 
 function claimExpiredRevisions(db: HausDatabase, now: Date, batchSize: number) {
-    const expiredBefore = new Date(now.getTime() - retentionMs);
-    const newer = alias(revisions, 'newer_revision');
     const expired = db
         .select({ id: revisions.id })
         .from(revisions)
         .where(
             and(
                 eq(revisions.state, 'ready'),
-                exists(
-                    db
-                        .select({ one: sql`1` })
-                        .from(newer)
-                        .where(
-                            and(
-                                eq(newer.serverId, revisions.serverId),
-                                eq(newer.artifactId, revisions.artifactId),
-                                gt(newer.revisionNumber, revisions.revisionNumber),
-                                eq(newer.state, 'ready'),
-                                lt(newer.createdAt, expiredBefore)
-                            )
-                        )
-                ),
-                notExists(
-                    db
-                        .select({ one: sql`1` })
-                        .from(artifacts)
-                        .where(
-                            and(
-                                eq(artifacts.serverId, revisions.serverId),
-                                eq(artifacts.id, revisions.artifactId),
-                                eq(artifacts.currentRevisionId, revisions.id)
-                            )
-                        )
-                )
+                or(replacedLargeRevision(db, now), revisionOfLongDeletedFile(db, now))
             )
         )
         .orderBy(revisions.createdAt)
@@ -137,6 +118,60 @@ function claimExpiredRevisions(db: HausDatabase, now: Date, batchSize: number) {
         .set({ state: 'deleting' })
         .where(and(inArray(revisions.id, expired), eq(revisions.state, 'ready')))
         .returning();
+}
+
+/**
+ * Larger than text: a newer ready revision replaced it before the window, and it is not the head
+ * of a live file. A deleted file keeps every revision until its own window ends.
+ */
+function replacedLargeRevision(db: HausDatabase, now: Date) {
+    const newer = alias(revisions, 'newer_revision');
+    return and(
+        gt(revisions.byteSize, artifactTextMaxBytes),
+        exists(
+            db
+                .select({ one: sql`1` })
+                .from(newer)
+                .where(
+                    and(
+                        eq(newer.serverId, revisions.serverId),
+                        eq(newer.artifactId, revisions.artifactId),
+                        gt(newer.revisionNumber, revisions.revisionNumber),
+                        eq(newer.state, 'ready'),
+                        lt(newer.createdAt, new Date(now.getTime() - replacedRetentionMs))
+                    )
+                )
+        ),
+        exists(
+            db
+                .select({ one: sql`1` })
+                .from(artifacts)
+                .where(
+                    and(
+                        eq(artifacts.serverId, revisions.serverId),
+                        eq(artifacts.id, revisions.artifactId),
+                        isNull(artifacts.deletedAt),
+                        sql`${artifacts.currentRevisionId} is distinct from ${revisions.id}`
+                    )
+                )
+        )
+    );
+}
+
+/** Every revision of a file deleted before the deleted-file window, its last head included. */
+function revisionOfLongDeletedFile(db: HausDatabase, now: Date) {
+    return exists(
+        db
+            .select({ one: sql`1` })
+            .from(artifacts)
+            .where(
+                and(
+                    eq(artifacts.serverId, revisions.serverId),
+                    eq(artifacts.id, revisions.artifactId),
+                    lt(artifacts.deletedAt, new Date(now.getTime() - deletedRetentionMs))
+                )
+            )
+    );
 }
 
 async function releaseClaims(db: HausDatabase, rows: readonly Revision[]) {

@@ -58,8 +58,8 @@ export interface ServerDetail extends ServerSummary {
     viewerUserId: string;
 }
 
-/** The Channel every Haus server creates for its whole membership. */
-export const allChannelName = 'all';
-/** Seeded on every new `#all`; migration 0068 backfilled the same text. */
+/** The Haus project's channel, which every Haus server creates for its whole membership. */
+export const allChannelName = 'haus';
+/** Seeded on every new `#haus`; migration 0068 backfilled the same text. */
 export const allChannelDescription = 'General channel for all members and team-wide announcements.';
 export const onboardingOwnerChannelName = 'onboarding-owner';

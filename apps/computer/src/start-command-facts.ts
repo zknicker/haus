@@ -4,7 +4,6 @@ import type { AgentStartCommand } from './agent-commands.ts';
 const agentFactFields = [
     'agentConversationStyle',
     'agentDescription',
-    'agentName',
     'agentSignatureEmoji',
     'homeTimezone',
 ] as const satisfies readonly (keyof AgentStartCommand)[];

@@ -203,16 +203,26 @@ export function artifactRecord(row: ArtifactRow, origin: string, slug: string): 
     return {
         ...artifactMetadata(row, origin, slug),
         author: revisionAuthor(row.revision),
+        base_revision_id: row.revision.baseRevisionId,
         image:
             imageWidth && imageHeight
                 ? { dpi: imageDpi, height: imageHeight, width: imageWidth }
                 : null,
+        parent_revision_id: row.revision.parentRevisionId,
+        task_id: row.revision.taskId,
     };
 }
 
 /** The Agent-route shape: deployed CLIs parse metadata strictly, so App-only fields drop. */
 export function toArtifactMetadata(record: ArtifactRecord): ArtifactMetadata {
-    const { author: _author, image: _image, ...metadata } = record;
+    const {
+        author: _author,
+        base_revision_id: _base,
+        image: _image,
+        parent_revision_id: _parent,
+        task_id: _task,
+        ...metadata
+    } = record;
     return metadata;
 }
 

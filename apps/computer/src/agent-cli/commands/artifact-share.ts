@@ -4,16 +4,16 @@ import type { ParsedArgs } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
 import { artifactRoute, resolveArtifactId } from './artifact-target.ts';
 
-/** `haus files share`: a public link anyone outside the Server can open or embed. */
+/** `haus drive share`: a public link anyone outside the Server can open or embed. */
 export const ARTIFACT_SHARE_SUBCOMMAND: SubCommand = {
     name: 'share',
-    summary: 'Get a public link to a shared file, for people and tools outside Haus',
-    usage: 'haus files share <id|link|path> [--disable]',
+    summary: 'Get a public link to a Drive file, for people and tools outside Haus',
+    usage: 'haus drive share <id|link|path> [--disable]',
     positionals: ['<id|link|path>'],
-    examples: ['haus files share designs/tee-front.png', 'haus files share art_123 --disable'],
+    examples: ['haus drive share haus/designs/tee-front.png', 'haus drive share art_123 --disable'],
     flags: [{ name: '--disable', description: 'Turn the public link off' }],
     notes: [
-        'Anyone with the url sees the file’s current version, so the link stays current as you push revisions. Images embed inline; append /thumbnail for a smaller WebP preview.',
+        'Anyone with the url sees the file’s current version, so the link stays current as the file changes. Images embed inline; append /thumbnail for a smaller WebP preview.',
         'Sharing again returns the same url. --disable turns it off (yours, or as an Owner/Admin); sharing later issues a new url.',
     ],
     run: (args) => runArtifactShare(args),

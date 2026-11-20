@@ -56,7 +56,7 @@ export async function seedDevelopmentInboxActivity(
 }
 
 /**
- * The morning's #all: a request nobody promoted, Blippy's claim on it, and the
+ * The morning's #haus: a request nobody promoted, Blippy's claim on it, and the
  * badge work it drifted into. The claim's anchor id is minted here because the
  * claim row points at it.
  */

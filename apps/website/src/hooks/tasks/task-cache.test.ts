@@ -92,6 +92,7 @@ function task(id: string, overrides: Partial<Task> = {}): Task {
         number: 12,
         origin: { chatId: 'cht_ops', messageId: 'msg_origin' },
         priority: 'none',
+        projectId: 'cht_ops',
         serverId,
         state: 'open',
         title: 'Task',

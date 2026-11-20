@@ -5,6 +5,7 @@
 
 import { createAgentAuthor } from './author.mjs';
 import { cleanupEvalChats } from './cleanup-chats.mjs';
+import { createEvalProject } from './eval-project.mjs';
 import { provisionAgents, retireAgents } from './provisioner.mjs';
 import { createRunLedger } from './state.mjs';
 import { createTurnObserver } from './turns.mjs';
@@ -55,7 +56,11 @@ export function createAgentTestKit(
 
     async function createChannel({ agentIds, name } = {}) {
         const channelName = name ?? `eval-${context.stamp.slice(-6)}-${marker('').toLowerCase()}`;
-        const chat = await trpc('chat.createChannel', { agentIds, name: channelName, serverId });
+        const chat = await createEvalProject(harness, {
+            agentIds,
+            name: channelName,
+            repositoryRoot,
+        });
         await trackChat(chat.id, { name: chat.name });
         return chat;
     }

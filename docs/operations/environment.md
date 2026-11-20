@@ -52,6 +52,8 @@ the access boundary.
 | `Axiom Development OTLP - Haus` | `Development` | Development OTLP ingestion for the shared operations and metrics datasets |
 | `Axiom Production OTLP - Haus` | `Production` | Hosted Server OTLP ingestion for the shared operations and metrics datasets |
 | `Postgres - Haus` | `Production` | runtime URL, migration URL, container admin password |
+| `Agent Runner - Haus` | `Production` | `credential`: the token that opens the Server's runner socket and nothing else; development mints one per stack run |
+| `Claude Setup Token - Haus Runner` | `Development`, `Production` | `credential`: a `claude setup-token` value, the Claude plan login for Agents on the runner; optional |
 | `HugeIcons Pro - Merchbase` | `Development` | shared licensed registry key (adopted, not copied) |
 | `HeroUI Pro CICD - Merchbase` | `Development` | shared licensed artifact token (adopted, not copied) |
 | `Apple Notarization - Merchbase` | `Tooling` | shared notarization identity (adopted, not copied) |

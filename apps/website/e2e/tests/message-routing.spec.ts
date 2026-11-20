@@ -8,9 +8,9 @@ test('Dev Mode shows saved routing, persists on reload, and hides it when disabl
         displayName: 'Routing debug',
         slug: 'routing-debug',
     });
-    const channel = server.channels.find((chat) => chat.name === 'all');
+    const channel = server.channels.find((chat) => chat.name === 'haus');
     if (!channel) {
-        throw new Error('The Server must create #all.');
+        throw new Error('The Server must create #haus.');
     }
     await client.chat.send.mutate({
         serverId: server.id,
@@ -18,7 +18,7 @@ test('Dev Mode shows saved routing, persists on reload, and hides it when disabl
         content: 'Please investigate the export path too.',
         nonce: 'routing-debug-browser',
     });
-    await openChannel(page, 'all');
+    await openChannel(page, 'haus');
     const routing = page.getByRole('button', {
         name: '→ None · fewer than two Captains',
         exact: true,

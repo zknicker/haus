@@ -1,5 +1,9 @@
 import * as z from 'zod';
-import { agentInboxItemSchema, unreadElsewhereSchema } from './agent-inbox.ts';
+import {
+    agentInboxItemSchema,
+    driveConflictAttentionSchema,
+    unreadElsewhereSchema,
+} from './agent-inbox.ts';
 import {
     agentTaskAssignmentNoticeSchema,
     agentTaskAssignmentsSchema,
@@ -62,15 +66,21 @@ export const agentStartCommandSchema = z
     .object({
         agentId: idSchema,
         agentDescription: z.string().max(10_000).optional(),
-        agentName: z.string().trim().min(1).max(64).optional(),
+        /** The Agent's handle, which also names its Drive area `agents/<handle>/`. */
+        agentName: z.string().trim().min(1).max(64),
         /** Private voice layer for this Agent's own prompt; never part of an inbox item. */
         agentConversationStyle: z.string().max(10_000).optional(),
         /** The Agent's pickup reaction; null means the Computer's default. */
         agentSignatureEmoji: z.string().min(1).max(64).nullable().default(null),
-        /** The run's Chat; null only for a chatless run: a sub-agent wake or Task assignment. */
+        /**
+         * The run's Chat; null only for a chatless run: a sub-agent wake, Task assignment, or
+         * Drive conflict.
+         */
         chatId: idSchema.nullable(),
         /** Chips the Server's connections add to chat; the prompt teaches the ones an Agent must write. */
         connectionChips: z.array(connectionChipKindSchema).max(16).default([]),
+        /** Present only on a Drive conflict run: one push's kept-both, kept-edit, or refused files. */
+        driveConflict: driveConflictAttentionSchema.optional(),
         /** Drainable on any start: concrete work, and human work addressed to this Agent. */
         drainItemIds: drainItemIdsSchema,
         /** This run carries the new Agent's one-time `#all` greeting (ADR 0028). */
@@ -98,9 +108,11 @@ export const agentStartCommandSchema = z
     .strict()
     .refine(
         (frame) => {
-            const attentions = [frame.subagentWake, frame.taskAssignments].filter(
-                (attention) => attention !== undefined
-            ).length;
+            const attentions = [
+                frame.driveConflict,
+                frame.subagentWake,
+                frame.taskAssignments,
+            ].filter((attention) => attention !== undefined).length;
             if (attentions === 0) {
                 return frame.chatId !== null;
             }
@@ -115,7 +127,7 @@ export const agentStartCommandSchema = z
         },
         {
             message:
-                'Only a sub-agent wake or Task assignment run is chatless, and it carries nothing but its attention.',
+                'Only a sub-agent wake, Task assignment, or Drive conflict run is chatless, and it carries nothing but its attention.',
             path: ['chatId'],
         }
     );

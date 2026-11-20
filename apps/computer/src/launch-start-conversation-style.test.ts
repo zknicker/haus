@@ -5,6 +5,7 @@ const frame = {
     agentConversationStyle: 'Terse. Plain words. Dry humor.',
     agentDescription: 'Keeps release notes current.',
     agentId: 'agt_launchtest',
+    agentName: 'launch',
     agentSignatureEmoji: '👽',
     chatId: 'cht_origin',
     inbox: [],

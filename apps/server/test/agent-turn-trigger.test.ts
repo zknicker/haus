@@ -20,6 +20,7 @@ import {
 } from '../src/server-agents/read-agent-run-trigger.ts';
 import { recordAgentTurnSummary } from '../src/server-agents/record-agent-turn.ts';
 import type { HausUser } from '../src/users/haus-user.ts';
+import { testAgentHome } from './agent-home.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 /**
@@ -253,6 +254,7 @@ async function seedAgent() {
         handle: `ada-${randomBytes(4).toString('hex')}`,
         homeTimezone: 'UTC',
         id: agentId,
+        homeProjectId: await testAgentHome(db, serverId),
         serverId,
     });
     await db.insert(chatsTable).values({

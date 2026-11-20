@@ -13,7 +13,7 @@ test('the sidebar goes in the left pane, pages open on the right, and Settings i
         slug: 'desktop-navigation',
     });
     const agent = await createChannelAgent({
-        channelName: 'all',
+        channelName: 'haus',
         databaseUrl: session.databaseUrl,
         serverId: server.id,
         slug: server.slug,
@@ -35,13 +35,13 @@ test('the sidebar goes in the left pane, pages open on the right, and Settings i
     // Go: with the right pane focused, a sidebar row still navigates the left pane's tab.
     await openSection(page, 'Tasks');
     await expect(left).toHaveCount(1);
-    await expect(left.first()).toContainText('General');
+    await expect(left.first()).toContainText('Tasks');
     await expect(right).toHaveCount(1);
     await expect(right.first()).toContainText(key);
 
     // Back undoes Go in the left tab.
     await page.evaluate(() => window.dispatchEvent(new Event('test:desktop-history')));
-    await expect(left.first()).toContainText('all');
+    await expect(left.first()).toContainText('haus');
 
     // Modifiers open beside the source in its own pane, never on the right: Command-click
     // and middle-click a background tab, each after the last.
@@ -63,7 +63,7 @@ test('the sidebar goes in the left pane, pages open on the right, and Settings i
     // …with no pre-tab back row on desktop.
     await expect(page.getByRole('row', { exact: true, name: 'Back to chat' })).toHaveCount(0);
     // …and pressing it again from another tab selects that same tab.
-    await left.nth(0).getByRole('button', { exact: true, name: 'all' }).click();
+    await left.nth(0).getByRole('button', { exact: true, name: 'haus' }).click();
     await settings.click();
     await expect(left).toHaveCount(4);
     await expect(left.nth(1)).toHaveAttribute('data-active', 'true');

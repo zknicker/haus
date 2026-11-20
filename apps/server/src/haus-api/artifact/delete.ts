@@ -6,5 +6,5 @@ export const deleteArtifactProcedure = artifactProcedure
     .input(artifactTargetInputSchema)
     .mutation(async ({ ctx, input }) => {
         const actor = { kind: 'human', member: ctx.member, serverId: input.serverId } as const;
-        return await deleteArtifact(ctx.hausDb, actor, ctx.artifactStorage, input.artifact_id);
+        return await deleteArtifact(ctx.hausDb, actor, ctx.appOrigin, input.artifact_id);
     });

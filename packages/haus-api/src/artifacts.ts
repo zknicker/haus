@@ -80,6 +80,13 @@ export const artifactCreatorSchema = z.discriminatedUnion('type', [
     z.object({ type: z.literal('user'), user_id: id }).strict(),
 ]);
 export type ArtifactCreator = z.infer<typeof artifactCreatorSchema>;
+/** Who wrote one revision: an Agent, a person, or a Worker of an Agent (lands with W2). */
+export const artifactAuthorSchema = z.discriminatedUnion('type', [
+    z.object({ type: z.literal('agent'), agent_id: id }).strict(),
+    z.object({ type: z.literal('user'), user_id: id }).strict(),
+    z.object({ type: z.literal('worker'), worker_id: id, agent_id: id }).strict(),
+]);
+export type ArtifactAuthor = z.infer<typeof artifactAuthorSchema>;
 export const artifactMetadataSchema = z
     .object({
         artifact_id: id,
@@ -114,12 +121,21 @@ export const artifactImageFactsSchema = z
 export type ArtifactImageFacts = z.infer<typeof artifactImageFactsSchema>;
 /**
  * The App's view of one revision: the shared metadata plus who published this revision
- * (`author`, unlike `creator`, which made the file) and its image facts, null until measured or
- * for non-raster files. Agent routes keep `artifactMetadataSchema`, which deployed CLIs parse
+ * (`author`, unlike `creator`, which made the file), the Task it was written for, the revision
+ * the writer started from (`base_revision_id`, null for a create or a replace) and the head it
+ * was committed on (`parent_revision_id`, null for a file's first revision), and its image facts,
+ * null until measured or for non-raster files. A revision with a base that differs from its
+ * parent was merged. Agent routes keep `artifactMetadataSchema`, which deployed CLIs parse
  * strictly.
  */
 export const artifactRecordSchema = artifactMetadataSchema
-    .extend({ author: artifactCreatorSchema, image: artifactImageFactsSchema.nullable() })
+    .extend({
+        author: artifactAuthorSchema,
+        base_revision_id: id.nullable(),
+        image: artifactImageFactsSchema.nullable(),
+        parent_revision_id: id.nullable(),
+        task_id: id.nullable(),
+    })
     .strict();
 export type ArtifactRecord = z.infer<typeof artifactRecordSchema>;
 export const artifactRecordResultSchema = z.object({ artifact: artifactRecordSchema }).strict();
@@ -145,6 +161,17 @@ export const artifactCreatorSummarySchema = z
 export type ArtifactCreatorSummary = z.infer<typeof artifactCreatorSummarySchema>;
 export const artifactCreatorsResultSchema = z
     .object({ creators: z.array(artifactCreatorSummarySchema) })
+    .strict();
+/** A deleted file: its last head and when it was deleted. Restorable until purged. */
+export const artifactDeletedRecordSchema = z
+    .object({ artifact: artifactRecordSchema, deleted_at: z.string() })
+    .strict();
+export type ArtifactDeletedRecord = z.infer<typeof artifactDeletedRecordSchema>;
+export const artifactListDeletedResultSchema = z
+    .object({
+        deleted: z.array(artifactDeletedRecordSchema),
+        next_offset: z.number().int().nonnegative().nullable(),
+    })
     .strict();
 export const artifactPublishResultSchema = z.object({ artifact: artifactMetadataSchema }).strict();
 export const artifactVersionsResultSchema = z

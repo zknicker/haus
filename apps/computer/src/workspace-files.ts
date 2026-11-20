@@ -9,6 +9,7 @@ import type {
     WorkspaceFileList,
 } from '@haus/api';
 import { agentWorkspaceRequestSchema } from '@haus/api';
+import { legacyWorkbenchPath } from './legacy-workbench-path.ts';
 import {
     isVisibleWorkspaceEntry,
     normalizeWorkspacePath,
@@ -114,16 +115,14 @@ export async function runAgentWorkspaceRequest(input: {
     serverId: string;
 }): Promise<AgentWorkspaceResult> {
     try {
-        const workspaceRoot = await fs.realpath(
-            path.join(
-                input.dataRoot,
-                'servers',
-                input.serverId,
-                'agents',
-                input.request.agentId,
-                'workspace'
-            )
+        const agentRoot = path.join(
+            input.dataRoot,
+            'servers',
+            input.serverId,
+            'agents',
+            input.request.agentId
         );
+        const workspaceRoot = await fs.realpath(path.join(agentRoot, 'workspace'));
         const result =
             input.request.operation.kind === 'list'
                 ? {
@@ -138,7 +137,11 @@ export async function runAgentWorkspaceRequest(input: {
                       kind: 'read' as const,
                       value: await readWorkspaceFile(
                           workspaceRoot,
-                          input.request.operation.path,
+                          await legacyWorkbenchPath(
+                              agentRoot,
+                              workspaceRoot,
+                              input.request.operation.path
+                          ),
                           input.request.operation.includeHidden
                       ),
                   };

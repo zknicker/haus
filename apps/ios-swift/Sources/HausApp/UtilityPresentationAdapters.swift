@@ -73,11 +73,7 @@ extension HausStore {
         guard let serverID = activeServer?.id else {
             throw HausStoreError.serverUnavailable
         }
-        let chat = try await createChannel(
-            name: draft.name,
-            agentIDs: draft.agentIDs,
-            serverID: serverID
-        )
+        let chat = try await createChannel(name: draft.name, serverID: serverID)
         return CreatedChannelPresentation(
             id: chat.id,
             name: chat.name ?? draft.name

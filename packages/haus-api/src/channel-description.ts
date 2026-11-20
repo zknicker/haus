@@ -1,6 +1,4 @@
 import * as z from 'zod';
-import { channelColorSchema, channelIconSchema } from './channel-appearance.ts';
-import { idSchema } from './chat-contract-primitives.ts';
 
 /** A channel's purpose, shown to people and to Agents in `haus server info`. */
 export const channelDescriptionMaxLength = 500;
@@ -19,11 +17,3 @@ export const channelDescriptionInputSchema = z
     .transform((value) => (value.length === 0 ? null : value))
     .nullable()
     .optional();
-
-/** The optional fields a channel create or update may set; `null` clears one. */
-export const channelEditInputFields = {
-    color: channelColorSchema.nullable().optional(),
-    description: channelDescriptionInputSchema,
-    icon: channelIconSchema.nullable().optional(),
-    taskKeyId: idSchema.optional(),
-};

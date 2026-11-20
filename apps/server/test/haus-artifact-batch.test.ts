@@ -6,7 +6,7 @@ import { createHausClient, type HausClient } from './haus-client.ts';
 
 /**
  * Batched Files actions: `artifact.moveMany` moves a selection into one folder in one
- * transaction, and `artifact.deleteMany` deletes the files the caller may delete. Each
+ * transaction, and `artifact.deleteMany` deletes the files the caller may write. Each
  * announces one Files update per batch.
  */
 const { publish, state } = artifactDriveFixture('artifact-batch');
@@ -40,62 +40,75 @@ beforeEach(async () => {
 afterEach(() => controller.abort());
 
 test('moveMany moves files and folders into one folder with one event', async () => {
-    const one = await publish({ path: 'pick/candidates/one.png' });
-    await publish({ path: 'pick/candidates/two.png' });
-    await publish({ path: 'pick/candidates/sub/three.png' });
-    await publish({ path: 'pick/print-ready/kept.png' });
+    const one = await publish({ path: 'haus/pick/candidates/one.png' });
+    await publish({ path: 'haus/pick/candidates/two.png' });
+    await publish({ path: 'haus/pick/candidates/sub/three.png' });
+    await publish({ path: 'haus/pick/print-ready/kept.png' });
     await delivered();
     events = [];
-    const result = await moveMany('pick/print-ready', [
-        { base_revision_id: one.artifact.revision_id, path: 'pick/candidates/one.png' },
-        { path: 'pick/candidates/sub' },
-        { path: 'pick/print-ready/kept.png' },
+    const result = await moveMany('haus/pick/print-ready', [
+        { base_revision_id: one.artifact.revision_id, path: 'haus/pick/candidates/one.png' },
+        { path: 'haus/pick/candidates/sub' },
+        { path: 'haus/pick/print-ready/kept.png' },
     ]);
     expect(result).toEqual({
         items: [
-            { from: 'pick/candidates/one.png', kind: 'file', to: 'pick/print-ready/one.png' },
-            { from: 'pick/candidates/sub', kind: 'folder', to: 'pick/print-ready/sub' },
-            { from: 'pick/print-ready/kept.png', kind: 'file', to: 'pick/print-ready/kept.png' },
+            {
+                from: 'haus/pick/candidates/one.png',
+                kind: 'file',
+                to: 'haus/pick/print-ready/one.png',
+            },
+            { from: 'haus/pick/candidates/sub', kind: 'folder', to: 'haus/pick/print-ready/sub' },
+            {
+                from: 'haus/pick/print-ready/kept.png',
+                kind: 'file',
+                to: 'haus/pick/print-ready/kept.png',
+            },
         ],
         moved_count: 2,
     });
-    expect(await paths('pick')).toEqual([
-        'pick/candidates/two.png',
-        'pick/print-ready/kept.png',
-        'pick/print-ready/one.png',
-        'pick/print-ready/sub/three.png',
+    expect(await paths('haus/pick')).toEqual([
+        'haus/pick/candidates/two.png',
+        'haus/pick/print-ready/kept.png',
+        'haus/pick/print-ready/one.png',
+        'haus/pick/print-ready/sub/three.png',
     ]);
     await delivered();
     expect(events).toEqual([{ artifactId: null, serverId: state.serverId }]);
 });
 
 test('moveMany is all or nothing and refuses a folder into itself', async () => {
-    await publish({ path: 'tx/a.png' });
-    await publish({ path: 'tx/b.png' });
-    await publish({ path: 'tx/dest/b.png' });
-    await publish({ path: 'tx/inner/c.png' });
+    await publish({ path: 'haus/tx/a.png' });
+    await publish({ path: 'haus/tx/b.png' });
+    await publish({ path: 'haus/tx/dest/b.png' });
+    await publish({ path: 'haus/tx/inner/c.png' });
     await delivered();
     events = [];
     await expectRefused(
-        moveMany('tx/dest', [{ path: 'tx/a.png' }, { path: 'tx/b.png' }]),
+        moveMany('haus/tx/dest', [{ path: 'haus/tx/a.png' }, { path: 'haus/tx/b.png' }]),
         'PATH_TAKEN'
     );
     await expectRefused(
-        moveMany('tx/inner', [{ path: 'tx/a.png' }, { path: 'tx/inner' }]),
+        moveMany('haus/tx/inner', [{ path: 'haus/tx/a.png' }, { path: 'haus/tx/inner' }]),
         'PATH_CONFLICT'
     );
     await expectRefused(
-        moveMany('tx/dest', [{ path: 'tx/a.png' }, { path: 'tx/inner/a.png' }]),
+        moveMany('haus/tx/dest', [{ path: 'haus/tx/a.png' }, { path: 'haus/tx/inner/a.png' }]),
         'PATH_TAKEN'
     );
-    expect(await paths('tx')).toEqual(['tx/a.png', 'tx/b.png', 'tx/dest/b.png', 'tx/inner/c.png']);
+    expect(await paths('haus/tx')).toEqual([
+        'haus/tx/a.png',
+        'haus/tx/b.png',
+        'haus/tx/dest/b.png',
+        'haus/tx/inner/c.png',
+    ]);
     await delivered();
     expect(events).toEqual([]);
 });
 
-test('deleteMany deletes only what the caller may delete and reports the rest', async () => {
-    const owned = await publish({ path: 'del/owner.png' });
-    const mine = await memberPublish('del/member.png');
+test('deleteMany deletes what a member may write, any author, and reports the missing', async () => {
+    const owned = await publish({ path: 'haus/del/owner.png' });
+    const mine = await memberPublish('haus/del/member.png');
     const ids = [owned.artifact.artifact_id, mine, 'art_missing'];
     await delivered();
     events = [];
@@ -104,11 +117,11 @@ test('deleteMany deletes only what the caller may delete and reports the rest', 
         serverId: state.serverId,
     });
     expect(result).toEqual({
-        deleted: [mine],
-        forbidden: [owned.artifact.artifact_id],
+        deleted: [owned.artifact.artifact_id, mine],
+        forbidden: [],
         missing: ['art_missing'],
     });
-    expect(await paths('del')).toEqual(['del/owner.png']);
+    expect(await paths('haus/del')).toEqual([]);
     await delivered();
     expect(events).toEqual([{ artifactId: null, serverId: state.serverId }]);
 
@@ -118,17 +131,9 @@ test('deleteMany deletes only what the caller may delete and reports the rest', 
             artifact_ids: [owned.artifact.artifact_id],
             serverId: state.serverId,
         })
-    ).toEqual({ deleted: [], forbidden: [owned.artifact.artifact_id], missing: [] });
+    ).toEqual({ deleted: [], forbidden: [], missing: [owned.artifact.artifact_id] });
     await delivered();
     expect(events).toEqual([]);
-
-    expect(
-        await state.owner.trpc.artifact.deleteMany.mutate({
-            artifact_ids: [owned.artifact.artifact_id],
-            serverId: state.serverId,
-        })
-    ).toEqual({ deleted: [owned.artifact.artifact_id], forbidden: [], missing: [] });
-    expect(await paths('del')).toEqual([]);
 });
 
 function moveMany(toFolder: string, items: { base_revision_id?: string; path: string }[]) {

@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import { mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { coveFactoryManifestSha256 } from '@haus/agent-workspace';
 import {
     applyAgentConfiguration,
     parseAgentConfigureCommand,
@@ -70,7 +71,7 @@ test('applies desired runtime and model without waiting for the first turn', asy
             join(dataRoot, 'servers', 'srv_configuration', 'agents', command.agentId)
         )
     ).resolves.toMatchObject({ reasoningEffort: 'max' });
-    for (const directory of ['home', 'runtime', 'skills', 'workspace']) {
+    for (const directory of ['home', 'runtime', 'workspace']) {
         expect(
             (
                 await stat(
@@ -94,26 +95,11 @@ test('applies desired runtime and model without waiting for the first turn', asy
         command.agentId,
         'workspace'
     );
-    expect(await readFile(join(workspace, 'MEMORY.md'), 'utf8')).toContain(
-        'Reviews launch copy and records concrete risks.'
-    );
-    expect((await readdir(workspace)).sort()).toEqual(['MEMORY.md', 'notes']);
-    expect(await readdir(join(workspace, 'notes'))).toEqual([]);
-    const skills = join(
-        dataRoot,
-        'servers',
-        'srv_configuration',
-        'agents',
-        command.agentId,
-        'skills'
-    );
-    await expect(readFile(join(skills, 'haus-agent', 'SKILL.md'), 'utf8')).rejects.toThrow();
-    await expect(readFile(join(skills, 'visuals', 'SKILL.md'), 'utf8')).resolves.toContain(
-        'name: visuals'
-    );
+    expect(await readdir(workspace)).toEqual([]);
+    await expect(stat(join(workspace, '..', 'skills'))).rejects.toThrow();
 });
 
-test('renders the standing brief into the memory it seeds, and keeps it on reprovision', async () => {
+test('records the standing brief for the launch seed and keeps it on reprovision', async () => {
     const command = parseAgentConfigureCommand({
         agentDescription: 'Watches competitor launches.',
         agentId: 'agt_briefseedxxxxxxx',
@@ -143,18 +129,9 @@ test('renders the standing brief into the memory it seeds, and keeps it on repro
         });
 
     await apply();
+    await apply();
 
     const agentRoot = join(dataRoot, 'servers', 'srv_configuration', 'agents', command.agentId);
-    const memoryPath = join(agentRoot, 'workspace', 'MEMORY.md');
-    const seeded = await readFile(memoryPath, 'utf8');
-    expect(seeded).toContain('## Standing brief from @cove');
-    expect(seeded).toContain('Own competitor intel. Post a Friday digest in #product');
-    expect(seeded).not.toContain('self-introduction');
-    // The Server row is the durable copy, so a reprovision re-sends it — and the
-    // Agent's own edits to the seeded file still win.
-    await writeFile(memoryPath, `${seeded}\n- Learned something.\n`);
-    await apply();
-    expect(await readFile(memoryPath, 'utf8')).toContain('- Learned something.');
     await expect(readAgentSeedConfiguration(agentRoot)).resolves.toMatchObject({
         brief: 'Own competitor intel. Post a Friday digest in #product; @ada reviews it.',
         briefAuthorHandle: 'cove',
@@ -198,7 +175,7 @@ test('reports a missing desired model instead of substituting one', async () => 
     ]);
 });
 
-test('durably applies and replays the exact Cove factory workspace', async () => {
+test('durably applies and replays Cove without touching its Drive files', async () => {
     const command = {
         agentDescription: 'Onboarding Assistant' as const,
         agentId: 'agt_covefactoryxxxx',
@@ -241,28 +218,23 @@ test('durably applies and replays the exact Cove factory workspace', async () =>
     });
 
     const agentRoot = join(dataRoot, 'servers', input.serverId, 'agents', command.agentId);
-    const workspace = join(agentRoot, 'workspace');
-    expect(await inventory(workspace)).toEqual(['MEMORY.md', 'notes/']);
-    expect(await inventory(join(workspace, 'notes'))).toEqual([
-        'onboarding_knowledge_faq.md',
-        'onboarding_objectives.md',
-        'onboarding_playbook.md',
-    ]);
-    const objectives = await readFile(join(workspace, 'notes', 'onboarding_objectives.md'), 'utf8');
-    expect(objectives.match(/^### recipes\//gmu)).toHaveLength(12);
-    expect(objectives).not.toMatch(/recipes\/archetype\//u);
-    expect(objectives).not.toMatch(/save-as-a-skill|haus-agent/u);
-    await expect(
-        readFile(join(agentRoot, 'skills', 'visuals', 'SKILL.md'), 'utf8')
-    ).resolves.toContain('name: visuals');
+    expect(await readdir(join(agentRoot, 'workspace'))).toEqual([]);
+    expect(
+        JSON.parse(await readFile(join(agentRoot, 'cove-application.json'), 'utf8'))
+    ).toMatchObject({ manifestSha256: coveFactoryManifestSha256() });
     expect(await inventory(agentRoot)).toEqual([
         'configuration.json',
         'cove-application.json',
         'home/',
         'runtime/',
-        'skills/',
         'workspace/',
     ]);
+    await mkdir(join(agentRoot, 'workspace', 'drive', 'agents', 'cove'), { recursive: true });
+    await writeFile(
+        join(agentRoot, 'workspace', 'drive', 'agents', 'cove', 'MEMORY.md'),
+        '# Edited\n'
+    );
+    expect(await applyCoveConfiguration(input)).toMatchObject({ status: 'applied' });
 
     const replay = parseAgentConfigureCommand({
         agentDescription: command.agentDescription,

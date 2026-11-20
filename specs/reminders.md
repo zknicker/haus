@@ -164,7 +164,8 @@ reminder-specific facts are:
   archived rather than disappearing.
 - `automation.fireContext` adds, for a reminder, `repeat`, `nextFireAt`,
   `anchorMessageId`, and a bounded excerpt of the anchoring message, which is
-  what the fire context card shows in place of a Trigger's payload block.
+  what the fire context card shows in place of a Trigger's payload block. Both
+  read null for a reader who cannot read the anchoring message's own Chat.
 - Each fire the Agent acts on is its own message. Answers to different fires of
   one recurring reminder are separate messages; a fire that turns up real work
   starts a Task in the anchor Channel.

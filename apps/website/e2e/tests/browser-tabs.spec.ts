@@ -11,7 +11,7 @@ test('web links open browser tabs on the right, and the sidebar keeps to the lef
         displayName: 'Browser tabs',
         slug: 'browser-tabs',
     });
-    const chatId = server.channels.find((chat) => chat.name === 'all')?.id;
+    const chatId = server.channels.find((chat) => chat.name === 'haus')?.id;
     assertOpaqueId(chatId);
     await client.chat.send.mutate({
         serverId: server.id,

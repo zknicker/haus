@@ -32,7 +32,7 @@
 // use --reps and read the median.
 // Env: HAUS_PERF_BASE (website origin; default from dev ports), HAUS_PERF_SERVER_PORT,
 // HAUS_RENDER_AUDIT_PROFILE (Electron profile id).
-// Chats: #all is shown; #product, #automations and the Tiny and Blippy DMs are kept.
+// Chats: #haus is shown; #product, #automations and the Tiny and Blippy DMs are kept.
 import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { defaultBase, parseArgs, repositoryRoot, sidebarRow } from './browser-session.mjs';
@@ -52,7 +52,7 @@ const scenarios = (
         ? args.scenarios
         : 'idle,message-open,message-other,warm-switch,agent-profile,tab-switch,agent-turn'
 ).split(',');
-const keptChats = ['product', 'automations', 'Tiny', 'Blippy', 'all'];
+const keptChats = ['product', 'automations', 'Tiny', 'Blippy', 'haus'];
 
 const sender = await openSender(base);
 const { app, page } = await launchAuditedElectron({
@@ -64,11 +64,11 @@ const { app, page } = await launchAuditedElectron({
 
 const scenarioRunners = {
     idle: () => measure(() => page.waitForTimeout(idleMs), { settleMs: 0 }),
-    'message-open': () => measure(() => sender.send('all', 'Render audit: shown chat')),
+    'message-open': () => measure(() => sender.send('haus', 'Render audit: shown chat')),
     'message-other': () => measure(() => sender.send('product', 'Render audit: kept chat')),
     'warm-switch': async () => {
         const there = await measure(() => clickRow('product'));
-        const back = await measure(() => clickRow('all'));
+        const back = await measure(() => clickRow('haus'));
         return combine(there, back);
     },
     'agent-profile': async () => {
@@ -92,7 +92,7 @@ const scenarioRunners = {
         await page.waitForTimeout(1500);
         const prompt = 'Render audit: reply with three short paragraphs about caching, then stop.';
         const result = await measure(() => sender.send('Tiny', prompt), { settleMs: turnMs });
-        await clickRow('all');
+        await clickRow('haus');
         return result;
     },
 };

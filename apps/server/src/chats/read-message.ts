@@ -39,7 +39,7 @@ export async function readChatMessage(
         message,
         tasks: member
             ? await listTaskPreviews(db, member.id, {
-                  channelId: input.chatId,
+                  chatId: input.chatId,
                   originMessageIds: [message.id],
                   serverId: input.serverId,
               })

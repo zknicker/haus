@@ -55,10 +55,12 @@ async function readConversation(
         from chats chat
         left join chats parent
             on parent.server_id = chat.server_id and parent.id = chat.parent_chat_id
+        left join tasks task
+            on task.server_id = chat.server_id and task.chat_id = chat.id
         left join chat_messages origin
-            on origin.server_id = chat.server_id
-            and origin.chat_id = chat.parent_chat_id
-            and origin.id = chat.anchor_message_id
+            on origin.server_id = task.server_id
+            and origin.chat_id = task.origin_chat_id
+            and origin.id = task.origin_message_id
         where chat.server_id = ${input.serverId} and chat.id = ${input.chatId}
     `)) as Array<{
         kind: string;

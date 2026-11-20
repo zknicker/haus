@@ -14,17 +14,10 @@ export class TaskConflictError extends Error {
     }
 }
 
-export class TaskKeyConflictError extends Error {
-    constructor(key: string) {
-        super(`Another Task key on this Server is already ${key}.`);
-        this.name = 'TaskKeyConflictError';
-    }
-}
-
 /**
  * A write the Task rules refuse: an assignee who is not an active member or
- * Agent, an unknown label, an origin that is no Channel Message, or a change
- * to a chatless Task kept as history.
+ * Agent, an unknown label, an origin inside a Task, an unknown Project, or a
+ * change to a chatless Task kept as history.
  */
 export class TaskInvariantError extends Error {
     constructor(message: string) {
@@ -33,12 +26,20 @@ export class TaskInvariantError extends Error {
     }
 }
 
-export class TaskOriginDmError extends Error {
-    constructor() {
+/** A non-generalist Agent starts Tasks only in its home Project (ADR 0055). */
+export class TaskProjectNotHomeError extends Error {
+    readonly nextAction: string;
+
+    constructor(project: { channelName: string; homeAgentHandles: readonly string[] }) {
+        const channel = `#${project.channelName}`;
+        const agent = project.homeAgentHandles[0];
         super(
-            'Tasks start from a Message in a Channel, never a DM. Post an origin Message in the Channel where the work belongs, mention whoever asked, start the Task from it, and reply in the DM with the Task.'
+            `You start Tasks only in your home Project, and ${channel} is another Project. Its Agent starts Tasks there.`
         );
-        this.name = 'TaskOriginDmError';
+        this.name = 'TaskProjectNotHomeError';
+        this.nextAction = agent
+            ? `@mention @${agent} in ${channel} with the request; it starts the Task.`
+            : `@mention that Project's Agent in ${channel} with the request; it starts the Task.`;
     }
 }
 

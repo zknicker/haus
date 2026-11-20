@@ -3,6 +3,7 @@ import { lstat, mkdir, readdir, readFile, realpath, rename, rm, stat } from 'nod
 import { homedir } from 'node:os';
 import { basename, join } from 'node:path';
 import type { AgentSkillImportCommand, AgentSkillMetadata, ImportableSkill } from '@haus/api';
+import { readAgentDrive } from './drive/agent-drive.ts';
 import {
     copySkillBundle,
     readSkillBundle,
@@ -47,7 +48,7 @@ export async function listAgentSkillReports(dataRoot: string, serverId: string) 
             .sort((left, right) => left.name.localeCompare(right.name))
             .map(async (entry) => ({
                 agentId: entry.name,
-                skills: await listSkillMetadata(join(agentsRoot, entry.name, 'skills')),
+                skills: await agentSkillMetadata(join(agentsRoot, entry.name)),
             }))
     );
 }
@@ -63,15 +64,14 @@ export async function importHostSkill(input: {
     if (!source) {
         throw new Error('That host skill is no longer available.');
     }
-    const skillsDir = join(
-        input.dataRoot,
-        'servers',
-        input.serverId,
-        'agents',
-        input.agentId,
-        'skills'
+    const drive = await readAgentDrive(
+        join(input.dataRoot, 'servers', input.serverId, 'agents', input.agentId)
     );
-    await mkdir(skillsDir, { mode: 0o700, recursive: true });
+    if (!drive) {
+        throw new Error('That Agent has no skill library yet. Start it once, then import.');
+    }
+    const skillsDir = drive.skills;
+    await mkdir(skillsDir, { mode: 0o755, recursive: true });
     const destination = join(skillsDir, source.name);
     if (await lstat(destination).catch(() => null)) {
         throw new Error(`The Agent already has a skill named "${source.name}".`);
@@ -90,6 +90,11 @@ export async function importHostSkill(input: {
         throw new Error('The imported skill could not be verified.');
     }
     return metadata;
+}
+
+async function agentSkillMetadata(agentRoot: string) {
+    const drive = await readAgentDrive(agentRoot);
+    return drive ? await listSkillMetadata(drive.skills) : [];
 }
 
 /** Resolves an opaque reported source id against a fresh scan of the host roots. */

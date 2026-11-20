@@ -5,7 +5,7 @@ import {
     type MessageCause,
 } from '@haus/api';
 import { and, count, eq, lte } from 'drizzle-orm';
-import { requireChatAccess } from '../chats/chat-access.ts';
+import { findChatAccess, requireChatAccess } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     chatMessagesTable,
@@ -77,7 +77,7 @@ export async function readAutomationFireContext(
     }
     return cause.kind === 'trigger'
         ? await triggerFireContext(db, input.serverId, cause, anchorChatId)
-        : await reminderFireContext(db, input.serverId, cause, anchorChatId);
+        : await reminderFireContext(db, { member, serverId: input.serverId }, cause, anchorChatId);
 }
 
 /** The context of a caused message whose automation or fire row is gone. */
@@ -160,13 +160,14 @@ async function triggerFireContext(
 
 async function reminderFireContext(
     db: HausDatabase,
-    serverId: string,
+    { member, serverId }: { member: HausUser | null; serverId: string },
     cause: MessageCause,
     anchorChatId: string
 ): Promise<AutomationFireContext> {
     const [fire] = await db
         .select({
             anchorContent: chatMessagesTable.content,
+            anchorMessageChatId: chatMessagesTable.chatId,
             anchorMessageId: remindersTable.anchorMessageId,
             fireAt: remindersTable.fireAt,
             firedAt: reminderFiresTable.firedAt,
@@ -205,12 +206,19 @@ async function reminderFireContext(
                 lte(reminderFiresTable.firedAt, fire.firedAt)
             )
         );
+    // An older Task reminder anchors on the Task's origin, which can be a DM
+    // the reader of the Task cannot read.
+    const anchor =
+        fire.anchorMessageChatId && member
+            ? await findChatAccess(db, member.id, { chatId: fire.anchorMessageChatId, serverId })
+            : null;
     return {
         anchorChatId,
-        anchorExcerpt: fire.anchorContent
-            ? fire.anchorContent.trim().slice(0, automationSnippetMaxChars)
-            : null,
-        anchorMessageId: fire.anchorMessageId,
+        anchorExcerpt:
+            anchor && fire.anchorContent
+                ? fire.anchorContent.trim().slice(0, automationSnippetMaxChars)
+                : null,
+        anchorMessageId: anchor ? fire.anchorMessageId : null,
         cause,
         contentType: null,
         firedAt: cause.firedAt,

@@ -1,6 +1,6 @@
 import { artifactTargetInputSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
-import { deleteArtifact } from '../../artifacts/delete.ts';
+import { deleteArtifactVersion } from '../../artifacts/delete.ts';
 import { artifactProcedure } from './procedure.ts';
 
 export const deleteVersionArtifactProcedure = artifactProcedure
@@ -10,7 +10,7 @@ export const deleteVersionArtifactProcedure = artifactProcedure
         if (!input.revision_id) {
             throw new TRPCError({ code: 'BAD_REQUEST', message: 'revision_id is required.' });
         }
-        return await deleteArtifact(
+        return await deleteArtifactVersion(
             ctx.hausDb,
             actor,
             ctx.artifactStorage,

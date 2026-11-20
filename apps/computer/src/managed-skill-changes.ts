@@ -1,12 +1,17 @@
 import { randomBytes } from 'node:crypto';
-import { mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { factoryManagedSkillHashes, seedFactoryManagedSkills } from '@haus/agent-workspace';
+import {
+    factoryManagedSkillHashes,
+    heldManagedSkillHash,
+    seedFactoryManagedSkills,
+} from '@haus/agent-workspace';
 
-/** The release-owned skills one seed writes, and the content hash of each. */
+/** The release-owned skills, the content hash of each, and how to hash and write an Agent's copy. */
 export interface ManagedSkillFactory {
     hashes(): Record<string, string>;
-    seed(skillsDir: string): Promise<void>;
+    held(skillsDir: string, skillId: string): Promise<string | null>;
+    seed(skillsDir: string, skillIds: readonly string[]): Promise<void>;
 }
 
 /** A pending change notice, plus the exact hashes it announces so a clear cannot drop a newer change. */
@@ -17,33 +22,42 @@ export interface ManagedSkillChangeNotice {
 
 const releaseFactory: ManagedSkillFactory = {
     hashes: factoryManagedSkillHashes,
+    held: heldManagedSkillHash,
     seed: seedFactoryManagedSkills,
 };
 
 /**
- * Seeds the factory-managed skills into one Agent's library and queues a one-turn notice for every
- * managed skill whose content changed since this Agent's last seed. An identical reseed, a
- * brand-new Agent, and a managed skill this Agent never had queue nothing. An Agent seeded before
- * this record existed but already holding the skill is notified once, since nothing proves its
- * copy matched. Agent-authored and imported skills never participate.
+ * Seeds the factory-managed skills into one Agent's library by comparing the bytes it holds with
+ * the release. A missing skill is written, an unedited copy of the release this Agent was last
+ * seeded with is updated and queues a one-turn notice, and anything else is an edit made in Drive
+ * and stands, with or without a record. Agent-authored and imported skills never participate.
  */
 export async function seedAgentManagedSkills(
     agentRoot: string,
+    skillsDir: string,
     factory: ManagedSkillFactory = releaseFactory
 ): Promise<void> {
-    const skillsDir = join(agentRoot, 'skills');
     const current = factory.hashes();
     const prior = await readRecord(agentRoot);
-    const heldBeforeSeed = prior ? null : await existingSkillDirs(skillsDir, Object.keys(current));
-    await factory.seed(skillsDir);
-    const changed = Object.keys(current).filter((skillId) =>
-        prior
-            ? prior.seeded[skillId] !== undefined && prior.seeded[skillId] !== current[skillId]
-            : (heldBeforeSeed?.has(skillId) ?? false)
+    if (prior && sameMap(prior.seeded, current)) {
+        return;
+    }
+    const steps = new Map<string, ReturnType<typeof seedStep>>();
+    for (const [skillId, hash] of Object.entries(current)) {
+        steps.set(
+            skillId,
+            seedStep(await factory.held(skillsDir, skillId), hash, prior?.seeded[skillId])
+        );
+    }
+    await factory.seed(
+        skillsDir,
+        [...steps].flatMap(([skillId, step]) => (step === 'keep' ? [] : [skillId]))
     );
     const pending = { ...prior?.pending };
-    for (const skillId of changed) {
-        pending[skillId] = current[skillId] as string;
+    for (const [skillId, step] of steps) {
+        if (step === 'update') {
+            pending[skillId] = current[skillId] as string;
+        }
     }
     const next: ManagedSkillRecord = { pending, seeded: current };
     if (prior && sameRecord(prior, next)) {
@@ -86,7 +100,7 @@ export async function clearManagedSkillChangeNotice(
 
 /** Generic for every skill; event input, never the standing prompt. */
 export function managedSkillChangeText(names: readonly string[]): string {
-    return `[Haus skill update: these Haus skills were updated: ${names.join(', ')}.] Re-read each before you next use it, and rebuild any scripts, notes, memory, or recipes you derived from it. If that changed something you rely on, post one short note in #all saying what you updated; otherwise do not post.`;
+    return `[Haus skill update: these Haus skills were updated: ${names.join(', ')}.] Re-read each before you next use it, and rebuild any scripts, notes, memory, or recipes you derived from it. If that changed something you rely on, post one short note in #haus saying what you updated; otherwise do not post.`;
 }
 
 interface ManagedSkillRecord {
@@ -135,20 +149,14 @@ async function writeRecord(agentRoot: string, record: ManagedSkillRecord): Promi
     await rename(temporary, destination);
 }
 
-async function existingSkillDirs(skillsDir: string, skillIds: string[]): Promise<Set<string>> {
-    const held = new Set<string>();
-    for (const skillId of skillIds) {
-        try {
-            if ((await stat(join(skillsDir, skillId))).isDirectory()) {
-                held.add(skillId);
-            }
-        } catch (error) {
-            if (!isMissing(error)) {
-                throw error;
-            }
-        }
+function seedStep(held: string | null, release: string, lastSeeded: string | undefined) {
+    if (held === null) {
+        return 'write';
     }
-    return held;
+    if (held !== release && held === lastSeeded) {
+        return 'update';
+    }
+    return 'keep';
 }
 
 function sameRecord(left: ManagedSkillRecord, right: ManagedSkillRecord): boolean {

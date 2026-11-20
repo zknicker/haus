@@ -16,6 +16,7 @@ import { listServerTurns } from '../src/server-agents/list-server-turns.ts';
 import { recordAgentTurnSummary } from '../src/server-agents/record-agent-turn.ts';
 import { ServerAccessDeniedError } from '../src/servers/server-access.ts';
 import type { HausUser } from '../src/users/haus-user.ts';
+import { testAgentHome } from './agent-home.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 /**
@@ -202,6 +203,7 @@ async function seedServer() {
             handle: `${displayName.toLowerCase()}-${randomBytes(4).toString('hex')}`,
             homeTimezone: 'UTC',
             id,
+            homeProjectId: await testAgentHome(db, serverId),
             serverId,
         });
         return id;

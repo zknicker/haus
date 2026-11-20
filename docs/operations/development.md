@@ -103,7 +103,7 @@ brew install postgresql@16 versitygw
 ```
 
 Files bytes go to a per-worktree [versitygw](https://github.com/versity/versitygw) S3 gateway
-instead of R2, so uploads, thumbnails, and `haus files` work in every worktree with no cloud
+instead of R2, so uploads, thumbnails, and Agent `drive/` folders work in every worktree with no cloud
 credential. The stack starts it on a private loopback port over
 `~/.haus/dev/<worktree-id>/object-storage`, creates the `haus-artifacts-development` bucket
 directory, and points Server at it with the fixed development key pair from `.env.schema`. The
@@ -248,6 +248,30 @@ rerun the same setup command if the CLI stopped. Its persisted idempotency key
 recovers the issued Computer instead of creating another. `logout` revokes only
 the human management session and stops the service; it preserves every Server
 attachment and Agent workspace for an explicit later `start`.
+
+## Agent Runner
+
+The Agent runner runs Agent turns in its own process (`apps/runner/`). The dev stack starts it only
+when `HAUS_AGENT_LOOP=runner` is set:
+
+```sh
+HAUS_AGENT_LOOP=runner bun run dev
+```
+
+The stack mints a fresh `HAUS_RUNNER_TOKEN` for each run and hands it to the Server and the runner.
+The runner starts after the Server with `HAUS_SERVER_URL` set to the Server origin and
+`HAUS_RUNNER_DATA_DIR` under the worktree's dev state directory, beside the Computer's data root.
+It inherits only a narrow shell environment, never the Server's secrets. `HAUS_RUNNER_CLAUDE_SETUP_TOKEN`
+reaches it when your environment resolves one. Without `HAUS_AGENT_LOOP=runner`, nothing changes.
+
+The live Claude Agent SDK test spends real quota and runs only on request:
+
+```sh
+HAUS_RUN_LIVE_RUNNER_CLAUDE_TEST=1 bun test --timeout 120000 apps/runner/src/claude
+```
+
+The runner container, its network deny, and its proof script are in
+[Haus Server deployment](haus-server-deploy.md#agent-runner-container).
 
 ## Linux And Cloud Sessions
 

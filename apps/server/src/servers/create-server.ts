@@ -1,14 +1,9 @@
+import { GENERAL_TASK_KEY } from '@haus/api';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import {
-    channelParticipantsTable,
-    chatsTable,
-    serverMembershipsTable,
-    serverOnboardingTable,
-    serversTable,
-} from '../postgres/schema.ts';
-import { insertGeneralTaskKey } from '../tasks/task-key-ledger.ts';
+import { serverMembershipsTable, serverOnboardingTable, serversTable } from '../postgres/schema.ts';
+import { insertProject } from '../projects/insert-project.ts';
 import {
     allChannelDescription,
     allChannelName,
@@ -39,17 +34,9 @@ export async function createServer(
         description: allChannelDescription,
         id: createOpaqueId('cht'),
         isAll: true,
-        kind: 'channel' as const,
         name: allChannelName,
-        serverId: server.id,
     };
-    const onboardingChannel = {
-        id: createOpaqueId('cht'),
-        isAll: false,
-        kind: 'channel' as const,
-        name: onboardingOwnerChannelName,
-        serverId: server.id,
-    };
+    const onboardingChannel = { id: createOpaqueId('cht'), name: onboardingOwnerChannelName };
 
     try {
         await db.transaction(async (tx) => {
@@ -62,18 +49,22 @@ export async function createServer(
                 serverId: server.id,
                 userId: input.userId,
             });
-            await tx.insert(chatsTable).values(channel);
-            await tx.insert(chatsTable).values(onboardingChannel);
-            await tx.insert(channelParticipantsTable).values([
-                { chatId: channel.id, serverId: server.id, userId: input.userId },
-                { chatId: onboardingChannel.id, serverId: server.id, userId: input.userId },
-            ]);
+            await insertProject(tx, {
+                chat: channel,
+                key: GENERAL_TASK_KEY,
+                serverId: server.id,
+                userIds: [input.userId],
+            });
+            await insertProject(tx, {
+                chat: onboardingChannel,
+                serverId: server.id,
+                userIds: [input.userId],
+            });
             await tx.insert(serverOnboardingTable).values({
                 channelId: onboardingChannel.id,
                 phase: 'awaiting-computer',
                 serverId: server.id,
             });
-            await insertGeneralTaskKey(tx, server.id);
         });
     } catch (cause) {
         if (violatesConstraint(cause, 'servers_slug_key')) {

@@ -70,3 +70,29 @@ test('preserves retryable structured errors from a Server 5xx response', async (
         options: { retryable: true },
     });
 });
+
+test('reads a zstd Server response without advertising zstd', async () => {
+    const seen = { acceptEncoding: '' };
+    const server = Bun.serve({
+        hostname: '127.0.0.1',
+        port: 0,
+        fetch(request) {
+            seen.acceptEncoding = request.headers.get('accept-encoding') ?? '';
+            return new Response(Bun.zstdCompressSync(Buffer.from(JSON.stringify({ ok: true }))), {
+                headers: { 'content-encoding': 'zstd', 'content-type': 'application/json' },
+            });
+        },
+    });
+    try {
+        const client = new AgentApiClient({
+            ...context,
+            serverUrl: `http://127.0.0.1:${server.port}`,
+        });
+        await expect(
+            client.request('/api/agent/ping', z.object({ ok: z.literal(true) }))
+        ).resolves.toEqual({ ok: true });
+        expect(seen.acceptEncoding).toBe('gzip, deflate, br');
+    } finally {
+        server.stop(true);
+    }
+});

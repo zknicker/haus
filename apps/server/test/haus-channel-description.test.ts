@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import { allChannelDescription } from '../src/servers/contracts.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
+import { createTestProject } from './project.fixture.ts';
 
 const fixture = agentCreationFixture();
 
@@ -15,12 +16,12 @@ async function allChannel() {
     const chats = await fixture.owner.trpc.chat.list.query({ serverId: fixture.serverId });
     const all = chats.find((chat) => chat.isAll);
     if (!all) {
-        throw new Error('The Server has no #all.');
+        throw new Error('The Server has no #haus.');
     }
     return all;
 }
 
-test('a new Server seeds #all with its shared description', async () => {
+test('a new Server seeds #haus with its shared description', async () => {
     const all = await allChannel();
 
     expect(all.description).toBe(allChannelDescription);
@@ -30,7 +31,7 @@ test('a new Server seeds #all with its shared description', async () => {
 });
 
 test('humans set, trim, clear, and keep a channel description', async () => {
-    const created = await fixture.owner.trpc.chat.createChannel.mutate({
+    const created = await createTestProject(fixture.harness, fixture.owner, {
         agentIds: [fixture.orbitAgentId],
         description: '  Release coordination.  ',
         name: 'releases',
@@ -38,36 +39,28 @@ test('humans set, trim, clear, and keep a channel description', async () => {
     });
     expect(created.description).toBe('Release coordination.');
 
-    const base = {
-        agentIds: [fixture.orbitAgentId],
-        chatId: created.id,
-        name: 'releases',
-        serverId: fixture.serverId,
-    };
+    const base = { chatId: created.id, serverId: fixture.serverId };
     // Omitting the field leaves the stored description alone.
-    const kept = await fixture.owner.trpc.chat.updateChannel.mutate({ ...base, name: 'ship' });
-    expect(kept.description).toBe('Release coordination.');
+    const kept = await fixture.owner.trpc.project.update.mutate({ ...base, name: 'ship' });
+    expect(kept.chat.description).toBe('Release coordination.');
 
-    const cleared = await fixture.owner.trpc.chat.updateChannel.mutate({
+    const cleared = await fixture.owner.trpc.project.update.mutate({
         ...base,
         description: '   ',
     });
-    expect(cleared.description).toBeNull();
+    expect(cleared.chat.description).toBeNull();
 
     await expect(
-        fixture.owner.trpc.chat.updateChannel.mutate({ ...base, description: 'x'.repeat(501) })
+        fixture.owner.trpc.project.update.mutate({ ...base, description: 'x'.repeat(501) })
     ).rejects.toThrow();
 
     const all = await allChannel();
-    const allEdited = await fixture.owner.trpc.chat.updateChannel.mutate({
-        agentIds:
-            all.participantAgentIds.length > 0 ? all.participantAgentIds : [fixture.orbitAgentId],
+    const allEdited = await fixture.owner.trpc.project.update.mutate({
         chatId: all.id,
         description: allChannelDescription,
-        name: 'all',
         serverId: fixture.serverId,
     });
-    expect(allEdited.description).toBe(allChannelDescription);
+    expect(allEdited.chat.description).toBe(allChannelDescription);
 });
 
 test('Agents read channel descriptions with bare handles from server and channel info', async () => {
@@ -77,16 +70,16 @@ test('Agents read channel descriptions with bare handles from server and channel
     expect(server.status).toBe(200);
     const channels = server.body.channels as { description: string | null; handle: string }[];
     expect(channels).toContainEqual(
-        expect.objectContaining({ description: allChannelDescription, handle: 'all' })
+        expect.objectContaining({ description: allChannelDescription, handle: 'haus' })
     );
     expect(channels).toContainEqual(
         expect.objectContaining({ description: null, handle: 'product' })
     );
 
     const info = await agentGet(
-        `/api/agent/channels/info?target=${encodeURIComponent('#all')}`,
+        `/api/agent/channels/info?target=${encodeURIComponent('#haus')}`,
         runner
     );
     expect(info.status).toBe(200);
-    expect(info.body).toMatchObject({ description: allChannelDescription, handle: 'all' });
+    expect(info.body).toMatchObject({ description: allChannelDescription, handle: 'haus' });
 });

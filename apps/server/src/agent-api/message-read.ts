@@ -1,6 +1,5 @@
 import type { HausAgentMessage } from '@haus/api';
 import { and, desc, eq, gt, ilike, lt, sql } from 'drizzle-orm';
-import { isFollowedChatKind } from '../agent-delivery/followed-chat.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -114,39 +113,33 @@ export async function requireAgentChatAccess(
     chatId: string
 ): Promise<void> {
     const [chat] = await db
-        .select({
-            dmAgentId: chatsTable.dmAgentId,
-            id: chatsTable.id,
-            kind: chatsTable.kind,
-            parentChatId: chatsTable.parentChatId,
-        })
+        .select({ dmAgentId: chatsTable.dmAgentId, kind: chatsTable.kind })
         .from(chatsTable)
         .where(and(eq(chatsTable.serverId, runner.serverId), eq(chatsTable.id, chatId)))
         .limit(1);
-    if (!chat) {
-        throw new AgentTargetError();
-    }
-    if (chat.kind === 'dm' && chat.dmAgentId === runner.agentId) {
+    if (chat?.kind === 'task') {
         return;
     }
-    const channelId = isFollowedChatKind(chat.kind) ? chat.parentChatId : chat.id;
-    if (channelId) {
-        const [joined] = await db
-            .select({ agentId: channelAgentParticipantsTable.agentId })
-            .from(channelAgentParticipantsTable)
-            .where(
-                and(
-                    eq(channelAgentParticipantsTable.serverId, runner.serverId),
-                    eq(channelAgentParticipantsTable.chatId, channelId),
-                    eq(channelAgentParticipantsTable.agentId, runner.agentId)
-                )
-            )
-            .limit(1);
-        if (joined) {
-            return;
-        }
+    if (chat?.kind === 'dm' && chat.dmAgentId === runner.agentId) {
+        return;
     }
-    throw new AgentTargetError();
+    const [joined] =
+        chat?.kind === 'channel'
+            ? await db
+                  .select({ agentId: channelAgentParticipantsTable.agentId })
+                  .from(channelAgentParticipantsTable)
+                  .where(
+                      and(
+                          eq(channelAgentParticipantsTable.serverId, runner.serverId),
+                          eq(channelAgentParticipantsTable.chatId, chatId),
+                          eq(channelAgentParticipantsTable.agentId, runner.agentId)
+                      )
+                  )
+                  .limit(1)
+            : [];
+    if (!joined) {
+        throw new AgentTargetError();
+    }
 }
 
 function escapeLike(value: string) {

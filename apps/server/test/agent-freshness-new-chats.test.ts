@@ -1,13 +1,12 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { and, eq } from 'drizzle-orm';
-import { createAgentChannel } from '../src/agent-api/channel-create.ts';
 import { assertFreshAgentView } from '../src/agent-api/chat-freshness.ts';
 import { prepareAgentSend } from '../src/agent-api/send-hold.ts';
 import { enqueueAgentGreeting, greetingDedupeKey } from '../src/agent-delivery/greeting.ts';
 import { joinChannelAgents } from '../src/chats/channel-agent-membership.ts';
 import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { agentInboxTable, chatsTable } from '../src/postgres/schema.ts';
+import { agentInboxTable } from '../src/postgres/schema.ts';
 import { seedAgent } from './agent-inbox-harness.ts';
 import { postMessage, readerRunner } from './agent-read-fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
@@ -59,29 +58,6 @@ test('a queued greeting is not a message: it never holds or stales the greeting 
             )
         );
     expect(greeting).toEqual({ state: 'queued' });
-});
-
-test('the first send into a channel the Agent just created is not held', async () => {
-    const db = connection.db;
-    const seed = await seedAgent(db);
-    const runner = readerRunner(seed, 'run_channel_create');
-    const { receipt } = await createAgentChannel(db, runner, {
-        humans: [`@${seed.humanHandle}`],
-        name: 'launch-plan',
-    });
-    expect(receipt.target).toBe('#launch-plan');
-    const [channel] = await db
-        .select({ id: chatsTable.id })
-        .from(chatsTable)
-        .where(and(eq(chatsTable.serverId, seed.serverId), eq(chatsTable.name, 'launch-plan')));
-    if (!channel) {
-        throw new Error('The created channel is missing.');
-    }
-
-    await expect(assertFreshAgentView(db, runner, channel.id)).resolves.toBeUndefined();
-    expect(await send(runner, channel.id, 'Kicking off the launch plan here.')).toMatchObject({
-        kind: 'send',
-    });
 });
 
 let nonce = 0;

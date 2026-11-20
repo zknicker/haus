@@ -23,7 +23,7 @@ export async function requireLaunchTask(
     const task = await resolveTaskTargetChat(db, runner, taskKey);
     if (!task) {
         throw new CloudAgentTaskRequiredError(
-            `Task ${taskKey} does not exist, has no conversation yet, or is in a Channel this Agent has not joined. Launch the cloud agent on a Task you can reach.`
+            `Task ${taskKey} does not exist or has no conversation yet. Launch the cloud agent on a Task with a conversation.`
         );
     }
     return { chatId: task.chatId, target: formatTaskTarget(taskKey), taskId: task.taskId };

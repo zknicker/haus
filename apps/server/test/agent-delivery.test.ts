@@ -29,6 +29,7 @@ import {
     usersTable,
 } from '../src/postgres/schema.ts';
 import { configureAgent } from '../src/server-agents/configure-agent.ts';
+import { testAgentHome } from './agent-home.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 let cluster: TestDatabase;
@@ -110,6 +111,7 @@ async function seedAgent(runtimeId = 'fake'): Promise<Seed> {
         handle: agentHandle,
         homeTimezone: 'UTC',
         id: agentId,
+        homeProjectId: await testAgentHome(db, serverId),
         serverId,
     });
     await db.insert(chatsTable).values({
@@ -352,17 +354,19 @@ test('keeps a queued message bound to its retired author after handle reuse', as
     const replacementId = createOpaqueId('agt');
     const handle = `echo-${randomBytes(4).toString('hex')}`;
     const messageId = createOpaqueId('msg');
-    await connection.db.insert(agentsTable).values({
+    const echo = {
         computerId: seed.computerId,
-        description: 'Original teammate',
         desiredModelId: 'fake-model',
         desiredRuntimeId: 'fake',
         displayName: 'Echo',
         handle,
+        homeProjectId: await testAgentHome(connection.db, seed.serverId),
         homeTimezone: 'UTC',
-        id: authorId,
         serverId: seed.serverId,
-    });
+    };
+    await connection.db
+        .insert(agentsTable)
+        .values({ ...echo, description: 'Original teammate', id: authorId });
     await connection.db.insert(chatMessagesTable).values({
         authorAgentId: authorId,
         chatId: seed.chatId,
@@ -376,17 +380,9 @@ test('keeps a queued message bound to its retired author after handle reuse', as
         .update(agentsTable)
         .set({ retiredAt: new Date() })
         .where(eq(agentsTable.id, authorId));
-    await connection.db.insert(agentsTable).values({
-        computerId: seed.computerId,
-        description: 'Replacement teammate',
-        desiredModelId: 'fake-model',
-        desiredRuntimeId: 'fake',
-        displayName: 'Echo',
-        handle,
-        homeTimezone: 'UTC',
-        id: replacementId,
-        serverId: seed.serverId,
-    });
+    await connection.db
+        .insert(agentsTable)
+        .values({ ...echo, description: 'Replacement teammate', id: replacementId });
 
     const transport = new FakeTransport();
     transport.online.add(seed.computerId);
@@ -911,7 +907,6 @@ test('attests a multi-message Computer-local pull without wedging the transactio
     });
     const taskChatId = createOpaqueId('cht');
     await connection.db.insert(chatsTable).values({
-        anchorMessageId: originId,
         id: taskChatId,
         kind: 'task',
         parentChatId: channelId,

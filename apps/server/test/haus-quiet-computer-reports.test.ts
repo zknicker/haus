@@ -6,6 +6,7 @@ import {
     computerProtocolVersion,
 } from '@haus/api';
 import { computerUpdatedTopic } from '../src/realtime/topics.ts';
+import { testSqlAgentHome } from './agent-home.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
 // A Computer re-sends its whole state after every turn and on a timer. Only a
@@ -38,11 +39,10 @@ beforeAll(async () => {
     await harness.sql`
         insert into agents (
             id, server_id, handle, display_name, home_timezone,
-            computer_id, desired_runtime_id, desired_model_id
-        )
+            computer_id, desired_runtime_id, desired_model_id, home_project_id)
         values (
             ${agentId}, ${serverId}, 'quiet-scout', 'Scout', 'America/New_York',
-            ${computerId}, 'codex', 'gpt-5.6-sol'
+            ${computerId}, 'codex', 'gpt-5.6-sol', ${await testSqlAgentHome(harness.sql, serverId)}
         )
     `;
     void (async () => {

@@ -166,7 +166,8 @@ A durable `message.created` is planned once by Server delivery
   `packages/haus-api/src/agent-inbox.ts`: the push id, the writer (the Agent, or a Worker with its
   Task), and every listed file of the push, uncapped because conflicts are rare. Each file carries
   `path`, `outcome`, `copyPath` for `kept_both`, `currentRevisionId`, `currentAuthorHandle`, and
-  `reason` (`same_lines`, `binary`, `base_gone`, `edit_over_delete`, or the refusal code). When
+  `reason` (`same_lines`, `binary`, `base_gone`, `both_created`, `edit_over_delete`, or the refusal
+  code). When
   nothing is live at the path, as after a refused create, `currentRevisionId` and
   `currentAuthorHandle` are explicit nulls. The item never invents a revision or an actor.
   `drive_conflict` joins `chatlessInboxSources`, and the start frame carries the item as
@@ -178,14 +179,21 @@ A durable `message.created` is planned once by Server delivery
   no standing prompt text teaches it:
 
   ```text
-  [drive conflict · 3 files · your push after run_8f2…]
+  [drive conflict · 4 files · your push after run_8f2…]
   agents/blippy/notes/launch.md · @ada changed the same lines · yours: agents/blippy/notes/launch.conflict-blippy.md
   haus/logo.png · binary, changed by @tiny · yours: haus/logo.conflict-blippy.png
   haus/old-plan.md · @ada edited it, so your delete did not happen
+  agents/tiny/notes/x.md · refused, you cannot write there · yours: drive-refused/agents/tiny/notes/x.md
   Each original holds the current version and each copy holds yours. Merge what you still want into the original with ordinary file commands in drive/, then delete the copy.
+  An edit always beats a delete. Delete the file again if you still mean to.
+  A refused file is not in Drive: your version is in drive-refused/ in your working directory, and drive/ holds what Drive has.
   ```
 
-  A Worker's item names the Worker and its Task in the header line.
+  Each guidance line appears only when the item has that outcome. A `base_gone` file reads "the
+  version you started from is gone", a `both_created` file reads "created it too", and an edit of
+  the Agent's own that beat someone's delete reads "it was deleted, and your edit brought it back".
+  A missing author handle reads "someone". A Worker's item names the Worker and its Task in the
+  header line (`packages/agent-prompt/src/inbox-drive-conflict-format.ts`).
 - After planning, ordinary Chat work gives an idle Agent a notice turn and a busy Agent receives the
   same notice in its live turn. Concrete work — a settled Cloud Agent Run, an automation fire, a
   claim assignment — is the typed exception: an idle recipient receives the item's own envelope as
@@ -389,7 +397,7 @@ turn starts when its creator sends the working brief.
 | Contract | Executable guard |
 | --- | --- |
 | Pending work is the first notice prompt; no `Start.` race or duplicate injection | `apps/computer/src/harness/executor.test.ts` |
-| Notices contain no bodies and exact envelopes retain target/message identity | `apps/computer/src/inbox-format.test.ts` |
+| Notices contain no bodies and exact envelopes retain target/message identity | `packages/agent-prompt/src/inbox-format.test.ts` |
 | `haus inbox check` lists unread conversations from the durable read position, pending rows first, with one `Next:`; listing advances nothing | `apps/computer/src/agent-cli/commands/agent-inbox.test.ts`, `apps/server/test/agent-inbox-check.test.ts` |
 | Local-first pull, exact visibility receipts, history/read consumption, and Server fallback | `apps/computer/src/proxy.test.ts` |
 | Stale notices cannot resurrect identities already made visible | `apps/computer/src/inbox-store.test.ts` |
@@ -397,7 +405,7 @@ turn starts when its creator sends the working brief.
 | Unpulled work is offered once; new identities wake again; subsets and targets settle independently | `apps/server/test/agent-delivery.test.ts` |
 | Notices inject only at safe tool boundaries or remain durable for the next turn | `apps/computer/src/harness/executor.test.ts`, `apps/server/test/agent-delivery.test.ts` |
 | Creating an Agent creates no inbox item and no empty bootstrap turn for the new Agent | `apps/server/test/haus-agent-creation.test.ts` |
-| The notice teaches Raft's `--unread` / `message check` pull plus non-request and read-before-you-stop semantics; the digest points at `haus inbox check`; the prompt teaches asynchronous collaboration and FYI silence without losing required capabilities | `apps/computer/src/inbox-format.test.ts`, `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/managed-instructions.test.ts` |
+| The notice teaches Raft's `--unread` / `message check` pull plus non-request and read-before-you-stop semantics; the digest points at `haus inbox check`; the prompt teaches asynchronous collaboration and FYI silence without losing required capabilities | `packages/agent-prompt/src/inbox-format.test.ts`, `apps/computer/src/harness/turn-prompt.test.ts`, `packages/agent-prompt/src/managed-instructions.test.ts` |
 | A live session drains human bodies; a cold start drains only addressed items and notices the rest once | `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/executor.test.ts` |
 | A composed drain records exact run visibility and consumes its own notice rows | `apps/computer/src/harness/turn-prompt.test.ts` |
 | A drained wake message is exact-visible before settlement, and the freshness hold does not fire on it | `apps/server/test/agent-composed-drain-visibility.test.ts`, `apps/computer/src/harness/composed-drain-receipt.test.ts` |
@@ -407,7 +415,7 @@ turn starts when its creator sends the working brief.
 | A single-Agent channel addresses `sole` without Jev for one human and judges it at the gate for more | `apps/server/test/haus-message-routing-sole.test.ts` |
 | The unread digest excludes notice-row chats and drained ids, so a bounded drain's remainder still shows | `apps/server/test/agent-inbox-digest.test.ts` |
 | Assignments coalesce into one main-session run, a busy Agent gets a count then the Tasks, and reassigning retires a queued item | `apps/server/test/haus-task-agent-delivery.test.ts`, `apps/computer/src/harness/task-assignment-turn.test.ts`, `apps/computer/src/inbox-store-task-assignments.test.ts` |
-| One `drive_conflict` item per push lists every file, wakes an idle Agent, reaches a Worker's Agent, and waits at the chain ceiling instead of dropping (lands with D2) | `apps/server/test/drive-conflict-delivery.test.ts` |
+| One `drive_conflict` item per push lists every file, wakes an idle Agent, reaches a Worker's Agent, and waits at the chain ceiling instead of dropping | `apps/server/test/drive-conflict-delivery.test.ts`, `apps/server/test/drive-conflict-chain.test.ts` |
 
 ## Presentation split (I1/I4)
 

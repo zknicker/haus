@@ -12,6 +12,7 @@ import {
     serversTable,
     usersTable,
 } from '../src/postgres/schema.ts';
+import { testAgentHome } from './agent-home.ts';
 
 export class FakeTransport implements DeliveryTransport {
     readonly online = new Set<string>();
@@ -81,6 +82,7 @@ export async function seedAgent(db: HausDatabase): Promise<Seed> {
         handle: `ada-${randomBytes(4).toString('hex')}`,
         homeTimezone: 'UTC',
         id: seed.agentId,
+        homeProjectId: await testAgentHome(db, seed.serverId),
         serverId: seed.serverId,
     });
     await db.insert(chatsTable).values({

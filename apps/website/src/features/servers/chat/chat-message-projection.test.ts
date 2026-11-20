@@ -92,6 +92,7 @@ function message(id: string): ChatMessage {
         chatId: 'cht_1',
         cloudAgentWork: [],
         imageGenerations: [],
+        driveCitations: [],
         content: id,
         createdAt: '2026-08-11T00:00:00.000Z',
         id,

@@ -18,17 +18,13 @@ extension HausStore {
     }
 
     @discardableResult
-    func createChannel(
-        name: String,
-        agentIDs: [String],
-        serverID: String
-    ) async throws -> ChatSummary {
-        let created: ChatSummary = try await client.mutation(
-            "chat.createChannel",
-            input: CreateChannelInput(agentIDs: agentIDs, name: name, serverID: serverID)
+    func createChannel(name: String, serverID: String) async throws -> ChatSummary {
+        let created: CreatedProjectResult = try await client.mutation(
+            "project.create",
+            input: CreateChannelInput(name: name, serverID: serverID)
         )
         try await reloadChats(serverID: serverID)
-        return created
+        return created.chat
     }
 
     @discardableResult

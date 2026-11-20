@@ -227,6 +227,7 @@ export function message(chatId: string, sequence: number, agentId?: string): Cha
         imageGenerations: [],
         content: `Message ${sequence} in ${chatId}`,
         createdAt: new Date(Date.UTC(2026, 9, 1, 12, sequence)).toISOString(),
+        driveCitations: [],
         id: `msg_${chatId}_${sequence}`,
         nonce: `nonce_${chatId}_${sequence}`,
         reactions: [],

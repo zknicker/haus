@@ -4,6 +4,7 @@ import { cloudAgentWorkUpdatedTopic } from '../src/realtime/topics.ts';
 import { readTargetAsAgent } from './agent-read-target.ts';
 import { cloudAgentFixture } from './cloud-agent-fixture.ts';
 import { cloudAgentLinkHelpers } from './cloud-agent-link-helpers.ts';
+import { createTestProject } from './project.fixture.ts';
 import { captureTopic, settleRealtime } from './realtime-capture.ts';
 import { startTestTask } from './task-place-fixture.ts';
 
@@ -168,7 +169,7 @@ test('a tombstoned Chat grants nothing even before its purge removes the rows', 
     ).resolves.toEqual({ cancelRequested: true });
 });
 
-test('a second Agent links only work it can read through a link', async () => {
+test('a second Agent links only work it can read through a Task or a link', async () => {
     const novaId = (
         await fixture.owner.trpc.agent.create.mutate({
             computerId: fixture.computerId,
@@ -180,38 +181,60 @@ test('a second Agent links only work it can read through a link', async () => {
         })
     ).agent.id;
     const roomId = (
-        await fixture.owner.trpc.chat.createChannel.mutate({
+        await createTestProject(fixture.harness, fixture.owner, {
             agentIds: [novaId],
             name: 'nova-room',
             serverId: fixture.serverId,
         })
     ).id;
     const runner = await fixture.mintRunner('run_link_orbit_for_nova');
-    await fixture.readTarget(runner, '#product');
-    const work = (await fixture.postStart(runner, fixture.startBody({ nonce: 'for-nova' }))).body
-        .work as CloudAgentWork;
+    const launchIn = async (name: string) => {
+        const channelId = await links.createChannel(name, [fixture.peerUserId]);
+        const body = fixture.startBody({ nonce: name, task: await taskIn(channelId) });
+        const work = (await fixture.postStart(runner, body)).body.work as CloudAgentWork;
+        return { channelId, content: `Saw [Fix](cloud-agent://${work.id})`, work };
+    };
+    const tombstone = (chatId: string) => fixture.harness.sql`
+        update chats set deleted_at = now(), deleted_by_user_id = ${fixture.ownerUserId}
+        where id = ${chatId}
+    `;
     const nova = await mintRunnerFor(novaId, roomId, 'run_nova');
-    const content = `Saw [Fix](cloud-agent://${work.id})`;
-    const unseen = await links.agentPost(nova, '/api/agent/messages/send', {
-        content,
-        nonce: 'nova-unseen',
-        target: '#nova-room',
-    });
-    expect(unseen.body).toMatchObject({ message: { content: 'Saw Fix' } });
+    const novaPost = async (content: string, nonce: string) =>
+        (
+            await links.agentPost(nova, '/api/agent/messages/send', {
+                content,
+                nonce,
+                target: '#nova-room',
+            })
+        ).body;
 
-    await links.humanSend(fixture.owner, roomId, `[Fix](cloud-agent://${work.id})`, 'show-nova');
+    const vault = await launchIn('vault');
+    expect(await novaPost(vault.content, 'nova-through-task')).toMatchObject({
+        message: { content: vault.content },
+    });
+
+    const crypt = await launchIn('crypt');
+    await tombstone(crypt.channelId);
+    expect(await novaPost(crypt.content, 'nova-unseen')).toMatchObject({
+        message: { content: 'Saw Fix' },
+    });
+
+    await links.humanSend(
+        fixture.owner,
+        roomId,
+        `[Fix](cloud-agent://${vault.work.id})`,
+        'show-nova'
+    );
+    await tombstone(vault.channelId);
     await readTargetAsAgent(
         fixture.harness,
         { agentId: novaId, serverId: fixture.serverId },
         nova,
         '#nova-room'
     );
-    const seen = await links.agentPost(nova, '/api/agent/messages/send', {
-        content,
-        nonce: 'nova-seen',
-        target: '#nova-room',
+    expect(await novaPost(vault.content, 'nova-seen')).toMatchObject({
+        message: { content: vault.content },
     });
-    expect(seen.body).toMatchObject({ message: { content } });
 });
 
 async function mintRunnerFor(agentId: string, chatId: string, runId: string) {

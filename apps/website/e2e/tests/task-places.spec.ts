@@ -14,7 +14,7 @@ test('an Agent-started Task previews under its origin, opens as a place, and clo
         slug,
     });
     const agent = await createChannelAgent({
-        channelName: 'all',
+        channelName: 'haus',
         databaseUrl: session.databaseUrl,
         serverId: server.id,
         slug,
@@ -37,7 +37,7 @@ test('an Agent-started Task previews under its origin, opens as a place, and clo
 
     await preview.click();
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/tasks/${key}$`, 'u'));
-    await expect(page.getByRole('button', { name: /^Started from #all, Orbit: / })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Started from #haus, Orbit: / })).toBeVisible();
     await expect(page.getByRole('region', { name: 'Details' })).toBeVisible();
     await expect(page.getByText('No messages yet')).toBeVisible();
 

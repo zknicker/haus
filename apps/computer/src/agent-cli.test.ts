@@ -7,7 +7,7 @@ const families = [
     'channel',
     'claim',
     'cloud-agent',
-    'files',
+    'drive',
     'inbox',
     'message',
     'profile',

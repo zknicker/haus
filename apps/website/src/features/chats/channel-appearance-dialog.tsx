@@ -25,11 +25,9 @@ export function ChannelAppearanceDialog({ chat, onClose }: { chat: Chat; onClose
 
         try {
             await updateChannel.mutateAsync({
-                agentIds: chat.participantAgentIds,
                 chatId: chat.id,
                 color: appearance.color,
                 icon: appearance.icon,
-                name: chat.name ?? '',
                 serverId: chat.serverId,
             });
             toast.success('Project appearance updated');

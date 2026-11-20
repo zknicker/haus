@@ -1,12 +1,12 @@
 // Shared evidence readers for the shared-artifact scenarios: what an Agent
-// published, what it wrote in chat, and which shell commands its turn ran.
+// published and what it wrote in chat.
 
 /** Live shared artifacts the Agent created in any folder, newest first. */
 export async function artifactsCreatedBy(kit, agentId) {
     const listed = await kit.trpc('artifact.list', {
         serverId: kit.serverId,
         creator: { type: 'agent', agent_id: agentId },
-        // The drive lists one folder level by default; Agents often push into a folder.
+        // Drive lists one folder level by default; every Agent file sits inside an area folder.
         recursive: true,
     });
     return listed.artifacts;
@@ -16,21 +16,6 @@ export async function agentMessages(kit, agentId, chatId, sinceSequence) {
     const page = await kit.trpc('chat.messages', { chatId, limit: 100, serverId: kit.serverId });
     const own = (message) => message.author.kind === 'agent' && message.author.agentId === agentId;
     return page.messages.filter((message) => own(message) && message.sequence > sinceSequence);
-}
-
-/** Shell commands the settled turn ran, from its Computer execution journal. */
-export async function turnCommands(kit, agentId, turn) {
-    const result = await kit.trpc('agent.executionJournal', {
-        agentId,
-        runId: turn.runId,
-        serverId: kit.serverId,
-    });
-    if (result.status !== 'available') {
-        return [];
-    }
-    return result.journal.tools
-        .map((tool) => tool.input?.command)
-        .filter((command) => typeof command === 'string');
 }
 
 /**

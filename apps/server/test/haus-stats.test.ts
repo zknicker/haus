@@ -90,10 +90,9 @@ beforeAll(async () => {
     await harness.sql`
         insert into agents (
             id, server_id, computer_id, desired_runtime_id, desired_model_id,
-            display_name, handle, home_timezone
-        ) values (
+            display_name, handle, home_timezone, home_project_id) values (
             'agt_1234567890abcdef', ${serverId}, ${computerId}, 'codex', 'gpt-5.6-sol',
-            'Cove', 'stats-cove', 'UTC'
+            'Cove', 'stats-cove', 'UTC', (select id from chats where server_id = ${serverId} and is_all)
         )
     `;
     await harness.sql`
@@ -172,10 +171,9 @@ test('An Agent profile reads only its own token rows', async () => {
     await harness.sql`
         insert into agents (
             id, server_id, computer_id, desired_runtime_id, desired_model_id,
-            display_name, handle, home_timezone
-        ) values (
+            display_name, handle, home_timezone, home_project_id) values (
             'agt_abcdef1234567890', ${serverId}, ${computerId}, 'codex', 'gpt-5.6-sol',
-            'Wren', 'stats-wren', 'UTC'
+            'Wren', 'stats-wren', 'UTC', (select id from chats where server_id = ${serverId} and is_all)
         )
     `;
     await harness.sql`

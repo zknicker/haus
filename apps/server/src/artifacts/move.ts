@@ -1,11 +1,14 @@
 import {
     type ArtifactMoveInput,
     type ArtifactMoveResult,
+    type DriveAreaId,
     artifactPathIsInside,
     artifactPathKey,
     artifactPathMaxLength,
 } from '@haus/api';
 import { and, eq, isNull, notInArray, sql } from 'drizzle-orm';
+import { writableDriveFolder, writableDrivePath } from '../drive/areas.ts';
+import { type DriveChangeEntry, recordDriveChanges } from '../drive/changes.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { artifactsTable as artifacts, serversTable } from '../postgres/schema.ts';
 import { artifactUpdatedTopic } from '../realtime/topics.ts';
@@ -50,12 +53,22 @@ export async function moveFile(
             path: file.path,
         });
     }
-    await requireFreeDestination(tx, access.serverId, input, [file.id]);
-    const to = await placeArtifactPath(tx, access.serverId, input.to, [file.id]);
+    const source = await writableDrivePath(tx, access, file.path);
+    const target = await writableDrivePath(tx, access, input.to);
+    await requireFreeDestination(tx, access.serverId, target.path, [file.id]);
+    const to = await placeArtifactPath(tx, access.serverId, target.path, [file.id]);
     await tx
         .update(artifacts)
         .set({ path: to, pathKey: artifactPathKey(to) })
         .where(eq(artifacts.id, file.id));
+    await recordDriveChanges(
+        tx,
+        access.serverId,
+        movedChanges([{ from: file.path, id: file.id, revisionId: file.currentRevisionId, to }], {
+            from: source.area,
+            to: target.area,
+        })
+    );
     return { from: file.path, kind: 'file', moved_count: 1, to };
 }
 
@@ -65,9 +78,10 @@ export async function moveFolder(
     input: Omit<ArtifactMoveInput, 'serverId'>
 ): Promise<ArtifactMoveResult> {
     const rows = await tx
-        .select({ id: artifacts.id, path: artifacts.path })
+        .select({ id: artifacts.id, path: artifacts.path, revisionId: artifacts.currentRevisionId })
         .from(artifacts)
-        .where(and(live(access.serverId), insideFolder(input.from)));
+        .where(and(live(access.serverId), insideFolder(input.from)))
+        .orderBy(artifacts.pathKey);
     const [first] = rows;
     if (!first) {
         throw new ArtifactError(`Nothing lives at \`${input.from}\`.`, 404, 'NOT_FOUND');
@@ -79,7 +93,9 @@ export async function moveFolder(
             'INVALID_ARG'
         );
     }
-    if (artifactPathIsInside(input.to, input.from)) {
+    const source = await writableDriveFolder(tx, access, input.from);
+    const target = await writableDriveFolder(tx, access, input.to);
+    if (artifactPathIsInside(target.path, input.from)) {
         throw new ArtifactError(
             `\`${input.from}\` cannot move inside itself.`,
             409,
@@ -87,29 +103,69 @@ export async function moveFolder(
         );
     }
     const longest = Math.max(...rows.map((row) => row.path.length));
-    if (longest - input.from.length + input.to.length > artifactPathMaxLength) {
+    if (longest - input.from.length + target.path.length > artifactPathMaxLength) {
         throw new ArtifactError(
-            `Moving \`${input.from}\` to \`${input.to}\` would make a path longer than ${artifactPathMaxLength} characters.`,
+            `Moving \`${input.from}\` to \`${target.path}\` would make a path longer than ${artifactPathMaxLength} characters.`,
             400,
             'INVALID_PATH'
         );
     }
     const moving = rows.map((row) => row.id);
-    await requireFreeDestination(tx, access.serverId, input, moving);
-    const to = await placeArtifactPath(tx, access.serverId, input.to, moving);
+    await requireFreeDestination(tx, access.serverId, target.path, moving);
+    const to = await placeArtifactPath(tx, access.serverId, target.path, moving);
     const depth = input.from.split('/').length;
     const from = first.path.split('/').slice(0, depth).join('/');
     // Each file keeps the segments below the moved folder; only the folder prefix changes.
     const rest = (column: typeof artifacts.path | typeof artifacts.pathKey) =>
         sql`array_to_string((string_to_array(${column}, '/'))[${sql.raw(String(depth + 1))}:], '/')`;
-    await tx
+    const landed = await tx
         .update(artifacts)
         .set({
             path: sql`${to} || '/' || ${rest(artifacts.path)}`,
             pathKey: sql`${artifactPathKey(to)} || '/' || ${rest(artifacts.pathKey)}`,
         })
-        .where(and(live(access.serverId), insideFolder(input.from)));
+        .where(and(live(access.serverId), insideFolder(input.from)))
+        .returning({ id: artifacts.id, path: artifacts.path });
+    const landedPaths = new Map(landed.map((row) => [row.id, row.path]));
+    await recordDriveChanges(
+        tx,
+        access.serverId,
+        movedChanges(
+            rows.map((row) => ({
+                from: row.path,
+                id: row.id,
+                revisionId: row.revisionId,
+                to: landedPaths.get(row.id) ?? row.path,
+            })),
+            { from: source.area, to: target.area }
+        )
+    );
     return { from, kind: 'folder', moved_count: rows.length, to };
+}
+
+/** Each published file leaves a delete at its old path and a put at its new one. */
+function movedChanges(
+    files: readonly { from: string; id: string; revisionId: string | null; to: string }[],
+    areas: { from: DriveAreaId; to: DriveAreaId }
+) {
+    const published = files.flatMap((file) =>
+        file.revisionId ? [{ ...file, revisionId: file.revisionId }] : []
+    );
+    return [
+        ...published.map((file): DriveChangeEntry => ({
+            area: areas.from,
+            artifactId: file.id,
+            change: 'delete',
+            path: file.from,
+        })),
+        ...published.map((file): DriveChangeEntry => ({
+            area: areas.to,
+            artifactId: file.id,
+            change: 'put',
+            path: file.to,
+            revisionId: file.revisionId,
+        })),
+    ];
 }
 
 /** The Server row lock that serializes every artifact insert, move, and delete. */
@@ -128,25 +184,25 @@ export async function lockLiveServer(tx: HausDatabase, serverId: string) {
 async function requireFreeDestination(
     tx: HausDatabase,
     serverId: string,
-    input: Pick<ArtifactMoveInput, 'to'>,
+    to: string,
     moving: string[]
 ) {
     const others = and(live(serverId), notInArray(artifacts.id, moving));
     const [taken] = await tx
         .select({ path: artifacts.path })
         .from(artifacts)
-        .where(and(others, eq(artifacts.pathKey, artifactPathKey(input.to))))
+        .where(and(others, eq(artifacts.pathKey, artifactPathKey(to))))
         .limit(1);
     const [occupied] = taken
         ? [taken]
         : await tx
               .select({ path: artifacts.path })
               .from(artifacts)
-              .where(and(others, insideFolder(input.to)))
+              .where(and(others, insideFolder(to)))
               .limit(1);
     if (occupied) {
         throw new ArtifactError(
-            `\`${input.to}\` is taken (\`${occupied.path}\` lives there).`,
+            `\`${to}\` is taken (\`${occupied.path}\` lives there).`,
             409,
             'PATH_TAKEN'
         );

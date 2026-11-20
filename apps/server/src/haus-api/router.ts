@@ -13,12 +13,14 @@ import { cloudAgentWorkRouter } from './cloud-agent-work/router.ts';
 import { computerSecretsRouter } from './computer-secrets/router.ts';
 import { computerRouter } from './computer/router.ts';
 import { devRouter } from './dev/router.ts';
+import { driveRouter } from './drive/router.ts';
 import { githubRouter } from './github/router.ts';
 import { imageGenerationSettingsRouter } from './image-generation-settings/router.ts';
 import { imageGenerationRouter } from './image-generation/router.ts';
 import { invitationRouter } from './invitation/router.ts';
 import { mcpRouter } from './mcp/router.ts';
 import { memberRouter } from './member/router.ts';
+import { projectRouter } from './project/router.ts';
 import { pushRouter } from './push/router.ts';
 import { reminderRouter } from './reminder/router.ts';
 import { serverRouter } from './server/router.ts';
@@ -48,12 +50,14 @@ export const hausRouter = createRouter({
     computer: computerRouter,
     computerSecrets: computerSecretsRouter,
     dev: devRouter,
+    drive: driveRouter,
     github: githubRouter,
     imageGeneration: imageGenerationRouter,
     imageGenerationSettings: imageGenerationSettingsRouter,
     invitation: invitationRouter,
     member: memberRouter,
     mcp: mcpRouter,
+    project: projectRouter,
     push: pushRouter,
     reminder: reminderRouter,
     server: serverRouter,

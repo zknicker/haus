@@ -17,6 +17,7 @@ import {
     usersTable,
 } from '../src/postgres/schema.ts';
 import { appendServerAgentActivity } from '../src/server-agents/agent-activity.ts';
+import { testAgentHome } from './agent-home.ts';
 
 /**
  * One Agent, one Computer, one Channel message that Agent claimed: the exact
@@ -86,6 +87,7 @@ export async function seedBackgroundClaim(db: HausDatabase): Promise<BackgroundC
         handle: `ada-${randomBytes(4).toString('hex')}`,
         homeTimezone: 'UTC',
         id: agentId,
+        homeProjectId: await testAgentHome(db, serverId),
         serverId,
     });
     await db.insert(chatsTable).values({ id: chatId, kind: 'channel', name: 'dispatch', serverId });
@@ -218,6 +220,7 @@ export async function seedPeerAgent(db: HausDatabase, claim: BackgroundClaim) {
         handle: `tiny-${randomBytes(4).toString('hex')}`,
         homeTimezone: 'UTC',
         id: agentId,
+        homeProjectId: await testAgentHome(db, claim.serverId),
         serverId: claim.serverId,
     });
     return agentId;

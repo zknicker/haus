@@ -1,16 +1,13 @@
 import { expect, test } from 'bun:test';
+import { subagentWakeTurnLine } from '@haus/agent-prompt';
 import { parseStartCommand, parseStopBackgroundCommand } from '../agent-command-frames.ts';
-import {
-    composeTurnPrompt,
-    subagentWakeTurnLine,
-    type TurnDelivery,
-    turnDeliveryOf,
-} from './turn-prompt.ts';
+import { composeTurnPrompt, type TurnDelivery, turnDeliveryOf } from './turn-prompt.ts';
 
 const subagentWake = { createdAt: '2026-10-21T10:00:00.000Z', id: 'subagent:agt_test:wake_1' };
 
 const wakeFrame = {
     agentId: 'agt_test',
+    agentName: 'tester',
     chatId: null,
     drainItemIds: [],
     inbox: [],

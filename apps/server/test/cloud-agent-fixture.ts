@@ -6,6 +6,7 @@ import { cloudAgentComputerFixture } from './cloud-agent-computer-fixture.ts';
 import { cloudAgentFixtureReads } from './cloud-agent-fixture-reads.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { createTestProject } from './project.fixture.ts';
 import { startTestTask, type TestTask } from './task-place-fixture.ts';
 
 export function cloudAgentFixture() {
@@ -68,7 +69,7 @@ export function cloudAgentFixture() {
             })
         ).agent.id;
         channelId = (
-            await owner.trpc.chat.createChannel.mutate({
+            await createTestProject(harness, owner, {
                 agentIds: [orbitAgentId],
                 name: 'product',
                 serverId,

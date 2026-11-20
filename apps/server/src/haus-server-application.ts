@@ -3,6 +3,7 @@ import { settle, tracePromise } from '@haus/effect';
 import { Exit, Scope } from 'effect';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { AgentDelivery } from './agent-delivery/delivery.ts';
+import { agentLoopWiring } from './agent-delivery/loop-host.ts';
 import { openArtifactStorage } from './artifacts/startup.ts';
 import { openAttachmentRoot } from './attachments/attachment-root.ts';
 import { reconcileAttachments } from './attachments/reconcile-attachments.ts';
@@ -36,6 +37,8 @@ import { isAllowedAppOrigin } from './origin.ts';
 import { connectHausDatabase } from './postgres/connection.ts';
 import { startServerRecurringWork } from './recurring-work.ts';
 import { tickReminders } from './reminders/scheduler.ts';
+import { RunnerLink } from './runner/runner-link.ts';
+import { startRunnerSocket } from './runner/socket.ts';
 import { startMcpConnectionIconRepair } from './server-mcp/icon-repair.ts';
 import { makeMcpIconResolver } from './server-mcp/icons.ts';
 import { McpOAuthRelay } from './server-mcp/oauth-relay.ts';
@@ -89,7 +92,13 @@ export async function createHausServerApplication(
             ? await ensureDevelopmentAuthUser(connectedHaus.db)
             : null;
         const computerConnections = new ComputerConnections(runtime);
-        const agentDelivery = new AgentDelivery(connectedHaus.db, computerConnections, runtime);
+        const runnerLink = new RunnerLink();
+        const agentDelivery = new AgentDelivery(
+            connectedHaus.db,
+            computerConnections,
+            runtime,
+            agentLoopWiring(options.agentLoop, runnerLink)
+        );
         const startedPostCommitWork = new ServerPostCommitWork(runtime);
         handles.postCommitWork = startedPostCommitWork;
         const avatarImageService = new AvatarImageService(
@@ -202,6 +211,11 @@ export async function createHausServerApplication(
             options.computerSocketLiveness
         );
         handles.computerSocket = startedComputerSocket;
+        handles.runnerSocket = startRunnerSocket(startedApp.server, runnerLink, options, {
+            db: connectedHaus.db,
+            delivery: agentDelivery,
+            postCommitWork: startedPostCommitWork,
+        });
         const reminderClock = options.reminderClock ?? { now: () => new Date() };
         await startServerSweeps(runtime, scope, shutdown, {
             agentDelivery,
