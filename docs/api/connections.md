@@ -275,7 +275,7 @@ One icon serving both themes is stored in `light` alone and the App falls back t
 connection never carries the same bytes twice on a query that returns every row inline.
 
 Legacy curated presets retain their bundled marks (`mcpPresetIcons` in `@haus/api`).
-Handmade, Cloudflare, MerchBase Atlas, and Fulfillment own their icons upstream. Recommended, preset creation,
+Handmade, Cloudflare, MerchBase Atlas, and Fulfillment own their icons upstream. The Explore connections catalog, preset creation,
 the startup repair, and authenticated discovery share the Server's connection-branding resolver.
 Preset fallback discovery prefers the homepage's advertised icon links over `/favicon.ico`,
 regardless of sign-in state, so publisher-owned versioned assets replace cached legacy favicons.
@@ -291,8 +291,8 @@ and never fetches. Preset creation stores branding before sign-in. Icons refresh
 tool refresh. Preset connections stored with a missing
 or malformed icon, and no bundled mark, recover through a bounded background repair after Server
 startup, which stores each resolved icon and announces `mcp.onUpdated` for its Server.
-`mcp.presetIcons` (the Recommended catalog) still resolves on read behind that cache; the App
-loads it in its own unbatched request beside the list, so the list never waits on it, and falls
+`mcp.presetIcons` (the Explore connections catalog) still resolves on read behind that cache; the App
+loads it in its own unbatched request when the catalog opens, so the list never waits on it, and falls
 back to bundled marks or monograms until it arrives.
 
 ## Connection Summary

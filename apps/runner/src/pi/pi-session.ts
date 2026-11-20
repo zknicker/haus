@@ -11,11 +11,13 @@ import {
 } from '@earendil-works/pi-durable';
 import { RuntimeResumeRejectedError } from '../turn/resume-rejected.ts';
 import type { RuntimeSession, SteerResult } from '../turn/runtime-driver.ts';
+import { HostedSearchLog, withHostedSearch } from './pi-hosted-search.ts';
 import type { PiToolFamily } from './pi-models.ts';
 import { hausSection } from './pi-prompt.ts';
 import { openPiStorage } from './pi-storage.ts';
 import { PiToolBinding, piTools } from './pi-tools.ts';
 import { PiTurn } from './pi-turn.ts';
+import type { WebSearchRoute } from './pi-web-search.ts';
 
 const context = BACKGROUND_CONTEXT;
 
@@ -33,26 +35,29 @@ export async function openPiSessionHandle(input: {
     models: Models;
     nativeSessionId: string;
     resume: boolean;
+    search: WebSearchRoute;
 }) {
     const storage = await openPiStorage(input.agentDir, {
         nativeSessionId: input.nativeSessionId,
         resume: input.resume,
     });
     const binding = new PiToolBinding();
+    const searches = new HostedSearchLog();
     const prompt = { instructions: '' };
     const registry = createRegistry();
     registry.install(
         defineExtension({
             name: 'haus',
             sections: [hausSection(() => prompt.instructions)],
-            tools: piTools(input.family, binding),
+            tools: piTools(input.family, input.search, binding),
         })
     );
     const harness = await Harness.open(
         storage,
         {
             identity: { attribution: null },
-            models: input.models,
+            models:
+                input.search === 'hosted' ? withHostedSearch(input.models, searches) : input.models,
             onReport: (report) => input.log(reportLine(input.nativeSessionId, report)),
             registry,
             settings: piSettings,
@@ -90,6 +95,7 @@ export async function openPiSessionHandle(input: {
             launchKey: input.launchKey,
             prompt,
             root,
+            searches,
             sessionId: input.nativeSessionId,
         };
     } catch (error) {
@@ -113,7 +119,7 @@ export function piSession(deps: {
     };
     const release = () => {
         released = true;
-        handle.binding.bind(null);
+        handle.binding.bind(null, null);
     };
     const session: RuntimeSession = {
         async destroy() {
@@ -143,6 +149,7 @@ export function piSession(deps: {
                     invocations: handle.binding.invocations,
                     newId: deps.newId,
                     root: handle.root,
+                    searches: handle.searches,
                     signal,
                 },
                 prompt

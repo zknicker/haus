@@ -210,7 +210,9 @@ an address the container reaches through `host.docker.internal`. `HAUS_RUNNER_SE
 overrides the default `http://host.docker.internal:18791`.
 
 The container starts as root with `CAP_NET_ADMIN`. Its entrypoint installs OUTPUT rules that
-deny PostgreSQL ports 5432 and 5438 and the RFC 1918, link-local, and CGNAT ranges, except the one
+deny PostgreSQL ports 5432 and 5438, the RFC 1918, link-local, and CGNAT ranges, and on IPv6 the
+unique local, link-local, site-local, local-use NAT64 (`64:ff9b:1::/48`), and IPv4-translated
+(`::ffff:0:0:0/96`) ranges, except the one
 Server `host:port` taken from `HAUS_SERVER_URL`. It then drops to the unprivileged `haus-runner`
 user with no capabilities and no new privileges. The entrypoint resolves the Server host once at
 start, so restart the container after the host address changes.

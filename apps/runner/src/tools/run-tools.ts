@@ -11,6 +11,7 @@ import type { RunAuthority, RunnerLink, RunTools, ToolOutcome } from '../run-con
 import { editorCommandOf, refusedInput } from './editor-command.ts';
 import { runExecute } from './execute-tool.ts';
 import { createMcpClient } from './mcp-client.ts';
+import { editOutcome } from './pdf-view.ts';
 import { shellCommandOf } from './shell-command.ts';
 
 export type RunToolset = ReturnType<typeof createRunTools>;
@@ -97,12 +98,14 @@ export function createRunTools(input: {
             if (command.kind === 'refused') {
                 return command.outcome;
             }
-            return invocationToolOutcome(
+            return await editOutcome(
                 await invocations.invoke(
                     toolCallId,
                     { edit: command.command, kind: 'edit' },
                     { signal }
-                )
+                ),
+                command.command,
+                signal
             );
         },
         async execute(toolCallId, execute, signal) {

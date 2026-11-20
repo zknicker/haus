@@ -1,0 +1,83 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R 6 0 R 8 0 R] /Count 3 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> /XObject << /Im1 10 0 R >> >> /Contents 5 0 R >>
+endobj
+5 0 obj
+<< /Length 138 >>
+stream
+BT /F1 18 Tf 72 720 Td (Quarterly report: amber otter 417) Tj ET
+BT /F1 12 Tf 72 690 Td (Revenue grew in every region this quarter.) Tj ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> /XObject << /Im1 10 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 30 >>
+stream
+q 612 0 0 792 0 0 cm /Im1 Do Q
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> /XObject << /Im1 10 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 483 >>
+stream
+BT /F1 16 Tf 72 720 Td (Figure 1: copper heron sales by month) Tj ET
+0.2 0.4 0.8 rg
+100 300 24 40 re f
+134 300 24 77 re f
+168 300 24 114 re f
+202 300 24 151 re f
+236 300 24 188 re f
+270 300 24 225 re f
+304 300 24 62 re f
+338 300 24 99 re f
+372 300 24 136 re f
+406 300 24 173 re f
+440 300 24 210 re f
+474 300 24 47 re f
+0 0 0 RG 0.5 w
+90 300 m 520 300 l S
+90 340 m 520 340 l S
+90 380 m 520 380 l S
+90 420 m 520 420 l S
+90 460 m 520 460 l S
+90 500 m 520 500 l S
+1 w 90 300 m 90 560 l S
+endstream
+endobj
+10 0 obj
+<< /Type /XObject /Subtype /Image /Width 16 /Height 16 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /ASCIIHexDecode /Length 513 >>
+stream
+30303030d0d0d0d030303030d0d0d0d030303030d0d0d0d030303030d0d0d0d030303030d0d0d0d030303030d0d0d0d030303030d0d0d0d030303030d0d0d0d0d0d0d0d030303030d0d0d0d030303030d0d0d0d030303030d0d0d0d030303030d0d0d0d030303030d0d0d0d030303030d0d0d0d030303030d0d0d0d03030303030303030d0d0d0d030303030d0d0d0d030303030d0d0d0d030303030d0d0d0d030303030d0d0d0d030303030d0d0d0d030303030d0d0d0d030303030d0d0d0d0d0d0d0d030303030d0d0d0d030303030d0d0d0d030303030d0d0d0d030303030d0d0d0d030303030d0d0d0d030303030d0d0d0d030303030d0d0d0d030303030>
+endstream
+endobj
+xref
+0 11
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000127 00000 n 
+0000000197 00000 n 
+0000000350 00000 n 
+0000000539 00000 n 
+0000000692 00000 n 
+0000000772 00000 n 
+0000000925 00000 n 
+0000001459 00000 n 
+trailer
+<< /Size 11 /Root 1 0 R >>
+startxref
+2144
+%%EOF
