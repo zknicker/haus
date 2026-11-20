@@ -16,10 +16,7 @@ export async function resolveRedirects(
     const settled = await Promise.allSettled(
         unique.map(async (url) => {
             const timeout = new AbortController();
-            const timer = setTimeout(
-                () => timeout.abort(),
-                options.timeoutMs ?? redirectTimeoutMs
-            );
+            const timer = setTimeout(() => timeout.abort(), options.timeoutMs ?? redirectTimeoutMs);
             try {
                 const response = await fetch(url, {
                     method: 'HEAD',
