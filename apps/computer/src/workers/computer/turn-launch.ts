@@ -55,6 +55,11 @@ export async function launchComputerTurn(
         return;
     }
     if (minted.state === 'refused') {
+        const resent = minted.reason === 'stale-attempt' ? await context.journal.turn(ref) : null;
+        if (resent?.phase === 'accepted' && resent.attempt > frame.attempt) {
+            await launchComputerTurn(context, resent.frame, active);
+            return;
+        }
         await endBeforeLaunch(context, ref, {
             branch: frame.checkout.branch,
             detail: minted.reason,
@@ -64,6 +69,7 @@ export async function launchComputerTurn(
     }
     await context.journal.advance(ref, (turn) => ({
         ...sharedOf(turn),
+        attempt: frame.attempt,
         frame,
         phase: 'credentialed',
         token: minted.token,

@@ -10,7 +10,7 @@ import { createFakeCloudAgentProvider } from './fake-provider.ts';
 import type { CloudAgentProvider } from './provider.ts';
 import { WorkerTurnJournal } from './turn-journal.ts';
 import { WorkerSupervisor } from './work-runner.ts';
-import { computerPlace } from './worker-supervisor.fixture.ts';
+import { computerServer } from './worker-supervisor.fixture.ts';
 
 const turn = {
     place: { kind: 'cursor' as const },
@@ -42,7 +42,7 @@ async function fixture(provider: CloudAgentProvider) {
     const dataRoot = await mkdtemp(join(tmpdir(), 'haus-cloud-interrupt-'));
     const runtime = makeTestRuntime();
     const work = new WorkerSupervisor(runtime, {
-        computer: computerPlace,
+        server: computerServer,
         dataRoot,
         serverId: 'srv_cloud',
         provider: () => provider,

@@ -20,7 +20,7 @@ export function addWorkerWorktree(request: WorktreeRequest) {
         }
         await rm(checkout, { force: true, recursive: true });
         await runGit(['worktree', 'prune'], { action: 'prune worktrees', cwd: repoPath, signal });
-        await runGit(['fetch', '--prune', 'origin'], {
+        await runGit(['fetch', 'origin'], {
             action: 'fetch origin',
             cwd: repoPath,
             signal,

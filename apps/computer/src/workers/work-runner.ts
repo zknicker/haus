@@ -9,7 +9,8 @@ import {
 import { settle } from '@haus/effect';
 import { Deferred, Effect, Exit, Scope } from 'effect';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
-import { type ComputerPlaceOptions, ComputerWorkerPlace } from './computer/computer-place.ts';
+import { ComputerWorkerPlace } from './computer/computer-place.ts';
+import type { WorkerServer } from './computer/credentials.ts';
 import { withPullRequestEvidence } from './github/observation-evidence.ts';
 import { createPullRequestReader } from './github/pull-request-reader.ts';
 import { WorkerLaunchScope } from './launch-scope.ts';
@@ -42,7 +43,7 @@ export class WorkerSupervisor {
     constructor(
         private readonly runtime: DaemonRuntime,
         options: {
-            computer: Omit<ComputerPlaceOptions, 'dataRoot' | 'reader' | 'serverId'>;
+            server: WorkerServer;
             dataRoot: string;
             serverId: string;
             provider?: (id: CloudAgentProviderId) => CloudAgentProvider;
@@ -57,9 +58,9 @@ export class WorkerSupervisor {
         this.launches = new WorkerLaunchScope(runtime);
         const reader = createPullRequestReader({ runtime });
         this.computer = new ComputerWorkerPlace({
-            ...options.computer,
             dataRoot: options.dataRoot,
             reader,
+            server: options.server,
             serverId: options.serverId,
         });
         const enrich: EnrichObservation =
@@ -80,7 +81,7 @@ export class WorkerSupervisor {
         }
         this.connection = { runs: new Map(), scope: this.runtime.runSync(Scope.make()), send };
         this.computer.attach(send);
-        this.launches.run(() => this.computer.connected()).catch(logComputerFailure);
+        void this.launches.run(() => this.computer.connected());
     }
 
     detach(): Promise<void> {
@@ -210,11 +211,4 @@ function cloudTurnRefOf(entry: WorkerStopCommand | WorkerReconcileEntry): Worker
         turnId: entry.turnId,
         workerId: entry.workerId,
     };
-}
-
-function logComputerFailure(cause: unknown) {
-    console.error('Worker recovery did not finish.', {
-        cause: cause instanceof Error ? cause.message : String(cause),
-        operation: 'worker.computer-connect',
-    });
 }

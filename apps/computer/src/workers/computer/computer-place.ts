@@ -56,7 +56,11 @@ export class ComputerWorkerPlace {
     }
 
     async connected() {
-        for (const { ref, turn } of await this.journal.unended()) {
+        const unended = await this.journal.unended().catch((cause: unknown) => {
+            logFailure('worker.computer-recovery', null, cause);
+            return [];
+        });
+        for (const { ref, turn } of unended) {
             if (!this.active.has(ref.turnId)) {
                 await this.recover(ref, turn).catch((cause: unknown) =>
                     logFailure('worker.computer-recovery', ref, cause)
@@ -218,11 +222,11 @@ function refOf(frame: WorkerTurnStartFrame) {
     return { turnId: frame.turnId, workerId: frame.workerId };
 }
 
-function logFailure(operation: string, ref: ComputerTurnRef, cause: unknown) {
+function logFailure(operation: string, ref: ComputerTurnRef | null, cause: unknown) {
     console.error('Worker turn did not finish.', {
         cause: cause instanceof Error ? cause.message : String(cause),
         operation,
-        turnId: ref.turnId,
-        workerId: ref.workerId,
+        turnId: ref?.turnId ?? null,
+        workerId: ref?.workerId ?? null,
     });
 }

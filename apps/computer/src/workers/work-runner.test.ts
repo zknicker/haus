@@ -9,7 +9,7 @@ import { createFakeCloudAgentProvider } from './fake-provider.ts';
 import type { EnrichObservation } from './observation-reports.ts';
 import { WorkerTurnJournal } from './turn-journal.ts';
 import { WorkerSupervisor } from './work-runner.ts';
-import { computerPlace } from './worker-supervisor.fixture.ts';
+import { computerServer } from './worker-supervisor.fixture.ts';
 
 const entry = {
     place: { kind: 'cursor' as const },
@@ -35,7 +35,7 @@ async function fixture(enrich?: EnrichObservation) {
     provider.read = () =>
         Promise.resolve({ observedAt: new Date(0).toISOString(), status: 'running' });
     const work = new WorkerSupervisor(runtime, {
-        computer: computerPlace,
+        server: computerServer,
         dataRoot,
         serverId: 'srv_cloud',
         provider: () => provider,

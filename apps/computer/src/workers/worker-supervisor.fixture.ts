@@ -11,8 +11,9 @@ import { WorkerSupervisor } from './work-runner.ts';
 
 export const serverId = 'srv_cloud';
 export const workerId = 'wkr_1234567890abcdef';
-export const computerPlace = {
-    server: { credential: 'computer-credential', serverOrigin: 'http://127.0.0.1:9' },
+export const computerServer = {
+    credential: 'computer-credential',
+    serverOrigin: 'http://127.0.0.1:9',
 };
 
 export function turnStartFrame(overrides: Partial<WorkerTurnStartFrame> = {}) {
@@ -78,7 +79,7 @@ export function registerSupervisorFixture() {
         });
         const start = () => {
             const work = new WorkerSupervisor(runtime, {
-                computer: computerPlace,
+                server: computerServer,
                 dataRoot,
                 enrich: async (observation) => observation,
                 provider: () => provider,

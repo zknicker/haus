@@ -407,10 +407,7 @@ async function main(args: string[]) {
         process.exitCode = await withDaemonRuntime(
             async (runtime) => {
                 const partition = { dataRoot, serverId: attachment.serverId };
-                const workers = new WorkerSupervisor(runtime, {
-                    ...partition,
-                    computer: { server: attachment },
-                });
+                const workers = new WorkerSupervisor(runtime, { ...partition, server: attachment });
                 const daemonWork = new AttachmentDaemonWork(runtime, workers, partition);
                 return withAttachmentShutdown(daemonWork, runtime, partition, () =>
                     runAttachmentDaemon(runtime, {
