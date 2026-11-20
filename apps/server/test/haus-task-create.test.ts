@@ -113,9 +113,9 @@ test('a Project with home Agents refuses archive and delete with PROJECT_HAS_AGE
 test('the Haus project’s channel cannot be renamed', async () => {
     const { owner, serverId } = fixture;
     await expect(
-        owner.trpc.project.update.mutate({ chatId: hausId, name: 'lobby', serverId })
+        owner.trpc.chat.updateAllChannel.mutate({ chatId: hausId, name: 'lobby', serverId })
     ).rejects.toEqual(refusedWith('PROJECT_NAME_FIXED'));
-    const renamedDescription = await owner.trpc.project.update.mutate({
+    const renamedDescription = await owner.trpc.chat.updateAllChannel.mutate({
         chatId: hausId,
         description: 'Everyone',
         name: 'all',

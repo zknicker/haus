@@ -8,7 +8,7 @@ import { ChannelDialogError } from './channel-dialog-error.tsx';
 
 /** A channel's icon and color, with the catalog open in the dialog itself. */
 export function ChannelAppearanceDialog({ chat, onClose }: { chat: Chat; onClose: () => void }) {
-    const updateChannel = useChannelUpdate();
+    const updateChannel = useChannelUpdate(chat);
     const [appearance, setAppearance] = React.useState<ChannelAppearance>({
         color: chat.color,
         icon: chat.icon,

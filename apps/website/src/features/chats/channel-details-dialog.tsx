@@ -16,7 +16,7 @@ import { ChannelDialogError } from './channel-dialog-error.tsx';
 import { channelHandleIssue } from './channel-handle.ts';
 
 export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: () => void }) {
-    const updateChannel = useChannelUpdate();
+    const updateChannel = useChannelUpdate(chat);
     const currentName = chat.name ?? '';
     const currentDescription = chat.description ?? '';
     const [name, setName] = React.useState(currentName);

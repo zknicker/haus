@@ -55,7 +55,7 @@ test('humans set, trim, clear, and keep a channel description', async () => {
     ).rejects.toThrow();
 
     const all = await allChannel();
-    const allEdited = await fixture.owner.trpc.project.update.mutate({
+    const allEdited = await fixture.owner.trpc.chat.updateAllChannel.mutate({
         chatId: all.id,
         description: allChannelDescription,
         serverId: fixture.serverId,
