@@ -122,7 +122,12 @@ test('a Worker whose carrier was removed refuses follow-ups from its Agent and f
     const fromPerson = sendPersonFollowUp(
         connection.db,
         member,
-        { nonce: 'card-after-removal', serverId: board.seed.serverId, text: 'Keep going.', workerId },
+        {
+            nonce: 'card-after-removal',
+            serverId: board.seed.serverId,
+            text: 'Keep going.',
+            workerId,
+        },
         delivery
     );
 

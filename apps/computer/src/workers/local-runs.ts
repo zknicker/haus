@@ -126,7 +126,8 @@ export class WorkerLocalRuns {
                         : {
                               errorCode: workerNotJournaledErrorCode,
                               phase: 'rejected',
-                              summary: 'This Computer never accepted the turn, so it never reached the provider.',
+                              summary:
+                                  'This Computer never accepted the turn, so it never reached the provider.',
                               workerId: run.ref.workerId,
                           }
                 )

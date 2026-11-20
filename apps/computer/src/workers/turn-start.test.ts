@@ -144,7 +144,9 @@ test('a reconciled turn never journaled here fails as never journaled, and its l
     await daemon.work.accept(frame);
     await daemon.work.close();
     expect(
-        daemon.observations().map(({ errorCode, status, turnId }) => ({ errorCode, status, turnId }))
+        daemon
+            .observations()
+            .map(({ errorCode, status, turnId }) => ({ errorCode, status, turnId }))
     ).toEqual([{ errorCode: 'turn-not-journaled', status: 'failed', turnId: frame.turnId }]);
     expect((await f.journal.read(serverId, turnRef(frame)))?.phase).toBe('rejected');
     expect(f.provider.launches).toEqual([]);
