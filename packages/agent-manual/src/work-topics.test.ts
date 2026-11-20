@@ -77,14 +77,20 @@ test('no Manual topic teaches boards, columns, pickup-note threads, or work thre
     }
 });
 
-test('a Worker launches on a Task and wakes the Agent there', () => {
+test('a Worker starts on a Task with a place, and reports there', () => {
     const body = getManualTopic('workers')?.body ?? '';
-    expect(body).toContain('`haus worker start --task <KEY-n>');
+    expect(body).toContain('`haus worker start --task <KEY-n> --on <cursor|claude>');
     expect(body).toContain('`WORKER_TASK_REQUIRED`');
+    expect(body).toContain('`WORKER_PLACE_REQUIRED`');
+    expect(body).toContain('Starting posts nothing');
+    expect(body).toContain('reaches you as a `worker_report` inbox item');
+    expect(body).toContain('A working turn is never steered');
     expect(body).toContain(
-        'When its pull request later becomes ready for review, or its checks pass or fail, another attention says what changed and gives the URL.'
+        'When a pull request a Worker reported later becomes ready for review, or its checks pass or fail, another attention says what changed and gives the URL.'
     );
-    expect(body).not.toContain('You do not need to set a reminder or poll');
+    for (const retired of ['--say', '--cause', 'Link:', 'cancel', '--run', 'mid-turn']) {
+        expect(body).not.toContain(retired);
+    }
 });
 
 test('work split for other Agents is sibling Tasks; a claim stays inside the conversation', () => {
