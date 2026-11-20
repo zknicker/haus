@@ -76,6 +76,13 @@ test('a deploy builds the runner from the release tree before activation and rol
     const proof = named('Prove the runner reaches only the Server')?.run ?? '';
     expect(proof).toContain('docker exec -u haus-runner haus-runner');
     expect(proof).toContain('/app/apps/runner/container/prove-network-deny.sh');
+    const prune = named('Prune old runner images')?.run ?? '';
+    expect(names.indexOf('Prove the runner reaches only the Server')).toBeLessThan(
+        names.indexOf('Prune old runner images')
+    );
+    expect(prune).toContain('HAUS_RUNNER_PREVIOUS_IMAGE');
+    expect(prune).toContain('docker image rm');
+    expect(prune).toContain('::warning::');
     expect(names.at(-1)).toBe('Roll the Agent runner back');
     expect(rollback?.if).toBe("failure() && env.HAUS_RUNNER_REPLACED == 'true'");
     expect(rollback?.run).toContain('docker rm -f haus-runner');

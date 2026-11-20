@@ -207,7 +207,8 @@ recreates the container from that image under `varlock run` like the database. B
 bunx varlock@1.16.1 run -- docker compose -f apps/server/compose.yml -p haus --profile runner up -d --build --force-recreate --wait haus-runner
 ```
 
-The image tag comes from `HAUS_RUNNER_IMAGE_TAG` and defaults to `local` for a hand build.
+The image tag comes from `HAUS_RUNNER_IMAGE_TAG` and defaults to `local` for a hand build. After a proven start the workflow removes every other `haus-runner:<sha>` image except the
+previous one, which stays as the rollback target.
 
 The token comes from the `Agent Runner - Haus` Production item. Model logins are not in the
 container's environment: the runner reads them from the Server's connections (Settings → Models).

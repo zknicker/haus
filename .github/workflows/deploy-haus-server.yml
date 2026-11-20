@@ -354,6 +354,24 @@ jobs:
           docker exec -u haus-runner haus-runner \
             /app/apps/runner/container/prove-network-deny.sh
 
+      # Keeps the running image and the one before it, the rollback target, so
+      # the host disk does not fill. A removal that fails only warns: the new
+      # runner is already proven, and a failed step here would roll it back.
+      - name: Prune old runner images
+        if: env.HAUS_RUNNER_SOURCE != ''
+        run: |
+          set -euo pipefail
+          current_image="haus-runner:${HAUS_SOURCE_REVISION}"
+          docker image ls --format '{{.Repository}}:{{.Tag}}' haus-runner |
+            while read -r image; do
+              if [[ "${image}" == "${current_image}" || "${image}" == "${HAUS_RUNNER_PREVIOUS_IMAGE}" || "${image}" == *"<none>" ]]; then
+                continue
+              fi
+              if ! docker image rm "${image}"; then
+                echo "::warning::Could not remove runner image ${image}."
+              fi
+            done
+
       # A runner that fails to start or fails its deny proof never keeps
       # running. The previous runner image comes back when there was one; the
       # Server stays on the new release, which does not depend on the runner
