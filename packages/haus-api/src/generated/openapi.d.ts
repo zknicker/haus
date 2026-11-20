@@ -649,7 +649,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Assign one claim to an Agent member of its Chat without changing its status. */
+        /** Assign one claim to an active Agent, in a DM only that DM's Agent, without changing its status. */
         post: operations["assignAgentClaim"];
         delete?: never;
         options?: never;
@@ -1637,7 +1637,7 @@ export interface components {
             claim: components["schemas"]["AgentClaimRow"];
         };
         AgentClaimCreateRequest: {
-            /** @description @handle of an Agent member of the target Chat. */
+            /** @description @handle of an active Agent; in a DM, only that DM's Agent. */
             assignee?: string;
             content?: string;
             nonce: string;
@@ -1654,7 +1654,7 @@ export interface components {
             target: string;
         };
         AgentClaimAssignRequest: {
-            /** @description @handle of an Agent member of the claim's Chat. Humans are never assignees; human, missing, retired, and out-of-Chat handles share one not-assignable refusal. */
+            /** @description @handle of an active Agent; in a DM, only that DM's Agent. Humans are never assignees; human, missing, retired, and other-Agent-in-a-DM handles share one not-assignable refusal. */
             assignee: string;
             /** @description Apply only if the claim is still at this revision. */
             expectedRevision?: number;

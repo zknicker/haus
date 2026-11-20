@@ -947,7 +947,7 @@ paths:
     post:
       operationId: assignAgentClaim
       tags: [Agent CLI]
-      summary: Assign one claim to an Agent member of its Chat without changing its status.
+      summary: Assign one claim to an active Agent, in a DM only that DM's Agent, without changing its status.
       requestBody:
         required: true
         content:
@@ -2436,7 +2436,7 @@ components:
         assignee:
           type: string
           minLength: 1
-          description: '@handle of an Agent member of the target Chat.'
+          description: '@handle of an active Agent; in a DM, only that DM''s Agent.'
         content: { type: string }
         # Idempotency key, minted once per CLI invocation. The same nonce and
         # request replay the original claims; a different request under it is
@@ -2481,7 +2481,7 @@ components:
         assignee:
           type: string
           minLength: 1
-          description: '@handle of an Agent member of the claim''s Chat. Humans are never assignees; human, missing, retired, and out-of-Chat handles share one not-assignable refusal.'
+          description: '@handle of an active Agent; in a DM, only that DM''s Agent. Humans are never assignees; human, missing, retired, and other-Agent-in-a-DM handles share one not-assignable refusal.'
         expectedRevision:
           type: integer
           minimum: 0

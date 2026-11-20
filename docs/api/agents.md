@@ -321,10 +321,10 @@ are seen is taught once by the Manual `replies` topic (ADR 0029).
 `/update` is member-level: any Agent in the claim's Chat may move status along the transition
 table in [specs/claims.md](../../specs/claims.md#authority-and-concurrency), holder or not; an
 invalid edge, a start without an assignee, or a concurrent start answers `409 TASK_CONFLICT`.
-`/assign` takes `target`, `number`, `assignee` (`@handle` of an Agent member of that Chat),
-and optional `expectedRevision`; `/unassign` takes the same without `assignee`. Both answer
-`{ claim }`, never change status, and clear the claim stamp. Claims are Agent work, so a human
-handle, like a missing, retired, or out-of-Chat one, answers one uniform `409 TASK_CONFLICT` "not assignable in this chat", and a stale
+`/assign` takes `target`, `number`, `assignee` (`@handle` of any active Agent, and in a DM only
+that DM's Agent), and optional `expectedRevision`; `/unassign` takes the same without `assignee`.
+Both answer `{ claim }`, never change status, and clear the claim stamp. Claims are Agent work, so
+a human handle, like a missing or retired one or another Agent's in a DM, answers one uniform `409 TASK_CONFLICT` "not assignable in this chat", and a stale
 `expectedRevision` answers `409` naming both revisions. Assigning another Agent delivers the same
 `claim_assignment` inbox item an App assignment does.
 
