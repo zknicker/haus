@@ -8,6 +8,7 @@ import { useModelConnectionEdits } from '../../../../hooks/servers/use-model-con
 import { UsageMeter } from '../../../usage/detected-runtime-usage.tsx';
 import { SettingsRowTitle } from '../../layout/settings-row-title.tsx';
 import { SettingsFact, SettingsRowError } from '../../layout/settings-text.tsx';
+import { ModelAccountMark } from './model-account-mark.tsx';
 import {
     type ConnectionAction,
     connectionActionLabels,
@@ -51,6 +52,7 @@ export function ModelConnectionRow({
 
     return (
         <ItemCard>
+            <ModelAccountMark account={connection.provider} />
             <ItemCard.Content>
                 <SettingsRowTitle info={connectionInfo(connection)}>
                     {connection.label}
