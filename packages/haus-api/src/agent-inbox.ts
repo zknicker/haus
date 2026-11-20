@@ -1,61 +1,63 @@
 import * as z from 'zod';
 import { chatMessageReplySchema, idSchema } from './chat.ts';
 import { messageClaimSchema } from './claim-shared.ts';
-import {
-    cloudAgentBranchSchema,
-    cloudAgentProviderSchema,
-    cloudAgentStatusSchema,
-    cloudAgentSummaryMaxLength,
-    cloudAgentTitleSchema,
-} from './cloud-agent-shared.ts';
-import { cloudAgentStallCodeSchema } from './cloud-agent-stall.ts';
 import { driveConflictFileSchema } from './drive.ts';
 import { humanTimezoneSchema } from './membership.ts';
+import { workerPlaceSchema } from './worker-outcome.ts';
+import { workerReportAttentionSchema } from './worker-report-attention.ts';
+import {
+    workerBranchSchema,
+    workerTurnStatusSchema,
+    workerSummaryMaxLength,
+    workerTitleSchema,
+} from './worker-shared.ts';
+import { workerStallCodeSchema } from './worker-stall.ts';
 
 const timestampSchema = z.iso.datetime({ offset: true });
 
 /** What a pull request did after its Run settled, on a `pull_request` notice (ADR 0053). */
-export const cloudAgentPullRequestChangeSchema = z
+export const workerPullRequestChangeSchema = z
     .object({
         change: z.enum(['ready_for_review', 'checks_passing', 'checks_failing']),
         url: z.url().max(2000),
     })
     .strict();
 
-export type CloudAgentPullRequestChange = z.infer<typeof cloudAgentPullRequestChangeSchema>;
+export type WorkerPullRequestChange = z.infer<typeof workerPullRequestChangeSchema>;
 
 /**
- * A settled Cloud Agent Run's terminal attention for the Agent that delegated
- * it. It exists nowhere but the inbox row, so it carries the Run outcome the
- * Agent needs to inspect the work and post results as ordinary Messages.
+ * A live Worker turn's stall, or a pull request change, for the Agent that
+ * delegated the Worker. It exists nowhere but the inbox row, so it carries the
+ * turn facts the Agent needs to decide whether to wait, stop, or follow up.
+ * A settled turn reaches its Agent as a `workerReport` instead.
  */
-export const cloudAgentWorkAttentionSchema = z
+export const workerAttentionSchema = z
     .object({
-        branches: z.array(cloudAgentBranchSchema).max(50),
+        branches: z.array(workerBranchSchema).max(50),
         errorCode: z.string().trim().min(1).max(120).nullable(),
-        provider: cloudAgentProviderSchema,
+        place: workerPlaceSchema,
         /**
          * Whether `summary` is only the head of a longer report (TECH-8): a
-         * reader who wants the rest runs `haus cloud-agent inspect --work
+         * reader who wants the rest runs `haus worker inspect --worker
          * <id> --report`. Optional, not defaulted, so an inbox item already
          * queued before this field existed still parses; its absence reads
          * as false (no known fuller report), never as true.
          */
         hasFullReport: z.boolean().optional(),
-        notice: z.enum(['settled', 'stall', 'pull_request']),
+        notice: z.enum(['stall', 'pull_request']),
         providerUrl: z.url().max(2000).nullable(),
-        pullRequestChange: cloudAgentPullRequestChangeSchema.optional(),
+        pullRequestChange: workerPullRequestChangeSchema.optional(),
         repository: z.string().trim().min(1).max(200),
-        runId: idSchema,
-        stallCode: cloudAgentStallCodeSchema.nullable(),
-        status: cloudAgentStatusSchema,
-        summary: z.string().trim().min(1).max(cloudAgentSummaryMaxLength).nullable(),
-        title: cloudAgentTitleSchema,
-        workId: idSchema,
+        turnId: idSchema,
+        stallCode: workerStallCodeSchema.nullable(),
+        status: workerTurnStatusSchema,
+        summary: z.string().trim().min(1).max(workerSummaryMaxLength).nullable(),
+        title: workerTitleSchema,
+        workerId: idSchema,
     })
     .strict();
 
-export type CloudAgentWorkAttention = z.infer<typeof cloudAgentWorkAttentionSchema>;
+export type WorkerAttention = z.infer<typeof workerAttentionSchema>;
 
 /**
  * Why an item is addressed to this Agent personally rather than ambiently: a DM,
@@ -124,11 +126,11 @@ export const agentInboxItemSchema = z
         addressed: z.boolean().optional(),
         addressedReason: addressedReasonSchema.optional(),
         /** Typed Server attention; unlike a Chat message, it has no message cursor. */
-        cloudAgentWork: cloudAgentWorkAttentionSchema.optional(),
+        worker: workerAttentionSchema.optional(),
         /** Canonical Agent API shape cached for Computer-local message checks. */
         message: z.record(z.string(), z.unknown()).optional(),
         mentioned: z.boolean().optional(),
-        pullRequestNotice: cloudAgentPullRequestChangeSchema.optional(),
+        pullRequestNotice: workerPullRequestChangeSchema.optional(),
         /** Bounded direct-parent and chain-root context for an inline reply. */
         reply: chatMessageReplySchema.nullable().optional(),
         senderDescription: z.string().trim().max(500).optional(),
@@ -141,11 +143,12 @@ export const agentInboxItemSchema = z
         target: z.string().trim().min(1).max(200),
         taskContext: agentTaskContextSchema.optional(),
         taskFollowReactivated: z.boolean().optional(),
+        workerReport: workerReportAttentionSchema.optional(),
     })
     .strict()
     .refine(
         (item) =>
-            item.cloudAgentWork || item.pullRequestNotice
+            item.worker || item.pullRequestNotice || item.workerReport
                 ? item.sequence === 0 && item.senderType === 'system'
                 : item.sequence > 0,
         {
@@ -153,8 +156,8 @@ export const agentInboxItemSchema = z
             path: ['sequence'],
         }
     )
-    .refine((item) => !(item.cloudAgentWork && item.pullRequestNotice), {
-        message: 'A pull request notice backed by a Run rides `cloudAgentWork`.',
+    .refine((item) => !(item.worker && item.pullRequestNotice), {
+        message: 'A pull request notice backed by a Run rides `worker`.',
         path: ['pullRequestNotice'],
     })
     .refine((item) => item.senderTimezone === undefined || item.senderType === 'human', {

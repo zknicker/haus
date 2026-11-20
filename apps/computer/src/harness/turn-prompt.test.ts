@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { AgentInboxItem } from '../agent-inbox-item.ts';
+import type { AgentInboxItem } from '@haus/agent-prompt';
 import {
     readPendingInboxState,
     readRunVisibleMessages,
@@ -143,9 +143,9 @@ test('an empty digest renders nothing', () => {
 });
 
 test('a new Agent is told to greet on every run the Server attached its greeting to', () => {
-    // Raft's agentic #all greeting, verbatim: one short self-introduction, then normal work.
+    // Raft's agentic #haus greeting, verbatim: one short self-introduction, then normal work.
     const greeting = [
-        'Post one short, natural self-introduction to #all so the team knows who you are and what you can help with.',
+        'Post one short, natural self-introduction to #haus so the team knows who you are and what you can help with.',
         'Write it in your own voice, one or two sentences. Do NOT paste a fixed template. If a conversation is already going there, read the room and keep it brief.',
         'This is a one-time greeting; after you post it, go back to normal work.',
     ].join('\n');

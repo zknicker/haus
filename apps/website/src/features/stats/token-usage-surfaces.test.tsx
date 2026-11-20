@@ -59,7 +59,7 @@ test('Usage dashboard keeps its filters on the content cluster', () => {
     // The shell band's 3rem chrome cannot host field-height controls, so the
     // filters lead the cluster they act on — then general to specific:
     // totals before the daily trend.
-    const toolbar = html.indexOf('aria-label="Usage filters"');
+    const toolbar = html.indexOf('>range</button>');
     const kpis = html.indexOf('data-slot="kpi-group"');
     expect(toolbar).toBeGreaterThan(-1);
     expect(toolbar).toBeLessThan(kpis);

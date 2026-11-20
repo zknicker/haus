@@ -6,6 +6,7 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import { artifactRevisionsTable, artifactsTable } from '../src/postgres/schema.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
+import { createTestProject } from './project.fixture.ts';
 
 const fixture = agentCreationFixture();
 let connection: HausConnection;
@@ -13,7 +14,7 @@ let notesChatId: string;
 
 beforeAll(async () => {
     connection = await connectHausDatabase(fixture.harness.databaseUrl);
-    const notes = await fixture.owner.trpc.chat.createChannel.mutate({
+    const notes = await createTestProject(fixture.harness, fixture.owner, {
         agentIds: [fixture.orbitAgentId],
         name: 'drive-notes',
         serverId: fixture.serverId,

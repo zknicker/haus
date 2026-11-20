@@ -9,19 +9,26 @@ test('the tasks topic says what a Task is and when to start one (ADR 0053)', () 
     expect(body).toContain('It is unread only for its followers');
 });
 
-test('a Task starts from a channel message; a DM or a fire gets an origin message first', () => {
+test('a Task starts from the asking message in a channel or DM, in a Project; a fire posts one first', () => {
     const body = getManualTopic('tasks')?.body ?? '';
     expect(body).toContain(
         '`haus task start --target "#security" --from <messageId> --title "Rotate the signing key"`'
     );
+    expect(body).toContain('in a channel or a DM');
     expect(body).toContain(
-        "Post one in the channel where the work belongs (for a fire, its anchor channel), mention whoever asked, and start the Task from it; answer a DM request with the Task's key."
+        "the one `--project SEC` names, else the origin's channel, else for a DM your home Project"
     );
-    expect(body).toContain('`TASK_ORIGIN_DM`');
+    expect(body).toContain(
+        "@mention that Project's Agent in its channel with the request; the Server refuses your start there with `TASK_PROJECT_NOT_HOME`."
+    );
+    expect(body).toContain(
+        'Post one in the channel of the Project where the work belongs (for a fire, its anchor channel), mention whoever asked, and start the Task from it.'
+    );
+    expect(body).not.toContain('TASK_ORIGIN_DM');
     expect(body).toContain('post one message and start five Tasks from it');
 });
 
-test('work reports in the Task, pull requests and cloud agents attach to it, and it ends by state', () => {
+test('work reports in the Task, pull requests and Workers attach to it, and it ends by state', () => {
     const body = getManualTopic('tasks')?.body ?? '';
     expect(body).toContain('`haus message send --target task:SEC-12`');
     expect(body).toContain('`haus task attach-pr SEC-12 <url>`');
@@ -58,7 +65,7 @@ test('no Manual topic teaches boards, columns, pickup-note threads, or work thre
     for (const topic of manualTopics) {
         expect(topic.body).not.toContain('haus thread');
     }
-    for (const id of ['tasks', 'cloud-agents', 'replies', 'claims']) {
+    for (const id of ['tasks', 'workers', 'replies', 'claims']) {
         const body = getManualTopic(id)?.body ?? '';
         expect(body).not.toContain('haus board');
         expect(body).not.toContain('haus task move');
@@ -70,14 +77,30 @@ test('no Manual topic teaches boards, columns, pickup-note threads, or work thre
     }
 });
 
-test('a cloud agent launches on a Task and wakes the Agent there', () => {
-    const body = getManualTopic('cloud-agents')?.body ?? '';
-    expect(body).toContain('`haus cloud-agent start --task <KEY-n>');
-    expect(body).toContain('`CLOUD_AGENT_TASK_REQUIRED`');
+test("a Worker starts on a Task at its Computer's default place or --on, and reports there", () => {
+    const body = getManualTopic('workers')?.body ?? '';
+    expect(body).toContain('`haus worker start --task <KEY-n> [--on <cursor|claude>]');
+    expect(body).toContain("Without `--on` a Worker runs on your Computer's default place");
+    expect(body).toContain('Cloud Agents → Make default');
+    expect(body).toContain('`WORKER_TASK_REQUIRED`');
+    expect(body).toContain('`WORKER_PLACE_REQUIRED`');
+    expect(body).toContain('Starting posts nothing');
+    expect(body).toContain('reaches you as a `worker_report` inbox item');
+    expect(body).toContain('A working turn is never steered');
     expect(body).toContain(
-        'When its pull request later becomes ready for review, or its checks pass or fail, another attention says what changed and gives the URL.'
+        'When a pull request a Worker reported later becomes ready for review, or its checks pass or fail, another attention says what changed and gives the URL.'
     );
-    expect(body).not.toContain('You do not need to set a reminder or poll');
+    for (const retired of ['--say', '--cause', 'Link:', 'cancel', '--run', 'mid-turn']) {
+        expect(body).not.toContain(retired);
+    }
+});
+
+test('a Worker brief carries the WORKER.md rules Haus does not hand it yet', () => {
+    const topic = getManualTopic('workers');
+    expect(topic?.body).toContain(
+        '`drive/agents/<your handle>/WORKER.md` holds the rules every Worker of yours follows. Haus does not hand that file to a Worker yet, so the brief carries its rules'
+    );
+    expect(topic?.related).toContain('rules');
 });
 
 test('work split for other Agents is sibling Tasks; a claim stays inside the conversation', () => {

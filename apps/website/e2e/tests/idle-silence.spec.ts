@@ -57,7 +57,7 @@ test.describe('an idle App stays silent', () => {
 
     test('on a channel', async ({ page }) => {
         const traffic = await openIdleApp(page, 'idle-channel');
-        await openChannel(page, 'all');
+        await openChannel(page, 'haus');
         await expect(composer(page)).toBeVisible();
         await expectIdleSilence(page, traffic);
     });
@@ -78,7 +78,7 @@ test.describe('an idle App stays silent', () => {
 
     test('through hide and show', async ({ page }) => {
         const traffic = await openIdleApp(page, 'idle-hide-show');
-        await openChannel(page, 'all');
+        await openChannel(page, 'haus');
         await expect(composer(page)).toBeVisible();
         await traffic.settled();
 
@@ -116,7 +116,7 @@ test.describe('an idle App stays silent', () => {
 
     test('through a realtime burst', async ({ page }) => {
         const traffic = await openIdleApp(page, 'idle-burst');
-        await openChannel(page, 'all');
+        await openChannel(page, 'haus');
         await expect(composer(page)).toBeVisible();
         const posts = recordPosts(page);
         await traffic.settled();
@@ -125,7 +125,7 @@ test.describe('an idle App stays silent', () => {
 
     test('through offline and online', async ({ page, context }, testInfo) => {
         const traffic = await openIdleApp(page, 'idle-offline');
-        await openChannel(page, 'all');
+        await openChannel(page, 'haus');
         await expect(composer(page)).toBeVisible();
         await traffic.settled();
         const mark = traffic.mark();
@@ -162,7 +162,7 @@ async function openIdleApp(page: Page, slug: string, options: { withAgent?: bool
     const { server, session } = await createTestServer(page, { displayName: slug, slug });
     if (options.withAgent) {
         await createChannelAgent({
-            channelName: 'all',
+            channelName: 'haus',
             databaseUrl: session.databaseUrl,
             serverId: server.id,
             slug,
@@ -170,7 +170,7 @@ async function openIdleApp(page: Page, slug: string, options: { withAgent?: bool
         });
         await page.reload();
     }
-    await expect(page.getByRole('row', { exact: true, name: 'all' })).toBeVisible();
+    await expect(page.getByRole('row', { exact: true, name: 'haus' })).toBeVisible();
     return traffic;
 }
 

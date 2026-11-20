@@ -5,6 +5,7 @@ read_when:
   - changing haus.chat ingress, PostgreSQL roles, or the delivered Server environment
   - preparing a Haus Server release artifact
   - backing up or restoring the hosted Haus Server's database or runner volume
+  - running or proving the Agent runner container and its network deny
   - shipping the Channels-and-Tasks release (migrations 0123–0128, the Thread migration verifier)
 ---
 
@@ -180,7 +181,7 @@ configuration, and migrations remain the unprivileged deployer's responsibility.
 This does not create another application root: checkout, releases,
 configuration, data, and logs remain under `/Users/zknicker/srv/haus`.
 
-PostgreSQL is the only Haus container. The canonical definition is the
+PostgreSQL is the only Haus container the deploy job manages; the optional runner container is below. The canonical definition is the
 repository's `apps/server/compose.yml`; the deploy job verifies the running
 container and brings it up from that file under `varlock run` only when it is
 absent or unhealthy, so the admin password is interpolated from 1Password and
@@ -191,6 +192,43 @@ PostgreSQL 16.14 Alpine digest, container
 Administration uses SSH and local loopback. The [local backup](#backups) runs
 `pg_dump` and `pg_restore` inside `haus-postgres`, so its tools always match the
 server version; do not enable a host PostgreSQL service.
+
+## Agent runner container
+
+The Agent runner is the second Haus container, in the same Compose project `haus`. Its service is
+`haus-runner` in `apps/server/compose.yml`, behind the Compose profile `runner`, so the database
+bring-up above never builds or starts it. It is built from `apps/runner/Dockerfile` at the same
+commit as the Server and runs under `varlock run` like the database:
+
+```bash
+bunx varlock@1.16.1 run -- docker compose -f apps/server/compose.yml -p haus --profile runner up -d --build haus-runner
+```
+
+The token comes from the `Agent Runner - Haus` Production item and the optional Claude login from
+`Claude Setup Token - Haus Runner`. The Server must hold the same `HAUS_RUNNER_TOKEN` and listen on
+an address the container reaches through `host.docker.internal`. `HAUS_RUNNER_SERVER_URL`
+overrides the default `http://host.docker.internal:18791`.
+
+The container starts as root with `CAP_NET_ADMIN`. Its entrypoint installs OUTPUT rules that
+deny PostgreSQL ports 5432 and 5438, the RFC 1918, link-local, and CGNAT ranges, and on IPv6 the
+unique local, link-local, site-local, local-use NAT64 (`64:ff9b:1::/48`), and IPv4-translated
+(`::ffff:0:0:0/96`) ranges, except the one
+Server `host:port` taken from `HAUS_SERVER_URL`. It then drops to the unprivileged `haus-runner`
+user with no capabilities and no new privileges. The entrypoint resolves the Server host once at
+start, so restart the container after the host address changes.
+
+The named volume `haus_runner_data` holds each Agent's harness session under `/data`. The [local backup](#backups)
+archives it beside the database dump. `docker compose -p haus down` without `--volumes` preserves it. Losing it
+costs every Agent its session context, not its Haus history.
+
+After every runner deploy, prove the deny from inside the container:
+
+```bash
+docker exec -u haus-runner haus-runner /app/apps/runner/container/prove-network-deny.sh
+```
+
+It prints one line per check and exits non-zero on any failure. The proof is an operator step.
+Development hosts without Docker cannot run it.
 
 ## Fresh PostgreSQL authority
 

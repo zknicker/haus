@@ -42,10 +42,10 @@ final class UtilityModelsTests: XCTestCase {
 
         let channel = try JSONSerialization.jsonObject(
             with: HausJSON.encoder().encode(
-                CreateChannelInput(agentIDs: ["agent_1", "agent_2"], name: "planning", serverID: "server_1")
+                CreateChannelInput(name: "planning", serverID: "server_1")
             )
         ) as? [String: Any]
-        XCTAssertEqual(channel?["agentIds"] as? [String], ["agent_1", "agent_2"])
+        XCTAssertNil(channel?["agentIds"])
         XCTAssertEqual(channel?["name"] as? String, "planning")
         XCTAssertEqual(channel?["serverId"] as? String, "server_1")
     }

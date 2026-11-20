@@ -1,5 +1,6 @@
 import { beforeAll, expect, test } from 'bun:test';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
+import { createTestProject } from './project.fixture.ts';
 
 // No MessageRouter: the Server runs without a TypeSafe credential.
 const fixture = agentCreationFixture();
@@ -7,7 +8,7 @@ let channelId: string;
 
 beforeAll(async () => {
     channelId = (
-        await fixture.owner.trpc.chat.createChannel.mutate({
+        await createTestProject(fixture.harness, fixture.owner, {
             agentIds: [fixture.orbitAgentId, fixture.peerAgentId],
             name: 'offline-mentions',
             serverId: fixture.serverId,

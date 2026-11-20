@@ -10,6 +10,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { clearStartRejectedHolds } from '../agent-delivery/failure-hold.ts';
 import { onAgentLifecycle } from '../agent-delivery/lifecycle.ts';
+import type { InvocationRouter } from '../agent-invocations/invocation-router.ts';
 import { sendPendingCoveApplication } from '../onboarding/create-cove.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computerUpdatedTopic } from '../realtime/topics.ts';
@@ -18,7 +19,6 @@ import { createAgentThoughts } from '../server-agents/agent-thought.ts';
 import { clearHausAgentState } from '../server-agents/record-haus-agent-state.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { readServerRuntimeSettingsCommand } from '../servers/server-settings.ts';
-import { sendCloudAgentReconcile } from './cloud-agent-reports.ts';
 import type { ComputerConnections } from './connections.ts';
 import { ingestReport } from './ingest-report.ts';
 import {
@@ -32,6 +32,7 @@ import {
     defaultComputerSocketLiveness,
     watchComputerSocketLiveness,
 } from './socket-liveness.ts';
+import { reconnectWorkerCarrier } from './worker-reports.ts';
 
 // The app-level heartbeat keeps Raft's cadence; transport pings detect silence sooner.
 const heartbeatConfiguration = {
@@ -48,6 +49,7 @@ export function startComputerAttachmentSocket(
     delivery: AgentDelivery,
     postCommitWork: ServerPostCommitWork,
     thoughtSummarizer: ThoughtSummarizer | null,
+    invocations: InvocationRouter,
     liveness: ComputerSocketLivenessTiming = defaultComputerSocketLiveness
 ) {
     const thoughts = createAgentThoughts({ summarizer: thoughtSummarizer });
@@ -184,6 +186,7 @@ export function startComputerAttachmentSocket(
             if (!ordinary) {
                 return;
             }
+            invocations.computerAttached(computer.id);
             // A Computer holds every runtime setting off until an attach turns one on.
             void connections.runtimeSettings
                 .attached(computer.serverId, computer.id, () =>
@@ -196,8 +199,8 @@ export function startComputerAttachmentSocket(
             void clearStartRejectedHolds(db, computer.id)
                 .then(() => delivery.onComputerReconnect(computer.id))
                 .catch(() => undefined);
-            void postCommitWork.run('cloud-agent.reconcile-on-connect', () =>
-                sendCloudAgentReconcile(db, connections, computer)
+            void postCommitWork.run('worker.reconcile-on-connect', () =>
+                reconnectWorkerCarrier(db, { connections, delivery, postCommitWork }, computer)
             );
         };
         socket.on('message', (raw) => {
@@ -221,7 +224,8 @@ export function startComputerAttachmentSocket(
                             ordinary,
                             rawString,
                             postCommitWork,
-                            thoughts
+                            thoughts,
+                            invocations
                         );
                         return;
                     }

@@ -7,5 +7,8 @@ export const setTaskStateProcedure = taskProcedure
     .input(taskSetStateInputSchema)
     .output(taskMutationResultSchema)
     .mutation(async ({ ctx, input }) =>
-        commitTaskWrite(ctx, await setTaskState(ctx.hausDb, memberTaskActor(ctx.member), input))
+        commitTaskWrite(
+            ctx,
+            await setTaskState(ctx.hausDb, memberTaskActor(ctx.member), ctx.agentDelivery, input)
+        )
     );

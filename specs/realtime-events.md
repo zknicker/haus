@@ -99,6 +99,7 @@ ids and the new version; React Query owns the reads.
 | Procedure | Payload schema (file) | Payload fields | Audience | App response |
 | --- | --- | --- | --- | --- |
 | `task.onCreated` | `taskCreatedEventSchema` (`task.ts`) | `serverId`, `chatId`, `taskId`, `version` | Every member | **Invalidate** `task.list`, `task.listOpen`; recover the origin Channel's loaded pages so the new preview shows |
+| `project.onUpdated` | `projectUpdatedEventSchema` (`project.ts`) | `serverId`, `projectId` (the channel's Chat id); one per `project.create` and per `project.update` that changed a setting | Every member | No App consumer yet; the Project query J4 adds owns it. `chat.onLifecycle` still refreshes the chat list |
 | `task.onUpdated` | `taskUpdatedEventSchema` (`task.ts`) | `serverId`, `chatId`, `taskId`, `version`; also one per Task a new Message references, at the same version | Every member | Refresh the Task's reads; **invalidate** `task.list`, `task.listOpen` |
 | `task.onFollowUpdated` | `taskFollowUpdatedEventSchema` (`task.ts`) | `serverId`, `taskId`, `chatId`, `followed` | The follower only | Refresh the Task's reads (its `followed` and unread) |
 
@@ -119,6 +120,7 @@ These replace `server.onUpdate` and its `scope` enum. All payloads live in
 | `member.onUpdated` | `{ serverId, memberId }` | Every member | `member.get` (memberId), `member.list`, `chat.list` (rows name human authors and participants), `server.bySlug` |
 | `invitation.onUpdated` | `{ serverId }` | Owner/Admin, the same authority as `invitation.list` | `invitation.list` |
 | `cloudAgentSettings.onUpdated` | `{ serverId }` | Every member | `cloudAgentSettings.get` |
+| `modelConnections.onUpdated` | `{ serverId }` | Every member | `modelConnections.list`, `modelConnections.signIn` |
 | `artifact.onUpdated` | `{ serverId, artifactId \| null }` | Every member | `artifact.list` (every folder), `artifact.creators`, `artifact.get` + `artifact.versions` + `artifact.publicLink` (artifactId, else all). Published after a Files publish, move (null for a folder move), delete, version delete, public link enable or disable, batched move or delete (null, once per batch), and retention prune (null, once per affected Server per sweep). The App throttles the list and creators invalidation per Server (leading, then trailing at most every 300 ms); per-file reads stay immediate |
 
 **`server.onUpdated` is the membership sentinel.** A stream rechecks membership only when its own
@@ -252,6 +254,7 @@ prepares the focused event before commit and publishes it after.
 | `invitation/create`, `invitation/revoke` | `invitation.updated` |
 | `invitation/accept` | `invitation.updated` and `member.updated` (the new member) |
 | `cloud-agent-settings/set-model` | `cloudAgentSettings.updated` |
+| `model-connections/` add, rename, make default, remove, sign-in progress; runner connection status, refreshed credential and finished sign-in | `modelConnections.updated` |
 | `artifacts/` publish, move, delete, retention | `artifact.updated` (new; never part of `server.onUpdate`) |
 
 The "announce only real changes" rule for Computer reports and identity sync stays: an idle App

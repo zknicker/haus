@@ -53,7 +53,6 @@ describe('Haus OpenAPI contract', () => {
             '/api/agent/server',
             '/api/agent/channels/info',
             '/api/agent/channels/members',
-            '/api/agent/channels/create',
             '/api/agent/channels/add',
             '/api/agent/claims',
             '/api/agent/claims/create',
@@ -205,8 +204,8 @@ describe('Haus OpenAPI contract', () => {
         // Asks are retired (ADR 0037): a human is asked by @mention in a text Message.
         expect(validate('ChatMessage', { ...message, body_kind: 'ask' })).toBe(false);
         expect(validate('ChatMessage', { ...message, ask: null })).toBe(false);
-        // Cloud Agent work is linked from text (ADR 0044), never a body.
-        expect(validate('ChatMessage', { ...message, body_kind: 'cloud-agent-work' })).toBe(false);
+        // Worker is linked from text (ADR 0044), never a body.
+        expect(validate('ChatMessage', { ...message, body_kind: 'worker' })).toBe(false);
         expect(document.components?.schemas).not.toHaveProperty('MessageAsk');
     });
 

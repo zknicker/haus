@@ -3,7 +3,7 @@ import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
 /**
- * A returning human comes back as a fresh Member joined to exactly `#all`. The
+ * A returning human comes back as a fresh Member joined to exactly `#haus`. The
  * membership row is reused because authored history points at it, so the reset
  * has to prove it carries nothing forward: no old role, no private Channel, no
  * read markers.
@@ -36,7 +36,7 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('a re-invited human returns as a Member joined only to #all', async () => {
+test('a re-invited human returns as a Member joined only to #haus', async () => {
     const returner = await signIn('user_return_member', ['returner@haus.test']);
     await join(returner, 'returner@haus.test');
     const returnerUserId = await readUserId('user_return_member');

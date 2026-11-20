@@ -1,3 +1,4 @@
+import { createEvalProject } from '../../../../scripts/agent-tests/eval-project.mjs';
 import { createAgentFixture } from './agent-fixture.ts';
 
 interface AgentProfile {
@@ -18,10 +19,10 @@ export async function createAgentChannelFixture(options: CreateAgentChannelFixtu
 
     try {
         const channelName = `${options.channelPrefix}-${fixture.harness.stamp.slice(-8)}`;
-        const channel = await fixture.harness.trpc('chat.createChannel', {
+        const channel = await createEvalProject(fixture.harness, {
             agentIds: fixture.agents.map((agent) => agent.id),
             name: channelName,
-            serverId: fixture.harness.serverId,
+            repositoryRoot: options.repositoryRoot,
         });
         fixture.trackChat(channel.id);
 

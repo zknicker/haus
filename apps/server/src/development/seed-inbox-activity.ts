@@ -7,7 +7,7 @@ import { lockServerRow } from '../servers/server-lock.ts';
 import { seedAgentTurns } from './seed-agent-turns.ts';
 import { findInboxSeedContext, type InboxSeedContext } from './seed-inbox-context.ts';
 import { appendSeedMessages, backdateSeedHistory } from './seed-inbox-messages.ts';
-import { seedCloudAgentWork, seedStalledClaim } from './seed-inbox-records.ts';
+import { seedWorker, seedStalledClaim } from './seed-inbox-records.ts';
 
 /** The oldest Message this seed writes; its nonce is the whole seed's marker. */
 const claimRequestNonce = 'dev-inbox-claim-request';
@@ -19,7 +19,7 @@ const hour = 60 * minute;
  * Gives the demo workspace the activity the human Inbox is a lens over: unread
  * conversations with a last line (Tiny's DM question among them), Cove's
  * @mention of the owner, a claim an Agent left behind,
- * one settled Cloud Agent work, and a week of Agent turns. Every row is shaped
+ * one settled Worker, and a week of Agent turns. Every row is shaped
  * the way the product writes it, so the page can be judged from a fresh boot
  * without hand-building data.
  *
@@ -56,7 +56,7 @@ export async function seedDevelopmentInboxActivity(
 }
 
 /**
- * The morning's #all: a request nobody promoted, Blippy's claim on it, and the
+ * The morning's #haus: a request nobody promoted, Blippy's claim on it, and the
  * badge work it drifted into. The claim's anchor id is minted here because the
  * claim row points at it.
  */
@@ -142,7 +142,7 @@ async function seedCoveMention(tx: HausDatabase, context: InboxSeedContext, at: 
     });
 }
 
-/** #product: yesterday's settled Cloud Agent work and Tiny's rename nudge. */
+/** #product: yesterday's settled Worker and Tiny's rename nudge. */
 async function seedProductChannelActivity(
     tx: HausDatabase,
     context: InboxSeedContext,
@@ -153,14 +153,14 @@ async function seedProductChannelActivity(
         serverId: context.serverId,
         until: before(now, 27 * hour),
     });
-    // Only settled work is seeded. Computer reconciles running Cloud Agent work
+    // Only settled work is seeded. Computer reconciles running Worker
     // against the provider every minute, so a fake run fails that loop forever
     // and its retries reserve every Server database connection until the pool
     // wedges. An empty Happening now on a fresh boot is the honest state.
-    await seedCloudAgentWork(tx, context, {
+    await seedWorker(tx, context, {
         activityAt: before(now, 25 * hour + 10 * minute),
         activitySummary: 'Opened the pull request for review.',
-        content: 'Sending the sidebar Inbox badge to a cloud agent.',
+        content: 'Sending the sidebar Inbox badge to a Worker.',
         createdAt: before(now, 26 * hour),
         nonce: 'dev-inbox-cloud-badge',
         providerAgentId: 'bc_dev_sidebar_badge',

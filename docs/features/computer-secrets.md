@@ -10,7 +10,7 @@ read_when:
 # Computer Secrets
 
 One 1Password vault is shared by every Agent on one Computer attachment. Only the Server Owner
-manages it, from **Settings → Computers → (Computer) → Secrets** in Haus for Mac. The web App shows
+manages it, from **Settings → Devices → (device) → Secrets** in Haus for Mac. The web App shows
 the status but cannot connect or refresh, because those steps need the local 1Password CLI.
 
 ## Connect 1Password

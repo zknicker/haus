@@ -33,7 +33,7 @@ Tests alone are not sufficient verification. A PR is verified only when its unit
 
 - [ ] State the protocol and this plan to the operator, then stop. Start execution only on the operator's explicit go.
 - [ ] Read these from trunk at program start. Re-read them at every tick.
-  - [ ] `git show origin/main:docs/adr/0054-drive-holds-what-agents-know-and-follow.md`, and ADRs `0055`, `0056`, `0057`, and `0053` the same way.
+  - [ ] `git show origin/main:docs/adr/0054-drive-holds-what-agents-know-and-follow.md`, and ADRs `0055`, `0056`, `0057`, `0053`, and `0059` the same way.
   - [ ] `git show origin/main:docs/proposals/capy-product-model.md`.
   - [ ] `git show origin/main:AGENTS.md` and `git show origin/main:docs/operations/testing.md`.
   - [ ] `~/.claude/skills/make-it-so/SKILL.md` and `playbooks/orchestrate.md`.
@@ -71,8 +71,9 @@ and this list only.
   - [ ] J1 after R4 merges. Then J2. Then J3 and J4 in parallel.
   - [ ] W1 after J2 merges. Then W2. Then W3 and W4 in parallel.
   - [ ] C1 and C2 after W3 merges. Both are independent.
+  - [ ] E1 first among the Cove removals. E2 next; its last commit deletes J3's `COVE_HOME_FIXED` after PR 327 merges. E3 and E5 after E2. E4 after E2 and the Capy shell (PR 324). The E slices run before R4, while Agents still run on Computers.
 - [ ] Hold the file boundaries. Server PRs touch `apps/server/**` and `packages/haus-api/**`. Computer PRs touch `apps/computer/**`. App PRs touch `apps/website/**` and `apps/ios-swift/**`. Spec PRs touch `specs/**` and `docs/**` only. A PR that must cross a boundary says so in its brief.
-- [ ] Hold the review gate. D5, J4, W4, and C2 change an interaction. They wait for the operator's review in chat with screenshots and a video before merge.
+- [ ] Hold the review gate. D5, J4, W4, C2, E2, and E4 change an interaction. They wait for the operator's review in chat with screenshots and a video before merge.
 
 ### PR mechanics, for every PR
 
@@ -163,7 +164,11 @@ ADR 0057 decisions 1 to 12, and ADR 0054 decision 7.
 - [ ] **R2. Run tools on Computers by invocation.** The invocation handler, the accepted-before-run ledger, `bash` and the edit tool from Pi's MIT tool code with provenance marked, and agent-browser relayed behind `execute`. Computer gate plus a crash-before-acknowledgement regression.
 - [ ] **R3. Stand up the runner.** A runner process in its own container with a persistent volume, the Claude Agent SDK harness with native tools off and Haus tools bridged, inbox delivery to the runner, prompt composition from Server Drive, and logins in runner settings. Add the Oxlint boundary rules that stop the runner importing Postgres or Server internals. Server gate plus provider smoke.
 - [ ] **R5. Add Pi Durable.** The second harness for every non-Claude model, with its file backend on the runner volume. It lands before R4, so the cutover has a harness for every Agent. Each Agent is pinned to one harness, and a switch is an explicit reset. Provider smoke for ChatGPT plans.
-- [ ] **R4. Move every Agent to the runner.** One cutover, with both harnesses available. Delete the Computer Agent session store, the Agent-session parts of the runtime drivers, and Grok Build as an Agent runtime. The Claude Code and Codex drivers stay for Workers. `test:agents` full set and real-app proof.
+- [ ] **R3b. Route invocations on the Server.** The Server invocation router, the payload GET and PUT routes, and the runner's read of attachment-reference results (`readInvocationPayload`), so `view_image` and image `view` reach the model.
+- [ ] **R3c. Move large payloads from the runner to the machine.** The runner→machine upload path, so a `haus` path flag (`attachment view --output`, `image wait --out`) can write more than 700 KiB to the machine. PDF reading in `view` (text, or page images for Claude) rides with it. A `test:agents` scenario covers it: a person attaches a 2 MB photo and the Agent describes it.
+- [ ] **R6. Configure model connections in the App.** Server-held, encrypted model connections, several per provider: Claude by pasted setup-token, ChatGPT and SuperGrok by device-code sign-in run through the runner, and API keys for xAI, Gemini and OpenRouter. The runner reads them only from the Server, and refreshes are serialized there. Settings → Models shows status and plan capacity per connection, and each Agent picks a connection, defaulting to the first. Delivered as R6a (Server and runner), R6b (the App, review-gated) and R6c (plan capacity).
+- [ ] **Web tool.** A Haus `web_search` and `web_fetch` for Pi models, so non-Claude Agents keep web search after the cutover.
+- [ ] **R4. Move every Agent to the runner.** One cutover, with both harnesses available. Delete the Computer Agent session store, the Agent-session parts of the runtime drivers, and Grok Build as an Agent runtime. The Claude Code and Codex drivers stay for Workers. `test:agents` full set and real-app proof. **Gate:** R4 starts only after R6, R3c and the web tool merge, because each one restores a capability Agents have today that the cutover would otherwise drop.
 
 **Verify, live, for the phase.** With every Computer offline, an Agent answers a DM and dispatches nothing to a machine. With its Computer online, it runs `bash` there and edits a file in `drive/`.
 
@@ -181,6 +186,19 @@ ADR 0055 decisions 1 to 11.
 **Verify, live, for the phase.** Walkthroughs 2, 3, and 5 from the proposal on the real stack.
 
 **Verify, perf, for the phase.** Sidebar render cost with `render-budget.spec.ts`, trunk first. Fail on any budget the spec already enforces.
+
+## Start empty, without Cove (E1 to E5)
+
+ADR 0059 decisions 1 to 9. Each slice deletes its Cove and onboarding code and the docs that
+describe it in the same PR. Existing Coves and `#onboarding-owner` channels stay as ordinary data.
+
+- [ ] **E1. Land the decision.** ADR 0059 with its capability table, the status notes on ADRs 0021, 0028 and 0055, the proposal, Manual API and Activity spec edits, and these rows. Evidence is the merged docs PR.
+- [ ] **E2. Delete Cove from the Server and API, with its App and iPhone consumers.** Declared cross-boundary: `apps/server/**`, `packages/haus-api/**` (App-facing shapes only), `apps/website/**` and `apps/ios-swift/**` where a removed field is read, App e2e, `scripts/` size and lint lists, and the docs and specs for what it deletes. It deletes `server.createCove`, the onboarding record, gate and phases, `#onboarding-owner` creation, every writer of a new `onboarding` wake, identity locks, the reserved `cove` handle, `factory_kind` and `factory_applied_at`, `ServerDetail.onboarding` and `Agent.factoryKind`, and, in the same PR, the web onboarding route and steps, `use-create-cove`, e2e `completeOnboarding`, and the iPhone `cove` factory kind, avatar gating and reserved handle. The invalid-inventory repair state moves onto the Computer record so Add device can show it. The `onboarding` read path stays in haus-api, the Server and the App. The Server keeps sending `agent-configure` with `factoryKind: 'ordinary'` until E3 drops that field and the `cove-apply` frames with a protocol bump. One migration retires unsettled `onboarding` inbox items, keeps seen ones and every turn trigger, and keeps every existing Cove and onboarding channel as ordinary data. The dev seed keeps Blippy, Tiny, `#haus` and `#product`, and re-anchors its inbox, showcase and automation seeds. Its last commit deletes J3's `COVE_HOME_FIXED`. Server gate, focused App and iOS tests, scoped App e2e for a fresh Server, and Owner and Member screenshots of a fresh Server opening into the App. Review-gated.
+- [ ] **E3. Delete Cove from the Computer and agent packages.** Declared cross-boundary: `apps/computer/**`, `packages/haus-api/src/agent-runner.ts` and `computer-protocol.json`, `packages/agent-workspace/**`, `packages/agent-manual/**`, `packages/agent-prompt/**` tests, `scripts/agent-tests/**`, and the specs and register rows for what it deletes. The `cove-apply` frames, handler and receipt, `agent-configure`'s `factoryKind`, the protocol bump, the Cove factory workspace, guidance refresh and per-turn notices, the Manual's Cove lines, Cove-only live harnesses and scenarios, and the divergence register rows that cite Cove. Cove's still-true product FAQ answers move into Manual topic `app`. `bun run test:prompt-contract`; the cap does not move.
+- [ ] **E4. Add what onboarding did to Settings and New Captain.** Declared cross-boundary only for the docs it changes. Add device gains live progress and repair copy for no usable runtime or model, invalid inventory, incompatible, and disconnected. New Captain links to Settings → Devices when none is connected. New task with zero Captains is hidden or points to New Captain. The first-run Home ships in the Capy shell (PR 324). Website gate plus scoped App e2e. Review-gated.
+- [ ] **E5. Clean up the iPhone app.** Cove-named fixtures and previews, and any Cove copy E2 did not need to touch. iOS gate.
+
+**Verify, live, for the phase.** Create a Server on the real stack: it opens into an empty Home with zero Captains, connecting a Device from Settings and creating a Captain works, and the dev seed still shows Blippy and Tiny with inbox activity.
 
 ## Turn cloud agents into Workers (W1 to W4)
 

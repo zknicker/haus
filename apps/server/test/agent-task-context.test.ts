@@ -12,6 +12,7 @@ import {
     usersTable,
 } from '../src/postgres/schema.ts';
 import { insertTaskKeyEntry } from '../src/tasks/task-key-ledger.ts';
+import { testProject } from './agent-home.ts';
 import { deliverHuman, offlineDelivery, type Seed, seedAgent } from './agent-inbox-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
@@ -224,8 +225,8 @@ async function addTask(seed: Seed, parentContent: string) {
         serverId: seed.serverId,
     });
     const chatId = createOpaqueId('cht');
+    await testProject(connection.db, seed.serverId, seed.channelId);
     await connection.db.insert(chatsTable).values({
-        anchorMessageId: parentMessageId,
         id: chatId,
         kind: 'task',
         parentChatId: seed.channelId,
@@ -239,6 +240,9 @@ async function addTask(seed: Seed, parentContent: string) {
         id: createOpaqueId('tsk'),
         keyId,
         number: 1,
+        originChatId: seed.channelId,
+        originMessageId: parentMessageId,
+        projectId: seed.channelId,
         serverId: seed.serverId,
         title: 'Context',
     });

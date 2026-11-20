@@ -69,7 +69,7 @@ async function mountSidebarAndTranscripts() {
     harness.setChats(listed);
     for (const chatId of ['cht_a', 'cht_b']) {
         harness.setMessages(chatId, history(chatId, 6));
-        harness.setCloudAgentWork(chatId);
+        harness.setWorker(chatId);
     }
     const view = await harness.mount(
         <>

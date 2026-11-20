@@ -36,7 +36,7 @@ or the Electron desktop shell; Electron adds native window, credential, deep-lin
 _Avoid_: Server UI, website, Electron-only App
 
 **Pull request reading**:
-The Server's evidence of one pull request some Cloud Agent work reported or a Task holds, kept live
+The Server's evidence of one pull request some Worker reported or a Task holds, kept live
 from GitHub. Haus never acts on a pull request through it.
 _Avoid_: Pull request record, PR state
 
@@ -251,12 +251,12 @@ _Avoid_: chat entry, timeline item, post, card
 
 **Message body**:
 The typed Haus product act carried by a Message: text or a created Agent. It may project a
-separately mutable Server record but never replaces the Message's readable content. Cloud Agent
-work is not a body; a text Message links it.
+separately mutable Server record but never replaces the Message's readable content. A
+Worker report or a person's follow-up to a Worker is a body that projects its turn.
 _Avoid_: generic action, card payload, arbitrary content block, provider event
 
 **Card**:
-The Haus App presentation of a Message body, linked Cloud Agent work, or recognized reference. A card has no durable
+The Haus App presentation of a Message body, a Worker, or recognized reference. A card has no durable
 identity, placement, lifecycle, or authorization of its own.
 _Avoid_: card record, Chat entry, Widget, artifact
 
@@ -276,7 +276,7 @@ _Avoid_: Needs you alert, attention, escalation
 
 **Inbox**:
 The Haus App page below Search where one human sees the week's active Agents, their Unread Chats
-and followed Tasks, and Agent and Cloud Agent work running now. It is a lens over existing
+and followed Tasks, and Agents and Workers running now. It is a lens over existing
 records; unread is the viewer's read marker.
 _Avoid_: Agent inbox, notification center, activity feed, task list
 
@@ -290,7 +290,7 @@ _Avoid_: Task, message task
 **Task**:
 A place for one piece of work: a Chat of kind `task`, started by an Agent from an origin Message in
 a Channel, with its own conversation, a state (`todo`, `open`, `done`, `canceled`), at most one
-assignee, and attached cloud agents and pull requests (ADR 0053). Only Agents start Tasks; a human
+assignee, and attached Workers and pull requests (ADR 0053). Only Agents start Tasks; a human
 asks one. It ends when an Agent or a person marks it done or canceled, never by deletion, and
 posting in it reopens it.
 _Avoid_: Claim, issue, ticket, Thread, work Thread, board card
@@ -333,20 +333,18 @@ until they save it, and an Agent reaches it only through `haus agent create --av
 `haus agent avatar`, which assign the result in the same operation.
 _Avoid_: avatar repository, automatic profile update, transient avatar file
 
-**Cloud Agent work**:
-Durable provider-hosted work delegated by a Haus Agent for a Task. It is a standalone Agent-owned
-record attached to that Task (ADR 0044, ADR 0053): it owns its delegating Agent, one or more
-provider Runs, and its mutable lifecycle, and it survives deletion of the Chat that asked for it.
-Results reach the Task as ordinary Messages, references, attachments, and artifacts composed by the
-delegating Agent, which owns follow-up after terminal completion reaches its inbox.
-_Avoid_: Harness subagent, named teammate, Cursor Message, work Thread
+**Worker**:
+Bounded repository work an Agent delegates for one Task to a place (`cursor` or `claude` today),
+recorded by the Server ([Workers](specs/workers.md), ADR 0056). It runs in turns: each turn's
+report posts in the Task as a Message and reaches the delegating Agent as an inbox item. It closes
+when its Task is done or canceled. Cursor's and Claude's own Cloud Agents products are places, not
+the noun.
+_Avoid_: cloud agent, Cloud Agent work, Run, harness subagent, named teammate
 
-**Cloud Agent work link**:
-A `cloud-agent://<workId>` rich reference in a Message's content, recorded by the Server when the
-Message is written. The work's card lives on its Task's page; a link reads as a reference. The
-launch Message is simply the first link. Anyone who can read a live linking Message can see the
-work, and an author may link only work they can already see.
-_Avoid_: work copy, embedded work, origin card, primary card
+**Worker history link**:
+A `worker://<workerId>` rich reference to a Worker from before Tasks, kept read-only. A Worker with
+a Task is never linked: a Message points at its Task.
+_Avoid_: work copy, embedded work, cloud-agent link
 
 **Image generation**:
 One image an Agent renders through `haus image generate`, kept as a standalone Server record that

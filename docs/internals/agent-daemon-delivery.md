@@ -206,7 +206,7 @@ deadline also waits for the turn to settle (at most 20 seconds) before detaching
 state never carries a turn the next prompt cannot start over. Server requeues the interrupted run's unseen inbox items, so Start (or the retry after a timeout)
 offers the same work again. The runtime records the cancelled tool call as the user declining it,
 so the session store marks the turn interrupted and the next resumed prompt opens with a line
-saying Haus interrupted it and nobody declined it (`apps/computer/src/harness/turn-prompt.ts`);
+saying Haus interrupted it and nobody declined it (`packages/agent-prompt/src/turn-opening.ts`);
 the next completed turn clears the mark.
 
 Shutdown allows 20 seconds for session checkpoints and accepted writers, then
@@ -274,7 +274,7 @@ not itself a Chat message, keyed by fire identity: an idle Agent wakes with the
 envelope in its first prompt and the row is served the moment the Computer accepts
 that run, while a busy Agent still gets only the content-free notice and the item in
 its next turn. Both envelopes end with
-`reply with: --cause <fireId> on the command that posts (haus message send or haus cloud-agent start)`. That flag is the only way a
+`reply with: --cause <fireId> on haus message send`. That flag is the only way a
 fire reaches the transcript: the Server validates the fire against the sending
 Agent and records the provenance with the message. A fire the Agent does not
 answer stays in the automation's fire history and nowhere else.
@@ -342,7 +342,7 @@ commits. Start, Restart, a session reset, and a configure that changes runtime
 or model also lift it, without rotating the session beyond what that action
 already does. Outside a pause, a human message releases a counted hold only
 after its window passes and never cuts a short or rate-limit backoff short.
-Agent-authored, reminder, trigger, claim-assignment, Cloud Agent, onboarding, and
+Agent-authored, reminder, trigger, claim-assignment, Worker, onboarding, and
 greeting work never lifts a pause or releases a hold; it waits behind it. `agent.get`
 and `agent.list` project the pause as `wakePause` (failure count, last failure
 kind, code, and time, `pausedAt`, and `nextProbeAt`, null while the probe runs);
@@ -412,7 +412,7 @@ composition bubble remains tied only to an explicit in-flight message and its co
 | Runtime/model switch and rejected resume start exactly one fresh generation | `apps/computer/src/harness/executor.test.ts` |
 | Session reset preserves workspace and skills; full reset restores the Agent-kind workspace and only factory-managed skills | `apps/computer/src/launch.test.ts` |
 | Stable local proxy; per-turn Server authority rotates | `apps/computer/src/proxy.test.ts` |
-| Exact message envelopes and content-free notices | `apps/computer/src/inbox-format.test.ts` |
+| Exact message envelopes and content-free notices | `packages/agent-prompt/src/inbox-format.test.ts` |
 | Session continuity picks the drain lane; a composed drain attests and consumes itself | `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/executor.test.ts` |
 | A composed drain reaches the Server before the model streams and exempts its messages from the freshness hold | `apps/computer/src/harness/composed-drain-receipt.test.ts`, `apps/computer/src/visibility-receipt.test.ts`, `apps/server/test/agent-composed-drain-visibility.test.ts` |
 | Addressed drains, warm drain candidates, and the unread digest partition | `apps/server/test/agent-inbox-lanes.test.ts`, `apps/server/test/agent-inbox-digest.test.ts` |
@@ -432,7 +432,7 @@ composition bubble remains tied only to an explicit in-flight message and its co
 | Wake pause opens on a repeated or persistent failure, probes 1h → 4h → 24h, clears on success, and lifts only for human intent | `apps/server/src/agent-delivery/wake-pause.test.ts`, `apps/server/test/agent-wake-pause.test.ts`, `apps/server/test/haus-agent-wake-pause.test.ts` |
 | A typed provider failure fails the turn; a rejected credential ends it at the first retry; the runtime issue clears on success | `apps/computer/src/harness/runtime-session-failure.test.ts`, `apps/computer/src/harness/runtime-session-failure-turn.test.ts`, `apps/computer/src/launch-runtime-auth.test.ts`, `apps/computer/src/runtime/codex/codex-turn-failures.test.ts` |
 | Dispatch, acceptance, and settlement project semantic lifecycle phases | `apps/server/test/agent-delivery.test.ts` |
-| A claim enters the inbox with canonical claim metadata | `apps/server/test/haus-agent-run.test.ts`, `apps/computer/src/inbox-format.test.ts` |
+| A claim enters the inbox with canonical claim metadata | `apps/server/test/haus-agent-run.test.ts`, `packages/agent-prompt/src/inbox-format.test.ts` |
 | Mute purges ordinary work without blocking personal mentions; a mention in a Task restores an unfollow | `apps/server/test/haus-agent-run.test.ts` |
 | Freshness validation and Agent send commit share one Server lock | `apps/server/test/haus-agent-run.test.ts` |
 | Agent claims share one ownership lock; humans never claim | `apps/server/test/haus-agent-run.test.ts` |

@@ -27,7 +27,7 @@ const {
 } = harness;
 
 const [alpha] = await requireAgents(1);
-const all = await requireChannel('all');
+const all = await requireChannel('haus');
 const product = await requireChannel('product');
 const dm = requireDm(alpha);
 

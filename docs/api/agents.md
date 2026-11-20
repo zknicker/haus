@@ -5,9 +5,9 @@ read_when:
   - reading Agent turn records or the delivery ledger
   - changing the Agent inbox list, `message read --unread`, or the Agent read position
   - changing an Agent's conversation style, signature emoji, or self-profile update
-  - changing Agent channel routes (`haus channel create`, `haus channel add`)
+  - changing Agent channel routes (`haus channel add`, `join`, `leave`, `mute`)
   - changing the Agent Task routes (`/api/agent/tasks/*`) or claim routes
-  - changing the cloud agent launch route, `CLOUD_AGENT_TASK_REQUIRED`, or where Run notices land
+  - changing the `haus worker` routes, Worker refusal codes, dispatch, settlement, or Worker inbox items
 ---
 
 # Agents API
@@ -101,7 +101,7 @@ quiet, not evidence of a lost run.
 once at dispatch in `agent_run_triggers` so it survives a failed run requeueing its
 rows: `{ kind: 'message', author: 'human' | 'agent', chatId, messageId, preview }`,
 `{ kind: 'claim', chatId, messageId, preview }` (the claim's message), or
-`{ kind: 'reminder' | 'trigger' | 'cloud_agent' | 'onboarding' | 'greeting', chatId }` (`greeting`
+`{ kind: 'reminder' | 'trigger' | 'worker' | 'onboarding' | 'greeting', chatId }` (`greeting`
 is a new Agent's one-time `#all` wake when it led the run alone), or one of the chatless
 sources, whose runs need no Chat visibility to read:
 
@@ -175,16 +175,8 @@ active Agent may add any active Agent; Cove is refused. The add is idempotent �
 that Agent was already a member — and wakes nobody. Like the human channel save, it emits
 `chat.lifecycle{action:'updated'}` so member lists refresh.
 
-`POST /api/agent/channels/create` takes `{ name, humans, description? }` and backs
-`haus channel create`. Creating a channel is a member capability, as in the App's New channel
-dialog, so the runner credential is the whole authority. `name` is the bare channel name
-(`^[A-Za-z0-9][A-Za-z0-9_-]{0,31}$`). The creating Agent joins it, and so does every human in
-`humans` (1–10 `@handle`s of active Server members), because a human sees a channel only as its
-participant. The write goes through the same `insertChannel` seam as `chat.createChannel` and
-emits the same `chat.lifecycle{action:'created'}`. The receipt is `{ target, humans, description }`.
-A taken name, including an archived channel's, is `409 CHANNEL_NAME_TAKEN`. A handle that names no
-active human is `404 INVALID_TARGET` and creates nothing. A bad name or an empty `humans` is
-`400 INVALID_ARG`.
+Agents cannot create channels. Every channel is a Project, and only people create Projects
+(`project.create`, [specs/projects.md](../../specs/projects.md)), so there is no Agent create route.
 
 ### Inbox and read position
 
@@ -192,7 +184,7 @@ Each Agent has one durable read position per Chat (`agent_chat_reads`, see
 [Data model](../internals/data-model.md)). It survives session rotation and only moves forward.
 
 `GET /api/agent/inbox/conversations` backs `haus inbox check`: every joined channel, DM, and
-followed Task (each its own row) holding someone else's message past the read position. Query:
+followed Task under a joined channel (each its own row) holding someone else's message past the read position. Query:
 `view` (`unread` | `mentions`, default `unread`), `before` (opaque keyset key, at most 200 characters), `limit`
 (1–50, default 20). The response is `{ view, items, hasMore, nextBefore, totals }`; each item
 carries `chatId`, `target`, `kind`, `unread`, `mentions`, `lastReadSequence`, `activityKey`,
@@ -208,7 +200,7 @@ statement; any failure is `503 INBOX_UNAVAILABLE` with `retryable: true`, never 
 Contract: `agentInboxConversationsResponseSchema` in `@haus/api`.
 
 `GET /api/agent/inbox` is the pending-queue peek; each row's `firstSequence` is the Chat sequence
-of its first pending message, or null when only fires, assignments, or Cloud Agent results wait.
+of its first pending message, or null when only fires, assignments, or Worker results wait.
 
 `GET /api/agent/history` returns `last_read: { after, unread_after }`: the read position before the
 read moved it, repeated as `unread_after` while someone else's message sat above it, else -1. A plain page
@@ -328,10 +320,12 @@ a claim or list response.
 `omitted`: `assignee` (`me`, `none`, or `@handle`), `key` (a ledger key like `SEC`), and `state`
 (a comma list or repeated; `todo,open` by default) narrow it. `GET /api/agent/tasks/show?key=SEC-12`
 adds the description, Mentioned in, and Reminders. `POST /api/agent/tasks/start` starts a Task from
-a Channel Message (`{ target, from, title, description?, assignee?, state?, priority?, dueOn? }`;
-a DM origin is `TASK_ORIGIN_DM`), and `/state`, `/update`, `/assign`, and `/attach-pr` address
+a Channel or DM Message (`{ target, from, title, project?, description?, assignee?, state?,
+priority?, dueOn? }`) in the Project `project` names by key, else the origin's channel, else for a
+DM the caller's home Project; a non-generalist Agent outside its home Project is
+`403 TASK_PROJECT_NOT_HOME` with a `nextAction` naming that Project's Agent and channel), and `/state`, `/update`, `/assign`, and `/attach-pr` address
 Tasks by key. `/attach-pr` takes `{ key, url }` and answers `{ task, pullRequest }`;
-`/unfollow` takes a `task:KEY-n` target. Only Agents start Tasks (ADR 0053). Inputs are in
+`/unfollow` takes a `task:KEY-n` target. People file Tasks in the App instead (`task.create`). Inputs are in
 `packages/haus-api/src/agent-task.ts` and `task-input.ts`; refusal codes in
 `agent-task-refusals.ts`.
 
@@ -433,121 +427,79 @@ reply wakes it through ordinary delivery
 ([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)). The mention writes the Message's
 `mentioned_user_ids` (an inline reply its `reply_to_message_id`); either notifies that human
 ([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)). Every Agent-facing Message states its `body_kind`
-(`text | agent-created`). A Message that links Cloud Agent work also carries `cloud_agent_works`,
-every linked work the reading Agent can see in link order; the older single `cloud_agent_work`
-field still names the first for released CLIs.
+(`text | agent-created | worker-report | worker-follow-up`). A Message that links read-only
+Worker history from before Tasks also carries `workers`, every linked Worker the reading Agent can
+see in link order. New Workers are never linked: a Message points at their Task.
 
-### Cloud Agent work
+### Workers
 
-A managed Agent delegates bounded repository work for a Task to a provider-hosted agent with
-`haus cloud-agent start`:
+A managed Agent delegates bounded repository work for a Task to a Worker
+([Workers](../../specs/workers.md)) with `haus worker start`. The brief rides stdin:
 
 ```sh
-haus cloud-agent start --task SEC-12 --repo haus/haus --ref main \
-  --title "Fix the flaky delivery test" \
-  --say "Handing the flaky delivery test to a cloud agent; I will report back here." <<'HAUSMSG'
-Reproduce the failure, fix it, and open a pull request.
-HAUSMSG
+haus worker start --task SEC-12 --on cursor --repo haus/haus --ref main \
+  --title "Fix the flaky delivery test" <<'BRIEF'
+Reproduce the flake in delivery.test.ts, make it deterministic, and open a pull request.
+BRIEF
 ```
 
-This command runs on the Computer rather than upstream. The Computer checks
-`CloudAgentProvider.readiness()` first, so an unavailable capability fails with
-`CLOUD_AGENT_UNAVAILABLE` before Server records anything, and it keeps the stdin instructions
-local: they reach the provider and never Server.
+`POST /api/agent/workers` takes `{ brief, nonce, place?, repository, startingRef, task?, title }`
+(`agentWorkerStartInputSchema`). The Server refuses before writing anything:
+`WORKER_TASK_REQUIRED` (no Task, or one the Agent cannot reach), `WORKER_TASK_CLOSED`,
+`WORKER_PLACE_REQUIRED` (no `place`, and the Agent's assigned Computer has no ready default place to use instead; the message lists the ready places), and
+`WORKER_PLACE_UNAVAILABLE` (no online Computer reports that place ready). A start then passes the
+Task Chat's freshness hold like `haus message send` and answers `held` with the newer messages.
+Otherwise it records the Worker (`wkr_`) and its first turn (`wkt_`, input `[{ kind: 'brief' }]`),
+follows the Task for the Agent, posts no Message, and answers
+`{ state: 'started' | 'queued', worker }`. `started` means the turn went to its carrier; `queued`
+means it waits for a slot. A retried start with the same `nonce` returns the same Worker; a
+different start under that nonce is `WORKER_IDEMPOTENCY_CONFLICT`. The carrier is the Agent's own
+Computer when it reports the place ready and is online, else the online one attached longest.
 
-`start` also takes `--provider cursor|claude`; without it the Computer's default provider applies
-(Cursor until a human picks another in Computer settings). A Run whose cloud agent stopped to ask
-a question settles as `pending_input` and wakes the Agent once; it answers with
-`haus cloud-agent send --work <workId>`.
+**Dispatch.** A turn goes to its carrier when every earlier turn of its Worker has settled, its
+input is recorded, and its place has a free slot: `worker_place_limits` per Server and place,
+default 10, counting dispatched unsettled turns, first come first served. The Server composes the
+input (`apps/server/src/workers/worker-instructions.ts`, then each input labelled by author) and
+sends `worker-turn-start`, idempotent by `turnId`; `worker-turn-accepted` records the
+acknowledgement. Dispatch runs after start, follow-up, settle, stop, accept, drain, and reconnect.
+On reconnect the Server resends every unaccepted start, then `worker-reconcile` frames (at most 200
+entries) for accepted unsettled turns and migrated turns whose input still sits on the Computer,
+with `stopRequested`. A `worker-follow-up-drain` frame fills or creates its turn by id and is
+answered with `worker-follow-up-drain-ack`.
 
-`POST /api/agent/cloud-agents` takes `{ cause?, content, nonce, provider, repository,
-startingRef, target, task, title }`, where `task` is the Task key and `target` its `task:KEY-n`.
-`cause` (`start --cause <fireId>`) is the Trigger or Reminder fire the launch answers; the Server
-validates and records it on the launch Message as `haus message send --cause` does, and infers it
-the same way when absent ([Automation provenance](../../specs/automation-provenance.md)). A launch
-with no Task, or a Task the Agent cannot reach (no conversation yet, or a Channel it has not
-joined), fails with `CLOUD_AGENT_TASK_REQUIRED` before anything is written, and the CLI names the
-`haus task start` step to take first. It returns `{ state: 'started', chatId, idempotent, messageId, runId, sequence, target,
-work }`, or `{ state: 'held', newMessageCount, omittedMessageCount, formalMentionCount,
-shownMessages }` when the `haus message send` freshness hold finds unseen newer messages in the
-Task. A held launch creates nothing and launches nothing; the Agent reviews the shown
-messages and re-runs the command if it still applies (no draft; see
-[Workers](../../specs/workers.md#the-cli)). `content`
-is the Agent's own words; `title` is at most 120 characters and `repository` reads as
-`owner/name`. One transaction writes a `text` Message in the Task's Chat whose content is
-`content`, a blank line, and a Server-written `[<title>](cloud-agent://<workId>)` link, the
-`cloud_agent_work` row with its `task_id`, its `cloud_agent_work_links` rows (any work `content`
-links that the Agent can see, then the new work last), its first `cloud_agent_runs` row in
-`queued`, the Agent's follow of the Task, ordinary delivery planning, and both the
-`message.created` and `cloudAgentWork.updated` events. The work keeps the Chat and Message as
-historical pointers with no foreign key, so it outlives both
-([ADR 0044](../adr/0044-cloud-agent-work-is-referenced-not-embedded.md)). The CLI receipt prints
-the Work ID, the Message, the Task target, and a `Link:` line with that Markdown link,
-which the Agent pastes into `haus message send` to show the work in another conversation. It is idempotent by
-`(Chat, nonce)`; the same nonce with different values returns
-`CLOUD_AGENT_IDEMPOTENCY_CONFLICT`. The Computer then calls `provider.start()`; a provider that
-refuses settles that same recorded work as `failed` with an error code and returns
-`CLOUD_AGENT_LAUNCH_FAILED` rather than erasing the attempt.
+**Settlement.** A `worker-observation` applies idempotently (a stale, duplicate, or
+post-terminal one changes nothing; the schema stays non-`.strict()` for version skew). The first
+settled reading maps to a `WorkerOutcome` through `workerOutcomeOf`, resolving `Haus-Person` to a
+member who can read the Task (`personRefused` otherwise). A report with text posts one
+Agent-authored Message in the Task with body `{ kind: 'worker-report', workerId, turnId, outcome }`
+(the text, the ask with its mention, then pull request links), attaches its pull requests to the
+Task, and queues one `worker_report` inbox item (`worker-report:<turnId>`). A turn that ends with
+no report settles failed `no-report` and posts nothing. A `stopped` outcome queues nothing unless
+the Worker is closing. Reports of one Task ride one run, up to 20, as inbox items carrying
+`workerReport`; a busy Agent's notice carries `workerReports: { taskKey, ids, total }`. A stall
+queues one `worker_stall` item per window, and a pull request change after the newest turn
+settled queues a `pull_request` item ([Workers](../../specs/workers.md#pull-request-readings)).
 
-`haus cloud-agent send --work <workId>` takes follow-up instructions on stdin. The Computer
-accepts `{ workId, nonce, instructions, interrupt }` at `POST /api/agent/cloud-agents/send`, retains
-the instructions locally, and forwards `{ workId, nonce }` to Server. Server returns
-`{ work, runId, idempotent, predecessors }` for a Run on the existing work. Computer sends it to the
-same hosted agent after preceding work settles, or stops active work and discards older queued
-prompts when `interrupt` is true. Pending instructions stay in a private Computer-local journal
-until launched or cancelled. Revisions reuse the Work ID, launch Message, and Task. Each settled
-Run gets its own inbox attention; callers do not need to manage provider Run IDs.
+**Follow-ups and stop.** `POST /api/agent/workers/send` takes `{ workerId, nonce, text, interrupt }`
+and answers `{ idempotent, turnId, worker }`. It queues the text into the Worker's waiting next
+turn, or a new one, and posts nothing; `interrupt` first stops the working turn and drops queued
+follow-ups. `POST /api/agent/workers/stop` takes `{ workerId }` and answers `{ worker }`.
+Undispatched turns settle `stopped` at once; dispatched ones get `worker-stop`, or settle on the
+Server at once while the carrier is offline (reconcile still carries the stop). Both routes are the
+delegating Agent's own (`WORKER_STOP_DENIED`), refuse a closing Worker (`WORKER_CLOSED`), send
+refuses a Worker whose carrier Computer was removed (`WORKER_CARRIER_REMOVED`), and stop
+answers `WORKER_NOT_LIVE` when nothing is queued or working. A Worker with no Task is read-only
+history: every write answers `WORKER_HISTORY_READ_ONLY`.
 
-`haus cloud-agent inspect` uses `GET /api/agent/cloud-agents` to read `{ works }` for the caller's
-delegated work. An optional `workId` query selects one work with its recorded results. These are
-Server records, not a live provider transcript. The CLI prints a `Link:` line for each work.
-`inspect` and `send` stay delegator-only; another Agent sees linked work only through the
-`cloud_agent_works` field of the Messages it reads.
+`GET /api/agent/workers` reads `{ workers }` for the caller's Workers, or one with `workerId`.
 
-Each Run carries `summary` (capped at 2000 characters) and `report` (`{ clipped, text }`, capped
-at 65,536 characters, `null` until a Run observes one), the full text `summary` was cut from
-(TECH-8). The route only ever sends a Run's full `report.text` when `workId` is present (a
-single-work fetch); a routine list-all call (`workId` absent) nulls each Run's `report` out
-instead, so polling the list never embeds a potentially-64-KiB blob per Run. `haus cloud-agent
-inspect --work <workId> --report` renders only one Run's full `report.text`, with a trailing
-`[clipped at 64 KiB]` marker line when `clipped` is true; it defaults to the newest Run on that
-work carrying a report, or targets one by id with `--run <runId>`. Without `--report`, the default
-JSON detail appends one `More: haus cloud-agent inspect --work <workId> --report` line per Run
-whose stored report outgrew its summary.
-
-`haus cloud-agent stop --work <workId>` uses `POST /api/agent/cloud-agents/cancel`. The published
-`cancel` CLI spelling remains a compatibility alias. The endpoint takes `{ workId }` and is
-authorized to the delegating Agent alone; `cloudAgentWork.cancel({ serverId, workId })` is the
-Owner/Admin equivalent. Seeing the work through a link grants neither. Both record
-`cancelRequestedAt` and `cancelRequestedBy` and send a `cloud-agent-cancel` frame to the assigned
-Computer. Cancelling settled work returns `CLOUD_AGENT_WORK_SETTLED`; cancelling or following up
-work whose Computer was removed returns `CLOUD_AGENT_COMPUTER_REMOVED`.
-
-Computer reports lifecycle over the attachment socket as a `cloud-agent-observation` frame carrying
-`{ workId, runId, status, observedAt }` plus optional provider ids and URL, raw status, bounded
-`activity` and `summary`, a `report` (`{ clipped, text }`, the full text `summary` is cut from),
-error code, reported branches, and usage. Server applies it idempotently: a duplicate,
-out-of-order, or post-terminal observation changes nothing. The observation schema is
-deliberately non-`.strict()`: Computer and Server deploy independently, so a newer Computer's
-unrecognized field is ignored instead of dropping the whole observation. A settled Run creates
-exactly one `agent_inbox` attention for the delegating Agent, keyed by the Run id. That attention's
-`hasFullReport` is `true` exactly when the stored report is longer than the stored summary, which
-is what the inbox's `More: haus cloud-agent inspect --work <id> --report` pointer line keys off.
-For the Claude provider, the window's first `result` log entry is always the Run's own answer to
-its own prompt; any later one is a turn Claude Code started on its own (a self-started/adopted
-turn) and is never treated as the report. The latest Run owns the work's displayed status, so an
-earlier Run settling cannot finish a queued follow-up.
-On reconnect Server pushes `cloud-agent-reconcile` frames of at most 200 entries covering every
-non-terminal Run that Computer still owns, with any cancel recorded while it was offline; Computer reads each
-Run from the provider and reports what it finds. A settled Run's inbox attention lands in the
-work's Task while that Task's Chat is live; after it is deleted the Run settles without one, and
-the notice never moves to another link. A pull request change after the newest Run settled wakes
-the delegating Agent with a `pull_request` notice carrying `pullRequestChange`
-([Workers](../../specs/workers.md#pull-request-readings)).
-
-`cloudAgentWork.listActive({ serverId })` is the human read behind the Inbox's Happening now. It
-lists live work the viewer can see through any linking Message, each row with its `taskId` and
-`taskKey`; opening a row opens the work's Task. The Task's attached work rides `task.get`
+**People.** `worker.get`, `worker.stop`, and `worker.sendFollowUp({ serverId, workerId, text, nonce })`
+are open to anyone who can read the Worker's Task. `sendFollowUp` posts a person-authored Message
+with body `{ kind: 'worker-follow-up', workerId }` in the Task, delivered as ordinary Task traffic,
+and queues the same text. `worker.listActive` lists open Workers with a queued or working turn,
+each opening its Task. `worker.onUpdated` publishes `{ serverId, taskId, chatId, workerId }`,
+scoped to readers of the Task's Chat. Setting a Task `done` or `canceled` closes its Workers
+([Workers](../../specs/workers.md#closing)). The Task's Workers ride `task.get`
 ([Tasks API](tasks.md)).
 
 #### Cloud Agent provider access
@@ -564,12 +516,12 @@ effort, fast }], refreshedAt }`, or `null`; `autoAvailable` says Cursor listed i
 `cloudAgentSettings.get({ serverId, provider })` (`provider` defaults to `cursor`; each provider
 keeps its own Server-wide model) answers any member with
 `{ model, catalog, savedModelUnavailable }`. `model` is `{ kind: "auto" }`, shown as Auto
-(Haus sends Cursor's `default` id, so Cursor picks a model for each Run), or
+(Haus sends Cursor's `default` id, so Cursor picks a model for each turn), or
 `{ kind: "model", id, params: { effort?, fast? } }`, where an absent param is the model's default.
 `catalog` is the freshest catalog any of the Server's Computers reported (or `null`).
 `cloudAgentSettings.setModel({ serverId, model })` is Owner/Admin only (`FORBIDDEN` otherwise),
 refuses an unlisted id or a param value that model does not offer with `BAD_REQUEST`, returns the
-same shape, and emits a `server` scope update. Each Run in `cloudAgentWork` carries
+same shape, and emits a `server` scope update. Each turn in a `Worker` carries
 `model: { id, params, fallbackFrom, droppedParams }`: the model id sent to the provider (`default`
 for Auto, or `null` when the launching Computer's catalog lacked Auto and Haus sent none), the params
 sent with a catalog model (`[{ name, providerParamId, value }]`), the saved model that fell back to

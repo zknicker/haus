@@ -87,7 +87,7 @@
                 "timer": 4
             }
         },
-        "apps/computer/src/cloud-agents/claude/checkout.ts": {
+        "apps/computer/src/workers/claude/checkout.ts": {
             "disposition": "finite-cleanup",
             "reason": "One launch clones into a private temporary directory and removes it in lexical finally whether or not the launch succeeds. Child processes are awaited with their own timeouts.",
             "risks": {
@@ -98,7 +98,7 @@
                 "timer": 0
             }
         },
-        "apps/computer/src/cloud-agents/claude/native-commands.ts": {
+        "apps/computer/src/workers/claude/native-commands.ts": {
             "disposition": "external-adapter",
             "reason": "Claude Code's launcher is awaited to exit under its own timeout. The two short timers that accept the folder-trust prompt are cleared and the terminal is closed in lexical finally.",
             "risks": {
@@ -109,7 +109,7 @@
                 "timer": 3
             }
         },
-        "apps/computer/src/cloud-agents/cursor/provider.ts": {
+        "apps/computer/src/workers/cursor/provider.ts": {
             "disposition": "external-adapter",
             "reason": "Cursor terminal stream handling aborts only the local subscription. The daemon Effect supervisor owns polling, retries and joined subscription teardown.",
             "risks": {
@@ -120,7 +120,7 @@
                 "timer": 0
             }
         },
-        "apps/computer/src/cloud-agents/cursor/recorded-transport.ts": {
+        "apps/computer/src/workers/cursor/recorded-transport.ts": {
             "disposition": "test-support",
             "reason": "Recorded Cursor streams expose an abortable deterministic subscription, removing the listener when the simulated stream ends.",
             "risks": {
@@ -131,7 +131,7 @@
                 "timer": 0
             }
         },
-        "apps/computer/src/cloud-agents/cursor/sdk-stream.ts": {
+        "apps/computer/src/workers/cursor/sdk-stream.ts": {
             "disposition": "external-adapter",
             "reason": "The pinned SDK stream bridge closes and joins the SDK reader on interruption. An early rejection observer prevents an unhandled rejection; finalization awaits and propagates that same disposal failure.",
             "risks": {
@@ -142,7 +142,7 @@
                 "timer": 0
             }
         },
-        "apps/computer/src/cloud-agents/cursor/sdk-transport.ts": {
+        "apps/computer/src/workers/cursor/sdk-transport.ts": {
             "disposition": "external-adapter",
             "reason": "SDK launches and follow-ups join automatic local stream disposal before returning provider identity. The daemon owns accepted launch completion; finite SDK requests have a pinned timeout patch.",
             "risks": {
@@ -153,9 +153,9 @@
                 "timer": 0
             }
         },
-        "apps/computer/src/cloud-agents/fake-provider.ts": {
+        "apps/computer/src/workers/fake-provider.ts": {
             "disposition": "test-support",
-            "reason": "The in-memory Cloud Agent fixture exposes a Promise subscription that settles on abort so supervisor tests exercise joined teardown.",
+            "reason": "The in-memory Worker fixture exposes a Promise subscription that settles on abort so supervisor tests exercise joined teardown.",
             "risks": {
                 "abortController": 0,
                 "catchAndIgnore": 0,
@@ -164,9 +164,20 @@
                 "timer": 0
             }
         },
-        "apps/computer/src/cloud-agents/launch-journal.ts": {
+        "apps/computer/src/workers/settings.ts": {
             "disposition": "finite-cleanup",
-            "reason": "Finite journal writes close their file handles and remove only their own temporary file. Exclusive intent creation and atomic acknowledgement preserve launch identity across process restarts. A finite per-Run write lock serializes terminal settlement with late acknowledgements across journal instances; the lock is released before the Promise returns.",
+            "reason": "The default-provider write is one atomic rename of a temporary file it removes in lexical finally.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/workers/turn-journal.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Finite journal writes close their file handles and remove only their own temporary file. Exclusive creation records a Worker turn before any provider call and survives process restarts. A finite per-turn write lock serializes acceptance, settlement, late acknowledgements, and drain removal across journal instances; the lock is released before the Promise returns.",
             "risks": {
                 "abortController": 0,
                 "catchAndIgnore": 0,
@@ -175,14 +186,14 @@
                 "timer": 0
             }
         },
-        "apps/computer/src/cloud-agents/settings.ts": {
-            "disposition": "finite-cleanup",
-            "reason": "The default-provider write is one atomic rename of a temporary file it removes in lexical finally.",
+        "apps/computer/src/workers/worker-supervisor.fixture.ts": {
+            "disposition": "test-support",
+            "reason": "The supervisor test fixture resolves a waiter when a matching frame is sent, so tests await an event instead of polling; every supervisor and runtime it makes closes in the registered afterEach.",
             "risks": {
                 "abortController": 0,
                 "catchAndIgnore": 0,
-                "finallyBlock": 1,
-                "manualPromise": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
                 "timer": 0
             }
         },
@@ -351,9 +362,42 @@
                 "timer": 2
             }
         },
+        "apps/computer/src/invocations/codex/apply-patch.test-support.ts": {
+            "disposition": "test-support",
+            "reason": "The apply_patch test runner passes a fresh, never-aborted signal when a test does not supply its own; nothing listens to it.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/invocations/codex/apply-patch.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "One module-level signal that never aborts carries the patch's write phase, so a cancel that arrives after the pre-write check cannot leave a patch half applied; no listener or timer is attached.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
         "apps/computer/src/invocations/browser.ts": {
             "disposition": "finite-cleanup",
             "reason": "Each browser invocation streams agent-browser output into one output tail whose log file is finished and closed in lexical finally once the process settles.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/invocations/editor-view.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A view closes the one non-blocking file handle it opened in lexical finally after a bounded read; it owns no detached work.",
             "risks": {
                 "abortController": 0,
                 "catchAndIgnore": 0,
@@ -596,6 +640,28 @@
         "apps/computer/src/workspace-files.ts": {
             "disposition": "finite-cleanup",
             "reason": "A finite workspace preview closes its local file handle before returning the bounded result.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/server/src/agent-invocations/invocation-clock.ts": {
+            "disposition": "external-adapter",
+            "reason": "The invocation grace timer seam: the router cancels each scheduled grace when its invocation settles or its Computer reconnects, and close cancels every grace still open.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 0,
+                "timer": 1
+            }
+        },
+        "apps/server/src/agent-invocations/invocation-payloads.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A payload upload releases its Server write hold in lexical finally; the staged upload it wraps owns its own file cleanup.",
             "risks": {
                 "abortController": 0,
                 "catchAndIgnore": 0,
@@ -868,6 +934,17 @@
                 "timer": 0
             }
         },
+        "apps/server/src/agent-api/dispatch-gate.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Each dispatch flight is one HTTP request: its Promise.withResolvers settles exactly once in land(), which also deletes the flight entry, and a running flight lands when that request's onSend hook finishes it, so concurrent duplicates wait on one response.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
         "apps/server/src/server-mcp/requests.ts": {
             "disposition": "external-adapter",
             "reason": "Bounded request cancellation registry adapting HTTP messages to AbortSignals. Entries release with handlers, expire on access, and abort at Fastify shutdown; no background work is launched.",
@@ -1044,7 +1121,7 @@
                 "timer": 0
             }
         },
-        "apps/computer/src/cloud-agents/launch-attempt.ts": {
+        "apps/computer/src/workers/launch-attempt.ts": {
             "disposition": "external-adapter",
             "reason": "Request-local AbortController bridge to provider provisioning. The existing Effect-owned work monitor owns the persisted deadline and cancellation; this finite adapter owns no timer, retry loop, or detached task and joins late acknowledgement cancellation before returning.",
             "risks": {

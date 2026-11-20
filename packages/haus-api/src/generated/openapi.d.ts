@@ -572,23 +572,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/agent/channels/create": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Create a channel the calling Agent and the named humans join. */
-        post: operations["createAgentChannel"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/agent/channels/add": {
         parameters: {
             query?: never;
@@ -905,8 +888,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Start a Task from a Message in a Channel.
-         * @description Starts a Task, a place for one piece of work, from an origin Message in a Channel (ADR 0053). The Task takes the Channel's key. Refuses with `TASK_ORIGIN_DM` when the origin Message is in a DM.
+         * Start a Task from a Message in a Channel or DM.
+         * @description Starts a Task, a place for one piece of work, in a Project from an origin Message in a Channel or DM (ADR 0055). The Task takes its Project's key. A non-generalist Agent starting outside its home Project is refused with `TASK_PROJECT_NOT_HOME`.
          */
         post: operations["startAgentTask"];
         delete?: never;
@@ -1415,17 +1398,6 @@ export interface components {
             /** @enum {string} */
             reasoningEffort: "default" | "low" | "medium" | "high" | "xhigh" | "max";
             runtimeId: string;
-            target: string;
-        };
-        AgentCreateChannelRequest: {
-            description?: string;
-            /** @description Humans who join the channel, by `@handle`; a human sees a channel only as its participant. */
-            humans: string[];
-            name: string;
-        };
-        AgentCreateChannelResponse: {
-            description: string | null;
-            humans: string[];
             target: string;
         };
         AgentAddChannelAgentRequest: {
@@ -2078,15 +2050,17 @@ export interface components {
             description?: string;
             /** Format: date */
             dueOn?: string;
-            /** @description The origin Message id. It must be in `target`; a DM origin is refused with `TASK_ORIGIN_DM`. */
+            /** @description The origin Message id. It must be in `target`. */
             from: string;
             priority?: components["schemas"]["AgentTaskPriority"];
+            /** @description The Task's Project by key, like `SEC`. Defaults to the origin's channel, or for a DM origin to the caller's home Project. */
+            project?: string;
             /**
              * @description Defaults to open.
              * @enum {string}
              */
             state?: "todo" | "open";
-            /** @description The Channel holding the origin Message, as a send target like `#security`. */
+            /** @description The Channel or DM holding the origin Message, as a send target like `#security` or `dm:@ada`. */
             target: string;
             title: string;
         };
@@ -2368,7 +2342,7 @@ export interface components {
             role: "user" | "assistant" | "system";
             content: string;
             /** @enum {string} */
-            body_kind: "text" | "agent-created";
+            body_kind: "text" | "agent-created" | "worker-report" | "worker-follow-up";
             attachments: components["schemas"]["JsonObject"][];
             nonce: string | null;
             delivery_id: components["schemas"]["DeliveryId"] | null;
@@ -2376,10 +2350,8 @@ export interface components {
             deleted_at: components["schemas"]["Timestamp"] | null;
             metadata: components["schemas"]["JsonObject"];
             claim?: components["schemas"]["MessageClaim"] | null;
-            /** @description The first linked Cloud Agent work, kept for released CLIs; read `cloud_agent_works`. */
-            cloud_agent_work?: components["schemas"]["MessageCloudAgentWork"] | null;
-            /** @description Every Cloud Agent work this Message links, in link order. */
-            cloud_agent_works?: components["schemas"]["MessageCloudAgentWork"][];
+            /** @description Every Worker this Message links, in link order. */
+            workers?: components["schemas"]["MessageWorker"][];
             agent_created?: components["schemas"]["MessageAgentCreated"] | null;
             reactions?: components["schemas"]["MessageReaction"][];
             reply?: components["schemas"]["ChatMessageReply"] | null;
@@ -2399,7 +2371,7 @@ export interface components {
             description: string | null;
             retired: boolean;
         };
-        MessageCloudAgentWork: {
+        MessageWorker: {
             id: string;
             /** @enum {string} */
             provider: "cursor" | "claude";
@@ -2410,10 +2382,10 @@ export interface components {
             starting_ref: string | null;
             provider_url: string | null;
             activity: string | null;
-            latest_run: components["schemas"]["MessageCloudAgentRun"] | null;
+            latest_turn: components["schemas"]["MessageWorkerTurn"] | null;
         };
-        MessageCloudAgentRun: {
-            run_id: string;
+        MessageWorkerTurn: {
+            turn_id: string;
             /** @enum {string} */
             status: "queued" | "running" | "pending_input" | "completed" | "failed" | "cancelled" | "expired";
             summary: string | null;
@@ -3701,31 +3673,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentChannelMembers"];
-                };
-            };
-            default: components["responses"]["AgentError"];
-        };
-    };
-    createAgentChannel: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AgentCreateChannelRequest"];
-            };
-        };
-        responses: {
-            /** @description The new channel and the humans in it. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgentCreateChannelResponse"];
                 };
             };
             default: components["responses"]["AgentError"];

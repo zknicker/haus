@@ -1,11 +1,12 @@
 ---
-summary: The cross-cutting contract for how a Haus Agent behaves in conversation (reply placement, voice, reactions, formatting, who answers, visible work, and when work becomes a Task), with the source that owns each trait and the guard that keeps it from regressing.
+summary: The cross-cutting contract for how a Haus Agent behaves in conversation (reply placement, voice, reactions, formatting, who answers, visible work, when work becomes a Task, and where a "from now on" rule goes), with the source that owns each trait and the guard that keeps it from regressing.
 read_when:
   - changing the Agent prompt's voice, personality, conversation style, signature emoji, or formatting guidance
   - changing where Agents post acknowledgments, progress, or answers, or when they react instead of replying
   - changing mention routing or sole-addressee narrowing
   - changing the typing strip, thought phrasing, or mid-turn notices
   - changing when an Agent starts a Task, where it reports Task work, or what wakes it on a Task
+  - changing where an Agent writes a "from now on" rule, or what it keeps in MEMORY.md
   - editing specs/raft-alignment/prompt-divergences.md rows for Personality, Communication style, Startup step 4, Sending messages, Conversation etiquette, or Formatting
   - reviewing an Agent transcript that "feels off" and looking for which contract it broke
 ---
@@ -51,7 +52,7 @@ showed the description alone lost `--done` and `--reply-to`.
 - Owner: [ADR 0029](../adr/0029-inline-replies-preserve-conversation.md) and its 2026-10-02,
   2026-10-06, and 2026-10-14 amendments; `sendingMessagesSection` (the visibility paragraphs) and
   the pickup and "When done" bullets of `communicationStyleSection` in
-  `apps/computer/src/harness/managed-instructions.ts`; Manual topic `replies` in
+  `packages/agent-prompt/src/managed-instructions.ts`; Manual topic `replies` in
   `packages/agent-manual/src/product-topics.ts`.
 - Guards: the `side-work` eval (`side-work-stays-beside-channel` and its one-off control), the
   `placement` eval (`placement-quick-fact`, `placement-recommendation`,
@@ -165,7 +166,7 @@ Agents follow the current Raft prompt by default, pinned at Raft `v1.21.2-source
 can steer as an inbox notice, so the settled reply reflects it.
 
 - Owner: [Prompt divergences](../../specs/raft-alignment/prompt-divergences.md);
-  `apps/computer/src/harness/steer-inbox-notice.ts`, `apps/computer/src/inbox-format.ts`.
+  `apps/computer/src/harness/steer-inbox-notice.ts`, `packages/agent-prompt/src/inbox-format.ts`.
 - Guards: `bun run test:prompt-contract` (size cap ratchet in `managed-instructions.test.ts`);
   `steer-inbox-notice.test.ts`; the `freshness` case in `bun run eval:sessions`.
 
@@ -196,7 +197,8 @@ Live scenarios that exercise each Manual card or managed skill, as of 2026-10-20
 | `when-to-ask-human`, `sent-zero` | `human-ask-reply-wakes`, `room-pending-ask-peer-guesses` |
 | `reminder-cron` | `reminder-schedule-and-fire`, `room-reminder-fires-mid-conversation` |
 | `trigger-webhook` | `webhook-secret-stays-out-of-chat`, the `triggers` eval |
-| Memory (`MEMORY.md`) | `memory-feedback-*` (Standing Preferences only) |
+| Memory (`MEMORY.md`) | `memory-feedback-*` (Standing Preferences only), `rule-files-fact` |
+| `rules` | `rule-files-worker`, `rule-files-agent` |
 | `one-or-many` | `cove-composes-agent-creation` (opt-in) |
 | Visuals skill | `room-visual-not-caption-only` |
 | Not covered | `coordinator-synthesis`, `interview-fanout`, `shard-and-merge`, `gate-chain`, `lane-design`, `stake-strictness`, `proof-of-work-receipts`, `acceptance-surface`, `attachment-comments`, `group-chat-debug`, `html-artifact-discussion`, `preview-env`, `recurring-recovery`, `video-review`, `video-review-loop`, the playbooks, and the archetypes |
@@ -207,13 +209,13 @@ several turns or outside systems.
 ## 9. A Task holds work a reply will not finish
 
 A Task is a place for one piece of work: its own conversation, a state (`todo`, `open`, `done`,
-`canceled`), and the cloud agents and pull requests attached to it. An Agent starts one when its
-reply will not finish the work (more steps, more time, or a cloud agent) and otherwise just
+`canceled`), and the Workers and pull requests attached to it. An Agent starts one when its
+reply will not finish the work (more steps, more time, or a Worker) and otherwise just
 replies. A Task does not mark ownership; the claim on the request still does. It starts from a
 message in a channel, usually the request; a DM request, a reminder or Trigger fire, or the
 Agent's own finding first gets an origin message in the channel where the work belongs, and
 several findings become sibling Tasks from one message. Progress, questions, and the result go in
-the Task, where its followers see them as unread. Run notices, pull request changes, and a
+the Task, where its followers see them as unread. Worker reports, pull request changes, and a
 one-time reminder set on the Task (`haus reminder schedule --target task:<KEY-n>`) wake the Agent
 there. A Task blocked on a person gets an @mention in the Task and goes back to `todo` while the
 Agent takes other work.
@@ -225,15 +227,40 @@ one findings message, can run side by side.
 - Owner: [ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md); `tasksSection` and
   `splittingWorkSection` in `apps/computer/src/harness/task-instructions.ts`; the fire-to-Task
   sentences in `apps/computer/src/harness/automation-instructions.ts`; the `tasks` and
-  `cloud-agents` Manual topics in `packages/agent-manual/src/work-topics.ts`.
+  `workers` Manual topics in `packages/agent-manual/src/work-topics.ts`.
 - Guards: `task-instructions.test.ts`, `automation-instructions.test.ts`,
-  `cloud-agent-instructions.test.ts`; `packages/agent-manual/src/work-topics.test.ts`; the
+  `worker-instructions.test.ts`; `packages/agent-manual/src/work-topics.test.ts`; the
   `task-intake` eval (`bun run eval task-intake`, scenarios `task-intake-*` in
   `scripts/agent-tests/scenarios/`): quick facts and in-turn fixes are just answered, a fire
   that finds work and several findings open Tasks where the work belongs, and a peer's quick claim
   is left alone. Its two cloud scenarios are opt-in because they
   spend real Cursor runs. The `task-pacing` eval (`task-pacing-*`) covers an assigned queue, a
   blocked Task, and self-started Tasks side by side. Not yet run against this build.
+
+## 10. "From now on" goes in a rule file
+
+Told "from now on, every Worker attaches before/after screenshots", an Agent adds one terse line
+to its `WORKER.md` in Drive, leaves `MEMORY.md` alone, and confirms once inline, citing the file
+so the person can open it and see the revision with the Agent as its author. Told "from now on,
+keep replies under three sentences", it does the same in its own `AGENTS.md`, and its
+confirmation already obeys the rule. A rule for everyone in a Project belongs in that Project's
+`AGENTS.md`. Told a plain fact ("my timezone is Pacific"), it records the fact in `MEMORY.md` and
+makes no rule file; a short reply or a reaction is enough. Preferences it notices in passing,
+with no rule set, stay under Standing Preferences in `MEMORY.md`. Wrong: a rule in `MEMORY.md`, a
+rule in the wrong file, a second post, a question back, or an offer to do more.
+
+- Owner: [ADR 0054](../adr/0054-drive-holds-what-agents-know-and-follow.md) decision 10; the
+  bullet describing `AGENTS.md` and `WORKER.md` and the Standing Preferences placeholder in
+  `packages/agent-prompt/src/workspace-memory-instructions.ts`; the `rules` Manual topic
+  (`packages/agent-manual/src/rules-topic.ts`); the Agent's own `AGENTS.md` reaches every later
+  session through rule delivery ([context management](context-management.md)).
+- Guards: `managed-instructions-memory.test.ts`, `packages/agent-manual/src/rules-topic.test.ts`,
+  `apps/computer/src/harness/executor-rules-delivery.test.ts`; the `rules` eval
+  (`bun run eval rules`, scenarios `rule-files-worker`, `rule-files-agent`, and
+  `rule-files-fact`), which reads each fresh Agent's Drive area on the Server, with grader
+  profiles M7 and M8 in `scripts/eval/profiles.mjs` (specs/agent-e2e/README.md).
+  `rule-files-agent` also resets the session and checks that a question in a new channel gets a
+  reply of three sentences or fewer. Not yet run against this build.
 
 ## Anti-patterns this replaced
 
@@ -242,7 +269,7 @@ one findings message, can run side by side.
 - Acknowledge-and-outline-the-plan messages before starting work.
 - Progress spam where the request was made.
 - A deliverable posted somewhere the requester does not look and is not notified.
-- A cloud agent's outcome reported at the Channel root instead of in its Task.
+- A Worker's outcome reported at the Channel root instead of in its Task.
 - An obligatory recap after finishing.
 - A full reply to "thanks", or the same 👀 on every acknowledgment.
 - Two Agents answering one mention, or a bystander chiming in on someone else's exchange.
@@ -268,6 +295,9 @@ one findings message, can run side by side.
   Agent waits and ignores a peer's guess.
 - The chat register (plain sentences, structure only for data) has a live output check only for
   bold-label walls.
+- Nothing hands `WORKER.md` to a Worker until W3 (ADR 0056), so the `workers` and `rules`
+  Manual topics describe its rules travelling in the brief the Agent starts a Worker with.
+  `projects/` in Drive refuses writes until Projects get their Drive areas, so a Project rule has no home yet and the prompt leaves it out.
 - Ack variety (a single default emoji on every thanks) has no live guard since
   `ack-reaction-variety` retired on 2026-10-15; `managed-instructions.test.ts` keeps literal
   emoji out of the prompt, which was its cause.

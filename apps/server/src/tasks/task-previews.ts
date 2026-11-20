@@ -1,5 +1,5 @@
 import { type TaskPreview, taskPreviewRecentMessageLimit } from '@haus/api';
-import { and, desc, eq, inArray, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatMessagesTable, chatsTable, taskFollowsTable, tasksTable } from '../postgres/schema.ts';
 import { readTasks } from './task-read.ts';
@@ -10,7 +10,7 @@ type Reader = Pick<HausDatabase, 'select'>;
 export async function listTaskPreviews(
     db: Reader,
     viewerUserId: string,
-    input: { channelId: string; originMessageIds: string[]; serverId: string }
+    input: { chatId: string; originMessageIds: string[]; serverId: string }
 ): Promise<TaskPreview[]> {
     if (input.originMessageIds.length === 0) {
         return [];
@@ -26,7 +26,11 @@ export async function listTaskPreviews(
             )`,
             unreadCount: taskUnreadCount(viewerUserId),
         })
-        .from(chatsTable)
+        .from(tasksTable)
+        .innerJoin(
+            chatsTable,
+            and(eq(chatsTable.serverId, tasksTable.serverId), eq(chatsTable.id, tasksTable.chatId))
+        )
         .leftJoin(
             taskFollowsTable,
             and(
@@ -37,11 +41,10 @@ export async function listTaskPreviews(
         )
         .where(
             and(
-                eq(chatsTable.serverId, input.serverId),
-                eq(chatsTable.kind, 'task'),
-                eq(chatsTable.parentChatId, input.channelId),
-                inArray(chatsTable.anchorMessageId, input.originMessageIds),
-                sql`${chatsTable.deletedAt} is null`
+                eq(tasksTable.serverId, input.serverId),
+                eq(tasksTable.originChatId, input.chatId),
+                inArray(tasksTable.originMessageId, input.originMessageIds),
+                isNull(chatsTable.deletedAt)
             )
         );
     if (chats.length === 0) {

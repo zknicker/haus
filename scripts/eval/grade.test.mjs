@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { gradeBuild, isInfraFailure } from './grade.mjs';
-import { githubTriggerProfiles, placementProfiles } from './profiles.mjs';
+import { githubTriggerProfiles, placementProfiles, probeStart } from './profiles.mjs';
 import { summarizeEval } from './summary.mjs';
 import { quickFactEvidence, temporaryRoot, writeRun } from './test-fixtures.mjs';
 
@@ -68,6 +68,59 @@ test('a post in a Task started from the channel is a Task post; any other chat f
     expect(labels).toMatchObject({ msg_else5555: 'elsewhere', msg_task4444: 'task' });
     const failed = grade.checks.filter((check) => !check.ok).map((check) => check.name);
     expect(failed).toEqual(['no post in another chat']);
+});
+
+test('a probe-ending profile grades up to the scenario probe and still catches earlier strays', async () => {
+    const answer = quickFactEvidence().chats[0].messages.at(-1);
+    const post = (chatId, id, second, content, kind = 'agent') => ({
+        ...answer,
+        ...(kind === 'human' ? { author: { kind: 'human' } } : {}),
+        chatId,
+        content,
+        createdAt: `2026-10-15T10:00:${second}.000Z`,
+        id,
+        reply: null,
+    });
+    const graded = async (chats) => {
+        const evidence = quickFactEvidence();
+        evidence.chats.push(...chats);
+        const root = await temporaryRoot();
+        await writeRun(root, '20261015T100000', [
+            { evidence, name: 'placement-quick-fact', ok: true },
+        ]);
+        const [grade] = await gradeBuild({
+            names,
+            profiles: {
+                'placement-quick-fact': {
+                    ...placementProfiles['placement-quick-fact'],
+                    until: probeStart,
+                },
+            },
+            root,
+            runs: [{ pass: 1, stamp: '20261015T100000' }],
+        });
+        return grade.checks.filter((check) => !check.ok).map((check) => check.name);
+    };
+    const probe = {
+        chatId: 'cht_probe',
+        messages: [
+            post('cht_probe', 'msg_probeask', '07', 'how does DNS work?', 'human'),
+            post(
+                'cht_probe',
+                'msg_probeans',
+                '08',
+                'Resolvers walk the tree. Want me to go deeper?'
+            ),
+        ],
+        tasks: [],
+    };
+    expect(await graded([probe])).toEqual([]);
+    const stray = {
+        chatId: 'cht_other',
+        messages: [post('cht_other', 'msg_stray666', '06', 'Notes on the port.')],
+        tasks: [],
+    };
+    expect(await graded([stray, probe])).toEqual(['no post in another chat']);
 });
 
 test('infra failures are flagged, and unprofiled scenarios grade on the runner verdict', async () => {

@@ -38,17 +38,25 @@ export const TASK_SUBCOMMANDS: SubCommand[] = [
         examples: [
             'haus task start --target "#security" --from 1a2b3c4d --title "Rotate the signing key"',
             'haus task start --target "#security" --from 1a2b3c4d --title "Audit the webhook secrets" --assignee @kit --state todo',
+            'haus task start --target dm:@ada --from 5e6f7a8b --title "Patch the login bug" --project APP',
         ],
         flags: [
             {
-                description: 'The channel holding the origin message, like #security',
+                description:
+                    'The channel or DM holding the origin message, like #security or dm:@ada',
                 name: '--target',
-                valueName: '<#channel>',
+                valueName: '<#channel|dm:@handle>',
             },
             {
-                description: 'The origin message id (msg= from a message in that channel)',
+                description: 'The origin message id (msg= from a message there)',
                 name: '--from',
                 valueName: '<messageId>',
+            },
+            {
+                description:
+                    "The Project's key, like APP; defaults to the origin's channel, or your home Project for a DM",
+                name: '--project',
+                valueName: '<KEY>',
             },
             titleFlag,
             descriptionFlag,
@@ -67,13 +75,14 @@ export const TASK_SUBCOMMANDS: SubCommand[] = [
         ],
         name: 'start',
         notes: [
-            "A Task starts from a message in a channel, never a DM. It takes that channel's key. Several Tasks may start from one message.",
+            "A Task starts from a message in a channel or DM and takes its Project's key. Several Tasks may start from one message.",
+            'Unless your home is the Haus project, you start Tasks only in your home Project; elsewhere the Server refuses with TASK_PROJECT_NOT_HOME.',
             'Not idempotent: if a start goes unanswered, check haus task list before repeating it.',
         ],
         positionals: [],
         run: (args) => runTaskStart(args, defaultDeps()),
-        summary: 'Start a Task from a message in a channel',
-        usage: 'haus task start --target <#channel> --from <messageId> --title <text> [--description <text|->] [--assignee <me|@handle>] [--state <todo|open>] [--priority <priority>] [--due <date>]',
+        summary: 'Start a Task from a message in a channel or DM',
+        usage: 'haus task start --target <#channel|dm:@handle> --from <messageId> --title <text> [--project <KEY>] [--description <text|->] [--assignee <me|@handle>] [--state <todo|open>] [--priority <priority>] [--due <date>]',
     },
     {
         examples: [
@@ -135,7 +144,7 @@ export const TASK_SUBCOMMANDS: SubCommand[] = [
         flags: [],
         name: 'attach-pr',
         notes: [
-            'A pull request a cloud agent opens for the Task attaches on its own; use this for one opened another way. Its changes wake you on the Task.',
+            'A pull request a Worker opens for the Task attaches on its own; use this for one opened another way. Its changes wake you on the Task.',
         ],
         positionals: [keyPositional, '<url>'],
         run: (args) => runTaskAttachPullRequest(args, defaultDeps()),

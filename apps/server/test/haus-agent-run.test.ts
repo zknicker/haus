@@ -17,6 +17,7 @@ import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { invokeMcp } from './mcp-client.ts';
 import { createMcpFixture } from './mcp-fixture.ts';
+import { createTestProject } from './project.fixture.ts';
 import { captureAllTopics, publishedKinds } from './realtime-capture.ts';
 import { registerServerRuntime, registerTestConnections } from './test-computer-connections.ts';
 
@@ -112,9 +113,9 @@ test('chat mention options expose the DM Agent, active humans, visible channels,
         }),
         expect.objectContaining({
             id: expect.stringMatching(/^chat:\/\/cht_/u),
-            insertText: '#all',
+            insertText: '#haus',
             kind: 'chat',
-            label: 'all',
+            label: 'haus',
             sourceLabel: 'Channels',
         }),
         expect.objectContaining({
@@ -255,7 +256,7 @@ test('Agent message references persist as stable Agent and Chat links', async ()
         runtimeId: 'codex',
         serverId,
     });
-    const channel = await owner.trpc.chat.createChannel.mutate({
+    const channel = await createTestProject(harness, owner, {
         agentIds: [agentId, blippy.agent.id, tiny.agent.id],
         name: 'canonical-product',
         serverId,
@@ -435,7 +436,7 @@ test('ordinary Channel delivery preserves per-recipient direct attention', async
         runtimeId: 'codex',
         serverId,
     });
-    const channel = await owner.trpc.chat.createChannel.mutate({
+    const channel = await createTestProject(harness, owner, {
         agentIds: [agentId, peer.agent.id],
         name: 'direct-attention-contract',
         serverId,
@@ -561,11 +562,8 @@ test('a Channel mute purges ordinary work while preserving exact mentions', asyn
     expect(mutePending).toEqual([{ dedupe_key: mentioned.message.id, mentioned: true }]);
 });
 test('history visibility across a muted gap prevents a duplicate freshness hold', async () => {
-    const channel = await owner.trpc.chat.createChannel.mutate({
-        agentIds: [agentId],
-        name: 'muted-history-visibility',
-        serverId,
-    });
+    const muted = { agentIds: [agentId], name: 'muted-history-visibility', serverId };
+    const channel = await createTestProject(harness, owner, muted);
     const minted = await mintRunner({ chatId: channel.id, runId: 'run_muted_history_visibility' });
     await harness.sql`
         insert into agent_delivery (

@@ -34,7 +34,7 @@ export interface TargetedReadCoalescer {
     /** The list-read owner `chatMessagesQueryOptions` reads pages through. */
     readonly lists: TranscriptListReads;
     /**
-     * Reaction, Task previews, claim, or Cloud Agent
+     * Reaction, Task previews, claim, or Worker
      * work changed one message: mark it dirty, cancel its in-flight fetch,
      * then invalidate its entity.
      */

@@ -1,0 +1,219 @@
+import { describe, expect, test } from 'bun:test';
+import { deriveWorkerJob } from './worker-job.ts';
+import type { WorkerTurnStatus } from './worker-shared.ts';
+
+const queuedAt = '2026-09-04T13:00:00.000Z';
+const startedAt = '2026-09-04T12:00:30.000Z';
+const settledAt = '2026-09-04T12:20:00.000Z';
+
+function run(
+    status: WorkerTurnStatus,
+    overrides: Partial<Parameters<typeof deriveWorkerJob>[0]['turns'][number]> = {}
+) {
+    const settled = ['pending_input', 'completed', 'failed', 'cancelled', 'expired'].includes(
+        status
+    );
+    return {
+        createdAt: '2026-09-04T12:00:00.000Z',
+        errorCode: null,
+        // A queued Run here is still in Haus's local queue; every other one reached Cursor.
+        providerRunId: status === 'queued' ? null : 'run-cursor',
+        startedAt: status === 'queued' ? null : startedAt,
+        status,
+        summary: null,
+        terminalAt: settled ? settledAt : null,
+        ...overrides,
+    };
+}
+
+function job(...turns: ReturnType<typeof run>[]) {
+    const [newest] = turns;
+    return deriveWorkerJob({
+        turns,
+        startedAt: newest?.startedAt ?? null,
+        status: newest?.status ?? 'queued',
+        terminalAt: newest?.terminalAt ?? null,
+    });
+}
+
+describe('deriveWorkerJob', () => {
+    test('a first Run still in the queue is working, never queued', () => {
+        expect(job(run('queued'))).toEqual({ followUp: null, startedAt: null, state: 'working' });
+    });
+
+    test('a Run that stopped to ask reads pending input with its question', () => {
+        expect(job(run('pending_input', { summary: 'Which database should I use?' }))).toEqual({
+            followUp: null,
+            question: 'Which database should I use?',
+            settledAt,
+            startedAt,
+            state: 'pending-input',
+        });
+    });
+
+    test('an answer the provider has not received yet leaves the question standing', () => {
+        expect(
+            job(
+                run('queued', { createdAt: queuedAt }),
+                run('pending_input', { summary: 'Which database should I use?' })
+            )
+        ).toMatchObject({
+            followUp: { since: queuedAt, state: 'waiting' },
+            state: 'pending-input',
+        });
+    });
+
+    test('an answer the provider picked up reads working again', () => {
+        expect(
+            job(
+                run('running', { createdAt: queuedAt, providerRunId: 'prompt-2' }),
+                run('pending_input', { summary: 'Which database should I use?' })
+            )
+        ).toMatchObject({ state: 'working' });
+    });
+
+    test('a running first Run is working since it started', () => {
+        expect(job(run('running'))).toEqual({ followUp: null, startedAt, state: 'working' });
+    });
+
+    test('a follow-up queued behind a finished Run leaves the job done and waiting', () => {
+        expect(job(run('queued', { createdAt: queuedAt }), run('completed'))).toEqual({
+            followUp: { since: queuedAt, state: 'waiting' },
+            settledAt,
+            startedAt,
+            state: 'done',
+        });
+    });
+
+    test('a follow-up queued while the earlier Run is still going reads working', () => {
+        expect(job(run('queued', { createdAt: queuedAt }), run('running'))).toEqual({
+            followUp: { since: queuedAt, state: 'waiting' },
+            startedAt,
+            state: 'working',
+        });
+    });
+
+    test('a follow-up an auto-interrupt still could not deliver reads stalled, not waiting', () => {
+        expect(
+            job(
+                run('queued', {
+                    createdAt: queuedAt,
+                    stall: { code: 'followup-auto-interrupt-failed' },
+                }),
+                run('completed')
+            )
+        ).toMatchObject({
+            followUp: { since: queuedAt, state: 'stalled' },
+            state: 'done',
+        });
+    });
+
+    test('a follow-up queued with no error code reads waiting, not stalled', () => {
+        expect(
+            job(run('queued', { createdAt: queuedAt, errorCode: null }), run('completed'))
+        ).toMatchObject({
+            followUp: { since: queuedAt, state: 'waiting' },
+            state: 'done',
+        });
+    });
+
+    test('a follow-up queued behind a failed Run keeps the failure', () => {
+        expect(
+            job(
+                run('queued', { createdAt: queuedAt }),
+                run('failed', { errorCode: 'build_failed', summary: 'Tests failed.' })
+            )
+        ).toEqual({
+            errorCode: 'build_failed',
+            followUp: { since: queuedAt, state: 'waiting' },
+            settledAt,
+            state: 'failed',
+            summary: 'Tests failed.',
+        });
+    });
+
+    test('a running follow-up dates itself from its own start and the job from the first', () => {
+        const followUpStart = '2026-09-04T13:01:00.000Z';
+        expect(
+            job(run('running', { createdAt: queuedAt, startedAt: followUpStart }), run('completed'))
+        ).toEqual({
+            followUp: { since: followUpStart, state: 'running' },
+            startedAt,
+            state: 'working',
+        });
+    });
+
+    test('a settled follow-up keeps the job dated from its first Run', () => {
+        expect(
+            job(
+                run('completed', { createdAt: queuedAt, startedAt: '2026-09-04T13:01:00.000Z' }),
+                run('completed')
+            )
+        ).toMatchObject({ startedAt, state: 'done' });
+    });
+
+    test('a settled follow-up is the job, with no follow-up left', () => {
+        expect(job(run('completed'), run('failed'))).toMatchObject({
+            followUp: null,
+            state: 'done',
+        });
+    });
+
+    test('a cancelled or expired Run reads in Cursor’s own words', () => {
+        expect(job(run('cancelled'))).toEqual({ followUp: null, settledAt, state: 'cancelled' });
+        expect(job(run('expired'))).toEqual({ followUp: null, settledAt, state: 'expired' });
+    });
+
+    test('a follow-up cancelled before Cursor received it leaves the job done', () => {
+        expect(job(run('cancelled', { providerRunId: null }), run('completed'))).toEqual({
+            followUp: null,
+            settledAt,
+            startedAt,
+            state: 'done',
+        });
+    });
+
+    test('a follow-up that failed after Cursor received it is the failed job', () => {
+        expect(job(run('failed'), run('completed'))).toMatchObject({
+            followUp: null,
+            state: 'failed',
+        });
+    });
+
+    test('a first Run that failed before Cursor received it is failed, with no follow-up', () => {
+        expect(job(run('failed', { providerRunId: null }))).toMatchObject({
+            followUp: null,
+            state: 'failed',
+        });
+    });
+
+    test('a follow-up cancelled after Cursor received it is the job', () => {
+        expect(job(run('cancelled'), run('completed'))).toEqual({
+            followUp: null,
+            settledAt,
+            state: 'cancelled',
+        });
+    });
+
+    test('a follow-up Cursor received but still queues reads working', () => {
+        expect(
+            job(run('queued', { createdAt: queuedAt, providerRunId: 'run-2' }), run('completed'))
+        ).toEqual({
+            followUp: { since: queuedAt, state: 'waiting' },
+            startedAt,
+            state: 'working',
+        });
+    });
+
+    test('a first Run cancelled before Cursor received it is cancelled', () => {
+        expect(job(run('cancelled', { providerRunId: null }))).toMatchObject({
+            state: 'cancelled',
+        });
+    });
+
+    test('a work with no Run reads from its own lifecycle', () => {
+        expect(
+            deriveWorkerJob({ turns: [], startedAt: null, status: 'queued', terminalAt: null })
+        ).toEqual({ followUp: null, startedAt: null, state: 'working' });
+    });
+});

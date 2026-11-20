@@ -6,8 +6,8 @@ import {
     coveGuidanceRefreshNotice,
     coveTurnGuidanceNotice,
 } from '../apps/computer/src/harness/cove-guidance-refresh.ts';
-import { renderAgentInstructions } from '../apps/computer/src/harness/managed-instructions.ts';
 import { manualTopics, resolveManualTopic } from '../packages/agent-manual/src/index.ts';
+import { renderAgentInstructions } from '../packages/agent-prompt/src/index.ts';
 import { coveOnboardingPlaybook } from '../packages/agent-workspace/src/cove-factory-guidance.ts';
 
 // Validate executable references against the same registry that dispatches Agent commands.

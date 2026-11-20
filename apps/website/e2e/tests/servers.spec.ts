@@ -201,11 +201,8 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
                 type: 'turn',
             })
         );
-        await page.goto('/s/haus-hq/members');
+        await page.goto(`/s/haus-hq/agents/${command.agentId}/home`);
         await expect(page.getByRole('heading', { level: 1, name: 'Meet Cove' })).toHaveCount(0);
-        const coveRow = page.getByRole('link', { name: 'Cove' });
-        await expect(coveRow).toBeVisible();
-        await coveRow.click();
         await expect(page.getByRole('heading', { level: 1, name: 'Cove' })).toBeVisible();
         // The profile reads the handle and the description on one line.
         await expect(page.getByText('@cove · Onboarding Assistant', { exact: true })).toBeVisible();
@@ -280,8 +277,7 @@ test('a fresh Server stays gated until a Computer reports usable inventory', asy
         await expect(page.getByText('onboarding-owner', { exact: true }).first()).toBeVisible();
         await expect(messages.getByText(greeting, { exact: true })).toHaveCount(1);
         await expect(page.getByText('Getting Cove ready…')).toHaveCount(0);
-        await page.goto('/s/haus-hq/members');
-        await page.getByRole('link', { name: 'Cove' }).click();
+        await page.goto(`/s/haus-hq/agents/${command.agentId}/home`);
         await runAgentAction(page, 'Cove', 'Full reset');
         const resetDialog = page.getByRole('alertdialog', { name: 'Full Reset?' });
         await expect(resetDialog).toContainText("Cove's factory onboarding workspace");

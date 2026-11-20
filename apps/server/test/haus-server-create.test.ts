@@ -17,7 +17,7 @@ afterAll(async () => {
     await harness.close();
 });
 
-test('atomically creates a Server, its first Owner, #all, and private onboarding', async () => {
+test('atomically creates a Server, its first Owner, #haus, and private onboarding', async () => {
     const client = await signIn('user_cf_owner');
 
     const created = await client.trpc.server.create.mutate({
@@ -30,7 +30,7 @@ test('atomically creates a Server, its first Owner, #all, and private onboarding
     expect(created.role).toBe('owner');
     expect(created.id).not.toBe(created.slug);
     expect(created.id).toMatch(/^srv_[A-Za-z0-9_-]{16,}$/);
-    expect(created.channels).toEqual([{ id: expect.any(String), name: 'all' }]);
+    expect(created.channels).toEqual([{ id: expect.any(String), name: 'haus' }]);
     expect(created.onboarding).toEqual({
         agentId: null,
         applicationId: null,
@@ -52,11 +52,11 @@ test('atomically creates a Server, its first Owner, #all, and private onboarding
         order by chats.name
     `) as { name: string; user_id: string }[];
     expect(rows).toEqual([
-        { name: 'all', user_id: created.viewerUserId },
+        { name: 'haus', user_id: created.viewerUserId },
         { name: 'onboarding-owner', user_id: created.viewerUserId },
     ]);
     await expect(client.trpc.chat.list.query({ serverId: created.id })).resolves.toMatchObject([
-        { id: created.channels[0]?.id, name: 'all' },
+        { id: created.channels[0]?.id, name: 'haus' },
     ]);
 
     await expect(client.trpc.server.list.query()).resolves.toEqual([

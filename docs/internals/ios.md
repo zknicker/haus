@@ -712,7 +712,7 @@ when nothing left it at all (no Server).
 A page of history or replies the reader asked for that fails to load says so in place: the
 transcript's load-older accessory turns into a quiet "Couldn't load earlier messages · Try Again" line
 (`TranscriptLoadOlderButton`). Background work (tail reads, foreground refresh, stream reconciliation,
-history refresh, Cloud Agent refresh) logs instead: the header already speaks for connectivity.
+history refresh, Worker refresh) logs instead: the header already speaks for connectivity.
 Lost connectivity is header state, never a banner over the transcript (`ConnectionOutage`): once the
 Server connection has been down for two seconds the Chat header's title, or a Task's navigation
 subtitle, reads "Connecting…" until it returns, so a stream that drops and reconnects says nothing.
@@ -911,18 +911,18 @@ block, and a plain message never joins a reply's block. The composer states the 
 "Replying to **Name**" with a cancel control, and lets go of it the moment the reply is sent —
 the reply is already in the transcript — taking it back only when nothing left the composer.
 
-Cloud agents use the same Server records as the web App. Settings → Cloud agents lets an Owner or
+Workers use the same Server records as the web App. Settings → Cloud agents lets an Owner or
 Admin inspect, connect, or disconnect Cursor on a selected Computer. Connecting opens the provider's
 sign-in browser on that Computer, not on the phone; iOS never receives the credential.
 
-Each Message's `cloudAgentWork` annotation supplies one inline cloud-agent card per linked work in
+Each Message's `workers` annotation (decoded as `cloudAgentWork`) supplies one inline card per linked Worker in
 a Chat or Task (`ChatMessageCloudAgentWork.swift`); the card names the Agent from the work's
-`agentId`, and `RichMessageParser` reads `cloud-agent://` links as reference chips. Cards follow the
+`agentId`, and `RichMessageParser` reads `worker://` links as reference chips. Cards follow the
 [card contract](../../specs/cloud-agents.md): the Server's `job` headlines in Cursor's vocabulary
 (never "Queued"), an optional PR row, exactly one single-line status line
 (`CloudAgentStatusLine`), and View PR / Open in Cursor / a chevron menu with Copy link and, for
 Owners/Admins, Cancel run. Missing diff evidence stays absent, not zero.
-`cloudAgentWork.updated`, sent once per linking Message, refreshes that Message through the normal durable event/reconnect path; a deleted Chat reloads the active work
+`worker.updated`, sent once per linking Message, refreshes that Message through the normal durable event/reconnect path; a deleted Chat reloads the active work
 list, since linked work outlives it. Cards scroll with their Messages and follow-ups update the same card.
 
 There are no Threads ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md)): a side
@@ -956,8 +956,8 @@ showing; it never selects the canvas Chat. Until the Store holds a record that s
 has a Chat, the screen is blank rather than guessing. A Task with a Chat opens as `TaskChatView`:
 the Chat timeline's own rows and the iPhone composer, under `TaskChatHeader`, a band in the layout
 above the transcript (never over it) with the Task's title, which wraps at every size, its state
-disc and words, and the work attached to it — each cloud agent with its newest Run's status and
-summary, expanding in place to the full `CloudAgentCard`, and each pull request no cloud agent card
+disc and words, and the work attached to it — each Worker with its newest turn's status and
+summary, expanding in place to the full `CloudAgentCard`, and each pull request no Worker card
 already shows. At large text sizes the band stops growing at a fraction of the screen and scrolls
 inside itself. A quiet **Started from #channel** row heads the transcript once its oldest page is
 loaded and opens the origin Message in its Channel. The Task's Chat is the open Chat while the
@@ -1014,7 +1014,7 @@ than to either of them: the leading chrome button sits where it sits on a Chat s
 and the edge pan are the same ones. `showsInbox` is App-owned state (`AuthenticatedHausView`) and
 the shell clears it whenever a Chat is selected; the sidebar's Inbox row sets it back. The last-open
 Chat is still restored for the drawer's selection, and selecting one swaps the canvas the way it
-always did. `HausRootRoute` therefore carries only `.task`. A Cloud Agent work row attached to a
+always did. `HausRootRoute` therefore carries only `.task`. A Worker row attached to a
 Task (`taskId`, ADR 0053 decision 6) opens that Task. Older work opens the row's `location`, the
 newest visible linking Message, revealed in its Channel or DM. A location kind the phone does not
 know (an older Server's `work-thread`) skips that row; an Unread row opens its DM, Channel, or Task.
@@ -1029,10 +1029,10 @@ follows the native-rows rule instead of squeezing two facts into one line: its f
 Task's title alone, which wraps at word boundaries at every text size and is never truncated or
 hyphenated (SwiftUI `Text` breaks lines at words and does not hyphenate); a secondary line under it
 carries the key and state, `SEC-12 · Open`, and wraps rather than truncates at the largest sizes;
-then the quote. Like every Unread row it carries no count — being in the section is the dot. A Cloud Agent work row is
+then the quote. Like every Unread row it carries no count — being in the section is the dot. A Worker row is
 the work's title (`Cloud work` when untitled), its job status (`Working · 3m`, `Working · 1h 59m`,
 or `Follow-up waiting · 2m` for a settled job listed only for its live follow-up —
-`CloudAgentPresentation.duration`, the App's `formatCloudAgentDuration`, whose hours never roll
+`CloudAgentPresentation.duration`, the App's `formatWorkerDuration`, whose hours never roll
 into days), and `#channel · Agent`; the provider glyph, boxed like a Channel mark, already says
 it is Cloud work, and carries a presence-style dot — yellow running, gray queued. An Agent mid-turn is its name, time in its step, and the step itself. The page is a stock `.insetGrouped` `List`, so an Unread
 row marks read with a trailing swipe (swipe-left; `.swipeActions(edge: .trailing)`, full swipe
@@ -1053,8 +1053,8 @@ on this Server is working: `HausStore.agentActivityGhostTempo` resolves the App'
 `agent.onActivity` rewrites on every tool call, so a busy Server does not invalidate the shell.
 
 What the Inbox stands on is Server-wide and Store-owned rather than screen-owned. `HausStoreInbox`
-reads the Chat list's unread Chats, the followed unread Tasks (`chat.unreadPreviews`' rows that name a Task), the Cloud Agent work running right now
-(`cloudAgentWork.listActive`), and the Server's token-usage snapshot (`stats.live`), and each stays
+reads the Chat list's unread Chats, the followed unread Tasks (`chat.unreadPreviews`' rows that name a Task), the Workers running right now
+(`worker.listActive`), and the Server's token-usage snapshot (`stats.live`), and each stays
 nil until its first load. That nil is load-bearing: `unreadChatCount` is nil until the Chat list
 has landed, so "nothing unread" is never confused with "not yet known". The count is the number of
 Unread rows on the active Server — Chats with an `unreadCount` above zero and followed unread
@@ -1066,7 +1066,7 @@ reconnect, every `reloadChats`) and on becoming active without a background trip
 client already holds, the way the App's invalidation only refetches a live query:
 `message.created` and `chat.read` reload the Chat list, `claim.onChanged` reloads the affected Chat
 page, a Task message, read, change, or follow reloads the followed unread Tasks once held,
-`cloudAgentWork.updated` reloads the active
+`worker.updated` reloads the active
 work list beside its own, and a settled Agent turn or a Computer update reloads the usage snapshot.
 A failed Inbox read keeps the previous snapshot and is logged — a stale row is honest, while a
 Chat-level send alert raised by a background read is not.
@@ -1187,7 +1187,7 @@ contract and `specs/realtime-events.md` the normative spec; this is the iPhone's
 
 `HausStoreEventStreams.swift` runs one focused subscription per `RealtimeStream`:
 `chat.onMessageCreated`, `chat.onMessageReactionUpdated`, `chat.onRead`,
-`chat.onLifecycle`, `cloudAgentWork.onUpdated`, `claim.onChanged`, `taskLabel.onUpdated`,
+`chat.onLifecycle`, `worker.onUpdated`, `claim.onChanged`, `taskLabel.onUpdated`,
 `task.onCreated`, `task.onUpdated`, `task.onFollowUpdated`, `agent.onLifecycle`, `agent.onActivity`, `computer.onUpdated`, and `server.onUpdated`, the
 membership sentinel. `computer.onUpdated` owns Agent presence beside the lifecycle stream: after a
 Server restart the streams resubscribe before the Computer reattaches, so their start reads an
@@ -1265,8 +1265,9 @@ and a message outside the loaded window is fetched by its authorized `aroundMess
 A failed lookup offers retry without walking the entire transcript. Archived channels load
 through `chat.listArchived` and restore through `chat.unarchiveChannel`, and a successful restore
 dismisses the sheet and selects the restored channel through the same pending-selection wait a newly
-created channel uses, because both reappear only on the next Server chat list. Channel creation uses
-the live Agent directory and `chat.createChannel`. These sheets receive narrow async closures from
+created channel uses, because both reappear only on the next Server chat list. Channel creation calls
+`project.create` with the name only; the form's Agent choice is not sent until the Project settings
+work (J4) replaces it. These sheets receive narrow async closures from
 `HausApp` so `HausUI` remains independent of tRPC and does not invent mobile-only ids or records.
 
 Swift Chat and Task composers use the system inline Photos picker and Files importer plus a focused

@@ -89,7 +89,7 @@ function findLatestActiveIntent(items: ActivityItem[]) {
         }
 
         if (
-            (item.row.kind === 'tool' || item.row.kind === 'worker') &&
+            (item.row.kind === 'tool' || item.row.kind === 'subagent') &&
             item.row.completedAt === null
         ) {
             return getToolIntent(item);
@@ -140,7 +140,7 @@ function hasCompletedWorkAfter(items: ActivityItem[], index: number) {
             return Boolean(item.row.completedAt && !hasFailedToolStatus(item.row.toolCall.status));
         }
 
-        if (item.row.kind === 'worker') {
+        if (item.row.kind === 'subagent') {
             return Boolean(item.row.completedAt);
         }
 
@@ -205,7 +205,7 @@ function failedIntentNoun(kind: ToolIntentKind) {
             return 'web search';
         case 'wiki':
             return 'wiki check';
-        case 'worker':
+        case 'subagent':
             return 'agent task';
     }
 }

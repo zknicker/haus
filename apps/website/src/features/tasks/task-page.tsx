@@ -6,10 +6,10 @@ import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useTask } from '../../hooks/tasks/use-task.ts';
-import { DockedCloudAgentWorkProvider } from '../cloud-agents/docked-cloud-agent-work.tsx';
 import { useServerContext } from '../servers/server-context.ts';
 import { tasksRoute } from '../servers/server-routes.ts';
 import { PageColumn } from '../shell/page-column.tsx';
+import { DockedWorkerProvider } from '../workers/docked-worker.tsx';
 import { TaskConversation } from './conversation/task-conversation.tsx';
 import { TaskDetailsCard } from './details/task-details-card.tsx';
 import { TaskHistoryDetails } from './details/task-history-details.tsx';
@@ -50,9 +50,9 @@ function TaskDetailView({
 }) {
     const dockRef = React.useRef<HTMLDivElement>(null);
     return (
-        <DockedCloudAgentWorkProvider
+        <DockedWorkerProvider
             dock={dockRef}
-            workIds={panelShown ? task.attachedWork.map((work) => work.id) : []}
+            workerIds={panelShown ? task.attachedWork.map((work) => work.id) : []}
         >
             <div
                 className={
@@ -76,7 +76,7 @@ function TaskDetailView({
                     </div>
                 ) : null}
             </div>
-        </DockedCloudAgentWorkProvider>
+        </DockedWorkerProvider>
     );
 }
 

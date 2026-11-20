@@ -1,8 +1,8 @@
-import { type CloudAgentPullRequestReading, parseGithubPullRequestUrl } from '@haus/api';
+import { type PullRequestReading, parseGithubPullRequestUrl } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-import { toPullRequestReading } from '../cloud-agents/pull-request-readings.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { cloudAgentPullRequestsTable, taskPullRequestsTable } from '../postgres/schema.ts';
+import { pullRequestReadingsTable, taskPullRequestsTable } from '../postgres/schema.ts';
+import { toPullRequestReading } from '../workers/pull-request-readings.ts';
 import { GithubApiError } from './github-api.ts';
 import type { GithubApp } from './github-app.ts';
 import { createInstallationTokens } from './github-bot.ts';
@@ -18,7 +18,7 @@ export class PullRequestUrlError extends Error {
 
 export interface AttachedTaskPullRequest {
     number: number;
-    reading: CloudAgentPullRequestReading | null;
+    reading: PullRequestReading | null;
     repository: string;
     url: string;
 }
@@ -42,7 +42,7 @@ export async function attachPullRequestToTask(
             .onConflictDoNothing();
         if (facts) {
             await tx
-                .insert(cloudAgentPullRequestsTable)
+                .insert(pullRequestReadingsTable)
                 .values({ ...pull, ...facts, observedAt: new Date(), source: 'github', url })
                 .onConflictDoNothing();
         }
@@ -57,12 +57,12 @@ async function readStoredReading(
 ) {
     const [row] = await db
         .select()
-        .from(cloudAgentPullRequestsTable)
+        .from(pullRequestReadingsTable)
         .where(
             and(
-                eq(cloudAgentPullRequestsTable.serverId, pull.serverId),
-                eq(cloudAgentPullRequestsTable.repository, pull.repository),
-                eq(cloudAgentPullRequestsTable.number, pull.number)
+                eq(pullRequestReadingsTable.serverId, pull.serverId),
+                eq(pullRequestReadingsTable.repository, pull.repository),
+                eq(pullRequestReadingsTable.number, pull.number)
             )
         )
         .limit(1);

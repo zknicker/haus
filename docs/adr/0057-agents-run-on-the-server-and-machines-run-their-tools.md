@@ -1,6 +1,6 @@
 ---
 status: accepted
-summary: An Agent's loop runs on the Server in a sandboxed runner, on the Claude Agent SDK for Claude plans and Pi Durable for every other model, with sessions on the runner's persistent volume. Each Agent is pinned to one harness, and the first harness ships before the second. The Agent has one machine where its tools run, changed while idle; v1 machines are Computers. Its tools are bash and edit on that machine, the haus CLI run by the runner, and the one execute tool. Every invocation has an id, is recorded as accepted before it runs, and never reruns after an unknown outcome; an offline machine answers at once. Logins live in runner settings. Inbox items go to the runner. Workers keep native harnesses on machines. User-configured local MCP is descoped, and computer use ships later. Accepted 2026-11-19, not yet implemented.
+summary: An Agent's loop runs on the Server in a sandboxed runner, on the Claude Agent SDK for Claude plans and Pi Durable for every other model, with sessions on the runner's persistent volume. Each Agent is pinned to one harness, and the first harness ships before the second. The Agent has one machine where its tools run, changed while idle; v1 machines are Computers. Its tools are bash and edit on that machine, the haus CLI run by the runner, and the one execute tool. Every invocation has an id, is recorded as accepted before it runs, and never reruns after an unknown outcome; an offline machine answers at once. Model logins are configured in the App and held encrypted by the Server, several per provider. Inbox items go to the runner. Workers keep native harnesses on machines. User-configured local MCP is descoped, and computer use ships later. Accepted 2026-11-19, not yet implemented.
 read_when:
   - changing where an Agent's loop runs, its harnesses, or where its session is stored
   - changing the Agent's machine, moving an Agent, or what an Agent can do while its machine is offline
@@ -19,7 +19,10 @@ Accepted 2026-11-19. Not yet implemented. Amended 2026-11-19 by the runtime cont
 ([specs/runtime-drivers.md](../../specs/runtime-drivers.md), [specs/mcp.md](../../specs/mcp.md))
 in decisions 2, 5 and 12: a reset builds no briefing, the `haus` CLI runs on the runner instead
 of behind `execute`, the tool shapes are named, and the cutover waits for both harnesses, resets
-every session, and ends sub-agents and background shells. Part of the direction in
+every session, and ends sub-agents and background shells. Amended again 2026-11-19 by R6 in
+decisions 2 and 8: model logins are configured in the App and held encrypted by the Server, with
+several connections per provider ([specs/model-connections.md](../../specs/model-connections.md)),
+not runner settings with no sign-in screens. Part of the direction in
 [the Capy and Amp proposal](../proposals/capy-product-model.md), with
 [ADR 0054](0054-drive-holds-what-agents-know-and-follow.md) (Drive),
 [ADR 0055](0055-projects-own-agents-and-tasks.md) (Projects) and
@@ -54,7 +57,7 @@ loops.
    only has to survive the runner restarting. Each Agent is
    pinned to one harness. Switching harness is an explicit reset: a fresh session from Drive's
    current rules and memory, with no constructed briefing (ADR 0011). The Agent reads recent
-   history itself. Model logins live in runner settings in v1, with no sign-in screens.
+   history itself. Model logins are configured in the App and held by the Server (decision 8).
 
 3. **One endless session per Agent.** ADR 0011 stands. The session now lives on the Server, not on
    a Computer. The Server delivers inbox items to the runner.
@@ -81,8 +84,13 @@ loops.
    crash mid-command leaves the outcome "unknown", and Haus never reruns it on its own. Commands
    have timeouts, cancellation and output limits.
 
-8. **The Server holds the Agent's model logins:** a Claude setup-token and a ChatGPT sign-in, in
-   the runner's settings.
+8. **The Server holds the Agent's model logins, configured in the App.** A person connects them in
+   Settings → Models: a Claude plan by pasting a setup-token, ChatGPT and SuperGrok plans by
+   device-code sign-in, and API keys for xAI, Gemini and OpenRouter. Each provider can hold several
+   named connections, and each Agent uses one, defaulting to the first, so Agents can be spread
+   across accounts as they are across Computers today. The Server stores them encrypted at rest and
+   sends them to the runner, which keeps them in memory only and never reads its environment or
+   disk for a login.
 
 9. **Workers keep the harness on the machine.** A Worker runs native Claude Code or Codex on a
    Computer with that machine's logins, or runs on a cloud service

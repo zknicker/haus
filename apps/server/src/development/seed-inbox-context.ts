@@ -60,7 +60,7 @@ export async function findInboxSeedContext(
         chats.flatMap((chat) => (chat.dmAgentId ? [[chat.dmAgentId, chat.id]] : []))
     );
 
-    const allChatId = chatIdByName.get('all');
+    const allChatId = chatIdByName.get('haus');
     const productChatId = chatIdByName.get('product');
     const onboardingChatId = chatIdByName.get('onboarding-owner');
     const blippyDmChatId = blippyId ? chatIdByDmAgentId.get(blippyId) : undefined;

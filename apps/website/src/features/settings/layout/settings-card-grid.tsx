@@ -15,14 +15,15 @@ import { Icon } from '../../../components/ui/icon.tsx';
  * `.Action`). Rows are the transparent card variant, so a catalog reads as a
  * list of products rather than a wall of boxes; the theme keeps the grid from
  * handing them a surface back (`default-theme.css`, `item-card-group--grid`).
- * The `--catalog` modifier carries the rest of the look — app-icon tiles, the
- * reading width, the divided header — so call sites stay stock.
+ * The `--catalog` modifier carries the rest of the look — app-icon tiles and the
+ * divided header — so call sites stay stock.
  */
 export function SettingsCardGrid({
     action,
     children,
     count,
     footer,
+    layout = 'grid',
     status,
     title,
 }: {
@@ -32,6 +33,8 @@ export function SettingsCardGrid({
     count?: number;
     /** Under the grid — `SettingsCardGridMore` when the section is collapsed. */
     footer?: React.ReactNode;
+    /** `list` stacks one row per line, for a section read top to bottom. */
+    layout?: 'grid' | 'list';
     /** Replaces the grid while there is nothing to list: loading, error, or empty. */
     status?: React.ReactNode;
     title: React.ReactNode;
@@ -52,13 +55,16 @@ export function SettingsCardGrid({
                 </ItemCardGroup.Title>
                 {action}
             </ItemCardGroup.Header>
-            {status ?? (
-                // Stock grid is a fixed two columns; a narrow column takes one
-                // so titles keep room to read before they truncate.
-                <ItemCardGroup className="max-sm:grid-cols-1" columns={2} layout="grid">
-                    {children}
-                </ItemCardGroup>
-            )}
+            {status ??
+                (layout === 'list' ? (
+                    <ItemCardGroup variant="transparent">{children}</ItemCardGroup>
+                ) : (
+                    // Stock grid is a fixed two columns; a narrow column takes one
+                    // so titles keep room to read before they truncate.
+                    <ItemCardGroup className="max-sm:grid-cols-1" columns={2} layout="grid">
+                        {children}
+                    </ItemCardGroup>
+                ))}
             {footer}
         </ItemCardGroup>
     );

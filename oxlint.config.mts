@@ -27,8 +27,9 @@ export default defineConfig({
     rules: {
         ...landminesRules,
         // The repo's own rules (scripts/lint/haus-rules).
-        'haus/cloud-agent-status-writes': 'error',
+        'haus/worker-status-writes': 'error',
         'haus/config-env-loader': 'error',
+        'haus/runner-boundary': 'error',
         'haus/heroui-compound-children': 'error',
         'haus/heroui-dialog-form': 'error',
         'haus/update-required-code': 'error',
@@ -204,6 +205,28 @@ export default defineConfig({
                         allow: {
                             'apps/website/src/features/onboarding/cove-meet-step.tsx':
                                 'Card.Content hosts a two-column split whose halves each carry their own padding and divider',
+                        },
+                    },
+                ],
+            },
+        },
+        {
+            files: ['apps/computer/**'],
+            rules: {
+                'haus/computer-no-model-calls': [
+                    'error',
+                    {
+                        allow: {
+                            'apps/computer/src/runtime/claude-code/claude-credentials.ts':
+                                'Agent session path R4 deletes: hands the native Claude harness its base URL and token',
+                            'apps/computer/src/workers/claude/environments.ts':
+                                'Claude Cloud Agents control API, not model inference; Workers keep it',
+                            'apps/computer/src/workers/claude/native-auth.ts':
+                                'Claude account profile lookup for Claude Cloud Agents sign-in, not model inference',
+                            'apps/computer/src/workers/claude/controller.ts':
+                                'Claude Cloud Agents session control API, not model inference; Workers keep it',
+                            'apps/computer/src/usage/openrouter-usage.ts':
+                                'Reads OpenRouter usage totals for display, not model inference',
                         },
                     },
                 ],

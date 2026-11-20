@@ -1,5 +1,5 @@
 import { channelColorSchema, channelIconSchema } from './channel-appearance.ts';
-import { channelDescriptionSchema, channelEditInputFields } from './channel-description.ts';
+import { channelDescriptionSchema } from './channel-description.ts';
 import { chatMessageAuthorSchema, chatMessageReplySchema } from './chat-message-context.ts';
 
 export * from './channel-appearance.ts';
@@ -16,15 +16,12 @@ import { chatLastMessageSchema } from './chat-last-message.ts';
 import * as reactionContracts from './chat-message-reactions.ts';
 import * as receiptContracts from './chat-message-receipts.ts';
 import { messageClaimSchema } from './claim-shared.ts';
-import { cloudAgentWorkSchema } from './cloud-agent-shared.ts';
-import {
-    chatMessageAuthoredContentMaxLength,
-    chatMessageContentMaxLength,
-} from './cloud-agent-work-link.ts';
 import { driveCitationSchema } from './drive.ts';
 import { imageGenerationSchema } from './image-generation.ts';
 import { taskLinkSchema } from './task-key.ts';
 import { taskPreviewSchema } from './task-preview.ts';
+import { chatMessageAuthoredContentMaxLength, chatMessageContentMaxLength } from './worker-link.ts';
+import { workerSchema } from './worker-shared.ts';
 
 export { idSchema } from './chat-contract-primitives.ts';
 export * from './chat-message-context.ts';
@@ -39,10 +36,10 @@ export const chatMessageSchema = z
         chatId: idSchema,
         claim: messageClaimSchema.nullable().optional(),
         /**
-         * The Cloud Agent work this Message links, in link order (ADR 0044).
+         * The Workers this Message links, in link order (ADR 0044).
          * Each entry is visible to the viewer; the card renders from here.
          */
-        cloudAgentWork: z.array(cloudAgentWorkSchema).default([]),
+        workers: z.array(workerSchema).default([]),
         content: z.string().max(chatMessageContentMaxLength),
         createdAt: timestampSchema,
         /** Drive files the Message cites, in link order, each bound to a revision. */
@@ -137,7 +134,6 @@ export const chatSchema = z
         peerAgentRetired: z.boolean(),
         peerUserId: idSchema.nullable(),
         serverId: idSchema,
-        taskKeyId: idSchema.nullable().default(null),
         unreadCount: z.number().int().nonnegative(),
     })
     .strict();
@@ -145,57 +141,6 @@ export const chatSchema = z
 export type Chat = z.infer<typeof chatSchema>;
 
 export const chatGetInputSchema = z.object({ chatId: idSchema, serverId: idSchema }).strict();
-
-export const channelCreateInputSchema = z
-    .object({
-        ...channelEditInputFields,
-        agentIds: z.array(idSchema).min(1),
-        name: z
-            .string()
-            .trim()
-            .min(1)
-            .max(32)
-            .regex(/^[A-Za-z0-9_-]+$/u),
-        serverId: idSchema,
-    })
-    .strict()
-    .superRefine((input, context) => {
-        if (new Set(input.agentIds).size !== input.agentIds.length) {
-            context.addIssue({
-                code: 'custom',
-                message: 'Channel agents must be unique.',
-                path: ['agentIds'],
-            });
-        }
-    });
-
-export type ChannelCreateInput = z.infer<typeof channelCreateInputSchema>;
-
-export const channelUpdateInputSchema = z
-    .object({
-        ...channelEditInputFields,
-        agentIds: z.array(idSchema).min(1),
-        chatId: idSchema,
-        name: z
-            .string()
-            .trim()
-            .min(1)
-            .max(32)
-            .regex(/^[A-Za-z0-9_-]+$/u),
-        serverId: idSchema,
-    })
-    .strict()
-    .superRefine((input, context) => {
-        if (new Set(input.agentIds).size !== input.agentIds.length) {
-            context.addIssue({
-                code: 'custom',
-                message: 'Agent ids must be unique.',
-                path: ['agentIds'],
-            });
-        }
-    });
-
-export type ChannelUpdateInput = z.infer<typeof channelUpdateInputSchema>;
 
 export const ensureDmInputSchema = z
     .object({

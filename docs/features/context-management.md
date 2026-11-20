@@ -1,10 +1,11 @@
 ---
-summary: Fresh-session instruction composition, MEMORY.md delivery in the turn input, and persistent Agent context.
+summary: Fresh-session instruction composition, MEMORY.md and AGENTS.md rule delivery in the turn input, and persistent Agent context.
 read_when:
   - changing generated Agent instructions
   - changing session resume, reset, model switching, or recovery
   - changing runtime launch config, Agent HOME setup, or what a runtime loads from disk (AGENTS.md, CLAUDE.md, settings)
   - changing how MEMORY.md reaches the turn input, its 8,000-character cap, or the memory receipt
+  - changing how the AGENTS.md rule layers reach the turn input on a Computer, or their receipts
   - changing compaction, idle compaction, or the Idle compaction Server setting
 ---
 
@@ -38,6 +39,15 @@ model session. Per-turn message delivery is an inbox concern; see
   ([ADR 0052](../adr/0052-memory-is-one-capped-file-and-heartbeats-retire.md),
   [Agent Workspace](../../specs/workspace.md#memory)). The Agent reads any other notes it needs
   itself.
+- The rule layers arrive the same way, ahead of `MEMORY.md`: `drive/haus/AGENTS.md`, then the
+  Agent's own `drive/agents/<handle>/AGENTS.md`, each in a `<haus-rules>` block when its content
+  differs from what this session last received, and a deleted layer is announced once
+  ([ADR 0054](../adr/0054-drive-holds-what-agents-know-and-follow.md) decision 7). The change test
+  is `planRulesDelivery` in `@haus/agent-prompt`, shared with the runner; the Computer reads the
+  files from the drive/ folder (`apps/computer/src/harness/rules-delivery.ts`) and keeps one
+  digest per layer in the session record. The receipts behave like the memory receipt: a
+  completed turn holds the files as it left them, a sub-agent wake defers a change, and a fresh
+  session or a compaction (in a turn or idle) clears them.
 - Every turn runs in the Agent's one main session. Haus runs no scheduled, unprompted turns:
   heartbeats and the nightly dream retired with ADR 0052.
 - Explicit MCP requests use the fixed `execute` tool to discover and invoke currently granted
@@ -46,7 +56,7 @@ model session. Per-turn message delivery is an inbox concern; see
   searches do not establish Server-owned MCP access. General capability selection still considers
   other authorized execution methods, and requested setup troubleshooting can inspect local state.
 - Ordinary requests continue in the Chat where they were asked, from acknowledgment to result,
-  following the human's lead across turns. Work that outlasts a reply, cloud agent work included,
+  following the human's lead across turns. Work that outlasts a reply, delegated Worker work included,
   goes in a Task, which holds its progress and result
   ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md)). Questions to a person are @mentions where the work lives, and automation placement follows its own contract.
 - Sessions never rotate because of age or idle time.
@@ -101,18 +111,19 @@ model session. Per-turn message delivery is an inbox concern; see
   rest of its local state without reseeding.
 
 The composed instructions are bounded by a size cap asserted in
-`apps/computer/src/harness/managed-instructions.test.ts`. It is a ratchet that forces a deliberate
+`packages/agent-prompt/src/managed-instructions.test.ts`. It is a ratchet that forces a deliberate
 decision, not a hard or runtime limit: a justified addition raises the cap with a recorded reason,
 and other prompt text is never cut just to make room. Raft-verbatim text is never trimmed. See
 AGENTS.md and [the divergence register](../../specs/raft-alignment/prompt-divergences.md).
 
 Durable Agent knowledge lives in the Agent's Drive area (`MEMORY.md`, notes and
-skills). Only `MEMORY.md` reaches the turn input, and only when it changed. Agents
+skills). Only `MEMORY.md` and the two `AGENTS.md` rule layers reach the turn input, and only
+when they changed. Agents
 read older canonical Chat history through the `haus` CLI when inbox delivery is
 insufficient.
 
-A model's context is the composed instructions, `MEMORY.md` as the Computer
-delivers it, the workspace files the Agent chooses to read, and its isolated
+A model's context is the composed instructions, `MEMORY.md` and the rule layers as the
+Computer delivers them, the workspace files the Agent chooses to read, and its isolated
 `HOME` (skill links and runtime state). No runtime auto-loads `AGENTS.md`,
 `CLAUDE.md`, or an equivalent from the workspace, its ancestors, or the
 operator's home. Computer enforces this per runtime:
@@ -154,7 +165,7 @@ same conversation in a new process.
 
 Claude Code's idle compaction (2.1.299+, a session over 200K tokens idle for about 54 minutes)
 never arms for the `sdk-ts` entrypoint Haus launches, so Haus runs it: with the Owner's Server
-setting **Idle compaction** on (Settings → Server → Agents; off by default), the Computer
+setting **Idle compaction** on (Settings → General → Captains; off by default), the Computer
 compacts a parked Claude Code session at Claude Code's own time and thresholds, with Claude Code's
 own `/compact`, so the next turn resumes a short summary instead of re-writing a cold 200K-950K
 token prefix. Because Claude Code records its system prompt once (`--system-prompt-snapshot on`)

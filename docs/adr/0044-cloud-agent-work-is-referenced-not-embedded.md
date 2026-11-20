@@ -115,6 +115,8 @@ true:
   inline reply, then the cross-channel link, without the provider round trip), and
   `inline-reply-followups` and `eval:prompt` retired in favor of `bun run eval` (`tools`,
   `attention`, `placement`).
+- Note, 2026-11-19: W2 (Workers) dropped the cross-channel link, so `cloud-launch-and-link`
+  became `cloud-worker-start-and-stop`: a Worker starts on a Task and a person stops it.
 
 ## Amendment, 2026-10-12: a launch never opens a Thread
 

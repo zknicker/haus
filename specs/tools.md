@@ -9,9 +9,14 @@ Durable product effects use typed Server APIs such as Messages, Tasks, Reminders
 invocation. Renderable output becomes a Message visual or Computer-local artifact reference through
 an explicit product contract; raw tool protocol fragments do not become Chat rows.
 
-Web reach is runtime-native, as in Raft: every Agent gets its runtime's own web search and fetch
-tools with no per-Agent gate and no prompt section (Claude Code `WebSearch` and `WebFetch`, Codex
-`web_search = "live"`, Grok Build's builtins). Haus has no web host tool.
+Web reach is the model provider's own, with no per-Agent gate and no prompt section. On a
+Computer each runtime brings its own tools (Claude Code `WebSearch` and `WebFetch`, Codex
+`web_search = "live"`, Grok Build's builtins). On the runner, Claude Agents keep the SDK's native
+`WebSearch` and `WebFetch`, and Pi Agents get a runner `web_fetch` plus their provider's search:
+hosted in the request for the ChatGPT plan, xAI, and OpenRouter (its `openrouter:web_search`
+server tool), and a `web_search` tool over Gemini's Google Search grounding. Search goes through
+the model's own connection, never a separate search key, and is on for every connection by
+default ([Web reach](runtime-drivers.md#web-reach)).
 
 Native builtins that would bypass Haus or wait on a host answer stay off
 (`CLAUDE_DISALLOWED_TOOLS` in `apps/computer/src/runtime/claude-code/claude-launch.ts`, and

@@ -8,6 +8,7 @@ export function demoAgent(agent: {
     description: string;
     displayName: string;
     handle: string;
+    homeProjectId: string;
     id: string;
     modelId: string;
     reportedAt: Date;
@@ -30,6 +31,7 @@ export function demoAgent(agent: {
         effectiveReportedAt: agent.reportedAt,
         effectiveRuntimeId: 'codex',
         handle: agent.handle,
+        homeProjectId: agent.homeProjectId,
         homeTimezone: 'America/New_York',
         id: agent.id,
         serverId: agent.serverId,

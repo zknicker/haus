@@ -15,7 +15,7 @@ import {
     avatarsTable,
     chatMessagesTable,
     chatsTable,
-    cloudAgentWorkTable,
+    workersTable,
     computersTable,
     mcpConnectionsTable,
     messageClaimsTable,
@@ -196,8 +196,12 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     expect(tasks.every((task) => task.chatId !== null)).toBe(true);
     const keys = links.map((link) => link.text).sort();
     expect(keys.join(' ')).toBe('GEN-1 GEN-2 GEN-3 GEN-4 GEN-5');
-    const [general] = await connection.db.select().from(taskKeysTable);
-    expect(general).toMatchObject({ key: 'GEN', nextNumber: 6 });
+    const ledger = await connection.db.select().from(taskKeysTable);
+    expect(ledger.map((entry) => `${entry.key}:${entry.nextNumber}`).sort()).toEqual([
+        'GEN:6',
+        'ONBO:1',
+        'PROD:1',
+    ]);
     const ownerTasks = tasks.filter((task) => task.assigneeUserId !== null);
     expect(ownerTasks.map((task) => task.number).sort()).toEqual([3, 4]);
     const followed = new Set(follows.map((follow) => follow.taskChatId));
@@ -205,7 +209,7 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     expect(followedNumbers.map((task) => task.number).sort()).toEqual([1, 3, 4, 5]);
     const [open] = byNumber(tasks);
     expect(messages.filter((message) => message.chatId === open?.chatId)).toHaveLength(4);
-    const works = await connection.db.select().from(cloudAgentWorkTable);
+    const works = await connection.db.select().from(workersTable);
     const openWork = works.filter((work) => work.taskId === open?.id);
     expect(openWork.map((work) => work.status)).toEqual(['completed']);
     expect(await connection.db.select().from(taskPullRequestsTable)).toMatchObject([
@@ -218,7 +222,7 @@ test('seeds a demo workspace an operator can actually look at', async () => {
     const inTask = named.some((message) => tasks.some((task) => task.chatId === message?.chatId));
     expect(inTask).toBe(false);
 
-    // The Inbox seed's stalled claim is the only one in `#all`. The channel's
+    // The Inbox seed's stalled claim is the only one in `#haus`. The channel's
     // counter is past it, so promoting a message there does not collide with a
     // seeded claim number.
     expect(claims).toHaveLength(11);

@@ -22,6 +22,7 @@ import {
 import { z } from 'zod';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { settleTurn } from '../agent-delivery/settle-turn.ts';
+import type { InvocationRouter } from '../agent-invocations/invocation-router.ts';
 import { recordCoveApplyResult } from '../onboarding/create-cove.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentUpdatedTopic, computerUpdatedTopic } from '../realtime/topics.ts';
@@ -31,13 +32,13 @@ import { ingestAgentIdleCompaction } from '../server-agents/record-agent-idle-co
 import { recordHausAgentState } from '../server-agents/record-haus-agent-state.ts';
 import { recordComputerUsage } from '../server-operations/computer-usage.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
-import { ingestCloudAgentReport } from './cloud-agent-reports.ts';
 import type { ComputerConnections } from './connections.ts';
 import { ingestAgentRunFrame } from './ingest-agent-run-frame.ts';
 import { ingestBackgroundWorkFrame } from './ingest-background-work.ts';
 import { ingestExecutionJournalUpload } from './ingest-execution-journal.ts';
 import { recordComputerInventory, recordInvalidComputerInventory } from './record-inventory.ts';
 import { recordComputerManagementEvents, reportComputerUpdateProgress } from './service.ts';
+import { ingestWorkerReport } from './worker-reports.ts';
 
 /** Ongoing report of last-reported inventory and per-Agent effective state. */
 const reportSchema = z
@@ -57,7 +58,8 @@ export async function ingestReport(
     ordinary: boolean,
     raw: string,
     postCommitWork: ServerPostCommitWork,
-    thoughts: AgentThoughts
+    thoughts: AgentThoughts,
+    invocations: InvocationRouter
 ) {
     let frame: unknown;
     try {
@@ -80,7 +82,8 @@ export async function ingestReport(
     }
 
     if (
-        (await ingestCloudAgentReport({
+        (await invocations.ingestComputerFrame(computerId, frame)) ||
+        (await ingestWorkerReport({
             db,
             connections,
             delivery,

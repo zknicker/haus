@@ -9,6 +9,7 @@ import {
     githubTriggerProfiles,
     placementJudge,
     placementProfiles,
+    ruleFileProfiles,
 } from './profiles.mjs';
 
 const placementScenarios = [
@@ -65,18 +66,26 @@ export const evals = {
         summary:
             'Feedback in passing becomes a Standing Preference that survives a session reset; no feedback, no rule change.',
     },
-    // Work that leaves the chat: Cloud Agents, MCP connections, Triggers, and Files.
+    // Each scenario reads its fresh Agent's Drive area on the Server.
+    rules: {
+        judge: null,
+        profiles: ruleFileProfiles,
+        scenarios: ['rule-files-worker', 'rule-files-agent', 'rule-files-fact'],
+        summary:
+            'A "from now on" rule lands in WORKER.md or AGENTS.md by its audience, never MEMORY.md, while a plain fact still lands in MEMORY.md.',
+    },
+    // Work that leaves the chat: Workers, MCP connections, Triggers, and Files.
     tools: {
         judge: null,
         profiles: {},
         scenarios: [
-            'cloud-launch-and-link',
+            'cloud-worker-start-and-stop',
             'mcp-granted-lookup',
             'webhook-secret-stays-out-of-chat',
             'shared-artifact-discovery',
         ],
         summary:
-            'Agents launch and link cloud work, use only granted MCP connections, keep Trigger secrets out of chat, and share files through Files.',
+            'Agents start Workers on Tasks, use only granted MCP connections, keep Trigger secrets out of chat, and share files through Files.',
     },
     // GitHub Triggers on a GitHub installation seeded on the eval stack itself:
     // no GitHub account. Serial: the scenarios share an `acme` installation.

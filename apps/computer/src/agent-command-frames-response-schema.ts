@@ -5,6 +5,7 @@ import {
     agentTaskAssignmentBatchLimit,
     agentTaskAssignmentNoticeSchema,
     agentTaskAssignmentSchema,
+    workerReportsNoticeSchema,
 } from '@haus/api';
 import * as z from 'zod';
 
@@ -22,6 +23,10 @@ export const agentSubagentWakeAttentionResponseSchema = z.looseObject(
 export const agentTaskAssignmentNoticeResponseSchema = z.looseObject(
     agentTaskAssignmentNoticeSchema.shape
 );
+
+export const workerReportsNoticeResponseSchema = z
+    .looseObject(workerReportsNoticeSchema.shape)
+    .refine((notice) => notice.total >= notice.ids.length);
 
 export const agentTaskAssignmentsResponseSchema = z
     .array(z.looseObject(agentTaskAssignmentSchema.shape))

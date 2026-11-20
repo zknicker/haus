@@ -1,8 +1,11 @@
 import { isClosedTaskState, type TaskSetStateInput } from '@haus/api';
 import { and, eq, sql } from 'drizzle-orm';
+import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { tasksTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { closeTaskWorkers } from '../workers/close-task-workers.ts';
+import { noWorkerEffects } from '../workers/worker-effects.ts';
 import { requireTaskActor, type TaskActor } from './task-actor.ts';
 import type { TaskWriteResult } from './task-assignment.ts';
 import { cancelTaskReminders } from './task-close-reminders.ts';
@@ -13,6 +16,7 @@ import { lockTask, readTask } from './task-read.ts';
 export async function setTaskState(
     db: HausDatabase,
     actor: TaskActor,
+    agentDelivery: AgentDelivery,
     input: TaskSetStateInput
 ): Promise<TaskWriteResult> {
     return await db.transaction(async (tx) => {
@@ -38,11 +42,21 @@ export async function setTaskState(
         const reminderEvents = closing
             ? await cancelTaskReminders(tx, { chatId: current.chatId, serverId: input.serverId })
             : [];
+        const workers = closing
+            ? await closeTaskWorkers(tx, agentDelivery, {
+                  actor,
+                  serverId: input.serverId,
+                  taskChatId: current.chatId,
+                  taskId: current.id,
+              })
+            : noWorkerEffects;
         const task = await readTask(tx, input.serverId, current.id);
         return {
             ...unchanged,
-            events: [prepareTaskUpdatedEvent(task), ...reminderEvents],
+            events: [prepareTaskUpdatedEvent(task), ...reminderEvents, ...workers.events],
             task,
+            wakes: workers.wakes,
+            workerFrames: workers.frames,
         };
     });
 }

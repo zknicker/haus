@@ -10,7 +10,7 @@
  * and `[data-theme="default"]` in `default-theme.css`. HeroUI's own light
  * values (`--surface`, `--overlay`, `--field-background`, `--segment`) sit in
  * `@layer base`, which any unlayered rule beats. So the unlayered
- * `:root[data-color-theme]` block, (0,2,0), wins by specificity, not order.
+ * `[data-color-theme][data-theme]` block, (0,2,0), wins by specificity, not order.
  *
  * The two descendant re-seats of `--default` (the sidebar and the window band)
  * are declared on those elements, so a root value never reaches them and they
@@ -20,7 +20,7 @@
  * (0,3,0)), which must keep winning. `html[data-color-theme]` puts them at
  * (0,2,1): above the default light re-seats' (0,2,0), below the band's (0,3,0).
  */
-:root[data-color-theme="christmas-morning"] {
+[data-color-theme="christmas-morning"][data-theme] {
     /*
      * The frost tint: one hue and one chroma for every light neutral fill, so
      * the page, the shell, the sidebar, the secondary surfaces, the default

@@ -21,10 +21,10 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
     await expect(tabs).toHaveCount(1);
 
     // The sidebar navigates the one tab rather than opening another.
-    await openChannel(page, 'all');
+    await openChannel(page, 'haus');
     await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();
     await expect(tabs).toHaveCount(1);
-    await expect(tabs).toContainText('all');
+    await expect(tabs).toContainText('haus');
     await openSection(page, 'Tasks');
     await expect(tabs).toHaveCount(1);
     await expect(tabs).toContainText('Tasks');
@@ -32,12 +32,12 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
     // Back (⌘[, the Go menu) walks the tab's own history.
     await desktopEvent(page, 'test:desktop-history');
     await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();
-    await expect(tabs).toContainText('all');
+    await expect(tabs).toContainText('haus');
 
     // Command-click on a sidebar row opens a background tab after the left pane's tab.
     await page.getByRole('row', { exact: true, name: 'Tasks' }).click({ modifiers: ['Meta'] });
     await expect(tabs).toHaveCount(2);
-    await expect(tabs.nth(0)).toContainText('all');
+    await expect(tabs.nth(0)).toContainText('haus');
     await expect(tabs.nth(1)).toContainText('Tasks');
     await expect(tabs.nth(0)).toHaveAttribute('data-active', 'true');
     await expect(tabs.nth(1)).not.toHaveAttribute('data-active', 'true');
@@ -71,10 +71,10 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
     await page.reload();
     await expect(tabs).toHaveCount(2);
     await expect(tabs.nth(1)).toHaveAttribute('data-active', 'true');
-    await tabs.nth(0).getByRole('button', { name: 'all', exact: true }).click();
+    await tabs.nth(0).getByRole('button', { name: 'haus', exact: true }).click();
     await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();
     await desktopEvent(page, 'test:desktop-history');
-    await expect(tabs.nth(0)).not.toContainText('all');
+    await expect(tabs.nth(0)).not.toContainText('haus');
 
     // Closing the window's last tab closes the window.
     await desktopEvent(page, 'test:desktop-close');
@@ -91,7 +91,7 @@ test('panes: a Task opens in the right pane, Move to right pane splits, and an e
         slug: 'desktop-tabs-panes',
     });
     const agent = await createChannelAgent({
-        channelName: 'all',
+        channelName: 'haus',
         databaseUrl: session.databaseUrl,
         serverId: server.id,
         slug: server.slug,
@@ -108,7 +108,7 @@ test('panes: a Task opens in the right pane, Move to right pane splits, and an e
     // (Open, ADR 0046); the chat stays in the left pane.
     await page.getByRole('button', { name: openTask }).click();
     await expect(left).toHaveCount(1);
-    await expect(left).toContainText('all');
+    await expect(left).toContainText('haus');
     await expect(right).toHaveCount(1);
     await expect(right).toContainText(key);
     await expect(composer).toBeVisible();
@@ -151,14 +151,14 @@ test('a hidden chat tab keeps its draft and leaves its unread alone', async ({ p
         serverId: server.id,
     });
     const agent = await createChannelAgent({
-        channelName: 'all',
+        channelName: 'haus',
         databaseUrl: session.databaseUrl,
         serverId: server.id,
         slug: server.slug,
         token: session.accessToken,
     });
     await openDesktopWindow(page, `/s/${server.slug}`);
-    await openChannel(page, 'all');
+    await openChannel(page, 'haus');
     const composer = page.getByRole('textbox', { name: 'Message all' });
     await composer.fill('Keep this draft');
     const tabs = tabRow(page, 'Tabs').locator('.workspace-tab');
@@ -171,13 +171,13 @@ test('a hidden chat tab keeps its draft and leaves its unread alone', async ({ p
 
     // Activity in the hidden chat stays unread while its tab is hidden.
     await agent.send(`[@Ada](user://${agent.ownerUserId}) Ready when you are.`, 'hidden-1');
-    const unreadRow = paneBody(page, 'primary').getByRole('button', { exact: true, name: 'all' });
+    const unreadRow = paneBody(page, 'primary').getByRole('button', { exact: true, name: 'haus' });
     await expect(unreadRow).toBeVisible();
     await page.waitForTimeout(1500);
     await expect(unreadRow).toBeVisible();
 
     // Showing the chat's tab brings back its draft and marks it read.
-    await tabs.nth(0).getByRole('button', { name: 'all', exact: true }).click();
+    await tabs.nth(0).getByRole('button', { name: 'haus', exact: true }).click();
     await expect(composer).toHaveText('Keep this draft');
     await tabs.nth(1).getByRole('button', { name: 'Inbox', exact: true }).click();
     await expect(page.getByText('All caught up.')).toBeVisible();

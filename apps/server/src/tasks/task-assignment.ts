@@ -3,6 +3,7 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { taskAssignedTopic } from '../realtime/topics.ts';
+import type { WorkerFrame } from '../workers/worker-effects.ts';
 import { sameTaskActor, type TaskActor } from './task-actor.ts';
 import { enqueueTaskAssignment, retireTaskAssignments } from './task-agent-delivery.ts';
 
@@ -30,6 +31,8 @@ export interface TaskAssignmentChange {
 export interface TaskWriteResult extends TaskAssignmentEffects {
     assignmentChange: TaskAssignmentChange | null;
     task: Task;
+    /** Stop frames for the Workers a closing Task stopped, to send once the write commits. */
+    workerFrames?: WorkerFrame[];
 }
 
 /** What an assignment change leaves for after commit. */

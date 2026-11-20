@@ -11,6 +11,7 @@ import {
     serversTable,
 } from '../src/postgres/schema.ts';
 import { recordReminderWakeUsage } from '../src/reminders/reminder-wake-usage.ts';
+import { testAgentHome } from './agent-home.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 let cluster: TestDatabase | null = null;
@@ -132,7 +133,7 @@ async function seedFire(
         isAll: true,
         kind: 'channel',
         lastMessageSequence: 1,
-        name: 'all',
+        name: 'haus',
         serverId,
     });
     await db.insert(agentsTable).values({
@@ -140,6 +141,7 @@ async function seedFire(
         handle: `usage-cove-${serverId.replaceAll('_', '-')}`,
         homeTimezone: 'America/New_York',
         id: agentId,
+        homeProjectId: await testAgentHome(db, serverId),
         serverId,
     });
     await db.insert(chatMessagesTable).values({

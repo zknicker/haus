@@ -1,5 +1,5 @@
 import { formatTaskKey, type Task } from '@haus/api';
-import { and, asc, eq, inArray, type SQL } from 'drizzle-orm';
+import { and, asc, eq, inArray, not, type SQL } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     chatsTable,
@@ -7,7 +7,8 @@ import {
     taskLabelAssignmentsTable,
     tasksTable,
 } from '../postgres/schema.ts';
-import { actorFromColumns, optionalActorFromColumns } from './task-actor.ts';
+import { actorVisibleChats } from './actor-visible-chats.ts';
+import { actorFromColumns, optionalActorFromColumns, type TaskActor } from './task-actor.ts';
 import { TaskNotFoundError } from './task-errors.ts';
 
 type TaskReader = Pick<HausDatabase, 'select'>;
@@ -15,19 +16,15 @@ type TaskReader = Pick<HausDatabase, 'select'>;
 /**
  * Tasks on one Server matching `where`, oldest first, as the contract shapes
  * them: the key derived from the key-ledger entry's current key, and labels in
- * label-id order.
+ * label-id order. With a `viewer`, a DM origin shows only to a reader of that
+ * DM (specs/tasks.md, "The Task target").
  */
 export async function readTasks(
     db: TaskReader,
-    input: { serverId: string; where?: SQL }
+    input: { serverId: string; viewer?: TaskActor; where?: SQL }
 ): Promise<Task[]> {
     const rows = await db
-        .select({
-            ledgerKey: taskKeysTable.key,
-            originChatId: chatsTable.parentChatId,
-            originMessageId: chatsTable.anchorMessageId,
-            task: tasksTable,
-        })
+        .select({ ledgerKey: taskKeysTable.key, task: tasksTable })
         .from(tasksTable)
         .innerJoin(
             taskKeysTable,
@@ -47,7 +44,7 @@ export async function readTasks(
         input.serverId,
         rows.map(({ task }) => task.id)
     );
-    return rows.map(({ ledgerKey, originChatId, originMessageId, task }) => ({
+    const tasks = rows.map(({ ledgerKey, task }) => ({
         assignee: optionalActorFromColumns(task.assigneeUserId, task.assigneeAgentId),
         chatId: task.chatId,
         completedAt: task.completedAt?.toISOString() ?? null,
@@ -61,16 +58,18 @@ export async function readTasks(
         labelIds: labels.get(task.id) ?? [],
         number: task.number,
         origin:
-            originChatId && originMessageId
-                ? { chatId: originChatId, messageId: originMessageId }
+            task.originChatId && task.originMessageId
+                ? { chatId: task.originChatId, messageId: task.originMessageId }
                 : null,
         priority: task.priority,
+        projectId: task.projectId,
         serverId: task.serverId,
         state: task.state,
         title: task.title,
         updatedAt: task.updatedAt.toISOString(),
         version: task.version,
     }));
+    return input.viewer ? await withVisibleOrigins(db, input.viewer, tasks) : tasks;
 }
 
 export async function readTask(db: TaskReader, serverId: string, taskId: string): Promise<Task> {
@@ -96,6 +95,36 @@ export async function lockTask(tx: TaskReader, serverId: string, taskId: string)
 }
 
 export type LockedTask = Awaited<ReturnType<typeof lockTask>>;
+
+/** Clears each DM origin `viewer` cannot read; a Channel origin shows to everyone. */
+export async function withVisibleOrigins(
+    db: TaskReader,
+    viewer: TaskActor,
+    tasks: Task[]
+): Promise<Task[]> {
+    const serverId = tasks[0]?.serverId;
+    const originChatIds = [
+        ...new Set(tasks.flatMap(({ origin }) => (origin ? [origin.chatId] : []))),
+    ];
+    if (!serverId || originChatIds.length === 0) {
+        return tasks;
+    }
+    const hidden = await db
+        .select({ id: chatsTable.id })
+        .from(chatsTable)
+        .where(
+            and(
+                eq(chatsTable.serverId, serverId),
+                inArray(chatsTable.id, originChatIds),
+                eq(chatsTable.kind, 'dm'),
+                not(actorVisibleChats(viewer))
+            )
+        );
+    const hiddenIds = new Set(hidden.map(({ id }) => id));
+    return tasks.map((task) =>
+        task.origin && hiddenIds.has(task.origin.chatId) ? { ...task, origin: null } : task
+    );
+}
 
 async function readTaskLabelIds(
     db: TaskReader,

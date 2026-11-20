@@ -32,7 +32,7 @@ test('A: one failed stream restarts alone and recovers only its owned reads', as
     await traffic.settled();
 
     const stream = proxy.latest('chat.onMessageCreated');
-    const work = proxy.latest('cloudAgentWork.onUpdated');
+    const work = proxy.latest('worker.onUpdated');
     const startsBefore = proxy.subscriptions.length;
     const mark = traffic.mark();
 
@@ -190,7 +190,7 @@ test('B: a Server restart with refused resubscribes converges, then C and D', as
             (call) => call.socket >= socketsBefore && call.path === 'session.refresh'
         )
     ).toHaveLength(1);
-    await expect(page.getByRole('row', { exact: true, name: 'all' })).toBeVisible();
+    await expect(page.getByRole('row', { exact: true, name: 'haus' })).toBeVisible();
     // Each stream resubscribed once on the new socket; only the refused one
     // retried. Sibling starts own the transcript lists too, so the reply can
     // land before the refused stream's third start; wait for it.

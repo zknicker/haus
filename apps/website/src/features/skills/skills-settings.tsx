@@ -5,8 +5,8 @@ import { useState } from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
+import { SettingsPageColumn } from '../settings/layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../settings/layout/settings-page-header.tsx';
-import { PageColumn } from '../shell/page-column.tsx';
 import { buildHostSkillSections, type HostSkill } from './host-skill-catalog.ts';
 import { HostSkillDialog } from './host-skill-dialog.tsx';
 import { HostSkillSection } from './host-skill-section.tsx';
@@ -25,18 +25,8 @@ export function SkillsSettings({ serverId }: { serverId: string }) {
     );
 
     return (
-        <PageColumn>
-            {/* The info control rides the description, not the title, so the
-                page heading's accessible name stays exactly "Skills". */}
-            <SettingsPageHeader
-                description={
-                    <span className="inline-flex items-center gap-1">
-                        Skills installed on your devices.
-                        <SkillsInfo />
-                    </span>
-                }
-                title="Skills"
-            />
+        <SettingsPageColumn width="table">
+            <SettingsPageHeader info={<SkillsInfo />} title="Skills" />
             {computers.error && !computers.data ? (
                 <SkillsMessage
                     description="Haus couldn’t load the device skill inventory. Try opening this page again."
@@ -69,7 +59,7 @@ export function SkillsSettings({ serverId }: { serverId: string }) {
                 onClose={() => setSelected(null)}
                 serverId={serverId}
             />
-        </PageColumn>
+        </SettingsPageColumn>
     );
 }
 

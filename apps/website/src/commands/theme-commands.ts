@@ -10,6 +10,7 @@ import { selectColorTheme } from '../hooks/shell/use-color-theme.ts';
 import { selectRooflineSnow } from '../hooks/shell/use-roofline-snow.ts';
 import type { ColorTheme } from '../lib/color-theme.ts';
 import { type ColorThemeDefinition, colorThemes } from '../lib/color-themes.ts';
+import type { CustomTheme } from '../lib/custom-themes.ts';
 import { type RooflineSnow, rooflineSnows } from '../lib/roofline-snow.ts';
 import type { AppCommandGroup } from './types.ts';
 
@@ -20,12 +21,14 @@ import type { AppCommandGroup } from './types.ts';
  * snowy roofline, as Settings shows its Snow row.
  */
 export function buildThemeCommandGroup({
+    customThemes = [],
     modeLocked,
     scene,
     setColorTheme = selectColorTheme,
     setRooflineSnow = selectRooflineSnow,
     setTheme,
 }: {
+    customThemes?: readonly CustomTheme[];
     modeLocked: boolean;
     scene: ColorThemeDefinition['scene'];
     setColorTheme?: (theme: ColorTheme) => void;
@@ -33,7 +36,11 @@ export function buildThemeCommandGroup({
     setTheme: (theme: ThemePreference) => void;
 }): AppCommandGroup {
     const modeCommands = modeLocked ? [] : buildModeCommands(setTheme);
-    const colorThemeCommands = colorThemes.map(({ id, label }) => ({
+    const themeChoices = [
+        ...colorThemes.map(({ id, label }) => ({ id, label })),
+        ...customThemes.map(({ id, name }) => ({ id, label: name })),
+    ];
+    const colorThemeCommands = themeChoices.map(({ id, label }) => ({
         id: `color-theme.${id}`,
         title: `Use ${label} Theme`,
         icon: PaintBoardIcon,

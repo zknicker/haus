@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { createTestProject } from './project.fixture.ts';
 import { captureAllTopics, publishedSince } from './realtime-capture.ts';
 
 let harness: HausServerHarness;
@@ -59,7 +60,7 @@ afterAll(async () => {
 });
 
 test('a created channel keeps its appearance across list and get', async () => {
-    const channel = await owner.trpc.chat.createChannel.mutate({
+    const channel = await createTestProject(harness, owner, {
         agentIds: [agentId],
         color: 'violet',
         icon: 'RocketIcon',
@@ -81,7 +82,7 @@ test('a created channel keeps its appearance across list and get', async () => {
 
 test('a channel created without appearance reports null for both', async () => {
     await expect(
-        owner.trpc.chat.createChannel.mutate({
+        createTestProject(harness, owner, {
             agentIds: [agentId],
             name: 'appearance-default',
             serverId,
@@ -90,52 +91,48 @@ test('a channel created without appearance reports null for both', async () => {
 });
 
 test('updating sets, preserves, and clears channel appearance', async () => {
-    const channel = await owner.trpc.chat.createChannel.mutate({
+    const channel = await createTestProject(harness, owner, {
         agentIds: [agentId],
         name: 'appearance-update',
         serverId,
     });
 
-    const painted = await owner.trpc.chat.updateChannel.mutate({
-        agentIds: [agentId],
+    const painted = await owner.trpc.project.update.mutate({
         chatId: channel.id,
         color: 'amber',
         icon: 'BugIcon',
         name: 'appearance-update',
         serverId,
     });
-    expect(painted).toMatchObject({ color: 'amber', icon: 'BugIcon' });
+    expect(painted.chat).toMatchObject({ color: 'amber', icon: 'BugIcon' });
 
     // Omitted appearance fields leave the stored values alone.
-    const renamed = await owner.trpc.chat.updateChannel.mutate({
-        agentIds: [agentId],
+    const renamed = await owner.trpc.project.update.mutate({
         chatId: channel.id,
         name: 'appearance-renamed',
         serverId,
     });
-    expect(renamed).toMatchObject({ color: 'amber', icon: 'BugIcon' });
+    expect(renamed.chat).toMatchObject({ color: 'amber', icon: 'BugIcon' });
 
-    const cleared = await owner.trpc.chat.updateChannel.mutate({
-        agentIds: [agentId],
+    const cleared = await owner.trpc.project.update.mutate({
         chatId: channel.id,
         color: null,
         icon: null,
         name: 'appearance-renamed',
         serverId,
     });
-    expect(cleared).toMatchObject({ color: null, icon: null });
+    expect(cleared.chat).toMatchObject({ color: null, icon: null });
 });
 
-test('an appearance-only change emits one updated lifecycle event', async () => {
-    const channel = await owner.trpc.chat.createChannel.mutate({
+test('an appearance-only change emits one lifecycle update and one Project update', async () => {
+    const channel = await createTestProject(harness, owner, {
         agentIds: [agentId],
         name: 'appearance-events',
         serverId,
     });
 
     const beforePaint = captureAllTopics();
-    await owner.trpc.chat.updateChannel.mutate({
-        agentIds: [agentId],
+    await owner.trpc.project.update.mutate({
         chatId: channel.id,
         color: 'teal',
         name: 'appearance-events',
@@ -143,11 +140,11 @@ test('an appearance-only change emits one updated lifecycle event', async () => 
     });
     await expect(publishedSince(beforePaint, serverId)).resolves.toEqual([
         expect.objectContaining({ action: 'updated', chatId: channel.id, type: 'chat.lifecycle' }),
+        expect.objectContaining({ projectId: channel.id, type: 'project.updated' }),
     ]);
 
     const beforeRepaint = captureAllTopics();
-    await owner.trpc.chat.updateChannel.mutate({
-        agentIds: [agentId],
+    await owner.trpc.project.update.mutate({
         chatId: channel.id,
         color: 'teal',
         name: 'appearance-events',

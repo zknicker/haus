@@ -42,6 +42,7 @@ export function registerAgentTaskPlaceRoutes(
                 originChatId,
                 originMessageId: origin.id,
                 ...(input.priority === undefined ? {} : { priority: input.priority }),
+                ...(input.project === undefined ? {} : { projectKey: input.project }),
                 serverId: runner.serverId,
                 state: input.state ?? 'open',
                 title: input.title,
@@ -64,7 +65,7 @@ export function registerAgentTaskPlaceRoutes(
                 input.expectedVersion,
                 async () => (await findTask(db, { key: input.key, serverId })).version,
                 (expectedVersion) =>
-                    setTaskState(db, agentActor(runner), {
+                    setTaskState(db, agentActor(runner), agentDelivery, {
                         expectedVersion,
                         serverId,
                         state: input.state,

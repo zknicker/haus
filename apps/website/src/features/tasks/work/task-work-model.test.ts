@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { CloudAgentPullRequestReading, TaskReminderRef } from '@haus/api';
+import type { PullRequestReading, TaskReminderRef } from '@haus/api';
 import {
     pendingTaskReminders,
     pullRequestFacts,
@@ -15,7 +15,7 @@ const reading = (url: string) =>
         deletions: 1,
         review: 'approved',
         url,
-    }) as CloudAgentPullRequestReading;
+    }) as PullRequestReading;
 
 const reminder = (
     id: string,
@@ -30,7 +30,7 @@ const reminder = (
     title: 'Check the deploy',
 });
 
-test('a pull request a Cloud Agent card already names is not stated twice', () => {
+test('a pull request a Worker card already names is not stated twice', () => {
     const shown = reading('https://github.com/haus/haus/pull/1');
     const other = reading('https://github.com/haus/haus/pull/2');
     expect(standalonePullRequests([{ pullRequest: shown }], [shown, other])).toEqual([other]);

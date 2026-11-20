@@ -2,7 +2,6 @@ import { afterAll, beforeAll, beforeEach, expect, test } from 'bun:test';
 import { randomUUID } from 'node:crypto';
 import { makeTestRuntime } from '@haus/effect';
 import { AgentDelivery } from '../src/agent-delivery/delivery.ts';
-import { seedPullRequestReadings } from '../src/cloud-agents/pull-request-readings.ts';
 import { ingestGithubDelivery } from '../src/github/delivery-ingest.ts';
 import type { GithubApp } from '../src/github/github-app.ts';
 import { refreshPullRequestReadings } from '../src/github/pull-request-refresh.ts';
@@ -10,6 +9,7 @@ import { markGithubTriggersProblem } from '../src/github/trigger-problems.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { ServerPostCommitWork } from '../src/server-post-commit-work.ts';
 import { TriggerRateLimiter } from '../src/triggers/trigger-rate-limit.ts';
+import { seedPullRequestReadings } from '../src/workers/pull-request-readings.ts';
 import { checkSuitePayload, pullRequestPayload } from './github-delivery-fixtures.ts';
 import { createFakeGithub } from './github-fake.ts';
 import { type GithubTriggerWorld, seedGithubTriggerWorld } from './github-trigger-seed.ts';
@@ -46,7 +46,7 @@ beforeAll(async () => {
 beforeEach(async () => {
     requests = [];
     respond = mergedPullRequest;
-    await harness.sql`delete from cloud_agent_pull_requests`;
+    await harness.sql`delete from pull_request_readings`;
     await seedPullRequestReadings(connection.db, {
         branches: [
             {
@@ -107,7 +107,7 @@ test('a read replaces the frozen snapshot with what GitHub says now', async () =
 test('a mark written by Postgres itself, with microseconds, clears after its read', async () => {
     // Migration 0113 marked every backfilled row with now(), which keeps microseconds.
     await harness.sql`
-        update cloud_agent_pull_requests
+        update pull_request_readings
         set refresh_requested_at = '2026-11-01 12:00:00.123456+00'
     `;
     await refresh();
@@ -177,7 +177,7 @@ test('a pull request GitHub no longer shows keeps its reading and stops asking',
 
 test('a repository no installation covers stays a Computer reading, unread', async () => {
     await harness.sql`
-        update cloud_agent_pull_requests set repository = 'elsewhere/api'
+        update pull_request_readings set repository = 'elsewhere/api'
     `;
     await refresh();
     expect(requests).toEqual([]);
@@ -196,7 +196,7 @@ async function refresh() {
 
 async function reading(repository = 'acme/api') {
     const [row] = (await harness.sql`
-        select * from cloud_agent_pull_requests
+        select * from pull_request_readings
         where server_id = ${world.serverId} and repository = ${repository} and number = 1423
     `) as Record<string, unknown>[];
     return row;

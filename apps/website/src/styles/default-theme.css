@@ -33,7 +33,7 @@
   --feed-card-shadow: var(--surface-shadow);
   --feed-card-ring: color-mix(in oklab, var(--foreground) 24%, transparent);
   /*
-   * The one column every in-chat attachment under a message fills: Cloud Agent
+   * The one column every in-chat attachment under a message fills: Worker
    * cards, Task previews, the working log, workspace changes. Each is
    * `w-full` up to this cap, so a card stacked over a Task preview shares
    * both edges whatever the transcript width.
@@ -1527,7 +1527,7 @@
      * `--automation-keycap-*` — keeping its stock box and radius, so the key and
      * its corner stay paired. `AutomationKeycapFace` prints on it: a Reminder's
      * rose band over its next hour, a Trigger's source glyph in its ink, a
-     * Cloud Agent's terminal with its provider badged in the corner. The
+     * Worker's terminal with its provider badged in the corner. The
      * face stacks band over body, so the slot lays out as a column. Paired
      * selectors outrank the secondary group's icon wash.
      */
@@ -1543,17 +1543,46 @@
     /*
      * Settings rows share one height. A row's height is whatever its tallest
      * part is, so a title-only row with a Switch or a fact (~44px) sat short
-     * beside one with a Select, an input, or a title + description (~60px).
-     * Every settings list row takes the field row's height as its floor: the
-     * row's ×3 block padding twice, plus a field's ×2 block padding twice,
-     * its 20px `text-sm` line, and its two 1px borders. A card straight inside
-     * a transparent group is a note under a section heading, not a row in a
-     * list box, and keeps its own height.
+     * beside one with a Select or an input. Every settings list row takes the
+     * field row's height as its floor: the row's ×3 block padding twice plus
+     * the compact ×8 field below. A card straight inside a transparent group
+     * is a note under a section heading, not a row in a list box, and keeps
+     * its own height.
      */
     .settings-frame
         .item-card-group--list:not(.item-card-group--transparent)
         > [data-slot='item-card'] {
-        min-block-size: calc(var(--spacing) * 10 + 1.25rem + 2px);
+        min-block-size: calc(var(--spacing) * 14);
+    }
+
+    /*
+     * A field in a settings row or section header is the row's control, not a
+     * form: it takes the ×8 height of the `sm` buttons beside it instead of
+     * the stock ×9 form height plus padding. HeroUI 3.2 ships no `size` on
+     * Select, Autocomplete, Input, or SearchField, so the size lives here.
+     * Popovers portal out of the frame, so their search fields keep stock size.
+     */
+    .settings-frame
+        :is(.item-card__action, .item-card-group__header)
+        :is(.select__trigger, .autocomplete__trigger, .input, .search-field__group) {
+        min-block-size: 0;
+        block-size: calc(var(--spacing) * 8);
+        padding-block: 0;
+        align-items: center;
+    }
+
+    .settings-frame :is(.item-card__action, .item-card-group__header) .search-field__input {
+        padding-block: 0;
+    }
+
+    /*
+     * A chip in a table cell is a token, not a phrase: in a settings table's
+     * measure an auto-laid-out grid squeezed "Claude Code" into a two-line
+     * pill. Unwrapped, the grid gives the column the chip's width and
+     * takes the room from columns of prose, which wrap properly.
+     */
+    .settings-frame .table__cell .chip {
+        white-space: nowrap;
     }
 
     /*
@@ -1825,16 +1854,6 @@
         }
     }
 
-    /*
-     * A catalog reads as a shelf of small products, not a stretched table.
-     * Two columns across the full 1152px page column made each row ~550px of
-     * mostly empty line, so the catalog keeps its own reading width (two
-     * ~460px columns) and leaves the rest of the column as page ground.
-     */
-    .item-card-group--catalog {
-        max-inline-size: 60rem;
-    }
-
     /* The section title sits on a hairline that spans the catalog. */
     .item-card-group--catalog > .item-card-group__header {
         padding-block-end: calc(var(--spacing) * 2.5);
@@ -1920,6 +1939,15 @@
     .connection-hero-mark svg {
         width: 1.5rem;
         height: 1.5rem;
+    }
+
+    /*
+     * Dark draws no surface shadow, and a dialog's ground is `--overlay`, the
+     * same value as `--surface`: a catalog tile inside a dialog (Explore
+     * connections) lost its edge entirely. It takes the next surface step.
+     */
+    :is([data-theme="dark"], .dark) .modal__dialog .item-card-group--catalog .item-card__icon {
+        background-color: var(--surface-secondary);
     }
 
     /* Preserve brand silhouettes and leave breathing room inside the tile. */

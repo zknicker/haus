@@ -11,6 +11,7 @@ import { readChatEngagements } from '../src/agent-delivery/chat-engagement.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import { agentsTable } from '../src/postgres/schema.ts';
+import { testAgentHome } from './agent-home.ts';
 import { agentPost, post, settledSummary, wakeOn } from './chat-engagement-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
@@ -269,6 +270,7 @@ test('Agent-authored messages and messages older than the last send never engage
             .replace(/[^a-z0-9]/gu, 'x')}`,
         homeTimezone: 'UTC',
         id: peerAgentId,
+        homeProjectId: await testAgentHome(connection.db, seed.serverId),
         serverId: seed.serverId,
     });
     const peer = await agentPost(connection.db, seed, seed.dmChatId, peerAgentId);

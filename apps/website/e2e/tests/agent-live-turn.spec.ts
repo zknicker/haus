@@ -37,7 +37,7 @@ test('live turn retains open tool evidence and scroll through refresh, reasoning
             runtimeId: 'codex',
             modelId: 'gpt-5.6-sol',
         });
-        const chatId = server.channels.find((channel) => channel.name === 'all')?.id;
+        const chatId = server.channels.find((channel) => channel.name === 'haus')?.id;
         assertOpaqueId(chatId);
         const now = new Date();
         const startedAt = new Date(now.getTime() - 83_000).toISOString();

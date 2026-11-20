@@ -2,10 +2,11 @@ import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Button, Separator } from '@heroui/react';
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CopyButton } from '../../../components/copy-button.tsx';
 import type { ServerSummary } from '../../../lib/haus-server.tsx';
 import { hausTrpc } from '../../../lib/haus-server.tsx';
 import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
-import { PageColumn } from '../../shell/page-column.tsx';
+import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { SettingsFact, SettingsRowError } from '../layout/settings-text.tsx';
@@ -24,11 +25,8 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
     });
 
     return (
-        <PageColumn>
-            <SettingsPageHeader
-                description="Identity, Captain settings, and permanent actions for this Server."
-                title="Server"
-            />
+        <SettingsPageColumn>
+            <SettingsPageHeader title="General" />
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>
                     <ItemCardGroup.Title>Identity</ItemCardGroup.Title>
@@ -51,6 +49,16 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
                         </ItemCard.Content>
                         <ItemCard.Action>
                             <SettingsFact>{server.slug}</SettingsFact>
+                        </ItemCard.Action>
+                    </ItemCard>
+                    <Separator />
+                    <ItemCard>
+                        <ItemCard.Content>
+                            <ItemCard.Title>Server ID</ItemCard.Title>
+                        </ItemCard.Content>
+                        <ItemCard.Action className="flex items-center gap-1">
+                            <SettingsFact className="font-mono text-xs">{server.id}</SettingsFact>
+                            <CopyButton label="Copy Server ID" value={server.id} />
                         </ItemCard.Action>
                     </ItemCard>
                 </ItemCardGroup>
@@ -99,6 +107,6 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
                     ) : null}
                 </ItemCardGroup>
             ) : null}
-        </PageColumn>
+        </SettingsPageColumn>
     );
 }

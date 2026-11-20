@@ -3,6 +3,8 @@ import { initTRPC, TRPCError } from '@trpc/server';
 import { artifactErrorData } from '../artifacts/error-data.ts';
 import type { HausSessionIdentity } from '../identity/haus-sessions.ts';
 import { HausAuthError } from '../identity/haus-sessions.ts';
+import { modelConnectionErrorData } from '../model-connections/model-connection-errors.ts';
+import { projectErrorData } from '../projects/project-errors.ts';
 import { realtimeRefusalData } from '../realtime/refusal.ts';
 import type { HausContext } from './context.ts';
 
@@ -23,7 +25,13 @@ const t = initTRPC.context<HausContext>().create({
     // from a role refusal or a transient failure (specs/realtime-events.md).
     errorFormatter: ({ error, shape }) => ({
         ...shape,
-        data: { ...shape.data, ...realtimeRefusalData(error), ...artifactErrorData(error) },
+        data: {
+            ...shape.data,
+            ...realtimeRefusalData(error),
+            ...artifactErrorData(error),
+            ...projectErrorData(error),
+            ...modelConnectionErrorData(error),
+        },
     }),
 });
 

@@ -25,7 +25,7 @@ export interface AcceptedServerInvitation {
 
 /**
  * One transaction validates the invitation, consumes it, and commits the fresh
- * Member stint joined to exactly `#all`. A non-locking token lookup identifies
+ * Member stint joined to exactly `#haus`. A non-locking token lookup identifies
  * the Server, then the transaction takes the Server row before the invitation
  * row. Every membership-authorized write uses that order, avoiding an
  * accept-versus-revoke deadlock while the invitation lock still makes the token

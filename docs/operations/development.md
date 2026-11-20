@@ -117,7 +117,10 @@ worktree's data across runs. On later boots it applies any new checked-in
 PostgreSQL migrations before starting Haus Server, so an existing worktree
 database stays current with main. If that migration step fails, the database
 predates the checked-in migration baseline: move
-`~/.haus/dev/<worktree-id>/postgres` aside and rerun to bootstrap fresh. On first use, Server creates one demo Server with
+`~/.haus/dev/<worktree-id>/postgres` aside and rerun to bootstrap fresh. A dev database
+that ran a draft of migration `0129_drive.sql` before D2 merged fails every Drive push with
+`column "base_revision_id" does not exist`; move it aside once the same way. Production never
+ran the draft. On first use, Server creates one demo Server with
 the Agents Blippy and Tiny, avatars for them and for you, the `#all` and
 `#product` Channels, starter messages with inline replies, four `GEN` Tasks started from Channel
 messages (one in flight and one waiting with the Agents, two handed to you), and one MCP
@@ -128,7 +131,7 @@ both Agent DMs (Tiny's DM ends on its unanswered stale-copy question; Blippy's D
 your reply), and Cove @mentioning you with its rename question in `#onboarding-owner`. It also
 seeds one claim Blippy left stalled (shown
 on Blippy's profile under **Stopped before finishing**), one
-settled Cloud Agent work, and seven days of Agent turns. That activity is idempotent and separate,
+settled Worker, and seven days of Agent turns. That activity is idempotent and separate,
 in `apps/server/src/development/seed-inbox-activity.ts`.
 
 Another idempotent seed (`seed-artifact-message.ts`) gives fresh and existing demo workspaces a
@@ -139,8 +142,8 @@ card, the link, and desktop workspace tabs have real files to open.
 
 A separate idempotent seed adds **#ui-gallery** to fresh and existing demo workspaces. Its
 messages cover human @mentions in Channels and Tasks, every Task state, hidden claims, claims
-with replies, every cloud-work status, cancelling and stale work, follow-ups waiting or running
-behind a finished Run and waiting behind a failed one, and a Task holding several cloud agents
+with replies, every Worker status, cancelling and stale work, follow-ups waiting or running
+behind a finished Run and waiting behind a failed one, and a Task holding several Workers
 and an inline human @mention. Toggle **Show tasks in chat** to compare hidden claims. Cloud branch and diff evidence is synthetic; its pull request link points at a nonexistent
 `demo/ui-gallery` repository. The gallery's queued/running work appears in Inbox too.
 
@@ -248,6 +251,32 @@ rerun the same setup command if the CLI stopped. Its persisted idempotency key
 recovers the issued Computer instead of creating another. `logout` revokes only
 the human management session and stops the service; it preserves every Server
 attachment and Agent workspace for an explicit later `start`.
+
+## Agent Runner
+
+The Agent runner runs Agent turns in its own process (`apps/runner/`). The dev stack starts it only
+when `HAUS_AGENT_LOOP=runner` is set:
+
+```sh
+HAUS_AGENT_LOOP=runner bun run dev
+```
+
+The stack mints a fresh `HAUS_RUNNER_TOKEN` for each run and hands it to the Server and the runner.
+The runner starts after the Server with `HAUS_SERVER_URL` set to the Server origin and
+`HAUS_RUNNER_DATA_DIR` under the worktree's dev state directory, beside the Computer's data root.
+It inherits only a narrow shell environment, never the Server's secrets, and it gets model logins
+only from the Server: connect them in Settings → Models ([model connections](../../specs/model-connections.md)),
+which needs `HAUS_SECRETS_KEY` from the Development `Haus Secrets Key` item. Without
+`HAUS_AGENT_LOOP=runner`, nothing changes.
+
+The live Claude Agent SDK test spends real quota and runs only on request:
+
+```sh
+HAUS_RUN_LIVE_RUNNER_CLAUDE_TEST=1 bun test --timeout 120000 apps/runner/src/claude
+```
+
+The runner container, its network deny, and its proof script are in
+[Haus Server deployment](haus-server-deploy.md#agent-runner-container).
 
 ## Linux And Cloud Sessions
 

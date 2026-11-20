@@ -10,11 +10,14 @@ import {
     primaryKey,
     text,
     timestamp,
+    type UpdateDeleteAction,
     unique,
     uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import { agentsTable } from './agents.ts';
+import { chatMessagesTable } from './chat-messages.ts';
 import { chatsTable } from './chats.ts';
+import { projectsTable } from './projects.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
 import { serversTable } from './servers.ts';
 import { taskKeysTable } from './task-keys.ts';
@@ -36,10 +39,14 @@ export const tasksTable = pgTable(
         id: text('id').primaryKey(),
         keyId: text('key_id').notNull(),
         number: integer('number').notNull(),
+        /** The Message the Task started from, both or neither; null for a filed Task. */
+        originChatId: text('origin_chat_id'),
+        originMessageId: text('origin_message_id'),
         priority: text('priority')
             .notNull()
             .default('none')
             .$type<'none' | 'urgent' | 'high' | 'medium' | 'low'>(),
+        projectId: text('project_id').notNull(),
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
@@ -62,6 +69,31 @@ export const tasksTable = pgTable(
             foreignColumns: [taskKeysTable.serverId, taskKeysTable.id],
             name: 'tasks_key_fk',
         }),
+        foreignKey({
+            columns: [table.serverId, table.projectId],
+            foreignColumns: [projectsTable.serverId, projectsTable.chatId],
+            name: 'tasks_project_fk',
+        }).onDelete('cascade'),
+        foreignKey({
+            columns: [table.serverId, table.chatId, table.projectId],
+            foreignColumns: [chatsTable.serverId, chatsTable.id, chatsTable.parentChatId],
+            name: 'tasks_chat_project_fk',
+        }),
+        // A bare `set null` would null the not-null `server_id` too; PostgreSQL 16
+        // takes the column list, which Drizzle passes through untyped.
+        foreignKey({
+            columns: [table.serverId, table.originChatId, table.originMessageId],
+            foreignColumns: [
+                chatMessagesTable.serverId,
+                chatMessagesTable.chatId,
+                chatMessagesTable.id,
+            ],
+            name: 'tasks_origin_fk',
+        }).onDelete('set null (origin_chat_id, origin_message_id)' as UpdateDeleteAction),
+        check(
+            'tasks_origin_shape',
+            sql`(${table.originChatId} is null) = (${table.originMessageId} is null)`
+        ),
         check('tasks_state', sql`${table.state} in ('todo', 'open', 'done', 'canceled')`),
         check(
             'tasks_completed_at',
@@ -104,6 +136,10 @@ export const tasksTable = pgTable(
         check('tasks_positive_number', sql`${table.number} > 0`),
         check('tasks_positive_version', sql`${table.version} > 0`),
         index('tasks_state_idx').on(table.serverId, table.state),
+        index('tasks_project_idx').on(table.serverId, table.projectId),
+        index('tasks_origin_idx')
+            .on(table.serverId, table.originChatId, table.originMessageId)
+            .where(sql`${table.originChatId} is not null`),
         index('tasks_assignee_user_idx')
             .on(table.serverId, table.assigneeUserId)
             .where(sql`${table.assigneeUserId} is not null`),

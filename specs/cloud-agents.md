@@ -34,12 +34,15 @@ local execution, not carrying.
 
 The carrier journals launch intent and acknowledged provider ids in its private data directory,
 without credentials. Reconnect recovers acknowledged ids even when their report to the Server was
-lost. An intent without an acknowledgement stops at its five-minute launch deadline, or at once on
-stop. Disconnecting joins local monitoring without stopping the hosted run. While the carrier is
+lost. An intent without an acknowledgement stops at its five-minute launch deadline and settles
+failed `launch-refused` (`errorCode: launch-timeout`), or at once on stop. Disconnecting joins local monitoring without stopping the hosted run. While the carrier is
 offline the Worker reads **Status unconfirmed**. On reconnect the Server pushes reconcile frames, at
 most 200 entries each, naming every unsettled turn the carrier holds and any stop recorded while it
-was offline. Removing the carrier settles its cloud Workers' unsettled turns as failed
-`machine-removed`, with the provider URL kept so the Agent can still look.
+was offline. A turn the Server settled `stopped` while the hosted run was live, as a deleted
+Project's Task does, is named with a stop too. Removing the carrier settles its cloud Workers' unsettled turns as failed
+`machine-removed`, with the provider URL kept so the Agent can still look. The provider login left
+with the carrier, so the Worker takes no more turns: a later follow-up is refused with
+`WORKER_CARRIER_REMOVED`, and the Agent starts a new Worker.
 
 ## The provider boundary
 
@@ -123,9 +126,11 @@ A failed send is classified by the adapter.
 
 While a follow-up waits, the carrier reports the turn `queued` with an `activity` line naming why.
 
-A turn the Server recorded that the carrier never journaled never reached the provider. The
-carrier settles it failed `launch-refused` after a two-minute grace window, or `stopped` at once
-when stopped. A late acknowledgement cannot replace that settlement, and the carrier asks the
+A turn the Server recorded that the carrier never journaled never reached the provider. Reconcile
+names such a turn only when the Server will never start it again, as with a migrated turn whose
+follow-up never reached this carrier, so the carrier settles it at once: failed `launch-refused`
+(`errorCode: turn-not-journaled`), or `stopped` when stopped. A follow-up the carrier drained to
+the Server stays the Server's. A late acknowledgement cannot replace that settlement, and the carrier asks the
 provider to cancel the late run.
 
 ### Stalls

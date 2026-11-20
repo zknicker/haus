@@ -1,0 +1,28 @@
+/*
+ * Mauve: the palette of HeroUI Pro's Mouve theme variant, colors only. Its
+ * radius, shadows and component overrides stay out: Haus keeps one shape and
+ * density language across every theme. `palette-ground.css` derives the
+ * ladder from these.
+ */
+[data-color-theme="mauve"][data-palette][data-theme="light"] {
+    --accent: oklch(0.55 0.18 300);
+    --background: oklch(0.955 0.012 300);
+    --foreground: oklch(0.25 0.02 300);
+    --surface: oklch(0.975 0.008 300);
+    --field-background: oklch(0.97 0.006 300);
+    --default: oklch(0.92 0.012 300);
+    --muted: oklch(0.58 0.03 300);
+    --border: oklch(0.88 0.015 300);
+}
+
+[data-color-theme="mauve"][data-palette][data-theme="dark"] {
+    --accent: oklch(0.7 0.16 300);
+    --accent-foreground: oklch(0.15 0.02 300);
+    --background: oklch(0.16 0.02 300);
+    --foreground: oklch(0.9911 0 0);
+    --surface: oklch(0.2 0.02 300);
+    --field-background: oklch(0.22 0.018 300);
+    --default: oklch(0.26 0.02 300);
+    --muted: oklch(0.65 0.02 300);
+    --border: oklch(0.3 0.02 300);
+}

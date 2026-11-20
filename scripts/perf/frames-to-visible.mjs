@@ -9,7 +9,7 @@
 // Usage: node scripts/perf/frames-to-visible.mjs [flags]
 //   --base <url>  --serve-dist <dir> (prod bundle)  --reps <n> (default 3)
 //   --cpu <n>     --sequence cold:product,cold:automations,warm:all,...  --headed
-// The landing chat must be #all for the default sequence (cold = first visit).
+// The landing chat must be #haus for the default sequence (cold = first visit).
 import {
     captureAuth,
     defaultBase,

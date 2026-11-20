@@ -94,11 +94,11 @@ export function admitAgentDrain<Row extends AuthoredWork>(
 export async function admitQueuedAgentDrain(
     tx: HausDatabase,
     drain: { agentId: string; candidates: InboxItemRow[]; chainTurns: number; lead: InboxItemRow },
-    select: (rows: InboxItemRow[], source: string) => InboxItemRow[]
+    select: (rows: InboxItemRow[], lead: InboxItemRow) => InboxItemRow[]
 ): Promise<{ lead: InboxItemRow; selected: InboxItemRow[] } | null> {
     const { agentId, candidates, chainTurns } = drain;
     const admitted = admitAgentDrain(candidates, drain.lead, chainTurns, (lead) =>
-        select(candidates, lead.source)
+        select(candidates, lead)
     );
     if (admitted || chainTurns < maxAgentChainTurns) {
         return admitted;
@@ -108,7 +108,7 @@ export async function admitQueuedAgentDrain(
         return null;
     }
     const widened = [resetting, ...candidates];
-    return admitAgentDrain(widened, resetting, chainTurns, (lead) => select(widened, lead.source));
+    return admitAgentDrain(widened, resetting, chainTurns, (lead) => select(widened, lead));
 }
 
 /**

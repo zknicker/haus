@@ -13,6 +13,7 @@ import {
     serversTable,
     usersTable,
 } from '../src/postgres/schema.ts';
+import { testAgentHome } from './agent-home.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 // `readAgentReminderLog` reads against the real clock (unlike scheduling and
@@ -56,7 +57,7 @@ test('bounds the fire history it reads to the retention window, by real time', a
         isAll: true,
         kind: 'channel',
         lastMessageSequence: 1,
-        name: 'all',
+        name: 'haus',
         serverId,
     });
     await db.insert(agentsTable).values({
@@ -64,6 +65,7 @@ test('bounds the fire history it reads to the retention window, by real time', a
         handle: 'log-cove',
         homeTimezone: 'America/New_York',
         id: agentId,
+        homeProjectId: await testAgentHome(db, serverId),
         serverId,
     });
     await db.insert(chatMessagesTable).values({
@@ -154,7 +156,7 @@ test('a script fire the Computer has not settled yet reads as "not reported", ne
         isAll: true,
         kind: 'channel',
         lastMessageSequence: 1,
-        name: 'all',
+        name: 'haus',
         serverId,
     });
     await db.insert(agentsTable).values({
@@ -162,6 +164,7 @@ test('a script fire the Computer has not settled yet reads as "not reported", ne
         handle: 'log-cove',
         homeTimezone: 'America/New_York',
         id: agentId,
+        homeProjectId: await testAgentHome(db, serverId),
         serverId,
     });
     await db.insert(chatMessagesTable).values({

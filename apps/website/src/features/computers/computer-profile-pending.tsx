@@ -1,11 +1,12 @@
 import { ItemCardGroup } from '@heroui-pro/react';
+import { SettingsPageColumn } from '../settings/layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../settings/layout/settings-page-header.tsx';
-import { PageColumn } from '../shell/page-column.tsx';
 
 export function ComputerProfilePending() {
     return (
-        <PageColumn>
+        <SettingsPageColumn width="table">
             <SettingsPageHeader title="Device" />
+
             {[
                 'Runtimes',
                 'Browser',
@@ -25,6 +26,6 @@ export function ComputerProfilePending() {
                     </ItemCardGroup>
                 </section>
             ))}
-        </PageColumn>
+        </SettingsPageColumn>
     );
 }

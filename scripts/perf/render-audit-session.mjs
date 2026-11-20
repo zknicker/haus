@@ -48,7 +48,7 @@ export async function launchAuditedElectron({ base, dist, serverPort, source }) 
     await page.waitForSelector('[data-slot="sidebar-menu-item"]', { timeout: 90_000 });
     await serveDist(page, base, dist);
     await page.reload();
-    await page.waitForSelector(sidebarRow('all'), { timeout: 90_000 });
+    await page.waitForSelector(sidebarRow('haus'), { timeout: 90_000 });
     const prod = await page.evaluate(
         () =>
             !document.querySelector('script[src*="@vite/client"]') && '__hausRenders' in globalThis

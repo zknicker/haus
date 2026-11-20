@@ -5,6 +5,7 @@ import { purgeDeletedChannels } from '../src/chats/channel-lifecycle.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { createTestProject } from './project.fixture.ts';
 import { startTestTask } from './task-place-fixture.ts';
 
 let harness: HausServerHarness;
@@ -28,8 +29,8 @@ beforeAll(async () => {
         select channel_id from server_onboarding where server_id = ${serverId}
     `) as Array<{ channel_id: string }>;
     onboardingChannelId = onboarding.channel_id;
-    await harness.sql`INSERT INTO agents (id, server_id, handle, display_name, home_timezone)
-        VALUES (${agentId}, ${serverId}, 'dependents-agent', 'Dependents Agent', 'UTC')`;
+    await harness.sql`INSERT INTO agents (id, server_id, handle, display_name, home_timezone, home_project_id)
+        VALUES (${agentId}, ${serverId}, 'dependents-agent', 'Dependents Agent', 'UTC', (select id from chats where server_id = ${serverId} and is_all))`;
 });
 
 afterAll(async () => {
@@ -65,7 +66,7 @@ test('restores a pre-refusal onboarding channel tombstone instead of purging it'
 });
 
 test('deletes Triggers anchored in the channel aggregate with the channel', async () => {
-    const channel = await owner.trpc.chat.createChannel.mutate({
+    const channel = await createTestProject(harness, owner, {
         agentIds: [agentId],
         name: 'automations',
         serverId,
@@ -93,8 +94,8 @@ test('deletes Triggers anchored in the channel aggregate with the channel', asyn
     expect(remaining).toEqual([{ chats: 0, fires: 0, triggers: 0 }]);
 });
 
-test('archiving then deleting a Channel takes its Task Chats and cancels their open Tasks', async () => {
-    const channel = await owner.trpc.chat.createChannel.mutate({
+test('archiving then deleting a Project deletes its Tasks and their Chats; cloud work stays', async () => {
+    const channel = await createTestProject(harness, owner, {
         agentIds: [agentId],
         name: 'tasks-go',
         serverId,
@@ -131,8 +132,8 @@ test('archiving then deleting a Channel takes its Task Chats and cancels their o
         VALUES ('rem_tasks_go', ${serverId}, ${agentId}, ${open.chatId}, ${progress.message.id},
             'Check the Task', now() + interval '1 hour', 'UTC', 'scheduled', now(), now())`;
     await harness.sql`
-        insert into cloud_agent_work
-            (id, server_id, agent_id, chat_id, computer_id, launch_message_id, provider,
+        insert into workers
+            (id, server_id, agent_id, origin_chat_id, carrier_computer_id, launch_message_id, place,
              repository, title, task_id, status, terminal_at)
         values ('caw_tasksgo000000001', ${serverId}, ${agentId}, ${open.chatId}, 'cmp_tasks_go',
             ${progress.message.id}, 'cursor', 'acme/api', 'Task work', ${open.id}, 'completed', now())
@@ -163,9 +164,12 @@ test('archiving then deleting a Channel takes its Task Chats and cancels their o
             where id in (${channel.id}, ${open.chatId}, ${done.chatId})
         `
     ).toEqual([{ count: 0 }]);
-    const openAfter = await owner.trpc.task.get.query({ serverId, taskId: open.id });
-    expect(openAfter).toMatchObject({ chatId: null, state: 'canceled' });
-    expect(openAfter.completedAt).not.toBeNull();
+    expect(
+        await harness.sql`select count(*)::int as count from tasks where id in (${open.id}, ${done.id})`
+    ).toEqual([{ count: 0 }]);
+    await expect(owner.trpc.task.get.query({ serverId, taskId: open.id })).rejects.toThrow(
+        'No task exists with that id on this Server.'
+    );
     expect(
         await harness.sql`
             select
@@ -174,14 +178,57 @@ test('archiving then deleting a Channel takes its Task Chats and cancels their o
                 (select count(*)::int from agent_task_follows where task_chat_id = ${open.chatId})
                     as agent_follows,
                 (select count(*)::int from reminders where id = 'rem_tasks_go') as reminders,
-                (select count(*)::int from cloud_agent_work where task_id = ${open.id}) as work,
+                (select count(*)::int from workers
+                    where id = 'caw_tasksgo000000001' and task_id is null and closed_at is not null) as work,
                 (select count(*)::int from task_pull_requests where task_id = ${open.id}) as pulls
         `
-    ).toEqual([{ agent_follows: 0, follows: 0, messages: 0, pulls: 1, reminders: 0, work: 1 }]);
-    expect(await owner.trpc.task.get.query({ serverId, taskId: done.id })).toMatchObject({
-        chatId: null,
-        state: 'done',
+    ).toEqual([{ agent_follows: 0, follows: 0, messages: 0, pulls: 0, reminders: 0, work: 1 }]);
+});
+
+test('purging a Project deletes a reminder anchored there from a Task in another Project', async () => {
+    const origin = await createTestProject(harness, owner, {
+        agentIds: [agentId],
+        name: 'origin-goes',
+        serverId,
     });
+    const home = await createTestProject(harness, owner, {
+        agentIds: [agentId],
+        name: 'task-stays',
+        serverId,
+    });
+    const request = await owner.trpc.chat.send.mutate({
+        chatId: origin.id,
+        content: 'Please chase the vendor',
+        nonce: 'origin-goes-request',
+        serverId,
+    });
+    const task = await startTestTask(harness, owner, {
+        channelId: home.id,
+        serverId,
+        title: 'Chase the vendor',
+    });
+    await harness.sql`INSERT INTO reminders
+        (id, server_id, owner_agent_id, anchor_chat_id, anchor_message_id, title,
+         fire_at, timezone, status, created_at, updated_at)
+        VALUES ('rem_origin_goes', ${serverId}, ${agentId}, ${task.chatId}, ${request.message.id},
+            'Chase again', now() + interval '1 hour', 'UTC', 'scheduled', now(), now())`;
+
+    await expect(
+        owner.trpc.chat.deleteChannel.mutate({
+            chatId: origin.id,
+            confirmation: 'origin-goes',
+            serverId,
+        })
+    ).resolves.toEqual({ chatId: origin.id, serverId });
+
+    expect(
+        await harness.sql`
+            select
+                (select count(*)::int from chats where id = ${origin.id}) as origin,
+                (select count(*)::int from chats where id = ${task.chatId}) as task,
+                (select count(*)::int from reminders where id = 'rem_origin_goes') as reminders
+        `
+    ).toEqual([{ origin: 0, reminders: 0, task: 1 }]);
 });
 
 async function insertTrigger(id: string, anchorChatId: string, removedAt: Date | null) {

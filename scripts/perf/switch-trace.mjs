@@ -29,7 +29,7 @@ import {
 const args = parseArgs(process.argv.slice(2));
 const base = typeof args.base === 'string' ? args.base : defaultBase();
 const distDir = typeof args['serve-dist'] === 'string' ? args['serve-dist'] : null;
-const chat = typeof args.chat === 'string' ? args.chat : 'all';
+const chat = typeof args.chat === 'string' ? args.chat : 'haus';
 const mode = args.mode === 'cpu' ? 'cpu' : 'trace';
 const warmup = (typeof args.warmup === 'string' ? args.warmup : 'product,automations,all')
     .split(',')

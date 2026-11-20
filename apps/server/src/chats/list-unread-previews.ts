@@ -53,7 +53,11 @@ export async function listUnreadPreviews(
     const tasks =
         taskChatIds.length === 0
             ? []
-            : await readTasks(db, { serverId, where: inArray(tasksTable.chatId, taskChatIds) });
+            : await readTasks(db, {
+                  serverId,
+                  viewer: { kind: 'user', userId: member.id },
+                  where: inArray(tasksTable.chatId, taskChatIds),
+              });
     const taskByChat = new Map(tasks.map((task) => [task.chatId, task]));
 
     return rows.map((row) => toUnreadPreview(row, messages, taskByChat));
@@ -86,12 +90,12 @@ function toUnreadPreview(
 }
 
 function toPreviewTask(chatId: string, task: Task | undefined): ChatUnreadPreview['task'] {
-    if (!task?.origin) {
-        throw new Error(`Task Chat ${chatId} has no Task with an origin.`);
+    if (!task) {
+        throw new Error(`Task Chat ${chatId} has no Task.`);
     }
     return {
         key: task.key,
-        originChatId: task.origin.chatId,
+        projectId: task.projectId,
         state: task.state,
         taskId: task.id,
         title: task.title,

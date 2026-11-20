@@ -9,11 +9,11 @@ export function ServerSettingsPage() {
     const context = useOutletContext<ServerContextValue>();
     useWindowTitle('Settings');
     const location = useLocation();
-    // Skills is the full-bleed library browser, and Computers manages its own
-    // split layout and scrolling.
+    // Skills is the full-bleed library browser, and a device page manages its
+    // own scrolling under its band menu.
     const isFullContentRoute =
         location.pathname.endsWith('/settings/skills') ||
-        location.pathname.endsWith('/settings/computers');
+        /\/settings\/computers\/[^/]+$/u.test(location.pathname);
 
     return (
         <>

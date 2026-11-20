@@ -11,5 +11,8 @@ export const deleteChannelProcedure = chatProcedure
         for (const event of result.events) {
             publishRealtime(event);
         }
+        for (const { computerId, frame } of result.workerFrames) {
+            ctx.computerConnections.send(computerId, frame);
+        }
         return result.receipt;
     });

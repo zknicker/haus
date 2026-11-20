@@ -151,9 +151,7 @@ test('composes the CLI-only Haus collaboration contract', () => {
     expect(instructions.indexOf('### Reminders')).toBeLessThan(
         instructions.indexOf('### Triggers')
     );
-    expect(instructions.indexOf('### Triggers')).toBeLessThan(
-        instructions.indexOf('### Cloud agents')
-    );
+    expect(instructions.indexOf('### Triggers')).toBeLessThan(instructions.indexOf('### Workers'));
 
     // Identity + authoritative runtime context are personalized per Agent.
     expect(instructions).toContain('You are "Cove"');
@@ -186,10 +184,10 @@ test('advertises the Agent family without inventing an Agent-creation policy', (
 test('tells every Agent to welcome a new teammate once, in its own voice', () => {
     const { instructions } = composeAgentInstructions(facts);
 
-    // A creation announcement lands in #all and every Agent there reads it. The
+    // A creation announcement lands in #haus and every Agent there reads it. The
     // etiquette rule is what keeps that from being either silence or a pile-on.
     expect(instructions).toContain(
-        "- **Welcome new teammates.** When someone introduces one in #all, say hi once in your own voice, plus what you'd hand them if your lanes touch. Skip it if the room already has; do not start work on their behalf."
+        "- **Welcome new teammates.** When someone introduces one in #haus, say hi once in your own voice, plus what you'd hand them if your lanes touch. Skip it if the room already has; do not start work on their behalf."
     );
     expect(instructions.indexOf('Skip idle narration')).toBeLessThan(
         instructions.indexOf('Welcome new teammates')
@@ -240,7 +238,7 @@ test('teaches MEMORY.md as hot memory plus a notes index, with history left in c
         'all your knowledge: hot memory you need on every wake, then an index of `notes/`.'
     );
     expect(prompt).toContain(
-        "## Standing Preferences\n<communication style and standing directives: terse imperative rules; merge, don't append>"
+        '## Standing Preferences\n<preferences people show in passing: terse imperative lines; the rules people set live in AGENTS.md and WORKER.md>'
     );
     expect(prompt).toContain(
         "## Active Context\n<current work only: rewrite, don't append; drop finished items>\n\n## Key Knowledge\n- notes/channels.md: what each channel is about"

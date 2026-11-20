@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
 import { createInlineReplyHelpers } from './haus-inline-replies-helpers.ts';
+import { createTestProject } from './project.fixture.ts';
 
 const fixture = agentCreationFixture();
 const { follows, recipients, sendAgentMessage, sendAgentRequest } =
@@ -178,7 +179,7 @@ test('inline reply claims stay isolated and nonce retries keep ancestry', async 
             .map((agentId) => ({ agentId, followed: false }))
     );
 
-    const otherChannel = await fixture.owner.trpc.chat.createChannel.mutate({
+    const otherChannel = await createTestProject(fixture.harness, fixture.owner, {
         agentIds: [fixture.orbitAgentId],
         name: 'inline-other',
         serverId: fixture.serverId,

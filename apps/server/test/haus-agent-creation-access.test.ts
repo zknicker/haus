@@ -1,10 +1,11 @@
 import { expect, test } from 'bun:test';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
+import { createTestProject } from './project.fixture.ts';
 
 const fixture = agentCreationFixture();
 
 test('any active managed Agent of the Server may create an Agent', async () => {
-    const lane = await fixture.owner.trpc.chat.createChannel.mutate({
+    const lane = await createTestProject(fixture.harness, fixture.owner, {
         agentIds: [fixture.peerAgentId],
         name: 'peer-lane',
         serverId: fixture.serverId,
@@ -38,7 +39,7 @@ test('a request with no runner credential is refused', async () => {
 
 test('a retired credential can neither create nor update', async () => {
     const doomedAgentId = await fixture.createAgent('Doomed', 'doomed');
-    const lane = await fixture.owner.trpc.chat.createChannel.mutate({
+    const lane = await createTestProject(fixture.harness, fixture.owner, {
         agentIds: [doomedAgentId],
         name: 'doomed-lane',
         serverId: fixture.serverId,

@@ -2,23 +2,30 @@ import { hasServerAdminAuthority } from '@haus/api/membership';
 import type { ReactNode } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { ComputerPage } from '../../features/computers/computer-page.tsx';
+import { DevicesPage } from '../../features/computers/devices-page.tsx';
 import { HumanProfile } from '../../features/members/human-profile/human-profile.tsx';
-import { HumanDirectory } from '../../features/servers/human-directory.tsx';
+import { MembersPage } from '../../features/servers/members-page.tsx';
 import { RequireOperator } from '../../features/servers/require-operator.tsx';
 import { useServerContext } from '../../features/servers/server-context.ts';
 import {
     serverArchivedChatsRoute,
     serverSettingsSectionRoute,
 } from '../../features/servers/server-routes.ts';
-import type { SettingsNavLinkId } from '../../features/settings/layout/navigation.ts';
+import { AppearanceSettings } from '../../features/settings/appearance/page.tsx';
+import type {
+    SettingsNavLinkId,
+    SettingsPageId,
+} from '../../features/settings/layout/navigation.ts';
 import { ConnectionPage } from '../../features/settings/mcp/connection-page.tsx';
 import { ConnectionsPage } from '../../features/settings/mcp/connections-page.tsx';
 import { useConnectionSignIn } from '../../features/settings/mcp/use-connection-sign-in.ts';
 import { ModelsSettings } from '../../features/settings/models/page.tsx';
+import { NotificationsSettings } from '../../features/settings/notifications/page.tsx';
 import { PreferencesSettings } from '../../features/settings/preferences/page.tsx';
 import { ProfileSettings } from '../../features/settings/profile/page.tsx';
 import { ServerSettings } from '../../features/settings/server/page.tsx';
 import { ServersSettings } from '../../features/settings/servers/page.tsx';
+import { ShortcutsSettings } from '../../features/settings/shortcuts/page.tsx';
 import { SkillsSettings } from '../../features/skills/skills-settings.tsx';
 import { AgentsUsageOverview } from '../../features/usage/agents-usage-overview.tsx';
 import { useMember } from '../../hooks/members/use-member.ts';
@@ -31,16 +38,15 @@ interface SectionContext {
 }
 
 /** Section registry: one renderer per settings section, no dispatch chain. */
-const sections: Record<string, (context: SectionContext) => ReactNode> = {
+const sectionRenderers: Record<SettingsPageId, (context: SectionContext) => ReactNode> = {
+    appearance: () => <AppearanceSettings />,
     computers: ({ server }) => (
-        <RequireOperator
-            description="Devices are attached and removed by Server operators."
-            role={server.role}
-        >
-            <ComputerPage serverId={server.id} serverSlug={server.slug} />
+        <RequireOperator description={devicesOperatorOnly} role={server.role}>
+            <DevicesPage serverId={server.id} serverSlug={server.slug} />
         </RequireOperator>
     ),
     connections: () => <ConnectionsPage embedded />,
+    general: ({ server }) => <ServerSettings server={server} />,
     members: ({ server }) => <MembersSection server={server} />,
     models: ({ server }) => (
         <ModelsSettings
@@ -49,10 +55,11 @@ const sections: Record<string, (context: SectionContext) => ReactNode> = {
             serverId={server.id}
         />
     ),
+    notifications: () => <NotificationsSettings />,
     preferences: () => <PreferencesSettings />,
     profile: ({ server }) => <ProfileSettings serverId={server.id} />,
-    server: ({ server }) => <ServerSettings server={server} />,
     servers: () => <ServersSettings />,
+    shortcuts: () => <ShortcutsSettings />,
     skills: ({ server }) => <SkillsSettings serverId={server.id} />,
     usage: ({ server }) => <AgentsUsageOverview serverId={server.id} />,
 };
@@ -70,12 +77,18 @@ const linkedSections = new Map<string, (server: ServerSummary) => string>(
     Object.entries(linkedSectionRoutes)
 );
 
+const sections = new Map<string, (context: SectionContext) => ReactNode>(
+    Object.entries(sectionRenderers)
+);
+
 /** Sections that moved; old links still resolve. */
 const renamedSections: Record<string, string> = {
-    appearance: 'preferences',
     browser: 'computers',
+    server: 'general',
     updates: 'preferences',
 };
+
+const devicesOperatorOnly = 'Devices are attached and removed by Server operators.';
 
 export function SettingsSectionRoute() {
     const { section = 'profile' } = useParams();
@@ -88,7 +101,7 @@ export function SettingsSectionRoute() {
     if (linkedTo) {
         return <Navigate replace to={linkedTo(server)} />;
     }
-    const render = sections[section];
+    const render = sections.get(section);
     if (!render) {
         return <Navigate replace to="../profile" />;
     }
@@ -97,18 +110,25 @@ export function SettingsSectionRoute() {
 
 function MembersSection({ server }: { server: ServerSummary }) {
     const directory = useMembers(server.id);
-    const canManage = server.role === 'owner' || server.role === 'admin';
 
     if (directory.error && !directory.data) {
-        return <p className="text-danger m-auto text-sm">Couldn’t load humans.</p>;
+        return <p className="text-danger m-auto text-sm">Couldn’t load members.</p>;
     }
+    return <MembersPage directory={directory.data} serverId={server.id} serverSlug={server.slug} />;
+}
+
+export function SettingsDeviceRoute() {
+    const { computerId = '' } = useParams();
+    const { server } = useServerContext();
     return (
-        <HumanDirectory
-            canManage={canManage}
-            directory={directory.data}
-            serverId={server.id}
-            serverSlug={server.slug}
-        />
+        <RequireOperator description={devicesOperatorOnly} role={server.role}>
+            <ComputerPage
+                computerId={computerId}
+                key={computerId}
+                serverId={server.id}
+                serverSlug={server.slug}
+            />
+        </RequireOperator>
     );
 }
 

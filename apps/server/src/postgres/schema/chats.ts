@@ -15,7 +15,6 @@ import {
 import { agentsTable } from './agents.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
 import { serversTable } from './servers.ts';
-import { taskKeysTable } from './task-keys.ts';
 
 export const chatsTable = pgTable(
     'chats',
@@ -40,17 +39,16 @@ export const chatsTable = pgTable(
         lastMessageSequence: integer('last_message_sequence').notNull().default(0),
         lastClaimNumber: integer('last_claim_number').notNull().default(0),
         name: text('name'),
-        anchorMessageId: text('anchor_message_id'),
         parentChatId: text('parent_chat_id'),
         parentChatKind: text('parent_chat_kind').$type<'channel'>(),
         serverId: text('server_id')
             .notNull()
             .references(() => serversTable.id, { onDelete: 'cascade' }),
-        taskKeyId: text('task_key_id'),
     },
     (table) => [
         unique('chats_server_id_key').on(table.serverId, table.id),
         unique('chats_server_id_kind_key').on(table.serverId, table.id, table.kind),
+        unique('chats_server_id_parent_key').on(table.serverId, table.id, table.parentChatId),
         uniqueIndex('chats_server_channel_name_key')
             .on(table.serverId, table.name)
             .where(sql`${table.kind} = 'channel'`),
@@ -89,12 +87,6 @@ export const chatsTable = pgTable(
             foreignColumns: [agentsTable.serverId, agentsTable.id],
             name: 'chats_dm_agent_fk',
         }),
-        foreignKey({
-            columns: [table.serverId, table.taskKeyId],
-            foreignColumns: [taskKeysTable.serverId, taskKeysTable.id],
-            name: 'chats_task_key_fk',
-        }),
-        check('chats_task_key_shape', sql`${table.taskKeyId} is null or ${table.kind} = 'channel'`),
         check('chats_nonnegative_sequence', sql`${table.lastMessageSequence} >= 0`),
         check('chats_nonnegative_claim_number', sql`${table.lastClaimNumber} >= 0`),
         check(
@@ -123,8 +115,7 @@ export const chatsTable = pgTable(
                     and ${table.dmMemberTwoUserId} is null
                     and ${table.parentChatId} is null
                     and ${table.parentChatKind} is null
-                    and ${table.anchorMessageId} is null
-                    and (not ${table.isAll} or ${table.name} = 'all')
+                    and (not ${table.isAll} or ${table.name} = 'haus')
                 )
                 or (
                     ${table.kind} = 'dm'
@@ -136,7 +127,6 @@ export const chatsTable = pgTable(
                     and ${table.dmMemberOneUserId} is not null
                     and ${table.parentChatId} is null
                     and ${table.parentChatKind} is null
-                    and ${table.anchorMessageId} is null
                     and (
                         (
                             ${table.dmAgentId} is null
@@ -164,7 +154,6 @@ export const chatsTable = pgTable(
                     and ${table.dmMemberTwoUserId} is null
                     and ${table.parentChatId} is not null
                     and ${table.parentChatKind} = 'channel'
-                    and ${table.anchorMessageId} is not null
                 )
             )`
         ),

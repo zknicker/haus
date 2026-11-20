@@ -150,7 +150,7 @@ test('relabels title and description together and hands the description to the f
             '🔔 Reminder: Monday Advertising Review',
             `  ${description}`,
             `fire=${fire.id}`,
-            `reply with: --cause ${fire.id} on the command that posts (haus message send or haus cloud-agent start)`,
+            `reply with: --cause ${fire.id} on haus message send`,
         ].join('\n')
     );
 
@@ -158,7 +158,7 @@ test('relabels title and description together and hands the description to the f
         cause: fire.id,
         content: 'Two campaigns need lower bids.',
         nonce: `labels-answer-${fire.id}`,
-        target: '#all',
+        target: '#haus',
     });
     const messageId = sent.body.message?.id ?? '';
     const transcript = await owner.trpc.chat.messages.query({

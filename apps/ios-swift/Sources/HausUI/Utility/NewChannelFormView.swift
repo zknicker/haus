@@ -67,7 +67,7 @@ public enum NewChannelNameValidation: Equatable, Sendable {
     }
 }
 
-/// Native channel creation form. It mirrors `chat.createChannel` validation so
+/// Native channel creation form. It mirrors `project.create` validation so
 /// invalid requests are caught before the injected Server mutation runs.
 public struct NewChannelFormView: View {
     @Environment(\.dismiss) private var dismiss

@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNotNull, notExists } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { cloudAgentWorkTable, taskPullRequestsTable, tasksTable } from '../postgres/schema.ts';
+import { workersTable, taskPullRequestsTable, tasksTable } from '../postgres/schema.ts';
 
 export interface UnworkedTaskWake {
     agentId: string;
@@ -31,12 +31,12 @@ export async function readUnworkedTaskWakes(
                 inArray(tasksTable.state, ['todo', 'open']),
                 notExists(
                     db
-                        .select({ id: cloudAgentWorkTable.id })
-                        .from(cloudAgentWorkTable)
+                        .select({ id: workersTable.id })
+                        .from(workersTable)
                         .where(
                             and(
-                                eq(cloudAgentWorkTable.serverId, tasksTable.serverId),
-                                eq(cloudAgentWorkTable.taskId, tasksTable.id)
+                                eq(workersTable.serverId, tasksTable.serverId),
+                                eq(workersTable.taskId, tasksTable.id)
                             )
                         )
                 )

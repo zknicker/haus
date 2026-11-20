@@ -35,9 +35,9 @@ export async function listChatMessages(
         scannedThroughSequence:
             page.nextAfterSequence === null ? Math.max(chatSequence, lastSequence) : lastSequence,
         tasks:
-            chatKind === 'channel' && member
+            chatKind !== 'task' && member
                 ? await listTaskPreviews(db, member.id, {
-                      channelId: input.chatId,
+                      chatId: input.chatId,
                       originMessageIds: messages.map((message) => message.id),
                       serverId: input.serverId,
                   })

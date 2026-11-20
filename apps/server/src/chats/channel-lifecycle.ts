@@ -1,16 +1,14 @@
 import type { ChannelDeleteReceipt, ChannelLifecycleReceipt } from '@haus/api';
 import { and, eq, inArray, isNull, or } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
-import {
-    prepareLinkedWorkEvents,
-    readWorkIdsLinkedFrom,
-} from '../cloud-agents/cloud-agent-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable, chatsTable } from '../postgres/schema.ts';
+import { refuseProjectWithHomeAgents } from '../projects/project-homes.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import type { HausUser } from '../users/haus-user.ts';
+import type { WorkerFrame } from '../workers/worker-effects.ts';
 import { isOnboardingChannel, purgeDeletedChannel } from './channel-deletion.ts';
 import { prepareLifecycleEvent } from './lifecycle-events.ts';
 
@@ -44,6 +42,7 @@ export async function archiveChannel(
         await lockServerRow(tx, input.serverId);
         await requireOperator(tx, member, input.serverId);
         const channel = await requireRegularChannel(tx, input);
+        await refuseProjectWithHomeAgents(tx, input);
         if (channel.archivedAt) {
             return {
                 event: null,
@@ -106,7 +105,7 @@ export async function deleteChannel(
     attachmentRoot: AttachmentRoot,
     member: HausUser | null,
     input: { chatId: string; confirmation: string; serverId: string }
-): Promise<{ events: PreparedRealtimeEvent[]; receipt: ChannelDeleteReceipt }> {
+) {
     const events = await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         await requireOperator(tx, member, input.serverId);
@@ -119,6 +118,7 @@ export async function deleteChannel(
                 'The onboarding channel cannot be deleted. Archive it instead.'
             );
         }
+        await refuseProjectWithHomeAgents(tx, input);
         if (channel.deletedAt) {
             return [];
         }
@@ -129,24 +129,14 @@ export async function deleteChannel(
             .set({ deletedAt, deletedByUserId: member?.id ?? null })
             .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)));
         await discardQueuedChannelWork(tx, input);
-        // Work this Channel linked stays alive; its surviving links refresh.
-        const linkedWorkIds = await readWorkIdsLinkedFrom(tx, {
-            chatIds: await readChannelChatIds(tx, input),
-            serverId: input.serverId,
-        });
-        return [
-            prepareLifecycleEvent(input, 'deleted'),
-            ...(await prepareLinkedWorkEvents(tx, {
-                serverId: input.serverId,
-                workIds: linkedWorkIds,
-            })),
-        ];
+        return [prepareLifecycleEvent(input, 'deleted')];
     });
 
     // The committed tombstone is the deletion. A failed purge must not report
     // failure for it; the boot sweep retries every tombstoned channel.
+    let workerFrames: WorkerFrame[] = [];
     try {
-        await purgeDeletedChannel(db, attachmentRoot, input);
+        workerFrames = await purgeDeletedChannel(db, attachmentRoot, input);
     } catch (error) {
         console.error('[haus] channel purge failed; boot sweep will retry', {
             chatId: input.chatId,
@@ -154,7 +144,11 @@ export async function deleteChannel(
             serverId: input.serverId,
         });
     }
-    return { events, receipt: { chatId: input.chatId, serverId: input.serverId } };
+    return {
+        events,
+        receipt: { chatId: input.chatId, serverId: input.serverId } satisfies ChannelDeleteReceipt,
+        workerFrames,
+    };
 }
 
 async function requireOperator(db: HausDatabase, member: HausUser | null, serverId: string) {
@@ -184,7 +178,7 @@ async function requireRegularChannel(
         throw new ChannelLifecycleConflictError('Only a regular channel can use this action.');
     }
     if (channel.isAll) {
-        throw new ChannelLifecycleConflictError('#all cannot be archived or deleted.');
+        throw new ChannelLifecycleConflictError('#haus cannot be archived or deleted.');
     }
     if (!channel.name) {
         throw new Error('A regular channel must have a name.');

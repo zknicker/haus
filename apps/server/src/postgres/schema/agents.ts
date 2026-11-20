@@ -17,6 +17,7 @@ import { avatarsTable } from './avatars.ts';
 import { bunJsonb } from './bun-jsonb.ts';
 import { chatMessagesTable } from './chat-messages.ts';
 import { computersTable } from './computers.ts';
+import { modelConnectionsTable } from './model-connections.ts';
 import { serversTable } from './servers.ts';
 
 /**
@@ -77,6 +78,9 @@ export const agentsTable = pgTable(
             .default('ordinary')
             .$type<'cove' | 'ordinary'>(),
         handle: text('handle').notNull(),
+        /** The Agent's one home Project (specs/projects.md#agents); the Haus project makes it a generalist. */
+        // Migration 0131 adds `agents_home_project_fk`; importing `projects` here would close a schema import cycle.
+        homeProjectId: text('home_project_id').notNull(),
         homeTimezone: text('home_timezone').notNull(),
         id: text('id').primaryKey(),
         /**
@@ -86,6 +90,8 @@ export const agentsTable = pgTable(
          */
         // Server 7.1.0 reads and writes this column during application rollback.
         conversationStyle: text('personality'),
+        /** The model connection a human chose; null runs on the default for its model's provider. */
+        modelConnectionId: text('model_connection_id'),
         retiredAt: timestamp('retired_at', { withTimezone: true }),
         /** One fully qualified emoji: the Agent's pickup reaction. Null means the default. */
         signatureEmoji: text('signature_emoji'),
@@ -126,6 +132,11 @@ export const agentsTable = pgTable(
             name: 'agents_creation_message_fk',
         }).onDelete('set null (creation_message_id)' as UpdateDeleteAction),
         unique('agents_creation_message_key').on(table.serverId, table.creationMessageId),
+        foreignKey({
+            columns: [table.serverId, table.modelConnectionId],
+            foreignColumns: [modelConnectionsTable.serverId, modelConnectionsTable.id],
+            name: 'agents_model_connection_fk',
+        }).onDelete('set null (model_connection_id)' as UpdateDeleteAction),
         unique('agents_creation_nonce_key').on(
             table.serverId,
             table.createdByAgentId,

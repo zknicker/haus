@@ -1,0 +1,53 @@
+/**
+ * One pending target, as both the content-free notice and `haus inbox check`
+ * print it. The notice derives it from cached envelopes and the CLI from the
+ * Server's peek row; rendering it in one place keeps the two surfaces from
+ * drifting (Raft prints both with one row formatter too).
+ */
+export interface InboxTargetSummary {
+    /** A typed attention (Worker result, pull request notice) waits here, so the target counts work items. */
+    attention: boolean;
+    /** The latest item's claim number, when it is a claim. */
+    claimNumber: number | null;
+    /** A settled Worker Run waits here. */
+    workerResult: boolean;
+    firstShortId: string;
+    latestSender: string;
+    latestShortId: string;
+    mentioned: boolean;
+    pendingCount: number;
+    target: string;
+}
+
+export function formatInboxTargetRow(row: InboxTargetSummary): string {
+    const noun = row.attention ? 'work item' : 'message';
+    return [
+        row.target,
+        `  pending: ${row.pendingCount} ${plural(row.pendingCount, noun)}`,
+        ` · first msg=${row.firstShortId}`,
+        ` · latest sender @${row.latestSender}`,
+        ` · latest msg=${row.latestShortId}`,
+        formatInboxTags(row),
+    ].join('');
+}
+
+function formatInboxTags(row: InboxTargetSummary): string {
+    const tags = [
+        targetTag(row.target),
+        row.claimNumber === null ? null : `claim #${row.claimNumber}`,
+        row.workerResult ? 'Worker result' : null,
+        row.mentioned ? 'you were mentioned' : null,
+    ].filter(Boolean);
+    return tags.length > 0 ? ` · ${tags.join(' · ')}` : '';
+}
+
+function targetTag(target: string): string | null {
+    if (target.startsWith('dm:')) {
+        return 'dm';
+    }
+    return target.startsWith('task:') ? 'task' : null;
+}
+
+function plural(count: number, singular: string): string {
+    return count === 1 ? singular : `${singular}s`;
+}

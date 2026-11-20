@@ -137,7 +137,7 @@ PostgreSQL owns the hosted collaboration tables
 | `computer_login_grants` / `computer_login_sessions` | Hashed one-use device codes, short-code approval state, origin-bound hashed management credentials, expiry, polling state, canonical Haus User owner, and the CLI's post-persistence acknowledgement |
 | `computers` | Server-scoped Computer credentials (hash only), durable attachment idempotency, last authenticated handshake facts, and attachment-visible update progress |
 | `server_invitations` | Email-bound, single-use invitations by SHA-256 token hash |
-| `chats` | Server-owned Channels (each with a `task_key_id`), canonical sorted two-human DMs, Owner↔Agent DMs (`dm_agent_id`), and each Task's own `task` Chat under its origin Channel and Message |
+| `chats` | Server-owned Channels (each a Project with a `projects` row holding its `task_key_id`), canonical sorted two-human DMs, Owner↔Agent DMs (`dm_agent_id`), and each Task's own `task` Chat under its origin Channel and Message |
 | `tasks` / `task_keys` / `task_pull_requests` | Tasks with their state, assignee, and origin; the per-Server key ledger; pull requests attached to a Task ([specs/tasks.md](../../specs/tasks.md)) |
 | `channel_participants` | One human's participation in one Channel |
 | `thread_follows` | Per-human Task follows (`thread_chat_kind = 'task'`); never membership |
@@ -223,7 +223,7 @@ management remain Owner/Admin-only.
 
 Server settings apply to every Agent on the Server. Every member reads them with
 `server.settings`; only an Owner changes them, and they render in the App under
-Settings → Server → Agents. Today there is one: **Idle compaction**
+Settings → General → Captains. Today there is one: **Idle compaction**
 (`servers.idle_compaction`, `server.setIdleCompaction`, default off), the launch gate
 for compacting parked Claude Code sessions before their prompt cache expires
 (specs/runtime-drivers.md "Idle compaction"). The settings a Computer's runtimes
@@ -283,9 +283,9 @@ See [Skills](../features/skills.md) and [Skills API](../api/skills.md).
 `apps/server/src/postgres/schema/` is the typed schema of record, and
 `apps/server/drizzle/postgres/` contains its ordered Drizzle migration history.
 Fresh bootstrap applies that history to an empty database; it does not maintain
-a second handwritten schema. The migration history carries the one composite
-anchor-Message foreign key (a Task Chat's origin) that cannot live in the typed modules without a
-`chats`/`chat_messages` initializer cycle. Each production activation applies
+a second handwritten schema. The migration history carries the one foreign key that cannot live
+in the typed modules without a schema import cycle: `agents_home_project_fk`, an Agent's home
+Project (migration 0130). Each production activation applies
 pending checked-in migrations before switching releases. The Server application
 role retains table DML authority but no DDL authority; only the root-scoped
 bootstrap/migration login can change the schema.

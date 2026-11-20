@@ -99,7 +99,7 @@ The envelope the Agent pulls names the reminder by title, then carries its
 description indented on the next lines (omitted when absent or identical to the
 title, so the Agent always receives the full instruction), then the fire and
 the next occurrence, and ends with the line
-`reply with: --cause <fireId> on the command that posts (haus message send or haus cloud-agent start)`. Bounded script output rides
+`reply with: --cause <fireId> on haus message send`. Bounded script output rides
 that same envelope.
 
 An optional script is opaque UTF-8 delivery data limited to 16,384 bytes.
@@ -164,7 +164,8 @@ reminder-specific facts are:
   archived rather than disappearing.
 - `automation.fireContext` adds, for a reminder, `repeat`, `nextFireAt`,
   `anchorMessageId`, and a bounded excerpt of the anchoring message, which is
-  what the fire context card shows in place of a Trigger's payload block.
+  what the fire context card shows in place of a Trigger's payload block. Both
+  read null for a reader who cannot read the anchoring message's own Chat.
 - Each fire the Agent acts on is its own message. Answers to different fires of
   one recurring reminder are separate messages; a fire that turns up real work
   starts a Task in the anchor Channel.

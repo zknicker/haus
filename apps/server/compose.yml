@@ -25,6 +25,27 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  haus-runner:
+    build:
+      context: ../..
+      dockerfile: apps/runner/Dockerfile
+    container_name: haus-runner
+    cap_add:
+      - NET_ADMIN
+    environment:
+      HAUS_RUNNER_MAX_WARM: ${HAUS_RUNNER_MAX_WARM:-}
+      HAUS_RUNNER_TOKEN: ${HAUS_RUNNER_TOKEN:?HAUS_RUNNER_TOKEN is required}
+      HAUS_SERVER_URL: ${HAUS_RUNNER_SERVER_URL:-http://host.docker.internal:18791}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    profiles:
+      - runner
+    restart: unless-stopped
+    volumes:
+      - runner_data:/data
+
 volumes:
   postgres_data:
     name: haus_postgres_data
+  runner_data:
+    name: haus_runner_data

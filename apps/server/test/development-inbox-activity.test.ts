@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { listComputerCloudAgentWork } from '../src/cloud-agents/list-computer-cloud-agent-work.ts';
 import { seedDevelopmentInboxActivity } from '../src/development/seed-inbox-activity.ts';
 import { seedDevelopmentServer } from '../src/development/seed-server.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
+import { listComputerWorker } from '../src/workers/list-computer-worker.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -82,28 +82,28 @@ test('Unread holds Tiny’s inline answer in the DM; the claim is on Claims', as
     expect(held[0]?.message.content).toContain('Reminders on the weekly digest fired twice');
 });
 
-// No running Cloud Agent work is seeded: Computer would reconcile a fake run
+// No running Worker is seeded: Computer would reconcile a fake run
 // against the provider every minute and wedge the Server's connection pool.
 test('Happening now shows gallery samples and settled work keeps its evidence', async () => {
-    const active = await owner.trpc.cloudAgentWork.listActive.query({ serverId });
-    // Six Cursor gallery samples (one needs input), three gallery follow-ups,
-    expect(active).toHaveLength(11);
+    const active = await owner.trpc.worker.listActive.query({ serverId });
+    // Gallery samples are closed history, so only the demo Task's live Worker is happening now.
+    expect(active).toHaveLength(1);
 
     const chats = await owner.trpc.chat.list.query({ serverId });
     const productChatId = chats.find((chat) => chat.name === 'product')?.id ?? '';
-    const chatWork = await owner.trpc.cloudAgentWork.listForChat.query({
+    const chatWork = await owner.trpc.worker.listForChat.query({
         chatId: productChatId,
         serverId,
     });
-    const settled = chatWork.find((entry) => entry.work.title === 'Sidebar Inbox badge');
+    const settled = chatWork.find((entry) => entry.worker.title === 'Sidebar Inbox badge');
 
     expect(chatWork).toHaveLength(1);
-    expect(settled?.work).toMatchObject({
-        provider: 'cursor',
+    expect(settled?.worker).toMatchObject({
+        place: 'cursor',
         repository: 'zknicker/haus',
-        status: 'completed',
+        status: 'done',
     });
-    expect(settled?.work.runs[0]?.branches[0]).toMatchObject({
+    expect(settled?.worker.turns[0]?.branches[0]).toMatchObject({
         branch: 'cloud/sidebar-inbox-badge',
         pullRequestUrl: 'https://github.com/zknicker/haus/pull/482',
     });
@@ -149,8 +149,8 @@ async function countActivity() {
         select
             (select count(*) from chat_messages where server_id = ${serverId}) as messages,
             (select count(*) from message_claims where server_id = ${serverId}) as claims,
-            (select count(*) from cloud_agent_work where server_id = ${serverId}) as work,
-            (select count(*) from cloud_agent_runs where server_id = ${serverId}) as runs,
+            (select count(*) from workers where server_id = ${serverId}) as work,
+            (select count(*) from worker_turns where server_id = ${serverId}) as runs,
             (select count(*) from agent_turns where server_id = ${serverId}) as turns,
             (select count(*) from chats where server_id = ${serverId}) as chats
     `) as Record<string, string>[];
@@ -191,38 +191,39 @@ test('UI gallery reads the attachment combinations and isolates live samples', a
     expect(
         transcript.messages.filter((message) => message.content.includes('user://'))
     ).toHaveLength(6);
-    const works = await owner.trpc.cloudAgentWork.listForChat.query({ serverId, chatId });
+    const works = await owner.trpc.worker.listForChat.query({ serverId, chatId });
     expect(works).toHaveLength(20);
     // Follow-ups read as the job they follow, never as queued.
     const followUps = works
-        .filter((entry) => entry.work.job.followUp !== null)
-        .map((entry) => [entry.work.job.state, entry.work.job.followUp?.state]);
+        .filter((entry) => entry.worker.job.followUp !== null)
+        .map((entry) => [entry.worker.job.state, entry.worker.job.followUp?.state]);
     expect(followUps.sort()).toEqual([
         ['done', 'waiting'],
         ['failed', 'waiting'],
         ['working', 'running'],
     ]);
-    expect([...new Set(works.map((entry) => entry.work.status))].sort()).toEqual([
-        'cancelled',
-        'completed',
-        'expired',
+    expect([...new Set(works.map((entry) => entry.worker.status))].sort()).toEqual([
+        'done',
         'failed',
-        'pending_input',
+        'needs-you',
         'queued',
-        'running',
+        'stopped',
+        'working',
     ]);
     const [onboarding] =
         await harness.sql`select computer_id from server_onboarding where server_id = ${serverId}`;
     expect(
-        await listComputerCloudAgentWork(database.db, {
+        await listComputerWorker(database.db, {
             serverId,
             computerId: onboarding.computer_id,
         })
     ).toEqual([]);
     const active = works.filter(
-        (entry) => entry.work.status === 'running' || entry.work.status === 'queued'
+        (entry) => entry.worker.status === 'working' || entry.worker.status === 'queued'
     );
     expect(active).toHaveLength(9);
-    expect(active.every((entry) => entry.work.computerId !== onboarding.computer_id)).toBe(true);
-    expect(works.every((entry) => entry.work.providerUrl === null)).toBe(true);
+    expect(active.every((entry) => entry.worker.carrierComputerId !== onboarding.computer_id)).toBe(
+        true
+    );
+    expect(works.every((entry) => entry.worker.providerUrl === null)).toBe(true);
 });

@@ -4,12 +4,15 @@ import XCTest
 
 private let workJSON = """
 {"activity":{"at":"2026-09-11T09:05:00.000Z","summary":"Reading the diff"},
- "agentId":"agent_1","cancelRequestedAt":null,"chatId":"chat_1",
- "createdAt":"2026-09-11T09:00:00.000Z","id":"work_1","messageId":"message_work",
+ "agentId":"agent_1","createdAt":"2026-09-11T09:00:00.000Z","id":"work_1",
  "job":{"followUp":null,"startedAt":"2026-09-11T09:01:00.000Z","state":"working"},
- "provider":"cursor","providerUrl":"https://cursor.com/work_1","repository":"zknicker/haus",
- "runs":[],"startedAt":"2026-09-11T09:01:00.000Z","startingRef":"main","status":"running",
- "terminalAt":null,"title":"Ship the iPhone build","updatedAt":"2026-09-11T09:05:00.000Z"}
+ "place":"cursor","providerUrl":"https://cursor.com/work_1","repository":"zknicker/haus",
+ "turns":[{"branches":[],"createdAt":"2026-09-11T09:00:00.000Z","errorCode":null,
+   "turnId":"wkt_1","startedAt":"2026-09-11T09:01:00.000Z","status":"running",
+   "stopRequestedAt":null,"summary":null,"terminalAt":null}],
+ "startedAt":"2026-09-11T09:01:00.000Z","startingRef":"main","status":"working",
+ "taskId":"task_1","terminalAt":null,"title":"Ship the iPhone build",
+ "updatedAt":"2026-09-11T09:05:00.000Z"}
 """
 
 /// The two Server-wide Inbox reads: the Chat list's quoted
@@ -55,8 +58,8 @@ final class InboxReadModelsTests: XCTestCase {
         let json = """
         [{"agentName":"Blippy","chatKind":"dm","chatName":null,"chatPeerUserId":"user_2",
           "conversationChatId":"chat_1",
-          "location":{"chatId":"chat_1","kind":"message","messageId":"message_work"},
-          "work":\(workJSON)}]
+          "location":{"chatId":"chat_task","kind":"task","taskId":"task_1"},
+          "worker":\(workJSON)}]
         """
 
         let rows = try HausJSON.decoder().decode([ActiveCloudAgentWork].self, from: Data(json.utf8))
@@ -69,14 +72,14 @@ final class InboxReadModelsTests: XCTestCase {
         XCTAssertEqual(row.conversationChatID, "chat_1")
         XCTAssertEqual(row.chatKind, .dm)
         XCTAssertEqual(row.chatPeerUserID, "user_2")
-        XCTAssertEqual(row.location, .message(chatID: "chat_1", messageID: "message_work"))
+        XCTAssertEqual(row.location, .task(chatID: "chat_task", taskID: "task_1"))
     }
 
     /// `location` is the only way a row says where it opens.
     func testRejectsARowWithoutALocation() {
         let json = """
         {"agentName":"Blippy","chatKind":"channel","chatName":"product","chatPeerUserId":null,
-         "conversationChatId":"chat_1","work":\(workJSON)}
+         "conversationChatId":"chat_1","worker":\(workJSON)}
         """
 
         XCTAssertThrowsError(try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8)))
@@ -88,22 +91,22 @@ final class InboxReadModelsTests: XCTestCase {
         let json = """
         {"agentName":"Blippy","chatKind":"channel","chatName":"tech-ops","chatPeerUserId":null,
          "conversationChatId":"cht_tech_ops",
-         "location":{"chatId":"cht_tech_ops","kind":"message","messageId":"msg_linking_elsewhere"},
-         "work":\(workJSON)}
+         "location":{"chatId":"cht_task","kind":"task","taskId":"task_1"},
+         "worker":\(workJSON)}
         """
 
         let row = try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8))
 
         XCTAssertEqual(
             row.location,
-            .message(chatID: "cht_tech_ops", messageID: "msg_linking_elsewhere")
+            .task(chatID: "cht_task", taskID: "task_1")
         )
     }
 
     func testRejectsAnUnknownLocationKind() {
         let json = """
         {"agentName":"Blippy","chatKind":"channel","chatName":null,"chatPeerUserId":null,"conversationChatId":"chat_1",
-         "location":{"kind":"elsewhere"},"work":\(workJSON)}
+         "location":{"kind":"elsewhere"},"worker":\(workJSON)}
         """
 
         XCTAssertThrowsError(try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8))) {
@@ -115,13 +118,13 @@ final class InboxReadModelsTests: XCTestCase {
     func testListSkipsARowWithAnUnknownLocationKind() throws {
         let unknown = """
         {"agentName":"Blippy","chatKind":"channel","chatName":null,"chatPeerUserId":null,"conversationChatId":"chat_1",
-         "location":{"kind":"elsewhere"},"work":\(workJSON)}
+         "location":{"kind":"elsewhere"},"worker":\(workJSON)}
         """
         let known = """
         {"agentName":"Blippy","chatKind":"channel","chatName":"tech-ops","chatPeerUserId":null,
          "conversationChatId":"cht_tech_ops",
-         "location":{"chatId":"cht_tech_ops","kind":"message","messageId":"msg_linking_elsewhere"},
-         "work":\(workJSON)}
+         "location":{"chatId":"cht_task","kind":"task","taskId":"task_1"},
+         "worker":\(workJSON)}
         """
 
         let list = try HausJSON.decoder().decode(
@@ -134,7 +137,7 @@ final class InboxReadModelsTests: XCTestCase {
 
     func testListStillFailsOnAMalformedRow() {
         let malformed = """
-        {"agentName":"Blippy","chatKind":"channel","chatName":null,"chatPeerUserId":null,"work":\(workJSON)}
+        {"agentName":"Blippy","chatKind":"channel","chatName":null,"chatPeerUserId":null,"worker":\(workJSON)}
         """
 
         XCTAssertThrowsError(

@@ -4,17 +4,17 @@ import * as z from 'zod';
  * Agent API refusal codes for Tasks as places (ADR 0053). Each rides an
  * `AgentApiError` `code` and carries a message saying why and what to do.
  *
- * - `CLOUD_AGENT_TASK_REQUIRED`: `haus cloud-agent start` named no Task; cloud
+ * - `WORKER_TASK_REQUIRED`: `haus worker start` named no Task; cloud
  *   work attaches to a Task and reports there (decision 6).
- * - `TASK_ORIGIN_DM`: `tasks/start` named an origin Message in a DM; Tasks start
- *   from a Message in a Channel, and a DM request gets a reply with the chip
- *   (decision 4).
+ * - `TASK_PROJECT_NOT_HOME`: a non-generalist Agent started a Task outside its
+ *   home Project; that Project's Agent starts it when @mentioned in its channel
+ *   (ADR 0055).
  * - `TASK_RECURRING_REMINDER`: a recurring reminder was set on a Task; only a
  *   one-time reminder may anchor on one (decision 16).
  */
 export const agentTaskRefusalCodes = [
-    'CLOUD_AGENT_TASK_REQUIRED',
-    'TASK_ORIGIN_DM',
+    'WORKER_TASK_REQUIRED',
+    'TASK_PROJECT_NOT_HOME',
     'TASK_RECURRING_REMINDER',
 ] as const;
 

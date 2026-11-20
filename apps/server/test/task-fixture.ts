@@ -9,8 +9,8 @@ export function taskFixture(harness: HausServerHarness) {
         /** Inserts a non-retired Agent on the Server. */
         async addAgent(serverId: string, agentId: string, handle: string) {
             await harness.sql`
-                insert into agents (id, server_id, handle, display_name, home_timezone)
-                values (${agentId}, ${serverId}, ${handle}, 'Agent', 'America/New_York')
+                insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
+                values (${agentId}, ${serverId}, ${handle}, 'Agent', 'America/New_York', (select id from chats where server_id = ${serverId} and is_all))
             `;
         },
         /** Signs a person in and makes them a Member of the Server (no Channel participation). */

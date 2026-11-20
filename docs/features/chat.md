@@ -84,10 +84,10 @@ and [Agent Inbox](../../specs/inbox.md).
   ([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)); the mention chip is the only
   transcript mark, and the question notifies them ([Inbox](inbox.md#notifications)).
   There is no question card, option buttons, or answered state.
-* **Cloud Agent work.** [Cloud Agent work](../../specs/cloud-agents.md) attaches to a Task. Its
-  card lives in the Task page's attached-work panel ([Tasks](tasks.md#the-task-page)), not in the
-  transcript. A Message that links the work reads as an ordinary Message, and the link reads as a
-  reference.
+* **Workers.** A [Worker](../../specs/workers.md) works for a Task. It shows in the Task page's
+  attached-work panel ([Tasks](tasks.md#the-task-page)), not as a card in the transcript. Each
+  turn's report posts in the Task as an Agent-authored Message, and a person's follow-up to the
+  Worker posts there too.
 * **Hosted attachments.** Humans and Agents can attach files to hosted Server
   messages. Humans pick files with the composer's attachment button, paste them (a screenshot, a
   copied image, or files copied in Finder; rich text that carries a rendered image stays a text
@@ -298,24 +298,18 @@ and [Agent Inbox](../../specs/inbox.md).
   "…", a sidebar row, a desktop tab's submenu — lists the same actions in the
   same order; a sidebar row adds Open first (and, on desktop, Open in new tab, the same
   open as Command-clicking the row), and Attachments appears there only on desktop, where
-  Attachments opens as a page. Editing a channel is three separate
-  decisions, each with its own dialog: Name & description, Icon & color, and
-  Agents, which carries the participant count. The description (at most 500
+  Attachments opens as a page. Editing a channel is two separate
+  decisions, each with its own dialog: Name & description, and Icon & color
+  (both save through `project.update`). The Agents dialog is gone until Project
+  settings rebuild it (specs/projects.md). The description (at most 500
   characters, blank clears it) tells people and Agents what the channel is for;
   Agents read it in `haus server info` and `haus channel info`, and the iPhone
-  shows it read-only in the channel's details sheet. `#all` keeps its
+  shows it read-only in the channel's details sheet. `#haus`, the Haus project, keeps its
   name but its description is editable. Archive and delete follow them for a
   regular channel. Users create channels in one New project dialog that names
-  the channel, picks its icon and color from a trigger inside the name field,
-  and chooses its agent participants. Both dialogs choose Agents the same way:
-  a search field adds one Agent at a time, and the roster below it lists only
-  the chosen Agents, each with its own remove control. Adding the last available
-  Agent closes the dropdown and disables the field. Removing an Agent enables
-  the field again. A search with no matches shows an empty result while other
-  Agents remain available. An Agent can create a channel too, with
-  `haus channel create --name <name> --human @handle`: the Agent and each named
-  human join it, and it reaches their sidebars the way a dialog-created channel
-  does, because a human sees a channel only once they are in it.
+  the channel and picks its icon and color from a trigger inside the name field.
+  It calls `project.create`, so the channel is a Project with a key the Server
+  allocates, and it starts with no Agents. Agents cannot create channels.
   Archive project is an Owner/Admin action for a regular channel. It hides the
   channel from the active sidebar without deleting history. Settings carries an
   Archived chats entry that opens the archived channel view (`/s/:slug/archived`), where
@@ -329,7 +323,8 @@ and [Agent Inbox](../../specs/inbox.md).
   envelopes.
   Delete project is a separate irreversible Owner/Admin action guarded by the
   exact channel name. It removes the regular channel, its Tasks' conversations, messages,
-  tasks, reads, reactions, reminders, Triggers anchored in it (with their fire
+  tasks, reads, reactions, reminders anchored in it or on its messages (even
+  from a Task in another Project), Triggers anchored in it (with their fire
   history), delivery rows, search state, attachment metadata, and attachment
   bytes. The committed deletion is the outcome: a failed cleanup is retried by
   the Server's startup sweep, never reported as a failed delete. The

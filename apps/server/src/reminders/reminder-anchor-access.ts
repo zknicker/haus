@@ -1,5 +1,4 @@
-import { and, eq, or } from 'drizzle-orm';
-import { isFollowedChatKind } from '../agent-delivery/followed-chat.ts';
+import { and, eq, or, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     channelAgentParticipantsTable,
@@ -57,13 +56,16 @@ async function readAgentAnchorAccess(db: Pick<HausDatabase, 'select'>, input: Ag
     const anchor = input.anchorMessageId
         ? await readMessageAnchor(db, { ...input, anchorMessageId: input.anchorMessageId })
         : await readChatAnchor(db, input);
-    const accessChatId =
-        anchor && isFollowedChatKind(anchor.chatKind) ? anchor.parentChatId : input.anchorChatId;
-    if (!(anchor && accessChatId)) {
+    if (!anchor) {
         return { kind: 'missing' as const };
     }
-    if (anchor.chatKind === 'dm' && anchor.dmAgentId === input.agentId) {
+    if (anchor.chatKind === 'task') {
         return { kind: 'ok' as const, anchor };
+    }
+    if (anchor.chatKind === 'dm') {
+        return anchor.dmAgentId === input.agentId
+            ? { kind: 'ok' as const, anchor }
+            : { kind: 'denied' as const };
     }
     const [access] = await db
         .select({ agentId: channelAgentParticipantsTable.agentId })
@@ -71,7 +73,7 @@ async function readAgentAnchorAccess(db: Pick<HausDatabase, 'select'>, input: Ag
         .where(
             and(
                 eq(channelAgentParticipantsTable.serverId, input.serverId),
-                eq(channelAgentParticipantsTable.chatId, accessChatId),
+                eq(channelAgentParticipantsTable.chatId, input.anchorChatId),
                 eq(channelAgentParticipantsTable.agentId, input.agentId)
             )
         )
@@ -91,7 +93,6 @@ async function readMessageAnchor(
             chatKind: chatsTable.kind,
             dmAgentId: chatsTable.dmAgentId,
             messageId: chatMessagesTable.id,
-            parentChatId: chatsTable.parentChatId,
         })
         .from(chatsTable)
         .innerJoin(
@@ -103,8 +104,13 @@ async function readMessageAnchor(
                     eq(chatMessagesTable.chatId, chatsTable.id),
                     and(
                         eq(chatsTable.kind, 'task'),
-                        eq(chatsTable.anchorMessageId, chatMessagesTable.id),
-                        eq(chatMessagesTable.chatId, chatsTable.parentChatId)
+                        sql`exists (
+                            select 1 from tasks task
+                            where task.server_id = ${chatsTable.serverId}
+                                and task.chat_id = ${chatsTable.id}
+                                and task.origin_chat_id = ${chatMessagesTable.chatId}
+                                and task.origin_message_id = ${chatMessagesTable.id}
+                        )`
                     )
                 )
             )
@@ -123,7 +129,6 @@ async function readChatAnchor(
             chatKind: chatsTable.kind,
             dmAgentId: chatsTable.dmAgentId,
             messageId: chatsTable.id,
-            parentChatId: chatsTable.parentChatId,
         })
         .from(chatsTable)
         .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.anchorChatId)))

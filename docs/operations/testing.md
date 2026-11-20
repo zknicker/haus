@@ -322,6 +322,13 @@ canary uses the same runtime and model variables: it starts a session on instruc
 `CANARY-ALPHA`, resumes it with `CANARY-BRAVO`, and expects the Agent to report `BRAVO`, which only
 the re-delivered `<haus-instructions-update>` block can make it do (specs/sessions.md).
 
+The runner has one more live test. It drives the Claude Agent SDK with native tools off and Haus
+tools bridged, on the Claude login the runner holds:
+
+```sh
+HAUS_RUN_LIVE_RUNNER_CLAUDE_TEST=1 bun test --timeout 120000 apps/runner/src/claude
+```
+
 ## Manual Smoke Hygiene
 
 Manual real-provider chats are rare. Prefer deterministic e2e or unit/service
@@ -357,19 +364,20 @@ Most scenarios belong to one of the [evals](#evals), which is the usual way to r
 are opt-in because they need something the default dev stack lacks; `--include-opt-in` adds
 them, and `bun run eval` always passes it:
 
-* `cloud-launch-and-link` spends a real Cursor Cloud Agent run on a read-only Haus README review
-  and needs connected Cursor access to `zknicker/haus`. It gates on one Task started from a
-  message in the requesting channel with one work item attached, cancels it, and then gates on
-  the Agent linking the same work from a second channel while it stays attached to the Task. The
-  completion wake is Server plumbing and is not re-proved live. The `task-intake-cloud-*`
-  scenarios are opt-in for the same reason.
+* `cloud-worker-start-and-stop` spends a real Cursor Worker turn on a read-only Haus README
+  review and needs connected Cursor access to `zknicker/haus`. It gates on one Task started from
+  a message in the requesting channel with one Worker attached, then stops that Worker with
+  `worker.stop` and gates on the newest turn recording the person who stopped it. The completion
+  wake is Server plumbing and is not re-proved live. The `task-intake-cloud-*` scenarios are
+  opt-in for the same reason.
 * `memory-feedback-implicit` and `memory-feedback-control` overwrite a test Agent's `MEMORY.md`
   on the stack's own Computer.
 * `cove-composes-agent-creation` is a standalone Cove smoke outside every eval (below).
 
 Scenarios that place answers or start work (`placement-*`, `ack-reaction-thanks`,
-`mention-wakes-only-addressed`, `claim-then-inline-reply`, `cloud-launch-and-link`,
-`github-trigger-*`, `room-*`, `side-work-stays-beside-channel`, `task-intake-*`, `task-pacing-*`)
+`mention-wakes-only-addressed`, `claim-then-inline-reply`, `cloud-worker-start-and-stop`,
+`github-trigger-*`, `room-*`, `rule-files-*`, `side-work-stays-beside-channel`, `task-intake-*`,
+`task-pacing-*`)
 preserve every chat they touched, the Tasks started from those chats, and all available
 execution journals under `.context/agent-tests/evidence/<stamp>/` before cleanup, so the eval
 grader can tell an inline reply from a Task post and read `--done` flags. One clean run is
@@ -525,12 +533,13 @@ rendered as the report's "What was changed" section). The registry is
 | `placement` | An answer lands inline where the asker looks, says only what was asked, and stops; a one-off off-topic question in a purpose channel is still one inline reply. |
 | `attention` | A mention wakes only the addressed Agent and its unmentioned inline follow-up stays with it; an FYI DM gets a seen, silent turn; an irreversible publish waits for the human's pick; an explicit task is claimed and answered inline in the channel it arrived in; a reminder fires once. Serial. |
 | `memory` | Passing feedback becomes a Standing Preference that survives a session reset; with no feedback, nothing changes. Score rule quality with `memory-feedback-grade.mjs`. |
+| `rules` | A "from now on" rule lands in the rule file for its audience: a Worker rule in the Agent's `WORKER.md` with `MEMORY.md` Standing Preferences unchanged, an Agent rule in its own `AGENTS.md`, each read back from Drive on the Server as a revision the Agent wrote; after a session reset, the Agent rule still keeps a new question's reply to three sentences or fewer; a plain fact still lands in `MEMORY.md` with no rule file (ADR 0054 decision 10). |
 | `triggers` | GitHub Triggers on an `acme` GitHub installation seeded on the eval stack (no GitHub account): a plain "wake me when CI fails on main" ask becomes one failure-filtered CI `github` Trigger with a short confirmation; a signed `workflow_run` failure gets one top-level `--cause` answer naming the workflow and branch. Serial. |
 | `room` | Two Agents and a human share a channel, and each scenario carries a decoy the Manual warns against: a multi-step pickup gets the signature reaction and at most one inline "on it" note while the bystander stays silent; a task a peer claimed is left to that peer; a peer handoff carrying its evidence is delivered without re-asking the human; a peer's guess at a pending question to the human is not taken as the human's answer; a reminder fire during a live inline exchange is answered top level in the anchor chat with `--cause`, not inside the exchange; a chart request gets one SVG visual fence, no table inside it, with text beyond a caption. Serial. |
 | `side-work` | Two peers carry a live finance discussion while a human pulls the Agent into a code-review sidebar and replies inline through three substantial write-ups: each reaches the human, and the Agent authors at most two posts in the channel itself, taking the review to a Task. A control keeps a one-off off-topic answer to a single inline reply with no Task (`placement-off-topic-quick-question`). Placement is the Agent's judgment, so read the multi-round rate, not a single run. |
-| `task-intake` | Task or reply: work the reply will not finish (several steps, more time, a cloud agent) becomes a Task opened by the Agent's own top-level message where the work belongs, whatever the source (a human ask, a Reminder fire, a GitHub Trigger fire, several findings, one Task each); work the reply finishes is just answered, and a claim, not a Task, marks ownership. The two cloud scenarios (launch on a Task, report the finish in it) are opt-in because they spend real Cursor runs. Serial; the Trigger scenarios need the varlock environment. |
+| `task-intake` | Task or reply: work the reply will not finish (several steps, more time, a Worker) becomes a Task opened by the Agent's own top-level message where the work belongs, whatever the source (a human ask, a Reminder fire, a GitHub Trigger fire, several findings, one Task each); work the reply finishes is just answered, and a claim, not a Task, marks ownership. The two cloud scenarios (launch on a Task, report the finish in it) are opt-in because they spend real Cursor runs. Serial; the Trigger scenarios need the varlock environment. |
 | `task-pacing` | Tasks a person assigns are worked one at a time, most urgent first, skipping one blocked on a person; Tasks the Agent starts itself may run side by side. Serial. |
-| `tools` | Work that leaves the chat: a Cloud Agent launched on a Task and linked from a second channel (Cursor), granted-only MCP use with a hot grant, a webhook Trigger whose secret stays out of chat, and a file shared with the team without naming Drive (one `.md` file written under the Agent's `drive/` folder and cited with a `drive://` link, not attached). |
+| `tools` | Work that leaves the chat: a Worker started on a Task and stopped by a person (Cursor), granted-only MCP use with a hot grant, a webhook Trigger whose secret stays out of chat, and a file shared with the team without naming Drive (one `.md` file written under the Agent's `drive/` folder and cited with a `drive://` link, not attached). |
 
 The Files-backed scenarios (`placement-found-the-kit-files` in `placement`,
 `shared-artifact-discovery` in `tools`) run on the eval stack's own local Files storage gateway, so
@@ -574,7 +583,10 @@ top-level channel post, a post in a Task started from the channel, or a post els
 fails the profile. The `triggers` profiles
 grade each setup confirmation as an inline reply (one post, no question, no URL) and each fire
 answer from its first fire-caused post (one post in the anchor chat naming the GitHub workflow and
-branch); `memory`, `room`, and `tools` are graded on runner verdicts alone.
+branch). The `rules` profiles grade each rule confirmation as one inline reply of at most 40
+words with no question. `rule-files-agent` grades only up to its post-reset probe (`until: probeStart`), which the
+scenario judges itself; `rule-files-fact` is graded on its runner verdict alone, as are `memory`,
+`room`, and `tools`.
 
 To isolate one failing scenario, use `bun run test:agents --only <name> --lanes 1` against
 `bun run dev`.

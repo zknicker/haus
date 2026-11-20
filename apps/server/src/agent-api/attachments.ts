@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { basename } from 'node:path';
 import { attachmentMediaTypeSniffBytes, resolveAttachmentMediaType } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
+import { notInvocationPayload } from '../agent-invocations/payload-attachments.ts';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import { isVisibleGeneratedImage } from '../image-generation/image-generation-visibility.ts';
@@ -139,7 +140,8 @@ export async function requireVisibleAgentAttachment(
         .where(
             and(
                 eq(attachmentsTable.serverId, runner.serverId),
-                eq(attachmentsTable.id, attachmentId)
+                eq(attachmentsTable.id, attachmentId),
+                notInvocationPayload
             )
         )
         .limit(1);

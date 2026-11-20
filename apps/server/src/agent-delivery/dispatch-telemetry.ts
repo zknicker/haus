@@ -1,8 +1,8 @@
-import type { AgentCommand } from '@haus/api';
 import { type EffectRuntime, type TraceCarrier, tracePromise } from '@haus/effect';
+import type { LoopFrame } from './loop-host.ts';
 
 interface TraceableDispatchPlan {
-    frame: AgentCommand;
+    frame: LoopFrame;
 }
 
 export async function traceAgentDispatch<Plan extends TraceableDispatchPlan>(
@@ -29,11 +29,14 @@ function attachTraceCarrier<Plan extends TraceableDispatchPlan>(
     plan: Plan | null,
     traceContext: TraceCarrier
 ): Plan | null {
-    if (!plan || plan.frame.type !== 'start') {
-        return plan;
+    if (plan?.frame.type === 'start') {
+        return { ...plan, frame: { ...plan.frame, traceContext } };
     }
-    return {
-        ...plan,
-        frame: { ...plan.frame, traceContext },
-    };
+    if (plan?.frame.type === 'runner-start') {
+        return {
+            ...plan,
+            frame: { ...plan.frame, start: { ...plan.frame.start, traceContext } },
+        };
+    }
+    return plan;
 }

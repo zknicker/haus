@@ -50,7 +50,7 @@ afterAll(async () => {
 
 test('Manual resolves what an Agent typed and answers misses with the closest topics', async () => {
     const runner = await mintRunner('manual_recovery');
-    const intent = 'I want to know which model my cloud agents run.';
+    const intent = 'I want to know which model my Workers run.';
     const reason = 'A teammate asked whether we can pick the model.';
 
     const alias = await manualGet(runner.runnerToken, {
@@ -59,7 +59,7 @@ test('Manual resolves what an Agent typed and answers misses with the closest to
         topic: 'Cloud Agent Model',
     });
     expect(alias.status).toBe(200);
-    expect(alias.body.topic.id).toBe('cloud-agents');
+    expect(alias.body.topic.id).toBe('workers');
     expect(alias.body.topic).not.toHaveProperty('aliases');
 
     const miss = await manualGet(runner.runnerToken, {
@@ -73,7 +73,7 @@ test('Manual resolves what an Agent typed and answers misses with the closest to
 
     const ranked = await manualSearch(runner.runnerToken, { intent, q: 'cursor', reason });
     expect(ranked.status).toBe(200);
-    expect(ranked.body.results[0].id).toBe('cloud-agents');
+    expect(ranked.body.results[0].id).toBe('workers');
     expect(ranked.body.results[0]).not.toHaveProperty('aliases');
 
     const empty = await manualSearch(runner.runnerToken, { intent, q: 'zzqx', reason });

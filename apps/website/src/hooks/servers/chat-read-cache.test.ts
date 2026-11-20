@@ -128,7 +128,6 @@ function row(id: string, unreadCount: number, lastMessageSequence: number): Chat
         peerAgentRetired: false,
         peerUserId: null,
         serverId,
-        taskKeyId: null,
         unreadCount,
     };
 }
