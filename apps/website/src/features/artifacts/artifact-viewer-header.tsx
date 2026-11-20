@@ -39,7 +39,8 @@ export function ArtifactViewerHeader({
     stepper,
 }: {
     artifact: ArtifactRecord;
-    latestHref: string;
+    /** Where the head opens, while the pinned revision is behind it. */
+    latestHref: string | null;
     /** Null when this revision cannot be edited, or is being edited. */
     onEdit: (() => void) | null;
     pinned: boolean;
@@ -65,7 +66,7 @@ export function ArtifactViewerHeader({
                         {directory.name(artifact.author)} ·{' '}
                         {pinned ? `Revision ${artifact.revision_number}, ` : 'Updated '}
                         {artifactTimeLabel(artifact.updated_at, now)}
-                        {pinned ? (
+                        {latestHref ? (
                             <>
                                 {' · '}
                                 <Link className="text-accent" to={latestHref}>

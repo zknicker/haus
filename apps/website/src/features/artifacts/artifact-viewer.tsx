@@ -1,4 +1,4 @@
-import { artifactPathKey, artifactPathParent } from '@haus/api';
+import { type ArtifactRecord, artifactPathKey, artifactPathParent } from '@haus/api';
 import * as React from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useArtifact } from '../../hooks/artifacts/use-artifact.ts';
@@ -10,6 +10,7 @@ import { ArtifactActionsContext } from './artifact-actions-context.ts';
 import { parseRevisionView, type RevisionView, revisionViewHref } from './artifact-compare-url.ts';
 import { ArtifactCompare } from './artifact-compare.tsx';
 import { ArtifactInspector } from './artifact-inspector.tsx';
+import { pinnedBehindHead } from './artifact-pinned-revision.ts';
 import { ArtifactPreview } from './artifact-preview.tsx';
 import { useArtifactTextDraftBase } from './artifact-text-drafts.ts';
 import { artifactTextEditable } from './artifact-text-edit.ts';
@@ -53,6 +54,7 @@ export function ArtifactViewer({
     const pinnedRevisionId = view.revision ?? undefined;
     const context = React.useMemo(() => parseViewerContext(params), [params]);
     const query = useArtifact(serverId, artifactId, pinnedRevisionId);
+    const head = useArtifact(serverId, artifactId);
     const artifact = query.data?.artifact;
     const agents = useAgentAppearances(serverId);
     const viewHref = (next: RevisionView) =>
@@ -73,23 +75,18 @@ export function ArtifactViewer({
                   });
               }
             : undefined;
-    const [editing, setEditing] = React.useState<EditTarget | null>(null);
     const pinned = pinnedRevisionId !== undefined;
-    const draftBase = useArtifactTextDraftBase(artifact ? { path: artifact.path, serverId } : null);
-    const editRevisionId = pinned
-        ? null
-        : editing?.artifactId === artifactId
-          ? editing.revisionId
-          : draftBase;
+    const { closeEditor, editRevisionId, onEdit } = useViewerEdit({
+        artifact,
+        artifactId,
+        pinned,
+        serverId,
+    });
     const stepper = (zoomed: boolean) =>
         context && !editRevisionId
             ? { onNext: stepTo(steps.next, zoomed), onPrevious: stepTo(steps.previous, zoomed) }
             : null;
     useViewerStepKeys(stepper(false) ?? {});
-    const onEdit =
-        artifact && !editRevisionId && artifactTextEditable(artifact, { pinned })
-            ? () => setEditing({ artifactId, revisionId: artifact.revision_id })
-            : null;
 
     return (
         <ArtifactActionsContext value={actions}>
@@ -110,7 +107,14 @@ export function ArtifactViewer({
                         <>
                             <ArtifactViewerHeader
                                 artifact={artifact}
-                                latestHref={artifactViewerHref(slug, artifactId, context)}
+                                latestHref={
+                                    pinnedBehindHead(
+                                        pinnedRevisionId,
+                                        head.data?.artifact.revision_id
+                                    )
+                                        ? artifactViewerHref(slug, artifactId, context)
+                                        : null
+                                }
                                 onEdit={onEdit}
                                 pinned={pinned}
                                 serverId={serverId}
@@ -119,7 +123,7 @@ export function ArtifactViewer({
                             {editRevisionId ? (
                                 <ArtifactTextEditor
                                     artifact={artifact}
-                                    onClose={() => setEditing(null)}
+                                    onClose={closeEditor}
                                     revisionId={editRevisionId}
                                     serverId={serverId}
                                 />
@@ -166,6 +170,27 @@ export function ArtifactViewer({
 interface EditTarget {
     artifactId: string;
     revisionId: string;
+}
+
+function useViewerEdit(view: {
+    artifact: ArtifactRecord | undefined;
+    artifactId: string;
+    pinned: boolean;
+    serverId: string;
+}) {
+    const { artifact, artifactId, pinned, serverId } = view;
+    const [editing, setEditing] = React.useState<EditTarget | null>(null);
+    const draftBase = useArtifactTextDraftBase(artifact ? { path: artifact.path, serverId } : null);
+    const ownEdit = editing?.artifactId === artifactId ? editing.revisionId : null;
+    const editRevisionId = pinned ? null : (ownEdit ?? draftBase);
+    const editable = artifact && !editRevisionId && artifactTextEditable(artifact, { pinned });
+    return {
+        closeEditor: () => setEditing(null),
+        editRevisionId,
+        onEdit: editable
+            ? () => setEditing({ artifactId, revisionId: artifact.revision_id })
+            : null,
+    };
 }
 
 function isZoomedEntry(state: unknown): boolean {

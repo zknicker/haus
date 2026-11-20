@@ -47,6 +47,7 @@ export function projectChatMessage(
             ...(message.cause ? { cause: message.cause } : {}),
             worker: messageWorker(message),
             content: message.content,
+            driveCitations: message.driveCitations,
             id: message.id,
             imageGenerations: messageImageGenerations(message),
             sender: messageSender(message),
