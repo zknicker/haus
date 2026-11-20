@@ -33,6 +33,8 @@ const reported: ReportedComputer[] = [
     },
 ];
 
+const projects = [{ id: 'cht_product', label: '#product' }];
+
 const cove = {
     computerId: 'cmp_cove',
     desiredModelId: 'gpt-5.6-sol',
@@ -48,6 +50,7 @@ test('a fresh form starts empty on the setup the first Agent already runs on', (
             isPending={false}
             onCreated={() => undefined}
             onSubmit={async () => ({ agentId: 'agt_1234567890abcdef' })}
+            projects={projects}
             reported={reported}
         />
     );
@@ -71,6 +74,7 @@ test('a Server without Cove falls back to the first Computer that reports an inv
             isPending={false}
             onCreated={() => undefined}
             onSubmit={async () => ({ agentId: 'agt_1234567890abcdef' })}
+            projects={projects}
             reported={reported}
         />
     );
@@ -87,10 +91,48 @@ test('keeps the form mounted with a recoverable creation error', () => {
             isPending={false}
             onCreated={() => undefined}
             onSubmit={async () => ({ agentId: 'agt_1234567890abcdef' })}
+            projects={projects}
             reported={reported}
         />
     );
 
     expect(markup).toContain('The Computer no longer reports this model.');
     expect(markup).toContain('Create Captain');
+});
+
+test('a Captain starts in the first Project the Server has', () => {
+    const markup = renderToStaticMarkup(
+        <AgentCreationForm
+            agents={[]}
+            error={null}
+            isPending={false}
+            onCreated={() => undefined}
+            onSubmit={async () => ({ agentId: 'agt_1234567890abcdef' })}
+            projects={projects}
+            reported={reported}
+        />
+    );
+
+    expect(markup).toContain('Home project');
+    expect(markup).toContain('#product');
+    expect(markup).not.toContain('Create a project first.');
+});
+
+test('with no Project the form asks for one first and cannot create', () => {
+    const markup = renderToStaticMarkup(
+        <AgentCreationForm
+            agents={[]}
+            error={null}
+            isPending={false}
+            onCreated={() => undefined}
+            onSubmit={async () => ({ agentId: 'agt_1234567890abcdef' })}
+            projects={[]}
+            reported={reported}
+        />
+    );
+
+    expect(markup).toContain('Create a project first. A Captain lives in one.');
+    expect(markup).toMatch(
+        /<button[^>]*disabled=""[^>]*type="submit"|<button[^>]*type="submit"[^>]*disabled=""/u
+    );
 });

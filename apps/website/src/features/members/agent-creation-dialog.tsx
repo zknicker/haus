@@ -1,8 +1,9 @@
-import type { Agent, ComputerInventory } from '@haus/api';
+import type { Agent, ComputerInventory, Project } from '@haus/api';
 import { Alert, Modal, Spinner } from '@heroui/react';
 import type * as React from 'react';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
+import { useProjects } from '../../hooks/servers/use-projects.ts';
 import { computerLabel } from '../computers/presentation.ts';
 import {
     AgentCreationForm,
@@ -50,11 +51,7 @@ export function AgentCreationDialog({
                         </p>
                     </Modal.Header>
                     {computers.isPending ? (
-                        <Modal.Body>
-                            <div className="flex min-h-32 items-center justify-center">
-                                <Spinner />
-                            </div>
-                        </Modal.Body>
+                        <DialogSpinner />
                     ) : computers.error ? (
                         <Modal.Body>
                             <Alert status="danger">
@@ -88,9 +85,33 @@ export function AgentCreationDialog({
 function ServerAgentCreationForm({
     serverId,
     ...props
-}: Omit<React.ComponentProps<typeof AgentCreationForm>, 'agents'> & { serverId: string }) {
+}: Omit<React.ComponentProps<typeof AgentCreationForm>, 'agents' | 'projects'> & {
+    serverId: string;
+}) {
     const agents = useAgents(serverId).data ?? noAgents;
-    return <AgentCreationForm agents={agents} {...props} />;
+    const projectList = useProjects(serverId);
+    if (projectList.isPending) {
+        return <DialogSpinner />;
+    }
+    const projects = homeProjectOptions(projectList.data ?? noProjects);
+    return <AgentCreationForm agents={agents} projects={projects} {...props} />;
+}
+
+function DialogSpinner() {
+    return (
+        <Modal.Body>
+            <div className="flex min-h-32 items-center justify-center">
+                <Spinner />
+            </div>
+        </Modal.Body>
+    );
+}
+
+function homeProjectOptions(projects: readonly Project[]) {
+    return projects
+        .filter((project) => !project.isHaus)
+        .map((project) => ({ id: project.chatId, label: `#${project.name}` }));
 }
 
 const noAgents: readonly Agent[] = [];
+const noProjects: readonly Project[] = [];
