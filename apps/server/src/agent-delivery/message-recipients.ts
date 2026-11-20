@@ -55,6 +55,7 @@ export async function planAgentMessageRecipients(
     if (!projectId) {
         return [];
     }
+    const ambient = !(await isAllChannel(db, input.serverId, projectId));
     // Sequential, not Promise.all: `db` is often the caller's transaction, and
     // overlapping reads on that one connection deadlocked the send against the
     // Server row lock the same transaction already held.
@@ -69,7 +70,7 @@ export async function planAgentMessageRecipients(
     return candidates.flatMap((agent) => {
         const hearer = {
             follows: heard.follows.get(agent.id) === true,
-            home: agent.homeProjectId === projectId,
+            home: ambient && agent.homeProjectId === projectId,
             mentioned: mentioned.has(agent.id),
         };
         if (!hears(heard.place, hearer)) {
@@ -131,6 +132,16 @@ async function readTaskFollows(
         taskChatId: input.chatId,
     });
     return { follows, place: 'task', reactivated };
+}
+
+/** `#all` is everyone's channel and no Agent's home, so nothing in it is ambient. */
+async function isAllChannel(db: HausDatabase, serverId: string, chatId: string) {
+    const [chat] = await db
+        .select({ isAll: chatsTable.isAll })
+        .from(chatsTable)
+        .where(and(eq(chatsTable.serverId, serverId), eq(chatsTable.id, chatId)))
+        .limit(1);
+    return chat?.isAll === true;
 }
 
 /**

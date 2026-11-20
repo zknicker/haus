@@ -6,6 +6,7 @@ import { snoozeReminder, updateReminder } from '../src/reminders/reschedule.ts';
 import { deleteExpiredReminderHistory } from '../src/reminders/retention-sweep.ts';
 import { getTask } from '../src/tasks/task-list.ts';
 import { findUserById } from '../src/users/haus-user.ts';
+import { ensureCaptainsProject } from './agent-home.fixture.ts';
 import { type NotificationFixture, startNotificationFixture } from './notification-fixture.ts';
 import { captureTopic, settleRealtime, type TopicCapture } from './realtime-capture.ts';
 import { startTestTask } from './task-place-fixture.ts';
@@ -110,11 +111,9 @@ test('a Reminder in a Channel reaches its members, and leaves with a deleted Cha
     const input = { serverId, taskId: task.id };
     const read = await peer.trpc.task.get.query(input);
     expect(read.reminders.map((row) => row.reminderId)).toEqual([reminder.id]);
-    const [haus] = (await fixture.harness.sql`
-        select id from chats where server_id = ${serverId} and is_all
-    `) as { id: string }[];
+    const captains = await ensureCaptainsProject(owner, serverId);
     for (const agentId of [orbitAgentId, fixture.scoutAgentId]) {
-        await owner.trpc.agent.setHome.mutate({ agentId, projectId: haus?.id ?? '', serverId });
+        await owner.trpc.agent.setHome.mutate({ agentId, projectId: captains, serverId });
     }
 
     const events = await announced(() =>
