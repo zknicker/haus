@@ -26,6 +26,8 @@ import { copyArtifactLink, copyArtifactPathText } from './artifact-link.ts';
 import { ArtifactMoveDialog, type ArtifactMoveTarget } from './artifact-move-dialog.tsx';
 import { ArtifactRenameDialog } from './artifact-rename-dialog.tsx';
 import type { ArtifactRenameTarget } from './artifact-rename.ts';
+import { DriveDeletedDialog } from './drive-deleted-dialog.tsx';
+import { driveFolderIsFixed } from './drive-places.ts';
 import { rememberLibraryItem } from './library-focus.ts';
 import { libraryHref } from './library-params.ts';
 import { useArtifactCreatorDirectory } from './use-artifact-creator-directory.ts';
@@ -84,6 +86,7 @@ export function useArtifactActions(input: {
     const [deleting, setDeleting] = React.useState<
         (ArtifactDeleteTarget & { path: string }) | null
     >(null);
+    const [deletedIn, setDeletedIn] = React.useState<string | null>(null);
     const fileTarget = (file: ActionFile) =>
         ({ kind: 'file', path: file.path, revisionId: file.revision_id }) as const;
     const folderView = (folder: string) => ({ creator: null, folder, kind: 'all' }) as const;
@@ -115,7 +118,8 @@ export function useArtifactActions(input: {
                 }),
                 canDisablePublicLink: publicLink?.can_disable ?? false,
             }),
-        folderActions: (path) => folderActions(context(path)),
+        folderActions: (path) =>
+            folderActions({ ...context(path), isFixed: driveFolderIsFixed(path) }),
         renaming: surface === 'library' ? renaming : null,
         runFile: (id, file) => {
             switch (id) {
@@ -198,6 +202,9 @@ export function useArtifactActions(input: {
                 case 'move':
                     setMoving([{ kind: 'folder', path }]);
                     return;
+                case 'recently-deleted':
+                    setDeletedIn(path);
+                    return;
             }
         },
     };
@@ -230,6 +237,11 @@ export function useArtifactActions(input: {
                 }
                 serverId={serverId}
                 target={deleting}
+            />
+            <DriveDeletedDialog
+                folder={deletedIn}
+                onClose={() => setDeletedIn(null)}
+                serverId={serverId}
             />
         </>
     );

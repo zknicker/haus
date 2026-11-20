@@ -35,7 +35,8 @@ export function ArtifactLibraryContextMenu({
     children,
     className,
     items,
-    onUpload,
+    acceptsFiles,
+    onAreaAction,
     selection,
     selectionActions,
     triggerProps,
@@ -45,7 +46,9 @@ export function ArtifactLibraryContextMenu({
     className: string;
     /** Every item on screen, in visual order. */
     items: readonly LibraryItem[];
-    onUpload: (id: LibraryAreaActionId) => void;
+    /** The open folder takes files: the empty area offers Upload. */
+    acceptsFiles: boolean;
+    onAreaAction: (id: LibraryAreaActionId) => void;
     selection: LibrarySelection;
     selectionActions: SelectionActions;
     triggerProps?: React.HTMLAttributes<HTMLDivElement> & Record<`data-${string}`, unknown>;
@@ -116,7 +119,8 @@ export function ArtifactLibraryContextMenu({
             <ContextMenu.Popover>
                 <TargetMenu
                     actions={actions}
-                    onUpload={onUpload}
+                    acceptsFiles={acceptsFiles}
+                    onAreaAction={onAreaAction}
                     selectionActions={selectionActions}
                     target={target}
                 />
@@ -127,12 +131,15 @@ export function ArtifactLibraryContextMenu({
 
 function TargetMenu({
     actions,
-    onUpload,
+    acceptsFiles,
+    onAreaAction,
     selectionActions,
     target,
 }: {
     actions: ArtifactActions;
-    onUpload: (id: LibraryAreaActionId) => void;
+    /** The open folder takes files: the empty area offers Upload. */
+    acceptsFiles: boolean;
+    onAreaAction: (id: LibraryAreaActionId) => void;
     selectionActions: SelectionActions;
     target: LibraryMenuTarget;
 }) {
@@ -167,10 +174,10 @@ function TargetMenu({
         case 'area':
             return (
                 <ContextMenu.Menu
-                    aria-label="Upload"
-                    onAction={(key) => onUpload(key as LibraryAreaActionId)}
+                    aria-label="This folder"
+                    onAction={(key) => onAreaAction(key as LibraryAreaActionId)}
                 >
-                    {artifactActionItems(libraryAreaActions)}
+                    {artifactActionItems(libraryAreaActions({ acceptsFiles }))}
                 </ContextMenu.Menu>
             );
     }
