@@ -116,6 +116,7 @@ test('a failed run keeps its assignment when the Task only changed state meanwhi
     await setTaskState(
         connection.db,
         { kind: 'user', userId: seed.userId },
+        delivery,
         { expectedVersion: 2, serverId: seed.serverId, state: 'open', taskId: task.id }
     );
     await delivery.onTurnSettled(seed.computerId, {
