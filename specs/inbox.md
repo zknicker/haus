@@ -89,20 +89,12 @@ only what is addressed to it or what it follows. A message reaches an Agent when
 | Another Project's channel, inline reply | It @mentions the Agent, or the Agent follows the reply chain |
 | A Task of another Project | It @mentions the Agent, or the Agent follows the Task |
 | A DM with the Agent | Always |
-| `#all`, top level | It @mentions the Agent |
-| `#all`, inline reply | It @mentions the Agent, or the Agent follows the reply chain |
 
 - Delivery splits in two. Every active Agent on the Server is **reachable**: it can be
   @mentioned, can follow a Task or reply chain, and can read and post anywhere
   (`resolveAgentTarget`, `listMentionOptions`, `mentionedAgentIds`,
   `ensureInlineReplyParticipants`). Only home Agents are **ambient listeners**, hearing a
   Project's top-level messages and inline replies without being addressed.
-- `#all` is everyone's channel and no Agent's home, so it has no ambient listeners, keyed on
-  `chats.is_all`. An unaddressed message there reaches nobody and never asks Jev. An @mention
-  reaches only the mentioned Agents, and Jev never widens it. An Agent follows the chain of its
-  own top-level message there, such as its greeting or its answer to a mention, so an inline
-  reply to it wakes that Agent. An inline reply between humans wakes nobody. An Agent the J3
-  migration left homed in `#all` hears it the same way, by mention and follow only.
 - A Project's **hearers** are its non-retired home Agents, and no one else. They hear the
   channel, its inline replies, and the Tasks, and they are the ADR 0030 candidates. A Project
   with no home Agent delivers only @mentions, assignments, follows and DMs; nothing else hears
@@ -143,8 +135,7 @@ absolute home hearing.
 
 Hearing lands with J3. Each row of the table, and a Project with no home Agent, has a delivery test in
 `apps/server/test/agent-hearing.test.ts`, inline replies in
-`apps/server/test/agent-reply-hearing.test.ts`, `#all` in
-`apps/server/test/agent-all-channel-hearing.test.ts`, and the migration has one for each step of
+`apps/server/test/agent-reply-hearing.test.ts`, and the migration has one for each step of
 [projects.md](projects.md#migration-from-channels).
 
 ### Planning
