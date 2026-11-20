@@ -4,6 +4,7 @@ import { ArrowUp02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { opensPlace } from '../../../hooks/desktop-tabs/tab-open-gesture.ts';
+import { cn } from '../../../lib/utils.ts';
 import { formatTokens } from '../../stats/usage-format.ts';
 import {
     type ActiveAgent,
@@ -37,11 +38,13 @@ const chipAvatarSize = 16;
  * the rest arrive.
  */
 export function InboxStrip({
+    className,
     entries,
     happeningNow,
     onOpenAgent,
     onOpenRow,
 }: {
+    className?: string;
     entries: readonly ActiveAgent[] | null;
     happeningNow: readonly HappeningNowRow[] | null;
     onOpenAgent: (agent: Agent) => void;
@@ -55,7 +58,7 @@ export function InboxStrip({
     const running = happeningNow?.length ?? 0;
 
     return (
-        <aside aria-label="Captain activity" className="min-w-0">
+        <aside aria-label="Captain activity" className={cn('min-w-0', className)}>
             <div className="flex min-w-0 items-center gap-3">
                 <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
                     <span className="text-muted me-1.5 shrink-0 text-xs">

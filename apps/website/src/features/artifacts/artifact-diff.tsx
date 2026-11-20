@@ -14,13 +14,13 @@ export function ArtifactDiff({
     from: string;
     fromRevisionId: string;
     to: string;
-    toRevisionId: string;
+    toRevisionId: string | null;
 }) {
     const themeType = useResolvedThemeOptional();
     return (
         <MultiFileDiff
             className="artifact-diff"
-            newFile={{ cacheKey: toRevisionId, contents: to, name: filename }}
+            newFile={{ cacheKey: toRevisionId ?? undefined, contents: to, name: filename }}
             oldFile={{ cacheKey: fromRevisionId, contents: from, name: filename }}
             options={{
                 diffStyle: 'unified',

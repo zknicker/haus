@@ -3,6 +3,7 @@ import {
     File01Icon,
     Folder01Icon,
     Globe02Icon,
+    Home01Icon,
     Task01Icon,
 } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
@@ -80,6 +81,8 @@ function glyphIcon(glyph: Extract<TabMark, { kind: 'glyph' }>['glyph']) {
             return File01Icon;
         case 'files':
             return Folder01Icon;
+        case 'home':
+            return Home01Icon;
         case 'newTab':
             return Globe02Icon;
         case 'task':

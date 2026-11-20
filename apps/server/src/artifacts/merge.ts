@@ -1,12 +1,13 @@
 import { createHash } from 'node:crypto';
 import { artifactTextMaxBytes } from '@haus/api';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { mergeText } from '../drive/text-merge.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     artifactsTable as artifacts,
     artifactRevisionsTable as revisions,
 } from '../postgres/schema.ts';
+import { takeNextNumber } from './revision-number.ts';
 import type { ArtifactStorage } from './storage.ts';
 import { artifactTextFromBytes } from './text.ts';
 
@@ -81,18 +82,6 @@ export async function storeMergedRevision(
         throw new Error('Merged revision did not return its row.');
     }
     return stored;
-}
-
-export async function takeNextNumber(tx: HausDatabase, artifactId: string) {
-    const [file] = await tx
-        .update(artifacts)
-        .set({ nextRevision: sql`${artifacts.nextRevision} + 1` })
-        .where(eq(artifacts.id, artifactId))
-        .returning({ next: artifacts.nextRevision });
-    if (!file) {
-        throw new Error(`Artifact ${artifactId} vanished under the Server lock.`);
-    }
-    return file.next - 1;
 }
 
 function conflict(reason: 'base_gone' | 'binary' | 'same_lines') {

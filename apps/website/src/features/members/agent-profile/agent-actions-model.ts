@@ -1,3 +1,4 @@
+import { driveDeletedRetentionDays } from '@haus/api';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 
 /**
@@ -29,5 +30,6 @@ export function disabledAgentActions(input: {
     return input.isRunning ? [] : ['stop'];
 }
 
-export const fullResetConfirmation =
-    "This starts a fresh session and permanently wipes the Captain's workspace, MEMORY.md, skills, and runtime-local state. A minimal MEMORY.md and factory-managed skills are restored. Identity, Chat history, model configuration, and connections are kept.";
+export function fullResetConfirmation(displayName: string) {
+    return `Deletes ${displayName}'s memory, notes, skills and rules, then restores a starter MEMORY.md and the factory skills in a fresh session. You can restore any of them from Recently deleted in Drive for ${driveDeletedRetentionDays} days. To restore MEMORY.md or a factory skill, move or rename the new file at that path first.`;
+}

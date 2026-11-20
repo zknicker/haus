@@ -16,7 +16,7 @@ renders in one of two places.
 | surface | what it is | where it renders | renderer |
 | --- | --- | --- | --- |
 | Visual | a ```` ```visual ```` fence inside a message | inline in the transcript | `features/chats/visual-card.tsx` |
-| Page | a durable `.html` file in the workspace, posted with a `page` fence | card in chat → Workspace pane | `features/chats/artifact-card.tsx` → `chat-artifact-workspace-preview.tsx` |
+| Page | a durable `.html` file in the Agent's Drive area, posted with a `page` fence | card in chat → Workspace pane, read from Drive | `features/chats/artifact-card.tsx` → `drive-page-pane.tsx` |
 
 Both share `src/agent-html/tokens.ts`, the single published token list plus
 the snapshot/injection helpers, and `agentHtmlSandbox` in
@@ -234,19 +234,23 @@ fence containing exactly one JSON object:
 
 ````markdown
 ```page
-{"path":"workbench/report.html","title":"June report"}
+{"path":"drive/agents/scout/workbench/report.html","title":"June report"}
 ```
 ````
 
-Props are `{ path, title? }`; the path must be workspace-relative with
+Props are `{ path, revision?, title? }`; the path must be cwd-relative with
 confined segments and an `.html`/`.htm` extension
-(`packages/haus-api/src/widgets/workspace-path.ts`). The transcript
-renders a compact card (title, kind, open affordance) and never the page
-itself; opening the card opens the page (the chat's Workspace pane on the web, a workspace
-tab on desktop), where the
-sandboxed HTML preview renders the file with the app's theme tokens injected
-as CSS variables. Rendering is live file state — later edits or deletion
-change what historical chats display. See [pages.md](pages.md) for
+(`packages/haus-api/src/widgets/workspace-path.ts`), and `revision` pins a
+Drive revision id. The transcript renders a compact card (title, kind, open
+affordance) and never the page itself. Opening the card finds the file in
+Drive by path (`hooks/artifacts/use-drive-page.ts`): `drive/<path>` is the
+Drive path `<path>`, and a pre-Drive `workbench/<file>` is
+`agents/<handle>/workbench/<file>`. The web opens it in the chat's Workspace
+pane, where the shared sandboxed HTML preview renders it with the app's theme
+tokens injected as CSS variables; desktop opens a tab that becomes the file's
+Files viewer. Without a pinned revision, rendering is live file state, so
+later edits change what historical chats display, and a path Drive no longer
+holds shows the not-found state. See [pages.md](pages.md) for
 the authoring contract.
 
 ## Contract

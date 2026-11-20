@@ -42,7 +42,7 @@ When someone else changed a file you edited, Haus merges the two if the text mer
 
 ## Cite and read
 
-Cite a Drive file in a message as \`[label](drive://<path>)\`, with the path inside Drive and no \`drive/\` folder prefix: \`[Q4 report](drive://haus/reports/q4.md)\`. Haus binds the citation to the revision your turn leaves, and readers open it beside the chat.
+Cite a Drive file in a message as \`[label](drive://<path>)\`, with the path inside Drive and no \`drive/\` folder prefix: \`[Q4 report](drive://haus/reports/q4.md)\`. Haus binds the citation to the revision your turn leaves, and readers open that revision.
 
 A link ending in \`/artifacts/<id>\` names a Drive file too. \`haus drive view <id|link|path>\` reads it through a read-only cached path pinned for this turn; never edit it. Add \`--revision-id <id>\` for a fixed revision (a link's \`?revision=\` value). \`haus drive versions <id|link|path>\` lists retained revisions and who made each.
 

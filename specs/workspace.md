@@ -80,10 +80,12 @@ drive/agents/<handle>/
 ```
 
 A page is written under `drive/agents/<handle>/workbench/`, and its `page` fence names that
-cwd-relative path, which the App opens through the workspace read. A card written before Drive
-names `workbench/<file>`; when no such file exists in the workspace, the read resolves it under the
-Agent's area. That fallback (`apps/computer/src/legacy-workbench-path.ts`) is the one legacy path
-read Drive keeps, and it goes once pages open from Drive (D5).
+cwd-relative path, which the App opens from Drive by path
+([pages.md](../docs/internals/pages.md#card-and-pane-flow)). A card written before Drive names
+`workbench/<file>`, which the App reads as `agents/<handle>/workbench/<file>`. Page cards no longer
+reach the workspace read; the Computer's fallback for `workbench/` paths
+(`apps/computer/src/legacy-workbench-path.ts`) now serves only `haus://workspace` links and goes
+with the workspace frames in R4.
 
 Everyone on the team can read the area, and Drive keeps every revision. The Agent's working
 directory stays `workspace/`; everything there outside `drive/` is local scratch, not Drive. The
@@ -229,15 +231,25 @@ and host import) land in the folder, and the turn-end push publishes them.
 
 The local root survives ordinary idle periods, Computer restarts, model or
 runtime changes, and session reset. Session reset creates fresh model context
-without erasing the workspace or the area. Full reset keeps `workspace/drive/`, because memory,
-notes and skills live in Drive, and `workspace/drive-refused/`. An Agent without
-`runtime/drive-seed.json` has not finished its migration, so full reset also keeps the legacy
-`workspace/MEMORY.md`, `notes/`, `pages/`, `workbench/` and `agents/<agent-id>/skills/`, and the
-next launch moves them; a reset never deletes a file that has not reached Drive. Full reset clears
-everything else: the rest of the workspace, `home/`, `runtime/` (with its seed receipt and the
-managed-skill record), `.agent-runs`, and `session.json`. It reseeds nothing. The next launch
-re-records the handle, finds `MEMORY.md` in the folder, and seeds nothing over it; a seed attempt
-would find the Drive paths occupied and keep them.
+without erasing the workspace or the area. Full reset starts on the Server: `agent.reset` deletes
+every live file under `agents/<handle>/` and increments `agents.reset_generation` in the same transaction
+that revokes the active run's credentials and rotates the session, so a reset that fails leaves
+all of it as it was. The files stay restorable from Recently deleted for
+`driveDeletedRetentionDays`. The Computer then discards the push of any turn the reset interrupted,
+aborts a push already in flight and waits for it to settle, so a stale folder never revives a
+deleted file, and clears `workspace/drive/` with the rest of the workspace. The Server refuses any
+straggler with `AGENT_RESET`. It keeps `workspace/drive-refused/`. An Agent without `runtime/drive-seed.json` has not
+finished its migration, so full reset also keeps the legacy `workspace/MEMORY.md`, `notes/`,
+`pages/`, `workbench/` and `agents/<agent-id>/skills/`, and the next launch moves them; a reset
+never deletes a file that has not reached Drive. Full reset clears everything else: `home/`,
+`runtime/` (with its seed receipt, folder bookkeeping and the managed-skill record), `.agent-runs`,
+and `session.json`. The next launch finds no receipt and no `MEMORY.md`, seeds the factory
+workspace and the factory-managed skills from `@haus/agent-workspace` as new files, and pulls every
+other area again. Restoring a deleted file whose path the seed took fails with `PATH_TAKEN` until
+the seeded file moves.
+
+History: D3 made full reset keep the Drive folder and reseed nothing. D7c restored the factory
+reset, with Recently deleted as the way back.
 
 Managed skills are seeded by comparing the bytes the Agent holds with the release, because the
 record does not survive a full reset. Each skill's held hash covers its regular files the way the

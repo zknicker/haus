@@ -12,6 +12,7 @@ import { revisionConflict } from './conflict.ts';
 import { mergeOntoHead, storeMergedRevision } from './merge.ts';
 import { lockLiveServer } from './move.ts';
 import { liveArtifactAtPath, placeArtifactPath } from './path.ts';
+import { takeNextNumber } from './revision-number.ts';
 import { ArtifactError, type ArtifactStorage } from './storage.ts';
 import type { ArtifactWriteExpectation } from './write-target.ts';
 
@@ -90,6 +91,7 @@ export async function markUploaded(
             parentRevisionId: artifact.currentRevisionId,
             requestSha256: uploaded.sha256,
             reservedBytes: uploaded.size,
+            revisionNumber: await takeNextNumber(tx, artifact.id),
             sha256: uploaded.sha256,
             state: 'ready',
         })
@@ -188,6 +190,7 @@ export async function reviveAt(
         .set({
             currentRevisionId: revision.id,
             deletedAt: null,
+            deletedBy: null,
             path,
             pathKey: artifactPathKey(path),
         })

@@ -13,7 +13,8 @@ export const artifactListingRefreshMs = 300;
 
 /**
  * `artifact.onUpdated`: a file in Files was published, moved, deleted, or lost a revision. Every
- * folder listing and the creator directory refresh, so an open Files folder fills in while Agents
+ * folder listing, the creator directory, and every page card's path read (`artifact.byPath`, keyed
+ * by path, so a move can change its answer) refresh, so an open Files folder fills in while Agents
  * push; a named file also refreshes its own metadata, version history, and public link, and a null id (a folder
  * move or a retention sweep) refreshes every file's. Revision-keyed reads (download, text,
  * thumbnail) are immutable and never refresh.
@@ -94,6 +95,7 @@ export function createListingRefresh(windowMs = artifactListingRefreshMs) {
 function invalidateListings(coalescer: TargetedReadCoalescer, serverId: string) {
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.artifact.list, { serverId }) });
     coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.artifact.creators, { serverId }) });
+    coalescer.invalidate({ queryKey: getQueryKey(hausTrpc.artifact.byPath, { serverId }) });
 }
 
 function invalidateFiles(

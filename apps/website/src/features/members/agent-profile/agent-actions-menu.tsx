@@ -146,7 +146,9 @@ export function AgentActions({
                                 <AlertDialog.Icon status="danger" />
                                 <AlertDialog.Heading>Full Reset?</AlertDialog.Heading>
                             </AlertDialog.Header>
-                            <AlertDialog.Body>{fullResetConfirmation}</AlertDialog.Body>
+                            <AlertDialog.Body>
+                                {fullResetConfirmation(agent.displayName)}
+                            </AlertDialog.Body>
                             <AlertDialog.Footer>
                                 <Button
                                     isDisabled={reset.isPending}

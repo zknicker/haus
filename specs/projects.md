@@ -33,7 +33,7 @@ Workers and their places are [ADR 0056](../docs/adr/0056-agents-run-quiet-worker
   The everyone channel `#all` is the chat whose `chats.is_all` is true, exactly one per Server and
   always named `all`. It has no `projects` row: `projects.chat_is_all` joins the composite
   `projects_chat_fk` to `chats.is_all` and `projects_chat_not_all` requires it false, so Postgres
-  refuses a Project on `#all` (migration `0139_all-is-a-chat`, ADR 0059 decision 5). `default_worker_place` lands with W3.
+  refuses a Project on `#all` (migration `0141_all-is-a-chat`, ADR 0059 decision 5). `default_worker_place` lands with W3.
   Repos are `project_repos` rows ([Repos](#repos)). Home Agents are `agents.home_project_id`
   ([Agents](#agents)). Name, description, icon, color, archive, and delete stay on the channel's
   Chat row as they are today ([chats.md](chats.md#channels-are-projects)).
@@ -134,7 +134,7 @@ starts with a digit is prefixed with `P` before step 2.
 ## The Haus project
 
 - `#all` is not the Haus project ([ADR 0059](../docs/adr/0059-haus-starts-empty-without-cove.md),
-  amended 2026-11-20). A new Server creates `#all` and no Project. Migration `0139_all-is-a-chat`
+  amended 2026-11-20). A new Server creates `#all` and no Project. Migration `0141_all-is-a-chat`
   moves an existing Server's Haus project to a new `#general` (see [Migration](#migration-from-channels)).
 - Every member of the Server belongs to the Haus project's channel, as they belong to `#all` today.
 - Its rules are `haus/AGENTS.md`. It has no `projects/<key>/` folder, and its Drive area is `haus`.
@@ -205,7 +205,7 @@ second run changes nothing.
 The migration logs one line per Agent with its old channels, its message counts, and the home it
 chose, so a person can check the result and move any Agent in settings.
 
-Migration `0139_all-is-a-chat` (E2d, ADR 0059 amended 2026-11-20) then takes `#all` out of
+Migration `0141_all-is-a-chat` (E2d, ADR 0059 amended 2026-11-20) then takes `#all` out of
 Projects, idempotently, with a `RAISE NOTICE` per decision:
 
 1. On each Server whose `#all` has a `projects` row, a new channel `#general` (the first free of

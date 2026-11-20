@@ -8,9 +8,9 @@ import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { createServer } from '../src/servers/create-server.ts';
 import { startEmptyDatabase } from './postgres-cluster.ts';
 
-const migrationTag = '0139_all-is-a-chat';
+const migrationTag = '0141_all-is-a-chat';
 
-test('0139 makes #all a chat, moves its Project to #general, and rehomes Agents', async () => {
+test('0141 makes #all a chat, moves its Project to #general, and rehomes Agents', async () => {
     const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), 'haus-all-is-a-chat-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
@@ -23,11 +23,11 @@ test('0139 makes #all a chat, moves its Project to #general, and rehomes Agents'
                 ...journal,
                 entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= idx),
             });
-        await writeFile(journalPath, through(138));
+        await writeFile(journalPath, through(140));
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
         await seedServers(database);
 
-        await writeFile(journalPath, through(139));
+        await writeFile(journalPath, through(141));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
             migrationTag,
         ]);

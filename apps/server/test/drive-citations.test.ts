@@ -105,6 +105,81 @@ test('an Agent send binds each cited path once, to the head or to nulls', async 
     ]);
 });
 
+test('a send reads links the way the App renders them', async () => {
+    const plan = await insertFile('haus/plans/Q4 plan.md');
+    const draft = await insertFile('haus/plans/Q4 (draft).md');
+    const messageId = await agentSend(
+        'run_citations_syntax',
+        [
+            'See [plan](<drive://haus/plans/Q4 plan.md>) and [draft](drive://haus/plans/Q4%20(draft).md).',
+            'Not cited: ``[code](drive://haus/code.md)``, ![image](drive://haus/image.png),',
+            '\n```md\n[fenced](drive://haus/fenced.md)\n```\n',
+        ].join(' ')
+    );
+
+    expect(await citationsOf(notesChatId, messageId)).toEqual([
+        { artifactId: plan.artifactId, path: 'haus/plans/Q4 plan.md', revisionId: plan.revisionId },
+        {
+            artifactId: draft.artifactId,
+            path: 'haus/plans/Q4 (draft).md',
+            revisionId: draft.revisionId,
+        },
+    ]);
+});
+
+test('a send reads titles, escapes, angle spaces and every kind of code as Markdown does', async () => {
+    const titled = await insertFile('haus/titled.md');
+    const escaped = await insertFile('haus/a(draft.md');
+    await insertFile('haus/space.md');
+    const cell = await insertFile('haus/cell.md');
+    const struck = await insertFile('haus/struck.md');
+    const messageId = await agentSend(
+        'run_citations_commonmark',
+        [
+            '[t](drive://haus/titled.md "Title") [e](drive://haus/a\\(draft.md)',
+            '[s](<drive://haus/space.md >)',
+            '`a',
+            '[m](drive://haus/multiline.md) b`',
+            '`a`` [x](drive://haus/mismatch.md) `',
+            '',
+            '> ```',
+            '> [q](drive://haus/quoted.md)',
+            '> ```',
+            '',
+            '| File |',
+            '| --- |',
+            '| [c](drive://haus/cell.md) |',
+            '',
+            '~~[k](drive://haus/struck.md)~~',
+        ].join('\n')
+    );
+
+    expect(await citationsOf(notesChatId, messageId)).toEqual([
+        { artifactId: titled.artifactId, path: 'haus/titled.md', revisionId: titled.revisionId },
+        { artifactId: escaped.artifactId, path: 'haus/a(draft.md', revisionId: escaped.revisionId },
+        { artifactId: null, path: 'haus/space.md ', revisionId: null },
+        { artifactId: cell.artifactId, path: 'haus/cell.md', revisionId: cell.revisionId },
+        { artifactId: struck.artifactId, path: 'haus/struck.md', revisionId: struck.revisionId },
+    ]);
+});
+
+test('a pipe in a table cell splits the cell, so its broken link cites nothing', async () => {
+    await insertFile('haus/pipe|x.md');
+    const note = await insertFile('haus/note.md');
+    const messageId = await agentSend(
+        'run_citations_gfm_pipe',
+        [
+            '| File | Rest | Note |',
+            '| --- | --- | --- |',
+            '| [p](drive://haus/pipe|x.md) | [n](drive://haus/note.md) |',
+        ].join('\n')
+    );
+
+    expect(await citationsOf(notesChatId, messageId)).toEqual([
+        { artifactId: note.artifactId, path: 'haus/note.md', revisionId: note.revisionId },
+    ]);
+});
+
 test('a human send binds to the head, and a later revision does not move it', async () => {
     const { channelId, owner, serverId } = fixture;
     const brief = await insertFile('haus/brief.md');

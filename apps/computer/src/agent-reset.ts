@@ -2,6 +2,7 @@ import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { legacyRoots } from './drive-migration/drive-sources.ts';
 import { hasDriveSeedReceipt } from './drive-migration/prepare-agent-drive.ts';
+import { settleDriveFolder } from './drive/turn-sync.ts';
 import {
     ensureAgentWorkspace,
     exists,
@@ -11,9 +12,10 @@ import {
 
 /**
  * Applies reset semantics inside exactly one Server/Agent filesystem partition. A full reset
- * keeps the Drive folder and refused Drive files. Until the Drive migration completes it also
- * keeps the legacy memory, notes, pages and skills, so a file that never reached Drive survives
- * and the next launch moves it.
+ * clears the Drive folder with the rest of the workspace: the Server already deleted the Agent's
+ * area, so the next launch seeds a fresh one and pulls every other area again. It keeps refused
+ * Drive files, and until the Drive migration completes it keeps the legacy memory, notes, pages
+ * and skills, so a file that never reached Drive survives and the next launch moves it.
  */
 export async function resetAgentState(input: {
     agentId: string;
@@ -23,12 +25,12 @@ export async function resetAgentState(input: {
 }): Promise<void> {
     const agentRoot = join(input.dataRoot, 'servers', input.serverId, 'agents', input.agentId);
     if (input.kind === 'full') {
+        await settleDriveFolder(agentRoot);
         if (await exists(workspaceVolumePaths(agentRoot).manifest)) {
             await ensureAgentWorkspace({ agentRoot, dataRoot: input.dataRoot });
         }
         const workspace = workspaceVolumePaths(agentRoot).path;
         const kept = new Set([
-            join(workspace, 'drive'),
             join(workspace, 'drive-refused'),
             ...((await hasDriveSeedReceipt(agentRoot))
                 ? []

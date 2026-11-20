@@ -143,7 +143,7 @@ test('an Agent-authored page fence in an inline reply opens the chat Workspace p
     const artifacts = page.getByRole('complementary', { name: 'Workspace' });
     await expect(artifacts).toBeVisible();
     await expect(artifacts.getByRole('tab', { name: 'deterministic.html' })).toBeVisible();
-    await expect(artifacts.getByText('Unable to browse this workspace.')).toBeVisible();
+    await expect(artifacts.getByText('This page was moved or deleted.')).toBeVisible();
 
     await artifacts.getByRole('button', { name: 'Hide workspace' }).click();
     await expect(composer).toHaveText('Preserved draft');

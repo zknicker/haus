@@ -1,6 +1,6 @@
 ---
 status: accepted
-summary: A new Server starts empty, with its first Owner and the team room `#all` only. No Project, no Agent, no Computer, and no generalists; `#all` is the only channel that is not a Project. Cove, the onboarding Agent, and the whole fresh-Server setup flow are deleted. People connect a Device from Settings and create Captains with New Captain. The shared Haus Manual stays and every Agent reads it. An existing Cove becomes an ordinary Agent, and no history is deleted. Supersedes ADR 0021's Cove onboarding and amends ADR 0028 and ADR 0055 decisions 1 and 9. Accepted 2026-11-19, amended 2026-11-20.
+summary: A new Server starts empty, with its first Owner and the team room `#all` only. No Project, no Agent, no Computer, and no generalists; `#all` is the only channel that is not a Project. Cove, the onboarding Agent, and the whole fresh-Server setup flow are deleted. People connect a Device from Settings and create Captains with New Captain. The shared Haus Manual stays and every Agent reads it. An existing Cove becomes an ordinary Agent, and no history is deleted. Supersedes ADR 0021's Cove onboarding and amends ADR 0028 and ADR 0055 decisions 1 and 9. Accepted 2026-11-19, amended 2026-11-19 (Full Reset moves the Captain's Drive area to Recently deleted and reseeds the factory files) and 2026-11-20.
 read_when:
   - changing what a new Server starts with, or the first-run Home
   - changing Computer (Device) connection from Settings, or Agent (Captain) creation entry points
@@ -20,6 +20,11 @@ Supersedes the Cove onboarding parts of
 Amends [ADR 0028](0028-agents-create-agents-directly.md) (Cove's protected identity, its `channel
 add` exclusion, and its separate onboarding greeting) and
 [ADR 0055](0055-projects-own-agents-and-tasks.md) decisions 1 and 9.
+
+Amended 2026-11-19: Full Reset no longer keeps Drive. It moves every file in the Captain's Drive
+area (`agents/<handle>/`) to Recently deleted for 30 days and reseeds the factory files, a starter
+`MEMORY.md` and the factory-managed skills, for every Agent. The Capabilities row below said Full
+Reset keeps Drive; that row now records both.
 
 ## Context
 
@@ -122,7 +127,7 @@ column has a replacement, on purpose.
 | Chief-of-staff weekly review offer and its coordination note | any Agent on request, through reminders and the coordinator and patrol recipes | the unprompted offer |
 | Agent creation guidance | Manual `agent` topic and `haus agent create` | Cove's copy |
 | Factory guidance refresh and per-turn Cove notices | nothing | yes |
-| Full Reset restoring Cove's factory workspace | already gone: Full Reset keeps Drive for every Agent ([ADR 0054](0054-drive-holds-what-agents-know-and-follow.md)) | |
+| Full Reset restoring Cove's factory workspace | originally "already gone: Full Reset keeps Drive for every Agent ([ADR 0054](0054-drive-holds-what-agents-know-and-follow.md))"; amended 2026-11-19: Full Reset moves the Captain's Drive area to Recently deleted for 30 days and reseeds the factory files for every Agent | |
 | Cove's locked identity and the reserved `cove` handle | an ordinary editable Agent | yes |
 | Past onboarding turns and inbox items | still read and shown with their `onboarding` cause | |
 | Seeded skills | unchanged; `visuals` goes to every Agent | |

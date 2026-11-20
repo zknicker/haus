@@ -177,7 +177,28 @@ export interface SettingsNavGroup {
     matches: SettingsNavMatch[];
 }
 
-export function settingsNavGroups({ canOperate, query }: { canOperate: boolean; query: string }) {
+const capyShellRows: Partial<Record<SettingsRouteTab, readonly string[]>> = {
+    appearance: [
+        'Background',
+        'Background effect',
+        'Brightness',
+        'Blur',
+        'Image opacity',
+        'Bottom fade',
+        'Overlay opacity',
+        'Input opacity',
+    ],
+};
+
+export function settingsNavGroups({
+    canOperate,
+    capyShell,
+    query,
+}: {
+    canOperate: boolean;
+    capyShell: boolean;
+    query: string;
+}) {
     const needle = query.trim().toLowerCase();
     return settingsNavSections.flatMap((section) => {
         const matches = section.itemIds.flatMap((id) => {
@@ -185,16 +206,19 @@ export function settingsNavGroups({ canOperate, query }: { canOperate: boolean; 
             if (!item || (item.access === 'operator' && !canOperate)) {
                 return [];
             }
-            return matchItem(item, needle);
+            return matchItem(item, needle, capyShell);
         });
         const group = { id: section.id, label: section.label, matches } satisfies SettingsNavGroup;
         return matches.length > 0 ? [group] : [];
     });
 }
 
-function matchItem(item: SettingsNavItem, needle: string) {
+function matchItem(item: SettingsNavItem, needle: string, capyShell: boolean) {
     const titleMatches = needle.length === 0 || startsWord(item.label, needle);
-    const rows: readonly string[] = item.rows;
+    const rows: readonly string[] = [
+        ...item.rows,
+        ...(capyShell ? (capyShellRows[item.id] ?? []) : []),
+    ];
     const row = titleMatches
         ? null
         : (rows.find((candidate) => startsWord(candidate, needle)) ?? null);

@@ -1,0 +1,2 @@
+ALTER TABLE "artifacts" ADD COLUMN "deleted_by" text;--> statement-breakpoint
+ALTER TABLE "artifacts" ADD CONSTRAINT "artifacts_deleted_by_shape" CHECK ("artifacts"."deleted_by" is null or "artifacts"."deleted_by" ~ '^(agent|user):.+$');

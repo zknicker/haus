@@ -3,10 +3,11 @@ import { artifactPathBasename, type DriveConflictReason, type DrivePushOutcome }
 import { eq } from 'drizzle-orm';
 import type { ArtifactAccess } from '../../artifacts/access.ts';
 import { advanceHead, markUploaded, readArtifact, reviveAt } from '../../artifacts/land.ts';
-import { mergeOntoHead, storeMergedRevision, takeNextNumber } from '../../artifacts/merge.ts';
+import { mergeOntoHead, storeMergedRevision } from '../../artifacts/merge.ts';
 import { lockLiveServer } from '../../artifacts/move.ts';
 import { liveArtifactAtPath } from '../../artifacts/path.ts';
 import { releasePendingPath } from '../../artifacts/publish.ts';
+import { takeNextNumber, takePlaceholderNumber } from '../../artifacts/revision-number.ts';
 import type { ArtifactStorage } from '../../artifacts/storage.ts';
 import { createArtifactAt, deletedArtifactOwning } from '../../artifacts/write-target.ts';
 import type { HausDatabase } from '../../postgres/connection.ts';
@@ -18,7 +19,7 @@ import { writableDrivePath } from '../areas.ts';
 import { freeCopyPath } from './copy-path.ts';
 import { driveRevisionOf, revisionOwner } from './outcomes.ts';
 import { type PushRequest, recordOutcome } from './replay.ts';
-import { type DrivePush, requireOpenPush } from './session.ts';
+import { type DrivePush, requireOpenPush, requireRunSinceReset } from './session.ts';
 
 type Artifact = typeof artifacts.$inferSelect;
 type Revision = typeof revisions.$inferSelect;
@@ -47,12 +48,19 @@ export async function landPushPut(db: HausDatabase, landing: PushPutLanding) {
         const { access, push } = landing;
         await lockLiveServer(tx, access.serverId);
         await requireOpenPush(tx, access, push.id);
+        await requireRunSinceReset(tx, push);
         await writableDrivePath(tx, access, landing.placed);
         const provisional = await readArtifact(tx, landing.revision.artifactId);
         const landed = await markUploaded(tx, provisional, landing.revision, landing.uploaded);
         const result = await decide(tx, landing, landed);
         if (!result.committed) {
-            await tx.update(revisions).set({ state: 'failed' }).where(eq(revisions.id, landed.id));
+            await tx
+                .update(revisions)
+                .set({
+                    revisionNumber: await takePlaceholderNumber(tx, landed.artifactId),
+                    state: 'failed',
+                })
+                .where(eq(revisions.id, landed.id));
         }
         await releasePendingPath(tx, provisional.id);
         const outcome = await recordOutcome(tx, access, {

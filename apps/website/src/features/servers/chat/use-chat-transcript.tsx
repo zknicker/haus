@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import * as React from 'react';
+import { useParams } from 'react-router-dom';
 import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
 import { useAgentAppearances } from '../../../hooks/members/use-agents.ts';
 import { readChatMessageEntity } from '../../../hooks/servers/chat-message-entities.ts';
@@ -41,6 +42,7 @@ export function useChatTranscript({
     viewerUserId,
 }: ChatTranscriptInput) {
     const queryClient = useQueryClient();
+    const { slug = '' } = useParams();
     const messageList = messages ?? emptyChatMessageLayouts;
     // Availability flips on every Agent turn; rows read it per presence dot (`useAgentPresence`),
     // so the rows' agent list changes only with the fields they render.
@@ -155,6 +157,7 @@ export function useChatTranscript({
                         onOpenArtifact={onOpenArtifact}
                         onReferenceActivate={onReferenceActivate}
                         serverId={serverId}
+                        slug={slug}
                     />
                 ),
                 repliedRunIds: new Set<string>(),
@@ -179,6 +182,7 @@ export function useChatTranscript({
             replyTargetMessageId,
             resolveActorProfile,
             serverId,
+            slug,
             turnDetailsAccess,
             viewerUserId,
         ]
