@@ -1,3 +1,4 @@
+import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { AgentTurnSummary } from '@haus/api';
 import type { RunnerConfig } from '../config.ts';
@@ -49,6 +50,7 @@ export function createTurnHost(input: {
         ledger: input.ledger,
         link: input.link,
         log,
+        release: harnesses.release,
     });
     return { ...host, close: harnesses.close };
 }
@@ -61,6 +63,7 @@ export function createTurnHostWith(input: {
     ledger: DispatchLedger;
     link: RunnerLink;
     log: (line: string) => void;
+    release: (agentId: string) => unknown;
 }) {
     const status = createConnectionStatus(input.link);
     const active = new Map<string, ActiveRun>();
@@ -68,6 +71,16 @@ export function createTurnHostWith(input: {
     const paths = (agentId: string) => {
         const agentDir = join(input.dataDir, 'agents', agentId);
         return { agentDir, runtimeDir: join(agentDir, 'runtime') };
+    };
+
+    const enqueue = (agentId: string, work: () => Promise<void>) => {
+        const previous = queues.get(agentId) ?? Promise.resolve();
+        const next = previous.then(work);
+        queues.set(
+            agentId,
+            next.catch(() => undefined)
+        );
+        return next;
     };
 
     const execute = async (run: RunStart) => {
@@ -240,14 +253,16 @@ export function createTurnHostWith(input: {
                 });
             }
         },
+        resetAgent(agentId, scope) {
+            return enqueue(agentId, async () => {
+                await input.release(agentId);
+                if (scope === 'full') {
+                    await rm(paths(agentId).agentDir, { force: true, recursive: true });
+                }
+            });
+        },
         start(run) {
-            const previous = queues.get(run.start.agentId) ?? Promise.resolve();
-            const next = previous.then(() => execute(run));
-            queues.set(
-                run.start.agentId,
-                next.catch(() => undefined)
-            );
-            return next;
+            return enqueue(run.start.agentId, () => execute(run));
         },
         stop(agentId, runId) {
             const run = active.get(agentId);

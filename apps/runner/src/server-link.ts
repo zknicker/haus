@@ -13,7 +13,7 @@ import type { DispatchLedger } from './dispatch/ledger.ts';
 import { type InvocationClock, systemInvocationClock } from './invocations/invocation-clock.ts';
 import type { ConnectionBook } from './model-connections/connection-book.ts';
 import { createSignIns } from './pi/pi-sign-ins.ts';
-import type { RunnerLink, TurnHost } from './run-context.ts';
+import type { AgentResetScope, RunnerLink, TurnHost } from './run-context.ts';
 import { createRunTools, type RunToolset } from './tools/run-tools.ts';
 import { harnessIds } from './turn/runtime-driver.ts';
 
@@ -60,6 +60,9 @@ export function openServerLink(input: {
         ...(input.signInProvider ? { provider: input.signInProvider } : {}),
     });
 
+    const resetAgent = (agentId: string, scope: AgentResetScope) =>
+        void input.turnHost.resetAgent(agentId, scope).catch(report('reset'));
+
     const handle = (frame: RunnerDownFrame) => {
         switch (frame.type) {
             case 'runner-hello-accepted':
@@ -78,6 +81,12 @@ export function openServerLink(input: {
                     );
                 }
                 return;
+            case 'agent-restart':
+                return resetAgent(frame.agentId, 'restart');
+            case 'agent-reset':
+                return resetAgent(frame.agentId, frame.kind === 'full' ? 'full' : 'session');
+            case 'agent-retire':
+                return resetAgent(frame.agentId, 'full');
             case 'agent-execution-journal-ack':
                 return;
             case 'runner-model-connections':

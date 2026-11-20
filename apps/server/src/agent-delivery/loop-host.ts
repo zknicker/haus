@@ -61,14 +61,18 @@ export class AgentLoopRoute {
         if (host.kind === 'computer') {
             return frame.type !== 'runner-start' && this.transport.send(host.computerId, frame);
         }
-        const runnerFrame = toRunnerFrame(frame);
-        const sent = Boolean(
-            runnerFrame && this.wiring.kind === 'runner' && this.wiring.runner.send(runnerFrame)
-        );
+        const sent = this.toRunner(frame);
         if (sent && frame.type === 'runner-start' && host.machineId) {
             this.pullDrive(host.machineId, frame.start);
         }
         return sent;
+    }
+
+    toRunner(frame: LoopFrame) {
+        const runnerFrame = toRunnerFrame(frame);
+        return Boolean(
+            runnerFrame && this.wiring.kind === 'runner' && this.wiring.runner.send(runnerFrame)
+        );
     }
 
     private pullDrive(machineId: string, start: { agentId: string; runId: string }) {
@@ -115,6 +119,10 @@ export class AgentLoopRoute {
     }
 }
 
+export function hostName(host: AgentLoopHost | null) {
+    return host?.kind === 'runner' ? 'runner' : 'assigned Computer';
+}
+
 export function startOf(frame: LoopFrame) {
     if (frame.type === 'runner-start') {
         return frame.start;
@@ -127,6 +135,9 @@ function toRunnerFrame(frame: LoopFrame) {
         case 'runner-start':
         case 'notice':
         case 'stop':
+        case 'agent-restart':
+        case 'agent-reset':
+        case 'agent-retire':
             return frame;
         default:
             return null;

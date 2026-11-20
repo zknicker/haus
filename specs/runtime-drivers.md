@@ -169,11 +169,16 @@ cold-starts once.
 R3 left these Computer turn features unported, and R4 ports each before it moves an Agent:
 execution journal upload (including journaling dispatches the ledger recovers as `unknown`),
 thoughts, idle compaction, rich-reference projection of message content, the
-managed-skill change notice, Claude plan usage after a turn, Agent restart and reset frames to
-the runner, and
-`haus worker start`, which the Computer's proxy handled. R4 also sends `drive-pull` when a
-runner run starts and `drive-push` when it settles (Drive folder below), because runner-hosted
-Agents depend on their `drive/` folder from the cutover on.
+managed-skill change notice, Claude plan usage after a turn, and `haus worker start`, which the
+Computer's proxy handled.
+
+R4b already moved these: `drive-pull` when a runner run starts and `drive-push` when it settles
+(Drive folder below); voice calls that no longer need a healthy Computer; and restart, session
+reset, and full reset on the runner. `agent-restart`, `agent-reset`, and `agent-retire` ride the
+runner socket. Restart and a session reset close the Agent's warm harness process, so the next
+turn resumes cold or, after a generation change, starts fresh. A full reset and retire also
+delete `/data/agents/<agent-id>/`. Each runs after the Agent's turn in progress. The Server sends
+`agent-retire` to the runner from R4d, when the Computer path that sends it today is deleted.
 
 R5 lands Pi Durable before R4, so the cutover has both harnesses and every Agent has one for
 its model. R4 moves every Agent at once and resets every session. No native session is copied from a

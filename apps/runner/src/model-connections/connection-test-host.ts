@@ -46,6 +46,7 @@ export async function connectedRunner(provider: Provider, usageRoutes?: StandInR
         ledger,
         link,
         log: () => undefined,
+        release: pi.release,
     });
     const opened = openServerLink({
         book,

@@ -14,7 +14,7 @@ import {
 import { openDispatchLedger } from './dispatch/ledger.ts';
 import type { InvocationClock } from './invocations/invocation-clock.ts';
 import { createConnectionBook } from './model-connections/connection-book.ts';
-import type { RunStart, TurnHost } from './run-context.ts';
+import type { AgentResetScope, RunStart, TurnHost } from './run-context.ts';
 import { openServerLink } from './server-link.ts';
 
 export const runnerToken = 'runner-token-0123456789abcdef0123456789';
@@ -92,15 +92,19 @@ function turnHostDriver() {
         onStop = resolve;
     });
     const starts: string[] = [];
+    const resets: { agentId: string; scope: AgentResetScope }[] = [];
     const turnHost: TurnHost = {
         notice: async () => undefined,
+        resetAgent: async (agentId, scope) => {
+            resets.push({ agentId, scope });
+        },
         start: async (run) => {
             starts.push(run.start.runId);
             onStart(run);
         },
         stop: async (agentId, runId) => onStop({ agentId, runId }),
     };
-    return { started, starts, stopped, turnHost };
+    return { resets, started, starts, stopped, turnHost };
 }
 
 export type ServerStandIn = ReturnType<typeof serverStandIn>;

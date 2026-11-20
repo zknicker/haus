@@ -31,5 +31,9 @@ export function createHarnesses(input: {
             return pi.close();
         },
         factory,
+        release(agentId: string) {
+            claude.release(agentId);
+            return pi.release(agentId);
+        },
     };
 }

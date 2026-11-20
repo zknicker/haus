@@ -97,4 +97,7 @@ export interface TurnHost {
     start(input: RunStart): Promise<void>;
     notice(notice: AgentNoticeCommand): Promise<void>;
     stop(agentId: string, runId: string): Promise<void>;
+    resetAgent(agentId: string, scope: AgentResetScope): Promise<void>;
 }
+
+export type AgentResetScope = 'restart' | 'session' | 'full';

@@ -97,6 +97,9 @@ export function createClaudeHarness(options: { maxWarm: number }) {
             clearInterval(expiry);
             closeAll(pool.drain());
         },
+        release(agentId: string) {
+            closeAll(pool.take(agentId));
+        },
         driver,
         factory,
         get warm() {
