@@ -304,8 +304,8 @@ and [Agent Inbox](../../specs/inbox.md).
   settings rebuild it (specs/projects.md). The description (at most 500
   characters, blank clears it) tells people and Agents what the channel is for;
   Agents read it in `haus server info` and `haus channel info`, and the iPhone
-  shows it read-only in the channel's details sheet. `#haus`, the Haus project, keeps its
-  name but its description is editable. Archive and delete follow them for a
+  shows it read-only in the channel's details sheet. `#all`, the everyone channel and the one channel
+  that is not a Project, keeps its name but its description is editable. Archive and delete follow them for a
   regular channel. Users create channels in one New project dialog that names
   the channel and picks its icon and color from a trigger inside the name field.
   It calls `project.create`, so the channel is a Project with a key the Server

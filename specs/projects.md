@@ -1,5 +1,5 @@
 ---
-summary: The Projects contract. Humans create Projects and each Project is its channel; `#all` becomes the Haus project. A Project carries one Task key, its home Agents, repos linked per Computer, its `AGENTS.md`, and the default place for its Workers. Every Agent has exactly one home Project. Covers the data shape, settings and who edits them, the Haus project and generalists, Agent placement, and the one-time migration from channels.
+summary: The Projects contract. Humans create Projects and each Project is its channel; `#all` stays the everyone channel and is not a Project. A Project carries one Task key, its home Agents, repos linked per Computer, its `AGENTS.md`, and the default place for its Workers. Every Agent has exactly one home Project. Covers the data shape, settings and who edits them, the Haus project and generalists, Agent placement, and the one-time migration from channels.
 read_when:
   - creating, configuring, archiving, or listing Projects or their channels
   - changing a Project's key, its Agents, its repos, its `AGENTS.md`, or its default Worker place
@@ -30,9 +30,10 @@ Workers and their places are [ADR 0056](../docs/adr/0056-agents-run-quiet-worker
   | `task_key_id` | The Project's key, a `task_keys` row, unique across Projects |
   | `default_worker_place` | `computer:<computerId>`, `cursor`, `claude`, or null |
 
-  The Haus project is the channel whose `chats.is_all` is true, exactly one per Server; the flag
-  stays on the channel row and the wire `Chat.isAll` until an explicit rename, and `projectSchema`
-  exposes it as `isHaus`. `default_worker_place` lands with W3.
+  The everyone channel `#all` is the chat whose `chats.is_all` is true, exactly one per Server and
+  always named `all`. It has no `projects` row: `projects.chat_is_all` joins the composite
+  `projects_chat_fk` to `chats.is_all` and `projects_chat_not_all` requires it false, so Postgres
+  refuses a Project on `#all` (migration `0139_all-is-a-chat`, ADR 0059 decision 5). `default_worker_place` lands with W3.
   Repos are `project_repos` rows ([Repos](#repos)). Home Agents are `agents.home_project_id`
   ([Agents](#agents)). Name, description, icon, color, archive, and delete stay on the channel's
   Chat row as they are today ([chats.md](chats.md#channels-are-projects)).
@@ -130,11 +131,9 @@ starts with a digit is prefixed with `P` before step 2.
 
 ## The Haus project
 
-- `#all` becomes the Haus project. Its channel is renamed `haus` and shown as Haus. An existing
-  channel already named `haus` is first renamed `haus-2`, or the next free suffix, keeping its id
-  and Tasks. `#all` stops
-  resolving as a target in the same wave, and the prompt's references move through the guarded
-  prompt contract.
+- `#all` is not the Haus project ([ADR 0059](../docs/adr/0059-haus-starts-empty-without-cove.md),
+  amended 2026-11-20). A new Server creates `#all` and no Project. Migration `0139_all-is-a-chat`
+  moves an existing Server's Haus project to a new `#general` (see [Migration](#migration-from-channels)).
 - Every member of the Server belongs to the Haus project's channel, as they belong to `#all` today.
 - Its rules are `haus/AGENTS.md`. It has no `projects/<key>/` folder, and its Drive area is `haus`.
 - It cannot be archived or deleted, and its channel cannot be renamed (`PROJECT_NAME_FIXED`).
@@ -143,8 +142,8 @@ starts with a digit is prefixed with `P` before step 2.
 ## Generalists
 
 - An Agent whose home is the Haus project is a **generalist**. Every Agent created without a named
-  Project starts as one. A new Server has none: the Haus project holds the generalists people put
-  there, and may hold none ([ADR 0059](../docs/adr/0059-haus-starts-empty-without-cove.md)).
+  Project starts as one. A new Server has no Project and no Agent
+  ([ADR 0059](../docs/adr/0059-haus-starts-empty-without-cove.md)).
 - A generalist hears the Haus project the way any Agent hears its home. It may start a Task in any
   Project. When it acts in a Project, its turn input carries that Project's `AGENTS.md` the first
   time in a session ([ADR 0054](../docs/adr/0054-drive-holds-what-agents-know-and-follow.md)
@@ -201,3 +200,18 @@ second run changes nothing.
 
 The migration logs one line per Agent with its old channels, its message counts, and the home it
 chose, so a person can check the result and move any Agent in settings.
+
+Migration `0139_all-is-a-chat` (E2d, ADR 0059 amended 2026-11-20) then takes `#all` out of
+Projects, idempotently, with a `RAISE NOTICE` per decision:
+
+1. On each Server whose `#all` has a `projects` row, a new channel `#general` (the first free of
+   `general`, `general-2`, …) takes that row, its key and counters, every Task's `project_id`, and
+   every Task chat's parent. The human members of `#all` join it. Tasks keep their ids and numbers;
+   origin Messages stay in `#all`.
+2. Each active Agent homed in `#all` moves to the unarchived, undeleted Project it authored the most
+   messages in over the last 30 days, then all time, then the oldest Project, counting a Task's
+   messages toward its Project. `#onboarding-owner` is chosen only when nothing else qualifies, and
+   `#general` when nothing does. A retired Agent homed there gets a null home, which
+   `agents_home_project_shape` allows only for a retired Agent.
+3. Every other channel named `all`, archived and deleted ones included, becomes `all-2` or the
+   next free suffix, and every `is_all` chat is renamed `all`; `chats_shape` requires that name.
