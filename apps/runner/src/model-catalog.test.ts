@@ -30,7 +30,7 @@ test('the runner catalog lists every curated model with Pi metadata, one provide
     expect(catalog[4]?.models.map((model) => model.label)).toEqual([
         'DeepSeek V4.1 Flash',
         'GLM 5.3',
-        'Kimi K3',
+        'Kimi K3.1 Pro',
         'MiMo-V2.6-Pro',
     ]);
     expect(catalog[0]?.models[1]).toEqual({

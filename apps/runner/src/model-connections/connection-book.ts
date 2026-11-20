@@ -162,4 +162,3 @@ export function missingConnectionMessage(modelId: string) {
 function rotatingOf(entry: BookEntry | undefined) {
     return entry?.local.kind === 'rotating' ? entry.local.rotation : null;
 }
-

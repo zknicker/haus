@@ -39,7 +39,7 @@ export const curatedModels = [
         modelIds: [
             'deepseek/deepseek-v4.1-flash',
             'z-ai/glm-5.3',
-            'moonshotai/kimi-k3',
+            'moonshotai/kimi-k3.1-pro',
             'xiaomi/mimo-v2.6-pro',
         ],
         provider: openrouterProvider,
