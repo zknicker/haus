@@ -16,9 +16,9 @@ const verbs: Record<string, string> = {
     write: 'Writing',
 };
 
-export function activityLine(event: TurnEvent) {
+export function activityLine(event: TurnEvent, redact: (text: string) => string) {
     if (event.type === 'subagent-started') {
-        return bounded(`Delegating ${event.description ?? 'a subtask'}`);
+        return bounded(redact(`Delegating ${event.description ?? 'a subtask'}`));
     }
     if (event.type !== 'tool-call') {
         return null;
@@ -27,9 +27,9 @@ export function activityLine(event: TurnEvent) {
     const verb = verbs[name] ?? verbs[name.toLowerCase()];
     const detail = detailOf(event.input);
     if (!verb) {
-        return bounded(detail ? `Using ${name}: ${detail}` : `Using ${name}`);
+        return bounded(redact(detail ? `Using ${name}: ${detail}` : `Using ${name}`));
     }
-    return bounded(detail ? `${verb} ${detail}` : verb);
+    return bounded(redact(detail ? `${verb} ${detail}` : verb));
 }
 
 export function activityThrottle(options: {
