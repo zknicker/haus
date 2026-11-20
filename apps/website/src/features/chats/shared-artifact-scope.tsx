@@ -1,6 +1,10 @@
 import type { DriveCitation } from '@haus/api';
 import * as React from 'react';
-import { driveCitationTarget, isDriveCitationHref } from './drive-citation-link.ts';
+import {
+    driveCitationTarget,
+    driveCitationTargets,
+    isDriveCitationHref,
+} from './drive-citation-link.ts';
 import {
     appOrigins,
     parseSharedArtifactLink,
@@ -15,7 +19,9 @@ export interface SharedArtifactScope {
 
 const SharedArtifactScopeContext = React.createContext<SharedArtifactScope | null>(null);
 const noCitations: readonly DriveCitation[] = [];
-const DriveCitationsContext = React.createContext(noCitations);
+const DriveCitationsContext = React.createContext<ReadonlyMap<string, SharedArtifactLinkTarget>>(
+    new Map()
+);
 
 /**
  * Turns this Server's stable artifact links and the message's `drive://`
@@ -41,9 +47,13 @@ export function SharedArtifactScopeProvider({
         () => (serverId && slug ? { origins: origins ?? appOrigins(), serverId, slug } : null),
         [origins, serverId, slug]
     );
+    const citationTargets = React.useMemo(
+        () => driveCitationTargets(driveCitations),
+        [driveCitations]
+    );
     return (
         <SharedArtifactScopeContext value={scope}>
-            <DriveCitationsContext value={driveCitations}>{children}</DriveCitationsContext>
+            <DriveCitationsContext value={citationTargets}>{children}</DriveCitationsContext>
         </SharedArtifactScopeContext>
     );
 }
@@ -55,13 +65,13 @@ export function useSharedArtifactScope() {
 /** The library artifact `href` names on the open Server, or null for any other link. */
 export function useSharedArtifactTarget(href: string | undefined): SharedArtifactLinkTarget | null {
     const scope = useSharedArtifactScope();
-    const driveCitations = React.use(DriveCitationsContext);
+    const citationTargets = React.use(DriveCitationsContext);
     return React.useMemo(() => {
         if (!(scope && href)) {
             return null;
         }
         return isDriveCitationHref(href)
-            ? driveCitationTarget(href, driveCitations)
+            ? driveCitationTarget(href, citationTargets)
             : parseSharedArtifactLink(href, scope);
-    }, [driveCitations, href, scope]);
+    }, [citationTargets, href, scope]);
 }

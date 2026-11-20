@@ -1,5 +1,6 @@
 import type { ChatMessage } from '@haus/api';
 import * as React from 'react';
+import { useParams } from 'react-router-dom';
 import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
 import { useAgentAppearances } from '../../../hooks/members/use-agents.ts';
 import type { ChatMessageLayout } from '../../../hooks/servers/chat-message-layout.ts';
@@ -29,6 +30,7 @@ export function useUnreadRowRenderContext({
     onOpenConversation: () => void;
     serverId: string;
 }): TranscriptRenderContextValue {
+    const { slug = '' } = useParams();
     const agentList = useAgentAppearances(serverId);
     const download = useAttachmentDownload();
     const humans = useHumanDirectory(serverId);
@@ -76,6 +78,7 @@ export function useUnreadRowRenderContext({
                         message={message}
                         onOpenArtifact={openArtifact}
                         serverId={serverId}
+                        slug={slug}
                     />
                 ),
                 repliedRunIds: noRepliedRuns,
@@ -94,6 +97,7 @@ export function useUnreadRowRenderContext({
             renderMessageAttachments,
             resolveActorProfile,
             serverId,
+            slug,
             viewerUserId,
         ]
     );

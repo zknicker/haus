@@ -1,4 +1,5 @@
 import { artifactPathKey, type DriveCitation } from '@haus/api';
+import type { SharedArtifactLinkTarget } from './shared-artifact-link.ts';
 
 const scheme = 'drive://';
 
@@ -6,19 +7,29 @@ export function isDriveCitationHref(href: string) {
     return href.startsWith(scheme);
 }
 
-export function driveCitationTarget(href: string, citations: readonly DriveCitation[]) {
+export function driveCitationTargets(citations: readonly DriveCitation[]) {
+    const targets = new Map<string, SharedArtifactLinkTarget>();
+    for (const { artifactId, path, revisionId } of citations) {
+        if (artifactId && revisionId) {
+            targets.set(artifactPathKey(path), { artifactId, revisionId });
+        }
+    }
+    return targets;
+}
+
+export function hasResolvedDriveCitation(citations: readonly DriveCitation[]) {
+    return citations.some((citation) => citation.artifactId && citation.revisionId);
+}
+
+export function driveCitationTarget(
+    href: string,
+    targets: ReadonlyMap<string, SharedArtifactLinkTarget>
+) {
     if (!isDriveCitationHref(href)) {
         return null;
     }
     const path = decodePath(href.slice(scheme.length));
-    if (path === null) {
-        return null;
-    }
-    const key = artifactPathKey(path);
-    const citation = citations.find((item) => artifactPathKey(item.path) === key);
-    return citation?.artifactId && citation.revisionId
-        ? { artifactId: citation.artifactId, revisionId: citation.revisionId }
-        : null;
+    return path === null ? null : (targets.get(artifactPathKey(path)) ?? null);
 }
 
 function decodePath(encoded: string) {

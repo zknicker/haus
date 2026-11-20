@@ -3,13 +3,12 @@ import * as React from 'react';
 import type { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
 import { ChatMarkdownText } from '../../chats/chat-markdown-text.tsx';
 import type { TranscriptMessage } from '../../chats/chat-transcript-message.tsx';
+import { hasResolvedDriveCitation } from '../../chats/drive-citation-link.ts';
 import type { HausResourceTarget } from '../../chats/haus-resource-link.ts';
 import { isLocalTimelineMessageMetadata } from '../../chats/local-timeline-message.ts';
-import {
-    MessageSharedArtifactScope,
-    mayLinkSharedArtifact,
-} from '../../chats/message-shared-artifacts.tsx';
+import { mayLinkSharedArtifact } from '../../chats/message-shared-artifacts.tsx';
 import { MessageRoutingDebug } from '../../chats/routing/message-routing-debug.tsx';
+import { SharedArtifactScopeProvider } from '../../chats/shared-artifact-scope.tsx';
 import { ImageGenerationStrip } from '../../image-generation/image-generation-strip.tsx';
 import {
     type MessageImageSegment,
@@ -32,12 +31,14 @@ export function ServerChatMessageContent({
     onOpenArtifact,
     onReferenceActivate,
     serverId,
+    slug,
 }: {
     agentsById: ReadonlyMap<string, Agent>;
     chatsById: ReadonlyMap<string, Chat>;
     humans: HumanDirectory;
     message: TranscriptMessage;
     serverId: string;
+    slug: string;
     onOpenArtifact: (target: HausResourceTarget) => void;
     onReferenceActivate?: ReferenceActivation;
 }) {
@@ -88,10 +89,14 @@ export function ServerChatMessageContent({
     );
 
     const driveCitations = message.driveCitations ?? noDriveCitations;
-    return mayLinkSharedArtifact(content) || driveCitations.length > 0 ? (
-        <MessageSharedArtifactScope driveCitations={driveCitations} serverId={serverId}>
+    return mayLinkSharedArtifact(content) || hasResolvedDriveCitation(driveCitations) ? (
+        <SharedArtifactScopeProvider
+            driveCitations={driveCitations}
+            serverId={serverId}
+            slug={slug}
+        >
             {body}
-        </MessageSharedArtifactScope>
+        </SharedArtifactScopeProvider>
     ) : (
         body
     );
