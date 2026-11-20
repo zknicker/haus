@@ -8,6 +8,7 @@ import {
     resolveExpectedPublicHausRelease,
 } from './release-snapshot.mjs';
 import { readJson } from './release-utils.mjs';
+import { readUnshippedIOSVersions } from './unshipped-ios.mjs';
 
 const defaultOrigin = 'https://releases.haus.chat';
 const defaultAttempts = 5;
@@ -150,6 +151,7 @@ async function main() {
     const { sourceRevision, version } = parseArguments(process.argv.slice(2));
     const expected = resolveExpectedPublicHausRelease(await readJson('releases.json'), {
         sourceRevision,
+        unshippedIOSVersions: readUnshippedIOSVersions(),
         version,
     });
 

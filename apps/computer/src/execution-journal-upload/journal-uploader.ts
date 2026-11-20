@@ -9,7 +9,6 @@
  * uploader never saw) is resent whole from disk on every connect, newest first
  * and one run at a time, so this resend pass never starves live frames.
  */
-import { join } from 'node:path';
 import {
     type AgentExecutionJournalAck,
     type AgentExecutionJournalRecordsFrame,
@@ -49,15 +48,14 @@ const resendWindow = 2;
 const retentionMs = EXECUTION_JOURNAL_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
 export interface ExecutionJournalUploaderOptions {
-    dataRoot: string;
-    /** Secret values this Computer holds; an echo of one is masked exactly. */
+    agentsDir: string;
+    /** Secret values this Computer or runner holds; an echo of one is masked exactly. */
     knownSecrets: readonly string[];
     log?: (message: string) => void;
     /** A live run's unacknowledged bytes past this drop, and the run resends once settled. */
     maxQueuedBytes?: number;
     now?: () => number;
     send(frame: AgentExecutionJournalRecordsFrame): boolean;
-    serverId: string;
 }
 
 export class ExecutionJournalUploader {
@@ -227,7 +225,7 @@ export class ExecutionJournalUploader {
     private async runBackfill(): Promise<void> {
         await this.ledger;
         const journals = await listUnsyncedJournals({
-            serverRoot: join(this.options.dataRoot, 'servers', this.options.serverId),
+            agentsDir: this.options.agentsDir,
             since: this.now() - retentionMs,
         });
         for (const journal of journals) {
