@@ -1,9 +1,10 @@
 import { afterAll, afterEach, beforeEach, expect, test } from 'bun:test';
-import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { makeDaemonRuntime } from '../daemon-runtime.ts';
 import { agentDrive } from '../drive/agent-drive.ts';
+import { createIdleCompactionReporter } from '../idle-compaction-reporter.ts';
 import { fakeRuntimeDriver, finishedTurn } from '../runtime/testing/fake-runtime-driver.ts';
 import { compactionToolName, type TurnEvent } from '../runtime/turn-event.ts';
 import {
@@ -114,6 +115,38 @@ test('a compacted turn resets the receipts, so the next turn carries the rules a
     expect(fake.record.prompts[3]).not.toContain(rulesTag);
 });
 
+test('an idle compaction between turns resets the receipts, so the next turn carries the rules again', async () => {
+    await writeRules(agentRules, '- Keep replies under three sentences.\n');
+    await turn();
+    const hooks = createIdleCompactionReporter({
+        agentBusy: () => false,
+        agentsDir: dirname(agentRoot),
+        journalSink: () => Promise.resolve(undefined),
+        runtime,
+        send: () => true,
+        serverId: 'srv_test',
+    });
+    await hooks.report(
+        agentRoot,
+        { launchKey: 'launch', nativeSessionId: 'session', runtimeId: 'claude-code' },
+        {
+            costUsd: null,
+            endedAt: new Date('2026-11-20T10:01:00.000Z'),
+            modelId: 'claude-opus-5-5',
+            startedAt: new Date('2026-11-20T10:00:00.000Z'),
+            summary: 'Compacted.',
+            tokensAfter: 1000,
+            tokensBefore: 900_000,
+            usage: null,
+        }
+    );
+    await turn();
+    await turn();
+
+    expect(fake.record.prompts[1]).toContain('- Keep replies under three sentences.');
+    expect(fake.record.prompts[2]).not.toContain(rulesTag);
+});
+
 test('a deleted rules file is announced once', async () => {
     await writeRules(agentRules, '- Keep replies under three sentences.\n');
     await turn();
@@ -127,11 +160,13 @@ test('a deleted rules file is announced once', async () => {
     expect(fake.record.prompts[2]).not.toContain(rulesTag);
 });
 
-test('a rules file unreadable at turn start is carried once it reads again', async () => {
-    await writeRules(agentRules, '- Keep replies under three sentences.\n');
+test('a rules path unreadable at turn start (a directory: EISDIR even for root) is carried once it reads again', async () => {
     const file = join(agentDrive(agentRoot, 'cove').folder, agentRules);
-    await chmod(file, 0o000);
-    duringTurn = () => chmod(file, 0o644);
+    await mkdir(file, { recursive: true });
+    duringTurn = async () => {
+        await rm(file, { recursive: true });
+        await writeRules(agentRules, '- Keep replies under three sentences.\n');
+    };
     await turn();
     await turn();
 
