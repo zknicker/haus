@@ -32,8 +32,9 @@ if command -v ip6tables >/dev/null 2>&1; then
   ip6tables -A OUTPUT -o lo -j ACCEPT
   ip6tables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
   ip6tables -A OUTPUT -p tcp -m multiport --dports 5432,5438 -j DROP
-  ip6tables -A OUTPUT -d fc00::/7 -j DROP
-  ip6tables -A OUTPUT -d fe80::/10 -j DROP
+  for range in fc00::/7 fe80::/10 fec0::/10 64:ff9b:1::/48 ::ffff:0:0:0/96; do
+    ip6tables -A OUTPUT -d "$range" -j DROP
+  done
 fi
 
 chown haus-runner:haus-runner /data

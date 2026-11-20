@@ -1,5 +1,5 @@
 {
-  "id": "aea20875-0dc7-4e03-a00d-31e15e7b8a5f",
+  "id": "4c8f01c2-6629-4e64-9add-a58101fd731b",
   "prevId": "6b4ef434-f164-4059-a4ba-d1f9ce0432da",
   "version": "7",
   "dialect": "postgresql",
@@ -1962,6 +1962,12 @@
       "name": "agent_invocation_payloads",
       "schema": "",
       "columns": {
+        "agent_id": {
+          "name": "agent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "attachment_id": {
           "name": "attachment_id",
           "type": "text",
@@ -1972,13 +1978,38 @@
           "name": "invocation_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "seq": {
+          "name": "seq",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
         },
         "server_id": {
           "name": "server_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "tool_call_id": {
+          "name": "tool_call_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "uploaded_at": {
+          "name": "uploaded_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {
@@ -1993,6 +2024,45 @@
             }
           ],
           "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "agent_invocation_payloads_dispatch_key": {
+          "name": "agent_invocation_payloads_dispatch_key",
+          "columns": [
+            {
+              "expression": "server_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "agent_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "run_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "tool_call_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "seq",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -2031,7 +2101,12 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
-      "checkConstraints": {},
+      "checkConstraints": {
+        "agent_invocation_payloads_owner_shape": {
+          "name": "agent_invocation_payloads_owner_shape",
+          "value": "\"agent_invocation_payloads\".\"invocation_id\" is not null or (\"agent_invocation_payloads\".\"agent_id\" is not null and \"agent_invocation_payloads\".\"run_id\" is not null and \"agent_invocation_payloads\".\"tool_call_id\" is not null and \"agent_invocation_payloads\".\"seq\" is not null)"
+        }
+      },
       "isRLSEnabled": false
     },
     "public.agent_invocations": {
@@ -3550,6 +3625,19 @@
           "primaryKey": false,
           "notNull": false
         },
+        "factory_applied_at": {
+          "name": "factory_applied_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "factory_kind": {
+          "name": "factory_kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ordinary'"
+        },
         "handle": {
           "name": "handle",
           "type": "text",
@@ -3773,6 +3861,10 @@
           "name": "agents_effective_reasoning_effort",
           "value": "\"agents\".\"effective_reasoning_effort\" is null or \"agents\".\"effective_reasoning_effort\" in ('default', 'low', 'medium', 'high', 'xhigh', 'max')"
         },
+        "agents_factory_kind": {
+          "name": "agents_factory_kind",
+          "value": "\"agents\".\"factory_kind\" in ('ordinary', 'cove')"
+        },
         "agents_haus_agent_status": {
           "name": "agents_haus_agent_status",
           "value": "\"agents\".\"effective_haus_agent_status\" is null or \"agents\".\"effective_haus_agent_status\" in ('current', 'failed', 'pending')"
@@ -3787,7 +3879,7 @@
         },
         "agents_handle_grammar": {
           "name": "agents_handle_grammar",
-          "value": "\"agents\".\"handle\" ~ '^[a-z0-9][a-z0-9-]{1,30}$' and lower(\"agents\".\"handle\") not in ('agent', 'agents', 'all', 'busy', 'everyone', 'haus', 'here', 'human', 'humans', 'idle', 'system')"
+          "value": "\"agents\".\"handle\" ~ '^[a-z0-9][a-z0-9-]{1,30}$' and ((\"agents\".\"factory_kind\" = 'cove' and \"agents\".\"handle\" = 'cove') or lower(\"agents\".\"handle\") not in ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'haus', 'here', 'human', 'humans', 'idle', 'system'))"
         },
         "agents_description_length": {
           "name": "agents_description_length",
@@ -7769,12 +7861,6 @@
           "type": "text",
           "primaryKey": true,
           "notNull": true
-        },
-        "inventory_invalid_at": {
-          "name": "inventory_invalid_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
         },
         "last_connected_at": {
           "name": "last_connected_at",
@@ -12487,7 +12573,214 @@
         },
         "server_memberships_handle_grammar": {
           "name": "server_memberships_handle_grammar",
-          "value": "\"server_memberships\".\"handle\" is null or (\"server_memberships\".\"handle\" ~ '^[a-z0-9][a-z0-9-]{1,30}$' and lower(\"server_memberships\".\"handle\") not in ('agent', 'agents', 'all', 'busy', 'everyone', 'haus', 'here', 'human', 'humans', 'idle', 'system'))"
+          "value": "\"server_memberships\".\"handle\" is null or (\"server_memberships\".\"handle\" ~ '^[a-z0-9][a-z0-9-]{1,30}$' and lower(\"server_memberships\".\"handle\") not in ('agent', 'agents', 'all', 'busy', 'cove', 'everyone', 'haus', 'here', 'human', 'humans', 'idle', 'system'))"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.server_onboarding": {
+      "name": "server_onboarding",
+      "schema": "",
+      "columns": {
+        "agent_id": {
+          "name": "agent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "application_id": {
+          "name": "application_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "channel_id": {
+          "name": "channel_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "channel_kind": {
+          "name": "channel_kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'channel'"
+        },
+        "computer_id": {
+          "name": "computer_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "failure_code": {
+          "name": "failure_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "failure_detail": {
+          "name": "failure_detail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "model_id": {
+          "name": "model_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "phase": {
+          "name": "phase",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "runtime_id": {
+          "name": "runtime_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "server_id": {
+          "name": "server_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "server_onboarding_application_key": {
+          "name": "server_onboarding_application_key",
+          "columns": [
+            {
+              "expression": "application_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "server_onboarding_channel_key": {
+          "name": "server_onboarding_channel_key",
+          "columns": [
+            {
+              "expression": "channel_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "server_onboarding_server_id_servers_id_fk": {
+          "name": "server_onboarding_server_id_servers_id_fk",
+          "tableFrom": "server_onboarding",
+          "tableTo": "servers",
+          "columnsFrom": [
+            "server_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "server_onboarding_channel_fk": {
+          "name": "server_onboarding_channel_fk",
+          "tableFrom": "server_onboarding",
+          "tableTo": "chats",
+          "columnsFrom": [
+            "server_id",
+            "channel_id",
+            "channel_kind"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id",
+            "kind"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "server_onboarding_agent_fk": {
+          "name": "server_onboarding_agent_fk",
+          "tableFrom": "server_onboarding",
+          "tableTo": "agents",
+          "columnsFrom": [
+            "server_id",
+            "agent_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "server_onboarding_computer_fk": {
+          "name": "server_onboarding_computer_fk",
+          "tableFrom": "server_onboarding",
+          "tableTo": "computers",
+          "columnsFrom": [
+            "server_id",
+            "computer_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "server_onboarding_server_id_pk": {
+          "name": "server_onboarding_server_id_pk",
+          "columns": [
+            "server_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "server_onboarding_channel_kind": {
+          "name": "server_onboarding_channel_kind",
+          "value": "\"server_onboarding\".\"channel_kind\" = 'channel'"
+        },
+        "server_onboarding_phase": {
+          "name": "server_onboarding_phase",
+          "value": "\"server_onboarding\".\"phase\" in ('awaiting-computer', 'awaiting-cove', 'applying', 'complete')"
+        },
+        "server_onboarding_failure_shape": {
+          "name": "server_onboarding_failure_shape",
+          "value": "(\"server_onboarding\".\"failure_code\" is null) = (\"server_onboarding\".\"failure_detail\" is null)"
+        },
+        "server_onboarding_failure_code": {
+          "name": "server_onboarding_failure_code",
+          "value": "\"server_onboarding\".\"failure_code\" is null or \"server_onboarding\".\"failure_code\" in ('computer-disconnected', 'computer-incompatible', 'inventory-empty', 'inventory-invalid', 'application-failed')"
+        },
+        "server_onboarding_cove_shape": {
+          "name": "server_onboarding_cove_shape",
+          "value": "(\"server_onboarding\".\"agent_id\" is null and \"server_onboarding\".\"application_id\" is null and \"server_onboarding\".\"runtime_id\" is null and \"server_onboarding\".\"model_id\" is null) or (\"server_onboarding\".\"agent_id\" is not null and \"server_onboarding\".\"application_id\" is not null and \"server_onboarding\".\"runtime_id\" is not null and \"server_onboarding\".\"model_id\" is not null)"
         }
       },
       "isRLSEnabled": false

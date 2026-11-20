@@ -4,6 +4,9 @@ import { idSchema } from './chat-contract-primitives.ts';
 /** Every invocation frame stays under this size; larger bytes move as attachment references. */
 export const invocationFrameMaxBytes = 1024 * 1024;
 
+/** Bytes up to this size ride a frame as base64, which keeps the frame under `invocationFrameMaxBytes`. */
+export const invocationInlineBytesMax = 700 * 1024;
+
 export const invocationOperationKindSchema = z.enum([
     'bash',
     'edit',

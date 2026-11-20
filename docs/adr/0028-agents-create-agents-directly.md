@@ -17,7 +17,9 @@ to make the new Agent's own greeting its only introduction. Supersedes the prepa
 ADR 0025 (the `agent-creation-proposal` body becomes `agent-created`) and ADR 0021 (Cove's factory
 guidance and the shared Manual corpus). Its clauses about dreams, heartbeats, and heartbeat
 reports lapsed when [ADR 0052](0052-memory-is-one-capped-file-and-heartbeats-retire.md) retired
-them.
+them. Its Cove clauses (the protected identity on `agent update` and `agent avatar`, the `channel
+add` exclusion, Cove's factory guidance, and Cove's separate onboarding attention) lapse with
+[ADR 0059](0059-haus-starts-empty-without-cove.md), which deletes Cove.
 
 ## Decision
 

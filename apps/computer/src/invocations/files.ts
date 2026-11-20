@@ -77,16 +77,7 @@ export async function viewImage(path: string, context: OperationContext) {
     const absolutePath = await resolveReadPath(path, context);
     try {
         const { size } = await stat(absolutePath);
-        if (size > imageByteLimit) {
-            return textResult('failed', `Image is ${formatSize(size)}; the limit is 5 MiB.`);
-        }
-        const bytes = await readFile(absolutePath);
-        const mediaType = imageMediaType(bytes);
-        if (!mediaType) {
-            return textResult('failed', `${path} is not a PNG, JPEG, GIF, or WebP image.`);
-        }
-        const output = await context.payloads.store(bytes, mediaType, context.signal);
-        return { outcome: 'completed' as const, output, truncated: false };
+        return await storeImage(path, { read: () => readFile(absolutePath), size }, context);
     } catch (error) {
         return (
             stoppedBeforeReturn(context.signal, path) ??
@@ -95,8 +86,21 @@ export async function viewImage(path: string, context: OperationContext) {
     }
 }
 
-export async function readImageMediaType(absolutePath: string) {
-    return imageMediaType(new Uint8Array(await Bun.file(absolutePath).slice(0, 12).arrayBuffer()));
+export async function storeImage(
+    path: string,
+    file: { read: () => Promise<Uint8Array>; size: number },
+    context: OperationContext
+) {
+    if (file.size > imageByteLimit) {
+        return textResult('failed', `Image is ${formatSize(file.size)}; the limit is 5 MiB.`);
+    }
+    const bytes = await file.read();
+    const mediaType = imageMediaType(bytes);
+    if (!mediaType) {
+        return textResult('failed', `${path} is not a PNG, JPEG, GIF, or WebP image.`);
+    }
+    const output = await context.payloads.store(bytes, mediaType, context.signal);
+    return { outcome: 'completed' as const, output, truncated: false };
 }
 
 export function imageMediaType(bytes: Uint8Array) {
@@ -177,7 +181,7 @@ function errorCode(error: unknown) {
         : null;
 }
 
-function stoppedBeforeReturn(signal: AbortSignal, path: string) {
+export function stoppedBeforeReturn(signal: AbortSignal, path: string) {
     const stopped = stoppedOutcome(signal);
     return stopped ? textResult(stopped, `Stopped before returning ${path}.`) : null;
 }

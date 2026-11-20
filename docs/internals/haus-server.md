@@ -545,7 +545,7 @@ between Server-owned descendants are deferred until transaction completion so Po
 the entire root cascade atomically without depending on constraint-trigger order. Failed purges
 remain observable and startup retries every tombstoned Server idempotently.
 
-Migration 0137 retired fresh-Server onboarding without deleting data: an
+Migration 0139 retired fresh-Server onboarding without deleting data: an
 existing Cove is an ordinary Agent, an existing `#onboarding-owner` is an
 ordinary Project with its members and history, unsettled `onboarding` inbox
 items settle `seen` with an undelivered reason, and past onboarding turns keep

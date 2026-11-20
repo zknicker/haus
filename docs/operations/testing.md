@@ -266,7 +266,7 @@ A new Server starts empty ([ADR 0059](../adr/0059-haus-starts-empty-without-cove
 nothing else: zero Agents, zero Computers, and no onboarding field on `server.bySlug`.
 `apps/website/e2e/tests/servers.spec.ts` creates a Server in the real App and proves it opens
 straight into the Server with no setup gate, and that a non-member cannot open it.
-`apps/server/test/haus-cove-removal-migration.test.ts` proves migration 0137 keeps an existing Cove
+`apps/server/test/haus-cove-removal-migration.test.ts` proves migration 0139 keeps an existing Cove
 as an ordinary editable Agent, keeps `#onboarding-owner` with its members, settles unsettled
 `onboarding` inbox items, and keeps past onboarding turn causes.
 
