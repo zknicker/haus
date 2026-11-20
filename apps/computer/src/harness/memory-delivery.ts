@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
+import { formatMemoryBlock, memoryFileName } from '@haus/agent-prompt';
 
 /**
  * Delivers the Agent's MEMORY.md in the turn input (ADR 0052), so the Agent never has to
@@ -12,10 +13,6 @@ import { readFile } from 'node:fs/promises';
  * resets it, so the next turn carries the file again. A sub-agent wake defers it, because Claude
  * Code's adopted wake turn replaces the prompt.
  */
-export const memoryCharacterCap = 8000;
-
-export const memoryFileName = 'MEMORY.md';
-
 export interface MemoryDelivery {
     /** What this turn's input carries; null when there is nothing new to deliver or a wake defers it. */
     block: string | null;
@@ -66,30 +63,6 @@ export function memoryReceiptAfterTurn(
 export async function readMemoryDigest(memoryPath: string): Promise<string | null> {
     const content = await readMemory(memoryPath);
     return content === null ? null : memoryDigest(content);
-}
-
-export function formatMemoryBlock(content: string): string {
-    const body = content.trimEnd();
-    const capped = body.length > memoryCharacterCap ? cutAtLine(body) : body;
-    return [
-        '<haus-memory>',
-        `Your ${memoryFileName}, as it is now. Haus puts it here whenever it changed since this session last saw it.`,
-        '',
-        capped,
-        ...(capped === body ? [] : ['', capNotice(body.length)]),
-        '</haus-memory>',
-    ].join('\n');
-}
-
-function capNotice(length: number): string {
-    return `[${memoryFileName} is ${length.toLocaleString('en-US')} characters, over the ${memoryCharacterCap.toLocaleString('en-US')}-character cap, so Haus cut it at the last full line above. Tighten ${memoryFileName} under ${memoryCharacterCap.toLocaleString('en-US')} characters: move detail into notes/ and keep a pointer to it.]`;
-}
-
-/** The longest run of whole lines within the cap; a single overlong first line is cut at the cap. */
-function cutAtLine(body: string): string {
-    // A break exactly at the cap still ends a whole line within it.
-    const lastBreak = body.lastIndexOf('\n', memoryCharacterCap);
-    return (lastBreak > 0 ? body.slice(0, lastBreak) : body.slice(0, memoryCharacterCap)).trimEnd();
 }
 
 function memoryDigest(content: string): string {

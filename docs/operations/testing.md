@@ -322,6 +322,13 @@ canary uses the same runtime and model variables: it starts a session on instruc
 `CANARY-ALPHA`, resumes it with `CANARY-BRAVO`, and expects the Agent to report `BRAVO`, which only
 the re-delivered `<haus-instructions-update>` block can make it do (specs/sessions.md).
 
+The runner has one more live test. It drives the Claude Agent SDK with native tools off and Haus
+tools bridged, on the Claude login the runner holds:
+
+```sh
+HAUS_RUN_LIVE_RUNNER_CLAUDE_TEST=1 bun test --timeout 120000 apps/runner/src/claude
+```
+
 ## Manual Smoke Hygiene
 
 Manual real-provider chats are rare. Prefer deterministic e2e or unit/service

@@ -21,7 +21,7 @@ export const agentRunnerCredentialsTable = pgTable(
             .array()
             .notNull()
             .default(sql`ARRAY['manual']::text[]`),
-        computerId: text('computer_id').notNull(),
+        computerId: text('computer_id'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         expiresAt: timestamp('expires_at', { withTimezone: true })
             .notNull()

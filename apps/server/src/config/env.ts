@@ -82,6 +82,8 @@ const envSchema = z
         HAUS_TYPESAFE_API_KEY: z.string().min(1).optional(),
         HAUS_OPENAI_API_KEY: z.string().min(1).optional(),
         HAUS_GEMINI_API_KEY: z.string().min(1).optional(),
+        HAUS_AGENT_LOOP: z.enum(['computer', 'runner']).default('computer'),
+        HAUS_RUNNER_TOKEN: z.string().min(32).optional(),
         // The Haus GitHub App (specs/github-app-connection.md#environment). Each
         // is optional; `readGithubAppConfig` treats a partial set as unconfigured.
         HAUS_GITHUB_APP_CLIENT_ID: z.string().min(1).optional(),

@@ -86,6 +86,7 @@ const codeSentences: Record<AgentTurnFailureCode, (runtime: string) => string> =
     'provider-error': () => 'The provider kept erroring.',
     'provider-unavailable': () => 'The provider was unreachable.',
     'rate-limited': () => 'The provider kept hitting its rate limit.',
+    'runner-crashed': () => 'The run was cut off by a restart.',
     'runner-credential-failed': () => "The device couldn't hand the Captain its credentials.",
     'runtime-not-installed': () => "The runtime isn't installed on this device.",
     'session-resume-rejected': () => "The Captain's session couldn't be resumed.",

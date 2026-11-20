@@ -211,12 +211,13 @@ so `docs:list` routes future agents correctly.
 
 ## Agent System Prompt Changes
 
-The composed agent system prompt is a guarded contract. Its sources live under
-`apps/computer/src/harness/`, with focused coverage in `instructions.test.ts` and
-`managed-instructions.test.ts`.
+The composed agent system prompt is a guarded contract. Its text lives in
+`packages/agent-prompt/` (`@haus/agent-prompt`), which the Computer and the runner both render,
+with focused coverage in `managed-instructions.test.ts` there and the Computer's
+`instructions.test.ts`.
 
 Every sentence here changes the behavior of every Agent, so the prompt must stay deliberate,
-reviewed, and bounded. `managed-instructions.test.ts` asserts a size cap (currently 38,457
+reviewed, and bounded. `managed-instructions.test.ts` asserts a size cap (currently 37,765
 characters). The cap is a ratchet that forces a deliberate decision, not a hard limit, and no
 adapter enforces a prompt length. A justified addition raises the cap to the measured render in
 the same change, with a one-line reason in the register. Never delete, trim, merge, or
@@ -226,7 +227,7 @@ moving guidance out of the prompt over adding to it — the prompt is a pointer 
 [Haus Manual](docs/adr/0021-cove-onboards-and-agents-share-a-manual.md) for mechanics, and a
 change should move things around and simplify rather than expand. Following Raft's own rule,
 standing principles stay in the prompt; event formats, delivery mechanics, and event-specific
-actions ride the event input (for example the inbox notice in `apps/computer/src/inbox-format.ts`).
+actions ride the event input (for example the inbox notice in `packages/agent-prompt/src/inbox-format.ts`).
 
 Haus tracks the **current** Raft release from source. The
 [divergence register](specs/raft-alignment/prompt-divergences.md) pins the Raft source commit;

@@ -10,18 +10,24 @@ import {
     waitForDevObjectStorage,
 } from './dev-object-storage.mjs';
 import {
-    hasHausSchema,
     postgresLocaleEnvironment,
     prepareDevPostgres,
     reserveDevPostgresPort,
     stopStaleDevPostgres,
     waitForDevPostgres,
 } from './dev-postgres.mjs';
+import { prepareServerDatabase } from './dev-stack-database.mjs';
 import {
     shutdownTimeoutMs,
     signalChildProcessGroup,
     waitForChildShutdown,
 } from './dev-stack-processes.mjs';
+import {
+    createRunnerServerEnvironment,
+    createRunnerToken,
+    isRunnerLoop,
+} from './dev-stack-runner-environment.mjs';
+import { createRunnerSpawnOptions, resolveRunnerDataRoot } from './dev-stack-runner.mjs';
 import {
     createDesktopDevEnvironment,
     createDevServerEnvironment,
@@ -39,6 +45,7 @@ import {
     waitForPort,
 } from './dev-stack-shared.mjs';
 import { signalAllProcesses, stopInShutdownOrder } from './dev-stack-shutdown-order.mjs';
+import { isStartupComplete } from './dev-stack-startup.mjs';
 
 export class DevStackController extends EventEmitter {
     constructor({ mode, ports, repositoryRoot, spawnImpl = spawn }) {
@@ -72,6 +79,7 @@ export class DevStackController extends EventEmitter {
                 desktop: { status: isDesktop ? 'waiting' : 'disabled' },
                 haus: { status: 'waiting' },
                 postgres: { status: 'waiting' },
+                runner: { status: isRunnerLoop(process.env) ? 'waiting' : 'disabled' },
                 storage: { status: 'waiting' },
                 website: { status: 'waiting' },
             },
@@ -306,45 +314,22 @@ export class DevStackController extends EventEmitter {
             snapshot.processes.postgres.status = 'running';
         });
 
-        const serverEnv = createDevServerEnvironment(
+        const runnerToken = isRunnerLoop(devStackEnvironment) ? createRunnerToken() : null;
+        const baseServerEnv = createDevServerEnvironment(
             startupUiEnv,
             this.ports,
             postgres.databaseUrl,
             await this.startObjectStorage(devStackEnvironment, startupUiEnv)
         );
-        if (hasHausSchema(postgres)) {
-            const migrated = await this.spawnBackgroundProcess(
-                'haus',
-                'bun apps/server/src/haus-server-migrate.ts',
-                {
-                    ...serverEnv,
-                    HAUS_DATABASE_MIGRATION_URL: postgres.databaseUrl,
-                    HAUS_DATABASE_BACKUP_ROLE: 'haus',
-                    HAUS_DATABASE_RUNTIME_ROLE: 'haus',
-                }
-            );
-            if (!migrated) {
-                const dataRoot = devStackEnvironment.HAUS_POSTGRES_DATA_ROOT;
-                throw new Error(
-                    'Failed to migrate the development Server database. ' +
-                        `If this dev database predates checked-in migrations, move ${dataRoot} aside and rerun.`
-                );
-            }
-        } else {
-            const bootstrapped = await this.spawnBackgroundProcess(
-                'haus',
-                'bun apps/server/src/haus-server-bootstrap.ts',
-                {
-                    ...serverEnv,
-                    HAUS_DATABASE_BOOTSTRAP_URL: postgres.databaseUrl,
-                    HAUS_DATABASE_BACKUP_ROLE: 'haus',
-                    HAUS_DATABASE_RUNTIME_ROLE: 'haus',
-                }
-            );
-            if (!bootstrapped) {
-                throw new Error('Failed to bootstrap the development Server.');
-            }
-        }
+        const serverEnv = runnerToken
+            ? createRunnerServerEnvironment(baseServerEnv, runnerToken)
+            : baseServerEnv;
+        await prepareServerDatabase({
+            devStackEnvironment,
+            postgres,
+            serverEnvironment: serverEnv,
+            spawnBackgroundProcess: this.spawnBackgroundProcess.bind(this),
+        });
 
         await prepareHostedMcps(this.spawnBackgroundProcess.bind(this), serverEnv);
         this.spawnProcess('haus', 'bun', ['--watch', 'src/haus-server.ts'], {
@@ -368,6 +353,23 @@ export class DevStackController extends EventEmitter {
         this.update((snapshot) => {
             snapshot.processes.computer.status = 'running';
         });
+
+        if (runnerToken) {
+            const runnerOptions = createRunnerSpawnOptions({
+                repositoryRoot: this.repositoryRoot,
+                runnerDataRoot: resolveRunnerDataRoot({
+                    baseEnvironment: devStackEnvironment,
+                    repositoryRoot: this.repositoryRoot,
+                }),
+                runnerToken,
+                serverUrl,
+                startupEnvironment: startupUiEnv,
+            });
+            this.spawnProcess('runner', 'bun', ['--watch', 'src/index.ts'], runnerOptions);
+            this.update((snapshot) => {
+                snapshot.processes.runner.status = 'running';
+            });
+        }
 
         startWebsite();
         await websiteReadyPromise;
@@ -508,24 +510,3 @@ export class DevStackController extends EventEmitter {
 }
 
 export { createDesktopDevEnvironment } from './dev-stack-server-environment.mjs';
-
-function isStartupComplete(snapshot) {
-    const desktopReady =
-        snapshot.processes.desktop.status === 'disabled' ||
-        snapshot.processes.desktop.status === 'running';
-    const hausReady = snapshot.processes.haus.status === 'running';
-    const computerReady = snapshot.processes.computer.status === 'running';
-    const postgresReady = snapshot.processes.postgres.status === 'running';
-    const storageReady =
-        snapshot.processes.storage.status === 'disabled' ||
-        snapshot.processes.storage.status === 'running';
-
-    return (
-        computerReady &&
-        hausReady &&
-        postgresReady &&
-        storageReady &&
-        snapshot.processes.website.status === 'running' &&
-        desktopReady
-    );
-}

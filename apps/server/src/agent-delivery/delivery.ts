@@ -8,7 +8,7 @@ import {
     type ReminderScriptResult,
 } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
-import { and, eq, sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import {
     runLivenessClaimEvents,
     settleAgentBackgroundClaims,
@@ -29,11 +29,12 @@ import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
 import type { AgentConfigurationRotation } from '../server-agents/configure-agent.ts';
 import { recordAgentTurnSummary, recordRunTrigger } from '../server-agents/record-agent-turn.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { listActiveRunAgents } from './active-runs.ts';
 import { publishCommittedAgentActivity } from './activity-events.ts';
 import { planBusyNotice } from './busy-notice.ts';
-import { admitQueuedAgentDrain, restartIdleAgentChain, settleAgentChain } from './chain-budget.ts';
+import { admitQueuedAgentDrain, restartIdleAgentChain } from './chain-budget.ts';
 import { planChatlessRun } from './chatless-run.ts';
-import { advanceSeenForRun, markCursorSubsumedSeen } from './cursors.ts';
+import { markCursorSubsumedSeen } from './cursors.ts';
 import {
     configureFrame,
     type DeferredConfiguration,
@@ -63,12 +64,19 @@ import { buildInboxItems } from './inbox-items.ts';
 import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
 import { interruptActiveRun, killedRun } from './interrupt-active-run.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
+import {
+    type AgentLoopHost,
+    AgentLoopRoute,
+    type AgentLoopWiring,
+    type LoopFrame,
+    startOf,
+} from './loop-host.ts';
 import { consumeNoticeAck } from './notice-ack.ts';
 import { isBackedOff } from './retry-policy.ts';
 import { recordSessionRotation } from './session-rotation.ts';
 import * as store from './store.ts';
 import { retireQueuedSubagentWakes } from './subagent-wake-request.ts';
-import { attachSummaryVisibility } from './summary-visibility.ts';
+import { recoverSessionResume, settleRun } from './turn-settlement.ts';
 import { isolateUnrenderableItems } from './undeliverable-items.ts';
 import { readUnreadElsewhere } from './unread-elsewhere.ts';
 
@@ -84,7 +92,7 @@ export interface DispatchPlan {
     claimEvents?: PreparedRealtimeEvent[];
     computerId: string;
     configuration?: DeferredConfiguration;
-    frame: AgentCommand;
+    frame: LoopFrame;
     serverId: string;
     suppressSend?: boolean;
 }
@@ -104,12 +112,16 @@ interface DispatchOptions {
  */
 export class AgentDelivery {
     private readonly wakePauseLifts = new failureHold.WakePauseLifts();
+    private readonly route: AgentLoopRoute;
 
     constructor(
         private readonly db: HausDatabase,
         private readonly transport: DeliveryTransport,
-        readonly runtime?: EffectRuntime<never>
-    ) {}
+        readonly runtime?: EffectRuntime<never>,
+        wiring: AgentLoopWiring = { kind: 'computer' }
+    ) {
+        this.route = new AgentLoopRoute(transport, wiring);
+    }
 
     /**
      * Records inbound work durably, inside the caller's transaction so the
@@ -311,7 +323,7 @@ export class AgentDelivery {
                 runId: result.runId,
                 serverId: input.serverId,
             });
-            this.transport.send(result.computerId, {
+            this.route.send(this.route.hostOf(result.computerId), {
                 agentId: input.agentId,
                 runId: result.runId,
                 type: 'stop',
@@ -374,9 +386,23 @@ export class AgentDelivery {
         await consumeNoticeAck(this.db, this.runtime, input);
     }
 
-    /** A run settled on the Computer: consume or requeue its work, then drain when eligible. */
+    /** A run settled on a Computer. */
     async onTurnSettled(computerId: string, summary: AgentTurnSummary): Promise<void> {
-        await recordAgentTurnSummary(this.db, computerId, summary);
+        await this.onHostedTurnSettled({ computerId, kind: 'computer' }, summary);
+    }
+
+    /**
+     * A run settled on `host`: consume or requeue its work, then drain when
+     * eligible. Only the host of the Agent's active run can settle it.
+     */
+    async onHostedTurnSettled(host: AgentLoopHost, summary: AgentTurnSummary): Promise<void> {
+        const recordingComputerId =
+            host.kind === 'computer'
+                ? host.computerId
+                : (await readAgentDispatchConfig(this.db, summary.agentId))?.computerId;
+        if (recordingComputerId) {
+            await recordAgentTurnSummary(this.db, recordingComputerId, summary);
+        }
         const serverId = await store.readAgentServerId(this.db, summary.agentId);
         if (!serverId) {
             return;
@@ -388,71 +414,12 @@ export class AgentDelivery {
         );
         if (summary.failureKind === 'session-resume' && !summary.outputProduced) {
             const recovery = await this.db.transaction(async (tx) => {
-                await lockServerRow(tx, serverId);
-                const state = await store.readDeliveryState(tx, summary.agentId);
-                if (
-                    state?.activeRunId !== summary.runId ||
-                    state.activeRunComputerId !== computerId
-                ) {
+                const state = await this.lockSettlingRun(tx, host, serverId, summary);
+                if (!state) {
                     return null;
                 }
-                await revokeRunnerCredentialsForRun(tx, {
-                    agentId: summary.agentId,
-                    runId: summary.runId,
-                    serverId,
-                });
-                await store.requeueInboxItemsForRun(tx, {
-                    agentId: summary.agentId,
-                    runId: summary.runId,
-                });
-                await store.clearInboxNotices(tx, {
-                    agentId: summary.agentId,
-                    runId: summary.runId,
-                });
-                const activity = await appendServerAgentActivity(tx, {
-                    agentId: summary.agentId,
-                    category: 'working',
-                    phase: 'failed',
-                    runId: summary.runId,
-                    serverId,
-                });
-                const claimEvents = await runLivenessClaimEvents(tx, {
-                    agentId: summary.agentId,
-                    runId: summary.runId,
-                    serverId,
-                });
-                await store.clearActiveRun(tx, summary.agentId);
-                const [rotated] = await tx
-                    .update(agentsTable)
-                    .set({
-                        sessionGeneration: sql`${agentsTable.sessionGeneration} + 1`,
-                        sessionResetKind: 'session',
-                    })
-                    .where(
-                        and(eq(agentsTable.serverId, serverId), eq(agentsTable.id, summary.agentId))
-                    )
-                    .returning({ sessionGeneration: agentsTable.sessionGeneration });
-                if (!rotated) {
-                    throw new Error('The Agent recovery session could not be rotated.');
-                }
-                await tx
-                    .delete(agentMessageDraftsTable)
-                    .where(eq(agentMessageDraftsTable.agentId, summary.agentId));
-                await failureHold.clearDeliveryFailures(tx, summary.agentId);
-                const config = await readAgentDispatchConfig(tx, summary.agentId);
-                await recordSessionRotation(tx, {
-                    agentId: summary.agentId,
-                    generation: rotated.sessionGeneration,
-                    reason: 'recovery',
-                    serverId,
-                });
-                return {
-                    activity,
-                    chatId: state.activeRunChatId,
-                    config,
-                    plan: await this.planDispatch(tx, summary.agentId),
-                    claimEvents,
-                };
+                const recovered = await recoverSessionResume(tx, { serverId, state, summary });
+                return { ...recovered, plan: await this.planDispatch(tx, summary.agentId) };
             });
             if (!recovery) {
                 return;
@@ -478,131 +445,19 @@ export class AgentDelivery {
             this.emit(recovery.plan);
             return;
         }
-        const runScope = {
-            agentId: summary.agentId,
-            runId: summary.runId,
-            serverId,
-        };
         const settlement = await this.db.transaction(async (tx) => {
-            await lockServerRow(tx, serverId);
-            const state = await store.readDeliveryState(tx, summary.agentId);
-            if (state?.activeRunId !== summary.runId || state.activeRunComputerId !== computerId) {
-                // A stale or duplicate summary for an already-cleared run: the
-                // durable record upsert above is the only effect.
+            const state = await this.lockSettlingRun(tx, host, serverId, summary);
+            if (!state) {
                 return null;
             }
-            const chatId = state.activeRunChatId;
-            await revokeRunnerCredentialsForRun(tx, {
-                agentId: summary.agentId,
-                runId: summary.runId,
-                serverId,
-            });
-            await attachSummaryVisibility(tx, state, summary.visibleMessages);
-            if (summary.status === 'completed') {
-                const completedRows = await store.listInboxItemsForRun(tx, {
-                    agentId: summary.agentId,
-                    runId: summary.runId,
-                });
-                const budgetRows =
-                    completedRows.length > 0 || !summary.outputProduced
-                        ? completedRows
-                        : await store.listOfferedItemsForRun(tx, {
-                              agentId: summary.agentId,
-                              runId: summary.runId,
-                          });
-                await advanceSeenForRun(tx, {
-                    agentId: summary.agentId,
-                    runId: summary.runId,
-                    serverId,
-                });
-                await store.markInboxItemsSeenForRun(tx, {
-                    agentId: summary.agentId,
-                    runId: summary.runId,
-                });
-                await store.releaseUnservedTypedItems(tx, {
-                    agentId: summary.agentId,
-                    runId: summary.runId,
-                    serverId,
-                });
-                await failureHold.clearDeliveryFailures(tx, summary.agentId);
-                await settleAgentChain(tx, summary.agentId, budgetRows, state.agentChainTurns);
-                const activity = await appendServerAgentActivity(tx, {
-                    agentId: summary.agentId,
-                    category: 'working',
-                    phase: 'completed',
-                    runId: summary.runId,
-                    serverId,
-                });
-                const configuration = await rotateDeferredConfiguration(tx, {
-                    activeRunModelId: state.activeRunModelId,
-                    activeRunReasoningEffort: state.activeRunReasoningEffort,
-                    activeRunRuntimeId: state.activeRunRuntimeId,
-                    agentId: summary.agentId,
-                    serverId,
-                });
-                const claimEvents = await settleAgentBackgroundClaims(tx, runScope);
-                await store.clearActiveRun(tx, summary.agentId);
-                return {
-                    activity,
-                    chatId,
-                    configuration,
-                    plan: await this.planDispatch(tx, summary.agentId),
-                    claimEvents,
-                };
-            }
-            // A failed turn that produced model-visible output must not requeue
-            // its work — redelivering it would re-trigger that output. Only a
-            // failure with no output is safe to retry. Either way it counts and
-            // does not re-drive immediately: failures back off, then pause.
-            if (summary.outputProduced) {
-                // A durable Agent send proves the model handled this prompt,
-                // even if the runtime failed during later cleanup.
-                await advanceSeenForRun(tx, {
-                    agentId: summary.agentId,
-                    runId: summary.runId,
-                    serverId,
-                });
-                await store.markInboxItemsSeenForRun(tx, {
-                    agentId: summary.agentId,
-                    runId: summary.runId,
-                });
-                await store.releaseUnservedTypedItems(tx, {
-                    agentId: summary.agentId,
-                    runId: summary.runId,
-                    serverId,
-                });
-            } else {
-                await store.requeueInboxItemsForRun(tx, {
-                    agentId: summary.agentId,
-                    runId: summary.runId,
-                });
-                await store.clearInboxNotices(tx, {
-                    agentId: summary.agentId,
-                    runId: summary.runId,
-                });
-            }
-            const activity = await appendServerAgentActivity(tx, {
-                agentId: summary.agentId,
-                category: 'working',
-                phase: summary.status === 'interrupted' ? 'interrupted' : 'failed',
-                runId: summary.runId,
-                serverId,
-            });
-            const configuration = await rotateDeferredConfiguration(tx, {
-                activeRunModelId: state.activeRunModelId,
-                activeRunReasoningEffort: state.activeRunReasoningEffort,
-                activeRunRuntimeId: state.activeRunRuntimeId,
-                agentId: summary.agentId,
-                serverId,
-            });
-            const claimEvents = await settleAgentBackgroundClaims(tx, runScope);
-            await store.clearActiveRun(tx, summary.agentId);
-            await failureHold.recordTurnFailure(tx, runScope, state, {
-                failureCode: summary.failureCode,
-                failureFingerprint: summary.failureFingerprint,
-                failureKind: summary.failureKind,
-            });
-            return { activity, chatId, configuration, plan: null, claimEvents };
+            const settled = await settleRun(tx, { serverId, state, summary });
+            return {
+                ...settled,
+                plan:
+                    summary.status === 'completed'
+                        ? await this.planDispatch(tx, summary.agentId)
+                        : null,
+            };
         });
         if (!settlement) {
             return;
@@ -660,8 +515,25 @@ export class AgentDelivery {
                     reconcileConfigureFrame({ ...agent, desiredModelId, desiredRuntimeId })
                 );
             }
-            await this.dispatchAgent(agent.agentId, agent.serverId, { resendActive: true });
+            await this.dispatchAgent(agent.agentId, agent.serverId, {
+                resendActive: this.route.hostOf(computerId).kind === 'computer',
+            });
         }
+    }
+
+    /**
+     * The runner (re)attached: like a Computer reconnect, resend every in-flight
+     * run, because a restarted runner lost its live turns, then drain queued work.
+     */
+    async onRunnerReconnect(): Promise<void> {
+        await dispatchEach(
+            {
+                dispatchAgent: (agentId, serverId) =>
+                    this.dispatchAgent(agentId, serverId, { resendActive: true }),
+            },
+            await listActiveRunAgents(this.db)
+        );
+        await this.sweep();
     }
 
     /** Best-effort immediate cleanup; the durable retirement tombstone replays on reconnect. */
@@ -698,7 +570,7 @@ export class AgentDelivery {
                     runId: rotation.runId,
                     serverId: agent.serverId,
                 });
-                this.transport.send(rotation.computerId, {
+                this.route.send(this.route.hostOf(rotation.computerId), {
                     agentId: agent.id,
                     runId: rotation.runId,
                     type: 'stop',
@@ -776,12 +648,22 @@ export class AgentDelivery {
         agentId: string,
         options?: DispatchOptions
     ): Promise<DispatchPlan | null> {
+        const plan = await this.planDispatchFrame(tx, agentId, options);
+        return plan ? await this.route.bindRunCredential(tx, plan) : null;
+    }
+
+    private async planDispatchFrame(
+        tx: HausDatabase,
+        agentId: string,
+        options?: DispatchOptions
+    ): Promise<DispatchPlan | null> {
         const state = await store.readDeliveryState(tx, agentId);
         const config = await readAgentDispatchConfig(tx, agentId);
         if (!(state && isConfigured(config)) || state.stopped) {
             return null;
         }
-        if (!this.transport.isOnline(config.computerId)) {
+        // A runner-hosted start goes out whether or not the Agent's Computer is online.
+        if (!this.route.isOnline(this.route.hostOf(config.computerId))) {
             return null;
         }
         await markCursorSubsumedSeen(tx, { agentId, serverId: state.serverId });
@@ -812,8 +694,13 @@ export class AgentDelivery {
                         agentId,
                         serverId: state.serverId,
                     });
+                    await revokeRunnerCredentialsForRun(tx, {
+                        agentId,
+                        runId: state.activeRunId,
+                        serverId: state.serverId,
+                    });
                     await store.clearActiveRun(tx, agentId);
-                    const next = await this.planDispatch(tx, agentId);
+                    const next = await this.planDispatchFrame(tx, agentId);
                     if (next) {
                         return {
                             ...next,
@@ -937,6 +824,25 @@ export class AgentDelivery {
         };
     }
 
+    /**
+     * Locks the Server and returns the Agent's delivery state only while `host`
+     * still hosts the summarized run. A stale or duplicate summary for an
+     * already-cleared run gets null: its durable record upsert is the only effect.
+     */
+    private async lockSettlingRun(
+        tx: HausDatabase,
+        host: AgentLoopHost,
+        serverId: string,
+        summary: AgentTurnSummary
+    ) {
+        await lockServerRow(tx, serverId);
+        const state = await store.readDeliveryState(tx, summary.agentId);
+        return state?.activeRunId === summary.runId &&
+            this.route.hosts(state.activeRunComputerId, host)
+            ? state
+            : null;
+    }
+
     private emit(plan: DispatchPlan | null): void {
         if (!plan) {
             return;
@@ -958,15 +864,16 @@ export class AgentDelivery {
         if (plan.suppressSend) {
             return;
         }
-        if (!this.transport.send(plan.computerId, plan.frame)) {
+        if (!this.route.send(this.route.hostOf(plan.computerId), plan.frame)) {
             return;
         }
-        if (plan.frame.type === 'start') {
+        const start = startOf(plan.frame);
+        if (start) {
             publishAgentLifecycle({
-                agentId: plan.frame.agentId,
-                chatId: plan.frame.chatId,
+                agentId: start.agentId,
+                chatId: start.chatId,
                 phase: 'working',
-                runId: plan.frame.runId,
+                runId: start.runId,
                 serverId: plan.serverId,
             });
         }
@@ -989,7 +896,7 @@ export class AgentDelivery {
             runId: kill.runId,
             serverId: input.serverId,
         });
-        this.transport.send(kill.computerId, {
+        this.route.send(this.route.hostOf(kill.computerId), {
             agentId: input.agentId,
             runId: kill.runId,
             type: 'stop',

@@ -12,6 +12,7 @@ const slowestShown = 10;
 
 const privateNetworkTestFiles = new Set([
     'test/haus-agent-run.test.ts',
+    'test/mcp-dispatch-id.test.ts',
     'test/mcp-inventory.test.ts',
     'test/mcp-oauth-reauth.test.ts',
     'test/mcp-oauth-relay.test.ts',

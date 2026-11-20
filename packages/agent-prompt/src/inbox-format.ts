@@ -1,4 +1,4 @@
-import type { UnreadElsewhere } from './agent-commands.ts';
+import type { UnreadElsewhere } from '@haus/api';
 import type { AgentInboxItem } from './agent-inbox-item.ts';
 import {
     formatCloudAgentWorkAttention,
@@ -64,7 +64,7 @@ function openClaimLines(items: AgentInboxItem[]): string[] {
  * wording (`formatOtherUnreadChannelsSuffix`). It is
  * counts only, it advances nothing, and an empty list renders nothing at all.
  */
-export function formatUnreadElsewhere(entries: UnreadElsewhere[]): string | null {
+export function formatUnreadElsewhere(entries: readonly UnreadElsewhere[]): string | null {
     if (entries.length === 0) {
         return null;
     }

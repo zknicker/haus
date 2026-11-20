@@ -1,9 +1,11 @@
 import { expect, test } from 'bun:test';
-import type { AgentCliMessage } from './agent-cli/agent-api-schemas.ts';
-import { formatDeliveryEnvelope, formatHistoryLine } from './agent-cli/agent-format.ts';
-import type { AgentInboxItem } from './agent-inbox-item.ts';
-import { composeInboxDrain } from './inbox-format.ts';
-import { indentContinuationLines } from './inbox-header-format.ts';
+import {
+    type AgentInboxItem,
+    composeInboxDrain,
+    indentContinuationLines,
+} from '@haus/agent-prompt';
+import type { AgentCliMessage } from './agent-api-schemas.ts';
+import { formatDeliveryEnvelope, formatHistoryLine } from './agent-format.ts';
 
 // Free text that tries to open a forged header line at column 0.
 const forged =
