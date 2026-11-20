@@ -155,7 +155,7 @@ describe('a Worker turn on a Computer', () => {
         await codex.place.accept(
             computerStart({
                 checkout: {
-                    branch: 'haus/sec-12-wrk_2',
+                    branch: 'haus/wrk_2/sec-12',
                     checkoutPath: null,
                     repository: 'acme/app',
                     startingRef: null,

@@ -55,7 +55,7 @@ export async function workerTurnStartFrame(
     if (!sent) {
         throw new Error(`Worker turn ${turn.id} vanished before its start was sent.`);
     }
-    const branch = worker.branch ?? `haus/${task.key.toLowerCase()}-${worker.id}`;
+    const branch = worker.branch ?? `haus/${worker.id}/${task.key.toLowerCase()}`;
     if (place.kind === 'computer' && !worker.branch) {
         await tx
             .update(workersTable)

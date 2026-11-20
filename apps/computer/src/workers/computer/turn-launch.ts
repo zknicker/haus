@@ -130,7 +130,7 @@ async function prepare(
             layout.drive,
             layout.report,
             layout.tmp,
-            ...(await worktreeGitRoots(layout.checkout)),
+            ...(await worktreeGitRoots(layout.checkout, frame.checkout.branch)),
         ],
     };
 }

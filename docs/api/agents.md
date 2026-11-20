@@ -481,7 +481,7 @@ variant that reports with `haus worker report`), then on the first turn `haus/AG
 revision; a later turn carries `WORKER.md` only when its revision differs from the one the Worker
 last received. It sends `worker-turn-start` with `agentId`, `attempt` (bumped on every send),
 `workerMdRevisionId`, and for a Computer place the `runtime`, the `checkout` (the link's path or
-null, the `haus/<key>-<n>-<worker-id>` branch, the starting ref), and `resumeSessionId`;
+null, the `haus/<worker-id>/<key>-<n>` branch, the starting ref), and `resumeSessionId`;
 `worker-turn-accepted` records the acknowledgement. Dispatch runs after start, follow-up, settle, stop, accept, drain, and reconnect.
 On reconnect the Server resends every unaccepted start, then `worker-reconcile` frames (at most 200
 entries) for accepted unsettled turns and migrated turns whose input still sits on the Computer,
