@@ -1,8 +1,9 @@
-import { addressedReasonSchema, humanTimezoneSchema } from '@haus/api';
+import { addressedReasonSchema, humanTimezoneSchema, type WorkerReportAttention } from '@haus/api';
 import type { UnreadElsewhere } from './agent-commands.ts';
 import {
-    workerAttentionResponseSchema,
     pullRequestChangeResponseSchema,
+    workerAttentionResponseSchema,
+    workerReportAttentionResponseSchema,
 } from './agent-inbox-attention-response-schema.ts';
 import type { AgentWorkerAttention, AgentInboxItem } from './agent-inbox-item.ts';
 import { chatMessageReplyResponseSchema } from './chat-message-reply-response-schema.ts';
@@ -114,24 +115,27 @@ function parseInboxItem(item: unknown): AgentInboxItem | null {
     } as unknown as AgentInboxItem;
 }
 
-type TypedAttention = Pick<AgentInboxItem, 'worker' | 'pullRequestNotice'>;
+type TypedAttention = Pick<AgentInboxItem, 'worker' | 'pullRequestNotice' | 'workerReport'>;
 
 function parseTypedAttention(item: Record<string, unknown>): TypedAttention | null {
     const work = workerAttentionResponseSchema.optional().safeParse(item.worker);
     const notice = pullRequestChangeResponseSchema.optional().safeParse(item.pullRequestNotice);
-    if (!(work.success && notice.success) || (work.data && notice.data)) {
+    const report = workerReportAttentionResponseSchema.optional().safeParse(item.workerReport);
+    if (!(work.success && notice.success && report.success)) {
         return null;
     }
-    const isAttention = Boolean(work.data || notice.data);
-    const identityValid = isAttention
-        ? item.sequence === 0 && item.senderType === 'system'
-        : item.sequence !== 0;
+    const attentions = [work.data, notice.data, report.data].filter(Boolean).length;
+    const identityValid =
+        attentions === 0
+            ? item.sequence !== 0
+            : attentions === 1 && item.sequence === 0 && item.senderType === 'system';
     if (!identityValid) {
         return null;
     }
     return {
         ...(work.data ? { worker: work.data as AgentWorkerAttention } : {}),
         ...(notice.data ? { pullRequestNotice: notice.data } : {}),
+        ...(report.data ? { workerReport: report.data as WorkerReportAttention } : {}),
     };
 }
 

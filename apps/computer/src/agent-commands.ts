@@ -5,6 +5,7 @@ import type {
     AgentTurnFailureCode,
     ConnectionChipKind,
     DriveConflictAttention,
+    WorkerReportsNotice,
 } from '@haus/api';
 import type { AgentInboxItem } from './agent-inbox-item.ts';
 import type { RuntimeFailureKind } from './runtime-failure.ts';
@@ -93,6 +94,8 @@ export interface AgentNoticeCommand {
     totalPending: number;
     type: 'notice';
     unreadElsewhere?: UnreadElsewhere[];
+    /** One Task's queued Worker reports, a count beside the inbox; they arrive in the next run. */
+    workerReports?: WorkerReportsNotice;
 }
 
 /** Server-scoped instruction to erase this attachment's local partition. */

@@ -36,15 +36,15 @@ test('rejects a notice with an unknown change, a cursor, or cloud work beside it
                     branches: [],
                     errorCode: null,
                     notice: 'pull_request',
-                    provider: 'cursor',
+                    place: 'cursor',
                     providerUrl: null,
                     repository: 'haus/haus',
-                    turnId: 'car_1234567890abcdef',
+                    turnId: 'wkt_1234567890abcdef',
                     stallCode: null,
                     status: 'completed',
                     summary: null,
                     title: 'Fix the flaky delivery test',
-                    workerId: 'caw_1234567890abcdef',
+                    workerId: 'wkr_1234567890abcdef',
                 },
             }),
         ])
@@ -61,9 +61,9 @@ test('renders the Task, the change in plain words, and the URL', () => {
 
     expect(drain).toContain(
         [
-            '[Haus pull request attention change=checks_failing target=task:HAUS-12]',
-            `The pull request attached to Task HAUS-12 has failing checks: ${url}`,
-            'Report what you learn in the Task: haus message send --target task:HAUS-12',
+            '[pull request · HAUS-12 · has failing checks]',
+            `The pull request attached to HAUS-12 has failing checks: ${url}`,
+            'Post what you learn in the Task: haus message send --target task:HAUS-12',
         ].join('\n')
     );
     expect(drain).not.toContain('[target=task:HAUS-12 msg=');
@@ -74,8 +74,8 @@ test('names each change in plain words', () => {
         composeInboxDrain([item({ pullRequestNotice: { change, url } })])
     );
 
-    expect(lines[0]).toContain(`attached to Task HAUS-12 is ready for review: ${url}`);
-    expect(lines[1]).toContain(`attached to Task HAUS-12 has its checks passing: ${url}`);
+    expect(lines[0]).toContain(`attached to HAUS-12 is ready for review: ${url}`);
+    expect(lines[1]).toContain(`attached to HAUS-12 has its checks passing: ${url}`);
 });
 
 test('counts the notice as pending work, not an unread message', () => {
@@ -105,7 +105,7 @@ test('an item with neither attention still renders as a message', () => {
     const drain = composeInboxDrain([parsed]);
     expect(drain).toContain('[target=task:HAUS-12 msg=');
     expect(drain).toContain('type=human] zach: Ship it?');
-    expect(drain).not.toContain('pull request attention');
+    expect(drain).not.toContain('[pull request ·');
 });
 
 function noticeItem(overrides: Record<string, unknown> = {}): Record<string, unknown> {

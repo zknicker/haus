@@ -2,7 +2,8 @@ import type {
     AddressedReason,
     ChatMessageReply,
     WorkerBranch,
-    CloudAgentProvider,
+    WorkerPlace,
+    WorkerReportAttention,
     WorkerStallCode,
     WorkerTurnStatus,
 } from '@haus/api';
@@ -33,16 +34,18 @@ export interface AgentInboxItem {
     senderType: 'agent' | 'human' | 'system' | 'trigger';
     sequence: number;
     target: string;
+    /** One settled Worker turn for its delegating Agent: its report, or the failure Haus recorded. */
+    workerReport?: WorkerReportAttention;
 }
 
-/** A settled Worker Run's terminal attention for the delegating Agent. */
+/** A live Worker turn's stall, or a pull request change, for the delegating Agent. */
 export interface AgentWorkerAttention {
     branches: WorkerBranch[];
     errorCode: string | null;
     /** Whether `summary` is only the capped head of a longer report (TECH-8). */
     hasFullReport?: boolean;
-    notice: 'settled' | 'stall' | 'pull_request';
-    provider: CloudAgentProvider;
+    notice: 'stall' | 'pull_request';
+    place: WorkerPlace;
     providerUrl: string | null;
     pullRequestChange?: WorkerPullRequestChange;
     repository: string;

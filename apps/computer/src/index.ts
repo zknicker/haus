@@ -1366,7 +1366,7 @@ async function connect(
                             }
                         },
                         receipt,
-                        notice.taskAssignments
+                        notice
                     )
                         .then(() => {
                             if (injected) {

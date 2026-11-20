@@ -16,6 +16,7 @@ import type { RuntimeResumeState } from '../runtime/resume-state.ts';
 import { fakeRuntimeDriver } from '../runtime/testing/fake-runtime-driver.ts';
 import type { RuntimeTokenUsage, TurnEvent } from '../runtime/turn-event.ts';
 import { readClaudePlanUsageState } from '../usage/claude-plan-usage-state.ts';
+import { workerReportItem } from '../worker-report.fixture.ts';
 import { readComputerExecutionJournal } from './execution-journal.ts';
 import { legacyCoveFaq, legacyCovePlaybook } from './executor-fixtures.ts';
 import {
@@ -417,39 +418,15 @@ test('uses a concrete cold inbox as the first prompt without mid-turn injection'
 test('projects a concrete typed attention into the first prompt by its own identity', async () => {
     await runHarnessTurn(
         turnInput({
-            inbox: [
-                {
-                    chatId: 'cht_origin',
-                    worker: {
-                        branches: [],
-                        errorCode: null,
-                        notice: 'settled',
-                        provider: 'cursor',
-                        providerUrl: null,
-                        repository: 'haus/haus',
-                        turnId: 'car_1234567890abcdef',
-                        stallCode: null,
-                        status: 'completed',
-                        summary: 'Opened a pull request.',
-                        title: 'Fix the flaky delivery test',
-                        workerId: 'caw_1234567890abcdef',
-                    },
-                    content: '',
-                    createdAt: '2026-07-27T00:00:00.000Z',
-                    id: 'car_1234567890abcdef',
-                    senderHandle: 'haus',
-                    senderType: 'system',
-                    sequence: 0,
-                    target: '#general',
-                },
-            ],
+            inbox: [workerReportItem()],
             inboxDelivery: 'concrete',
         })
     );
 
-    expect(streamedPrompts[0]).toContain('work=caw_1234567890abcdef');
-    expect(streamedPrompts[0]).toContain('run=car_1234567890abcdef');
-    expect(streamedPrompts[0]).toContain('Opened a pull request.');
+    expect(streamedPrompts[0]).toContain(
+        '[worker report · ENG-41 · done · Worker on cursor (wkr_1234567890abcdef) · turn 1]'
+    );
+    expect(streamedPrompts[0]).toContain('Fixed the race.');
 });
 
 test('projects a concrete fire and a claim assignment into the first prompt', async () => {
