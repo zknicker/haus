@@ -159,10 +159,11 @@ with. Settings → Models shows it on the connection's row.
   hour. A `401` or `403` stops reading that connection for 6 hours or until its `credentialVersion`
   changes, failed turns included.
 - **Storage.** The Server stores the windows and `readAt` on the connection, dropping a reading
-  whose `credentialVersion` is not the stored credential's, and announces
-  `modelConnections` updated only when the windows changed. The list shows `capacity: null` when
+  whose `credentialVersion` is not the stored credential's. The list shows `capacity: null` when
   nothing was read or the reading is older than 6 hours, and leaves out a window whose `resetsAt`
-  has passed. Replacing a credential clears it.
+  has passed. A reading announces `modelConnections` updated only when it changes what the list
+  shows, so a fresh reading after a stale one announces even when its windows match. Replacing a
+  credential clears it.
 
 ## Retired
 

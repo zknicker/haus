@@ -66,13 +66,24 @@ test('an unchanged reading is stored without an announcement', async () => {
 
 test('a reading older than 6 hours lists as null', async () => {
     const stale = (await addClaudeConnection(seed, 'Old plan', 'sk-ant-oat01-old-token')).id;
-    const announced = connectionsAnnounced(seed.serverId);
     runner.send(capacity(stale, new Date(Date.now() - 7 * hour), weekly));
-    await announced;
+    await framesProcessed();
 
     expect(await listedCapacity(stale)).toBeNull();
     const [row] = await harness.sql`select capacity from model_connections where id = ${stale}`;
     expect(row?.capacity).toEqual(weekly);
+});
+
+test('a fresh reading after a stale one is announced even when its windows match', async () => {
+    const idle = (await addClaudeConnection(seed, 'Idle plan', 'sk-ant-oat01-idle-token')).id;
+    runner.send(capacity(idle, new Date(Date.now() - 7 * hour), weekly));
+    await framesProcessed();
+    expect(await listedCapacity(idle)).toBeNull();
+
+    const recovered = connectionsAnnounced(seed.serverId);
+    runner.send(capacity(idle, new Date(), weekly));
+    await recovered;
+    expect(await listedCapacity(idle)).toEqual(weekly);
 });
 
 test('a window whose reset has passed stops showing', async () => {

@@ -1,3 +1,4 @@
+import { isDeepStrictEqual } from 'node:util';
 import type {
     RunnerConnectionCapacityFrame,
     RunnerConnectionCredentialFrame,
@@ -9,6 +10,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { modelConnectionsTable, serversTable } from '../postgres/schema.ts';
 import type { SecretsKey } from '../secrets/sealed-secret.ts';
 import { openCredential, sealCredential } from './connection-credential.ts';
+import { shownCapacity } from './read-model-connections.ts';
 
 export async function readRunnerConnections(db: HausDatabase, key: SecretsKey) {
     const rows = await db
@@ -106,11 +108,11 @@ export async function recordConnectionCapacity(
     frame: RunnerConnectionCapacityFrame
 ) {
     const readAt = new Date(frame.readAt);
-    const windows = sql`${sql.param(frame.windows)}::jsonb`;
     return await db.transaction(async (tx) => {
         const [row] = await tx
             .select({
-                changed: sql<boolean>`${modelConnectionsTable.capacity} is distinct from ${windows}`,
+                capacity: modelConnectionsTable.capacity,
+                capacityReadAt: modelConnectionsTable.capacityReadAt,
                 serverId: modelConnectionsTable.serverId,
             })
             .from(modelConnectionsTable)
@@ -130,9 +132,13 @@ export async function recordConnectionCapacity(
         }
         await tx
             .update(modelConnectionsTable)
-            .set({ capacity: windows, capacityReadAt: readAt })
+            .set({ capacity: sql`${sql.param(frame.windows)}::jsonb`, capacityReadAt: readAt })
             .where(eq(modelConnectionsTable.id, frame.connectionId));
-        return row.changed ? row.serverId : null;
+        const at = Date.now();
+        const shown = shownCapacity(frame.windows, readAt, at);
+        return isDeepStrictEqual(shownCapacity(row.capacity, row.capacityReadAt, at), shown)
+            ? null
+            : row.serverId;
     });
 }
 
