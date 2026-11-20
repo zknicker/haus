@@ -12,6 +12,7 @@ import type { ImageProviderAdapters } from './image-generation/run-image-generat
 import type { MessageRouter } from './message-routing/jev.ts';
 import type { PushSender } from './push/push-sender.ts';
 import type { ReminderClock } from './reminders/reminder-model.ts';
+import type { SecretsKey } from './secrets/sealed-secret.ts';
 import type { ThoughtSummarizer } from './server-agents/agent-thought-summarizer.ts';
 
 /** PostgreSQL- and Cloudflare-authenticated Haus Server HTTP and WebSocket application. */
@@ -68,6 +69,8 @@ export interface HausServerApplicationOptions {
     reminderClock?: ReminderClock;
     /** Opens the runner socket, from `HAUS_RUNNER_TOKEN`; absent refuses every runner. */
     runnerToken?: string;
+    /** Seals model connections at rest, from `HAUS_SECRETS_KEY`; absent refuses to store them. */
+    secretsKey?: SecretsKey | null;
     /** Built Haus App assets. Omit only when another process serves the App in development. */
     staticAppRoot?: string;
     /** Interval seam for the boot sweeps; tests pass inert timers. */

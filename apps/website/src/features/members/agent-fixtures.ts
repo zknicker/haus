@@ -36,6 +36,7 @@ export function testAgent(overrides: Partial<Agent> = {}): Agent {
         handle: 'fen',
         id: 'agent_one',
         missingResources: [],
+        modelConnectionId: null,
         serverId: 'server_one',
         status: 'applied',
         wakePause: null,
