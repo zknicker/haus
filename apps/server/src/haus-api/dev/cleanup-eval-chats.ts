@@ -1,7 +1,8 @@
 import { TRPCError } from '@trpc/server';
 import { and, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
-import { chatsTable, remindersTable, triggersTable } from '../../postgres/schema.ts';
+import { agentsTable, chatsTable, remindersTable, triggersTable } from '../../postgres/schema.ts';
+import { requireHausProjectId } from '../../projects/haus-project.ts';
 import { publishRealtime } from '../../realtime/topic.ts';
 import { remindersAnchoredIn } from '../../reminders/anchored-reminders.ts';
 import { requireServerMembership } from '../../servers/server-access.ts';
@@ -52,6 +53,15 @@ export function createCleanupEvalChatsProcedure(
                     and(
                         eq(triggersTable.serverId, input.serverId),
                         inArray(triggersTable.anchorChatId, chatIds)
+                    )
+                );
+            await tx
+                .update(agentsTable)
+                .set({ homeProjectId: await requireHausProjectId(tx, input.serverId) })
+                .where(
+                    and(
+                        eq(agentsTable.serverId, input.serverId),
+                        inArray(agentsTable.homeProjectId, requestedChatIds)
                     )
                 );
             const deletedTasks = await deleteTasksOfRemovedChats(tx, {
