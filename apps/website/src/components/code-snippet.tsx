@@ -5,12 +5,13 @@ import { CopyButton } from './copy-button.tsx';
 interface CodeSnippetProps extends Omit<React.ComponentProps<'div'>, 'children'> {
     copyValue?: string;
     lines: string | string[];
+    wrap?: boolean;
 }
 
 /** Inline copyable command row (install commands, tokens). */
-export function CodeSnippet({ className, copyValue, lines, ...props }: CodeSnippetProps) {
+export function CodeSnippet({ className, copyValue, lines, wrap, ...props }: CodeSnippetProps) {
     const normalizedLines = Array.isArray(lines) ? lines : [lines];
-    const isMultiLine = normalizedLines.length > 1;
+    const isMultiLine = normalizedLines.length > 1 || Boolean(wrap);
     const value = copyValue ?? normalizedLines.join('\n');
 
     return (
