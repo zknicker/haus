@@ -6,6 +6,7 @@ import {
     type ModelSignInProvider,
     modelConnectionCredentialSchema,
     modelProviderSchema,
+    modelSignInProviderSchema,
 } from '@haus/api';
 import { TRPCClientError } from '@trpc/client';
 
@@ -16,6 +17,32 @@ export const modelProviderNames: Record<ModelProvider, string> = {
     openrouter: 'OpenRouter',
     xai: 'xAI',
 };
+
+export const signInProviderNames: Record<ModelSignInProvider, string> = {
+    chatgpt: 'ChatGPT',
+    xai: 'SuperGrok',
+};
+
+export function connectionName({
+    authKind,
+    provider,
+}: Pick<ModelConnection, 'authKind' | 'provider'>) {
+    const signInProvider = modelSignInProviderSchema.safeParse(provider);
+    return authKind === 'oauth' && signInProvider.success
+        ? signInProviderNames[signInProvider.data]
+        : modelProviderNames[provider];
+}
+
+export function connectionInfo(connection: Pick<ModelConnection, 'authKind' | 'provider'>) {
+    switch (connection.authKind) {
+        case 'api-key':
+            return 'A pasted API key. The Server keeps it encrypted and never shows it again.';
+        case 'oauth':
+            return `Signed in to ${connectionName(connection)} with a device code. The Server keeps the login encrypted and refreshes it.`;
+        case 'setup-token':
+            return 'A pasted setup token. The Server keeps it encrypted and never shows it again.';
+    }
+}
 
 export type PastedCredentialKind = Exclude<ModelConnectionCredential['kind'], 'oauth'>;
 

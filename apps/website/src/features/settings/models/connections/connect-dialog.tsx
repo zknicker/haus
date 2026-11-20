@@ -12,6 +12,7 @@ import { DeviceSignInFlow } from './device-sign-in.tsx';
 import {
     connectFlows,
     connectionErrorMessage,
+    connectionName,
     modelProviderNames,
     nextConnectionLabel,
     signInCloseStep,
@@ -40,10 +41,10 @@ export function ConnectDialog({
     const cancel = useCancelModelSignIn(serverId);
     const replace = useReplaceModelConnection(serverId);
     const flow = flows[flowIndex] ?? flows[0];
-    const name = modelProviderNames[provider];
     if (!flow) {
         return null;
     }
+    const name = connectionName({ authKind: flow.kind, provider });
     const defaultLabel = nextConnectionLabel(replacing?.label ?? flow.defaultLabel, takenLabels);
 
     const requestClose = async () => {
@@ -87,7 +88,7 @@ export function ConnectDialog({
     const choice =
         flows.length > 1 && !replacing ? (
             <Segment
-                aria-label={`How to connect ${name}`}
+                aria-label={`How to connect ${modelProviderNames[provider]}`}
                 onSelectionChange={(key) =>
                     setFlowIndex(
                         Math.max(

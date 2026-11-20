@@ -16,6 +16,7 @@ import {
     connectionErrorMessage,
     connectionFact,
     connectionFailure,
+    connectionInfo,
 } from './model-connection-model.ts';
 import { RenameConnectionDialog } from './rename-connection-dialog.tsx';
 
@@ -50,7 +51,7 @@ export function ModelConnectionRow({
     return (
         <ItemCard>
             <ItemCard.Content>
-                <SettingsRowTitle info={authKindInfo[connection.authKind]}>
+                <SettingsRowTitle info={connectionInfo(connection)}>
                     {connection.label}
                 </SettingsRowTitle>
                 <ConnectionCapacity connection={connection} />
@@ -157,9 +158,3 @@ function ConnectionMenu({
         </Dropdown>
     );
 }
-
-const authKindInfo: Record<ModelConnection['authKind'], string> = {
-    'api-key': 'A pasted API key. The Server keeps it encrypted and never shows it again.',
-    oauth: 'Signed in with a device code. The Server keeps the login encrypted and refreshes it.',
-    'setup-token': 'A pasted setup token. The Server keeps it encrypted and never shows it again.',
-};

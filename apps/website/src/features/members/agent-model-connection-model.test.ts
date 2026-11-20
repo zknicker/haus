@@ -67,13 +67,48 @@ test('the issue is the connection the Agent actually runs on, only when it faile
             { desiredModelId: 'claude-sonnet-4-5', modelConnectionId: 'mcn_side' },
             withFailure
         )
-    ).toEqual({ connection: failedSide, providerName: 'Claude' });
+    ).toEqual({ connection: failedSide, kind: 'failed', providerName: 'Claude' });
     expect(
         agentConnectionIssue(
             { desiredModelId: 'claude-sonnet-4-5', modelConnectionId: null },
             withFailure
         )
     ).toBeNull();
+});
+
+test("removing the Agent's only connection for its provider warns that none is left", () => {
+    const grok = { desiredModelId: 'grok-4', modelConnectionId: 'mcn_grok' };
+    const superGrok = testConnection({
+        authKind: 'oauth',
+        id: 'mcn_grok',
+        label: 'SuperGrok',
+        provider: 'xai',
+        webSearch: true,
+    });
+    expect(agentConnectionIssue(grok, [claudeTeam, superGrok])).toBeNull();
+    expect(agentConnectionIssue(grok, [claudeTeam])).toEqual({
+        kind: 'missing',
+        providerName: 'xAI',
+    });
+    expect(
+        agentConnectionIssue({ desiredModelId: 'gemini-2.5-pro', modelConnectionId: null }, [])
+    ).toEqual({ kind: 'missing', providerName: 'Gemini' });
+});
+
+test("an Agent whose own connection is gone runs on the provider's default without a warning", () => {
+    expect(
+        agentConnectionIssue(
+            { desiredModelId: 'claude-sonnet-4-5', modelConnectionId: 'mcn_side' },
+            [claudeTeam]
+        )
+    ).toBeNull();
+    const failedTeam = { ...claudeTeam, status: 'failed' as const, statusDetail: null };
+    expect(
+        agentConnectionIssue(
+            { desiredModelId: 'claude-sonnet-4-5', modelConnectionId: 'mcn_side' },
+            [failedTeam]
+        )
+    ).toEqual({ connection: failedTeam, kind: 'failed', providerName: 'Claude' });
 });
 
 test('the Default key saves as no choice', () => {

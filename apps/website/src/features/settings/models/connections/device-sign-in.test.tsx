@@ -18,6 +18,9 @@ function text(signIn: ModelSignIn) {
 
 test('each step of a sign-in reads as what the Owner waits for or does next', () => {
     expect(text({ ...base, state: 'waiting-for-code' })).toBe('Waiting for a code from ChatGPT…');
+    expect(text({ ...base, provider: 'xai', state: 'waiting-for-code' })).toBe(
+        'Waiting for a code from SuperGrok…'
+    );
     expect(text({ ...base, state: 'storing' })).toBe('Saving the connection…');
     expect(text({ ...base, connectionId: 'mcn_1', state: 'connected' })).toBe(
         'ChatGPT plan is connected.'
@@ -43,5 +46,5 @@ test('the code step shows the link and the code to type, with a copy button', ()
     expect(html).toContain('accounts.x.ai/device');
     expect(html).toContain('>WXYZ-1234<');
     expect(html).toContain('aria-label="Copy code"');
-    expect(html).toContain('This closes once xAI confirms.');
+    expect(html).toContain('This closes once SuperGrok confirms.');
 });

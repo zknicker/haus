@@ -30,13 +30,20 @@ export function agentConnectionIssue(
     agent: AgentConnectionFields,
     connections: readonly ModelConnection[]
 ) {
-    const options = providerConnections(modelProviderFor(agent.desiredModelId), connections);
+    const provider = modelProviderFor(agent.desiredModelId);
+    const providerName = modelProviderNames[provider];
+    const options = providerConnections(provider, connections);
     const resolved =
         options.find((connection) => connection.id === agent.modelConnectionId) ?? options[0];
-    return resolved?.status === 'failed'
-        ? { connection: resolved, providerName: modelProviderNames[resolved.provider] }
+    if (!resolved) {
+        return { kind: 'missing' as const, providerName };
+    }
+    return resolved.status === 'failed'
+        ? { connection: resolved, kind: 'failed' as const, providerName }
         : null;
 }
+
+export type AgentConnectionIssue = NonNullable<ReturnType<typeof agentConnectionIssue>>;
 
 export function connectionIdForKey(key: unknown) {
     return key === defaultConnectionKey || typeof key !== 'string' ? null : key;

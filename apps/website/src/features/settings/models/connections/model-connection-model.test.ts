@@ -7,6 +7,8 @@ import {
     connectionErrorMessage,
     connectionFact,
     connectionFailure,
+    connectionInfo,
+    connectionName,
     connectionsByProvider,
     nextConnectionLabel,
     pastedCredential,
@@ -37,6 +39,19 @@ test('each provider offers exactly the sign-in kinds the Server accepts', () => 
             ...modelProviderAuthKinds[provider as keyof typeof modelProviderAuthKinds],
         ]);
     }
+});
+
+test('an xAI sign-in reads as SuperGrok, the plan people sign into; an xAI key stays xAI', () => {
+    const [signIn, apiKey] = connectFlows.xai;
+    expect(signIn && connectionName({ authKind: signIn.kind, provider: 'xai' })).toBe('SuperGrok');
+    expect(apiKey && connectionName({ authKind: apiKey.kind, provider: 'xai' })).toBe('xAI');
+    expect(connectionName({ authKind: 'oauth', provider: 'chatgpt' })).toBe('ChatGPT');
+    expect(connectionInfo({ authKind: 'oauth', provider: 'xai' })).toBe(
+        'Signed in to SuperGrok with a device code. The Server keeps the login encrypted and refreshes it.'
+    );
+    expect(connectionInfo({ authKind: 'api-key', provider: 'xai' })).toBe(
+        'A pasted API key. The Server keeps it encrypted and never shows it again.'
+    );
 });
 
 test('the fact says whether a connection works and marks the default', () => {

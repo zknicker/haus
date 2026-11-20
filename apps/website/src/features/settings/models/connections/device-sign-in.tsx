@@ -8,7 +8,7 @@ import {
 } from '../../../../hooks/servers/use-model-sign-in.ts';
 import { openSystemBrowserLink } from '../../../../lib/open-external-link.ts';
 import { SettingsRowError } from '../../layout/settings-text.tsx';
-import { connectionErrorMessage, modelProviderNames } from './model-connection-model.ts';
+import { connectionErrorMessage, signInProviderNames } from './model-connection-model.ts';
 
 const FORM_ID = 'model-sign-in-form';
 
@@ -97,7 +97,7 @@ export function DeviceSignInFlow({
 }
 
 export function DeviceSignInStatus({ signIn }: { signIn: ModelSignIn }) {
-    const name = modelProviderNames[signIn.provider];
+    const name = signInProviderNames[signIn.provider];
     switch (signIn.state) {
         case 'waiting-for-code':
             return <SignInProgress>Waiting for a code from {name}…</SignInProgress>;

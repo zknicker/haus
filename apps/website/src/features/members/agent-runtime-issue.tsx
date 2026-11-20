@@ -6,14 +6,14 @@ import { useModelConnections } from '../../hooks/servers/use-model-connections.t
 import { computerLabel } from '../computers/presentation.ts';
 import { agentRuntimeIssue, runtimeIssueLabel } from '../computers/runtime-issue-model.ts';
 import { serverComputerRoute, serverSettingsSectionRoute } from '../servers/server-routes.ts';
-import { agentConnectionIssue } from './agent-model-connection-model.ts';
+import { type AgentConnectionIssue, agentConnectionIssue } from './agent-model-connection-model.ts';
 import { AgentWakePauseAlert } from './agent-wake-pause-alert.tsx';
 
 /**
  * What stands between the Agent and its next turn, one Alert at a time. A
- * runtime sign-in issue, then a refused model connection, outrank a wake
- * pause: each names the concrete fix, and repeated sign-in failures are
- * usually why the Agent paused.
+ * runtime sign-in issue, then a refused or missing model connection, outrank
+ * a wake pause: each names the concrete fix, and repeated sign-in failures
+ * are usually why the Agent paused.
  */
 export function AgentRuntimeIssue({ agent, canRestart }: { agent: Agent; canRestart: boolean }) {
     const computers = useComputers(agent.serverId);
@@ -21,30 +21,11 @@ export function AgentRuntimeIssue({ agent, canRestart }: { agent: Agent; canRest
     const { slug } = useParams();
     const computer = computers.data?.find(({ id }) => id === agent.computerId);
     const issue = agentRuntimeIssue(agent, computer?.reportedInventory ?? null);
-    const connectionIssue = agentConnectionIssue(agent, connections.data?.connections ?? []);
+    const connectionIssue = connections.data
+        ? agentConnectionIssue(agent, connections.data.connections)
+        : null;
     if (!(computer && issue) && connectionIssue) {
-        return (
-            <Alert status="warning">
-                <Alert.Indicator />
-                <Alert.Content>
-                    <Alert.Title>{connectionIssue.providerName} connection failed</Alert.Title>
-                    <Alert.Description>
-                        {connectionIssue.connection.label}:{' '}
-                        {connectionIssue.connection.statusDetail ?? 'the provider refused it.'}{' '}
-                        {slug ? (
-                            <Link
-                                className="text-accent underline"
-                                to={serverSettingsSectionRoute(slug, 'models')}
-                            >
-                                Reconnect in Settings → Models
-                            </Link>
-                        ) : (
-                            'Reconnect in Settings → Models.'
-                        )}
-                    </Alert.Description>
-                </Alert.Content>
-            </Alert>
-        );
+        return <AgentConnectionAlert issue={connectionIssue} slug={slug} />;
     }
     if (!(computer && issue)) {
         return agent.wakePause ? (
@@ -73,6 +54,46 @@ export function AgentRuntimeIssue({ agent, canRestart }: { agent: Agent; canRest
                             </Link>
                         </>
                     ) : null}
+                </Alert.Description>
+            </Alert.Content>
+        </Alert>
+    );
+}
+
+function AgentConnectionAlert({
+    issue,
+    slug,
+}: {
+    issue: AgentConnectionIssue;
+    slug: string | undefined;
+}) {
+    const fix =
+        issue.kind === 'failed'
+            ? 'Reconnect in Settings → Models'
+            : 'Connect one in Settings → Models';
+    return (
+        <Alert status="warning">
+            <Alert.Indicator />
+            <Alert.Content>
+                <Alert.Title>
+                    {issue.kind === 'failed'
+                        ? `${issue.providerName} connection failed`
+                        : `No ${issue.providerName} connection`}
+                </Alert.Title>
+                <Alert.Description>
+                    {issue.kind === 'failed'
+                        ? `${issue.connection.label}: ${issue.connection.statusDetail ?? 'the provider refused it.'} `
+                        : null}
+                    {slug ? (
+                        <Link
+                            className="text-accent underline"
+                            to={serverSettingsSectionRoute(slug, 'models')}
+                        >
+                            {fix}
+                        </Link>
+                    ) : (
+                        `${fix}.`
+                    )}
                 </Alert.Description>
             </Alert.Content>
         </Alert>

@@ -97,11 +97,7 @@ export function AgentHoverCardContent({
             : null;
     const modelChange = resolveAgentHoverModelChange(value);
     const desiredExecution = agentExecutionLabels(value, computer?.reportedInventory ?? null);
-    const attention = agentHoverAttention(
-        value,
-        computer ?? null,
-        connections.data?.connections ?? []
-    );
+    const attention = agentHoverAttention(value, computer ?? null, connections.data?.connections);
     const banner =
         attention?.kind === 'wake-pause' ? (
             <AgentWakePauseBanner wakePause={attention.wakePause} />

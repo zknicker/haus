@@ -3,34 +3,34 @@ import { Alert } from '@heroui/react';
 import type { HausOutputs } from '../../lib/haus-server.tsx';
 import { computerLabel } from '../computers/presentation.ts';
 import { agentRuntimeIssue, runtimeIssueLabel } from '../computers/runtime-issue-model.ts';
-import { agentConnectionIssue } from './agent-model-connection-model.ts';
+import { type AgentConnectionIssue, agentConnectionIssue } from './agent-model-connection-model.ts';
 import { wakePauseBannerDescription } from './agent-wake-pause-model.ts';
 
 type Computer = HausOutputs['computer']['list'][number];
 
 /**
- * What the hover card warns about. A runtime sign-in issue, then a refused
- * model connection, outrank a wake pause, matching the profile, because each
- * names the concrete fix.
+ * What the hover card warns about. A runtime sign-in issue, then a refused or
+ * missing model connection, outrank a wake pause, matching the profile,
+ * because each names the concrete fix.
  */
 export type AgentHoverAttentionState =
     | { kind: 'runtime-issue'; computer: Computer; runtimeId: string }
-    | { kind: 'connection-issue'; providerName: string }
+    | { kind: 'connection-issue'; issue: AgentConnectionIssue }
     | { kind: 'wake-pause'; wakePause: AgentWakePause }
     | null;
 
 export function agentHoverAttention(
     agent: Agent,
     computer: Computer | null,
-    connections: readonly ModelConnection[]
+    connections: readonly ModelConnection[] | undefined
 ): AgentHoverAttentionState {
     const issue = agentRuntimeIssue(agent, computer?.reportedInventory ?? null);
     if (computer && issue) {
         return { computer, kind: 'runtime-issue', runtimeId: issue.runtimeId };
     }
-    const connectionIssue = agentConnectionIssue(agent, connections);
+    const connectionIssue = connections ? agentConnectionIssue(agent, connections) : null;
     if (connectionIssue) {
-        return { kind: 'connection-issue', providerName: connectionIssue.providerName };
+        return { issue: connectionIssue, kind: 'connection-issue' };
     }
     return agent.wakePause ? { kind: 'wake-pause', wakePause: agent.wakePause } : null;
 }
@@ -52,9 +52,12 @@ export function AgentAttentionLine({
         );
     }
     if (attention?.kind === 'connection-issue') {
+        const { providerName } = attention.issue;
         return (
             <p className="text-warning text-xs">
-                {attention.providerName} connection failed. Reconnect in Settings → Models.
+                {attention.issue.kind === 'failed'
+                    ? `${providerName} connection failed. Reconnect in Settings → Models.`
+                    : `No ${providerName} connection. Connect one in Settings → Models.`}
             </p>
         );
     }
