@@ -4,7 +4,7 @@ import {
     type McpPreset,
     mcpPresetIcons,
 } from '@haus/api';
-import { ItemCard } from '@heroui-pro/react';
+import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Button, Tooltip } from '@heroui/react';
 import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { useState } from 'react';
@@ -13,25 +13,26 @@ import { useConnectionPresetAdd } from '../../../hooks/servers/use-connection-pr
 import { useConnectionPresetIcons } from '../../../hooks/servers/use-connection-preset-icons.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
 import { useSkoolConnect } from '../../../hooks/servers/use-skool-connect.ts';
-import { SettingsCardGrid, SettingsGridItem } from '../layout/settings-card-grid.tsx';
+import { SettingsGridItem } from '../layout/settings-card-grid.tsx';
 import { ConnectionGlyph } from './connection-mark.tsx';
 import { connectionPresets, recommendedPresets } from './connection-presets.ts';
 import { McpBearerTokenDialog } from './mcp-bearer-token-dialog.tsx';
 import { SkoolConnectDialog } from './skool-connect-dialog.tsx';
 
-/** Presets not yet added, each one press away from being an Added MCP. */
-export function ConnectionPresetSection({ serverId }: { serverId: string }) {
+export function ConnectionCatalog({ serverId }: { serverId: string }) {
     const addPreset = useConnectionPresetAdd(serverId);
     const connections = useConnections(serverId);
     const presetIcons = useConnectionPresetIcons(serverId);
-    // A bearer-token preset takes its token before it is added, not after.
     const [tokenPreset, setTokenPreset] = useState<McpBearerTokenPreset | null>(null);
     const [skoolOpen, setSkoolOpen] = useState(false);
     const skool = useSkoolConnect(serverId);
     const availablePresets = recommendedPresets(connections.data ?? []);
 
-    if (!connections.data || availablePresets.length === 0) {
+    if (!connections.data) {
         return null;
+    }
+    if (availablePresets.length === 0) {
+        return <p className="text-muted py-8 text-center text-sm">Every connection is added.</p>;
     }
 
     const add = (preset: McpPreset, name: string) => {
@@ -46,7 +47,7 @@ export function ConnectionPresetSection({ serverId }: { serverId: string }) {
 
     return (
         <>
-            <SettingsCardGrid count={availablePresets.length} title="Recommended">
+            <ItemCardGroup className="item-card-group--catalog" variant="transparent">
                 {availablePresets.map((preset) => (
                     <SettingsGridItem key={preset.id}>
                         <ItemCard.Icon>
@@ -65,9 +66,6 @@ export function ConnectionPresetSection({ serverId }: { serverId: string }) {
                         </ItemCard.Icon>
                         <ItemCard.Content>
                             <ItemCard.Title>{preset.name}</ItemCard.Title>
-                            {/* `max-w-full`: the stock description is
-                            `width:fit-content`, which a nowrap line grows past
-                            its column instead of ellipsizing. */}
                             <ItemCard.Description className="max-w-full">
                                 {preset.description}
                             </ItemCard.Description>
@@ -84,7 +82,7 @@ export function ConnectionPresetSection({ serverId }: { serverId: string }) {
                         </ItemCard.Action>
                     </SettingsGridItem>
                 ))}
-            </SettingsCardGrid>
+            </ItemCardGroup>
             {tokenPreset ? (
                 <McpBearerTokenDialog
                     heading={`Connect ${tokenPresetName(tokenPreset)}`}

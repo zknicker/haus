@@ -299,7 +299,8 @@ stops the next notification; only a message already read is not notified.
   never notifies.
 - With several tabs open on the same Server, one tab (elected through a Web Lock) notifies, so
   each message notifies once per browser. The Electron app and a browser each notify separately.
-- Permission is requested only from the notifications toggle in Settings, never on page load.
+- Permission is requested only from the notifications toggle in Settings → Notifications, never on
+  page load. Its Test notification row shows one on demand once the toggle is on.
   With the toggle off or permission denied, nothing is shown.
 - **macOS** keeps the app running when its last window closes: closing hides the window, and
   Cmd+Q or the menu's Quit quits. Notifications therefore keep arriving with no window open.
