@@ -5,15 +5,17 @@ import { Link } from 'react-router-dom';
 import { HausMascot } from '../../components/haus-mascot.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useOptionalServerWorkState } from '../../hooks/agents/use-current-agent-activity.tsx';
+import { useAgentIds } from '../../hooks/members/use-agents.ts';
 import { useSidebarNavigate } from '../../hooks/shell/sidebar-navigate.tsx';
 import { serverRoute } from '../servers/server-routes.ts';
 import { resolveAgentActivityGhostTempo } from '../shell/agent-activity-ghost-tempo.ts';
 import { useCommandMenu } from '../shell/command-menu-provider.tsx';
 import { requestHomePromptFocus } from './home-prompt-focus.ts';
 
-export function CapySidebarActions({ slug }: { slug: string }) {
+export function CapySidebarActions({ serverId, slug }: { serverId: string; slug: string }) {
     const navigate = useSidebarNavigate();
     const { open: openCommandMenu } = useCommandMenu();
+    const hasCaptains = useAgentIds(serverId).length > 0;
     return (
         <div className="app-shell-band flex items-center">
             <HeaderAction
@@ -27,18 +29,21 @@ export function CapySidebarActions({ slug }: { slug: string }) {
                 label="New task"
                 onPress={() => {
                     navigate(serverRoute(slug));
-                    requestHomePromptFocus();
+                    if (hasCaptains) {
+                        requestHomePromptFocus();
+                    }
                 }}
+                tooltip={hasCaptains ? undefined : 'New task needs a Captain. Add one from Home.'}
             />
         </div>
     );
 }
 
-export function CapySidebarHeader({ slug }: { slug: string }) {
+export function CapySidebarHeader({ serverId, slug }: { serverId: string; slug: string }) {
     return (
         <div className="flex h-(--app-shell-band-height) shrink-0 items-center justify-between ps-[calc(var(--spacing-compact)*3+0.5rem)] pe-[calc(var(--spacing-compact)*3)]">
             <HomeMark slug={slug} />
-            <CapySidebarActions slug={slug} />
+            <CapySidebarActions serverId={serverId} slug={slug} />
         </div>
     );
 }
@@ -57,11 +62,13 @@ function HeaderAction({
     label,
     onPress,
     shortcut,
+    tooltip,
 }: {
     icon: IconSvgElement;
     label: string;
     onPress: () => void;
     shortcut?: string;
+    tooltip?: string;
 }) {
     return (
         <Tooltip>
@@ -69,7 +76,7 @@ function HeaderAction({
                 <Icon aria-hidden="true" className="text-muted" icon={icon} />
             </Button>
             <Tooltip.Content>
-                {label}
+                {tooltip ?? label}
                 {shortcut ? <Kbd>{shortcut}</Kbd> : null}
             </Tooltip.Content>
         </Tooltip>
