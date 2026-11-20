@@ -355,8 +355,11 @@ when the Server shuts down (handing unprocessed claims back), and publishes one 
 cleanup to finish.
 
 The Server reserves the maximum file size before accepting an upload, streams directly to R2 without
-disk staging, and publishes the revision only after storage success. The current pointer advances
-by revision number, so late completion of an older upload cannot replace a newer revision. Default
+disk staging, and publishes the revision only after storage success. A revision takes its number
+when it lands, under the Server row lock: an upload in flight holds a negative placeholder, and a
+write refused at landing gives its number back, so the numbers people see have no gaps and follow
+landing order. A write from a stale base merges or fails at landing; a `replace` that lands last
+becomes the head. Default
 limits are 256 MiB per file and 100 GiB of shared storage per Server (`HAUS_ARTIFACT_STORAGE_BYTES`;
 the cap is a product guard, not a cost limit). Production uploads are
 limited to 100 MB to match Cloudflare ingress for haus.chat. Larger uploads require direct or chunked transfer before

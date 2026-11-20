@@ -73,6 +73,34 @@ test('overlapping lines or binary bytes fail with 409 and the current head', asy
     expect(failed).toEqual({ count: 2 });
 });
 
+test('a refused save leaves no gap in revision numbers and no row in History', async () => {
+    const first = await publish({ body: base, path: 'haus/merge/gapless.md' });
+    const head = await publish({
+        base: first.artifact.revision_id,
+        body: 'one\nTWO\nthree\nfour\nfive\n',
+        path: 'haus/merge/gapless.md',
+    });
+    await expect(
+        publish({
+            base: first.artifact.revision_id,
+            body: 'one\ntwo!\nthree\nfour\nfive\n',
+            path: 'haus/merge/gapless.md',
+        })
+    ).rejects.toMatchObject({ code: 'REVISION_CONFLICT' });
+    const next = await publish({
+        base: head.artifact.revision_id,
+        body: 'one\nTWO!\nthree\nfour\nfive\n',
+        path: 'haus/merge/gapless.md',
+    });
+
+    expect(next.artifact.revision_number).toBe(3);
+    const { versions } = await state.owner.trpc.artifact.versions.query({
+        artifact_id: first.artifact.artifact_id,
+        serverId: state.serverId,
+    });
+    expect(versions.map((version) => version.revision_number)).toEqual([3, 2, 1]);
+});
+
 test('a head that moves while the upload is in flight merges at landing', async () => {
     const first = await publish({ body: base, path: 'haus/merge/race.md' });
     const started = Promise.withResolvers<void>();
@@ -103,8 +131,8 @@ test('a head that moves while the upload is in flight merges at landing', async 
     });
     gate.resolve();
     const landed = (await slow).artifact;
-    expect(fast.artifact.revision_number).toBe(3);
-    expect(landed.revision_number).toBe(4);
+    expect(fast.artifact.revision_number).toBe(2);
+    expect(landed.revision_number).toBe(3);
     expect(await revisionRow(landed.revision_id)).toMatchObject({
         base_revision_id: first.artifact.revision_id,
         parent_revision_id: fast.artifact.revision_id,
