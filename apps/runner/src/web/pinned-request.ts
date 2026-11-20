@@ -3,10 +3,6 @@ import { request as httpsRequest } from 'node:https';
 import { isIP, type LookupFunction } from 'node:net';
 import { Readable } from 'node:stream';
 
-/**
- * One HTTP request that connects to `address` and nothing else. The URL keeps the hostname, so
- * the Host header and TLS SNI name the original host while DNS is never asked again.
- */
 export function pinnedRequest(
     url: URL,
     address: string,
