@@ -94,9 +94,9 @@ Agent may add, rename, organize, and remove files in its area as its work requir
 ### The seed at launch
 
 A fresh Agent's area is seeded on its first launch, after the runner is minted and before the
-runtime starts, because only the launch knows the handle. Configure and Cove apply write no files;
-they record the seed facts in `configuration.json` (factory kind, name, description, and standing
-brief) for the launch to read. The ordinary factory seed provides:
+runtime starts, because only the launch knows the handle. Configure writes no files; it records
+the seed facts in `configuration.json` (name, description, and standing brief) for the launch to
+read. Every Agent gets the same factory seed:
 
 - `MEMORY.md` in the prompt template's shape: identity, role, empty standing
   preferences, initial Active Context, and an empty Key Knowledge index.
@@ -111,36 +111,11 @@ always filled a missing `MEMORY.md`. The seed writes each file to Drive with no 
 holds keeps Drive's copy: a seed never overwrites, exactly as the workspace seed never did. It
 then places the same bytes in the folder.
 
-Cove is the one distinct factory kind. Its seeded area is exactly:
-
-```text
-MEMORY.md
-notes/
-  onboarding_knowledge_faq.md
-  onboarding_objectives.md
-  onboarding_playbook.md
-skills/visuals/
-```
-
-Objectives contain 12 separately authored short summaries linked to the 12 seeded-tier Manual
-topics. Haus does not create `notes/recipes/` or copy any full Manual card, query-tier summary,
-archetype note, `save-as-a-skill`, or `haus-agent` skill. The durable Cove application receipt
-records the digest of the four-file factory manifest, computed from the release without reading
-the folder, and a replay checks the configuration only: the files live in Drive, where people may
-edit them.
-
-After creation, `MEMORY.md` and `notes/onboarding_objectives.md` are Cove-owned state and are never
-factory-refreshed. `notes/onboarding_playbook.md` and `notes/onboarding_knowledge_faq.md` are
-versioned factory guidance: before a Cove turn, Computer may replace them in the area only when
-their bytes exactly match a known prior factory release. Missing or edited files are preserved as
-conflicts. Both successful refreshes and conflicts appear in Agent Activity History. A successful
-refresh adds a one-turn private notice, naming the files by their path from the working directory
-(`drive/agents/<handle>/notes/`), that tells the existing model session to re-read them; it does
-not rotate the session.
-
-Factory guidance participates in the public Haus Agent version. A successful compatible refresh
-may advance that version; a missing or edited Cove file blocks the receipt from advancing and leaves
-the conflict visible as a failed update.
+A former Cove (ADR 0059) seeds, launches, and resets as an ordinary Agent. Its existing Drive
+area, including any `notes/onboarding_*.md` files, is ordinary Drive content: no factory refresh
+touches it, and a Full reset treats it as it treats any Agent's area. A `configuration.json` written before Computer protocol 42 may still
+carry `seed.factoryKind`; the Computer ignores the key. Leftover `cove-application.json` and
+`runtime/cove-guidance-refresh.json` files are never read and never deleted.
 
 ### Migration
 

@@ -116,7 +116,6 @@ export function configureFrame(agentId: string, config: ConfiguredAgent): AgentC
         agentName: config.agentDisplayName,
         brief: config.brief,
         briefAuthorHandle: config.briefAuthorHandle,
-        factoryKind: 'ordinary',
         modelId: config.desiredModelId,
         reasoningEffort: config.desiredReasoningEffort,
         runtimeId: config.desiredRuntimeId,

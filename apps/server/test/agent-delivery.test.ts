@@ -482,7 +482,6 @@ test('ignores a duplicate delivery of the same message', async () => {
             // A human-created Agent carries no standing brief, stated not omitted.
             brief: null,
             briefAuthorHandle: null,
-            factoryKind: 'ordinary',
             modelId: 'fake-model',
             reasoningEffort: 'medium',
             runtimeId: 'fake',

@@ -104,7 +104,7 @@ test('a Project with home Agents refuses archive and delete with PROJECT_HAS_AGE
         )?.homeAgentIds
     ).toEqual([fixture.peerAgentId]);
 
-    await harness.sql`update agents set home_project_id = ${hausId} where id = ${fixture.peerAgentId}`;
+    await harness.sql`update agents set home_project_id = ${fixture.channelId} where id = ${fixture.peerAgentId}`;
     await expect(owner.trpc.chat.archiveChannel.mutate(target)).resolves.toMatchObject({
         chatId: ops.chat.id,
     });
@@ -113,13 +113,13 @@ test('a Project with home Agents refuses archive and delete with PROJECT_HAS_AGE
 test('the Haus project’s channel cannot be renamed', async () => {
     const { owner, serverId } = fixture;
     await expect(
-        owner.trpc.project.update.mutate({ chatId: hausId, name: 'lobby', serverId })
+        owner.trpc.chat.updateAllChannel.mutate({ chatId: hausId, name: 'lobby', serverId })
     ).rejects.toEqual(refusedWith('PROJECT_NAME_FIXED'));
-    const renamedDescription = await owner.trpc.project.update.mutate({
+    const renamedDescription = await owner.trpc.chat.updateAllChannel.mutate({
         chatId: hausId,
         description: 'Everyone',
-        name: 'haus',
+        name: 'all',
         serverId,
     });
-    expect(renamedDescription.chat).toMatchObject({ description: 'Everyone', name: 'haus' });
+    expect(renamedDescription.chat).toMatchObject({ description: 'Everyone', name: 'all' });
 });

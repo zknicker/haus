@@ -38,6 +38,14 @@ while you read it.
   Code, and Grok Build runtimes. Supported runtimes that are absent sit in compact,
   low-contrast **Not Detected** Chips in the section header instead of occupying card-sized space.
   Computer-local token ledgers are not shown on this surface.
+* **Model connections.** Settings → Models lists plan accounts in one table with what is left of
+  each 5-hour and weekly window and the soonest reset. A Claude or ChatGPT plan connection shows
+  its windows as the runner last read them. Nothing shows until a read lands, or once the last one
+  is six hours old. SuperGrok and API-key connections show none. While Captains run on their
+  Devices (`HAUS_AGENT_LOOP=computer`), the same table also lists each Device's detected Codex,
+  Claude Code and Grok Build login, labeled by runtime and Device, with the windows the Computer
+  detail page shows. Those rows only read. See
+  [Model connections](../../specs/model-connections.md#plan-capacity).
 
 * **Cloud Agents.** Beside the runtime capacity cards, the same Computer page carries one **Cursor
   Cloud Agents** row and one **Claude Cloud Agents** row. **Make default** on a row chooses the place a

@@ -536,7 +536,6 @@ export class AgentDelivery {
             runtimeId: input.runtimeId,
             sessionGeneration: config.sessionGeneration,
             sessionResetKind: config.sessionResetKind,
-            factoryKind: 'ordinary',
             type: 'agent-configure',
         });
     }

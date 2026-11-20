@@ -7,6 +7,7 @@ import { ComputerConnections } from '../src/computers/connections.ts';
 import { connectHausDatabase } from '../src/postgres/connection.ts';
 import { markServerDeleting, purgeDeletedServer } from '../src/servers/delete-server.ts';
 import { findUserById } from '../src/users/haus-user.ts';
+import { testSqlAgentHome } from './agent-home.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -101,7 +102,7 @@ test('revokes immediately, never waits for an offline Computer, and asynchronous
     `) as { id: string }[];
     await harness.sql`
         insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
-        values ('agt_deleteauthor000', ${serverId}, 'delete-author', 'Delete Author', 'UTC', (select id from chats where server_id = ${serverId} and is_all))
+        values ('agt_deleteauthor000', ${serverId}, 'delete-author', 'Delete Author', 'UTC', ${await testSqlAgentHome(harness.sql, serverId)})
     `;
     await harness.sql`
         update chats set last_message_sequence = 1 where id = ${allChannel.id}

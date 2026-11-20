@@ -239,7 +239,7 @@ from an off-scale 10px onto that tier's `xs` step.
   import a Server router merely to inherit its output types.
 - Semantic activity is the default human-readable evidence. Raw execution
   journal data is restricted to the access policy enforced by Server.
-- A managed instruction, Cove factory-guidance, or runtime bootstrap refresh is durable semantic activity:
+- A managed instruction or runtime bootstrap refresh is durable semantic activity:
   `Updating instructions…`, `Updated instructions`, or `Failed to update instructions`. It exposes
   only the lifecycle outcome; instruction text, hashes, paths, commands, and raw errors stay local.
 - Tool-specific labels and bodies extend `features/turn-trace/` for detail and

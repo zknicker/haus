@@ -121,8 +121,8 @@ predates the checked-in migration baseline: move
 that ran a draft of migration `0129_drive.sql` before D2 merged fails every Drive push with
 `column "base_revision_id" does not exist`; move it aside once the same way. Production never
 ran the draft. On first use, Server creates one demo Server with
-the Agents Blippy and Tiny, avatars for them and for you, the `#haus` and
-`#product` Channels, starter messages with inline replies, four `GEN` Tasks started from Channel
+the Agents Blippy and Tiny, avatars for them and for you, the `#all` channel and
+the `#product` Project (home of Blippy, Tiny and the demo Tasks), starter messages with inline replies, four `GEN` Tasks started from Channel
 messages (one in flight and one waiting with the Agents, two handed to you), and one MCP
 connection — enough to open any surface without hand-building data
 (`seed-server.ts`, `seed-demo-tasks.ts`). It then
@@ -266,7 +266,7 @@ The runner starts after the Server with `HAUS_SERVER_URL` set to the Server orig
 `HAUS_RUNNER_DATA_DIR` under the worktree's dev state directory, beside the Computer's data root.
 It inherits only a narrow shell environment, never the Server's secrets, and it gets model logins
 only from the Server: connect them in Settings → Models ([model connections](../../specs/model-connections.md)),
-which needs `HAUS_SECRETS_KEY` from the Development `Haus Secrets Key` item. Without
+which needs `HAUS_SECRETS_KEY` from the Development `Secrets Key - Haus` item. Without
 `HAUS_AGENT_LOOP=runner`, nothing changes.
 
 The live Claude Agent SDK test spends real quota and runs only on request:

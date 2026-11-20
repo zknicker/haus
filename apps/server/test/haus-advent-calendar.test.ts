@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import type { AdventCalendar, AdventEntry } from '@haus/api';
+import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { createTestProject } from './project.fixture.ts';
@@ -36,7 +37,7 @@ beforeAll(async () => {
         )
     `;
     agentId = (
-        await owner.trpc.agent.create.mutate({
+        await createHomedAgent(owner, {
             computerId,
             displayName: 'Blippy',
             handle: 'advent-blippy',

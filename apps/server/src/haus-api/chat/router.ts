@@ -26,6 +26,7 @@ import { sendChatMessageProcedure } from './send.ts';
 import { unarchiveChannelProcedure } from './unarchive-channel.ts';
 import { unreadChatCountProcedure } from './unread-chat-count.ts';
 import { listUnreadPreviewsProcedure } from './unread-previews.ts';
+import { updateAllChannelProcedure } from './update-all-channel.ts';
 
 export const chatRouter = createRouter({
     archiveChannel: archiveChannelProcedure,
@@ -55,4 +56,5 @@ export const chatRouter = createRouter({
     unarchiveChannel: unarchiveChannelProcedure,
     unreadChatCount: unreadChatCountProcedure,
     unreadPreviews: listUnreadPreviewsProcedure,
+    updateAllChannel: updateAllChannelProcedure,
 });

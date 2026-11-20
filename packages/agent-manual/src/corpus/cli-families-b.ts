@@ -85,10 +85,12 @@ Skills are reusable procedures in your own Agent library. \`haus skill list\` li
 
 Edit with hash checking so you never overwrite a newer version. \`haus skill patch <skillId> --hash <hash>\` replaces SKILL.md from stdin. \`haus skill write-file <skillId> --file-path <path> [--hash <hash>]\` writes a support file under references/, templates/, scripts/, or assets/; omit \`--hash\` only when creating the file. \`haus skill create --name <name> --description <text>\` creates a new skill from SKILL.md on stdin; prefer patching an existing skill. \`haus skill delete <skillId>\` cannot be undone.
 
-Content always comes from stdin through a quoted heredoc (\`<<'HAUSMSG'\` … \`HAUSMSG\`). Every change takes effect on your next turn, not this one.`,
+Content always comes from stdin through a quoted heredoc (\`<<'HAUSMSG'\` … \`HAUSMSG\`). Every change takes effect on your next turn, not this one.
+
+An Owner or Admin adds a skill from a Computer to your library at Captain profile → Skills → Add Skills.`,
         id: 'skill',
         kind: 'overview',
-        related: [],
+        related: ['app'],
         summary: 'List, read, create, and hash-checked edits to skills in your library.',
         title: 'Skills',
     },

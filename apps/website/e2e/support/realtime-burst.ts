@@ -52,7 +52,7 @@ export async function expectBurstCoalesced(
 ) {
     const device = createClient((await createAppTestFixture()).accessToken);
     const server = await device.server.bySlug.query({ slug });
-    const chatId = server.channels.find((channel) => channel.name === 'haus')?.id ?? '';
+    const chatId = server.channels.find((channel) => channel.name === 'all')?.id ?? '';
     const send = (content: string, replyToMessageId?: string) =>
         device.chat.send.mutate({
             chatId,

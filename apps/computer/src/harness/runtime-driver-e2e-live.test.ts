@@ -126,7 +126,6 @@ async function timedTurn(
         dataRoot: root,
         drainItemIds: [item.id],
         env: { PATH: process.env.PATH ?? '/usr/bin:/bin' },
-        factoryKind: 'ordinary',
         homeDir: join(root, 'home'),
         homeTimezone: 'UTC',
         inbox: [item],

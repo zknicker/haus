@@ -6,6 +6,7 @@ import { ImageGenerationSettings } from '../image-generation/image-generation-gr
 import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { CloudAgentModelGroup } from './cloud-agent-model-group.tsx';
+import { ModelConnectionsGroup } from './connections/model-connections-group.tsx';
 import {
     buildModelCatalog,
     buildRuntimeAccess,
@@ -46,6 +47,7 @@ export function ModelsSettings({
         return (
             <SettingsPageColumn width="table">
                 <SettingsPageHeader title="Models" />
+                <ModelConnectionsGroup isOwner={isOwner} serverId={serverId} />
                 {/* The model is a Server setting every member reads, even one
                     who cannot see the Computers that report runtimes. */}
                 <CloudAgentModelGroup canManage={canManage} serverId={serverId} />
@@ -63,6 +65,8 @@ export function ModelsSettings({
     return (
         <SettingsPageColumn width="table">
             <SettingsPageHeader title="Models" />
+
+            <ModelConnectionsGroup isOwner={isOwner} serverId={serverId} />
 
             <CloudAgentModelGroup canManage={canManage} serverId={serverId} />
 

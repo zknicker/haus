@@ -2,12 +2,12 @@ import { expect, test } from 'bun:test';
 import { composeAgentInstructions } from './instructions.ts';
 
 const facts = {
-    agentId: 'agt_cove',
-    agentName: 'Cove',
+    agentId: 'agt_harbor',
+    agentName: 'Harbor',
     homeTimezone: 'America/Los_Angeles',
     initialRole: null,
     runtimeId: 'codex',
-    workspacePath: '/home/agt_cove/workspace',
+    workspacePath: '/home/agt_harbor/workspace',
 } as const;
 const amazonRef =
     "- B07XN9T11R: an Amazon ASIN renders as a product chip; write it beside a product's name whenever you name one";

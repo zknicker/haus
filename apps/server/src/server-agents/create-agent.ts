@@ -7,7 +7,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable, avatarsTable } from '../postgres/schema.ts';
-import { requireHausProjectId } from '../projects/haus-project.ts';
+import { isLiveProject } from '../projects/live-project.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { participantHandleConstraint } from '../servers/participant-handles.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
@@ -25,8 +25,8 @@ import { toAgent } from './agent-shape.ts';
 export type AgentCreator = { agentId: string; kind: 'agent' } | { kind: 'human'; user: HausUser };
 
 export interface CreatedAgentFromApp extends AgentCreated {
-    /** The `#haus` membership change, for the App's channel member lists. */
-    event: PreparedRealtimeEvent | null;
+    /** The `#all` and Project membership changes, for the App's channel member lists. */
+    events: PreparedRealtimeEvent[];
 }
 
 /** Creates one Agent; its per-human DMs remain implicit until first use. */
@@ -52,12 +52,9 @@ export async function createAgent(
         );
         return {
             agent: created.agent,
-            event: created.allChannelId
-                ? prepareLifecycleEvent(
-                      { chatId: created.allChannelId, serverId: input.serverId },
-                      'updated'
-                  )
-                : null,
+            events: created.joinedChannelIds.map((chatId) =>
+                prepareLifecycleEvent({ chatId, serverId: input.serverId }, 'updated')
+            ),
         };
     });
 }
@@ -71,7 +68,7 @@ export async function createAgentInTransaction(
         creationRequest?: { hash: string; nonce: string };
     },
     avatar: (AvatarBytes & { mediaType: AvatarMediaType }) | null
-): Promise<AgentCreated & { allChannelId: string | null }> {
+): Promise<AgentCreated & { joinedChannelIds: string[] }> {
     const createdByAgentId = creator.kind === 'agent' ? creator.agentId : null;
     const createdByUserId = creator.kind === 'human' ? creator.user.id : null;
 
@@ -80,6 +77,7 @@ export async function createAgentInTransaction(
         serverId: input.serverId,
     });
     assertRuntimeModelReported(inventory, input.runtimeId, input.modelId, input.reasoningEffort);
+    await requireLiveHome(db, input);
 
     const avatarId = avatar ? createAvatarId() : null;
     if (avatar && avatarId) {
@@ -108,7 +106,7 @@ export async function createAgentInTransaction(
             desiredRuntimeId: input.runtimeId,
             displayName: input.displayName,
             handle: input.handle,
-            homeProjectId: await requireHausProjectId(db, input.serverId),
+            homeProjectId: input.homeProjectId,
             homeTimezone: 'UTC',
             id: agentId,
             serverId: input.serverId,
@@ -124,7 +122,7 @@ export async function createAgentInTransaction(
         throw cause;
     }
 
-    // Every Agent belongs to `#haus`, whoever made it. The Server owns that
+    // Every Agent belongs to `#all`, whoever made it. The Server owns that
     // guarantee here, at the one seam both creation paths share, rather than in
     // the App dialog and the Agent route separately.
     const allChannel = await findAllChannel(db, input.serverId);
@@ -143,8 +141,14 @@ export async function createAgentInTransaction(
         });
     }
 
+    await joinChannelAgents(db, {
+        agentIds: [agentId],
+        chatId: input.homeProjectId,
+        serverId: input.serverId,
+    });
+
     return {
-        allChannelId: allChannel?.id ?? null,
+        joinedChannelIds: [...(allChannel ? [allChannel.id] : []), input.homeProjectId],
         agent: toAgent({
             activeRunId: null,
             avatarId,
@@ -198,4 +202,15 @@ async function requireAgentCreationAuthority(
         throw new AgentConfigDeniedError('Only a Server Owner or Admin can create an Agent.');
     }
     return member;
+}
+
+async function requireLiveHome(
+    db: Pick<HausDatabase, 'select'>,
+    input: { homeProjectId: string; serverId: string }
+) {
+    if (!(await isLiveProject(db, { projectId: input.homeProjectId, serverId: input.serverId }))) {
+        throw new AgentConfigDeniedError(
+            'Its Project must be open and on this Server, and #all is not a Project.'
+        );
+    }
 }

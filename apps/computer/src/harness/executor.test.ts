@@ -3,7 +3,6 @@ import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promise
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { composeInboxDrain, composeInboxNotice } from '@haus/agent-prompt';
-import { seedCoveWorkspace } from '@haus/agent-workspace';
 import { hausAgentVersion } from '@haus/api';
 import type { ClaudeUsageSnapshot } from '@haus/claude-usage';
 import { AgentActivityRun } from '../agent-activity-run.ts';
@@ -18,7 +17,6 @@ import type { RuntimeTokenUsage, TurnEvent } from '../runtime/turn-event.ts';
 import { readClaudePlanUsageState } from '../usage/claude-plan-usage-state.ts';
 import { workerReportItem } from '../worker-report.fixture.ts';
 import { readComputerExecutionJournal } from './execution-journal.ts';
-import { legacyCoveFaq, legacyCovePlaybook } from './executor-fixtures.ts';
 import {
     HarnessTurnFailedError,
     type HarnessTurnInput,
@@ -53,8 +51,6 @@ let streamFails: boolean;
 let streamUsageScale: number;
 let streamedPrompts: string[];
 let streamToolNames: string[];
-let streamedCoveFaqs: Array<string | null>;
-let streamedCovePlaybooks: Array<string | null>;
 
 beforeEach(async () => {
     agentRoot = await mkdtemp(join(tmpdir(), 'haus-harness-'));
@@ -74,8 +70,6 @@ beforeEach(async () => {
     streamUsageScale = 1;
     streamedPrompts = [];
     streamToolNames = [];
-    streamedCoveFaqs = [];
-    streamedCovePlaybooks = [];
     restore = setRuntimeDriverFactoryForTesting(fakeDriver);
 });
 
@@ -129,14 +123,6 @@ const { factory: fakeDriver } = fakeRuntimeDriver<HarnessTurnInput>({
 
 async function* scriptedTurn(input: HarnessTurnInput, prompt: string): AsyncGenerator<TurnEvent> {
     streamedPrompts.push(prompt);
-    if (input.factoryKind === 'cove') {
-        streamedCoveFaqs.push(
-            await readOptionalText(join(input.drive.area, 'notes', 'onboarding_knowledge_faq.md'))
-        );
-        streamedCovePlaybooks.push(
-            await readOptionalText(join(input.drive.area, 'notes', 'onboarding_playbook.md'))
-        );
-    }
     for (const [index, toolName] of streamToolNames.entries()) {
         yield { input: {}, toolCallId: `call_${index}`, toolName, type: 'tool-call' };
     }
@@ -170,20 +156,6 @@ async function* scriptedTurn(input: HarnessTurnInput, prompt: string): AsyncGene
     }
 }
 
-async function readOptionalText(path: string): Promise<string | null> {
-    return await readFile(path, 'utf8').catch((error: unknown) => {
-        if (
-            typeof error === 'object' &&
-            error !== null &&
-            'code' in error &&
-            error.code === 'ENOENT'
-        ) {
-            return null;
-        }
-        throw error;
-    });
-}
-
 function tokenUsage(scale = 1): RuntimeTokenUsage {
     return {
         cacheReadTokens: 8 * scale,
@@ -207,18 +179,17 @@ function turnInput(overrides: TestTurnOverrides = {}): HarnessTurnInput {
                 onActivity?.({ category, phase })
             ),
         agentId: 'agt_test',
-        agentName: 'Cove',
+        agentName: 'Harbor',
         agentRoot,
         dataRoot: agentRoot,
         env: {},
-        factoryKind: 'ordinary',
         homeDir: join(agentRoot, 'home'),
         homeTimezone: 'UTC',
         initialRole: null,
         inbox: [
             {
                 chatId: 'cht_test',
-                content: 'Hello Cove',
+                content: 'Hello Harbor',
                 createdAt: '2026-07-27T00:00:00.000Z',
                 id: 'msg_test',
                 senderHandle: 'operator',
@@ -286,7 +257,7 @@ test('cold-starts a fresh Agent then resumes its one global session', async () =
     expect(afterFirst.runtimeSessionId).toBe('engine_session_1');
     expect(afterFirst.resumeState).toMatchObject({ runtime: 'codex' });
     expect(streamedPrompts[0]).toContain(
-        '[target=dm:@operator msg=test time=2026-07-27 00:00:00 UTC type=human] operator: Hello Cove'
+        '[target=dm:@operator msg=test time=2026-07-27 00:00:00 UTC type=human] operator: Hello Harbor'
     );
     expect(streamedPrompts).toHaveLength(1);
     expect(sentUserMessages).toEqual([]);
@@ -412,7 +383,7 @@ test('uses a concrete cold inbox as the first prompt without mid-turn injection'
 
     await runHarnessTurn(turnInput());
 
-    expect(streamedPrompts[0]).toContain('Hello Cove');
+    expect(streamedPrompts[0]).toContain('Hello Harbor');
     expect(sentUserMessages).toEqual([]);
 });
 test('projects a concrete typed attention into the first prompt by its own identity', async () => {
@@ -488,7 +459,7 @@ test('cold-starts ordinary Chat work with a content-free notice in the same task
     expect(streamedPrompts).toHaveLength(1);
     expect(streamedPrompts[0]).toContain('Haus inbox notice');
     expect(streamedPrompts[0]).toContain('dm:@operator  pending: 1 message');
-    expect(streamedPrompts[0]).not.toContain('Hello Cove');
+    expect(streamedPrompts[0]).not.toContain('Hello Harbor');
     expect(sentUserMessages).toEqual([]);
 });
 
@@ -549,7 +520,7 @@ test('a Server generation change cold-starts the assigned runtime and model', as
     expect(streamedPrompts[1]).toContain(
         'Fresh session: your previous conversation context is gone.'
     );
-    expect(streamedPrompts[1]).toContain('Hello Cove');
+    expect(streamedPrompts[1]).toContain('Hello Harbor');
 });
 
 test('Restart resumes the same session and refreshes its current instructions once', async () => {
@@ -745,202 +716,23 @@ test('an aborted Restart keeps the current public Haus Agent version current', a
     await expect(access(restartMarker)).resolves.toBeNull();
 });
 
-test('Cove guidance drift migrates a warm session once and is current when the resumed turn streams', async () => {
+test('a former onboarding Agent runs as an ordinary Agent and leaves its old guidance files alone', async () => {
     const area = agentDrive(agentRoot, 'agent').area;
-    await seedCoveWorkspace(area);
-    await runHarnessTurn(turnInput({ factoryKind: 'cove' }));
-    const firstSession = await readSession();
-    await writeFile(join(area, 'MEMORY.md'), '# Cove\n\nLearned context.\n');
-    await writeFile(join(area, 'notes', 'onboarding_objectives.md'), 'owner progress\n');
-    await writeFile(join(area, 'notes', 'onboarding_playbook.md'), legacyCovePlaybook);
-    await writeFile(join(area, 'notes', 'onboarding_knowledge_faq.md'), legacyCoveFaq);
-    const updateActivity: Array<{ category: string; phase: string }> = [];
-
-    await runHarnessTurn(
-        turnInput({
-            factoryKind: 'cove',
-            onActivity: (event) => updateActivity.push(event),
-        })
-    );
-
-    expect(createSessionCalls[1]).toEqual({
-        resumeFrom: firstSession.resumeState,
-        sessionId: 'engine_session_1',
-    });
-    expect((await readSession()).generation).toBe(1);
-    expect(await readFile(join(area, 'MEMORY.md'), 'utf8')).toContain('Learned context.');
-    expect(await readFile(join(area, 'notes', 'onboarding_objectives.md'), 'utf8')).toBe(
-        'owner progress\n'
-    );
-    expect(await readFile(join(area, 'notes', 'onboarding_playbook.md'), 'utf8')).toContain(
-        'haus agent create'
-    );
-    expect(streamedCovePlaybooks[1]).toContain('haus agent create');
-    expect(streamedCoveFaqs[1]).toContain('haus agent create');
-    expect(streamedPrompts[1]).toContain('re-read onboarding_playbook.md');
-    expect(updateActivity).toEqual([
-        { category: 'updating_instructions', phase: 'started' },
-        { category: 'thinking', phase: 'started' },
-        { category: 'thinking', phase: 'completed' },
-        { category: 'updating_instructions', phase: 'completed' },
-    ]);
-    expect(stoppedSessions).toBe(0);
-    expect(refreshedBootstraps).toBe(0);
-    await expect(
-        access(join(agentRoot, 'runtime', 'cove-guidance-refresh.json'))
-    ).rejects.toThrow();
-    const settledActivity: Array<{ category: string; phase: string }> = [];
-    await runHarnessTurn(
-        turnInput({
-            factoryKind: 'cove',
-            onActivity: (event) => settledActivity.push(event),
-        })
-    );
-
-    expect(createSessionCalls).toHaveLength(3);
-    expect(streamedPrompts[2]).not.toContain('re-read onboarding_playbook.md');
-    expect(streamedPrompts[2]).toContain('one optional weekly review offer');
-    expect(settledActivity).toEqual([
-        { category: 'thinking', phase: 'started' },
-        { category: 'thinking', phase: 'completed' },
-    ]);
-    expect(stoppedSessions).toBe(0);
-    expect(refreshedBootstraps).toBe(0);
-});
-
-test('an aborted warm Cove guidance refresh keeps its receipt and rereads on retry', async () => {
-    const area = agentDrive(agentRoot, 'agent').area;
-    await seedCoveWorkspace(area);
-    await runHarnessTurn(turnInput({ factoryKind: 'cove' }));
-    await writeFile(join(area, 'notes', 'onboarding_playbook.md'), legacyCovePlaybook);
-    await writeFile(join(area, 'notes', 'onboarding_knowledge_faq.md'), legacyCoveFaq);
-    streamAborts = true;
-    const abortedActivity: Array<{ category: string; phase: string }> = [];
-
-    const aborted = await runHarnessTurn(
-        turnInput({
-            factoryKind: 'cove',
-            onActivity: (event) => abortedActivity.push(event),
-        })
-    );
-
-    expect(aborted.aborted).toBe(true);
-    const abortedSession = await readSession();
-    expect(abortedSession).toMatchObject({
-        hausAgentStatus: 'current',
-        hausAgentVersion,
-        runtimeSessionId: 'engine_session_1',
-    });
-    expect(streamedPrompts[1]).toContain('re-read onboarding_playbook.md');
-    expect(abortedActivity).toEqual([
-        { category: 'updating_instructions', phase: 'started' },
-        { category: 'thinking', phase: 'started' },
-        { category: 'thinking', phase: 'interrupted' },
-        { category: 'updating_instructions', phase: 'interrupted' },
-    ]);
-    await expect(
-        access(join(agentRoot, 'runtime', 'cove-guidance-refresh.json'))
-    ).resolves.toBeNull();
-
-    streamAborts = false;
-    const retryActivity: Array<{ category: string; phase: string }> = [];
-    await runHarnessTurn(
-        turnInput({
-            factoryKind: 'cove',
-            onActivity: (event) => retryActivity.push(event),
-        })
-    );
-
-    expect(createSessionCalls[2]).toEqual({
-        resumeFrom: abortedSession.resumeState,
-        sessionId: 'engine_session_1',
-    });
-    expect(streamedPrompts[2]).toContain('re-read onboarding_playbook.md');
-    expect(retryActivity).toEqual([
-        { category: 'updating_instructions', phase: 'started' },
-        { category: 'thinking', phase: 'started' },
-        { category: 'thinking', phase: 'completed' },
-        { category: 'updating_instructions', phase: 'completed' },
-    ]);
-    expect(stoppedSessions).toBe(0);
-    expect(refreshedBootstraps).toBe(0);
-    await expect(
-        access(join(agentRoot, 'runtime', 'cove-guidance-refresh.json'))
-    ).rejects.toThrow();
-});
-
-test('preserves edited Cove guidance and records a failed operator-visible refresh', async () => {
-    const area = agentDrive(agentRoot, 'agent').area;
+    const playbook = join(area, 'notes', 'onboarding_playbook.md');
+    const pendingRefresh = join(agentRoot, 'runtime', 'cove-guidance-refresh.json');
     await mkdir(join(area, 'notes'), { recursive: true });
-    await writeFile(join(area, 'notes', 'onboarding_playbook.md'), 'owner customization\n');
+    await mkdir(join(agentRoot, 'runtime'), { recursive: true });
+    await writeFile(playbook, 'owner customization\n');
+    await writeFile(pendingRefresh, '{"version":1}\n');
     const activity: Array<{ category: string; phase: string }> = [];
 
-    await runHarnessTurn(
-        turnInput({
-            factoryKind: 'cove',
-            onActivity: (event) => activity.push(event),
-        })
-    );
+    await runHarnessTurn(turnInput({ onActivity: (event) => activity.push(event) }));
 
-    expect(await readFile(join(area, 'notes', 'onboarding_playbook.md'), 'utf8')).toBe(
-        'owner customization\n'
-    );
-    expect(activity).toContainEqual({ category: 'updating_instructions', phase: 'started' });
-    expect(activity).toContainEqual({ category: 'updating_instructions', phase: 'failed' });
-    expect(activity).not.toContainEqual({
-        category: 'updating_instructions',
-        phase: 'completed',
-    });
-    expect(streamedPrompts[0]).toContain('recipes/archetype/pa-coordinator');
-    expect(await readSession()).toMatchObject({
-        hausAgentAppliedAt: null,
-        hausAgentStatus: 'failed',
-        hausAgentVersion: null,
-    });
-});
-
-test('retries Cove guidance consumption after a refreshed turn fails', async () => {
-    const area = agentDrive(agentRoot, 'agent').area;
-    await mkdir(join(area, 'notes'), { recursive: true });
-    await writeFile(join(area, 'notes', 'onboarding_playbook.md'), legacyCovePlaybook);
-    await writeFile(join(area, 'notes', 'onboarding_knowledge_faq.md'), legacyCoveFaq);
-    streamFails = true;
-    const failedActivity: Array<{ category: string; phase: string }> = [];
-
-    await expect(
-        runHarnessTurn(
-            turnInput({
-                factoryKind: 'cove',
-                onActivity: (event) => failedActivity.push(event),
-            })
-        )
-    ).rejects.toBeInstanceOf(HarnessTurnFailedError);
-
-    expect(failedActivity).toContainEqual({
-        category: 'updating_instructions',
-        phase: 'failed',
-    });
-    expect(await readFile(join(area, 'notes', 'onboarding_playbook.md'), 'utf8')).toContain(
-        'haus agent create'
-    );
-
-    streamFails = false;
-    const retryActivity: Array<{ category: string; phase: string }> = [];
-    await runHarnessTurn(
-        turnInput({
-            factoryKind: 'cove',
-            onActivity: (event) => retryActivity.push(event),
-        })
-    );
-
-    expect(streamedPrompts[1]).toContain('re-read onboarding_playbook.md');
-    expect(retryActivity).toContainEqual({
-        category: 'updating_instructions',
-        phase: 'completed',
-    });
-    await expect(
-        access(join(agentRoot, 'runtime', 'cove-guidance-refresh.json'))
-    ).rejects.toThrow();
+    expect(streamedPrompts[0]).not.toContain('onboarding_playbook.md');
+    expect(activity).not.toContainEqual({ category: 'updating_instructions', phase: 'failed' });
+    expect(await readFile(playbook, 'utf8')).toBe('owner customization\n');
+    expect(await readFile(pendingRefresh, 'utf8')).toBe('{"version":1}\n');
+    expect(await readSession()).toMatchObject({ hausAgentStatus: 'current', hausAgentVersion });
 });
 
 test('bootstrap drift parks and refreshes the same native session once with current instructions', async () => {
@@ -1153,7 +945,7 @@ test('defers a stored follow-up notice until the cold turn has a safe live bound
 
     await runHarnessTurn(turnInput());
 
-    expect(streamedPrompts[0]).toContain('Hello Cove');
+    expect(streamedPrompts[0]).toContain('Hello Harbor');
     expect(sentUserMessages).toEqual([]);
     await expect(access(join(runtimeDir, 'pending-notice.json'))).resolves.toBeNull();
 

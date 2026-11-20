@@ -15,7 +15,7 @@ export async function changeAgentChannelMute(
 ) {
     const chatId = await resolveAgentTarget(db, runner, target);
     const [channel] = await db
-        .select({ kind: chatsTable.kind, name: chatsTable.name })
+        .select({ isAll: chatsTable.isAll, kind: chatsTable.kind, name: chatsTable.name })
         .from(chatsTable)
         .where(
             and(
@@ -27,6 +27,9 @@ export async function changeAgentChannelMute(
         .limit(1);
     if (!channel?.name) {
         throw new AgentTargetError('Channel mutes require a joined channel.');
+    }
+    if (muted && channel.isAll) {
+        throw new AgentTargetError('Every Agent hears #all, the team room, so you cannot mute it.');
     }
     await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);

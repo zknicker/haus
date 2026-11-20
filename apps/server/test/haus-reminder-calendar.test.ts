@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { listReminders, scheduleReminder, tickReminders } from '../src/reminders/reminders.ts';
+import { testSqlAgentHome } from './agent-home.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 
@@ -33,7 +34,7 @@ beforeAll(async () => {
     anchorMessageId = anchor.message.id;
     await harness.sql`
         insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
-        values (${agentId}, ${serverId}, 'calendar-cove', 'Cove', 'UTC', (select id from chats where server_id = ${serverId} and is_all))
+        values (${agentId}, ${serverId}, 'calendar-cove', 'Cove', 'UTC', ${await testSqlAgentHome(harness.sql, serverId)})
     `;
     await harness.sql`
         insert into channel_agent_participants (server_id, chat_id, agent_id)

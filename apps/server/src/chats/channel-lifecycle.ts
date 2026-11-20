@@ -173,7 +173,7 @@ async function requireRegularChannel(
         throw new ChannelLifecycleConflictError('Only a regular channel can use this action.');
     }
     if (channel.isAll) {
-        throw new ChannelLifecycleConflictError('#haus cannot be archived or deleted.');
+        throw new ChannelLifecycleConflictError('#all cannot be archived or deleted.');
     }
     if (!channel.name) {
         throw new Error('A regular channel must have a name.');

@@ -67,7 +67,6 @@ function turnInput(root: string, factory: TurnDriverFactory) {
         dataRoot: root,
         drainItemIds: [],
         env: {},
-        factoryKind: 'ordinary' as const,
         homeDir: join(root, 'home'),
         homeTimezone: 'UTC',
         inbox: [],
