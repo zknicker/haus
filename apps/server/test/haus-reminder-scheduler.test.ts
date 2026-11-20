@@ -2,11 +2,9 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { AgentCommand } from '@haus/api';
 import { makeTestRuntime } from '@haus/effect';
 import { eq } from 'drizzle-orm';
 import { pullAgentEvents } from '../src/agent-api/inbox.ts';
-import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { createHausServerApplication } from '../src/haus-server-application.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import {
@@ -27,6 +25,7 @@ import { createReminderScheduler } from '../src/reminders/reminder-scheduler.ts'
 import { tickReminders } from '../src/reminders/scheduler.ts';
 import { testAgentHome } from './agent-home.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
+import { recordingWires } from './reminder-scheduler-wires.ts';
 
 const appOrigin = 'https://app.haus.test';
 const dueAt = new Date('2026-07-26T13:00:00.000Z');
@@ -196,8 +195,8 @@ describe('reminder scheduler lifecycle', () => {
             .set({ repeat: null, script: 'printf changed' })
             .where(eq(remindersTable.id, 'rem_scheduler'));
 
-        const transport = new RecordingTransport();
-        const delivery = new AgentDelivery(connection.db, transport);
+        const { delivery, runner, transport } = recordingWires(connection);
+        runner.attach('agt_scheduler');
         await tickReminders(connection.db, { now: () => now }, delivery);
 
         const command = transport.frames.find((frame) => frame.type === 'reminder-script');
@@ -209,7 +208,7 @@ describe('reminder scheduler lifecycle', () => {
         if (!command || command.type !== 'reminder-script') {
             throw new Error('Reminder script did not dispatch.');
         }
-        expect(transport.frames.some((frame) => frame.type === 'start')).toBe(false);
+        expect(runner.starts()).toHaveLength(0);
 
         await delivery.onReminderScriptResult('cmp_ssssssssssssssss', {
             agentId: command.agentId,
@@ -220,7 +219,7 @@ describe('reminder scheduler lifecycle', () => {
             timedOut: false,
             type: 'reminder-script-result',
         });
-        expect(transport.frames.some((frame) => frame.type === 'start')).toBe(true);
+        expect(runner.starts()).toHaveLength(1);
         expect(await connection.db.select().from(reminderAgentAttentionTable)).toHaveLength(0);
         const [fire] = await connection.db.select().from(reminderFiresTable);
         expect(fire).toMatchObject({
@@ -255,15 +254,15 @@ describe('reminder scheduler lifecycle', () => {
             .set({ repeat: 'daily@09:00', script: 'printf changed' })
             .where(eq(remindersTable.id, 'rem_scheduler'));
 
-        const transport = new RecordingTransport();
+        const { delivery, runner, transport } = recordingWires(connection);
         transport.online = false;
-        const delivery = new AgentDelivery(connection.db, transport);
         await tickReminders(connection.db, { now: () => now }, delivery);
 
         expect(transport.frames).toHaveLength(0);
         expect(await connection.db.select().from(reminderAgentAttentionTable)).toHaveLength(1);
 
         transport.online = true;
+        runner.attach('agt_scheduler');
         await delivery.onComputerReconnect('cmp_ssssssssssssssss');
         const command = transport.frames.find((frame) => frame.type === 'reminder-script');
         expect(command).toMatchObject({
@@ -291,7 +290,7 @@ describe('reminder scheduler lifecycle', () => {
         expect(transport.frames.filter((frame) => frame.type === 'reminder-script')).toHaveLength(
             1
         );
-        const starts = transport.frames.filter((frame) => frame.type === 'start');
+        const starts = runner.starts();
         expect(starts.length).toBeGreaterThanOrEqual(1);
         expect(new Set(starts.map((frame) => frame.runId))).toHaveLength(1);
         expect(await connection.db.select().from(reminderAgentAttentionTable)).toHaveLength(0);
@@ -313,20 +312,20 @@ describe('reminder scheduler lifecycle', () => {
             .set({ repeat: null })
             .where(eq(remindersTable.id, 'rem_scheduler'));
 
-        const transport = new RecordingTransport();
+        const { delivery, runner, transport } = recordingWires(connection);
         transport.online = false;
-        const delivery = new AgentDelivery(connection.db, transport);
         await tickReminders(connection.db, { now: () => now }, delivery);
 
         expect(transport.frames).toHaveLength(0);
         expect(await connection.db.select().from(reminderAgentAttentionTable)).toHaveLength(1);
 
         transport.online = true;
+        runner.attach('agt_scheduler');
         await delivery.onComputerReconnect('cmp_ssssssssssssssss');
-        const starts = transport.frames.filter((frame) => frame.type === 'start');
+        const starts = runner.starts();
         expect(starts).toHaveLength(1);
         const start = starts[0];
-        if (!start || start.type !== 'start') {
+        if (!start) {
             throw new Error('Ordinary reminder did not start the Agent.');
         }
         // The fire rides the concrete lane, so its envelope is the prompt the
@@ -381,26 +380,9 @@ describe('reminder scheduler lifecycle', () => {
 
         expect(await connection.db.select().from(reminderAgentAttentionTable)).toHaveLength(0);
         await delivery.onComputerReconnect('cmp_ssssssssssssssss');
-        expect(transport.frames.filter((frame) => frame.type === 'start')).toHaveLength(1);
+        expect(runner.starts()).toHaveLength(1);
     });
 });
-
-class RecordingTransport implements DeliveryTransport {
-    readonly frames: AgentCommand[] = [];
-    online = true;
-
-    isOnline(computerId: string): boolean {
-        return this.online && computerId === 'cmp_ssssssssssssssss';
-    }
-
-    send(computerId: string, frame: AgentCommand): boolean {
-        if (!this.isOnline(computerId)) {
-            return false;
-        }
-        this.frames.push(frame);
-        return true;
-    }
-}
 
 async function seedOverdueReminder(haus: HausConnection) {
     const serverId = 'srv_scheduler';

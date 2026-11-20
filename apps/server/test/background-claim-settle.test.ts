@@ -18,6 +18,7 @@ import {
 } from './background-claim-fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { captureTopic, settleRealtime } from './realtime-capture.ts';
+import { RecordingRunner } from './recording-runner.ts';
 
 let cluster: TestDatabase;
 let connection: HausConnection;
@@ -268,8 +269,10 @@ test('a run serving another message leaves the claim idle', async () => {
     const claim = await seedBackgroundClaim(connection.db);
     const other = await sendHumanMessage(connection.db, claim, 'unrelated work');
     const transport = new FakeTransport();
+    const runner = new RecordingRunner();
     transport.online.add(claim.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    runner.attach(claim.agentId);
+    const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
     await delivery.deliver({
         agentId: claim.agentId,
         chatId: claim.chatId,
@@ -278,5 +281,6 @@ test('a run serving another message leaves the claim idle', async () => {
         serverId: claim.serverId,
     });
 
+    expect(runner.starts()).toHaveLength(1);
     expect(await readClaim(connection.db, claim)).toMatchObject({ live: false });
 });

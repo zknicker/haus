@@ -18,6 +18,7 @@ import { ServerAccessDeniedError } from '../src/servers/server-access.ts';
 import type { HausUser } from '../src/users/haus-user.ts';
 import { testAgentHome } from './agent-home.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
+import { RecordingRunner } from './recording-runner.ts';
 
 /**
  * `agent.serverTurns` interleaves every Agent's settled turns on one Server,
@@ -92,8 +93,10 @@ test('interleaves Agents newest first and pages without gaps or repeats', async 
 test('gates triggers by Chat visibility and refuses non-members', async () => {
     const seed = await seedServer();
     const transport = new FakeTransport();
+    const runner = new RecordingRunner();
     transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    runner.attach(seed.ada);
+    const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
     await delivery.deliver({
         agentId: seed.ada,
         chatId: seed.dmChatId,
@@ -101,7 +104,7 @@ test('gates triggers by Chat visibility and refuses non-members', async () => {
         dedupeKey: 'msg_servertrigger01',
         serverId: seed.serverId,
     });
-    const [runId = ''] = transport.startedRunIds();
+    const [runId = ''] = runner.starts().map((frame) => frame.runId);
     await delivery.onAck({ agentId: seed.ada, runId });
     await delivery.onTurnSettled(
         seed.computerId,
@@ -144,10 +147,6 @@ class FakeTransport implements DeliveryTransport {
         }
         this.sent.push(frame);
         return true;
-    }
-
-    startedRunIds(): string[] {
-        return this.sent.flatMap((frame) => (frame.type === 'start' ? [frame.runId] : []));
     }
 }
 

@@ -27,17 +27,18 @@ const pullRequestUrl = 'https://github.com/haus/haus/pull/77';
 
 test('a busy Agent hears a count of one Task reports, then gets the reports in its next run', async () => {
     const board = await seedWorkerBoard(connection.db);
-    const { delivery, transport } = offlineDelivery(connection.db, board.seed);
+    const { delivery, runner, transport } = offlineDelivery(connection.db, board.seed);
     transport.online.add(board.seed.computerId);
+    runner.attach(board.seed.agentId);
     await deliverHuman(connection.db, delivery, board.seed, { chatId: board.seed.dmChatId });
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: board.seed.agentId, runId });
 
     const first = await finishWorker(board, delivery, 'First is done.');
     const second = await finishWorker(board, delivery, 'Second is done.');
     await delivery.dispatchAgent(board.seed.agentId, board.seed.serverId);
 
-    const notice = transport.framesOfType('notice').at(-1);
+    const notice = runner.framesOfType('notice').at(-1);
     expect(agentCommandSchema.safeParse(notice).success).toBe(true);
     expect(notice?.inbox.filter((item) => item.workerReport)).toEqual([]);
     expect(notice?.workerReports).toEqual({
@@ -64,12 +65,12 @@ test('a busy Agent hears a count of one Task reports, then gets the reports in i
         { dedupeKey: `worker-report:${first}`, noticeRunId: runId },
         { dedupeKey: `worker-report:${second}`, noticeRunId: runId },
     ]);
-    const notices = transport.framesOfType('notice').length;
+    const notices = runner.framesOfType('notice').length;
     await delivery.dispatchAgent(board.seed.agentId, board.seed.serverId);
-    expect(transport.framesOfType('notice')).toHaveLength(notices);
+    expect(runner.framesOfType('notice')).toHaveLength(notices);
 
     await delivery.onTurnSettled(board.seed.computerId, settledTurn(board.seed, runId));
-    const next = transport.framesOfType('start').at(-1);
+    const next = runner.starts().at(-1);
     expect(next?.chatId).toBe(board.task.chatId);
     expect(next?.inbox.map((item) => item.workerReport?.turnId)).toEqual([first, second]);
     await delivery.onAck({ agentId: board.seed.agentId, runId: next?.runId ?? '' });
