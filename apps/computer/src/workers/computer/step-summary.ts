@@ -84,11 +84,11 @@ export function workerStepRecorder(redact: (text: string) => string) {
 export function workerStepReporter(options: {
     attempt: number;
     now: () => number;
+    redact: (text: string) => string;
     send: (frame: WorkerTurnStepsFrame) => void;
-    token: string;
     turnId: string;
 }) {
-    const recorder = workerStepRecorder(createJournalRedactor([options.token]));
+    const recorder = workerStepRecorder(options.redact);
     let sentAt = Number.NEGATIVE_INFINITY;
     let dirty = false;
     const flush = () => {
@@ -113,6 +113,16 @@ export function workerStepReporter(options: {
             }
         },
     };
+}
+
+export function workerTextMask(options: { checkout: string; drive: string; token: string }) {
+    const redact = createJournalRedactor([options.token]);
+    return (text: string) =>
+        redact(text)
+            .replaceAll(`${options.drive}/`, 'drive/')
+            .replaceAll(options.drive, 'drive')
+            .replaceAll(`${options.checkout}/`, '')
+            .replaceAll(options.checkout, '.');
 }
 
 function opened(kind: WorkerStepKind, text: string, input: unknown) {

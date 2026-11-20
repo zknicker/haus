@@ -1,12 +1,11 @@
 import type { WorkerRuntime, WorkerTurnStartFrame } from '@haus/api';
-import { createJournalRedactor } from '../../execution-journal-upload/journal-redaction.ts';
 import type { RuntimeSession } from '../../runtime/driver.ts';
 import { activityLine, activityThrottle } from './activity.ts';
 import { mintTurnCredential } from './credentials.ts';
 import { pullWorkerDrive } from './drive-sync.ts';
 import { prepareWorkerCli, workerResumeState } from './harness.ts';
 import { resolveWorkerRepo } from './repos.ts';
-import { workerStepReporter } from './step-summary.ts';
+import { workerStepReporter, workerTextMask } from './step-summary.ts';
 import {
     bounded,
     type ComputerPlaceContext,
@@ -171,7 +170,12 @@ async function runHarness(
         if (frame.runtime === 'codex') {
             await acceptInput();
         }
-        const redact = createJournalRedactor([launch.env.HAUS_WORKER_TOKEN]);
+        const layout = context.journal.layout(frame.workerId);
+        const redact = workerTextMask({
+            checkout: layout.checkout,
+            drive: layout.drive,
+            token: launch.env.HAUS_WORKER_TOKEN,
+        });
         const offer = activityThrottle({
             now: context.now,
             send: (line) =>
@@ -181,7 +185,7 @@ async function runHarness(
             attempt: frame.attempt,
             now: context.now,
             send: context.send,
-            token: launch.env.HAUS_WORKER_TOKEN,
+            redact,
             turnId: frame.turnId,
         });
         let failure: string | null = null;

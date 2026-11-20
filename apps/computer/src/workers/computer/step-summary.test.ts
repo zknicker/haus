@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { createJournalRedactor } from '../../execution-journal-upload/journal-redaction.ts';
-import { workerStepRecorder, workerStepReporter } from './step-summary.ts';
+import { workerStepRecorder, workerStepReporter, workerTextMask } from './step-summary.ts';
 
 const token = 'hwt_turntokenvalue0123456789';
 const claude = (toolCallId: string, nativeName: string, input: unknown) =>
@@ -149,8 +149,8 @@ test('a turn keeps its newest 40 steps and sends them whole at most once per int
     const reporter = workerStepReporter({
         attempt: 2,
         now: () => now,
+        redact: createJournalRedactor([token]),
         send: (frame) => frames.push(frame),
-        token,
         turnId: 'wkt_1',
     });
     for (let index = 0; index < 45; index += 1) {
@@ -169,4 +169,37 @@ test('a turn keeps its newest 40 steps and sends them whole at most once per int
     expect(last.steps).toHaveLength(40);
     expect(last.steps[0]?.label).toBe('file-5.ts');
     expect(last.steps[39]?.label).toBe('file-44.ts');
+});
+
+test('a step names Worker files from its checkout and drive folder, never by machine path', () => {
+    const mask = workerTextMask({
+        checkout: '/Users/me/.haus/computer/servers/srv_1/workers/wkr_1/checkout',
+        drive: '/Users/me/.haus/computer/servers/srv_1/workers/wkr_1/drive',
+        token,
+    });
+    const recorder = workerStepRecorder(mask);
+    recorder.offer({
+        input: {
+            additions: 1,
+            deletions: 0,
+            event: 'create',
+            path: '/Users/me/.haus/computer/servers/srv_1/workers/wkr_1/drive/agents/a/reports/X-1/r.md',
+        },
+        toolCallId: 'c1',
+        toolName: 'fileChange',
+        type: 'tool-call',
+    });
+    recorder.offer(claude('t1', 'Bash', { command: 'pwd' }));
+    recorder.offer({
+        nativeName: 'Bash',
+        output: { stdout: '/Users/me/.haus/computer/servers/srv_1/workers/wkr_1/checkout\n' },
+        toolCallId: 't1',
+        toolName: 'bash',
+        type: 'tool-result',
+    });
+
+    expect(recorder.steps().map((step) => [step.label, step.output])).toEqual([
+        ['drive/agents/a/reports/X-1/r.md', null],
+        ['pwd', '.'],
+    ]);
 });
