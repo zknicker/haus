@@ -219,7 +219,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // Lowered by exactly 79 (37,923 → 37,844): only people create Projects, so `haus channel create`
     // and its Manual pointer went (-80), and the welcome rule names #haus for #all (+1).
     // Lowered by exactly 100 (37,844 → 37,744) when cloud agents became Workers (ADR 0056, W2): reports post in the Task and reach the Agent as inbox items, and `start` names `--on`.
-    expect(prompt.length).toBeLessThanOrEqual(37_744);
+    // Lowered by exactly 13 (37,744 → 37,731) when `--on` became optional again: a start without it runs on the Computer's default place.
+    expect(prompt.length).toBeLessThanOrEqual(37_731);
     expect(prompt.toLowerCase()).not.toContain('thread');
 });
 

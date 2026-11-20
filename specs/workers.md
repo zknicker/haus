@@ -541,7 +541,8 @@ W2 migrates every caller and deletes the cloud agent path in one change.
   stays off until the attaching person, an Owner, or an Admin turns it on.
 - Deleted with no alias: `haus cloud-agent` and its `cancel` spelling, `--provider`, `--say`,
   `--cause` on start, the launch Message, **Make default** and `defaultProvider`, and the
-  Computer-local pending follow-up file once drained. The website's older `TranscriptWorker` row type is renamed
+  Computer-local pending follow-up file once drained. Until W3 moves the default onto Projects,
+  **Make default** stays, and a start without `--on` runs on the Agent's Computer's ready default. The website's older `TranscriptWorker` row type is renamed
   so the word means one thing.
 
 ## Deferred

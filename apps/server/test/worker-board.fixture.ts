@@ -57,7 +57,8 @@ export async function setReadyPlaces(
     serverId: string,
     computerId: string,
     places: WorkerPlace[],
-    health: 'healthy' | 'offline' = 'healthy'
+    health: 'healthy' | 'offline' = 'healthy',
+    defaultPlace: WorkerPlace | null = null
 ) {
     await db
         .update(computersTable)
@@ -65,6 +66,7 @@ export async function setReadyPlaces(
             health,
             reportedInventory: {
                 cloudAgentProviders: places.map((provider) => ({
+                    isDefault: provider === defaultPlace,
                     models: null,
                     provider,
                     ready: true,

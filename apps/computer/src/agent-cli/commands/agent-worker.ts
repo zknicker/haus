@@ -31,7 +31,11 @@ const START_COMMAND: SubCommand = {
     examples: [START_RECIPE],
     flags: [
         { description: 'The Task this Worker is for', name: '--task', valueName: '<KEY-n>' },
-        { description: 'Where the Worker runs', name: '--on', valueName: '<cursor|claude>' },
+        {
+            description: "Where the Worker runs; omit for your Computer's default",
+            name: '--on',
+            valueName: '<cursor|claude>',
+        },
         { description: 'Repository as owner/name', name: '--repo', valueName: '<owner/name>' },
         { description: 'Starting ref (branch, tag, or SHA)', name: '--ref', valueName: '<ref>' },
         { description: 'One-line title for the Worker', name: '--title', valueName: '<text>' },
@@ -44,7 +48,7 @@ const START_COMMAND: SubCommand = {
     positionals: [],
     run: (args) => runWorkerStart(args, defaultDeps()),
     summary: 'Start a Worker on a Task with the brief from stdin',
-    usage: 'haus worker start --task <KEY-n> --on <cursor|claude> --repo <owner/name> [--ref <ref>] --title <text>',
+    usage: 'haus worker start --task <KEY-n> [--on <cursor|claude>] --repo <owner/name> [--ref <ref>] --title <text>',
 };
 
 const SEND_COMMAND: SubCommand = {

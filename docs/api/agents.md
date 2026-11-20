@@ -446,7 +446,7 @@ BRIEF
 `POST /api/agent/workers` takes `{ brief, nonce, place?, repository, startingRef, task?, title }`
 (`agentWorkerStartInputSchema`). The Server refuses before writing anything:
 `WORKER_TASK_REQUIRED` (no Task, or one the Agent cannot reach), `WORKER_TASK_CLOSED`,
-`WORKER_PLACE_REQUIRED` (no `place`; the message lists the ready places), and
+`WORKER_PLACE_REQUIRED` (no `place`, and the Agent's assigned Computer has no ready default place to use instead; the message lists the ready places), and
 `WORKER_PLACE_UNAVAILABLE` (no online Computer reports that place ready). A start then passes the
 Task Chat's freshness hold like `haus message send` and answers `held` with the newer messages.
 Otherwise it records the Worker (`wkr_`) and its first turn (`wkt_`, input `[{ kind: 'brief' }]`),

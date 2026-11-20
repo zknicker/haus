@@ -7,7 +7,7 @@ import * as z from 'zod';
  * writes nothing. `WORKER_TASK_REQUIRED` lives with the Task place refusals.
  *
  * - `WORKER_TASK_CLOSED`: the Task is done or canceled.
- * - `WORKER_PLACE_REQUIRED`: no `--on`; the message lists the ready places.
+ * - `WORKER_PLACE_REQUIRED`: no `--on` and no ready default on the Agent's Computer; the message lists the ready places.
  * - `WORKER_PLACE_UNAVAILABLE`: no online Computer has that place ready.
  * - `WORKER_HISTORY_READ_ONLY`: the Worker predates Tasks and only reads.
  * - `WORKER_CLOSED`: the Worker's Task closed, so it takes no more turns.

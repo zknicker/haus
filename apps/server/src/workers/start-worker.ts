@@ -15,7 +15,7 @@ import { lockServerRow } from '../servers/server-lock.ts';
 import { resolveRunModel } from './cloud-agent-model.ts';
 import { withDispatch } from './dispatch-worker-turns.ts';
 import { WorkerConflictError, WorkerPlaceRequiredError } from './errors.ts';
-import { chooseCarrier, readReadyPlaces } from './worker-carrier.ts';
+import { chooseCarrier, readDefaultPlace, readReadyPlaces } from './worker-carrier.ts';
 import { type WorkerEffects, noWorkerEffects } from './worker-effects.ts';
 import { requireOpenWorkerTask } from './worker-launch-task.ts';
 import { requireWorker } from './worker-shape.ts';
@@ -32,10 +32,6 @@ export async function startWorker(
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
         const task = await requireOpenWorkerTask(tx, runner, input.task);
-        const { place } = input;
-        if (!place) {
-            throw new WorkerPlaceRequiredError(await readReadyPlaces(tx, runner.serverId));
-        }
         const existing = await readStartedByNonce(tx, runner, input, task.taskId);
         if (existing) {
             return {
@@ -43,6 +39,10 @@ export async function startWorker(
                 kind: 'started',
                 receipt: existing,
             } satisfies StartWorkerResult;
+        }
+        const place = input.place ?? (await readDefaultPlace(tx, runner));
+        if (!place) {
+            throw new WorkerPlaceRequiredError(await readReadyPlaces(tx, runner.serverId));
         }
         const carrierComputerId = await chooseCarrier(tx, {
             agentId: runner.agentId,
@@ -135,7 +135,7 @@ async function readStartedByNonce(
     const { turn, worker } = row;
     if (
         worker.taskId !== taskId ||
-        worker.place !== input.place ||
+        (input.place && worker.place !== input.place) ||
         worker.title !== input.title ||
         worker.repository !== input.repository ||
         worker.startingRef !== input.startingRef ||

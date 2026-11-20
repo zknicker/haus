@@ -15,7 +15,7 @@ const section = prompt.split('### Workers\n')[1]?.split('### ')[0] ?? '';
 
 test('the Workers family names the place a start runs on', () => {
     expect(prompt).toContain(
-        '13. **Workers**: `haus worker start --on <place>`, `haus worker send`, `haus worker inspect`, `haus worker stop`. Read the `workers` Manual topic before the first one.'
+        '13. **Workers**: `haus worker start`, `haus worker send`, `haus worker inspect`, `haus worker stop`. Read the `workers` Manual topic before the first one.'
     );
     expect(prompt).not.toContain('cloud-agent');
     expect(prompt.toLowerCase()).not.toContain('cloud agent');

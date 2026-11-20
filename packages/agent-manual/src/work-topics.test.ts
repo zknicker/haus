@@ -77,9 +77,11 @@ test('no Manual topic teaches boards, columns, pickup-note threads, or work thre
     }
 });
 
-test('a Worker starts on a Task with a place, and reports there', () => {
+test("a Worker starts on a Task at its Computer's default place or --on, and reports there", () => {
     const body = getManualTopic('workers')?.body ?? '';
-    expect(body).toContain('`haus worker start --task <KEY-n> --on <cursor|claude>');
+    expect(body).toContain('`haus worker start --task <KEY-n> [--on <cursor|claude>]');
+    expect(body).toContain("Without `--on` a Worker runs on your Computer's default place");
+    expect(body).toContain('Cloud Agents → Make default');
     expect(body).toContain('`WORKER_TASK_REQUIRED`');
     expect(body).toContain('`WORKER_PLACE_REQUIRED`');
     expect(body).toContain('Starting posts nothing');

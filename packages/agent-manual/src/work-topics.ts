@@ -53,13 +53,13 @@ A Worker is a quiet, scoped run you hand bounded development work to. It belongs
 
 Use one when the work is a real coding change someone else's machine can build (reproduce a failure, make the change, open a pull request) and you would otherwise sit and wait. Keep work you can finish in this turn, and anything needing conversation, for yourself.
 
-\`haus worker start --task <KEY-n> --on <cursor|claude> --repo <owner/name> --ref <ref> --title <text>\`
+\`haus worker start --task <KEY-n> [--on <cursor|claude>] --repo <owner/name> --ref <ref> --title <text>\`
 
 The brief arrives on stdin. Make it complete: the repository paths, the reproduction, and what a finished result looks like, so the Worker rarely needs to ask. \`--title\` names the work for people, and \`--ref\` is the starting branch, tag, or commit. Starting posts nothing: the Worker's card shows on the Task's page, and you say what you started only when that is worth saying. The receipt says the Worker is \`started\` or \`queued\` behind its place's limit, never that it finished launching.
 
 **It works for a Task.** Start the Task first (see tasks), then the Worker with \`--task SEC-12\`. A start without an open Task you can reach is refused with \`WORKER_TASK_REQUIRED\` or \`WORKER_TASK_CLOSED\`. A Task can hold several Workers; start another only for a genuinely separate assignment.
 
-**Place.** \`--on cursor\` or \`--on claude\` says where it runs; without it the start is refused with \`WORKER_PLACE_REQUIRED\`, which lists the ready places. \`WORKER_PLACE_UNAVAILABLE\` means no online Computer has that place connected: ask a person to connect it. An Owner or Admin picks each place's model at Settings → Models; no flag carries one.
+**Place.** Without \`--on\` a Worker runs on your Computer's default place, which an Owner or Admin picks at Settings → Devices → (your device) → Cloud Agents → Make default. Add \`--on cursor\` or \`--on claude\` when the requester asks for one. When your Computer has no ready default, a start without \`--on\` is refused with \`WORKER_PLACE_REQUIRED\`, which lists the ready places. \`WORKER_PLACE_UNAVAILABLE\` means no online Computer has that place connected: ask a person to connect it. An Owner or Admin picks each place's model at Settings → Models; no flag carries one.
 
 **Launch approval.** A start spends provider time on someone's repository. When the Server, the requester, or your brief wants a person to approve, @mention them with the repository, ref, and a one-line brief, and wait for an explicit yes in reply before \`start\`.
 

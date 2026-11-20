@@ -69,8 +69,8 @@ export class WorkerPlaceRequiredError extends Error {
     constructor(readyPlaces: readonly WorkerPlace[]) {
         super(
             readyPlaces.length > 0
-                ? `Say where the Worker runs with --on. Ready places: ${readyPlaces.join(', ')}.`
-                : 'Say where the Worker runs with --on. No place is ready: a Computer must connect Cursor or Claude first.'
+                ? `Your Computer has no ready default place, so say where the Worker runs with --on. Ready places: ${readyPlaces.join(', ')}.`
+                : 'Your Computer has no ready default place, and no place is ready: a Computer must connect Cursor or Claude first.'
         );
         this.name = 'WorkerPlaceRequiredError';
     }

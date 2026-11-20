@@ -125,7 +125,7 @@ test('a start without a usable Task or place is refused before anything is writt
     await expect(refuse({ task: undefined })).rejects.toThrow('A Worker needs a Task.');
     await expect(refuse({ task: 'ZZZ-404' })).rejects.toThrow('Task ZZZ-404 does not exist');
     await expect(refuse({ place: undefined })).rejects.toThrow(
-        'Say where the Worker runs with --on. Ready places: claude.'
+        'Your Computer has no ready default place, so say where the Worker runs with --on. Ready places: claude.'
     );
     await expect(refuse({ place: 'cursor' })).rejects.toThrow(
         'No online Computer has cursor ready.'
@@ -150,6 +150,36 @@ test('a start without a usable Task or place is refused before anything is writt
     });
     await expect(refuse({ place: 'claude' })).rejects.toThrow(`Task ${board.task.key} is closed.`);
     expect(await countWorkers(board.seed.serverId)).toBe(0);
+});
+
+test("a start without --on runs on the Agent's Computer's ready default place", async () => {
+    const board = await seedWorkerBoard(connection.db);
+    const { seed } = board;
+    await setReadyPlaces(
+        connection.db,
+        seed.serverId,
+        seed.computerId,
+        ['cursor', 'claude'],
+        'healthy',
+        'claude'
+    );
+
+    const { worker } = (await startOn(connection.db, board, { place: undefined })).receipt;
+
+    expect([worker.place, worker.carrierComputerId]).toEqual(['claude', seed.computerId]);
+    await setReadyPlaces(
+        connection.db,
+        seed.serverId,
+        seed.computerId,
+        ['cursor'],
+        'healthy',
+        'claude'
+    );
+    await expect(
+        startWorker(connection.db, board.runner, startInput(board, { place: undefined }))
+    ).rejects.toThrow(
+        'Your Computer has no ready default place, so say where the Worker runs with --on. Ready places: cursor.'
+    );
 });
 
 test('a start past its place limit queues, and starts when a slot frees', async () => {
