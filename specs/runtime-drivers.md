@@ -62,10 +62,8 @@ runner uses the credential for `haus` commands, `execute`, Drive reads, and invo
 Nothing else in the runner can act as an Agent.
 
 The runner socket is `/runner/attachment`. Its first frame is `runner-hello` with the runner
-token, which the Server compares in constant time to its own `HAUS_RUNNER_TOKEN`. Until R4, the
-Server delivers to the runner only when `HAUS_AGENT_LOOP=runner`, one switch for every Agent so
-there is never a mixed state; Computers keep the default `computer`. R4 deletes the switch with
-the Computer path.
+token, which the Server compares in constant time to its own `HAUS_RUNNER_TOKEN`. The
+Server delivers every Agent turn to the runner.
 
 In development, `bun run dev` runs the runner as a local process with the same environment
 contract and no container. The Oxlint rules hold the boundary there.
