@@ -224,12 +224,7 @@ function canAppendUserMessage(entry: TranscriptTurnEntry, item: TranscriptItem) 
 
 function hasAttachedWork(item: TranscriptItem) {
     const row = item.kind === 'row' && item.row.kind === 'message' ? item.row : null;
-    return Boolean(
-        row?.entity?.attachedWork ||
-        row?.message.claim ||
-        row?.message.reply ||
-        row?.message.workerBody
-    );
+    return Boolean(row?.entity?.attachedWork || row?.message.claim || row?.message.reply);
 }
 
 export function getItemRunId(item: TranscriptItem) {

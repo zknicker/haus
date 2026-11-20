@@ -120,7 +120,11 @@ export function projectChatMessageLayout(
         actor,
         connectsToNext: false,
         connectsToPrevious: false,
-        entity: { attachedWork, chatId: layout.chatId, serverId: layout.serverId },
+        entity: {
+            attachedWork: attachedWork || workerMessageBody(layout.body) !== null,
+            chatId: layout.chatId,
+            serverId: layout.serverId,
+        },
         id: layout.id,
         isFirstInGroup: true,
         kind: 'message',

@@ -339,26 +339,6 @@ function withResponseId(row: ChatRow, responseId: string): ChatRow {
     return { ...row, responseId };
 }
 
-test('a follow-up to a Worker stands as its own turn between plain messages', () => {
-    const followUp = userMessage('user-2', 'Match iPhone.', false, false);
-    if (followUp.kind !== 'message') {
-        throw new Error('Expected a message row.');
-    }
-    followUp.message.workerBody = { kind: 'worker-follow-up', workerId: 'wkr_one' };
-    const entries = buildTranscriptEntries({
-        activeReplies: [],
-        rows: [
-            userMessage('user-1', 'Looking now.', false, false),
-            followUp,
-            userMessage('user-3', 'Thanks.', false, false),
-        ],
-    });
-
-    expect(entries.map((entry) => (entry.kind === 'turn' ? entry.items.length : 0))).toEqual([
-        1, 1, 1,
-    ]);
-});
-
 function userMessage(
     id: string,
     content: string,

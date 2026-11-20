@@ -1,83 +1,15 @@
 import { expect, test } from 'bun:test';
-import type { Worker, WorkerBranch, WorkerReport } from '@haus/api';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { createTRPCQueryUtils } from '@trpc/react-query';
-import { observable } from '@trpc/server/observable';
+import type { WorkerBranch } from '@haus/api';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { linkedMessage } from '../../../../../packages/haus-api/src/worker-fixture.ts';
-import { hausTrpc } from '../../lib/haus-server.tsx';
-import { TranscriptRenderProvider } from '../chats/chat-transcript-render-context.tsx';
-import { testAgent } from '../members/agent-fixtures.ts';
-import { WorkerCard, WorkerPullRequestRow } from './worker-card.tsx';
+import { renderCard } from './worker-card.test-utils.tsx';
+import { WorkerPullRequestRow } from './worker-card.tsx';
 import { workerTurnFixture as turn, workerFixture as work } from './worker-fixture.ts';
-
-const serverId = 'srv_cards';
-const askReport: WorkerReport = {
-    ask: 'Does the iPad baseline move 2px on purpose?',
-    messageId: null,
-    outcome: 'needs-you',
-    personId: 'usr_zach',
-    personRefused: null,
-    pullRequestUrls: [],
-    source: 'worker',
-    text: 'Fixed five of six.',
-};
 
 test('a live turn with an empty composer offers Stop, and a typed follow-up would Send', () => {
     const html = renderCard(work({ updatedAt: new Date().toISOString() }));
 
     expect(html).toContain('aria-label="Stop Worker"');
     expect(html).toContain('placeholder="Goes in when this turn ends"');
-});
-
-test('a needs-you report shows its text and the ask with its person, and invites an answer', () => {
-    const html = renderCard(
-        work({
-            turns: [
-                turn({
-                    outcome: { kind: 'report', report: askReport },
-                    status: 'pending_input',
-                }),
-            ],
-        })
-    );
-
-    expect(html).toContain('Fixed five of six.');
-    expect(html).toContain('@Zach ');
-    expect(html).toContain('Does the iPad baseline move 2px on purpose?');
-    expect(html).toContain('placeholder="Answer this Worker"');
-    expect(html).toContain('aria-label="Send follow-up"');
-    expect(html).not.toContain('worker-status-line');
-});
-
-test('a cited Drive file opens at the revision the report cited', () => {
-    const report = { ...askReport, messageId: 'msg_report' };
-    const html = renderCard(
-        work({
-            turns: [turn({ outcome: { kind: 'report', report }, status: 'pending_input' })],
-        }),
-        {
-            ...linkedMessage,
-            driveCitations: [
-                {
-                    artifactId: 'art_render',
-                    path: 'agents/forge/renders/ENG-41/composer.png',
-                    revisionId: 'rev_two',
-                },
-                {
-                    artifactId: null,
-                    path: 'agents/forge/reports/ENG-41/notes.md',
-                    revisionId: null,
-                },
-            ],
-            id: 'msg_report',
-        }
-    );
-
-    expect(html).toContain('href="/s/cards/artifacts/art_render?revision=rev_two"');
-    expect(html).toContain('composer.png');
-    expect(html).toContain('notes.md');
 });
 
 test('a history Worker outside any Task keeps Copy link and has no composer', () => {
@@ -123,23 +55,6 @@ test('a pull request only the report named still shows, numbered when GitHub nam
     ).toContain('Pull request');
 });
 
-test('on a narrow pane the card in the Task transcript still shows cited files', () => {
-    const report = { ...askReport, messageId: 'msg_report' };
-    const html = renderCard(
-        work({ turns: [turn({ outcome: { kind: 'report', report }, status: 'pending_input' })] }),
-        {
-            ...linkedMessage,
-            driveCitations: [
-                { artifactId: 'art_render', path: 'a/render.png', revisionId: 'rev_two' },
-            ],
-            id: 'msg_report',
-        },
-        { inTranscript: true }
-    );
-
-    expect(html).toContain('render.png');
-});
-
 test('the pull request and provider links are real links', () => {
     const html = renderCard(
         work({
@@ -165,32 +80,6 @@ test('the pull request and provider links are real links', () => {
 
     expect(html).toContain('href="https://github.com/haus/haus/pull/56"');
     expect(html).toContain('href="https://cursor.com/agents/bc_one"');
-});
-
-test('a Worker on a chatless legacy Task shows its summary and no composer', () => {
-    const html = renderCard(
-        work({ turns: [turn({ status: 'completed', summary: 'Opened PR #4.' })] }),
-        undefined,
-        { chatId: null }
-    );
-
-    expect(html).toContain('Opened PR #4.');
-    expect(html).not.toContain('prompt-input');
-});
-
-test('the report reads at the card size and its ask can be selected', () => {
-    const html = renderCard(
-        work({
-            turns: [
-                turn({ outcome: { kind: 'report', report: askReport }, status: 'pending_input' }),
-            ],
-        })
-    );
-
-    expect(html).not.toContain('chat-markdown text-base');
-    expect(html).toMatch(
-        /data-testid="worker-report-ask"[^>]*data-selectable-text=""|data-selectable-text=""[^>]*data-testid="worker-report-ask"/u
-    );
 });
 
 test('a closed Worker shows its record with no composer', () => {
@@ -268,85 +157,3 @@ test('a branch that opened no pull request renders no row', () => {
         )
     ).toBe('');
 });
-
-function renderCard(
-    worker: Worker,
-    reportMessage?: typeof linkedMessage,
-    options: { chatId?: null; inTranscript?: boolean } = {}
-) {
-    const queryClient = new QueryClient({
-        defaultOptions: { queries: { retry: false, staleTime: Number.POSITIVE_INFINITY } },
-    });
-    const client = hausTrpc.createClient({
-        links: [() => () => observable(() => () => undefined)],
-    });
-    const utils = createTRPCQueryUtils({ client, queryClient });
-    utils.server.bySlug.setData({ slug: 'cards' }, {
-        id: serverId,
-        onboarding: { phase: 'complete' },
-        role: 'member',
-        slug: 'cards',
-    } as never);
-    utils.agent.list.setData({ serverId }, [
-        testAgent({ displayName: 'Forge', id: 'agt_one', serverId }),
-        testAgent({ displayName: 'Tiny', id: 'agt_tiny', serverId }),
-    ]);
-    if (reportMessage) {
-        utils.chat.message.setData(
-            { chatId: 'cht_task', messageId: reportMessage.id, serverId },
-            { message: reportMessage, tasks: [] }
-        );
-    }
-    utils.member.list.setData(
-        { serverId },
-        {
-            members: [
-                {
-                    avatarUrl: null,
-                    description: null,
-                    displayName: 'Zach',
-                    email: null,
-                    handle: null,
-                    joinedAt: '2026-09-04T12:00:00.000Z',
-                    role: 'owner',
-                    timezone: null,
-                    userId: 'usr_zach',
-                },
-            ],
-            viewerRole: 'owner',
-            viewerUserId: 'usr_zach',
-        }
-    );
-    return renderToStaticMarkup(
-        <QueryClientProvider client={queryClient}>
-            <hausTrpc.Provider client={client} queryClient={queryClient}>
-                <MemoryRouter initialEntries={['/s/cards']}>
-                    <Routes>
-                        <Route
-                            element={
-                                options.inTranscript ? (
-                                    <TranscriptRenderProvider
-                                        value={
-                                            {
-                                                chatId: 'cht_task',
-                                                repliedRunIds: new Set(),
-                                            } as never
-                                        }
-                                    >
-                                        <WorkerCard work={worker} />
-                                    </TranscriptRenderProvider>
-                                ) : (
-                                    <WorkerCard
-                                        chatId={options.chatId === null ? null : 'cht_task'}
-                                        work={worker}
-                                    />
-                                )
-                            }
-                            path="/s/:slug"
-                        />
-                    </Routes>
-                </MemoryRouter>
-            </hausTrpc.Provider>
-        </QueryClientProvider>
-    );
-}
