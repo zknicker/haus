@@ -88,9 +88,9 @@ export function AgentCreationDialog({
 function ServerAgentCreationForm({
     serverId,
     ...props
-}: Omit<React.ComponentProps<typeof AgentCreationForm>, 'agents'> & { serverId: string }) {
+}: Omit<React.ComponentProps<typeof AgentCreationForm>, 'agents'>) {
     const agents = useAgents(serverId).data ?? noAgents;
-    return <AgentCreationForm agents={agents} {...props} />;
+    return <AgentCreationForm agents={agents} serverId={serverId} {...props} />;
 }
 
 const noAgents: readonly Agent[] = [];

@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import type { Agent } from '@haus/api';
-import { renderToStaticMarkup } from 'react-dom/server';
+import { renderWithTrpc } from '../../test-support/trpc-test-provider.tsx';
 import type { ReportedComputer } from './agent-creation-contract.ts';
 import { AgentCreationForm } from './agent-creation-form.tsx';
 
@@ -42,7 +42,7 @@ const cove = {
 } as unknown as Agent;
 
 test('a fresh form starts empty on the setup Cove already runs on', () => {
-    const markup = renderToStaticMarkup(
+    const markup = renderWithTrpc(
         <AgentCreationForm
             agents={[cove]}
             error={null}
@@ -50,6 +50,7 @@ test('a fresh form starts empty on the setup Cove already runs on', () => {
             onCreated={() => undefined}
             onSubmit={async () => ({ agentId: 'agt_1234567890abcdef' })}
             reported={reported}
+            serverId="srv_1"
         />
     );
 
@@ -59,13 +60,15 @@ test('a fresh form starts empty on the setup Cove already runs on', () => {
     expect(markup).toContain('Reasoning effort');
     expect(markup).toContain('aria-label="Upload avatar"');
     expect(markup).toContain('value=""');
+    expect(markup).toContain('data-slot="label">Project</span>');
+    expect(markup).toContain('Select a project');
     // The signature emoji is optional and shows the default until one is picked.
     expect(markup).toContain('Signature emoji');
     expect(markup).toContain('👀');
 });
 
 test('a Server without Cove falls back to the first Computer that reports an inventory', () => {
-    const markup = renderToStaticMarkup(
+    const markup = renderWithTrpc(
         <AgentCreationForm
             agents={[]}
             error={null}
@@ -73,6 +76,7 @@ test('a Server without Cove falls back to the first Computer that reports an inv
             onCreated={() => undefined}
             onSubmit={async () => ({ agentId: 'agt_1234567890abcdef' })}
             reported={reported}
+            serverId="srv_1"
         />
     );
 
@@ -81,7 +85,7 @@ test('a Server without Cove falls back to the first Computer that reports an inv
 });
 
 test('keeps the form mounted with a recoverable creation error', () => {
-    const markup = renderToStaticMarkup(
+    const markup = renderWithTrpc(
         <AgentCreationForm
             agents={[]}
             error={{ message: 'The Computer no longer reports this model.' }}
@@ -89,6 +93,7 @@ test('keeps the form mounted with a recoverable creation error', () => {
             onCreated={() => undefined}
             onSubmit={async () => ({ agentId: 'agt_1234567890abcdef' })}
             reported={reported}
+            serverId="srv_1"
         />
     );
 

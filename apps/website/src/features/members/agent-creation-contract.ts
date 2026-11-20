@@ -16,6 +16,7 @@ export interface AgentCreationSubmitValues {
     description: string | null;
     displayName: string;
     handle: string;
+    homeProjectId: string;
     modelId: string;
     reasoningEffort: AgentReasoningEffort;
     runtimeId: string;
