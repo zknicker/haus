@@ -8,7 +8,7 @@ import {
     invokeResultAckSchema,
 } from '@haus/api';
 import type * as z from 'zod';
-import { settleDriveFolder } from '../drive/turn-sync.ts';
+import { holdDriveFolder } from '../drive/turn-sync.ts';
 import { createKeyedQueue } from '../keyed-queue.ts';
 import { cancelledBeforeStart, executeInvocation } from './handler-run.ts';
 import { type AcceptedRecord, createLedger, finishedRecord, type Ledger } from './ledger.ts';
@@ -59,10 +59,11 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
             queue.run(command.agentId, async () => {
                 const record = await accepted;
                 if (record) {
-                    await settleDriveFolder(
-                        join(input.agentsRoot, agentPathSegment(command.agentId))
+                    await holdDriveFolder(
+                        join(input.agentsRoot, agentPathSegment(command.agentId)),
+                        controller.signal,
+                        () => run(command, record, controller)
                     );
-                    await run(command, record, controller);
                 }
             })
         );
