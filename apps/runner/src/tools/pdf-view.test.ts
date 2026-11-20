@@ -81,7 +81,14 @@ describe('view of a PDF on the runner', () => {
             right: 1040,
             top: 380,
         });
-        expect(label).toBeWithin(25_800, 26_050);
+        const blank = await darkPixels(content[1], {
+            bottom: 1100,
+            left: 140,
+            right: 1040,
+            top: 700,
+        });
+        expect(label).toBeGreaterThanOrEqual(10_000);
+        expect(blank).toBeLessThan(50);
     });
 
     test('a view_range past the last page names the pages a PDF has', async () => {
