@@ -1,30 +1,37 @@
 import { describe, expect, test } from 'bun:test';
-import { parseRunnerConfig, parseRunnerDataDir } from './config.ts';
+import { parseRunnerConfig } from './config.ts';
 
 describe('runner config', () => {
     test('an empty variable, as compose forwards an unset one, reads as unset', () => {
-        const environment = {
-            HAUS_RUNNER_CLAUDE_SETUP_TOKEN: '',
-            HAUS_RUNNER_DATA_DIR: '',
-            HAUS_RUNNER_GEMINI_API_KEY: '',
-            HAUS_RUNNER_MAX_WARM: '',
-            HAUS_RUNNER_OPENROUTER_API_KEY: '',
-            HAUS_RUNNER_TOKEN: 'runner-token-0123456789abcdef0123456789',
-            HAUS_RUNNER_XAI_API_KEY: 'xai-key',
-            HAUS_SERVER_URL: 'http://host.docker.internal:18791/',
-        };
-
-        expect(parseRunnerConfig(environment)).toEqual({
-            claudeSetupToken: null,
+        expect(
+            parseRunnerConfig({
+                HAUS_RUNNER_DATA_DIR: '',
+                HAUS_RUNNER_MAX_WARM: '',
+                HAUS_RUNNER_TOKEN: 'runner-token-0123456789abcdef0123456789',
+                HAUS_SERVER_URL: 'http://host.docker.internal:18791/',
+            })
+        ).toEqual({
             dataDir: '/data',
-            geminiApiKey: null,
             maxWarm: 16,
-            openrouterApiKey: null,
             runnerToken: 'runner-token-0123456789abcdef0123456789',
             serverUrl: 'http://host.docker.internal:18791',
-            xaiApiKey: 'xai-key',
         });
-        expect(parseRunnerDataDir(environment)).toBe('/data');
+    });
+
+    test('model logins are not runner settings: a leftover provider key is ignored', () => {
+        expect(
+            parseRunnerConfig({
+                HAUS_RUNNER_CLAUDE_SETUP_TOKEN: 'sk-ant-oat01-leftover',
+                HAUS_RUNNER_TOKEN: 'runner-token-0123456789abcdef0123456789',
+                HAUS_RUNNER_XAI_API_KEY: 'xai-leftover',
+                HAUS_SERVER_URL: 'http://localhost:1',
+            })
+        ).toEqual({
+            dataDir: '/data',
+            maxWarm: 16,
+            runnerToken: 'runner-token-0123456789abcdef0123456789',
+            serverUrl: 'http://localhost:1',
+        });
     });
 
     test('an empty runner token is still refused', () => {

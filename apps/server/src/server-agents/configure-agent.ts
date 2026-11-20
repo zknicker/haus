@@ -167,6 +167,7 @@ export async function configureAgent(
                 avatarId: agentsTable.avatarId,
                 computerId: agentsTable.computerId,
                 connectionAdmin: agentsTable.connectionAdmin,
+                modelConnectionId: agentsTable.modelConnectionId,
                 createdByAgentId: agentsTable.createdByAgentId,
                 createdByUserId: agentsTable.createdByUserId,
                 createdAt: agentsTable.createdAt,
