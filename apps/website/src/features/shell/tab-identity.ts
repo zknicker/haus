@@ -139,10 +139,19 @@ export function resolveTabIdentity(page: TabPage, records: TabIdentityRecords): 
             };
         case 'task':
             return { label: page.taskKey, mark: { kind: 'glyph', glyph: 'task' }, place: null };
-        case 'newTab':
-            return { label: 'New tab', mark: { kind: 'glyph', glyph: 'newTab' }, place: null };
+        default:
+            return glyphIdentity(page);
+    }
+}
+
+function glyphIdentity(
+    page: Extract<TabPage, { kind: 'home' | 'newTab' | 'section' }>
+): TabIdentity {
+    switch (page.kind) {
         case 'home':
             return { label: 'Home', mark: { kind: 'glyph', glyph: 'home' }, place: null };
+        case 'newTab':
+            return { label: 'New tab', mark: { kind: 'glyph', glyph: 'newTab' }, place: null };
         case 'section':
             return {
                 label: sectionLabels[page.section],
