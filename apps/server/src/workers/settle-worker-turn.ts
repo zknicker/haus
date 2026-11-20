@@ -73,10 +73,14 @@ export async function settleWorkerTurn(
 export async function settleWorkerTurnAsFailed(
     tx: HausDatabase,
     agentDelivery: Pick<AgentDelivery, 'enqueue'>,
-    input: { reason: WorkerFailure; turnId: string; worker: WorkerRow }
+    input: { detail?: string; reason: WorkerFailure; turnId: string; worker: WorkerRow }
 ) {
     const { worker } = input;
-    const outcome: WorkerOutcome = { detail: null, kind: 'failed', reason: input.reason };
+    const outcome: WorkerOutcome = {
+        detail: input.detail ?? null,
+        kind: 'failed',
+        reason: input.reason,
+    };
     await recordOutcome(tx, { outcome, turnId: input.turnId, worker });
     const task = worker.taskId ? await readTask(tx, worker.serverId, worker.taskId) : null;
     const delivered = await queueWorkerReport(tx, agentDelivery, {

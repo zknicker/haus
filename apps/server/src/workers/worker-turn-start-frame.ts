@@ -2,16 +2,10 @@ import type { WorkerTurnStartFrame } from '@haus/api';
 import { and, asc, eq, lt, sql } from 'drizzle-orm';
 import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    agentsTable,
-    chatsTable,
-    projectRepoLinksTable,
-    projectReposTable,
-    workerTurnsTable,
-    workersTable,
-} from '../postgres/schema.ts';
+import { agentsTable, chatsTable, workerTurnsTable, workersTable } from '../postgres/schema.ts';
 import { readTask } from '../tasks/task-read.ts';
 import { composeWorkerInput } from './compose-worker-input.ts';
+import { readWorkerRepoLink } from './worker-repo-link.ts';
 import { workerPlaceOf } from './worker-row-place.ts';
 
 type TurnRow = typeof workerTurnsTable.$inferSelect;
@@ -75,7 +69,7 @@ export async function workerTurnStartFrame(
             place.kind === 'computer'
                 ? {
                       branch,
-                      checkoutPath: await linkedCheckoutPath(tx, worker, task.projectId),
+                      checkoutPath: (await readWorkerRepoLink(tx, worker))?.checkoutPath ?? null,
                       repository: worker.repository,
                       startingRef: worker.startingRef,
                   }
@@ -121,27 +115,4 @@ async function isHausProject(tx: HausDatabase, serverId: string, projectId: stri
         .where(and(eq(chatsTable.serverId, serverId), eq(chatsTable.id, projectId)))
         .limit(1);
     return chat?.isAll ?? false;
-}
-
-async function linkedCheckoutPath(tx: HausDatabase, worker: WorkerRow, projectId: string) {
-    const [link] = await tx
-        .select({ checkoutPath: projectRepoLinksTable.checkoutPath })
-        .from(projectRepoLinksTable)
-        .innerJoin(
-            projectReposTable,
-            and(
-                eq(projectReposTable.serverId, projectRepoLinksTable.serverId),
-                eq(projectReposTable.id, projectRepoLinksTable.projectRepoId)
-            )
-        )
-        .where(
-            and(
-                eq(projectRepoLinksTable.serverId, worker.serverId),
-                eq(projectRepoLinksTable.computerId, worker.carrierComputerId),
-                eq(projectReposTable.projectId, projectId),
-                sql`lower(${projectReposTable.repository}) = lower(${worker.repository})`
-            )
-        )
-        .limit(1);
-    return link?.checkoutPath ?? null;
 }

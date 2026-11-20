@@ -396,7 +396,10 @@ so the repo never sees it. A new drive folder pulls in full
 ### Run a turn
 
 The Server dispatches a Computer-place turn only while the switch is on, the Computer is online,
-and the Computer has a free slot under its `worker_limit`.
+and the Computer has a free slot under its `worker_limit`. A queued turn whose repo has no link on
+that Computer, because it was unlinked or removed after the turn queued, settles failed
+`launch-refused` with detail `repo-unlinked` when dispatch reaches it, and no start is sent. Only a
+link with a null `checkoutPath` means "clone into the data root".
 
 1. The Server sends `worker-turn-start` with the turn id, the attempt, the composed input, the
    `WORKER.md` revision it inlines, the runtime and model, the checkout (repository, linked

@@ -4,8 +4,13 @@ import { removeServerComputer } from '../src/computers/remove-computer.ts';
 import { setComputerWorkers } from '../src/computers/set-computer-workers.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
-import { projectsTable, serverMembershipsTable, usersTable } from '../src/postgres/schema.ts';
-import { linkProjectRepo } from '../src/projects/project-repos.ts';
+import {
+    agentInboxTable,
+    projectsTable,
+    serverMembershipsTable,
+    usersTable,
+} from '../src/postgres/schema.ts';
+import { linkProjectRepo, unlinkProjectRepo } from '../src/projects/project-repos.ts';
 import { setProjectDefaultWorkerPlace } from '../src/projects/project-worker-defaults.ts';
 import { sendAgentFollowUp } from '../src/workers/worker-operations.ts';
 import { offlineDelivery } from './agent-inbox-harness.ts';
@@ -16,6 +21,7 @@ import {
     attachAnotherComputer,
     setComputerPlace,
 } from './worker-computer-place.fixture.ts';
+import { endTurn } from './worker-computer-turn.fixture.ts';
 
 let cluster: TestDatabase;
 let connection: HausConnection;
@@ -160,6 +166,39 @@ test("only the attacher, an Owner, or an Admin sets a Computer's switch or links
             }
         )
     ).toEqual({ computerId: attached, projectRepoId });
+});
+
+test('a queued turn whose repo was unlinked from its Computer fails launch-refused when a slot frees', async () => {
+    const { board, projectRepoId } = await computerBoard();
+    const { delivery } = offlineDelivery(connection.db, board.seed);
+    const working = (await startOn(connection.db, board, { place: 'mini' })).receipt.worker;
+    const queued = (await startOn(connection.db, board, { place: 'mini' })).receipt.worker;
+    await unlinkProjectRepo(connection.db, owner(board), {
+        computerId: board.seed.computerId,
+        projectRepoId,
+        serverId: board.seed.serverId,
+    });
+    const [workingTurn] = await readTurns(connection.db, working.id);
+    const [queuedTurn] = await readTurns(connection.db, queued.id);
+
+    const freed = await endTurn(connection.db, delivery, board, {
+        exit: 'exited',
+        turnId: workingTurn?.id ?? '',
+    });
+
+    expect((await readTurns(connection.db, queued.id)).map((turn) => turn.outcome)).toEqual([
+        { detail: 'repo-unlinked', kind: 'failed', reason: 'launch-refused' },
+    ]);
+    expect(
+        freed?.frames.filter(
+            ({ frame }) => frame.type === 'worker-turn-start' && frame.turnId === queuedTurn?.id
+        )
+    ).toEqual([]);
+    const items = await connection.db
+        .select({ source: agentInboxTable.source })
+        .from(agentInboxTable)
+        .where(eq(agentInboxTable.workerTurnId, queuedTurn?.id ?? ''));
+    expect(items).toEqual([{ source: 'worker_report' }]);
 });
 
 async function readDefault(board: WorkerBoard) {
