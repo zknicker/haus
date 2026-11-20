@@ -1,9 +1,9 @@
 ---
-summary: The Projects contract. Humans create Projects and each Project is its channel; `#all` stays the everyone channel and is not a Project. A Project carries one Task key, its home Agents, repos linked per Computer, its `AGENTS.md`, and the default place for its Workers. Every Agent has exactly one home Project. Covers the data shape, settings and who edits them, the Haus project and generalists, Agent placement, and the one-time migration from channels.
+summary: The Projects contract. Humans create Projects and each Project is its channel; `#all` stays the everyone channel and is not a Project. A Project carries one Task key, its home Agents, repos linked per Computer, its `AGENTS.md`, and the default place for its Workers. Every Agent has exactly one Project. Covers the data shape, settings and who edits them, the Haus project and generalists, Agent placement, and the one-time migration from channels.
 read_when:
   - creating, configuring, archiving, or listing Projects or their channels
   - changing a Project's key, its Agents, its repos, its `AGENTS.md`, or its default Worker place
-  - changing an Agent's home Project, generalist Agents, or the Haus project
+  - changing an Agent's Project, generalist Agents, or the Haus project
   - changing what an Agent may read, post in, or start Tasks in across Projects
   - writing or running the channels-to-Projects migration
 ---
@@ -97,14 +97,14 @@ starts with a digit is prefixed with `P` before step 2.
 
 ### Agents
 
-- An Agent's home Project is `agents.home_project_id`. Every active Agent has exactly one, an open
+- An Agent's Project is `agents.home_project_id`. Every active Agent has exactly one, an open
   Project that is never `#all`; only a retired Agent may have none (`agents_home_project_shape`).
 - The Project's Agents are the Agents whose home it is. Adding an Agent in a Project's settings
   moves its home there from wherever it was. The settings list shows where each candidate lives
   now, so a person sees what the move takes away.
-- Agent creation takes a home Project. `agent.create` requires `homeProjectId` and refuses one that
+- Agent creation takes a Project. `agent.create` requires `homeProjectId` and refuses one that
   is not an open Project; the App's create dialog asks for one and, with no Project, says to create
-  one first. An Agent creating an Agent homes it in its own home Project.
+  one first. An Agent creating an Agent homes it in its own Project.
 - Moving an Agent changes what reaches it ([inbox.md](inbox.md#hearing)) and which Project
   `AGENTS.md` its main session receives ([ADR 0054](../docs/adr/0054-drive-holds-what-agents-know-and-follow.md)
   decision 7). It does not touch its session, its memory, or its machine
@@ -158,9 +158,9 @@ starts with a digit is prefixed with `P` before step 2.
 - Reading or posting elsewhere does not change what reaches the Agent. Only its home, mentions,
   assignments, followed Tasks, and followed reply chains do ([inbox.md](inbox.md#hearing)).
 - Every non-retired Agent is offered as a mention in every Project.
-- A Task started from a message in `#all` or a DM goes to the starting Agent's home Project
+- A Task started from a message in `#all` or a DM goes to the starting Agent's Project
   unless `--project` names another.
-- A non-generalist Agent starts Tasks only in its home Project. Elsewhere the Server refuses with
+- A non-generalist Agent starts Tasks only in its Project. Elsewhere the Server refuses with
   `TASK_PROJECT_NOT_HOME`, whose next action is to @mention that Project's Agent in that Project's
   channel. A generalist is never refused.
 - Agent channel membership is deleted: the `channel_agent_participants` table, its single write
@@ -180,7 +180,7 @@ starts with a digit is prefixed with `P` before step 2.
 
 ## Migration from channels
 
-One migration in J2 turns channels into Projects. J3 sets home Projects. Both are idempotent: a
+One migration in J2 turns channels into Projects. J3 sets each Agent's Project. Both are idempotent: a
 second run changes nothing.
 
 1. **Projects (J2).** Each live or archived channel gets a `projects` row. The `#all` channel is
@@ -194,7 +194,7 @@ second run changes nothing.
 3. **Task Projects (J2).** Each Task's Project is its origin Message's channel. A Task from before
    Tasks were places, with no origin, takes the Project that holds its key. When no channel holds
    that key, the Task goes to the Haus project. Either way it keeps its key and number.
-4. **Home Projects (J3).** Each Agent's home is the unarchived Project where it authored the most
+4. **Agent Projects (J3).** Each Agent's home is the unarchived Project where it authored the most
    messages in the last 30 days, counting a Task's messages toward its Project. A tie goes to the
    Project with its newest message. Archived Projects are never eligible. An Agent with no such
    messages, and Cove, go to the Haus project.

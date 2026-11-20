@@ -13,7 +13,9 @@ read_when:
 ## Status
 
 Accepted 2026-11-19. Amended 2026-11-20 after a council review: `#all` is the team room and not a
-Project, a new Server creates no Project, and generalists go.
+Project, a new Server creates no Project, and generalists go. Amended again 2026-11-20: people-
+and Agent-facing text calls an Agent's home Project just its Project, as Capy does; ADRs and code
+names (`home_project_id`) keep "home".
 Supersedes the Cove onboarding parts of
 [ADR 0021](0021-cove-onboards-and-agents-share-a-manual.md) ("Fresh Servers require Cove" and
 "Only Cove receives onboarding workspace knowledge"). ADR 0021's shared Haus Manual stands.
