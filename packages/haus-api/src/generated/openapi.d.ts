@@ -460,7 +460,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Search messages across joined chats. */
+        /** Search messages across every chat the Agent can read. */
         get: operations["searchAgentMessages"];
         put?: never;
         post?: never;
@@ -566,23 +566,6 @@ export interface paths {
         get: operations["getAgentChannelMembers"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/agent/channels/add": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Put another Agent in a channel. */
-        post: operations["addAgentToChannel"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1353,11 +1336,14 @@ export interface components {
              * @default null
              */
             brief: string | null;
-            /** @default [] */
-            channels: string[];
             description: string;
             displayName: string;
             nonce: string;
+            /**
+             * @description The new Agent's home Project key. Null homes it in the Haus project.
+             * @default null
+             */
+            project: string | null;
             /**
              * @description Exactly one emoji grapheme, the new Agent's pickup reaction. Null means the default.
              * @default null
@@ -1390,23 +1376,15 @@ export interface components {
         AgentCreateAgentResponse: {
             agent: components["schemas"]["CreatedAgentSummary"];
             avatar: components["schemas"]["AgentCreatedAvatarOutcome"];
-            channels: string[];
             chatId: string;
             computerId: string;
             idempotent: boolean;
             modelId: string;
+            /** @description The new Agent's home Project key. */
+            project: string;
             /** @enum {string} */
             reasoningEffort: "default" | "low" | "medium" | "high" | "xhigh" | "max";
             runtimeId: string;
-            target: string;
-        };
-        AgentAddChannelAgentRequest: {
-            agent: string;
-            target: string;
-        };
-        AgentAddChannelAgentResponse: {
-            added: boolean;
-            handle: string;
             target: string;
         };
         AgentUpdateAgentRequest: {
@@ -1589,7 +1567,9 @@ export interface components {
         };
         AgentChannel: {
             handle: string;
-            joined: boolean;
+            home: boolean;
+            project: string;
+            homeAgents: string[];
             description: string | null;
             memberCount: number;
         };
@@ -1619,6 +1599,7 @@ export interface components {
         };
         AgentChannelMembers: {
             target: string;
+            project: string;
             members: components["schemas"]["AgentChannelMember"][];
         };
         /** @enum {string} */
@@ -3611,7 +3592,7 @@ export interface operations {
                 channels?: boolean;
                 agents?: boolean;
                 humans?: boolean;
-                joined?: boolean;
+                home?: boolean;
                 query?: string;
                 limit?: components["parameters"]["Limit"];
                 offset?: number;
@@ -3675,31 +3656,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentChannelMembers"];
-                };
-            };
-            default: components["responses"]["AgentError"];
-        };
-    };
-    addAgentToChannel: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AgentAddChannelAgentRequest"];
-            };
-        };
-        responses: {
-            /** @description The channel and the Agent now in it. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgentAddChannelAgentResponse"];
                 };
             };
             default: components["responses"]["AgentError"];

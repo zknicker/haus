@@ -8,6 +8,7 @@ import {
 import { avatarBytesInputSchema, avatarMediaTypeSchema } from './avatar.ts';
 import { idSchema as appIdSchema } from './chat-contract-primitives.ts';
 import { participantHandleSchema } from './participant-handle.ts';
+import { TASK_KEY_PREFIX_PATTERN } from './task-key-ledger.ts';
 
 /** Local so the Message body union never imports the Chat contracts back. */
 const idSchema = z.string().trim().min(1).max(200);
@@ -38,6 +39,8 @@ export const createAgentInputSchema = z
         description: agentDescriptionInputSchema.nullable().optional(),
         displayName: z.string().trim().min(1).max(80),
         handle: participantHandleSchema,
+        /** Omitted: the Haus project, so the new Agent is a generalist. */
+        homeProjectId: appIdSchema.optional(),
         modelId: z.string().trim().min(1).max(128),
         reasoningEffort: agentReasoningEffortSchema.default('medium'),
         runtimeId: z.string().trim().min(1).max(64),
@@ -49,11 +52,12 @@ export const createAgentInputSchema = z
 
 export type CreateAgentInput = z.infer<typeof createAgentInputSchema>;
 
-/** `#name`, as every Agent-facing channel target is written. */
-export const channelTargetSchema = z
+/** A Project key as an Agent writes it; `sec` names `SEC`. */
+export const projectKeyTargetSchema = z
     .string()
     .trim()
-    .regex(/^#[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/u, 'A channel target looks like "#product".');
+    .toUpperCase()
+    .regex(TASK_KEY_PREFIX_PATTERN, 'A Project key looks like "SEC".');
 
 /**
  * Creation writes no Message. `target` names the conversation authorizing the
@@ -62,8 +66,8 @@ export const channelTargetSchema = z
  *
  * `brief` is the new Agent's standing instruction. It is durable Server state
  * rendered into the seeded workspace memory, not a Message, so nothing has to
- * DM the new Agent to tell it what it owns. `channels` names the channels it
- * joins on top of the Server's `#all`, which creation always joins.
+ * DM the new Agent to tell it what it owns. `project` names its home Project
+ * by key; null makes it a generalist, homed in the Haus project.
  * `signatureEmoji` is the new Agent's pickup reaction; null means the default 👀.
  */
 /** Server decoder retains missing legacy briefs solely for skew errors and nonce replay. */
@@ -71,10 +75,10 @@ export const agentCreateAgentRequestSchema = z
     .object({
         avatarConcept: z.string().trim().min(1).max(280).nullable().default(null),
         brief: z.string().trim().min(1).max(4000).nullable().default(null),
-        channels: z.array(channelTargetSchema).max(20).default([]),
         description: agentDescriptionInputSchema,
         displayName: z.string().trim().min(1).max(80),
         nonce: z.string().trim().min(1).max(128),
+        project: projectKeyTargetSchema.nullable().default(null),
         signatureEmoji: signatureEmojiInputSchema.nullable().default(null),
         target: z.string().trim().min(1).max(200),
     })
@@ -112,12 +116,12 @@ export const agentCreateAgentReceiptSchema = z
     .object({
         agent: createdAgentSummarySchema,
         avatar: agentCreatedAvatarOutcomeSchema,
-        /** Every channel the new Agent joined, `#all` first. */
-        channels: z.array(channelTargetSchema),
         chatId: idSchema,
         computerId: idSchema,
         idempotent: z.boolean(),
         modelId: z.string(),
+        /** The key of the new Agent's home Project. */
+        project: z.string().regex(TASK_KEY_PREFIX_PATTERN),
         reasoningEffort: agentReasoningEffortSchema,
         runtimeId: z.string(),
         target: z.string().min(1),
@@ -170,28 +174,3 @@ export const agentSetAgentAvatarReceiptSchema = z
     .strict();
 
 export type AgentSetAgentAvatarReceipt = z.infer<typeof agentSetAgentAvatarReceiptSchema>;
-
-/**
- * Put an Agent in a channel. Any active Agent may add any active Agent; the
- * add is idempotent and wakes nobody, so it is a membership correction rather
- * than a delivery. Cove's membership stays product-owned.
- */
-export const agentAddChannelAgentInputSchema = z
-    .object({
-        agent: z.string().trim().min(1).max(64),
-        target: channelTargetSchema,
-    })
-    .strict();
-
-export type AgentAddChannelAgentInput = z.infer<typeof agentAddChannelAgentInputSchema>;
-
-export const agentAddChannelAgentReceiptSchema = z
-    .object({
-        /** False when that Agent was already a member. */
-        added: z.boolean(),
-        handle: participantHandleSchema,
-        target: channelTargetSchema,
-    })
-    .strict();
-
-export type AgentAddChannelAgentReceipt = z.infer<typeof agentAddChannelAgentReceiptSchema>;
