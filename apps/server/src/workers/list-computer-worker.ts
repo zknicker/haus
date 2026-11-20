@@ -2,6 +2,7 @@ import type { WorkerReconcileEntry } from '@haus/api';
 import { and, asc, eq, inArray, isNotNull, isNull, or, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { workerTurnsTable, workersTable } from '../postgres/schema.ts';
+import { workerPlaceOf } from './worker-row-place.ts';
 
 const carriedTurn = and(
     eq(workerTurnsTable.serverId, workersTable.serverId),
@@ -15,6 +16,7 @@ export async function listComputerWorker(
 ): Promise<WorkerReconcileEntry[]> {
     const rows = await db
         .select({
+            carrierComputerId: workersTable.carrierComputerId,
             place: workersTable.place,
             providerAgentId: workersTable.providerAgentId,
             providerRunId: workerTurnsTable.providerRunId,
@@ -38,7 +40,10 @@ export async function listComputerWorker(
             )
         )
         .orderBy(asc(workerTurnsTable.createdAt), asc(workerTurnsTable.id));
-    return rows;
+    return rows.map(({ carrierComputerId, place, ...entry }) => ({
+        ...entry,
+        place: workerPlaceOf({ carrierComputerId, place }),
+    }));
 }
 
 export async function listUnacknowledgedTurns(

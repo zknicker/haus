@@ -12,7 +12,7 @@ import { WorkerTurnJournal } from './turn-journal.ts';
 import { WorkerSupervisor } from './work-runner.ts';
 
 const turn = {
-    place: 'cursor' as const,
+    place: { kind: 'cursor' as const },
     providerAgentId: null,
     providerRunId: null,
     status: 'queued' as const,
@@ -74,7 +74,7 @@ async function fixture(provider: CloudAgentProvider) {
 
 test('a follow-up whose send keeps failing is auto-interrupted, and reports that too when it still fails', async () => {
     const followUp = { ...turn, providerAgentId: 'bc_stalled', turnId: 'car_stalledfollowup1' };
-    const ref = { ...followUp, provider: followUp.place };
+    const ref = { ...followUp, provider: followUp.place.kind };
     const alwaysBusy: CloudAgentProvider = {
         ...createFakeCloudAgentProvider(),
         send: () => Promise.reject(recordedAgentBusyError()),
@@ -95,7 +95,7 @@ test('a follow-up whose send keeps failing is auto-interrupted, and reports that
 
 test('a follow-up whose send fails but then goes through once auto-interrupted records that it did', async () => {
     const followUp = { ...turn, providerAgentId: 'bc_recovers', turnId: 'car_recoversfollowup1' };
-    const ref = { ...followUp, provider: followUp.place };
+    const ref = { ...followUp, provider: followUp.place.kind };
     let sendAttempts = 0;
     const failsUntilInterrupted: CloudAgentProvider = {
         ...createFakeCloudAgentProvider(),

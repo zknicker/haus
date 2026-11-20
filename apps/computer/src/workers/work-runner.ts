@@ -4,6 +4,7 @@ import {
     type WorkerReconcileEntry,
     type WorkerStopCommand,
     type WorkerTurnStartFrame,
+    requireCloudWorkerPlace,
 } from '@haus/api';
 import { settle } from '@haus/effect';
 import { Deferred, Effect, Exit, Scope } from 'effect';
@@ -170,7 +171,7 @@ export class WorkerSupervisor {
 /** The wire names the place; provider adapters address the same turn by provider. */
 function turnRefOf(entry: WorkerStopCommand | WorkerReconcileEntry): WorkerTurnRef {
     return {
-        provider: entry.place,
+        provider: requireCloudWorkerPlace(entry.place),
         providerAgentId: entry.providerAgentId,
         providerRunId: entry.providerRunId,
         turnId: entry.turnId,

@@ -1,4 +1,8 @@
-import type { CloudAgentProvider as CloudAgentProviderId, WorkerTurnStartFrame } from '@haus/api';
+import {
+    type CloudAgentProvider as CloudAgentProviderId,
+    type WorkerTurnStartFrame,
+    requireCloudWorkerPlace,
+} from '@haus/api';
 import { workerLaunchTimeoutMs } from './launch-attempt.ts';
 import { launchWorkerTurn } from './launch-turn.ts';
 import {
@@ -22,7 +26,7 @@ export interface WorkerTurnHost {
 
 export async function acceptWorkerTurn(frame: WorkerTurnStartFrame, host: WorkerTurnHost) {
     const ref: WorkerTurnRef = {
-        provider: frame.place,
+        provider: requireCloudWorkerPlace(frame.place),
         providerAgentId: frame.providerAgentId,
         providerRunId: null,
         turnId: frame.turnId,
@@ -38,7 +42,7 @@ export async function acceptWorkerTurn(frame: WorkerTurnStartFrame, host: Worker
         launchWorkerTurn({
             frame,
             journal: host.journal,
-            provider: host.provider(frame.place),
+            provider: host.provider(ref.provider),
             ref,
             serverId: host.serverId,
             supervisor: host,

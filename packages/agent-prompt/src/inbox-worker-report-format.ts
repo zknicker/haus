@@ -1,9 +1,10 @@
-import type {
-    PullRequestReading,
-    WorkerFailure,
-    WorkerReport,
-    WorkerReportAttention,
-    WorkerReportsNotice,
+import {
+    type PullRequestReading,
+    type WorkerFailure,
+    type WorkerReport,
+    type WorkerReportAttention,
+    type WorkerReportsNotice,
+    formatWorkerPlace,
 } from '@haus/api';
 import { indentContinuationLines } from './inbox-header-format.ts';
 
@@ -11,7 +12,7 @@ export function formatWorkerReport(attention: WorkerReportAttention) {
     const { outcome, taskKey, workerId } = attention;
     const label = outcome.kind === 'report' ? outcome.report.outcome : outcome.kind;
     return [
-        `[worker report · ${taskKey} · ${label} · Worker on ${attention.place} (${workerId}) · turn ${attention.turnNumber}]`,
+        `[worker report · ${taskKey} · ${label} · Worker on ${formatWorkerPlace(attention.place)} (${workerId}) · turn ${attention.turnNumber}]`,
         ...outcomeLines(attention),
         ...pullRequestLines(attention),
         ...(attention.citedFiles.length > 0

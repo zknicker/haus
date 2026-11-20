@@ -2,7 +2,7 @@ import { afterEach } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { WorkerTurnStartFrame } from '@haus/api';
+import { type WorkerTurnStartFrame, requireCloudWorkerPlace } from '@haus/api';
 import { makeTestRuntime } from '@haus/effect';
 import type { CloudAgentProvider } from './provider.ts';
 import { WorkerTurnJournal } from './turn-journal.ts';
@@ -16,7 +16,7 @@ export function turnStartFrame(overrides: Partial<WorkerTurnStartFrame> = {}) {
     return {
         input: 'Fix the flaky delivery test.',
         model: { droppedParams: [], fallbackFrom: null, id: null, params: [] },
-        place: 'cursor',
+        place: { kind: 'cursor' },
         predecessorTurnIds: [],
         providerAgentId: null,
         repository: 'haus/haus',
@@ -43,7 +43,7 @@ export function reconcileEntry(frame: WorkerTurnStartFrame, stopRequested = fals
 
 export function turnRef(frame: WorkerTurnStartFrame) {
     return {
-        provider: frame.place,
+        provider: requireCloudWorkerPlace(frame.place),
         providerAgentId: frame.providerAgentId,
         providerRunId: null,
         turnId: frame.turnId,

@@ -1,7 +1,8 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
 import { taskKeySchema } from './task-key.ts';
-import { workerOutcomeSchema, workerPlaceSchema } from './worker-outcome.ts';
+import { workerOutcomeSchema } from './worker-outcome.ts';
+import { workerPlaceSchema } from './worker-place.ts';
 import { pullRequestReadingSchema } from './worker-pull-request.ts';
 import { workerTitleSchema } from './worker-shared.ts';
 

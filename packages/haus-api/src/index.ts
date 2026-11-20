@@ -120,6 +120,7 @@ export * from './worker-shared.ts';
 export * from './worker-stall.ts';
 export * from './worker-link.ts';
 export * from './worker-outcome.ts';
+export * from './worker-place.ts';
 export * from './worker-report-attention.ts';
 export * from './worker-turn-frames.ts';
 export * from './worker-refusals.ts';

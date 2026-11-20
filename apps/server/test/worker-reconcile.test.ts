@@ -61,7 +61,7 @@ test('a reconnecting carrier gets every unaccepted start again and reconciles ev
     expect(resent?.type === 'worker-turn-start' && resent.turnId).toBe(unaccepted.turns[0]?.turnId);
     expect(reconcile?.type === 'worker-reconcile' && reconcile.workers).toEqual([
         {
-            place: 'cursor',
+            place: { kind: 'cursor' },
             providerAgentId: 'bc_two',
             providerRunId: null,
             status: 'running',
@@ -201,7 +201,7 @@ test('a Project purge while the carrier is offline stops the hosted run when the
         )
     ).toEqual([
         {
-            place: 'cursor',
+            place: { kind: 'cursor' },
             providerAgentId: 'bc_purged',
             providerRunId: null,
             status: 'running',
@@ -234,7 +234,7 @@ test('a Task closed while its carrier is offline stops an unaccepted start when 
             type: 'worker-reconcile',
             workers: [
                 {
-                    place: 'cursor',
+                    place: { kind: 'cursor' },
                     providerAgentId: null,
                     providerRunId: null,
                     status: 'queued',
@@ -266,7 +266,7 @@ test('a stop whose frame the carrier missed is reconciled, not started again, on
             type: 'worker-reconcile',
             workers: [
                 {
-                    place: 'cursor',
+                    place: { kind: 'cursor' },
                     providerAgentId: null,
                     providerRunId: null,
                     status: 'queued',

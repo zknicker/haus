@@ -1,4 +1,9 @@
-import type { WorkerBranch, PullRequestReading, Worker } from '@haus/api';
+import {
+    type PullRequestReading,
+    type Worker,
+    type WorkerBranch,
+    requireCloudWorkerPlace,
+} from '@haus/api';
 import { Chip } from '@heroui/react';
 import { GitPullRequestIcon } from '@hugeicons-pro/core-stroke-rounded';
 import type * as React from 'react';
@@ -34,7 +39,7 @@ export function WorkerCard({ children, work }: { children?: React.ReactNode; wor
                 <ActionCard.Mark>
                     <WorkerKeycap
                         environmentName={work.environmentName}
-                        provider={work.place}
+                        provider={requireCloudWorkerPlace(work.place)}
                         size={40}
                     />
                 </ActionCard.Mark>

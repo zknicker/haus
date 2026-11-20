@@ -1,4 +1,4 @@
-import { type WorkerTurnInput, projectWorker } from '@haus/api';
+import { type WorkerTurnInput, projectWorker, requireCloudWorkerPlace } from '@haus/api';
 import { and, arrayContains, asc, eq, isNotNull, isNull, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -7,6 +7,7 @@ import { resolveRunModel } from './cloud-agent-model.ts';
 import { WorkerCarrierRemovedError } from './errors.ts';
 import { requireOpenWorker, stopWorkerTurns } from './stop-worker-turns.ts';
 import type { WorkerFrame } from './worker-effects.ts';
+import { workerPlaceOf } from './worker-row-place.ts';
 
 type WorkerRow = typeof workersTable.$inferSelect;
 
@@ -48,7 +49,7 @@ export async function queueWorkerFollowUp(
     }
     const model = await resolveRunModel(tx, {
         computerId: worker.carrierComputerId,
-        provider: worker.place,
+        provider: requireCloudWorkerPlace(workerPlaceOf(worker)),
         serverId: worker.serverId,
     });
     const turnId = createOpaqueId('wkt');

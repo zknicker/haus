@@ -1,3 +1,4 @@
+import { type WorkerPlace, formatWorkerPlace } from '@haus/api';
 import type { z } from 'zod';
 import type { agentWorkerStartResponseSchema } from './agent-api-schemas.ts';
 import { formatHistoryLine } from './agent-format.ts';
@@ -7,7 +8,7 @@ type WorkerRecorded = Exclude<WorkerStartResponse, { state: 'held' }>;
 
 interface WorkerSummary {
     id: string;
-    place: string;
+    place: WorkerPlace;
     title: string;
 }
 
@@ -49,7 +50,7 @@ export function renderWorkerList(workers: readonly WorkerListSource[]) {
     }
     const rows = workers.map((worker) => {
         const environment = worker.environmentName ? ` [${worker.environmentName}]` : '';
-        return `${worker.id} [${worker.status}] on ${worker.place}${environment} ${worker.title} (${worker.repository})`;
+        return `${worker.id} [${worker.status}] on ${formatWorkerPlace(worker.place)}${environment} ${worker.title} (${worker.repository})`;
     });
     return `${rows.join('\n')}\n`;
 }
@@ -95,7 +96,7 @@ interface WorkerReportSource {
 interface WorkerListSource {
     environmentName?: string | null;
     id: string;
-    place: string;
+    place: WorkerPlace;
     repository: string;
     status: string;
     title: string;
@@ -109,8 +110,8 @@ function renderRecorded(
     const ref = request.startingRef ? `@${request.startingRef}` : '';
     const lead =
         receipt.state === 'started'
-            ? `Worker ${worker.id} started on ${worker.place} for ${request.task}: ${worker.title} (${request.repository}${ref}).`
-            : `Worker ${worker.id} queued on ${worker.place} for ${request.task}: ${worker.title} (${request.repository}${ref}). It starts when ${worker.place} has a free slot.`;
+            ? `Worker ${worker.id} started on ${formatWorkerPlace(worker.place)} for ${request.task}: ${worker.title} (${request.repository}${ref}).`
+            : `Worker ${worker.id} queued on ${formatWorkerPlace(worker.place)} for ${request.task}: ${worker.title} (${request.repository}${ref}). It starts when ${formatWorkerPlace(worker.place)} has a free slot.`;
     return `${[
         lead,
         `Its report posts in ${request.task} and reaches you as an inbox item when the turn ends; a launch that fails reaches you the same way.`,

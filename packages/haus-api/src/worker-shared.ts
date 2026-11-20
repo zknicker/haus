@@ -3,10 +3,10 @@ import { workerTurnModelSchema } from './cloud-agent-model.ts';
 import { workerJobSchema } from './worker-job.ts';
 import {
     workerOutcomeSchema,
-    workerPlaceSchema,
     workerStatusSchema,
     workerTurnInputSchema,
 } from './worker-outcome.ts';
+import { workerPlaceViewSchema } from './worker-place.ts';
 import { workerProviderResultSchema } from './worker-provider-result.ts';
 import { pullRequestReadingSchema, workerPullRequestSchema } from './worker-pull-request.ts';
 import { workerStallCodeSchema } from './worker-stall.ts';
@@ -210,7 +210,7 @@ export const workerSchema = z
         job: workerJobSchema,
         launchMessageId: workerIdSchema.nullable(),
         originChatId: workerIdSchema.nullable(),
-        place: workerPlaceSchema,
+        place: workerPlaceViewSchema,
         providerAgentId: z.string().trim().min(1).max(200).nullable(),
         providerUrl: z.url().max(2000).nullable(),
         /** The live reading of the pull request the newest reporting turn named. */

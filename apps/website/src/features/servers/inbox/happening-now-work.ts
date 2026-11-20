@@ -1,9 +1,10 @@
-import type {
-    ActiveWorker,
-    ActiveWorkerLocation,
-    Agent,
-    WorkerJobState,
-    CloudAgentProvider,
+import {
+    type ActiveWorker,
+    type ActiveWorkerLocation,
+    type Agent,
+    type WorkerJobState,
+    type CloudAgentProvider,
+    requireCloudWorkerPlace,
 } from '@haus/api';
 import { workerText, elapsedSince } from '../../workers/worker-presentation.ts';
 import { conversationLabel } from '../conversation-label.ts';
@@ -42,7 +43,7 @@ export function toHappeningNowWork(
         chatLabel: conversationLabel(item, humans),
         id: item.worker.id,
         location: item.location,
-        provider: item.worker.place,
+        provider: requireCloudWorkerPlace(item.worker.place),
         ...liveStatus(item.worker, now),
         task: workTask(item),
         title: item.worker.title,

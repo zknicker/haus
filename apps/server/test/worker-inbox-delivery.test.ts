@@ -102,7 +102,7 @@ test('a stalled turn queues one worker_stall item per window, in its Task', asyn
     expect(frame?.chatId).toBe(board.task.chatId);
     expect(item?.worker).toMatchObject({
         notice: 'stall',
-        place: 'cursor',
+        place: { kind: 'cursor' },
         stallCode: 'followup-auto-interrupt-failed',
         turnId,
         workerId: worker.id,
@@ -142,7 +142,7 @@ test('a pull request change wakes the Agent of a settled Worker that reported it
     expect(frame?.chatId).toBe(board.task.chatId);
     expect(item?.worker).toMatchObject({
         notice: 'pull_request',
-        place: 'cursor',
+        place: { kind: 'cursor' },
         pullRequestChange: { change: 'ready_for_review', url: pullRequestUrl },
         turnId,
     });

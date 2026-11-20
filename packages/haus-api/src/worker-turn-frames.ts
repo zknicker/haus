@@ -1,7 +1,7 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
 import { workerTurnModelSchema } from './cloud-agent-model.ts';
-import { workerPlaceSchema } from './worker-outcome.ts';
+import { workerPlaceSchema } from './worker-place.ts';
 import { workerRefSchema, workerRepositorySchema, workerTitleSchema } from './worker-shared.ts';
 
 const composedInputMaxLength = 262_144;

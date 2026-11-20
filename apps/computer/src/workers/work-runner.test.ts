@@ -11,7 +11,7 @@ import { WorkerTurnJournal } from './turn-journal.ts';
 import { WorkerSupervisor } from './work-runner.ts';
 
 const entry = {
-    place: 'cursor' as const,
+    place: { kind: 'cursor' as const },
     providerAgentId: 'bc_one',
     providerRunId: 'run_one',
     status: 'running' as const,
@@ -19,7 +19,7 @@ const entry = {
     turnId: 'car_1234567890abcdef',
     workerId: 'caw_1234567890abcdef',
 };
-const ref = { ...entry, provider: entry.place };
+const ref = { ...entry, provider: entry.place.kind };
 const cleanup: Array<() => Promise<void>> = [];
 afterEach(async () => {
     for (const close of cleanup.splice(0).reverse()) {

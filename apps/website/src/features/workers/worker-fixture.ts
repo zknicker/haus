@@ -44,7 +44,7 @@ export function workerFixture(overrides: WorkerFixtureOverrides = {}): Worker {
         id: 'caw_one',
         launchMessageId: null,
         originChatId: null,
-        place: 'cursor' as const,
+        place: { kind: 'cursor' as const },
         providerAgentId: null,
         providerUrl: null,
         pullRequest: null,

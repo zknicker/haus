@@ -7,6 +7,7 @@ import {
 } from '@haus/api';
 import * as z from 'zod';
 import {
+    workerPlaceResponseSchema,
     workerReconcileEntryResponseSchema,
     workerTurnModelResponseSchema,
 } from '../agent-cli/worker-response-schema.ts';
@@ -17,7 +18,10 @@ import {
  * tolerates a field a newer Server added instead of failing the frame closed.
  */
 
-export const workerStopCommandResponseSchema = z.looseObject(workerStopCommandSchema.shape);
+export const workerStopCommandResponseSchema = z.looseObject({
+    ...workerStopCommandSchema.shape,
+    place: workerPlaceResponseSchema,
+});
 
 export const workerReconcileCommandResponseSchema = z.looseObject({
     ...workerReconcileCommandSchema.shape,
@@ -27,6 +31,7 @@ export const workerReconcileCommandResponseSchema = z.looseObject({
 export const workerTurnStartResponseSchema = z.looseObject({
     ...workerTurnStartFrameSchema.shape,
     model: workerTurnModelResponseSchema,
+    place: workerPlaceResponseSchema,
 });
 
 export const workerFollowUpDrainAckResponseSchema = z.looseObject(

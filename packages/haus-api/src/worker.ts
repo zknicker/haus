@@ -2,11 +2,8 @@ import * as z from 'zod';
 import { idSchema } from './chat.ts';
 import type { components } from './generated/openapi.d.ts';
 import { taskKeySchema } from './task-key.ts';
-import {
-    workerObservedResultSchema,
-    workerPlaceSchema,
-    workerTurnInputTextMaxLength,
-} from './worker-outcome.ts';
+import { workerObservedResultSchema, workerTurnInputTextMaxLength } from './worker-outcome.ts';
+import { workerPlaceInputSchema, workerPlaceSchema } from './worker-place.ts';
 import {
     workerActivitySchema,
     workerBranchSchema,
@@ -77,7 +74,7 @@ export const agentWorkerStartInputSchema = z
     .object({
         brief: workerTextSchema,
         nonce: nonceSchema,
-        place: workerPlaceSchema.optional(),
+        place: workerPlaceInputSchema.optional(),
         repository: workerRepositorySchema,
         startingRef: workerRefSchema.nullable().default(null),
         task: taskKeySchema.optional(),

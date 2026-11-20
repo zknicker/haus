@@ -1,6 +1,6 @@
 import {
     formatTaskTarget,
-    workerPlaceSchema,
+    workerPlaceTextSchema,
     workerRepositorySchema,
     workerTitleSchema,
 } from '@haus/api';
@@ -208,7 +208,7 @@ function readPlace(args: ParsedArgs) {
     if (!raw) {
         return null;
     }
-    const parsed = workerPlaceSchema.safeParse(raw);
+    const parsed = workerPlaceTextSchema.safeParse(raw);
     if (!parsed.success) {
         throw new AgentCliError('INVALID_ARG', `Invalid Worker place "${raw}".`, {
             nextAction: 'Use --on cursor or --on claude.',

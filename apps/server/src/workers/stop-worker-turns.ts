@@ -8,6 +8,7 @@ import {
     workersTable,
 } from '../postgres/schema.ts';
 import { WorkerClosedError, WorkerHistoryReadOnlyError, WorkerNotFoundError } from './errors.ts';
+import { workerPlaceOf } from './worker-row-place.ts';
 
 type WorkerRow = typeof workersTable.$inferSelect;
 
@@ -91,7 +92,7 @@ export function workerStopFrame(
     return {
         computerId: worker.carrierComputerId,
         frame: {
-            place: worker.place,
+            place: workerPlaceOf(worker),
             providerAgentId: worker.providerAgentId,
             providerRunId: turn.providerRunId,
             turnId: turn.id,

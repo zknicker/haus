@@ -1,4 +1,4 @@
-import { type WorkerPlace, type WorkerTurnStartFrame, workerPlaces } from '@haus/api';
+import { type WorkerPlaceKind, type WorkerTurnStartFrame, cloudAgentProviders } from '@haus/api';
 import { and, asc, count, eq, isNotNull, isNull, lt, notExists, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -12,6 +12,7 @@ import { readTask } from '../tasks/task-read.ts';
 import { composeWorkerInput } from './compose-worker-input.ts';
 import type { WorkerEffects, WorkerFrame } from './worker-effects.ts';
 import { prepareWorkerEvents } from './worker-events.ts';
+import { workerPlaceOf } from './worker-row-place.ts';
 
 export const defaultWorkerPlaceLimit = 10;
 
@@ -108,7 +109,7 @@ export async function workerTurnStartFrame(
             id: turn.modelId,
             params: turn.modelParams,
         },
-        place: worker.place,
+        place: workerPlaceOf(worker),
         predecessorTurnIds: predecessors.map(({ id }) => id),
         providerAgentId: worker.providerAgentId,
         repository: worker.repository,
@@ -189,8 +190,8 @@ async function readFreeSlots(tx: HausDatabase, serverId: string) {
         )
         .groupBy(workersTable.place);
     const limitOf = new Map(limits.map(({ limit, place }) => [place, limit]));
-    const free = new Map<WorkerPlace, number>();
-    for (const place of workerPlaces) {
+    const free = new Map<WorkerPlaceKind, number>();
+    for (const place of cloudAgentProviders) {
         const used = busy.find((row) => row.place === place)?.busy ?? 0;
         free.set(place, (limitOf.get(place) ?? defaultWorkerPlaceLimit) - used);
     }

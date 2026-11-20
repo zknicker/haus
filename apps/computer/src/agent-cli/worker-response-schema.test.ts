@@ -29,7 +29,7 @@ const workerWithUnknownFields = {
     },
     launchMessageId: null,
     originChatId: null,
-    place: 'claude',
+    place: { kind: 'claude' },
     providerAgentId: 'cse_abc',
     providerUrl: 'https://claude.ai/code',
     pullRequest: null,

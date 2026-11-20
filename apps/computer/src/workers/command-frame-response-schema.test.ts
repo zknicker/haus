@@ -8,7 +8,7 @@ import {
 } from './command-frame-response-schema.ts';
 
 const stop = {
-    place: 'cursor',
+    place: { kind: 'cursor' },
     providerAgentId: 'bc_abc',
     providerRunId: 'run_abc',
     turnId: 'wkt_1234567890abcdef',
@@ -34,7 +34,7 @@ test('the Computer response schema tolerates an unknown field on a reconcile com
         workers: [
             {
                 futureEntryField: true,
-                place: 'cursor',
+                place: { kind: 'cursor' },
                 providerAgentId: 'bc_abc',
                 providerRunId: 'run_abc',
                 status: 'running',
@@ -58,7 +58,7 @@ test('the Computer response schema tolerates an unknown field on a turn start, a
             id: null,
             params: [],
         },
-        place: 'claude',
+        place: { kind: 'claude' },
         predecessorTurnIds: [],
         providerAgentId: null,
         repository: 'haus/haus',

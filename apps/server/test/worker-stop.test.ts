@@ -57,7 +57,7 @@ test('stop asks the carrier to end a working turn and drops its queued follow-up
         {
             computerId: board.seed.computerId,
             frame: {
-                place: 'cursor',
+                place: { kind: 'cursor' },
                 providerAgentId: 'bc_one',
                 providerRunId: null,
                 turnId: working,
@@ -123,7 +123,7 @@ test('a stop while the carrier is offline settles on the Server, and reconnect s
         })
     ).toEqual([
         {
-            place: 'cursor',
+            place: { kind: 'cursor' },
             providerAgentId: null,
             providerRunId: null,
             status: 'running',

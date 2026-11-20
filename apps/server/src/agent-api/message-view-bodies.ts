@@ -1,4 +1,9 @@
-import type { Worker, CreatedAgentSummary, HausAgentMessage } from '@haus/api';
+import {
+    type CreatedAgentSummary,
+    type HausAgentMessage,
+    type Worker,
+    requireCloudWorkerPlace,
+} from '@haus/api';
 
 type AgentMessageBodies = Pick<HausAgentMessage, 'agent_created' | 'workers'>;
 type MessageWorker = NonNullable<HausAgentMessage['workers']>[number];
@@ -46,7 +51,7 @@ function workerBody(work: Worker): MessageWorker {
                   summary: latest.summary,
               }
             : null,
-        provider: work.place,
+        provider: requireCloudWorkerPlace(work.place),
         provider_url: work.providerUrl,
         repository: work.repository,
         starting_ref: work.startingRef,

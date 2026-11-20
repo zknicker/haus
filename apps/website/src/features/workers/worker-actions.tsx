@@ -1,4 +1,4 @@
-import type { Worker } from '@haus/api';
+import { type Worker, requireCloudWorkerPlace } from '@haus/api';
 import { Button, ButtonGroup, Dropdown, Label, toast } from '@heroui/react';
 import {
     ArrowDown01Icon,
@@ -40,8 +40,9 @@ export function WorkerActions({
     const context = useTranscriptRenderContextOptional();
     const cancel = useWorkerCancelAction(work);
     const conversationChatId = context?.chatId ?? null;
-    const providerTarget = { ...work, provider: work.place };
-    const providerLabel = openInCloudAgentProviderLabel(work.place);
+    const provider = requireCloudWorkerPlace(work.place);
+    const providerTarget = { ...work, provider };
+    const providerLabel = openInCloudAgentProviderLabel(provider);
     const canOpenProvider = canOpenCloudAgentProvider(providerTarget);
 
     const runAction = (key: React.Key) => {

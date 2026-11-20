@@ -14,7 +14,7 @@ export const work = {
     job: { followUp: null, startedAt: null, state: 'working' },
     launchMessageId: null,
     originChatId: null,
-    place: 'cursor',
+    place: { kind: 'cursor' },
     providerAgentId: null,
     providerUrl: null,
     pullRequest: null,

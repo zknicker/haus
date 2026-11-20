@@ -1,4 +1,8 @@
-import { type WorkerFollowUpDrainFrame, workerTurnInputTextMaxLength } from '@haus/api';
+import {
+    type WorkerFollowUpDrainFrame,
+    requireCloudWorkerPlace,
+    workerTurnInputTextMaxLength,
+} from '@haus/api';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { workerTurnsTable, workersTable } from '../postgres/schema.ts';
@@ -7,6 +11,7 @@ import { resolveRunModel } from './cloud-agent-model.ts';
 import { withDispatch, workerTurnStartFrame } from './dispatch-worker-turns.ts';
 import { listComputerWorker, listUnacknowledgedTurns } from './list-computer-worker.ts';
 import type { WorkerFrame } from './worker-effects.ts';
+import { workerPlaceOf } from './worker-row-place.ts';
 
 export async function planCarrierReconnect(
     db: HausDatabase,
@@ -132,7 +137,7 @@ export async function drainWorkerFollowUp(
         if (!turn) {
             const model = await resolveRunModel(tx, {
                 computerId: worker.carrierComputerId,
-                provider: worker.place,
+                provider: requireCloudWorkerPlace(workerPlaceOf(worker)),
                 serverId: worker.serverId,
             });
             await tx.insert(workerTurnsTable).values({

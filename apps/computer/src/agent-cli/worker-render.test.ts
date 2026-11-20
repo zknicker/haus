@@ -9,7 +9,7 @@ import {
 const worker = {
     environmentName: null,
     id: 'wkr_1234567890abcdef',
-    place: 'cursor',
+    place: { kind: 'cursor' as const },
     repository: 'haus/haus',
     status: 'working',
     title: 'Fix the flaky delivery test',
@@ -17,7 +17,12 @@ const worker = {
 };
 
 test('the list names each Worker with its status, place, and pinned Claude environment', () => {
-    const pinned = { ...worker, environmentName: 'Fast', id: 'wkr_pinned', place: 'claude' };
+    const pinned = {
+        ...worker,
+        environmentName: 'Fast',
+        id: 'wkr_pinned',
+        place: { kind: 'claude' as const },
+    };
     expect(renderWorkerList([worker, pinned])).toBe(
         [
             'wkr_1234567890abcdef [working] on cursor Fix the flaky delivery test (haus/haus)',

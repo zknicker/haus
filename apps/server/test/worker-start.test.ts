@@ -45,7 +45,7 @@ test('a start records the Worker and its brief, posts no Message, and dispatches
         closedAt: null,
         launchMessageId: null,
         originChatId: null,
-        place: 'cursor',
+        place: { kind: 'cursor' },
         status: 'queued',
         taskId: board.task.id,
     });
@@ -65,7 +65,7 @@ test('a start records the Worker and its brief, posts no Message, and dispatches
     const [frame] = started.effects.frames;
     expect(frame?.computerId).toBe(board.seed.computerId);
     expect(frame?.frame).toMatchObject({
-        place: 'cursor',
+        place: { kind: 'cursor' },
         predecessorTurnIds: [],
         providerAgentId: null,
         repository: 'haus/haus',
@@ -166,7 +166,7 @@ test("a start without --on runs on the Agent's Computer's ready default place", 
 
     const { worker } = (await startOn(connection.db, board, { place: undefined })).receipt;
 
-    expect([worker.place, worker.carrierComputerId]).toEqual(['claude', seed.computerId]);
+    expect([worker.place, worker.carrierComputerId]).toEqual([{ kind: 'claude' }, seed.computerId]);
     await setReadyPlaces(
         connection.db,
         seed.serverId,

@@ -1,8 +1,12 @@
-import type {
-    AgentWorkerHeld,
-    AgentWorkerReceipt,
-    AgentWorkerStartInput,
-    WorkerTurnInput,
+import {
+    type AgentWorkerHeld,
+    type AgentWorkerReceipt,
+    type AgentWorkerStartInput,
+    type WorkerPlace,
+    type WorkerPlaceInput,
+    type WorkerTurnInput,
+    formatWorkerPlace,
+    parseWorkerPlace,
 } from '@haus/api';
 import { and, asc, eq } from 'drizzle-orm';
 import { followAgentTask } from '../agent-api/attention.ts';
@@ -14,10 +18,15 @@ import { workerTurnsTable, workersTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { resolveRunModel } from './cloud-agent-model.ts';
 import { withDispatch } from './dispatch-worker-turns.ts';
-import { WorkerConflictError, WorkerPlaceRequiredError } from './errors.ts';
+import {
+    WorkerConflictError,
+    WorkerPlaceRequiredError,
+    WorkerPlaceUnavailableError,
+} from './errors.ts';
 import { chooseCarrier, readDefaultPlace, readReadyPlaces } from './worker-carrier.ts';
 import { type WorkerEffects, noWorkerEffects } from './worker-effects.ts';
 import { requireOpenWorkerTask } from './worker-launch-task.ts';
+import { workerPlaceOf } from './worker-row-place.ts';
 import { requireWorker } from './worker-shape.ts';
 
 type StartWorkerResult =
@@ -32,7 +41,12 @@ export async function startWorker(
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, runner.serverId);
         const task = await requireOpenWorkerTask(tx, runner, input.task);
-        const existing = await readStartedByNonce(tx, runner, input, task.taskId);
+        const requested = requestedPlaceOf(input.place);
+        const existing = await readStartedByNonce(tx, runner, {
+            input,
+            requested,
+            taskId: task.taskId,
+        });
         if (existing) {
             return {
                 effects: noWorkerEffects,
@@ -40,7 +54,10 @@ export async function startWorker(
                 receipt: existing,
             } satisfies StartWorkerResult;
         }
-        const place = input.place ?? (await readDefaultPlace(tx, runner));
+        if (requested?.kind === 'computer') {
+            throw new WorkerPlaceUnavailableError(formatWorkerPlace(requested));
+        }
+        const place = requested?.kind ?? (await readDefaultPlace(tx, runner));
         if (!place) {
             throw new WorkerPlaceRequiredError(await readReadyPlaces(tx, runner.serverId));
         }
@@ -107,8 +124,11 @@ export async function startWorker(
 async function readStartedByNonce(
     tx: HausDatabase,
     runner: ResolvedRunner,
-    input: AgentWorkerStartInput,
-    taskId: string
+    {
+        input,
+        requested,
+        taskId,
+    }: { input: AgentWorkerStartInput; requested: WorkerPlace | null; taskId: string }
 ) {
     const [row] = await tx
         .select({ turn: workerTurnsTable, worker: workersTable })
@@ -135,7 +155,7 @@ async function readStartedByNonce(
     const { turn, worker } = row;
     if (
         worker.taskId !== taskId ||
-        (input.place && worker.place !== input.place) ||
+        (requested && formatWorkerPlace(workerPlaceOf(worker)) !== formatWorkerPlace(requested)) ||
         worker.title !== input.title ||
         worker.repository !== input.repository ||
         worker.startingRef !== input.startingRef ||
@@ -153,4 +173,15 @@ async function startReceipt(tx: HausDatabase, serverId: string, workerId: string
         state: first?.dispatchedAt ? 'started' : 'queued',
         worker,
     } satisfies AgentWorkerReceipt;
+}
+
+function requestedPlaceOf(place: WorkerPlaceInput | undefined) {
+    if (place === undefined || typeof place === 'object') {
+        return place ?? null;
+    }
+    const parsed = parseWorkerPlace(place);
+    if (!parsed) {
+        throw new WorkerPlaceUnavailableError(place);
+    }
+    return parsed;
 }
