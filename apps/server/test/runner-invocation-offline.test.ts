@@ -36,6 +36,7 @@ test('an invocation answers offline, naming what still works', async () => {
     });
     expect(runner.frames.map((frame) => frame.type)).toEqual([
         'runner-hello-accepted',
+        'runner-model-connections',
         'invocation-result',
     ]);
 

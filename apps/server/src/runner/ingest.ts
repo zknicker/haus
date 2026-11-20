@@ -4,6 +4,7 @@ import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import { settleHostedTurn } from '../agent-delivery/settle-turn.ts';
 import { ingestAgentRunFrame } from '../computers/ingest-agent-run-frame.ts';
 import { ingestExecutionJournalUpload } from '../computers/ingest-execution-journal.ts';
+import type { ModelConnectionRelay } from '../model-connections/model-connection-relay.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
 import type { AgentThoughts } from '../server-agents/agent-thought.ts';
@@ -16,13 +17,24 @@ export interface RunnerIngest {
     delivery: AgentDelivery;
     hostsLoops: boolean;
     link: RunnerLink;
+    modelConnections: ModelConnectionRelay;
     postCommitWork: ServerPostCommitWork;
     thoughts: AgentThoughts;
 }
 
 type LoopReport = Exclude<
     RunnerUpFrame,
-    { type: 'invocation-cancel' | 'invocation-request' | 'runner-hello' | 'runner-inventory' }
+    {
+        type:
+            | 'invocation-cancel'
+            | 'invocation-request'
+            | 'runner-connection-credential'
+            | 'runner-connection-status'
+            | 'runner-hello'
+            | 'runner-inventory'
+            | 'runner-sign-in-code'
+            | 'runner-sign-in-finished';
+    }
 >;
 
 export async function ingestRunnerFrame(ingest: RunnerIngest, raw: string) {
@@ -40,6 +52,12 @@ export async function ingestRunnerFrame(ingest: RunnerIngest, raw: string) {
             return;
         case 'invocation-request':
             ingest.link.send(routeAgentInvocation(frame));
+            return;
+        case 'runner-connection-credential':
+        case 'runner-connection-status':
+        case 'runner-sign-in-code':
+        case 'runner-sign-in-finished':
+            await ingest.modelConnections.ingest(frame);
             return;
         default:
             if (ingest.hostsLoops) {
