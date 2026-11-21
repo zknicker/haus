@@ -66,6 +66,23 @@ describe('credential disclosures in thoughts', () => {
         );
     });
 
+    test('an escaped quote does not end the masked value early', () => {
+        const masked = maskCredentialDisclosures('API_TOKEN="my \\"dog\\" has fleas" deploy');
+        expect(masked).toBe('API_TOKEN="[redacted]" deploy');
+        const spoken = maskCredentialDisclosures('The password is "my \\"dog\\" has fleas".');
+        for (const word of ['dog', 'has', 'fleas']) {
+            expect(spoken).not.toContain(word);
+        }
+    });
+
+    test('a quoted value that spans lines, or never closes, is masked to the end', () => {
+        const multiline = maskCredentialDisclosures('API_TOKEN="my dog\nhas fleas" deploy');
+        expect(multiline).toBe('API_TOKEN="[redacted]" deploy');
+        const unclosed = maskCredentialDisclosures('The secret is "my dog has fleas\nNext line.');
+        expect(unclosed).not.toContain('dog');
+        expect(unclosed).toContain('Next line.');
+    });
+
     test('the shared excerpt and fallback never carry the disclosed password', () => {
         const excerpt = thoughtReasoningExcerpt(maskCredentialDisclosures(disclosure));
         expect(excerpt).not.toContain('hunter2');

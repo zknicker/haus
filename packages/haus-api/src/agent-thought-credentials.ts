@@ -17,16 +17,14 @@ export const thoughtRedactionMarker = '[redacted]';
  */
 export function maskCredentialDisclosures(text: string) {
     return text
-        .replace(environmentPattern, (_match, lead: string, quote: string | undefined) =>
-            quote
-                ? `${lead}${quote}${thoughtRedactionMarker}${quote}`
-                : `${lead}${thoughtRedactionMarker}`
+        .replace(environmentPattern, (_match, lead: string, quoted: string | undefined) =>
+            quoted ? `${lead}${maskQuoted(quoted)}` : `${lead}${thoughtRedactionMarker}`
         )
         .replace(
             disclosurePattern,
-            (match, lead: string, quote: string | undefined, _quoted, bare: string | undefined) => {
-                if (quote) {
-                    return `${lead}${quote}${thoughtRedactionMarker}${quote}`;
+            (match, lead: string, quoted: string | undefined, bare: string | undefined) => {
+                if (quoted) {
+                    return `${lead}${maskQuoted(quoted)}`;
                 }
                 return bare === undefined || describesCredential(bare)
                     ? match
@@ -46,13 +44,23 @@ const qualifier = String.raw`(?:\s+(?:for|to|of|on|in)\s+[\w.-]+(?:\s+[\w.-]+)?)
 
 const separator = String.raw`\s*(?:[:=]|\b(?:is|are|was|were|equals|reads)\b|\bset\s+to\b)\s*`;
 
+const quotedValue = String.raw`("(?:[^"\\]|\\[\s\S])*"|'(?:[^'\\]|\\[\s\S])*'|\x60(?:[^\x60\\]|\\[\s\S])*\x60|["'\x60][^\n]*)`;
+
 const disclosurePattern = new RegExp(
-    String.raw`(\b${secretNoun}${qualifier}${separator})(?:(["'\x60])(.+?)\2|([^\s"'\x60,;]+))`,
+    String.raw`(\b${secretNoun}${qualifier}${separator})(?:${quotedValue}|([^\s"'\x60,;]+))`,
     'giu'
 );
 
-const environmentPattern =
-    /(\b[A-Za-z_][A-Za-z0-9_]*(?:pass(?:word|wd)?|secret|token|key|credential|auth)[A-Za-z0-9_]*=)(?:(["'])(?:.*?)\2|[^\s"']+)/giu;
+const environmentPattern = new RegExp(
+    String.raw`(\b[A-Za-z_][A-Za-z0-9_]*(?:pass(?:word|wd)?|secret|token|key|credential|auth)[A-Za-z0-9_]*=)(?:${quotedValue}|[^\s"']+)`,
+    'giu'
+);
+
+function maskQuoted(quoted: string) {
+    const quote = quoted.charAt(0);
+    const closed = quoted.length > 1 && quoted.endsWith(quote) && !quoted.endsWith(`\\${quote}`);
+    return `${quote}${thoughtRedactionMarker}${closed ? quote : ''}`;
+}
 
 function describesCredential(value: string) {
     const word = value.toLowerCase().replace(/[.!?:)]+$/u, '');
