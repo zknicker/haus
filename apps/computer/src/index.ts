@@ -3,7 +3,11 @@ import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
-import type { AgentSkillImportCommand, AgentSkillImportRecord } from '@haus/api';
+import {
+    type AgentSkillImportCommand,
+    type AgentSkillImportRecord,
+    noticeReceipt,
+} from '@haus/api';
 import { handleBackgroundFrame } from './agent-background-frames.ts';
 import * as commandFrames from './agent-command-frames.ts';
 import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
@@ -1320,7 +1324,7 @@ async function connect(
                 }
                 const { agentId } = notice;
                 const location = { agentId, dataRoot, serverId: attachment.serverId };
-                const receipt = commandFrames.noticeReceipt(notice);
+                const receipt = noticeReceipt(notice);
                 let injected = false;
                 void trackWriter(
                     replacePendingInbox(

@@ -185,17 +185,6 @@ export function parseNoticeCommand(frame: unknown): AgentNoticeCommand | null {
 }
 
 /** The exact queued work one busy notice names, for its durable ack. */
-export function noticeReceipt(notice: AgentNoticeCommand) {
-    return {
-        runId: notice.runId,
-        workIds: [
-            ...notice.inbox.map((item) => item.id),
-            ...(notice.taskAssignments?.ids ?? []),
-            ...(notice.workerReports?.ids ?? []),
-        ],
-    };
-}
-
 export function parseServerDeleteCommand(frame: unknown): ServerDeleteCommand | null {
     return isRecord(frame) && frame.type === 'server-delete' && Object.keys(frame).length === 1
         ? { type: 'server-delete' }
