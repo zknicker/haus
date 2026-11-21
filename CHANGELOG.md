@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v23.0.1 - 2026-11-20
+
+- A busy Captain on the Agent runner now acknowledges a notice about finished Worker reports. The same reports no longer get announced again on later notices.
+- This is a Server-only release with no database migration. Haus Computer, Haus Agent, Haus for Desktop and Haus for iPhone are unchanged.
+
 ## v23.0.0 - 2026-11-20
 
 - Every Captain now runs on the Server's sandboxed Agent runner instead of on Haus Computer. A Captain's model comes from the runner's catalog and uses the Server's logins in Settings → Models. Haus Computer still runs Workers and syncs Drive. When it moves, each Captain starts one fresh session, and its workspace, memory and chat history carry over.
