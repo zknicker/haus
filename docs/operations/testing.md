@@ -470,10 +470,12 @@ Failed scenarios also capture each Agent's current delivery state, recent turns,
 and retained delivery rows before cleanup. Query failures are recorded beside
 the available evidence rather than replacing the original scenario failure.
 
-The lane needs `bun run dev` and one
-attached Computer whose reported inventory carries a `codex` runtime with a
-`terra` model — that is what every test Agent is built on, unless
-`HAUS_AGENT_TESTS_MODEL=<runtime>/<model>` names another.
+The lane needs `bun run dev`, its runner, one attached Computer (where the Agents' tools run),
+and an enabled model connection for the test model's provider. Every test Agent is built on the
+runner's `codex` runtime with a `terra` model, unless `HAUS_AGENT_TESTS_MODEL=<runtime>/<model>`
+names another; the runtime and model come from the runner's catalog, not the Computer. A Gemini
+login is added (or repaired) from `HAUS_GEMINI_API_KEY` when missing, so `--model gemini/flash`
+runs on a fresh eval stack; Claude and ChatGPT logins must be connected on the stack first.
 
 To measure behavior rather than check one scenario, run an [eval](#evals): it
 repeats a named set of these scenarios on its own stack, grades them, and can

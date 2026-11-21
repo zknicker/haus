@@ -14,6 +14,7 @@
 
 import { sleep } from '../eval-harness.mjs';
 import { createSemaphore, withTimeout } from './concurrency.mjs';
+import { ensureModelLogin, providerForModel } from './model-login.mjs';
 
 export const agentKindDescriptions = Object.freeze({
     worker: 'Temporary agent-test fixture. Act only when explicitly addressed or assigned.',
@@ -104,27 +105,25 @@ export async function retireAgents(harness, agents, { timeoutMs = retireTimeoutM
 }
 
 /**
- * The Computer, runtime, and model a test Agent is built on, read from the
- * Computer's own reported inventory rather than copied off another Agent.
+ * The Computer and the runner model a test Agent is built on. Every Agent runs
+ * on the runner, so the runtime and model come from the runner's reported
+ * catalog; the Computer is only the machine its tools run on.
  */
 export function pickAgentTarget(
     computers,
+    runnerModels,
     { modelHint = defaultModelHint, runtimeId = defaultRuntimeId } = {}
 ) {
     const hint = modelHint.toLowerCase();
-    const ranked = [...(computers ?? [])]
-        .filter((computer) => computer.health !== 'offline')
+    const [computer] = [...(computers ?? [])]
+        .filter((candidate) => candidate.health !== 'offline')
         .sort((left, right) => healthRank(left) - healthRank(right));
-    for (const computer of ranked) {
-        const runtime = (computer.reportedInventory?.runtimes ?? []).find(
-            (entry) => entry.id === runtimeId
-        );
-        const model = runtime?.models.find((entry) => entry.id.toLowerCase().includes(hint));
-        if (model) {
-            return { computerId: computer.id, modelId: model.id, runtimeId: runtime.id };
-        }
+    const runtime = (runnerModels ?? []).find((entry) => entry.id === runtimeId);
+    const model = runtime?.models.find((entry) => entry.id.toLowerCase().includes(hint));
+    if (!(computer && model)) {
+        return null;
     }
-    return null;
+    return { computerId: computer.id, modelId: model.id, runtimeId: runtime.id };
 }
 
 export function isReady(agent) {
@@ -240,13 +239,17 @@ async function readAgentTarget(harness) {
     const preference = requestedTarget();
     for (;;) {
         const computers = await harness.trpc('computer.list', { serverId: harness.serverId });
-        const target = pickAgentTarget(computers, preference);
+        const { runnerModels } = await harness.trpc('modelConnections.list', {
+            serverId: harness.serverId,
+        });
+        const target = pickAgentTarget(computers, runnerModels, preference);
         if (target) {
+            await ensureModelLogin(harness, providerForModel(target.modelId));
             return { ...target, homeProjectId: await readEvalProjectId(harness) };
         }
         if (Date.now() >= deadline) {
             throw new Error(
-                `No attached Computer reports a ${preference.runtimeId} runtime with a ${preference.modelHint} model, so the agent tests cannot create Agents.`
+                `No attached Computer, or the runner offers no ${preference.modelHint} model in ${preference.runtimeId}, so the agent tests cannot create Agents.`
             );
         }
         await sleep(1000);
@@ -285,7 +288,8 @@ function describeAgent(agent) {
     if (!agent) {
         return 'no Server record';
     }
-    return `status=${agent.status}, availability=${agent.availability}, missing=[${agent.missingResources?.join(', ') ?? ''}]`;
+    const pause = agent.wakePause ? `, wakePause=${JSON.stringify(agent.wakePause)}` : '';
+    return `status=${agent.status}, availability=${agent.availability}, missing=[${agent.missingResources?.join(', ') ?? ''}]${pause}`;
 }
 
 function titleCase(value) {
