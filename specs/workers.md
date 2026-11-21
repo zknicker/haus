@@ -1,5 +1,5 @@
 ---
-summary: Normative Workers contract (ADR 0056). A Worker is a quiet, scoped run attached to one Task, started by an Agent with `haus worker` on a place (`computer:<name>`, `cursor`, `claude`). It reads the rule stack at launch and WORKER.md on change, ends each turn with a typed report (done, needs-you, failed) that posts in the Task and wakes its Agent, takes follow-ups between turns, and is supervised with per-place limits, stop, and a missing report counted as failed. Covers the record, places, the Computer run in a worktree with that machine's logins, deliverables in Drive, the Haus-Task trailer, pull requests attached through reports, the card, and the migration from cloud agents.
+summary: Normative Workers contract (ADR 0056). A Worker is a quiet, scoped run attached to one Task, started by an Agent with `haus worker` on a place (`computer:<name>`, `cursor`, `claude`). It reads the rule stack at launch and WORKER.md on change, ends each turn with a typed report (done, needs-you, failed) that posts in the Task and wakes its Agent, asks structured questions through its harness's own question tool (the turn ends and any follow-up answers), takes follow-ups between turns, and is supervised with per-place limits, stop, and a missing report counted as failed. Covers the record, places, the Computer run in a worktree with that machine's logins, deliverables in Drive, the Haus-Task trailer, pull requests attached through reports, the card, and the migration from cloud agents.
 read_when:
   - changing Workers, Worker turns, Worker reports, or the `haus worker` CLI family
   - changing where a Worker runs, the "Workers can run here" switch, the Project's default place, or concurrency limits
@@ -8,6 +8,7 @@ read_when:
   - changing a Worker on a Computer, its worktree, its credential, or its drive/ folder
   - changing pull request readings, pull requests attached through reports, or the Haus-Task trailer
   - changing the Worker card, the Task's live Worker summary, or Happening now
+  - changing how a Worker's harness question (AskUserQuestion, request_user_input) is captured, settled, shown, or answered
   - migrating cloud agent work, Runs, or `haus cloud-agent` to Workers
 ---
 
@@ -108,8 +109,17 @@ type WorkerReport = {
     ask: string | null; // required for needs-you, null otherwise
     personId: string | null; // the person a needs-you report names, or null for its Agent
     pullRequestUrls: string[];
+    questions?: WorkerQuestion[]; // the harness's structured questions; only on needs-you
+    questionsClosed?: { reason: 'dismissed' | 'stopped'; by: { kind: 'agent' | 'user'; id: string }; at: string };
     source: 'worker' | 'provider';
     messageId: string; // the Task Message the report posted
+};
+
+type WorkerQuestion = {
+    question: string;
+    header: string | null;
+    options: { label: string; description: string | null }[]; // empty takes a typed answer only
+    multiSelect: boolean;
 };
 
 type WorkerFailure =
@@ -344,6 +354,49 @@ and the delegating Agent hears it through its inbox and tells people what matter
 
 A stopped turn settles as `stopped` with no report and no Message.
 
+### Questions
+
+A Worker asks a person a structured question with its harness's own question tool: Claude Code's
+`AskUserQuestion`, Codex's `request_user_input`, or the hosted session's `AskUserQuestion` on
+`claude`. Haus never waits inside the tool call. Settings grant permissions, and Workers only ask
+questions ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md), amended 2026-11-21).
+
+1. **Capture.** The driver validates the questions (one to four, each with up to ten options) and
+   journals them on the turn before anything else. It sends `worker-turn-question` with the turn's
+   attempt, and again before `worker-turn-ended`, so a lost frame is resent.
+2. **End the turn.** Claude Code gets a deny with `interrupt: true` to its `can_use_tool` request.
+   Codex gets `turn/interrupt`, then an error answer to the request. A second question in the same
+   turn is refused, and questions Haus cannot read are refused without ending the turn.
+3. **Settle.** The first current-attempt frame settles the turn at once as a `needs-you` report
+   with `source: 'worker'` (`'provider'` on `claude`), `questions`, the questions as its text, and
+   the first question as its ask. A report draft's pull requests carry over. The turn holds no slot
+   from here, and the owed-stop fence holds later turns until the process ends. A process that dies,
+   a restart, or an offline Computer after capture never settles it again.
+4. **Notify.** The report @mentions the newest person whose follow-up was in the asking turn's
+   input, when they can still read the Task. Then the delegating Agent gets no `worker_report`, so it
+   doesn't race the person. Otherwise the report names no one and wakes the Agent, which answers or
+   @mentions someone in the Task.
+5. **Answer.** Any follow-up answers the newest turn's open questions and becomes the next turn's
+   input. The harness resumes the same session. The Worker card's answer is the person's follow-up
+   with `answersTurnId`: a numbered "**question** → answer" list (`workerAnswersText`). It is
+   refused (CONFLICT) once a later turn exists ("Answered by @zach."), the questions were dismissed
+   or stopped, or the Task closed.
+6. **Dismiss and Stop.** `worker.dismissQuestion` closes the questions for everyone, attributed in
+   `questionsClosed`, and starts no turn. The Worker stays `needs-you`. Stop on a Worker with open
+   questions and no live turn closes them the same way, with reason `stopped`.
+
+Every other `can_use_tool` request a Claude Code Worker sends is denied, so Claude Code's own
+dangerous-`rm` checks stay closed. A Claude cloud `requires_action` that is not an
+`AskUserQuestion` settles as a plain needs-you report with no `questions`. Cursor has no question
+tool and keeps the `Haus-Outcome: needs-you` footer.
+
+**Support per harness.** The Claude Code driver turns questions on from Claude Code 2.1.317
+(`claudeWorkerQuestionsMinVersion`) by allowing `AskUserQuestion` and adding
+`--permission-prompt-tool stdio`. Below that, the tool stays disallowed and the Worker uses the
+needs-you report. The Codex driver turns on the experimental `default_mode_request_user_input`
+feature only on the versions it was proven on (`codexWorkerQuestionVersions`, today 0.159.0), and
+re-proving it is part of every Codex bump. Neither reports support in the Computer inventory yet.
+
 **Cloud reports.** A cloud Worker cannot call `haus worker report`. Its report comes from the
 provider's result, as [Cloud places](cloud-agents.md#reports-from-the-provider) describes, with
 `source: 'provider'`.
@@ -369,7 +422,8 @@ A follow-up is the next turn's input. A working turn is never steered mid-turn.
 Follow-ups queued while a turn works wait for that turn to settle. Then all of them, in order and
 labelled by author, become the next turn's input. A follow-up to an idle Worker starts a turn at
 once, subject to the place's limit. A needs-you Worker answered from its card continues with that
-answer as its next turn.
+answer as its next turn. Any follow-up, from a person or the Agent, answers open
+[questions](#questions).
 
 `stop` asks the place to end the working turn, or drops a queued one, and drops queued follow-ups.
 The turn records who asked and reads **Stopping** until it settles as `stopped`. A stopped Worker
@@ -472,7 +526,8 @@ link with a null `checkoutPath` means "clone into the data root".
    the attempt, the exit, the session id, the branch, and those readings. The Server settles it.
 
 The Computer journals each turn's phase, `accepted`, `credentialed`, `running`, `pushing`,
-`ended`, and a restart resumes from the phase it reached. It never runs a turn again.
+`ended`, and a restart resumes from the phase it reached. It never runs a turn again. A turn that
+asked also journals its [questions](#questions), and every resend of its end sends them first.
 
 | Phase on restart | What the Computer does |
 | --- | --- |
@@ -631,6 +686,13 @@ names, then pending reminders. W4 builds it, following how a Capy parent shows i
 - **The composer** is docked under the conversation, enabled while the Task has a chat, is open,
   and the Worker is not closed. While a turn is live and the field is empty, its send button is
   **Stop**.
+- **The question card.** While the newest turn's [questions](#questions) are open, Capy's
+  composer takeover replaces the Worker page's composer, never the Task's: "1 of 3", numbered
+  options picked with number keys, checks for multi-select, "Or type an answer", Later, Dismiss
+  and Next, then Review (Capy's plain list) and Send answers (⌘↵). Later hides the card on that
+  device only. A refused answer keeps the draft and says who got there first. Rows read
+  **Waiting on an answer** for a needs-you report that carries open questions. iPhone has no card
+  yet: it shows the report text, and a typed follow-up answers.
 - **In the Task chat** a report Message renders as a centered muted lifecycle line ("`<title>`
   needs you, worked for 17m") and a person's follow-up carries a "To Worker on `<place>`" context
   line. Both open the Worker, so the report text shows once.
@@ -778,3 +840,8 @@ W2 to W4 add these.
 | A start without `--on` takes the Project's Computer default before the Agent's cloud default, and an unusable Computer start writes nothing | `apps/server/test/worker-computer-start.test.ts` |
 | Switching Workers off refuses new work, settles queued turns `place-off`, and clears Project defaults | `apps/server/test/worker-computer-settings.test.ts` |
 | A Worker push writes as the Worker and never closes its Agent's run push | `apps/server/test/worker-drive-push.test.ts` |
+| A question settles needs-you at once, posts once, notifies the asker or the Agent, and survives the process, the Computer going offline, and a stale attempt | `apps/server/test/worker-question.test.ts` |
+| The first answer wins, Dismiss and Stop close questions attributed, and a closed Task refuses answers | `apps/server/test/worker-question.test.ts` |
+| Claude Code captures AskUserQuestion once, denies every other prompt, and keeps the tool off below the minimum version | `apps/computer/src/runtime/claude-code/claude-worker-driver.test.ts` |
+| Codex captures request_user_input once, interrupts, and resumes on the same thread | `apps/computer/src/runtime/codex/codex-questions.test.ts` |
+| A question is journaled and resent before the end, also after a restart | `apps/computer/src/workers/computer/computer-place-question.test.ts` |

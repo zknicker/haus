@@ -6,6 +6,7 @@ read_when:
   - changing human `user://` mention semantics or `chat_messages.mentioned_user_ids`
   - changing task assignees, claiming, or who can hold a task
   - considering a question record, action card, or option buttons for humans
+  - changing the Worker question card, which is this ADR's one amended exception
 ---
 
 # ADR 0037: Humans Are Addressed by Mention
@@ -18,6 +19,11 @@ Accepted 2026-09-29. **Partially superseded** by
 Needs you are gone. Addressing a human by @mention, inline reply, a Thread on their message, or
 their DM stands, and now decides who a message notifies. The Needs you and push passages below are
 history.
+
+**Amended 2026-11-21:** conversations still get no question records or cards. A Worker's own
+harness question (`AskUserQuestion`, `request_user_input`) is the one exception, scoped to the
+Worker page: it rides the Worker's needs-you report as structured questions, and any follow-up
+answers it ([Workers](../../specs/workers.md#questions)). Captains keep asking by @mention.
 
 Supersedes the retired Asks spec (`specs/asks.md`, deleted) and the `ask`
 Message body. Amends [ADR 0015](0015-tasks-are-promoted-messages.md) (tasks are Agent-only),

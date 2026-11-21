@@ -87,7 +87,8 @@ Haus-Person: @zach
 | Finished, with `Haus-Outcome: done`, or with no `Haus-Outcome` line | `done` |
 | Finished, with `Haus-Outcome: needs-you` | `needs-you`, the text as its ask, `Haus-Person` as its person when the Server accepts it |
 | Finished, with `Haus-Outcome: failed` | `failed` |
-| Stopped to ask a question (Claude `requires_action`) | `needs-you`, the question as its ask, no person |
+| Stopped on an `AskUserQuestion` (Claude `requires_action`) | `needs-you` with structured [questions](workers.md#questions), the first question as its ask, the asking turn's newest person |
+| Stopped on any other tool permission (Claude `requires_action`) | `needs-you`, the requested tool as its ask, no person, no questions |
 | Error with result text | `failed` |
 | Error with no result text | No report, failed `provider-error` |
 | Expired | No report, failed `provider-expired` |
@@ -99,8 +100,8 @@ the report. The full result, up to 64 KiB, stays on the turn as provider evidenc
 `haus worker inspect --worker <id> --report` prints it. Branches and pull request URLs the provider
 reports become the report's pull requests.
 
-A needs-you report from a provider question is answered with `haus worker send`, which is an
-ordinary follow-up turn. A person answering directly in the provider's own UI is not observed.
+A needs-you report from a provider question is answered by any follow-up: `haus worker send`, a
+typed follow-up, or the Worker card's answer. Each is an ordinary follow-up turn. A person answering directly in the provider's own UI is not observed.
 
 ## Follow-up delivery
 
@@ -175,7 +176,7 @@ The Claude adapter (`apps/computer/src/cloud-agents/claude/`) drives Claude Code
   | --- | --- |
   | Tagged prompt not yet in the log | `queued`, or failed `provider-expired` if the session is archived |
   | Tagged prompt never found, or result past the scan bound with the session idle | `working` with stall `claude-prompt-not-found` |
-  | `requires_action` | Settled `needs-you`, the open question or the requested tool as its ask |
+  | `requires_action` | Settled `needs-you`. An open `AskUserQuestion` carries its structured questions; another tool reads as the requested tool, with no questions |
   | `idle` with no open background tasks after a result | Settled from the result ([Reports from the provider](#reports-from-the-provider)) |
   | Haus's own interrupt acknowledged and the worker not running | `stopped` |
   | Session archived | Failed `provider-expired` |
@@ -305,6 +306,6 @@ capacity, remaining allowance, or reset time, because Cursor exposes no supporte
 | Contract | Guard |
 | --- | --- |
 | A `Haus-Outcome` line types the report, and its absence reads `done` | `apps/computer/src/cloud-agents/report-from-result.test.ts` (W2) |
-| A provider question settles `needs-you` with the question as its ask and no person | `apps/computer/src/cloud-agents/claude/observation.test.ts` |
+| A provider question settles `needs-you` with its structured questions, and a permission wait carries none | `apps/computer/src/workers/claude/observation.test.ts`, `apps/server/test/worker-question.test.ts` |
 | Cursor and Claude both send a follow-up only after every earlier turn settles | `apps/computer/src/cloud-agents/send-delivery.test.ts` |
 | A carrier that reconnects reconciles every unsettled turn it holds | `apps/server/test/worker-reconcile.test.ts` (W2) |
