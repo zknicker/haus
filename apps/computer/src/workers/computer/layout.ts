@@ -8,10 +8,14 @@ export function workersRoot(dataRoot: string, serverId: string) {
 }
 
 export function workerLayout(dataRoot: string, serverId: string, workerId: string) {
+    return workerLayoutIn(workersRoot(dataRoot, serverId), workerId);
+}
+
+export function workerLayoutIn(workersFolder: string, workerId: string) {
     if (!pathSafeId.test(workerId)) {
         throw new Error(`"${workerId}" cannot name a Worker folder.`);
     }
-    const root = join(workersRoot(dataRoot, serverId), workerId);
+    const root = join(workersFolder, workerId);
     const runtime = join(root, 'runtime');
     return {
         bin: join(runtime, 'bin'),

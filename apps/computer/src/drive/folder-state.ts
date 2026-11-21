@@ -100,6 +100,14 @@ export async function openFolderState(layout: DriveFolderLayout) {
         },
         notePendingCreate: (path: string, create: { request_id: string; sha256: string }) =>
             persist({ ...state, pendingCreates: { ...state.pendingCreates, [path]: create } }),
+        adopt: (records: readonly DriveFileRecord[]) =>
+            persist({
+                ...state,
+                files: {
+                    ...state.files,
+                    ...Object.fromEntries(records.map((record) => [record.path, record])),
+                },
+            }),
         markSeen: (path: string, head: string) => {
             const record = state.files[path];
             return record && record.seen_head !== head
@@ -122,6 +130,11 @@ export function areaOfPath(areas: readonly DriveFolderArea[], path: string) {
 
 export function isReadOnlyArea(area: string | null, writer: string) {
     return area !== null && area.startsWith('agent:') && area !== `agent:${writer}`;
+}
+
+export async function readFolderState(layout: DriveFolderLayout) {
+    const loaded = await loadFolderState(layout);
+    return loaded === 'orphaned' ? null : loaded;
 }
 
 async function loadFolderState(layout: DriveFolderLayout) {

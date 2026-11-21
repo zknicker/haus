@@ -192,8 +192,16 @@ A Worker on a Computer keeps its own folder, with its bookkeeping in that Worker
 writes exactly what that Agent does. Each revision it pushes names the Worker as author with its
 Task, and its conflicts go to the Agent's inbox as `drive_conflict` naming the Worker.
 
-- **Full pull.** A new Worker folder pulls in full. Seeding it from a copy of another folder on the
-  machine is deferred ([Workers](workers.md#w3-transitional-decisions)).
+- **Seeded, then a full listing.** A new Worker folder first seeds from the freshest other Worker
+  folder in its Server's partition on the machine, the one with the highest change counters. Under
+  that folder's sync lock the Computer copies each recorded file to scratch, keeps only a copy whose
+  bytes hash to the file's record, places it with this writer's read-only rule, and carries that
+  record. An unpushed edit, a pending create, or a missing file never matches its record, so it is
+  never copied, and another writer's edits cannot leak in. The seed lands in a staging folder that
+  is renamed into place, then the records are written. The folder's counters stay at zero, so its
+  first pull still lists every path's latest change and tombstone, and downloads only what the seed
+  did not hold or what changed since. A folder that already exists is never seeded, and with no
+  sibling the first pull is a full one.
 - **Pull before launch.** Each turn pulls after its checkout is ready and before the harness
   starts, with the turn credential, so the Worker's first tool call sees the pulled folder.
 - **Daemon push.** When the harness process ends, the daemon pushes under the turn id with a push

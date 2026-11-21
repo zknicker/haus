@@ -415,8 +415,8 @@ base clone's branch of that name when one survives an earlier checkout, else fro
 from the remote default branch, after the base clone fetches. Later turns reuse the checkout.
 Checkout add and remove for one repo run one at a time. A checkout an earlier Computer made as a
 `git worktree` keeps working as one until its Worker closes. The drive folder sits outside the checkout ([Drive folder](drive-folder.md)),
-so the repo never sees it. A new drive folder pulls in full
-([Migration](#w3-transitional-decisions)).
+so the repo never sees it. A new drive folder seeds from a byte-checked copy of the freshest
+Worker folder on the machine before its first pull ([Drive folder](drive-folder.md#workers)).
 
 ### Run a turn
 
@@ -724,9 +724,9 @@ until W4 and the Project settings UI replace them. Each says what retires it.
   link on that Computer (`WORKER_REPO_NOT_LINKED`), so the auto-add only starts cloud Workers. It
   retires when people manage repos in Project settings. A named repo the Project lacks then
   refuses with `WORKER_REPO_UNKNOWN`.
-- **New Worker drive folders pull in full.** Seeding a new folder from a copy of the freshest
-  folder on the machine is deferred, because copying a live folder can carry another writer's
-  unpushed edits. It retires when a seed copies only files whose bytes match their records.
+- **New Worker drive folders pulled in full** until a seed copied only files whose bytes match
+  their records. That seed now runs ([Drive folder](drive-folder.md#workers)), so this decision
+  is retired.
 - **Two credentials.** The turn credential is model-visible, so it carries only the report and the
   Drive reads. The Drive push runs in the daemon under a separate host-only push credential minted
   with the Computer credential. This replaces the single "credential for that turn" this spec
