@@ -114,6 +114,15 @@ export const evals = {
         summary:
             "Work the reply will not finish becomes a Task opened where the work belongs, from a human, a Reminder, a Trigger, or the Agent's own findings; work the reply finishes is just answered, and a claim, not a Task, marks ownership.",
     },
+    // A Reminder fire is not a message: checking it must not mint a claim.
+    'fire-claims': {
+        judge: null,
+        lanes: 1,
+        profiles: {},
+        scenarios: ['reminder-fire-quiet-no-claim', 'reminder-fire-acts-no-claim'],
+        summary:
+            'A Reminder fire creates no claim: a check that finds nothing stays silent, and one that finds work posts one top-level answer caused by the fire, with no Task.',
+    },
     'task-pacing': {
         judge: null,
         lanes: 1,

@@ -8,7 +8,8 @@ const base = {
 };
 
 /** Every fire envelope ends with the command that answers it with provenance. */
-const replyLine = 'reply with: --cause rmf_fire on haus message send';
+const replyLine =
+    'reply with: --cause rmf_fire on haus message send (a fire is not a message: it takes no claim, so do not create one)';
 
 describe('reminder envelope', () => {
     test('names the reminder, the fire, and the command that answers it', () => {
@@ -17,6 +18,21 @@ describe('reminder envelope', () => {
             'fire=rmf_fire',
             replyLine,
         ]);
+    });
+
+    test('tells the Agent a fire has no message to claim or create', () => {
+        const lines = reminderEnvelope({
+            ...base,
+            nextFireAt: new Date('2026-11-22T21:00:00.000Z'),
+            reminder: {
+                description: 'Review Etsy threads; quiet if no new action.',
+                title: 'Etsy Afternoon Customer Message Review',
+            },
+        }).split('\n');
+        expect(lines.at(-1)).toBe(
+            'reply with: --cause rmf_fire on haus message send (a fire is not a message: it takes no claim, so do not create one)'
+        );
+        expect(lines.filter((line) => line.includes('claim'))).toHaveLength(1);
     });
 
     test('carries the description as the instruction under the short title', () => {

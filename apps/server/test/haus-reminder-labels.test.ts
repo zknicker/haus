@@ -147,7 +147,7 @@ test('relabels title and description together and hands the description to the f
             '🔔 Reminder: Monday Advertising Review',
             `  ${description}`,
             `fire=${fire.id}`,
-            `reply with: --cause ${fire.id} on haus message send`,
+            `reply with: --cause ${fire.id} on haus message send (a fire is not a message: it takes no claim, so do not create one)`,
         ].join('\n')
     );
 
