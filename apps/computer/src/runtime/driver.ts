@@ -1,3 +1,4 @@
+import type { WorkerQuestions } from '@haus/api';
 import type { RuntimeResumeState } from './resume-state.ts';
 import type { TurnEvent } from './turn-event.ts';
 
@@ -12,6 +13,11 @@ export interface RuntimeDriver {
 }
 
 export interface OpenSessionOptions {
+    /**
+     * Captures a structured question the harness asked. The driver ends the turn once it
+     * resolves. Without it the driver keeps the harness's question tool off.
+     */
+    onQuestion?(questions: WorkerQuestions): Promise<void>;
     resumeFrom: RuntimeResumeState | undefined;
     /** Haus's id for the session (the Worker id). */
     sessionId: string;

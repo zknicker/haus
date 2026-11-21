@@ -12,6 +12,7 @@ import {
     type ComputerPlaceContext,
     endBeforeLaunch,
     finishTurn,
+    sendQuestion,
     sharedOf,
 } from './turn-finish.ts';
 import type { ComputerTurnRef } from './turn-journal.ts';
@@ -162,6 +163,13 @@ async function runHarness(
     };
     try {
         const session = await context.driver(launch).openSession({
+            onQuestion: async (questions) => {
+                const asked = await context.journal.advance(ref, (turn) => ({
+                    ...turn,
+                    questions,
+                }));
+                sendQuestion(context, ref, asked);
+            },
             resumeFrom: workerResumeState(frame.runtime, frame.resumeSessionId),
             sessionId: frame.workerId,
             signal,

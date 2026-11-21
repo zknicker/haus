@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
+import { workerQuestionsClosedSchema, workerQuestionsSchema } from './worker-questions.ts';
 import type { WorkerTurnStatus } from './worker-shared.ts';
 
 export const workerStatuses = [
@@ -34,6 +35,8 @@ export type WorkerReportOutcome = z.infer<typeof workerReportOutcomeSchema>;
 /**
  * One turn's report. `messageId` is the Task Message the report posted; it is
  * null only on reports migrated from before Workers, which posted none.
+ * `questions` are the structured questions a harness asked, which make it a
+ * needs-you report; `questionsClosed` says they closed without an answer.
  */
 export const workerReportSchema = z
     .object({
@@ -43,6 +46,8 @@ export const workerReportSchema = z
         personId: idSchema.nullable(),
         personRefused: z.string().trim().min(1).max(128).nullable(),
         pullRequestUrls: z.array(z.url().max(2000)).max(50),
+        questions: workerQuestionsSchema.optional(),
+        questionsClosed: workerQuestionsClosedSchema.optional(),
         source: z.enum(['worker', 'provider']),
         text: z.string().max(workerReportTextMaxLength),
     })

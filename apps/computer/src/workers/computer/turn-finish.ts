@@ -4,6 +4,7 @@ import type {
     WorkerTurnActivityFrame,
     WorkerTurnEndedFrame,
     WorkerTurnInputAcceptedFrame,
+    WorkerTurnQuestionFrame,
     WorkerTurnSessionFrame,
     WorkerTurnStepsFrame,
 } from '@haus/api';
@@ -22,6 +23,7 @@ export type ComputerPlaceFrame =
     | WorkerTurnActivityFrame
     | WorkerTurnEndedFrame
     | WorkerTurnInputAcceptedFrame
+    | WorkerTurnQuestionFrame
     | WorkerTurnSessionFrame
     | WorkerTurnStepsFrame;
 
@@ -96,6 +98,7 @@ export function sendEnded(
     if (turn.phase !== 'ended') {
         return;
     }
+    sendQuestion(context, ref, turn);
     context.send({
         attempt: turn.attempt,
         branch: turn.ending.branch,
@@ -128,6 +131,22 @@ export function resendProgress(
             workerMdRevisionId: turn.workerMdRevisionId,
         });
     }
+    sendQuestion(context, ref, turn);
+}
+
+export function sendQuestion(
+    context: ComputerPlaceContext,
+    ref: ComputerTurnRef,
+    turn: ComputerTurnRecord
+) {
+    if (turn.questions) {
+        context.send({
+            attempt: turn.attempt,
+            questions: turn.questions,
+            turnId: ref.turnId,
+            type: 'worker-turn-question',
+        });
+    }
 }
 
 export function sendJournalMissing(
@@ -149,6 +168,7 @@ export function sharedOf(turn: ComputerTurnRecord) {
     return {
         attempt: turn.attempt,
         inputAccepted: turn.inputAccepted,
+        questions: turn.questions,
         sessionId: turn.sessionId,
         stopRequested: turn.stopRequested,
         workerMdRevisionId: turn.workerMdRevisionId,

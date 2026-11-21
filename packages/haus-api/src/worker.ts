@@ -241,14 +241,22 @@ export const workerStopInputSchema = z.object({ serverId: idSchema, workerId: id
  * A person's follow-up from the Worker card: it posts a `worker-follow-up`
  * Message in the Task, authored by the person, and queues the same text.
  * `nonce` is the Message nonce, so a retried send posts and queues once.
+ * `answersTurnId` marks it as the card's answer to that turn's questions, and
+ * the Server refuses it once another answer, a dismissal, or a stop closed them.
  */
 export const workerSendFollowUpInputSchema = z
     .object({
+        answersTurnId: idSchema.optional(),
         nonce: nonceSchema,
         serverId: idSchema,
         text: workerTextSchema,
         workerId: idSchema,
     })
+    .strict();
+
+/** Dismiss closes a Worker turn's open questions for everyone, attributed, and starts no turn. */
+export const workerDismissQuestionInputSchema = z
+    .object({ serverId: idSchema, turnId: idSchema, workerId: idSchema })
     .strict();
 
 /** Where "Happening now" opens one Worker: its Task. */

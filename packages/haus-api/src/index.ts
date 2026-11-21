@@ -132,6 +132,8 @@ export * from './worker-places.ts';
 export * from './worker-settings.ts';
 export * from './computer-use.ts';
 export * from './worker-report-draft.ts';
+export * from './worker-questions.ts';
+export * from './worker-question-text.ts';
 export * from './worker-runtime.ts';
 export * from './worker-report-attention.ts';
 export * from './worker-steps.ts';

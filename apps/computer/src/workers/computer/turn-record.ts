@@ -3,6 +3,7 @@ import {
     workerBranchSchema,
     workerNativeSessionIdSchema,
     workerTurnAttemptSchema,
+    workerQuestionsSchema,
     workerTurnExitSchema,
 } from '@haus/api';
 import * as z from 'zod';
@@ -19,6 +20,7 @@ export type ComputerTurnEnding = z.infer<typeof computerTurnEndingSchema>;
 const shared = {
     attempt: workerTurnAttemptSchema,
     inputAccepted: z.boolean(),
+    questions: workerQuestionsSchema.optional(),
     sessionId: workerNativeSessionIdSchema.nullable(),
     stopRequested: z.boolean(),
     workerMdRevisionId: idSchema.nullable(),
