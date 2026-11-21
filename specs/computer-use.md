@@ -136,6 +136,20 @@ carries ids only, and the App invalidates the query.
   command and `desktop · <detail>`, and Deny, Always allow, and Allow. A viewer who cannot decide
   sees "Waiting for <Device owner>" instead of the buttons.
 
+## What the setting guards
+
+The Computer use setting and the per-chat approval are consent for the `desktop` tool. They are
+not a sandbox. A Captain whose machine is a Device already runs `bash` there as the machine user,
+with that user's full power: `osascript`, `open`, any CLI the user installed, and the Computer's
+own files. That is the local-trust model Workers already carry
+([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md), amended 2026-11-20). The gate
+on that power is choosing the Device as the Captain's machine, not this setting.
+
+Within that model Haus keeps the consent path honest. The bundled agent-desktop lives under the
+Computer's data root, never on the `PATH` that `bash` invocations get, and its location is passed
+only to `desktop` invocations. A Captain that wants to click or type is taught the `desktop` tool,
+which asks; nothing in Haus hands it a quieter route.
+
 ## macOS permissions
 
 agent-desktop needs Accessibility to read and drive apps and Screen Recording for screenshots,
