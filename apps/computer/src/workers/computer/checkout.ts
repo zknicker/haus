@@ -40,15 +40,13 @@ export function removeWorkerCheckout(input: {
     const { checkout, repoPath, workerId } = input;
     const remove = async () => {
         const repo = repoPath !== null && existsSync(repoPath) ? repoPath : null;
-        if (repo !== null && isOwnClone(checkout)) {
-            const refs = `refs/heads/haus/${workerId}/*`;
-            const kept = await gitSucceeds(
-                ['fetch', '--quiet', '--no-write-fetch-head', checkout, `+${refs}:${refs}`],
-                repo
-            );
-            if (!kept) {
-                throw new WorkerCheckoutError(`Could not keep the branches of ${workerId}.`);
+        if (isOwnClone(checkout)) {
+            if (repo === null) {
+                throw new WorkerCheckoutError(
+                    `The repo clone of ${workerId} is gone, so its checkout stays.`
+                );
             }
+            await keepBranches(checkout, repo, workerId);
         } else if (repo !== null && existsSync(checkout)) {
             await gitSucceeds(['worktree', 'remove', '--force', checkout], repo);
         }
@@ -75,6 +73,45 @@ export async function checkoutGitRoots(checkout: string, branch: string) {
         ? [join(common, 'refs', 'heads', refDir), join(common, 'logs', 'refs', 'heads', refDir)]
         : [];
     return [gitDir, join(common, 'objects'), ...ownRefs];
+}
+
+async function keepBranches(checkout: string, repo: string, workerId: string) {
+    const own = `refs/heads/haus/${workerId}/`;
+    const git = (action: string, ...args: string[]) => runGit(args, { action, cwd: checkout });
+    const refs = await git(
+        'read the checkout branches',
+        'for-each-ref',
+        '--format=%(refname)',
+        'refs/heads'
+    );
+    const detached = !(await gitSucceeds(['symbolic-ref', '--quiet', 'HEAD'], checkout));
+    const refspecs: string[] = [];
+    for (const ref of [...refs.split('\n').filter(Boolean), ...(detached ? ['HEAD'] : [])]) {
+        if (ref.startsWith(own)) {
+            refspecs.push(`+${ref}:${ref}`);
+        } else if (await hasUnpushedCommits(checkout, ref)) {
+            const name = ref === 'HEAD' ? 'detached-head' : ref.slice('refs/heads/'.length);
+            refspecs.push(`+${ref}:${own}kept/${name}`);
+        }
+    }
+    if (refspecs.length === 0) {
+        return;
+    }
+    const kept = await gitSucceeds(
+        ['fetch', '--quiet', '--no-write-fetch-head', checkout, ...refspecs],
+        repo
+    );
+    if (!kept) {
+        throw new WorkerCheckoutError(`Could not keep the branches of ${workerId}.`);
+    }
+}
+
+async function hasUnpushedCommits(checkout: string, ref: string) {
+    const count = await runGit(['rev-list', '--count', ref, '--not', '--remotes'], {
+        action: `count the commits only ${ref} holds`,
+        cwd: checkout,
+    });
+    return Number(count) > 0;
 }
 
 async function cloneCheckout(input: {

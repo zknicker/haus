@@ -30,8 +30,8 @@ export async function seedWorkerDrive(layout: WorkerLayout, writer: string) {
         const records = await serialized(`drive:${source.layout.folder}`, () =>
             copyClean({ source, staging, target })
         );
-        await rename(staging, target.folder);
         await (await openFolderState(target)).adopt(records);
+        await rename(staging, target.folder);
         return records.length;
     } finally {
         await removeTree(staging);

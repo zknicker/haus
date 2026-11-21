@@ -524,10 +524,13 @@ When a Task becomes done or canceled, the Server closes each of its Workers in t
    ([inbox](inbox.md#worker-items)). A written report posts as usual. A `stopped` outcome posts
    nothing.
 5. It sets `closedAt` and sends the Computer place `worker-close { workerId }`. Only then does the
-   Computer fetch the Worker's `haus/<worker-id>/` branches into the base clone, delete the
-   checkout (an earlier `git worktree` checkout is force-removed and pruned instead), and delete the drive
-   folder. The branch stays, so committed work survives; a close that cannot keep it leaves the
-   checkout, and the next connect's `worker-close` tries again. The native session files stay where the harness
+   Computer fetch the Worker's `haus/<worker-id>/` branches into the base clone, plus every other
+   local branch (and a detached HEAD) holding commits no remote-tracking ref has, as
+   `haus/<worker-id>/kept/<name>` (`kept/detached-head` for HEAD). Then it deletes the checkout (an
+   earlier `git worktree` checkout is force-removed and pruned instead) and the drive folder. The
+   branches stay, so committed work survives. A close that cannot keep them, because the fetch
+   fails or the base clone was moved or deleted, leaves the whole Worker folder, and the next
+   connect's `worker-close` tries again. The native session files stay where the harness
    keeps them. `worker-close` is idempotent.
 
 A place that is offline gets steps 3 and 5 when it reconnects. The Server settles the turn on its

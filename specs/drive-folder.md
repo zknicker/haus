@@ -197,8 +197,9 @@ Task, and its conflicts go to the Agent's inbox as `drive_conflict` naming the W
   that folder's sync lock the Computer copies each recorded file to scratch, keeps only a copy whose
   bytes hash to the file's record, places it with this writer's read-only rule, and carries that
   record. An unpushed edit, a pending create, or a missing file never matches its record, so it is
-  never copied, and another writer's edits cannot leak in. The seed lands in a staging folder that
-  is renamed into place, then the records are written. The folder's counters stay at zero, so its
+  never copied, and another writer's edits cannot leak in. The seed lands in a staging folder, its
+  records are written, and only then is the folder renamed into place, so a crash in between
+  leaves records with no folder, which the next pull discards as orphaned. The folder's counters stay at zero, so its
   first pull still lists every path's latest change and tombstone, and downloads only what the seed
   did not hold or what changed since. A folder that already exists is never seeded, and with no
   sibling the first pull is a full one.

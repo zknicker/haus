@@ -123,16 +123,45 @@ describe('Worker checkouts', () => {
         const request = { branch: 'haus/wrk_3/d', checkout, repoPath, startingRef: null };
         await addWorkerCheckout(request);
         git(checkout, 'commit', '--quiet', '--allow-empty', '-m', 'kept work');
-        git(checkout, 'branch', 'side');
+        git(checkout, 'branch', 'scratch', 'origin/main');
+        git(checkout, 'switch', '--quiet', '-c', 'fix/login');
+        git(checkout, 'commit', '--quiet', '--allow-empty', '-m', 'login fix');
+        git(checkout, 'switch', '--quiet', '--detach');
+        git(checkout, 'commit', '--quiet', '--allow-empty', '-m', 'detached work');
         await removeWorkerCheckout({ checkout, repoPath, workerId: 'wrk_3' });
         await removeWorkerCheckout({ checkout, repoPath, workerId: 'wrk_3' });
 
+        const subject = (ref: string) => git(repoPath, 'log', '--format=%s', '-1', ref);
         expect(existsSync(checkout)).toBe(false);
-        expect(git(repoPath, 'log', '--format=%s', '-1', 'haus/wrk_3/d')).toBe('kept work');
-        expect(git(repoPath, 'branch', '--list', 'side')).toBe('');
+        expect(subject('haus/wrk_3/d')).toBe('kept work');
+        expect(subject('haus/wrk_3/kept/fix/login')).toBe('login fix');
+        expect(subject('haus/wrk_3/kept/detached-head')).toBe('detached work');
+        expect(git(repoPath, 'branch', '--list', 'fix/login', 'scratch', '*/kept/scratch')).toBe(
+            ''
+        );
 
         await addWorkerCheckout(request);
         expect(git(checkout, 'log', '--format=%s', '-1')).toBe('kept work');
+    });
+
+    test('close leaves the checkout in place when its repo clone is gone', async () => {
+        const repoPath = await resolveWorkerRepo(source, { dataRoot, remoteUrl });
+        const { checkout } = workerLayout(dataRoot, 'srv_1', 'wrk_6');
+        await addWorkerCheckout({ branch: 'haus/wrk_6/g', checkout, repoPath, startingRef: null });
+        git(checkout, 'commit', '--quiet', '--allow-empty', '-m', 'only here');
+        await rm(repoPath, { force: true, recursive: true });
+
+        for (const gone of [repoPath, null]) {
+            const refused = await removeWorkerCheckout({
+                checkout,
+                repoPath: gone,
+                workerId: 'wrk_6',
+            })
+                .then(() => null)
+                .catch((error: Error) => error.message);
+            expect(refused).toBe('The repo clone of wrk_6 is gone, so its checkout stays.');
+        }
+        expect(git(checkout, 'log', '--format=%s', '-1')).toBe('only here');
     });
 
     test('a checkout made as a git worktree keeps its git roots and removes as a worktree', async () => {
