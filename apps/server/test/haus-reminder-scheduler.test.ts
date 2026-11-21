@@ -238,7 +238,7 @@ describe('reminder scheduler lifecycle', () => {
                 `fire=${fire?.id}`,
                 '🔔 Reminder script output:',
                 '  changed',
-                `reply with: --cause ${fire?.id} on haus message send`,
+                `reply with: --cause ${fire?.id} on haus message send (a fire is not a message: it takes no claim, so do not create one)`,
             ].join('\n')
         );
     });
@@ -343,7 +343,7 @@ describe('reminder scheduler lifecycle', () => {
             [
                 '🔔 Reminder: Recover me',
                 `fire=${fireId}`,
-                `reply with: --cause ${fireId} on haus message send`,
+                `reply with: --cause ${fireId} on haus message send (a fire is not a message: it takes no claim, so do not create one)`,
             ].join('\n')
         );
 
