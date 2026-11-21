@@ -42,6 +42,7 @@ ids and small facts, never rows.
 | `imageGeneration.onUpdated` | `useImageGenerationStream` | One event per linking Message in a live Chat. Invalidate that Message's entity |
 | `reminder.onUpdated` (Owner/Admin) | `useReminderStream` | Invalidate the owner Agent's `reminder.list`, `reminder.history`, and the reminder's `reminder.runs` |
 | `agent.onUpdated` | `useAgentUpdateStream` | The Server detail, the named Agent's reads (or every Agent read), `agent.list`, `chat.list` |
+| `agent.onContextUpdated` | `useAgentContextStream` | The named Agent's `agent.context` (every Agent's on recovery), which feeds the composer's context ring |
 | `computer.onUpdated` | `useComputerUpdateStream` | The Server detail, Computer list and log, Agent activity and delivery, `agent.list`, `stats.live`, `cloudAgentSettings.get` |
 | `mcp.onUpdated` | `useMcpUpdateStream` | `mcp.list`, `mcp.amazonProduct`, `mcp.amazonProductDetail` |
 | `server.onUpdated` | `useServerUpdateStream` | The Server detail and `server.list`; the membership sentinel |
@@ -188,7 +189,7 @@ every start. They restart with the same policy.
   shell owns the one subscription, patches cached Activity History pages in Server order, and
   every start refreshes the snapshot, history, turns, and usage reads.
 * **Agent thoughts** (`chat.onThought`, [ADR 0036](../adr/0036-agent-thoughts-surface-as-condensed-phrases.md)):
-  Server-phrased lines from scrubbed Computer frames, announced once per engaged Chat; no read or
+  Server-phrased lines from scrubbed runner frames, announced once per engaged Chat; no read or
   recovery.
 * **Turn journal** (`agent.onExecutionJournal`): change notices for an open turn's journal, which
   re-reads itself.

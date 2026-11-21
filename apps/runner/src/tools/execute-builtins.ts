@@ -22,7 +22,7 @@ export const browserTool = {
 
 export const desktopTool = {
     description:
-        'Use the macOS desktop of your machine through agent-desktop. Pass one command’s arguments, for example ["skills","get","desktop"], ["snapshot","--app","Finder","-i"], ["click","@s1:e8"]. Read `skills get desktop` before first use. Looking never asks. The first click or type in a chat asks a person there; until they answer the call is refused, so end your turn and an inbox item brings the answer. Screenshots are written on the machine; view them with your edit tool.',
+        'Use the macOS desktop of your machine through agent-desktop. Pass one command’s arguments, for example ["skills","get","desktop"], ["snapshot","--app","Finder","-i"], ["click","@s1:e8"]. Read `skills get desktop` before first use. It works only on a Device where a person turned on Computer use allowed. Screenshots are written on the machine; view them with your edit tool.',
     inputSchema: argsInputSchema,
     name: 'desktop',
     title: 'Desktop',

@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { type DriveServer, startDriveServer } from './drive-server.fixture.ts';
 import { driveSyncFrames } from './drive-sync-frames.ts';
 import { driveFolderLayout } from './folder-state.ts';
-import { holdDriveFolder, settleDriveFolder } from './turn-sync.ts';
+import { discardDrivePushes, holdDriveFolder, settleDriveFolder } from './turn-sync.ts';
 
 let server: DriveServer;
 let front: ReturnType<typeof Bun.serve>;
@@ -90,6 +90,34 @@ test('drive-pull and drive-push frames sync the Agent folder under a run credent
     await settleDriveFolder(agentRoot);
     expect(authority.minted).toHaveLength(2);
     expect(sync.receive({ invocationId: 'inv_1', type: 'invoke-cancel' })).toBe(false);
+});
+
+test('a drive-push for a folder a full reset discarded sends nothing', async () => {
+    server = startDriveServer();
+    const authority = startAuthority(server);
+    front = authority.server;
+    agentsRoot = await mkdtemp(join(tmpdir(), 'haus-drive-sync-'));
+    const agentRoot = join(agentsRoot, 'agt_alpha');
+    const folder = driveFolderLayout(agentRoot, 'agt_alpha').folder;
+    await mkdir(join(folder, 'agents', 'alpha', 'notes'), { recursive: true });
+    await writeFile(join(folder, 'agents', 'alpha', 'notes', 'stale.md'), 'stale edit');
+    const sync = driveSyncFrames(agentsRoot, {
+        credential: 'computer-credential',
+        serverOrigin: `http://127.0.0.1:${front.port}`,
+    });
+
+    const resume = discardDrivePushes(agentRoot);
+    sync.receive({
+        agentId: 'agt_alpha',
+        runId: 'run_1',
+        sessionGeneration: 2,
+        type: 'drive-push',
+    });
+    await settleDriveFolder(agentRoot);
+    resume();
+
+    expect(server.text('agents/alpha/notes/stale.md')).toBe(null);
+    expect(authority.minted).toEqual([]);
 });
 
 test('a cancelled invocation stops waiting on a stalled drive sync for its Agent folder', async () => {

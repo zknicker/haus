@@ -3,6 +3,8 @@ import {
     type AgentThoughtFrame,
     agentThoughtFrameSchema,
     condenseThoughtLocally,
+    hasMaskedCredential,
+    maskCredentialDisclosures,
     thoughtRequestExcerpt,
 } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
@@ -96,9 +98,10 @@ export function createAgentThoughts(options: {
             : null;
     };
     const phraseOnce = async (
-        frame: AgentThoughtFrame,
+        received: AgentThoughtFrame,
         context: SummaryContext
     ): Promise<PhrasedThought | null> => {
+        const frame = maskThoughtFrame(received);
         const summary = await options.summarizer?.summarize(thoughtSource(frame, context));
         if (summary) {
             // SKIP is the model's judgment that this is housekeeping: no bubble.
@@ -111,7 +114,7 @@ export function createAgentThoughts(options: {
             return null;
         }
         const source = frame.kind === 'phrase' ? frame.text : frame.reasoning;
-        if (isHousekeepingThought(source)) {
+        if (hasMaskedCredential(source) || isHousekeepingThought(source)) {
             return null;
         }
         const text =
@@ -170,6 +173,20 @@ function frameRank(frame: AgentThoughtFrame): number {
         return 1;
     }
     return frame.result ? thoughtFindingRank : 0;
+}
+
+function maskThoughtFrame(frame: AgentThoughtFrame) {
+    const masked: AgentThoughtFrame =
+        frame.kind === 'action'
+            ? {
+                  ...frame,
+                  action: maskCredentialDisclosures(frame.action),
+                  ...(frame.result ? { result: maskCredentialDisclosures(frame.result) } : {}),
+              }
+            : frame.kind === 'phrase'
+              ? { ...frame, text: maskCredentialDisclosures(frame.text) }
+              : { ...frame, reasoning: maskCredentialDisclosures(frame.reasoning) };
+    return masked;
 }
 
 function thoughtSource(frame: AgentThoughtFrame, context: SummaryContext): ThoughtSource {

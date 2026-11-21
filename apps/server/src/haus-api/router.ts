@@ -10,7 +10,6 @@ import { claimRouter } from './claim/router.ts';
 import { cloudAgentProviderRouter } from './cloud-agent-provider/router.ts';
 import { cloudAgentSettingsRouter } from './cloud-agent-settings/router.ts';
 import { computerSecretsRouter } from './computer-secrets/router.ts';
-import { computerUseRouter } from './computer-use/router.ts';
 import { computerRouter } from './computer/router.ts';
 import { devRouter } from './dev/router.ts';
 import { driveRouter } from './drive/router.ts';
@@ -51,7 +50,6 @@ export const hausRouter = createRouter({
     worker: workerRouter,
     computer: computerRouter,
     computerSecrets: computerSecretsRouter,
-    computerUse: computerUseRouter,
     dev: devRouter,
     drive: driveRouter,
     github: githubRouter,

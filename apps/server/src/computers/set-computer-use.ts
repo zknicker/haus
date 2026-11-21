@@ -16,7 +16,7 @@ export async function setComputerUse(
         const computer = await requireComputerSteward(tx, member, input);
         await tx
             .update(computersTable)
-            .set({ computerUseAccess: input.access })
+            .set({ computerUseEnabled: input.enabled })
             .where(eq(computersTable.id, computer.id));
         return { computerId: computer.id };
     });

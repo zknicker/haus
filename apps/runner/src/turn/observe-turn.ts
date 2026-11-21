@@ -1,3 +1,4 @@
+import type { createRunThoughts } from '../thoughts/run-thoughts.ts';
 import type { createRunActivity } from './run-activity.ts';
 import {
     addTokenUsage,
@@ -26,6 +27,7 @@ export async function observeTurn(
         gate: ToolGate;
         noProgress: typeof turnNoProgress;
         onNoProgress: () => void;
+        thoughts: ReturnType<typeof createRunThoughts>;
     }
 ) {
     let aborted = false;
@@ -46,6 +48,7 @@ export async function observeTurn(
         for await (const event of events) {
             lastEventAt = Date.now();
             input.activity.observe(event);
+            input.thoughts.observe(event);
             switch (event.type) {
                 case 'tool-call':
                     compacted ||= event.toolName === compactionToolName;

@@ -20,7 +20,7 @@ export async function listServerComputers(
         .select({
             attachedByUserId: computersTable.attachedByUserId,
             architecture: computersTable.architecture,
-            computerUseAccess: computersTable.computerUseAccess,
+            computerUseEnabled: computersTable.computerUseEnabled,
             createdAt: computersTable.createdAt,
             health: computersTable.health,
             id: computersTable.id,
@@ -50,7 +50,7 @@ export async function listServerComputers(
         )
         .orderBy(desc(computersTable.createdAt));
     return computers.map(
-        ({ attachedByUserId, computerUseAccess, workerLimit, workersEnabled, ...computer }) => {
+        ({ attachedByUserId, computerUseEnabled, workerLimit, workersEnabled, ...computer }) => {
             const steward = isComputerSteward(server.role, attachedByUserId, member?.id);
             const workers: ComputerWorkerSettings = {
                 canChangeWorkers: steward,
@@ -59,7 +59,7 @@ export async function listServerComputers(
             };
             const computerUse: ComputerUseSettings = {
                 canChangeComputerUse: steward,
-                computerUseAccess,
+                computerUseEnabled,
             };
             return {
                 ...presentComputer(computer, connections),

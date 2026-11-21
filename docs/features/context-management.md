@@ -7,6 +7,7 @@ read_when:
   - changing how MEMORY.md reaches the turn input, its 8,000-character cap, or the memory receipt
   - changing how the AGENTS.md rule layers reach the turn input on a Computer, or their receipts
   - changing compaction, idle compaction, or the Idle compaction Server setting
+  - changing the composer's context ring or what the Context popover counts
 ---
 
 # Context Management
@@ -176,3 +177,15 @@ Agent to the full transcript on disk to recover them.
 The Server stores desired configuration and canonical history. Computer stores
 effective runtime session state and resume evidence. The App reports that distinction
 instead of inferring session health from process presence.
+
+## What people see
+
+A small ring sits under the composer of any conversation with a Captain: the DM's Agent, a
+Channel's one Agent, or a Task's assigned Agent. It fills toward the session's compaction
+threshold. Clicking it opens **Context**: tokens used over the threshold with a percentage, a
+stacked bar, one row each for System prompt, Tools, Skills, Rules and memory, and Conversation,
+and **Compact at** the threshold over the model's window. Agents keep one global session, so every
+conversation with the same Captain shows the same numbers. The ring hides until the current
+session reports its first snapshot, and in a Channel with several Agents. How the runner counts
+each row is in [specs/sessions.md](../../specs/sessions.md#context).
+

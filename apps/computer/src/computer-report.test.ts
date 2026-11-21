@@ -1,5 +1,4 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import { toReportedAgentState } from './computer-report.ts';
 import { unavailableCloudAgentProvider } from './workers/provider.ts';
 import { setCloudAgentProvider } from './workers/registry.ts';
 
@@ -17,27 +16,6 @@ afterEach(() => {
     while (restores.length > 0) {
         restores.pop()?.();
     }
-});
-
-test('reported Agent state preserves reasoning effort', () => {
-    expect(
-        toReportedAgentState({
-            agentId: 'agt_effective',
-            hausAgentAppliedAt: null,
-            hausAgentStatus: 'current',
-            hausAgentVersion: '1.0.0',
-            missingResources: [],
-            modelId: 'gpt-5.6-sol',
-            reasoningEffort: 'high',
-            runtimeId: 'codex',
-        })
-    ).toEqual({
-        agentId: 'agt_effective',
-        missingResources: [],
-        modelId: 'gpt-5.6-sol',
-        reasoningEffort: 'high',
-        runtimeId: 'codex',
-    });
 });
 
 test('Computer publishes sanitized runtime issues in its existing inventory report', async () => {
@@ -66,7 +44,9 @@ test('Computer publishes sanitized runtime issues in its existing inventory repo
                 return true;
             },
         });
-        const report = frames[0] as { inventory: unknown };
+        const report = frames[0] as { agents: unknown[]; inventory: unknown };
+        expect(report.agents).toEqual([]);
+        expect(frames).toHaveLength(1);
         expect(computerInventorySchema.parse(report.inventory).runtimeIssues).toEqual([
             {
                 runtimeId: 'grok-build',

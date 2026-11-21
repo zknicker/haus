@@ -1,20 +1,8 @@
-import {
-    desktopCommandClass,
-    type InvocationRequestFrame,
-    type InvocationResultFrame,
-} from '@haus/api';
-import { and, eq, isNull } from 'drizzle-orm';
-import { readActiveRunRequest } from '../agent-delivery/chat-engagement.ts';
+import type { InvocationRequestFrame, InvocationResultFrame } from '@haus/api';
+import { and, eq } from 'drizzle-orm';
 import { recordGateRefusal } from '../agent-invocations/invocation-store.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentRunTriggersTable, chatsTable } from '../postgres/schema.ts';
-import { announceComputerUseRequest } from './computer-use-events.ts';
-import {
-    hasComputerUseApproval,
-    openComputerUseRequest,
-    readComputerUseDevice,
-} from './computer-use-store.ts';
-import { awaitingApprovalText, deviceLabel, noChatText } from './computer-use-texts.ts';
+import { computersTable } from '../postgres/schema.ts';
 
 export async function gateDesktopInvocation(
     db: HausDatabase,
@@ -25,66 +13,43 @@ export async function gateDesktopInvocation(
         serverId: string;
     }
 ) {
-    const { computerId, frame, serverId } = input;
-    if (frame.operation.kind !== 'desktop' || desktopCommandClass(frame.operation.args) !== 'act') {
+    const { frame } = input;
+    if (frame.operation.kind !== 'desktop') {
         return null;
     }
-    const device = await readComputerUseDevice(db, { computerId, serverId });
-    if (!device || device.access === 'always') {
-        return null;
-    }
-    const run = { agentId: frame.agentId, runId: frame.runId, serverId };
-    const chatId = await resolveRunChat(db, run);
-    const label = deviceLabel(device.name);
-    if (!chatId) {
-        await recordGateRefusal(db, input.invocationId);
-        return refusal(frame, input.invocationId, noChatText(label));
-    }
-    if (await hasComputerUseApproval(db, { chatId, computerId, serverId })) {
+    const device = await readComputerUseDevice(db, input);
+    if (device?.enabled) {
         return null;
     }
     await recordGateRefusal(db, input.invocationId);
-    const opened = await openComputerUseRequest(db, {
-        ...run,
-        args: frame.operation.args,
-        chatId,
-        computerId,
-        toolCallId: frame.toolCallId,
-    });
-    if (opened) {
-        announceComputerUseRequest({ chatId, requestId: opened.id, serverId });
-    }
-    return refusal(frame, input.invocationId, awaitingApprovalText(label));
+    return refusal(frame, input.invocationId, computerUseOffText(device?.name ?? 'this Device'));
 }
 
-async function resolveRunChat(
+export function computerUseOffText(device: string) {
+    return `Computer use is off on ${device}. A person can turn on Computer use allowed in Settings → Devices → ${device}.`;
+}
+
+async function readComputerUseDevice(
     db: HausDatabase,
-    run: { agentId: string; runId: string; serverId: string }
+    input: { computerId: string; serverId: string }
 ) {
-    const request = await readActiveRunRequest(db, run);
-    if (request) {
-        return request.chatId;
-    }
-    const [trigger] = await db
-        .select({ chatId: chatsTable.id })
-        .from(agentRunTriggersTable)
-        .innerJoin(
-            chatsTable,
-            and(
-                eq(chatsTable.serverId, agentRunTriggersTable.serverId),
-                eq(chatsTable.id, agentRunTriggersTable.chatId),
-                isNull(chatsTable.deletedAt)
-            )
-        )
+    const [computer] = await db
+        .select({
+            enabled: computersTable.computerUseEnabled,
+            inventory: computersTable.reportedInventory,
+        })
+        .from(computersTable)
         .where(
             and(
-                eq(agentRunTriggersTable.serverId, run.serverId),
-                eq(agentRunTriggersTable.agentId, run.agentId),
-                eq(agentRunTriggersTable.runId, run.runId)
+                eq(computersTable.serverId, input.serverId),
+                eq(computersTable.id, input.computerId)
             )
         )
         .limit(1);
-    return trigger?.chatId ?? null;
+    if (!computer) {
+        return null;
+    }
+    return { enabled: computer.enabled, name: computer.inventory?.name ?? null };
 }
 
 function refusal(frame: InvocationRequestFrame, invocationId: string, text: string) {

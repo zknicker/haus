@@ -100,8 +100,7 @@ keeps a pending notice; full reset deletes the library from Drive with the rest 
 area and discards the record, and the Server then seeds the factory skills fresh and queues
 nothing. The visuals skill also tells Agents to mark anything they derive from it and rebuild it
 when the skill changes. Owners: `apps/server/src/managed-skills/` (seeding and pending notices),
-`apps/runner/src/turn/managed-skill-notice.ts` (delivery on the runner), and
-`apps/computer/src/managed-skill-changes.ts` (Computer-run Agents until R4d).
+and `apps/runner/src/turn/managed-skill-notice.ts` (delivery on the runner).
 
 ## Agent authoring
 

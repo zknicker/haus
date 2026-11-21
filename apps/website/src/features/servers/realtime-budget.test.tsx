@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { MemoryRouter } from 'react-router-dom';
 import { AgentActivityProvider } from '../../hooks/agents/use-current-agent-activity.tsx';
-import { useOpenComputerUseRequests } from '../../hooks/computer-use/use-computer-use-requests.ts';
 import { useMemberUpdateStream } from '../../hooks/realtime/use-member-update-stream.ts';
 import { useServerUpdateStream } from '../../hooks/realtime/use-server-update-stream.ts';
 import { useChatCompositions } from '../../hooks/servers/use-chat-compositions.ts';
@@ -35,8 +34,6 @@ function answer(path: string): unknown {
             return { members: [], viewerUserId: 'usr_viewer' };
         case 'chat.engagements':
             return { engagements: [] };
-        case 'computerUse.requests':
-            return { requests: [] };
         case 'agent.activeActivity':
             return { activities: [] };
         case 'chat.message':
@@ -61,7 +58,6 @@ function ChatView({ chatId }: { chatId: string }) {
     useChatEngagement('srv_a', chatId);
     useChatThoughtListener('srv_a', chatId, () => undefined);
     useChatCompositions('srv_a', chatId);
-    useOpenComputerUseRequests('srv_a', chatId);
     useChatMessage('srv_a', chatId, `msg_${chatId}`);
     return null;
 }
@@ -91,6 +87,7 @@ const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 function expectedStreams(role: 'admin' | 'member') {
     const perServer = ['member.onUpdated', 'server.onUpdated'];
     const active = [
+        'agent.onContextUpdated',
         'agent.onUpdated',
         'artifact.onUpdated',
         'chat.onLifecycle',
@@ -112,12 +109,7 @@ function expectedStreams(role: 'admin' | 'member') {
     ];
     const operator = role === 'admin' ? ['invitation.onUpdated', 'reminder.onUpdated'] : [];
     const agentStreams = ['agent.onActivity', 'agent.onLifecycle'];
-    const perChatView = [
-        'chat.onComposition',
-        'chat.onEngagement',
-        'chat.onThought',
-        'computerUse.onRequestUpdated',
-    ];
+    const perChatView = ['chat.onComposition', 'chat.onEngagement', 'chat.onThought'];
     return [
         ...servers.flatMap(() => perServer),
         ...active,
@@ -130,13 +122,13 @@ function expectedStreams(role: 'admin' | 'member') {
 
 /**
  * The per-window subscription budget (specs/realtime-events.md, "Topology"):
- * 2 × accessible Servers, 18 active-Server streams, 2 role-gated streams for
- * Owners and Admins, the 2 hoisted Agent streams, and 4 per mounted Chat view.
+ * 2 × accessible Servers, 19 active-Server streams, 2 role-gated streams for
+ * Owners and Admins, the 2 hoisted Agent streams, and 3 per mounted Chat view.
  */
 describe('realtime subscription budget', () => {
     for (const [role, expected] of [
-        ['member', 34],
-        ['admin', 36],
+        ['member', 33],
+        ['admin', 35],
     ] as const) {
         test(`three Servers, one shown and one kept Chat view, as ${role}: ${expected} streams`, async () => {
             const harness = createRealtimeHarness(answer);

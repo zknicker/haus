@@ -32,7 +32,7 @@ export function CloudAgentModelGroup({
     return (
         <ItemCardGroup variant="transparent">
             <ItemCardGroup.Header>
-                <ItemCardGroup.Title>Cloud Agents</ItemCardGroup.Title>
+                <ItemCardGroup.Title>Workers</ItemCardGroup.Title>
             </ItemCardGroup.Header>
             <ItemCardGroup className="overflow-hidden">
                 {cloudAgentProviders.map((provider) => (

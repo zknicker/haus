@@ -193,10 +193,7 @@ for (const file of requiredAgentContractFiles) {
 
 const agentLifecycleReviewFiles = [
     'apps/computer/src/agent-activity.ts',
-    'apps/computer/src/agent-configuration.ts',
-    'apps/computer/src/effective-state.ts',
     'apps/computer/src/index.ts',
-    'apps/computer/src/launch.ts',
     'apps/server/src/agent-delivery/delivery.ts',
     'apps/server/src/computers/socket.ts',
     'apps/server/src/server-agents/record-haus-agent-state.ts',

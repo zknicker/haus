@@ -150,7 +150,7 @@ describe('run tools', () => {
             '/api/agent/mcp/tools': () => Response.json({ tools: [], total: 0 }),
         });
         const refusal =
-            "This chat hasn't allowed computer use on Studio yet. Haus asked in the chat. End your turn; an inbox item tells you when someone answers. Looking at the screen needs no approval.";
+            'Computer use is off on Studio. A person can turn on Computer use allowed in Settings → Devices → Studio.';
 
         const executed = run.tools.execute(
             'toolu_4',

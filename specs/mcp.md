@@ -197,8 +197,7 @@ The separate `browser` host tool and the Computer's host-tool MCP server are del
 Browser settings stay a Computer setting carried by `browser-request` and `browser-result`.
 
 agent-desktop is the second built-in, `desktop`, relayed the same way as a `desktop` invocation
-and gated by the Device's Computer use setting and a per-chat approval
-([Computer use](computer-use.md)).
+and gated by the Device's Computer use allowed switch ([Computer use](computer-use.md)).
 
 ## Local MCP
 

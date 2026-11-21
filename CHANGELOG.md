@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## v25.1.0 - 2026-11-20
+
+- A working Captain's thought phrases show again under its header, on Claude and on GPT and other models. They had been missing since Captains moved to the Agent runner in v23.0.0.
+- Thoughts mask credentials. A password or token is masked whether it's written in prose, quoted, or assigned like `PGPASSWORD='…'`. The runner masks it before the thought leaves, and the Server masks it again. Only web search output can become part of a thought.
+- Server-only release with no database migration. Haus Computer, Haus Agent, Haus for Desktop and Haus for iPhone are unchanged.
+
+## v25.0.0 - 2026-11-20
+
+- A conversation with a Captain shows a context ring under the composer. It fills toward the point where the Captain's session compacts and turns to a warning at 90%. Clicking it shows how much of the context window is used, split into system prompt, tools, skills, rules and memory, and conversation. The ring appears in a DM, in a Channel with one Captain, and in a Task assigned to a Captain.
+- The Inbox's leftover pieces are gone, including its J/K/E/R keyboard shortcuts. `/inbox` and a restored Inbox tab open Home. The desktop dock badge still counts unread chats and followed Tasks.
+- Haus Computer 21.0.0 no longer carries the code that ran Captains, which have run on the Server's Agent runner since v23.0.0. It keeps running Workers, syncing Drive and running reminder scripts. A full reset made while a Computer was offline still clears that Captain's folder when the Computer reconnects.
+- The Server requires Computer protocol 45, so Server 24.0.0 and Haus Computer 21.0.0 ship together. An older Computer can't attach until it updates. The Mac mini's Computer updates itself after the Server deploys.
+- No database migration. Haus Agent, Haus for Desktop and Haus for iPhone are unchanged.
+
 ## v24.0.0 - 2026-11-20
 
 - Haus has one shell. The sidebar lists Captains as tiles, #all as the team room, and Projects, with Home at the top. The Inbox page is gone, and `/inbox` opens Home.
