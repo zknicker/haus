@@ -18,6 +18,7 @@ export interface PinnedRequestTarget {
 }
 
 const redirectStatuses = new Set([301, 302, 303, 307, 308]);
+const replayStatuses = new Set([307, 308]);
 const maxHops = 5;
 
 // Errors that mean the socket never connected, so nothing was sent and the
@@ -49,6 +50,28 @@ const SAFE_CROSS_ORIGIN_HEADERS = new Set([
     'content-type',
     'user-agent',
 ]);
+
+/**
+ * A 307/308 resends the method and body. Followed across origins, an OAuth
+ * token exchange would hand its client secret and code to the new host, so
+ * safeFetch refuses instead. The message names origins only: paths and
+ * queries can carry secrets.
+ */
+export class CrossOriginRedirectError extends Error {
+    readonly fromOrigin: string;
+    readonly status: number;
+    readonly toOrigin: string;
+
+    constructor(label: string, status: number, from: URL, to: URL) {
+        super(
+            `${label}: refused a ${status} redirect from ${from.origin} to ${to.origin} because it would resend the request body to another origin.`
+        );
+        this.name = 'CrossOriginRedirectError';
+        this.fromOrigin = from.origin;
+        this.status = status;
+        this.toOrigin = to.origin;
+    }
+}
 
 export async function resolveConnectAddresses(hostname: string): Promise<string[]> {
     if (net.isIP(hostname)) {
@@ -135,6 +158,9 @@ export async function safeFetch(
         await response.body?.cancel();
         const redirectUrl = new URL(location, url);
         const crossOrigin = !isSameOrigin(url, redirectUrl);
+        if (crossOrigin && replayStatuses.has(response.status) && requestInit.body != null) {
+            throw new CrossOriginRedirectError(label, response.status, url, redirectUrl);
+        }
         requestInit = nextRequestInit(requestInit, response.status, crossOrigin);
         url = redirectUrl;
     }
