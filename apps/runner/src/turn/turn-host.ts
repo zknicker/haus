@@ -15,6 +15,7 @@ import { createConnectionStatus } from '../model-connections/connection-status.t
 import type { RunnerLink, RunStart, TurnHost } from '../run-context.ts';
 import { agentQueues } from './agent-queues.ts';
 import { agentSessions } from './agent-sessions.ts';
+import { finishTurn } from './finish-turn.ts';
 import { createHarnesses } from './harnesses.ts';
 import { idleCompactionGate } from './idle-compaction-gate.ts';
 import { inboxStore } from './inbox-store.ts';
@@ -25,9 +26,7 @@ import { runRecords } from './run-records.ts';
 import { type NoticeSink, type RunTurnResult, runTurn } from './run-turn.ts';
 import type { RuntimeDriverFactory } from './runtime-driver.ts';
 import { SessionFailureError } from './turn-failure.ts';
-import { turnSummary } from './turn-summary.ts';
 import { startTurnTimings } from './turn-timings.ts';
-import { turnSpanFrame } from './turn-trace.ts';
 
 interface ActiveRun {
     readonly controller: AbortController;
@@ -190,37 +189,17 @@ export function createTurnHostWith(input: {
         } catch (error) {
             result = { failure: error, status: 'failed', tokenUsage: null };
         }
-        activity.close(result.status === 'completed' ? 'completed' : result.status);
-        await journals.close(journal, start.runId, result);
-        if (connection && status.afterTurn(connection, result) === 'failed') {
-            void input.capacity?.afterAccessFailure(connection.id);
-        }
-        const visibility = await run.tools.settle();
-        await store.consume([
-            ...visibility.visibleMessages.map((message) => message.id),
-            ...visibility.servedAutomationIds,
-        ]);
-        const visible = new Map(
-            [...(await records.visible()), ...visibility.visibleMessages].map((message) => [
-                message.id,
-                message,
-            ])
+        await finishTurn(
+            { activity, connection, journal, records, result, run, startedAt, store, timings },
+            {
+                ...(input.capacity ? { capacity: input.capacity } : {}),
+                journals,
+                ledger: input.ledger,
+                link: input.link,
+                settle,
+                status,
+            }
         );
-        const summary = turnSummary({
-            activity: activity.snapshot(),
-            dispatched: await input.ledger.dispatchedIn(start.agentId, start.runId),
-            endedAt: new Date().toISOString(),
-            result,
-            sendCount: visibility.sendCount,
-            start,
-            startedAt,
-            visibleMessages: [...visible.values()],
-        });
-        await settle(start, records, summary);
-        const span = turnSpanFrame(run, summary, timings.snapshot(visibility.sends));
-        if (span) {
-            input.link.send(span);
-        }
     };
 
     const settle = async (
