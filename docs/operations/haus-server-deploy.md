@@ -225,16 +225,6 @@ to reach `192.168.5.2:18791` and drops new connections to link-local, CGNAT and 
 ranges. Its only jump from `DOCKER-USER` matches `-i haus-runner0`, so other containers in the
 shared VM keep their own rules. The script flushes and re-adds only its own chain and jump.
 
-Operator step after the first proof passes (changes the mini's host config, so it needs
-Zach's OK): the R4a setup hand-added a system provision block to `~/.colima/default/colima.yaml`
-that installs unscoped `DOCKER-USER` drops for every container (192.168.5.2, 192.168.0.0/16,
-10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16). Replace that block with the contents of
-`apps/server/operations/install-runner-egress`, called with `192.168.5.2 18791`, so the runner's
-chain also survives a VM restart and other containers keep the LAN. Then delete the live global
-rules with `colima ssh -- sudo iptables -D DOCKER-USER -d <range> -m conntrack --ctstate NEW -j DROP`
-for each range, and confirm `colima ssh -- sudo iptables -S DOCKER-USER` shows only the
-`haus-runner0` jump and the Docker defaults.
-
 The container starts as root with `CAP_NET_ADMIN`. Its entrypoint installs OUTPUT rules that
 deny PostgreSQL ports 5432 and 5438, the RFC 1918, link-local, and CGNAT ranges, and on IPv6 the
 unique local, link-local, site-local, local-use NAT64 (`64:ff9b:1::/48`), and IPv4-translated
