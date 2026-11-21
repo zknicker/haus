@@ -3,6 +3,7 @@ import {
     type AgentThoughtFrame,
     agentThoughtFrameSchema,
     condenseThoughtLocally,
+    createJournalRedactor,
     hasMaskedCredential,
     maskCredentialDisclosures,
     thoughtRequestExcerpt,
@@ -175,17 +176,23 @@ function frameRank(frame: AgentThoughtFrame): number {
     return frame.result ? thoughtFindingRank : 0;
 }
 
+const redactTokenShapes = createJournalRedactor([]);
+
+function maskThoughtText(text: string) {
+    return maskCredentialDisclosures(redactTokenShapes(text));
+}
+
 function maskThoughtFrame(frame: AgentThoughtFrame) {
     const masked: AgentThoughtFrame =
         frame.kind === 'action'
             ? {
                   ...frame,
-                  action: maskCredentialDisclosures(frame.action),
-                  ...(frame.result ? { result: maskCredentialDisclosures(frame.result) } : {}),
+                  action: maskThoughtText(frame.action),
+                  ...(frame.result ? { result: maskThoughtText(frame.result) } : {}),
               }
             : frame.kind === 'phrase'
-              ? { ...frame, text: maskCredentialDisclosures(frame.text) }
-              : { ...frame, reasoning: maskCredentialDisclosures(frame.reasoning) };
+              ? { ...frame, text: maskThoughtText(frame.text) }
+              : { ...frame, reasoning: maskThoughtText(frame.reasoning) };
     return masked;
 }
 

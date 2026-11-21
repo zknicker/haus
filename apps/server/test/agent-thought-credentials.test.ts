@@ -41,6 +41,29 @@ test('the summarizer only ever sees the masked credential', async () => {
     expect(seen).toContain('[redacted]');
 });
 
+const githubToken = `ghp_${'a1B2c3D4e5'.repeat(3)}abcdef`;
+const jwt = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1c2VyXzEifQ.c2lnbmF0dXJlc2lnbmF0dXJl';
+const tokenFrame = reasoningFrame(`Let me call the API with ${githubToken} and ${jwt} next.`);
+
+test('the local fallback never shows a token-shaped secret', async () => {
+    const thoughts = createAgentThoughts({ summarizer: null });
+    const phrased = await thoughts.phrase(tokenFrame);
+    const shown = JSON.stringify(phrased);
+    expect(shown).not.toContain(githubToken);
+    expect(shown).not.toContain(jwt);
+    expect(phrased).toBeNull();
+});
+
+test('the summarizer never receives a token-shaped secret', async () => {
+    const summarizer = fakeSummarizer(async () => null);
+    const thoughts = createAgentThoughts({ summarizer: summarizer.summarizer });
+    await thoughts.phrase(tokenFrame);
+    const seen = JSON.stringify(summarizer.seen);
+    expect(seen).not.toContain(githubToken);
+    expect(seen).not.toContain(jwt);
+    expect(seen).toContain('[redacted]');
+});
+
 function reasoningFrame(reasoning: string) {
     const frame: AgentThoughtFrame = {
         agentId: 'agt_1',
