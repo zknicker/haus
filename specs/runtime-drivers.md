@@ -342,14 +342,17 @@ What the runner does:
   `max(100000, CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS ?? 200000)`.
 - **Skips.** At fire time the compaction is skipped, and logged, when the timer is more than a
   minute late (a sleeping machine), a newer request moved the session, the prompt is under the
-  minimum, the plan is near its usage limit, or the Agent is busy: a run is queued, running, or
-  waiting behind a reset or retire. Pi Durable sessions never arm.
+  minimum, the plan is near its usage limit, the session holds background work (`background_tasks_changed`
+  lists a live task or sub-agent), or the Agent is busy: a run is queued, running, or waiting
+  behind a reset or retire. Pi Durable sessions never arm.
 - **Run.** The runner sends `/compact` as a user message on the parked session and waits for the
   compact boundary, the summary, and a result naming that message. A session that ends, refuses,
   or reports no boundary rejects it, and a compaction that outlasts 10 minutes ends its session so
   the next turn resumes cold.
 - **Races.** One compaction runs per Agent at a time. A turn that needs the session waits for a
-  running compaction and for the reset of its delivery receipts, and never interleaves with it.
+  running compaction and for the reset of its delivery receipts, and never interleaves with it. The
+  wait honors the run's stop: a stopped run leaves the session parked and does not wait behind a
+  hung `/compact`.
   The idle close skips a session that is compacting and takes it on the next expiry sweep. A reset,
   restart, retire, eviction, or shutdown closes the session and cancels its timer. A claimed
   session disarms.
@@ -359,8 +362,9 @@ What the runner does:
   the reset.
 - **Spend and record.** The compaction's cost and token usage are the difference of the
   process's cumulative cost and model usage before and after, because its own result reports
-  zero. The runner sends an `agent-idle-compaction` frame up the runner socket, minted with a
-  `compaction-` id, and the Server records it as the Agent's completed turn so Usage counts it. A
+  zero. The runner journals the compaction under its `compaction-` id as the `compaction` tool
+  pair (trigger `idle`, tokens, summary), as a turn's compaction is journaled, then sends an
+  `agent-idle-compaction` frame up the runner socket, and the Server records it as the Agent's completed turn so Usage counts it. A
   resend changes nothing.
 
 ## The Agent's tools

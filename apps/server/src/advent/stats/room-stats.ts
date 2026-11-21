@@ -34,8 +34,10 @@ export const roomColumns: MessageColumns<RoomFact> = {
                 (
                     (select count(*) from channel_participants person
                      where person.server_id = room.server_id and person.chat_id = room.id)
-                    + (select count(*) from channel_agent_participants agent
-                       where agent.server_id = room.server_id and agent.chat_id = room.id)
+                    + (select count(*) from agents agent
+                       where agent.server_id = room.server_id
+                         and agent.home_project_id = room.id
+                         and agent.retired_at is null)
                 )::int as count
             from (select distinct room_id from mine) rooms
             join chats room on room.server_id = ${scope.serverId} and room.id = rooms.room_id

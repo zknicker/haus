@@ -31,7 +31,7 @@ beforeAll(async () => {
         })
     ).id;
     scoutingChannelId = (
-        await createTestProject(fixture.harness, fixture.owner, {
+        await createTestProject(fixture.owner, {
             agentIds: [fixture.peerAgentId],
             name: 'scouting',
             serverId: fixture.serverId,

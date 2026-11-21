@@ -8,7 +8,7 @@ let channelId: string;
 
 beforeAll(async () => {
     channelId = (
-        await createTestProject(fixture.harness, fixture.owner, {
+        await createTestProject(fixture.owner, {
             agentIds: [fixture.orbitAgentId, fixture.peerAgentId],
             name: 'offline-mentions',
             serverId: fixture.serverId,

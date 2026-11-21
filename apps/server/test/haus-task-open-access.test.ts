@@ -4,10 +4,13 @@ import { agentCreationFixture } from './agent-creation-fixture.ts';
 
 const fixture = agentCreationFixture();
 let opsId: string;
+let opsAgentId: string;
 
 beforeAll(async () => {
     const { owner, serverId } = fixture;
     opsId = (await owner.trpc.project.create.mutate({ key: 'OPS', name: 'ops', serverId })).chat.id;
+    opsAgentId = await fixture.createAgent('Opsy', 'opsy');
+    await owner.trpc.agent.setHome.mutate({ agentId: opsAgentId, projectId: opsId, serverId });
 });
 
 async function agentCall(runner: { token: string }, path: string, body?: unknown) {
@@ -43,12 +46,12 @@ async function historyContents(runner: { token: string }, target: string) {
     };
 }
 
-test('#ops has no Agent members', async () => {
+test('#ops is home to its own Agent only', async () => {
     expect(
         await fixture.harness.sql`
-            select agent_id from channel_agent_participants where chat_id = ${opsId}
+            select id from agents where home_project_id = ${opsId}
         `
-    ).toEqual([]);
+    ).toEqual([{ id: opsAgentId }]);
 });
 
 test('an Agent outside #ops assigned a filed Task there reads it, posts in it, and closes it', async () => {
@@ -69,7 +72,9 @@ test('an Agent outside #ops assigned a filed Task there reads it, posts in it, a
     });
     expect(sent).toMatchObject({ body: { state: 'sent' }, status: 200 });
     const reply = await humanSend(task.chatId ?? '', 'The old key expires Friday.');
-    expect(await inboxAgentsFor(reply.message.id)).toEqual([]);
+    expect(await inboxAgentsFor(reply.message.id)).toEqual(
+        [opsAgentId, fixture.peerAgentId].toSorted()
+    );
 
     expect(await historyContents(peer, 'task:OPS-1')).toEqual({
         contents: ['Picking this up now.', 'The old key expires Friday.'],
@@ -96,16 +101,17 @@ test('an Agent outside #ops assigned a filed Task there reads it, posts in it, a
     ).toMatchObject({ body: { task: { key: 'OPS-1', state: 'done' } }, status: 200 });
 });
 
-test('an Agent assigned a Task in #ops posts in it but still cannot post in #ops', async () => {
+test('an Agent outside #ops that posts in a Task there hears it, and posts in #ops', async () => {
+    const opsy = await fixture.mintRunner('run_open_access_opsy', opsAgentId, opsId);
     const orbit = await fixture.mintRunner('run_open_access_orbit');
-    await humanSend(fixture.channelId, 'The ops dashboard is down');
-    const { task: filed } = await fixture.owner.trpc.task.create.mutate({
-        assigneeAgentId: fixture.orbitAgentId,
-        projectId: opsId,
-        serverId: fixture.serverId,
+    const origin = await humanSend(fixture.channelId, 'The ops dashboard is down');
+    const started = await agentCall(opsy, '/api/agent/tasks/start', {
+        from: origin.message.id,
+        project: 'OPS',
+        target: '#product',
         title: 'Restore the ops dashboard',
     });
-    expect(filed.key).toBe('OPS-2');
+    expect(started).toMatchObject({ body: { target: 'task:OPS-2' }, status: 200 });
 
     expect(
         await agentCall(orbit, '/api/agent/messages/send', {
@@ -119,9 +125,12 @@ test('an Agent assigned a Task in #ops posts in it but still cannot post in #ops
         serverId: fixture.serverId,
     });
     const reply = await humanSend(task.chatId ?? '', 'It went down at noon.');
-    expect(await inboxAgentsFor(reply.message.id)).toEqual([]);
+    expect(await inboxAgentsFor(reply.message.id)).toEqual(
+        [opsAgentId, fixture.orbitAgentId].toSorted()
+    );
     const inbox = await agentCall(orbit, '/api/agent/inbox/conversations');
     expect((inbox.body.items as { target: string }[]).map((item) => item.target)).toEqual([
+        'task:OPS-2',
         '#product',
     ]);
     expect(await historyContents(orbit, 'task:OPS-2')).toEqual({
@@ -131,19 +140,13 @@ test('an Agent assigned a Task in #ops posts in it but still cannot post in #ops
 
     expect(
         await agentCall(orbit, '/api/agent/messages/send', {
-            content: 'Posting top-level in #ops.',
+            content: 'Posting top-level here.',
             nonce: 'open-access-orbit-channel',
             target: '#ops',
         })
-    ).toEqual({
-        body: {
-            code: 'INVALID_TARGET',
-            message: 'That target does not exist or this Agent has not joined it.',
-        },
-        status: 404,
-    });
-    expect(await agentCall(orbit, '/api/agent/history?target=%23ops')).toMatchObject({
-        body: { code: 'INVALID_TARGET' },
-        status: 404,
+    ).toMatchObject({ body: { state: 'sent' }, status: 200 });
+    expect(await historyContents(orbit, '%23ops')).toEqual({
+        contents: ['Posting top-level here.'],
+        status: 200,
     });
 });

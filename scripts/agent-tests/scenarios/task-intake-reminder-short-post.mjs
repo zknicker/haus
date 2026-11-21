@@ -55,7 +55,7 @@ export default defineScenario({
             expect(post.cause?.automationId, 'the causing reminder').toBe(reminder.id);
             expect(post.content, 'the post carries the status').toContain(token);
             expect(
-                await tasksCreatedBy(kit, worker.id, turn.startedAt),
+                await tasksCreatedBy(kit, worker.id, turn),
                 'Tasks the Agent created'
             ).toHaveLength(0);
         } finally {

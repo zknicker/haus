@@ -56,16 +56,11 @@ export async function seedWorker(input: {
         computerId: attached.computerId,
         displayName: 'Orbit',
         handle: input.agentHandle,
+        homeProjectId: chatId,
         modelId: 'gpt-5.6-sol',
         runtimeId: 'codex',
         serverId: input.serverId,
     });
-    runPsql(
-        input.databaseUrl,
-        `insert into channel_agent_participants (server_id, chat_id, agent_id)
-         values ('${input.serverId}', '${chatId}', '${created.agent.id}')
-         on conflict do nothing`
-    );
 
     const receipt = await startWorker({
         agentId: created.agent.id,

@@ -8,7 +8,6 @@ import {
     agentMcpConnectionGrantsTable,
     agentRunnerCredentialsTable,
     agentsTable,
-    channelAgentParticipantsTable,
     reminderAgentAttentionTable,
     remindersTable,
 } from '../postgres/schema.ts';
@@ -110,14 +109,6 @@ export async function deleteAgent(
                 serverId: input.serverId,
             }),
         });
-        await tx
-            .delete(channelAgentParticipantsTable)
-            .where(
-                and(
-                    eq(channelAgentParticipantsTable.serverId, input.serverId),
-                    eq(channelAgentParticipantsTable.agentId, agent.id)
-                )
-            );
         await tx
             .delete(agentMcpConnectionGrantsTable)
             .where(

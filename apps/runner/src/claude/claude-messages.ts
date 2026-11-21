@@ -94,6 +94,15 @@ const systemSchema = z.looseObject({
     error: z.string().nullish(),
     error_status: z.number().nullish(),
     subtype: z.string(),
+    tasks: z
+        .array(
+            z.looseObject({
+                ambient: z.boolean().optional(),
+                task_id: z.string(),
+                task_type: z.string(),
+            })
+        )
+        .optional(),
     tools: z.array(z.string()).optional(),
     type: z.literal('system'),
 });

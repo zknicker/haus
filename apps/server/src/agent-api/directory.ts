@@ -1,23 +1,28 @@
-import { and, asc, eq, ilike, isNull, sql } from 'drizzle-orm';
+import { and, asc, eq, ilike, isNull } from 'drizzle-orm';
+import { listHomeAgents } from '../agent-delivery/hearing.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
-    channelAgentParticipantsTable,
     channelParticipantsTable,
     chatsTable,
+    projectsTable,
     serverMembershipsTable,
+    taskKeysTable,
     usersTable,
 } from '../postgres/schema.ts';
-import { countAgentDirectory, countChannelMembers } from './directory-counts.ts';
-import { findChannel } from './find-channel.ts';
+import {
+    countAgentDirectory,
+    countChannelHumans,
+    directoryChannelsWhere,
+} from './directory-counts.ts';
 import { AgentTargetError } from './resolve-target.ts';
 
 export interface AgentDirectoryQuery {
     agents: boolean;
     channels: boolean;
+    home: boolean;
     humans: boolean;
-    joined: boolean;
     limit: number;
     offset: number;
     query?: string;
@@ -56,16 +61,19 @@ export async function readAgentChannelInfo(
     target: string
 ) {
     const channel = await findChannel(db, runner.serverId, target);
-    const [joined, memberCount] = await Promise.all([
-        isAgentJoined(db, runner, channel.id),
-        countChannelMembers(db, runner, channel.id),
-    ]);
+    const homeAgents = await listHomeAgents(db, {
+        projectId: channel.id,
+        serverId: runner.serverId,
+    });
+    const humans = await countChannelHumans(db, runner, channel.id);
     // `handle` is the bare name; the CLI renders the `#`.
     return {
         description: channel.description,
         handle: channel.name,
-        joined,
-        memberCount,
+        home: homeAgents.some((agent) => agent.id === runner.agentId),
+        homeAgents: homeAgents.map((agent) => agent.handle),
+        memberCount: humans + homeAgents.length,
+        project: channel.project,
     };
 }
 
@@ -75,50 +83,38 @@ export async function readAgentChannelMembers(
     target: string
 ) {
     const channel = await findChannel(db, runner.serverId, target);
-    if (!(await isAgentJoined(db, runner, channel.id))) {
-        throw new AgentTargetError();
-    }
-    const [agents, humans] = await Promise.all([
-        db
-            .select({ description: agentsTable.description, handle: agentsTable.handle })
-            .from(channelAgentParticipantsTable)
-            .innerJoin(
-                agentsTable,
-                and(
-                    eq(agentsTable.serverId, channelAgentParticipantsTable.serverId),
-                    eq(agentsTable.id, channelAgentParticipantsTable.agentId)
-                )
+    const agents = await db
+        .select({ description: agentsTable.description, handle: agentsTable.handle })
+        .from(agentsTable)
+        .where(
+            and(
+                eq(agentsTable.serverId, runner.serverId),
+                eq(agentsTable.homeProjectId, channel.id),
+                isNull(agentsTable.retiredAt)
             )
-            .where(
-                and(
-                    eq(channelAgentParticipantsTable.serverId, runner.serverId),
-                    eq(channelAgentParticipantsTable.chatId, channel.id),
-                    isNull(agentsTable.retiredAt)
-                )
+        )
+        .orderBy(asc(agentsTable.handle));
+    const humans = await db
+        .select({
+            description: usersTable.description,
+            handle: serverMembershipsTable.handle,
+            timezone: usersTable.timezone,
+        })
+        .from(channelParticipantsTable)
+        .innerJoin(
+            serverMembershipsTable,
+            and(
+                eq(serverMembershipsTable.serverId, channelParticipantsTable.serverId),
+                eq(serverMembershipsTable.userId, channelParticipantsTable.userId)
             )
-            .orderBy(asc(agentsTable.handle)),
-        db
-            .select({
-                description: usersTable.description,
-                handle: serverMembershipsTable.handle,
-                timezone: usersTable.timezone,
-            })
-            .from(channelParticipantsTable)
-            .innerJoin(
-                serverMembershipsTable,
-                and(
-                    eq(serverMembershipsTable.serverId, channelParticipantsTable.serverId),
-                    eq(serverMembershipsTable.userId, channelParticipantsTable.userId)
-                )
+        )
+        .innerJoin(usersTable, eq(usersTable.id, channelParticipantsTable.userId))
+        .where(
+            and(
+                eq(channelParticipantsTable.serverId, runner.serverId),
+                eq(channelParticipantsTable.chatId, channel.id)
             )
-            .innerJoin(usersTable, eq(usersTable.id, channelParticipantsTable.userId))
-            .where(
-                and(
-                    eq(channelParticipantsTable.serverId, runner.serverId),
-                    eq(channelParticipantsTable.chatId, channel.id)
-                )
-            ),
-    ]);
+        );
     return {
         members: [
             ...agents.map((agent) => ({
@@ -133,45 +129,24 @@ export async function readAgentChannelMembers(
                 timezone: human.timezone,
             })),
         ],
+        project: channel.project,
         target: `#${channel.name}`,
     };
 }
 
 async function listChannels(db: HausDatabase, runner: ResolvedRunner, input: AgentDirectoryQuery) {
     const rows = await db
-        .select({
-            id: chatsTable.id,
-            joined: sql<boolean>`${channelAgentParticipantsTable.agentId} is not null`,
-            name: chatsTable.name,
-        })
+        .select({ name: chatsTable.name })
         .from(chatsTable)
-        .leftJoin(
-            channelAgentParticipantsTable,
-            and(
-                eq(channelAgentParticipantsTable.serverId, chatsTable.serverId),
-                eq(channelAgentParticipantsTable.chatId, chatsTable.id),
-                eq(channelAgentParticipantsTable.agentId, runner.agentId)
-            )
-        )
-        .where(
-            and(
-                eq(chatsTable.serverId, runner.serverId),
-                eq(chatsTable.kind, 'channel'),
-                input.joined
-                    ? eq(channelAgentParticipantsTable.agentId, runner.agentId)
-                    : undefined,
-                input.query ? ilike(chatsTable.name, `%${escapeLike(input.query)}%`) : undefined
-            )
-        )
+        .where(directoryChannelsWhere(runner, input))
         .orderBy(asc(chatsTable.name))
         .offset(input.offset)
         .limit(input.limit);
-    return await Promise.all(
-        rows.map(async (row) => {
-            const info = await readAgentChannelInfo(db, runner, `#${row.name}`);
-            return { ...info, joined: row.joined };
-        })
-    );
+    const channels = [];
+    for (const row of rows) {
+        channels.push(await readAgentChannelInfo(db, runner, `#${row.name}`));
+    }
+    return channels;
 }
 
 async function listAgents(db: HausDatabase, runner: ResolvedRunner, input: AgentDirectoryQuery) {
@@ -230,19 +205,43 @@ async function listHumans(db: HausDatabase, runner: ResolvedRunner, input: Agent
         );
 }
 
-async function isAgentJoined(db: HausDatabase, runner: ResolvedRunner, chatId: string) {
-    const [row] = await db
-        .select({ agentId: channelAgentParticipantsTable.agentId })
-        .from(channelAgentParticipantsTable)
+async function findChannel(db: HausDatabase, serverId: string, target: string) {
+    const name = target.startsWith('#') ? target.slice(1) : target;
+    const [channel] = await db
+        .select({
+            description: chatsTable.description,
+            id: chatsTable.id,
+            name: chatsTable.name,
+            project: taskKeysTable.key,
+        })
+        .from(chatsTable)
+        .leftJoin(
+            projectsTable,
+            and(
+                eq(projectsTable.serverId, chatsTable.serverId),
+                eq(projectsTable.chatId, chatsTable.id)
+            )
+        )
+        .leftJoin(
+            taskKeysTable,
+            and(
+                eq(taskKeysTable.serverId, projectsTable.serverId),
+                eq(taskKeysTable.id, projectsTable.taskKeyId)
+            )
+        )
         .where(
             and(
-                eq(channelAgentParticipantsTable.serverId, runner.serverId),
-                eq(channelAgentParticipantsTable.chatId, chatId),
-                eq(channelAgentParticipantsTable.agentId, runner.agentId)
+                eq(chatsTable.serverId, serverId),
+                eq(chatsTable.kind, 'channel'),
+                eq(chatsTable.name, name),
+                isNull(chatsTable.deletedAt)
             )
         )
         .limit(1);
-    return Boolean(row);
+    if (!channel?.name) {
+        throw new AgentTargetError('That channel does not exist.');
+    }
+    return { ...channel, name: channel.name };
 }
 
 function escapeLike(value: string) {

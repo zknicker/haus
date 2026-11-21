@@ -70,6 +70,19 @@ export const projectMutationResultSchema = z
 
 export type ProjectMutationResult = z.infer<typeof projectMutationResultSchema>;
 
+/** `agent.setHome`: a person moves an Agent's home. An Agent never moves itself. */
+export const agentSetHomeInputSchema = z
+    .object({ agentId: idSchema, projectId: idSchema, serverId: idSchema })
+    .strict();
+
+export type AgentSetHomeInput = z.infer<typeof agentSetHomeInputSchema>;
+
+export const agentHomeSchema = z
+    .object({ agentId: idSchema, homeProjectId: idSchema, previousProjectId: idSchema })
+    .strict();
+
+export type AgentHome = z.infer<typeof agentHomeSchema>;
+
 export const projectListInputSchema = z.object({ serverId: idSchema }).strict();
 
 export const projectListSchema = z.array(projectSchema);

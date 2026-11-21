@@ -10,7 +10,6 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import {
     agentInboxTable,
     agentsTable,
-    channelAgentParticipantsTable,
     chatMessagesTable,
     chatsTable,
     computersTable,
@@ -416,11 +415,6 @@ async function seedOverdueReminder(haus: HausConnection) {
         id: anchorMessageId,
         nonce: 'anchor',
         sequence: 1,
-        serverId,
-    });
-    await haus.db.insert(channelAgentParticipantsTable).values({
-        agentId,
-        chatId,
         serverId,
     });
     await haus.db.insert(remindersTable).values({

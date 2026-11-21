@@ -5,7 +5,6 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
     agentsTable,
     agentTokenUsageDailyTable,
-    channelAgentParticipantsTable,
     channelParticipantsTable,
     chatMessagesTable,
     chatsTable,
@@ -152,12 +151,6 @@ export async function seedDevelopmentServer(
                 demoAgentDm(blippyDmId, blippyId, serverId, userId, now, 1),
                 demoAgentDm(tinyDmId, tinyId, serverId, userId, now, 1),
             ]);
-        await tx.insert(channelAgentParticipantsTable).values([
-            { agentId: blippyId, chatId: channelId, serverId },
-            { agentId: tinyId, chatId: channelId, serverId },
-            { agentId: blippyId, chatId: demoChannelId, serverId },
-            { agentId: tinyId, chatId: demoChannelId, serverId },
-        ]);
         await tx.insert(chatMessagesTable).values([
             demoMessage(serverId, channelId, 1, {
                 authorUserId: userId,

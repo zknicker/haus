@@ -258,7 +258,7 @@ test('Agent message references persist as stable Agent and Chat links', async ()
         runtimeId: 'codex',
         serverId,
     });
-    const channel = await createTestProject(harness, owner, {
+    const channel = await createTestProject(owner, {
         agentIds: [agentId, blippy.agent.id, tiny.agent.id],
         name: 'canonical-product',
         serverId,
@@ -312,7 +312,7 @@ test('Agent message references persist as stable Agent and Chat links', async ()
         confirmation: 'Blippy',
         serverId,
     });
-    const replacement = await createHomedAgent(owner, {
+    await createHomedAgent(owner, {
         computerId,
         displayName: 'Blippy Replacement',
         handle: 'blippy',
@@ -320,10 +320,6 @@ test('Agent message references persist as stable Agent and Chat links', async ()
         runtimeId: 'codex',
         serverId,
     });
-    await harness.sql`
-        insert into channel_agent_participants (server_id, chat_id, agent_id)
-        values (${serverId}, ${channel.id}, ${replacement.agent.id})
-    `;
     await createHomedAgent(owner, {
         computerId,
         displayName: 'Future',
@@ -367,10 +363,6 @@ test('an Agent send resolves its target instead of writing into the launch chat'
     await harness.sql`
         insert into chats (id, server_id, kind, name)
         values (${channelId}, ${serverId}, 'channel', 'dispatch')
-    `;
-    await harness.sql`
-        insert into channel_agent_participants (server_id, chat_id, agent_id)
-        values (${serverId}, ${channelId}, ${agentId})
     `;
     await harness.sql`
         insert into channel_participants (server_id, chat_id, user_id)
@@ -438,7 +430,7 @@ test('ordinary Channel delivery preserves per-recipient direct attention', async
         runtimeId: 'codex',
         serverId,
     });
-    const channel = await createTestProject(harness, owner, {
+    const channel = await createTestProject(owner, {
         agentIds: [agentId, peer.agent.id],
         name: 'direct-attention-contract',
         serverId,
@@ -509,15 +501,11 @@ test('ordinary Channel delivery preserves per-recipient direct attention', async
     );
     expect(richPending).toHaveLength(2);
 });
-test('a Channel mute purges ordinary work while preserving exact mentions', async () => {
+test('a channel outside the home reaches the Agent only by mention', async () => {
     const channelId = 'cht_attentioncontract';
     await harness.sql`
         insert into chats (id, server_id, kind, name)
         values (${channelId}, ${serverId}, 'channel', 'attention-contract')
-    `;
-    await harness.sql`
-        insert into channel_agent_participants (server_id, chat_id, agent_id)
-        values (${serverId}, ${channelId}, ${agentId})
     `;
     await harness.sql`
         insert into channel_participants (server_id, chat_id, user_id)
@@ -526,46 +514,41 @@ test('a Channel mute purges ordinary work while preserving exact mentions', asyn
     const ordinary = await owner.trpc.chat.send.mutate({
         chatId: channelId,
         content: 'Routine telemetry.',
-        nonce: 'attention_ordinary_before_mute',
+        nonce: 'attention_ordinary_outside_home',
         serverId,
     });
-    const minted = await mintRunner({ chatId: channelId, runId: 'run_attention_contract' });
-    const muted = await agentPost(minted.runnerToken, '/api/agent/channels/mute', {
-        target: '#attention-contract',
-    });
-    expect(muted).toMatchObject({ body: { target: '#attention-contract' }, status: 200 });
-    const purged = (await harness.sql`
+    const unheard = (await harness.sql`
         select count(*)::int as n from agent_inbox
         where agent_id = ${agentId} and dedupe_key = ${ordinary.message.id}
     `) as Array<{ n: number }>;
-    expect(purged[0]?.n).toBe(0);
+    expect(unheard[0]?.n).toBe(0);
 
     const mentioned = await owner.trpc.chat.send.mutate({
         chatId: channelId,
         content: '@sage please inspect this alert.',
-        nonce: 'attention_mention_through_mute',
+        nonce: 'attention_mention_outside_home',
         serverId,
     });
     await owner.trpc.chat.send.mutate({
         chatId: channelId,
         content: 'More routine telemetry.',
-        nonce: 'attention_ordinary_after_mute',
+        nonce: 'attention_ordinary_after_mention',
         serverId,
     });
-    const mutePending = (await harness.sql`
+    const outsidePending = (await harness.sql`
         select dedupe_key, mentioned from agent_inbox
         where agent_id = ${agentId}
           and chat_id = ${channelId}
           and dedupe_key in (${mentioned.message.id}, (
-              select id from chat_messages where nonce = 'attention_ordinary_after_mute'
+              select id from chat_messages where nonce = 'attention_ordinary_after_mention'
           ))
         order by dedupe_key
     `) as Array<{ dedupe_key: string; mentioned: boolean }>;
-    expect(mutePending).toEqual([{ dedupe_key: mentioned.message.id, mentioned: true }]);
+    expect(outsidePending).toEqual([{ dedupe_key: mentioned.message.id, mentioned: true }]);
 });
-test('history visibility across a muted gap prevents a duplicate freshness hold', async () => {
-    const muted = { agentIds: [agentId], name: 'muted-history-visibility', serverId };
-    const channel = await createTestProject(harness, owner, muted);
+test('history visibility across an unheard gap prevents a duplicate freshness hold', async () => {
+    const outside = { agentIds: [], name: 'muted-history-visibility', serverId };
+    const channel = await createTestProject(owner, outside);
     const minted = await mintRunner({ chatId: channel.id, runId: 'run_muted_history_visibility' });
     await harness.sql`
         insert into agent_delivery (
@@ -587,9 +570,6 @@ test('history visibility across a muted gap prevents a duplicate freshness hold'
             accepted_at = excluded.accepted_at,
             dispatched_at = excluded.dispatched_at
     `;
-    await agentPost(minted.runnerToken, '/api/agent/channels/mute', {
-        target: '#muted-history-visibility',
-    });
     const gapOne = await owner.trpc.chat.send.mutate({
         chatId: channel.id,
         content: 'Suppressed gap one.',
@@ -659,7 +639,7 @@ test('a channel send holds a durable draft until the Agent catches up', async ()
     const minted = await mintRunner({ chatId: dmChatId, runId: 'run_hold_1' });
     await owner.trpc.chat.send.mutate({
         chatId: channelId,
-        content: 'New peer context before the reply.',
+        content: '@sage new peer context before the reply.',
         nonce: 'human_hold_1',
         serverId,
     });
@@ -677,7 +657,7 @@ test('a channel send holds a durable draft until the Agent catches up', async ()
         state: 'held',
     });
     expect(held.body.shownMessages?.[0]).toMatchObject({
-        content: 'New peer context before the reply.',
+        content: '@sage new peer context before the reply.',
     });
     const drafts = (await harness.sql`
         select content from agent_message_drafts
@@ -689,7 +669,7 @@ test('a channel send holds a durable draft until the Agent catches up', async ()
     for (const reholdCount of [2, 3, 4]) {
         await owner.trpc.chat.send.mutate({
             chatId: channelId,
-            content: `Update ${reholdCount} before release.`,
+            content: `@sage update ${reholdCount} before release.`,
             nonce: `human_hold_${reholdCount}`,
             serverId,
         });
@@ -856,45 +836,39 @@ test('an Agent adds and removes its own canonical message reaction', async () =>
     expect(removed.body.message?.reactions).toEqual([]);
 });
 
-test('the ported Agent directory can inspect and change channel membership', async () => {
-    const channelId = 'cht_directorychannel';
-    await harness.sql`
-        insert into chats (id, server_id, kind, name)
-        values (${channelId}, ${serverId}, 'channel', 'research')
-    `;
+test('the ported Agent directory reports each channel as a Project with its home Agents', async () => {
+    await createTestProject(owner, { agentIds: [], key: 'RES', name: 'research', serverId });
     const minted = await mintRunner({ chatId: dmChatId, runId: 'run_directory_1' });
 
-    const before = await agentGet(minted.runnerToken, '/api/agent/channels/info', {
+    const info = await agentGet(minted.runnerToken, '/api/agent/channels/info', {
         target: '#research',
     });
-    expect(before.body).toMatchObject({ handle: 'research', joined: false });
-
-    const joined = await agentPost(minted.runnerToken, '/api/agent/channels/join', {
-        target: '#research',
-    });
-    expect(joined).toMatchObject({
-        body: { joined: true, target: '#research' },
-        status: 200,
+    expect(info.body).toMatchObject({
+        handle: 'research',
+        home: false,
+        homeAgents: [],
+        project: 'RES',
     });
 
     const directory = await agentGet(minted.runnerToken, '/api/agent/server', {
         channels: 'true',
-        joined: 'true',
+        home: 'true',
     });
-    expect(directory.body.channels).toEqual(
-        expect.arrayContaining([expect.objectContaining({ handle: 'research', joined: true })])
-    );
-    const members = await agentGet(minted.runnerToken, '/api/agent/channels/members', {
-        target: '#research',
+    expect(directory.body.channels).toEqual([
+        expect.objectContaining({ home: true, homeAgents: expect.arrayContaining(['sage']) }),
+    ]);
+    const home = await agentGet(minted.runnerToken, '/api/agent/channels/members', {
+        target: `#${String(directory.body.channels?.[0]?.handle)}`,
     });
-    expect(members.body.members).toEqual(
+    expect(home.body.members).toEqual(
         expect.arrayContaining([expect.objectContaining({ handle: 'sage', role: 'agent' })])
     );
-
-    const left = await agentPost(minted.runnerToken, '/api/agent/channels/leave', {
+    const research = await agentGet(minted.runnerToken, '/api/agent/channels/members', {
         target: '#research',
     });
-    expect(left).toMatchObject({ body: { left: true, target: '#research' }, status: 200 });
+    expect(research.body.members).not.toEqual(
+        expect.arrayContaining([expect.objectContaining({ handle: 'sage' })])
+    );
 });
 
 test('the ported Agent claim flow creates, claims, updates, and releases its own work', async () => {
@@ -1053,10 +1027,6 @@ test('concurrent Agent claims choose one owner and the losing Agent cannot proce
         values (${channelId}, ${serverId}, 'channel', 'concurrent-claim')
     `;
     await harness.sql`
-        insert into channel_agent_participants (server_id, chat_id, agent_id)
-        values (${serverId}, ${channelId}, ${agentId})
-    `;
-    await harness.sql`
         insert into channel_participants (server_id, chat_id, user_id)
         values (${serverId}, ${channelId}, ${ownerUserId})
     `;
@@ -1068,10 +1038,6 @@ test('concurrent Agent claims choose one owner and the losing Agent cannot proce
         runtimeId: 'codex',
         serverId,
     });
-    await harness.sql`
-        insert into channel_agent_participants (server_id, chat_id, agent_id)
-        values (${serverId}, ${channelId}, ${peer.agent.id})
-    `;
     const created = await owner.trpc.claim.create.mutate({
         chatId: channelId,
         content: 'Exactly one Agent may own this work.',
@@ -1126,15 +1092,11 @@ test('concurrent Agent claims choose one owner and the losing Agent cannot proce
     });
 });
 
-test('runner claim access fails closed after the Agent loses its parent Channel', async () => {
+test('runner claim access fails closed after its parent Channel is deleted', async () => {
     const channelId = 'cht_revokedclaimaccess';
     await harness.sql`
         insert into chats (id, server_id, kind, name)
         values (${channelId}, ${serverId}, 'channel', 'revoked-claim-access')
-    `;
-    await harness.sql`
-        insert into channel_agent_participants (server_id, chat_id, agent_id)
-        values (${serverId}, ${channelId}, ${agentId})
     `;
     await harness.sql`
         insert into channel_participants (server_id, chat_id, user_id)
@@ -1158,8 +1120,8 @@ test('runner claim access fails closed after the Agent loses its parent Channel'
     expect(unassignedClaim).toBeTruthy();
 
     await harness.sql`
-        delete from channel_agent_participants
-        where server_id = ${serverId} and chat_id = ${channelId} and agent_id = ${agentId}
+        update chats set deleted_at = now(), deleted_by_user_id = ${ownerUserId}
+        where server_id = ${serverId} and id = ${channelId}
     `;
 
     const targetedList = await agentGet(runner.runnerToken, '/api/agent/claims', {
@@ -1277,10 +1239,6 @@ test('Agent claim creation is replay-safe and directly wakes an assigned peer', 
         values (${channelId}, ${serverId}, 'channel', 'claim-delegation')
     `;
     await harness.sql`
-        insert into channel_agent_participants (server_id, chat_id, agent_id)
-        values (${serverId}, ${channelId}, ${agentId})
-    `;
-    await harness.sql`
         insert into channel_participants (server_id, chat_id, user_id)
         values (${serverId}, ${channelId}, ${ownerUserId})
     `;
@@ -1292,14 +1250,6 @@ test('Agent claim creation is replay-safe and directly wakes an assigned peer', 
         runtimeId: 'codex',
         serverId,
     });
-    await harness.sql`
-        insert into channel_agent_participants (server_id, chat_id, agent_id)
-        values (${serverId}, ${channelId}, ${peer.agent.id})
-    `;
-    await harness.sql`
-        insert into agent_channel_mutes (server_id, agent_id, chat_id)
-        values (${serverId}, ${peer.agent.id}, ${channelId})
-    `;
     const minted = await mintRunner({ chatId: dmChatId, runId: 'run_claim_peer_assignment' });
     const body = {
         assignee: '@scout',
@@ -1355,7 +1305,7 @@ test('Agent claim creation is replay-safe and directly wakes an assigned peer', 
         select agent_id, dedupe_key, mentioned, source
         from agent_inbox
         where server_id = ${serverId}
-          and chat_id = ${channelId}
+          and chat_id = ${channelId} and (agent_id = ${peer.agent.id} or source = 'claim_assignment')
         order by created_at, id
     `) as Array<{ agent_id: string; dedupe_key: string; mentioned: boolean; source: string }>;
     // The handoff writes no Chat message: everything in `chat_messages` is

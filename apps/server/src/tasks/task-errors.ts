@@ -26,7 +26,7 @@ export class TaskInvariantError extends Error {
     }
 }
 
-/** A non-generalist Agent starts Tasks only in its home Project (ADR 0055). */
+/** An Agent starts Tasks only in its home Project (ADR 0055). */
 export class TaskProjectNotHomeError extends Error {
     readonly nextAction: string;
 

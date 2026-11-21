@@ -3,12 +3,11 @@ import { and, eq } from 'drizzle-orm';
 import { assertFreshAgentView } from '../src/agent-api/chat-freshness.ts';
 import { prepareAgentSend } from '../src/agent-api/send-hold.ts';
 import { enqueueAgentGreeting, greetingDedupeKey } from '../src/agent-delivery/greeting.ts';
-import { joinChannelAgents } from '../src/chats/channel-agent-membership.ts';
 import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentInboxTable } from '../src/postgres/schema.ts';
 import { seedAgent } from './agent-inbox-harness.ts';
-import { postMessage, readerRunner } from './agent-read-fixture.ts';
+import { postMessage, readerRunner, homeAgentIn } from './agent-read-fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 let cluster: TestDatabase;
@@ -30,8 +29,8 @@ test('a queued greeting is not a message: it never holds or stales the greeting 
     for (let index = 0; index < 5; index += 1) {
         await postMessage(db, seed, { chatId: seed.channelId, content: `Before ${index}` });
     }
-    await joinChannelAgents(db, {
-        agentIds: [seed.agentId],
+    await homeAgentIn(db, {
+        agentId: seed.agentId,
         chatId: seed.channelId,
         serverId: seed.serverId,
     });

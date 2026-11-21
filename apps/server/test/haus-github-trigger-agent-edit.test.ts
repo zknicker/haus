@@ -176,7 +176,6 @@ test('another Agent cannot edit or preview the owned trigger', async () => {
         runtimeId: 'codex',
         serverId: world.serverId,
     });
-    await harness.sql`insert into channel_agent_participants (server_id, chat_id, agent_id) values (${world.serverId}, ${world.channelId}, ${peer.agent.id}) on conflict do nothing`;
     const minted = await fetch(new URL('/computer/runner/mint', harness.url), {
         body: JSON.stringify({
             agentId: peer.agent.id,

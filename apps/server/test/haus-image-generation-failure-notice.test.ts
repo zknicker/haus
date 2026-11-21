@@ -26,7 +26,7 @@ beforeAll(async () => {
         serverId: fixture.serverId,
     });
     secondChannelId = (
-        await createTestProject(fixture.harness, fixture.owner, {
+        await createTestProject(fixture.owner, {
             agentIds: [fixture.orbitAgentId],
             name: 'art2',
             serverId: fixture.serverId,

@@ -40,9 +40,16 @@ export class CompactingPool<Process extends IdleCompactable> {
         return this.closed(closing);
     }
 
-    async claim(agentId: string, want: WarmIdentity, now: number) {
+    async claim(agentId: string, want: WarmIdentity, now: number, signal?: AbortSignal) {
         this.scheduler.disarm(agentId);
-        await this.scheduler.runningFor(agentId);
+        for (
+            let running = this.scheduler.runningFor(agentId);
+            running;
+            running = this.scheduler.runningFor(agentId)
+        ) {
+            await abortable(running, signal);
+        }
+        signal?.throwIfAborted();
         this.scheduler.disarm(agentId);
         const claim = this.pool.claim(agentId, want, now);
         return { closing: this.closed(claim.closing), process: claim.process };
@@ -67,5 +74,21 @@ export class CompactingPool<Process extends IdleCompactable> {
             this.scheduler.disarmProcess(process);
         }
         return processes;
+    }
+}
+
+async function abortable(wait: Promise<void>, signal: AbortSignal | undefined) {
+    if (!signal) {
+        await wait;
+        return;
+    }
+    signal.throwIfAborted();
+    const aborted = Promise.withResolvers<never>();
+    const onAbort = () => aborted.reject(signal.reason);
+    signal.addEventListener('abort', onAbort, { once: true });
+    try {
+        await Promise.race([wait, aborted.promise]);
+    } finally {
+        signal.removeEventListener('abort', onAbort);
     }
 }

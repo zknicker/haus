@@ -17,7 +17,7 @@ test('a colliding name returns the minted handle without needing announcement te
     expect(created.body).not.toHaveProperty('messageId');
 });
 
-test('reusing a nonce with a different brief or channels refuses before avatar generation', async () => {
+test('reusing a nonce with a different brief or Project refuses before avatar generation', async () => {
     const runner = await fixture.mintRunner('run_create_request_conflict');
     const body = fixture.createBody({
         avatarConcept: 'a moonlit raccoon',
@@ -26,7 +26,7 @@ test('reusing a nonce with a different brief or channels refuses before avatar g
     });
     expect((await fixture.postCreate(runner, body)).status).toBe(200);
     const spent = fixture.avatarRequests.length;
-    for (const change of [{ brief: 'Own finance.' }, { channels: ['#product'] }]) {
+    for (const change of [{ brief: 'Own finance.' }, { project: 'GEN' }]) {
         const refused = await fixture.postCreate(runner, { ...body, ...change });
         expect(refused.status).toBe(409);
         expect(refused.body.code).toBe('AGENT_CREATE_IDEMPOTENCY_CONFLICT');

@@ -49,10 +49,6 @@ beforeAll(async () => {
         insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
         values (${agentId}, ${serverId}, 'reminder-cove', 'Cove', 'America/New_York', ${await testSqlAgentHome(harness.sql, serverId)})
     `;
-    await harness.sql`
-        insert into channel_agent_participants (server_id, chat_id, agent_id)
-        values (${serverId}, ${chatId}, ${agentId})
-    `;
 });
 
 afterAll(async () => {
@@ -723,45 +719,6 @@ describe('reminders', () => {
         ).toHaveLength(1);
     });
 
-    test('scheduler cancels a due reminder when the author lost anchor access', async () => {
-        const removedAgentId = 'agt_removed_due_fire';
-        await addAgent(removedAgentId);
-        const scheduled = await scheduleReminder(
-            connection.db,
-            removedAgentId,
-            {
-                anchorChatId: chatId,
-                anchorMessageId,
-                commandId: 'removed-agent-due-schedule',
-                fireAt: new Date('2026-07-31T15:00:00.000Z'),
-                serverId,
-                title: 'Due without access',
-            },
-            { now: () => new Date('2026-07-31T14:00:00.000Z') }
-        );
-        await harness.sql`
-            delete from channel_agent_participants
-            where server_id = ${serverId} and agent_id = ${removedAgentId}
-        `;
-
-        await tickReminders(connection.db, {
-            now: () => new Date('2026-07-31T15:00:00.000Z'),
-        });
-
-        expect(
-            await harness.sql`
-                select status from reminders
-                where server_id = ${serverId} and id = ${scheduled.reminder.id}
-            `
-        ).toEqual([{ status: 'canceled' }]);
-        expect(
-            await harness.sql`
-                select id from reminder_fires
-                where server_id = ${serverId} and reminder_id = ${scheduled.reminder.id}
-            `
-        ).toEqual([]);
-    });
-
     test('keeps reminder state, mutations, and delivery isolated to its owning Agent', async () => {
         const otherAgentId = 'agt_other_reminder';
         await addAgent(otherAgentId);
@@ -853,9 +810,5 @@ async function addAgent(id: string) {
     await harness.sql`
         insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
         values (${id}, ${serverId}, ${handle}, ${id}, 'America/New_York', ${await testSqlAgentHome(harness.sql, serverId)})
-    `;
-    await harness.sql`
-        insert into channel_agent_participants (server_id, chat_id, agent_id)
-        values (${serverId}, ${chatId}, ${id})
     `;
 }
