@@ -5,28 +5,22 @@ const command = (script: string, toolName = 'bash') =>
     admitsResult({ input: { command: script }, toolName });
 
 describe('which tool results may ride a thought', () => {
-    test('only web searches and plain test runs offer a result', () => {
+    test('only web search tool calls offer a result', () => {
         expect(admitsResult({ input: { query: 'bun 1.4' }, toolName: 'web_search' })).toBe(true);
         expect(admitsResult({ input: { query: 'bun 1.4' }, toolName: 'webSearch' })).toBe(true);
+    });
+
+    test('the reported holes and every other shape offer no result', () => {
         for (const script of [
             'bun test',
             'npm test',
             'npm run test',
             'pnpm test',
-            'pnpm run test',
             'yarn test',
             'cargo test --quiet',
             'go test -v',
             'pytest -q -x',
             'vitest run --bail',
-        ]) {
-            expect({ admitted: command(script), script }).toEqual({ admitted: true, script });
-        }
-        expect(command('pytest -q', 'shell')).toBe(true);
-    });
-
-    test('the reported holes and every other shape offer no result', () => {
-        for (const script of [
             'git status\ncat LICENSE',
             'bun test\ncat LICENSE',
             'bun test\rcat LICENSE',

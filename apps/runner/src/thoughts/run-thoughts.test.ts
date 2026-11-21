@@ -116,7 +116,6 @@ describe('run thoughts', () => {
                 agentId: 'agt_1',
                 at: '2026-11-20T12:00:04.000Z',
                 kind: 'action',
-                result: '128 pass, 0 fail across 14 files.',
                 runId: 'run_1',
                 type: 'agent-thought',
             },
@@ -215,8 +214,8 @@ describe('run thoughts', () => {
         );
         run.feed(call('k1', 'bash', { command: `curl https://api.example.com/v1/${knownSecret}` }));
         run.feed(
-            call('k2', 'bash', { command: 'bun test' }),
-            result('k2', 'bash', `12 pass, deploy key is k3y-material, runner ${knownSecret}`)
+            call('k2', 'web_search', { query: 'staging deploy notes' }),
+            result('k2', 'web_search', `Notes: deploy key is k3y-material, runner ${knownSecret}`)
         );
         const sent = JSON.stringify(run.frames);
         for (const secret of ['hunter2', 's3cr3t-staging', knownSecret, 'k3y-material']) {

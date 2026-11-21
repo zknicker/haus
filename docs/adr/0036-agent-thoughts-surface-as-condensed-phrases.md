@@ -44,14 +44,11 @@ phrases exactly as a Computer's. Read "Computer" below as the runner. Two rules 
 port, because the Computer's versions leaked: every title, excerpt, action, and result passes the
 execution-journal redactor and `maskCredentialDisclosures` (`@haus/api`, which masks "the
 password is hunter2" style prose) before it leaves, and the Server masks again and drops a
-fallback line that had a credential masked; and a result rides only when the original operation
-is one of two kinds (`result-allowlist.ts`): a web search tool call (`web_search`, `webSearch`,
-hosted search), or a single shell command that is exactly a known test runner (`bun test`,
-`npm test`, `npm run test`, `pnpm test`, `pnpm run test`, `yarn test`, `cargo test`, `go test`,
-`pytest`, `vitest run`) with no arguments beyond `-q`, `--quiet`, `-v`, `--verbose`, `--bail`, or
-`-x`, and no line break, `;`, `&`, `|`, `$`, backtick, `<`, `>`, parenthesis, glob, or quote in
-its text. Page fetches, `curl`, `git`, `gh`, pipes, and everything else send no result; their
-start still shows as an action, so a forecast fetch no longer states its finding.
+fallback line that had a credential masked; and a result rides only for a web search tool call
+(`web_search`, `webSearch`, hosted search; `result-allowlist.ts`). Test runners were cut too,
+since `npm test` and its kin run whatever the repo's script says. Shell commands, page fetches,
+and every other tool send no result; their start still shows as an action, so a forecast fetch
+or a test run no longer states its finding.
 
 ## Context
 
