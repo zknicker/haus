@@ -97,6 +97,22 @@ test('one Project and no Captain, or one Captain and no Project, keeps the empty
     ]);
 });
 
+test('#all is the team room in its own row above Projects, not a Project', () => {
+    const sections = buildCapySidebar(
+        sources({
+            chats: [
+                chat({ id: 'all', isAll: true, kind: 'channel', name: 'all' }),
+                chat({ id: 'eng', kind: 'channel', name: 'eng' }),
+            ],
+        })
+    );
+    expect(sections).toEqual([
+        { agentDmChatIds: {}, agentIds: ['forge', 'orbit'], kind: 'captains' },
+        { chatId: 'all', kind: 'team-room' },
+        { chatIds: ['eng'], kind: 'projects' },
+    ]);
+});
+
 test('People and open Tasks are hidden when there are none', () => {
     const sections = buildCapySidebar(
         sources({

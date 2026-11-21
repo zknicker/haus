@@ -111,6 +111,24 @@ test('direct shipping paths require their owning targets', async () => {
     }
 });
 
+test('the runner image and its Compose file ship with the Server deploy', async () => {
+    const impact = await calculateReleaseImpact({
+        ledger,
+        resolveTag: async (tag) =>
+            ({
+                'computer-v1.4.8': sha('c'),
+                'v1.8.24': sha('a'),
+                'v1.8.25': sha('b'),
+            })[tag] ?? null,
+        listChangedFiles: async () => ['apps/runner/src/config.ts', 'apps/server/compose.yml'],
+    });
+
+    assert.equal(impact.targets.server.status, 'changed');
+    for (const target of ['app', 'ios', 'computer', 'agent']) {
+        assert.equal(impact.targets[target].status, 'unchanged');
+    }
+});
+
 test('shared Icon Composer source requires both installed App targets', async () => {
     const impact = await calculateReleaseImpact({
         ledger,
