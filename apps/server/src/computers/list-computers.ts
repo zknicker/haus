@@ -1,7 +1,7 @@
 import type { ComputerUseSettings, ComputerWorkerSettings } from '@haus/api';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { computersTable } from '../postgres/schema.ts';
+import { computersTable, computerUseAgentsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { presentComputer } from './computer-presence.ts';
@@ -20,7 +20,9 @@ export async function listServerComputers(
         .select({
             attachedByUserId: computersTable.attachedByUserId,
             architecture: computersTable.architecture,
+            computerUseChangedAt: computersTable.computerUseChangedAt,
             computerUseEnabled: computersTable.computerUseEnabled,
+            computerUseScope: computersTable.computerUseScope,
             createdAt: computersTable.createdAt,
             health: computersTable.health,
             id: computersTable.id,
@@ -49,8 +51,20 @@ export async function listServerComputers(
             )
         )
         .orderBy(desc(computersTable.createdAt));
+    const named = await readNamedAgents(
+        db,
+        computers.filter((computer) => computer.computerUseScope === 'named').map(({ id }) => id)
+    );
     return computers.map(
-        ({ attachedByUserId, computerUseEnabled, workerLimit, workersEnabled, ...computer }) => {
+        ({
+            attachedByUserId,
+            computerUseChangedAt,
+            computerUseEnabled,
+            computerUseScope,
+            workerLimit,
+            workersEnabled,
+            ...computer
+        }) => {
             const steward = isComputerSteward(server.role, attachedByUserId, member?.id);
             const workers: ComputerWorkerSettings = {
                 canChangeWorkers: steward,
@@ -59,6 +73,11 @@ export async function listServerComputers(
             };
             const computerUse: ComputerUseSettings = {
                 canChangeComputerUse: steward,
+                computerUseAgents:
+                    computerUseScope === 'named'
+                        ? { agentIds: named.get(computer.id) ?? [], kind: 'named' }
+                        : { kind: 'all' },
+                computerUseChangedAt,
                 computerUseEnabled,
             };
             return {
@@ -71,4 +90,26 @@ export async function listServerComputers(
             };
         }
     );
+}
+
+async function readNamedAgents(db: HausDatabase, computerIds: string[]) {
+    const rows =
+        computerIds.length > 0
+            ? await db
+                  .select({
+                      agentId: computerUseAgentsTable.agentId,
+                      computerId: computerUseAgentsTable.computerId,
+                  })
+                  .from(computerUseAgentsTable)
+                  .where(inArray(computerUseAgentsTable.computerId, computerIds))
+                  .orderBy(
+                      asc(computerUseAgentsTable.createdAt),
+                      asc(computerUseAgentsTable.agentId)
+                  )
+            : [];
+    const named = new Map<string, string[]>();
+    for (const row of rows) {
+        named.set(row.computerId, [...(named.get(row.computerId) ?? []), row.agentId]);
+    }
+    return named;
 }

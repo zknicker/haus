@@ -96,6 +96,7 @@ export async function createHausServerApplication(
         const runnerLink = new RunnerLink();
         const modelConnections = new ModelConnectionRelay(connectedHaus.db, runnerLink, options);
         const invocations = await openInvocationRouter({
+            appOrigin: options.appOrigin,
             clock: options.invocationClock,
             computers: computerConnections,
             db: connectedHaus.db,
@@ -158,6 +159,7 @@ export async function createHausServerApplication(
                 options.computerReleaseManifestUrl ?? productionComputerManifestUrl,
             githubApp: options.githubApp ?? null,
             hausDb: connectedHaus.db,
+            invocations,
             mcpIconResolver,
             mcpOAuthRelay,
             mcpRuntime: startedMcpRuntime,

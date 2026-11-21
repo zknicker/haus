@@ -71,10 +71,6 @@ export const desktopActivitySchema = z
     .strict();
 export type DesktopActivity = z.infer<typeof desktopActivitySchema>;
 
-/** `computer.onDesktopActivity` payload: the Device whose desktop activity changed. */
-export const desktopActivityEventSchema = z.object({ computerId: idSchema }).strict();
-export type DesktopActivityEvent = z.infer<typeof desktopActivityEventSchema>;
-
 /**
  * `computer.stewards`: who may change a Device's settings, readable by every
  * member so a refusal's link works for someone who cannot open the Device.
@@ -214,6 +210,26 @@ export const computerUseReadinessSchema = z.object({
     version: z.string().trim().min(1).max(64).nullable(),
 });
 export type ComputerUseReadiness = z.infer<typeof computerUseReadinessSchema>;
+
+/**
+ * The System Settings → Privacy & Security pane names for a macOS version.
+ * Accessibility became Device Control and Data Access in 27.0 and System & App
+ * Protection Override in 27.3; Screen Recording became Screen & System Audio
+ * Recording in 15. An unknown version gets the oldest names.
+ */
+export function computerUsePanes(macosVersion: string | undefined) {
+    const [major = 0, minor = 0] = (macosVersion ?? '').split('.').map(Number);
+    const at = (wantMajor: number, wantMinor: number) =>
+        major > wantMajor || (major === wantMajor && minor >= wantMinor);
+    return {
+        accessibility: at(27, 3)
+            ? 'System & App Protection Override'
+            : at(27, 0)
+              ? 'Device Control and Data Access'
+              : 'Accessibility',
+        screenRecording: at(15, 0) ? 'Screen & System Audio Recording' : 'Screen Recording',
+    };
+}
 
 function classOf(value: DesktopCommandClass) {
     return value;

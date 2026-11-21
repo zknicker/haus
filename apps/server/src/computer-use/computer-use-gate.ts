@@ -1,64 +1,105 @@
-import type { DispatchKey, InvocationOperation, InvocationResultFrame } from '@haus/api';
-import { and, eq } from 'drizzle-orm';
-import { recordGateRefusal } from '../agent-invocations/invocation-store.ts';
+import type {
+    DispatchKey,
+    InvocationOperation,
+    InvocationResultFrame,
+    InvokeResult,
+    ScreenRefusal,
+} from '@haus/api';
+import { resultAnswer } from '../agent-invocations/invocation-answers.ts';
+import type { InvocationRecord } from '../agent-invocations/invocation-store.ts';
+import {
+    recordDesktopRefusal,
+    recordScreenRefusal,
+} from '../agent-invocations/invocation-store.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { computersTable } from '../postgres/schema.ts';
+import {
+    type DesktopGateInput,
+    desktopGateCause,
+    desktopRefusalFacts,
+    readDesktopDevice,
+    readDesktopDeviceName,
+} from './desktop-device.ts';
+import { desktopRefusalText } from './desktop-refusal-text.ts';
+
+type AnswerKey = DispatchKey & { agentId: string };
 
 export async function gateDesktopInvocation(
     db: HausDatabase,
-    input: {
-        computerId: string;
-        invocationId: string;
-        key: DispatchKey & { agentId: string };
-        operation: InvocationOperation;
-        serverId: string;
-    }
+    input: Omit<DesktopGateInput, 'runId'> & { key: AnswerKey; operation: InvocationOperation }
 ) {
     if (input.operation.kind !== 'desktop') {
         return null;
     }
-    const device = await readComputerUseDevice(db, input);
-    if (device?.enabled) {
+    const gate = { ...input, runId: input.key.runId };
+    const device = await readDesktopDevice(db, gate);
+    const cause = device ? desktopGateCause(device, input.online) : null;
+    if (!(device && cause)) {
         return null;
     }
-    const refused = await recordGateRefusal(db, input.invocationId);
-    return refused
-        ? refusal(input.key, input.invocationId, computerUseOffText(device?.name ?? 'this Device'))
+    const facts = await desktopRefusalFacts(db, gate, device, cause);
+    const outcome = await recordDesktopRefusal(db, input.invocationId, cause);
+    return outcome
+        ? refusalFrame(input.key, input.invocationId, outcome, desktopRefusalText(facts))
         : null;
 }
 
-export function computerUseOffText(device: string) {
-    return `Computer use is off on ${device}. A person can turn on Computer use allowed in Settings → Devices → ${device}.`;
+export async function desktopResultAnswer(
+    db: HausDatabase,
+    input: { appOrigin: string; record: InvocationRecord; result: InvokeResult; stopped: boolean }
+) {
+    const answered = resultAnswer(input.record, input.result);
+    if (input.record.operationKind !== 'desktop') {
+        return answered;
+    }
+    const { refusal } = input.result;
+    const text = refusal
+        ? await screenRefusalText(db, { ...input, refusal })
+        : input.stopped && input.result.outcome === 'cancelled'
+          ? desktopStoppedText(await readDesktopDeviceName(db, input.record))
+          : null;
+    return text ? { ...answered, output: { kind: 'text' as const, text } } : answered;
 }
 
-async function readComputerUseDevice(
+async function screenRefusalText(
     db: HausDatabase,
-    input: { computerId: string; serverId: string }
+    input: { appOrigin: string; record: InvocationRecord; refusal: ScreenRefusal }
 ) {
-    const [computer] = await db
-        .select({
-            enabled: computersTable.computerUseEnabled,
-            inventory: computersTable.reportedInventory,
-        })
-        .from(computersTable)
-        .where(
-            and(
-                eq(computersTable.serverId, input.serverId),
-                eq(computersTable.id, input.computerId)
-            )
-        )
-        .limit(1);
-    if (!computer) {
+    const { record } = input;
+    if (!record.computerId) {
         return null;
     }
-    return { enabled: computer.enabled, name: computer.inventory?.name ?? null };
+    const gate = {
+        agentId: record.agentId,
+        appOrigin: input.appOrigin,
+        computerId: record.computerId,
+        invocationId: record.id,
+        online: true,
+        runId: record.runId,
+        serverId: record.serverId,
+    };
+    const device = await readDesktopDevice(db, gate);
+    if (!device) {
+        return null;
+    }
+    const facts = await desktopRefusalFacts(db, gate, device, input.refusal);
+    await recordScreenRefusal(db, record.id, input.refusal);
+    return desktopRefusalText(facts);
 }
 
-function refusal(key: DispatchKey & { agentId: string }, invocationId: string, text: string) {
+function desktopStoppedText(device: string) {
+    return `A person stopped agent input on ${device} from Haus, so this command was cancelled. Stop using \`desktop\` there and tell the person what you were doing.`;
+}
+
+function refusalFrame(
+    key: AnswerKey,
+    invocationId: string,
+    outcome: 'failed' | 'offline',
+    text: string
+) {
     const answer: InvocationResultFrame = {
         agentId: key.agentId,
         invocationId,
-        outcome: 'failed',
+        outcome,
         output: { kind: 'text', text },
         runId: key.runId,
         seq: key.seq,

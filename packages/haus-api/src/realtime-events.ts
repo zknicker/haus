@@ -61,6 +61,12 @@ export const computerUpdatedEventSchema = z
     })
     .strict();
 
+/** `computer.onDesktopActivity`: a Device's open `desktop` commands changed (specs/computer-use.md). */
+export const desktopActivityEventSchema = z
+    .object({ computerId: idSchema, serverId: idSchema })
+    .strict();
+export type DesktopActivityEvent = z.infer<typeof desktopActivityEventSchema>;
+
 export type ComputerUpdatedEvent = z.infer<typeof computerUpdatedEventSchema>;
 
 /** `mcp.onUpdated`: the Server's MCP connections or their authorization changed. */

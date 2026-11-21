@@ -1,4 +1,5 @@
 import type {
+    DesktopRefusal,
     InvocationOperationKind,
     InvocationOutcome,
     MachineInvocationOutcome,
@@ -34,6 +35,7 @@ export const agentInvocationsTable = pgTable(
         lateResultAt: timestamp('late_result_at', { withTimezone: true }),
         operationKind: text('operation_kind').notNull().$type<InvocationOperationKind>(),
         outcome: text('outcome').$type<InvocationOutcome>(),
+        refusal: text('refusal').$type<DesktopRefusal>(),
         requestedAt: timestamp('requested_at', { withTimezone: true }).notNull(),
         runId: text('run_id').notNull(),
         seq: integer('seq').notNull(),
@@ -53,6 +55,9 @@ export const agentInvocationsTable = pgTable(
             table.seq
         ),
         index('agent_invocations_requested_idx').on(table.requestedAt),
+        index('agent_invocations_refusal_idx')
+            .on(table.agentId, table.computerId, table.requestedAt)
+            .where(sql`${table.refusal} is not null`),
         foreignKey({
             columns: [table.serverId, table.agentId],
             foreignColumns: [agentsTable.serverId, agentsTable.id],
@@ -74,6 +79,10 @@ export const agentInvocationsTable = pgTable(
         check(
             'agent_invocations_late_shape',
             sql`(${table.lateOutcome} is null) = (${table.lateResultAt} is null) and (${table.lateOutcome} is null or ${table.state} = 'unknown')`
+        ),
+        check(
+            'agent_invocations_refusal',
+            sql`${table.refusal} is null or (${table.refusal} in ('off', 'not-listed', 'not-mac', 'offline', 'not-ready', 'locked', 'no-session', 'switched-out') and ${table.state} = 'finished')`
         ),
         check(
             'agent_invocations_sent_shape',
