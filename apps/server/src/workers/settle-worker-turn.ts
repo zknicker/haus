@@ -2,6 +2,7 @@ import {
     type WorkerFailure,
     type WorkerObservation,
     type WorkerOutcome,
+    type WorkerQuestions,
     parseGithubPullRequestUrl,
     workerOutcomeOf,
 } from '@haus/api';
@@ -18,9 +19,10 @@ import {
 } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { readTask } from '../tasks/task-read.ts';
+import { questionDraft } from './record-computer-turn-question.ts';
 import { isLiveChat } from './worker-attention.ts';
 import { revokeTurnCredentials } from './worker-credentials.ts';
-import { resolveWorkerPerson } from './worker-person.ts';
+import { resolveAskingPerson, resolveWorkerPerson } from './worker-person.ts';
 import { postWorkerReportMessage, workerReportContent } from './worker-report-message.ts';
 
 type WorkerRow = typeof workersTable.$inferSelect;
@@ -30,7 +32,7 @@ export async function settleWorkerTurn(
     tx: HausDatabase,
     agentDelivery: AgentDelivery,
     input: {
-        observation: Pick<WorkerObservation, 'errorCode' | 'result' | 'turnId'>;
+        observation: Pick<WorkerObservation, 'errorCode' | 'questions' | 'result' | 'turnId'>;
         status: SettledStatus;
         worker: WorkerRow;
     }
@@ -108,6 +110,9 @@ export async function queueWorkerReport(
     if (outcome.kind === 'stopped' && !worker.closingAt) {
         return null;
     }
+    if (outcome.kind === 'report' && outcome.report.questions && outcome.report.personId) {
+        return null;
+    }
     if (
         !(taskChatId && (await isLiveChat(tx, { chatId: taskChatId, serverId: worker.serverId })))
     ) {
@@ -150,13 +155,16 @@ export async function closeWhenSettled(tx: HausDatabase, worker: WorkerRow) {
 async function recordedOutcome(
     tx: HausDatabase,
     input: {
-        observation: Pick<WorkerObservation, 'errorCode' | 'result'>;
+        observation: Pick<WorkerObservation, 'errorCode' | 'questions' | 'result' | 'turnId'>;
         status: SettledStatus;
         taskChatId: string | null;
         worker: WorkerRow;
     }
 ) {
     const { observation, taskChatId } = input;
+    if (input.status === 'pending_input' && observation.questions) {
+        return await questionOutcome(tx, { ...input, questions: observation.questions });
+    }
     const resolved = taskChatId
         ? await resolveWorkerPerson(tx, {
               handle: observation.result?.personHandle ?? null,
@@ -222,4 +230,44 @@ export async function attachReportedPullRequests(
         .insert(taskPullRequestsTable)
         .values(keys.map((key) => ({ ...key, serverId: input.serverId, taskId: input.taskId })))
         .onConflictDoNothing();
+}
+
+async function questionOutcome(
+    tx: HausDatabase,
+    input: {
+        observation: Pick<WorkerObservation, 'turnId'>;
+        questions: WorkerQuestions;
+        taskChatId: string | null;
+        worker: WorkerRow;
+    }
+) {
+    const { worker } = input;
+    const [turn] = await tx
+        .select({ input: workerTurnsTable.input, reportDraft: workerTurnsTable.reportDraft })
+        .from(workerTurnsTable)
+        .where(
+            and(
+                eq(workerTurnsTable.serverId, worker.serverId),
+                eq(workerTurnsTable.id, input.observation.turnId)
+            )
+        )
+        .limit(1);
+    const draft = await questionDraft(tx, {
+        questions: input.questions,
+        turn: turn ?? { input: null, reportDraft: null },
+        worker,
+    });
+    const messageId = input.taskChatId ? createOpaqueId('msg') : null;
+    const recorded: WorkerOutcome = {
+        kind: 'report',
+        report: { ...draft, messageId, personRefused: null, source: 'provider' },
+    };
+    const person = draft.personId
+        ? await resolveAskingPerson(tx, {
+              input: turn?.input ?? null,
+              serverId: worker.serverId,
+              taskChatId: input.taskChatId,
+          })
+        : null;
+    return { messageId, person, recorded };
 }

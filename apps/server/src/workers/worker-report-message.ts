@@ -12,7 +12,10 @@ import type { WorkerPerson } from './worker-person.ts';
 
 export function workerReportContent(report: WorkerReport, person: WorkerPerson | null) {
     const mention = person ? `[@${person.handle}](user://${person.id})` : null;
-    const ask = report.outcome === 'needs-you' && report.ask !== report.text ? report.ask : null;
+    const ask =
+        report.outcome === 'needs-you' && !report.questions && report.ask !== report.text
+            ? report.ask
+            : null;
     const askLine = [ask, mention].filter(Boolean).join(' ');
     const pullRequests = report.pullRequestUrls.filter((url) => !report.text.includes(url));
     return [report.text, askLine, pullRequests.join('\n')].filter(Boolean).join('\n\n');

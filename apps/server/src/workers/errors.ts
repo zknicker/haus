@@ -42,6 +42,13 @@ export class WorkerHistoryReadOnlyError extends Error {
     }
 }
 
+export class WorkerQuestionClosedError extends Error {
+    constructor(message: string) {
+        super(`${message} Send your answer as an ordinary follow-up if it still matters.`);
+        this.name = 'WorkerQuestionClosedError';
+    }
+}
+
 export class WorkerClosedError extends Error {
     constructor() {
         super('That Worker closed with its Task and takes no more turns. Start a new Worker.');

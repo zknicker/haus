@@ -5,6 +5,7 @@ import { taskKeySchema } from './task-key.ts';
 import { workerTurnAttemptSchema } from './worker-computer-frames.ts';
 import { workerObservedResultSchema, workerTurnInputTextMaxLength } from './worker-outcome.ts';
 import { workerPlaceInputSchema, workerPlaceSchema } from './worker-place.ts';
+import { workerQuestionsSchema } from './worker-questions.ts';
 import { workerModelSchema, workerRuntimeSchema } from './worker-runtime.ts';
 import {
     workerActivitySchema,
@@ -167,6 +168,8 @@ export const workerObservationSchema = z.object({
     rawStatus: z.string().trim().min(1).max(120).optional(),
     /** The full result `summary` was cut from (TECH-8); absent before any turn observes one. */
     report: workerProviderResultSchema.optional(),
+    /** The structured questions a `pending_input` turn is waiting on, when the provider asked some. */
+    questions: workerQuestionsSchema.optional(),
     /** The settled turn's final answer, read from the provider result; null when it had none. */
     result: workerObservedResultSchema.nullable().optional(),
     turnId: idSchema,

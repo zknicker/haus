@@ -145,7 +145,7 @@ export async function answerHeldWorkers(
     } satisfies WorkerEffects;
 }
 
-async function readCarriedTurn(
+export async function readCarriedTurn(
     db: Pick<HausDatabase, 'select'>,
     scope: FrameScope,
     turnId: string
