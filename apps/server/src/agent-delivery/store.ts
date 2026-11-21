@@ -9,7 +9,6 @@ import {
     chatMessagesTable,
     messageClaimsTable,
 } from '../postgres/schema.ts';
-import { recordRunEffectiveState } from '../server-agents/record-agent-effective-state.ts';
 import type { EnqueueInput } from './enqueue-input.ts';
 import {
     bodilessInboxSources,
@@ -517,7 +516,7 @@ export async function beginActiveRun(
         runId: string;
         runtimeId: string;
     }
-) {
+): Promise<void> {
     await db
         .update(agentDeliveryTable)
         .set({
@@ -532,8 +531,6 @@ export async function beginActiveRun(
             updatedAt: new Date(),
         })
         .where(eq(agentDeliveryTable.agentId, input.agentId));
-    const effectiveChanged = await recordRunEffectiveState(db, input);
-    return effectiveChanged ? { agentUpdated: { agentId: input.agentId } } : {};
 }
 
 /** Records the Computer's local-acceptance ack. Idempotent and match-guarded. */
