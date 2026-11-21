@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v27.1.0 - 2026-11-21
+
+- Each Worker on a Computer gets its own clone of the repository instead of a `git worktree`. A Worker can commit, push, fetch, rebase and delete its own branches, but still can't move the base `main` or change the base clone's config. When a Worker closes, its `haus/<worker>/*` branches are fetched back into the base clone before its checkout is deleted.
+- A new Worker's Drive folder starts from a verified copy of the freshest sibling Worker's folder, so it downloads far less on its first sync.
+- Workers in Cursor and Claude cloud places now show their tool steps on the Worker card, as Computer Workers already do.
+- Server and Haus Computer release together, with no database migration. Computer protocol is unchanged, so either can update first. Update Haus Computer to 23.1.0 for the Worker changes. Haus Agent, Haus for Desktop and Haus for iPhone are unchanged.
+
 ## v27.0.0 - 2026-11-21
 
 - A new Captain no longer shows "Applying" forever. The Server records the Captain's settings as applied when its first run starts, so the badge clears without waiting for a report from a Computer.
