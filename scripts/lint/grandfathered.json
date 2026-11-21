@@ -6,7 +6,6 @@
             "apps/computer/src/attachment-update.test.ts": 1,
             "apps/computer/src/workers/provider-sign-in.test.ts": 3,
             "apps/computer/src/index.test.ts": 2,
-            "apps/computer/src/runtime/claude-code/claude-background-replay.test.ts": 4,
             "apps/computer/src/runtime/codex/codex-transport.test.ts": 1,
             "apps/computer/src/runtime/event-queue.test.ts": 1,
             "apps/computer/src/runtime/json-rpc-connection.test.ts": 2,

@@ -5,19 +5,17 @@ import type { RuntimeProcessRegistry } from '../process-registry.ts';
 import { ClaudeConnection } from './claude-connection.ts';
 import { claudeInitializeFailure } from './claude-errors.ts';
 import { ClaudeEventNormalizer } from './claude-event-normalizer.ts';
-import { type ClaudeInstallTarget, claudeInstallTarget, ensureClaudeInstall } from './claude-install.ts';
+import {
+    type ClaudeInstallTarget,
+    claudeInstallTarget,
+    ensureClaudeInstall,
+} from './claude-install.ts';
 import { spawnClaudeProcess } from './claude-process.ts';
 import { claudeResumeSessionId } from './claude-resume.ts';
 import { createClaudeSession } from './claude-session.ts';
 import { createWorkspaceStripper } from './claude-tool-names.ts';
 
-/**
- * Claude Code builtins a Worker runs without, as native names. The first six match Raft's
- * `CLAUDE_DISALLOWED_TOOLS`: plan mode and the runtime's own wakeups and cron jobs.
- * `AskUserQuestion` waits on a host answer Haus never sends. `Monitor` streams a process's
- * output into the conversation as it runs, a wake source Haus does not surface.
- */
-export const CLAUDE_DISALLOWED_TOOLS = [
+const CLAUDE_DISALLOWED_TOOLS = [
     'EnterPlanMode',
     'ExitPlanMode',
     'ScheduleWakeup',
@@ -30,8 +28,7 @@ export const CLAUDE_DISALLOWED_TOOLS = [
     'PushNotification',
 ] as const;
 
-/** Claude Code's native build drops Glob and Grep for the session and sub-agents unless named. */
-export const CLAUDE_ALLOWED_TOOLS = ['Glob', 'Grep'] as const;
+const CLAUDE_ALLOWED_TOOLS = ['Glob', 'Grep'] as const;
 
 export interface ClaudeWorkerDriverOptions {
     baseEnv?: NodeJS.ProcessEnv;

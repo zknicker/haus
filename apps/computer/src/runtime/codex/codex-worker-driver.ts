@@ -30,7 +30,6 @@ export function createCodexWorkerDriver(options: CodexWorkerDriverOptions) {
     } satisfies RuntimeDriver;
 }
 
-/** The Codex thread a stored state resumes, or `undefined` for a fresh thread. */
 export function resumeThreadId(state: RuntimeResumeState | undefined) {
     return state ? resumeStateFor('codex', state).threadId : undefined;
 }

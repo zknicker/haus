@@ -41,10 +41,7 @@ export class CodexSession implements RuntimeSession {
         this.isResume = server.resumed;
         this.router = new CodexTurnRouter(
             server.threadId,
-            new CodexTurnNormalizer(
-                { hostToolServer: null, workspaceDir },
-                new CodexUsageLedger()
-            )
+            new CodexTurnNormalizer({ hostToolServer: null, workspaceDir }, new CodexUsageLedger())
         );
         server.route(
             (message) => {
@@ -136,7 +133,11 @@ export class CodexSession implements RuntimeSession {
     async stop() {
         await this.active?.idle;
         await this.release();
-        return { runtime: 'codex', threadId: this.sessionId, version: 1 } satisfies CodexResumeState;
+        return {
+            runtime: 'codex',
+            threadId: this.sessionId,
+            version: 1,
+        } satisfies CodexResumeState;
     }
 
     async destroy() {

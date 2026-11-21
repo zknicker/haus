@@ -1,4 +1,8 @@
-import { type ClaudeResumeState, type RuntimeResumeState, resumeStateFor } from '../resume-state.ts';
+import {
+    type ClaudeResumeState,
+    type RuntimeResumeState,
+    resumeStateFor,
+} from '../resume-state.ts';
 
 /** The Claude conversation a stored state resumes, or `undefined` for a fresh session. */
 export function claudeResumeSessionId(state: RuntimeResumeState | undefined) {

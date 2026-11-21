@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import type { CodexWorkerDriverOptions } from './codex-worker-driver.ts';
+import { type CodexWorkerDriverOptions, createCodexWorkerDriver } from './codex-worker-driver.ts';
 import { FakeAppServer } from './testing/fake-app-server.ts';
-import { testCodexDriver } from './testing/replay-driver.ts';
 import { flush } from './testing/session-harness.ts';
 
 /** Drivers whose app-servers are fakes, each tied to a process registry. */
@@ -9,21 +8,25 @@ function machine() {
     const spawned: FakeAppServer[] = [];
     const registered: Array<() => Promise<void>> = [];
     const driver = (overrides: Partial<CodexWorkerDriverOptions> = {}) =>
-        testCodexDriver(
-            () => {
+        createCodexWorkerDriver({
+            cwd: '/data/workers/wrk_1/checkout',
+            env: {},
+            homeDir: '/Users/person',
+            modelId: null,
+            processes: {
+                add: (close) => registered.push(close),
+                assertOpen: () => undefined,
+                remove: (close) => registered.splice(registered.indexOf(close), 1),
+            },
+            resolveExecutable: () => Promise.resolve({ env: {}, path: '/usr/bin/false' }),
+            spawn: () => {
                 const fake = new FakeAppServer({}, 'thread-1');
                 spawned.push(fake);
                 return fake;
             },
-            {
-                processes: {
-                    add: (close) => registered.push(close),
-                    assertOpen: () => undefined,
-                    remove: (close) => registered.splice(registered.indexOf(close), 1),
-                },
-                ...overrides,
-            }
-        );
+            writableRoots: [],
+            ...overrides,
+        });
     return { driver, registered, spawned };
 }
 
