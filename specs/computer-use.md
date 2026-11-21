@@ -110,8 +110,9 @@ and drive apps and Screen Recording for screenshots. macOS charges both to the r
 process, and Haus Computer ships as `Haus Computer.app` (`chat.haus.computer`) so that process is
 a named app with the Haus icon: the LaunchAgent runs the bundle executable, every attachment
 daemon it spawns and every agent-desktop, `screencapture`, and `bash` child below them inherit it,
-and System Settings lists "Haus Computer". agent-desktop's `permissions --guide` resolves the same
-app. Development builds are `chat.haus.computer.dev` ("Haus Computer Dev"), so an ad-hoc build
+and System Settings lists "Haus Computer". Haus never runs agent-desktop's `permissions --guide`:
+its drag-to-add panel has no drop target on macOS 27.3, where the Accessibility list is "System &
+App Protection Override" and adding goes through + → Override System Protections → Choose Apps. Development builds are `chat.haus.computer.dev` ("Haus Computer Dev"), so an ad-hoc build
 never replaces the release grant. CLI commands run from a terminal (`setup`, `start`, `restart`)
 never spawn attachment daemons themselves, because those would be charged to the terminal; they
 load or kickstart the LaunchAgent and the resident spawns the daemons. When LaunchServices opens
