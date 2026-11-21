@@ -21,7 +21,8 @@ tries on that Device is refused and the Captain is told how to turn it on.
 The Device's attacher, Owners, and Admins can flip it. Anyone else sees the switch disabled. The
 change shows at once and rolls back with a toast if the Server refuses it.
 
-agent-desktop ships inside Haus Computer, so nobody installs it. While the switch is on and the
+agent-desktop ships inside Haus Computer, so nobody installs it. Like Haus Computer itself, it runs
+on Apple Silicon Macs only: there is no Intel (x64) build. While the switch is on and the
 Device reports that it couldn't set agent-desktop up, or that Accessibility or Screen Recording
 isn't granted, a warning under Access names what to do: update Haus Computer, or allow Haus
 Computer in System Settings → Privacy & Security → Accessibility or Screen Recording. A

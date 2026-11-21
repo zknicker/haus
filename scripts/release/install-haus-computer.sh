@@ -7,6 +7,11 @@ if [ -n "$server_path" ] && [ "${server_path#/}" = "$server_path" ]; then
     exit 64
 fi
 
+if [ "$(uname -s)" != "Darwin" ] || [ "$(uname -m)" != "arm64" ]; then
+    echo "Haus Computer runs on Apple Silicon Macs only (this is $(uname -s) $(uname -m))." >&2
+    exit 69
+fi
+
 manifest_url="${HAUS_COMPUTER_RELEASE_MANIFEST_URL:-https://releases.haus.chat/computer/latest.json}"
 install_path="${HAUS_COMPUTER_INSTALL_PATH:-$HOME/.local/bin/haus-computer}"
 expected_team_id="__HAUS_APPLE_TEAM_ID__"
