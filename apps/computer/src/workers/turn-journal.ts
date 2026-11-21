@@ -32,7 +32,7 @@ export class WorkerTurnJournal {
         const destination = this.path(serverId, ref.turnId);
         return await serialized(destination, async () => {
             const existing = await this.read(serverId, ref);
-            if (existing && existing.phase !== 'pending') {
+            if (existing) {
                 return false;
             }
             await this.replace(destination, workerTurnRecordSchema.parse(record));
@@ -103,15 +103,6 @@ export class WorkerTurnJournal {
         await this.write(serverId, ref, { phase: 'cancelled', workerId: ref.workerId });
     }
 
-    async forgetHeldFollowUp(serverId: string, turnId: string) {
-        const destination = this.path(serverId, turnId);
-        await serialized(destination, async () => {
-            if ((await this.readRecord(serverId, turnId))?.phase === 'pending') {
-                await rm(destination);
-            }
-        });
-    }
-
     private async readRecord(serverId: string, turnId: string) {
         let contents: string;
         try {
@@ -123,6 +114,10 @@ export class WorkerTurnJournal {
             throw cause;
         }
         const value = JSON.parse(contents);
+        if (value.phase === 'pending') {
+            await rm(this.path(serverId, turnId), { force: true });
+            return null;
+        }
         return 'workId' in value
             ? preWorkerTurnRecordSchema.parse(value)
             : workerTurnRecordSchema.parse(value);

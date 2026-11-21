@@ -696,7 +696,9 @@ W2 migrates every caller and deletes the cloud agent path in one change.
   writes each into its turn, recovering the provider ids, and acknowledges each item. The
   Computer removes an entry only after its acknowledgement. The Server dispatches a migrated turn
   only once it holds that turn's input. An offline carrier drains when it reconnects. The drain
-  path stays through W3 and goes once every attached Computer reports an empty file.
+  path stayed through W3 and was deleted on 2026-11-21, once production held no turn still
+  waiting on a drained input. A Computer that still finds a pending entry in its launch journal
+  deletes it and treats the turn as unjournaled.
 - `cloud_agent_work` inbox rows become `worker_report`, `worker_stall`, or `pull_request` items by
   their notice.
 - Each Project's default place becomes the default provider of the Computer that launched the
@@ -766,7 +768,7 @@ W2 to W4 add these.
 | A pull request change wakes the Agent of each settled Worker that reported it, once per head commit | `apps/server/test/pull-request-wake.test.ts` |
 | A `WORKER.md` change while a turn is queued rides that turn, and advances only on acknowledgement | `apps/server/test/worker-turn-input.test.ts` |
 | Closing a Task stops and settles its Workers, delivers each outcome, then removes checkouts | `apps/server/test/worker-close.test.ts` |
-| A pending local follow-up becomes a Server turn and leaves the Computer only after acknowledgement | `apps/computer/src/workers/follow-up-drain.test.ts` |
+| A pending local follow-up left from the W2 migration is dropped, and the Server's start still runs | `apps/computer/src/workers/pre-worker-journal.test.ts` |
 | A crash after acceptance never reruns the turn | `apps/computer/src/workers/turn-journal.test.ts` |
 | A Computer that restarts ends each turn it left mid-launch without running it, and finishes a push it left | `apps/computer/src/workers/computer/computer-place-recovery.test.ts` |
 | The launch fence mints only for the current attempt, and the turn token reaches only report and the Drive reads | `apps/server/test/worker-credential.test.ts` |

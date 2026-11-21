@@ -53,23 +53,3 @@ export const workerTurnAcceptedFrameSchema = z
     })
     .strict();
 export type WorkerTurnAcceptedFrame = z.infer<typeof workerTurnAcceptedFrameSchema>;
-
-/** Computer to Server: one follow-up still held in the Computer's local file, sent on connect. */
-export const workerFollowUpDrainFrameSchema = z
-    .object({
-        instructions: z.string().min(1).max(composedInputMaxLength),
-        predecessorTurnIds: predecessorTurnIdsSchema,
-        providerAgentId: providerIdSchema.nullable(),
-        providerRunId: providerIdSchema.nullable(),
-        turnId: idSchema,
-        type: z.literal('worker-follow-up-drain'),
-        workerId: idSchema,
-    })
-    .strict();
-export type WorkerFollowUpDrainFrame = z.infer<typeof workerFollowUpDrainFrameSchema>;
-
-/** Server to Computer: the drained follow-up is the Server's now; the Computer may forget it. */
-export const workerFollowUpDrainAckFrameSchema = z
-    .object({ turnId: idSchema, type: z.literal('worker-follow-up-drain-ack') })
-    .strict();
-export type WorkerFollowUpDrainAckFrame = z.infer<typeof workerFollowUpDrainAckFrameSchema>;

@@ -5,7 +5,6 @@ import {
 } from './workers/capability-requests.ts';
 import {
     parseWorkerCloseCommand,
-    parseWorkerFollowUpDrainAck,
     parseWorkerReconcileCommand,
     parseWorkerStopCommand,
     parseWorkerTurnStart,
@@ -54,10 +53,6 @@ function workerOperation(
     const start = parseWorkerTurnStart(frame);
     if (start) {
         return () => workers?.accept(start);
-    }
-    const drained = parseWorkerFollowUpDrainAck(frame);
-    if (drained) {
-        return () => workers?.forgetDrainedFollowUp(drained.turnId);
     }
     const stop = parseWorkerStopCommand(frame);
     if (stop) {

@@ -127,10 +127,9 @@ A failed send is classified by the adapter.
 While a follow-up waits, the carrier reports the turn `queued` with an `activity` line naming why.
 
 A turn the Server recorded that the carrier never journaled never reached the provider. Reconcile
-names such a turn only when the Server will never start it again, as with a migrated turn whose
-follow-up never reached this carrier, so the carrier settles it at once: failed `launch-refused`
-(`errorCode: turn-not-journaled`), or `stopped` when stopped. A follow-up the carrier drained to
-the Server stays the Server's. A late acknowledgement cannot replace that settlement, and the carrier asks the
+names such a turn only when the Server will never start it again, so the carrier settles it at
+once: failed `launch-refused` (`errorCode: turn-not-journaled`), or `stopped` when stopped. A late
+acknowledgement cannot replace that settlement, and the carrier asks the
 provider to cancel the late run.
 
 ### Stalls

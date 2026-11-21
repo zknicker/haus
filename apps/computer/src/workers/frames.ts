@@ -1,12 +1,10 @@
 import type {
-    WorkerFollowUpDrainAckFrame,
     WorkerReconcileCommand,
     WorkerStopCommand,
     WorkerTurnStartFrame,
 } from '@haus/api';
 import {
     workerCloseCommandResponseSchema,
-    workerFollowUpDrainAckResponseSchema,
     workerReconcileCommandResponseSchema,
     workerStopCommandResponseSchema,
     workerTurnStartResponseSchema,
@@ -35,8 +33,3 @@ export function parseWorkerCloseCommand(frame: unknown) {
     return parsed.success ? parsed.data : null;
 }
 
-/** Validates the Server's acknowledgement of one drained follow-up. Fails closed to null. */
-export function parseWorkerFollowUpDrainAck(frame: unknown): WorkerFollowUpDrainAckFrame | null {
-    const parsed = workerFollowUpDrainAckResponseSchema.safeParse(frame);
-    return parsed.success ? parsed.data : null;
-}

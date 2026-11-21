@@ -40,7 +40,6 @@ export async function listComputerWorker(
                         inArray(workerTurnsTable.status, ['queued', 'running']),
                         or(
                             isNotNull(workerTurnsTable.acknowledgedAt),
-                            and(isNull(workerTurnsTable.input), isNull(workerTurnsTable.outcome)),
                             and(isNotNull(workerTurnsTable.dispatchedAt), stopPending)
                         )
                     ),

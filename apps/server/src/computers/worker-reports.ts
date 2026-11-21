@@ -1,6 +1,5 @@
 import {
     cloudAgentCapabilityResultSchema,
-    workerFollowUpDrainFrameSchema,
     workerObservationFrameSchema,
     workerTurnAcceptedFrameSchema,
 } from '@haus/api';
@@ -9,11 +8,7 @@ import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
 import { applyWorkerObservation } from '../workers/apply-worker-observation.ts';
-import {
-    acceptWorkerTurn,
-    drainWorkerFollowUp,
-    planCarrierReconnect,
-} from '../workers/carrier-frames.ts';
+import { acceptWorkerTurn, planCarrierReconnect } from '../workers/carrier-frames.ts';
 import { commitWorkerEffects } from '../workers/worker-effects.ts';
 import { applyComputerTurnFrame } from './computer-turn-frame-ingest.ts';
 import type { ComputerConnections } from './connections.ts';
@@ -98,19 +93,5 @@ async function applyCarrierFrame(input: CarrierFrameInput) {
             storage
         );
     }
-    const computerTurn = await applyComputerTurnFrame(input);
-    return computerTurn === undefined ? await applyDrainFrame(input) : computerTurn;
-}
-
-async function applyDrainFrame(input: CarrierFrameInput) {
-    const { computerId, db, serverId, storage } = input;
-    const drained = workerFollowUpDrainFrameSchema.safeParse(input.frame);
-    if (drained.success) {
-        return await drainWorkerFollowUp(
-            db,
-            { computerId, frame: drained.data, serverId },
-            storage
-        );
-    }
-    return undefined;
+    return await applyComputerTurnFrame(input);
 }

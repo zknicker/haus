@@ -11,10 +11,7 @@ import {
     cloudAgentCapabilityRequestSchema,
     workerReconcileCommandSchema,
 } from './worker-protocol.ts';
-import {
-    workerFollowUpDrainAckFrameSchema,
-    workerTurnStartFrameSchema,
-} from './worker-turn-frames.ts';
+import { workerTurnStartFrameSchema } from './worker-turn-frames.ts';
 
 export * from './agent-delivery-frames.ts';
 export * from './agent-execution-journal.ts';
@@ -131,7 +128,6 @@ export const agentCommandSchema = z.discriminatedUnion('type', [
     cloudAgentCapabilityRequestSchema,
     workerReconcileCommandSchema,
     workerTurnStartFrameSchema,
-    workerFollowUpDrainAckFrameSchema,
     workerCloseCommandSchema,
     serverDeleteCommandSchema,
     serverRuntimeSettingsCommandSchema,

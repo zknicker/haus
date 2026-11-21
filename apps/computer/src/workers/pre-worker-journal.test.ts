@@ -14,7 +14,7 @@ import {
 const supervisors = registerSupervisorFixture();
 const workerId = 'caw_preworker123456';
 
-test('a follow-up a pre-Workers Computer held drains to the Server', async () => {
+test('a follow-up an older Computer still holds is dropped, and the Server start runs', async () => {
     const f = await supervisors(createFakeCloudAgentProvider());
     const frame = turnStartFrame({
         providerAgentId: 'bc_held',
@@ -24,22 +24,15 @@ test('a follow-up a pre-Workers Computer held drains to the Server', async () =>
     await writePreWorkerRecord(
         f.dataRoot,
         frame.turnId,
-        '{"phase":"pending","workId":"caw_preworker123456","instructions":"Address the review comments.","model":null,"providerAgentId":"bc_held","interrupt":false,"predecessors":[{"provider":"cursor","workId":"caw_preworker123456","runId":"car_priorrun1234567","providerAgentId":"bc_held","providerRunId":"run_prior"}],"delivery":null}'
+        '{"phase":"pending","workId":"caw_preworker123456","instructions":"Address the review comments.","model":null,"providerAgentId":"bc_held","interrupt":false,"predecessors":[],"delivery":null}'
     );
+    expect(await f.journal.read(serverId, turnRef(frame))).toBeNull();
+
     const daemon = f.start();
-    await daemon.work.reconcile([reconcileEntry(frame)]);
-    expect(daemon.frames.filter((sent) => sent.type === 'worker-follow-up-drain')).toEqual([
-        {
-            instructions: 'Address the review comments.',
-            predecessorTurnIds: ['car_priorrun1234567'],
-            providerAgentId: 'bc_held',
-            providerRunId: null,
-            turnId: 'car_heldbefore12345',
-            type: 'worker-follow-up-drain',
-            workerId,
-        },
-    ]);
-    expect(f.provider.sends).toEqual([]);
+    await daemon.work.accept(frame);
+
+    expect(daemon.frames.map((sent) => sent.type)).toContain('worker-turn-accepted');
+    expect((await f.journal.read(serverId, turnRef(frame)))?.phase).not.toBe('pending');
 });
 
 test('a launch a pre-Workers Computer recorded is monitored at its provider address', async () => {

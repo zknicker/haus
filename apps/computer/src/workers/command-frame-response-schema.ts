@@ -7,7 +7,6 @@ import {
     cloudAgentCapabilityRequestSchema,
     workerCheckoutSchema,
     workerCloseCommandSchema,
-    workerFollowUpDrainAckFrameSchema,
     workerReconcileCommandSchema,
     workerStopCommandSchema,
     workerTurnStartFrameSchema,
@@ -36,10 +35,6 @@ export const workerTurnStartResponseSchema = z.looseObject({
     model: workerTurnModelResponseSchema,
     place: workerPlaceResponseSchema,
 });
-
-export const workerFollowUpDrainAckResponseSchema = z.looseObject(
-    workerFollowUpDrainAckFrameSchema.shape
-);
 
 export const workerCloseCommandResponseSchema = z.looseObject(workerCloseCommandSchema.shape);
 

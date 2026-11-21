@@ -168,51 +168,6 @@ test('an accepted turn is never accepted again, across a restart', async () => {
     expect((await new WorkerTurnJournal(root).read('server', ref))?.phase).toBe('launched');
 });
 
-test('a held follow-up becomes the Server turn when its start arrives before the drain ack', async () => {
-    const root = await directory();
-    const journal = new WorkerTurnJournal(root);
-    await journal.claim('server', ref, heldFollowUp);
-    expect(
-        await journal.accept('server', ref, {
-            input: 'Address the review.',
-            phase: 'sending',
-            predecessorTurnIds: [],
-            providerAgentId: 'bc_same',
-            workerId: ref.workerId,
-        })
-    ).toBe(true);
-    await journal.forgetHeldFollowUp('server', ref.turnId);
-    expect(await journal.read('server', ref)).toEqual({
-        delivery: null,
-        input: 'Address the review.',
-        model: null,
-        phase: 'sending',
-        predecessorTurnIds: [],
-        providerAgentId: 'bc_same',
-        workerId: ref.workerId,
-    });
-});
-
-test('a drain ack forgets only the held follow-up', async () => {
-    const root = await directory();
-    const journal = new WorkerTurnJournal(root);
-    await journal.claim('server', ref, heldFollowUp);
-    await journal.forgetHeldFollowUp('server', ref.turnId);
-    expect(await journal.read('server', ref)).toBeNull();
-    await journal.claim('server', ref);
-    await journal.forgetHeldFollowUp('server', ref.turnId);
-    expect((await journal.read('server', ref))?.phase).toBe('launching');
-});
-
-const heldFollowUp = {
-    instructions: 'Address the review.',
-    interrupt: false,
-    phase: 'pending' as const,
-    predecessors: [],
-    providerAgentId: 'bc_same',
-    workerId: ref.workerId,
-};
-
 test('a late launch cannot replace cancellation or a failed launch across journal instances', async () => {
     for (const outcome of ['cancelled', 'rejected'] as const) {
         const root = await directory();

@@ -1,14 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { eq } from 'drizzle-orm';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { createOpaqueId } from '../src/postgres/opaque-id.ts';
-import { workerTurnsTable } from '../src/postgres/schema.ts';
 import { deleteTasksOfRemovedChats } from '../src/tasks/task-chat-removal.ts';
-import {
-    acceptWorkerTurn,
-    drainWorkerFollowUp,
-    planCarrierReconnect,
-} from '../src/workers/carrier-frames.ts';
+import { acceptWorkerTurn, planCarrierReconnect } from '../src/workers/carrier-frames.ts';
 import { offlineDelivery } from './agent-inbox-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import {
@@ -71,99 +64,6 @@ test('a reconnecting carrier gets every unaccepted start again and reconciles ev
             workerId: accepted.id,
         },
     ]);
-});
-
-test('a drained follow-up fills its Server turn, is acknowledged, and dispatches once its input exists', async () => {
-    const board = await seedWorkerBoard(connection.db);
-    const { delivery } = offlineDelivery(connection.db, board.seed);
-    const { worker } = (await startOn(connection.db, board)).receipt;
-    await observe(connection.db, delivery, board, {
-        result: { outcome: 'done', personHandle: null, pullRequestUrls: [], text: 'Done.' },
-        status: 'completed',
-        turnId: worker.turns[0]?.turnId ?? '',
-        workerId: worker.id,
-    });
-    const pendingId = createOpaqueId('car');
-    await connection.db.insert(workerTurnsTable).values({
-        id: pendingId,
-        serverId: board.seed.serverId,
-        workerId: worker.id,
-    });
-    const reconnect = await planCarrierReconnect(connection.db, {
-        id: board.seed.computerId,
-        serverId: board.seed.serverId,
-    });
-    expect(
-        reconnect.frames.flatMap(({ frame: sent }) =>
-            sent.type === 'worker-reconcile' ? sent.workers.map((entry) => entry.turnId) : []
-        )
-    ).toEqual([pendingId]);
-    const frame = {
-        instructions: 'Add the retry test too.',
-        predecessorTurnIds: [worker.turns[0]?.turnId ?? ''],
-        providerAgentId: 'bc_drained',
-        providerRunId: null,
-        turnId: pendingId,
-        type: 'worker-follow-up-drain' as const,
-        workerId: worker.id,
-    };
-
-    const drained = await drainWorkerFollowUp(connection.db, { ...scope(board), frame });
-    const again = await drainWorkerFollowUp(connection.db, { ...scope(board), frame });
-
-    expect(
-        drained.frames.map(({ frame: sent }) => [sent.type, 'turnId' in sent && sent.turnId])
-    ).toEqual([
-        ['worker-follow-up-drain-ack', pendingId],
-        ['worker-turn-start', pendingId],
-    ]);
-    expect(again.frames.map(({ frame: sent }) => sent.type)).toEqual([
-        'worker-follow-up-drain-ack',
-    ]);
-    const pending = (await readTurns(connection.db, worker.id)).find(
-        (turn) => turn.id === pendingId
-    );
-    expect(pending?.input?.map(({ author, kind, text }) => ({ author, kind, text }))).toEqual([
-        {
-            author: { id: board.seed.agentId, kind: 'agent' },
-            kind: 'follow-up',
-            text: 'Add the retry test too.',
-        },
-    ]);
-    expect(pending?.dispatchedAt).not.toBeNull();
-});
-
-test('a drain for a turn the Server never had creates it, and another carrier is not acknowledged', async () => {
-    const board = await seedWorkerBoard(connection.db);
-    const { worker } = (await startOn(connection.db, board)).receipt;
-    const missing = createOpaqueId('car');
-    const frame = {
-        instructions: 'Recovered from the journal.',
-        predecessorTurnIds: [],
-        providerAgentId: null,
-        providerRunId: 'run_recovered',
-        turnId: missing,
-        type: 'worker-follow-up-drain' as const,
-        workerId: worker.id,
-    };
-
-    const elsewhere = await drainWorkerFollowUp(connection.db, {
-        computerId: createOpaqueId('cmp'),
-        frame,
-        serverId: board.seed.serverId,
-    });
-    const drained = await drainWorkerFollowUp(connection.db, { ...scope(board), frame });
-
-    expect(elsewhere.frames).toEqual([]);
-    expect(drained.frames.map(({ frame: sent }) => sent.type)).toEqual([
-        'worker-follow-up-drain-ack',
-    ]);
-    const [created] = await connection.db
-        .select()
-        .from(workerTurnsTable)
-        .where(eq(workerTurnsTable.id, missing));
-    expect(created).toMatchObject({ providerRunId: 'run_recovered', workerId: worker.id });
-    expect(created?.acknowledgedAt).not.toBeNull();
 });
 
 test('a Project purge while the carrier is offline stops the hosted run when the carrier reconnects', async () => {

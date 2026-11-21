@@ -1,4 +1,4 @@
-import { cloudAgentProviderSchema, workerTurnStatusSchema } from '@haus/api';
+import { workerTurnStatusSchema } from '@haus/api';
 import * as z from 'zod';
 
 const launchSchema = z.object({
@@ -39,24 +39,6 @@ const sendingRecordSchema = z.object({
     predecessorTurnIds: z.array(z.string().min(1)),
     delivery: deliverySchema.nullable().default(null),
 });
-export const heldFollowUpRecordSchema = z.object({
-    phase: z.literal('pending'),
-    workerId: z.string(),
-    instructions: z.string().min(1),
-    model: modelSchema,
-    providerAgentId: z.string().min(1),
-    interrupt: z.boolean(),
-    predecessors: z.array(
-        z.object({
-            provider: cloudAgentProviderSchema.default('cursor'),
-            workerId: z.string(),
-            turnId: z.string(),
-            providerAgentId: z.string().nullable(),
-            providerRunId: z.string().nullable(),
-        })
-    ),
-    delivery: deliverySchema.nullable().default(null),
-});
 export const cancelledRecordSchema = z.object({
     phase: z.literal('cancelled'),
     workerId: z.string(),
@@ -77,7 +59,6 @@ export const rejectedRecordSchema = z.object({
 export const workerTurnRecordSchema = z.discriminatedUnion('phase', [
     launchingRecordSchema,
     sendingRecordSchema,
-    heldFollowUpRecordSchema,
     cancelledRecordSchema,
     launchedRecordSchema,
     rejectedRecordSchema,
@@ -85,7 +66,6 @@ export const workerTurnRecordSchema = z.discriminatedUnion('phase', [
 export type WorkerTurnRecord = z.infer<typeof workerTurnRecordSchema>;
 export type WorkerTurnRecordInput = z.input<typeof workerTurnRecordSchema>;
 export type WorkerSendingTurn = Extract<WorkerTurnRecord, { phase: 'sending' }>;
-export type WorkerHeldFollowUp = Extract<WorkerTurnRecord, { phase: 'pending' }>;
 export interface WorkerTurnRejection {
     errorCode: string;
     summary: string;
