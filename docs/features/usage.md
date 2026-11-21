@@ -41,10 +41,7 @@ while you read it.
 * **Model connections.** Settings → Models lists plan accounts in one table with what is left of
   each 5-hour and weekly window and the soonest reset. A Claude or ChatGPT plan connection shows
   its windows as the runner last read them. Nothing shows until a read lands, or once the last one
-  is six hours old. SuperGrok and API-key connections show none. While Captains run on their
-  Devices (`HAUS_AGENT_LOOP=computer`), the same table also lists each Device's detected Codex,
-  Claude Code and Grok Build login, labeled by runtime and Device, with the windows the Computer
-  detail page shows. Those rows only read. See
+  is six hours old. SuperGrok and API-key connections show none. See
   [Model connections](../../specs/model-connections.md#plan-capacity).
 
 * **Cloud Agents.** Beside the runtime capacity cards, the same Computer page carries one **Cursor

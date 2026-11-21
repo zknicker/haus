@@ -9,6 +9,7 @@ import {
     capySidebarSections,
     personChatIds,
     projectIds,
+    teamRoomId,
     sortedOpenTaskSlots,
     waitingChatIds,
     waitingFirst,
@@ -58,6 +59,7 @@ function selectChatLayout(chats: Chat[]) {
         agentDmChatIds: agentDmChatIds(chats),
         personChatIds: personChatIds(chats),
         projectIds: projectIds(chats),
+        teamRoomId: teamRoomId(chats),
     };
 }
 

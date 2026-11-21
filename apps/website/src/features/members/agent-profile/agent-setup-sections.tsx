@@ -74,7 +74,6 @@ export function AgentRuntimeSection({ agent, server }: { agent: Agent; server: S
                 agent={agent}
                 canEdit={canEdit}
                 computerHealth={computer?.health}
-                runtimes={computer?.reportedInventory?.runtimes ?? []}
                 serverId={server.id}
             />
         </>

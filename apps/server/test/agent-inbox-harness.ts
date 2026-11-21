@@ -13,6 +13,7 @@ import {
     usersTable,
 } from '../src/postgres/schema.ts';
 import { testAgentHome } from './agent-home.ts';
+import { RecordingRunner } from './recording-runner.ts';
 
 export class FakeTransport implements DeliveryTransport {
     readonly online = new Set<string>();
@@ -150,17 +151,19 @@ export async function deliverHuman(
 }
 
 /**
- * A Computer that is attached only once the queue is loaded. Every enqueue
+ * A runner that is attached only once the queue is loaded. Every enqueue
  * while it is offline plans nothing, so one wake sees the whole pending set
  * instead of racing a run per message.
  */
 export function offlineDelivery(db: HausDatabase, seed: Seed) {
     const transport = new FakeTransport();
-    const delivery = new AgentDelivery(db, transport);
+    const runner = new RecordingRunner();
+    const delivery = new AgentDelivery(db, transport, undefined, runner);
     const wake = async () => {
         transport.online.add(seed.computerId);
+        runner.attach(seed.agentId);
         await delivery.dispatchAgent(seed.agentId, seed.serverId);
-        return transport.framesOfType('start').at(-1);
+        return runner.starts().at(-1);
     };
-    return { delivery, transport, wake };
+    return { delivery, runner, transport, wake };
 }

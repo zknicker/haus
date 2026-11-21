@@ -14,7 +14,6 @@ const wakePause = {
 test('the hover card warns about a missing connection only once the list has loaded', () => {
     expect(agentHoverAttention(grokAgent, null, undefined)).toEqual({ banner: null, line: null });
     const attention = agentHoverAttention(grokAgent, null, {
-        agentLoop: 'runner',
         connections: [],
     });
     expect(attention).toEqual({
@@ -28,19 +27,9 @@ test('the hover card warns about a missing connection only once the list has loa
     );
 });
 
-test('the hover card of an Agent on its Computer shows its wake pause and no connection warning', () => {
-    expect(
-        agentHoverAttention({ ...grokAgent, wakePause }, null, {
-            agentLoop: 'computer',
-            connections: [],
-        })
-    ).toEqual({ banner: wakePause, line: null });
-});
-
 test('on the runner a paused Agent with no connection keeps both the banner and the fix', () => {
     expect(
         agentHoverAttention({ ...grokAgent, wakePause }, null, {
-            agentLoop: 'runner',
             connections: [],
         })
     ).toEqual({

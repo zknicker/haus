@@ -22,7 +22,13 @@ import { expect, test } from '../support/test.ts';
 const removedProcedures = ['chat.onEvent', 'chat.events', 'chat.eventHead', 'server.onUpdate'];
 
 /** `chat.onMessageCreated`'s owned reads, plus the read receipt viewing the reply sends. */
-const ownedReads = new Set(['chat.messages', 'chat.list', 'chat.search', 'chat.markRead']);
+const ownedReads = new Set([
+    'chat.messages',
+    'chat.list',
+    'chat.search',
+    'chat.unreadPreviews',
+    'chat.markRead',
+]);
 
 test('A: one failed stream restarts alone and recovers only its owned reads', async ({ page }) => {
     test.setTimeout(150_000);
@@ -68,7 +74,6 @@ test('A: one failed stream restarts alone and recovers only its owned reads', as
     ]);
 
     await expectConverged(page, scene, {
-        activity: 'Rebuilding the index while down',
         allReply: 'A reply while the stream is down',
         inlineReply: 'An inline reply while the stream is down',
     });
@@ -233,7 +238,6 @@ test('B: a Server restart with refused resubscribes converges, then C and D', as
         .toContainEqual({ kind: 'trpc', procedure: 'server.bySlug' });
 
     await expectConverged(page, scene, {
-        activity: 'Rebuilding the index after the deploy',
         allReply: 'A reply after the deploy',
         inlineReply: 'An inline reply after the deploy',
     });

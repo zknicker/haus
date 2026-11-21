@@ -28,7 +28,7 @@ let member: HausClient;
 let runner: RunnerClient;
 
 beforeAll(async () => {
-    harness = await startHausServerHarness({ agentLoop: 'runner', runnerToken: testRunnerToken });
+    harness = await startHausServerHarness({ runnerToken: testRunnerToken });
     seed = await seedConnectionServer(harness, 'models-reconnect');
     other = await seedConnectionServer(harness, 'models-reconnect-other');
     member = await addMember(harness, seed, 'user_models_reconnect_member');

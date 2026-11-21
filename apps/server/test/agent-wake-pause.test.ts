@@ -8,6 +8,7 @@ import { agentDeliveryTable } from '../src/postgres/schema.ts';
 import { agentUpdatedTopic } from '../src/realtime/topics.ts';
 import { FakeTransport, seedAgent } from './agent-inbox-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
+import { RecordingRunner } from './recording-runner.ts';
 
 let cluster: TestDatabase;
 let connection: HausConnection;
@@ -26,10 +27,10 @@ afterAll(async () => {
 });
 
 test('the same failure three times pauses; the sweep skips it until a human lifts it', async () => {
-    const { delivery, seed, transport } = await onlineAgent();
+    const { delivery, runner, seed } = await onlineAgent();
     await delivery.deliver(work(seed, 'summarize the thread', 'delivery_problem'));
     for (let attempt = 1; attempt <= 3; attempt += 1) {
-        await failLatestRun(delivery, transport, seed, attempt);
+        await failLatestRun(delivery, runner, seed, attempt);
         if (attempt < 3) {
             await expireRetryAfter(seed.agentId);
             await delivery.sweep();
@@ -50,16 +51,16 @@ test('the same failure three times pauses; the sweep skips it until a human lift
     // Paused: neither the sweep nor more automated work wakes it.
     await delivery.sweep();
     await delivery.deliver(work(seed, 'another reminder', 'reminder'));
-    expect(transport.framesOfType('start')).toHaveLength(3);
+    expect(runner.starts()).toHaveLength(3);
 
     // The probe is due: exactly one run, however often the sweep fires.
     await expireRetryAfter(seed.agentId);
     await delivery.sweep();
-    const probeRunId = transport.framesOfType('start').at(-1)?.runId ?? '';
+    const probeRunId = runner.starts().at(-1)?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId: probeRunId });
     await delivery.sweep();
-    expect(transport.framesOfType('start')).toHaveLength(4);
-    await failLatestRun(delivery, transport, seed, 4);
+    expect(runner.starts()).toHaveLength(4);
+    await failLatestRun(delivery, runner, seed, 4);
     const probed = await readDeliveryState(connection.db, seed.agentId);
     expect(probed?.pauseStep).toBe(1);
     expect(probed?.retryAfter?.getTime()).toBeGreaterThan(Date.now() + 4 * hourMs - 60_000);
@@ -67,7 +68,7 @@ test('the same failure three times pauses; the sweep skips it until a human lift
     // A human message lifts the pause at once and announces it after commit.
     const updates = watchServerUpdates();
     await delivery.deliver(work(seed, 'try again', 'human'));
-    expect(transport.framesOfType('start')).toHaveLength(5);
+    expect(runner.starts()).toHaveLength(5);
     expect(await readDeliveryState(connection.db, seed.agentId)).toMatchObject({
         consecutiveFailures: 0,
         failureFingerprint: null,
@@ -80,22 +81,22 @@ test('the same failure three times pauses; the sweep skips it until a human lift
 });
 
 test('agent and automation work never lift a wake pause', async () => {
-    const { delivery, seed, transport } = await pausedAgent();
+    const { delivery, runner, seed } = await pausedAgent();
     for (const source of ['agent:wren', 'reminder', 'trigger', 'claim_assignment'] as const) {
         await delivery.deliver(work(seed, `from ${source}`, source));
     }
-    expect(transport.framesOfType('start')).toHaveLength(0);
+    expect(runner.starts()).toHaveLength(0);
     expect((await readDeliveryState(connection.db, seed.agentId))?.pausedAt).not.toBeNull();
 });
 
 test('Restart lifts a wake pause and redrives queued work', async () => {
-    const { delivery, seed, transport } = await pausedAgent();
+    const { delivery, runner, seed } = await pausedAgent();
     await delivery.deliver(work(seed, 'retry after repair', 'reminder'));
-    expect(transport.framesOfType('start')).toHaveLength(0);
+    expect(runner.starts()).toHaveLength(0);
 
     await delivery.restart({ agentId: seed.agentId, serverId: seed.serverId });
 
-    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(runner.starts()).toHaveLength(1);
     expect((await readDeliveryState(connection.db, seed.agentId))?.pausedAt).toBeNull();
 });
 
@@ -110,8 +111,14 @@ test('a session reset lifts a wake pause', async () => {
 async function onlineAgent() {
     const seed = await seedAgent(connection.db);
     const transport = new FakeTransport();
+    const runner = new RecordingRunner();
     transport.online.add(seed.computerId);
-    return { delivery: new AgentDelivery(connection.db, transport), seed, transport };
+    runner.attach(seed.agentId);
+    return {
+        delivery: new AgentDelivery(connection.db, transport, undefined, runner),
+        runner,
+        seed,
+    };
 }
 
 async function pausedAgent() {
@@ -149,11 +156,11 @@ function work(
 
 async function failLatestRun(
     delivery: AgentDelivery,
-    transport: FakeTransport,
+    runner: RecordingRunner,
     seed: { agentId: string; computerId: string },
     attempt: number
 ) {
-    const starts = transport.framesOfType('start');
+    const starts = runner.starts();
     expect(starts).toHaveLength(attempt);
     const runId = starts.at(-1)?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });

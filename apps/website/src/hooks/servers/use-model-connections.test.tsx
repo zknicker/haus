@@ -15,7 +15,7 @@ const mutation = (path: string, input: unknown) => ({ input, path, type: 'mutati
 
 function mountHook<T>(useHook: () => T, answer?: (call: RecordedCall) => unknown) {
     return mountCallHook(useHook, answer, (queryClient) =>
-        queryClient.setQueryData(listKey, { agentLoop: 'runner', connections: [] })
+        queryClient.setQueryData(listKey, { connections: [], runnerModels: null })
     );
 }
 
@@ -118,7 +118,7 @@ describe('web search', () => {
             harness.queryClient
                 .getQueryData<ModelConnectionsRead>(listKey)
                 ?.connections.map((connection) => connection.webSearch);
-        harness.queryClient.setQueryData(listKey, { agentLoop: 'runner', connections: [gemini] });
+        harness.queryClient.setQueryData(listKey, { connections: [gemini], runnerModels: null });
         const saving = hook().setWebSearch.mutateAsync({
             connectionId: 'mcn_gemini',
             enabled: false,

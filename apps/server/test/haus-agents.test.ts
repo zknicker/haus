@@ -3,6 +3,7 @@ import { hausAgentVersion } from '@haus/api';
 import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { reportRunnerModels } from './runner.fixture.ts';
 
 let harness: HausServerHarness;
 let owner: HausClient;
@@ -25,10 +26,10 @@ const codexRuntime = {
         { id: 'gpt-5.6-terra', label: 'GPT-5.6 Terra' },
     ],
 };
-const grok = { id: 'grok-build', label: 'Grok', models: [{ id: 'grok-4.6', label: 'Grok' }] };
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
+    await reportRunnerModels(harness, { runtimes: [codexRuntime] });
     owner = await signIn('user_agent_owner');
     member = await signIn('user_agent_member');
 
@@ -51,9 +52,8 @@ beforeAll(async () => {
         slug: 'other-hq',
     });
 
-    // Computer A reports Codex; Computer B reports only Grok Build; a foreign Server owns its own Computer.
     await insertComputer(serverId, computerA, credentialHash, { runtimes: [codexRuntime] });
-    await insertComputer(serverId, computerB, otherCredentialHash, { runtimes: [grok] });
+    await insertComputer(serverId, computerB, otherCredentialHash, { runtimes: [codexRuntime] });
     await insertComputer(foreign.id, foreignComputer, foreignCredentialHash, {
         runtimes: [codexRuntime],
     });
@@ -131,8 +131,8 @@ test('first human sends materialize exactly one pair DM under retries and per-hu
         computerId: computerB,
         displayName: 'Relay',
         handle: 'relay',
-        modelId: 'grok-4.6',
-        runtimeId: 'grok-build',
+        modelId: 'gpt-5.6-terra',
+        runtimeId: 'codex',
         serverId,
     });
     const input = {
@@ -201,7 +201,7 @@ test('restricts one-run execution detail to Server Owners and Admins', async () 
     });
 });
 
-test('fails closed on a runtime or model the assigned Computer never reported', async () => {
+test('fails closed on a runtime or model the runner never offered', async () => {
     await expect(
         createHomedAgent(owner, {
             computerId: computerA,
@@ -211,9 +211,8 @@ test('fails closed on a runtime or model the assigned Computer never reported', 
             runtimeId: 'codex',
             serverId,
         })
-    ).rejects.toThrow(/does not report the model/i);
+    ).rejects.toThrow(/does not offer the model/i);
 
-    // Grok Build lives only on Computer B, so referencing it on Computer A fails closed.
     await expect(
         createHomedAgent(owner, {
             computerId: computerA,
@@ -223,7 +222,7 @@ test('fails closed on a runtime or model the assigned Computer never reported', 
             runtimeId: 'grok-build',
             serverId,
         })
-    ).rejects.toThrow(/does not report the runtime/i);
+    ).rejects.toThrow(/does not offer the model/i);
 });
 
 test('fails closed when configuration references another Server’s Computer', async () => {
@@ -252,7 +251,7 @@ test('only an Owner or Admin can create an Agent', async () => {
     ).rejects.toThrow(/Owner or Admin/i);
 });
 
-test('saves desired config from last inventory while the Computer is offline, immutably assigned', async () => {
+test('saves desired config from the runner catalog while the Computer is offline, immutably assigned', async () => {
     await harness.sql`update computers set health = 'offline' where id = ${computerA}`;
 
     const [agent] = await owner.trpc.agent.list.query({ serverId });
@@ -330,7 +329,7 @@ test('saves desired config from last inventory while the Computer is offline, im
             runtimeId: 'codex',
             serverId,
         })
-    ).rejects.toThrow(/does not report the model/i);
+    ).rejects.toThrow(/does not offer the model/i);
 });
 
 test('shows pending, then applied, then degraded as effective state is reported', async () => {
@@ -498,8 +497,8 @@ test('hides a retired Agent DM, preserves its transcript, and rejects new sends'
         computerId: computerB,
         displayName: 'Fen',
         handle: 'fen',
-        modelId: 'grok-4.6',
-        runtimeId: 'grok-build',
+        modelId: 'gpt-5.6-terra',
+        runtimeId: 'codex',
         serverId,
     });
     const dmChatId = (
@@ -589,8 +588,8 @@ test('releases a retired Agent handle without conflating the replacement identit
         computerId: computerB,
         displayName: 'Echo',
         handle: 'echo',
-        modelId: 'grok-4.6',
-        runtimeId: 'grok-build',
+        modelId: 'gpt-5.6-terra',
+        runtimeId: 'codex',
         serverId,
     });
     const originalChat = await owner.trpc.chat.ensureAgentDm.mutate({
@@ -603,8 +602,8 @@ test('releases a retired Agent handle without conflating the replacement identit
             computerId: computerB,
             displayName: 'Other Echo',
             handle: 'echo',
-            modelId: 'grok-4.6',
-            runtimeId: 'grok-build',
+            modelId: 'gpt-5.6-terra',
+            runtimeId: 'codex',
             serverId,
         })
     ).rejects.toThrow(/already taken/u);
@@ -619,8 +618,8 @@ test('releases a retired Agent handle without conflating the replacement identit
         computerId: computerB,
         displayName: 'Echo',
         handle: 'echo',
-        modelId: 'grok-4.6',
-        runtimeId: 'grok-build',
+        modelId: 'gpt-5.6-terra',
+        runtimeId: 'codex',
         serverId,
     });
     const replacementChat = await owner.trpc.chat.ensureAgentDm.mutate({

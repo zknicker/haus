@@ -28,7 +28,7 @@ const agents: Record<'chosen' | 'fallback' | 'none', string> = {
 };
 
 beforeAll(async () => {
-    harness = await startHausServerHarness({ agentLoop: 'runner', runnerToken: testRunnerToken });
+    harness = await startHausServerHarness({ runnerToken: testRunnerToken });
     seed = await seedConnectionServer(harness, 'runner-models');
     zachPlanId = (await addClaudeConnection(seed, 'Zach plan', 'sk-ant-oat01-zach-token')).id;
     teamPlanId = (await addClaudeConnection(seed, 'Team plan', 'sk-ant-oat01-team-token')).id;

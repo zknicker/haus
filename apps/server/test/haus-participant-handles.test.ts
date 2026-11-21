@@ -55,7 +55,7 @@ beforeAll(async () => {
                     {
                         id: 'codex',
                         label: 'Codex',
-                        models: [{ id: 'gpt-test', label: 'GPT Test' }],
+                        models: [{ id: 'gpt-5.6-sol', label: 'GPT Test' }],
                     },
                 ],
             }}::jsonb,
@@ -66,7 +66,7 @@ beforeAll(async () => {
         computerId,
         displayName: 'Wren',
         handle: 'wren',
-        modelId: 'gpt-test',
+        modelId: 'gpt-5.6-sol',
         runtimeId: 'codex',
         serverId,
     });
@@ -109,7 +109,7 @@ test('rejects human-Agent collisions case-insensitively in both claim directions
             computerId,
             displayName: 'Other Ada',
             handle: 'ADA-LOVELACE',
-            modelId: 'gpt-test',
+            modelId: 'gpt-5.6-sol',
             runtimeId: 'codex',
             serverId,
         })

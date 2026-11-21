@@ -26,7 +26,7 @@ afterAll(async () => {
 test("the creation wake and the creator's @mention coalesce into one greeting turn", async () => {
     const seed = await seedAgent(connection.db);
     const allChannelId = await greet(seed);
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
     // The creator answers the human where they asked and names the new Agent.
     const mentionId = await deliverHuman(connection.db, delivery, seed, {
         addressedReason: 'mention',
@@ -37,7 +37,7 @@ test("the creation wake and the creator's @mention coalesce into one greeting tu
 
     const start = await wake();
 
-    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(runner.starts()).toHaveLength(1);
     expect(start).toMatchObject({ chatId: seed.channelId, greets: true });
     // The mention is drained into that one first turn; the greeting is never an item.
     expect(start?.drainItemIds).toEqual([mentionId]);
@@ -46,14 +46,14 @@ test("the creation wake and the creator's @mention coalesce into one greeting tu
 
     await settle(delivery, seed, start?.runId ?? '');
 
-    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(runner.starts()).toHaveLength(1);
     expect(await greetingState(seed)).toBe('seen');
 });
 
 test('a mention landing during the greeting turn reaches it as a notice, never a second greeting', async () => {
     const seed = await seedAgent(connection.db);
     const allChannelId = await greet(seed);
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
 
     // Alone, the greeting leads its own run in #all as soon as the Agent can run.
     const start = await wake();
@@ -71,14 +71,14 @@ test('a mention landing during the greeting turn reaches it as a notice, never a
         chatId: seed.channelId,
         mentioned: true,
     });
-    const [notice] = transport.framesOfType('notice');
+    const [notice] = runner.framesOfType('notice');
     expect(notice?.runId).toBe(start?.runId ?? '');
     expect(notice?.inbox.map((item) => item.id)).toEqual([mentionId]);
 
     await settle(delivery, seed, start?.runId ?? '');
 
     // Any later turn carries no greeting: the one claim was consumed.
-    expect(transport.framesOfType('start').filter((frame) => frame.greets)).toHaveLength(1);
+    expect(runner.starts().filter((frame) => frame.greets)).toHaveLength(1);
     expect(await greetingState(seed)).toBe('seen');
 });
 
@@ -87,12 +87,12 @@ test('the greeting is claimed once per Agent and survives a resend and a failed 
     await greet(seed);
     await greet(seed);
     expect(await greetingRows(seed)).toHaveLength(1);
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
 
     const first = await wake();
     // An unacknowledged greeting run resends as itself, not as an empty notice to retire.
     await delivery.sweep();
-    const resent = transport.framesOfType('start');
+    const resent = runner.starts();
     expect(resent).toHaveLength(2);
     expect(resent[1]).toMatchObject({ greets: true, runId: first?.runId ?? '' });
 
@@ -107,7 +107,7 @@ test('the greeting is claimed once per Agent and survives a resend and a failed 
         .set({ retryAfter: null })
         .where(eq(agentDeliveryTable.agentId, seed.agentId));
     await delivery.dispatchAgent(seed.agentId, seed.serverId);
-    const retry = transport.framesOfType('start').at(-1);
+    const retry = runner.starts().at(-1);
     expect(retry?.runId).not.toBe(first?.runId);
     expect(retry?.greets).toBe(true);
     await settle(delivery, seed, retry?.runId ?? '');
@@ -121,7 +121,7 @@ test('the greeting is claimed once per Agent and survives a resend and a failed 
 test('a sub-agent wake is never held behind a waiting greeting, which rides the next run', async () => {
     const seed = await seedAgent(connection.db);
     const allChannelId = await greet(seed);
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
     const wakeRow = { agentId: seed.agentId, chatId: null, content: '', serverId: seed.serverId };
     await connection.db.transaction(async (tx) => {
         const dedupeKey = `subagent:${seed.agentId}:wake_1`;
@@ -133,14 +133,14 @@ test('a sub-agent wake is never held behind a waiting greeting, which rides the 
     expect(first?.greets).toBeUndefined();
     // Settling the wake dispatches the next run, which claims the waiting greeting.
     await settle(delivery, seed, first?.runId ?? '');
-    const next = transport.framesOfType('start').at(-1);
+    const next = runner.starts().at(-1);
     expect(next).toMatchObject({ chatId: allChannelId, greets: true });
 });
 
 test('a greeting a stopped run already posted is spent; one it never posted rides the next run', async () => {
     const seed = await seedAgent(connection.db);
     const allChannelId = await greet(seed);
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
 
     // Stopped after the session was saved but before posting: the greeting is
     // requeued and rides the next run, which the Computer shows even when warm.
@@ -149,7 +149,7 @@ test('a greeting a stopped run already posted is spent; one it never posted ride
     await delivery.stop({ agentId: seed.agentId, serverId: seed.serverId });
     expect(await greetingState(seed)).toBe('queued');
     await delivery.start({ agentId: seed.agentId, serverId: seed.serverId });
-    const second = transport.framesOfType('start').at(-1);
+    const second = runner.starts().at(-1);
     expect(second?.runId).not.toBe(first?.runId);
     expect(second?.greets).toBe(true);
 
@@ -165,7 +165,7 @@ test('a greeting a stopped run already posted is spent; one it never posted ride
     await delivery.start({ agentId: seed.agentId, serverId: seed.serverId });
 
     // The introduction is already in #all, so no later run greets again.
-    const third = transport.framesOfType('start').at(-1);
+    const third = runner.starts().at(-1);
     expect(third?.runId).not.toBe(second?.runId);
     expect(third?.greets).toBeUndefined();
     expect(await greetingState(seed)).toBe('seen');
@@ -174,7 +174,7 @@ test('a greeting a stopped run already posted is spent; one it never posted ride
 test('a replayed run whose introduction is already posted resends without the greeting', async () => {
     const seed = await seedAgent(connection.db);
     const allChannelId = await greet(seed);
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
     const mentionId = await deliverHuman(connection.db, delivery, seed, {
         addressedReason: 'mention',
         chatId: seed.channelId,
@@ -189,7 +189,7 @@ test('a replayed run whose introduction is already posted resends without the gr
     await postAsAgent(seed, allChannelId, first?.runId ?? '');
     await delivery.dispatchAgent(seed.agentId, seed.serverId, { resendActive: true });
 
-    const replay = transport.framesOfType('start').at(-1);
+    const replay = runner.starts().at(-1);
     expect(replay?.runId).toBe(first?.runId);
     expect(replay?.greets).toBeUndefined();
     expect(replay?.drainItemIds).toEqual([mentionId]);

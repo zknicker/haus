@@ -79,7 +79,7 @@ test('unread elsewhere excludes every chat a notice row represents', async () =>
 
 test('a busy notice carries the unread digest and advances nothing', async () => {
     const seed = await seedAgent(connection.db);
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
     const channels: string[] = [];
     for (let index = 1; index <= 51; index += 1) {
         const chatId = await addChannel(connection.db, seed, `ch${String(index).padStart(2, '0')}`);
@@ -98,7 +98,7 @@ test('a busy notice carries the unread digest and advances nothing', async () =>
 
     // The busy window must carry every unnoticed row, so the chats it drops are
     // the ones neither noticed here nor new: they stay visible as counts.
-    const notice = transport.framesOfType('notice').at(-1);
+    const notice = runner.framesOfType('notice').at(-1);
     expect(notice?.unreadElsewhere).toEqual([
         { count: 1, target: '#ch49' },
         { count: 1, target: '#ch50' },

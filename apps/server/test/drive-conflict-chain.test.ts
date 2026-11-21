@@ -41,7 +41,7 @@ test('the item spends the automation chain', async () => {
 test('at the ceiling the item waits queued until a person speaks, then runs first', async () => {
     const seed = await seedAgent(connection.db);
     await setChain(seed, maxAgentChainTurns);
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
     await queue(
         delivery,
         seed,
@@ -50,16 +50,16 @@ test('at the ceiling the item waits queued until a person speaks, then runs firs
 
     expect(await wake()).toBeUndefined();
     await delivery.dispatchAgent(seed.agentId, seed.serverId);
-    expect(transport.framesOfType('start')).toEqual([]);
+    expect(runner.starts()).toEqual([]);
     expect((await conflictRows(seed.agentId)).map((row) => row.state)).toEqual(['queued']);
 
     await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
-    const [conflictRun] = transport.framesOfType('start');
+    const [conflictRun] = runner.starts();
     expect(conflictRun?.driveConflict?.pushId).toBe('run_push_ceiling');
     await delivery.onTurnSettled(seed.computerId, settledTurn(seed, conflictRun?.runId ?? ''));
     expect(await turnsOf(seed)).toBe(1);
 
-    const humanRun = transport.framesOfType('start').at(-1);
+    const humanRun = runner.starts().at(-1);
     expect(humanRun?.chatId).toBe(seed.dmChatId);
     await delivery.onTurnSettled(seed.computerId, {
         ...settledTurn(seed, humanRun?.runId ?? ''),

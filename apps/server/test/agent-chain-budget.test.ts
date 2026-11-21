@@ -1,8 +1,9 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
-import type { AgentCommand, AgentTurnSummary } from '@haus/api';
+import type { AgentTurnSummary, RunnerDownFrame, RunnerStartFrame } from '@haus/api';
 import { eq } from 'drizzle-orm';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
+import type { RunnerWire } from '../src/agent-delivery/loop-host.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
@@ -34,23 +35,25 @@ afterAll(async () => {
     await cluster?.stop();
 });
 
-class Wire implements DeliveryTransport {
-    readonly starts: Extract<AgentCommand, { type: 'start' }>[] = [];
+class Wire implements RunnerWire {
+    readonly starts: RunnerStartFrame['start'][] = [];
     isOnline() {
         return true;
     }
-    send(_computerId: string, frame: AgentCommand) {
-        if (frame.type === 'start') {
-            this.starts.push(frame);
+    send(frame: RunnerDownFrame) {
+        if (frame.type === 'runner-start') {
+            this.starts.push(frame.start);
         }
         return true;
     }
 }
 
+const computerTransport: DeliveryTransport = { isOnline: () => true, send: () => true };
+
 test('Trigger drains spend the chain and hold at the ceiling until a human speaks', async () => {
     const seed = await seedAgent({ advancedAt: new Date(), turns: 15 });
     const wire = new Wire();
-    const delivery = new AgentDelivery(connection.db, wire);
+    const delivery = new AgentDelivery(connection.db, computerTransport, undefined, wire);
 
     await fire(delivery, seed, 'trf_one');
     await settle(delivery, seed, wire.starts.at(-1)?.runId ?? '');
@@ -82,7 +85,7 @@ for (const source of ['reminder', 'claim_assignment'] as const) {
     test(`a ${source} at the ceiling leads ahead of the held Trigger and resets the chain`, async () => {
         const seed = await seedAgent({ advancedAt: new Date(), turns: 16 });
         const wire = new Wire();
-        const delivery = new AgentDelivery(connection.db, wire);
+        const delivery = new AgentDelivery(connection.db, computerTransport, undefined, wire);
         await fire(delivery, seed, `trf_held_${source}`);
         expect(wire.starts).toHaveLength(0);
 
@@ -111,7 +114,7 @@ for (const source of ['reminder', 'claim_assignment'] as const) {
 test('a Reminder behind more held fires than the drain windows hold still resets the chain', async () => {
     const seed = await seedAgent({ advancedAt: new Date(), turns: 16 });
     const wire = new Wire();
-    const delivery = new AgentDelivery(connection.db, wire);
+    const delivery = new AgentDelivery(connection.db, computerTransport, undefined, wire);
     for (let index = 0; index < 51; index += 1) {
         await fire(delivery, seed, `trf_backlog_${index}`);
     }
@@ -133,7 +136,7 @@ test('a Reminder behind more held fires than the drain windows hold still resets
 test('a chain idle for half an hour restarts below the ceiling; a recent one does not', async () => {
     const idle = await seedAgent({ advancedAt: new Date(Date.now() - 31 * 60 * 1000), turns: 9 });
     const wire = new Wire();
-    const delivery = new AgentDelivery(connection.db, wire);
+    const delivery = new AgentDelivery(connection.db, computerTransport, undefined, wire);
     await fire(delivery, idle, 'trf_idle');
     expect(wire.starts).toHaveLength(1);
     expect((await chainOf(idle.agentId))?.agentChainTurns).toBe(0);
@@ -149,7 +152,7 @@ test('a chain idle for half an hour restarts below the ceiling; a recent one doe
 test('an exhausted chain never times out', async () => {
     const seed = await seedAgent({ advancedAt: new Date(Date.now() - 2 * 3_600_000), turns: 16 });
     const wire = new Wire();
-    const delivery = new AgentDelivery(connection.db, wire);
+    const delivery = new AgentDelivery(connection.db, computerTransport, undefined, wire);
     await fire(delivery, seed, 'trf_held');
     expect(wire.starts).toHaveLength(0);
     expect((await chainOf(seed.agentId))?.agentChainTurns).toBe(16);

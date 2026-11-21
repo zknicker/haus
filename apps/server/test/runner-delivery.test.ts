@@ -24,7 +24,7 @@ let firstRunId: string;
 let stoppedRunId: string;
 
 beforeAll(async () => {
-    harness = await startHausServerHarness({ agentLoop: 'runner', runnerToken: testRunnerToken });
+    harness = await startHausServerHarness({ runnerToken: testRunnerToken });
     harness.humans.setVerifiedEmails('user_runner_owner', ['ada@haus.test']);
     owner = createHausClient(harness, await harness.humans.mintSessionToken('user_runner_owner'));
     serverId = (

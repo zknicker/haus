@@ -178,7 +178,7 @@ async function openKeptChannels(
         slug,
         token: session.accessToken,
     });
-    const channelIds: Record<string, string> = { haus: agent.chatId };
+    const channelIds: Record<string, string> = { all: agent.chatId };
     for (const name of ['design', 'ops']) {
         const created = await createProjectWithAgents(client, {
             agentIds: [agent.agentId],

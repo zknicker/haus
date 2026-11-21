@@ -4,12 +4,19 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import {
+    connectRunner,
+    frameOfType,
+    type RunnerClient,
+    testRunnerToken,
+} from './runner.fixture.ts';
 
 let harness: HausServerHarness;
 let owner: HausClient;
 let serverId: string;
 let chatId: string;
 let agentId: string;
+let runner: RunnerClient;
 let provider: WebSocket;
 const upstream = new WebSocketServer({ port: 0 });
 const received: Record<string, unknown>[] = [];
@@ -45,10 +52,18 @@ beforeAll(async () => {
         openAiApiKey: 'test-only',
         connectLive: () => new WebSocket(`ws://127.0.0.1:${address.port}`),
     });
+    runner = connectRunner(harness, testRunnerToken);
+    await runner.next(frameOfType('runner-hello-accepted'));
     owner = createHausClient(harness, await harness.humans.mintSessionToken('user_voice_owner'));
     serverId = (
         await owner.trpc.server.create.mutate({ displayName: 'Voice HQ', slug: 'voice-hq' })
     ).id;
+    await owner.trpc.member.updateProfile.mutate({
+        description: null,
+        displayName: 'Ada',
+        handle: 'ada',
+        serverId,
+    });
     const [user] = await harness.sql`select id from users where auth_subject = 'user_voice_owner'`;
     const inventory = {
         runtimes: [
@@ -78,6 +93,7 @@ beforeAll(async () => {
 }, 30_000);
 
 afterAll(async () => {
+    runner?.close();
     owner?.close();
     await harness?.close();
     for (const socket of upstream.clients) {

@@ -28,7 +28,7 @@ export type RunnerSocketServices = Pick<
 
 export type RunnerSocketSettings = Pick<
     HausServerApplicationOptions,
-    'agentLoop' | 'runnerToken' | 'thoughtSummarizer'
+    'runnerToken' | 'thoughtSummarizer'
 >;
 
 export function startRunnerSocket(
@@ -38,7 +38,6 @@ export function startRunnerSocket(
 ) {
     const { agentDelivery: delivery, hausDb: db, invocations, modelConnections } = services;
     const { computerConnections: computers, postCommitWork, runnerLink: link } = services;
-    const hostsLoops = settings.agentLoop === 'runner';
     const thoughts = createAgentThoughts({ summarizer: settings.thoughtSummarizer ?? null });
     const stopThoughtsOnSettle = onAgentLifecycle((event) => {
         if (event.phase === 'settled') {
@@ -49,7 +48,6 @@ export function startRunnerSocket(
         computers,
         db,
         delivery,
-        hostsLoops,
         invocations,
         link,
         modelConnections,
@@ -95,9 +93,7 @@ export function startRunnerSocket(
                     invocations.runnerAttached();
                     await modelConnections.runnerAttached();
                     await link.sendRuntimeSettings(() => readRunnerRuntimeSettingsCommand(db));
-                    if (hostsLoops) {
-                        await delivery.onRunnerReconnect();
-                    }
+                    await delivery.onRunnerReconnect();
                 })
                 .catch((error: unknown) => {
                     console.error('[haus] runner frame failed', error);

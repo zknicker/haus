@@ -1,22 +1,28 @@
-import { workerObservationFrame, seedWorker } from '../support/agent-worker.ts';
+import { seedWorker, workerObservationFrame } from '../support/agent-worker.ts';
 import { sendBootstrap, socketMessage, socketOpen } from '../support/computer-socket.ts';
+import { createProjectWithAgents } from '../support/project.ts';
 import { createTestServer, openHappeningNow } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 const workTitle = 'Fix the failing migration';
 const credential = 'computer-worker-credential-1234567890ab';
 
-test('Worker reads as one card in the Chat and the Inbox', async ({ page }, testInfo) => {
+test('a Worker lives on its Task, and its report lands in the Task chat', async ({ page }) => {
     test.setTimeout(90_000);
-    const { server, session } = await createTestServer(page, {
+    const { client, server, session } = await createTestServer(page, {
         displayName: 'Worker Work',
         slug: 'worker',
     });
+    await createProjectWithAgents(client, {
+        agentIds: [],
+        name: 'migrations',
+        serverId: server.id,
+    });
     const seeded = await seedWorker({
         agentHandle: 'orbit',
-        channelName: 'all',
+        brief: 'Make the failing migration pass and open a pull request.',
+        channelName: 'migrations',
         computerCredential: credential,
-        content: 'Delegating the migration fix to a Worker.',
         databaseUrl: session.databaseUrl,
         repository: 'haus/haus',
         serverId: server.id,
@@ -26,36 +32,22 @@ test('Worker reads as one card in the Chat and the Inbox', async ({ page }, test
         token: session.accessToken,
     });
 
-    // The Inbox is where background work that outlives a turn stays visible.
     await page.goto('/s/worker/inbox');
-    // Happening now rows are pressable cards named by their title, not grid rows.
     const happeningNow = await openHappeningNow(page);
     const inboxRow = happeningNow.getByRole('button', { name: new RegExp(workTitle, 'u') });
-    await expect(inboxRow).toBeVisible();
-    // No Run has reported yet, so the queued launch reads as its stage.
     await expect(inboxRow).toContainText('Starting');
-    await expect(inboxRow).toContainText('#all');
+    await expect(inboxRow).toContainText(seeded.taskKey);
     await expect(inboxRow).toContainText('Orbit');
+    await inboxRow.click();
+    await expect(page).toHaveURL(new RegExp(`/s/worker/tasks/${seeded.taskKey}$`, 'u'));
 
-    await page.goto(`/s/worker/tasks/${seeded.taskKey}`);
-    const transcriptCard = page
-        .locator(`[data-message-id="${seeded.messageId}"]`)
-        .getByTestId('worker-card');
-    await expect(transcriptCard).toContainText(workTitle);
-    await expect(transcriptCard).toContainText('Starting');
-    await expect(transcriptCard).not.toContainText('Queued');
-    await expect(transcriptCard).toContainText('haus/haus');
-    await expect(page.getByRole('button', { name: /— Worker actions$/u })).toHaveCount(0);
-    await expect(page.getByText('0 replies', { exact: true })).toHaveCount(0);
-    await expect(transcriptCard).not.toContainText('Delegated by');
-    const cardWidth = await transcriptCard.evaluate(
-        (element) => element.getBoundingClientRect().width
-    );
-    // It fills the shared in-chat column (`--chat-card-width`, 36rem), the
-    expect(cardWidth).toBeCloseTo(36 * 16, 0);
+    const workers = page.getByRole('grid', { name: 'Workers' });
+    const row = workers.getByTestId('worker-row');
+    await expect(row).toContainText(workTitle);
+    await expect(row).toContainText('Cursor');
+    await expect(row.getByRole('img', { name: 'Queued' })).toBeVisible();
+    await expect(page.getByTestId('worker-report-notice')).toHaveCount(0);
 
-    // A Computer reporting progress updates the same card in place, with no
-    // second Message: this is one record, not a transcript.
     const computer = new WebSocket(
         `ws://127.0.0.1:${process.env.HAUS_SERVER_PORT}/computer/attachment`
     );
@@ -68,57 +60,58 @@ test('Worker reads as one card in the Chat and the Inbox', async ({ page }, test
         workerObservationFrame({
             activity: 'Reading the failing migration.',
             observedAt: new Date().toISOString(),
-            turnId: seeded.turnId,
             status: 'running',
+            turnId: seeded.turnId,
             workerId: seeded.workerId,
         })
     );
-    await expect(transcriptCard).toContainText('Working');
-    await expect(transcriptCard.getByTestId('worker-status-line')).toContainText(
-        'Reading the failing migration.'
-    );
+    await expect(row.getByRole('img', { name: 'Working' })).toBeVisible();
 
+    const pullRequestUrl = 'https://github.com/haus/haus/pull/482';
     computer.send(
         workerObservationFrame({
             branches: [
                 {
                     branch: 'cursor/fix-migration',
-                    pullRequestUrl: 'https://github.com/haus/haus/pull/482',
-                    repository: 'haus/haus',
                     pullRequest: {
-                        number: 482,
-                        state: 'open',
                         additions: 18,
-                        deletions: 7,
                         changedFiles: 3,
+                        deletions: 7,
+                        number: 482,
                         observedAt: new Date().toISOString(),
+                        state: 'open',
                     },
+                    pullRequestUrl,
+                    repository: 'haus/haus',
                 },
             ],
             observedAt: new Date().toISOString(),
-            turnId: seeded.turnId,
+            result: {
+                outcome: 'done',
+                personHandle: null,
+                pullRequestUrls: [pullRequestUrl],
+                text: 'The migration passes now. I opened a pull request.',
+            },
             status: 'completed',
-            summary: 'Opened a pull request.',
+            turnId: seeded.turnId,
             workerId: seeded.workerId,
         })
     );
-    await expect(transcriptCard).toContainText('Done');
-    const pullRequest = transcriptCard.getByTestId('worker-pull-request');
-    await expect(pullRequest).toContainText('PR #482');
-    await expect(pullRequest).toContainText('Open · 3 files');
-    await expect(pullRequest).toContainText('+18');
-    await expect(pullRequest).toContainText('−7');
-    await expect(transcriptCard.getByRole('button', { name: 'View PR' })).toBeVisible();
-    await expect(transcriptCard.getByRole('button', { name: 'Open in Cursor' })).toBeVisible();
-    await expect(transcriptCard.getByText('Opened a pull request.')).toHaveCount(0);
-    await page.reload();
-    await expect(transcriptCard).toContainText('Done');
-    await expect(transcriptCard.getByTestId('worker-pull-request')).toContainText('3 files');
-    await page.screenshot({ path: testInfo.outputPath('worker-completed.png') });
+    await expect(row.getByRole('img', { name: 'Done' })).toBeVisible();
+    const notice = page.getByTestId('worker-report-notice');
+    await expect(notice).toContainText(`${workTitle}finished`);
+    await expect(page.getByText('The migration passes now. I opened a pull request.')).toHaveCount(
+        0
+    );
+    await expect(page.getByRole('grid', { name: 'Pull requests' })).toContainText('482');
 
-    // Settled work leaves "Happening now", which lists only live work.
+    await notice.getByRole('button', { name: workTitle }).click();
+    await expect(page).toHaveURL(new RegExp(`/s/worker/workers/${seeded.workerId}$`, 'u'));
+    await expect(
+        page.getByText('The migration passes now. I opened a pull request.')
+    ).toBeVisible();
+
     await page.goto('/s/worker/inbox');
-    await expect(page.getByRole('complementary', { name: 'Captain activity' })).toBeVisible();
     await expect(page.getByRole('button', { name: /running now$/u })).toHaveCount(0);
     computer.close();
 });

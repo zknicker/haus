@@ -27,7 +27,7 @@ const ids = { spare: '', team: '', zach: '' };
 const agents = { fallback: '', pinned: '' };
 
 beforeAll(async () => {
-    harness = await startHausServerHarness({ agentLoop: 'runner', runnerToken: testRunnerToken });
+    harness = await startHausServerHarness({ runnerToken: testRunnerToken });
     seed = await seedConnectionServer(harness, 'enabled');
     member = await addMember(harness, seed, 'user_enabled_member');
     ids.zach = (await addClaudeConnection(seed, 'Zach plan', 'sk-ant-oat01-zach-token')).id;

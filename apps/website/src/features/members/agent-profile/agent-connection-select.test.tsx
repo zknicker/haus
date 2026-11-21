@@ -56,11 +56,11 @@ test('a connections read that failed reads as an alert under the row title', () 
     );
 });
 
-function rowWithList(agentLoop: 'computer' | 'runner') {
+function rowWithList() {
     const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity } } });
     queryClient.setQueryData(
         getQueryKey(hausTrpc.modelConnections.list, { serverId: 'srv_1' }, 'query'),
-        { agentLoop, connections: [] }
+        { connections: [], runnerModels: null }
     );
     return renderWithTrpc(
         <MemoryRouter>
@@ -70,9 +70,8 @@ function rowWithList(agentLoop: 'computer' | 'runner') {
     );
 }
 
-test('a Captain on its Device has no Connection row or separator; on the runner it has both', () => {
-    expect(rowWithList('computer')).toBe('');
-    const runner = rowWithList('runner');
-    expect(runner).toContain('>Connection</span>');
-    expect(runner.match(/role="separator"/gu)?.length).toBe(1);
+test('a Captain has a Connection row with one separator', () => {
+    const row = rowWithList();
+    expect(row).toContain('>Connection</span>');
+    expect(row.match(/role="separator"/gu)?.length).toBe(1);
 });

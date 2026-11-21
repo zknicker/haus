@@ -2,7 +2,7 @@ import { afterAll, beforeAll, expect, test } from 'bun:test';
 import type { AgentCommand } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import { clearStartRejectedHolds } from '../src/agent-delivery/failure-hold.ts';
-import { settleTurn } from '../src/agent-delivery/settle-turn.ts';
+import { settleHostedTurn } from '../src/agent-delivery/settle-turn.ts';
 import { enqueueInboxItem } from '../src/agent-delivery/store.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentDeliveryTable, agentInboxTable } from '../src/postgres/schema.ts';
@@ -71,7 +71,7 @@ async function readRow(seed: Seed, dedupeKey: string) {
 
 test('a bad item beside a human message delivers the message and tells the Agent once', async () => {
     const seed = await seedAgent(connection.db);
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
     await queueUnrenderable(seed, 'msg_broken');
     const messageId = await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
 
@@ -79,8 +79,8 @@ test('a bad item beside a human message delivers the message and tells the Agent
     await finishTurn(delivery, seed, noteFrame);
 
     const ids =
-        transport
-            .framesOfType('start')
+        runner
+            .starts()
             .at(-1)
             ?.inbox.map((item) => item.id) ?? [];
     expect(ids).toContain(messageId);
@@ -110,37 +110,42 @@ test('a lone bad item wakes the Agent with its note', async () => {
 
 test('a rejected start sets the named item aside and resends the rest with no pause', async () => {
     const seed = await seedAgent(connection.db);
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
     const first = await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
     const second = await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
     const frame = await wake();
     expect(frame?.inbox.map((item) => item.id)).toContain(first);
 
-    await settleTurn(connection.db, delivery, seed.computerId, {
-        activity: { operations: [] },
-        agentId: seed.agentId,
-        endedAt: new Date().toISOString(),
-        failureCode: 'start-rejected',
-        failureKind: 'configuration',
-        messageCount: 0,
-        modelId: frame?.modelId ?? 'model',
-        outputProduced: false,
-        rejectedItems: [{ id: first, reason: 'The Computer could not read this inbox item.' }],
-        runId: frame?.runId ?? 'run',
-        runtimeId: frame?.runtimeId ?? 'runtime',
-        startedAt: new Date().toISOString(),
-        status: 'failed',
-        summary: 'Rejected.',
-        tokenUsage: null,
-        type: 'turn',
-        visibleMessages: [],
-    });
+    await settleHostedTurn(
+        connection.db,
+        delivery,
+        { kind: 'runner', machineId: seed.computerId },
+        {
+            activity: { operations: [] },
+            agentId: seed.agentId,
+            endedAt: new Date().toISOString(),
+            failureCode: 'start-rejected',
+            failureKind: 'configuration',
+            messageCount: 0,
+            modelId: frame?.modelId ?? 'model',
+            outputProduced: false,
+            rejectedItems: [{ id: first, reason: 'The Computer could not read this inbox item.' }],
+            runId: frame?.runId ?? 'run',
+            runtimeId: frame?.runtimeId ?? 'runtime',
+            startedAt: new Date().toISOString(),
+            status: 'failed',
+            summary: 'Rejected.',
+            tokenUsage: null,
+            type: 'turn',
+            visibleMessages: [],
+        }
+    );
 
     expect(await readDelivery(seed)).toMatchObject({ consecutiveFailures: 0, pausedAt: null });
-    await finishTurn(delivery, seed, transport.framesOfType('start').at(-1));
+    await finishTurn(delivery, seed, runner.starts().at(-1));
     const ids =
-        transport
-            .framesOfType('start')
+        runner
+            .starts()
             .at(-1)
             ?.inbox.map((item) => item.id) ?? [];
     expect(ids).toContain(second);

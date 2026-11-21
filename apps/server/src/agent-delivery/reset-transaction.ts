@@ -16,7 +16,7 @@ import { recordSessionRotation } from './session-rotation.ts';
 import * as store from './store.ts';
 import { retireQueuedSubagentWakes } from './subagent-wake-request.ts';
 
-export type AgentResetRequest = { agentId: string; serverId: string } & (
+export type AgentResetRequest = { agentId: string; reason?: 'runner'; serverId: string } & (
     | { kind: 'session' }
     | { kind: 'full'; resetBy: string }
 );
@@ -80,7 +80,7 @@ export async function resetInTransaction(db: HausDatabase, input: AgentResetRequ
         await recordSessionRotation(tx, {
             agentId: input.agentId,
             generation: rotated.sessionGeneration,
-            reason: input.kind,
+            reason: input.reason ?? input.kind,
             serverId: input.serverId,
         });
         return {
