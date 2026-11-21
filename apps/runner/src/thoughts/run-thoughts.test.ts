@@ -67,7 +67,7 @@ describe('run thoughts', () => {
         const run = harness();
         const toolUse = {
             id: 'toolu_1',
-            input: { command: "curl -fsS 'https://api.open-meteo.com/v1/forecast?lat=41.8'" },
+            input: { command: 'bun test --bail' },
             name: 'mcp__haus__bash',
             type: 'tool_use',
         };
@@ -79,7 +79,7 @@ describe('run thoughts', () => {
             }),
             streamEvent({
                 delta: {
-                    thinking: 'I should pull the weekend forecast for Chicago before answering.',
+                    thinking: 'I should run the test suite before answering about the release.',
                     type: 'thinking_delta',
                 },
                 index: 0,
@@ -91,7 +91,7 @@ describe('run thoughts', () => {
                 message: {
                     content: [
                         {
-                            content: [{ text: 'Saturday: rain likely, high 58F.', type: 'text' }],
+                            content: [{ text: '128 pass, 0 fail across 14 files.', type: 'text' }],
                             tool_use_id: 'toolu_1',
                             type: 'tool_result',
                         },
@@ -107,16 +107,16 @@ describe('run thoughts', () => {
                 agentId: 'agt_1',
                 at: '2026-11-20T12:00:00.000Z',
                 kind: 'reasoning',
-                reasoning: 'I should pull the weekend forecast for Chicago before answering.',
+                reasoning: 'I should run the test suite before answering about the release.',
                 runId: 'run_1',
                 type: 'agent-thought',
             },
             {
-                action: 'curl -fsS api.open-meteo.com/v1/forecast',
+                action: 'bun test --bail',
                 agentId: 'agt_1',
                 at: '2026-11-20T12:00:04.000Z',
                 kind: 'action',
-                result: 'Saturday: rain likely, high 58F.',
+                result: '128 pass, 0 fail across 14 files.',
                 runId: 'run_1',
                 type: 'agent-thought',
             },
@@ -175,11 +175,17 @@ describe('run thoughts', () => {
         run.feed(result('h1', 'bash', 'You have 2 new messages from the launch channel.'));
         run.feed(call('c1', 'bash', { command: 'cat notes.txt' }));
         run.feed(result('c1', 'bash', 'Private launch notes that stay on the machine.'));
+        run.feed(call('l1', 'bash', { command: 'curl http://localhost:8000/payroll.json' }));
+        run.feed(result('l1', 'bash', 'Ada Lovelace salary 180000, Grace Hopper salary 190000'));
+        run.feed(call('w1', 'WebFetch', { url: 'https://example.com/team' }));
+        run.feed(result('w1', 'WebFetch', 'The team page lists every member and their roles.'));
         run.feed(call('f1', 'bash', { command: 'curl https://wttr.in/Chicago' }));
         run.feed({ error: 'exit 7', toolCallId: 'f1', toolName: 'bash', type: 'tool-error' });
         run.feed({ ...call('i1', 'bash', { command: 'curl example.com' }), invalid: true });
         expect(run.frames.map((frame) => frame.kind === 'action' && frame)).toEqual([
             expect.objectContaining({ action: 'cat notes.txt' }),
+            expect.objectContaining({ action: 'curl localhost/payroll.json' }),
+            expect.objectContaining({ action: 'browse example.com/team' }),
             expect.objectContaining({ action: 'curl wttr.in/Chicago' }),
         ]);
         expect(run.frames.some((frame) => frame.kind === 'action' && frame.result)).toBe(false);
@@ -209,8 +215,8 @@ describe('run thoughts', () => {
         );
         run.feed(call('k1', 'bash', { command: `curl https://api.example.com/v1/${knownSecret}` }));
         run.feed(
-            call('k2', 'bash', { command: 'curl -fsS https://api.example.com/v1/status' }),
-            result('k2', 'bash', `status ok, deploy key is k3y-material, runner ${knownSecret}`)
+            call('k2', 'bash', { command: 'bun test' }),
+            result('k2', 'bash', `12 pass, deploy key is k3y-material, runner ${knownSecret}`)
         );
         const sent = JSON.stringify(run.frames);
         for (const secret of ['hunter2', 's3cr3t-staging', knownSecret, 'k3y-material']) {

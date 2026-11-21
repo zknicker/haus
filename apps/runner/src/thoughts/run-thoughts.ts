@@ -47,13 +47,7 @@ export function createRunThoughts(input: {
                     const classification = classifyToolCall(event);
                     findings.started(
                         event.toolCallId,
-                        {
-                            category:
-                                classification.outcome === 'activity'
-                                    ? classification.category
-                                    : null,
-                            input: event.input,
-                        },
+                        { input: event.input, toolName: event.toolName },
                         describeRunnerToolAction(event, classification)
                     );
                     return;
