@@ -45,6 +45,8 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await expect(createDialog.getByLabel('Runtime')).toContainText('Codex');
     await expect(createDialog.getByLabel('Model')).toContainText('GPT-5.6 Sol');
     await createDialog.getByRole('textbox', { name: 'Name' }).fill('Scout');
+    await createDialog.getByRole('group').filter({ hasText: 'Select a project' }).click();
+    await page.getByRole('option', { name: /product/u }).click();
     // The signature emoji is optional at creation and starts on the 👀 default.
     await createDialog.getByRole('button', { name: '👀 Signature emoji' }).click();
     await page.getByRole('option', { name: '🎉', exact: true }).click();
@@ -122,20 +124,18 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await expect(page.getByRole('link', { exact: true, name: 'Scout' })).toBeVisible();
     await expect(page.getByText('Applies when device reconnects')).toBeVisible();
     await page.getByRole('button', { name: 'Edit', exact: true }).click();
-    const runtimeDialog = page.getByRole('dialog', { name: 'Runtime Config' });
-    await expect(runtimeDialog.getByLabel('Reasoning effort')).toContainText('Medium');
-    await runtimeDialog.getByLabel('Model').click();
-    await page.getByRole('option', { name: 'GPT-5.6 Terra' }).click();
-    await runtimeDialog.getByLabel('Reasoning effort').click();
-    await page.getByRole('option', { name: 'Max', exact: true }).click();
-    await runtimeDialog.getByRole('button', { name: 'Save' }).click();
-    await expect(runtimeDialog).toBeHidden();
-    await expect(page.getByText('GPT-5.6 Terra', { exact: true })).toBeVisible();
-    await expect(page.getByText('Max', { exact: true })).toBeVisible();
-    // The section is in the URL, so a reload comes back to Runs on rather than the hub.
-    await page.reload();
-    await expect(page.getByText('GPT-5.6 Terra', { exact: true })).toBeVisible();
-    await expect(page.getByText('Max', { exact: true })).toBeVisible();
+    // The runner's catalog is the only model list. Saving needs the provider's login in
+    // Settings → Models, which this lane never holds, so every model points there instead.
+    const modelDialog = page.getByRole('dialog', { name: 'Model' });
+    await expect(modelDialog.getByRole('group', { name: 'Reasoning' })).toContainText('Medium');
+    await modelDialog.getByRole('group').filter({ hasText: 'GPT-5.6 Sol' }).click();
+    const terra = page.getByRole('option', { name: /GPT-5\.6 Terra/u });
+    await expect(terra).toContainText('Connect in Settings → Models');
+    await expect(terra).toBeDisabled();
+    await page.keyboard.press('Escape');
+    await expect(modelDialog.getByRole('button', { name: 'Save' })).toBeDisabled();
+    await modelDialog.getByRole('button', { name: 'Cancel' }).click();
+    await expect(page.getByRole('heading', { level: 2, name: 'Model' })).toBeHidden();
 
     // Deletion requires the exact Agent name. Cancel leaves this isolated
     // e2e Agent intact for the adjacent DM and contract assertions.
@@ -167,7 +167,7 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
             runtimeId: 'codex',
             serverId: attachment.serverId,
         })
-    ).rejects.toThrow(/does not report the model/iu);
+    ).rejects.toThrow(/does not offer the model/iu);
 });
 
 function reportInventory() {

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { computerProtocolVersion } from '@haus/api';
 import { bootstrapHausDatabase } from '../../server/src/postgres/bootstrap.ts';
 import { startPostgresCluster } from '../../server/test/postgres-cluster.ts';
+import { e2eRunnerToken, reportRunnerCatalog } from './support/runner-catalog.ts';
 import { type ServerState, serverStateFile } from './support/server-state.ts';
 
 /**
@@ -58,6 +59,7 @@ const serverEnv = {
     HAUS_ATTACHMENT_ROOT: attachmentRoot,
     HAUS_COMPUTER_RELEASE_MANIFEST_URL: `http://127.0.0.1:${computerReleaseServer.port}/latest.json`,
     HAUS_DATABASE_URL: cluster.databaseUrl,
+    HAUS_RUNNER_TOKEN: e2eRunnerToken,
     NODE_ENV: 'test',
 };
 const serverPort = process.env.HAUS_SERVER_PORT ?? '8091';
@@ -70,6 +72,7 @@ let generation = 0;
 let restarting: Promise<void> | null = null;
 let shuttingDown = false;
 await waitForHealthy(server);
+await reportRunnerCatalog(serverPort);
 writeServerState();
 void watchServer(server);
 
@@ -103,6 +106,7 @@ async function restartServer() {
     await server.exited;
     server = spawnServer();
     await waitForHealthy(server);
+    await reportRunnerCatalog(serverPort);
     generation += 1;
     writeServerState();
     void watchServer(server);
