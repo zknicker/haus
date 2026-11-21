@@ -164,7 +164,7 @@ async function scanSources() {
         staticRuntime: {},
     };
     const reports: FileReport[] = [];
-    for (const root of ['apps/computer/src', 'apps/server/src', 'packages/execution-journal/src']) {
+    for (const root of ['apps/computer/src', 'apps/server/src']) {
         const glob = new Bun.Glob('**/*.ts');
         for await (const relativePath of glob.scan({ cwd: root })) {
             if (relativePath.endsWith('.test.ts')) {

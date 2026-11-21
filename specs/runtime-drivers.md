@@ -1017,9 +1017,8 @@ that still does attaches update-required. The Computer report carries `agents: [
 longer sends `haus-agent-report`, since nothing on the machine owns Agent state.
 The Computer keeps `agent-skill-import`, `agent-skill-file-request`, and
 `agent-workspace-request`, which read an Agent's directory on that machine. D3 retires them where Drive replaces them. The
-execution journal and its uploader live in `packages/execution-journal`, which the runner
-imports. The Computer keeps `execution-journal-outline.ts`, which the runner passes to the
-uploader, until the activity helpers it uses leave the Computer.
+execution journal, its outline, and its uploader live in the runner
+(`apps/runner/src/journal/execution-journal/`); the Computer no longer writes or uploads journals.
 
 **Computer protocol 46 (C1).** `invoke` gains the `desktop` operation
 ([Computer use](computer-use.md)), so a Computer that cannot run agent-desktop commands attaches

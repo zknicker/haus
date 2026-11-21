@@ -10,8 +10,6 @@ export const ownedPrefixes = {
         'apps/server/launchd/',
         'apps/server/compose.yml',
         'apps/runner/',
-        'packages/execution-journal/src/',
-        'packages/execution-journal/package.json',
         'apps/website/src/',
         'apps/website/public/',
         'packages/agent-manual/src/',
