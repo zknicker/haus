@@ -21,17 +21,6 @@
         }
     },
     "lifecycleCandidates": {
-        "apps/computer/src/artifacts/cache.ts": {
-            "disposition": "finite-cleanup",
-            "reason": "The finite verified download closes its file handle in lexical finally before returning a cached path. Persistent cache leases are domain records, recovered by process liveness, rather than background resources.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 0,
-                "finallyBlock": 1,
-                "manualPromise": 0,
-                "timer": 0
-            }
-        },
         "apps/computer/src/browser/linux-chrome-detection.ts": {
             "disposition": "finite-cleanup",
             "reason": "Detection awaits each bounded --version probe and closes the ELF header file descriptor in lexical finally; it owns no detached work.",
@@ -197,17 +186,6 @@
                 "timer": 0
             }
         },
-        "apps/computer/src/drive/drive-launch.fixture.ts": {
-            "disposition": "test-support",
-            "reason": "The Drive launch fixture holds one push put open on a promise the test releases, so a test can reset mid-push without sleeping; its server and data root close in the test's afterEach.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 0,
-                "finallyBlock": 0,
-                "manualPromise": 2,
-                "timer": 0
-            }
-        },
         "apps/computer/src/workers/worker-supervisor.fixture.ts": {
             "disposition": "test-support",
             "reason": "The supervisor test fixture resolves a waiter when a matching frame is sent, so tests await an event instead of polling; every supervisor and runtime it makes closes in the registered afterEach.",
@@ -263,28 +241,6 @@
                 "timer": 0
             }
         },
-        "apps/computer/src/agent-turn-timings.ts": {
-            "disposition": "finite-cleanup",
-            "reason": "A request-local measurement records elapsed time in finally around an awaited native call; it owns no timer, process, or concurrent work.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 0,
-                "finallyBlock": 1,
-                "manualPromise": 0,
-                "timer": 0
-            }
-        },
-        "apps/computer/src/agent-work-coordinator.ts": {
-            "disposition": "effect-owned",
-            "reason": "The daemon runtime owns keyed configuration ordering and active-run cancellation through Effect coordination.",
-            "risks": {
-                "abortController": 3,
-                "catchAndIgnore": 0,
-                "finallyBlock": 0,
-                "manualPromise": 0,
-                "timer": 0
-            }
-        },
         "apps/computer/src/attachment-state.ts": {
             "disposition": "finite-cleanup",
             "reason": "A finite atomic filesystem transaction removes its temporary file and lock before returning.",
@@ -318,46 +274,13 @@
                 "timer": 0
             }
         },
-        "apps/computer/src/harness/executor.ts": {
-            "disposition": "effect-owned",
-            "reason": "The daemon runtime owns turn streaming and final cleanup across the foreign runtime-driver boundary; turn-notices.ts owns notice delivery. One turn-local controller lets the no-progress deadline interrupt through the same abort path as Stop.",
-            "risks": {
-                "abortController": 1,
-                "catchAndIgnore": 2,
-                "finallyBlock": 2,
-                "manualPromise": 0,
-                "timer": 0
-            }
-        },
-        "apps/computer/src/harness/thought-narrator.ts": {
-            "disposition": "finite-cleanup",
-            "reason": "Each run holds at most one pending thought timer, which fires once or is cancelled when the run's narrator closes.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 0,
-                "finallyBlock": 0,
-                "manualPromise": 0,
-                "timer": 2
-            }
-        },
-        "apps/computer/src/inbox-store-io.ts": {
-            "disposition": "finite-cleanup",
-            "reason": "Each inbox mutation is one finite atomic filesystem transaction whose lock and temporary file cannot outlive the call.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 0,
-                "finallyBlock": 1,
-                "manualPromise": 0,
-                "timer": 0
-            }
-        },
         "apps/computer/src/index.ts": {
             "disposition": "external-adapter",
             "reason": "The Computer composition root bridges WebSocket closure, atomic attachment writes, and the terminal restart timer to owned services.",
             "risks": {
-                "abortController": 1,
+                "abortController": 0,
                 "catchAndIgnore": 0,
-                "finallyBlock": 2,
+                "finallyBlock": 1,
                 "manualPromise": 1,
                 "timer": 0
             }
@@ -494,28 +417,6 @@
                 "timer": 0
             }
         },
-        "apps/computer/src/launch-drive.ts": {
-            "disposition": "finite-cleanup",
-            "reason": "A failed Drive preparation releases the run's scoped runner authority before the turn reports; a revoke that fails is left to the Server's run-end revocation, as in launch.ts.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 1,
-                "finallyBlock": 0,
-                "manualPromise": 0,
-                "timer": 0
-            }
-        },
-        "apps/computer/src/launch.ts": {
-            "disposition": "finite-cleanup",
-            "reason": "The daemon traces and cancels the turn; this adapter releases its scoped runner authority and proxy sinks before returning.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 1,
-                "finallyBlock": 2,
-                "manualPromise": 0,
-                "timer": 0
-            }
-        },
         "apps/computer/src/login.ts": {
             "disposition": "finite-cleanup",
             "reason": "The awaited login command removes its TTY listener and temporary credential file before returning.",
@@ -525,17 +426,6 @@
                 "finallyBlock": 2,
                 "manualPromise": 0,
                 "timer": 0
-            }
-        },
-        "apps/computer/src/proxy-support.ts": {
-            "disposition": "external-adapter",
-            "reason": "Launch resources own the loopback server; its Promise and timer form a bounded best-effort HTTP attestation deadline.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 0,
-                "finallyBlock": 0,
-                "manualPromise": 1,
-                "timer": 1
             }
         },
         "apps/computer/src/reminder-script-execution.ts": {
@@ -568,17 +458,6 @@
                 "catchAndIgnore": 0,
                 "finallyBlock": 0,
                 "manualPromise": 1,
-                "timer": 0
-            }
-        },
-        "apps/computer/src/turn-ledger.ts": {
-            "disposition": "finite-cleanup",
-            "reason": "Best-effort ledger writes are one finite atomic file replace each; a failed write removes its temporary file and costs only relaunch resume accuracy.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 2,
-                "finallyBlock": 0,
-                "manualPromise": 0,
                 "timer": 0
             }
         },
@@ -923,17 +802,6 @@
                 "timer": 1
             }
         },
-        "apps/computer/src/server-mcp-client.ts": {
-            "disposition": "external-adapter",
-            "reason": "Finite fetch and body-reader adapter. The turn signal triggers a bounded explicit cancellation request; network failure leaves Server deadlines authoritative.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 1,
-                "finallyBlock": 1,
-                "manualPromise": 0,
-                "timer": 0
-            }
-        },
         "apps/server/src/agent-api/mcp-routes.ts": {
             "disposition": "finite-cleanup",
             "reason": "Each authenticated HTTP handler releases its cancellation registry entry in finally; the existing MCP runtime owns upstream interruption.",
@@ -967,17 +835,6 @@
                 "timer": 0
             }
         },
-        "apps/computer/src/mcp-response.ts": {
-            "disposition": "finite-cleanup",
-            "reason": "Bounded MCP response reader cancels and releases the stream reader on success, overflow, and parsing failure.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 0,
-                "finallyBlock": 1,
-                "manualPromise": 0,
-                "timer": 0
-            }
-        },
         "apps/computer/src/runtime-issues.ts": {
             "disposition": "finite-cleanup",
             "reason": "Finite atomic runtime observation writes serialize per file and release the queue entry after settlement; failures propagate to the caller.",
@@ -991,11 +848,11 @@
         },
         "apps/computer/src/attachment-daemon-work.ts": {
             "disposition": "effect-owned",
-            "reason": "The attachment runtime bounds accepted work and session checkpoints with an Effect deadline; nested finally blocks then close the runtime context (warm processes, host-tool server) and reap every owned sandbox process before releasing routing.",
+            "reason": "The attachment runtime bounds accepted Worker work with an Effect deadline; the finally block then releases routing.",
             "risks": {
                 "abortController": 0,
                 "catchAndIgnore": 0,
-                "finallyBlock": 3,
+                "finallyBlock": 1,
                 "manualPromise": 0,
                 "timer": 0
             }
@@ -1011,28 +868,6 @@
                 "timer": 3
             }
         },
-        "apps/computer/src/harness/session-lifecycle.ts": {
-            "disposition": "external-adapter",
-            "reason": "Finite runtime-driver detach and stop calls share a checkpoint with the turn writer. The attachment runtime owns shutdown admission, cancellation, deadline, and process reaping.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 0,
-                "finallyBlock": 0,
-                "manualPromise": 1,
-                "timer": 0
-            }
-        },
-        "apps/computer/src/harness/session-start.ts": {
-            "disposition": "external-adapter",
-            "reason": "runHarnessStart owns the start gate, deadline, and abort; a session the foreign adapter returns after the start was abandoned is destroyed best-effort because nothing else will own it.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 1,
-                "finallyBlock": 0,
-                "manualPromise": 0,
-                "timer": 0
-            }
-        },
         "apps/computer/src/harness/stopped-turn.ts": {
             "disposition": "external-adapter",
             "reason": "Bounds a runtime driver turn's settle with one deadline timer that the finally block always clears; the executor owns the turn and fails it when the deadline wins.",
@@ -1042,17 +877,6 @@
                 "finallyBlock": 1,
                 "manualPromise": 1,
                 "timer": 2
-            }
-        },
-        "apps/computer/src/harness/stored-notice.ts": {
-            "disposition": "external-adapter",
-            "reason": "The executor owns this finite foreign notice-delivery queue and always closes it when the turn settles; unresolved callback Promises are settled on close. A returned notice's temporary file is removed in finally whether or not its link won.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 0,
-                "finallyBlock": 2,
-                "manualPromise": 1,
-                "timer": 0
             }
         },
         "apps/server/src/server-agents/agent-thought.ts": {
@@ -1154,39 +978,6 @@
                 "timer": 0
             }
         },
-        "apps/computer/src/proxy-runner-hold.ts": {
-            "disposition": "finite-cleanup",
-            "reason": "Holds Agent requests between turns until a wake run's runner arrives: each waiter's Promise resolves on release or on its own bounded timer, which it clears; proxy close releases every waiter.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 0,
-                "finallyBlock": 0,
-                "manualPromise": 1,
-                "timer": 1
-            }
-        },
-        "apps/computer/src/harness/turn-notices.ts": {
-            "disposition": "finite-cleanup",
-            "reason": "One resolver per turn says the stored notice reached delivery; the executor always awaits close(), which unregisters the notice sink, closes the coordinator, and awaits the stored delivery and every steer still in flight.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 0,
-                "finallyBlock": 0,
-                "manualPromise": 1,
-                "timer": 0
-            }
-        },
-        "apps/computer/src/runtime/runtime-context.ts": {
-            "disposition": "finite-cleanup",
-            "reason": "The attachment daemon opens one context and closes it at shutdown; close ends every warm process and stops the host-tool server in finally, so a failed process close never leaves the server bound. An eviction marks its Agent root as a deliberate end and clears the mark in finally.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 0,
-                "finallyBlock": 2,
-                "manualPromise": 0,
-                "timer": 0
-            }
-        },
         "apps/computer/src/runtime/process-group.ts": {
             "disposition": "external-adapter",
             "reason": "Ends a foreign runtime child's whole process group: SIGTERM then SIGKILL grace periods whose timers clear in finally, a bounded liveness poll, and a registry entry held until no member is left; a failed termination resets so Computer shutdown retries it.",
@@ -1262,17 +1053,6 @@
                 "finallyBlock": 0,
                 "manualPromise": 0,
                 "timer": 2
-            }
-        },
-        "apps/computer/src/runtime/claude-code/fixtures/idle-compaction-live.ts": {
-            "disposition": "finite-cleanup",
-            "reason": "Live-test harness: one manual promise resolved by the warm pool's idle compaction report or failure hook; the caller's close() ends the pool and host-tool server in its own finally. Each live turn takes a fresh AbortController it never aborts.",
-            "risks": {
-                "abortController": 1,
-                "catchAndIgnore": 0,
-                "finallyBlock": 0,
-                "manualPromise": 1,
-                "timer": 0
             }
         },
         "apps/computer/src/runtime/claude-code/claude-connection.ts": {
@@ -1352,17 +1132,6 @@
                 "timer": 0
             }
         },
-        "apps/computer/src/runtime/claude-code/fixtures/capture.ts": {
-            "disposition": "test-support",
-            "reason": "Fixture capture script run by hand against the real CLI; its exit promise and step timeout live only for one scripted capture.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 0,
-                "finallyBlock": 0,
-                "manualPromise": 2,
-                "timer": 1
-            }
-        },
         "apps/computer/src/runtime/claude-code/fixtures/fake-driver.ts": {
             "disposition": "test-support",
             "reason": "Test harness for the Claude Code driver over a stand-in CLI; the controller only builds a never-aborted signal for test opens.",
@@ -1412,17 +1181,6 @@
             "reason": "Opens one foreign app-server per session; the handshake deadline clears in finally, and a failed open releases the process and its host-tool scope before rethrowing.",
             "risks": {
                 "abortController": 0,
-                "catchAndIgnore": 0,
-                "finallyBlock": 1,
-                "manualPromise": 0,
-                "timer": 0
-            }
-        },
-        "apps/computer/src/runtime/codex/fixtures/capture-fixtures.ts": {
-            "disposition": "test-support",
-            "reason": "Fixture capture script run by hand against the pinned Codex; it aborts scripted turns and tears its scratch root down in finally.",
-            "risks": {
-                "abortController": 1,
                 "catchAndIgnore": 0,
                 "finallyBlock": 1,
                 "manualPromise": 0,
@@ -1506,61 +1264,6 @@
                 "timer": 1
             }
         },
-        "apps/computer/src/runtime/grok/fixtures/capture.ts": {
-            "disposition": "test-support",
-            "reason": "Fixture capture script run by hand against the installed grok; scripted cancels use their own controllers and one delay timer per scenario.",
-            "risks": {
-                "abortController": 4,
-                "catchAndIgnore": 0,
-                "finallyBlock": 0,
-                "manualPromise": 0,
-                "timer": 1
-            }
-        },
-        "apps/computer/src/runtime/grok/fixtures/fake-grok.ts": {
-            "disposition": "test-support",
-            "reason": "In-memory Grok for session tests; its never-settling exit promise stands for a process that outlives the test.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 0,
-                "finallyBlock": 0,
-                "manualPromise": 1,
-                "timer": 0
-            }
-        },
-        "apps/computer/src/runtime/grok/grok-live.ts": {
-            "disposition": "external-adapter",
-            "reason": "Launching Grok terminates the child on abort; that memoized termination's failure is reported by the launch failure path that awaits it, and finally removes the abort listener.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 1,
-                "finallyBlock": 1,
-                "manualPromise": 0,
-                "timer": 0
-            }
-        },
-        "apps/computer/src/runtime/grok/grok-process.ts": {
-            "disposition": "external-adapter",
-            "reason": "The foreign grok child's exit promise settles on close or spawn error; a failed write waits a grace period whose timer clears in finally, and its process group is owned by process-group.ts until no member is left.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 0,
-                "finallyBlock": 1,
-                "manualPromise": 3,
-                "timer": 2
-            }
-        },
-        "apps/computer/src/runtime/grok/grok-turn.ts": {
-            "disposition": "external-adapter",
-            "reason": "One session/prompt: its started and settled resolvers resolve at the prompt response. A session/cancel that cannot be written is dropped because the closed connection fails the prompt request itself.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 1,
-                "finallyBlock": 0,
-                "manualPromise": 2,
-                "timer": 0
-            }
-        },
         "apps/computer/src/drive/pull.ts": {
             "disposition": "finite-cleanup",
             "reason": "A pull restores read-only folder modes in its finally block whether or not every change applied.",
@@ -1583,13 +1286,24 @@
                 "timer": 0
             }
         },
+        "apps/computer/src/agent-reset-frames.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A full reset holds the Agent's Drive pushes and its resetting mark only while it clears the folder, and lexical finally resumes both; the frame handler hands the one reset promise to the daemon's tracked writers.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
         "apps/computer/src/drive/turn-sync.ts": {
             "disposition": "finite-cleanup",
-            "reason": "The post-turn push revokes the runner credential it minted once the push ends, and the per-folder queue drops its settled turn; a failed revoke leaves a credential that expires on its own. Each push owns one AbortController a full reset aborts, removed in the push's finally.",
+            "reason": "A Drive sync revokes the run credential it minted once it ends, and the per-folder queue drops its settled turn; a failed revoke leaves a credential that expires on its own.",
             "risks": {
-                "abortController": 2,
-                "catchAndIgnore": 1,
-                "finallyBlock": 3,
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
                 "manualPromise": 0,
                 "timer": 0
             }

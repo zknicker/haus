@@ -1,5 +1,3 @@
-import type { AgentEffectiveState } from '@haus/api';
-import { type EffectiveAgentState, readEffectiveAgentStates } from './effective-state.ts';
 import {
     listAgentSkillImportReports,
     listAgentSkillReports,
@@ -37,9 +35,8 @@ export async function sendEffectiveComputerReport({
     computerName: string;
     dataRoot: string;
 }) {
-    const agents = await readEffectiveAgentStates(dataRoot, serverId);
     send({
-        agents: agents.map(toReportedAgentState),
+        agents: [],
         inventory: {
             ...(await detectFullInventory({
                 dataRoot,
@@ -59,27 +56,6 @@ export async function sendEffectiveComputerReport({
         },
         type: 'report',
     });
-    send({
-        agents: agents.map(
-            ({ agentId, hausAgentAppliedAt, hausAgentStatus, hausAgentVersion }) => ({
-                agentId,
-                appliedAt: hausAgentAppliedAt,
-                status: hausAgentStatus,
-                version: hausAgentVersion,
-            })
-        ),
-        type: 'haus-agent-report',
-    });
-}
-
-export function toReportedAgentState({
-    agentId,
-    missingResources,
-    modelId,
-    reasoningEffort,
-    runtimeId,
-}: EffectiveAgentState): AgentEffectiveState {
-    return { agentId, missingResources, modelId, reasoningEffort, runtimeId };
 }
 
 export function reportStateError(error: unknown) {

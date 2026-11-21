@@ -42,7 +42,9 @@ inside `drive/` is Haus bookkeeping. A `drive.json` whose `drive/` folder is gon
 reset that clears the workspace, is replaced with empty bookkeeping the moment the Computer sees it,
 so a folder that reappears never pushes deletes from stale records. A file name in decomposed
 Unicode is renamed to its NFC form, the form Drive paths take.
-`apps/computer/src/drive/` owns the folder.
+`apps/computer/src/drive/` owns the folder on a Computer. A runner-hosted Agent works in Drive
+through the runner, and the Computer syncs a machine folder for invocations and Workers
+([Drive folder](runtime-drivers.md#drive-folder)).
 
 The Agent uses `ls`, `cat`, `rg`, its edit tool, `mv`, and `rm`. There are no sync commands. D4
 deletes `haus files pull` and `haus files push`, with their `.haus-artifacts.json` manifests and
@@ -158,11 +160,13 @@ Edits that a failed push left on the old machine stay there.
 
 ## Before the runner
 
-Until the runner ships (R3 and R4), an Agent's loop runs on its Computer. The Computer finishes the
-pull before the turn starts, then composes the instructions and delivers `MEMORY.md` (D3) and
-the rule layers `haus/AGENTS.md` and `agents/<handle>/AGENTS.md` (D6) from the folder. That is one `drive.changes` round trip, and it is usually empty.
+This section is history. Every Agent now runs on the runner, which composes instructions and
+delivers `MEMORY.md` and the rule layers `haus/AGENTS.md` and `agents/<handle>/AGENTS.md` from
+Drive ([Runtime drivers](runtime-drivers.md)). The Computer's launch no longer pulls, composes, or
+migrates. It answers `drive-pull` and `drive-push` frames and clears the folder on a full reset. What
+follows is the migration the Computer ran at launch before R4d-4.
 
-D3 runs first at launch: it moves a legacy workspace into the Agent's area, or seeds a fresh one
+D3 ran first at launch: it moved a legacy workspace into the Agent's area, or seeds a fresh one
 ([workspace](workspace.md#migration)), and places those files in the folder with no record in
 `runtime/drive.json`. Pull step 3 adopts them: a local file with no record whose bytes equal the
 incoming revision is recorded as that revision, so the first pull downloads nothing it placed.
@@ -221,8 +225,8 @@ D2 and D4 add these guards.
 | A pull updates unedited files, keeps edited ones, and a pull that fails midway leaves a folder that pushes correctly | `apps/computer/src/drive/pull.test.ts` |
 | A push applies every outcome to the folder, and a refused file does not repeat | `apps/computer/src/drive/push.test.ts` |
 | Two folders editing one file merge different lines and keep both versions of the same line | `apps/computer/src/drive/two-writers.test.ts` |
-| A launch pulls before the turn and pushes the turn's edits under its run id | `apps/computer/src/drive/turn-sync.test.ts` |
-| A turn a full reset interrupts pushes nothing back over the reset, and a push in flight is aborted and drained first | `apps/computer/src/drive/turn-sync.test.ts` |
+| `drive-pull` and `drive-push` frames sync the Agent folder under a run credential the Computer mints | `apps/computer/src/drive/drive-sync-frames.test.ts` |
+| A push for a folder a full reset discarded sends nothing | `apps/computer/src/drive/drive-sync-frames.test.ts` |
 | Full reset deletes the Agent's area, restorable from Recently deleted, and session reset leaves it | `apps/server/test/agent-full-reset-drive.test.ts` |
 | Two Computer folders sync through the real Server routes: create, pull, merge, kept-both, refused | `apps/server/test/drive-folder-sync.test.ts` |
-| A start frame's `driveConflict` renders as the whole turn input | `apps/computer/src/harness/drive-conflict-turn.test.ts` |
+| A start frame's `driveConflict` renders as the whole turn input | `apps/runner/src/turn/turn-input.test.ts` |
