@@ -89,3 +89,27 @@ test('Projects walk in the order they were dragged to since the sidebar mounted'
     });
     expect(reordered.map((row) => row.href)).toEqual(['/s/dev/chats/sec', '/s/dev/chats/eng']);
 });
+
+test('the team room sits in the walk between the Captains and the Projects', () => {
+    const withAll = [chat({ id: 'all', isAll: true, kind: 'channel', unreadCount: 3 }), ...chats];
+    const walk = walkRows({
+        channelOrder: [],
+        chats: withAll,
+        previews: [],
+        sections: buildCapySidebar({
+            agentIds: ['forge'],
+            chats: withAll,
+            openTasks: [],
+            unreadPreviews: [],
+            viewerUserId: 'zach',
+        }),
+        slug: 'dev',
+    });
+    expect(walk.map((row) => row.href)).toEqual([
+        '/s/dev/chats/dm-forge',
+        '/s/dev/chats/all',
+        '/s/dev/chats/eng',
+        '/s/dev/chats/sec',
+        '/s/dev/chats/dm-ada',
+    ]);
+});

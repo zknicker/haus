@@ -13,6 +13,7 @@ export interface CapySidebarLayout {
     openTasks: readonly OpenTaskSlot[];
     personChatIds: readonly string[];
     projectIds: readonly string[];
+    teamRoomId: string | null;
 }
 
 export type CapySidebarSection =
@@ -21,6 +22,7 @@ export type CapySidebarSection =
           agentIds: readonly string[];
           kind: 'captains';
       }
+    | { chatId: string; kind: 'team-room' }
     | { chatIds: readonly string[]; kind: 'projects' }
     | { kind: 'open-tasks'; tasks: readonly OpenTaskSlot[] }
     | { chatIds: readonly string[]; kind: 'people' };
@@ -43,12 +45,14 @@ export function buildCapySidebar(sources: CapySidebarSources) {
         ),
         personChatIds: personChatIds(sources.chats),
         projectIds: projectIds(sources.chats),
+        teamRoomId: teamRoomId(sources.chats),
     });
 }
 
 export function capySidebarSections(layout: CapySidebarLayout) {
     const sections: CapySidebarSection[] = [
         { agentDmChatIds: layout.agentDmChatIds, agentIds: layout.agentIds, kind: 'captains' },
+        ...(layout.teamRoomId ? [{ chatId: layout.teamRoomId, kind: 'team-room' as const }] : []),
         { chatIds: layout.projectIds, kind: 'projects' },
         ...(layout.openTasks.length > 0
             ? [{ kind: 'open-tasks' as const, tasks: layout.openTasks }]
@@ -61,7 +65,11 @@ export function capySidebarSections(layout: CapySidebarLayout) {
 }
 
 export function projectIds(chats: readonly Chat[]) {
-    return chats.filter((chat) => chat.kind === 'channel').map((chat) => chat.id);
+    return chats.filter((chat) => chat.kind === 'channel' && !chat.isAll).map((chat) => chat.id);
+}
+
+export function teamRoomId(chats: readonly Chat[]) {
+    return chats.find((chat) => chat.kind === 'channel' && chat.isAll)?.id ?? null;
 }
 
 export function personChatIds(chats: readonly Chat[]) {

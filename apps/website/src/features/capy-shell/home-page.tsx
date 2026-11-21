@@ -96,7 +96,7 @@ function selectCaptainChoices(agents: Agent[]) {
 function homeProjects(chats: Chat[], storedOrder: readonly string[]) {
     const channels = new Map(
         chats
-            .filter((chat) => chat.kind === 'channel')
+            .filter((chat) => chat.kind === 'channel' && !chat.isAll)
             .map((chat) => [
                 chat.id,
                 {
