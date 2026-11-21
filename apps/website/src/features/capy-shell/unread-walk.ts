@@ -38,6 +38,8 @@ export function walkRows({
                         ? chatRow(dmChatId)
                         : { href: serverAgentDmRoute(slug, agentId), unread: false };
                 });
+            case 'team-room':
+                return [chatRow(section.chatId)];
             case 'projects':
                 return orderChannelIds(section.chatIds, channelOrder).map(chatRow);
             case 'people':

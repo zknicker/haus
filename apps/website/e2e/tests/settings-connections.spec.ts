@@ -1,16 +1,14 @@
 import type { Page } from '@playwright/test';
 import { createAppTestFixture, signInAsAppHuman } from '../support/app-session.ts';
-import { completeOnboarding, createClient } from '../support/server.ts';
+import { createClient } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 const slug = 'connections-hq';
 
 test.beforeAll(async () => {
-    const { accessToken, databaseUrl } = await createAppTestFixture();
+    const { accessToken } = await createAppTestFixture();
     const owner = createClient(accessToken);
     await owner.server.create.mutate({ displayName: 'Connections HQ', slug });
-    const server = await owner.server.bySlug.query({ slug });
-    completeOnboarding(databaseUrl, server.id);
 });
 
 test('creates and deletes a custom Server MCP connection', async ({ page }) => {
