@@ -194,7 +194,7 @@ Task, and its conflicts go to the Agent's inbox as `drive_conflict` naming the W
 
 - **Full pull.** A new Worker folder pulls in full. Seeding it from a copy of another folder on the
   machine is deferred ([Workers](workers.md#w3-transitional-decisions)).
-- **Pull before launch.** Each turn pulls after its worktree is ready and before the harness
+- **Pull before launch.** Each turn pulls after its checkout is ready and before the harness
   starts, with the turn credential, so the Worker's first tool call sees the pulled folder.
 - **Daemon push.** When the harness process ends, the daemon pushes under the turn id with a push
   credential it mints itself, which never enters the harness environment, then closes the push

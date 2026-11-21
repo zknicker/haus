@@ -392,7 +392,7 @@ Everything a Worker owns on the machine sits under its Server attachment's parti
 Computer data root, `servers/<serverId>/workers/<worker-id>/`:
 
 ```text
-servers/<serverId>/workers/<worker-id>/checkout/            git worktree of the Project repo
+servers/<serverId>/workers/<worker-id>/checkout/            the Worker's own clone of the Project repo
 servers/<serverId>/workers/<worker-id>/drive/               the Worker's drive/ folder
 servers/<serverId>/workers/<worker-id>/drive-refused/       files a push refused
 servers/<serverId>/workers/<worker-id>/runtime/drive.json   the folder's bookkeeping
@@ -402,12 +402,19 @@ servers/<serverId>/workers/<worker-id>/runtime/bin/         the Worker's haus wr
 servers/<serverId>/workers/<worker-id>/runtime/tmp/         the harness's TMPDIR
 ```
 
-The checkout is a `git worktree` of the repo's linked clone on that Computer (the link's
-`checkoutPath`, used after its `origin` matches `owner/name`), or of a clone in
-`repos/<owner>/<name>` under the data root, made once through a temp sibling and a rename. The
-branch is new, `haus/<worker-id>/<key>-<n>` with the key in lower case, from `--ref`, or from the remote
-default branch after a fetch. Later turns reuse the checkout. Worktree add and remove for one repo
-run one at a time. The drive folder sits outside the checkout ([Drive folder](drive-folder.md)),
+The checkout is the Worker's own clone of the repo's base clone on that Computer: the link's
+`checkoutPath`, used after its `origin` matches `owner/name`, or a clone in `repos/<owner>/<name>`
+under the data root, made once through a temp sibling and a rename. The Worker's clone is a local
+clone, so its objects are hardlinks and cost no storage, made in a temp sibling and renamed into
+place. It drops the base clone's branches and its own `origin`, and includes the base clone's config, so
+origin, credential helpers, hooks, and a partial clone's promisor carry over. Every ref, reflog,
+`packed-refs`, config, and `gc` write the Worker makes lands in its own `.git`, so it can fetch,
+push with `-u`, rebase, delete its own branches, and pack refs without reaching any ref it does
+not own. The branch is new, `haus/<worker-id>/<key>-<n>` with the key in lower case, from the
+base clone's branch of that name when one survives an earlier checkout, else from `--ref`, else
+from the remote default branch, after the base clone fetches. Later turns reuse the checkout.
+Checkout add and remove for one repo run one at a time. A checkout an earlier Computer made as a
+`git worktree` keeps working as one until its Worker closes. The drive folder sits outside the checkout ([Drive folder](drive-folder.md)),
 so the repo never sees it. A new drive folder pulls in full
 ([Migration](#w3-transitional-decisions)).
 
@@ -436,16 +443,17 @@ link with a null `checkoutPath` means "clone into the data root".
    ends the turn `refused`, and nothing launches. A re-mint for the same attempt revokes the
    earlier token. The Server keeps only the token's hash, and the Computer journals the newest
    token before it launches.
-4. It adds or reuses the worktree, then pulls the drive folder with the turn credential.
+4. It adds or reuses the checkout, then pulls the drive folder with the turn credential.
 5. It runs the harness in the checkout under the machine user's own environment, so Claude Code,
    Codex, git, and `gh` use the logins already on that machine. The first turn starts a new
    session. Later turns resume it. Claude Code runs with `bypassPermissions`, the machine user's
    HOME, every settings layer, and no Haus MCP or system prompt. Codex runs with its
    `workspace-write` sandbox and network access, the user's `CODEX_HOME`, native `AGENTS.md`
-   loading, and the checkout, the drive folder, the report folder, `runtime/tmp`, the worktree's
-   own git dir, the shared object store, and only its own branch's ref and reflog folders
-   (`refs/heads/haus/<worker-id>`) as writable roots, so it cannot move `main` or another
-   Worker's branch. `/tmp` and the inherited `$TMPDIR` are excluded. Both
+   loading, and the checkout, its `.git` (which Codex otherwise keeps read-only), the drive
+   folder, the report folder, and `runtime/tmp` as writable roots, so it cannot move the base
+   clone's `main` or another Worker's branch. An earlier `git worktree` checkout names its worktree git
+   dir, the shared object store, and only its own branch's ref and reflog folders
+   (`refs/heads/haus/<worker-id>`) instead. `/tmp` and the inherited `$TMPDIR` are excluded. Both
    harnesses get `TMPDIR`, `TMP`, and `TEMP` pointed at the Worker's `runtime/tmp`. Both run
    unattended and use none of the Agent host tools, warm pool, or background work.
 6. The harness gets `haus` on `PATH` and the turn credential in `HAUS_WORKER_TOKEN`. That `haus`
@@ -516,8 +524,10 @@ When a Task becomes done or canceled, the Server closes each of its Workers in t
    ([inbox](inbox.md#worker-items)). A written report posts as usual. A `stopped` outcome posts
    nothing.
 5. It sets `closedAt` and sends the Computer place `worker-close { workerId }`. Only then does the
-   Computer force-remove the worktree, run `git worktree prune`, and delete the drive folder. The
-   branch stays, so committed work survives. The native session files stay where the harness
+   Computer fetch the Worker's `haus/<worker-id>/` branches into the base clone, delete the
+   checkout (an earlier `git worktree` checkout is force-removed and pruned instead), and delete the drive
+   folder. The branch stays, so committed work survives; a close that cannot keep it leaves the
+   checkout, and the next connect's `worker-close` tries again. The native session files stay where the harness
    keeps them. `worker-close` is idempotent.
 
 A place that is offline gets steps 3 and 5 when it reconnects. The Server settles the turn on its

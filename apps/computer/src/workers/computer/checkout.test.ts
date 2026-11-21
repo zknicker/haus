@@ -3,9 +3,9 @@ import { existsSync, mkdtempSync, realpathSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { addWorkerCheckout, checkoutGitRoots, removeWorkerCheckout } from './checkout.ts';
 import { workerLayout } from './layout.ts';
 import { resolveWorkerRepo } from './repos.ts';
-import { addWorkerWorktree, removeWorkerWorktree, worktreeGitRoots } from './worktree.ts';
 
 let root: string;
 let remotes: string;
@@ -24,7 +24,7 @@ const git = (cwd: string, ...args: string[]) => {
 const remoteUrl = (repository: string) => join(remotes, `${repository}.git`);
 
 beforeEach(() => {
-    root = realpathSync(mkdtempSync(join(tmpdir(), 'haus-worktree-')));
+    root = realpathSync(mkdtempSync(join(tmpdir(), 'haus-checkout-')));
     remotes = join(root, 'remotes');
     dataRoot = join(root, 'data');
     const seed = join(root, 'seed');
@@ -66,35 +66,46 @@ describe('Worker repos', () => {
     });
 });
 
-describe('Worker worktrees', () => {
-    test('a first turn branches from the remote default, and later turns reuse it', async () => {
+describe('Worker checkouts', () => {
+    test('a first turn clones its own checkout off the remote default, and later turns reuse it', async () => {
         const repoPath = await resolveWorkerRepo(source, { dataRoot, remoteUrl });
         const { checkout } = workerLayout(dataRoot, 'srv_1', 'wrk_1');
         const request = { branch: 'haus/wrk_1/sec-12', checkout, repoPath, startingRef: null };
-        await addWorkerWorktree(request);
+        await addWorkerCheckout(request);
         git(checkout, 'commit', '--quiet', '--allow-empty', '-m', 'worker commit');
-        await addWorkerWorktree(request);
+        await addWorkerCheckout(request);
 
-        expect(git(checkout, 'branch', '--show-current')).toBe('haus/wrk_1/sec-12');
+        expect(git(checkout, 'branch', '--format=%(refname:short)')).toBe('haus/wrk_1/sec-12');
         expect(git(checkout, 'log', '--format=%s')).toBe('worker commit\nfirst');
+        expect(git(checkout, 'remote', 'get-url', 'origin')).toBe(remoteUrl('acme/app'));
+        expect(git(checkout, 'log', '--format=%s', 'origin/feature')).toBe('feature work\nfirst');
         expect(Bun.spawnSync(['git', 'rev-parse', '@{u}'], { cwd: checkout }).exitCode).toBe(128);
-        expect(await worktreeGitRoots(checkout, 'haus/wrk_1/sec-12')).toEqual([
-            join(repoPath, '.git', 'worktrees', 'checkout'),
-            join(repoPath, '.git', 'objects'),
-            join(repoPath, '.git', 'refs', 'heads', 'haus', 'wrk_1'),
-            join(repoPath, '.git', 'logs', 'refs', 'heads', 'haus', 'wrk_1'),
+        expect(git(repoPath, 'branch', '--list', 'haus/*')).toBe('');
+        expect(await checkoutGitRoots(checkout, 'haus/wrk_1/sec-12')).toEqual([
+            join(checkout, '.git'),
         ]);
-        expect(await worktreeGitRoots(checkout, 'main')).toEqual([
-            join(repoPath, '.git', 'worktrees', 'checkout'),
-            join(repoPath, '.git', 'objects'),
-        ]);
+    });
+
+    test('the Worker deletes, packs and fetches refs only inside its own clone', async () => {
+        const repoPath = await resolveWorkerRepo(source, { dataRoot, remoteUrl });
+        const { checkout } = workerLayout(dataRoot, 'srv_1', 'wrk_4');
+        await addWorkerCheckout({ branch: 'haus/wrk_4/e', checkout, repoPath, startingRef: null });
+        git(checkout, 'branch', 'haus/wrk_4/scratch');
+        git(checkout, 'branch', '-D', 'haus/wrk_4/scratch');
+        git(checkout, 'pack-refs', '--all');
+        git(checkout, 'fetch', '--quiet', 'origin');
+        git(checkout, 'push', '--quiet', '-u', 'origin', 'HEAD');
+
+        expect(git(repoPath, 'show-ref')).not.toContain('haus/');
+        expect(git(repoPath, 'config', '--get-regexp', '^branch\\.').includes('haus/')).toBe(false);
+        expect(git(checkout, 'rev-parse', '--abbrev-ref', '@{u}')).toBe('origin/haus/wrk_4/e');
     });
 
     test('a starting ref names the remote branch, and an unknown one refuses', async () => {
         const repoPath = await resolveWorkerRepo(source, { dataRoot, remoteUrl });
         const { checkout } = workerLayout(dataRoot, 'srv_1', 'wrk_2');
-        await addWorkerWorktree({ branch: 'haus/b', checkout, repoPath, startingRef: 'feature' });
-        const missing = await addWorkerWorktree({
+        await addWorkerCheckout({ branch: 'haus/b', checkout, repoPath, startingRef: 'feature' });
+        const missing = await addWorkerCheckout({
             branch: 'haus/c',
             checkout: join(root, 'missing'),
             repoPath,
@@ -103,17 +114,41 @@ describe('Worker worktrees', () => {
 
         expect(git(checkout, 'log', '--format=%s', '-1')).toBe('feature work');
         expect(missing).toBe('The starting ref nope does not exist.');
+        expect(existsSync(join(root, 'missing'))).toBe(false);
     });
 
-    test('close removes the worktree twice over and keeps the branch', async () => {
+    test('close keeps the Worker branches in the repo clone, twice over, and a new checkout resumes them', async () => {
         const repoPath = await resolveWorkerRepo(source, { dataRoot, remoteUrl });
         const { checkout } = workerLayout(dataRoot, 'srv_1', 'wrk_3');
-        await addWorkerWorktree({ branch: 'haus/d', checkout, repoPath, startingRef: null });
-        await removeWorkerWorktree({ checkout, repoPath });
-        await removeWorkerWorktree({ checkout, repoPath });
+        const request = { branch: 'haus/wrk_3/d', checkout, repoPath, startingRef: null };
+        await addWorkerCheckout(request);
+        git(checkout, 'commit', '--quiet', '--allow-empty', '-m', 'kept work');
+        git(checkout, 'branch', 'side');
+        await removeWorkerCheckout({ checkout, repoPath, workerId: 'wrk_3' });
+        await removeWorkerCheckout({ checkout, repoPath, workerId: 'wrk_3' });
 
         expect(existsSync(checkout)).toBe(false);
+        expect(git(repoPath, 'log', '--format=%s', '-1', 'haus/wrk_3/d')).toBe('kept work');
+        expect(git(repoPath, 'branch', '--list', 'side')).toBe('');
+
+        await addWorkerCheckout(request);
+        expect(git(checkout, 'log', '--format=%s', '-1')).toBe('kept work');
+    });
+
+    test('a checkout made as a git worktree keeps its git roots and removes as a worktree', async () => {
+        const repoPath = await resolveWorkerRepo(source, { dataRoot, remoteUrl });
+        const { checkout } = workerLayout(dataRoot, 'srv_1', 'wrk_5');
+        git(repoPath, 'worktree', 'add', '--quiet', '-b', 'haus/wrk_5/f', checkout, 'origin/main');
+
+        expect(await checkoutGitRoots(checkout, 'haus/wrk_5/f')).toEqual([
+            join(repoPath, '.git', 'worktrees', 'checkout'),
+            join(repoPath, '.git', 'objects'),
+            join(repoPath, '.git', 'refs', 'heads', 'haus', 'wrk_5'),
+            join(repoPath, '.git', 'logs', 'refs', 'heads', 'haus', 'wrk_5'),
+        ]);
+        await removeWorkerCheckout({ checkout, repoPath, workerId: 'wrk_5' });
+        expect(existsSync(checkout)).toBe(false);
         expect(git(repoPath, 'worktree', 'list', '--porcelain').includes(checkout)).toBe(false);
-        expect(git(repoPath, 'branch', '--list', 'haus/d')).toBe('haus/d');
+        expect(git(repoPath, 'branch', '--list', 'haus/wrk_5/f')).toBe('haus/wrk_5/f');
     });
 });

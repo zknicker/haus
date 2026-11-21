@@ -1,5 +1,6 @@
 import type { WorkerHeldFrame, WorkerTurnStartFrame } from '@haus/api';
 import type { PullRequestReader } from '../github/pull-request-reader.ts';
+import { removeWorkerCheckout } from './checkout.ts';
 import type { WorkerServer } from './credentials.ts';
 import { type WorkerDriverFactory, workerDriverFactory } from './harness.ts';
 import { PushRetry, type Schedule, timerSchedule } from './push-retry.ts';
@@ -17,7 +18,6 @@ import {
 import { ComputerTurnJournal, type ComputerTurnRef } from './turn-journal.ts';
 import { type ActiveTurn, exitOf, launchComputerTurn, shutdownReason } from './turn-launch.ts';
 import type { ComputerTurnRecord } from './turn-record.ts';
-import { removeWorkerWorktree } from './worktree.ts';
 
 export interface ComputerPlaceOptions {
     dataRoot: string;
@@ -157,7 +157,11 @@ export class ComputerWorkerPlace {
         if (Object.values(file?.turns ?? {}).some((turn) => turn.phase === 'pushing')) {
             return;
         }
-        await removeWorkerWorktree({ checkout: layout.checkout, repoPath: file?.repoPath ?? null });
+        await removeWorkerCheckout({
+            checkout: layout.checkout,
+            repoPath: file?.repoPath ?? null,
+            workerId,
+        });
         await removeTree(layout.root);
     }
 
