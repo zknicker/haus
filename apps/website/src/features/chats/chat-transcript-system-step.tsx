@@ -293,7 +293,7 @@ function RuntimeNoticeDrawer({
                             </div>
                             <div className="flex min-w-0 flex-1 flex-col gap-1">
                                 <Drawer.Heading>{summary.label}</Drawer.Heading>
-                                <p className="text-muted text-sm">Runtime notice</p>
+                                <p className="text-muted text-sm">Notice</p>
                             </div>
                         </div>
                     </Drawer.Header>

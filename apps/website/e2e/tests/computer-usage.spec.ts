@@ -39,7 +39,7 @@ test('old provider usage stays labeled until a fresh Computer snapshot arrives',
             JSON.stringify({ type: 'usage-report', usage: planUsage('2026-08-19T04:08:16.193Z') })
         );
         await page.goto(`/s/usage-hq/settings/computers/${computerId}`);
-        const rows = page.getByRole('grid', { name: 'Runtimes on this device' });
+        const rows = page.getByRole('grid', { name: 'Plans on this device' });
         await expect(rows.getByText('Usage out of date')).toBeVisible({ timeout: 20_000 });
         await expect(rows.getByText('22%', { exact: true })).toBeVisible();
         await expect(rows.getByText(/^Resets /)).toHaveCount(0);
@@ -118,7 +118,7 @@ test('manual runtime refresh updates the device runtimes without reloading', asy
                 }
             });
         });
-        const refresh = page.getByRole('button', { name: 'Refresh runtimes' });
+        const refresh = page.getByRole('button', { exact: true, name: 'Refresh' });
         await refresh.click();
         const request = await refreshRequest;
         // The control is an icon now: it says it is working by going pending
@@ -137,9 +137,9 @@ test('manual runtime refresh updates the device runtimes without reloading', asy
                 runtimes: [codex, grok],
             })
         );
-        await expect(page.getByText('Runtimes refreshed', { exact: true })).toBeVisible();
+        await expect(page.getByText('Refreshed', { exact: true })).toBeVisible();
         await expect(
-            page.getByRole('grid', { name: 'Runtimes on this device' }).getByText('Grok Build')
+            page.getByRole('grid', { name: 'Plans on this device' }).getByText('Grok Build')
         ).toBeVisible();
         await expect(page.getByText('Not detected: Claude Code')).toBeVisible();
         await page.screenshot({ path: test.info().outputPath('refreshed-runtimes.png') });

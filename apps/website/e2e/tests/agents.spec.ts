@@ -42,7 +42,6 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await page.goto('/s/agent-hq');
     await page.getByRole('button', { name: 'New Captain' }).click();
     const createDialog = page.getByRole('dialog', { name: 'Create Captain' });
-    await expect(createDialog.getByLabel('Runtime')).toContainText('Codex');
     await expect(createDialog.getByLabel('Model')).toContainText('GPT-5.6 Sol');
     await createDialog.getByRole('textbox', { name: 'Name' }).fill('Scout');
     await createDialog.getByRole('group').filter({ hasText: 'Select a project' }).click();

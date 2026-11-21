@@ -42,12 +42,12 @@ export function DetectedRuntimeUsage({
         });
 
     if (rows.length === 0) {
-        return <p className="text-muted text-sm">No runtimes detected.</p>;
+        return <p className="text-muted text-sm">No plans detected.</p>;
     }
 
     return (
         <DataGrid
-            aria-label="Runtimes on this device"
+            aria-label="Plans on this device"
             columns={runtimeColumns(Date.now(), computerName)}
             contentClassName="min-w-160"
             data={rows}
@@ -62,12 +62,12 @@ export function DetectedRuntimeUsageSkeleton({
     detectedRuntimeIds: ComputerRuntimeId[];
 }) {
     if (detectedRuntimeIds.length === 0) {
-        return <p className="text-muted text-sm">No runtimes detected.</p>;
+        return <p className="text-muted text-sm">No plans detected.</p>;
     }
 
     return (
         <div aria-busy="true" className="grid gap-2">
-            <span className="sr-only">Loading runtime usage</span>
+            <span className="sr-only">Loading plan usage</span>
             {detectedRuntimeIds.map((runtimeId) => (
                 <Skeleton className="h-11 w-full rounded-xl" key={runtimeId} />
             ))}
@@ -102,7 +102,7 @@ function runtimeColumns(now: number, computerName: string): DataGridColumn<Runti
                     </div>
                 </div>
             ),
-            header: 'Runtime',
+            header: 'Plan',
             id: 'runtime',
             isRowHeader: true,
             minWidth: 180,

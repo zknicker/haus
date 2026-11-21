@@ -40,7 +40,7 @@ test('Computer profile reserves all its sections before its roster resolves', ()
         <ComputerPage computerId="cmp_one" serverId={server.id} serverSlug={server.slug} />
     );
     for (const label of [
-        'Runtimes',
+        'Plan usage',
         'Browser',
         'Cloud Agents',
         'Captains on this device',
