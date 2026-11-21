@@ -373,6 +373,50 @@
                 "timer": 1
             }
         },
+        "apps/computer/src/desktop/desktop-command.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "Holds the machine-wide desktop lock for one command and releases it in lexical finally, whether the preflight refuses, the command runs, or the signal aborts.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/desktop/desktop-lock.ts": {
+            "disposition": "external-adapter",
+            "reason": "Adapts a lockf holder process to an abort signal: the holder's echoed byte resolves the wait, an abort kills the holder, and release closes its stdin so the kernel drops the lock.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 2,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/desktop/desktop-process.ts": {
+            "disposition": "external-adapter",
+            "reason": "Adapts one agent-desktop process group to an abort signal: cancel and timeout kill the whole group, and the listener is removed once the group and its pipes settle.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
+        "apps/computer/src/desktop/fixtures/hold-desktop-lock.ts": {
+            "disposition": "test-support",
+            "reason": "A child process for desktop-lock.test.ts that holds the real lock until the test writes to its stdin.",
+            "risks": {
+                "abortController": 1,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
         "apps/computer/src/invocations/stream-process.ts": {
             "disposition": "external-adapter",
             "reason": "Adapts one spawned child to an abort signal: the abort listener that terminates the child is removed in lexical finally once the child and its pipes settle.",

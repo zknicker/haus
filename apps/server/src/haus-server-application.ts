@@ -224,10 +224,7 @@ export async function createHausServerApplication(
             artifactStorage,
             options.computerSocketLiveness
         );
-        handles.runnerSocket = startRunnerSocket(startedApp.server, options, {
-            ...contextDependencies,
-            invocations,
-        });
+        handles.runnerSocket = startRunnerSocket(startedApp.server, options, contextDependencies);
         const reminderClock = options.reminderClock ?? { now: () => new Date() };
         await startServerSweeps(runtime, scope, shutdown, {
             agentDelivery,

@@ -170,53 +170,6 @@ test('a Captain that moves to another machine leaves the list, so moving back ne
     await setAgents({ kind: 'all' });
 });
 
-test('a locked screen the Computer reports reads as a refusal that names who can unlock it', async () => {
-    desktop('run_locked', 'toolu_locked', ['snapshot']);
-    const invoke = await computer.next(frameOfType('invoke', { runId: 'run_locked' }));
-    computer.send({
-        invocationId: invoke.invocationId,
-        outcome: 'failed',
-        output: { kind: 'text', text: "This Mac's screen is locked." },
-        refusal: 'locked',
-        truncated: false,
-        type: 'invoke-result',
-    });
-    expect((await answerFor('toolu_locked')).output).toEqual({
-        kind: 'text',
-        text: "Studio's screen is locked; no computer use runs on a locked Mac. Ask @ada to unlock it. Ask once in plain text where you're working, link that page, and ask them to reply when it’s done. Then stop. When they reply, try again.",
-    });
-    expect(await ledger('run_locked')).toEqual([
-        { outcome: 'failed', refusal: 'locked', state: 'finished' },
-    ]);
-});
-
-test('Stop Agent Input cancels the running desktop command and tells the Captain why', async () => {
-    const device = { computerId: setup.computerId, serverId: setup.serverId };
-    desktop('run_stop', 'toolu_stop', ['drag', '@s1:e1', '@s1:e2']);
-    const invoke = await computer.next(frameOfType('invoke', { runId: 'run_stop' }));
-    expect(await member.trpc.computer.desktopActivity.query(device)).toMatchObject({
-        commands: [{ agentId: setup.agentId, invocationId: invoke.invocationId }],
-    });
-
-    expect(await member.trpc.computer.stopDesktopInput.mutate(device)).toEqual({ stopped: 1 });
-    await computer.next(frameOfType('invoke-cancel', { invocationId: invoke.invocationId }));
-    computer.send({
-        invocationId: invoke.invocationId,
-        outcome: 'cancelled',
-        output: { kind: 'text', text: '' },
-        truncated: false,
-        type: 'invoke-result',
-    });
-    expect(await answerFor('toolu_stop')).toMatchObject({
-        outcome: 'cancelled',
-        output: {
-            kind: 'text',
-            text: 'A person stopped agent input on Studio from Haus, so this command was cancelled. Stop using `desktop` there and tell the person what you were doing.',
-        },
-    });
-    expect(await member.trpc.computer.desktopActivity.query(device)).toEqual({ commands: [] });
-});
-
 test('an unaccepted desktop act is not resent after Computer use is turned off', async () => {
     desktop('run_resend', 'toolu_resend', ['type', '@s1:e2', 'hello']);
     await computer.next(frameOfType('invoke', { runId: 'run_resend' }));
