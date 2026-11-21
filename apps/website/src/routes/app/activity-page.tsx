@@ -7,7 +7,7 @@ const ActivityPageContent = React.lazy(async () => ({
     default: (await serverRouteModules.activity()).ActivityPageContent,
 }));
 const CaptainActivityStrip = React.lazy(async () => ({
-    default: (await serverRouteModules.inbox()).InboxActiveAgents,
+    default: (await serverRouteModules.activity()).CaptainActivityStrip,
 }));
 
 /**

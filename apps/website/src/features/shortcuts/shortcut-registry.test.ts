@@ -4,7 +4,6 @@ import {
     shouldInsertChatComposerLineBreak,
     shouldSubmitChatComposerKey,
 } from '../chats/chat-composer-keyboard.ts';
-import { unreadTriageCommand } from '../servers/inbox/use-unread-triage-keys.ts';
 import { isCommandMenuKey } from '../shell/command-menu-key.ts';
 import {
     type KeyChord,
@@ -45,7 +44,6 @@ const handlersByContext: Record<ShortcutContext, (chord: KeyChord) => (string | 
     Anywhere: (chord) => [commandMenuId(chord)],
     Composer: (chord) => [composerId(chord)],
     'Desktop app': (chord) => [menuChords.get(chordId(chord)) ?? null, pageId(chord)],
-    Inbox: (chord) => [inboxId(chord)],
     'Web page': (chord) => [menuChords.get(chordId(chord)) ?? null, pageId(chord)],
 };
 
@@ -76,26 +74,9 @@ test('every key a desktop tab or web page answers is listed', () => {
     expect(missing(answered)).toEqual([]);
 });
 
-test('every Inbox key is listed', () => {
-    const answered = sweep()
-        .filter((chord) => chord.modifiers.length === 0)
-        .flatMap((chord) => {
-            const id = inboxId(chord);
-            return id ? [`${id} ${chordId(chord)}`] : [];
-        });
-    expect(missing(answered)).toEqual([]);
-});
-
 test('search matches a command or where it applies', () => {
     expect(matchingShortcuts('')).toHaveLength(shortcutRegistry.length);
     expect(matchingShortcuts('zoom').map((row) => row.id)).toEqual(['zoom-in', 'zoom-out']);
-    expect(matchingShortcuts('inbox').map((row) => row.id)).toEqual([
-        'inbox-next',
-        'inbox-previous',
-        'inbox-mark-read',
-        'inbox-reply',
-        'inbox-open',
-    ]);
 });
 
 function missing(answered: string[]) {
@@ -147,14 +128,6 @@ function pageId(chord: KeyChord) {
         return action;
     }
     return action === 'tab-9' ? 'last-tab' : 'tab-number';
-}
-
-function inboxId(chord: KeyChord) {
-    if (chord.modifiers.length > 0) {
-        return null;
-    }
-    const command = unreadTriageCommand(eventKey(chord), false);
-    return command ? `inbox-${command}` : null;
 }
 
 function composerId(chord: KeyChord) {

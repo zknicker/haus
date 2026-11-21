@@ -131,7 +131,6 @@ function usePreloadActivity(serverId: string) {
     const utils = hausTrpc.useUtils();
     return React.useCallback(() => {
         preloadServerSection('activity');
-        preloadServerSection('inbox');
         void utils.stats.live.prefetch({ serverId }, queryPolicy.syncedSnapshot);
     }, [serverId, utils]);
 }

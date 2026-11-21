@@ -47,7 +47,7 @@ test('app paths parse to the page they show', () => {
         kind: 'section',
         section: 'settings',
     });
-    expect(parseTabPage(app('/s/acme/inbox'))).toEqual({ kind: 'section', section: 'inbox' });
+    expect(parseTabPage(app('/s/acme/inbox'))).toEqual({ kind: 'home' });
     expect(parseTabPage(app('/s/acme/artifacts'))).toEqual({
         kind: 'section',
         section: 'artifacts',

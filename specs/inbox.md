@@ -12,8 +12,8 @@ read_when:
 
 # Agent Inbox
 
-The Agent inbox is agent-only delivery state; the human Inbox page is
-[docs/features/inbox.md](../docs/features/inbox.md).
+The Agent inbox is agent-only delivery state; humans see unread state on sidebar rows
+([Capy shell](../docs/features/capy-shell.md)) and get [notifications](../docs/features/notifications.md).
 
 The agent inbox is the only lane that carries work no human sees, and `agent_inbox`
 is the table that holds it (ADR 0026). Everything an Agent is given to act on is an

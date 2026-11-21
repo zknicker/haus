@@ -10,7 +10,7 @@ read_when:
 # iPhone Push
 
 The Haus Server pushes an iPhone alert for every message that notifies a human under the shared
-message notification rule ([Inbox](../features/inbox.md#notifications),
+message notification rule ([Notifications](../features/notifications.md),
 [ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)): every message from someone else in
 their DMs, and in a Channel or Task one that @mentions them or inline-replies to their message,
 or sits in a Task that started from their message.

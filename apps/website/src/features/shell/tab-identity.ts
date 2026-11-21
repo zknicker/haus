@@ -64,7 +64,7 @@ export function parseTabPage(location: TabLocation): TabPage {
     const segments = pathname.split('/').map(decodeSegment);
     const slug = segments[2] ?? '';
     const [section = '', first = '', second = ''] = segments.slice(3);
-    if (section === '' && segments.length <= 4) {
+    if ((section === '' && segments.length <= 4) || section === 'inbox') {
         return { kind: 'home' };
     }
     const idPage = first && Object.hasOwn(idPages, section) ? idPages[section as IdSection] : null;
@@ -191,7 +191,6 @@ const sectionLabels: Record<AppSection, string> = {
     activity: 'Activity',
     agent: 'Captain',
     chat: 'Chat',
-    inbox: 'Inbox',
     search: 'Search',
     settings: 'Settings',
     tasks: 'Tasks',

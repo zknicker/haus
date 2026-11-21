@@ -24,15 +24,6 @@
   --spacing-base: 0.234375rem;
   --reply-highlight: color-mix(in oklab, var(--accent-soft) 70%, transparent);
   /*
-   * A card in a feed of cards (the Inbox's Unread feed), each holding its own
-   * composer. Light mode keeps the surface, whose white field still reads by
-   * its edge. The ring marks the one selected card: neutral, from the theme's
-   * own foreground, so it marks the card without the accent's weight.
-   */
-  --feed-card: var(--surface);
-  --feed-card-shadow: var(--surface-shadow);
-  --feed-card-ring: color-mix(in oklab, var(--foreground) 24%, transparent);
-  /*
    * The one column every in-chat attachment under a message fills: Worker
    * cards, Task previews, the working log, workspace changes. Each is
    * `w-full` up to this cap, so a card stacked over a Task preview shares
@@ -223,14 +214,6 @@
 
     /* Supporting copy on a `--danger-soft` fill: the title's red, eased toward the ink. */
     --danger-soft-muted: color-mix(in oklab, var(--danger-soft-foreground) 65%, var(--foreground));
-
-    /* A dark feed card sits one quiet step off the page, rimmed, rather than
-       on `--surface`: that is the composer field's own fill, so a card painted
-       with it swallowed the field inside. The ring takes more of the ink to
-       stand off the card as far as light mode's does. */
-    --feed-card: var(--background-secondary);
-    --feed-card-shadow: 0 0 0 1px color-mix(in oklab, var(--foreground) 6%, transparent);
-    --feed-card-ring: color-mix(in oklab, var(--foreground) 40%, transparent);
 }
 
 /*
@@ -1091,97 +1074,24 @@
     }
 
     /*
-     * An Inbox section is a label over its own content, the same grammar as
-     * every other label-above-content block on the page. The group header
-     * carries the label alone, so it sheds the inset a carded header needs —
-     * the page column already owns the gutter and the rhythm between
-     * sections — and keeps only the step down to what it names.
+     * A row in an Activity strip list rides a motion wrapper — it arrives,
+     * leaves, and reorders — so it is no longer the group's direct child, and
+     * HeroUI's own `> [data-slot="item-card"]` reset stops reaching it. Without
+     * this the wrapper would hand every row its card surface back and the list
+     * would read as cards stacked inside a card. The row group restates the
+     * same reset as a descendant rule.
      */
-    .item-card-group--inbox > .item-card-group__header {
-        padding-block: 0 calc(var(--spacing) * 2);
-        padding-inline: 0;
-    }
-
-    /*
-     * An Unread card's header reads as one line (`features/servers/inbox/unread-row-header.tsx`):
-     * the place, then a note — `DM`, or the Channel a Task started from —
-     * beside it rather than under it. So the description sheds the offset that
-     * separates two stacked lines and takes the title's size, the line reading
-     * as one sentence rather than a label and its caption.
-     */
-    .item-card--inbox-line .item-card__description {
-        margin-top: 0;
-        font-size: var(--text-sm);
-        line-height: var(--text-sm--line-height);
-    }
-
-    /*
-     * Every Unread conversation is an open card of its own
-     * (`unread-triage-row.tsx`): the feed-card fill and edge on a list
-     * that draws no box (`InboxSectionRows` `bare`), so each card is one
-     * outline rather than an outline inside another. The row group clears
-     * every row's own surface, so the card sits on the row's wrapper, keyed
-     * here like the warning row. The selected card — the one J/K moved to and
-     * E, R, and Return act on — only adds a ring, so selecting never moves a
-     * card; the ring eases between cards rather than blinking.
-     */
-    .item-card-group--inbox-rows .inbox-unread-row {
-        border-radius: calc(var(--radius) * 2);
-        background-color: var(--feed-card);
-        box-shadow: var(--feed-card-shadow);
-        transition-duration: 160ms;
-        transition-property: box-shadow;
-        transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-        .item-card-group--inbox-rows .inbox-unread-row {
-            transition: none;
-        }
-    }
-
-    .item-card-group--inbox-rows .inbox-unread-selected {
-        box-shadow:
-            var(--feed-card-shadow),
-            0 0 0 1.5px var(--feed-card-ring);
-    }
-
-    /*
-     * A row in an Inbox list rides a motion wrapper — it arrives, leaves, and
-     * reorders — so it is no longer the group's direct child, and HeroUI's own
-     * `> [data-slot="item-card"]` reset stops reaching it. Without this the
-     * wrapper would hand every row its card surface back and the list would
-     * read as cards stacked inside a card. The row group restates the same
-     * reset as a descendant rule. Unread's cards are deliberately out of its
-     * reach: each is its own stock group, whose header row is a direct child
-     * and takes HeroUI's own reset.
-     */
-    .item-card-group--inbox-rows [data-slot='item-card'] {
+    .item-card-group--strip-rows [data-slot='item-card'] {
         background-color: transparent;
         border-radius: 0;
         border-width: 0;
         box-shadow: none;
     }
 
-    /*
-     * Unread's bare feed (`InboxSectionRows` `bare`) draws no box and no
-     * hairlines, so its cards are shapes of their own, set apart by a step of
-     * space in place of a divider. The step rides each card's motion item
-     * (`inbox-card-motion.tsx`) rather than the group's gap, so a card that
-     * closes its room takes its gap with it.
-     */
-    .item-card-group--transparent.item-card-group--inbox-rows [data-slot='item-card'] {
-        border-radius: calc(var(--radius) * 2);
-    }
-
-    .item-card-group--transparent.item-card-group--inbox-rows {
-        gap: 0;
-    }
-
-    /* An Agent running away on the Inbox's Agents meter. The reset above clears
-       every row's own surface, so the one row that must stand out gets its
-       ground back here, from the warning role (`inbox-list-row.tsx`). */
-    .item-card-group--inbox-rows .item-card--inbox-warning {
+    /* An Agent running away on the Activity strip's Agents meter. The reset
+       above clears every row's own surface, so the one row that must stand out
+       gets its ground back here, from the warning role (`strip-list-row.tsx`). */
+    .item-card-group--strip-rows .item-card--strip-warning {
         background-color: var(--warning-soft);
     }
 
@@ -3040,21 +2950,6 @@
     [data-slot="message-scroller"][data-scrollable~="start"]
         > .transcript-edge-blur[data-side="top"],
     .transcript-edge-blur[data-side="bottom"] {
-        visibility: visible;
-    }
-
-    /*
-     * The Inbox runs up under its band (`PageBand overlay`) and borrows the top
-     * band over its column. The band's trail sits over it, so it holds
-     * solid through the band's top third and ramps out exactly where the page's
-     * content starts at rest — the band plus the column's top inset — leaving
-     * the trail on near-solid ground while rows still slide visibly up to the
-     * shell's edge. Ending there is also why it is always on, like the bottom
-     * band: at rest nothing it covers is content.
-     */
-    [data-slot="inbox-frame"] > .transcript-edge-blur[data-side="top"] {
-        --edge-solid: calc(var(--app-shell-band-height) / 3);
-        --edge-ramp: calc(var(--app-shell-band-height) * 2 / 3 + var(--spacing) * 8);
         visibility: visible;
     }
 
