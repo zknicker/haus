@@ -18,6 +18,7 @@ export function createRunThoughts(input: {
     schedule?: (run: () => void, ms: number) => () => void;
     send: (frame: AgentThoughtFrame) => void;
 }) {
+    const redact = createThoughtRedactor(input.knownSecrets);
     const narrator = createAgentThoughtNarrator({
         emit: (thought) =>
             input.send({
@@ -27,7 +28,7 @@ export function createRunThoughts(input: {
                 type: 'agent-thought',
             }),
         now: input.now,
-        redact: createThoughtRedactor(input.knownSecrets),
+        redact,
         schedule: input.schedule,
     });
     const findings = createToolFindings(narrator);
@@ -45,10 +46,11 @@ export function createRunThoughts(input: {
                     return;
                 case 'tool-call': {
                     const classification = classifyToolCall(event);
+                    const redacted = { ...event, input: redactStrings(event.input, redact) };
                     findings.started(
                         event.toolCallId,
                         { input: event.input, toolName: event.toolName },
-                        describeRunnerToolAction(event, classification)
+                        describeRunnerToolAction(redacted, classification)
                     );
                     return;
                 }
@@ -94,4 +96,14 @@ function patchFileChange(input: unknown) {
     const match =
         typeof patch === 'string' ? /^\*\*\* (Add|Delete|Update) File: (.+)$/mu.exec(patch) : null;
     return match ? { event: match[1]?.toLowerCase(), path: match[2]?.trim() } : null;
+}
+
+function redactStrings(value: unknown, redact: (text: string) => string) {
+    const redacted: unknown =
+        value === undefined
+            ? undefined
+            : JSON.parse(JSON.stringify(value), (_key, item: unknown) =>
+                  typeof item === 'string' ? redact(item) : item
+              );
+    return redacted;
 }

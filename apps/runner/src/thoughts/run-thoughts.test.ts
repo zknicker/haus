@@ -199,6 +199,16 @@ describe('run thoughts', () => {
         expect(run.frames).toHaveLength(1);
     });
 
+    test('a quoted environment secret in a command never reaches its action', () => {
+        const run = harness();
+        run.feed(call('p1', 'bash', { command: "PGPASSWORD='my dog has fleas' psql -h db" }));
+        expect(run.frames.map((frame) => frame.kind)).toEqual(['action']);
+        const sent = JSON.stringify(run.frames);
+        for (const word of ['dog', 'fleas']) {
+            expect(sent).not.toContain(word);
+        }
+    });
+
     test('a disclosed password or a known secret never reaches a frame', () => {
         const run = harness();
         const disclosure = 'The database password is hunter2 for staging access.';

@@ -48,7 +48,11 @@ fallback line that had a credential masked; and a result rides only for a web se
 (`web_search`, `webSearch`, hosted search; `result-allowlist.ts`). Test runners were cut too,
 since `npm test` and its kin run whatever the repo's script says. Shell commands, page fetches,
 and every other tool send no result; their start still shows as an action, so a forecast fetch
-or a test run no longer states its finding.
+or a test run no longer states its finding. Masking covers a quoted credential whole and any
+secret-named `NAME='…'` or `NAME=…` assignment, and a tool action is redacted before its quotes
+are scrubbed. Accepted risk: reasoning can still quote a local file's contents. A thought goes to
+the same people who read the Captain's messages, and the Captain could post that content directly,
+so the narrator doesn't try to detect it.
 
 ## Context
 

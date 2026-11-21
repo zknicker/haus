@@ -10,13 +10,29 @@ export const thoughtRedactionMarker = '[redacted]';
  * `was`, `were`, `equals`, `reads`, `set to`, `:`, or `=`, has the value
  * that follows replaced with `[redacted]`. A plain word that describes the
  * credential rather than spelling it ("the password is correct", "the key is
- * to compare") is kept. The runner masks every thought with this before it
- * leaves, and the Server masks again before phrasing or falling back.
+ * to compare") is kept. A quoted value is masked whole, spaces and all, and so is
+ * a secret-named assignment like `PGPASSWORD='…'` or `API_TOKEN=…`. The runner
+ * masks every thought with this before it leaves, and the Server masks again
+ * before phrasing or falling back.
  */
 export function maskCredentialDisclosures(text: string) {
-    return text.replace(disclosurePattern, (match, lead: string, quote: string, value: string) =>
-        describesCredential(value) ? match : `${lead}${quote}${thoughtRedactionMarker}${quote}`
-    );
+    return text
+        .replace(environmentPattern, (_match, lead: string, quote: string | undefined) =>
+            quote
+                ? `${lead}${quote}${thoughtRedactionMarker}${quote}`
+                : `${lead}${thoughtRedactionMarker}`
+        )
+        .replace(
+            disclosurePattern,
+            (match, lead: string, quote: string | undefined, _quoted, bare: string | undefined) => {
+                if (quote) {
+                    return `${lead}${quote}${thoughtRedactionMarker}${quote}`;
+                }
+                return bare === undefined || describesCredential(bare)
+                    ? match
+                    : `${lead}${thoughtRedactionMarker}`;
+            }
+        );
 }
 
 /** Whether a thought's text had a credential masked, by the runner or the Server. */
@@ -31,9 +47,12 @@ const qualifier = String.raw`(?:\s+(?:for|to|of|on|in)\s+[\w.-]+(?:\s+[\w.-]+)?)
 const separator = String.raw`\s*(?:[:=]|\b(?:is|are|was|were|equals|reads)\b|\bset\s+to\b)\s*`;
 
 const disclosurePattern = new RegExp(
-    String.raw`(\b${secretNoun}${qualifier}${separator})(["'\x60]?)([^\s"'\x60,;]+)\2`,
+    String.raw`(\b${secretNoun}${qualifier}${separator})(?:(["'\x60])(.+?)\2|([^\s"'\x60,;]+))`,
     'giu'
 );
+
+const environmentPattern =
+    /(\b[A-Za-z_][A-Za-z0-9_]*(?:pass(?:word|wd)?|secret|token|key|credential|auth)[A-Za-z0-9_]*=)(?:(["'])(?:.*?)\2|[^\s"']+)/giu;
 
 function describesCredential(value: string) {
     const word = value.toLowerCase().replace(/[.!?:)]+$/u, '');

@@ -40,6 +40,32 @@ describe('credential disclosures in thoughts', () => {
         }
     });
 
+    test('masks a quoted credential whole, spaces and all', () => {
+        for (const text of [
+            'The password is "my dog has fleas" for the staging box.',
+            "The passphrase is 'my dog has fleas' now.",
+            'secret = `my dog has fleas`',
+        ]) {
+            const masked = maskCredentialDisclosures(text);
+            for (const word of ['dog', 'has', 'fleas']) {
+                expect(masked).not.toContain(word);
+            }
+            expect(hasMaskedCredential(masked)).toBe(true);
+        }
+    });
+
+    test('masks secret-named environment assignments, quoted or bare', () => {
+        expect(maskCredentialDisclosures("PGPASSWORD='my dog has fleas' psql -h db")).toBe(
+            "PGPASSWORD='[redacted]' psql -h db"
+        );
+        expect(maskCredentialDisclosures('API_TOKEN="my dog has fleas" deploy')).toBe(
+            'API_TOKEN="[redacted]" deploy'
+        );
+        expect(maskCredentialDisclosures('GITHUB_TOKEN=ghx_abc123 gh pr list')).toBe(
+            'GITHUB_TOKEN=[redacted] gh pr list'
+        );
+    });
+
     test('the shared excerpt and fallback never carry the disclosed password', () => {
         const excerpt = thoughtReasoningExcerpt(maskCredentialDisclosures(disclosure));
         expect(excerpt).not.toContain('hunter2');
