@@ -20,7 +20,7 @@ test('Automations exposes automatic cloud handoffs and keeps delivered work in h
         agentHandle: 'forge',
         channelName: 'all',
         computerCredential: credential,
-        content: 'I’m adding worker wake visibility to Automations.',
+        brief: 'I’m adding worker wake visibility to Automations.',
         databaseUrl: session.databaseUrl,
         repository: 'haus/haus',
         serverId: server.id,
