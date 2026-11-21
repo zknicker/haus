@@ -5,7 +5,7 @@ import {
     isHausOnlyShellScript,
     relativizeWorkspacePath,
 } from './execution-bookkeeping.ts';
-import { unwrapShellCommand } from './execution-shell-script.ts';
+import { parseShellScript, unwrapShellCommand } from './execution-shell-script.ts';
 
 for (const fixture of executionBookkeepingCases) {
     test(`bookkeeping: ${fixture.name}`, () => {
@@ -22,8 +22,20 @@ test('only a script of haus calls is haus-only', () => {
     expect(isHausOnlyShellScript('/bin/zsh -lc "env HAUS_X=1 /opt/bin/haus message check"')).toBe(
         true
     );
+    expect(isHausOnlyShellScript("haus message send --target dm:@zach 'Done.\nTests pass.'")).toBe(
+        true
+    );
+    expect(isHausOnlyShellScript('haus message send --target "#all" "a\nb"\nbun test')).toBe(false);
     expect(isHausOnlyShellScript('haus message send && curl https://x.dev')).toBe(false);
     expect(isHausOnlyShellScript('cd x; echo hi')).toBe(false);
+});
+
+test('a quoted line break stays in its word; a comment apostrophe opens no quote', () => {
+    const programs = (script: string) =>
+        parseShellScript(script).commands.map((command) => command.program);
+    expect(programs("haus message send 'a\nb' && ls\npwd")).toEqual(['haus', 'ls', 'pwd']);
+    expect(programs("# don't\nls\necho it\\'s\npwd")).toEqual(['#', 'ls', 'echo', 'pwd']);
+    expect(parseShellScript("haus message send 'a\nb'").lines).toBe(1);
 });
 
 test("a runtime's shell wrapper is unwrapped to the command it ran", () => {
