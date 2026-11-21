@@ -12,8 +12,11 @@ export type ModelCredentialSave =
     | Omit<ModelConnectionAddInput, 'serverId'>
     | Omit<ModelConnectionReplaceCredentialInput, 'serverId'>;
 
-export function useModelConnections(serverId: string) {
-    return hausTrpc.modelConnections.list.useQuery({ serverId }, queryPolicy.syncedSnapshot);
+export function useModelConnections(serverId: string, { enabled = true } = {}) {
+    return hausTrpc.modelConnections.list.useQuery(
+        { serverId },
+        { ...queryPolicy.syncedSnapshot, enabled }
+    );
 }
 
 export function useModelConnectionEdits(serverId: string) {

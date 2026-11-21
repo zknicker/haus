@@ -71,10 +71,9 @@ test('the sidebar navigates the current tab, Back returns, and Command-click ope
     await expect(tabs.nth(1)).toHaveAttribute('data-active', 'true');
     await tabs.nth(0).getByRole('button', { name: 'all', exact: true }).click();
     await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();
-    // The landing replaced the tab's first entry with all, so Back has no earlier entry.
+    // The window opened on Home, so Back from #all returns there.
     await desktopEvent(page, 'test:desktop-history');
-    await expect(tabs.nth(0)).toContainText('all');
-    await expect(page.getByRole('textbox', { name: 'Message all' })).toBeVisible();
+    await expect(tabs.nth(0)).toContainText('Home');
 
     // Closing the window's last tab closes the window.
     await desktopEvent(page, 'test:desktop-close');
@@ -171,14 +170,15 @@ test('a hidden chat tab keeps its draft and leaves its unread alone', async ({ p
 
     // Activity in the hidden chat stays unread while its tab is hidden.
     await agent.send(`[@Ada](user://${agent.ownerUserId}) Ready when you are.`, 'hidden-1');
-    const unreadRow = paneBody(page, 'primary').getByRole('button', { exact: true, name: 'all' });
-    await expect(unreadRow).toBeVisible();
+    const teamRoom = page.getByLabel('Team room', { exact: true });
+    await expect(teamRoom).toContainText('1');
     await page.waitForTimeout(1500);
-    await expect(unreadRow).toBeVisible();
+    await expect(teamRoom).toContainText('1');
 
     // Showing the chat's tab brings back its draft and marks it read.
     await tabs.nth(0).getByRole('button', { name: 'all', exact: true }).click();
     await expect(composer).toHaveText('Keep this draft');
+    await expect(teamRoom).not.toContainText('1');
     await tabs.nth(1).getByRole('button', { name: 'Drive', exact: true }).click();
     await expect(tabs.nth(1)).toHaveAttribute('data-active', 'true');
 });

@@ -36,7 +36,7 @@ export function AgentCreationDialog({
     serverId,
 }: AgentCreationDialogProps) {
     const computers = useComputers(serverId, { enabled: open });
-    const modelConnections = useModelConnections(serverId).data;
+    const modelConnections = useModelConnections(serverId, { enabled: open }).data;
     const runnerModels =
         modelConnections?.agentLoop === 'runner' ? (modelConnections.runnerModels ?? []) : null;
     const navigate = useNavigate();

@@ -43,8 +43,8 @@ test('a Server member opens the shared library and reloads its stable address', 
     await page.reload();
     await expect(page.getByRole('heading', { name: 'No files yet' })).toBeVisible();
 
-    await openSection(page, 'Inbox');
-    await expect(page).toHaveURL(new RegExp(`/s/${slug}/inbox$`, 'u'));
+    await openSection(page, 'Tasks');
+    await expect(page).toHaveURL(new RegExp(`/s/${slug}/tasks$`, 'u'));
     await openSection(page, 'Drive');
     await expect(folders.getByRole('row')).toHaveText(driveRootTiles);
 });

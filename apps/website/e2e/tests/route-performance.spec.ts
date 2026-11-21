@@ -16,7 +16,14 @@ test('cold Tasks navigation paints its shell before the Tasks module arrives', a
     await expect(sectionLink(page, 'Tasks')).toBeVisible();
     try {
         const samples = await sectionLink(page, 'Tasks').evaluate(async (row) => {
-            row.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+            row.dispatchEvent(
+                new PointerEvent('pointerdown', {
+                    bubbles: true,
+                    button: 0,
+                    isPrimary: true,
+                    pointerType: 'mouse',
+                })
+            );
             const frames: boolean[] = [];
             for (let index = 0; index < 60; index += 1) {
                 await new Promise(requestAnimationFrame);
@@ -39,7 +46,9 @@ test('cold Tasks navigation paints its shell before the Tasks module arrives', a
         release();
     }
     await expect(page.getByRole('toolbar', { name: 'Task filters' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'New task', exact: true })).toHaveCount(0);
+    await expect(
+        page.locator('section[aria-label="Tasks"]').getByRole('button', { name: 'New task' })
+    ).toHaveCount(0);
 });
 
 test('Settings navigation changes the sidebar and breadcrumb while section code is unavailable', async ({

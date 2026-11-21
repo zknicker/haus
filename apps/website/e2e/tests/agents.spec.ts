@@ -50,6 +50,8 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     await expect(createDialog.getByLabel('Runtime')).toContainText('Codex');
     await expect(createDialog.getByLabel('Model')).toContainText('GPT-5.6 Sol');
     await createDialog.getByRole('textbox', { name: 'Name' }).fill('Scout');
+    await createDialog.getByText('Select a project', { exact: true }).click();
+    await page.getByRole('option', { exact: true, name: 'product' }).click();
     // The signature emoji is optional at creation and starts on the 👀 default.
     await createDialog.getByRole('button', { name: '👀 Signature emoji' }).click();
     await page.getByRole('option', { name: '🎉', exact: true }).click();
@@ -71,7 +73,9 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
         'Workspace',
     ]) {
         await expect(
-            page.getByRole('button', { name: new RegExp(`^${section}`, 'u') })
+            page
+                .getByLabel('Scrollable main content')
+                .getByRole('button', { name: new RegExp(`^${section}`, 'u') })
         ).toBeVisible();
     }
     await expect(page.getByRole('radio', { name: 'Overview' })).toHaveCount(0);
@@ -124,7 +128,11 @@ test('creates an ordinary Agent after inventory is reported and fails closed on 
     // Execution configuration lives behind Runs on, which owns its Edit dialog.
     await page.getByRole('button', { name: /^Runs on/u }).click();
     await expect(page).toHaveURL(/\/agents\/[^/]+\/runtime$/u);
-    await expect(page.getByRole('link', { exact: true, name: 'Scout' })).toBeVisible();
+    await expect(
+        page
+            .getByRole('navigation', { name: 'Breadcrumb' })
+            .getByRole('link', { exact: true, name: 'Scout' })
+    ).toBeVisible();
     await expect(page.getByText('Applies when device reconnects')).toBeVisible();
     await page.getByRole('button', { name: 'Edit', exact: true }).click();
     const runtimeDialog = page.getByRole('dialog', { name: 'Runtime Config' });
