@@ -1,3 +1,4 @@
+import type { ModelConnectionCapacityWindow, RunnerModelConnection } from '@haus/api';
 import type {
     OpenSessionOptions,
     RuntimeDriverFactory,
@@ -25,7 +26,12 @@ export function createClaudeHarness(options: {
     env?: Readonly<Record<string, string | undefined>>;
     hooks: IdleCompactionHooks<ClaudeConnection>;
     maxWarm: number;
+    onCapacity?: (
+        connection: RunnerModelConnection,
+        windows: readonly ModelConnectionCapacityWindow[]
+    ) => void;
 }) {
+    const { onCapacity } = options;
     const minTokens = idleCompactionMinTokens(options.env ?? process.env);
     const pool = new CompactingPool<ClaudeConnection>({
         hooks: options.hooks,
@@ -72,6 +78,9 @@ export function createClaudeHarness(options: {
         return await ClaudeConnection.open({
             launchKey,
             minTokens,
+            ...(onCapacity
+                ? { onCapacity: (windows) => onCapacity(launch.connection, windows) }
+                : {}),
             options: claudeQueryOptions(facts, {
                 cwd: paths.homeDir,
                 sessionId,

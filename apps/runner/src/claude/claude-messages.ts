@@ -115,12 +115,25 @@ const lifecycleSchema = z.looseObject({
 });
 export type ClaudeCommandLifecycle = z.infer<typeof lifecycleSchema>;
 
+const unifiedWindowSchema = z
+    .looseObject({ resetsAt: z.number(), utilization: z.number() })
+    .optional()
+    .catch(undefined);
+
 const rateLimitSchema = z.looseObject({
     rate_limit_info: z
-        .looseObject({ resetsAt: z.number().optional(), status: z.string().optional() })
+        .looseObject({
+            resetsAt: z.number().optional(),
+            status: z.string().optional(),
+            unifiedWindows: z
+                .looseObject({ five_hour: unifiedWindowSchema, seven_day: unifiedWindowSchema })
+                .optional()
+                .catch(undefined),
+        })
         .optional(),
     type: z.literal('rate_limit_event'),
 });
+export type ClaudeRateLimitInfo = NonNullable<z.infer<typeof rateLimitSchema>['rate_limit_info']>;
 
 export type ClaudeMessage =
     | { readonly kind: 'conversation'; readonly message: ClaudeConversationMessage }

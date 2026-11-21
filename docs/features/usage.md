@@ -39,9 +39,10 @@ while you read it.
   low-contrast **Not Detected** Chips in the section header instead of occupying card-sized space.
   Computer-local token ledgers are not shown on this surface.
 * **Model connections.** Settings → Models lists plan accounts in one table with what is left of
-  each 5-hour and weekly window and the soonest reset. A Claude or ChatGPT plan connection shows
-  its windows as the runner last read them. Nothing shows until a read lands, or once the last one
-  is six hours old. SuperGrok and API-key connections show none. See
+  each 5-hour and weekly window and the soonest reset. A ChatGPT plan connection shows its windows
+  as the runner last read them; a Claude plan connection shows them as its last Captain turn
+  reported them. Nothing shows until a reading lands, or once the last one is six hours old.
+  SuperGrok and API-key connections show none. See
   [Model connections](../../specs/model-connections.md#plan-capacity).
 
 * **Cloud Agents.** Beside the runtime capacity cards, the same Computer page carries one **Cursor
