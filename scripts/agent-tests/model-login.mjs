@@ -1,6 +1,5 @@
 export const environmentLogins = Object.freeze({
-    claude: { env: 'HAUS_RUNNER_TEST_CLAUDE_SETUP_TOKEN', kind: 'setup-token' },
-    gemini: { env: 'HAUS_GEMINI_API_KEY', kind: 'api-key' },
+    gemini: { env: 'HAUS_GEMINI_API_KEY' },
 });
 
 export const evalLoginLabel = 'Agent tests';
@@ -13,28 +12,36 @@ export async function ensureModelLogin(harness, provider, env = process.env) {
         return 'connected';
     }
     const login = environmentLogins[provider];
-    const secret = login ? env[login.env] : undefined;
-    if (!(login && secret)) {
+    const key = login ? env[login.env] : undefined;
+    if (!(login && key)) {
         throw new Error(missingLoginMessage(provider));
     }
-    const credential =
-        login.kind === 'api-key'
-            ? { key: secret, kind: 'api-key' }
-            : { kind: login.kind, token: secret };
-    await harness.trpc('modelConnections.add', {
-        credential,
-        label: evalLoginLabel,
-        provider,
-        serverId: harness.serverId,
-    });
-    return 'added';
+    const credential = { key, kind: 'api-key' };
+    const own = connections.find(
+        (connection) => connection.provider === provider && connection.label === evalLoginLabel
+    );
+    if (!own) {
+        await harness.trpc('modelConnections.add', {
+            credential,
+            label: evalLoginLabel,
+            provider,
+            serverId: harness.serverId,
+        });
+        return 'added';
+    }
+    const target = { connectionId: own.id, serverId: harness.serverId };
+    await harness.trpc('modelConnections.replaceCredential', { ...target, credential });
+    if (!own.enabled) {
+        await harness.trpc('modelConnections.setEnabled', { ...target, enabled: true });
+    }
+    return 'repaired';
 }
 
 export function missingLoginMessage(provider) {
     const login = environmentLogins[provider];
     return login
         ? `The eval Server has no ${provider} model connection and ${login.env} is not set; run through varlock or connect one in Settings → Models.`
-        : `The eval Server has no ${provider} model connection, and ${provider} signs in with OAuth; connect one on the stack in Settings → Models.`;
+        : `The eval Server has no ${provider} model connection, and none can be added from the environment; connect one on the stack in Settings → Models.`;
 }
 
 export function providerForModel(modelId) {

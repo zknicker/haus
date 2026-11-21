@@ -7,46 +7,63 @@ import {
     providerForModel,
 } from './model-login.mjs';
 
+const env = { [environmentLogins.gemini.env]: 'dev-gemini-key' };
+const credential = { key: 'dev-gemini-key', kind: 'api-key' };
+
 describe('model login', () => {
     test('an enabled ready connection for the provider is enough', async () => {
-        const harness = loginHarness([{ enabled: true, provider: 'gemini', status: 'ready' }]);
+        const harness = loginHarness([
+            { enabled: true, id: 'mc_1', label: 'Mine', provider: 'gemini', status: 'ready' },
+        ]);
         expect(await ensureModelLogin(harness, 'gemini', {})).toBe('connected');
-        expect(harness.added).toEqual([]);
+        expect(harness.calls).toEqual([]);
     });
 
     test('a missing api-key login is added from the environment', async () => {
-        const harness = loginHarness([{ enabled: false, provider: 'gemini', status: 'ready' }]);
-        const env = { [environmentLogins.gemini.env]: 'dev-gemini-key' };
+        const harness = loginHarness([
+            { enabled: false, id: 'mc_1', label: 'Mine', provider: 'gemini', status: 'ready' },
+        ]);
         expect(await ensureModelLogin(harness, 'gemini', env)).toBe('added');
-        expect(harness.added).toEqual([
+        expect(harness.calls).toEqual([
             {
-                credential: { key: 'dev-gemini-key', kind: 'api-key' },
-                label: evalLoginLabel,
-                provider: 'gemini',
-                serverId: 'srv_1',
+                input: { credential, label: evalLoginLabel, provider: 'gemini', serverId: 'srv_1' },
+                path: 'modelConnections.add',
             },
         ]);
     });
 
-    test('a missing setup-token login is added from the environment', async () => {
-        const harness = loginHarness([]);
-        const env = { [environmentLogins.claude.env]: 'dev-setup-token' };
-        await ensureModelLogin(harness, 'claude', env);
-        expect(harness.added[0]?.credential).toEqual({
-            kind: 'setup-token',
-            token: 'dev-setup-token',
-        });
+    test('a failed or disabled eval login is repaired in place, never added twice', async () => {
+        const harness = loginHarness([
+            {
+                enabled: false,
+                id: 'mc_eval',
+                label: evalLoginLabel,
+                provider: 'gemini',
+                status: 'failed',
+            },
+        ]);
+        expect(await ensureModelLogin(harness, 'gemini', env)).toBe('repaired');
+        const target = { connectionId: 'mc_eval', serverId: 'srv_1' };
+        expect(harness.calls).toEqual([
+            { input: { ...target, credential }, path: 'modelConnections.replaceCredential' },
+            { input: { ...target, enabled: true }, path: 'modelConnections.setEnabled' },
+        ]);
     });
 
-    test('an OAuth provider with no connection fails with what to connect', async () => {
-        const harness = loginHarness([{ enabled: true, provider: 'gemini', status: 'failed' }]);
-        await expect(ensureModelLogin(harness, 'chatgpt', {})).rejects.toThrow(
-            'chatgpt signs in with OAuth'
+    test('a provider with no environment login fails with what to connect', async () => {
+        const harness = loginHarness([
+            { enabled: true, id: 'mc_1', label: 'Mine', provider: 'gemini', status: 'failed' },
+        ]);
+        await expect(ensureModelLogin(harness, 'chatgpt', env)).rejects.toThrow(
+            'connect one on the stack in Settings → Models'
+        );
+        await expect(ensureModelLogin(harness, 'claude', env)).rejects.toThrow(
+            'none can be added from the environment'
         );
         await expect(ensureModelLogin(harness, 'gemini', {})).rejects.toThrow(
             environmentLogins.gemini.env
         );
-        expect(harness.added).toEqual([]);
+        expect(harness.calls).toEqual([]);
     });
 
     test('the provider matches the Server for every runner model family', () => {
@@ -63,19 +80,16 @@ describe('model login', () => {
 });
 
 function loginHarness(connections) {
-    const added = [];
+    const calls = [];
     return {
-        added,
+        calls,
         serverId: 'srv_1',
         trpc: async (path, input) => {
             if (path === 'modelConnections.list') {
                 return { connections, runnerModels: [] };
             }
-            if (path === 'modelConnections.add') {
-                added.push(input);
-                return { id: 'mc_1' };
-            }
-            throw new Error(`unexpected ${path}`);
+            calls.push({ input, path });
+            return { id: input.connectionId ?? 'mc_new' };
         },
     };
 }
