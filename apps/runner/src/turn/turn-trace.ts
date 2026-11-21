@@ -1,8 +1,10 @@
 import { randomBytes } from 'node:crypto';
 import {
+    type AgentReasoningEffort,
     type AgentStartCommand,
     type AgentTurnSummary,
     type RunnerTurnSpanFrame,
+    type RunnerTurnTimings,
     runnerTurnSpanFrameSchema,
 } from '@haus/api';
 
@@ -27,11 +29,13 @@ export function openTurnTrace(parent: AgentStartCommand['traceContext']) {
 
 export function turnSpanFrame(
     run: {
+        readonly reasoningEffort: AgentReasoningEffort;
         readonly serverId: string;
         readonly start: Pick<AgentStartCommand, 'chatId'>;
         readonly trace: TurnTrace;
     },
-    summary: AgentTurnSummary
+    summary: AgentTurnSummary,
+    timings: RunnerTurnTimings
 ) {
     const candidate: RunnerTurnSpanFrame = {
         agentId: summary.agentId,
@@ -42,11 +46,13 @@ export function turnSpanFrame(
         modelId: summary.modelId,
         outcome: summary.status,
         outputProduced: summary.outputProduced,
+        reasoningEffort: run.reasoningEffort,
         runId: summary.runId,
         runtimeId: summary.runtimeId,
         serverId: run.serverId,
         spanId: run.trace.spanId,
         startedAtMs: Date.parse(summary.startedAt),
+        timings,
         tokenUsage: summary.tokenUsage,
         type: 'runner-turn-span',
     };

@@ -16,13 +16,15 @@ import {
 import { Effect, FiberRef, Layer } from 'effect';
 import { type EffectRuntime, settle } from './boundary.ts';
 import { sanitizeTelemetryAttributes, type TelemetryAttributes } from './telemetry-attributes.ts';
+import { recordOperation, type TelemetryOutcome } from './telemetry-metrics.ts';
 
 /** A finished span the Agent runner recorded, re-exported through the Server's pipeline. */
 export interface RelayedSpan {
     readonly attributes: TelemetryAttributes;
     readonly endedAtMs: number;
-    readonly failed: boolean;
     readonly name: 'haus.agent.turn';
+    /** Sets the span status and the `outcome` of its `haus.operation.*` metrics. */
+    readonly outcome: TelemetryOutcome;
     readonly parentSpanId?: string;
     readonly sampled: boolean;
     readonly spanId: string;
@@ -34,11 +36,25 @@ const relayedSource = 'haus-runner';
 const relayedSpanSink = FiberRef.unsafeMake<((span: RelayedSpan) => void) | null>(null);
 
 /**
- * Re-export a span the Agent runner recorded. A no-op when this runtime
- * exports no traces; a span with invalid ids or timing is dropped.
+ * Re-export a span the Agent runner recorded and count it in
+ * `haus.operation.count` and `haus.operation.duration`, as a local operation
+ * span would be. The span export is a no-op when this runtime exports no
+ * traces; a span with invalid ids or timing is dropped and not counted.
  */
 export function relaySpan(runtime: EffectRuntime<never>, span: RelayedSpan) {
-    return settle(runtime, FiberRef.get(relayedSpanSink).pipe(Effect.map((sink) => sink?.(span))));
+    const program = Effect.gen(function* () {
+        if (!relayedContexts(span)) {
+            return;
+        }
+        const sink = yield* FiberRef.get(relayedSpanSink);
+        sink?.(span);
+        yield* recordOperation(
+            String(span.attributes['haus.operation'] ?? span.name),
+            span.outcome,
+            span.endedAtMs - span.startedAtMs
+        );
+    });
+    return settle(runtime, program);
 }
 
 export function relayedSpanLayer(spanProcessor: SpanProcessor, deploymentEnvironment?: string) {
@@ -59,19 +75,11 @@ export function relayedSpanLayer(spanProcessor: SpanProcessor, deploymentEnviron
 }
 
 function readableSpan(span: RelayedSpan, resource: Resource) {
-    const traceFlags = span.sampled ? TraceFlags.SAMPLED : TraceFlags.NONE;
-    const context: SpanContext = { spanId: span.spanId, traceFlags, traceId: span.traceId };
-    const parent: SpanContext | undefined = span.parentSpanId
-        ? { isRemote: true, spanId: span.parentSpanId, traceFlags, traceId: span.traceId }
-        : undefined;
-    const timed =
-        Number.isFinite(span.startedAtMs) &&
-        Number.isFinite(span.endedAtMs) &&
-        span.startedAtMs > 0 &&
-        span.endedAtMs >= span.startedAtMs;
-    if (!(timed && isSpanContextValid(context)) || (parent && !isSpanContextValid(parent))) {
+    const contexts = relayedContexts(span);
+    if (!contexts) {
         return null;
     }
+    const { context, parent } = contexts;
     const readable: ReadableSpan = {
         attributes: sanitizeTelemetryAttributes(span.attributes),
         droppedAttributesCount: 0,
@@ -89,9 +97,28 @@ function readableSpan(span: RelayedSpan, resource: Resource) {
         resource,
         spanContext: () => context,
         startTime: hrTime(span.startedAtMs),
-        status: { code: span.failed ? SpanStatusCode.ERROR : SpanStatusCode.OK },
+        status: {
+            code: span.outcome === 'failure' ? SpanStatusCode.ERROR : SpanStatusCode.OK,
+        },
     };
     return readable;
+}
+
+function relayedContexts(span: RelayedSpan) {
+    const traceFlags = span.sampled ? TraceFlags.SAMPLED : TraceFlags.NONE;
+    const context: SpanContext = { spanId: span.spanId, traceFlags, traceId: span.traceId };
+    const parent: SpanContext | undefined = span.parentSpanId
+        ? { isRemote: true, spanId: span.parentSpanId, traceFlags, traceId: span.traceId }
+        : undefined;
+    const timed =
+        Number.isFinite(span.startedAtMs) &&
+        Number.isFinite(span.endedAtMs) &&
+        span.startedAtMs > 0 &&
+        span.endedAtMs >= span.startedAtMs;
+    if (!(timed && isSpanContextValid(context)) || (parent && !isSpanContextValid(parent))) {
+        return null;
+    }
+    return { context, parent };
 }
 
 function hrTime(milliseconds: number) {

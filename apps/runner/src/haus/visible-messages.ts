@@ -55,11 +55,18 @@ export function servedAutomationIdsIn(pathname: string, body: unknown) {
     return parsed.data?.automations.map((automation) => automation.id) ?? [];
 }
 
-export function isCommittedSend(pathname: string, body: unknown) {
-    return (
-        pathname === '/api/agent/messages/send' &&
-        z.object({ state: z.literal('sent') }).safeParse(body).success
-    );
+const committedSendSchema = z.object({
+    message: z.object({ chat_id: z.string().min(1) }).optional(),
+    state: z.literal('sent'),
+});
+
+export function committedSendIn(pathname: string, requestBody: string, body: unknown) {
+    const committed = committedSendSchema.safeParse(body);
+    if (!(pathname === '/api/agent/messages/send' && committed.success)) {
+        return null;
+    }
+    const done = z.object({ done: z.literal(true) }).safeParse(parseRequest(requestBody)).success;
+    return { chatId: committed.data.message?.chat_id ?? null, done };
 }
 
 export async function attestVisibleMessages(
@@ -85,4 +92,12 @@ export async function attestVisibleMessages(
     }
     const accepted = new Set(parsed.data.accepted);
     return messages.filter((message) => accepted.has(message.id));
+}
+
+function parseRequest(text: string) {
+    try {
+        return JSON.parse(text) as unknown;
+    } catch {
+        return null;
+    }
 }

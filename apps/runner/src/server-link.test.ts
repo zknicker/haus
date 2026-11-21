@@ -93,6 +93,7 @@ describe('runner server link', () => {
         });
         expect(await run.tools.settle()).toEqual({
             sendCount: 1,
+            sends: [{ atMs: expect.any(Number), chatId: 'chat_messages', done: false }],
             servedAutomationIds: [],
             visibleMessages: [{ chatId: 'chat_messages', id: 'msg_new', sequence: 8 }],
         });

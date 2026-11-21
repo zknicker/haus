@@ -127,17 +127,22 @@ Haus's Agent Activity and Turn Details UI.
 
 ### Agent turn timing
 
-Completed turn spans include request-local monotonic measurements under `haus.turn.*`:
+Turn spans include monotonic measurements under `haus.turn.*`. The runner takes
+them for both harnesses (Claude Agent SDK and Pi) in its shared turn path
+(`apps/runner/src/turn/turn-timings.ts`), as whole milliseconds from the moment
+it starts the run, which is the turn span's start:
 
 | Attribute | Boundary, in milliseconds |
 | --- | --- |
-| `harness_ready_ms` | Turn tracing begins to the main native session creation attempt; includes launch setup, MCP discovery, instruction preparation, and any bootstrap refresh |
-| `bootstrap_ms` | Time inside a required bootstrap refresh; absent when no refresh ran |
-| `session_create_ms` | Duration of the main native session creation/resumption attempt, including a failed attempt |
-| `first_stream_ms` | Turn tracing begins to the first recognized runtime stream event, which may be a finish or error rather than model text |
-| `first_tool_ms` | Turn tracing begins to the first runtime tool-call event; absent for tool-free turns |
-| `first_send_ms`, `last_send_ms` | Turn tracing begins to the first/last Server-confirmed committed send observed by the Computer proxy |
-| `after_last_send_ms` | Last confirmed send to turn result observation, including trailing memory and cleanup work |
+| `harness_ready_ms` | Run start to the native session open; includes connection lookup, journal open, Agent context read, instruction composition, and the bootstrap fingerprint |
+| `session_create_ms` | Time inside the native session open or resume, including a failed attempt |
+| `first_stream_ms` | Run start to the first normalized harness event of any type, which may be progress, a finish, or an error rather than model text |
+| `first_tool_ms` | Run start to the first harness tool-call event; absent for tool-free turns |
+| `first_send_ms`, `last_send_ms` | Run start to the first/last Server-confirmed committed send through the runner's `haus` proxy |
+| `after_last_send_ms` | Last confirmed send to the moment the runner builds the span frame, after tools settle and the summary is recorded |
+
+`bootstrap_ms` was the Computer's bootstrap-refresh phase. The runner has no
+bootstrap refresh, so runner turns never carry it.
 
 Turns with a confirmed send also carry two counts. `haus.turn.sent_chats` is the number of Chats
 the turn sent into, and `haus.turn.done_chats` is how many of those received a last send marked
@@ -153,13 +158,14 @@ acknowledgments are ordinary sends. Held, refused, and ambiguous transport-failu
 produce confirmed-send timings. These timings do not measure App rendering or provider-internal
 queueing/reasoning. Synced execution journals remain the detailed tool evidence.
 
-`haus.reasoning.effort` is the applied Computer setting passed to the adapter, not proof of
+`haus.reasoning.effort` is the setting the runner passed to the harness, not proof of
 provider execution policy. `haus.tokens.input`, `output`, `cache_read`, and `cache_write` carry
 the same normalized per-turn usage as the durable summary when available. A missing usage object
 omits all four; normalized counts inherit the runtime adapter's treatment of unavailable subfields.
-The relay accepts finite nonnegative timings through seven days, integral token counts through
-12 digits, and only the product's known reasoning settings. No content or new metric dimensions
-are exported.
+The `runner-turn-span` frame's `timings` object takes only these fields: integer milliseconds
+from zero through seven days, Chat counts through 10,000 with `done_chats` at most `sent_chats`,
+and only the product's known reasoning settings. A frame with any other key or an out-of-bound
+value is refused whole. No content or new metric dimensions are exported.
 
 ## Trace shape
 
@@ -202,10 +208,11 @@ encoding in the runner.
 
 The frame carries the turn span's own id, start and end time from the durable
 turn summary, and the Agent, Server, chat, run, model, and runtime ids, outcome,
-failure kind, message count, output produced, and token counts. It never carries
-message content, prompts, or tool output. Each frame is one span; ids are
-bounded to 128 characters, counts to integers, and the duration to seven days.
-The runner drops a frame the schema refuses.
+failure kind, message count, output produced, token counts, reasoning setting,
+and the [turn timings](#agent-turn-timing). It never carries message content,
+prompts, or tool output. Each frame is one span; ids are bounded to 128
+characters, counts to integers, and the duration to seven days. The runner
+drops a frame the schema refuses.
 
 The frame names no trace. The Server stamps the trace id, parent span, and
 sampling from its own record of the run's dispatch, so a runner cannot place a
@@ -222,9 +229,17 @@ Telemetry never fails or slows a turn. The span is sent after the turn's summary
 never queued while the Server is unreachable (product frames still queue), and
 dropped when the socket already has 1 MiB buffered. The Server drops spans with
 invalid ids or timing and logs a relay failure without closing the runner
-socket. With no trace exporter configured the relay is a cheap no-op. Runner
-turns export no `haus.operation.*` metrics and none of the Computer-era
-`haus.turn.*` timing attributes described under Agent turn timing.
+socket. With no trace exporter configured the span export is a cheap no-op.
+
+A relayed span does not pass through `withTelemetrySpan`, so `relaySpan`
+records its operation metrics itself through the same `haus.operation.count`
+and `haus.operation.duration` instruments, with `operation` `agent.turn` and
+`outcome` mapped from the turn status (`completed` → `success`, `failed` →
+`failure`, `interrupted` → `interruption`). Duration is the summary's end minus
+its start. These metrics record even when the Server exports no traces, and
+they carry the Server's resource (`service.name` `haus-server`), since the
+runner has no metric pipeline. Only spans the relay accepts are counted, so a
+replayed, foreign, or expired span is not counted twice or at all.
 
 Do not force a Trigger fire and a later inbox drain into one parent chain.
 Retries and turns that drain multiple causes make that relationship ambiguous.

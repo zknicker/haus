@@ -12,11 +12,13 @@ const span = (runId: string) =>
         modelId: 'claude-opus-4-5',
         outcome: 'completed',
         outputProduced: false,
+        reasoningEffort: 'default',
         runId,
         runtimeId: 'claude-agent-sdk',
         serverId: 'srv_1',
         spanId: 'c'.repeat(16),
         startedAtMs: 1_763_640_000_000,
+        timings: {},
         tokenUsage: null,
         type: 'runner-turn-span',
     }) satisfies RunnerTurnSpanFrame;

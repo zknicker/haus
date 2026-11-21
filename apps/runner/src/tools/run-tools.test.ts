@@ -34,6 +34,7 @@ describe('run tools', () => {
         });
         expect(await run.tools.settle()).toEqual({
             sendCount: 1,
+            sends: [],
             servedAutomationIds: [],
             visibleMessages: [],
         });
