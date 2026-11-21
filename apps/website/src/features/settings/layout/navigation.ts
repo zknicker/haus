@@ -92,7 +92,7 @@ export const settingsNavItems = [
             'SuperGrok',
             'API keys',
             'Default connection',
-            'Cloud Agents',
+            'Workers',
             'Effort',
             'Fast',
             'Reported models',

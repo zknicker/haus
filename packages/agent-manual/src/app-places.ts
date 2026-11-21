@@ -264,14 +264,14 @@ export const appPlaces: readonly AppPlace[] = [
     },
     {
         area: 'connections-and-computers',
-        task: "Choose each Cloud Agent provider's model",
-        path: ['Settings', 'Models', 'Cloud Agents'],
+        task: 'Choose the model each Worker place uses',
+        path: ['Settings', 'Models', 'Workers'],
         who: 'owner-or-admin',
         note: 'Every member can read it.',
         anchors: [
             settingsEntry(),
             settingsSection('models'),
-            label('features/settings/models/cloud-agent-model-group.tsx', 'Cloud Agents'),
+            label('features/settings/models/cloud-agent-model-group.tsx', 'Workers'),
         ],
     },
     {
