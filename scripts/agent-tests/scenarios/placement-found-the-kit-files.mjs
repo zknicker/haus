@@ -18,7 +18,7 @@ export default defineScenario({
             published.push(
                 await publishArtifactAsMember(kit, {
                     content: factoryPlan,
-                    path: 'design-factory/factory-plan.md',
+                    path: 'haus/design-factory/factory-plan.md',
                     title: 'Design Factory Plan',
                 })
             );
@@ -33,7 +33,7 @@ export default defineScenario({
                     published.push(
                         await publishArtifactAsMember(kit, {
                             content: starterKit,
-                            path: 'design-factory/pod-folder-system-starter-kit.md',
+                            path: 'haus/design-factory/pod-folder-system-starter-kit.md',
                             title: 'Pod Folder System Starter Kit',
                         })
                     );
