@@ -108,6 +108,43 @@ export function sendEnded(
     } satisfies WorkerTurnEndedFrame);
 }
 
+export function resendProgress(
+    context: ComputerPlaceContext,
+    ref: ComputerTurnRef,
+    turn: ComputerTurnRecord
+) {
+    if (turn.sessionId) {
+        context.send({
+            sessionId: turn.sessionId,
+            turnId: ref.turnId,
+            type: 'worker-turn-session',
+        });
+    }
+    if (turn.inputAccepted) {
+        context.send({
+            attempt: turn.attempt,
+            turnId: ref.turnId,
+            type: 'worker-turn-input-accepted',
+            workerMdRevisionId: turn.workerMdRevisionId,
+        });
+    }
+}
+
+export function sendJournalMissing(
+    context: ComputerPlaceContext,
+    ref: ComputerTurnRef,
+    ending: Pick<WorkerTurnEndedFrame, 'attempt' | 'exit' | 'sessionId'>
+) {
+    context.send({
+        ...ending,
+        branch: null,
+        branches: [],
+        detail: 'journal-missing',
+        turnId: ref.turnId,
+        type: 'worker-turn-ended',
+    } satisfies WorkerTurnEndedFrame);
+}
+
 export function sharedOf(turn: ComputerTurnRecord) {
     return {
         attempt: turn.attempt,

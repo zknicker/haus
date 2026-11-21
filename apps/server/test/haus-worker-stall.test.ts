@@ -13,7 +13,7 @@ test('a follow-up an auto-interrupt still could not deliver notifies once per wi
     const readStallAttentions = () =>
         fixture.harness.sql`
             select id from agent_inbox
-            where source = 'worker_stall' and dedupe_key like ${`${turnId}:stall:%`}
+            where source = 'worker_stall' and dedupe_key like ${`worker-stall:${turnId}:%`}
         ` as Promise<{ id: string }[]>;
     const stallSummary =
         "Haus automatically interrupted the session to deliver this follow-up, but it still didn't go through. Last error: busy.";
@@ -95,7 +95,7 @@ test('a Run already running never regresses to queued when its prompt briefly go
     const readNotFoundAttentions = () =>
         fixture.harness.sql`
             select id from agent_inbox
-            where source = 'worker_stall' and dedupe_key like ${`${turnId}:stall:%`}
+            where source = 'worker_stall' and dedupe_key like ${`worker-stall:${turnId}:%`}
         ` as Promise<{ id: string }[]>;
 
     socket.send(
@@ -173,7 +173,7 @@ test('a job already cancelled raises no stall attention', async () => {
     });
 
     const rows = (await fixture.harness.sql`
-        select id from agent_inbox where dedupe_key like ${`${turnId}:stall:%`}
+        select id from agent_inbox where dedupe_key like ${`worker-stall:${turnId}:%`}
     `) as { id: string }[];
     expect(rows).toHaveLength(0);
     socket.close();

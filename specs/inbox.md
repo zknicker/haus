@@ -469,7 +469,7 @@ planning. W2 deletes those and migrates queued rows by their `cloud_agent_notice
 | Kind (`source`) | What it is | Recipient | Identity | Lane |
 | --- | --- | --- | --- | --- |
 | `worker_report` | One settled Worker turn: its report, or a failed outcome Haus recorded | The delegating Agent | `worker-report:<turnId>` | Concrete, in the Worker's Task. Queued reports of one Task coalesce into one run, up to 20 |
-| `worker_stall` | A live cloud turn that needs attention without settling ([Stalls](cloud-agents.md#stalls)) | The delegating Agent | `worker-stall:<turnId>:<window>` | Concrete, in the Worker's Task |
+| `worker_stall` | A live cloud turn that needs attention without settling ([Stalls](cloud-agents.md#stalls)) | The delegating Agent | `worker-stall:<turnId>:<stallSince>:<window>`, the stall's start in epoch ms and its reminder window | Concrete, in the Worker's Task |
 | `pull_request` | A pull request on a Task became ready for review or its checks finished ([change wake](workers.md#pull-request-readings)) | The Agent of each settled Worker that reported it, else the Task's assignee Agent | `<repo>#<number>:<change>:<headSha>` | Concrete, in the Task |
 
 Each lands in its Task, so a plain send in that run goes there. Each spends the automation chain

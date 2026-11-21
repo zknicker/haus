@@ -46,6 +46,43 @@ describe('a Computer that lost its Worker journal', () => {
             'worker-turn-input-accepted',
         ]);
     });
+
+    test('stops a live harness whose journal was deleted when the Server owes a stop', async () => {
+        const { frames, place, sent } = computerPlaces().place({ turn: waitForStop });
+        await place.accept(computerStart());
+        await sent('worker-turn-input-accepted');
+        await rm(place.journal.layout('wrk_1').turnsFile);
+
+        await place.reconcile([
+            { attempt: 1, stopRequested: true, turnId: 'wkt_1', workerId: 'wrk_1' },
+        ]);
+
+        expect(frames.filter((frame) => frame.type === 'worker-turn-ended')).toEqual([
+            {
+                attempt: 1,
+                branch: null,
+                branches: [],
+                detail: 'journal-missing',
+                exit: 'stopped',
+                sessionId: expect.any(String),
+                turnId: 'wkt_1',
+                type: 'worker-turn-ended',
+            },
+        ]);
+    });
+
+    test('a worker-stop ends a live harness whose journal was deleted', async () => {
+        const { frames, place, sent } = computerPlaces().place({ turn: waitForStop });
+        await place.accept(computerStart());
+        await sent('worker-turn-input-accepted');
+        await rm(place.journal.layout('wrk_1').turnsFile);
+
+        await place.stop({ turnId: 'wkt_1', workerId: 'wrk_1' });
+
+        expect(frames.filter((frame) => frame.type === 'worker-turn-ended')).toMatchObject([
+            { attempt: 1, detail: 'journal-missing', exit: 'stopped', turnId: 'wkt_1' },
+        ]);
+    });
 });
 
 async function* waitForStop(context: FakeTurnContext<WorkerHarnessLaunch>) {

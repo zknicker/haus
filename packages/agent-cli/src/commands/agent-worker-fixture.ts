@@ -19,7 +19,7 @@ export const work = {
     place: { kind: 'cursor' },
     providerAgentId: null,
     providerUrl: null,
-    pullRequest: null,
+    pullRequests: [],
     repository: 'haus/haus',
     runtime: null,
     startedAt: null,

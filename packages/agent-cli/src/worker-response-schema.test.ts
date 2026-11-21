@@ -34,7 +34,7 @@ const workerWithUnknownFields = {
     place: { kind: 'claude' },
     providerAgentId: 'cse_abc',
     providerUrl: 'https://claude.ai/code',
-    pullRequest: null,
+    pullRequests: [],
     repository: 'haus/haus',
     runtime: null,
     startedAt: '2026-09-04T12:00:30.000Z',

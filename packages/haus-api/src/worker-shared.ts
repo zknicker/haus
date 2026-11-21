@@ -20,6 +20,7 @@ export const workerTitleMaxLength = 120;
 export const workerActivityMaxLength = 120;
 export const workerSummaryMaxLength = 2000;
 export const workerTurnsRetained = 20;
+export const workerPullRequestsRetained = 50;
 
 export {
     type CloudAgentCapabilityState,
@@ -223,8 +224,8 @@ export const workerSchema = z
         place: workerPlaceViewSchema,
         providerAgentId: z.string().trim().min(1).max(200).nullable(),
         providerUrl: z.url().max(2000).nullable(),
-        /** The live reading of the pull request the newest reporting turn named. */
-        pullRequest: pullRequestReadingSchema.nullable(),
+        /** Live readings of every pull request its turns named, newest first. */
+        pullRequests: z.array(pullRequestReadingSchema).max(workerPullRequestsRetained),
         repository: workerRepositorySchema,
         runtime: workerRuntimeSchema.nullable(),
         startedAt: workerTimestampSchema.nullable(),

@@ -32,7 +32,7 @@ enum CloudAgentWorkFixture {
         {"activity":\(activity.map { #"{"at":"\#(updatedAt)","summary":\#(quoted($0))}"# } ?? "null"),
          "agentId":"agt_one","cancelRequestedAt":\(optional(cancelRequestedAt)),"chatId":"cht_one",
          "createdAt":"\(createdAt)","id":"\(id)","job":\(job),"messageId":"msg_one","place":{"kind":"cursor"},
-         "providerUrl":\(optional(providerUrl)),"pullRequest":\(pullRequest),"repository":"haus/haus","turns":[\(runs.joined(separator: ","))],
+         "providerUrl":\(optional(providerUrl)),"pullRequests":\(pullRequest == "null" ? "[]" : "[\(pullRequest)]"),"repository":"haus/haus","turns":[\(runs.joined(separator: ","))],
          "startedAt":"\(start)","startingRef":null,"status":"\(status)","terminalAt":null,
          "title":\(quoted(title)),"updatedAt":"\(updatedAt)"}
         """
