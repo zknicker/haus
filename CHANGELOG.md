@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## v27.0.0 - 2026-11-21
+
+- A new Captain no longer shows "Applying" forever. The Server records the Captain's settings as applied when its first run starts, so the badge clears without waiting for a report from a Computer.
+- A Captain no longer shows as offline when its assigned Computer is offline. Captains run on the Server's Agent runner, so a working or idle Captain stays working or idle.
+- Haus no longer exports traces or metrics to Axiom. Production deploys no longer need the Axiom 1Password items. Haus Computer 23.0.0 stops sending its telemetry to the Server, and the Server's Computer telemetry endpoints are gone.
+- A Worker's card and `haus worker` output list every pull request its turns named, newest first, instead of only the latest one.
+- A Worker turn on a Computer whose journal was deleted mid-run stops and reports `journal-missing` instead of running on unseen. A stopped Worker turn whose start never reached the Computer settles as stopped.
+- Server 26.0.0 and Haus Computer 23.0.0 both publish. Computer protocol 46 is unchanged, so either can update first. No database migration. Haus for iPhone 12.0.1 still reads a Worker's single pull request, so Worker cards on iPhone may not load until the next iPhone release. Haus Agent and Haus for Desktop are unchanged.
+
 ## v26.1.0 - 2026-11-20
 
 - Captain turns on the Agent runner record the `haus.operation.count` and `haus.operation.duration` metrics again, for `operation=agent.turn`, with the same outcomes as before v23.0.0. These metrics now come from the Server, under `service.name=haus-server` instead of `haus-computer`, so update any Axiom dashboard or monitor that filters turn metrics by service. The runner's turn spans also carry turn timings again: time to the first stream event, first tool call and first and last message send, plus session start and reasoning effort.
