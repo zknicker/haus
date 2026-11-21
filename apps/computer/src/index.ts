@@ -5,7 +5,7 @@ import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
 import type { AgentSkillImportCommand, AgentSkillImportRecord } from '@haus/api';
 import * as commandFrames from './agent-command-frames.ts';
-import { resetAgentState } from './agent-reset.ts';
+import { handleAgentResetFrame } from './agent-reset-frames.ts';
 import {
     parseAgentRetireCommand,
     purgeRetiredAgent,
@@ -70,7 +70,6 @@ import {
     readComputerLogs,
     readComputerStatus,
 } from './diagnostics.ts';
-import { discardDrivePushes } from './drive/turn-sync.ts';
 import { handleHostSkillFileRequest } from './host-skill-file.ts';
 import {
     acceptHostSkillImport,
@@ -1114,29 +1113,17 @@ async function connect(
             if (invocations.receive(frame)) {
                 return;
             }
-            const reset = commandFrames.parseResetCommand(frame);
-            if (reset) {
-                if (retiredAgents.has(reset.agentId) || reset.kind !== 'full') {
-                    return;
-                }
-                resettingAgents.add(reset.agentId);
-                const agentRoot = join(agentsDir, reset.agentId);
-                const resumePushes = discardDrivePushes(agentRoot);
-                void trackWriter(
-                    resetAgentState({
-                        agentId: reset.agentId,
-                        dataRoot,
-                        serverId: attachment.serverId,
-                    })
-                        .then(() => reportComputer())
-                        .catch((error) => {
-                            console.error(error instanceof Error ? error.message : error);
-                        })
-                        .finally(() => {
-                            resettingAgents.delete(reset.agentId);
-                            resumePushes();
-                        })
-                );
+            if (
+                handleAgentResetFrame(frame, {
+                    agentsDir,
+                    dataRoot,
+                    report: () => reportComputer(),
+                    resettingAgents,
+                    retiredAgents,
+                    serverId: attachment.serverId,
+                    track: trackWriter,
+                })
+            ) {
                 return;
             }
             const reminderScript = parseReminderScriptCommand(frame);

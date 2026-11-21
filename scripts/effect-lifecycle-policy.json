@@ -1286,6 +1286,17 @@
                 "timer": 0
             }
         },
+        "apps/computer/src/agent-reset-frames.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "A full reset holds the Agent's Drive pushes and its resetting mark only while it clears the folder, and lexical finally resumes both; the frame handler hands the one reset promise to the daemon's tracked writers.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 0,
+                "timer": 0
+            }
+        },
         "apps/computer/src/drive/turn-sync.ts": {
             "disposition": "finite-cleanup",
             "reason": "A Drive sync revokes the run credential it minted once it ends, and the per-folder queue drops its settled turn; a failed revoke leaves a credential that expires on its own.",
