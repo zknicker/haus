@@ -12,6 +12,7 @@ export interface RunAuthority {
     readonly runCredential: string;
     readonly runId: string;
     readonly serverUrl: string;
+    readonly traceparent?: string;
 }
 
 export interface BashToolInput {

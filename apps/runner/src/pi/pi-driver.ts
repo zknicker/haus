@@ -3,7 +3,9 @@ import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { BACKGROUND_CONTEXT } from '@earendil-works/chord/context';
+import type { Api, Model } from '@earendil-works/pi-ai';
 import type { AgentReasoningEffort } from '@haus/api';
+import { defaultThinkingLevel } from '../model-catalog.ts';
 import type {
     OpenSessionOptions,
     RuntimeDriverFactory,
@@ -106,7 +108,7 @@ export function createPiHarness(options: {
                     toolset.search === 'grounded' ? groundedSearch(opened.models, model) : null
                 );
                 await handle.root.configure(
-                    { model: ref, thinkingLevel: thinkingLevelOf(launch.reasoningEffort) },
+                    { model: ref, thinkingLevel: thinkingLevelOf(launch.reasoningEffort, model) },
                     BACKGROUND_CONTEXT
                 );
                 return piSession({
@@ -184,8 +186,8 @@ interface PiToolset {
     readonly search: WebSearchRoute;
 }
 
-function thinkingLevelOf(effort: AgentReasoningEffort) {
-    return effort === 'default' ? null : effort;
+function thinkingLevelOf(effort: AgentReasoningEffort, model: Model<Api>) {
+    return effort === 'default' ? defaultThinkingLevel(model) : effort;
 }
 
 let packageVersion: Promise<string> | null = null;

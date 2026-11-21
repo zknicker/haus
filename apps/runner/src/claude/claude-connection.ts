@@ -5,8 +5,10 @@ import {
     query,
     type SDKUserMessage,
 } from '@anthropic-ai/claude-agent-sdk';
+import type { ModelConnectionCapacityWindow } from '@haus/api';
 import { EventQueue } from '../turn/event-queue.ts';
 import { ClaudeBackgroundTasks } from './claude-background-tasks.ts';
+import { claudeCapacityWindows } from './claude-capacity.ts';
 import { runClaudeCompaction } from './claude-compaction.ts';
 import { claudeHarnessContext } from './claude-context.ts';
 import { ClaudeSessionEndedError, claudeResumeRejection } from './claude-errors.ts';
@@ -26,6 +28,8 @@ export interface TurnSink {
     onLifecycle(message: ClaudeCommandLifecycle): void;
     onMessage(message: ParsedClaudeMessage): void;
 }
+
+export type CapacitySink = (windows: readonly ModelConnectionCapacityWindow[]) => void;
 
 const initializeTimeoutMs = 30_000;
 const stderrTailLines = 20;
@@ -50,7 +54,8 @@ export class ClaudeConnection implements IdleCompactable {
         options: Options,
         readonly launchKey: string,
         sessionId: string,
-        minTokens: number
+        minTokens: number,
+        private readonly onCapacity: CapacitySink | undefined
     ) {
         this.sessionId = sessionId;
         this.modelId = options.model ?? '';
@@ -74,6 +79,7 @@ export class ClaudeConnection implements IdleCompactable {
     static async open(input: {
         launchKey: string;
         minTokens: number;
+        onCapacity?: CapacitySink;
         options: Options;
         sessionId: string;
     }) {
@@ -84,7 +90,8 @@ export class ClaudeConnection implements IdleCompactable {
             input.options,
             input.launchKey,
             input.sessionId,
-            input.minTokens
+            input.minTokens,
+            input.onCapacity
         );
         try {
             await connection.initialize();
@@ -190,6 +197,12 @@ export class ClaudeConnection implements IdleCompactable {
         this.idleActivity.observe(parsed);
         if (parsed.message.kind === 'system') {
             this.tasks.apply(parsed.message.message);
+        }
+        if (parsed.message.kind === 'rate-limit') {
+            const windows = claudeCapacityWindows(parsed.message.message.rate_limit_info);
+            if (windows.length > 0) {
+                this.onCapacity?.(windows);
+            }
         }
         if (parsed.sessionId) {
             this.sessionId = parsed.sessionId;

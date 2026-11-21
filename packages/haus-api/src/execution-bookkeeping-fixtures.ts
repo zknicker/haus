@@ -29,6 +29,15 @@ export const executionBookkeepingCases: readonly ExecutionBookkeepingCase[] = [
     },
     {
         bookkeeping: true,
+        input: {
+            command: "haus message send --target dm:@zach 'Shipped.\nTests pass.'",
+            cwd: 'app',
+        },
+        name: 'a quoted multi-line send, as the runner journals a shell argv',
+        toolName: 'shell',
+    },
+    {
+        bookkeeping: true,
         input: { command: 'cd projects/app && haus react --message-id m_1 --emoji eyes' },
         name: 'a reaction after setup',
         toolName: 'Bash',

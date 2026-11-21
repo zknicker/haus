@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { type AgentTurnSummary, agentPathSegment } from '@haus/api';
+import { type AgentTurnSummary, agentPathSegment, noticeReceipt } from '@haus/api';
 import type { RunnerConfig } from '../config.ts';
 import type { DispatchLedger, RecoveredDispatch } from '../dispatch/ledger.ts';
 import type { JournalUploads } from '../journal/journal-uploads.ts';
@@ -47,6 +47,7 @@ export function createTurnHost(input: {
     const harnesses = createHarnesses({
         agentBusy: (agentId) => host.busy(agentId),
         book: input.book,
+        ...(input.capacity ? { capacity: input.capacity } : {}),
         ...(input.journal ? { journal: input.journal } : {}),
         link: input.link,
         log,
@@ -251,13 +252,7 @@ export function createTurnHostWith(input: {
         },
         async notice(notice) {
             const { runtimeDir } = paths(notice.agentId);
-            const receipt = {
-                runId: notice.runId,
-                workIds: [
-                    ...notice.inbox.map((item) => item.id),
-                    ...(notice.taskAssignments?.ids ?? []),
-                ],
-            };
+            const receipt = noticeReceipt(notice);
             const text = await inboxStore(runtimeDir).replace(notice, receipt);
             const run = active.get(notice.agentId);
             if (!(text && run?.sink && run.runId === notice.runId)) {

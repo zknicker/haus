@@ -4,8 +4,7 @@ import { ArrowRight01Icon, MoreHorizontalIcon } from '@hugeicons-pro/core-stroke
 import type { ReactNode } from 'react';
 import { useParams } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
-import { useCapyShell } from '../capy-shell/capy-shell-preference.ts';
-import { inboxRoute, serverRoute } from '../servers/server-routes.ts';
+import { serverRoute } from '../servers/server-routes.ts';
 import { type BandCrumb, collapseTrail, crumbKey } from './band-trail.ts';
 import { CrumbDropTarget } from './crumb-drop-target.tsx';
 
@@ -31,7 +30,7 @@ export function BandBreadcrumbs({
     current?: BandCrumb;
 }) {
     const { slug = '' } = useParams();
-    const home = useCapyShell() ? serverRoute(slug) : inboxRoute(slug);
+    const home = serverRoute(slug);
     const trail = collapseTrail(crumbs);
     return (
         <nav aria-label="Breadcrumb" className="min-w-0 overflow-hidden">

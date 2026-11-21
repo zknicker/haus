@@ -1,4 +1,4 @@
-import { createTestServer } from '../support/server.ts';
+import { createTestServer, openSettings, sectionLink } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('cold Tasks navigation paints its shell before the Tasks module arrives', async ({
@@ -13,19 +13,24 @@ test('cold Tasks navigation paints its shell before the Tasks module arrives', a
         await route.continue();
     });
     await createTestServer(page, { displayName: 'Route performance', slug: 'route-performance' });
-    await expect(page.getByRole('row', { name: 'Tasks', exact: true })).toBeVisible();
+    await expect(sectionLink(page, 'Tasks')).toBeVisible();
     try {
-        const samples = await page
-            .getByRole('row', { name: 'Tasks', exact: true })
-            .evaluate(async (row) => {
-                row.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-                const frames: boolean[] = [];
-                for (let index = 0; index < 60; index += 1) {
-                    await new Promise(requestAnimationFrame);
-                    frames.push(Boolean(document.querySelector('section[aria-label="Tasks"]')));
-                }
-                return frames;
-            });
+        const samples = await sectionLink(page, 'Tasks').evaluate(async (row) => {
+            row.dispatchEvent(
+                new PointerEvent('pointerdown', {
+                    bubbles: true,
+                    button: 0,
+                    isPrimary: true,
+                    pointerType: 'mouse',
+                })
+            );
+            const frames: boolean[] = [];
+            for (let index = 0; index < 60; index += 1) {
+                await new Promise(requestAnimationFrame);
+                frames.push(Boolean(document.querySelector('section[aria-label="Tasks"]')));
+            }
+            return frames;
+        });
         await testInfo.attach('route-shell-frames', {
             body: JSON.stringify({
                 frames: samples,
@@ -41,43 +46,9 @@ test('cold Tasks navigation paints its shell before the Tasks module arrives', a
         release();
     }
     await expect(page.getByRole('toolbar', { name: 'Task filters' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'New task', exact: true })).toHaveCount(0);
-});
-
-test('Inbox reserves its greeting line without moving the date when identity arrives', async ({
-    page,
-}) => {
-    let release = () => {};
-    const held = new Promise<void>((resolve) => {
-        release = resolve;
-    });
-    await page.route(
-        (url) =>
-            url.pathname.startsWith('/trpc/') &&
-            url.pathname.slice('/trpc/'.length).split(',').includes('member.list'),
-        async (route) => {
-            await held;
-            await route.continue();
-        }
-    );
-    await createTestServer(page, {
-        displayName: 'Greeting performance',
-        slug: 'greeting-performance',
-    });
-    const header = page.locator('header').filter({ has: page.locator('h1') });
-    const date = header.locator('p');
-    let before: { y: number } | null = null;
-    try {
-        await page.getByRole('row', { name: 'Inbox', exact: true }).click();
-        await expect(date).toBeVisible();
-        await expect(header.locator('h1')).toBeEmpty();
-        before = await date.boundingBox();
-        expect(before).not.toBeNull();
-    } finally {
-        release();
-    }
-    await expect(header.locator('h1')).not.toBeEmpty();
-    expect((await date.boundingBox())?.y).toBe(before?.y);
+    await expect(
+        page.locator('section[aria-label="Tasks"]').getByRole('button', { name: 'New task' })
+    ).toHaveCount(0);
 });
 
 test('Settings navigation changes the sidebar and breadcrumb while section code is unavailable', async ({
@@ -96,7 +67,7 @@ test('Settings navigation changes the sidebar and breadcrumb while section code 
         slug: 'settings-performance',
     });
     try {
-        await page.getByRole('button', { name: 'Settings', exact: true }).click();
+        await openSettings(page);
         await expect(page.getByRole('row', { name: 'Back to chat', exact: true })).toBeVisible();
         await expect(page.getByRole('list', { name: 'Breadcrumbs' })).toContainText('Profile');
         await expect(page.locator('.skeleton')).toHaveCount(0);
@@ -127,32 +98,6 @@ test('default channel marks leave the icon catalog unloaded until the picker ope
     await expect.poll(() => catalogRequests.length).toBe(1);
     await page.getByRole('searchbox', { name: 'Search icons' }).fill('rocket');
     await expect(page.getByRole('button', { name: 'Rocket', exact: true })).toBeVisible();
-});
-
-test('Inbox labels stay mounted while its section code loads', async ({ page }) => {
-    let release = () => {};
-    const held = new Promise<void>((resolve) => {
-        release = resolve;
-    });
-    await page.route('**/src/features/servers/inbox/inbox-active-agents.tsx*', async (route) => {
-        await held;
-        await route.continue();
-    });
-    await createTestServer(page, { displayName: 'Inbox performance', slug: 'inbox-performance' });
-    try {
-        await page.getByRole('row', { name: 'Inbox', exact: true }).click();
-        await expect(page.getByRole('heading', { name: 'Unread', exact: true })).toBeVisible();
-        await expect(page.getByText('All caught up.', { exact: true })).toHaveCount(0);
-        await page.getByRole('heading', { name: 'Unread', exact: true }).evaluate((heading) => {
-            Reflect.set(window, '__inboxSectionHeading', heading);
-        });
-    } finally {
-        release();
-    }
-    await expect(page.getByText('All caught up.', { exact: true })).toBeVisible();
-    expect(
-        await page.evaluate(() => Reflect.get(window, '__inboxSectionHeading').isConnected)
-    ).toBe(true);
 });
 
 test('cold channel navigation shows the selected identity while conversation code loads', async ({

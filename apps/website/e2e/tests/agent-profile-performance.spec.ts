@@ -1,5 +1,5 @@
 import { captainsProjectId } from '../support/project.ts';
-import { attachComputer, createTestServer, runPsql } from '../support/server.ts';
+import { attachComputer, captainTile, createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('a cold Agent profile keeps identity and navigation available before its content arrives', async ({
@@ -35,7 +35,7 @@ test('a cold Agent profile keeps identity and navigation available before its co
         '${homeProjectId}')`
     );
     await page.reload();
-    const row = page.getByRole('row', { name: 'Iris', exact: true });
+    const row = captainTile(page, 'Iris');
     await expect(row).toBeVisible();
     await page.route(
         (url) =>
@@ -50,7 +50,10 @@ test('a cold Agent profile keeps identity and navigation available before its co
         await row.click({ button: 'right' });
         await page.getByRole('menuitem', { name: 'View Captain profile', exact: true }).click();
         await expect(page.getByRole('heading', { name: 'Iris', exact: true })).toBeVisible();
-        await page.getByRole('button', { name: /^Automations/u }).click();
+        await page
+            .getByLabel('Scrollable main content')
+            .getByRole('button', { name: /^Automations/u })
+            .click();
         await expect(page.getByRole('list', { name: 'Breadcrumbs' })).toContainText('Automations');
         await expect(page.locator('.skeleton')).toHaveCount(0);
     } finally {

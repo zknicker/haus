@@ -1,7 +1,11 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { agentCommandSchema, agentInboxItemSchema } from '@haus/api';
+import {
+    agentCommandSchema,
+    agentInboxItemSchema,
+    agentNoticeCommandSchema,
+    noticeReceipt,
+} from '@haus/api';
 import { and, eq } from 'drizzle-orm';
-import { noticeReceipt, parseNoticeCommand } from '../../computer/src/agent-command-frames.ts';
 import { enqueuePullRequestWakes } from '../src/github/pull-request-wake.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentInboxTable } from '../src/postgres/schema.ts';
@@ -47,8 +51,8 @@ test('a busy Agent hears a count of one Task reports, then gets the reports in i
         total: 2,
     });
     expect(JSON.stringify(notice)).not.toContain('First is done.');
-    const parsed = parseNoticeCommand(notice);
-    const receipt = parsed ? noticeReceipt(parsed) : null;
+    const parsed = agentNoticeCommandSchema.safeParse(notice);
+    const receipt = parsed.success ? noticeReceipt(parsed.data) : null;
     expect(receipt).toEqual({
         runId,
         workIds: [

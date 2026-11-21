@@ -32,10 +32,7 @@ export async function connectedRunner(
               book,
               link,
               log: () => undefined,
-              usageUrls: {
-                  chatgpt: `${server.url}/backend-api/wham/usage`,
-                  claude: `${server.url}/api/oauth/usage`,
-              },
+              usageUrls: { chatgpt: `${server.url}/backend-api/wham/usage` },
           })
         : null;
     const pi = createPiHarness({
