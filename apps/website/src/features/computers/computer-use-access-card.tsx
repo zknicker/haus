@@ -1,16 +1,13 @@
-import type { ComputerUseAccess, ComputerUseReadiness } from '@haus/api';
+import type { ComputerUseReadiness } from '@haus/api';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { Alert, Label, ListBox, Select } from '@heroui/react';
-import { useSetComputerUseAccess } from '../../hooks/computer-use/use-computer-use-access.ts';
+import { Alert, Switch } from '@heroui/react';
+import { useSetComputerUseEnabled } from '../../hooks/computer-use/use-computer-use-enabled.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { withSaveErrorToast } from '../../lib/saving-toast.ts';
-import { SettingsFact } from '../settings/layout/settings-text.tsx';
 import {
-    computerUseAccessOption,
-    computerUseAccessOptions,
+    computerUseDescription,
     computerUseReadinessIssues,
     computerUseReadinessText,
-    isComputerUseAccess,
     supportsComputerUse,
 } from './computer-use-model.ts';
 
@@ -32,12 +29,16 @@ export function ComputerUseAccessCard({
                 <ItemCardGroup.Header>
                     <ItemCardGroup.Title>Access</ItemCardGroup.Title>
                 </ItemCardGroup.Header>
-                <ComputerUseReadinessWarning readiness={computer.reportedInventory?.computerUse} />
+                {computer.computerUseEnabled ? (
+                    <ComputerUseReadinessWarning
+                        readiness={computer.reportedInventory?.computerUse}
+                    />
+                ) : null}
                 <ItemCardGroup className="overflow-hidden">
                     <ComputerUseAccessRow
-                        access={computer.computerUseAccess}
                         canChange={computer.canChangeComputerUse}
                         computerId={computerId}
+                        enabled={computer.computerUseEnabled}
                         serverId={serverId}
                     />
                 </ItemCardGroup>
@@ -47,63 +48,42 @@ export function ComputerUseAccessCard({
 }
 
 export function ComputerUseAccessRow({
-    access,
     canChange,
     computerId,
+    enabled,
     serverId,
 }: {
-    access: ComputerUseAccess;
     canChange: boolean;
     computerId: string;
+    enabled: boolean;
     serverId: string;
 }) {
-    const setAccess = useSetComputerUseAccess(serverId);
-    const current = computerUseAccessOption(access);
+    const setEnabled = useSetComputerUseEnabled(serverId);
     return (
         <ItemCard>
             <ItemCard.Content>
-                <ItemCard.Title>Computer use</ItemCard.Title>
+                <ItemCard.Title>Computer use allowed</ItemCard.Title>
                 <ItemCard.Description className="whitespace-normal">
-                    {current.description}
+                    {computerUseDescription}
                 </ItemCard.Description>
             </ItemCard.Content>
             <ItemCard.Action>
-                {canChange ? (
-                    <Select
-                        aria-label="Computer use"
-                        className="w-44"
-                        onChange={(value) => {
-                            if (isComputerUseAccess(value) && value !== access) {
-                                withSaveErrorToast(() =>
-                                    setAccess.mutateAsync({ access: value, computerId, serverId })
-                                ).catch(() => undefined);
-                            }
-                        }}
-                        value={access}
-                        variant="secondary"
-                    >
-                        <Select.Trigger>
-                            <Select.Value className="min-w-0 truncate" />
-                            <Select.Indicator />
-                        </Select.Trigger>
-                        <Select.Popover>
-                            <ListBox>
-                                {computerUseAccessOptions.map((option) => (
-                                    <ListBox.Item
-                                        id={option.id}
-                                        key={option.id}
-                                        textValue={option.label}
-                                    >
-                                        <Label>{option.label}</Label>
-                                        <ListBox.ItemIndicator />
-                                    </ListBox.Item>
-                                ))}
-                            </ListBox>
-                        </Select.Popover>
-                    </Select>
-                ) : (
-                    <SettingsFact>{current.label}</SettingsFact>
-                )}
+                <Switch
+                    aria-label="Computer use allowed"
+                    isDisabled={!canChange || setEnabled.isPending}
+                    isSelected={enabled}
+                    onChange={(next) => {
+                        withSaveErrorToast(() =>
+                            setEnabled.mutateAsync({ computerId, enabled: next, serverId })
+                        ).catch(() => undefined);
+                    }}
+                >
+                    <Switch.Content>
+                        <Switch.Control>
+                            <Switch.Thumb />
+                        </Switch.Control>
+                    </Switch.Content>
+                </Switch>
             </ItemCard.Action>
         </ItemCard>
     );

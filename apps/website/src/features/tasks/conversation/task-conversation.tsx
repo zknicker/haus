@@ -21,7 +21,6 @@ import { ChatReadState } from '../../servers/chat/chat-read-state.tsx';
 import { ChatTranscript } from '../../servers/chat/chat-transcript.tsx';
 import { ChatTypingIndicator } from '../../servers/chat/chat-typing-indicator.tsx';
 import { composerDropSurfaceProps } from '../../servers/chat/composer-file-drop.ts';
-import { ComputerUseRequests } from '../../servers/chat/computer-use-request-panel.tsx';
 import { useChatInlineReply } from '../../servers/chat/use-chat-inline-reply.ts';
 import { useChatReferenceActivation } from '../../servers/chat/use-chat-reference-activation.ts';
 import { usePendingChatMessages } from '../../servers/chat/use-pending-messages.ts';
@@ -103,7 +102,6 @@ export function TaskConversation({
                             serverId={messages.data ? server.id : undefined}
                             visibleSequence={visibleSequence}
                         />
-                        <ComputerUseRequests chatId={chatId} serverId={server.id} />
                         <ChatComposer
                             chatId={chatId}
                             chatName={title}

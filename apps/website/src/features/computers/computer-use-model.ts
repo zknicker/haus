@@ -1,26 +1,7 @@
-import type { ComputerUseAccess, ComputerUseReadiness } from '@haus/api';
+import type { ComputerUseReadiness } from '@haus/api';
 
-export const computerUseAccessOptions = [
-    {
-        description:
-            'Every chat asks you once before a Captain clicks or types in applications on this Device; Always allow in that prompt switches this. Looking at the screen never asks',
-        id: 'ask',
-        label: 'Ask each chat',
-    },
-    {
-        description: 'Every chat may click and type in applications on this Device without asking',
-        id: 'always',
-        label: 'Always allow',
-    },
-] as const satisfies ReadonlyArray<{ description: string; id: ComputerUseAccess; label: string }>;
-
-export function computerUseAccessOption(access: ComputerUseAccess) {
-    return access === 'always' ? computerUseAccessOptions[1] : computerUseAccessOptions[0];
-}
-
-export function isComputerUseAccess(value: unknown): value is ComputerUseAccess {
-    return value === 'ask' || value === 'always';
-}
+export const computerUseDescription =
+    'Captains can see the screen and click and type in applications on this Device.';
 
 export function supportsComputerUse(computer: { operatingSystem: string | null }) {
     return computer.operatingSystem?.toLowerCase() === 'darwin';

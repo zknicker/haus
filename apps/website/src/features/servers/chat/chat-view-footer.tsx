@@ -7,7 +7,6 @@ import { ArchivedChannelBar } from './archived-channel-bar.tsx';
 import { ChatComposer } from './chat-composer-variants.tsx';
 import type { ChatInlineReplyTarget } from './chat-inline-reply.tsx';
 import { ChatTypingIndicator } from './chat-typing-indicator.tsx';
-import { ComputerUseRequests } from './computer-use-request-panel.tsx';
 import { StoppedAgentDmNotice } from './stopped-agent-dm-notice.tsx';
 
 export function ChatViewFooter({
@@ -54,7 +53,6 @@ export function ChatViewFooter({
                             serverId={chat.serverId}
                         />
                     ) : null}
-                    <ComputerUseRequests chatId={chat.id} serverId={chat.serverId} />
                     <ChatComposer
                         agentDmId={chat.peerAgentId ?? undefined}
                         chatId={chat.id}

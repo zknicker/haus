@@ -8,34 +8,33 @@ import { ComputerUseAccessCard } from './computer-use-access-card.tsx';
 
 const serverId = 'srv_devices';
 const computerId = 'cmp_devicestudio0000';
-const askDescription =
-    'Every chat asks you once before a Captain clicks or types in applications on this Device';
+const description =
+    'Captains can see the screen and click and type in applications on this Device.';
 
-test('a steward of a Mac sees Computer use with the current value’s description and a select', () => {
+test('a steward of a Mac sees Computer use allowed, off by default, as a switch', () => {
     const html = render({ canChangeComputerUse: true });
 
     expect(html).toContain('Access');
-    expect(html).toContain('Computer use');
-    expect(html).toContain(askDescription);
-    expect(html).toContain('aria-label="Computer use"');
+    expect(html).toContain('Computer use allowed');
+    expect(html).toContain(description);
+    expect(html).toContain('aria-label="Computer use allowed"');
+    expect(html).not.toContain('checked=""');
 });
 
-test('a viewer who cannot change it sees the value as text', () => {
-    const html = render({ canChangeComputerUse: false, computerUseAccess: 'always' });
+test('a viewer who cannot change it sees the switch disabled', () => {
+    const html = render({ canChangeComputerUse: false, computerUseEnabled: true });
 
-    expect(html).toContain(
-        'Every chat may click and type in applications on this Device without asking'
-    );
-    expect(html).toContain('Always allow');
-    expect(html).not.toContain('aria-label="Computer use"');
+    expect(html).toContain('Computer use allowed');
+    expect(html).toContain('disabled=""');
 });
 
 test('a Device that is not a Mac has no Access section', () => {
     expect(render({ operatingSystem: 'linux' })).toBe('');
 });
 
-test('a Mac missing a permission warns under Access', () => {
+test('a Mac with Computer use allowed and a permission missing warns under Access', () => {
     const html = render({
+        computerUseEnabled: true,
         reportedInventory: {
             computerUse: {
                 accessibility: 'granted',
@@ -64,7 +63,7 @@ function render(overrides: Record<string, unknown>) {
     utils.computer.list.setData({ serverId }, [
         {
             canChangeComputerUse: true,
-            computerUseAccess: 'ask',
+            computerUseEnabled: false,
             id: computerId,
             name: 'Studio Mac',
             operatingSystem: 'darwin',
