@@ -81,7 +81,10 @@ script's `ICON_PROFILE` holds the only differences between the tile and the side
 colored rim, the azure core that lights the body from behind the eyes, and the white edge veil that
 pools opaque white along the right and lower-right silhouette so the tile reads as thick glass lit
 from the left — so tune the icon there; the sidebar mark never reads that profile. The App release job uses GitHub's `xcode-27` image
-because older Xcode versions cannot compile the current Icon Composer 2 source.
+because older Xcode versions cannot compile the current Icon Composer 2 source. The Computer job runs on
+`macos-15`, which cannot, so `Haus Computer.app` uses the committed
+`apps/computer/assets/AppIcon.icns`: after `node scripts/build-macos-app-icon.mjs`, copy
+`apps/website/electron/icons/AppIcon.icns` over it and commit it with the icon change.
 `assets/halloween-icon.icon` is the Halloween theme's pumpkin tile, rendered by
 `apps/website/scripts/render-icon-mesh-pumpkin.ts`, and `assets/christmas-icon.icon` is the
 Christmas themes' tile: the standard ghost's own layers under the in-app nightcap's cone, brim, and

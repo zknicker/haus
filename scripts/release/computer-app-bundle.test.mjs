@@ -36,9 +36,7 @@ test(
             expect(
                 await readFile(path.join(appPath, 'Contents', 'Resources', 'AppIcon.icns'))
             ).toEqual(
-                await readFile(
-                    new URL('../../apps/website/electron/icons/AppIcon.icns', import.meta.url)
-                )
+                await readFile(new URL('../../apps/computer/assets/AppIcon.icns', import.meta.url))
             );
         } finally {
             await rm(root, { force: true, recursive: true });

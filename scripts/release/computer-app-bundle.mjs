@@ -7,7 +7,7 @@ export const computerAppName = 'Haus Computer.app';
 export const releaseComputerBundleId = 'chat.haus.computer';
 export const developmentComputerBundleId = 'chat.haus.computer.dev';
 
-const iconPath = path.join(repoRoot, 'apps', 'website', 'electron', 'icons', 'AppIcon.icns');
+const iconPath = path.join(repoRoot, 'apps', 'computer', 'assets', 'AppIcon.icns');
 
 export function computerAppExecutable(appPath) {
     return path.join(appPath, 'Contents', 'MacOS', 'haus-computer');
