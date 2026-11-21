@@ -28,33 +28,45 @@ shape instead of a second protocol package.
 * `apps/website`: Haus App, including the React UI and Electron shell.
 * `apps/computer`: Haus Computer and machine-local Agent execution.
 
-## Development
+## Getting started
 
-Install dependencies:
+Use Bun `1.4.4` (root `packageManager`). On macOS, install PostgreSQL 16 and
+versitygw once:
+
+```bash
+brew install postgresql@16 versitygw
+```
+
+Do not start a Homebrew PostgreSQL service; the stack owns its own cluster.
+
+In every fresh checkout, install dependencies:
 
 ```bash
 bun run setup:worktree
 ```
 
-The setup keeps lifecycle scripts disabled, installs the frozen Bun dependency
-graph, and explicitly downloads the pinned HeroUI React Pro artifacts. Both
-licensed registry credentials it needs resolve from 1Password through the
-committed `.env.schema`; there is no `.env` step. See
+That installs the frozen Bun dependency graph with lifecycle scripts still
+disabled, then downloads the pinned HeroUI React Pro artifacts. Licensed
+registry credentials resolve from 1Password through the committed
+`.env.schema`; there is no `.env` step. See
 [docs/operations/environment.md](docs/operations/environment.md).
 
-Run the full local stack:
+Start the local stack:
 
 ```bash
 bun run dev
 ```
 
-`bun run dev` starts PostgreSQL, Haus Server, Haus Computer, and the App dev
-server; `bun run dev-app` adds the Electron shell.
+This starts PostgreSQL, Files storage, Haus Server, Haus Computer, and the App
+dev server. `bun run dev-app` runs the same stack in the Electron shell. The
+Services banner prints the Website, Server, and Computer URLs for this
+worktree; read those instead of assuming fixed ports. Local apps sign in
+automatically against the seeded demo Server.
 
-Dev state is isolated under the worktree-specific Haus dev root.
+Dev state lives under `~/.haus/dev/<worktree-id>/`, so multiple worktrees can
+run at once without sharing data.
 
-Local dev ports are derived from the worktree path so multiple worktrees can run
-at once. Use `dev-port` to inspect the assigned port group.
+More detail: [docs/operations/development.md](docs/operations/development.md).
 
 ## Desktop Build
 
