@@ -165,14 +165,20 @@ sections in a fixed order: system prompt, tools, skills, rules and memory, and c
   the system prompt row, and its estimate of delivered rules and memory out of the conversation
   row, so the total stays the harness's count (`source: harness`).
 - Pi sessions report the model window, Pi's compaction policy (window minus reserve minus
-  background tokens), and the tool schemas. The runner measures the prompt, skills, rules and
-  memory around the provider's reported request size, and conversation takes the rest
-  (`source: measured`).
+  background tokens), and the tool schemas. The policy is the one the session runs with: the
+  runner's `piSettings` over Pi's defaults, then the conversation's own compaction settings, layered
+  field by field the way pi-durable resolves them (`piCompactionPolicy`). With compaction off the
+  snapshot reports the whole window as the threshold, since the schema has no "never compacts"
+  value. The runner measures the prompt, skills, rules and memory around the provider's reported
+  request size, and conversation takes the rest (`source: measured`).
 - The Server keeps one snapshot per Agent (`agent_context_snapshots`), drops a snapshot from a
   retired session generation or older than the stored one, and announces
   `agent.onContextUpdated`. `agent.context` returns null until the current generation reports.
-- A runner idle compaction does not report a snapshot yet, so the ring reads high until the
-  Agent's next turn.
+- After a successful runner idle compaction, the runner reads the parked Claude session's
+  `getContextUsage` again and sends the same frame for the generation and run that parked it, with
+  rules and memory counted as gone (the compaction cleared their receipts). A turn that claims the
+  session waits for that read. A failed read is logged and leaves the compaction in place. Pi
+  sessions never idle-compact, so they report only after turns.
 
 ## Generation in the transcript
 

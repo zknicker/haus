@@ -12,7 +12,7 @@ import type {
     RuntimeLaunch,
 } from '../turn/runtime-driver.ts';
 import { WarmPool, warmIdleMs } from '../turn/warm-pool.ts';
-import { piHarnessContext } from './pi-context.ts';
+import { piCompactionPolicy, piHarnessContext } from './pi-context.ts';
 import {
     type PiConnectionModels,
     PiModelUnavailableError,
@@ -111,11 +111,13 @@ export function createPiHarness(options: {
                     { model: ref, thinkingLevel: thinkingLevelOf(launch.reasoningEffort, model) },
                     BACKGROUND_CONTEXT
                 );
+                const agent = await handle.root.agent(BACKGROUND_CONTEXT);
                 return piSession({
-                    context: piHarnessContext(
+                    context: piHarnessContext({
                         model,
-                        piTools(toolset.family, toolset.search, new PiToolBinding())
-                    ),
+                        policy: piCompactionPolicy(piSettings, ref, agent.compaction),
+                        tools: piTools(toolset.family, toolset.search, new PiToolBinding()),
+                    }),
                     handle,
                     isResume: resumeFrom !== undefined,
                     newId: () => crypto.randomUUID(),

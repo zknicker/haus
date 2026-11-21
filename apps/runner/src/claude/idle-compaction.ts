@@ -1,4 +1,5 @@
 import type { RuntimeTokenUsage } from '../turn/turn-event.ts';
+import type { CompactedContextBasis } from './idle-compaction-context.ts';
 
 export const IDLE_COMPACTION_FRACTION = 0.9;
 export const IDLE_COMPACTION_LATE_MS = 60_000;
@@ -35,6 +36,7 @@ export interface IdleCompactable {
 export interface IdleCompactionOwner {
     readonly agentDir: string;
     readonly agentId: string;
+    readonly context: CompactedContextBasis;
     readonly runtimeId: string;
 }
 

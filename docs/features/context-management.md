@@ -185,7 +185,8 @@ Channel's one Agent, or a Task's assigned Agent. It fills toward the session's c
 threshold. Clicking it opens **Context**: tokens used over the threshold with a percentage, a
 stacked bar, one row each for System prompt, Tools, Skills, Rules and memory, and Conversation,
 and **Compact at** the threshold over the model's window. Agents keep one global session, so every
-conversation with the same Captain shows the same numbers. The ring hides until the current
+conversation with the same Captain shows the same numbers. An idle compaction updates the ring as
+soon as it finishes, without waiting for the next turn. The ring hides until the current
 session reports its first snapshot, and in a Channel with several Agents. How the runner counts
 each row is in [specs/sessions.md](../../specs/sessions.md#context).
 
