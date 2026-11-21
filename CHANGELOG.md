@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## v23.0.0 - 2026-11-20
+
+- Every Captain now runs on the Server's sandboxed Agent runner instead of on Haus Computer. A Captain's model comes from the runner's catalog and uses the Server's logins in Settings → Models. Haus Computer still runs Workers and syncs Drive. When it moves, each Captain starts one fresh session, and its workspace, memory and chat history carry over.
+- A Captain whose model provider has no login in Settings → Models stays on its old session with its messages queued, and shows "No <provider> connection. Connect one in Settings → Models". It moves as soon as you connect that login or switch it to a provider that has one.
+- A Captain on a model the runner no longer offers moves to the first model the runner offers for that provider.
+- Choosing a Captain's model shows one picker, the runner's catalog. The per-device usage rows are gone from Settings → Models.
+- The Server deploy applies database migration 0147. It was rehearsed on a copy of production. To roll back, reactivate the v22.0.0 Server: the migration stays in place and the v22 Server works with it.
+- Haus Computer, Haus Agent, Haus for Desktop and Haus for iPhone are unchanged. A Computer on 20.0.0 keeps running Workers and Drive sync.
+
 ## v22.0.0 - 2026-11-20
 
 - Each Captain now has one home Project. It hears everything in that Project's channel and Tasks, and outside it only mentions, Tasks it follows or is assigned, and reply chains it follows. Channel membership and per-channel mutes are gone: every Captain can read and post in every channel and Task. The migration homes each Captain in the Project where it wrote most over the last 30 days, and Captains with no recent messages go to Haus. Choose a Captain's home on its profile or when you create it.
