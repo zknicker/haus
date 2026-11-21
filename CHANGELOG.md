@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v26.0.0 - 2026-11-20
+
+- Captains can see and drive a Device's macOS desktop. They can take screenshots, read apps, click, type and launch apps through the `desktop` tool. Each Device has a **Computer use allowed** switch under Settings → Devices → Access. It is off by default, and only the Device's owner or a Server Owner or Admin can turn it on. While it is off, every desktop command is refused, and the Captain is told how to turn it on.
+- On macOS, Haus Computer needs Accessibility and Screen Recording in System Settings → Privacy & Security before desktop commands work. The Device page warns while either is missing.
+- Haus Computer 22.0.0 carries agent-desktop 1.3.1 inside it, so nothing has to be installed. The `bash` commands a Captain runs can't see it. Haus Computer 22.0.0 also masks token-shaped secrets in Worker step summaries and journal records.
+- The Server requires Computer protocol 46, so Server 25.0.0 and Haus Computer 22.0.0 ship together. An older Computer can't attach until it updates. The Mac mini's Computer updates itself after the Server deploys.
+- The Server deploy applies database migration 0149, which adds the Computer use switch and was rehearsed on a copy of production. Rolling back the Server does not reverse it. Haus Agent, Haus for Desktop and Haus for iPhone are unchanged.
+
 ## v25.2.0 - 2026-11-20
 
 - A Captain's turn on the Agent runner shows up again in the Server's traces. It appears as a `haus-runner` turn span between the dispatch that started it and the MCP calls it makes, as Haus Computer turns did before v23.0.0. The Server takes each turn's trace from its own record of the dispatch, never from the runner.
