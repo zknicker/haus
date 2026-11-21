@@ -5,6 +5,7 @@ import {
     agentThoughtResultSchema,
 } from '@haus/api';
 import { createAgentThoughtNarrator, thoughtIntervalMs } from './thought-narrator.ts';
+import { createThoughtRedactor } from './thought-redaction.ts';
 
 function harness() {
     const thoughts: AgentThoughtContent[] = [];
@@ -13,6 +14,7 @@ function harness() {
     const narrator = createAgentThoughtNarrator({
         emit: (thought) => thoughts.push(thought),
         now: () => clock,
+        redact: createThoughtRedactor([]),
         schedule: (run, ms) => {
             const timer = { at: clock + ms, run };
             timers.add(timer);

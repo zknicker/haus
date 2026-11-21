@@ -40,7 +40,16 @@ runner does the Computer's part below, unchanged: `apps/runner/src/thoughts/` ke
 narrator, its four-second interval and ranking, and the result excerpts, fed from both harnesses'
 normalized reasoning and tool events (Claude's summarized thinking deltas, Pi's thinking blocks),
 and sends the same `agent-thought` frame over the runner socket, which the Server admits and
-phrases exactly as a Computer's. Read "Computer" below as the runner.
+phrases exactly as a Computer's. Read "Computer" below as the runner. Two rules changed with the
+port, because the Computer's versions leaked: every title, excerpt, action, and result passes the
+execution-journal redactor and `maskCredentialDisclosures` (`@haus/api`, which masks "the
+password is hunter2" style prose) before it leaves, and the Server masks again and drops a
+fallback line that had a credential masked; and a result rides only when the original operation
+is on an allowlist (`result-allowlist.ts`): web searches, http(s) page fetches, `curl` of an
+http(s) URL with read-only flags, test runs, `git status`/`log`/`branch`/`tag`/`describe`/
+`rev-parse`, and `gh` PR, run, release, and issue listings, optionally piped through `jq`,
+`grep`, `head`, `tail`, `wc`, `sort`, or `uniq` reading stdin. Anything else, including any path
+argument, interpreter, redirection, or compound command, sends no result.
 
 ## Context
 

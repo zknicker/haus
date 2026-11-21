@@ -6,12 +6,15 @@ import type { TurnEvent } from '../turn/turn-event.ts';
 import { createRunThoughts } from './run-thoughts.ts';
 import { thoughtIntervalMs } from './thought-narrator.ts';
 
+const knownSecret = 'grtr-run-credential-value';
+
 function harness() {
     const frames: AgentThoughtFrame[] = [];
     let clock = Date.parse('2026-11-20T12:00:00.000Z');
     const timers = new Set<{ at: number; run: () => void }>();
     const thoughts = createRunThoughts({
         agentId: 'agt_1',
+        knownSecrets: [knownSecret],
         now: () => clock,
         runId: 'run_1',
         schedule: (run, ms) => {
@@ -189,5 +192,40 @@ describe('run thoughts', () => {
         run.thoughts.close();
         run.feed();
         expect(run.frames).toHaveLength(1);
+    });
+
+    test('a disclosed password or a known secret never reaches a frame', () => {
+        const run = harness();
+        const disclosure = 'The database password is hunter2 for staging access.';
+        run.feed(
+            { id: 'r1', type: 'reasoning-start' },
+            { id: 'r1', text: disclosure, type: 'reasoning-delta' },
+            { id: 'r1', type: 'reasoning-end' }
+        );
+        run.feed(
+            { id: 'r2', type: 'reasoning-start' },
+            { id: 'r2', text: '**Checking token: s3cr3t-staging**', type: 'reasoning-delta' },
+            { id: 'r2', type: 'reasoning-end' }
+        );
+        run.feed(call('k1', 'bash', { command: `curl https://api.example.com/v1/${knownSecret}` }));
+        run.feed(
+            call('k2', 'bash', { command: 'curl -fsS https://api.example.com/v1/status' }),
+            result('k2', 'bash', `status ok, deploy key is k3y-material, runner ${knownSecret}`)
+        );
+        const sent = JSON.stringify(run.frames);
+        for (const secret of ['hunter2', 's3cr3t-staging', knownSecret, 'k3y-material']) {
+            expect(sent).not.toContain(secret);
+        }
+        expect(sent).not.toContain(disclosure);
+        expect(run.frames.map((frame) => frame.kind)).toEqual([
+            'reasoning',
+            'phrase',
+            'action',
+            'action',
+            'action',
+        ]);
+        for (const frame of run.frames) {
+            expect(runnerUpFrameSchema.safeParse(frame).success).toBe(true);
+        }
     });
 });

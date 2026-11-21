@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { agentThoughtResultMaxLength } from '@haus/api';
-import { describesResultAction, thoughtResultExcerpt } from './thought-result.ts';
+import { thoughtResultExcerpt } from './thought-result.ts';
 
 describe('result thought excerpts (ported from the v24.0.0 Computer harness)', () => {
     test('reads Codex, stdout, and text-part output as plain lines', () => {
@@ -70,41 +70,6 @@ describe('result thought excerpts (ported from the v24.0.0 Computer harness)', (
         expect(long?.length).toBeLessThanOrEqual(agentThoughtResultMaxLength);
         expect(
             long?.split(' ').every((word) => /^(?:Sunny|and|mild|all|weekend\.)$/u.test(word))
-        ).toBe(true);
-    });
-
-    test('never keeps output of file work or secret-reading actions', () => {
-        expect(
-            describesResultAction('running_command', 'curl api.open-meteo.com/v1/forecast')
-        ).toBe(true);
-        expect(describesResultAction('reading_files', 'read launch-checklist.md')).toBe(false);
-        expect(describesResultAction('editing_files', 'edit MEMORY.md')).toBe(false);
-        for (const action of [
-            'printenv',
-            'env',
-            'cat .env.local',
-            'op read op://vault/item',
-            'security find-generic-password -s x',
-            'curl -H Authorization: Bearer … api.github.com/user',
-            'gh auth token',
-            'cat MEMORY.md && haus claim update --help',
-            'ls notes/ && cat notes/onboarding.md',
-            'cat config.toml',
-            'sed -n 1,80p db.ts',
-            'cd app && rg password src',
-            'git diff HEAD',
-        ]) {
-            expect(describesResultAction('running_command', action)).toBe(false);
-        }
-        expect(describesResultAction('running_command', null)).toBe(false);
-        expect(
-            describesResultAction('running_command', 'curl -fsS wttr.in/Chicago | grep Saturday')
-        ).toBe(true);
-        expect(
-            describesResultAction(
-                'running_command',
-                'curl -fsS api.open-meteo.com/v1/forecast | jq {daily:[.daily.…]}'
-            )
         ).toBe(true);
     });
 });

@@ -26,7 +26,12 @@ test('a turn stuck on an open tool call trips the no-progress watchdog', async (
         gate: { toolCallSettled: () => undefined, toolCallStarted: () => undefined },
         noProgress: { checkEveryMs: 1, deadlineMs: 5 },
         onNoProgress: () => stalled.resolve(),
-        thoughts: createRunThoughts({ agentId: 'agt_1', runId: 'run_1', send: () => undefined }),
+        thoughts: createRunThoughts({
+            agentId: 'agt_1',
+            knownSecrets: [],
+            runId: 'run_1',
+            send: () => undefined,
+        }),
     });
 
     expect(observation).toEqual({

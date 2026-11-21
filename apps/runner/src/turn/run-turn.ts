@@ -3,6 +3,7 @@ import type { AgentReasoningEffort, AgentStartCommand, RunnerModelConnection } f
 import type { RunJournal } from '../journal/run-journal.ts';
 import type { RunAuthority, RunnerLink, RunTools } from '../run-context.ts';
 import { createRunThoughts } from '../thoughts/run-thoughts.ts';
+import { turnKnownSecrets } from '../thoughts/thought-redaction.ts';
 import { readAgentContext } from './agent-context.ts';
 import { attestComposedDrain } from './composed-drain.ts';
 import type { inboxStore } from './inbox-store.ts';
@@ -175,6 +176,11 @@ export async function runTurn(input: RunTurnInput) {
     input.activity.start('thinking', 'thinking');
     const thoughts = createRunThoughts({
         agentId: start.agentId,
+        knownSecrets: turnKnownSecrets(
+            input.authority.runCredential,
+            input.connection.credential,
+            process.env
+        ),
         runId: start.runId,
         send: (frame) => input.link.send(frame),
     });

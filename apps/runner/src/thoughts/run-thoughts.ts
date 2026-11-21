@@ -7,10 +7,12 @@ import {
 import { toolCategory } from '../turn/run-activity.ts';
 import type { ToolCallTurnEvent, TurnEvent } from '../turn/turn-event.ts';
 import { createAgentThoughtNarrator } from './thought-narrator.ts';
+import { createThoughtRedactor } from './thought-redaction.ts';
 import { createToolFindings } from './thought-result.ts';
 
 export function createRunThoughts(input: {
     agentId: string;
+    knownSecrets: Iterable<string>;
     now?: () => number;
     runId: string;
     schedule?: (run: () => void, ms: number) => () => void;
@@ -25,6 +27,7 @@ export function createRunThoughts(input: {
                 type: 'agent-thought',
             }),
         now: input.now,
+        redact: createThoughtRedactor(input.knownSecrets),
         schedule: input.schedule,
     });
     const findings = createToolFindings(narrator);
@@ -44,7 +47,13 @@ export function createRunThoughts(input: {
                     const classification = classifyToolCall(event);
                     findings.started(
                         event.toolCallId,
-                        classification,
+                        {
+                            category:
+                                classification.outcome === 'activity'
+                                    ? classification.category
+                                    : null,
+                            input: event.input,
+                        },
                         describeRunnerToolAction(event, classification)
                     );
                     return;

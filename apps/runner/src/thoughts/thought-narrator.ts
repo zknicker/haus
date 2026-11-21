@@ -2,6 +2,7 @@ import {
     type AgentThoughtContent,
     agentThoughtActionMaxLength,
     agentThoughtResultMaxLength,
+    agentThoughtTextMaxLength,
     extractThoughtTitle,
     thoughtReasoningExcerpt,
 } from '@haus/api';
@@ -23,6 +24,7 @@ export interface AgentThoughtNarrator {
 export function createAgentThoughtNarrator(input: {
     emit: (thought: AgentThoughtContent) => void;
     now?: () => number;
+    redact: (text: string) => string;
     schedule?: (run: () => void, ms: number) => () => void;
 }) {
     const now = input.now ?? Date.now;
@@ -90,11 +92,17 @@ export function createAgentThoughtNarrator(input: {
             const reasoning = blocks.get(id);
             blocks.delete(id);
             if (reasoning) {
-                offer(thoughtCandidate(reasoning));
+                offer(thoughtCandidate(reasoning, input.redact));
             }
         },
         observeAction(action, result) {
-            offer(action ? { action, kind: 'action', ...(result ? { result } : {}) } : null);
+            const described = action ? clip(input.redact(action), agentThoughtActionMaxLength) : '';
+            const finding = result ? clip(input.redact(result), agentThoughtResultMaxLength) : '';
+            offer(
+                described
+                    ? { action: described, kind: 'action', ...(finding ? { result: finding } : {}) }
+                    : null
+            );
         },
     };
     return narrator;
@@ -139,13 +147,14 @@ function candidateRank(thought: ThoughtCandidate) {
     return thought.result ? 2 : 0;
 }
 
-function thoughtCandidate(reasoning: string) {
+function thoughtCandidate(reasoning: string, redact: (text: string) => string) {
     const title = extractThoughtTitle(reasoning);
     if (title) {
-        const phrase: ThoughtCandidate = { kind: 'phrase', text: title };
+        const text = clip(redact(title), agentThoughtTextMaxLength);
+        const phrase: ThoughtCandidate | null = text ? { kind: 'phrase', text } : null;
         return phrase;
     }
-    const excerpt = thoughtReasoningExcerpt(reasoning);
+    const excerpt = thoughtReasoningExcerpt(redact(reasoning));
     const candidate: ThoughtCandidate | null = excerpt
         ? { kind: 'reasoning', reasoning: excerpt }
         : null;

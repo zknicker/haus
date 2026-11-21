@@ -1,32 +1,11 @@
 import { agentThoughtResultMaxLength } from '@haus/api';
-import type { ComputerAgentActivityCategory } from '@haus/computer/src/agent-activity.ts';
-import type { ComputerToolClassification } from '@haus/computer/src/harness/activity-tool-fixtures.ts';
 import { scrubResultLine } from '@haus/computer/src/harness/thought-action-scrub.ts';
+import { admitsResult, type ToolOperation } from './result-allowlist.ts';
 import type { AgentThoughtNarrator } from './thought-narrator.ts';
-
-const resultCategories = new Set<ComputerAgentActivityCategory>([
-    'browsing',
-    'running_command',
-    'searching_web',
-    'using_tool',
-]);
 
 const resultMinimumLength = 24;
 
 const rawScanLength = 8000;
-
-export function describesResultAction(
-    category: ComputerAgentActivityCategory,
-    description: string | null
-): description is string {
-    return (
-        description !== null &&
-        resultCategories.has(category) &&
-        !secretReadingAction.test(description) &&
-        !fileReadingCommand.test(description) &&
-        !bookkeepingAction.test(description)
-    );
-}
 
 export function createToolFindings(thoughts: AgentThoughtNarrator) {
     const described = new Map<string, string>();
@@ -42,16 +21,9 @@ export function createToolFindings(thoughts: AgentThoughtNarrator) {
                 thoughts.observeAction(action, result);
             }
         },
-        started(
-            toolCallId: string,
-            classification: ComputerToolClassification,
-            action: string | null
-        ) {
+        started(toolCallId: string, operation: ToolOperation, action: string | null) {
             thoughts.observeAction(action);
-            if (
-                classification.outcome === 'activity' &&
-                describesResultAction(classification.category, action)
-            ) {
+            if (action !== null && admitsResult(operation)) {
                 described.set(toolCallId, action);
             }
         },
@@ -82,15 +54,6 @@ export function thoughtResultExcerpt(output: unknown) {
     const excerpt = capped(lines.join('\n'));
     return excerpt.replace(/\s+/gu, '').length >= resultMinimumLength ? excerpt : null;
 }
-
-const secretReadingAction =
-    /(?:^|\s)(?:env|printenv|export|set|op|varlock|security|pass|gpg|ssh-keygen|keychain|aws configure|gcloud auth)(?:\s|$)|\.env\b|\.npmrc|\.netrc|credential|secret|passw|token|auth|bearer|cookie|api[-_]?key|id_rsa|\.pem\b|\.key\b/iu;
-
-const fileReadingCommand =
-    /(?:^|&&|\|\||;)\s*(?:sudo\s+)?(?:cat|head|tail|less|more|bat|sed|awk|nl|grep|egrep|fgrep|rg|ag|ack|diff|strings|xxd|hexdump|od|git\s+(?:show|diff|log|blame|grep|cat-file))(?:\s|$)/u;
-
-const bookkeepingAction =
-    /(?:^|[\s;&|(])haus\s|MEMORY\.md|AGENTS\.md|CLAUDE\.md|(?:^|[\s/])notes\/|SKILL\.md/u;
 
 function capped(text: string) {
     if (text.length <= agentThoughtResultMaxLength) {
