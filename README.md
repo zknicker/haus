@@ -30,31 +30,27 @@ shape instead of a second protocol package.
 
 ## Development
 
-Install dependencies:
-
 ```bash
 bun run setup:worktree
 ```
 
-The setup keeps lifecycle scripts disabled, installs the frozen Bun dependency
-graph, and explicitly downloads the pinned HeroUI React Pro artifacts. Both
-licensed registry credentials it needs resolve from 1Password through the
-committed `.env.schema`; there is no `.env` step. See
+Installs the frozen dependency graph and the pinned HeroUI Pro artifacts.
+Licensed registry credentials resolve from 1Password through `.env.schema`;
+there is no `.env` step. See
 [docs/operations/environment.md](docs/operations/environment.md).
-
-Run the full local stack:
 
 ```bash
 bun run dev
 ```
 
-`bun run dev` starts PostgreSQL, Haus Server, Haus Computer, and the App dev
-server; `bun run dev-app` adds the Electron shell.
+Starts PostgreSQL, Files storage, Haus Server, Haus Computer, and the App.
+The Services banner prints the Website, Server, and Computer URLs. Local apps
+auto sign in, and the first boot seeds a demo Server. Use `bun run dev-app`
+for the Electron shell.
 
-Dev state is isolated under the worktree-specific Haus dev root.
-
-Local dev ports are derived from the worktree path so multiple worktrees can run
-at once. Use `dev-port` to inspect the assigned port group.
+Dev state lives under `~/.haus/dev/<worktree-id>/`, with ports derived from the
+worktree path so checkouts can run side by side. Prerequisites and more detail:
+[docs/operations/development.md](docs/operations/development.md).
 
 ## Desktop Build
 
