@@ -1,39 +1,47 @@
 ---
-summary: The computer use tRPC surface (`computer.setComputerUse` and the `computer.list` fields for the Computer use allowed switch), its refusal codes, and the refusal the Server answers a `desktop` invocation with while the switch is off.
+summary: The computer use tRPC surface (`computer.setComputerUse`, `computer.setComputerUseAgents`, `computer.stewards`, `computer.desktopActivity`, `computer.onDesktopActivity`, `computer.stopDesktopInput`, and the `computer.list` fields), its refusal codes, and how the Server answers a refused `desktop` invocation.
 read_when:
-  - calling or changing `computer.setComputerUse` or the `computerUseEnabled` fields of `computer.list`
-  - changing the Server's gate on `desktop` invocations
+  - calling or changing any computer use procedure or the `computerUse*` fields of `computer.list`
+  - changing the Server's gate on `desktop` invocations or the `refusal` ledger column
 ---
 
 # Computer use API
 
 The App's tRPC surface for computer use. [specs/computer-use.md](../../specs/computer-use.md) is
 the normative contract; this page lists the procedures. Inputs and results are the schemas in
-`packages/haus-api/src/computer-use.ts`. Server code lives in
-`apps/server/src/haus-api/computer/set-computer-use.ts` and
-`apps/server/src/computers/set-computer-use.ts`, with the gate in
-`apps/server/src/computer-use/computer-use-gate.ts`. Every procedure runs for an active member of
-`serverId`.
+`packages/haus-api/src/computer-use.ts`. Server code lives in `apps/server/src/haus-api/computer/`,
+`apps/server/src/computers/set-computer-use*.ts`, and `apps/server/src/computer-use/`. Every
+procedure runs for an active member of `serverId`.
 
-## The Device switch
+| Procedure | Input | Result | Who |
+| --- | --- | --- | --- |
+| `computer.setComputerUse` | `{ serverId, computerId, enabled }` | `{ computerId }` | Steward |
+| `computer.setComputerUseAgents` | `{ serverId, computerId, agents: { kind: 'all' } \| { kind: 'named', agentIds } }` | `{ computerId }` | Steward |
+| `computer.stewards` | `{ serverId, computerId }` | `{ attacher: { displayName, handle }, name }` | Any member |
+| `computer.desktopActivity` | `{ serverId, computerId }` | `{ commands: [{ agentId, invocationId, since }] }` | Any member |
+| `computer.onDesktopActivity` | `{ serverId }` | stream of `{ serverId, computerId }` | Any member |
+| `computer.stopDesktopInput` | `{ serverId, computerId }` | `{ stopped }` | Any member |
+| `computer.list` | `{ serverId }` | each Computer also carries `computerUseEnabled`, `computerUseAgents`, `computerUseChangedAt`, `canChangeComputerUse` | |
 
-| Procedure | Input | Result |
-| --- | --- | --- |
-| `computer.setComputerUse` | `{ serverId, computerId, enabled: boolean }` | `{ computerId }` |
-| `computer.list` | `{ serverId }` | each Computer also carries `computerUseEnabled` and `canChangeComputerUse` |
-
-`computerUseEnabled` is off by default. Only a steward of the Computer (its attacher, an Owner,
-or an Admin) may change it; anyone else is refused `FORBIDDEN`. A change publishes
-`computer.updated`.
+- A steward is the Device's attacher, an Owner, or an Admin; anyone else is refused `FORBIDDEN`.
+  The settings publish `computer.updated`.
+- `named` needs at least one `agentId`, each an Agent whose machine is this Device, or
+  `BAD_REQUEST`. `computer.list` can return a named list with no ids once its Captains moved or
+  were deleted.
+- `computer.stewards`, `computer.desktopActivity`, and `computer.stopDesktopInput` answer
+  `NOT_FOUND` for a Device that is gone.
 
 A macOS Computer's reported inventory carries `computerUse`: `installed`, `version`,
-`accessibility` and `screenRecording` (`granted`, `denied`, or `unknown`), and `permissionsMoved:
-true` while an update has moved the permissions to `Haus Computer.app` and they are not granted
-again. Readers ignore keys they predate.
+`accessibility` and `screenRecording` (`granted`, `denied`, or `unknown`), `macosVersion`,
+`appPath`, and `permissionsMoved: true` while an update has moved the permissions to `Haus
+Computer.app` and they are not granted again. Readers ignore keys they predate.
 
-## The refusal
+## Refusals
 
-While the switch is off, the invocation router answers every `desktop` invocation itself, outcome
-`failed`, records the invocation finished, and sends nothing to the Computer. The text is the
-spec's: "Computer use is off on <Device>. A person can turn on Computer use allowed in Settings →
-Devices → <Device>." Other invocation kinds are unaffected.
+The invocation router answers a refused `desktop` invocation itself, records the ledger row
+`finished` with `agent_invocations.refusal` set to the cause (`off`, `not-listed`, `not-mac`,
+`offline`, `not-ready`), and sends nothing to the Computer. A Computer's screen preflight reports
+`locked`, `no-session`, or `switched-out` in the `refusal` field of `invoke-result`; the Server
+records it the same way. The outcome is `failed`, or `offline` for an offline Device, and the text
+is the spec's [refusal shape](../../specs/computer-use.md#refusals). Other invocation kinds are
+unaffected.
