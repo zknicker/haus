@@ -16,7 +16,11 @@ Computer has independent SemVer and annotated `computer-vX.Y.Z` tags. It has one
 stream. Haus does not expose alpha channels, version pins, automatic startup updates, or
 arbitrary downgrade selection.
 
-The production artifact is a standalone Apple Silicon macOS executable:
+The production artifact is a standalone Apple Silicon macOS executable. There is no Intel (x64)
+build: the embedded agent-desktop binaries are `darwin-arm64` only, and the installer exits with
+a clear message on any other machine.
+
+The artifact is:
 
 - signed with the Haus Apple Developer ID
 - notarized by Apple
