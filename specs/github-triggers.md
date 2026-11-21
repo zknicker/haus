@@ -104,8 +104,7 @@ enter ingest with `source: 'recovery'`.
 A sweep:
 
 1. Reads the cursor. If `watermark` is older than GitHub's three-day retention less one hour, it
-   records `gap_from`/`gap_to`, logs `github.delivery_gap` at error level (an Axiom monitor pages the
-   operator), and continues from the retention edge.
+   records `gap_from`/`gap_to`, logs `github.delivery_gap` at error level in the Server log, and continues from the retention edge.
 2. Pages newest first and stops after a page whose every entry was delivered before the cutoff
    (`watermark - 1 hour`, or the retention edge after a gap). The log's order is not a GitHub
    contract, so the stop never trusts one entry's position, and entries are kept by their own

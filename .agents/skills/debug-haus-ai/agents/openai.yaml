@@ -1,4 +1,4 @@
 interface:
   display_name: "Debug Haus AI"
-  short_description: "Debug AI behavior and performance with Axiom and Raft"
-  default_prompt: "Use $debug-haus-ai to investigate this AI issue with Axiom and a Luna-max Raft research partner when useful."
+  short_description: "Debug AI behavior and performance with production records and Raft"
+  default_prompt: "Use $debug-haus-ai to investigate this AI issue with production records and logs and a Luna-max Raft research partner when useful."
