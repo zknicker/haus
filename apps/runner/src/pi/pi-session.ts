@@ -9,6 +9,7 @@ import {
     ROOT_CONVERSATION_ID,
     type Report,
 } from '@earendil-works/pi-durable';
+import type { HarnessContext } from '../turn/context-snapshot.ts';
 import { RuntimeResumeRejectedError } from '../turn/resume-rejected.ts';
 import type { RuntimeSession, SteerResult } from '../turn/runtime-driver.ts';
 import { HostedSearchLog, withHostedSearch } from './pi-hosted-search.ts';
@@ -105,6 +106,7 @@ export async function openPiSessionHandle(input: {
 }
 
 export function piSession(deps: {
+    context: HarnessContext;
     handle: PiSessionHandle;
     isResume: boolean;
     newId: () => string;
@@ -122,6 +124,9 @@ export function piSession(deps: {
         handle.binding.bind(null, null);
     };
     const session: RuntimeSession = {
+        contextUsage() {
+            return Promise.resolve(deps.context);
+        },
         async destroy() {
             release();
             await handle.close();

@@ -3,7 +3,6 @@ import {
     Chat01Icon,
     CheckListIcon,
     File01Icon,
-    InboxIcon,
     Search01Icon,
     Settings01Icon,
     UserCircleIcon,
@@ -44,8 +43,6 @@ export function getRouteTabIcon(tab: RouteTab): IconSvgElement {
             return CheckListIcon;
         case 'artifacts':
             return File01Icon;
-        case 'inbox':
-            return InboxIcon;
         case 'search':
             return Search01Icon;
         case 'chat':

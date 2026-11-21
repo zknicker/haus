@@ -11,6 +11,8 @@ import { ingestExecutionJournalUpload } from '../computers/ingest-execution-jour
 import type { ModelConnectionRelay } from '../model-connections/model-connection-relay.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
+import { agentContextUpdatedTopic } from '../realtime/topics.ts';
+import { recordAgentContext } from '../server-agents/agent-context.ts';
 import type { AgentThoughts } from '../server-agents/agent-thought.ts';
 import { recordAgentIdleCompaction } from '../server-agents/record-agent-idle-compaction.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
@@ -96,6 +98,13 @@ async function ingestLoopReport(ingest: RunnerIngest, frame: LoopReport) {
             await pushDrive(ingest, frame);
             await settleHostedTurn(db, delivery, { kind: 'runner' }, frame);
             return;
+        case 'agent-context': {
+            const serverId = await recordAgentContext(db, frame);
+            if (serverId) {
+                agentContextUpdatedTopic.announce({ agentId: frame.snapshot.agentId, serverId });
+            }
+            return;
+        }
         case 'agent-idle-compaction': {
             const placement = await readAgentPlacement(db, frame.agentId);
             if (placement) {

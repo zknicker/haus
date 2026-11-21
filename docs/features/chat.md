@@ -82,7 +82,7 @@ and [Agent Inbox](../../specs/inbox.md).
   that message the Channel shows a preview of each Task with its state and newest messages.
 * **Questions to a person.** An Agent asks a human by @mentioning them in an ordinary Message
   ([ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)); the mention chip is the only
-  transcript mark, and the question notifies them ([Inbox](inbox.md#notifications)).
+  transcript mark, and the question notifies them ([Notifications](notifications.md)).
   There is no question card, option buttons, or answered state.
 * **Workers.** A [Worker](../../specs/workers.md) works for a Task. It shows in the Task page's
   attached-work panel ([Tasks](tasks.md#the-task-page)), not as a card in the transcript. Each

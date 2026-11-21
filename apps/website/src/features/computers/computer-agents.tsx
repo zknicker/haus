@@ -19,7 +19,6 @@ interface ComputerAgentRow {
     displayName: string;
     id: string;
     model: string;
-    runtime: string;
     wakePause: Agent['wakePause'];
 }
 
@@ -114,7 +113,6 @@ function computerAgentRows(
             id: agent.id,
             wakePause: agent.wakePause,
             model: execution.model,
-            runtime: execution.runtime,
         };
     });
 }
@@ -138,14 +136,6 @@ const agentColumns: DataGridColumn<ComputerAgentRow>[] = [
         isRowHeader: true,
         minWidth: 180,
         sortFn: (a, b) => a.displayName.localeCompare(b.displayName),
-    },
-    {
-        accessorKey: 'runtime',
-        allowsSorting: true,
-        cellClassName: 'text-muted',
-        header: 'Runtime',
-        id: 'runtime',
-        minWidth: 120,
     },
     {
         accessorKey: 'model',

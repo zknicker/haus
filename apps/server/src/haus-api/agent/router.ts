@@ -4,6 +4,7 @@ import { agentActivityHistoryProcedure } from './activity-history.ts';
 import { agentActivityProcedure } from './activity.ts';
 import { agentChatsProcedure } from './chats.ts';
 import { configureAgentProcedure } from './configure.ts';
+import { agentContextProcedure } from './context.ts';
 import { agentConversationStyleProcedure } from './conversation-style.ts';
 import { createAgentProcedure } from './create.ts';
 import { deleteAgentProcedure } from './delete.ts';
@@ -15,6 +16,7 @@ import { getAgentProcedure } from './get.ts';
 import { importAgentSkillProcedure } from './import-skill.ts';
 import { listAgentsProcedure } from './list.ts';
 import { onAgentActivityProcedure } from './on-activity.ts';
+import { onAgentContextUpdatedProcedure } from './on-context-updated.ts';
 import { onAgentExecutionJournalProcedure } from './on-execution-journal.ts';
 import { onAgentLifecycleProcedure } from './on-lifecycle.ts';
 import { onAgentUpdatedProcedure } from './on-updated.ts';
@@ -44,6 +46,7 @@ export const agentRouter = createRouter({
     activeActivity: agentActiveActivityProcedure,
     chats: agentChatsProcedure,
     configure: configureAgentProcedure,
+    context: agentContextProcedure,
     conversationStyle: agentConversationStyleProcedure,
     create: createAgentProcedure,
     delete: deleteAgentProcedure,
@@ -58,6 +61,7 @@ export const agentRouter = createRouter({
     list: listAgentsProcedure,
     onLifecycle: onAgentLifecycleProcedure,
     onActivity: onAgentActivityProcedure,
+    onContextUpdated: onAgentContextUpdatedProcedure,
     onExecutionJournal: onAgentExecutionJournalProcedure,
     onUpdated: onAgentUpdatedProcedure,
     reset: resetAgentProcedure,

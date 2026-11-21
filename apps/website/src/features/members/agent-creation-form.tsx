@@ -17,8 +17,9 @@ import { ProjectSelect } from '../chats/project-select.tsx';
 import type { AgentCreationSubmitValues, ReportedComputer } from './agent-creation-contract.ts';
 import { resolveAgentCreationDefaults } from './agent-creation-defaults.ts';
 import { createAgentHandle } from './agent-handle.ts';
+import { agentModelKey, agentModelOptions } from './agent-model-options.ts';
+import { AgentModelPicker } from './agent-model-picker.tsx';
 import { InventorySelect } from './inventory-select.tsx';
-import { modelFeatureDescription } from './model-features.ts';
 import { ReasoningSelect, supportedReasoningEffort } from './reasoning-select.tsx';
 import { SignatureEmojiField } from './signature-emoji-field.tsx';
 
@@ -207,35 +208,14 @@ export function AgentCreationForm({
                         <Description>Optional</Description>
                     </TextField>
                     <SignatureEmojiField onChange={setSignatureEmoji} value={signatureEmoji} />
-                    <div className="grid gap-4 sm:grid-cols-2">
-                        <InventorySelect
-                            disabled={!computer}
-                            label="Runtime"
-                            onChange={(nextId) => {
-                                const nextRuntime = runtimes.find((entry) => entry.id === nextId);
-                                setRuntimeId(nextId);
-                                setModelId(nextRuntime?.models[0]?.id ?? '');
-                            }}
-                            options={runtimes}
-                            placeholder="Select a runtime"
-                            value={runtime?.id ?? ''}
-                        />
-                        <InventorySelect
-                            disabled={!runtime}
-                            label="Model"
-                            onChange={setModelId}
-                            options={models.map((entry) => ({
-                                description: modelFeatureDescription(
-                                    runtime?.id ?? '',
-                                    entry.features
-                                ),
-                                id: entry.id,
-                                label: entry.label,
-                            }))}
-                            placeholder="Select a model"
-                            value={model?.id ?? ''}
-                        />
-                    </div>
+                    <AgentModelPicker
+                        onPick={(option) => {
+                            setRuntimeId(option.runtimeId);
+                            setModelId(option.model.id);
+                        }}
+                        options={agentModelOptions(runtimes, null)}
+                        selectedKey={agentModelKey(runtime?.id ?? '', model?.id ?? '')}
+                    />
                     <ReasoningSelect
                         model={model}
                         onChange={setReasoningEffort}

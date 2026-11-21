@@ -179,7 +179,7 @@ export function AgentActions({
             {deleteOpen ? (
                 <DeleteDialog
                     confirmation={agent.displayName}
-                    description="This permanently destroys the Captain’s local workspace, skills, runtime state, queues, and vault when its device can be reached. Its authored collaboration history remains."
+                    description="This permanently destroys the Captain’s local workspace, skills, session state, queues, and vault when its device can be reached. Its authored collaboration history remains."
                     onConfirm={() =>
                         remove.mutate({
                             agentId: agent.id,

@@ -46,10 +46,7 @@ test('search matches at the start of a word, not inside one', () => {
     assert.deepEqual(railShape({ canOperate: true, query: 'time' }), [
         { label: 'You', rows: ['Profile · Timezone'] },
     ]);
-    assert.deepEqual(railShape({ canOperate: true, query: 'runtimes' }), [
-        { label: 'Captains', rows: ['Models · Detected runtimes'] },
-        { label: 'Haus', rows: ['Devices · Runtimes'] },
-    ]);
+    assert.deepEqual(railShape({ canOperate: true, query: 'runtimes' }), []);
     assert.deepEqual(railShape({ canOperate: true, query: 'ember' }), []);
 });
 

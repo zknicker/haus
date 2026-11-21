@@ -11,7 +11,7 @@ const now = Date.parse('2026-10-06T12:00:00.000Z');
 
 test('the last error is named from its code, falling back to the failure kind', () => {
     expect(wakePauseFailureSentence({ code: 'model-unavailable', kind: 'configuration' })).toBe(
-        "The model isn't available on this runtime."
+        "The model isn't available."
     );
     expect(
         wakePauseFailureSentence(
