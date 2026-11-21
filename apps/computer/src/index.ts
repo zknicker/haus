@@ -4,21 +4,14 @@ import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { arch, homedir, platform, userInfo } from 'node:os';
 import { join } from 'node:path';
 import type { AgentSkillImportCommand, AgentSkillImportRecord } from '@haus/api';
-import { handleBackgroundFrame } from './agent-background-frames.ts';
 import * as commandFrames from './agent-command-frames.ts';
-import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
-import { disposeServerLaunchHosts } from './agent-launch-host.ts';
+import { resetAgentState } from './agent-reset.ts';
 import {
-    agentWorkspacePreparation,
-    handleRestartFrame,
-    resetOwnedAgentState,
-    retireOwnedAgentState,
-} from './agent-partition-lifecycle.ts';
-import { parseAgentRetireCommand } from './agent-retirement.ts';
-import { applyAuthoritativeSession } from './agent-session-authority.ts';
+    parseAgentRetireCommand,
+    purgeRetiredAgent,
+    reportRetirementError,
+} from './agent-retirement.ts';
 import { handleAgentSkillFileRequest } from './agent-skill-files.ts';
-import { dispatchAgentStart } from './agent-start-dispatch.ts';
-import { traceAgentTurn } from './agent-turn-telemetry.ts';
 import { AttachmentConnectionWork } from './attachment-connection-work.ts';
 import { type AttachmentConnectionOutcome, runAttachmentDaemon } from './attachment-daemon-loop.ts';
 import {
@@ -26,7 +19,6 @@ import {
     attachmentCredentialHash as hash,
     readAttachmentDaemonMarker,
 } from './attachment-daemon-process.ts';
-import { prepareAttachmentDaemon } from './attachment-daemon-start.ts';
 import { AttachmentDaemonWork } from './attachment-daemon-work.ts';
 import { type AttachmentHeartbeat, startAttachmentHeartbeat } from './attachment-heartbeat.ts';
 import {
@@ -53,6 +45,7 @@ import { createAttachmentStore } from './attachment-store.ts';
 import { recordAttachmentManagementEvent } from './attachment-system-event-outbox.ts';
 import { runAttachmentUpdate } from './attachment-update.ts';
 import { handleWorkerFrame } from './attachment-workers.ts';
+import type { Attachment } from './attachment.ts';
 import { handleBrowserRequest } from './browser/requests.ts';
 import { reconcileComputerBrowser } from './browser/settings.ts';
 import {
@@ -68,8 +61,8 @@ import { sendComputerDiskReport } from './computer-disk.ts';
 import { readComputerName } from './computer-name.ts';
 import { startComputerReportSchedule } from './computer-report-schedule.ts';
 import { createComputerReporter, reportStateError } from './computer-report.ts';
+import { guardDevDaemonMemory } from './daemon-memory-guard.ts';
 import { type DaemonRuntime, withDaemonRuntime } from './daemon-runtime.ts';
-import { decideStart, readRunMarker, writeRunMarker } from './delivery.ts';
 import {
     doctorComputer,
     formatComputerStatus,
@@ -78,7 +71,6 @@ import {
     readComputerStatus,
 } from './diagnostics.ts';
 import { discardDrivePushes } from './drive/turn-sync.ts';
-import { attachmentJournalUploads } from './execution-journal-upload/attachment-journal-uploads.ts';
 import { handleHostSkillFileRequest } from './host-skill-file.ts';
 import {
     acceptHostSkillImport,
@@ -87,24 +79,9 @@ import {
     listAcceptedHostSkillImports,
     parseAgentSkillImportCommand,
 } from './host-skills.ts';
-import {
-    acceptRunInbox,
-    clearRunVisibleMessages,
-    prepareRunReplay,
-    reofferPendingMessages,
-    replacePendingInbox,
-} from './inbox-store.ts';
 import { runInternalCommand } from './internal-commands.ts';
 import { handleInventoryRefresh } from './inventory-refresh.ts';
-import { detectInventory } from './inventory.ts';
 import { attachmentInvocations } from './invocations/attachment-invocations.ts';
-import { tracedCrashTurn } from './launch-crash-turn.ts';
-import {
-    type AgentStartCommand,
-    type AgentTurnFrame,
-    type Attachment,
-    runAgentLaunch,
-} from './launch.ts';
 import {
     computerServiceLabel,
     replaceLaunchdService,
@@ -133,7 +110,6 @@ import {
 } from './update-contract.ts';
 import { finishRestart, recoverInterruptedUpdate } from './update-recovery.ts';
 import {
-    admitActiveRun,
     isNewerVersion,
     readProductionRelease,
     readUpdateProgress,
@@ -401,22 +377,16 @@ async function main(args: string[]) {
             throw new Error('This Server is not attached to this Haus Computer.');
         }
         await finishRestart(dataRoot);
-        const prewarm = prepareAttachmentDaemon(attachment.slug);
+        guardDevDaemonMemory(attachment.slug);
         process.exitCode = await withDaemonRuntime(
             async (runtime) => {
                 const partition = { dataRoot, serverId: attachment.serverId };
                 const workers = new WorkerSupervisor(runtime, { ...partition, server: attachment });
-                const daemonWork = new AttachmentDaemonWork(runtime, workers, partition);
+                const daemonWork = new AttachmentDaemonWork(runtime, workers);
                 return withAttachmentShutdown(daemonWork, runtime, partition, () =>
                     runAttachmentDaemon(runtime, {
                         attachmentExists: async () => (await readAttachment(target)) !== null,
-                        connect: () => {
-                            // Best-effort prewarm; tests on this path never spawn real installs.
-                            if (process.env.NODE_ENV !== 'test') {
-                                prewarm();
-                            }
-                            return connect(attachment, runtime, daemonWork);
-                        },
+                        connect: () => connect(attachment, runtime, daemonWork),
                         isTerminalUnlinkedError: isComputerMachineUnlinked,
                         log: (message) => console.error(`/${attachment.slug}: ${message}`),
                         markTerminalUnlinked: () => markTerminalUnlinked(dataRoot, attachment),
@@ -892,9 +862,8 @@ async function connect(
     ]);
     const connectionWork = await AttachmentConnectionWork.make(runtime);
     const socket = new WebSocket(socketUrl);
-    const journalUploads = attachmentJournalUploads(dataRoot, attachment, daemonWork, socket);
     const invocations = attachmentInvocations(dataRoot, attachment, daemonWork);
-    const { agentWork, noticeSinks, resettingAgents, retiredAgents } = daemonWork;
+    const { resettingAgents, retiredAgents } = daemonWork;
     let deleting = false;
     let deletionPromise: Promise<void> | null = null;
     let detachSender: () => void = () => undefined;
@@ -902,49 +871,6 @@ async function connect(
     const trackWriter = <Result>(operation: Promise<Result>) => daemonWork.track(operation);
     const reportComputer = (recheckAuthentication = false) =>
         sendComputerReport(sendFrame, attachment.serverId, computerName, recheckAuthentication);
-    const startAgent = (command: AgentStartCommand) => {
-        if (resettingAgents.has(command.agentId) || retiredAgents.has(command.agentId)) {
-            return;
-        }
-        // Reserve synchronously, before any async marker I/O, so a duplicate start
-        // mid-launch is deduped here; a start behind a stopping run waits for it.
-        const reservation = agentWork.reserve(command.agentId, command.runId);
-        if (reservation.kind === 'duplicate') {
-            sendFrame({ agentId: command.agentId, runId: command.runId, type: 'ack' });
-            return;
-        }
-        if (reservation.kind === 'busy') {
-            void reservation.stopping?.then(() => startAgent(command));
-            return;
-        }
-        const releaseRun = () => {
-            agentWork.release(command.agentId, command.runId);
-        };
-        void trackWriter(
-            admitActiveRun(dataRoot, command.runId)
-                .then((clearActiveRun) => {
-                    if (!clearActiveRun) {
-                        releaseRun();
-                        return;
-                    }
-                    return handleStartCommand({
-                        attachment,
-                        clearActiveRun,
-                        command,
-                        computerName,
-                        controller: reservation.controller,
-                        noticeSinks,
-                        releaseRun,
-                        runtime,
-                        send: sendFrame,
-                    });
-                })
-                .catch((error) => {
-                    releaseRun();
-                    console.error(error instanceof Error ? error.message : error);
-                })
-        );
-    };
     const sendSkillImportRecord = (record: AgentSkillImportRecord) => {
         sendFrame({ ...record, type: 'agent-skill-import-result' });
     };
@@ -953,7 +879,6 @@ async function connect(
     ) => {
         let settled: AgentSkillImportRecord;
         try {
-            await agentWork.waitForRun(record.agentId);
             const skill = await importHostSkill({
                 agentId: record.agentId,
                 dataRoot,
@@ -1051,7 +976,6 @@ async function connect(
             }
             if (commandFrames.parseServerDeleteCommand(frame)) {
                 deleting = true;
-                disposeServerLaunchHosts(attachment.serverId);
                 deletionPromise = deleteServerPartition(daemonWork, {
                     dataRoot,
                     serverId: attachment.serverId,
@@ -1068,7 +992,6 @@ async function connect(
             if (bootstrap) {
                 sendFrame({ type: 'heartbeat-negotiate' });
                 if (bootstrap.mode === 'ordinary') {
-                    journalUploads.connected();
                     invocations.connected();
                     daemonWork.workers?.attach(sendFrame);
                     const initialReport = Promise.resolve().then(async () => {
@@ -1088,7 +1011,6 @@ async function connect(
                             await sendUsageReport(sendFrame);
                         }
                     });
-                    void trackWriter(daemonWork.syncBackgroundWork());
                     void trackWriter(initialReport.catch(reportStateError)).finally(() => {
                         if (process.env.HAUS_COMPUTER_ONESHOT === '1') {
                             socket.close();
@@ -1142,73 +1064,16 @@ async function connect(
             ) {
                 return;
             }
-            const { backgroundWork } = daemonWork;
-            const { serverId } = attachment;
-            const deps = { agentWork, onError: reportStateError, runtime, track: trackWriter };
-            if (
-                handleBackgroundFrame(frame, { ...deps, agentsDir, backgroundWork }) ||
-                handleRestartFrame(frame, { ...deps, dataRoot, retiredAgents, serverId })
-            ) {
-                return;
-            }
             const retirement = parseAgentRetireCommand(frame);
             if (retirement) {
                 retiredAgents.add(retirement.agentId);
-                const runId = agentWork.activeRunId(retirement.agentId);
-                if (runId) {
-                    agentWork.abortRun(runId);
-                }
                 void trackWriter(
-                    agentWork
-                        .waitForConfiguration(retirement.agentId)
-                        .then(() => agentWork.waitForRun(retirement.agentId))
-                        .then(() =>
-                            retireOwnedAgentState({
-                                agentId: retirement.agentId,
-                                dataRoot,
-                                serverId: attachment.serverId,
-                                runtime,
-                            })
-                        )
-                        .then(() => reportComputer())
-                        .catch(reportStateError)
-                );
-                return;
-            }
-            const configuration = parseAgentConfigureCommand(frame);
-            if (configuration) {
-                if (retiredAgents.has(configuration.agentId)) {
-                    return;
-                }
-                void trackWriter(
-                    agentWork
-                        .enqueueConfiguration(configuration.agentId, async () => {
-                            await agentWork.waitForRun(configuration.agentId);
-                            const agentRoot = join(agentsDir, configuration.agentId);
-                            await applyAuthoritativeSession({
-                                agentRoot,
-                                generation: configuration.sessionGeneration,
-                                reset: async () => {
-                                    await resetOwnedAgentState({
-                                        agentId: configuration.agentId,
-                                        dataRoot,
-                                        kind: configuration.sessionResetKind,
-                                        serverId: attachment.serverId,
-                                        runtime,
-                                    });
-                                },
-                            });
-                            await applyAgentConfiguration({
-                                prepareWorkspace: agentWorkspacePreparation(
-                                    dataRoot,
-                                    configuration.runtimeId
-                                ),
-                                command: configuration,
-                                dataRoot,
-                                inventory: detectInventory(),
-                                serverId: attachment.serverId,
-                            });
-                        })
+                    purgeRetiredAgent({
+                        agentId: retirement.agentId,
+                        dataRoot,
+                        serverId: attachment.serverId,
+                    })
+                        .catch((error) => reportRetirementError(retirement.agentId, error))
                         .then(() => reportComputer())
                         .catch(reportStateError)
                 );
@@ -1227,7 +1092,6 @@ async function connect(
                     send: sendFrame,
                     serverId: attachment.serverId,
                     track: trackWriter,
-                    waitForRun: (agentId) => agentWork.waitForRun(agentId),
                 })
             ) {
                 return;
@@ -1247,41 +1111,23 @@ async function connect(
             ) {
                 return;
             }
-            if (journalUploads.receive(frame) || invocations.receive(frame)) {
+            if (invocations.receive(frame)) {
                 return;
             }
             const reset = commandFrames.parseResetCommand(frame);
             if (reset) {
-                if (retiredAgents.has(reset.agentId)) {
+                if (retiredAgents.has(reset.agentId) || reset.kind !== 'full') {
                     return;
                 }
                 resettingAgents.add(reset.agentId);
                 const agentRoot = join(agentsDir, reset.agentId);
-                const resumePushes =
-                    reset.kind === 'full' ? discardDrivePushes(agentRoot) : () => undefined;
-                const runId = agentWork.activeRunId(reset.agentId);
-                if (runId) {
-                    agentWork.abortRun(runId);
-                }
+                const resumePushes = discardDrivePushes(agentRoot);
                 void trackWriter(
-                    agentWork
-                        .waitForConfiguration(reset.agentId)
-                        .then(() => agentWork.waitForRun(reset.agentId))
-                        .then(async () => {
-                            await applyAuthoritativeSession({
-                                agentRoot,
-                                generation: reset.sessionGeneration,
-                                reset: async () => {
-                                    await resetOwnedAgentState({
-                                        agentId: reset.agentId,
-                                        dataRoot,
-                                        kind: reset.kind,
-                                        serverId: attachment.serverId,
-                                        runtime,
-                                    });
-                                },
-                            });
-                        })
+                    resetAgentState({
+                        agentId: reset.agentId,
+                        dataRoot,
+                        serverId: attachment.serverId,
+                    })
                         .then(() => reportComputer())
                         .catch((error) => {
                             console.error(error instanceof Error ? error.message : error);
@@ -1296,68 +1142,18 @@ async function connect(
             const reminderScript = parseReminderScriptCommand(frame);
             if (reminderScript) {
                 void trackWriter(
-                    agentWork
-                        .waitForRun(reminderScript.agentId)
-                        .then(() =>
-                            runReminderScript({
-                                command: reminderScript,
-                                dataRoot,
-                                runtime,
-                                serverId: attachment.serverId,
-                            })
-                        )
+                    runReminderScript({
+                        command: reminderScript,
+                        dataRoot,
+                        runtime,
+                        serverId: attachment.serverId,
+                    })
                         .then((result) => sendFrame(result))
                         .catch((error) => {
                             console.error(error instanceof Error ? error.message : error);
                         })
                 );
-                return;
             }
-            const notice = commandFrames.parseNoticeCommand(frame);
-            if (notice) {
-                if (retiredAgents.has(notice.agentId)) {
-                    return;
-                }
-                const { agentId } = notice;
-                const location = { agentId, dataRoot, serverId: attachment.serverId };
-                const receipt = commandFrames.noticeReceipt(notice);
-                let injected = false;
-                void trackWriter(
-                    replacePendingInbox(
-                        location,
-                        notice.inbox,
-                        notice.totalPending,
-                        async (projected) => {
-                            const sink = noticeSinks.get(notice.agentId);
-                            if (sink?.runId === notice.runId) {
-                                injected = await sink.deliver(projected);
-                            }
-                        },
-                        receipt,
-                        notice
-                    )
-                        .then(() => {
-                            if (injected) {
-                                sendFrame({
-                                    agentId: notice.agentId,
-                                    ...receipt,
-                                    type: 'notice-ack',
-                                });
-                            }
-                        })
-                        .catch((error) => {
-                            console.error(error instanceof Error ? error.message : error);
-                        })
-                );
-                return;
-            }
-            void trackWriter(
-                dispatchAgentStart(frame, {
-                    coordinator: agentWork,
-                    send: sendFrame,
-                    start: startAgent,
-                }).catch(reportStateError)
-            );
         };
         socket.addEventListener('message', (event) => {
             if (!daemonWork.isClosing) {
@@ -1403,151 +1199,6 @@ function safeSkillImportError(error: unknown) {
         return message;
     }
     return 'The skill could not be imported.';
-}
-
-/**
- * Handles one start command idempotently. The run is already reserved in
- * `running` (synchronously, by the caller), so only one launch per run can exist.
- * Local acceptance (the durable marker plus the ack) is recorded before any model
- * work. A settled run replays its summary; an accepted-but-unsettled run
- * intentionally replays after restart because acceptance is not model-seen
- * proof.
- */
-async function handleStartCommand(input: {
-    attachment: Attachment;
-    command: AgentStartCommand;
-    computerName: string;
-    controller: AbortController;
-    clearActiveRun: () => Promise<void>;
-    noticeSinks: Map<string, { deliver: (notice: string) => Promise<boolean>; runId: string }>;
-    releaseRun: () => void;
-    runtime: DaemonRuntime;
-    send: (frame: unknown) => boolean;
-}): Promise<void> {
-    const {
-        attachment,
-        clearActiveRun,
-        command,
-        computerName,
-        controller,
-        noticeSinks,
-        releaseRun,
-        runtime,
-        send,
-    } = input;
-    const startedAt = new Date().toISOString();
-    const ack = () => send({ agentId: command.agentId, runId: command.runId, type: 'ack' });
-    const settle = async (summary: AgentTurnFrame) => {
-        send(summary);
-        await writeRunMarker(dataRoot, {
-            marker: { status: 'settled', summary },
-            runId: command.runId,
-            serverId: attachment.serverId,
-        });
-        await clearRunVisibleMessages(
-            { agentId: command.agentId, dataRoot, serverId: attachment.serverId },
-            command.runId
-        );
-    };
-
-    try {
-        const marker = await readRunMarker(dataRoot, command, attachment.serverId);
-        const decision = decideStart(marker);
-        if (decision.kind === 'replay') {
-            ack();
-            send(decision.summary);
-            return;
-        }
-        if (marker?.status === 'accepted') {
-            await prepareRunReplay(
-                { agentId: command.agentId, dataRoot, serverId: attachment.serverId },
-                command.runId
-            );
-        }
-        const launchCommand = { ...command, inbox: command.inbox ?? [] };
-        let summary: AgentTurnFrame;
-        try {
-            summary = await traceAgentTurn(runtime, command, (turnTraceContext, turnTimings) =>
-                runAgentLaunch({
-                    turnTimings,
-                    attachment,
-                    command: launchCommand,
-                    dataRoot,
-                    onRuntimeReady: async () => {
-                        const location = {
-                            agentId: command.agentId,
-                            dataRoot,
-                            serverId: attachment.serverId,
-                        };
-                        if (command.inboxDelivery === 'notice') {
-                            await reofferPendingMessages(location, command.inbox ?? []);
-                            await replacePendingInbox(
-                                location,
-                                command.inbox ?? [],
-                                command.totalPending
-                            );
-                        } else {
-                            if (marker?.status !== 'accepted') {
-                                await reofferPendingMessages(location, command.inbox ?? []);
-                            }
-                            launchCommand.inbox = await acceptRunInbox(
-                                location,
-                                command.runId,
-                                command.inbox ?? [],
-                                command.taskAssignments !== undefined
-                            );
-                        }
-                        await writeRunMarker(dataRoot, {
-                            marker: { status: 'accepted' },
-                            runId: command.runId,
-                            serverId: attachment.serverId,
-                        });
-                        ack();
-                    },
-                    onStoredNoticeDelivered: (receipt) =>
-                        send({
-                            agentId: command.agentId,
-                            ...receipt,
-                            type: 'notice-ack',
-                        }),
-                    registerNoticeSink: (deliver) => {
-                        const sink = { deliver, runId: command.runId };
-                        noticeSinks.set(command.agentId, sink);
-                        return () => {
-                            if (noticeSinks.get(command.agentId) === sink) {
-                                noticeSinks.delete(command.agentId);
-                            }
-                        };
-                    },
-                    runtime,
-                    sendFrame: send,
-                    serverOrigin,
-                    signal: controller.signal,
-                    turnTraceContext,
-                })
-            );
-        } catch (error) {
-            // A crash after the ack must still report a terminal turn, or the
-            // Server's in-flight run never settles. The launch failed before any
-            // managed send, so the work is safe to requeue (outputProduced false).
-            summary = await tracedCrashTurn(dataRoot, attachment, command, startedAt, error);
-            await settle(summary);
-            return;
-        }
-        await writeRunMarker(dataRoot, {
-            marker: { status: 'settled', summary },
-            runId: command.runId,
-            serverId: attachment.serverId,
-        });
-        await clearRunVisibleMessages(
-            { agentId: command.agentId, dataRoot, serverId: attachment.serverId },
-            command.runId
-        );
-        await sendComputerReport(send, attachment.serverId, computerName).catch(reportStateError);
-    } finally {
-        await clearActiveRun();
-        releaseRun();
-    }
 }
 
 if (import.meta.main) {

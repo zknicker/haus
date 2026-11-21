@@ -19,8 +19,8 @@ the model's own connection, never a separate search key, and is on for every con
 default ([Web reach](runtime-drivers.md#web-reach)).
 
 Native builtins that would bypass Haus or wait on a host answer stay off
-(`CLAUDE_DISALLOWED_TOOLS` in `apps/computer/src/runtime/claude-code/claude-launch.ts`, and
-`grok-launch.ts`): Claude Code runs without plan mode, `ScheduleWakeup`,
+(`CLAUDE_DISALLOWED_TOOLS` in `apps/runner/src/claude/claude-launch.ts`, and
+the runner's Pi harness): Claude Code runs without plan mode, `ScheduleWakeup`,
 and the `Cron*` tools (Raft's disallowed set; Haus Reminders own scheduling), without
 `RemoteTrigger` and `PushNotification` (the same bypass through Claude's cloud), without
 `AskUserQuestion`, and without `Monitor` (it streams output into the conversation, a wake source

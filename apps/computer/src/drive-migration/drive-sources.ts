@@ -2,8 +2,8 @@ import { createHash, randomBytes } from 'node:crypto';
 import { lstat, mkdir, readdir, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { seedAgentWorkspace, seedFactoryManagedSkills } from '@haus/agent-workspace';
-import type { AgentSeedConfiguration } from '../agent-configuration.ts';
 import type { AgentDrive } from '../drive/agent-drive.ts';
+import type { AgentSeedConfiguration } from './seed-configuration.ts';
 
 export interface DriveSeedEntry {
     bytes: Uint8Array;

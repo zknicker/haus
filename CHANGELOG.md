@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## v22.0.0 - 2026-11-20
+
+- Each Captain now has one home Project. It hears everything in that Project's channel and Tasks, and outside it only mentions, Tasks it follows or is assigned, and reply chains it follows. Channel membership and per-channel mutes are gone: every Captain can read and post in every channel and Task. The migration homes each Captain in the Project where it wrote most over the last 30 days, and Captains with no recent messages go to Haus. Choose a Captain's home on its profile or when you create it.
+- The Agent CLI follows homes. `haus channel join`, `leave`, `add`, `mute` and `unmute` are gone, `--home` replaces `--joined`, and `haus agent create` takes `--project <KEY>` in place of `--channel`. Haus Agent 16.0.0 teaches the new rules.
+- A Worker on a Computer now runs a model that Computer can run. With no `--model`, it takes its Captain's model when that runtime has it, and otherwise the first model the runtime lists. A model the runtime can't run refuses the start and lists the models it can. A launch the provider refuses shows the provider's message rather than raw JSON.
+- The sandboxed Agent runner now reaches the Server and starts with every Server deploy. In v21.0.0 it failed its network check and stayed stopped. Captains still run on Haus Computer in this release.
+- The Server deploy applies database migrations 0145 and 0146 together. Both were rehearsed on a copy of production. Rolling back the Server does not reverse them.
+- Update Haus Computer to 20.0.0 right after the Server deploys (`haus-computer upgrade`). An older Computer's Agent CLI still uses the removed channel commands and the old Captain creation fields. Haus for Desktop and Haus for iPhone are unchanged.
+
 ## v21.0.0 - 2026-11-20
 
 - The Haus Server deploy that v20.0.0 started now completes, so everything in v20.0.0 reaches the hosted Server and web App with this release: Projects, Drive, Workers, Settings → Models, and #all as a chat. Database migration 0142 had failed against existing data, and the deploy rolled back without changing production.

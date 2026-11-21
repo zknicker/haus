@@ -1,11 +1,9 @@
-import { disposeServerLaunchHosts } from './agent-launch-host.ts';
 import type { AttachmentDaemonWork } from './attachment-daemon-work.ts';
 import {
     closeDaemonCoordination,
     closeDaemonRuntimeResources,
     type DaemonRuntime,
 } from './daemon-runtime.ts';
-import { openRuntimeContext } from './runtime/runtime-context.ts';
 import { replayPendingServerPurges } from './server-partition-purge.ts';
 import {
     detachServerWorkspaces,
@@ -39,9 +37,8 @@ export async function withAttachmentShutdown<T>(
         closeDaemonRuntimeResources(
             () => work.close(),
             async () => {
-                disposeServerLaunchHosts(partition.serverId);
                 await closeDaemonRuntimeResources(
-                    // Sessions and sandbox processes are stopped; release this Server's volumes.
+                    // Worker work is drained; release this Server's volumes.
                     () => detachPartitionWorkspaces(partition),
                     () =>
                         closeDaemonRuntimeResources(
@@ -60,11 +57,6 @@ export async function withAttachmentShutdown<T>(
     );
     try {
         await reclaimPartitionStorage(partition);
-        // The daemon's host-tool server and warm runtime pool; `work.close()` closes them.
-        openRuntimeContext(runtime, {
-            background: work.backgroundWork,
-            idleCompaction: work.idleCompaction,
-        });
         return await run();
     } finally {
         await work
