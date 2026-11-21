@@ -638,8 +638,25 @@ console errors and collapsed heights.
 The question tabs are the battery the server hands the page, so adding a prompt
 to `scripts/visuals-lab/engine/prompts.mjs` shows up as a tab with no page edit.
 Each model's reasoning effort is a select beside its name, defaulting to medium
-and shared across skills; every model runs the runtime driver Haus itself ships,
-so a result is a judgement about the product. Runs land in
+and shared across skills. Every model runs on the Agent runner's own harness,
+the lane Haus ships: Claude models on the Claude Agent SDK, every other model on
+Pi, chosen by `harnessFor` (`scripts/visuals-lab/engine/harness-runner.mjs`).
+The Agent's tools run in process on Haus Computer's invocation runners over a
+temp agents root (`engine/lab-tools.mjs`), with the visuals skill seeded into
+the Agent's Drive folder; `execute` and the haus CLI need a Server and are
+refused. Only the instructions differ from production
+(`engine/instructions.mjs`): the visuals pointer, a reply-body Outputs rule,
+and a skill listing that points at the skill files. So a result is a judgement
+about the product.
+
+A run spends a Model connection the dev Server holds, so the dev stack must be
+up (`bun run dev`) and the connection added in the App (Settings, Models). The
+lab reads the first enabled connection for the model's provider from this
+checkout's dev database with `HAUS_SECRETS_KEY`, the way the Server feeds the
+runner (`engine/lab-connection.mjs`); `bun run visuals:lab` runs under
+`varlock` for the key. A rotated OAuth login is written back with the Server's
+own compare-and-set store. The lineup in `scripts/visuals-lab/models.mjs` must
+name models in `apps/runner/src/model-catalog.ts` (`models.test.ts` pins it). Runs land in
 `scripts/visuals-lab/results/<model>/<stamp>/` (gitignored), and a cell reads the
 newest run that carries that prompt, so a narrow rerun never hides the rest.
 

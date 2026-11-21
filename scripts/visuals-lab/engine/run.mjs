@@ -2,20 +2,21 @@
 //
 // This is the visuals lab's engine: `scripts/visuals-lab/server.mjs` spawns it.
 // It has no package script and is not meant to be driven by hand, because every
-// run is a real model turn on the developer's own logins and costs real money.
+// run is a real model turn on a real Model connection and costs real money.
 //
-// Unlike `eval:design` it runs NO Haus stack — no server, no website, no MCP.
-// It builds the same temp agent root the Computer executor builds (the seeded
-// visuals skill, the runtime-native skill links, the auth-profile symlinks) and
-// hands the sales data to the model inline, then captures whatever ```visual
-// fence comes back. What it measures is therefore the skill text and the model,
-// with the product's plumbing held constant: every model runs the runtime
-// driver Haus itself ships.
-import { mkdir, mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
+// Unlike `eval:design` it drives no Agent through the Server: no chat, no
+// inbox, no haus CLI. It runs the Agent runner's own harness in process on a
+// Model connection the dev Server holds, so the dev stack must be up (see
+// lab-connection.mjs). The lab machine is a temp Computer agents root with the
+// seeded visuals skill in the Agent's Drive folder; the sales data rides the
+// prompt inline, and whatever ```visual fence comes back is captured. What it
+// measures is therefore the skill text and the model, with the product's
+// plumbing held constant.
+import { mkdir, mkdtemp, readdir, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { readAgentSkillNames } from '../../../apps/computer/src/harness/agent-skill-names.ts';
-import { ensureNativeSkillLinks } from '../../../apps/computer/src/harness/native-skill-links.ts';
+import { fileURLToPath } from 'node:url';
+import { skillEntry } from '../../../apps/runner/src/turn/agent-drive.ts';
 import { seedFactoryManagedSkills } from '../../../packages/agent-workspace/src/index.ts';
 import {
     splitVisualFences,
@@ -24,51 +25,45 @@ import {
 import { writeContactSheet } from '../../design-battery/contact-sheet.mjs';
 import { fenceFilesFor, findingsFileFor } from './findings.mjs';
 import { createHarnessRunner } from './harness-runner.mjs';
+import { labInstructions } from './instructions.mjs';
 import { createVisualRenderer } from './render.mjs';
 import { assert, resolveRunConfig } from './run-config.mjs';
 import { createRunManifest, manifestTokens } from './run-manifest.mjs';
 import { overrideVisualsSkill } from './skill-override.mjs';
 
 const turnTimeoutMs = 900_000;
+const agentId = 'agt_visuals_lab';
+const skillsPath = 'drive/agents/lab/skills';
+const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 
-const {
-    executable,
-    items,
-    modelId,
-    outDir,
-    reasoningEffort,
-    runLabel,
-    runtimeId,
-    skillDir,
-    stamp,
-    width,
-} = resolveRunConfig();
+const { items, modelId, outDir, reasoningEffort, runLabel, runtimeId, skillDir, stamp, width } =
+    resolveRunConfig();
 await mkdir(outDir, { recursive: true });
 
-const agentRoot = await realpath(await mkdtemp(path.join(tmpdir(), 'haus-visuals-lab-')));
-const homeDir = path.join(agentRoot, 'home');
-const skillsDir = path.join(agentRoot, 'skills');
-const workspaceDir = path.join(agentRoot, 'workspace');
-for (const dir of [homeDir, path.join(agentRoot, 'runtime'), skillsDir, workspaceDir]) {
-    await mkdir(dir, { recursive: true });
-}
+const labRoot = await realpath(await mkdtemp(path.join(tmpdir(), 'haus-visuals-lab-')));
+const agentsRoot = path.join(labRoot, 'servers', 'srv_visuals_lab', 'agents');
+const skillsDir = path.join(agentsRoot, agentId, 'workspace', ...skillsPath.split('/'));
+await mkdir(skillsDir, { recursive: true });
 await seedFactoryManagedSkills(skillsDir);
 const skillOverrides = skillDir ? await overrideVisualsSkill(skillsDir, skillDir) : [];
-await ensureNativeSkillLinks(homeDir, skillsDir);
-const skills = await readAgentSkillNames(skillsDir);
+const skills = await readSkills(skillsDir);
 assert(skills.length > 0, `no skills seeded into ${skillsDir}`);
 
-const runner = createHarnessRunner({
-    executable,
-    homeDir,
+const runner = await createHarnessRunner({
+    agentId,
+    agentsRoot,
+    ...labInstructions({ skills, skillsPath }),
     modelId,
     reasoningEffort,
-    runtimeId,
-    workspaceDir,
+    repositoryRoot,
+    runnerRoot: path.join(labRoot, 'runner'),
+}).catch((error) => {
+    process.stderr.write(`${error instanceof Error ? error.message : error}\n`);
+    process.exit(2);
 });
 
 process.stdout.write(
-    `visuals lab: ${runLabel} · ${items.length} prompt(s) · skills ${skills.join(', ')}\n`
+    `visuals lab: ${runLabel} · ${runner.harness} on ${runner.connectionLabel} · ${items.length} prompt(s) · skills ${skills.map((skill) => skill.name).join(', ')}\n`
 );
 process.stdout.write(
     skillDir
@@ -204,8 +199,8 @@ try {
     }
 } finally {
     await renderer.close();
-    await rm(agentRoot, { force: true, recursive: true });
     await runner.dispose();
+    await rm(labRoot, { force: true, recursive: true });
 }
 
 await manifest.finish();
@@ -234,6 +229,19 @@ function traceLines(turn) {
         lines.push(`${JSON.stringify({ at: new Date().toISOString(), stderr: turn.stderr })}\n`);
     }
     return lines.join('');
+}
+
+/** The skill listing's entries, read from each seeded `SKILL.md` as the runner reads Drive. */
+async function readSkills(dir) {
+    const folders = (await readdir(dir, { withFileTypes: true })).filter((entry) =>
+        entry.isDirectory()
+    );
+    const skills = await Promise.all(
+        folders.map(async (folder) =>
+            skillEntry(folder.name, await readFile(path.join(dir, folder.name, 'SKILL.md'), 'utf8'))
+        )
+    );
+    return skills.toSorted((left, right) => left.name.localeCompare(right.name));
 }
 
 function sheetItem(item) {

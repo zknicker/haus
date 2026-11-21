@@ -2,7 +2,9 @@
 // runtime registry so a contender can be added or dropped without touching
 // product code.
 //
-// Every model runs the product's runtime driver, the lane Haus actually ships.
+// Every model runs on the Agent runner's harness, the lane Haus actually ships:
+// `runtime` is the model's family id in apps/runner/src/model-catalog.ts, and a
+// run spends the dev Server's Model connection for that provider.
 //
 // `reasoning` is the effort a run starts at; the page can override it per model
 // before a run, which is why it lives here as a default rather than a constant.
@@ -11,32 +13,18 @@
 // columns.mjs.
 export const models = [
     {
-        id: 'grok',
-        label: 'Grok 4.6',
-        model: 'grok-4.6',
+        id: 'grok-4-7',
+        label: 'Grok 4.7',
+        model: 'grok-4.7',
         reasoning: 'medium',
         runtime: 'grok-build',
     },
     {
-        id: 'sol',
-        label: 'Sol',
-        model: 'gpt-5.6-sol',
+        id: 'sol-6-1',
+        label: 'Sol 6.1',
+        model: 'gpt-6.1-sol',
         reasoning: 'medium',
         runtime: 'codex',
-    },
-    {
-        id: 'astra',
-        label: 'Astra',
-        model: 'gpt-6-astra',
-        reasoning: 'medium',
-        runtime: 'codex',
-    },
-    {
-        id: 'opus',
-        label: 'Opus 4.8',
-        model: 'claude-opus-4-8',
-        reasoning: 'medium',
-        runtime: 'claude-code',
     },
     {
         id: 'opus-5-5',
@@ -46,11 +34,25 @@ export const models = [
         runtime: 'claude-code',
     },
     {
-        id: 'fable',
-        label: 'Fable 5.1',
-        model: 'claude-fable-5-1',
+        id: 'fable-5-2',
+        label: 'Fable 5.2',
+        model: 'claude-fable-5-2',
         reasoning: 'medium',
         runtime: 'claude-code',
+    },
+    {
+        id: 'gemini-flash',
+        label: 'Gemini 3.8 Flash',
+        model: 'gemini-3.8-flash',
+        reasoning: 'medium',
+        runtime: 'gemini',
+    },
+    {
+        id: 'gemini-flash-lite',
+        label: 'Gemini 3.5 Flash-Lite',
+        model: 'gemini-3.5-flash-lite',
+        reasoning: 'medium',
+        runtime: 'gemini',
     },
 ];
 
