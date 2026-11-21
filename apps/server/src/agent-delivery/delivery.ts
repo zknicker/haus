@@ -8,7 +8,6 @@ import {
     type ReminderScriptResult,
 } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
-import { runLivenessClaimEvents } from '../claims/background-claims.ts';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -72,6 +71,7 @@ import {
 import { consumeNoticeAck } from './notice-ack.ts';
 import { type AgentResetRequest, resetInTransaction } from './reset-transaction.ts';
 import { isBackedOff } from './retry-policy.ts';
+import { startRun } from './run-start.ts';
 import * as store from './store.ts';
 import { recoverSessionResume, settleRun } from './turn-settlement.ts';
 import { isolateUnrenderableItems } from './undeliverable-items.ts';
@@ -85,8 +85,8 @@ export interface DeliveryTransport {
 
 export interface DispatchPlan {
     activities?: AgentActivityEvent[];
-    /** `claim.updated` for the claims this run just made live. */
-    claimEvents?: PreparedRealtimeEvent[];
+    /** What a run's start publishes after commit (see `startRun`). */
+    startEvents?: PreparedRealtimeEvent[];
     computerId: string;
     configuration?: DeferredConfiguration;
     frame: LoopFrame;
@@ -691,8 +691,7 @@ export class AgentDelivery {
             runId,
             selected: admitted.selected,
         });
-        // Freeze execution configuration onto the run so every resend uses these values.
-        await store.beginActiveRun(tx, {
+        const startEvents = await startRun(tx, {
             agentId,
             chatId: first.chatId,
             computerId: config.computerId,
@@ -700,6 +699,7 @@ export class AgentDelivery {
             reasoningEffort: config.desiredReasoningEffort,
             runId,
             runtimeId: config.desiredRuntimeId,
+            serverId: state.serverId,
         });
         await recordRunTrigger(tx, { agentId, runId, serverId: state.serverId }, first);
         const activity = await appendServerAgentActivity(tx, {
@@ -712,11 +712,7 @@ export class AgentDelivery {
         return {
             ...(activity ? { activities: [activity] } : {}),
             computerId: config.computerId,
-            claimEvents: await runLivenessClaimEvents(tx, {
-                agentId,
-                runId,
-                serverId: state.serverId,
-            }),
+            startEvents,
             frame: {
                 agentId,
                 ...startPromptFacts(config),
@@ -768,7 +764,7 @@ export class AgentDelivery {
         if (!plan) {
             return;
         }
-        publishRealtime(plan.claimEvents ?? []);
+        publishRealtime(plan.startEvents ?? []);
         for (const activity of plan.activities ?? []) {
             if (activity.category === 'starting_work' && activity.phase === 'started') {
                 continue;

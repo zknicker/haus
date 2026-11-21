@@ -255,18 +255,13 @@ same Computer — the assignment is immutable and absent from the input — and
 validates only against that Computer's inventory, so desired edits saved while
 the Computer is offline still fail closed on a cross-Computer or unreported
 reference. A referenced runtime or model that is absent is rejected; the Server
-never substitutes another. The Server sends the full desired executor snapshot
-after create/configure and on every Computer reconnect. The Computer resolves
-and durably records it before any first turn, then reports either the exact
-effective pair or explicit missing resources. `agent.list` derives status per Agent: `pending`
-until a reported effective snapshot matches desired, `applied` once it matches
-with nothing missing, and `degraded` when the Computer reports missing local
-resources. Effective reports (`record-agent-effective-state`) only touch rows
-whose `computer_id` is the reporting Computer, so cross-Computer effective
-claims update nothing. A Computer re-sends its effective snapshot after every
-turn; a row is written (and `effectiveReportedAt` moves) only when the snapshot
-differs, and the report publishes `computer.updated` only then (see
-Realtime below). See
+never substitutes another. Every Agent runs on the runner, which launches each run on exactly the configuration the
+Server froze onto it, so dispatching a run (`beginActiveRun`) records that configuration as the
+Agent's effective state (`record-agent-effective-state`). A Computer report carries no Agent
+states. `agent.list` derives status per Agent: `pending` until a dispatched run's configuration
+matches desired (a configure during a run stays pending until the next run), `applied` once it
+matches with nothing missing, and `degraded` when resources are reported missing. A row is
+written (and `effectiveReportedAt` moves) only when the effective state changes. See
 [Agent desired and effective configuration](../../specs/agent-desired-effective-config.md).
 
 ## Agent skills

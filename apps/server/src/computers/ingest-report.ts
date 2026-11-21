@@ -22,7 +22,6 @@ import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computerUpdatedTopic } from '../realtime/topics.ts';
 import type { AgentThoughts } from '../server-agents/agent-thought.ts';
-import { recordAgentEffectiveState } from '../server-agents/record-agent-effective-state.ts';
 import { ingestAgentIdleCompaction } from '../server-agents/record-agent-idle-compaction.ts';
 import { recordHausAgentState } from '../server-agents/record-haus-agent-state.ts';
 import { recordComputerUsage } from '../server-operations/computer-usage.ts';
@@ -186,14 +185,11 @@ async function recordStateReport(
         }
         return false;
     }
-    const inventoryChanged = report.data.inventory
+    // A Computer hosts no Agent sessions, so its report's `agents` is always empty;
+    // an Agent's effective state is recorded when its run dispatches to the runner.
+    return report.data.inventory
         ? await recordComputerInventory(db, computerId, report.data.inventory)
         : false;
-    const agentsChanged =
-        report.data.agents.length > 0
-            ? await recordAgentEffectiveState(db, computerId, report.data.agents)
-            : false;
-    return inventoryChanged || agentsChanged;
 }
 
 function acceptComputerReply(connections: ComputerConnections, computerId: string, frame: unknown) {
