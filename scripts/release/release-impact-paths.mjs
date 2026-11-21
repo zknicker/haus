@@ -8,6 +8,8 @@ export const ownedPrefixes = {
         'apps/server/operations/',
         'apps/server/host-services/',
         'apps/server/launchd/',
+        'apps/server/compose.yml',
+        'apps/runner/',
         'apps/website/src/',
         'apps/website/public/',
         'packages/agent-manual/src/',
