@@ -11,7 +11,7 @@ test('runtime sign-in help stays open while hovering and copying the command', a
     const slug = 'runtime-help-hq';
     const { client } = await createTestServer(page, { displayName: 'Runtime Help HQ', slug });
     const credential = 'runtime-help-computer-credential-1234';
-    await attachComputer(client, { credential, slug });
+    const attachment = await attachComputer(client, { credential, slug });
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     const computer = new WebSocket(
         `ws://127.0.0.1:${process.env.HAUS_SERVER_PORT}/computer/attachment`
@@ -86,7 +86,7 @@ test('runtime sign-in help stays open while hovering and copying the command', a
                 }),
             })
         );
-        await page.goto(`/s/${slug}/computers`);
+        await page.goto(`/s/${slug}/settings/computers/${attachment.computerId}`);
         const trigger = page.getByRole('button', { name: 'Claude Code: authentication details' });
         await expect(trigger).toBeVisible({ timeout: 20_000 });
         const card = page.getByRole('dialog', { name: 'Claude Code help' });
