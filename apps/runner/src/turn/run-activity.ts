@@ -5,6 +5,7 @@ import {
     type AgentTurnOperationCategory,
     agentTurnOperationCategorySchema,
 } from '@haus/api';
+import { isHausCliCommand } from '@haus/computer/src/harness/haus-cli-command.ts';
 import { compactionToolName, type TurnEvent } from './turn-event.ts';
 
 type TerminalPhase = 'completed' | 'failed' | 'interrupted';
@@ -92,7 +93,9 @@ export function createRunActivity(input: {
 export function toolCategory(toolName: string, input: unknown) {
     const categories: Readonly<Record<string, AgentActivityCategory>> = {
         WebFetch: 'browsing',
+        apply_patch: 'editing_files',
         execute: 'using_tool',
+        view_image: 'reading_files',
         web_fetch: 'browsing',
         web_search: 'searching_web',
         webSearch: 'searching_web',
@@ -100,8 +103,8 @@ export function toolCategory(toolName: string, input: unknown) {
     if (toolName === compactionToolName) {
         return null;
     }
-    if (toolName === 'bash') {
-        return isHausCommand(input) ? null : 'running_command';
+    if (toolName === 'bash' || toolName === 'shell') {
+        return isHausCliCommand(input) ? null : 'running_command';
     }
     if (toolName === 'str_replace_based_edit_tool') {
         return commandOf(input) === 'view' ? 'reading_files' : 'editing_files';
@@ -113,9 +116,4 @@ function commandOf(input: unknown) {
     return typeof input === 'object' && input !== null && 'command' in input
         ? input.command
         : undefined;
-}
-
-function isHausCommand(input: unknown) {
-    const command = commandOf(input);
-    return typeof command === 'string' && /^\s*haus(?:\s|$)/u.test(command);
 }

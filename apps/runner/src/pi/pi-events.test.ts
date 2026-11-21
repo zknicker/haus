@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
 import type { ConversationView, RunFailure } from '@earendil-works/pi-durable';
+import { isExecutionBookkeeping } from '@haus/api';
 import type { TurnEvent } from '../turn/turn-event.ts';
 import { PiTurnEvents } from './pi-events.ts';
 import { PiRunFailedError, runFailureEvent } from './pi-failures.ts';
@@ -158,6 +159,74 @@ describe('Pi turn events', () => {
         expect(failures).toEqual([
             { detail: 'HTTP 401: invalid api key', inputs: [8], reason: 'model_error', taskId: 9 },
         ]);
+    });
+
+    test('a GPT shell argv journals as its script, so a multi-line haus send is bookkeeping', async () => {
+        const [base] = await capturedViews();
+        const argv = ['haus', 'message', 'send', '--target', 'dm:@zach', 'Shipped.\nTests pass.'];
+        const called = asView({
+            ...base,
+            entries: [
+                {
+                    conversationId: 1,
+                    head: 5,
+                    id: 20,
+                    kind: 'pi.assistant',
+                    model: [
+                        {
+                            content: [
+                                {
+                                    arguments: { command: argv, timeout_ms: 5000, workdir: 'app' },
+                                    id: 'call_9',
+                                    name: 'shell',
+                                    type: 'toolCall',
+                                },
+                                {
+                                    arguments: {
+                                        command: ['bash', '-lc', 'haus claim --number 1'],
+                                    },
+                                    id: 'call_10',
+                                    name: 'shell',
+                                    type: 'toolCall',
+                                },
+                            ],
+                            role: 'assistant',
+                            usage: { cacheRead: 0, cacheWrite: 0, input: 1, output: 1 },
+                        },
+                    ],
+                },
+            ],
+        });
+
+        const calls = replay([base as ConversationView, called]).events.filter(
+            (event) => event.type === 'tool-call'
+        );
+
+        expect(calls).toEqual([
+            {
+                input: {
+                    command: "haus message send --target dm:@zach 'Shipped.\nTests pass.'",
+                    cwd: 'app',
+                    timeout_ms: 5000,
+                },
+                toolCallId: 'call_9',
+                toolName: 'shell',
+                type: 'tool-call',
+            },
+            {
+                input: { command: 'haus claim --number 1' },
+                toolCallId: 'call_10',
+                toolName: 'shell',
+                type: 'tool-call',
+            },
+        ]);
+        expect(
+            calls.map(
+                (event) =>
+                    event.type === 'tool-call' &&
+                    isExecutionBookkeeping({ input: event.input, toolName: event.toolName })
+            )
+        ).toEqual([true, true]);
     });
 
     test('a refused login is an access failure and any other unanswered run is a turn error', () => {
