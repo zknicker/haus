@@ -222,7 +222,7 @@ async function mintAgentRunner(input: { agentId: string; chatId: string; credent
             agentId: input.agentId,
             chatId: input.chatId,
             credentialHash: createHash('sha256').update(input.credential).digest('hex'),
-            turnId: 'run_e2e_worker',
+            runId: 'run_e2e_worker',
         }),
         headers: { 'content-type': 'application/json' },
         method: 'POST',
