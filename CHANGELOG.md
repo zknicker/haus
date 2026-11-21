@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v25.2.0 - 2026-11-20
+
+- A Captain's turn on the Agent runner shows up again in the Server's traces. It appears as a `haus-runner` turn span between the dispatch that started it and the MCP calls it makes, as Haus Computer turns did before v23.0.0. The Server takes each turn's trace from its own record of the dispatch, never from the runner.
+- The Server's fallback thought phrasing also masks token-shaped secrets such as GitHub tokens, API keys and JWTs, not just credentials written in prose.
+- Server-only release with no database migration. Haus Computer, Haus Agent, Haus for Desktop and Haus for iPhone are unchanged. Saved Axiom views that filter turns on `service.name=haus-computer` need `haus-runner` added.
+
 ## v25.1.0 - 2026-11-20
 
 - A working Captain's thought phrases show again under its header, on Claude and on GPT and other models. They had been missing since Captains moved to the Agent runner in v23.0.0.
