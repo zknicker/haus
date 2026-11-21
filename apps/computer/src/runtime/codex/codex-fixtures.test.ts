@@ -69,7 +69,7 @@ function only<T extends TurnEvent['type']>(events: readonly TurnEvent[], type: T
 }
 
 describe('Codex fixtures', () => {
-    test('a text turn starts the thread with Haus launch config and reports usage', async () => {
+    test('a text turn starts the thread with the Worker launch config and reports usage', async () => {
         const { transports, turns } = await replay('text-turn');
         const [transport] = transports;
         expect(transport?.written.map((message) => message.method)).toEqual([
@@ -82,23 +82,16 @@ describe('Codex fixtures', () => {
         expect(written(transport!, 'thread/start')[0]?.params).toEqual({
             approvalPolicy: 'never',
             config: {
-                agents: { enabled: false },
-                features: { apps: false, multi_agent: false, plugins: false },
-                mcp_servers: {
-                    haus: {
-                        bearer_token_env_var: 'HAUS_HOST_TOOL_TOKEN',
-                        enabled: true,
-                        url: 'http://127.0.0.1:9/mcp',
-                    },
+                sandbox_workspace_write: {
+                    exclude_slash_tmp: true,
+                    exclude_tmpdir_env_var: true,
+                    network_access: true,
+                    writable_roots: [],
                 },
-                model_reasoning_effort: 'low',
-                project_doc_max_bytes: 0,
-                web_search: 'live',
             },
             cwd: '<root>/workspace',
-            developerInstructions: 'You are a Haus test Agent. Follow the user exactly.',
             model: 'gpt-5.6-luna',
-            sandbox: 'danger-full-access',
+            sandbox: 'workspace-write',
         });
         expect(written(transport!, 'turn/start')[0]?.params).toMatchObject({ summary: 'auto' });
         const events = turns[0]?.events ?? [];
@@ -128,22 +121,6 @@ describe('Codex fixtures', () => {
         });
         expect(only(events, 'tool-result')[0]?.output).toMatchObject({ exit_code: 0 });
         expect(eventSequence(events).at(-1)).toBe('turn-finish');
-    });
-
-    test('a host tool call is reported by its own name, not as a builtin', async () => {
-        const events = (await replay('host-tool-turn')).turns[0]?.events ?? [];
-        const call = only(events, 'tool-call')[0];
-        expect(call?.toolName).toBe('haus_probe');
-        expect(call?.providerExecuted).toBeUndefined();
-        expect(call?.dynamic).toBeUndefined();
-        expect(only(events, 'tool-result')[0]?.output).toMatchObject({
-            content: [{ text: 'PROBE-7731', type: 'text' }],
-        });
-        expect(
-            only(events, 'text-delta')
-                .map((event) => event.text)
-                .join('')
-        ).toBe('PROBE-7731');
     });
 
     test('an apply_patch restates each file as a sourced fileChange', async () => {

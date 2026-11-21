@@ -233,8 +233,9 @@ describe('Codex turn events', () => {
         turnCompleted(fake, turn.turnId);
         const events = await turn.finished;
         expect(events.find((event) => event.type === 'tool-error')).toMatchObject({
+            dynamic: true,
             error: { message: 'boom' },
-            toolName: 'execute',
+            toolName: 'mcp__haus__execute',
         });
         expect(
             events.find((event) => event.type === 'tool-result' && event.toolName === 'bash')

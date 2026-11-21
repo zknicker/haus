@@ -1,18 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import * as z from 'zod';
-import type { HostToolSession } from '../../host-tools/mcp-server.ts';
-import type { BackgroundWork } from '../background-work.ts';
-import {
-    IDLE_COMPACTION_DEFAULT_MIN_TOKENS,
-    type IdleCompactable,
-    type IdleCompactionResult,
-    type IdleCompactionSnapshot,
-} from '../idle-compaction.ts';
-import type { WarmProcess } from '../warm-pool.ts';
-import { ClaudeBackgroundTasks, SelfStartedTurns } from './claude-background.ts';
-import { runClaudeCompaction } from './claude-compaction.ts';
 import type { ClaudeEventNormalizer } from './claude-event-normalizer.ts';
-import { ClaudeIdleActivity } from './claude-idle-activity.ts';
 import {
     type ClaudeCommandLifecycle,
     type ParsedClaudeLine,
@@ -23,20 +11,7 @@ import type { ClaudeExit, ClaudeProcess } from './claude-process.ts';
 /** How long a new process may take to answer the `initialize` handshake. */
 const initializeTimeoutMs = 30_000;
 
-/** How long a fenced self-started turn may take to stop before the process is ended. */
-const fenceGraceMs = 5000;
-
 const initializeResponseSchema = z.looseObject({ claude_code_version: z.string().optional() });
-
-/** Where the connection reports work that outlives a turn (the daemon's listener, bound). */
-export interface ClaudeBackgroundHooks {
-    /** A run other than the wake adopted the self-started turn its wake was asked for. */
-    absorbed(): void;
-    changed(work: BackgroundWork): void;
-    /** The process ended with background tasks still live. */
-    lost(): void;
-    wake(): void;
-}
 
 /** Receives one turn's share of the stream; the connection outlives every turn. */
 export interface TurnSink {
@@ -55,49 +30,26 @@ interface PendingControl {
 }
 
 /**
- * One live `claude` process and the Haus state bound to it: its host-tool scope, the event
- * normalizer (which carries session-scoped evidence across turns), the launch key a warm reuse
- * must match, and the conversation id it is writing. Between Haus turns it still reads the
- * stream: background tasks keep reporting, and Claude Code may start a turn of its own to report
- * one that finished (specs/runtime-drivers.md "Background work").
+ * One live `claude` process, its event normalizer (which carries session-scoped evidence across
+ * turns), and the conversation id it is writing. Lines no turn holds are dropped.
  */
-export class ClaudeConnection implements WarmProcess, IdleCompactable {
+export class ClaudeConnection {
     private readonly controls = new Map<string, PendingControl>();
-    /** The last main request and cumulative spend, for idle compaction. */
-    readonly idleActivity: ClaudeIdleActivity;
-    /** The model the process runs; an idle compaction is recorded against it. */
-    readonly modelId: string;
-    private readonly selfStarted = new SelfStartedTurns();
     private sink: TurnSink | null = null;
-    private readonly tasks = new ClaudeBackgroundTasks();
     /** The CLI advertises queued-message lifecycle receipts (`msg_lifecycle_v1`) in `init`. */
     supportsLifecycle = true;
 
     constructor(
         readonly process: ClaudeProcess,
         readonly normalizer: ClaudeEventNormalizer,
-        readonly hostTools: HostToolSession | null,
-        readonly launchKey: string,
-        public sessionId: string,
-        private readonly background?: ClaudeBackgroundHooks,
-        options: { idleCompactionMinTokens?: number; modelId?: string } = {}
+        public sessionId: string
     ) {
-        this.idleActivity = new ClaudeIdleActivity(
-            options.idleCompactionMinTokens ?? IDLE_COMPACTION_DEFAULT_MIN_TOKENS
-        );
-        this.modelId = options.modelId ?? '';
         process.onLine((line) => this.dispatch(line));
         void process.exited.then((exit) => {
-            // The host-tool scope lives exactly as long as the process that calls it.
-            hostTools?.close();
             for (const pending of this.controls.values()) {
                 pending.reject(new Error('Claude Code exited before answering a control request.'));
             }
             this.controls.clear();
-            this.selfStarted.take();
-            if (this.tasks.clear()) {
-                this.background?.lost();
-            }
             this.sink?.onExit(exit);
         });
     }
@@ -106,24 +58,11 @@ export class ClaudeConnection implements WarmProcess, IdleCompactable {
         return this.process.alive;
     }
 
-    get backgroundWork(): BackgroundWork {
-        return this.tasks.work;
-    }
-
-    /** Closing now would end a background task or a turn Claude Code started on its own. */
-    get holdsBackgroundWork(): boolean {
-        return this.process.alive && (this.tasks.work.tasks > 0 || this.selfStarted.running);
-    }
-
-    get backgroundWorkSince(): number | null {
-        return this.tasks.since;
-    }
-
     /**
      * The SDK handshake. `perTaskStopAffordance` makes an interrupt stop only the turn: Claude
-     * Code otherwise kills every background task on interrupt (it assumes a host with no other
-     * way to stop one). Haus ends background work by ending the process (Stop, reset, shutdown).
-     * Resolves with the version the CLI reports (2.1.317+), when it reports one.
+     * Code otherwise kills every background task on interrupt. Haus ends background work by
+     * ending the process. Resolves with the version the CLI reports (2.1.317+), when it reports
+     * one.
      */
     async initialize(): Promise<string | undefined> {
         const response = await this.control(
@@ -131,51 +70,6 @@ export class ClaudeConnection implements WarmProcess, IdleCompactable {
             initializeTimeoutMs
         );
         return initializeResponseSchema.safeParse(response).data?.claude_code_version;
-    }
-
-    /**
-     * The turn Claude Code is running on its own, for a Haus turn to adopt; null when none. Any
-     * run adopts it: one run holds the Agent at a time, so the run that starts next is the only
-     * one that can. The wake run (`wake`) exists for it; any other run (a human message that
-     * won the race) folds it in as Claude Code folds a completion into a running turn, owns its
-     * report and `haus` calls, and retires the wake asked for it.
-     */
-    adoptSelfStartedTurn(options: { wake: boolean }): readonly ParsedClaudeLine[] | null {
-        const taken = this.selfStarted.take();
-        if (taken?.announced && !options.wake) {
-            this.background?.absorbed();
-        }
-        return taken?.lines ?? null;
-    }
-
-    /**
-     * Interrupts the turn Claude Code started on its own, after the Server refused its wake: no
-     * run will own it, so it must not keep calling tools. The interrupt spares background tasks
-     * (`perTaskStopAffordance`); a process that will not answer is ended.
-     */
-    async fenceSelfStartedTurn(): Promise<void> {
-        if (!(this.selfStarted.running && this.process.alive)) {
-            return;
-        }
-        await this.control({ subtype: 'interrupt' }, fenceGraceMs).catch(() => this.stop());
-    }
-
-    get exited(): Promise<unknown> {
-        return this.process.exited;
-    }
-
-    /** Claude Code's own `/compact`, run on the parked process (`claude-compaction.ts`). */
-    compact(): Promise<IdleCompactionResult> {
-        return runClaudeCompaction(this);
-    }
-
-    idleCompactionSnapshot(): IdleCompactionSnapshot | null {
-        return this.idleActivity.snapshot();
-    }
-
-    /** Ends the process (as a parked `WarmProcess`). */
-    close(): Promise<void> {
-        return this.stop();
     }
 
     attach(sink: TurnSink): () => void {
@@ -243,7 +137,6 @@ export class ClaudeConnection implements WarmProcess, IdleCompactable {
         if (parsed.sessionId) {
             this.sessionId = parsed.sessionId;
         }
-        this.idleActivity.observe(parsed);
         const { message } = parsed;
         if (message.kind === 'system' && message.message.subtype === 'init') {
             this.supportsLifecycle =
@@ -260,16 +153,9 @@ export class ClaudeConnection implements WarmProcess, IdleCompactable {
                 );
             }
         }
-        if (message.kind === 'system' && this.tasks.apply(message.message)) {
-            this.background?.changed(this.tasks.work);
-        }
         if (message.kind === 'lifecycle') {
             sink?.onLifecycle(message.message);
         }
-        if (sink) {
-            sink.onLine(parsed);
-        } else if (this.selfStarted.observe(parsed)) {
-            this.background?.wake();
-        }
+        sink?.onLine(parsed);
     }
 }

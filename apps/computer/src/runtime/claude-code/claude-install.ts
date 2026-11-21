@@ -63,13 +63,6 @@ export function claudeInstallTarget(
     };
 }
 
-/** A changed pin restarts parked sessions through the executor's bootstrap drift check. */
-export function claudeInstallFingerprint(target: ClaudeInstallTarget): string {
-    return createHash('sha256')
-        .update(JSON.stringify({ integrity: target.integrity, version: CLAUDE_CODE_VERSION }))
-        .digest('hex');
-}
-
 const installs = new Map<string, Promise<string>>();
 
 /**

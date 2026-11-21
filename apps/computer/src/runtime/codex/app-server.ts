@@ -1,4 +1,3 @@
-import type { HostToolSession } from '../../host-tools/mcp-server.ts';
 import { JsonRpcRequestError } from '../json-rpc.ts';
 import { CodexConnection, type CodexInbound } from './codex-connection.ts';
 import {
@@ -7,19 +6,12 @@ import {
     classifyResumeRefusal,
 } from './codex-errors.ts';
 import type { CodexTransport } from './codex-transport.ts';
-import { initializeResultSchema, mcpStartupParamsSchema, threadResultSchema } from './protocol.ts';
+import { initializeResultSchema, threadResultSchema } from './protocol.ts';
 import { answerCodexServerRequest } from './server-requests.ts';
 
-/** Whether the host-tool MCP server came up for the thread. */
-export type HostToolsStatus =
-    | { readonly ok: true }
-    | { readonly error: string; readonly ok: false };
-
-/** One app-server process with its thread open; a Worker's has no host tools. */
+/** One app-server process with its thread open. */
 export interface CodexAppServer {
     readonly connection: CodexConnection;
-    readonly hostTools: HostToolSession | null;
-    readonly hostToolsReady: Promise<HostToolsStatus>;
     readonly resumed: boolean;
     /** Routes every later notification and foreign line. */
     route(listener: (message: CodexInbound) => void, onInvalidLine: (line: string) => void): void;
@@ -28,7 +20,6 @@ export interface CodexAppServer {
 
 export interface OpenAppServerInput {
     readonly cwd: string;
-    readonly hostTools: HostToolSession | null;
     readonly resumeThreadId: string | undefined;
     /** Cancels the handshake; the caller ends the process when the open fails. */
     readonly signal?: AbortSignal;
@@ -37,37 +28,20 @@ export interface OpenAppServerInput {
     readonly transport: CodexTransport;
 }
 
-/** Bounds the wait for the host-tool MCP server before the first turn starts without it. */
-const HOST_TOOLS_READY_MS = 30_000;
 const CLIENT_INFO = { name: 'haus-computer', title: 'Haus Computer', version: '1' };
 
 /**
- * initialize → initialized → `config/read` (to disable every config-layer MCP server) →
- * `thread/start` or `thread/resume`. An archived thread is unarchived and resumed once (Raft
- * task #14); a missing rollout or a busy writer is a resume rejection.
+ * initialize → initialized → `config/read` → `thread/start` or `thread/resume`. An archived
+ * thread is unarchived and resumed once (Raft task #14); a missing rollout is a resume
+ * rejection, and a busy writer a retryable startup failure.
  */
 export async function openAppServer(input: OpenAppServerInput): Promise<CodexAppServer> {
     let listener: ((message: CodexInbound) => void) | null = null;
     let invalid: (line: string) => void = () => undefined;
-    const hostToolName = input.hostTools?.mcp.name ?? null;
-    const ready = Promise.withResolvers<HostToolsStatus>();
-    if (hostToolName === null) {
-        ready.resolve({ ok: true });
-    }
     const connection = new CodexConnection(input.transport, answerCodexServerRequest, (line) =>
         invalid(line)
     );
-    connection.listen((message) => {
-        const status =
-            message.kind === 'notification' && hostToolName !== null
-                ? hostToolStatus(message, hostToolName)
-                : null;
-        if (status) {
-            ready.resolve(status);
-        }
-        listener?.(message);
-    });
-    void connection.exited.then((error) => ready.resolve({ error: error.message, ok: false }));
+    connection.listen((message) => listener?.(message));
     const { signal } = input;
     const initialized = initializeResultSchema.safeParse(
         await connection.request(
@@ -93,8 +67,6 @@ export async function openAppServer(input: OpenAppServerInput): Promise<CodexApp
         : threadIdOf(await connection.request('thread/start', params, { signal }));
     return {
         connection,
-        hostTools: input.hostTools,
-        hostToolsReady: withTimeout(ready.promise, HOST_TOOLS_READY_MS),
         resumed: input.resumeThreadId !== undefined,
         route(next, onInvalidLine) {
             listener = next;
@@ -142,41 +114,4 @@ function threadIdOf(result: unknown): string {
         throw new Error(`The Codex app-server returned no thread: ${parsed.error.message}`);
     }
     return parsed.data.thread.id;
-}
-
-function hostToolStatus(
-    message: Extract<CodexInbound, { kind: 'notification' }>,
-    name: string
-): HostToolsStatus | null {
-    if (message.method !== 'mcpServer/startupStatus/updated') {
-        return null;
-    }
-    const parsed = mcpStartupParamsSchema.safeParse(message.params);
-    if (!parsed.success || parsed.data.name !== name) {
-        return null;
-    }
-    switch (parsed.data.status) {
-        case 'ready':
-            return { ok: true };
-        case 'failed':
-        case 'cancelled':
-            return { error: parsed.data.error ?? parsed.data.status, ok: false };
-        default:
-            return null;
-    }
-}
-
-async function withTimeout(promise: Promise<HostToolsStatus>, ms: number) {
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const timeout = new Promise<HostToolsStatus>((resolve) => {
-        timer = setTimeout(
-            () => resolve({ error: `not ready after ${ms / 1000}s`, ok: false }),
-            ms
-        );
-    });
-    try {
-        return await Promise.race([promise, timeout]);
-    } finally {
-        clearTimeout(timer);
-    }
 }

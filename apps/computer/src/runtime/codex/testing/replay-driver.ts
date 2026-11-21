@@ -1,20 +1,11 @@
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { HostToolServer } from '../../../host-tools/mcp-server.ts';
 import type { RuntimeDriver, RuntimeSession } from '../../driver.ts';
 import type { TurnEvent } from '../../turn-event.ts';
-import { WarmProcessPool } from '../../warm-pool.ts';
-import { type CodexDriverOptions, createCodexDriver } from '../codex-driver.ts';
+import { type CodexWorkerDriverOptions, createCodexWorkerDriver } from '../codex-worker-driver.ts';
 import type { CaptureStep } from '../fixtures/capture-scenarios.ts';
 import { type ReplayTransport, readFixture, replayTransport } from './replay-transport.ts';
-
-/** The warm pool every test driver shares, like the Computer-wide one. */
-export const testWarmPool = new WarmProcessPool({
-    onCloseError: (error) => {
-        throw error;
-    },
-});
 
 /** Fixture paths were scrubbed to this root; the driver sees the same workspace. */
 export const FIXTURE_WORKSPACE = '<root>/workspace';
@@ -27,7 +18,7 @@ export interface ReplayHarness {
 /** A Codex driver whose app-server processes replay one recorded fixture, in order. */
 export function replayDriver(
     fixture: string,
-    overrides: Partial<CodexDriverOptions> = {}
+    overrides: Partial<CodexWorkerDriverOptions> = {}
 ): ReplayHarness {
     const records = readFixture(fixture);
     const transports: ReplayTransport[] = [];
@@ -39,27 +30,19 @@ export function replayDriver(
     return { driver, transports };
 }
 
-/** A Codex driver over test transports, in a throwaway Agent HOME with no Codex login. */
+/** A Codex Worker driver over test transports, in a throwaway HOME with no Codex login. */
 export function testCodexDriver(
-    spawn: NonNullable<CodexDriverOptions['spawn']>,
-    overrides: Partial<CodexDriverOptions> = {}
+    spawn: NonNullable<CodexWorkerDriverOptions['spawn']>,
+    overrides: Partial<CodexWorkerDriverOptions> = {}
 ): RuntimeDriver {
-    const root = mkdtempSync(join(tmpdir(), 'haus-codex-test-'));
-    const homeDir = overrides.homeDir ?? join(root, 'home');
-    return createCodexDriver({
+    return createCodexWorkerDriver({
+        cwd: FIXTURE_WORKSPACE,
         env: {},
-        homeDir,
-        // One Agent per HOME, as the executor keys the Computer's warm pool by Agent.
-        warm: { key: homeDir, pool: testWarmPool },
-        hostHomeDir: join(root, 'host'),
-        hostToolServer: fakeHostToolServer(),
-        instructions: 'You are a Haus test Agent. Follow the user exactly.',
+        homeDir: join(mkdtempSync(join(tmpdir(), 'haus-codex-test-')), 'home'),
         modelId: 'gpt-5.6-luna',
-        reasoningEffort: 'low',
         resolveExecutable: () => Promise.resolve({ env: {}, path: '/usr/bin/false' }),
         spawn,
-        tools: [],
-        workspaceDir: FIXTURE_WORKSPACE,
+        writableRoots: [],
         ...overrides,
     });
 }
@@ -128,19 +111,4 @@ export function eventSequence(events: readonly TurnEvent[]): string[] {
                 ? `${event.type}:${event.toolName}`
                 : event.type
         );
-}
-
-function fakeHostToolServer(): Pick<HostToolServer, 'openSession'> {
-    return {
-        openSession: () => ({
-            close: () => undefined,
-            mcp: {
-                headers: { Authorization: 'Bearer replay-token' },
-                name: 'haus',
-                transport: 'http',
-                url: 'http://127.0.0.1:9/mcp',
-            },
-            replaceTools: () => undefined,
-        }),
-    };
 }

@@ -42,16 +42,6 @@ export const captureScenarios: readonly CaptureScenario[] = [
         ],
     },
     {
-        name: 'host-tool-turn',
-        steps: [
-            open,
-            {
-                kind: 'turn',
-                prompt: 'Call the haus_probe tool once, then reply with exactly the code it returned and nothing else.',
-            },
-        ],
-    },
-    {
         name: 'file-edit-turn',
         steps: [
             open,

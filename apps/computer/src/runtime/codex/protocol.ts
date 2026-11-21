@@ -19,11 +19,6 @@ export const turnStartResultSchema = z.looseObject({
     turn: z.looseObject({ id: z.string().min(1) }),
 });
 
-export const configReadResultSchema = z.looseObject({
-    config: z.record(z.string(), z.unknown()).nullish(),
-    layers: z.array(z.looseObject({ config: z.unknown() })).nullish(),
-});
-
 const tokenBreakdownSchema = z.looseObject({
     cachedInputTokens: z.number().int().nonnegative().optional(),
     cacheWriteInputTokens: z.number().int().nonnegative().optional(),
@@ -95,13 +90,6 @@ export const threadStatusParamsSchema = z.looseObject({
         type: z.string(),
     }),
     threadId: z.string().optional(),
-});
-
-export const mcpStartupParamsSchema = z.looseObject({
-    error: z.string().nullish(),
-    name: z.string(),
-    status: z.enum(['cancelled', 'failed', 'ready', 'starting']),
-    threadId: z.string().nullish(),
 });
 
 const userMessageStartedSchema = z.looseObject({

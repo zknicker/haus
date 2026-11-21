@@ -49,11 +49,7 @@ function fakeConnection() {
 }
 
 const newTurn = (connection: ClaudeConnection) =>
-    new ClaudeTurn(connection, {
-        collectPlanUsage: false,
-        signal: new AbortController().signal,
-        steerAckMs: 10,
-    });
+    new ClaudeTurn(connection, { signal: new AbortController().signal, steerAckMs: 10 });
 
 test('a steer written to Claude Code is never dropped when its receipt is late', async () => {
     const fake = fakeConnection();
@@ -97,43 +93,6 @@ test('a turn Claude Code ran on its own never settles a prompted turn', async ()
     fake.notificationResult();
     expect(turn.isSettled).toBe(false);
     fake.result(fake.uuidOf('prompt'));
-    await turn.settle();
-    expect(turn.isSettled).toBe(true);
-});
-
-test('a wake that adopts a self-started turn writes nothing and settles on that turn', async () => {
-    const fake = fakeConnection();
-    const init = parseClaudeLine(
-        JSON.stringify({ subtype: 'init', type: 'system' })
-    ) as ParsedClaudeLine;
-    const turn = new ClaudeTurn(fake.connection, {
-        adopted: [init],
-        collectPlanUsage: false,
-        signal: new AbortController().signal,
-        wake: true,
-    });
-    await turn.start('the wake prompt');
-    expect(fake.written).toEqual([]);
-    fake.notificationResult();
-    await turn.settle();
-    expect(turn.isSettled).toBe(true);
-});
-
-test('a prompted turn that adopts a self-started turn still writes its prompt', async () => {
-    const fake = fakeConnection();
-    const init = parseClaudeLine(
-        JSON.stringify({ subtype: 'init', type: 'system' })
-    ) as ParsedClaudeLine;
-    const turn = new ClaudeTurn(fake.connection, {
-        adopted: [init],
-        collectPlanUsage: false,
-        signal: new AbortController().signal,
-    });
-    await turn.start('a human message');
-    expect(fake.written.map((entry) => entry.text)).toEqual(['a human message']);
-    fake.notificationResult();
-    expect(turn.isSettled).toBe(false);
-    fake.result(fake.uuidOf('a human message'));
     await turn.settle();
     expect(turn.isSettled).toBe(true);
 });
