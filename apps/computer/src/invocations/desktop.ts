@@ -2,9 +2,7 @@ import { type AgentDesktopCommand, runAgentDesktopCommand } from '../desktop/des
 import { streamedResult } from './browser.ts';
 import { type OperationRunner, stoppedOutcome, textResult } from './operation.ts';
 
-export function createDesktopRunner(
-    input: Pick<AgentDesktopCommand, 'platform' | 'searchPath'> = {}
-) {
+export function createDesktopRunner(input: Pick<AgentDesktopCommand, 'platform' | 'toolsRoot'>) {
     const runner: OperationRunner<'desktop'> = async (operation, context) => {
         try {
             return await runAgentDesktopCommand(
@@ -12,7 +10,6 @@ export function createDesktopRunner(
                     ...input,
                     args: operation.args,
                     cwd: context.cwd,
-                    invocationId: context.invocationId,
                     logPath: context.logPath,
                     signal: context.signal,
                 },

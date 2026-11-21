@@ -5,6 +5,7 @@ import type {
     ComputerModelFeature,
 } from '@haus/api';
 import { type ComputerRuntimeId, computerRuntimeCatalog } from '@haus/api/computer-runtime';
+import { agentDesktopToolsRoot } from './desktop/agent-desktop-binary.ts';
 import { detectComputerUseReadiness } from './desktop/desktop-readiness.ts';
 import { resolveRuntimeById } from './runtime-discovery.ts';
 import { supportsSubagents } from './runtime/runtime-subagents.ts';
@@ -57,9 +58,9 @@ export async function detectFullInventory(options: {
     defaultCloudAgentProvider?: CloudAgentProvider;
     searchPath?: string;
 }): Promise<ComputerInventory> {
-    const computerUse = await detectComputerUseReadiness(
-        options.searchPath === undefined ? {} : { searchPath: options.searchPath }
-    );
+    const computerUse = await detectComputerUseReadiness({
+        toolsRoot: agentDesktopToolsRoot(options.dataRoot),
+    });
     return {
         ...detectInventory(options),
         ...(computerUse ? { computerUse } : {}),

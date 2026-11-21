@@ -25,6 +25,7 @@ implementation ownership, and runtime details live under
 | Triggers | [Triggers](triggers.md) |
 | Skills and Tools | [Skills and Tools](skills.md) |
 | Connections | [Connections](connections.md) |
+| Computer use | [Computer use](computer-use.md) |
 | Usage | [Usage](usage.md) |
 | Pets and rewards | [Pets and rewards](pets.md) |
 | Appearance | [Appearance](appearance.md) |

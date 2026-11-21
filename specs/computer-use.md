@@ -106,14 +106,20 @@ quieter route.
 
 agent-desktop needs Accessibility to read and drive apps and Screen Recording for screenshots,
 granted to the process that runs Haus Computer. The Computer runs `agent-desktop permissions` when
-it builds its inventory and reports `computerUse` in it: whether agent-desktop is installed, its
-version, and `accessibility` and `screenRecording`, each `granted`, `denied`, or `unknown`. The
+it builds its inventory and reports `computerUse` in it: whether the embedded agent-desktop
+installed, its version, and `accessibility` and `screenRecording`, each `granted`, `denied`, or `unknown`. The
 Device page shows a warning under Access while agent-desktop is missing or either permission is
-not granted, naming what to install or which System Settings → Privacy & Security pane to open,
+not granted, asking for a Haus Computer update or naming which System Settings → Privacy &
+Security pane to open,
 and the inventory Refresh button rechecks it.
 
-agent-desktop is found like agent-browser, on the Computer's runtime search path, and installed
-with `npm install -g agent-desktop`. A missing binary answers `failed` with that command.
+agent-desktop is built into every Computer. `apps/computer` pins `agent-desktop` 1.3.1, and the
+compiled Computer embeds its arm64 CLI and macOS helper (`agent-desktop-binary.ts`). On first use
+the Computer writes both to `<data-root>/tools/agent-desktop/1.3.1/`, checks each against its
+pinned SHA-256, and runs the CLI with `AGENT_DESKTOP_MACOS_HELPER_PATH` set to the helper. It never
+looks on `PATH`, that folder is never on the `PATH` `bash` invocations get, and a person installs
+nothing (`agent-desktop-isolation.test.ts`). `__release-check` verifies the embedded copies
+against the pins.
 
 ## Deferred
 

@@ -1,8 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { mkdtemp } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { desktopInstallHint, withScreenshotPath } from '../desktop/desktop-command.ts';
+import { withScreenshotPath } from '../desktop/desktop-command.ts';
 import { createDesktopRunner } from './desktop.ts';
 import { inlinePayloads, textResult } from './operation.ts';
 
@@ -23,26 +20,18 @@ function failed(text: string) {
 
 describe('desktop invocations', () => {
     test('a Computer off macOS fails before resolving agent-desktop', async () => {
-        const run = createDesktopRunner({ platform: 'linux' });
+        const run = createDesktopRunner({ platform: 'linux', toolsRoot: '/no-tools' });
         expect(await run({ args: ['snapshot', '-i'], kind: 'desktop' }, context)).toEqual(
             failed('Computer use runs on macOS Devices.')
         );
     });
 
     test('a refused command fails without reaching agent-desktop', async () => {
-        const run = createDesktopRunner({ platform: 'darwin' });
+        const run = createDesktopRunner({ platform: 'darwin', toolsRoot: '/no-tools' });
         expect(await run({ args: ['session', 'start'], kind: 'desktop' }, context)).toEqual(
             failed(
                 'Use one agent-desktop command that looks at or acts on apps. Sessions, batches, traces, held keys, and identity flags are not allowed.'
             )
-        );
-    });
-
-    test('a Computer without agent-desktop fails with the install hint', async () => {
-        const empty = await mkdtemp(join(tmpdir(), 'haus-desktop-'));
-        const run = createDesktopRunner({ platform: 'darwin', searchPath: empty });
-        expect(await run({ args: ['click', '@s1:e1'], kind: 'desktop' }, context)).toEqual(
-            failed(desktopInstallHint)
         );
     });
 

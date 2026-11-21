@@ -14,7 +14,7 @@ export function invocationRunners(agentsRoot: string) {
     return {
         bash: bashRunner,
         browser: createBrowserRunner({ browserRoot: join(agentsRoot, '..', 'browser') }),
-        desktop: createDesktopRunner(),
+        desktop: createDesktopRunner({ toolsRoot: join(agentsRoot, '..', 'tools') }),
         edit: editRunner,
         'file-read': fileReadRunner,
         'file-write': fileWriteRunner,

@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import { invocationCommandSchemas } from '@haus/api';
+import { agentDesktopToolsRoot } from '../desktop/agent-desktop-binary.ts';
 import { driveSyncFrames } from '../drive/drive-sync-frames.ts';
 import { bashRunner } from './bash.ts';
 import { createBrowserRunner } from './browser.ts';
@@ -78,7 +79,7 @@ export function attachmentInvocations(
         runners: {
             bash: bashRunner,
             browser: createBrowserRunner({ browserRoot: join(serverRoot, 'browser') }),
-            desktop: createDesktopRunner(),
+            desktop: createDesktopRunner({ toolsRoot: agentDesktopToolsRoot(dataRoot) }),
             edit: editRunner,
             'file-read': fileReadRunner,
             'file-write': fileWriteRunner,
