@@ -1,7 +1,7 @@
 import type { Page } from '@playwright/test';
 import { createChannelAgent } from '../support/channel-agent.ts';
 import { installDesktopBrowserStub, openDesktopWindow } from '../support/desktop-browser-stub.ts';
-import { createTestServer, openSection } from '../support/server.ts';
+import { createTestServer, openSection, openSettings } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('the sidebar goes in the left pane, pages open on the right, and Settings is one tab', async ({
@@ -54,9 +54,8 @@ test('the sidebar goes in the left pane, pages open on the right, and Settings i
     await expect(left.nth(0)).toHaveAttribute('data-active', 'true');
     await expect(right).toHaveCount(1);
 
-    // Settings is a singleton: the sidebar button opens it after the left pane's tab…
-    const settings = page.locator('button.sidebar-settings-action');
-    await settings.click();
+    // Settings is a singleton: the Account menu opens it after the left pane's tab…
+    await openSettings(page);
     await expect(left).toHaveCount(4);
     await expect(left.nth(1)).toContainText('Settings');
     await expect(left.nth(1)).toHaveAttribute('data-active', 'true');
@@ -64,7 +63,7 @@ test('the sidebar goes in the left pane, pages open on the right, and Settings i
     await expect(page.getByRole('row', { exact: true, name: 'Back to chat' })).toHaveCount(0);
     // …and pressing it again from another tab selects that same tab.
     await left.nth(0).getByRole('button', { exact: true, name: 'all' }).click();
-    await settings.click();
+    await openSettings(page);
     await expect(left).toHaveCount(4);
     await expect(left.nth(1)).toHaveAttribute('data-active', 'true');
 

@@ -1,5 +1,5 @@
 import { captainsProjectId } from '../support/project.ts';
-import { createTestServer, runPsql } from '../support/server.ts';
+import { captainTile, createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('agent DM menus work before the first message and on the selected conversation', async ({
@@ -24,7 +24,7 @@ test('agent DM menus work before the first message and on the selected conversat
     `
     );
     await page.reload();
-    const row = page.getByRole('row', { name: 'Marlow', exact: true });
+    const row = captainTile(page, 'Marlow');
     const profile = page.getByRole('menuitem', { name: 'View Captain profile', exact: true });
     const header = page.getByRole('button', { name: 'Marlow — chat actions', exact: true });
 

@@ -79,22 +79,22 @@ export const appPlaces: readonly AppPlace[] = [
     {
         area: 'people-and-agents',
         task: 'Create an Agent',
-        path: ['Direct messages', 'New Captain'],
+        path: ['Captains', 'New Captain'],
         who: 'owner-or-admin',
-        note: 'It is the + beside Direct messages in the sidebar.',
+        note: 'It is the + beside Captains in the sidebar.',
         anchors: [
-            label('features/shell/chat-navigation.tsx', 'Direct messages'),
-            label('features/shell/chat-navigation.tsx', 'New Captain'),
+            label('features/capy-shell/captain-tiles.tsx', 'Captains'),
+            label('features/capy-shell/capy-sidebar.tsx', 'New Captain'),
         ],
     },
     {
         area: 'people-and-agents',
         task: "Open an Agent's profile",
-        path: ['Direct messages', "(the Agent's DM)", 'View Captain profile'],
+        path: ['Captains', "(the Captain's tile)", 'View Captain profile'],
         who: 'anyone',
-        note: 'Right-click the DM.',
+        note: 'Right-click the tile.',
         anchors: [
-            label('features/shell/chat-navigation.tsx', 'Direct messages'),
+            label('features/capy-shell/captain-tiles.tsx', 'Captains'),
             label('features/servers/chat/chat-context-menu-items.tsx', 'View Captain profile'),
         ],
     },
@@ -105,8 +105,8 @@ export const appPlaces: readonly AppPlace[] = [
         who: 'anyone',
         note: 'It is the + beside Projects in the sidebar.',
         anchors: [
-            label('features/shell/chat-navigation.tsx', 'Projects'),
-            label('features/shell/chat-navigation.tsx', 'New project'),
+            label('features/capy-shell/capy-sidebar.tsx', 'Projects'),
+            label('features/capy-shell/capy-sidebar.tsx', 'New project'),
         ],
     },
     {

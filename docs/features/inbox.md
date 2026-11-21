@@ -10,6 +10,10 @@ read_when:
 
 # Inbox
 
+> The web and desktop Inbox page is retired: `/inbox` redirects to Home, and the sidebar rows carry
+> unread state ([Capy shell](capy-shell.md)). The notification rules and the iPhone Inbox below
+> still hold.
+
 The Inbox is a Haus App page in the sidebar. Its row is the sidebar's anchor — first in the
 Inbox/Search/Tasks menu. What it wears there follows the surface: on the web the Haus ghost mark
 leads the titlebar strip above — named "Haus", so it does not repeat this row's name one tab stop

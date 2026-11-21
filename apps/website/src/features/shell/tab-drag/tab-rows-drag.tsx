@@ -4,7 +4,7 @@ import { useDesktopTabs } from '../../../hooks/desktop-tabs/desktop-tabs-context
 import type { PaneSide } from '../../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import { getDesktopBridge } from '../../../lib/desktop-bridge.ts';
 import { parseTabDragMessage } from '../../../lib/desktop-tab-drag.ts';
-import { inboxRoute } from '../../servers/server-routes.ts';
+import { serverRoute } from '../../servers/server-routes.ts';
 import { createTabDragEngine, type TabDragEngine } from './tab-drag-engine.ts';
 import { handleTabDragMessage } from './tab-drag-messages.ts';
 import { projectRow } from './tab-drag-projection.ts';
@@ -48,7 +48,7 @@ export function TabRowsDrag({
             band: () => band.current,
             bridge: getDesktopBridge,
             layer: () => layer.current,
-            route: inboxRoute(slug),
+            route: serverRoute(slug),
             serverId: tabs.serverId,
             tabs: () => latest.current,
             view,

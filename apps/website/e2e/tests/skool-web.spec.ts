@@ -5,7 +5,9 @@ test('Skool setup on web explains the desktop requirement', async ({ page }) => 
     const slug = 'skool-web-hq';
     await createTestServer(page, { displayName: 'Skool Web HQ', slug });
     await page.goto(`/s/${slug}/settings/connections`);
+    await page.getByRole('button', { name: 'Explore connections' }).first().click();
     const skool = page
+        .getByRole('dialog', { name: 'Explore connections' })
         .locator('.item-card')
         .filter({ hasText: 'Read your Skool communities, posts, and classroom courses.' });
     await skool.getByRole('button', { exact: true, name: 'Add Skool' }).click();
