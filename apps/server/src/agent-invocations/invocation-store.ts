@@ -85,6 +85,15 @@ export async function recordSendFailure(db: HausDatabase, invocationId: string) 
         );
 }
 
+export async function recordGateRefusal(db: HausDatabase, invocationId: string) {
+    await db
+        .update(agentInvocationsTable)
+        .set({ finishedAt: new Date(), outcome: 'failed', state: 'finished' })
+        .where(
+            and(eq(agentInvocationsTable.id, invocationId), eq(agentInvocationsTable.state, 'sent'))
+        );
+}
+
 export async function recordAccepted(db: HausDatabase, invocationId: string, computerId: string) {
     await db
         .update(agentInvocationsTable)

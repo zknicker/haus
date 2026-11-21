@@ -20,6 +20,7 @@ proxy.
 | MCP connections | [Connections](connections.md) |
 | Inbound Triggers | [Triggers](triggers.md) |
 | Tasks and Task keys | [Tasks](tasks.md) |
+| Computer use Permission requests | [Computer use](computer-use.md) |
 | Agent manual | [Manual](manual.md) |
 | Agent skills | [Skills](skills.md) |
 | Usage and health | [Usage](stats.md) |

@@ -3,6 +3,7 @@ import { agentReasoningEffortSchema } from './agent-execution.ts';
 import { idSchema } from './chat.ts';
 import { cloudAgentModelCatalogSchema } from './cloud-agent-model.ts';
 import { computerSecretsStatusSchema } from './computer-secrets.ts';
+import { computerUseReadinessSchema } from './computer-use.ts';
 import { workerRuntimeReadinessSchema } from './worker-runtime.ts';
 import { cloudAgentProviderSchema, cloudAgentUnreadyReasonSchema } from './worker-shared.ts';
 
@@ -136,6 +137,8 @@ export const computerInventorySchema = z
             .max(500)
             .optional(),
         cloudAgentProviders: z.array(cloudAgentProviderReadinessSchema).max(10).optional(),
+        /** agent-desktop and its macOS permissions; absent off macOS and from older Computers. */
+        computerUse: computerUseReadinessSchema.optional(),
         importableSkills: z.array(importableSkillSchema).max(1000).optional(),
         name: z.string().trim().min(1).max(100).optional(),
         runtimeIssues: z

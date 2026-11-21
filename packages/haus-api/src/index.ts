@@ -128,6 +128,7 @@ export * from './worker-credentials.ts';
 export * from './worker-place.ts';
 export * from './worker-places.ts';
 export * from './worker-settings.ts';
+export * from './computer-use.ts';
 export * from './worker-report-draft.ts';
 export * from './worker-runtime.ts';
 export * from './worker-report-attention.ts';

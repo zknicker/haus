@@ -144,4 +144,55 @@ describe('run tools', () => {
             },
         ]);
     });
+
+    test('execute finds and describes the desktop built in and relays a desktop call, returning a refusal as its error', async () => {
+        const { run, server } = await startedRun({
+            '/api/agent/mcp/tools': () => Response.json({ tools: [], total: 0 }),
+        });
+        const refusal =
+            "This chat hasn't allowed computer use on Studio yet. Haus asked in the chat. End your turn; an inbox item tells you when someone answers. Looking at the screen needs no approval.";
+
+        const executed = run.tools.execute(
+            'toolu_4',
+            {
+                code: [
+                    'const found = await tools.search({ query: "agent-desktop" });',
+                    'const described = await tools.describe({ name: "desktop" });',
+                    'const clicked = await tools.call({ name: "desktop", args: { args: ["click", "@s1:e8"] } });',
+                    'return { clicked, found: found.tools.map((tool) => tool.name), schema: described.inputSchema.required, title: described.title };',
+                ].join('\n'),
+            },
+            live()
+        );
+
+        expect(await server.frame('invocation-request')).toEqual({
+            agentId: 'agt_1',
+            operation: { args: ['click', '@s1:e8'], kind: 'desktop' },
+            runId: 'run_1',
+            seq: 0,
+            timeoutMs: 60_000,
+            toolCallId: 'toolu_4',
+            type: 'invocation-request',
+        });
+        server.answer({
+            outcome: 'failed',
+            output: { kind: 'text', text: refusal },
+            runId: 'run_1',
+            seq: 0,
+            toolCallId: 'toolu_4',
+        });
+        const result = await executed;
+
+        expect(
+            JSON.parse(result.content[0]?.type === 'text' ? result.content[0].text : '')
+        ).toEqual({
+            logs: [],
+            result: {
+                clicked: { error: { code: 'INVOCATION_FAILED', message: refusal } },
+                found: ['desktop'],
+                schema: ['args'],
+                title: 'Desktop',
+            },
+        });
+    });
 });

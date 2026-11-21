@@ -3,6 +3,7 @@ import { invocationCommandSchemas } from '@haus/api';
 import { driveSyncFrames } from '../drive/drive-sync-frames.ts';
 import { bashRunner } from './bash.ts';
 import { createBrowserRunner } from './browser.ts';
+import { createDesktopRunner } from './desktop.ts';
 import { editRunner } from './editor.ts';
 import { fileReadRunner, fileWriteRunner, viewImageRunner } from './files.ts';
 import { createInvocationHandler } from './handler.ts';
@@ -77,6 +78,7 @@ export function attachmentInvocations(
         runners: {
             bash: bashRunner,
             browser: createBrowserRunner({ browserRoot: join(serverRoot, 'browser') }),
+            desktop: createDesktopRunner(),
             edit: editRunner,
             'file-read': fileReadRunner,
             'file-write': fileWriteRunner,

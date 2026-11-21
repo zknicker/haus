@@ -14,12 +14,14 @@ export const invocationOperationKindSchema = z.enum([
     'file-read',
     'file-write',
     'browser',
+    'desktop',
 ]);
 export type InvocationOperationKind = z.infer<typeof invocationOperationKindSchema>;
 
 export const invocationTimeoutsMs = {
     bash: { default: 120_000, max: 600_000 },
     browser: { default: 60_000, max: 60_000 },
+    desktop: { default: 60_000, max: 60_000 },
     edit: { default: 30_000, max: 30_000 },
     'file-read': { default: 60_000, max: 60_000 },
     'file-write': { default: 60_000, max: 60_000 },
@@ -141,6 +143,12 @@ export const invocationOperationSchema = z.discriminatedUnion('kind', [
         .object({
             args: z.array(z.string().max(32_768)).min(1).max(100),
             kind: z.literal('browser'),
+        })
+        .strict(),
+    z
+        .object({
+            args: z.array(z.string().max(32_768)).min(1).max(100),
+            kind: z.literal('desktop'),
         })
         .strict(),
 ]);

@@ -1,4 +1,9 @@
-import type { ComputerInventory, ComputerUpdatePhase, UsageOverview } from '@haus/api';
+import type {
+    ComputerInventory,
+    ComputerUpdatePhase,
+    ComputerUseAccess,
+    UsageOverview,
+} from '@haus/api';
 import { sql } from 'drizzle-orm';
 import {
     boolean,
@@ -24,6 +29,10 @@ export const computersTable = pgTable(
         architecture: text('architecture'),
         attachedByUserId: text('attached_by_user_id').notNull(),
         attachmentIdempotencyKey: text('attachment_idempotency_key'),
+        computerUseAccess: text('computer_use_access')
+            .notNull()
+            .default('ask')
+            .$type<ComputerUseAccess>(),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         credentialHash: text('credential_hash').notNull(),
         connectionGeneration: text('connection_generation'),
@@ -78,6 +87,10 @@ export const computersTable = pgTable(
             sql`${table.attachmentIdempotencyKey} IS NULL OR ${table.attachmentIdempotencyKey} ~ '^cak_[A-Za-z0-9_-]{43}$'`
         ),
         check('computers_worker_limit', sql`${table.workerLimit} between 1 and 50`),
+        check(
+            'computers_computer_use_access',
+            sql`${table.computerUseAccess} in ('ask', 'always')`
+        ),
         check(
             'computers_update_phase',
             sql`${table.updatePhase} in ('idle', 'checking', 'available', 'requested', 'downloading', 'verifying', 'installing', 'waiting-for-agents', 'restarting', 'complete', 'failed')`

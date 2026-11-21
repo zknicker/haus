@@ -2,6 +2,7 @@ import { EXECUTION_JOURNAL_RETENTION_DAYS } from '@haus/api';
 import { and, eq, inArray, isNull, lt } from 'drizzle-orm';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
 import { type SweepTimers, startBootSweep } from '../boot-sweep.ts';
+import { deleteExpiredComputerUseRequests } from '../computer-use/computer-use-store.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentInvocationPayloadsTable,
@@ -69,6 +70,7 @@ export async function deleteExpiredInvocations(db: HausDatabase, root: Attachmen
         });
     }
     await deleteUnboundUploads(db, root, cutoff);
+    await deleteExpiredComputerUseRequests(db, cutoff);
 }
 
 async function deleteUnboundUploads(db: HausDatabase, root: AttachmentRoot, cutoff: Date) {

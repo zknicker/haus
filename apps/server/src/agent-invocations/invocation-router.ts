@@ -10,6 +10,7 @@ import {
     invokeResultSchema,
 } from '@haus/api';
 import { onAgentLifecycle } from '../agent-delivery/lifecycle.ts';
+import { gateDesktopInvocation } from '../computer-use/computer-use-gate.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { RunnerLink } from '../runner/runner-link.ts';
@@ -130,6 +131,16 @@ function routeInvocations(input: RouterInput) {
         }
         if (!(online && computerId)) {
             answer(noticeAnswer(frame, 'offline', record.id));
+            return;
+        }
+        const refusal = await gateDesktopInvocation(db, {
+            computerId,
+            frame,
+            invocationId: record.id,
+            serverId: agent.serverId,
+        });
+        if (refusal) {
+            answer(refusal);
             return;
         }
         const command: InvokeCommand = {

@@ -1,4 +1,4 @@
-import type { ComputerWorkerSettings } from '@haus/api';
+import type { ComputerUseSettings, ComputerWorkerSettings } from '@haus/api';
 import { and, desc, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computersTable } from '../postgres/schema.ts';
@@ -20,6 +20,7 @@ export async function listServerComputers(
         .select({
             attachedByUserId: computersTable.attachedByUserId,
             architecture: computersTable.architecture,
+            computerUseAccess: computersTable.computerUseAccess,
             createdAt: computersTable.createdAt,
             health: computersTable.health,
             id: computersTable.id,
@@ -48,18 +49,26 @@ export async function listServerComputers(
             )
         )
         .orderBy(desc(computersTable.createdAt));
-    return computers.map(({ attachedByUserId, workerLimit, workersEnabled, ...computer }) => {
-        const workers: ComputerWorkerSettings = {
-            canChangeWorkers: isComputerSteward(server.role, attachedByUserId, member?.id),
-            workerLimit,
-            workersEnabled,
-        };
-        return {
-            ...presentComputer(computer, connections),
-            ...workers,
-            name: computer.reportedInventory?.name ?? null,
-            attachedByCurrentUser: attachedByUserId === member?.id,
-            diskStatus: connections.diskStatus(computer.id),
-        };
-    });
+    return computers.map(
+        ({ attachedByUserId, computerUseAccess, workerLimit, workersEnabled, ...computer }) => {
+            const steward = isComputerSteward(server.role, attachedByUserId, member?.id);
+            const workers: ComputerWorkerSettings = {
+                canChangeWorkers: steward,
+                workerLimit,
+                workersEnabled,
+            };
+            const computerUse: ComputerUseSettings = {
+                canChangeComputerUse: steward,
+                computerUseAccess,
+            };
+            return {
+                ...presentComputer(computer, connections),
+                ...workers,
+                ...computerUse,
+                name: computer.reportedInventory?.name ?? null,
+                attachedByCurrentUser: attachedByUserId === member?.id,
+                diskStatus: connections.diskStatus(computer.id),
+            };
+        }
+    );
 }

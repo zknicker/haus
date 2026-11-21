@@ -1,6 +1,7 @@
 # Tool Access
 
-Haus does not expose interactive tool approval prompts.
+Haus exposes one interactive tool approval prompt: the in-chat Permission request before a
+Captain first clicks or types on a Device ([Computer use](computer-use.md)). No other tool asks.
 
 Tool access is governed by tool source, sandbox mode, and approval policy:
 

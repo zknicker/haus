@@ -2,7 +2,12 @@ import { expect, test } from 'bun:test';
 import { inboxSender } from './inbox-sender.ts';
 
 test('Trigger problem notices and claim assignments speak as the Haus system sender', () => {
-    for (const source of ['trigger_problem', 'claim_assignment', 'image_generation_failed']) {
+    for (const source of [
+        'trigger_problem',
+        'claim_assignment',
+        'image_generation_failed',
+        'computer_use',
+    ]) {
         expect(inboxSender({ attention: false, source, target: '#all' })).toEqual({
             senderHandle: 'haus',
             senderType: 'system',
