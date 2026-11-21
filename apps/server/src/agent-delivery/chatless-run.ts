@@ -8,6 +8,7 @@ import { decodeTaskAssignment } from '../tasks/task-assignment-envelope.ts';
 import type { ConfiguredAgent } from './deferred-configuration.ts';
 import type { DispatchPlan } from './delivery.ts';
 import { type AgentDispatchConfig, startPromptFacts } from './dispatch-config.ts';
+import { startRun } from './run-start.ts';
 import * as store from './store.ts';
 
 type ChatlessFrameConfig = Pick<
@@ -51,7 +52,7 @@ export async function planChatlessRun(
     if (!lead) {
         throw new Error(`Chatless run ${runId} attached no inbox item.`);
     }
-    await store.beginActiveRun(tx, {
+    const startEvents = await startRun(tx, {
         agentId,
         chatId: null,
         computerId: config.computerId,
@@ -59,6 +60,7 @@ export async function planChatlessRun(
         reasoningEffort: config.desiredReasoningEffort,
         runId,
         runtimeId: config.desiredRuntimeId,
+        serverId: state.serverId,
     });
     await recordRunTrigger(tx, { agentId, runId, serverId: state.serverId }, lead);
     const activity = await appendServerAgentActivity(tx, {
@@ -71,6 +73,7 @@ export async function planChatlessRun(
     return {
         ...(activity ? { activities: [activity] } : {}),
         computerId: config.computerId,
+        startEvents,
         frame: chatlessStartFrame(
             {
                 activeRunId: runId,

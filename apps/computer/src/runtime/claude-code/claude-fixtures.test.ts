@@ -11,7 +11,6 @@ const fixtureNames = [
     'compaction',
     'interrupt',
     'mcp-tool',
-    'plan-usage',
     'reasoning',
     'resume',
     'resume-missing',
@@ -26,13 +25,11 @@ const fixtureNames = [
 // Real Claude Code 2.1.317 streams (fixtures/*.jsonl, recorded by fixtures/capture.ts) replayed
 // through the connection, normalizer, and turn exactly as the driver runs them.
 
-function replaySession(name: string, options: { collectPlanUsage?: boolean } = {}) {
+function replaySession(name: string) {
     const { connection, process } = replayConnection(name);
     const session = createClaudeSession({
-        collectPlanUsage: options.collectPlanUsage ?? false,
         connection,
         isResume: false,
-        park: () => Promise.resolve(),
         relaunch: () => Promise.reject(new Error('A replay cannot relaunch.')),
     });
     return { process, session };
@@ -66,7 +63,6 @@ describe('Claude Code fixture replay', () => {
             },
         ]);
         expect(events.at(-1)).toEqual({
-            claudePlanUsage: null,
             type: 'turn-finish',
             usage: {
                 cacheReadTokens: 0,
@@ -261,15 +257,5 @@ describe('Claude Code fixture replay', () => {
         expect(ofType(first, 'text-delta').map((event) => event.text)).toEqual(['pong']);
         expect(ofType(second, 'text-delta').map((event) => event.text)).toEqual(['ping']);
         expect(process.writes).toHaveLength(2);
-    });
-
-    test('plan usage is read after the turn when the refresh is claimed', async () => {
-        const { process, session } = replaySession('plan-usage', { collectPlanUsage: true });
-        const events = await runTurn(session);
-        expect(JSON.parse(process.writes[1] ?? '{}')).toMatchObject({
-            request: { subtype: 'get_usage' },
-        });
-        // An env-token login reports no subscription windows.
-        expect(events.at(-1)).toMatchObject({ claudePlanUsage: null, type: 'turn-finish' });
     });
 });

@@ -49,9 +49,10 @@ export interface ConfiguredAgentRow extends Pick<
 }
 
 /**
- * Desired state is pending until the Computer reports a matching effective
- * snapshot. A reported snapshot with missing local resources is degraded, and
- * Haus never substitutes a different execution configuration to hide the gap.
+ * Desired state is pending until a run dispatches on it, which records the
+ * run's configuration as effective. A snapshot with missing resources is
+ * degraded, and Haus never substitutes a different execution configuration to
+ * hide the gap.
  */
 export function deriveAgentStatus(row: ConfiguredAgentRow): AgentStatus {
     if (!row.effectiveReportedAt) {
@@ -71,9 +72,6 @@ export function deriveAgentStatus(row: ConfiguredAgentRow): AgentStatus {
 }
 
 export function deriveAgentAvailability(row: ConfiguredAgentRow): AgentAvailability {
-    if (row.computerHealth !== 'healthy') {
-        return 'offline';
-    }
     if (row.stopped) {
         return 'stopped';
     }

@@ -1,8 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import type { HostToolSession } from '../../../host-tools/mcp-server.ts';
 import type { TurnEvent } from '../../turn-event.ts';
-import { type ClaudeBackgroundHooks, ClaudeConnection } from '../claude-connection.ts';
+import { ClaudeConnection } from '../claude-connection.ts';
 import { ClaudeEventNormalizer } from '../claude-event-normalizer.ts';
 import type { ClaudeExit, ClaudeProcess } from '../claude-process.ts';
 import { createWorkspaceStripper } from '../claude-tool-names.ts';
@@ -108,37 +107,13 @@ export function replayProcess(name: string, processIndex = 0) {
 }
 
 /** A connection over a replayed process, launched as the driver launches it. */
-export function replayConnection(
-    name: string,
-    processIndex = 0,
-    background?: ClaudeBackgroundHooks
-) {
+export function replayConnection(name: string, processIndex = 0) {
     const process = replayProcess(name, processIndex);
-    const hostTools: HostToolSession = {
-        close: () => undefined,
-        mcp: {
-            headers: { Authorization: 'Bearer test' },
-            name: 'haus',
-            transport: 'http',
-            url: '',
-        },
-        replaceTools: () => undefined,
-    };
     const normalizer = new ClaudeEventNormalizer({
         hostServer: 'haus',
         strip: createWorkspaceStripper([fixtureWorkspace]),
     });
-    return {
-        connection: new ClaudeConnection(
-            process,
-            normalizer,
-            hostTools,
-            'replay',
-            'replay-session',
-            background
-        ),
-        process,
-    };
+    return { connection: new ClaudeConnection(process, normalizer, 'replay-session'), process };
 }
 
 export async function collect(events: AsyncIterable<TurnEvent>): Promise<TurnEvent[]> {

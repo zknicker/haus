@@ -5,7 +5,7 @@
 // these flags. There is no package script behind it.
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resolveRuntimeById } from '../../../apps/computer/src/runtime-discovery.ts';
+import { curatedModels } from '../../../apps/runner/src/model-catalog.ts';
 import { stampFor } from '../paths.mjs';
 import { visualsBattery } from './prompts.mjs';
 
@@ -33,17 +33,16 @@ export const resolveRunConfig = () => {
     const items = selectItems(onlyFilter);
     assert(items.length > 0, `--only ${onlyFilter} matched no battery items`);
 
-    const executable = resolveRuntimeById(runtimeId);
+    const family = curatedModels.find((candidate) => candidate.id === runtimeId);
     assert(
-        executable,
-        `no installed executable for runtime "${runtimeId}"; install it or pick another --model`
+        family?.modelIds.includes(modelId),
+        `${runtimeId}/${modelId} is not in the runner's model catalog (apps/runner/src/model-catalog.ts)`
     );
 
     const stamp = stampFor();
     const runLabel = `${runtimeId}/${modelId}-${reasoningEffort}`;
     const outDirFlag = flagValue('--out-dir');
     return {
-        executable,
         items,
         modelId,
         outDir: outDirFlag
@@ -71,7 +70,7 @@ export function selectItems(onlyFilter, battery = visualsBattery) {
 }
 
 function parseModelFlag(value) {
-    assert(value, 'pass --model <runtime>/<model>, e.g. --model grok-build/grok-4.6');
+    assert(value, 'pass --model <runtime>/<model>, e.g. --model gemini/gemini-3.5-flash-lite');
     const separator = value.indexOf('/');
     assert(separator > 0, `--model expects <runtime>/<model>; received ${value}`);
     return [value.slice(0, separator), value.slice(separator + 1)];

@@ -70,33 +70,12 @@ test('Computer reports are applied in socket order', async () => {
         pendingHausAgentState(agentId),
     ]);
 
-    const staleStates = Array.from({ length: 499 }, (_, index) => ({
-        agentId: `agt_${String(index).padStart(16, '0')}`,
-        missingResources: ['runtime:stale'],
-        modelId: null,
-        runtimeId: null,
-    }));
-    staleStates.push({
-        agentId,
-        missingResources: ['runtime:stale'],
-        modelId: null,
-        runtimeId: null,
-    });
-    socket.send(JSON.stringify({ agents: staleStates, type: 'report' }));
     socket.send(
         JSON.stringify({
-            agents: [
-                {
-                    agentId,
-                    missingResources: [],
-                    modelId: 'gpt-5.6-sol',
-                    runtimeId: 'codex',
-                },
-            ],
+            agents: [{ agentId, missingResources: [], modelId: 'gpt-5.6-sol', runtimeId: 'codex' }],
             type: 'report',
         })
     );
-    await waitForCurrentRuntimeReport();
     await waitForHausAgentStates([
         pendingHausAgentState(omittedAgentId),
         pendingHausAgentState(agentId),
@@ -157,7 +136,7 @@ test('Computer reports are applied in socket order', async () => {
         effective_haus_agent_applied_at: Date;
         effective_haus_agent_status: string;
         effective_haus_agent_version: string;
-        effective_missing: string[];
+        effective_missing: string[] | null;
         effective_model_id: string | null;
         effective_reasoning_effort: string | null;
         effective_runtime_id: string | null;
@@ -166,10 +145,10 @@ test('Computer reports are applied in socket order', async () => {
         effective_haus_agent_applied_at: new Date('2026-08-28T16:00:00.000Z'),
         effective_haus_agent_status: 'current',
         effective_haus_agent_version: '1.0.0',
-        effective_missing: [],
-        effective_model_id: 'gpt-5.6-sol',
+        effective_missing: null,
+        effective_model_id: null,
         effective_reasoning_effort: null,
-        effective_runtime_id: 'codex',
+        effective_runtime_id: null,
     });
     socket.close();
 });
@@ -221,36 +200,6 @@ async function waitForHausAgentStates(expected: StoredHausAgentState[]): Promise
         await Bun.sleep(20);
     }
     expect(await readHausAgentStates()).toEqual(expected);
-}
-
-async function waitForCurrentRuntimeReport(): Promise<void> {
-    const expected = {
-        effective_missing: [],
-        effective_model_id: 'gpt-5.6-sol',
-        effective_runtime_id: 'codex',
-    };
-    const read = async () => {
-        const [state] = await harness.sql<
-            {
-                effective_missing: string[] | null;
-                effective_model_id: string | null;
-                effective_runtime_id: string | null;
-            }[]
-        >`
-            select effective_missing, effective_model_id, effective_runtime_id
-            from agents
-            where id = ${agentId}
-        `;
-        return state;
-    };
-    const deadline = Date.now() + 3000;
-    while (Date.now() < deadline) {
-        if (Bun.deepEquals(await read(), expected)) {
-            return;
-        }
-        await Bun.sleep(20);
-    }
-    expect(await read()).toEqual(expected);
 }
 
 function bootstrapFrame() {

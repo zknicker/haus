@@ -16,12 +16,6 @@ export {
     withTelemetrySpan,
     withTraceCarrier,
 } from './telemetry.ts';
-export type { TelemetryRelayConnection } from './telemetry-configuration.ts';
 export { instrumentOperation } from './telemetry-metrics.ts';
-export {
-    makeProcessTelemetryRelay,
-    type OtlpSignal,
-    type OtlpTelemetryRelay,
-} from './telemetry-relay.ts';
 export { type RelayedSpan, relaySpan } from './telemetry-span-relay.ts';
 export { makeTestRuntime } from './testing.ts';

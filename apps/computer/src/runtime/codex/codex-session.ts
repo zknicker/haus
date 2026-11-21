@@ -1,9 +1,7 @@
 import type { RuntimeSession, RuntimeTurn, SteerResult } from '../driver.ts';
 import type { CodexResumeState } from '../resume-state.ts';
-import type { WarmProcess } from '../warm-pool.ts';
 import type { CodexAppServer } from './app-server.ts';
 import type { CodexInbound } from './codex-connection.ts';
-import { codexTurnParams } from './codex-launch.ts';
 import { turnStartResultSchema, userMessageText } from './protocol.ts';
 import { CodexTurnNormalizer } from './turn-normalizer.ts';
 import { CodexTurnRouter } from './turn-router.ts';
@@ -13,40 +11,37 @@ import { CodexUsageLedger } from './turn-usage.ts';
 /** How long a steer waits for the turn to start or a post-tool gate to reopen. */
 const STEER_WAIT_MS = 15_000;
 
-export interface CodexSessionHooks {
-    /** Parks the live app-server for the next open of the same thread. */
-    park(session: CodexSession): Promise<void>;
-    /** Ends the app-server for good; it is never reused. */
-    release(session: CodexSession): Promise<void>;
-}
+/**
+ * Per-turn settings every `turn/start` carries. App-server turns default to no reasoning
+ * summary, so the model's reasoning never reached Activity or the journal; codex-acp asked for
+ * `auto` on every turn.
+ */
+export const codexTurnParams = { summary: 'auto' } as const;
 
 /**
- * One Agent's live Codex thread on its own app-server. A turn is `turn/start`, ending at
+ * One Worker's live Codex thread on its own app-server. A turn is `turn/start`, ending at
  * `turn/completed`; busy delivery is `turn/steer` with the expected turn id, only after
  * `turn/started` and never right after a tool finishes (Raft #238); Stop is `turn/interrupt`.
  */
-export class CodexSession implements RuntimeSession, WarmProcess {
+export class CodexSession implements RuntimeSession {
+    readonly isResume: boolean;
     readonly sessionId: string;
     private active: CodexTurnRun | null = null;
     /** Delivered steers not yet seen as a `userMessage` item, per turn. */
     private steered: Array<{ readonly run: CodexTurnRun; readonly text: string }> = [];
     private readonly router: CodexTurnRouter;
-    private hostToolsChecked = false;
-    private resumed: boolean;
 
     constructor(
         readonly server: CodexAppServer,
-        private readonly hooks: CodexSessionHooks,
+        /** Ends the app-server for good; it is never reused. */
+        private readonly release: () => Promise<void>,
         workspaceDir: string
     ) {
         this.sessionId = server.threadId;
-        this.resumed = server.resumed;
+        this.isResume = server.resumed;
         this.router = new CodexTurnRouter(
             server.threadId,
-            new CodexTurnNormalizer(
-                { hostToolServer: server.hostTools?.mcp.name ?? null, workspaceDir },
-                new CodexUsageLedger()
-            )
+            new CodexTurnNormalizer({ hostToolServer: null, workspaceDir }, new CodexUsageLedger())
         );
         server.route(
             (message) => {
@@ -61,40 +56,15 @@ export class CodexSession implements RuntimeSession, WarmProcess {
         void server.connection.exited.then((error) => this.active?.end([{ error, type: 'error' }]));
     }
 
-    get alive(): boolean {
-        return this.server.connection.alive;
-    }
-
-    get exited(): Promise<unknown> {
-        return this.server.connection.exited;
-    }
-
-    /** Ends the app-server (as a parked `WarmProcess`). */
-    close(): Promise<void> {
-        return this.hooks.release(this);
-    }
-
-    get isResume(): boolean {
-        return this.resumed;
-    }
-
-    /** A parked session taken up by a later open resumes its thread on the same process. */
-    reopen(): this {
-        this.resumed = true;
-        return this;
-    }
-
     async startTurn(options: { prompt: string; signal: AbortSignal }): Promise<RuntimeTurn> {
         if (this.active && !this.active.isEnded) {
             throw new Error('A Codex turn is already running on this session.');
         }
         const run = new CodexTurnRun();
         this.steered = [];
-        const warning = await this.hostToolsWarning();
         options.signal.throwIfAborted();
         this.active = run;
         this.router.attach(run);
-        run.push(warning);
         let result: unknown;
         try {
             result = await this.server.connection.request('turn/start', {
@@ -160,20 +130,18 @@ export class CodexSession implements RuntimeSession, WarmProcess {
         }
     }
 
-    async detach(): Promise<CodexResumeState> {
+    async stop() {
         await this.active?.idle;
-        await this.hooks.park(this);
-        return this.resumeState();
+        await this.release();
+        return {
+            runtime: 'codex',
+            threadId: this.sessionId,
+            version: 1,
+        } satisfies CodexResumeState;
     }
 
-    async stop(): Promise<CodexResumeState> {
-        await this.active?.idle;
-        await this.hooks.release(this);
-        return this.resumeState();
-    }
-
-    async destroy(): Promise<void> {
-        await this.hooks.release(this);
+    async destroy() {
+        await this.release();
     }
 
     /**
@@ -191,29 +159,6 @@ export class CodexSession implements RuntimeSession, WarmProcess {
         if (index >= 0) {
             this.steered.splice(index, 1);
         }
-    }
-
-    private resumeState(): CodexResumeState {
-        return { runtime: 'codex', threadId: this.sessionId, version: 1 };
-    }
-
-    /** The first turn waits for the host-tool MCP server and reports when it never came up. */
-    private async hostToolsWarning() {
-        if (this.hostToolsChecked) {
-            return [];
-        }
-        this.hostToolsChecked = true;
-        const status = await this.server.hostToolsReady;
-        return status.ok
-            ? []
-            : [
-                  {
-                      category: 'host-tools',
-                      severity: 'warning' as const,
-                      title: `Haus host tools are unavailable to Codex: ${status.error}`,
-                      type: 'session-failure' as const,
-                  },
-              ];
     }
 
     private async interrupt(run: CodexTurnRun) {

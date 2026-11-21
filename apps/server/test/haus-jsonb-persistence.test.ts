@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { recordComputerInventory } from '../src/computers/record-inventory.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import { recordAgentEffectiveState } from '../src/server-agents/record-agent-effective-state.ts';
+import { recordRunEffectiveState } from '../src/server-agents/record-agent-effective-state.ts';
 import {
     clearHausAgentState,
     recordHausAgentState,
@@ -117,15 +117,12 @@ test('Drizzle writes JSONB values as objects and arrays instead of JSON strings'
         ],
     };
     await recordComputerInventory(connection.db, computerId, inventory);
-    await recordAgentEffectiveState(connection.db, computerId, [
-        {
-            agentId,
-            missingResources: ['runtime:codex'],
-            modelId: 'gpt-5.6-sol',
-            reasoningEffort: 'high',
-            runtimeId: 'codex',
-        },
-    ]);
+    await recordRunEffectiveState(connection.db, {
+        agentId,
+        modelId: 'gpt-5.6-sol',
+        reasoningEffort: 'high',
+        runtimeId: 'codex',
+    });
     await recordHausAgentState(connection.db, computerId, [
         {
             agentId,

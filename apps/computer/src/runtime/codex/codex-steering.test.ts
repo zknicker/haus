@@ -148,7 +148,7 @@ describe('Codex steering and Stop', () => {
             /^error:The Codex app-server exited \(exit code 137\)/u
         );
         await turn.settle();
-        expect(session.alive).toBe(false);
+        expect(session.server.connection.alive).toBe(false);
         expect(await session.steer('x')).toEqual({ delivered: false, reason: 'idle' });
         await expect(
             session.startTurn({ prompt: 'again', signal: new AbortController().signal })

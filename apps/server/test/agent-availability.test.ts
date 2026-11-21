@@ -35,13 +35,11 @@ const base: ConfiguredAgentRow = {
 };
 
 describe('Agent availability', () => {
-    test('an applied Agent is offline when its assigned Computer is offline', () => {
+    test('an Agent runs on the runner, so its assigned Computer being offline does not change it', () => {
+        expect(deriveAgentAvailability({ ...base, computerHealth: 'offline' })).toBe('idle');
         expect(
-            deriveAgentAvailability({
-                ...base,
-                computerHealth: 'offline',
-            })
-        ).toBe('offline');
+            deriveAgentAvailability({ ...base, activeRunId: 'run_123', computerHealth: 'offline' })
+        ).toBe('working');
     });
 
     test('projects working, stopped, error, and idle from Server-owned facts', () => {

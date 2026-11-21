@@ -1,13 +1,9 @@
 import type { OpenSessionOptions, RuntimeDriver } from '../driver.ts';
 import { handshakeDeadline } from '../handshake-deadline.ts';
 import type { RuntimeProcessRegistry } from '../process-registry.ts';
+import { type RuntimeResumeState, resumeStateFor } from '../resume-state.ts';
 import { openAppServer } from './app-server.ts';
-import { resumeThreadId } from './codex-driver.ts';
-import {
-    type CodexExecutable,
-    codexPinFingerprint,
-    resolvePinnedCodex,
-} from './codex-executable.ts';
+import { type CodexExecutable, resolvePinnedCodex } from './codex-executable.ts';
 import { CodexSession } from './codex-session.ts';
 import {
     type CodexProcessLaunch,
@@ -30,13 +26,12 @@ export interface CodexWorkerDriverOptions {
 export function createCodexWorkerDriver(options: CodexWorkerDriverOptions) {
     const resolveExecutable = options.resolveExecutable ?? resolvePinnedCodex;
     return {
-        bootstrapFingerprint: () => Promise.resolve(codexPinFingerprint),
         openSession: (open) => openWorkerSession(options, resolveExecutable, open),
-        refreshBootstrap: async ({ signal }) => {
-            await resolveExecutable(signal);
-        },
-        runtimeId: 'codex',
     } satisfies RuntimeDriver;
+}
+
+export function resumeThreadId(state: RuntimeResumeState | undefined) {
+    return state ? resumeStateFor('codex', state).threadId : undefined;
 }
 
 export function codexWorkerThreadParams(
@@ -101,13 +96,12 @@ async function openWorkerSession(
     try {
         const server = await openAppServer({
             cwd: options.cwd,
-            hostTools: null,
             resumeThreadId: resumeThreadId(open.resumeFrom),
             signal: deadline.signal,
             threadParams: () => codexWorkerThreadParams(options),
             transport,
         });
-        return new CodexSession(server, { park: release, release }, options.cwd);
+        return new CodexSession(server, release, options.cwd);
     } catch (error) {
         await release();
         throw error;

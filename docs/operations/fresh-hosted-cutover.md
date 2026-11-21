@@ -21,6 +21,8 @@ state, Agent workspaces, credentials, or old desktop-sidecar configuration.
 5. Create the Server and first Owner in the App, then run its install and setup commands:
    `curl -fsSL https://releases.haus.chat/computer/install.sh | sh`, followed by
    `$HOME/.local/bin/haus-computer setup /<server-slug>`.
+   Haus Computer runs on Apple Silicon Macs only. The installer refuses an Intel Mac or any other
+   system before it downloads anything.
 6. Create Agents against that attached Computer, configure their local model
    credentials, and import only skills intentionally wanted in the new Agent
    libraries.

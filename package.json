@@ -74,7 +74,7 @@
         "typecheck:fast": "bun run --filter @haus/api typecheck && bun run --filter @haus/agent-prompt typecheck && bun run --filter @haus/agent-cli typecheck && bun run --filter @haus/sdk typecheck && bun run --filter @haus/claude-usage typecheck && bun run --filter @haus/codex-usage typecheck && bun run --filter @haus/server typecheck && bun run --filter @haus/runner typecheck",
         "typecheck:licensed": "bun run --filter @haus/website typecheck && bun run --filter @haus/computer typecheck",
         "ui:capture": "node scripts/capture-ui.mjs",
-        "visuals:lab": "bun scripts/visuals-lab/server.mjs"
+        "visuals:lab": "varlock run -- bun scripts/visuals-lab/server.mjs"
     },
     "devDependencies": {
         "@interfere/landmines": "0.1.1",

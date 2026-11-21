@@ -967,17 +967,6 @@
                 "timer": 0
             }
         },
-        "apps/computer/src/host-tools/mcp-server.ts": {
-            "disposition": "external-adapter",
-            "reason": "Loopback MCP adapter: each tools/call owns one cancel controller removed in lexical finally; session close and server stop abort a per-session controller. The Computer owner stops the Bun server.",
-            "risks": {
-                "abortController": 4,
-                "catchAndIgnore": 0,
-                "finallyBlock": 1,
-                "manualPromise": 0,
-                "timer": 0
-            }
-        },
         "apps/computer/src/runtime/process-group.ts": {
             "disposition": "external-adapter",
             "reason": "Ends a foreign runtime child's whole process group: SIGTERM then SIGKILL grace periods whose timers clear in finally, a bounded liveness poll, and a registry entry held until no member is left; a failed termination resets so Computer shutdown retries it.",
@@ -1011,17 +1000,6 @@
                 "timer": 0
             }
         },
-        "apps/computer/src/runtime/warm-pool.ts": {
-            "disposition": "external-adapter",
-            "reason": "Parks foreign runtime processes between turns. Each parked process holds one unref'd idle timer, re-armed while the process holds background work and cleared whenever the entry leaves the pool (claim, evict, exit, close); a process that exits while parked is still closed, and idle or exit close failures go to the daemon logger through onCloseError.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 0,
-                "finallyBlock": 0,
-                "manualPromise": 0,
-                "timer": 3
-            }
-        },
         "apps/computer/src/runtime/json-rpc-connection.ts": {
             "disposition": "external-adapter",
             "reason": "One resolver per JSON-RPC request, settled by its response, a local abort, a failed write, or close(). A reply to a peer that already closed is dropped because close() owns and reports that failure.",
@@ -1031,28 +1009,6 @@
                 "finallyBlock": 0,
                 "manualPromise": 1,
                 "timer": 0
-            }
-        },
-        "apps/computer/src/runtime/claude-code/claude-compaction.ts": {
-            "disposition": "external-adapter",
-            "reason": "One /compact on a parked foreign claude process: a sink promise settled by its own result or the process exit, raced against one hung-compaction timer cleared in finally, where the sink also detaches. The sink's rejection is pre-observed so a failed write cannot surface it unhandled; the awaited race still reports it.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 1,
-                "finallyBlock": 1,
-                "manualPromise": 2,
-                "timer": 2
-            }
-        },
-        "apps/computer/src/runtime/idle-compaction-scheduler.ts": {
-            "disposition": "external-adapter",
-            "reason": "One unref'd timer per parked Agent session while the Server setting is on, cleared when the entry leaves the warm pool or the setting turns off. A fired compaction is tracked until it settles so the pool can wait for it; its outcome goes to the daemon's report or failed hook, never dropped.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 0,
-                "finallyBlock": 0,
-                "manualPromise": 0,
-                "timer": 2
             }
         },
         "apps/computer/src/runtime/claude-code/claude-connection.ts": {
@@ -1105,7 +1061,7 @@
             "risks": {
                 "abortController": 0,
                 "catchAndIgnore": 1,
-                "finallyBlock": 1,
+                "finallyBlock": 0,
                 "manualPromise": 1,
                 "timer": 1
             }
@@ -1154,17 +1110,6 @@
                 "timer": 0
             }
         },
-        "apps/computer/src/runtime/codex/app-server.ts": {
-            "disposition": "external-adapter",
-            "reason": "The host-tool readiness resolver settles on the app-server's MCP status or its exit, and the bounded wait for it clears its timer in finally.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 0,
-                "finallyBlock": 1,
-                "manualPromise": 2,
-                "timer": 2
-            }
-        },
         "apps/computer/src/runtime/codex/codex-transport.ts": {
             "disposition": "external-adapter",
             "reason": "The foreign app-server's exit promise settles on close or spawn error; its whole process group is terminated through process-group.ts, also after the leader exits on its own.",
@@ -1173,17 +1118,6 @@
                 "catchAndIgnore": 0,
                 "finallyBlock": 0,
                 "manualPromise": 2,
-                "timer": 0
-            }
-        },
-        "apps/computer/src/runtime/codex/codex-driver.ts": {
-            "disposition": "external-adapter",
-            "reason": "Opens one foreign app-server per session; the handshake deadline clears in finally, and a failed open releases the process and its host-tool scope before rethrowing.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 0,
-                "finallyBlock": 1,
-                "manualPromise": 0,
                 "timer": 0
             }
         },
