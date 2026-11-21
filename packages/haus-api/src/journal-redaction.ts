@@ -1,10 +1,3 @@
-/**
- * What may leave the Computer inside an uploaded execution journal. Unlike the
- * action-thought scrub (ADR 0036), the journal keeps full tool evidence, so this
- * removes credentials only: exact secret values the Computer knows, then
- * credential shapes and the values of secret-named keys, flags, and headers.
- */
-
 const redacted = '[redacted]';
 const minimumKnownSecretLength = 8;
 
@@ -38,7 +31,7 @@ const queryCredentialNames = new Set(['code', 'key', 'sig', 'signature', 'x-amz-
 export function computerKnownSecrets(
     credential: string,
     environment: Record<string, string | undefined>
-): string[] {
+) {
     const values = Object.entries(environment).flatMap(([name, value]) =>
         value && isSecretKey(name) ? [value] : []
     );
@@ -46,11 +39,11 @@ export function computerKnownSecrets(
 }
 
 /** Masks credentials in one string, given the secret values this Computer holds. */
-export function createJournalRedactor(knownValues: Iterable<string>): (text: string) => string {
+export function createJournalRedactor(knownValues: Iterable<string>) {
     const values = [...new Set(knownValues)]
         .filter((value) => value.length >= minimumKnownSecretLength)
         .sort((left, right) => right.length - left.length);
-    return (text) => {
+    return (text: string) => {
         let result = text;
         for (const value of values) {
             if (result.includes(value)) {
@@ -93,7 +86,7 @@ export function createJournalRedactor(knownValues: Iterable<string>): (text: str
  * an API, private, access, or signing key. `sessionId`, `author`, and
  * `max_tokens` are not.
  */
-export function isSecretKey(name: string): boolean {
+export function isSecretKey(name: string) {
     const words = name
         .replace(/([a-z0-9])([A-Z])/gu, '$1_$2')
         .toLowerCase()
@@ -135,12 +128,11 @@ const keyQualifiers = new Set([
     'signing',
 ]);
 
-/** `--token x`, or curl's `-u name:password` (never `git push -u origin`). */
-function isSecretFlag(flag: string, value: string): boolean {
+function isSecretFlag(flag: string, value: string) {
     const name = flag.replace(/^-+/u, '');
     return isSecretKey(name) || ((flag === '-u' || name === 'user') && value.includes(':'));
 }
 
-function isCredentialQueryName(name: string): boolean {
+function isCredentialQueryName(name: string) {
     return queryCredentialNames.has(name.toLowerCase()) || isSecretKey(name);
 }

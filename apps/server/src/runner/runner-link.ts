@@ -1,4 +1,5 @@
 import type { RunnerDownFrame, RunnerInventoryFrame, RunnerRuntimeSettingsFrame } from '@haus/api';
+import { DispatchedTurnTraces } from './dispatched-turn-traces.ts';
 
 export interface RunnerAttachment {
     close(code: number, reason: string): void;
@@ -7,6 +8,7 @@ export interface RunnerAttachment {
 }
 
 export class RunnerLink {
+    readonly dispatchedTraces = new DispatchedTurnTraces();
     private attached: RunnerAttachment | null = null;
     private reportedInventory: RunnerInventoryFrame | null = null;
     private settingsSends: Promise<void> = Promise.resolve();
@@ -56,6 +58,9 @@ export class RunnerLink {
             return false;
         }
         attachment.send(frame);
+        if (frame.type === 'runner-start') {
+            this.dispatchedTraces.record(frame);
+        }
         return true;
     }
 }

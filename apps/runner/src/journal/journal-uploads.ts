@@ -3,8 +3,8 @@ import {
     type AgentExecutionJournalAck,
     type AgentExecutionJournalRecordsFrame,
     EXECUTION_JOURNAL_RETENTION_DAYS,
+    computerKnownSecrets,
 } from '@haus/api';
-import { computerKnownSecrets } from '@haus/computer/src/execution-journal-upload/journal-redaction.ts';
 import { pruneSyncedJournals } from '@haus/computer/src/execution-journal-upload/journal-upload-ledger.ts';
 import { ExecutionJournalUploader } from '@haus/computer/src/execution-journal-upload/journal-uploader.ts';
 

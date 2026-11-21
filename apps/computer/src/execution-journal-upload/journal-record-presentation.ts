@@ -13,9 +13,10 @@ import {
     type ExecutionJournalTool,
     type ExecutionJournalUploadRecord,
     type ExecutionJournalValue,
+    createJournalRedactor,
+    isSecretKey,
 } from '@haus/api';
 import type { JournalRecord } from '../harness/execution-journal-records.ts';
-import { createJournalRedactor, isSecretKey } from './journal-redaction.ts';
 import { whenMissing } from './journal-upload-ledger.ts';
 
 export type JournalRecordPresenter = (record: JournalRecord) => ExecutionJournalUploadRecord[];

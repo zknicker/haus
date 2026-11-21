@@ -18,9 +18,11 @@ import { createSignIns } from './pi/pi-sign-ins.ts';
 import type { AgentReset, RunnerLink, TurnHost } from './run-context.ts';
 import { createRunTools, type RunToolset } from './tools/run-tools.ts';
 import { harnessIds } from './turn/runtime-driver.ts';
+import { openTurnTrace } from './turn/turn-trace.ts';
 
 const backoffMs = [500, 1000, 2000, 5000, 10_000, 30_000];
 const queuedFramesMax = 1000;
+const telemetryBacklogMax = 1024 * 1024;
 
 export function openServerLink(input: {
     book: ConnectionBook;
@@ -49,8 +51,11 @@ export function openServerLink(input: {
 
     const link: RunnerLink = {
         send(frame) {
-            if (socket && accepted) {
+            const telemetry = frame.type === 'runner-turn-span';
+            if (socket && accepted && !(telemetry && socket.bufferedAmount > telemetryBacklogMax)) {
                 socket.send(JSON.stringify(frame));
+            } else if (telemetry) {
+                return;
             } else if (queued.length < queuedFramesMax) {
                 queued.push(frame);
             } else {
@@ -122,12 +127,13 @@ export function openServerLink(input: {
             link.send({ agentId: start.agentId, runId: start.runId, type: 'ack' });
             return;
         }
+        const trace = openTurnTrace(start.traceContext);
         const authority = {
             agentId: start.agentId,
             runCredential,
             runId: start.runId,
             serverUrl: input.config.serverUrl,
-            ...(start.traceContext ? { traceparent: start.traceContext.traceparent } : {}),
+            traceparent: trace.traceparent,
         };
         const toolset = createRunTools({
             authority,
@@ -152,6 +158,7 @@ export function openServerLink(input: {
                 sessionResetKind,
                 start,
                 tools,
+                trace,
             })
             .catch(report('start'));
     };

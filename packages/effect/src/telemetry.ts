@@ -51,6 +51,7 @@ import {
     safeOutcomeFromResult,
     type TelemetryOutcome,
 } from './telemetry-metrics.ts';
+import { relayedSpanLayer } from './telemetry-span-relay.ts';
 
 const traceparentPattern = /^00-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})$/u;
 const serviceInstanceId = randomUUID();
@@ -146,7 +147,10 @@ export function makeTelemetryLayer(options: TelemetryLayerOptions): Layer.Layer<
         serviceVersion: options.serviceVersion,
     });
     const tracing = options.spanProcessor
-        ? makeTracingLayer(resource, options.spanProcessor, options.shutdownTimeout)
+        ? Layer.merge(
+              makeTracingLayer(resource, options.spanProcessor, options.shutdownTimeout),
+              relayedSpanLayer(options.spanProcessor, options.deploymentEnvironment)
+          )
         : Layer.empty;
     const metrics = options.metricReader
         ? OtelMetrics.layer(() => options.metricReader as MetricReader, {

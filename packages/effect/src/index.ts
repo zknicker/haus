@@ -23,4 +23,5 @@ export {
     type OtlpSignal,
     type OtlpTelemetryRelay,
 } from './telemetry-relay.ts';
+export { type RelayedSpan, relaySpan } from './telemetry-span-relay.ts';
 export { makeTestRuntime } from './testing.ts';

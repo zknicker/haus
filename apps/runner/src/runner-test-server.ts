@@ -14,7 +14,7 @@ import {
 import { openDispatchLedger } from './dispatch/ledger.ts';
 import type { InvocationClock } from './invocations/invocation-clock.ts';
 import { createConnectionBook } from './model-connections/connection-book.ts';
-import type { AgentReset, RunStart, TurnHost } from './run-context.ts';
+import type { AgentReset, RunnerLink, RunStart, TurnHost } from './run-context.ts';
 import { openServerLink } from './server-link.ts';
 
 export const runnerToken = 'runner-token-0123456789abcdef0123456789';
@@ -49,15 +49,17 @@ export async function attachRunner(
     options: {
         invocationClock?: InvocationClock;
         signInProvider?: (provider: ModelSignInProvider) => Provider;
+        whileConnecting?: (link: RunnerLink) => void;
     } = {}
 ) {
+    const { whileConnecting, ...linkOptions } = options;
     const dataDir = await mkdtemp(join(tmpdir(), 'haus-runner-link-'));
     const host = turnHostDriver();
     const book = createConnectionBook();
     const link = openServerLink({
         book,
         config: { runnerToken, serverUrl: server.url },
-        ...options,
+        ...linkOptions,
         ledger: openDispatchLedger(dataDir),
         log: () => undefined,
         reconnectDelaysMs: [0],
@@ -67,6 +69,7 @@ export async function attachRunner(
         link.close();
         await rm(dataDir, { force: true, recursive: true });
     });
+    whileConnecting?.(link.link);
     await link.ready;
     return { book, dataDir, host, link: link.link };
 }

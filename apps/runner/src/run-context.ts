@@ -6,6 +6,7 @@ import type {
     RunnerUpFrame,
     RunnerRuntimeSettingsFrame,
 } from '@haus/api';
+import type { TurnTrace } from './turn/turn-trace.ts';
 
 export interface RunAuthority {
     readonly agentId: string;
@@ -95,6 +96,7 @@ export interface RunStart {
     readonly sessionResetKind: 'full' | 'session';
     readonly start: AgentStartCommand;
     readonly tools: RunTools;
+    readonly trace: TurnTrace;
 }
 
 export interface TurnHost {

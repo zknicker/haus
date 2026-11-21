@@ -1,8 +1,9 @@
-import { type ModelConnectionCredential, maskCredentialDisclosures } from '@haus/api';
 import {
+    type ModelConnectionCredential,
     computerKnownSecrets,
     createJournalRedactor,
-} from '@haus/computer/src/execution-journal-upload/journal-redaction.ts';
+    maskCredentialDisclosures,
+} from '@haus/api';
 
 export function createThoughtRedactor(knownSecrets: Iterable<string>) {
     const redactJournal = createJournalRedactor(knownSecrets);
