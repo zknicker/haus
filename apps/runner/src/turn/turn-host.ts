@@ -26,6 +26,7 @@ import { type NoticeSink, type RunTurnResult, runTurn } from './run-turn.ts';
 import type { RuntimeDriverFactory } from './runtime-driver.ts';
 import { SessionFailureError } from './turn-failure.ts';
 import { turnSummary } from './turn-summary.ts';
+import { startTurnTimings } from './turn-timings.ts';
 import { turnSpanFrame } from './turn-trace.ts';
 
 interface ActiveRun {
@@ -142,6 +143,7 @@ export function createTurnHostWith(input: {
         await store.acceptRun(start);
         await records.accepted();
         const startedAt = new Date().toISOString();
+        const timings = startTurnTimings();
         const activity = createRunActivity({
             agentId: start.agentId,
             now: () => Date.now(),
@@ -182,6 +184,7 @@ export function createTurnHostWith(input: {
                 signal: current.controller.signal,
                 start,
                 store,
+                timings,
                 tools: run.tools,
             });
         } catch (error) {
@@ -214,7 +217,7 @@ export function createTurnHostWith(input: {
             visibleMessages: [...visible.values()],
         });
         await settle(start, records, summary);
-        const span = turnSpanFrame(run, summary);
+        const span = turnSpanFrame(run, summary, timings.snapshot(visibility.sends));
         if (span) {
             input.link.send(span);
         }

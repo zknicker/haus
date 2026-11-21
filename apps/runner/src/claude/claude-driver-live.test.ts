@@ -141,6 +141,7 @@ function localTools() {
         settle: () =>
             Promise.resolve({
                 sendCount: 0,
+                sends: [],
                 servedAutomationIds: [],
                 visibleMessages: [],
             }),

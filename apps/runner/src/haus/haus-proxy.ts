@@ -6,10 +6,10 @@ import {
     type InvocationOutcome,
 } from '@haus/api';
 import type { RunDispatches } from '../dispatch/dispatch-id.ts';
-import type { RunAuthority } from '../run-context.ts';
+import type { CommittedSend, RunAuthority } from '../run-context.ts';
 import {
     attestVisibleMessages,
-    isCommittedSend,
+    committedSendIn,
     servedAutomationIdsIn,
     type VisibleMessage,
     visibleMessagesIn,
@@ -27,9 +27,13 @@ export function startHausProxy(input: { authority: RunAuthority; dispatches: Run
     const calls = new Map<string, string>();
     const visible = new Map<string, VisibleMessage>();
     const servedAutomationIds = new Set<string>();
+    const sends: CommittedSend[] = [];
     let sendCount = 0;
     const state = {
         authority: input.authority,
+        commitSend: (send: Omit<CommittedSend, 'atMs'>) => {
+            sends.push({ ...send, atMs: performance.now() });
+        },
         countSend: () => {
             sendCount += 1;
         },
@@ -71,6 +75,7 @@ export function startHausProxy(input: { authority: RunAuthority; dispatches: Run
         url: `http://127.0.0.1:${server.port}`,
         visibility: () => ({
             sendCount,
+            sends: [...sends],
             servedAutomationIds: [...servedAutomationIds],
             visibleMessages: [...visible.values()],
         }),
@@ -83,6 +88,7 @@ async function forward(
     toolCallId: string,
     state: {
         authority: RunAuthority;
+        commitSend(send: Omit<CommittedSend, 'atMs'>): void;
         countSend(): void;
         dispatches: RunDispatches;
         recordServed(ids: readonly string[]): void;
@@ -138,8 +144,10 @@ async function forward(
         );
     }
     if (upstream.ok) {
-        if (isCommittedSend(url.pathname, parsed)) {
+        const committed = committedSendIn(url.pathname, body, parsed);
+        if (committed) {
             state.countSend();
+            state.commitSend(committed);
         }
         state.recordServed(servedAutomationIdsIn(url.pathname, parsed));
         const shown = visibleMessagesIn(url.pathname, parsed);

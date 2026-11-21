@@ -110,8 +110,15 @@ test('dispatch → runner turn → Server MCP keeps one trace without trusting A
         'haus.operation': 'agent.turn',
         'haus.outcome': 'completed',
         'haus.output.produced': false,
+        'haus.reasoning.effort': firstFrame.reasoningEffort,
         'haus.run.id': 'run_1',
         'haus.runtime.id': 'claude-agent-sdk',
+        'haus.turn.first_stream_ms': expect.any(Number),
+        'haus.turn.harness_ready_ms': expect.any(Number),
+        'haus.turn.session_create_ms': expect.any(Number),
+        ...(firstFrame.timings.firstToolMs === undefined
+            ? {}
+            : { 'haus.turn.first_tool_ms': firstFrame.timings.firstToolMs }),
         ...tokenAttributes(firstFrame),
     });
     expect(first.resource.attributes['service.name']).toBe('haus-runner');

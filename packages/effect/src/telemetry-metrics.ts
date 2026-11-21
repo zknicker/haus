@@ -41,7 +41,7 @@ export function instrumentOperation<A, E, R>(
     );
 }
 
-function recordOperation(
+export function recordOperation(
     operation: string,
     outcome: TelemetryOutcome,
     durationMs: number

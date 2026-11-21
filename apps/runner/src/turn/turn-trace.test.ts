@@ -51,10 +51,14 @@ test('a turn without a dispatch starts its own trace, and an unsampled dispatch 
 
 test('the span frame carries ids, counts and timing from the settled summary and no trace', () => {
     const trace = openTurnTrace(dispatch);
+    const run = {
+        reasoningEffort: 'high' as const,
+        serverId: 'srv_1',
+        start: { chatId: 'chat_1' },
+        trace,
+    };
 
-    expect(
-        turnSpanFrame({ serverId: 'srv_1', start: { chatId: 'chat_1' }, trace }, summary)
-    ).toEqual({
+    expect(turnSpanFrame(run, summary, { firstStreamMs: 40, harnessReadyMs: 12 })).toEqual({
         agentId: 'agt_1',
         chatId: 'chat_1',
         endedAtMs: Date.parse('2026-11-19T12:00:05.250Z'),
@@ -62,19 +66,29 @@ test('the span frame carries ids, counts and timing from the settled summary and
         modelId: 'claude-opus-4-5',
         outcome: 'completed',
         outputProduced: true,
+        reasoningEffort: 'high',
         runId: 'run_1',
         runtimeId: 'claude-agent-sdk',
         serverId: 'srv_1',
         spanId: trace.spanId,
         startedAtMs: Date.parse('2026-11-19T12:00:00.000Z'),
+        timings: { firstStreamMs: 40, harnessReadyMs: 12 },
         tokenUsage: summary.tokenUsage,
         type: 'runner-turn-span',
     });
 });
 
-test('a summary the span contract cannot carry yields no frame', () => {
-    const run = { serverId: 'srv_1', start: { chatId: null }, trace: openTurnTrace(dispatch) };
+test('a summary or timing the span contract cannot carry yields no frame', () => {
+    const run = {
+        reasoningEffort: 'default' as const,
+        serverId: 'srv_1',
+        start: { chatId: null },
+        trace: openTurnTrace(dispatch),
+    };
 
-    expect(turnSpanFrame(run, { ...summary, runId: 'r'.repeat(129) })).toBeNull();
-    expect(turnSpanFrame(run, { ...summary, endedAt: '2026-11-19T11:59:59.000Z' })).toBeNull();
+    expect(turnSpanFrame(run, { ...summary, runId: 'r'.repeat(129) }, {})).toBeNull();
+    expect(turnSpanFrame(run, { ...summary, endedAt: '2026-11-19T11:59:59.000Z' }, {})).toBeNull();
+    expect(turnSpanFrame(run, summary, { firstToolMs: 7 * 24 * 60 * 60 * 1000 + 1 })).toBeNull();
+    expect(turnSpanFrame(run, summary, { firstToolMs: 1.5 })).toBeNull();
+    expect(turnSpanFrame(run, summary, { doneChats: 2, sentChats: 1 })).toBeNull();
 });

@@ -26,6 +26,7 @@ import type { RuntimeTokenUsage } from './turn-event.ts';
 import { TurnStalledError } from './turn-failure.ts';
 import { composeTurnInput } from './turn-input.ts';
 import { openTurnNotices } from './turn-notices.ts';
+import type { TurnTimings } from './turn-timings.ts';
 import { unknownToolCalls } from './unknown-tool-calls.ts';
 
 export const turnSettleBoundMs = 20_000;
@@ -60,6 +61,7 @@ export interface RunTurnInput {
     readonly signal: AbortSignal;
     readonly start: AgentStartCommand;
     readonly store: ReturnType<typeof inboxStore>;
+    readonly timings: TurnTimings;
     readonly tools: RunTools;
 }
 
@@ -85,11 +87,14 @@ export async function runTurn(input: RunTurnInput) {
         tools: input.tools,
     });
     const bootstrapFingerprint = await driver.bootstrapFingerprint(input.signal);
-    const live = await driver.openSession({
-        resumeFrom: stored.nativeSessionId ?? undefined,
-        sessionId: `${start.agentId}-${stored.generation}`,
-        signal: input.signal,
-    });
+    input.timings.mark('harnessReadyMs');
+    const live = await input.timings.measure('sessionCreateMs', () =>
+        driver.openSession({
+            resumeFrom: stored.nativeSessionId ?? undefined,
+            sessionId: `${start.agentId}-${stored.generation}`,
+            signal: input.signal,
+        })
+    );
     const session = resolveTurnSession(await readAgentSession(input.agentDir), assigned);
     const plan = planInstructionsUpdate({
         composed,
@@ -184,13 +189,16 @@ export async function runTurn(input: RunTurnInput) {
         runId: start.runId,
         send: (frame) => input.link.send(frame),
     });
-    const observation = await observeTurn(input.journal.journaled(turn.events), {
-        activity: input.activity,
-        gate: notices.gate,
-        noProgress: turnNoProgress,
-        onNoProgress: () => noProgress.abort(),
-        thoughts,
-    });
+    const observation = await observeTurn(
+        input.timings.observe(input.journal.journaled(turn.events)),
+        {
+            activity: input.activity,
+            gate: notices.gate,
+            noProgress: turnNoProgress,
+            onNoProgress: () => noProgress.abort(),
+            thoughts,
+        }
+    );
     thoughts.close();
     unregister();
     const stalled = noProgress.signal.aborted && !input.signal.aborted;

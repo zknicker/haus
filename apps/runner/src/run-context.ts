@@ -78,8 +78,15 @@ export interface RunTools {
     ): Promise<ToolOutcome>;
 }
 
+export interface CommittedSend {
+    readonly atMs: number;
+    readonly chatId: string | null;
+    readonly done: boolean;
+}
+
 export interface RunVisibility {
     readonly sendCount: number;
+    readonly sends: readonly CommittedSend[];
     readonly servedAutomationIds: readonly string[];
     readonly visibleMessages: readonly { chatId: string; id: string; sequence: number }[];
 }
