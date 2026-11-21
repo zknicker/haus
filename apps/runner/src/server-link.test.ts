@@ -29,6 +29,7 @@ describe('runner server link', () => {
             runCredential,
             runId: 'run_1',
             serverUrl: server.url,
+            traceparent: run.trace.traceparent,
         });
         expect(run.reasoningEffort).toBe('xhigh');
         expect(run.modelConnectionId).toBe('mc_claude');

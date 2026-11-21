@@ -26,6 +26,7 @@ import { type NoticeSink, type RunTurnResult, runTurn } from './run-turn.ts';
 import type { RuntimeDriverFactory } from './runtime-driver.ts';
 import { SessionFailureError } from './turn-failure.ts';
 import { turnSummary } from './turn-summary.ts';
+import { turnSpanFrame } from './turn-trace.ts';
 
 interface ActiveRun {
     readonly controller: AbortController;
@@ -213,6 +214,10 @@ export function createTurnHostWith(input: {
             visibleMessages: [...visible.values()],
         });
         await settle(start, records, summary);
+        const span = turnSpanFrame(run, summary);
+        if (span) {
+            input.link.send(span);
+        }
     };
 
     const settle = async (

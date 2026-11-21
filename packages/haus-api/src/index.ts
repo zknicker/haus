@@ -176,6 +176,7 @@ export * from './rich-references.ts';
 export * from './model-connection-settings.ts';
 export * from './model-connections.ts';
 export * from './runner-protocol.ts';
+export * from './runner-turn-span.ts';
 export * from './runtime/contracts.ts';
 export * from './runtime/identity.ts';
 export * from './runtime/mcp.ts';
