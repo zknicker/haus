@@ -1,13 +1,9 @@
 import { expect, test } from 'bun:test';
 import { provisionAgents } from './provisioner.mjs';
 
-const terraComputer = {
-    health: 'healthy',
-    id: 'cmp_1',
-    reportedInventory: {
-        runtimes: [{ id: 'codex', models: [{ id: 'gpt-5.6-terra', label: 'Terra' }] }],
-    },
-};
+const terraComputer = { health: 'healthy', id: 'cmp_1' };
+
+const runnerModels = [{ id: 'codex', models: [{ id: 'gpt-6.1-terra', label: 'Terra' }] }];
 
 // A full run once lost six scenarios to 300s readiness timeouts: the Computer
 // had no disk left to reserve their workspaces, and a reset never re-applies
@@ -24,6 +20,11 @@ test('replaces an Agent the Computer had no workspace capacity for', async () =>
             switch (path) {
                 case 'computer.list':
                     return Promise.resolve([terraComputer]);
+                case 'modelConnections.list':
+                    return Promise.resolve({
+                        connections: [{ enabled: true, provider: 'chatgpt', status: 'ready' }],
+                        runnerModels,
+                    });
                 case 'project.list':
                     return Promise.resolve([
                         { archived: false, chatId: 'cht_product', isHaus: false, name: 'product' },

@@ -36,23 +36,19 @@ const readyAgent = {
 
 const evalProject = { archived: false, chatId: 'cht_product', isHaus: false, name: 'product' };
 
-const codexComputer = {
-    health: 'healthy',
-    id: 'cmp_1',
-    reportedInventory: {
-        runtimes: [
-            { id: 'claude-code', label: 'Claude Code', models: [{ id: 'opus', label: 'Opus' }] },
-            {
-                id: 'codex',
-                label: 'Codex',
-                models: [
-                    { id: 'gpt-5.6-sol', label: 'Sol' },
-                    { id: 'gpt-5.6-terra', label: 'Terra' },
-                ],
-            },
+const codexComputer = { health: 'healthy', id: 'cmp_1' };
+
+const runnerModels = [
+    { id: 'claude-code', label: 'Claude', models: [{ id: 'claude-opus-5-5', label: 'Opus' }] },
+    {
+        id: 'codex',
+        label: 'ChatGPT',
+        models: [
+            { id: 'gpt-6.1-sol', label: 'Sol' },
+            { id: 'gpt-6.1-terra', label: 'Terra' },
         ],
     },
-};
+];
 
 describe('marker', () => {
     test('carries the EVAL prefix and a six character suffix', () => {
@@ -75,25 +71,30 @@ describe('cleanup', () => {
 });
 
 describe('agent target', () => {
-    test('reads runtime and model from the Computer inventory', () => {
-        expect(pickAgentTarget([codexComputer])).toEqual({
+    test('reads runtime and model from the runner catalog, not the Computer', () => {
+        expect(pickAgentTarget([codexComputer], runnerModels)).toEqual({
             computerId: 'cmp_1',
-            modelId: 'gpt-5.6-terra',
+            modelId: 'gpt-6.1-terra',
             runtimeId: 'codex',
         });
+        expect(
+            pickAgentTarget([codexComputer], runnerModels, {
+                modelHint: 'opus',
+                runtimeId: 'claude-code',
+            })?.modelId
+        ).toBe('claude-opus-5-5');
     });
 
-    test('skips offline Computers and Computers without a terra codex model', () => {
-        expect(pickAgentTarget([{ ...codexComputer, health: 'offline' }])).toBeNull();
-        expect(
-            pickAgentTarget([{ health: 'healthy', id: 'cmp_2', reportedInventory: null }])
-        ).toBeNull();
-        expect(pickAgentTarget([])).toBeNull();
+    test('needs an attached Computer and a runner catalog with the model', () => {
+        expect(pickAgentTarget([{ ...codexComputer, health: 'offline' }], runnerModels)).toBeNull();
+        expect(pickAgentTarget([codexComputer], null)).toBeNull();
+        expect(pickAgentTarget([codexComputer], runnerModels, { modelHint: 'luna' })).toBeNull();
+        expect(pickAgentTarget([], runnerModels)).toBeNull();
     });
 
     test('prefers a healthy Computer over a degraded one', () => {
         const degraded = { ...codexComputer, health: 'degraded', id: 'cmp_degraded' };
-        expect(pickAgentTarget([degraded, codexComputer])?.computerId).toBe('cmp_1');
+        expect(pickAgentTarget([degraded, codexComputer], runnerModels)?.computerId).toBe('cmp_1');
     });
 
     test('readiness needs applied, idle, matching, and complete resources', () => {
@@ -124,7 +125,7 @@ describe('provisioning', () => {
         expect(worker).toMatchObject({
             computerId: 'cmp_1',
             homeProjectId: 'cht_product',
-            modelId: 'gpt-5.6-terra',
+            modelId: 'gpt-6.1-terra',
             runtimeId: 'codex',
             serverId: 'srv_1',
         });
@@ -383,6 +384,12 @@ function createFakeHarness({
         calls.push({ input, path });
         if (path === 'computer.list') {
             return [codexComputer];
+        }
+        if (path === 'modelConnections.list') {
+            return {
+                connections: [{ enabled: true, provider: 'chatgpt', status: 'ready' }],
+                runnerModels,
+            };
         }
         if (path === 'project.list') {
             return [evalProject];
