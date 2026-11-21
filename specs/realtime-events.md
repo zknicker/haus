@@ -277,10 +277,10 @@ receives no realtime traffic.
   | Group | Streams | Count |
   | --- | --- | --- |
   | Every accessible Server | `server.onUpdated`, `member.onUpdated` | 2 × accessible Servers |
-  | Active Server, every role | `agent`, `computer`, `mcp`, `cloudAgentSettings`, `artifact` `.onUpdated`; `chat.onMessageCreated`, `chat.onMessageReactionUpdated`, `chat.onRead`, `chat.onLifecycle`, `claim.onChanged`, `taskLabel.onUpdated`, `cloudAgentWork.onUpdated`, `imageGeneration.onUpdated`, `task.onCreated`, `task.onUpdated`, `task.onFollowUpdated` | 16 |
+  | Active Server, every role | `agent`, `computer`, `mcp`, `cloudAgentSettings`, `artifact`, `worker`, `imageGeneration`, `modelConnections`, `project` `.onUpdated`; `chat.onMessageCreated`, `chat.onMessageReactionUpdated`, `chat.onRead`, `chat.onLifecycle`, `claim.onChanged`, `taskLabel.onUpdated`, `task.onCreated`, `task.onUpdated`, `task.onFollowUpdated` | 18 |
   | Active Server, Owner/Admin only | `reminder.onUpdated`, `invitation.onUpdated` | 2 |
   | Active Server, kept Server-rooted | `agent.onLifecycle`, `agent.onActivity` (one mount each per window; the slice hoists duplicates) | 2 |
-  | Per mounted Chat view (shown or kept, at most 5 kept) | `chat.onEngagement`, `chat.onThought`, `chat.onComposition` | 3 × mounted Chat views |
+  | Per mounted Chat view (shown or kept, at most 5 kept) | `chat.onEngagement`, `chat.onThought`, `chat.onComposition`, `computerUse.onRequestUpdated` | 4 × mounted Chat views |
   | Per open turn journal | `agent.onExecutionJournal` | 1 each |
 
   Query observers are not budgeted the same way. Each shown view has one observer per mounted
@@ -290,7 +290,7 @@ receives no realtime traffic.
 
   A unit test mounts the shell with three Servers, one shown and one kept Chat view, as a member
   and as an Admin (`features/servers/realtime-budget.test.tsx`), and asserts the exact stream
-  count (6 + 16 + 2 + 6 = 30 as a member; 32 as an Admin), that the hidden kept view holds zero active `chat.message` observers, and that a
+  count (6 + 18 + 2 + 8 = 34 as a member; 36 as an Admin), that the hidden kept view holds zero active `chat.message` observers, and that a
   reconnect's starts reconcile owned reads through the coalescer only (no `chat.message`, no
   direct reads beyond the volatile projections).
 

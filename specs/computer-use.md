@@ -135,8 +135,6 @@ carries ids only, and the App invalidates the query.
   Permission request: "<Captain> wants to control applications on <Device>", a box with the
   command and `desktop · <detail>`, and Deny, Always allow, and Allow. A viewer who cannot decide
   sees "Waiting for <Device owner>" instead of the buttons.
-- **Markers.** A decided request shows in the transcript at its decision time as a muted line:
-  "Allowed on <Device>", "Always allowed on <Device>", or "Denied on <Device>".
 
 ## macOS permissions
 
@@ -153,6 +151,9 @@ with `npm install -g agent-desktop`. A missing binary answers `failed` with that
 
 ## Deferred
 
+- Transcript markers for a decision ("Allowed on <Device>", "Always allowed on <Device>",
+  "Denied on <Device>"), as Capy shows. Transcript rows are built only from messages today, so a
+  dated marker is its own row kind.
 - Revoking a chat's approval. Changing the setting back to Ask each chat keeps approvals already
   given.
 - Computer use on Linux and Windows Computers, and on cloud machines.

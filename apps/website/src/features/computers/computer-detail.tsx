@@ -15,6 +15,7 @@ import { ComputerDiskChip, ComputerDiskWarning } from './computer-disk-warning.t
 import { ComputerInventoryRefresh } from './computer-inventory-refresh.tsx';
 import { ComputerRuntimeIssues } from './computer-runtime-issues.tsx';
 import { ComputerSystemLog } from './computer-system-log-card.tsx';
+import { ComputerUseAccessCard } from './computer-use-access-card.tsx';
 import {
     computerHealthColor,
     computerHealthLabel,
@@ -133,6 +134,7 @@ export function ComputerDetail({
                 </ItemCardGroup>
             </section>
 
+            <ComputerUseAccessCard computerId={computerId} serverId={serverId} />
             <BrowserCapabilityCard computerId={computerId} serverId={serverId} />
             <CloudAgentCapabilityCard computerId={computerId} serverId={serverId} />
             <SecretsCapabilityCard computerId={computerId} serverId={serverId} />
