@@ -61,6 +61,7 @@ export type ClaudeStreamEvent = z.infer<typeof streamEventSchema>;
 const modelUsageSchema = z.looseObject({
     cacheCreationInputTokens: z.number().nullish(),
     cacheReadInputTokens: z.number().nullish(),
+    contextWindow: z.number().nullish(),
     inputTokens: z.number().nullish(),
     outputTokens: z.number().nullish(),
 });

@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { agentActivityFrameSchema } from './agent-activity.ts';
+import { agentContextReportSchema } from './agent-context.ts';
 import { agentNoticeCommandSchema, agentStartCommandSchema } from './agent-delivery-frames.ts';
 import {
     agentExecutionJournalAckSchema,
@@ -148,6 +149,7 @@ export const runnerUpFrameSchema = z.union([
     agentThoughtFrameSchema,
     agentExecutionJournalRecordsFrameSchema,
     agentIdleCompactionReportSchema,
+    agentContextReportSchema,
     invocationRequestFrameSchema,
     invocationCancelFrameSchema,
     ...runnerModelConnectionUpFrameSchemas,

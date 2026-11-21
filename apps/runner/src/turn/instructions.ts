@@ -18,6 +18,7 @@ export function composeInstructions(
     skills: readonly SkillListingEntry[],
     harness: HarnessId
 ) {
+    const skillListing = renderSkillListing(skills);
     const instructions = [
         renderAgentInstructions({
             ...runnerMachineFacts,
@@ -31,11 +32,11 @@ export function composeInstructions(
             signatureEmoji: start.agentSignatureEmoji,
             supportsSubagents: false,
         }).trimEnd(),
-        renderSkillListing(skills),
+        skillListing,
     ]
         .filter(Boolean)
         .join('\n\n');
-    return { fingerprint: sha256(instructions), instructions: `${instructions}\n` };
+    return { fingerprint: sha256(instructions), instructions: `${instructions}\n`, skillListing };
 }
 
 export type InstructionsPlan =

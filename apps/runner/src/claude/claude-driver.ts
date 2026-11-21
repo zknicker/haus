@@ -167,6 +167,9 @@ function claudeSession(deps: {
         turn = null;
     };
     const session: RuntimeSession & { readonly initTools: readonly string[] } = {
+        contextUsage() {
+            return connection.alive ? connection.contextUsage() : Promise.resolve(null);
+        },
         destroy() {
             closed = true;
             connection.binding.tools = null;

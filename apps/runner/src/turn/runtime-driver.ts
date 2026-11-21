@@ -1,5 +1,6 @@
 import type { AgentReasoningEffort, RunnerModelConnection } from '@haus/api';
 import type { RunTools } from '../run-context.ts';
+import type { HarnessContext } from './context-snapshot.ts';
 import type { TurnEvent } from './turn-event.ts';
 
 export const harnessIds = ['claude-agent-sdk', 'pi-durable'] as const;
@@ -38,6 +39,7 @@ export interface OpenSessionOptions {
 }
 
 export interface RuntimeSession {
+    contextUsage(): Promise<HarnessContext | null>;
     destroy(): Promise<void>;
     detach(): Promise<string>;
     readonly isResume: boolean;

@@ -10,6 +10,7 @@ import { EventQueue } from '../turn/event-queue.ts';
 import { ClaudeBackgroundTasks } from './claude-background-tasks.ts';
 import { claudeCapacityWindows } from './claude-capacity.ts';
 import { runClaudeCompaction } from './claude-compaction.ts';
+import { claudeHarnessContext } from './claude-context.ts';
 import { ClaudeSessionEndedError, claudeResumeRejection } from './claude-errors.ts';
 import { ClaudeIdleActivity } from './claude-idle-activity.ts';
 import {
@@ -146,6 +147,12 @@ export class ClaudeConnection implements IdleCompactable {
 
     compact() {
         return runClaudeCompaction(this);
+    }
+
+    async contextUsage() {
+        const usage = await this.query.getContextUsage({ detail: 'summary' });
+        const window = this.idleActivity.cumulative.models[this.modelId]?.contextWindow ?? null;
+        return claudeHarnessContext(usage, window);
     }
 
     idleCompactionSnapshot() {

@@ -114,6 +114,7 @@ These replace `server.onUpdate` and its `scope` enum. All payloads live in
 | Procedure | Payload | Audience | App reads (invalidate) |
 | --- | --- | --- | --- |
 | `agent.onUpdated` | `{ serverId, agentId \| null }` | Every member | `server.bySlug` (this slug), `agent.get` + `agent.deliveryState` (agentId, else every `agent.get`), `agent.conversationStyle` (agentId, else all), `agent.skillFile`, `agent.workspaceFile`, `agent.workspaceFiles` (agentId, else all), `agent.list`, `chat.list` |
+| `agent.onContextUpdated` | `{ serverId, agentId }` | Every member | `agent.context` (agentId). Published when the runner stores a newer snapshot of the Agent's current session (specs/sessions.md, "Context") |
 | `computer.onUpdated` | `{ serverId, computerId \| null }` | Every member | `server.bySlug`, `computer.list`, `computer.systemLog` (computerId, else all), `agent.activeActivity`, `agent.deliveryState`, `agent.list`, `stats.live`, `cloudAgentSettings.get` (a report can carry a new model catalog) |
 | `mcp.onUpdated` | `{ serverId }` | Every member | `mcp.list`, `mcp.amazonProduct`, `mcp.amazonProductDetail` |
 | `server.onUpdated` | `{ serverId }` | Every member | `server.bySlug`, `server.list` |

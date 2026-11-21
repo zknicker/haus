@@ -42,6 +42,13 @@ export const agentUpdatedEventSchema = z
 
 export type AgentUpdatedEvent = z.infer<typeof agentUpdatedEventSchema>;
 
+/** `agent.onContextUpdated`: the runner reported a new context snapshot for an Agent's session. */
+export const agentContextUpdatedEventSchema = z
+    .object({ agentId: idSchema, serverId: idSchema })
+    .strict();
+
+export type AgentContextUpdatedEvent = z.infer<typeof agentContextUpdatedEventSchema>;
+
 /**
  * `computer.onUpdated`: attachment, inventory, update progress, or a report
  * that changed a stored Computer row. Agent-owned skill and workspace changes
