@@ -58,6 +58,7 @@ export async function submitChatComposer({
 
     const submitted = takeChatDraftForSend(draftKey);
     onSend?.();
+    focusTextEditor();
     if (attachmentInput.current) {
         attachmentInput.current.value = '';
     }

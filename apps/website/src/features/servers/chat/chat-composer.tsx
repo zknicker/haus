@@ -255,7 +255,11 @@ export function ServerChatComposer({
                             ) : null}
                         </PromptInput.ToolbarStart>
                         <PromptInput.ToolbarEnd>
-                            <PromptInput.Send aria-label="Send" isDisabled={!canSubmit} />
+                            <PromptInput.Send
+                                aria-label="Send"
+                                isDisabled={!canSubmit}
+                                preventFocusOnPress
+                            />
                         </PromptInput.ToolbarEnd>
                     </PromptInput.Toolbar>
                 </PromptInput.Shell>
