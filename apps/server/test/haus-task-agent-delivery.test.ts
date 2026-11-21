@@ -38,7 +38,7 @@ const assignNew = (delivery: AgentDelivery, board: TaskBoard, title: string) =>
 test('ten assignments to an idle Agent wake it once, with one typed attention', async () => {
     const board = await seedBoard();
     const { seed } = board;
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
 
     const results: Awaited<ReturnType<typeof assignNew>>[] = [];
     for (let index = 1; index <= 10; index += 1) {
@@ -49,7 +49,7 @@ test('ten assignments to an idle Agent wake it once, with one typed attention', 
     expect((await inboxRows(seed))[0]).toMatchObject({ mentioned: true, state: 'queued' });
 
     const start = await wake();
-    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(runner.starts()).toHaveLength(1);
     expect(start).toMatchObject({
         chatId: null,
         drainItemIds: [],
@@ -71,7 +71,7 @@ test('ten assignments to an idle Agent wake it once, with one typed attention', 
 
     // A resend reproduces the same chatless frame.
     await delivery.dispatchAgent(seed.agentId, seed.serverId, { resendActive: true });
-    expect(transport.framesOfType('start').at(-1)).toEqual(start as never);
+    expect(runner.starts().at(-1)).toEqual(start as never);
 
     const runId = start?.runId ?? '';
     const [trigger] = await connection.db
@@ -103,16 +103,15 @@ test('ten assignments to an idle Agent wake it once, with one typed attention', 
     await delivery.onTurnSettled(seed.computerId, settledTurn(seed, runId));
     expect((await inboxRows(seed)).every((row) => row.state === 'seen')).toBe(true);
     // The first dispatch and its resend: all ten rode the one run.
-    expect(new Set(transport.framesOfType('start').map((frame) => frame.runId))).toEqual(
-        new Set([runId])
-    );
+    expect(new Set(runner.starts().map((frame) => frame.runId))).toEqual(new Set([runId]));
 });
 
 test('a busy Agent gets a content-free count, then the concrete Tasks on its next turn', async () => {
     const board = await seedBoard();
     const { seed } = board;
-    const { delivery, transport } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, transport } = offlineDelivery(connection.db, seed);
     transport.online.add(seed.computerId);
+    runner.attach(seed.agentId);
     await delivery.deliver({
         agentId: seed.agentId,
         chatId: null,
@@ -121,14 +120,14 @@ test('a busy Agent gets a content-free count, then the concrete Tasks on its nex
         serverId: seed.serverId,
         source: 'subagent',
     });
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
 
     const first = await assignNew(delivery, board, 'Rotate the keys');
     const second = await assignNew(delivery, board, 'Patch the host');
     await delivery.dispatchAgent(seed.agentId, seed.serverId);
 
-    const notice = transport.framesOfType('notice').at(-1);
+    const notice = runner.framesOfType('notice').at(-1);
     expect(notice).toMatchObject({
         inbox: [],
         runId,
@@ -146,12 +145,12 @@ test('a busy Agent gets a content-free count, then the concrete Tasks on its nex
         runId,
         workIds: notice?.taskAssignments?.ids ?? [],
     });
-    const noticed = transport.framesOfType('notice').length;
+    const noticed = runner.framesOfType('notice').length;
     await delivery.dispatchAgent(seed.agentId, seed.serverId);
-    expect(transport.framesOfType('notice')).toHaveLength(noticed);
+    expect(runner.framesOfType('notice')).toHaveLength(noticed);
 
     await delivery.onTurnSettled(seed.computerId, settledTurn(seed, runId));
-    const next = transport.framesOfType('start').at(-1);
+    const next = runner.starts().at(-1);
     expect(next?.runId).not.toBe(runId);
     expect(next?.taskAssignments?.map((task) => task.title)).toEqual([
         'Rotate the keys',
@@ -162,16 +161,17 @@ test('a busy Agent gets a content-free count, then the concrete Tasks on its nex
 test('a busy notice beside Chat work keeps both, counted apart', async () => {
     const board = await seedBoard();
     const { seed } = board;
-    const { delivery, transport } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, transport } = offlineDelivery(connection.db, seed);
     transport.online.add(seed.computerId);
+    runner.attach(seed.agentId);
     await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
 
     await assignNew(delivery, board, 'Rotate the keys');
     await deliverHuman(connection.db, delivery, seed, { chatId: seed.channelId });
 
-    const notice = transport.framesOfType('notice').at(-1);
+    const notice = runner.framesOfType('notice').at(-1);
     expect(notice?.inbox).toHaveLength(2);
     expect(notice).toMatchObject({ taskAssignments: { total: 1 }, totalPending: 2 });
 });
@@ -179,7 +179,7 @@ test('a busy notice beside Chat work keeps both, counted apart', async () => {
 test('other chatless work still runs alone, apart from the Task batch', async () => {
     const board = await seedBoard();
     const { seed } = board;
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
     await delivery.enqueue(connection.db, {
         agentId: seed.agentId,
         chatId: null,
@@ -196,7 +196,7 @@ test('other chatless work still runs alone, apart from the Task batch', async ()
     expect(subagentWake).not.toHaveProperty('taskAssignments');
 
     await delivery.onTurnSettled(seed.computerId, settledTurn(seed, subagentWake?.runId ?? ''));
-    const tasks = transport.framesOfType('start').at(-1);
+    const tasks = runner.starts().at(-1);
     expect(tasks?.taskAssignments).toHaveLength(2);
     expect(tasks).not.toHaveProperty('subagentWake');
 });
@@ -204,7 +204,7 @@ test('other chatless work still runs alone, apart from the Task batch', async ()
 test('a queued assignment never runs the main session ahead of the greeting', async () => {
     const board = await seedBoard();
     const { seed } = board;
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
     const allChannelId = await addChannel(connection.db, seed, 'all');
     await enqueueAgentGreeting(connection.db, {
         agentId: seed.agentId,
@@ -219,7 +219,7 @@ test('a queued assignment never runs the main session ahead of the greeting', as
     await delivery.onAck({ agentId: seed.agentId, runId: first?.runId ?? '' });
     await delivery.onTurnSettled(seed.computerId, settledTurn(seed, first?.runId ?? ''));
 
-    const assignment = transport.framesOfType('start').at(-1);
+    const assignment = runner.starts().at(-1);
     expect(assignment?.taskAssignments).toHaveLength(1);
     expect(assignment?.greets).toBeUndefined();
 });

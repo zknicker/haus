@@ -3,16 +3,12 @@ import { randomBytes } from 'node:crypto';
 const runnerTokenBytes = 32;
 const inheritedNames = ['HOME', 'LANG', 'PATH', 'SHELL', 'TMPDIR', 'USER'];
 
-export function isRunnerLoop(environment) {
-    return environment.HAUS_AGENT_LOOP === 'runner';
-}
-
 export function createRunnerToken() {
     return randomBytes(runnerTokenBytes).toString('base64url');
 }
 
 export function createRunnerServerEnvironment(serverEnvironment, runnerToken) {
-    return { ...serverEnvironment, HAUS_AGENT_LOOP: 'runner', HAUS_RUNNER_TOKEN: runnerToken };
+    return { ...serverEnvironment, HAUS_RUNNER_TOKEN: runnerToken };
 }
 
 export function createRunnerProcessEnvironment({

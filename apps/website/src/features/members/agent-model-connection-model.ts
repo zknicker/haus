@@ -33,11 +33,8 @@ export function agentConnectionChoice(
 
 export function agentConnectionIssue(
     agent: AgentConnectionFields,
-    read: Pick<ModelConnectionsRead, 'agentLoop' | 'connections'>
+    read: Pick<ModelConnectionsRead, 'connections'>
 ) {
-    if (read.agentLoop !== 'runner') {
-        return null;
-    }
     const provider = modelProviderFor(agent.desiredModelId);
     const providerName = modelProviderNames[provider];
     const options = providerConnections(provider, read.connections);

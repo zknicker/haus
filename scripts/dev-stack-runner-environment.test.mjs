@@ -4,14 +4,7 @@ import {
     createRunnerProcessEnvironment,
     createRunnerServerEnvironment,
     createRunnerToken,
-    isRunnerLoop,
 } from './dev-stack-runner-environment.mjs';
-
-test('the runner starts only when HAUS_AGENT_LOOP is runner', () => {
-    assert.equal(isRunnerLoop({ HAUS_AGENT_LOOP: 'runner' }), true);
-    assert.equal(isRunnerLoop({ HAUS_AGENT_LOOP: 'computer' }), false);
-    assert.equal(isRunnerLoop({}), false);
-});
 
 test('each stack run mints a distinct token of at least 43 characters', () => {
     const first = createRunnerToken();
@@ -20,9 +13,8 @@ test('each stack run mints a distinct token of at least 43 characters', () => {
     assert.notEqual(first, createRunnerToken());
 });
 
-test('Server and runner share the token and the loop switch', () => {
+test('Server and runner share the token', () => {
     const server = createRunnerServerEnvironment({ PATH: '/usr/bin' }, 'token-a');
-    assert.equal(server.HAUS_AGENT_LOOP, 'runner');
     assert.equal(server.HAUS_RUNNER_TOKEN, 'token-a');
     assert.equal(server.PATH, '/usr/bin');
 });

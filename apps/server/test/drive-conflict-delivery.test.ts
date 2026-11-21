@@ -27,7 +27,7 @@ const conflictRows = (agentId: string) => fixture().conflictRows(agentId);
 
 test('one push queues one item that wakes an idle Agent as its own chatless run', async () => {
     const seed = await seedAgent(connection.db);
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
     const attention = conflictOf('run_push_idle', { agentId: seed.agentId, type: 'agent' });
 
     expect(await queue(delivery, seed, attention)).toEqual({
@@ -63,7 +63,7 @@ test('one push queues one item that wakes an idle Agent as its own chatless run'
     expect(agentCommandSchema.safeParse(start).success).toBe(true);
 
     await delivery.dispatchAgent(seed.agentId, seed.serverId, { resendActive: true });
-    expect(transport.framesOfType('start').at(-1)).toEqual(start as never);
+    expect(runner.starts().at(-1)).toEqual(start as never);
 
     const runId = start?.runId ?? '';
     const [trigger] = await connection.db
@@ -86,12 +86,12 @@ test('one push queues one item that wakes an idle Agent as its own chatless run'
 
     await queue(delivery, seed, attention);
     expect(await conflictRows(seed.agentId)).toHaveLength(1);
-    expect(transport.framesOfType('start')).toHaveLength(2);
+    expect(runner.starts()).toHaveLength(2);
 });
 
 test('two pushes never coalesce: each runs alone', async () => {
     const seed = await seedAgent(connection.db);
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
     const writer = { agentId: seed.agentId, type: 'agent' as const };
     await queue(delivery, seed, conflictOf('run_push_first', writer));
     await queue(delivery, seed, conflictOf('run_push_second', writer));
@@ -99,7 +99,7 @@ test('two pushes never coalesce: each runs alone', async () => {
     const first = await wake();
     expect(first?.driveConflict?.pushId).toBe('run_push_first');
     await delivery.onTurnSettled(seed.computerId, settledTurn(seed, first?.runId ?? ''));
-    const second = transport.framesOfType('start').at(-1);
+    const second = runner.starts().at(-1);
     expect(second?.driveConflict?.pushId).toBe('run_push_second');
     expect(second?.runId).not.toBe(first?.runId);
 });
@@ -136,10 +136,11 @@ test("a Worker's push reaches its Agent, and no one else", async () => {
 
 test('a busy Agent gets no notice, then the item as its next run', async () => {
     const seed = await seedAgent(connection.db);
-    const { delivery, transport } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, transport } = offlineDelivery(connection.db, seed);
     transport.online.add(seed.computerId);
+    runner.attach(seed.agentId);
     const dmId = await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
-    const busyRunId = transport.framesOfType('start')[0]?.runId ?? '';
+    const busyRunId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId: busyRunId });
 
     await queue(
@@ -148,16 +149,16 @@ test('a busy Agent gets no notice, then the item as its next run', async () => {
         conflictOf('run_push_busy', { agentId: seed.agentId, type: 'agent' })
     );
     await delivery.dispatchAgent(seed.agentId, seed.serverId);
-    expect(transport.framesOfType('notice')).toEqual([]);
+    expect(runner.framesOfType('notice')).toEqual([]);
 
     const humanId = await deliverHuman(connection.db, delivery, seed, { chatId: seed.channelId });
-    const notice = transport.framesOfType('notice').at(-1);
+    const notice = runner.framesOfType('notice').at(-1);
     expect(notice?.inbox.map((item) => item.id)).toEqual([dmId, humanId]);
     expect(notice?.totalPending).toBe(2);
     expect(JSON.stringify(notice)).not.toContain('run_push_busy');
 
     await delivery.onTurnSettled(seed.computerId, settledTurn(seed, busyRunId));
-    const next = transport.framesOfType('start').at(-1);
+    const next = runner.starts().at(-1);
     expect(next?.runId).not.toBe(busyRunId);
     expect(next?.driveConflict?.pushId).toBe('run_push_busy');
     expect(next?.chatId).toBeNull();

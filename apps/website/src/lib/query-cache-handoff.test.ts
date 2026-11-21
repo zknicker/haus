@@ -48,7 +48,7 @@ describe('packQueryCacheHandoff', () => {
         ];
         const list = [['modelConnections', 'list'], { input: { serverId: 's1' }, type: 'query' }];
         client.setQueryData(signIn, { state: 'code', userCode: 'ABCD-1234' });
-        client.setQueryData(list, { agentLoop: 'runner', connections: [] });
+        client.setQueryData(list, { connections: [], runnerModels: null });
         expect(packedKeys(client)).toEqual([
             chatList,
             [['server', 'list'], { type: 'query' }],

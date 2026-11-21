@@ -14,6 +14,7 @@ import {
 } from '../src/postgres/schema.ts';
 import { testAgentHome } from './agent-home.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
+import { RecordingRunner } from './recording-runner.ts';
 
 const conversationStyle = 'Terse. Plain words. Dry humor.';
 
@@ -50,8 +51,10 @@ class FakeTransport implements DeliveryTransport {
 test('a live dispatch carries the conversation style and emoji on the start frame and nowhere else', async () => {
     const seed = await seedAgent(conversationStyle, '🦊');
     const transport = new FakeTransport();
+    const runner = new RecordingRunner();
     transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    runner.attach(seed.agentId);
+    const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -61,13 +64,14 @@ test('a live dispatch carries the conversation style and emoji on the start fram
         serverId: seed.serverId,
     });
 
-    expectStyleOnlyOnStart(transport.sent);
+    expectStyleOnlyOnStart(runner, transport.sent);
 });
 
 test('a reconnect replay rebuilds the same conversation style from durable state', async () => {
     const seed = await seedAgent(conversationStyle, '🦊');
     const transport = new FakeTransport();
-    const delivery = new AgentDelivery(connection.db, transport);
+    const runner = new RecordingRunner();
+    const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
     await delivery.deliver({
         agentId: seed.agentId,
         chatId: seed.chatId,
@@ -77,16 +81,19 @@ test('a reconnect replay rebuilds the same conversation style from durable state
     });
 
     transport.online.add(seed.computerId);
+    runner.attach(seed.agentId);
     await delivery.onComputerReconnect(seed.computerId);
 
-    expectStyleOnlyOnStart(transport.sent);
+    expectStyleOnlyOnStart(runner, transport.sent);
 });
 
 test('an Agent without a conversation style starts with no style and a null emoji', async () => {
     const seed = await seedAgent(null, null);
     const transport = new FakeTransport();
+    const runner = new RecordingRunner();
     transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    runner.attach(seed.agentId);
+    const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -96,24 +103,25 @@ test('an Agent without a conversation style starts with no style and a null emoj
         serverId: seed.serverId,
     });
 
-    const start = transport.sent.find((frame) => frame.type === 'start');
+    const [start] = runner.starts();
     expect(start).toBeDefined();
     expect(start && 'agentConversationStyle' in start).toBe(false);
-    expect(start?.type === 'start' && start.agentSignatureEmoji).toBeNull();
+    expect(start?.agentSignatureEmoji).toBeNull();
 });
 
-function expectStyleOnlyOnStart(sent: AgentCommand[]) {
-    const starts = sent.filter((frame) => frame.type === 'start');
+function expectStyleOnlyOnStart(runner: RecordingRunner, computerFrames: AgentCommand[]) {
+    const starts = runner.starts();
     expect(starts).toHaveLength(1);
     const [start] = starts;
-    expect(start?.type === 'start' && start.agentConversationStyle).toBe(conversationStyle);
-    expect(start?.type === 'start' && start.agentSignatureEmoji).toBe('🦊');
-    expect(start?.type === 'start' && start.agentDescription).toBe('Keeps release notes current.');
-    // The envelope other Agents' messages ride, and every other frame, stays style-free.
-    expect(JSON.stringify(start?.type === 'start' ? start.inbox : null)).not.toContain(
-        conversationStyle
-    );
-    for (const frame of sent.filter((candidate) => candidate.type !== 'start')) {
+    expect(start?.agentConversationStyle).toBe(conversationStyle);
+    expect(start?.agentSignatureEmoji).toBe('🦊');
+    expect(start?.agentDescription).toBe('Keeps release notes current.');
+    expect(JSON.stringify(start?.inbox ?? null)).not.toContain(conversationStyle);
+    const others = [
+        ...computerFrames,
+        ...runner.sent.filter((candidate) => candidate.type !== 'runner-start'),
+    ];
+    for (const frame of others) {
         expect(JSON.stringify(frame)).not.toContain(conversationStyle);
     }
 }

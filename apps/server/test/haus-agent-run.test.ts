@@ -20,6 +20,7 @@ import { invokeMcp } from './mcp-client.ts';
 import { createMcpFixture } from './mcp-fixture.ts';
 import { createTestProject } from './project.fixture.ts';
 import { captureAllTopics, publishedKinds } from './realtime-capture.ts';
+import { RecordingRunner } from './recording-runner.ts';
 import { registerServerRuntime, registerTestConnections } from './test-computer-connections.ts';
 
 let harness: HausServerHarness;
@@ -1564,16 +1565,9 @@ test('rejects a runner mint for an Agent on another Computer', async () => {
     expect(response.status).toBe(403);
 });
 
-test('durable delivery sends one typed start, serializes per Agent, and needs an online Computer', async () => {
-    const frames: {
-        agentId?: string;
-        modelId?: string;
-        runId?: string;
-        runtimeId?: string;
-        type: string;
-    }[] = [];
-    const connections = makeConnections();
-    const delivery = new AgentDelivery(connection.db, connections);
+test('durable delivery sends one typed start, serializes per Agent, and needs an online runner', async () => {
+    const runner = new RecordingRunner();
+    const delivery = new AgentDelivery(connection.db, makeConnections(), undefined, runner);
 
     // Offline: the message is queued durably but nothing reaches the wire.
     await delivery.deliver({
@@ -1583,18 +1577,12 @@ test('durable delivery sends one typed start, serializes per Agent, and needs an
         dedupeKey: 'run_deliver_1',
         serverId,
     });
-    expect(frames).toHaveLength(0);
+    expect(runner.sent).toHaveLength(0);
 
-    // Attaching the Computer and reconciling delivers the queued run exactly once.
-    connections.register(computerId, {
-        ordinary: true,
-        send: (frame) => frames.push(frame as (typeof frames)[number]),
-        serverId,
-        updatePhase: 'idle',
-    });
-    await delivery.onComputerReconnect(computerId);
-    const starts = () =>
-        frames.filter((frame) => frame.agentId === agentId && frame.type === 'start');
+    // Attaching the runner and reconciling delivers the queued run exactly once.
+    runner.attach(agentId);
+    await delivery.onRunnerReconnect();
+    const starts = () => runner.starts();
     expect(starts()).toHaveLength(1);
     expect(starts()[0]).toMatchObject({
         modelId: 'gpt-5.6-sol',
@@ -1613,7 +1601,7 @@ test('durable delivery sends one typed start, serializes per Agent, and needs an
         serverId,
     });
     expect(starts()).toHaveLength(1);
-    expect(frames.some((frame) => frame.type === 'notice')).toBe(true);
+    expect(runner.framesOfType('notice')).not.toHaveLength(0);
 
     // The safe boundary: settling the run drains the queued work into the next.
     await delivery.onTurnSettled(computerId, {

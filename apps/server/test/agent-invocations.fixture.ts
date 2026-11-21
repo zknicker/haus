@@ -56,7 +56,6 @@ export function manualInvocationClock() {
 
 export async function startInvocationHarness(input: { clock?: InvocationClock; slug: string }) {
     const harness = await startHausServerHarness({
-        agentLoop: 'runner',
         invocationClock: input.clock,
         runnerToken: testRunnerToken,
     });

@@ -30,7 +30,7 @@ let runner: RunnerClient;
 let planId: string;
 
 beforeAll(async () => {
-    harness = await startHausServerHarness({ agentLoop: 'runner', runnerToken: testRunnerToken });
+    harness = await startHausServerHarness({ runnerToken: testRunnerToken });
     seed = await seedConnectionServer(harness, 'models-capacity');
     planId = (await addClaudeConnection(seed, 'Team plan', 'sk-ant-oat01-team-token')).id;
     runner = connectRunner(harness, testRunnerToken);

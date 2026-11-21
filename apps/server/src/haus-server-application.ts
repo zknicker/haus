@@ -3,7 +3,7 @@ import { settle, tracePromise } from '@haus/effect';
 import { Exit, Scope } from 'effect';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { AgentDelivery } from './agent-delivery/delivery.ts';
-import { agentLoopWiring } from './agent-delivery/loop-host.ts';
+import { cutoverSweep, prepareAgentHosts } from './agent-delivery/runner-cutover.ts';
 import { openInvocationRouter } from './agent-invocations/invocation-router.ts';
 import { openArtifactStorage } from './artifacts/startup.ts';
 import { openAttachmentRoot } from './attachments/attachment-root.ts';
@@ -11,7 +11,6 @@ import { reconcileAttachments } from './attachments/reconcile-attachments.ts';
 import { AvatarImageService, OpenAiAvatarImageProvider } from './avatar-generation/index.ts';
 import { purgeDeletedChannels } from './chats/channel-lifecycle.ts';
 import { ComputerConnections } from './computers/connections.ts';
-import { markAllComputersOffline } from './computers/service.ts';
 import { startComputerAttachmentSocket } from './computers/socket.ts';
 import { productionComputerManifestUrl } from './computers/update.ts';
 import { githubDeliveryIngest } from './github/deliveries.ts';
@@ -86,7 +85,7 @@ export async function createHausServerApplication(
         await reconcileAttachments(connectedHaus.db, attachmentRoot);
         await purgeDeletedChannels(connectedHaus.db, attachmentRoot);
         await purgeDeletedServers(connectedHaus.db, attachmentRoot, artifactStorage);
-        await markAllComputersOffline(connectedHaus.db);
+        await prepareAgentHosts(connectedHaus.db);
         const cloudflareAdmissions = createCloudflareAdmissions(options.cloudflareAccess);
         const hausSessions = createHausSessions(connectedHaus.db);
         const sessionConnections = new SessionConnections();
@@ -106,8 +105,9 @@ export async function createHausServerApplication(
             connectedHaus.db,
             computerConnections,
             runtime,
-            agentLoopWiring(options.agentLoop, runnerLink)
+            runnerLink
         );
+        modelConnections.whenChanged(cutoverSweep(connectedHaus.db, agentDelivery).sweep);
         const startedPostCommitWork = new ServerPostCommitWork(runtime);
         handles.postCommitWork = startedPostCommitWork;
         const avatarImageService = new AvatarImageService(
@@ -243,7 +243,7 @@ export async function createHausServerApplication(
             wakeAgents,
         });
         handles.recurringWork = await startServerRecurringWork({
-            delivery: agentDelivery,
+            delivery: cutoverSweep(connectedHaus.db, agentDelivery),
             reminderClock,
             reminderTick: () => tickReminders(connectedHaus.db, reminderClock, agentDelivery),
             runtime,

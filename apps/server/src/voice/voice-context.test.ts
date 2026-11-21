@@ -52,16 +52,12 @@ test('voice instructions carry the conversation style only when one is set', () 
     );
 });
 
-test('a call needs a healthy Computer on Computers and a reachable runner on the runner', () => {
+test('a call needs a reachable runner and a running Agent', () => {
     const offline = { health: 'offline', stopped: false } as const;
-    const runner = (online: boolean) => ({ loop: 'runner' as const, runnerOnline: () => online });
-    const computers = { loop: 'computer' as const, runnerOnline: () => false };
+    const runner = (online: boolean) => ({ runnerOnline: () => online });
     expect(voiceCallRefusal(offline, runner(true))).toBeNull();
     expect(voiceCallRefusal(offline, runner(false))).toBe(
         'Haus cannot reach the Agent runner right now. Try the call again shortly.'
-    );
-    expect(voiceCallRefusal(offline, computers)).toBe(
-        'The Agent needs a connected Computer before you call.'
     );
     expect(voiceCallRefusal({ health: 'healthy', stopped: true }, runner(true))).toBe(
         'The Agent is stopped. Start it before you call.'
