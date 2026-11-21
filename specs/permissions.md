@@ -2,6 +2,8 @@
 
 Haus exposes one interactive tool approval prompt: the in-chat Permission request before a
 Captain first clicks or types on a Device ([Computer use](computer-use.md)). No other tool asks.
+That prompt is consent for the `desktop` tool, not a sandbox: a Captain's `bash` on its machine
+already has the machine user's full power ([what the setting guards](computer-use.md#what-the-setting-guards)).
 
 Tool access is governed by tool source, sandbox mode, and approval policy:
 
