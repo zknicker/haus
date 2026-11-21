@@ -18,6 +18,8 @@ import { parseDrainItemIds, parseInbox, parseUnreadElsewhere } from './agent-inb
 import { parseTurnTraceContext } from './agent-turn-telemetry.ts';
 import { parseConnectionChips, parseStartAgentFacts } from './start-command-facts.ts';
 
+export { noticeReceipt } from '@haus/api';
+
 // Server→Computer command frame validation. Every parser fails closed to null.
 
 /** Validates a Server→Computer frame as a launch command. Fails closed to null. */
