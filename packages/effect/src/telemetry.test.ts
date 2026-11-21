@@ -6,7 +6,6 @@ import {
 } from '@opentelemetry/sdk-metrics';
 import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 import { ManagedRuntime } from 'effect';
-import { makeProcessTelemetryRelay } from './telemetry-relay.ts';
 import {
     makeProcessTelemetryLayer,
     makeTelemetryLayer,
@@ -98,39 +97,6 @@ test('exports parented spans across an explicit trace carrier', async () => {
     expect(metricNames).toContain('haus.operation.duration');
     expect(metricOperations).toContain('haus.agent.turn');
     expect(metricOutcomes).toContain('failure');
-});
-
-test('relays protobuf signals with only configured upstream headers', async () => {
-    const requests: Array<{ body: Uint8Array; headers: Headers; url: string }> = [];
-    const relay = makeProcessTelemetryRelay({
-        environment: {
-            OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: 'https://telemetry.example/v1/metrics',
-            OTEL_EXPORTER_OTLP_METRICS_HEADERS:
-                'Authorization=Bearer%20metrics,X-Axiom-Metrics-Dataset=haus-metrics',
-            OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: 'https://telemetry.example/v1/traces',
-            OTEL_EXPORTER_OTLP_TRACES_HEADERS:
-                'Authorization=Bearer%20traces,X-Axiom-Dataset=haus-operations',
-        },
-        fetch: async (input, init) => {
-            requests.push({
-                body: new Uint8Array(await new Response(init?.body).arrayBuffer()),
-                headers: new Headers(init?.headers),
-                url: String(input),
-            });
-            return new Response(null, { status: 200 });
-        },
-    });
-
-    expect(relay).not.toBeNull();
-    await relay?.forward('traces', Uint8Array.from([1, 2, 3]));
-
-    expect(requests).toHaveLength(1);
-    expect(requests[0]?.url).toBe('https://telemetry.example/v1/traces');
-    expect(requests[0]?.headers.get('authorization')).toBe('Bearer traces');
-    expect(requests[0]?.headers.get('x-axiom-dataset')).toBe('haus-operations');
-    expect(requests[0]?.headers.get('x-axiom-metrics-dataset')).toBeNull();
-    expect(requests[0]?.headers.get('content-type')).toBe('application/x-protobuf');
-    expect([...(requests[0]?.body ?? [])]).toEqual([1, 2, 3]);
 });
 
 test('drops arbitrary content and rejects malformed trace carriers', () => {

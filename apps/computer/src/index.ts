@@ -377,30 +377,22 @@ async function main(args: string[]) {
         }
         await finishRestart(dataRoot);
         guardDevDaemonMemory(attachment.slug);
-        process.exitCode = await withDaemonRuntime(
-            async (runtime) => {
-                const partition = { dataRoot, serverId: attachment.serverId };
-                const workers = new WorkerSupervisor(runtime, { ...partition, server: attachment });
-                const daemonWork = new AttachmentDaemonWork(runtime, workers);
-                return withAttachmentShutdown(daemonWork, runtime, partition, () =>
-                    runAttachmentDaemon(runtime, {
-                        attachmentExists: async () => (await readAttachment(target)) !== null,
-                        connect: () => connect(attachment, runtime, daemonWork),
-                        isTerminalUnlinkedError: isComputerMachineUnlinked,
-                        log: (message) => console.error(`/${attachment.slug}: ${message}`),
-                        markTerminalUnlinked: () => markTerminalUnlinked(dataRoot, attachment),
-                        oneshot: process.env.HAUS_COMPUTER_ONESHOT === '1',
-                        validate: () => validate(attachment),
-                    })
-                );
-            },
-            {
-                telemetryRelay: {
-                    credential: attachment.credential,
-                    serverOrigin: attachment.serverOrigin,
-                },
-            }
-        );
+        process.exitCode = await withDaemonRuntime(async (runtime) => {
+            const partition = { dataRoot, serverId: attachment.serverId };
+            const workers = new WorkerSupervisor(runtime, { ...partition, server: attachment });
+            const daemonWork = new AttachmentDaemonWork(runtime, workers);
+            return withAttachmentShutdown(daemonWork, runtime, partition, () =>
+                runAttachmentDaemon(runtime, {
+                    attachmentExists: async () => (await readAttachment(target)) !== null,
+                    connect: () => connect(attachment, runtime, daemonWork),
+                    isTerminalUnlinkedError: isComputerMachineUnlinked,
+                    log: (message) => console.error(`/${attachment.slug}: ${message}`),
+                    markTerminalUnlinked: () => markTerminalUnlinked(dataRoot, attachment),
+                    oneshot: process.env.HAUS_COMPUTER_ONESHOT === '1',
+                    validate: () => validate(attachment),
+                })
+            );
+        });
         return;
     }
     if (command === 'attach') {

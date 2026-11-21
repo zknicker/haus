@@ -49,8 +49,6 @@ the access boundary.
 | `OpenAI API - Haus` | `Development`, `Production` | Server-owned transient Agent avatar generation; one independently rotated key per lifecycle |
 | `Google AI Studio - Haus` | `Development`, `Production` | Server-owned Gemini key that summarizes Agent thought excerpts and action descriptions; one per lifecycle |
 | `Apple Push - Haus` | `Development`, `Production` | Server-owned APNs token-signing key for iPhone push: `key_id` and `private_key` (the `.p8` PEM); optional |
-| `Axiom Development OTLP - Haus` | `Development` | Development OTLP ingestion for the shared operations and metrics datasets |
-| `Axiom Production OTLP - Haus` | `Production` | Hosted Server OTLP ingestion for the shared operations and metrics datasets |
 | `Postgres - Haus` | `Production` | runtime URL, migration URL, container admin password |
 | `Agent Runner - Haus` | `Production` | `credential`: the token that opens the Server's runner socket and nothing else; development mints one per stack run |
 | `Secrets Key - Haus` | `Development`, `Production` | `credential`: `HAUS_SECRETS_KEY`, the base64 of 32 random bytes that seals model connections at rest; one per lifecycle, optional |
@@ -160,8 +158,8 @@ and a cloud agent that can reach none of them still passes `check`.
 
 Release commands run `varlock run --include-internal`, because `varlock run`
 strips `@internal` items by default and every release credential is one.
-The release switch also leaves Google, GitHub OAuth, Gemini, OpenAI, and OTLP runtime credentials
-undefined and disables schema-provided OTLP endpoints. Human sign-in uses public Cloudflare Access
+The release switch also leaves Google, GitHub OAuth, Gemini, and OpenAI runtime credentials
+undefined. Human sign-in uses public Cloudflare Access
 configuration and has no release-time credential. This keeps GitHub release jobs on their Tooling-only
 identity instead of making an unrelated Development-vault read part of signing or publication.
 

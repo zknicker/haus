@@ -11,12 +11,6 @@ export interface ProcessTelemetryEnvironment {
     readonly OTEL_SDK_DISABLED?: string;
 }
 
-export interface TelemetryRelayConnection {
-    readonly authorization: string;
-    readonly deploymentEnvironment: 'development' | 'production' | 'test';
-    readonly endpoint: string;
-}
-
 export function readProcessTelemetryEnvironment(): ProcessTelemetryEnvironment {
     return {
         OTEL_EXPORTER_OTLP_ENDPOINT: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
@@ -69,19 +63,6 @@ export function exporterConfig(
             : sharedEndpoint
               ? { url: `${sharedEndpoint.replace(/\/+$/u, '')}/v1/${signal}` }
               : {}),
-    };
-}
-
-export function relayEnvironment(
-    connection: TelemetryRelayConnection
-): ProcessTelemetryEnvironment {
-    const endpoint = connection.endpoint.replace(/\/+$/u, '');
-    const authorization = encodeURIComponent(connection.authorization);
-    return {
-        OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: `${endpoint}/v1/metrics`,
-        OTEL_EXPORTER_OTLP_METRICS_HEADERS: `Authorization=${authorization}`,
-        OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: `${endpoint}/v1/traces`,
-        OTEL_EXPORTER_OTLP_TRACES_HEADERS: `Authorization=${authorization}`,
     };
 }
 

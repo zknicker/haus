@@ -229,8 +229,8 @@ only after the deny is installed. The entrypoint resolves the Server host once a
 start, so restart the container after the host address changes.
 
 The runner holds no telemetry credential and exports nothing itself. Its Agent turn spans ride
-the authenticated runner socket, and the Server re-exports them through its own OTLP exporter
-([runner turn spans](../internals/observability.md#runner-turn-spans)).
+the authenticated runner socket, and the Server re-exports them through its own OTLP exporter when
+one is configured ([runner turn spans](../internals/observability.md#runner-turn-spans)).
 
 The named volume `haus_runner_data` holds each Agent's harness session under `/data`. The [local backup](#backups)
 archives it beside the database dump. `docker compose -p haus down` without `--volumes` preserves it. Losing it

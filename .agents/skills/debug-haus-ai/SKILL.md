@@ -1,6 +1,6 @@
 ---
 name: debug-haus-ai
-description: Debug AI bugs and performance anywhere in Haus, including model calls, prompts, context, tools and MCP, streaming, usage, and Agent execution. Use for slow, stuck, missing, duplicate, or incorrect AI behavior, including reports from recordings. Investigate with Axiom and use Luna-max Raft research when relevant.
+description: Debug AI bugs and performance anywhere in Haus, including model calls, prompts, context, tools and MCP, streaming, usage, and Agent execution. Use for slow, stuck, missing, duplicate, or incorrect AI behavior, including reports from recordings. Investigate with production database records and logs, and use Luna-max Raft research when relevant.
 ---
 
 # Debug Haus AI
@@ -13,8 +13,8 @@ streaming, usage accounting, and execution. Pure visual or layout bugs follow th
 Start with the failing capability; do not assume every AI operation is an Agent turn. The session,
 inbox, and delivery guidance below applies when an Agent execution path is involved. For other AI
 paths, follow the owning API, model call, stream, or usage mapping and its focused regression tests.
-Axiom is the first evidence source for runtime incidents; Raft research is conditional on a useful
-architectural comparison, not required for every AI bug.
+Durable Server records and process logs are the first evidence source for runtime incidents;
+Raft research is conditional on a useful architectural comparison, not required for every AI bug.
 
 Use the repository's `diagnosing-bugs` skill too when it is available. This skill supplies the
 Haus/Raft domain model and research-partner protocol; `diagnosing-bugs` supplies the general
@@ -31,7 +31,7 @@ Chats. Include only the relevant Raft-alignment workstreams.
 Confirm the checkout and environment without printing secrets. Follow repository setup and dev-port
 conventions. Prefer deterministic tests and seeded fixtures over noisy hosted or local Chats.
 
-## Start With Existing Telemetry
+## Start With Production Evidence
 
 For a hosted Server outage, HTTP 503, or database-health failure, first read
 [Hosted Haus troubleshooting](../../../docs/operations/haus-server-troubleshooting.md).
@@ -40,13 +40,24 @@ and direct process/database checks. Inspect installed grants with `sudo -n -l`;
 never infer root access from SSH access or treat a staged policy as installed.
 Capture logs and pool/lock evidence before an authorized service restart.
 
-For runtime incidents and performance investigations, use the `axiom-ops` skill and query Axiom
-before declaring timing or failure evidence missing. Read `docs/internals/observability.md` for
-the current trace and privacy contract. Discover dataset schemas; bound queries by incident time,
-environment, and Agent/run identity. Follow dispatch → Computer turn → MCP spans, then join local
-journals and native session evidence for detail inside the turn. Check failures before journal
-creation too. If Axiom is unavailable, say so and continue with local evidence; an unqueried source
-is not missing instrumentation. Offline deterministic bugs need no production query.
+For runtime incidents and performance investigations, read the production records before
+declaring timing or failure evidence missing. On the Server host, query PostgreSQL read-only as
+the `haus_backup` role:
+`docker exec haus-postgres psql --username haus_backup --dbname haus_production -c "<select>"`.
+Agent turn records, the delivery ledger, and synced execution journals
+(`agent_execution_journals`, `agent_execution_journal_records`) hold the durable turn outcome,
+start and end times, and tool evidence. `docs/internals/observability.md` has the journal
+queries and `docs/api/agents.md` the turn and delivery records. Bound every query by incident
+time and Agent/run identity.
+
+Then read the logs for the same window: `docker logs --since <window> haus-runner` for the Agent
+runner, the Server's `logs/server.log` and `logs/server.error.log` with the exact commands in the
+troubleshooting doc, and the `Deploy Haus Server` and `Release` workflow run logs
+(`gh run view --log`) when the incident follows a release. Join these with local journals and
+native session evidence for detail inside the turn. Check failures before journal creation too.
+Rows and logs can carry private content: summarize, do not paste. If the host is unreachable, say
+so and continue with local evidence; an unqueried source is not missing instrumentation. Offline
+deterministic bugs need no production query.
 
 Separate dispatch delay, native preparation, tools, first/last confirmed send, and settlement.
 An acknowledgment is not a completed answer, and time between tool calls is not proven inference
@@ -171,7 +182,7 @@ For a completed fix, lead with the exact cause. For a diagnosis-only checkpoint,
 highest-confidence mechanism and missing discriminator. Explain why the global session remains
 correct, which delivery or grounding invariant failed or may have failed, the smallest fix or next
 test, deterministic proof, Raft validation, and any unverified gap. Distinguish direct evidence,
-source-backed contract, and inference. Name the Axiom window and trace/run ids, what it established,
-and remaining gaps. Describe Raft comparisons as implementation evidence unless matched timing was
+source-backed contract, and inference. Name the production query window and run ids, what the records
+and logs established, and remaining gaps. Describe Raft comparisons as implementation evidence unless matched timing was
 actually measured. When Grok Bot comparison is relevant, use current primary documentation and
 bounded installed-app inspection; keep its undocumented model loop and latency claims explicit gaps.
