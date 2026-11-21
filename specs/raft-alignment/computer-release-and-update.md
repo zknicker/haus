@@ -159,8 +159,11 @@ charges its permissions to the app.
 ## Transition from the bare executable
 
 Computers through 23.x ran as a bare executable at `~/.local/bin/haus-computer`. Their updater
-expects an executable artifact and rejects the zip, so the first app release cannot reach them
-through **Update** or `haus-computer upgrade`. Each such Mac reruns the install command once:
+expects an executable artifact: it downloads the zip, the digest matches, and `codesign --verify`
+on the zip fails, so **Update** and `haus-computer upgrade` end `failed` at verifying, install
+nothing, and leave the bare executable running. The first app release also moves the Computer
+protocol to 47, so once its Server is promoted, a bare 23.x Computer attaches `update-required`
+until it is reinstalled. Each such Mac reruns the install command once:
 
 ```sh
 curl -fsSL https://releases.haus.chat/computer/install.sh | sh
