@@ -1,8 +1,8 @@
 import { agentThoughtActionMaxLength } from '@haus/api';
-import type { ComputerAgentActivityCategory } from '../agent-activity.ts';
-import type { ComputerToolClassification } from './activity-tool-fixtures.ts';
-import { type NativeImageToolAction, nativeImageToolAction } from './generated-images.ts';
-import { readShellCommand, unwrapShell } from './haus-cli-command.ts';
+import { readShellCommand, unwrapShell } from '@haus/api/haus-cli-command';
+import type { ComputerToolClassification } from '../activity/activity-tool-fixtures.ts';
+import type { ComputerAgentActivityCategory } from '../activity/agent-activity.ts';
+import { type NativeImageToolAction, nativeImageToolAction } from '../activity/generated-images.ts';
 import { isSecretName, scrubCommandLine, scrubPhrase } from './thought-action-scrub.ts';
 
 /**

@@ -1,6 +1,6 @@
 import { agentThoughtResultMaxLength } from '@haus/api';
-import { scrubResultLine } from '@haus/computer/src/harness/thought-action-scrub.ts';
 import { admitsResult, type ToolOperation } from './result-allowlist.ts';
+import { scrubResultLine } from './thought-action-scrub.ts';
 import type { AgentThoughtNarrator } from './thought-narrator.ts';
 
 const resultMinimumLength = 24;

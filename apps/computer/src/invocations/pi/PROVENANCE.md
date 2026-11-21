@@ -2,8 +2,6 @@ Files in this directory are ported from [Pi](https://github.com/earendil-works/p
 
 | File | Upstream path | Upstream commit | License |
 | --- | --- | --- | --- |
-| `truncate.ts` | `packages/coding-agent/src/core/tools/truncate.ts` | `3107a58d2e9a1b426a94bf877bd58dd1282cd1ae` | MIT |
-| `truncate.test.ts` | `packages/coding-agent/test/truncate-surrogates.test.ts` | `3107a58d2e9a1b426a94bf877bd58dd1282cd1ae` | MIT |
 | `edit-diff.ts` | `packages/coding-agent/src/core/tools/edit-diff.ts`, `packages/coding-agent/src/core/tools/edit.ts` (BOM and line-ending splice), `packages/coding-agent/src/utils/text.ts` (`splitBom`) | `3107a58d2e9a1b426a94bf877bd58dd1282cd1ae` | MIT |
 | `fuzzy-match.ts` | `packages/coding-agent/src/core/tools/edit-diff.ts` | `3107a58d2e9a1b426a94bf877bd58dd1282cd1ae` | MIT |
 | `line-replacements.ts` | `packages/coding-agent/src/core/tools/edit-diff.ts` | `3107a58d2e9a1b426a94bf877bd58dd1282cd1ae` | MIT |

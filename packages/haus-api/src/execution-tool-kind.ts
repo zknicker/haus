@@ -50,7 +50,7 @@ const toolKindsByName: Readonly<Record<string, ExecutionToolKind>> = {
     exec: 'shell',
     glob: 'search',
     grep: 'search',
-    // Codex and Grok Build native media tools (Computer `generated-images.ts`).
+    // Codex and Grok Build native media tools (runner `generated-images.ts`).
     image_edit: 'image',
     image_gen: 'image',
     image_to_video: 'image',

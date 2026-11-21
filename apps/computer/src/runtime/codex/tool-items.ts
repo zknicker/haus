@@ -1,4 +1,4 @@
-import { unwrapShell } from '../../harness/haus-cli-command.ts';
+import { unwrapShell } from '@haus/api/haus-cli-command';
 import { compactionToolName, type TurnEvent } from '../turn-event.ts';
 import type { CodexItem } from './protocol.ts';
 

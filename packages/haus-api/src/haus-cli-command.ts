@@ -1,16 +1,3 @@
-import type { ComputerAgentActivityCategory } from '../agent-activity.ts';
-import type { ComputerToolClassification } from './activity-tool-fixtures.ts';
-
-/** A known tool's activity, or `skip` for a shell call that only runs the `haus` CLI. */
-export function classifyShellCall(
-    category: ComputerAgentActivityCategory,
-    input: unknown
-): ComputerToolClassification {
-    return category === 'running_command' && isHausCliCommand(input)
-        ? { outcome: 'skip' }
-        : { category, outcome: 'activity' };
-}
-
 /**
  * Recognizes a shell tool call whose whole command is one `haus` CLI
  * invocation: `haus message check`, `/abs/bin/haus claim …`,

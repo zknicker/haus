@@ -34,7 +34,7 @@ const reviewPrefixes = {
     ],
     computer: ['packages/haus-api/', 'bun.lock', 'package.json', 'patches/'],
     agent: [
-        'apps/computer/src/agent-activity.ts',
+        'apps/runner/src/activity/agent-activity.ts',
         'apps/computer/src/index.ts',
         'apps/computer/package.json',
         'apps/server/src/agent-delivery/',

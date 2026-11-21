@@ -7,6 +7,8 @@ import { cancelKillGraceMs } from './bash.ts';
 import { handlerInput } from './handler-host.test-support.ts';
 import { createInvocationHandler } from './handler.ts';
 
+const earlyTimerSlackMs = 5;
+
 let root: string;
 let agentsRoot: string;
 
@@ -78,7 +80,9 @@ test('a cancel kills a command that ignores SIGTERM after the grace', async () =
     await handler.settled();
 
     expect(results(frames)).toEqual([textResult('inv-1', 'cancelled', 'Command aborted')]);
-    expect(performance.now() - cancelledAt).toBeGreaterThanOrEqual(cancelKillGraceMs);
+    expect(performance.now() - cancelledAt).toBeGreaterThanOrEqual(
+        cancelKillGraceMs - earlyTimerSlackMs
+    );
 });
 
 test('a cancel of a queued invocation finishes it without running it', async () => {

@@ -1,11 +1,8 @@
 import type { AgentThoughtFrame } from '@haus/api';
-import type { ComputerToolClassification } from '@haus/computer/src/harness/activity-tool-fixtures.ts';
-import {
-    describeFileChange,
-    describeToolAction,
-} from '@haus/computer/src/harness/thought-action.ts';
+import type { ComputerToolClassification } from '../activity/activity-tool-fixtures.ts';
 import { toolCategory } from '../turn/run-activity.ts';
 import type { ToolCallTurnEvent, TurnEvent } from '../turn/turn-event.ts';
+import { describeFileChange, describeToolAction } from './thought-action.ts';
 import { createAgentThoughtNarrator } from './thought-narrator.ts';
 import { createThoughtRedactor } from './thought-redaction.ts';
 import { createToolFindings } from './thought-result.ts';

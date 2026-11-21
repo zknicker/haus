@@ -13,6 +13,7 @@ import {
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { describeToolAction } from '../thoughts/thought-action.ts';
 import { computerNativeToolActivityFixtures } from './activity-tool-fixtures.ts';
 import {
     createGeneratedImageSteps,
@@ -20,7 +21,6 @@ import {
     generatedImagesDirectoryName,
     nativeImageToolFixtures,
 } from './generated-images.ts';
-import { describeToolAction } from './thought-action.ts';
 
 const roots: string[] = [];
 afterEach(async () => {

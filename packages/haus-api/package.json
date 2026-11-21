@@ -15,6 +15,8 @@
         },
         "./development-chat-demos": "./src/development-chat-demos.ts",
         "./execution-bookkeeping-fixtures": "./src/execution-bookkeeping-fixtures.ts",
+        "./haus-cli-command": "./src/haus-cli-command.ts",
+        "./truncate": "./src/pi/truncate.ts",
         "./computer-runtime": "./src/computer-runtime.ts",
         "./membership": "./src/membership.ts",
         "./participant-handle": "./src/participant-handle.ts",

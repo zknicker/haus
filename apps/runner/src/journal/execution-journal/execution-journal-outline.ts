@@ -10,20 +10,17 @@ import {
     isExecutionBookkeeping,
     readExecutionToolKind,
 } from '@haus/api';
+import { readShellCommand, unwrapShell } from '@haus/api/haus-cli-command';
 import {
     type ComputerToolClassification,
+    classifyShellCall,
     computerNativeToolActivityFixtures,
     computerSyntheticHarnessToolFixtures,
     isMcpName,
     knownToolCategory,
-} from '@haus/computer/src/harness/activity-tool-fixtures.ts';
-import {
-    classifyShellCall,
-    readShellCommand,
-    unwrapShell,
-} from '@haus/computer/src/harness/haus-cli-command.ts';
-import { scrubCommandLine, scrubPhrase } from '@haus/computer/src/harness/thought-action-scrub.ts';
-import { describeToolAction } from '@haus/computer/src/harness/thought-action.ts';
+} from '../../activity/activity-tool-fixtures.ts';
+import { scrubCommandLine, scrubPhrase } from '../../thoughts/thought-action-scrub.ts';
+import { describeToolAction } from '../../thoughts/thought-action.ts';
 
 const maxDepth = 16;
 

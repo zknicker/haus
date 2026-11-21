@@ -58,7 +58,6 @@
         "@haus/agent-prompt": "workspace:*",
         "@haus/api": "workspace:*",
         "@haus/codex-usage": "workspace:*",
-        "@haus/computer": "workspace:*",
         "@haus/mcp-executor": "workspace:*",
         "@napi-rs/canvas": "1.1.0",
         "pdfjs-dist": "6.4.299",

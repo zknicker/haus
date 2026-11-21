@@ -5,7 +5,7 @@ import {
     type AgentTurnOperationCategory,
     agentTurnOperationCategorySchema,
 } from '@haus/api';
-import { isHausCliCommand } from '@haus/computer/src/harness/haus-cli-command.ts';
+import { isHausCliCommand } from '@haus/api/haus-cli-command';
 import { compactionToolName, type TurnEvent } from './turn-event.ts';
 
 type TerminalPhase = 'completed' | 'failed' | 'interrupted';
