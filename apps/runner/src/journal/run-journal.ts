@@ -1,8 +1,8 @@
+import type { ToolResultTurnEvent, TurnEvent } from '../turn/turn-event.ts';
 import {
     type ComputerExecutionJournal,
     createComputerExecutionJournal,
-} from '@haus/execution-journal';
-import type { ToolResultTurnEvent, TurnEvent } from '../turn/turn-event.ts';
+} from './execution-journal/execution-journal.ts';
 import type { JournalUploads } from './journal-uploads.ts';
 
 const reasoningFlushIntervalMs = 250;

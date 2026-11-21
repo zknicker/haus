@@ -16,10 +16,14 @@ import {
     computerSyntheticHarnessToolFixtures,
     isMcpName,
     knownToolCategory,
-} from './harness/activity-tool-fixtures.ts';
-import { classifyShellCall, readShellCommand, unwrapShell } from './harness/haus-cli-command.ts';
-import { scrubCommandLine, scrubPhrase } from './harness/thought-action-scrub.ts';
-import { describeToolAction } from './harness/thought-action.ts';
+} from '@haus/computer/src/harness/activity-tool-fixtures.ts';
+import {
+    classifyShellCall,
+    readShellCommand,
+    unwrapShell,
+} from '@haus/computer/src/harness/haus-cli-command.ts';
+import { scrubCommandLine, scrubPhrase } from '@haus/computer/src/harness/thought-action-scrub.ts';
+import { describeToolAction } from '@haus/computer/src/harness/thought-action.ts';
 
 const maxDepth = 16;
 

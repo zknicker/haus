@@ -108,6 +108,8 @@ test('a live run uploads as it writes and is marked synced once the Server store
     const sequences = uploaded.map(({ sequence }) => sequence);
     expect(sequences).toEqual([...sequences].sort((left, right) => left - right));
     expect(new Set(sequences).size).toBe(sequences.length);
+    expect(h.sent.at(-1)?.outline).toMatchObject({ runId: 'run_live', status: 'completed' });
+    expect(h.sent.slice(0, -1).every((frame) => frame.outline === undefined)).toBe(true);
     const replayed = replayExecutionJournalUpload(
         uploaded.map(({ record }) => record as ExecutionJournalUploadRecord)
     );
@@ -177,6 +179,8 @@ test('backfills journals already on disk, newest first, one run at a time', asyn
         await waitFor(() => h.sent.length > 0);
         expect(new Set(h.sent.map((frame) => frame.runId)).size).toBe(1);
         order.push(h.sent[0]?.runId ?? '');
+        const frame = h.sent.at(-1);
+        expect(frame?.outline?.runId).toBe(frame?.runId);
         h.ackAll();
     }
     await h.uploader.drained();
