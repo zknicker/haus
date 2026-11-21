@@ -1,4 +1,5 @@
 import type { Page, Route } from '@playwright/test';
+import { captainsProjectId } from './project.ts';
 import type { RealtimeProxy } from './realtime-proxy.ts';
 import { type createRealtimeScene, showTab, tabs, visibleSurface } from './realtime-scene.ts';
 import { expect } from './test.ts';
@@ -80,6 +81,14 @@ export async function expectEventsConverge(page: Page, scene: Scene, proxy: Real
  */
 export async function expectDeletedChatPurged(page: Page, scene: Scene) {
     await showTab(page, 'all');
+    const captains = await captainsProjectId(scene.client, scene.server.id);
+    for (const agentId of scene.homedAgentIds) {
+        await scene.client.agent.setHome.mutate({
+            agentId,
+            projectId: captains,
+            serverId: scene.server.id,
+        });
+    }
     await scene.client.chat.deleteChannel.mutate({
         chatId: scene.work.chatId,
         confirmation: 'product',
