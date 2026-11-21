@@ -75,6 +75,11 @@ runner with the text the model sees:
 <Device> is the Computer's reported name, or "this Device" when it has none. The Agent never
 waits inside a tool call for a person.
 
+The gate runs again whenever the router resends an unaccepted `desktop` invoke on a Computer's
+reconnect. If the switch was turned off in between, the router records the refusal, answers the
+runner with the same text, sends `invoke-cancel` instead of the invoke, and nothing runs
+(`computer-use-gate.test.ts`).
+
 ## App
 
 - **Device page.** Settings → Devices → [Device] has an **Access** section with a **Computer use
