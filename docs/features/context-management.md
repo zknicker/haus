@@ -129,18 +129,17 @@ operator's home. Computer enforces this per runtime:
 | Runtime | Ambient instruction loading | Haus setting |
 | --- | --- | --- |
 | Claude Code | `project`/`local` settings (`CLAUDE.md`, `.claude/`) in the workspace and every ancestor | `--setting-sources user` and `--strict-mcp-config`; Agent `HOME` keeps its own `.claude.json`, never a link to the operator's (login resolves from host credentials) |
-| Codex | `AGENTS.md` in the workspace and every directory up to its git root | `project_doc_max_bytes = 0` on every thread request (`codex-launch.ts`); isolated `CODEX_HOME` |
+| Codex | `AGENTS.md` in the workspace and every directory up to its git root | `project_doc_max_bytes = 0` on every thread request; isolated `CODEX_HOME` |
 | Grok Build | Claude/Cursor files (`.claude/CLAUDE.md`, `.claude/rules/`, `~/.claude/`), plus generic names below | `GROK_{CLAUDE,CURSOR}_{AGENTS,RULES}_ENABLED=false`; isolated `GROK_HOME` |
 
 Known gap: Grok Build 1.0.13 has no switch for generic `AGENTS.md`,
 `CLAUDE.md`, `AGENT.md`, `CLAUDE.local.md`, or `.grok/rules/` in the workspace
 and every directory up to its git root, and its binary cannot be patched. Outside a git repository
 (the shipped `~/.haus/computer` layout) it reads only the workspace itself, so a
-Grok Agent still sees such files it or a repository puts in its workspace. Haus instructions reach Grok through `$GROK_HOME/AGENTS.md`. Each driver's
-launch test proves its row (`claude-launch.test.ts`, `codex-launch.test.ts`,
-`grok-launch.test.ts` under `apps/computer/src/runtime/`); the opt-in
-`claude-context-isolation-live.test.ts` and `codex-isolation-live.test.ts` prove it against the
-real CLI, and the Grok live test fails when Grok changes this behavior.
+Grok Agent still sees such files it or a repository puts in its workspace. Haus instructions reach Grok through `$GROK_HOME/AGENTS.md`. This table
+describes the Computer Agent drivers, whose launch and isolation tests left with them when Agents
+moved to the runner; Workers launch with the machine's own settings instead
+([specs/runtime-drivers.md](../../specs/runtime-drivers.md#workers)).
 
 Sub-agents run on Claude Code only, in the foreground or the background, as in Raft. A
 background sub-agent or shell outlives the turn that starts it: that turn ends, the Agent stays
@@ -152,7 +151,7 @@ does not set `run_in_background` runs in the background. Every sub-agent starts 
 sub-agents, which would inherit the whole global session, are off
 (`CLAUDE_CODE_FORK_SUBAGENT=0`). At most four sub-agents run at once
 (`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`). `Monitor` stays in the disallowed tools
-(`CLAUDE_DISALLOWED_TOOLS` in `claude-launch.ts`). Codex launches with `agents.enabled = false`
+(`CLAUDE_DISALLOWED_TOOLS`). Codex launches with `agents.enabled = false`
 and `features.multi_agent = false` in its thread config (`codexThreadConfig`), and Grok Build with
 `GROK_SUBAGENTS=0`, so neither offers a spawn tool.
 
