@@ -72,9 +72,6 @@ export function deriveAgentStatus(row: ConfiguredAgentRow): AgentStatus {
 }
 
 export function deriveAgentAvailability(row: ConfiguredAgentRow): AgentAvailability {
-    if (row.computerHealth !== 'healthy') {
-        return 'offline';
-    }
     if (row.stopped) {
         return 'stopped';
     }
