@@ -169,13 +169,10 @@ public struct MessageComposerView: View {
 
     private var surfaceBody: some View {
         composerContents
-            .padding(.leading, isExpanded ? 10 : 12)
-            // The send circle's trailing inset matches its vertical inset in both states — nesting
-            // into the expanded corner, centering in the pill — so the gap around it reads uniform.
+            .padding(.leading, isExpanded ? ComposerControlLayout.expandedFieldInset : 12)
+            // Trailing and bottom insets match, so the send circle nests evenly in the corner.
             .padding(.trailing, 7)
-            // A staged attachment tile sits square in the corner: its top inset matches the 10pt
-            // leading inset. The taller 17pt top belongs to the text-only expanded state.
-            .padding(.top, showsAttachmentStrip ? 10 : isExpanded ? 17 : 7)
+            .padding(.top, isExpanded ? ComposerControlLayout.expandedFieldInset : 7)
             .padding(.bottom, 7)
             .composerGlassSurface(cornerRadius: surfaceCornerRadius)
     }

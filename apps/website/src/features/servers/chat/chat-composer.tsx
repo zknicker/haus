@@ -158,7 +158,7 @@ export function ServerChatComposer({
     const canSubmit = hasPayload;
 
     return (
-        <div className="shrink-0 px-5 pb-4" ref={fileDrop.anchorRef}>
+        <div className="shrink-0 px-5 pb-2" ref={fileDrop.anchorRef}>
             <ComposerDropOverlay active={fileDrop.isFileDropActive} container={fileDrop.surface} />
             <ChatComposerRecovery
                 drafts={failedDrafts}
