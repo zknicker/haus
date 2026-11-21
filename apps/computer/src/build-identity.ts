@@ -7,7 +7,14 @@ export const computerReleasePublicKey = process.env.HAUS_COMPUTER_BUILD_RELEASE_
 export const computerAppleTeamId = process.env.HAUS_COMPUTER_BUILD_APPLE_TEAM_ID ?? '';
 export const computerAppleSigningIdentity =
     process.env.HAUS_COMPUTER_BUILD_APPLE_SIGNING_IDENTITY ?? '';
-export const computerStandalone = process.env.HAUS_COMPUTER_BUILD_STANDALONE === '1';
+export const computerStandalone = isStandaloneComputer(
+    process.env.HAUS_COMPUTER_BUILD_STANDALONE,
+    import.meta.url
+);
+
+export function isStandaloneComputer(buildFlag: string | undefined, moduleUrl: string) {
+    return buildFlag === '1' || moduleUrl.includes('/$bunfs/');
+}
 
 export function computerEntrypoint(): { args: string[]; executable: string } {
     if (computerStandalone) {
