@@ -1,13 +1,11 @@
 import type { ComputerUseAccess, ComputerUseReadiness } from '@haus/api';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Alert, Label, ListBox, Select } from '@heroui/react';
-import { CodeSnippet } from '../../components/code-snippet.tsx';
 import { useSetComputerUseAccess } from '../../hooks/computer-use/use-computer-use-access.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { withSaveErrorToast } from '../../lib/saving-toast.ts';
 import { SettingsFact } from '../settings/layout/settings-text.tsx';
 import {
-    agentDesktopInstallCommand,
     computerUseAccessOption,
     computerUseAccessOptions,
     computerUseReadinessIssues,
@@ -128,9 +126,6 @@ export function ComputerUseReadinessWarning({
                         {computerUseReadinessText(issue)}
                     </Alert.Description>
                 ))}
-                {issues.some((issue) => issue.kind === 'install') ? (
-                    <CodeSnippet lines={agentDesktopInstallCommand} />
-                ) : null}
             </Alert.Content>
         </Alert>
     );

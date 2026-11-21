@@ -20,10 +20,12 @@ test('a ready Device and an older Computer that reports no readiness show nothin
     expect(texts(undefined)).toEqual([]);
 });
 
-test('a missing agent-desktop asks for the install alone', () => {
+test('a failed agent-desktop setup asks for an update alone', () => {
     expect(
         texts({ ...ready, accessibility: 'unknown', installed: false, screenRecording: 'unknown' })
-    ).toEqual(['Install agent-desktop on this Device:']);
+    ).toEqual([
+        'Haus Computer couldn’t set up computer use on this Device. Update it, then Refresh.',
+    ]);
 });
 
 test('each permission not granted names its System Settings pane or asks for a recheck', () => {

@@ -26,8 +26,6 @@ export function supportsComputerUse(computer: { operatingSystem: string | null }
     return computer.operatingSystem?.toLowerCase() === 'darwin';
 }
 
-export const agentDesktopInstallCommand = 'npm install -g agent-desktop';
-
 export type ComputerUseReadinessIssue =
     | { kind: 'install' }
     | { kind: 'denied'; pane: ComputerUsePermissionPane }
@@ -59,7 +57,7 @@ export function computerUseReadinessIssues(readiness: ComputerUseReadiness | und
 export function computerUseReadinessText(issue: ComputerUseReadinessIssue) {
     switch (issue.kind) {
         case 'install':
-            return 'Install agent-desktop on this Device:';
+            return 'Haus Computer couldn’t set up computer use on this Device. Update it, then Refresh.';
         case 'denied':
             return `Allow Haus Computer in System Settings → Privacy & Security → ${issue.pane}.`;
         case 'unknown':

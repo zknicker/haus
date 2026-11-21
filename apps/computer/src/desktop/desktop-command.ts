@@ -1,19 +1,15 @@
 import { dirname, join } from 'node:path';
 import { desktopCommandClass } from '@haus/api';
 import type { StreamedCommand } from '../invocations/stream-process.ts';
-import { runtimeSearchPath } from '../runtime-discovery.ts';
-
-export const desktopInstallHint =
-    'Install agent-desktop on this Computer to use computer use: npm install -g agent-desktop';
+import { installAgentDesktop } from './agent-desktop-binary.ts';
 
 export interface AgentDesktopCommand {
     args: string[];
     cwd?: string;
-    invocationId: string;
     logPath: string;
     platform?: NodeJS.Platform;
-    searchPath?: string;
     signal: AbortSignal;
+    toolsRoot: string;
 }
 
 let tail: Promise<unknown> = Promise.resolve();
@@ -30,18 +26,14 @@ export async function runAgentDesktopCommand<Result>(
             'Use one agent-desktop command that looks at or acts on apps. Sessions, batches, traces, held keys, and identity flags are not allowed.'
         );
     }
-    const executable = Bun.which('agent-desktop', {
-        PATH: command.searchPath ?? runtimeSearchPath(),
-    });
-    if (!executable) {
-        throw new Error(desktopInstallHint);
-    }
+    const install = await installAgentDesktop(command.toolsRoot);
     return await inQueue(async () => {
         command.signal.throwIfAborted();
         return await run({
             args: withScreenshotPath(command.args, command.logPath),
             ...(command.cwd ? { cwd: command.cwd } : {}),
-            executable,
+            env: { AGENT_DESKTOP_MACOS_HELPER_PATH: install.helper },
+            executable: install.executable,
             signal: command.signal,
         });
     });

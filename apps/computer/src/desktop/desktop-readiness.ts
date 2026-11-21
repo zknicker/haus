@@ -1,28 +1,31 @@
 import type { ComputerUsePermissionState, ComputerUseReadiness } from '@haus/api';
-import { runtimeSearchPath } from '../runtime-discovery.ts';
+import {
+    type AgentDesktopInstall,
+    agentDesktopVersion,
+    installAgentDesktop,
+} from './agent-desktop-binary.ts';
 
 const probeTimeoutMs = 10_000;
 
-export async function detectComputerUseReadiness(
-    options: { platform?: NodeJS.Platform; searchPath?: string } = {}
-) {
+export async function detectComputerUseReadiness(options: {
+    platform?: NodeJS.Platform;
+    toolsRoot: string;
+}) {
     if ((options.platform ?? process.platform) !== 'darwin') {
         return;
     }
-    const executable = Bun.which('agent-desktop', {
-        PATH: options.searchPath ?? runtimeSearchPath(),
+    const install = await installAgentDesktop(options.toolsRoot).catch((error: unknown) => {
+        console.error('[haus-computer] agent-desktop install failed', error);
+        return null;
     });
-    if (!executable) {
+    if (!install) {
         return readiness({ installed: false });
     }
-    const [version, permissions] = await Promise.all([
-        probe(executable, 'version'),
-        probe(executable, 'permissions'),
-    ]);
+    const permissions = await probe(install, 'permissions');
     return readiness({
         installed: true,
         ...readPermissions(permissions),
-        version: readVersion(version),
+        version: agentDesktopVersion,
     });
 }
 
@@ -32,13 +35,6 @@ export function readPermissions(envelope: unknown) {
         accessibility: permissionState(data?.accessibility),
         screenRecording: permissionState(data?.screen_recording ?? data?.screenRecording),
     };
-}
-
-export function readVersion(envelope: unknown) {
-    const version = dataOf(envelope)?.version;
-    return typeof version === 'string' && version.trim().length > 0
-        ? version.trim().slice(0, 64)
-        : null;
 }
 
 function readiness(input: Partial<ComputerUseReadiness> & { installed: boolean }) {
@@ -70,8 +66,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-async function probe(executable: string, command: string) {
-    const child = Bun.spawn([executable, command], {
+async function probe(install: AgentDesktopInstall, command: string) {
+    const child = Bun.spawn([install.executable, command], {
+        env: { ...process.env, AGENT_DESKTOP_MACOS_HELPER_PATH: install.helper },
         stderr: 'ignore',
         stdout: 'pipe',
         timeout: probeTimeoutMs,

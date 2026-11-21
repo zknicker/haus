@@ -26,10 +26,10 @@ asks. The first click or type in a chat asks a person once.
 The Device's attacher, Owners, and Admins can change it. Anyone else sees the value as text.
 The pick shows at once and rolls back with a toast if the Server refuses it.
 
-While the Device reports agent-desktop missing, or Accessibility or Screen Recording not granted,
-a warning under Access names what to do: install agent-desktop with
-`npm install -g agent-desktop`, or allow Haus Computer in System Settings → Privacy & Security
-→ Accessibility or Screen Recording. A permission the Device couldn't read asks for a Refresh.
+agent-desktop ships inside Haus Computer, so nobody installs it. While the Device reports that it
+couldn't set agent-desktop up, or that Accessibility or Screen Recording isn't granted, a warning
+under Access names what to do: update Haus Computer, or allow Haus Computer in System Settings →
+Privacy & Security → Accessibility or Screen Recording. A permission the Device couldn't read asks for a Refresh.
 An older Computer that reports nothing shows no warning.
 
 ## Permission request
