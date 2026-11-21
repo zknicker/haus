@@ -2,11 +2,11 @@ import { constants, type Dirent } from 'node:fs';
 import { type FileHandle, open, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { EditorCommand } from '@haus/api';
+import { DEFAULT_MAX_BYTES, formatSize, truncateHead } from '@haus/api/truncate';
 import { isPdf, notRegularFile, viewPdf } from './editor-pdf.ts';
 import { filesystemFailure, imageMediaType, stoppedBeforeReturn, storeImage } from './files.ts';
 import { type OperationContext, textResult } from './operation.ts';
 import { resolveReadPath } from './paths.ts';
-import { DEFAULT_MAX_BYTES, formatSize, truncateHead } from './pi/truncate.ts';
 
 type ViewCommand = Extract<EditorCommand, { command: 'view' }>;
 

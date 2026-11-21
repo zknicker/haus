@@ -6,12 +6,7 @@ import {
     pdfViewNotes,
 } from '@haus/agent-prompt';
 import type { EditorCommand } from '@haus/api';
-import {
-    DEFAULT_MAX_BYTES,
-    DEFAULT_MAX_LINES,
-    formatSize,
-    truncateHead,
-} from '@haus/computer/src/invocations/pi/truncate.ts';
+import { DEFAULT_MAX_BYTES, DEFAULT_MAX_LINES, formatSize, truncateHead } from '@haus/api/truncate';
 import { type InvocationAnswer, invocationToolOutcome } from '../invocations/invocation-client.ts';
 import type { ToolOutcome, ToolResultContent } from '../run-context.ts';
 import { type PageLook, type PdfPages, readPdf } from './pdf-pages.ts';

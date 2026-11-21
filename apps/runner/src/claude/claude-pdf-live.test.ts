@@ -1,17 +1,13 @@
 import { afterAll, expect, test } from 'bun:test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { createSdkMcpServer, query, tool } from '@anthropic-ai/claude-agent-sdk';
 
 const liveTest = process.env.HAUS_RUN_LIVE_RUNNER_CLAUDE_TEST === '1' ? test : test.skip;
 const root = await mkdtemp(join(tmpdir(), 'haus-runner-pdf-'));
 afterAll(() => rm(root, { force: true, recursive: true }));
-const fixture = join(
-    dirname(fileURLToPath(import.meta.resolve('@haus/computer/package.json'))),
-    'src/invocations/fixtures/two-pages.pdf'
-);
+const fixture = new URL('./fixtures/two-pages.pdf', import.meta.url);
 
 liveTest(
     'an SDK MCP tool result cannot carry a PDF to the model, so Claude gets its text',

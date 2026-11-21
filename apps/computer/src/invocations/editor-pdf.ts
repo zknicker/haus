@@ -1,8 +1,8 @@
 import type { FileHandle } from 'node:fs/promises';
 import { composePdfTooLarge } from '@haus/agent-prompt';
+import { formatSize } from '@haus/api/truncate';
 import { filesystemFailure, stoppedBeforeReturn } from './files.ts';
 import { type OperationContext, textResult } from './operation.ts';
-import { formatSize } from './pi/truncate.ts';
 
 const pdfByteLimit = 25 * 1024 * 1024;
 const pdfMagic = [...'%PDF-'].map((character) => character.charCodeAt(0));

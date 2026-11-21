@@ -1,4 +1,5 @@
-import type { ComputerAgentActivityCategory } from '../agent-activity.ts';
+import { isHausCliCommand } from '@haus/api/haus-cli-command';
+import type { ComputerAgentActivityCategory } from './agent-activity.ts';
 
 /** One tool call that opens a semantic activity operation. */
 export interface ComputerToolActivity {
@@ -101,6 +102,16 @@ export function knownToolCategory(
             runtimeId as keyof typeof computerNativeToolActivityFixtures
         ];
     return mapping?.[nativeName ?? toolName] ?? mapping?.[toolName];
+}
+
+/** A known tool's activity, or `skip` for a shell call that only runs the `haus` CLI. */
+export function classifyShellCall(
+    category: ComputerAgentActivityCategory,
+    input: unknown
+): ComputerToolClassification {
+    return category === 'running_command' && isHausCliCommand(input)
+        ? { outcome: 'skip' }
+        : { category, outcome: 'activity' };
 }
 
 export function isMcpName(value: string | undefined): boolean {

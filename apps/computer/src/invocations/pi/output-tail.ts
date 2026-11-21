@@ -5,7 +5,7 @@ import {
     DEFAULT_MAX_LINES,
     type TruncationResult,
     truncateTail,
-} from './truncate.ts';
+} from '@haus/api/truncate';
 
 export type OutputPipe = 'stderr' | 'stdout';
 

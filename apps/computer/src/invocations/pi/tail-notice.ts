@@ -1,5 +1,5 @@
+import { DEFAULT_MAX_BYTES, formatSize, type TruncationResult } from '@haus/api/truncate';
 import type { OutputTail } from './output-tail.ts';
-import { DEFAULT_MAX_BYTES, formatSize, type TruncationResult } from './truncate.ts';
 
 export function formatTail(output: OutputTail, logPath: string, emptyText: string) {
     const truncation = output.snapshot();

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { chmod, mkdir, readFile, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import type { MachineInvocationOutcome } from '@haus/api';
+import { formatSize } from '@haus/api/truncate';
 import {
     type OperationContext,
     type OperationRunner,
@@ -9,7 +10,6 @@ import {
     textResult,
 } from './operation.ts';
 import { resolveMachinePath, resolveReadPath } from './paths.ts';
-import { formatSize } from './pi/truncate.ts';
 
 const imageByteLimit = 5 * 1024 * 1024;
 
