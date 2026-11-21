@@ -53,7 +53,7 @@ test('old provider usage stays labeled until a fresh Computer snapshot arrives',
     }
 });
 
-test('manual runtime refresh updates the device runtimes without reloading', async ({ page }) => {
+test('manual refresh updates the device plans without reloading', async ({ page }) => {
     const slug = 'runtime-refresh-hq';
     const { client: owner } = await createTestServer(page, {
         displayName: 'Runtime Refresh HQ',
@@ -105,7 +105,9 @@ test('manual runtime refresh updates the device runtimes without reloading', asy
             JSON.stringify({ type: 'usage-report', usage: planUsage(new Date().toISOString()) })
         );
         await page.goto(`/s/${slug}/settings/computers/${attachment.computerId}`);
-        await expect(page.getByText('Not detected: Claude Code, Grok Build')).toBeVisible();
+        const plans = page.getByRole('grid', { name: 'Plans on this device' });
+        await expect(plans).toContainText('Codex');
+        await expect(plans).not.toContainText('Grok Build');
         const refreshRequest = new Promise<
             ReturnType<typeof computerInventoryRefreshRequestSchema.parse>
         >((resolve) => {
@@ -138,11 +140,9 @@ test('manual runtime refresh updates the device runtimes without reloading', asy
             })
         );
         await expect(page.getByText('Refreshed', { exact: true })).toBeVisible();
-        await expect(
-            page.getByRole('grid', { name: 'Plans on this device' }).getByText('Grok Build')
-        ).toBeVisible();
-        await expect(page.getByText('Not detected: Claude Code')).toBeVisible();
-        await page.screenshot({ path: test.info().outputPath('refreshed-runtimes.png') });
+        await expect(plans.getByText('Grok Build')).toBeVisible();
+        await expect(page.getByText(/Not detected/u)).toHaveCount(0);
+        await page.screenshot({ path: test.info().outputPath('refreshed-plans.png') });
     } finally {
         computer.close();
     }
