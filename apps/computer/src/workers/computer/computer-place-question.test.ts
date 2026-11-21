@@ -32,7 +32,12 @@ describe('a Worker question on a Computer', () => {
         expect(types.indexOf('worker-turn-question')).toBeLessThan(
             types.indexOf('worker-turn-ended')
         );
-        const asked = { attempt: 1, questions, turnId: 'wkt_1', type: 'worker-turn-question' };
+        const asked = {
+            attempt: 1,
+            questions,
+            turnId: 'wkt_1',
+            type: 'worker-turn-question' as const,
+        };
         expect(frames.filter((frame) => frame.type === 'worker-turn-question')).toEqual([
             asked,
             asked,

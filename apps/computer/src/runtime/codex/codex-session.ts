@@ -1,8 +1,12 @@
-import type { RuntimeSession, RuntimeTurn, SteerResult } from '../driver.ts';
+import type { OpenSessionOptions, RuntimeSession, RuntimeTurn, SteerResult } from '../driver.ts';
+import { JsonRpcHandlerError } from '../json-rpc-connection.ts';
+import { jsonRpcInvalidParams } from '../json-rpc.ts';
 import type { CodexResumeState } from '../resume-state.ts';
 import type { CodexAppServer } from './app-server.ts';
 import type { CodexInbound } from './codex-connection.ts';
 import { turnStartResultSchema, userMessageText } from './protocol.ts';
+import { codexQuestionMethod, codexQuestionRequest } from './question-request.ts';
+import { answerCodexServerRequest } from './server-requests.ts';
 import { CodexTurnNormalizer } from './turn-normalizer.ts';
 import { CodexTurnRouter } from './turn-router.ts';
 import { CodexTurnRun } from './turn-run.ts';
@@ -10,6 +14,12 @@ import { CodexUsageLedger } from './turn-usage.ts';
 
 /** How long a steer waits for the turn to start or a post-tool gate to reopen. */
 const STEER_WAIT_MS = 15_000;
+
+const questionEndedCode = -32_000;
+const QUESTION_TAKEN =
+    'Haus sent these questions to the person and ended this turn. Their answers arrive as your next message.';
+const QUESTION_REFUSED =
+    'This turn already asked its questions and is ending. Do not ask again; the answers arrive as your next message.';
 
 /**
  * Per-turn settings every `turn/start` carries. App-server turns default to no reasoning
@@ -35,7 +45,8 @@ export class CodexSession implements RuntimeSession {
         readonly server: CodexAppServer,
         /** Ends the app-server for good; it is never reused. */
         private readonly release: () => Promise<void>,
-        workspaceDir: string
+        workspaceDir: string,
+        onQuestion?: OpenSessionOptions['onQuestion']
     ) {
         this.sessionId = server.threadId;
         this.isResume = server.resumed;
@@ -54,6 +65,13 @@ export class CodexSession implements RuntimeSession {
                 ])
         );
         void server.connection.exited.then((error) => this.active?.end([{ error, type: 'error' }]));
+        if (onQuestion) {
+            server.answer((method, params) =>
+                method === codexQuestionMethod
+                    ? this.question(onQuestion, params)
+                    : answerCodexServerRequest(method, params)
+            );
+        }
     }
 
     async startTurn(options: { prompt: string; signal: AbortSignal }): Promise<RuntimeTurn> {
@@ -159,6 +177,30 @@ export class CodexSession implements RuntimeSession {
         if (index >= 0) {
             this.steered.splice(index, 1);
         }
+    }
+
+    private async question(
+        onQuestion: NonNullable<OpenSessionOptions['onQuestion']>,
+        params: unknown
+    ) {
+        const request = codexQuestionRequest(params);
+        if (!request.valid) {
+            throw new JsonRpcHandlerError({ code: jsonRpcInvalidParams, message: request.message });
+        }
+        const run = this.active;
+        if (!run || run.isEnded || run.abortRequested || run.question) {
+            throw new JsonRpcHandlerError({ code: questionEndedCode, message: QUESTION_REFUSED });
+        }
+        run.question = { failure: null };
+        try {
+            await onQuestion(request.questions);
+        } catch (error) {
+            run.question = { failure: error instanceof Error ? error : new Error(String(error)) };
+        }
+        this.server.connection
+            .request('turn/interrupt', { threadId: this.sessionId, turnId: request.turnId })
+            .catch((error: unknown) => run.end([{ error, type: 'error' }]));
+        throw new JsonRpcHandlerError({ code: questionEndedCode, message: QUESTION_TAKEN });
     }
 
     private async interrupt(run: CodexTurnRun) {

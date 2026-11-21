@@ -5,7 +5,8 @@ import { jsonRpcMethodNotFound } from '../json-rpc.ts';
  * Haus Agents run unattended with full access: Codex never asks under `approvalPolicy: never` and
  * `danger-full-access`, and anything it still asks is answered the way that policy would. A
  * question meant for a human (`requestUserInput`, an MCP elicitation) has no human to reach, so
- * it is declined or refused; Agents ask people in a Haus message instead.
+ * it is declined or refused; Agents ask people in a Haus message instead. A session that
+ * captures Worker questions answers `requestUserInput` itself (`CodexSession`).
  */
 export function answerCodexServerRequest(method: string, params: unknown): unknown {
     switch (method) {

@@ -1,3 +1,4 @@
+import type { JsonRpcRequestHandler } from '../json-rpc-connection.ts';
 import { JsonRpcRequestError } from '../json-rpc.ts';
 import { CodexConnection, type CodexInbound } from './codex-connection.ts';
 import {
@@ -11,6 +12,7 @@ import { answerCodexServerRequest } from './server-requests.ts';
 
 /** One app-server process with its thread open. */
 export interface CodexAppServer {
+    answer(handler: JsonRpcRequestHandler): void;
     readonly connection: CodexConnection;
     readonly resumed: boolean;
     /** Routes every later notification and foreign line. */
@@ -38,8 +40,11 @@ const CLIENT_INFO = { name: 'haus-computer', title: 'Haus Computer', version: '1
 export async function openAppServer(input: OpenAppServerInput): Promise<CodexAppServer> {
     let listener: ((message: CodexInbound) => void) | null = null;
     let invalid: (line: string) => void = () => undefined;
-    const connection = new CodexConnection(input.transport, answerCodexServerRequest, (line) =>
-        invalid(line)
+    let answer: JsonRpcRequestHandler = answerCodexServerRequest;
+    const connection = new CodexConnection(
+        input.transport,
+        (method, params) => answer(method, params),
+        (line) => invalid(line)
     );
     connection.listen((message) => listener?.(message));
     const { signal } = input;
@@ -66,6 +71,9 @@ export async function openAppServer(input: OpenAppServerInput): Promise<CodexApp
         ? await resumeThread(connection, input.resumeThreadId, params, signal)
         : threadIdOf(await connection.request('thread/start', params, { signal }));
     return {
+        answer(next) {
+            answer = next;
+        },
         connection,
         resumed: input.resumeThreadId !== undefined,
         route(next, onInvalidLine) {

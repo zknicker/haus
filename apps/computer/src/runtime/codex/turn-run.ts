@@ -10,6 +10,7 @@ export class CodexTurnRun {
     /** A tool just finished; a steer now can crash the turn (Raft #238). */
     gated = false;
     abortRequested = false;
+    question: { readonly failure: Error | null } | null = null;
     private ended = false;
     private readonly queue: TurnEvent[] = [];
     private wake: (() => void) | null = null;
