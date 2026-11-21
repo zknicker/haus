@@ -24,6 +24,7 @@ export const computersTable = pgTable(
         architecture: text('architecture'),
         attachedByUserId: text('attached_by_user_id').notNull(),
         attachmentIdempotencyKey: text('attachment_idempotency_key'),
+        computerUseEnabled: boolean('computer_use_enabled').notNull().default(false),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
         credentialHash: text('credential_hash').notNull(),
         connectionGeneration: text('connection_generation'),

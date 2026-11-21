@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { bashRunner } from './bash.ts';
 import { createBrowserRunner } from './browser.ts';
+import { createDesktopRunner } from './desktop.ts';
 import { editRunner } from './editor.ts';
 import { fileReadRunner, fileWriteRunner, viewImageRunner } from './files.ts';
 import { createInvocationHandler } from './handler.ts';
@@ -13,6 +14,7 @@ export function invocationRunners(agentsRoot: string) {
     return {
         bash: bashRunner,
         browser: createBrowserRunner({ browserRoot: join(agentsRoot, '..', 'browser') }),
+        desktop: createDesktopRunner({ toolsRoot: join(agentsRoot, '..', 'tools') }),
         edit: editRunner,
         'file-read': fileReadRunner,
         'file-write': fileWriteRunner,

@@ -538,7 +538,8 @@ until R4 deletes the Computer's Agent paths.
 `execute` moves from the Computer to the runner unchanged in contract ([MCP](mcp.md#agent-execution)):
 Headless Executor in a disposable QuickJS child, `tools.search`, `tools.describe`, and
 `tools.call`, with today's limits. Its catalog holds the Agent's granted Server MCP tools and one
-built-in, `browser`, which relays agent-browser on the machine as a `browser` invocation.
+built-in, `browser`, which relays agent-browser on the machine as a `browser` invocation, and
+`desktop`, which relays agent-desktop as a `desktop` invocation ([Computer use](computer-use.md)).
 
 ### Web reach
 
@@ -725,7 +726,7 @@ tools are not idempotent, so a lost answer is never retried upstream.
 ## Invocations
 
 Every machine tool call is one invocation, and an invocation is a machine dispatch. An `execute`
-program makes one invocation per `browser` call. A `haus` command with a machine path makes one
+program makes one invocation per `browser` or `desktop` call. A `haus` command with a machine path makes one
 per path.
 
 ### Operations
@@ -738,6 +739,7 @@ per path.
 | `file-read` | `path`, `maxBytes` | 60 s | 60 s |
 | `file-write` | `path`, `bytes`, `mode` | 60 s | 60 s |
 | `browser` | `args` (today's allowlist) | 60 s | 60 s |
+| `desktop` | `args` (an agent-desktop command, [Computer use](computer-use.md#command-classes)) | 60 s | 60 s |
 
 `shell` maps to `bash`, with argv quoted into one command and `workdir` as `cwd`. A model's
 `timeout` above the max is clamped and the result says so. The Computer clamps `timeoutMs` to the
@@ -1017,6 +1019,10 @@ The Computer keeps `agent-skill-import`, `agent-skill-file-request`, and
 `agent-workspace-request`, which read an Agent's directory on that machine. D3 retires them where Drive replaces them. The Computer keeps
 `apps/computer/src/harness/execution-journal*.ts`, `execution-journal-upload/`, and
 `execution-journal-outline.ts` because the runner imports them until they move into the runner.
+
+**Computer protocol 46 (C1).** `invoke` gains the `desktop` operation
+([Computer use](computer-use.md)), so a Computer that cannot run agent-desktop commands attaches
+update-required.
 
 **Computer protocol, removed by R4:** `start`, `notice`, `stop`, `ack`, `notice-ack`, `turn`,
 `agent-activity`, `agent-thought`, `agent-execution-journal-records`,

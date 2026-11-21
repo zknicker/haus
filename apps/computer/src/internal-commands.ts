@@ -1,4 +1,5 @@
 import { runAgentCli } from '@haus/agent-cli';
+import { validateEmbeddedAgentDesktop } from './desktop/agent-desktop-binary.ts';
 import { validateMcpExecutor } from './mcp-executor-release.ts';
 import { validateComputerRuntimeAssets } from './runtime/runtime-assets.ts';
 import { runWorkerCli } from './worker-cli/worker-cli.ts';
@@ -16,6 +17,7 @@ export async function runInternalCommand(args: string[]): Promise<boolean> {
             return true;
         case '__release-check':
             validateComputerRuntimeAssets();
+            await validateEmbeddedAgentDesktop();
             await validateMcpExecutor();
             console.log('Haus Computer release assets are ready.');
             return true;

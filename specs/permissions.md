@@ -1,6 +1,9 @@
 # Tool Access
 
-Haus does not expose interactive tool approval prompts.
+Haus does not expose interactive tool approval prompts. Computer use is a per-Device switch,
+Computer use allowed ([Computer use](computer-use.md)), not a prompt. The switch is consent for
+the `desktop` tool, not a sandbox: a Captain's `bash` on its machine already has the machine
+user's full power ([what the setting guards](computer-use.md#what-the-setting-guards)).
 
 Tool access is governed by tool source, sandbox mode, and approval policy:
 

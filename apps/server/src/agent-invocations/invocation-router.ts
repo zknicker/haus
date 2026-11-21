@@ -10,6 +10,7 @@ import {
     invokeResultSchema,
 } from '@haus/api';
 import { onAgentLifecycle } from '../agent-delivery/lifecycle.ts';
+import { gateDesktopInvocation } from '../computer-use/computer-use-gate.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { RunnerLink } from '../runner/runner-link.ts';
@@ -43,6 +44,7 @@ interface OpenInvocation {
     grace: { cancel(): void };
     key: DispatchKey;
     runSettled: boolean;
+    serverId: string;
 }
 
 export async function openInvocationRouter(
@@ -132,6 +134,17 @@ function routeInvocations(input: RouterInput) {
             answer(noticeAnswer(frame, 'offline', record.id));
             return;
         }
+        const refusal = await gateDesktopInvocation(db, {
+            computerId,
+            invocationId: record.id,
+            key: frame,
+            operation: frame.operation,
+            serverId: agent.serverId,
+        });
+        if (refusal) {
+            answer(refusal);
+            return;
+        }
         const command: InvokeCommand = {
             agentId: frame.agentId,
             invocationId: record.id,
@@ -148,6 +161,7 @@ function routeInvocations(input: RouterInput) {
             grace: armGrace(record.id, timeoutMs),
             key: { runId: frame.runId, seq: frame.seq, toolCallId: frame.toolCallId },
             runSettled: false,
+            serverId: agent.serverId,
         });
         byDispatch.set(dispatchIdOf(frame), record.id);
         if (!computers.send(computerId, command)) {
@@ -179,6 +193,25 @@ function routeInvocations(input: RouterInput) {
         }
     }
 
+    async function resend(invocationId: string, invocation: OpenInvocation) {
+        const refusal = await gateDesktopInvocation(db, {
+            computerId: invocation.computerId,
+            invocationId,
+            key: { ...invocation.key, agentId: invocation.command.agentId },
+            operation: invocation.command.operation,
+            serverId: invocation.serverId,
+        });
+        if (!refusal) {
+            if (open.get(invocationId) === invocation && !invocation.accepted) {
+                computers.send(invocation.computerId, invocation.command);
+            }
+            return;
+        }
+        forget(invocationId);
+        computers.send(invocation.computerId, { invocationId, type: 'invoke-cancel' });
+        answer(refusal);
+    }
+
     return {
         cancel,
         close() {
@@ -195,7 +228,9 @@ function routeInvocations(input: RouterInput) {
                 if (invocation.runSettled || invocation.cancelled) {
                     computers.send(computerId, { invocationId, type: 'invoke-cancel' });
                 } else if (!invocation.accepted) {
-                    computers.send(computerId, invocation.command);
+                    void resend(invocationId, invocation).catch((error: unknown) =>
+                        console.error('[haus] invocation resend failed', error)
+                    );
                 }
             }
         },

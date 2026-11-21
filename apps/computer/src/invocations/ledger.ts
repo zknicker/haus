@@ -159,7 +159,9 @@ async function readRecord(path: string) {
 
 async function pruneOutputFiles(path: string, now: number) {
     const names = await entriesIfPresent(path);
-    const outputNames = names.filter((name) => name.endsWith('.log') || name.endsWith('.tmp'));
+    const outputNames = names.filter((name) =>
+        ['.log', '.tmp', '.png'].some((end) => name.endsWith(end))
+    );
     await Promise.all(
         outputNames.map(async (name) => {
             const file = join(path, name);

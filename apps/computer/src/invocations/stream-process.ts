@@ -6,6 +6,7 @@ import { waitForChildProcess } from './pi/shell.ts';
 export interface StreamedCommand {
     args: string[];
     cwd?: string;
+    env?: Record<string, string>;
     executable: string;
     signal: AbortSignal;
 }
@@ -16,6 +17,7 @@ export async function streamProcess(
 ) {
     const child = spawn(command.executable, command.args, {
         ...(command.cwd ? { cwd: command.cwd } : {}),
+        ...(command.env ? { env: { ...process.env, ...command.env } } : {}),
         stdio: ['ignore', 'pipe', 'pipe'],
     });
     child.stdout.on('data', (data: Buffer) => onData(data, 'stdout'));

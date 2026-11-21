@@ -1,0 +1,1 @@
+ALTER TABLE "computers" ADD COLUMN "computer_use_enabled" boolean DEFAULT false NOT NULL;

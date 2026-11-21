@@ -14,34 +14,15 @@ import {
     invocationText,
 } from '../invocations/invocation-client.ts';
 import type { ToolOutcome } from '../run-context.ts';
+import { findBuiltinTool, withBuiltinTools } from './execute-builtins.ts';
 import { type McpClient, McpToolError } from './mcp-client.ts';
 
 const searchSchema = z.object({ query: z.string().max(200).default('') }).strict();
 const describeSchema = z.object({ name: z.string().min(1).max(256) }).strict();
 const callSchema = describeSchema.extend({ args: z.unknown() });
-const browserArgsSchema = z.object({ args: z.unknown() }).strict();
+const builtinArgsSchema = z.object({ args: z.unknown() }).strict();
 
 const runnerEntrypoint = join(dirname(fileURLToPath(import.meta.url)), '..', 'index.ts');
-
-export const browserTool = {
-    description:
-        'Use the Chrome browser selected in your machine’s Browser settings. Pass agent-browser command arguments, for example ["tab","new","https://example.com"], ["snapshot","-i"], ["click","@e1"]. Agents share signed-in accounts and tabs. Create your own tab and operate only on your own tabs; leave service and other agents’ tabs alone. Screenshots and PDFs are written on the machine; view them with your edit tool.',
-    inputSchema: {
-        additionalProperties: false,
-        properties: {
-            args: {
-                items: { maxLength: 32_768, type: 'string' },
-                maxItems: 100,
-                minItems: 1,
-                type: 'array',
-            },
-        },
-        required: ['args'],
-        type: 'object',
-    },
-    name: 'browser',
-    title: 'Browser',
-} as const;
 
 export async function runExecute(input: {
     code: string;
@@ -94,12 +75,11 @@ async function invokePath(
 ) {
     if (path === 'search') {
         const { query } = searchSchema.parse(args);
-        return withBrowser(query, await input.mcp.search(query, signal));
+        return withBuiltinTools(query, await input.mcp.search(query, signal));
     }
     if (path === 'describe') {
         const { name } = describeSchema.parse(args);
-        const tool =
-            name === browserTool.name ? browserTool : await input.mcp.describe(name, signal);
+        const tool = findBuiltinTool(name) ?? (await input.mcp.describe(name, signal));
         return (
             tool ?? {
                 error: {
@@ -118,12 +98,13 @@ async function invokePath(
         };
     }
     const call = callSchema.parse(args);
-    if (call.name === browserTool.name) {
+    const builtin = findBuiltinTool(call.name);
+    if (builtin) {
         const operation = invocationOperationSchema.parse({
-            ...browserArgsSchema.parse(call.args),
-            kind: 'browser',
+            ...builtinArgsSchema.parse(call.args),
+            kind: builtin.name,
         });
-        return await callBrowser(operation, signal, input);
+        return await callMachine(operation, signal, input);
     }
     const key = await input.dispatches.open(input.toolCallId, 'mcp-call');
     try {
@@ -138,7 +119,7 @@ async function invokePath(
     }
 }
 
-async function callBrowser(
+async function callMachine(
     operation: InvocationOperation,
     signal: AbortSignal,
     input: { invocations: InvocationClient; toolCallId: string }
@@ -155,24 +136,6 @@ async function callBrowser(
             code: `INVOCATION_${answer.frame.outcome.toUpperCase().replace('-', '_')}`,
             message: invocationText(answer),
         },
-    };
-}
-
-function withBrowser(
-    query: string,
-    result: { tools: { description: string; name: string; title: string | null }[]; total: number }
-) {
-    const needle = query.trim().toLowerCase();
-    const matches =
-        needle.length === 0 ||
-        `${browserTool.name} ${browserTool.description}`.toLowerCase().includes(needle);
-    if (!matches) {
-        return result;
-    }
-    const { description, name, title } = browserTool;
-    return {
-        tools: [{ description, name, title }, ...result.tools].slice(0, 50),
-        total: result.total + 1,
     };
 }
 

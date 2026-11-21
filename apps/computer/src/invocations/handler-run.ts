@@ -96,5 +96,7 @@ function runOperation(
             return runners['file-write'](operation, context);
         case 'browser':
             return runners.browser(operation, context);
+        case 'desktop':
+            return runners.desktop(operation, context);
     }
 }

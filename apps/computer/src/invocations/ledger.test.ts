@@ -31,8 +31,11 @@ test('connect prunes records confirmed over a day ago and logs over a week old',
     await ledger.write(finished('inv-unconfirmed', undefined));
     await writeFile(join(directory, 'inv-old.log'), 'old');
     await writeFile(join(directory, 'inv-recent.log'), 'recent');
+    await writeFile(join(directory, 'inv-old.png'), 'old screenshot');
+    await writeFile(join(directory, 'inv-recent.png'), 'recent screenshot');
     const eightDaysAgo = new Date(now - 8 * 24 * hourMs);
     await utimes(join(directory, 'inv-old.log'), eightDaysAgo, eightDaysAgo);
+    await utimes(join(directory, 'inv-old.png'), eightDaysAgo, eightDaysAgo);
 
     const frames: unknown[] = [];
     await (await createInvocationHandler(handlerInput(agentsRoot, frames))).connected();
@@ -40,6 +43,7 @@ test('connect prunes records confirmed over a day ago and logs over a week old',
     expect((await readdir(directory)).sort()).toEqual([
         'inv-recent.json',
         'inv-recent.log',
+        'inv-recent.png',
         'inv-unconfirmed.json',
     ]);
     expect(frames).toEqual([result('inv-unconfirmed')]);
