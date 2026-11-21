@@ -8,15 +8,12 @@ import type {
     RunnerSignInCodeFrame,
     RunnerSignInFinishedFrame,
 } from '@haus/api';
-import type { AgentLoop, RunnerWire } from '../agent-delivery/loop-host.ts';
+import type { RunnerWire } from '../agent-delivery/loop-host.ts';
 import type { HausServerApplicationOptions } from '../haus-server-options.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { modelConnectionsUpdatedTopic } from '../realtime/topics.ts';
 import { type SecretsKey, SecretsKeyMissingError } from '../secrets/sealed-secret.ts';
-import {
-    type AgentModelCatalog,
-    computerModelCatalog,
-} from '../server-agents/agent-model-catalog.ts';
+import type { AgentModelCatalog } from '../server-agents/agent-model-catalog.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import {
     ModelConnectionNotFoundError,
@@ -43,28 +40,31 @@ export type RunnerConnectionFrame =
 
 export class ModelConnectionRelay {
     private readonly signIns = new ModelSignIns();
+    private afterChange: (() => Promise<void>) | null = null;
     private reportedMissingKey = false;
 
-    readonly agentLoop: AgentLoop;
     readonly catalog: AgentModelCatalog;
     readonly secretsKey: SecretsKey | null;
 
     constructor(
         private readonly db: HausDatabase,
         private readonly runner: RunnerWire & { readonly inventory: RunnerInventoryFrame | null },
-        settings: Pick<HausServerApplicationOptions, 'agentLoop' | 'secretsKey'>
+        settings: Pick<HausServerApplicationOptions, 'secretsKey'>
     ) {
-        this.agentLoop = settings.agentLoop ?? 'computer';
-        this.catalog =
-            this.agentLoop === 'runner'
-                ? { kind: 'runner', runtimes: () => runner.inventory?.runtimes ?? null }
-                : computerModelCatalog;
+        this.catalog = { kind: 'runner', runtimes: () => runner.inventory?.runtimes ?? null };
         this.secretsKey = settings.secretsKey ?? null;
     }
 
     async connectionsChanged(serverId: string) {
         modelConnectionsUpdatedTopic.announce({ serverId });
         await this.sendSnapshot();
+        if (this.runner.inventory) {
+            await this.afterChange?.();
+        }
+    }
+
+    whenChanged(listener: () => Promise<void>) {
+        this.afterChange = listener;
     }
 
     async runnerAttached() {

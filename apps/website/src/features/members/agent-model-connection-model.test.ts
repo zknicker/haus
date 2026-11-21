@@ -139,26 +139,11 @@ test('a Captain pinned to a turned-off connection warns by its label; an unpinne
     ).toEqual({ kind: 'missing', providerName: 'Claude' });
 });
 
-test('an Agent on its Computer never has a connection issue', () => {
-    const failedTeam = { ...claudeTeam, status: 'failed' as const, statusDetail: null };
-    const claudeAgent = { desiredModelId: 'claude-sonnet-4-5', modelConnectionId: null };
-    expect(
-        agentConnectionIssue(claudeAgent, { agentLoop: 'computer', connections: [] })
-    ).toBeNull();
-    expect(
-        agentConnectionIssue(claudeAgent, { agentLoop: 'computer', connections: [failedTeam] })
-    ).toBeNull();
-    expect(agentConnectionIssue(claudeAgent, onRunner([]))).toEqual({
-        kind: 'missing',
-        providerName: 'Claude',
-    });
-});
-
 test('the Default key saves as no choice', () => {
     expect(connectionIdForKey('default')).toBeNull();
     expect(connectionIdForKey('mcn_side')).toBe('mcn_side');
 });
 
 function onRunner(connections: ModelConnection[]) {
-    return { agentLoop: 'runner' as const, connections };
+    return { connections };
 }

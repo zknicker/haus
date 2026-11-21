@@ -18,6 +18,8 @@ import { parseDrainItemIds, parseInbox, parseUnreadElsewhere } from './agent-inb
 import { parseTurnTraceContext } from './agent-turn-telemetry.ts';
 import { parseConnectionChips, parseStartAgentFacts } from './start-command-facts.ts';
 
+export { noticeReceipt } from '@haus/api';
+
 // Server→Computer command frame validation. Every parser fails closed to null.
 
 /** Validates a Server→Computer frame as a launch command. Fails closed to null. */
@@ -185,17 +187,6 @@ export function parseNoticeCommand(frame: unknown): AgentNoticeCommand | null {
 }
 
 /** The exact queued work one busy notice names, for its durable ack. */
-export function noticeReceipt(notice: AgentNoticeCommand) {
-    return {
-        runId: notice.runId,
-        workIds: [
-            ...notice.inbox.map((item) => item.id),
-            ...(notice.taskAssignments?.ids ?? []),
-            ...(notice.workerReports?.ids ?? []),
-        ],
-    };
-}
-
 export function parseServerDeleteCommand(frame: unknown): ServerDeleteCommand | null {
     return isRecord(frame) && frame.type === 'server-delete' && Object.keys(frame).length === 1
         ? { type: 'server-delete' }

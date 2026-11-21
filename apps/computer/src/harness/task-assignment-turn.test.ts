@@ -1,7 +1,8 @@
 import { expect, test } from 'bun:test';
 import { composeInboxNotice, composeTaskAssignmentInput } from '@haus/agent-prompt';
 import type { AgentTaskAssignment } from '@haus/api';
-import { noticeReceipt, parseNoticeCommand, parseStartCommand } from '../agent-command-frames.ts';
+import { noticeReceipt } from '@haus/api';
+import { parseNoticeCommand, parseStartCommand } from '../agent-command-frames.ts';
 import { composeTurnPrompt, type TurnDelivery, turnDeliveryOf } from './turn-prompt.ts';
 
 const assignment: AgentTaskAssignment = {

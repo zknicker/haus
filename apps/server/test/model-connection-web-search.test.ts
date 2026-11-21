@@ -24,7 +24,7 @@ let runner: RunnerClient;
 let geminiId: string;
 
 beforeAll(async () => {
-    harness = await startHausServerHarness({ agentLoop: 'runner', runnerToken: testRunnerToken });
+    harness = await startHausServerHarness({ runnerToken: testRunnerToken });
     seed = await seedConnectionServer(harness, 'web-search');
     member = await addMember(harness, seed, 'user_web_search_member');
     const gemini = await seed.owner.trpc.modelConnections.add.mutate({
@@ -43,11 +43,6 @@ afterAll(async () => {
     member?.close();
     seed?.owner.close();
     await harness?.close();
-});
-
-test('a Server whose Agents run on the runner says so in the connections read', async () => {
-    const read = await member.trpc.modelConnections.list.query({ serverId: seed.serverId });
-    expect(read.agentLoop).toBe('runner');
 });
 
 test('the Owner turns web search off and on, and each change reaches the App and the runner', async () => {

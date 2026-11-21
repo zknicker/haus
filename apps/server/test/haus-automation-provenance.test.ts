@@ -1,5 +1,4 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import type { AgentCommand } from '@haus/api';
 import { advanceSeenCursor } from '../src/agent-delivery/cursors.ts';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
@@ -7,6 +6,7 @@ import { scheduleReminder, tickReminders } from '../src/reminders/reminders.ts';
 import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
+import { RecordingRunner } from './recording-runner.ts';
 
 /**
  * Automation provenance end to end (specs/automation-provenance.md): a fire
@@ -37,20 +37,6 @@ class OfflineTransport implements DeliveryTransport {
 
     send(): boolean {
         return false;
-    }
-}
-
-/** An attached Computer, so a fire can actually wake a run in this harness. */
-class OnlineTransport implements DeliveryTransport {
-    readonly frames: AgentCommand[] = [];
-
-    isOnline(): boolean {
-        return true;
-    }
-
-    send(_computerId: string, frame: AgentCommand): boolean {
-        this.frames.push(frame);
-        return true;
     }
 }
 
@@ -483,14 +469,15 @@ test('infers the cause of a fire the run was woken with, without any pull', asyn
             active_run_runtime_id = null, accepted_at = null, dispatched_at = null
         where agent_id = ${agentId}
     `;
-    const transport = new OnlineTransport();
-    const delivery = new AgentDelivery(connection.db, transport);
+    const runner = new RecordingRunner();
+    runner.attach(agentId);
+    const delivery = new AgentDelivery(connection.db, new OfflineTransport(), undefined, runner);
 
     const fireId = await fireNewTrigger('Woken by the fire', 'concrete-fire', 'ok');
     await delivery.dispatchAgent(agentId, serverId);
 
-    const start = transport.frames.find((frame) => frame.type === 'start');
-    if (start?.type !== 'start') {
+    const [start] = runner.starts();
+    if (!start) {
         throw new Error('Expected the fire to start a run.');
     }
     // The envelope is in the prompt the Agent wakes with; nothing is pulled.

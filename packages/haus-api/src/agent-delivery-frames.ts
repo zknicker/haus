@@ -165,3 +165,20 @@ export const agentNoticeCommandSchema = z
     );
 
 export type AgentNoticeCommand = z.infer<typeof agentNoticeCommandSchema>;
+
+/** Every work id a delivered notice covers, which its host acks back to the Server. */
+export function noticeReceipt(notice: {
+    readonly inbox: readonly { readonly id: string }[];
+    readonly runId: string;
+    readonly taskAssignments?: { readonly ids: readonly string[] };
+    readonly workerReports?: { readonly ids: readonly string[] };
+}) {
+    return {
+        runId: notice.runId,
+        workIds: [
+            ...notice.inbox.map((item) => item.id),
+            ...(notice.taskAssignments?.ids ?? []),
+            ...(notice.workerReports?.ids ?? []),
+        ],
+    };
+}

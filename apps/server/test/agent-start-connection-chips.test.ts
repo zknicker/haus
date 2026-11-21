@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
 import { randomBytes } from 'node:crypto';
-import type { AgentCommand } from '@haus/api';
 import { AgentDelivery, type DeliveryTransport } from '../src/agent-delivery/delivery.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
@@ -15,6 +14,7 @@ import {
 } from '../src/postgres/schema.ts';
 import { testAgentHome } from './agent-home.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
+import { RecordingRunner } from './recording-runner.ts';
 
 let cluster: TestDatabase;
 let connection: HausConnection;
@@ -37,20 +37,6 @@ test('a start carries product chips only while the Server has RankWrangler conne
     expect(await startChips(null)).toEqual([]);
 });
 
-class FakeTransport implements DeliveryTransport {
-    readonly sent: AgentCommand[] = [];
-    constructor(private readonly computerId: string) {}
-
-    isOnline(computerId: string): boolean {
-        return computerId === this.computerId;
-    }
-
-    send(computerId: string, frame: AgentCommand): boolean {
-        this.sent.push(frame);
-        return computerId === this.computerId;
-    }
-}
-
 async function startChips(rankWrangler: { connected: boolean; tools: string[] } | null) {
     const seed = await seedAgent();
     if (rankWrangler) {
@@ -65,16 +51,17 @@ async function startChips(rankWrangler: { connected: boolean; tools: string[] } 
             url: 'https://rankwrangler.merchbase.co/mcp',
         });
     }
-    const transport = new FakeTransport(seed.computerId);
-    await new AgentDelivery(connection.db, transport).deliver({
+    const runner = new RecordingRunner();
+    runner.attach(seed.agentId);
+    const transport: DeliveryTransport = { isOnline: () => true, send: () => true };
+    await new AgentDelivery(connection.db, transport, undefined, runner).deliver({
         agentId: seed.agentId,
         chatId: seed.chatId,
         content: 'Compare B07XN9T11R.',
         dedupeKey: 'msg-chips',
         serverId: seed.serverId,
     });
-    const start = transport.sent.find((frame) => frame.type === 'start');
-    return start?.type === 'start' ? start.connectionChips : null;
+    return runner.starts()[0]?.connectionChips ?? null;
 }
 
 async function seedAgent() {

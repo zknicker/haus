@@ -1,4 +1,4 @@
-import { type Agent, agentReasoningEffortLabels, type ComputerInventory } from '@haus/api';
+import { type Agent, agentReasoningEffortLabels } from '@haus/api';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Button, Chip, Separator } from '@heroui/react';
 import * as React from 'react';
@@ -8,27 +8,23 @@ import { AgentModelConnectionRow } from './agent-model-connection-row.tsx';
 import { RuntimeDialog } from './runtime-dialog.tsx';
 import { resolveRuntimeConfig, runtimeConfigStatusLabel } from './runtime-model.ts';
 
-type Runtime = ComputerInventory['runtimes'][number];
 type ComputerHealth = Parameters<typeof runtimeConfigStatusLabel>[1];
 
 export function AgentRuntime({
     agent,
     canEdit,
     computerHealth,
-    runtimes,
     serverId,
 }: {
     agent: Agent;
     canEdit: boolean;
     computerHealth: ComputerHealth;
-    runtimes: Runtime[];
     serverId: string;
 }) {
     const [open, setOpen] = React.useState(false);
     const configure = useAgentRuntime(serverId, agent.id);
     const modelConnections = useModelConnections(serverId).data;
-    const onRunner = modelConnections?.agentLoop === 'runner';
-    const catalog = onRunner ? (modelConnections?.runnerModels ?? []) : runtimes;
+    const catalog = modelConnections?.runnerModels ?? [];
     const execution = resolveRuntimeConfig(agent, catalog);
 
     return (
@@ -83,7 +79,7 @@ export function AgentRuntime({
             </ItemCardGroup>
             <RuntimeDialog
                 agent={agent}
-                connections={onRunner ? (modelConnections?.connections ?? []) : null}
+                connections={modelConnections?.connections ?? []}
                 error={configure.error?.message ?? null}
                 onOpenChange={setOpen}
                 onSave={async (draft) => {
