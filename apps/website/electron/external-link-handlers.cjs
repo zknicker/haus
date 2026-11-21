@@ -1,6 +1,11 @@
 'use strict';
 
-const externalBrowserProtocols = new Set(['http:', 'https:', 'mailto:']);
+const externalBrowserProtocols = new Set([
+    'http:',
+    'https:',
+    'mailto:',
+    'x-apple.systempreferences:',
+]);
 
 function registerExternalLinkHandlers(window, options) {
     const { appUrl, openBrowser, openExternal } = options;

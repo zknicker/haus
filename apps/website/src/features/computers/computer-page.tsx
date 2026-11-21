@@ -4,6 +4,7 @@ import { ComputerIcon, MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rou
 import * as React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
+import { useComputerStewards } from '../../hooks/computer-use/use-computer-stewards.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { serverComputersRoute } from '../servers/server-routes.ts';
 import { PageTopbar } from '../shell/shell-topbar.tsx';
@@ -50,7 +51,7 @@ export function ComputerPage({
                         serverSlug={serverSlug}
                     />
                 ) : (
-                    <ComputerNotFound />
+                    <ComputerNotFound computerId={computerId} serverId={serverId} />
                 )}
             </main>
             {removing ? (
@@ -121,7 +122,9 @@ function ComputerUnavailable() {
     );
 }
 
-function ComputerNotFound() {
+function ComputerNotFound({ computerId, serverId }: { computerId: string; serverId: string }) {
+    const stewards = useComputerStewards(serverId, computerId);
+    const steward = stewards.data;
     return (
         <div className="flex min-h-full items-center justify-center p-6">
             <EmptyState>
@@ -129,11 +132,28 @@ function ComputerNotFound() {
                     <EmptyState.Media variant="icon">
                         <Icon icon={ComputerIcon} />
                     </EmptyState.Media>
-                    <EmptyState.Title>Device unavailable</EmptyState.Title>
-                    <EmptyState.Description>
-                        This device is no longer attached to the Server. Choose an attached device
-                        from Devices; Haus will not redirect you to another machine.
-                    </EmptyState.Description>
+                    {steward ? (
+                        <>
+                            <EmptyState.Title>
+                                {steward.name ?? 'This device'} isn’t yours to change
+                            </EmptyState.Title>
+                            <EmptyState.Description>
+                                {steward.attacher.handle
+                                    ? `@${steward.attacher.handle}`
+                                    : steward.attacher.displayName}
+                                , who attached it, or an Owner or Admin can change its settings,
+                                including computer use.
+                            </EmptyState.Description>
+                        </>
+                    ) : stewards.isPending ? null : (
+                        <>
+                            <EmptyState.Title>Device unavailable</EmptyState.Title>
+                            <EmptyState.Description>
+                                This device is no longer attached to the Server. Choose an attached
+                                device from Devices; Haus will not redirect you to another machine.
+                            </EmptyState.Description>
+                        </>
+                    )}
                 </EmptyState.Header>
             </EmptyState>
         </div>

@@ -1,52 +1,108 @@
-import type { ComputerUseReadiness } from '@haus/api';
+import {
+    type ComputerUseAgents,
+    type ComputerUsePermissionState,
+    type ComputerUseReadiness,
+    computerUsePanes,
+} from '@haus/api';
 
 export const computerUseDescription =
     'Captains can see the screen and click and type in applications on this Device.';
+
+export const defaultComputerAppPath = '~/.local/share/haus-computer/Haus Computer.app';
 
 export function supportsComputerUse(computer: { operatingSystem: string | null }) {
     return computer.operatingSystem?.toLowerCase() === 'darwin';
 }
 
-export type ComputerUseReadinessIssue =
-    | { kind: 'install' }
-    | { kind: 'denied'; pane: ComputerUsePermissionPane }
-    | { kind: 'moved'; pane: ComputerUsePermissionPane }
-    | { kind: 'unknown'; pane: ComputerUsePermissionPane };
-
-export type ComputerUsePermissionPane = 'Accessibility' | 'Screen Recording';
-
-export function computerUseReadinessIssues(readiness: ComputerUseReadiness | undefined) {
-    const issues: ComputerUseReadinessIssue[] = [];
-    if (!readiness) {
-        return issues;
-    }
-    if (!readiness.installed) {
-        issues.push({ kind: 'install' });
-        return issues;
-    }
-    const permissions = [
-        ['Accessibility', readiness.accessibility],
-        ['Screen Recording', readiness.screenRecording],
-    ] as const;
-    for (const [pane, state] of permissions) {
-        if (state === 'denied' && readiness.permissionsMoved) {
-            issues.push({ kind: 'moved', pane });
-        } else if (state !== 'granted') {
-            issues.push({ kind: state, pane });
-        }
-    }
-    return issues;
+export interface ComputerUsePermission {
+    id: 'accessibility' | 'screen-recording';
+    pane: string;
+    purpose: string;
+    settingsUrl: string;
+    state: ComputerUsePermissionState;
+    steps: string;
 }
 
-export function computerUseReadinessText(issue: ComputerUseReadinessIssue) {
-    switch (issue.kind) {
-        case 'install':
-            return 'Haus Computer couldn’t set up computer use on this Device. Update it, then Refresh.';
-        case 'denied':
-            return `Allow Haus Computer in System Settings → Privacy & Security → ${issue.pane}.`;
-        case 'moved':
-            return `Haus Computer is an app now, so macOS asks again. Allow Haus Computer in System Settings → Privacy & Security → ${issue.pane}.`;
-        case 'unknown':
-            return `Haus couldn’t read the ${issue.pane} permission; Refresh to check again.`;
+const privacyPane = 'x-apple.systempreferences:com.apple.preference.security';
+
+export function computerUsePermissions(readiness: ComputerUseReadiness | undefined) {
+    if (!readiness?.installed) {
+        return [];
     }
+    const panes = computerUsePanes(readiness.macosVersion);
+    const overrideFlow = panes.accessibility === 'System & App Protection Override';
+    const permissions: ComputerUsePermission[] = [
+        {
+            id: 'accessibility',
+            pane: panes.accessibility,
+            purpose: 'Lets Captains read and click the apps on screen.',
+            settingsUrl: `${privacyPane}?Privacy_Accessibility`,
+            state: readiness.accessibility,
+            steps: overrideFlow
+                ? 'Click +, choose Override System Protections, then Choose Apps. Pick Haus Computer and choose Control Your Entire Mac and All Apps.'
+                : 'Click +, pick Haus Computer, and turn it on.',
+        },
+        {
+            id: 'screen-recording',
+            pane: panes.screenRecording,
+            purpose: 'Lets Captains take screenshots.',
+            settingsUrl: `${privacyPane}?Privacy_ScreenCapture`,
+            state: readiness.screenRecording,
+            steps: 'Turn on Haus Computer. If it isn’t listed, click + and pick it.',
+        },
+    ];
+    return permissions;
+}
+
+export function computerUseNeedsGrant(readiness: ComputerUseReadiness | undefined) {
+    return computerUsePermissions(readiness).some((permission) => permission.state !== 'granted');
+}
+
+export function permissionStateLabel(state: ComputerUsePermissionState) {
+    switch (state) {
+        case 'granted':
+            return 'Granted';
+        case 'denied':
+            return 'Not granted';
+        case 'unknown':
+            return 'Couldn’t check';
+    }
+}
+
+export const allCaptainsKey = 'all';
+
+export function nextComputerUseAgents(current: ComputerUseAgents, keys: readonly string[]) {
+    const picksAll = keys.includes(allCaptainsKey);
+    if (picksAll && current.kind === 'named') {
+        return { kind: 'all' } as const;
+    }
+    const agentIds = keys.filter((key) => key !== allCaptainsKey);
+    const [first, ...rest] = agentIds;
+    if (first === undefined) {
+        return null;
+    }
+    return { agentIds: [first, ...rest] as [string, ...string[]], kind: 'named' } as const;
+}
+
+export function computerUseAgentKeys(agents: ComputerUseAgents) {
+    return agents.kind === 'all' ? [allCaptainsKey] : agents.agentIds;
+}
+
+export function computerUseAgentsSummary(
+    agents: ComputerUseAgents,
+    captains: readonly { displayName: string; id: string }[]
+) {
+    if (agents.kind === 'all') {
+        return captains.length > 0
+            ? `All Captains on this Device, including ones added later (now ${listNames(captains.map((captain) => captain.displayName))}).`
+            : 'All Captains on this Device, including ones added later.';
+    }
+    const names = agents.agentIds
+        .map((id) => captains.find((captain) => captain.id === id)?.displayName)
+        .filter((name) => name !== undefined);
+    return names.length > 0 ? `Only ${listNames(names)}.` : 'No Captains. Pick at least one.';
+}
+
+function listNames(names: readonly string[]) {
+    return new Intl.ListFormat('en', { style: 'long', type: 'conjunction' }).format(names);
 }

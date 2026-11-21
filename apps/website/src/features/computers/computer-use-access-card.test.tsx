@@ -32,24 +32,53 @@ test('a Device that is not a Mac has no Access section', () => {
     expect(render({ operatingSystem: 'linux' })).toBe('');
 });
 
-test('a Mac with Computer use allowed and a permission missing warns under Access', () => {
+test('a Mac with Computer use allowed lists each macOS permission with its state and a way to grant it', () => {
     const html = render({
         computerUseEnabled: true,
         reportedInventory: {
             computerUse: {
                 accessibility: 'granted',
+                appPath: '/Users/ada/.local/share/haus-computer/Haus Computer.app',
                 installed: true,
+                macosVersion: '27.3',
                 screenRecording: 'denied',
-                version: '0.4.0',
+                version: '1.3.1',
             },
             name: 'Studio Mac',
             runtimes: [],
         },
     });
 
-    expect(html).toContain('Computer use isn’t ready');
-    expect(html).toContain('Privacy &amp; Security → Screen Recording');
-    expect(html).not.toContain('Privacy &amp; Security → Accessibility');
+    expect(html).toContain('System &amp; App Protection Override');
+    expect(html).toContain('Granted');
+    expect(html).toContain('Screen &amp; System Audio Recording');
+    expect(html).toContain('Not granted');
+    expect(html).toContain('Open Settings');
+    expect(html).toContain('/Users/ada/.local/share/haus-computer/Haus Computer.app');
+    expect(html).toContain('Copy path');
+    expect(html).toContain('Check again');
+    expect(html).toContain('Captains');
+    expect(html).toContain('All Captains on this Device, including ones added later.');
+});
+
+test('a Mac whose permissions moved to the app says macOS asks again', () => {
+    const html = render({
+        computerUseEnabled: true,
+        reportedInventory: {
+            computerUse: {
+                accessibility: 'denied',
+                installed: true,
+                permissionsMoved: true,
+                screenRecording: 'denied',
+                version: '1.3.1',
+            },
+            name: 'Studio Mac',
+            runtimes: [],
+        },
+    });
+
+    expect(html).toContain('Haus Computer is an app now, so macOS asks again');
+    expect(html).toContain('~/.local/share/haus-computer/Haus Computer.app');
 });
 
 function render(overrides: Record<string, unknown>) {
@@ -63,6 +92,8 @@ function render(overrides: Record<string, unknown>) {
     utils.computer.list.setData({ serverId }, [
         {
             canChangeComputerUse: true,
+            computerUseAgents: { kind: 'all' },
+            computerUseChangedAt: null,
             computerUseEnabled: false,
             id: computerId,
             name: 'Studio Mac',
@@ -71,6 +102,8 @@ function render(overrides: Record<string, unknown>) {
             ...overrides,
         },
     ] as never);
+    utils.agent.list.setData({ serverId }, [] as never);
+    utils.computer.desktopActivity.setData({ computerId, serverId }, { commands: [] });
     return renderToStaticMarkup(
         <QueryClientProvider client={queryClient}>
             <hausTrpc.Provider client={client} queryClient={queryClient}>
