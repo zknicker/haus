@@ -9,7 +9,7 @@ export type ClaudeLogEntry =
     | { kind: 'prompt'; id: string; text: string }
     | { kind: 'assistant-text'; text: string }
     | { kind: 'tool-use'; id: string; input: unknown; name: string }
-    | { kind: 'tool-result'; toolUseId: string }
+    | { kind: 'tool-result'; isError: boolean; output: string; toolUseId: string }
     | {
           kind: 'result';
           costUsd: number | null;
@@ -82,7 +82,14 @@ function userEntries(payload: Record<string, unknown>): ClaudeLogEntry[] {
     const blocks = Array.isArray(content) ? content.map(record) : [];
     const entries: ClaudeLogEntry[] = blocks.flatMap((block) =>
         block?.type === 'tool_result' && typeof block.tool_use_id === 'string'
-            ? [{ kind: 'tool-result' as const, toolUseId: block.tool_use_id }]
+            ? [
+                  {
+                      isError: block.is_error === true,
+                      kind: 'tool-result' as const,
+                      output: resultText(block.content),
+                      toolUseId: block.tool_use_id,
+                  },
+              ]
             : []
     );
     const text = blocks
@@ -94,6 +101,18 @@ function userEntries(payload: Record<string, unknown>): ClaudeLogEntry[] {
         entries.push({ id: payload.uuid, kind: 'prompt', text });
     }
     return entries;
+}
+
+function resultText(content: unknown) {
+    if (typeof content === 'string') {
+        return content;
+    }
+    const blocks = Array.isArray(content) ? content.map(record) : [];
+    return blocks
+        .map((block) =>
+            block?.type === 'text' && typeof block.text === 'string' ? block.text : ''
+        )
+        .join('\n');
 }
 
 function assistantEntries(payload: Record<string, unknown>): ClaudeLogEntry[] {

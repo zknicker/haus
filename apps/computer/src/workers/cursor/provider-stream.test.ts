@@ -57,6 +57,41 @@ test('the Run event stream carries raw status and one bounded activity line', as
     }
 });
 
+test('tool calls on the stream become the turn steps, carried to the settling observation', async () => {
+    const transport = createRecordedCursorTransport({ reads: [recordedRun('FINISHED')] });
+    const provider = createCursorCloudAgentProvider(transport);
+    const seen: CloudAgentProviderObservation[] = [];
+    const watching = provider.subscribe(
+        ref,
+        (observation) => seen.push(observation),
+        new AbortController().signal
+    );
+    const tool = { args: { command: 'bun test' }, callId: 'call_1', kind: 'tool', name: 'shell' };
+
+    await transport.emit({ ...tool, kind: 'tool', result: undefined, status: 'running' });
+    await transport.emit({ ...tool, kind: 'tool', result: { stdout: '1 fail' }, status: 'error' });
+    await transport.emit({
+        args: { path: 'src/app.ts' },
+        callId: 'call_2',
+        kind: 'tool',
+        name: 'read',
+        result: undefined,
+        status: 'completed',
+    });
+    await transport.emit({ kind: 'status', rawStatus: 'FINISHED' });
+    await watching;
+
+    expect(seen[0]?.steps).toMatchObject([{ kind: 'run', label: 'bun test', state: 'running' }]);
+    expect(seen.at(-1)?.status).toBe('completed');
+    expect(seen.at(-1)?.steps).toMatchObject([
+        { kind: 'run', label: 'bun test', output: '1 fail', state: 'failed' },
+        { kind: 'read', label: 'src/app.ts', state: 'done' },
+    ]);
+    for (const observation of seen) {
+        parse(observation);
+    }
+});
+
 test('a streamed EXPIRED survives the read that collapses it into a failure', async () => {
     const transport = createRecordedCursorTransport({
         // A read cannot tell expiry from an ordinary failure; the stream can.

@@ -1,5 +1,6 @@
 import type {
     WorkerBranch,
+    WorkerStep,
     CloudAgentEnvironment,
     CloudAgentProvider as CloudAgentProviderId,
     WorkerObservedResult,
@@ -137,6 +138,8 @@ export interface CloudAgentProviderObservation {
     result?: WorkerObservedResult | null;
     /** Set on every reading of a stuck live Run. */
     stallCode?: WorkerStallCode;
+    /** The steps this Run's tool calls make so far, when the provider shows any. */
+    steps?: WorkerStep[];
     /** Provider-reported Run creation time, when available. */
     startedAt?: string;
     status: WorkerTurnStatus;

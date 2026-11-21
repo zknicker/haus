@@ -104,6 +104,14 @@ export type CursorAuth =
 export type CursorRunEvent =
     | { kind: 'activity'; summary: string }
     | { kind: 'detached' }
+    | {
+          args: unknown;
+          callId: string;
+          kind: 'tool';
+          name: string;
+          result: unknown;
+          status: 'completed' | 'error' | 'running';
+      }
     | { kind: 'status'; rawStatus: CursorRunStatus };
 
 export function isTerminalCursorRunStatus(status: CursorRunStatus): boolean {

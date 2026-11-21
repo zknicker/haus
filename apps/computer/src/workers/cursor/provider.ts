@@ -1,3 +1,4 @@
+import { cloudStepRecorder } from '../cloud-steps.ts';
 import {
     type WorkerLaunch,
     WorkerLaunchRejectedError,
@@ -129,6 +130,8 @@ async function watchCursorRun(
 ): Promise<void> {
     const terminal = new AbortController();
     const lifetime = AbortSignal.any([signal, terminal.signal]);
+    const recorder = cloudStepRecorder();
+    const steps = () => (recorder.steps().length > 0 ? { steps: recorder.steps() } : {});
     await transport.streamRun(
         address,
         async (event) => {
@@ -143,8 +146,8 @@ async function watchCursorRun(
                     if (lifetime.aborted) {
                         return;
                     }
-                    onObservation(
-                        reading
+                    onObservation({
+                        ...(reading
                             ? observationOf(
                                   { ...reading, rawStatus: event.rawStatus },
                                   {
@@ -158,8 +161,9 @@ async function watchCursorRun(
                                   providerRunId: address.runId,
                                   rawStatus: event.rawStatus,
                                   status: workerStatusOf(event.rawStatus),
-                              }
-                    );
+                              }),
+                        ...steps(),
+                    });
                     terminal.abort();
                     return;
                 }
@@ -172,9 +176,22 @@ async function watchCursorRun(
                 });
                 return;
             }
-            const activity = activityOf(event.summary, observedAt);
+            if (event.kind === 'tool') {
+                recorder.call(event.callId, event.name, event.args);
+                if (event.status !== 'running') {
+                    recorder.finish(event.callId, event.name, {
+                        failed: event.status === 'error',
+                        output: event.result,
+                    });
+                }
+            }
+            const activity = activityOf(
+                event.kind === 'tool' ? `Running ${event.name}` : event.summary,
+                observedAt
+            );
             if (activity) {
                 onObservation({
+                    ...steps(),
                     activity,
                     observedAt,
                     providerAgentId: address.agentId,

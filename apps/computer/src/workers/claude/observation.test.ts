@@ -250,3 +250,26 @@ test('the pushed branch and its pull request are reported together', () => {
         },
     ]);
 });
+
+test("the Run's tool calls become its steps, finished by their results", () => {
+    const failed = event({
+        message: {
+            content: [
+                { content: '1 fail', is_error: true, tool_use_id: 'tu_1', type: 'tool_result' },
+            ],
+        },
+        type: 'user',
+    });
+    const reading = observe([
+        prompt,
+        toolUse('tu_1', 'Bash', { command: 'bun test' }),
+        failed,
+        toolUse('tu_2', 'Read', { file_path: 'src/app.ts' }),
+    ]);
+
+    expect(reading.steps).toMatchObject([
+        { kind: 'run', label: 'bun test', output: '1 fail', state: 'failed' },
+        { kind: 'read', label: 'src/app.ts', output: null, state: 'running' },
+    ]);
+    expect(observe([prompt])).not.toHaveProperty('steps');
+});

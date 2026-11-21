@@ -14,13 +14,16 @@ const labelMaxLength = 200;
 
 const kindByTool: Readonly<Record<string, WorkerStepKind>> = {
     bash: 'run',
+    delete: 'edit',
     edit: 'edit',
     filechange: 'edit',
     glob: 'search',
     grep: 'search',
+    ls: 'search',
     multiedit: 'edit',
     notebookedit: 'edit',
     read: 'read',
+    shell: 'run',
     webfetch: 'read',
     websearch: 'search',
     write: 'edit',
@@ -30,7 +33,7 @@ const labelKeys: Readonly<Record<WorkerStepKind, readonly string[]>> = {
     edit: ['file_path', 'path', 'notebook_path'],
     read: ['file_path', 'path', 'url'],
     run: ['command'],
-    search: ['pattern', 'query'],
+    search: ['pattern', 'query', 'path'],
 };
 
 export function workerStepRecorder(redact: (text: string) => string) {

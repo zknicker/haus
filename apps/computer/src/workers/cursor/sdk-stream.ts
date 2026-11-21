@@ -60,7 +60,14 @@ function eventOf(message: SDKMessage): CursorRunEvent | null {
         return { kind: 'activity', summary: message.text };
     }
     if (message.type === 'tool_call') {
-        return { kind: 'activity', summary: `Running ${message.name}` };
+        return {
+            args: message.args,
+            callId: message.call_id,
+            kind: 'tool',
+            name: message.name,
+            result: message.result,
+            status: message.status,
+        };
     }
     return null;
 }

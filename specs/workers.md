@@ -638,7 +638,13 @@ names, then pending reminders. W4 builds it, following how a Capy parent shows i
   only on run, as the tail of its terminal output up to 4,000 characters. It never carries file
   contents, and the Computer redacts known secret patterns (tokens, keys, credentials, the turn
   credential) from `output` and `label` before sending. Each field drives one stock `ChatTool` prop. It is optional: without it the Worker's
-  message shows its report and activity. W3b adds the carrier and Server side.
+  message shows its report and activity. W3b adds the carrier and Server side for Computer
+  places, through `worker-turn-steps`. Cloud places report the same summary on the carrier's
+  `worker-observation` as `steps`, and the Server keeps the newest one on the turn. The Cursor
+  carrier builds it from the SDK stream's `tool_call` messages (`shell`, `read`, `edit`, `grep`,
+  `glob`, `ls`, `delete`, with their args and result), and the Claude carrier from the session
+  log's `tool_use` and `tool_result` blocks in the Run's window. A Cursor Run the carrier only
+  reads, never streams, shows no steps.
 
 The Task summary exposes the count and place labels of its live Workers, and the people named by
 needs-you reports that no later turn answered, for the sidebar row ("Forge · 6 workers · mini,
