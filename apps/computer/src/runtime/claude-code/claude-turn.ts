@@ -5,7 +5,6 @@ import type { RuntimeTokenUsage, TurnEvent } from '../turn-event.ts';
 import type { ClaudeConnection, TurnSink } from './claude-connection.ts';
 import { ClaudeProcessExitError, ClaudeTurnError, claudeResumeRejection } from './claude-errors.ts';
 import type { ClaudeCommandLifecycle, ClaudeResult, ParsedClaudeLine } from './claude-messages.ts';
-import { readClaudePlanUsage } from './claude-plan-usage.ts';
 import type { ClaudeExit } from './claude-process.ts';
 import {
     addUsage,
@@ -40,25 +39,17 @@ export class ClaudeTurn implements TurnSink {
     private failed = false;
     private finishing = false;
     private interruptRequested = false;
-    /** This turn is the wake for a turn Claude Code started itself, so that turn's result is its own. */
-    private readonly ownsNotificationTurn: boolean;
     private resultSeen = false;
     private usage: RuntimeTokenUsage | null = null;
 
     constructor(
         private readonly connection: ClaudeConnection,
         private readonly options: {
-            /** Lines of a turn Claude Code started on its own; this turn picks it up mid-flight. */
-            adopted?: readonly ParsedClaudeLine[] | null;
-            collectPlanUsage: boolean;
             signal: AbortSignal;
             /** How long a written steer may wait for its queue receipt; tests shorten it. */
             steerAckMs?: number;
-            /** A wake for background work: an adopted turn stands in for the prompt. */
-            wake?: boolean;
         }
     ) {
-        this.ownsNotificationTurn = Boolean(options.adopted && options.wake);
         this.detachSink = connection.attach(this);
         connection.normalizer.beginTurn();
         const onAbort = () => this.abort();
@@ -74,25 +65,12 @@ export class ClaudeTurn implements TurnSink {
         return !this.finishing;
     }
 
-    /**
-     * Writes the turn's prompt; a failed write ends the turn on the process's own error. A turn
-     * Claude Code already started on its own is replayed into this one first; a wake then writes
-     * nothing, because that turn is the model answering the very thing the wake is for.
-     */
+    /** Writes the turn's prompt; a failed write ends the turn on the process's own error. */
     async start(prompt: string): Promise<void> {
-        for (const line of this.options.adopted ?? []) {
-            this.onLine(line);
-        }
-        if (this.ownsNotificationTurn) {
-            if (this.options.signal.aborted) {
-                this.abort();
-            }
-            return;
-        }
         if (this.options.signal.aborted) {
             // Nothing reached Claude Code, so the runtime is already at its idle boundary.
             this.aborting = true;
-            await this.finish();
+            this.finish();
             return;
         }
         const uuid = randomUUID();
@@ -101,7 +79,7 @@ export class ClaudeTurn implements TurnSink {
             await this.connection.sendUser(prompt, { uuid });
         } catch (error) {
             this.fail({ error, type: 'error' });
-            void this.finish();
+            this.finish();
         }
     }
 
@@ -170,7 +148,7 @@ export class ClaudeTurn implements TurnSink {
 
     onLifecycle(message: ClaudeCommandLifecycle): void {
         if (this.steers.onLifecycle(message)) {
-            void this.trySettle();
+            this.trySettle();
         }
     }
 
@@ -194,20 +172,17 @@ export class ClaudeTurn implements TurnSink {
                 type: 'error',
             });
         }
-        void this.finish();
+        this.finish();
     }
 
     private dropSteer(uuid: string, error: unknown): SteerResult {
         this.steers.drop(uuid);
-        void this.trySettle();
+        this.trySettle();
         return { delivered: false, error, reason: 'failed' };
     }
 
     private onResult(result: ClaudeResult) {
-        const owner = claudeResultOwner(result, {
-            ownMessages: this.ownMessages,
-            ownsNotificationTurn: this.ownsNotificationTurn,
-        });
+        const owner = claudeResultOwner(result, this.ownMessages);
         if (owner !== 'turn') {
             // Another run's result on the shared connection: liveness only, never this outcome.
             this.events.push({ nativeType: `result:${owner}`, type: 'progress' });
@@ -228,36 +203,30 @@ export class ClaudeTurn implements TurnSink {
                 this.fail({ error: claudeResumeRejection(error) ?? error, type: 'error' });
             }
         }
-        void this.trySettle();
+        this.trySettle();
     }
 
-    private async trySettle() {
+    private trySettle() {
         // An interrupt cancels queued messages too, so its result is the idle boundary.
         const pending = !this.interruptRequested && this.steers.pending;
         if (this.resultSeen && !pending) {
-            await this.finish();
+            this.finish();
         }
     }
 
-    private async finish() {
+    private finish() {
         if (this.finishing) {
             return;
         }
         this.finishing = true;
-        try {
-            if (this.aborting && !this.failed) {
-                this.events.push({ type: 'abort' });
-            } else if (!this.failed) {
-                const claudePlanUsage = this.options.collectPlanUsage
-                    ? await readClaudePlanUsage(this.connection)
-                    : null;
-                this.events.push({ claudePlanUsage, type: 'turn-finish', usage: this.usage });
-            }
-        } finally {
-            this.events.end();
-            this.detachSink();
-            this.settled.resolve();
+        if (this.aborting && !this.failed) {
+            this.events.push({ type: 'abort' });
+        } else if (!this.failed) {
+            this.events.push({ type: 'turn-finish', usage: this.usage });
         }
+        this.events.end();
+        this.detachSink();
+        this.settled.resolve();
     }
 
     /** A fatal event ends the stream now; the runtime is interrupted back to idle behind it. */

@@ -1,14 +1,14 @@
 import type { RuntimeResumeState } from '../../resume-state.ts';
 import type { TurnEvent } from '../../turn-event.ts';
-import type { CodexDriverOptions } from '../codex-driver.ts';
 import type { CodexSession } from '../codex-session.ts';
+import type { CodexWorkerDriverOptions } from '../codex-worker-driver.ts';
 import { FakeAppServer } from './fake-app-server.ts';
 import { testCodexDriver } from './replay-driver.ts';
 
 /** Opens a Codex session on a fake app-server. */
 export async function openFake(
     fake = new FakeAppServer(),
-    options: { overrides?: Partial<CodexDriverOptions>; resumeFrom?: RuntimeResumeState } = {}
+    options: { overrides?: Partial<CodexWorkerDriverOptions>; resumeFrom?: RuntimeResumeState } = {}
 ): Promise<{ fake: FakeAppServer; session: CodexSession }> {
     const driver = testCodexDriver(() => fake, options.overrides);
     const session = (await driver.openSession({

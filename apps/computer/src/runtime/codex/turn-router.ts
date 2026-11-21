@@ -102,11 +102,7 @@ export class CodexTurnRouter {
     }
 
     private settlement(run: CodexTurnRun, end: CodexTurnEnd): TurnEvent[] {
-        const finish: TurnEvent = {
-            claudePlanUsage: null,
-            type: 'turn-finish',
-            usage: this.normalizer.usageForTurn(),
-        };
+        const finish: TurnEvent = { type: 'turn-finish', usage: this.normalizer.usageForTurn() };
         const failed = (message: string): TurnEvent => ({
             error: new CodexTurnFailedError(message),
             type: 'error',

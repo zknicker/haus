@@ -1,14 +1,13 @@
 /**
  * Why a runtime refused to resume stored state. `missing`: the native conversation is gone.
  * `archived`: the runtime archived it and would not restore it. `foreign-state`: another
- * runtime wrote the state. `invalid-state`: the state carries no conversation this runtime reads.
+ * runtime wrote the state.
  */
-export type RuntimeResumeRejection = 'archived' | 'foreign-state' | 'invalid-state' | 'missing';
+export type RuntimeResumeRejection = 'archived' | 'foreign-state' | 'missing';
 
 /**
  * Proof that stored resume state is unusable, thrown by every driver (specs/runtime-drivers.md).
- * The executor rotates the generation and cold-starts once on this error and nothing else:
- * network, auth, rate-limit, busy-writer, and timeout failures keep the session and retry it.
+ * Network, auth, rate-limit, busy-writer, and timeout failures are other errors.
  */
 export class RuntimeResumeRejectedError extends Error {
     readonly reason: RuntimeResumeRejection;
