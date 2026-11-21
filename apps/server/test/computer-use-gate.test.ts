@@ -97,6 +97,35 @@ test('once a steward turns Computer use on, a desktop act is sent to the Compute
     });
 });
 
+test('an unaccepted desktop act is not resent after Computer use is turned off', async () => {
+    desktop('run_resend', 'toolu_resend', ['type', '@s1:e2', 'hello']);
+    await computer.next(frameOfType('invoke', { runId: 'run_resend' }));
+    computer.close();
+    await computer.closed;
+    await setup.owner.trpc.computer.setComputerUse.mutate({
+        computerId: setup.computerId,
+        enabled: false,
+        serverId: setup.serverId,
+    });
+
+    computer = await connectComputer(setup.harness, setup.computerCredential);
+
+    expect(await answerFor('toolu_resend')).toMatchObject({
+        outcome: 'failed',
+        output: { kind: 'text', text: off },
+    });
+    const [record] = await setup.harness.sql`
+        select id, state, outcome from agent_invocations where run_id = 'run_resend'
+    `;
+    expect(record).toMatchObject({ outcome: 'failed', state: 'finished' });
+    expect(
+        await computer.next(frameOfType('invoke-cancel', { invocationId: record?.id }))
+    ).toMatchObject({ invocationId: record?.id });
+    expect(
+        computer.frames.filter((frame) => frame.type === 'invoke' && frame.runId === 'run_resend')
+    ).toEqual([]);
+});
+
 function desktop(runId: string, toolCallId: string, args: string[]) {
     runner.send({
         agentId: setup.agentId,
