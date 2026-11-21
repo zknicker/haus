@@ -63,7 +63,9 @@ export function ComputerUseAccessRow({
         <ItemCard>
             <ItemCard.Content>
                 <ItemCard.Title>Computer use</ItemCard.Title>
-                <ItemCard.Description>{current.description}</ItemCard.Description>
+                <ItemCard.Description className="whitespace-normal">
+                    {current.description}
+                </ItemCard.Description>
             </ItemCard.Content>
             <ItemCard.Action>
                 {canChange ? (
