@@ -67,7 +67,7 @@ Inbox page in J4; there is no flag.
   list loads. It reads the Device list (`computer.list`) only for an Owner or Admin with no
   Captains, waits for it only then, and treats a failed read as no Device. The sidebar keeps the
   Captains and Projects headers with their "+" and nothing below them (`home-state.ts`).
-- **Activity.** The Inbox's Captain activity strip (each Captain's 7-day tokens with the spike
+- **Activity.** The Captain activity strip (each Captain's 7-day tokens with the spike
   flag, and "N running" with its popover) heads the Activity page.
 
 ## Where the sidebar reads from
@@ -94,8 +94,9 @@ description (`planHomeTask` in `features/capy-shell/home-send.ts`). `useHomeSend
 Task and then opens its page. While the create is in flight the composer shows its submitted
 state, and a failed create keeps the text and shows the error under the composer.
 
-## What is left of the Inbox
+## Activity strip
 
-J4 deleted the old sidebar (`AppSidebar`, `ChatNavigation`), the Inbox page and the flag. The
-modules under `features/servers/inbox/` stay while Activity's Captain strip, the unread hooks
-and the shortcut registry still read them; removing what no surface reaches is its own change.
+The Captain activity strip that headed the old Inbox now heads the Activity page
+(`features/captain-activity/`): each Captain's 7-day tokens with the spike flag, and "N running"
+with its Happening now popover. The desktop dock badge counts unread Chats and followed Tasks
+(`useUnreadCount`). Notifications are in [Notifications](notifications.md).

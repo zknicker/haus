@@ -9,8 +9,8 @@ import { HausUpdateProvider } from '../../features/updates/use-haus-update.ts';
 import { useDesktopDockBadge } from '../../hooks/desktop/use-desktop-dock-badge.ts';
 import { useChats } from '../../hooks/servers/use-chats.ts';
 import { useIdleChatWarming } from '../../hooks/servers/use-idle-chat-warming.ts';
-import { useInboxUnreadCount } from '../../hooks/servers/use-inbox-unread-count.ts';
 import { useServer } from '../../hooks/servers/use-server.ts';
+import { useUnreadCount } from '../../hooks/servers/use-unread-count.ts';
 import { useShellVariantSync } from '../../hooks/shell/use-shell-variant.ts';
 import { useUnfocusableAppMain } from '../../hooks/shell/use-unfocusable-app-main.ts';
 import { isElectronDesktopApp } from '../../lib/desktop-bridge.ts';
@@ -116,7 +116,7 @@ function WebServerLayout({
  */
 function ChatListEffects({ serverId }: { serverId: string }) {
     const chats = useChats(serverId);
-    useDesktopDockBadge(useInboxUnreadCount(serverId).count);
+    useDesktopDockBadge(useUnreadCount(serverId).count);
     useIdleChatWarming(serverId, chats.data);
     return null;
 }

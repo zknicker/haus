@@ -264,8 +264,8 @@ runs with their records. The Computer's local files are unchanged by that sweep.
 ### Current activity
 
 Current activity is the live projection of the Server's Agents with unsettled,
-Computer-accepted turns and each one's latest semantic label. The Inbox's **Happening now**
-rows render it with the turn clock ([Inbox](../docs/features/inbox.md)), and the sidebar's
+Computer-accepted turns and each one's latest semantic label. The Activity page's **Happening now**
+rows render it with the turn clock ([Capy shell](../docs/features/capy-shell.md)), and the sidebar's
 Haus mark quickens while any Agent works. There is no sidebar activity strip: which Chat an
 Agent is answering is the typing strip above that Chat's composer
 ([ADR 0035](../docs/adr/0035-chat-engagement-shows-as-typing.md)), not Agent activity.

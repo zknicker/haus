@@ -5,7 +5,7 @@ export interface KeyChord {
     readonly modifiers: readonly ShortcutModifier[];
 }
 
-export type ShortcutContext = 'Anywhere' | 'Composer' | 'Desktop app' | 'Inbox' | 'Web page';
+export type ShortcutContext = 'Anywhere' | 'Composer' | 'Desktop app' | 'Web page';
 
 export interface Shortcut {
     readonly chords: readonly KeyChord[];
@@ -18,11 +18,6 @@ export const shortcutRegistry = [
     row('command-menu', 'Open command menu', 'Anywhere', [cmd('K')]),
     row('send', 'Send message', 'Composer', [key('enter')]),
     row('line-break', 'New line', 'Composer', [key('enter', 'shift')]),
-    row('inbox-next', 'Next card', 'Inbox', [key('J')]),
-    row('inbox-previous', 'Previous card', 'Inbox', [key('K')]),
-    row('inbox-mark-read', 'Mark read', 'Inbox', [key('E')]),
-    row('inbox-reply', 'Reply', 'Inbox', [key('R')]),
-    row('inbox-open', 'Open conversation', 'Inbox', [key('enter')]),
     row('settings', 'Open Settings', 'Desktop app', [cmd(',')]),
     row('new-window', 'New window', 'Desktop app', [cmd('N')]),
     row('new-tab', 'New tab', 'Desktop app', [cmd('T')]),

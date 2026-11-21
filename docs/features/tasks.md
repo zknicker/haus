@@ -78,8 +78,8 @@ until the list answers.
 
 A Task is unread only for its followers: the author of the origin message, anyone mentioned in
 it, anyone who has posted in the Task, and its assignee. Anyone can follow or unfollow a Task by
-hand. An unread Task appears in a follower's [Inbox](inbox.md) the way an unread Channel does. For
-everyone else a Task is a quiet sidebar row and never reaches their Inbox.
+hand. An unread Task shows its unread state on a follower's sidebar row the way an unread Channel
+does, and counts toward the desktop dock badge. For everyone else a Task is a quiet sidebar row.
 
 ## Task keys
 

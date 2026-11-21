@@ -5,7 +5,7 @@ import { buildTranscriptEntries } from '../../chats/chat-transcript-model.ts';
 import { TranscriptRenderProvider } from '../../chats/chat-transcript-render-context.tsx';
 import { TranscriptEntryView } from '../../chats/chat-transcript-turn.tsx';
 import type { TranscriptMessage } from '../../chats/transcript-contract.ts';
-import { useUnreadRowRenderContext } from '../../servers/inbox/unread-row-render-context.tsx';
+import { useStandaloneMessageRenderContext } from '../../servers/chat/standalone-message-render-context.tsx';
 import { WorkerSteps } from './worker-steps.tsx';
 import { workerTranscriptMessages } from './worker-transcript.ts';
 
@@ -36,7 +36,7 @@ export function WorkerConversation({
     );
     const items = workerTranscriptMessages({ chatId, liveLine, reportMessages, serverId, work });
     const messages = items.map((item) => item.message);
-    const baseContext = useUnreadRowRenderContext({
+    const baseContext = useStandaloneMessageRenderContext({
         chatId,
         messages,
         onOpenConversation: ignoreOpen,

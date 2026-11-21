@@ -14,7 +14,7 @@ implementation ownership, and runtime details live under
 | Feature | Doc |
 | --- | --- |
 | Chat | [Chat](chat.md) |
-| Inbox | [Inbox](inbox.md) |
+| Notifications | [Notifications](notifications.md) |
 | Agents | [Agents](agents.md) |
 | Agent conversation behavior | [Agent conversation behavior](agent-conversation-behavior.md) |
 | Context management | [Context management](context-management.md) |

@@ -7,7 +7,6 @@ describe('app route tab', () => {
             { id: 'search', label: 'Search', path: '/search' },
             { id: 'chat', label: 'Chat', path: '/chats' },
             { id: 'activity', label: 'Activity', path: '/activity' },
-            { id: 'inbox', label: 'Inbox', path: '/inbox' },
             { id: 'tasks', label: 'Tasks', path: '/tasks' },
             { id: 'artifacts', label: 'Drive', path: '/artifacts' },
             { id: 'members', label: 'Members', path: '/settings/members' },
@@ -19,7 +18,7 @@ describe('app route tab', () => {
         expect(getRouteTab('/chats')).toBe('chat');
         expect(getRouteTab('/chats/chat_123')).toBe('chat');
         expect(getRouteTab('/activity')).toBe('activity');
-        expect(getRouteTab('/inbox')).toBe('inbox');
+        expect(getRouteTab('/inbox')).toBeNull();
         expect(getRouteTab('/tasks')).toBe('tasks');
         // Members lives under Settings now, so it is no longer a top-level tab.
         expect(getRouteTab('/settings/members')).toBeNull();

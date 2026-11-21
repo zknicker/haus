@@ -160,7 +160,7 @@ restart's recovery reads never do, and a message whose Chat is read through it s
 topics after commit (`apps/server/src/push/`), with the same rule for messages. Delivery is best-effort; see
 [iPhone push](../operations/ios-push.md).
 
-The [Inbox](../features/inbox.md)'s Unread section and badge are `chat.list` plus the followed
+The desktop dock badge is `chat.list` plus the followed
 Tasks in `chat.unreadPreviews`, and add no event. Every change to an unread Task already has an
 event: `chat.onMessageCreated` and `chat.onRead` with a `taskId`, `task.onFollowUpdated`, and
 `chat.onLifecycle` (its Channel archived, deleted, or hidden).
