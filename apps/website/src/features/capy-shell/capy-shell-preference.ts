@@ -29,9 +29,9 @@ export function setCapyShell(
 
 export function readCapyShell(storage: Pick<Storage, 'getItem'> | null) {
     try {
-        return storage?.getItem(capyShellStorageKey) !== 'off';
+        return storage?.getItem(capyShellStorageKey) === 'on';
     } catch {
-        return true;
+        return false;
     }
 }
 
