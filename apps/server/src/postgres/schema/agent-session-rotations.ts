@@ -22,7 +22,9 @@ export const agentSessionRotationsTable = pgTable(
         agentId: text('agent_id').notNull(),
         generation: integer('generation').notNull(),
         previousStartedAt: timestamp('previous_started_at', { withTimezone: true }),
-        reason: text('reason').notNull().$type<'configuration' | 'full' | 'recovery' | 'session'>(),
+        reason: text('reason')
+            .notNull()
+            .$type<'configuration' | 'full' | 'recovery' | 'runner' | 'session'>(),
         rotatedAt: timestamp('rotated_at', { withTimezone: true }).notNull().defaultNow(),
         serverId: text('server_id').notNull(),
     },
@@ -36,7 +38,7 @@ export const agentSessionRotationsTable = pgTable(
         check('agent_session_rotations_generation', sql`${table.generation} > 1`),
         check(
             'agent_session_rotations_reason',
-            sql`${table.reason} in ('configuration', 'full', 'recovery', 'session')`
+            sql`${table.reason} in ('configuration', 'full', 'recovery', 'runner', 'session')`
         ),
     ]
 );

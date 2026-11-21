@@ -37,8 +37,7 @@ export function AgentCreationDialog({
 }: AgentCreationDialogProps) {
     const computers = useComputers(serverId, { enabled: open });
     const modelConnections = useModelConnections(serverId, { enabled: open }).data;
-    const runnerModels =
-        modelConnections?.agentLoop === 'runner' ? (modelConnections.runnerModels ?? []) : null;
+    const runnerModels = modelConnections?.runnerModels ?? [];
     const navigate = useNavigate();
     const tabs = useOptionalDesktopTabs();
     const { slug } = useParams();
@@ -58,7 +57,7 @@ export function AgentCreationDialog({
             id: computer.id,
             inventory: {
                 ...(computer.reportedInventory ?? {}),
-                runtimes: runnerModels ?? computer.reportedInventory?.runtimes ?? [],
+                runtimes: runnerModels,
             } as ComputerInventory,
             label: computerLabel(computer),
         }))

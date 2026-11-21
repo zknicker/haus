@@ -4,6 +4,7 @@ import { createHomedAgent } from './agent-home.fixture.ts';
 import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { captureTopic } from './realtime-capture.ts';
+import { reportRunnerModels } from './runner.fixture.ts';
 
 let harness: HausServerHarness;
 let owner: HausClient;
@@ -24,6 +25,7 @@ const codexRuntime = {
 
 beforeAll(async () => {
     harness = await startHausServerHarness();
+    await reportRunnerModels(harness, { runtimes: [codexRuntime] });
     owner = await signIn('user_events_owner');
 
     const server = await owner.trpc.server.create.mutate({

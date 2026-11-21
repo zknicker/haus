@@ -71,7 +71,6 @@ async function start() {
             : undefined,
         pushSender: push.sender,
         releaseIdentity: release,
-        agentLoop: env.HAUS_AGENT_LOOP,
         runnerToken: env.HAUS_RUNNER_TOKEN,
         secretsKey: env.HAUS_SECRETS_KEY ?? null,
         staticAppRoot: env.HAUS_STATIC_APP_ROOT,
@@ -107,7 +106,7 @@ async function start() {
     logStartupDetail(
         '🔁',
         'Agent loop',
-        `${env.HAUS_AGENT_LOOP === 'runner' ? 'runner' : 'Computers'} · runner socket ${env.HAUS_RUNNER_TOKEN ? 'open' : 'closed (no HAUS_RUNNER_TOKEN)'}`
+        `runner · runner socket ${env.HAUS_RUNNER_TOKEN ? 'open' : 'closed (no HAUS_RUNNER_TOKEN)'}`
     );
     logStartupDetail(
         '🔐',

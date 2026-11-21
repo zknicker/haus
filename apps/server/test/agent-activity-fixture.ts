@@ -12,6 +12,7 @@ import {
     usersTable,
 } from '../src/postgres/schema.ts';
 import { testAgentHome } from './agent-home.ts';
+import { RecordingRunner } from './recording-runner.ts';
 
 export function activityFrame(
     seed: Pick<AgentActivityFrame, 'agentId'>,
@@ -126,7 +127,9 @@ export async function seedActivity(db: HausDatabase): Promise<Seed> {
 export async function startRun(db: HausDatabase, seed: Seed) {
     const transport = new FakeTransport();
     transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(db, transport);
+    const runner = new RecordingRunner();
+    runner.attach(seed.agentId);
+    const delivery = new AgentDelivery(db, transport, undefined, runner);
     await delivery.deliver({
         agentId: seed.agentId,
         chatId: seed.chatId,
@@ -134,11 +137,9 @@ export async function startRun(db: HausDatabase, seed: Seed) {
         dedupeKey: createOpaqueId('msg'),
         serverId: seed.serverId,
     });
-    const frame = transport.sent.find(
-        (item): item is Extract<AgentCommand, { type: 'start' }> => item.type === 'start'
-    );
+    const frame = runner.starts()[0];
     if (!frame) {
         throw new Error('The test run did not start.');
     }
-    return { delivery, frame, transport };
+    return { delivery, frame, runner, transport };
 }

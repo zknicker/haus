@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { Agent, AgentLoop, ModelConnection } from '@haus/api';
+import type { Agent, ModelConnection } from '@haus/api';
 import { QueryClient } from '@tanstack/react-query';
 import { getQueryKey } from '@trpc/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -24,13 +24,13 @@ const pausedGrokAgent = testAgent({
 
 function renderProfileWarning(
     connections: ModelConnection[],
-    { agent = grokAgent, agentLoop = 'runner' }: { agent?: Agent; agentLoop?: AgentLoop } = {}
+    { agent = grokAgent }: { agent?: Agent } = {}
 ) {
     const queryClient = new QueryClient();
     queryClient.setQueryData(getQueryKey(hausTrpc.computer.list, { serverId }, 'query'), []);
     queryClient.setQueryData(getQueryKey(hausTrpc.modelConnections.list, { serverId }, 'query'), {
-        agentLoop,
         connections,
+        runnerModels: null,
     });
     return renderWithTrpc(
         <MemoryRouter initialEntries={['/team-room']}>
@@ -55,14 +55,6 @@ test('the warning is gone once the list holds an xAI connection', () => {
         testConnection({ authKind: 'oauth', id: 'mcn_grok', label: 'SuperGrok', provider: 'xai' }),
     ]);
     expect(html).toBe('');
-});
-
-test('an Agent on its Computer never warns about connections and keeps its wake pause with Restart', () => {
-    const html = renderProfileWarning([], { agent: pausedGrokAgent, agentLoop: 'computer' });
-    expect(html).not.toContain('connection');
-    expect(html).toContain('data-testid="agent-wake-pause"');
-    expect(html).toContain('>Paused after repeated failures<');
-    expect(html).toContain('>Restart</button>');
 });
 
 test('on the runner a paused Agent with no connection shows both the fix and Restart', () => {

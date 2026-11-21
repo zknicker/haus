@@ -22,6 +22,7 @@ import { recordAgentTurnSummary } from '../src/server-agents/record-agent-turn.t
 import type { HausUser } from '../src/users/haus-user.ts';
 import { testAgentHome } from './agent-home.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
+import { RecordingRunner } from './recording-runner.ts';
 
 /**
  * `agent.turns` names the work that woke each turn. The Server records it once at
@@ -56,18 +57,16 @@ class FakeTransport implements DeliveryTransport {
         this.sent.push(frame);
         return true;
     }
-
-    startedRunIds(): string[] {
-        return this.sent.flatMap((frame) => (frame.type === 'start' ? [frame.runId] : []));
-    }
 }
 
 test('a failed turn still names and quotes the human message that woke it', async () => {
     const seed = await seedAgent();
     await insertMessage(seed, 'msg_triggerhuman01', 'set up **tinylink**');
     const transport = new FakeTransport();
+    const runner = new RecordingRunner();
     transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    runner.attach(seed.agentId);
+    const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -76,7 +75,7 @@ test('a failed turn still names and quotes the human message that woke it', asyn
         dedupeKey: 'msg_triggerhuman01',
         serverId: seed.serverId,
     });
-    const [runId = ''] = transport.startedRunIds();
+    const [runId = ''] = runner.starts().map((frame) => frame.runId);
     await delivery.onAck({ agentId: seed.agentId, runId });
     // No output: the Server requeues the inbox row, which must not lose the trigger.
     await delivery.onTurnSettled(seed.computerId, summary(seed.agentId, runId, 'failed'));
@@ -110,8 +109,10 @@ test('a failed turn still names and quotes the human message that woke it', asyn
 test('a running turn names its trigger before it settles, gated like agent.turns', async () => {
     const seed = await seedAgent();
     const transport = new FakeTransport();
+    const runner = new RecordingRunner();
     transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    runner.attach(seed.agentId);
+    const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
 
     await delivery.deliver({
         agentId: seed.agentId,
@@ -120,7 +121,7 @@ test('a running turn names its trigger before it settles, gated like agent.turns
         dedupeKey: 'msg_triggerrunning01',
         serverId: seed.serverId,
     });
-    const [runId = ''] = transport.startedRunIds();
+    const [runId = ''] = runner.starts().map((frame) => frame.runId);
     await delivery.onAck({ agentId: seed.agentId, runId });
 
     const input = { agentId: seed.agentId, runId, serverId: seed.serverId };

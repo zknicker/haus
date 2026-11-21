@@ -18,6 +18,7 @@ import {
 } from '../src/postgres/schema.ts';
 import { appendServerAgentActivity } from '../src/server-agents/agent-activity.ts';
 import { testAgentHome } from './agent-home.ts';
+import { RecordingRunner } from './recording-runner.ts';
 
 /**
  * One Agent, one Computer, one Channel message that Agent claimed: the exact
@@ -38,11 +39,6 @@ export class FakeTransport implements DeliveryTransport {
         }
         this.sent.push({ computerId, frame });
         return true;
-    }
-
-    startedRunId(): string {
-        const start = this.sent.map((entry) => entry.frame).find((frame) => frame.type === 'start');
-        return start?.type === 'start' ? start.runId : '';
     }
 }
 
@@ -228,8 +224,10 @@ export async function seedPeerAgent(db: HausDatabase, claim: BackgroundClaim) {
 
 export async function beginRun(db: HausDatabase, claim: BackgroundClaim) {
     const transport = new FakeTransport();
+    const runner = new RecordingRunner();
     transport.online.add(claim.computerId);
-    const delivery = new AgentDelivery(db, transport);
+    runner.attach(claim.agentId);
+    const delivery = new AgentDelivery(db, transport, undefined, runner);
     await delivery.deliver({
         agentId: claim.agentId,
         chatId: claim.chatId,
@@ -237,7 +235,7 @@ export async function beginRun(db: HausDatabase, claim: BackgroundClaim) {
         dedupeKey: claim.messageId,
         serverId: claim.serverId,
     });
-    return { delivery, runId: transport.startedRunId(), transport };
+    return { delivery, runId: runner.starts()[0]?.runId ?? '', runner, transport };
 }
 
 export async function readClaim(db: HausDatabase, claim: BackgroundClaim) {

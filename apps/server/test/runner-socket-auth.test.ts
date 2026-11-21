@@ -53,7 +53,7 @@ test('a second runner replaces the first', async () => {
 });
 
 test('a Server without a runner token refuses every runner', async () => {
-    const closedServer = await startHausServerHarness();
+    const closedServer = await startHausServerHarness({ runnerToken: null });
     try {
         const runner = connectRunner(closedServer, testRunnerToken);
 

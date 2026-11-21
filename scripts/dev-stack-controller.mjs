@@ -25,7 +25,6 @@ import {
 import {
     createRunnerServerEnvironment,
     createRunnerToken,
-    isRunnerLoop,
 } from './dev-stack-runner-environment.mjs';
 import { createRunnerSpawnOptions, resolveRunnerDataRoot } from './dev-stack-runner.mjs';
 import {
@@ -79,7 +78,7 @@ export class DevStackController extends EventEmitter {
                 desktop: { status: isDesktop ? 'waiting' : 'disabled' },
                 haus: { status: 'waiting' },
                 postgres: { status: 'waiting' },
-                runner: { status: isRunnerLoop(process.env) ? 'waiting' : 'disabled' },
+                runner: { status: 'waiting' },
                 storage: { status: 'waiting' },
                 website: { status: 'waiting' },
             },
@@ -314,7 +313,7 @@ export class DevStackController extends EventEmitter {
             snapshot.processes.postgres.status = 'running';
         });
 
-        const runnerToken = isRunnerLoop(devStackEnvironment) ? createRunnerToken() : null;
+        const runnerToken = createRunnerToken();
         const baseServerEnv = createDevServerEnvironment(
             startupUiEnv,
             this.ports,

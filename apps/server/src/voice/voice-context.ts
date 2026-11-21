@@ -1,5 +1,4 @@
 import { and, asc, desc, eq, gt, isNull } from 'drizzle-orm';
-import type { AgentLoop } from '../agent-delivery/loop-host.ts';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -75,7 +74,6 @@ export async function readVoiceTarget(
 export type VoiceTarget = Awaited<ReturnType<typeof readVoiceTarget>>;
 
 export interface VoiceLoopHost {
-    loop: AgentLoop;
     runnerOnline: () => boolean;
 }
 
@@ -86,11 +84,8 @@ export function voiceCallRefusal(
     if (target.stopped) {
         return 'The Agent is stopped. Start it before you call.';
     }
-    if (host.loop === 'runner' && !host.runnerOnline()) {
+    if (!host.runnerOnline()) {
         return 'Haus cannot reach the Agent runner right now. Try the call again shortly.';
-    }
-    if (host.loop === 'computer' && target.health !== 'healthy') {
-        return 'The Agent needs a connected Computer before you call.';
     }
     return null;
 }

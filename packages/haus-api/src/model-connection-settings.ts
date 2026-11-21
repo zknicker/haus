@@ -38,14 +38,9 @@ export const modelConnectionListSchema = z
     .strict();
 export type ModelConnectionList = z.infer<typeof modelConnectionListSchema>;
 
-/** Where every Agent's loop runs on this Server (`HAUS_AGENT_LOOP`). Only the runner reads these connections. */
-export const agentLoopSchema = z.enum(['computer', 'runner']);
-export type AgentLoop = z.infer<typeof agentLoopSchema>;
-
 /** The connections read, with the Server's Agent loop so the App warns about a missing connection only where one is used. */
 export const modelConnectionsReadSchema = modelConnectionListSchema
     .extend({
-        agentLoop: agentLoopSchema,
         /** The runner's model catalog; null on the Computer loop or before the runner reports. */
         runnerModels: z.array(computerRuntimeSchema).nullable(),
     })

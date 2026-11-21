@@ -9,6 +9,7 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import { agentActivityTable } from '../src/postgres/schema.ts';
 import { deliverHuman, FakeTransport, seedAgent } from './agent-inbox-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
+import { RecordingRunner } from './recording-runner.ts';
 
 let cluster: TestDatabase;
 let connection: HausConnection;
@@ -39,10 +40,12 @@ test('a consumed notice ack logs one line with what it marked', async () => {
     try {
         const seed = await seedAgent(connection.db);
         const transport = new FakeTransport();
+        const runner = new RecordingRunner();
         transport.online.add(seed.computerId);
-        const delivery = new AgentDelivery(connection.db, transport, runtime);
+        runner.attach(seed.agentId);
+        const delivery = new AgentDelivery(connection.db, transport, runtime, runner);
         await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
-        const runId = transport.framesOfType('start')[0]?.runId ?? '';
+        const runId = runner.starts()[0]?.runId ?? '';
         await delivery.onAck({ agentId: seed.agentId, runId });
         const busyMessage = await deliverHuman(connection.db, delivery, seed, {
             chatId: seed.dmChatId,
@@ -84,10 +87,12 @@ test('a consumed notice ack logs one line with what it marked', async () => {
 test('a consumed notice ack records one received_message activity for the run', async () => {
     const seed = await seedAgent(connection.db);
     const transport = new FakeTransport();
+    const runner = new RecordingRunner();
     transport.online.add(seed.computerId);
-    const delivery = new AgentDelivery(connection.db, transport);
+    runner.attach(seed.agentId);
+    const delivery = new AgentDelivery(connection.db, transport, undefined, runner);
     await deliverHuman(connection.db, delivery, seed, { chatId: seed.dmChatId });
-    const runId = transport.framesOfType('start')[0]?.runId ?? '';
+    const runId = runner.starts()[0]?.runId ?? '';
     await delivery.onAck({ agentId: seed.agentId, runId });
     const busyMessage = await deliverHuman(connection.db, delivery, seed, {
         chatId: seed.dmChatId,

@@ -4,7 +4,6 @@ import {
     type UsageOverview,
 } from '@haus/api';
 import { sendBootstrap, socketMessage, socketOpen } from '../support/computer-socket.ts';
-import { createHomedAgent } from '../support/project.ts';
 import { attachComputer, createTestServer } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -54,11 +53,9 @@ test('old provider usage stays labeled until a fresh Computer snapshot arrives',
     }
 });
 
-test('manual runtime refresh updates capacity and Agent model choices without reloading', async ({
-    page,
-}) => {
+test('manual runtime refresh updates the device runtimes without reloading', async ({ page }) => {
     const slug = 'runtime-refresh-hq';
-    const { client: owner, server } = await createTestServer(page, {
+    const { client: owner } = await createTestServer(page, {
         displayName: 'Runtime Refresh HQ',
         slug,
     });
@@ -146,21 +143,6 @@ test('manual runtime refresh updates capacity and Agent model choices without re
         ).toBeVisible();
         await expect(page.getByText('Not detected: Claude Code')).toBeVisible();
         await page.screenshot({ path: test.info().outputPath('refreshed-runtimes.png') });
-        const { agent } = await createHomedAgent(owner, {
-            serverId: server.id,
-            computerId: attachment.computerId,
-            displayName: 'Refresh Scout',
-            handle: 'refresh-scout',
-            modelId: 'gpt-5.6-sol',
-            runtimeId: 'codex',
-        });
-        await page.goto(`/s/${slug}/agents/${agent.id}/setup`);
-        await page.getByRole('button', { name: 'Edit', exact: true }).click();
-        const dialog = page.getByRole('dialog', { name: 'Runtime Config' });
-        await dialog.getByLabel('Runtime').click();
-        await page.getByRole('option', { name: 'Grok Build', exact: true }).click();
-        await expect(dialog.getByLabel('Model')).toContainText('Grok 4.6');
-        await dialog.getByRole('button', { name: 'Cancel', exact: true }).click();
     } finally {
         computer.close();
     }

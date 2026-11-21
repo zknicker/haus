@@ -69,6 +69,7 @@ export function createMcpClient(authority: RunAuthority) {
                 headers: {
                     authorization: `Bearer ${authority.runCredential}`,
                     'x-haus-mcp-request-id': requestId,
+                    ...(authority.traceparent ? { traceparent: authority.traceparent } : {}),
                     ...(options.body === undefined ? {} : { 'content-type': 'application/json' }),
                     ...(options.dispatch
                         ? { [AGENT_DISPATCH_ID_HEADER]: dispatchIdOf(options.dispatch) }

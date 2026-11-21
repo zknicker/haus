@@ -29,7 +29,7 @@ test('a Task assignment never runs the main session ahead of the greeting', asyn
         allChannelId,
         serverId: seed.serverId,
     });
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
     await assignNewTask(connection.db, delivery, board, 'Audit the keys');
 
     const first = await wake();
@@ -54,7 +54,7 @@ test('a Task assignment never runs the main session ahead of the greeting', asyn
         visibleMessages: [],
     });
 
-    const assignment = transport.framesOfType('start').at(-1);
+    const assignment = runner.starts().at(-1);
     expect(assignment).toMatchObject({ chatId: null });
     expect(assignment?.taskAssignments?.map((item) => item.title)).toEqual(['Audit the keys']);
     expect(assignment?.greets).toBeUndefined();

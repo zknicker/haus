@@ -32,7 +32,7 @@ export interface AgentHoverAttention {
 export function agentHoverAttention(
     agent: Agent,
     computer: Computer | null,
-    connections: Pick<ModelConnectionsRead, 'agentLoop' | 'connections'> | undefined
+    connections: Pick<ModelConnectionsRead, 'connections'> | undefined
 ) {
     const issue = agentRuntimeIssue(agent, computer?.reportedInventory ?? null);
     if (computer && issue) {

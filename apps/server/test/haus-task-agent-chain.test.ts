@@ -69,14 +69,14 @@ async function turnsOf(seed: Seed) {
 
 test('an assignment from another Agent spends the chain', async () => {
     const { board, peerId, seed } = await seedChain(3);
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
     await assignFromAgent(delivery, board, peerId, 'From a peer');
 
     const start = await wake();
     expect(start?.taskAssignments?.[0]?.assignedByAgent).toBe(true);
     await delivery.onTurnSettled(seed.computerId, settledTurn(seed, start?.runId ?? ''));
     expect(await turnsOf(seed)).toBe(4);
-    expect(transport.framesOfType('start')).toHaveLength(1);
+    expect(runner.starts()).toHaveLength(1);
 });
 
 test('a person assigning a Task resets the chain', async () => {
@@ -92,16 +92,16 @@ test('a person assigning a Task resets the chain', async () => {
 
 test('at the ceiling an Agent assignment holds until a person assigns, then both drain', async () => {
     const { board, peerId, seed } = await seedChain(maxAgentChainTurns);
-    const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
+    const { delivery, runner, wake } = offlineDelivery(connection.db, seed);
     await assignFromAgent(delivery, board, peerId, 'Loop');
 
     expect(await wake()).toBeUndefined();
     await delivery.dispatchAgent(seed.agentId, seed.serverId);
-    expect(transport.framesOfType('start')).toHaveLength(0);
+    expect(runner.starts()).toHaveLength(0);
 
     await assignNewTask(connection.db, delivery, board, 'From a person');
     await delivery.dispatchAgent(seed.agentId, seed.serverId);
-    const [start] = transport.framesOfType('start');
+    const [start] = runner.starts();
     expect(start?.taskAssignments?.map((task) => task.title)).toEqual(['Loop', 'From a person']);
     await delivery.onTurnSettled(seed.computerId, settledTurn(seed, start?.runId ?? ''));
     expect(await turnsOf(seed)).toBe(0);

@@ -1,6 +1,7 @@
 import { mkdirSync } from 'node:fs';
 import { workerObservationFrame, seedWorker } from '../support/agent-worker.ts';
 import { sendBootstrap, socketMessage, socketOpen } from '../support/computer-socket.ts';
+import { createProjectWithAgents } from '../support/project.ts';
 import { createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
@@ -16,11 +17,16 @@ test('Automations exposes automatic cloud handoffs and keeps delivered work in h
         slug: 'cloud-automations',
     });
     const credential = 'cloud-automations-computer-credential-12';
+    await createProjectWithAgents(client, {
+        agentIds: [],
+        name: 'automations',
+        serverId: server.id,
+    });
     const seeded = await seedWorker({
         agentHandle: 'forge',
-        channelName: 'all',
+        channelName: 'automations',
         computerCredential: credential,
-        content: 'I’m adding worker wake visibility to Automations.',
+        brief: 'I’m adding worker wake visibility to Automations.',
         databaseUrl: session.databaseUrl,
         repository: 'haus/haus',
         serverId: server.id,
@@ -70,15 +76,20 @@ test('Automations exposes automatic cloud handoffs and keeps delivered work in h
     mkdirSync(screenshots, { recursive: true });
     await page.screenshot({ path: `${screenshots}/running.png` });
     await row.click();
-    await expect(page).toHaveURL(new RegExp(`/chats/${seeded.chatId}`, 'u'));
-    await expect(page.locator(`[data-message-id="${seeded.messageId}"]`)).toBeInViewport();
+    await expect(page).toHaveURL(new RegExp(`/workers/${seeded.workerId}$`, 'u'));
+    await expect(page.getByText('I’m adding worker wake visibility to Automations.')).toBeVisible();
     await page.goto(route);
     socket.send(
         workerObservationFrame({
             observedAt: new Date().toISOString(),
             turnId: seeded.turnId,
+            result: {
+                outcome: 'done',
+                personHandle: null,
+                pullRequestUrls: [],
+                text: 'The change is ready for review.',
+            },
             status: 'completed',
-            summary: 'The change is ready for review.',
             workerId: seeded.workerId,
         })
     );
@@ -97,7 +108,7 @@ test('Automations exposes automatic cloud handoffs and keeps delivered work in h
     runPsql(
         session.databaseUrl,
         `update agent_inbox set state = 'seen', seen_at = now()
-        where server_id = '${server.id}' and dedupe_key = '${seeded.turnId}'`
+        where server_id = '${server.id}' and worker_turn_id = '${seeded.turnId}'`
     );
     await page.reload();
     await expect(row).toHaveCount(0);
@@ -107,7 +118,7 @@ test('Automations exposes automatic cloud handoffs and keeps delivered work in h
     await page.mouse.move(5, 5);
     await page.screenshot({ path: `${screenshots}/history.png` });
     await row.click();
-    await expect(page).toHaveURL(new RegExp(`/chats/${seeded.chatId}`, 'u'));
-    await expect(page.locator(`[data-message-id="${seeded.messageId}"]`)).toBeInViewport();
+    await expect(page).toHaveURL(new RegExp(`/workers/${seeded.workerId}$`, 'u'));
+    await expect(page.getByText('The change is ready for review.')).toBeVisible();
     socket.close();
 });
