@@ -5,6 +5,7 @@ import { resolveModelConnection } from '../model-connections/agent-model-connect
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
 import type { DeliveryTransport, DispatchPlan } from './delivery.ts';
+import { awaitsCutover } from './runner-cutover.ts';
 import { readDeliveryState } from './store.ts';
 
 export interface AgentLoopHost {
@@ -38,6 +39,10 @@ export class AgentLoopRoute {
 
     isOnline(_host: AgentLoopHost) {
         return this.runner.isOnline();
+    }
+
+    async canStart(tx: HausDatabase, agentId: string) {
+        return this.runner.isOnline() && !(await awaitsCutover(tx, agentId));
     }
 
     send(host: AgentLoopHost, frame: LoopFrame) {

@@ -1,14 +1,37 @@
 import type { ComputerRuntime } from '@haus/api';
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, isNull, lte, notExists, sql } from 'drizzle-orm';
 import { markAllComputersOffline } from '../computers/service.ts';
+import { resolveModelConnection } from '../model-connections/agent-model-connection.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, bootStepsTable } from '../postgres/schema.ts';
+import { agentSessionRotationsTable, agentsTable, bootStepsTable } from '../postgres/schema.ts';
 import { inheritedModel } from '../server-agents/agent-model-catalog.ts';
 import { resetInTransaction } from './reset-transaction.ts';
 
 export async function prepareAgentHosts(db: HausDatabase) {
     await markAllComputersOffline(db);
+    await db.insert(bootStepsTable).values({ name: cutoverBegan }).onConflictDoNothing();
+}
+
+export async function awaitsCutover(db: Pick<HausDatabase, 'execute'>, agentId: string) {
+    const rows = await db.execute<{ waiting: boolean }>(sql`
+        select not exists (select 1 from boot_steps where name = ${cutoverStep})
+           and not exists (
+               select 1 from agent_session_rotations
+               where agent_id = ${agentId} and reason = 'runner'
+           )
+           and coalesce(
+               (select a.created_at <= b.completed_at
+                from agents a, boot_steps b
+                where a.id = ${agentId} and b.name = ${cutoverBegan}),
+               false
+           ) as waiting
+    `);
+    return rows[0]?.waiting === true;
+}
+
+export async function resumeAgentsOnRunner(db: HausDatabase, delivery: { sweep(): Promise<void> }) {
     await moveAgentsToRunner(db);
+    await delivery.sweep();
 }
 
 export async function moveAgentsToRunner(db: HausDatabase) {
@@ -17,21 +40,62 @@ export async function moveAgentsToRunner(db: HausDatabase) {
         .from(bootStepsTable)
         .where(eq(bootStepsTable.name, cutoverStep));
     if (done) {
-        return 0;
+        return { moved: 0, stranded: 0 };
+    }
+    await db.insert(bootStepsTable).values({ name: cutoverBegan }).onConflictDoNothing();
+    const [began] = await db
+        .select({ at: bootStepsTable.completedAt })
+        .from(bootStepsTable)
+        .where(eq(bootStepsTable.name, cutoverBegan));
+    if (!began) {
+        throw new Error('The runner cutover could not record when it began.');
     }
     const agents = await db
-        .select({ agentId: agentsTable.id, serverId: agentsTable.serverId })
+        .select({
+            agentId: agentsTable.id,
+            modelId: agentsTable.desiredModelId,
+            serverId: agentsTable.serverId,
+        })
         .from(agentsTable)
-        .where(isNull(agentsTable.retiredAt));
-    for (const agent of agents) {
+        .where(
+            and(
+                isNull(agentsTable.retiredAt),
+                lte(agentsTable.createdAt, began.at),
+                notExists(
+                    db
+                        .select({ agentId: agentSessionRotationsTable.agentId })
+                        .from(agentSessionRotationsTable)
+                        .where(
+                            and(
+                                eq(agentSessionRotationsTable.serverId, agentsTable.serverId),
+                                eq(agentSessionRotationsTable.agentId, agentsTable.id),
+                                eq(agentSessionRotationsTable.reason, 'runner')
+                            )
+                        )
+                )
+            )
+        );
+    let stranded = 0;
+    for (const { modelId, ...agent } of agents) {
+        const connection = modelId ? await resolveModelConnection(db, { ...agent, modelId }) : null;
+        if (!connection) {
+            stranded += 1;
+            console.info(
+                '[haus] left an Agent on its old session until its Server connects a model login',
+                agent
+            );
+            continue;
+        }
         const reset = await resetInTransaction(db, { ...agent, kind: 'session', reason: 'runner' });
         console.info('[haus] moved an Agent to the runner with a fresh session', {
             agentId: agent.agentId,
             sessionGeneration: reset.sessionGeneration,
         });
     }
-    await db.insert(bootStepsTable).values({ name: cutoverStep }).onConflictDoNothing();
-    return agents.length;
+    if (stranded === 0) {
+        await db.insert(bootStepsTable).values({ name: cutoverStep }).onConflictDoNothing();
+    }
+    return { moved: agents.length - stranded, stranded };
 }
 
 export async function mapAgentsOntoCatalog(db: HausDatabase, runtimes: readonly ComputerRuntime[]) {
@@ -78,3 +142,4 @@ export async function mapAgentsOntoCatalog(db: HausDatabase, runtimes: readonly 
 }
 
 const cutoverStep = 'agents-move-to-runner';
+const cutoverBegan = 'agents-move-to-runner-began';

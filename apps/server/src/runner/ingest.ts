@@ -1,7 +1,7 @@
 import { type RunnerUpFrame, runnerUpFrameSchema } from '@haus/api';
 import { eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
-import { mapAgentsOntoCatalog } from '../agent-delivery/runner-cutover.ts';
+import { mapAgentsOntoCatalog, resumeAgentsOnRunner } from '../agent-delivery/runner-cutover.ts';
 import { settleHostedTurn } from '../agent-delivery/settle-turn.ts';
 import { readDeliveryState } from '../agent-delivery/store.ts';
 import type { InvocationRouter } from '../agent-invocations/invocation-router.ts';
@@ -59,6 +59,7 @@ export async function ingestRunnerFrame(ingest: RunnerIngest, raw: string) {
         case 'runner-inventory':
             ingest.link.recordInventory(frame);
             await mapAgentsOntoCatalog(ingest.db, frame.runtimes);
+            await resumeAgentsOnRunner(ingest.db, ingest.delivery);
             return;
         case 'invocation-request':
             await ingest.invocations.request(frame);

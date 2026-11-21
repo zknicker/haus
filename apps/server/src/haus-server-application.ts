@@ -3,7 +3,7 @@ import { settle, tracePromise } from '@haus/effect';
 import { Exit, Scope } from 'effect';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { AgentDelivery } from './agent-delivery/delivery.ts';
-import { prepareAgentHosts } from './agent-delivery/runner-cutover.ts';
+import { prepareAgentHosts, resumeAgentsOnRunner } from './agent-delivery/runner-cutover.ts';
 import { openInvocationRouter } from './agent-invocations/invocation-router.ts';
 import { openArtifactStorage } from './artifacts/startup.ts';
 import { openAttachmentRoot } from './attachments/attachment-root.ts';
@@ -107,6 +107,7 @@ export async function createHausServerApplication(
             runtime,
             runnerLink
         );
+        modelConnections.whenChanged(() => resumeAgentsOnRunner(connectedHaus.db, agentDelivery));
         const startedPostCommitWork = new ServerPostCommitWork(runtime);
         handles.postCommitWork = startedPostCommitWork;
         const avatarImageService = new AvatarImageService(

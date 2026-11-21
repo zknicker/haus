@@ -40,6 +40,7 @@ export type RunnerConnectionFrame =
 
 export class ModelConnectionRelay {
     private readonly signIns = new ModelSignIns();
+    private afterChange: (() => Promise<void>) | null = null;
     private reportedMissingKey = false;
 
     readonly catalog: AgentModelCatalog;
@@ -57,6 +58,13 @@ export class ModelConnectionRelay {
     async connectionsChanged(serverId: string) {
         modelConnectionsUpdatedTopic.announce({ serverId });
         await this.sendSnapshot();
+        if (this.runner.inventory) {
+            await this.afterChange?.();
+        }
+    }
+
+    whenChanged(listener: () => Promise<void>) {
+        this.afterChange = listener;
     }
 
     async runnerAttached() {

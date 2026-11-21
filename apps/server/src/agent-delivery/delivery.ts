@@ -583,8 +583,8 @@ export class AgentDelivery {
         if (!(state && isConfigured(config)) || state.stopped) {
             return null;
         }
-        // A runner-hosted start goes out whether or not the Agent's Computer is online.
-        if (!this.route.isOnline(this.route.hostOf(config.computerId))) {
+        // An Agent waits, inbox intact, until the runner is up and the Agent is cut over to it.
+        if (!(await this.route.canStart(tx, agentId))) {
             return null;
         }
         await markCursorSubsumedSeen(tx, { agentId, serverId: state.serverId });
