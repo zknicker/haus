@@ -33,8 +33,8 @@
     "legacyCeilings": {
         "packages/agent-cli/src/commands/agent-reminder.ts": 345,
         "packages/agent-cli/src/commands/agent-trigger.test.ts": 304,
-        "apps/computer/src/index.test.ts": 869,
-        "apps/computer/src/index.ts": 1193,
+        "apps/computer/src/index.test.ts": 851,
+        "apps/computer/src/index.ts": 1163,
         "apps/computer/src/login.ts": 409,
         "apps/computer/src/setup-resume.test.ts": 325,
         "apps/computer/src/update.test.ts": 340,

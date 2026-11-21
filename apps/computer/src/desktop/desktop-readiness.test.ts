@@ -4,7 +4,7 @@ import { detectComputerUseReadiness, readPermissions } from './desktop-readiness
 describe('computer use readiness', () => {
     test('a Computer off macOS reports nothing', async () => {
         expect(
-            await detectComputerUseReadiness({ platform: 'linux', toolsRoot: '/no-tools' })
+            await detectComputerUseReadiness({ dataRoot: '/no-data', platform: 'linux' })
         ).toBeUndefined();
     });
 

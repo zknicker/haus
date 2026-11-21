@@ -10,6 +10,7 @@ export function supportsComputerUse(computer: { operatingSystem: string | null }
 export type ComputerUseReadinessIssue =
     | { kind: 'install' }
     | { kind: 'denied'; pane: ComputerUsePermissionPane }
+    | { kind: 'moved'; pane: ComputerUsePermissionPane }
     | { kind: 'unknown'; pane: ComputerUsePermissionPane };
 
 export type ComputerUsePermissionPane = 'Accessibility' | 'Screen Recording';
@@ -28,7 +29,9 @@ export function computerUseReadinessIssues(readiness: ComputerUseReadiness | und
         ['Screen Recording', readiness.screenRecording],
     ] as const;
     for (const [pane, state] of permissions) {
-        if (state !== 'granted') {
+        if (state === 'denied' && readiness.permissionsMoved) {
+            issues.push({ kind: 'moved', pane });
+        } else if (state !== 'granted') {
             issues.push({ kind: state, pane });
         }
     }
@@ -41,6 +44,8 @@ export function computerUseReadinessText(issue: ComputerUseReadinessIssue) {
             return 'Haus Computer couldn’t set up computer use on this Device. Update it, then Refresh.';
         case 'denied':
             return `Allow Haus Computer in System Settings → Privacy & Security → ${issue.pane}.`;
+        case 'moved':
+            return `Haus Computer is an app now, so macOS asks again. Allow Haus Computer in System Settings → Privacy & Security → ${issue.pane}.`;
         case 'unknown':
             return `Haus couldn’t read the ${issue.pane} permission; Refresh to check again.`;
     }

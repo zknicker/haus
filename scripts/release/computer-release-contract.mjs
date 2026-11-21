@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import computerProtocol from '../../packages/haus-api/computer-protocol.json' with { type: 'json' };
 
 export const computerProtocolVersion = computerProtocol.version;
-export const computerArtifactName = 'haus-computer-aarch64-apple-darwin';
+export const computerArtifactName = 'haus-computer-aarch64-apple-darwin.zip';
 
 export function computerReleaseSigningPayload(release) {
     return JSON.stringify({

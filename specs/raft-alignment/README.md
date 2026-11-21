@@ -139,11 +139,12 @@ Haus deliberately omits Raft's `latest`/`alpha`/`pinned` release-channel model. 
 production Computer release stream, and both Haus App-triggered updates and plain CLI upgrades target
 its newest version.
 Matching Raft's executable-versus-`$SLOCK_HOME` split, Haus Computer ships as a compiled,
-Developer-ID-signed and notarized standalone executable at
-`~/.local/bin/haus-computer`. Its install root is disposable and strictly separate from the
+Developer-ID-signed and notarized `Haus Computer.app` at
+`~/.local/share/haus-computer/`, with `~/.local/bin/haus-computer` a symlink to its executable
+(the bundle gives macOS a named holder for Accessibility and Screen Recording). Its install root is disposable and strictly separate from the
 stable `~/.haus` data root. Computer identity, attachments, queues, logs, credentials, and Agent
 workspaces never live beside the executable. Updates atomically replace code only and retain one
-previous verified executable for explicit `haus-computer upgrade --rollback`; they never clean,
+previous verified app for explicit `haus-computer upgrade --rollback`; they never clean,
 relocate, stage through, snapshot, or roll back durable Agent data. Reinstalling the executable
 validates and resumes still-valid attachments and workspaces.
 WS6 supports Apple Silicon macOS only, matching the pre-Computer macOS target. It ships one

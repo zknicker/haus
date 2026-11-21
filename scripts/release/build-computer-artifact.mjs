@@ -4,10 +4,18 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import {
+    archiveComputerApp,
+    computerAppExecutable,
+    computerAppName,
+    writeComputerAppBundle,
+} from './computer-app-bundle.mjs';
 import { computerArtifactName, computerProtocolVersion } from './computer-release-contract.mjs';
 import { fail, repoRoot } from './release-utils.mjs';
 
 export const computerReleaseRoot = path.join(repoRoot, 'apps', 'computer', 'release');
+export const computerReleaseAppPath = path.join(computerReleaseRoot, computerAppName);
+export const computerReleaseArtifactPath = path.join(computerReleaseRoot, computerArtifactName);
 const computerEntitlementsPath = path.join(
     repoRoot,
     'scripts',
@@ -16,10 +24,10 @@ const computerEntitlementsPath = path.join(
 );
 
 export async function buildComputerArtifact(input) {
-    const artifactPath = path.join(computerReleaseRoot, computerArtifactName);
-    const publicKey = input.publicKey;
+    const appPath = computerReleaseAppPath;
     await rm(computerReleaseRoot, { force: true, recursive: true });
     await mkdir(computerReleaseRoot, { recursive: true });
+    const executablePath = await writeComputerAppBundle(appPath, input);
     run(
         'bun',
         [
@@ -28,7 +36,7 @@ export async function buildComputerArtifact(input) {
             '--compile',
             '--target=bun-darwin-arm64',
             '--outfile',
-            artifactPath,
+            executablePath,
             '--env=HAUS_COMPUTER_BUILD_*',
             '--no-compile-autoload-dotenv',
         ],
@@ -36,23 +44,28 @@ export async function buildComputerArtifact(input) {
             ...process.env,
             HAUS_COMPUTER_BUILD_APPLE_SIGNING_IDENTITY: input.appleSigningIdentity,
             HAUS_COMPUTER_BUILD_APPLE_TEAM_ID: input.appleTeamId,
-            HAUS_COMPUTER_BUILD_RELEASE_PUBLIC_KEY: publicKey,
+            HAUS_COMPUTER_BUILD_BUNDLE_ID: input.bundleId,
+            HAUS_COMPUTER_BUILD_RELEASE_PUBLIC_KEY: input.publicKey,
             HAUS_COMPUTER_BUILD_SOURCE_REVISION: input.sourceRevision,
             HAUS_COMPUTER_BUILD_STANDALONE: '1',
             HAUS_COMPUTER_BUILD_VERSION: input.version,
         }
     );
     // Bun's linker signature can be stale after embedding a large compiled payload.
-    // Normalize it before executing release checks; production signing replaces it later.
-    run('/usr/bin/codesign', ['--force', '--sign', '-', artifactPath]);
-    await verifyComputerIdentity(artifactPath, input);
-    verifyComputerReleaseAssets(artifactPath);
-    return { artifactPath, publicKey };
+    // Seal the bundle ad hoc before executing release checks; production signing replaces it.
+    run('/usr/bin/codesign', ['--force', '--sign', '-', appPath]);
+    await verifyComputerIdentity(executablePath, input);
+    verifyComputerReleaseAssets(executablePath);
+    return {
+        appPath,
+        artifactPath: archiveComputerApp(appPath, computerReleaseArtifactPath),
+        publicKey: input.publicKey,
+    };
 }
 
-export async function verifyComputerIdentity(artifactPath, expected) {
+export async function verifyComputerIdentity(executablePath, expected) {
     const identity = JSON.parse(
-        execFileSync(artifactPath, ['version'], { encoding: 'utf8' }).trim()
+        execFileSync(executablePath, ['version'], { encoding: 'utf8' }).trim()
     );
     if (
         identity.version !== expected.version ||
@@ -63,8 +76,8 @@ export async function verifyComputerIdentity(artifactPath, expected) {
     }
 }
 
-export function verifyComputerReleaseAssets(artifactPath) {
-    const output = execFileSync(artifactPath, ['__release-check'], {
+export function verifyComputerReleaseAssets(executablePath) {
+    const output = execFileSync(executablePath, ['__release-check'], {
         encoding: 'utf8',
     }).trim();
     if (output !== 'Haus Computer release assets are ready.') {
@@ -72,7 +85,7 @@ export function verifyComputerReleaseAssets(artifactPath) {
     }
 }
 
-export function signAndNotarizeComputer(artifactPath, input) {
+export function signAndNotarizeComputer(appPath, input) {
     run('/usr/bin/codesign', [
         '--force',
         '--options',
@@ -82,14 +95,17 @@ export function signAndNotarizeComputer(artifactPath, input) {
         computerEntitlementsPath,
         '--sign',
         input.appleSigningIdentity,
-        artifactPath,
+        appPath,
     ]);
-    verifyAppleSignature(artifactPath, input);
-    const archivePath = archiveComputerArtifact(artifactPath);
+    verifyAppleSignature(appPath, input);
+    const submission = archiveComputerApp(
+        appPath,
+        path.join(computerReleaseRoot, 'notarization-submission.zip')
+    );
     const notaryArgs = [
         'notarytool',
         'submit',
-        archivePath,
+        submission,
         '--wait',
         '--output-format',
         'json',
@@ -105,14 +121,11 @@ export function signAndNotarizeComputer(artifactPath, input) {
         fail('Apple rejected the Computer notarization submission', notarization);
     }
     console.log(`Apple notarization accepted: ${notarization.id}`);
-    verifyAppleSignature(artifactPath, input);
-    return archivePath;
-}
-
-export function archiveComputerArtifact(artifactPath) {
-    const archivePath = `${artifactPath}.zip`;
-    run('/usr/bin/ditto', ['-c', '-k', '--keepParent', artifactPath, archivePath]);
-    return archivePath;
+    run('/usr/bin/xcrun', ['stapler', 'staple', appPath]);
+    run('/usr/bin/xcrun', ['stapler', 'validate', appPath]);
+    verifyGatekeeperAcceptance(appPath);
+    verifyAppleSignature(appPath, input);
+    return archiveComputerApp(appPath, computerReleaseArtifactPath);
 }
 
 export function isAcceptedComputerNotarization(value) {
@@ -125,18 +138,30 @@ export function isAcceptedComputerNotarization(value) {
     );
 }
 
-export function verifyAppleSignature(artifactPath, input) {
-    run('/usr/bin/codesign', ['--verify', '--deep', '--strict', artifactPath]);
-    const result = spawnSync('/usr/bin/codesign', ['-dv', '--verbose=4', artifactPath], {
+export function verifyAppleSignature(appPath, input) {
+    run('/usr/bin/codesign', ['--verify', '--deep', '--strict', appPath]);
+    const result = spawnSync('/usr/bin/codesign', ['-dv', '--verbose=4', appPath], {
         encoding: 'utf8',
     });
     const details = `${result.stdout}\n${result.stderr}`;
     if (
         result.status !== 0 ||
+        !hasExactLine(details, `Identifier=${input.bundleId}`) ||
         !hasExactLine(details, `TeamIdentifier=${input.appleTeamId}`) ||
         !hasExactLine(details, `Authority=${input.appleSigningIdentity}`)
     ) {
         fail('Computer Apple signing identity does not match release configuration');
+    }
+    return computerAppExecutable(appPath);
+}
+
+function verifyGatekeeperAcceptance(appPath) {
+    const result = spawnSync('/usr/sbin/spctl', ['--assess', '--type', 'execute', '-vv', appPath], {
+        encoding: 'utf8',
+    });
+    const details = `${result.stdout}\n${result.stderr}`;
+    if (result.status !== 0 || !details.includes('source=Notarized Developer ID')) {
+        fail('Gatekeeper does not accept the notarized Haus Computer app', { details });
     }
 }
 

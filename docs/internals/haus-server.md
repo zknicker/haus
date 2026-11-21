@@ -184,7 +184,7 @@ The CLI persists an attachment idempotency key before issuance so a crash after
 Server commit recovers the same Computer instead of creating another. A re-run
 validates the completed credential and fails closed if it was revoked. The
 Computer keeps its login and attachment records under `~/.haus/computer`,
-separate from the standalone executable at `~/.local/bin/haus-computer`, and
+separate from `Haus Computer.app` and its `~/.local/bin/haus-computer` symlink, and
 its resident launchd service reconnects through the single outbound
 `/computer/attachment` socket.
 
@@ -205,7 +205,7 @@ shared Computer-local update record, so every attached Server sees the same
 phase without receiving the initiating User or Server identity. Download and
 signature verification run while turns may continue. `waiting-for-agents`
 closes local and Server admission, waits for every active-run marker to clear
-without a deadline, then the verified standalone executable atomically replaces code and the
+without a deadline, then the verified `Haus Computer.app` replaces the installed bundle and the
 resident service restarts every Server attachment daemon. Queued Server work drains
 after reconnect.
 

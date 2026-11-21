@@ -7,9 +7,11 @@ export function startComputerReportSchedule(
     work: AttachmentConnectionWork,
     dataRoot: string,
     send: (frame: unknown) => boolean,
-    reportUsage: () => Promise<void>
+    reportUsage: () => Promise<void>,
+    reportComputerUse: () => Promise<void>
 ) {
     work.startLoop('1 hour', () => sendComputerDiskReport(dataRoot, send), reportStateError);
+    work.startLoop('1 minute', reportComputerUse, reportStateError);
     if (process.env.HAUS_COMPUTER_USAGE_DISABLED !== '1') {
         work.startLoop('15 minutes', reportUsage, reportStateError);
     }

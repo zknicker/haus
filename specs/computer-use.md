@@ -5,6 +5,7 @@ read_when:
   - changing the Device's Computer use allowed switch or its gate
   - changing which agent-desktop commands look, act, or are refused
   - changing how a Computer reports Accessibility or Screen Recording
+  - changing which process holds the macOS permissions (`Haus Computer.app`, its bundle ids)
 ---
 
 # Computer use
@@ -104,14 +105,34 @@ quieter route.
 
 ## macOS permissions
 
-agent-desktop needs Accessibility to read and drive apps and Screen Recording for screenshots,
-granted to the process that runs Haus Computer. The Computer runs `agent-desktop permissions` when
-it builds its inventory and reports `computerUse` in it: whether the embedded agent-desktop
-installed, its version, and `accessibility` and `screenRecording`, each `granted`, `denied`, or `unknown`. The
-Device page shows a warning under Access while agent-desktop is missing or either permission is
-not granted, asking for a Haus Computer update or naming which System Settings → Privacy &
-Security pane to open,
-and the inventory Refresh button rechecks it.
+agent-desktop needs Accessibility (Device Control and Data Access on macOS 27 and later) to read
+and drive apps and Screen Recording for screenshots. macOS charges both to the responsible
+process, and Haus Computer ships as `Haus Computer.app` (`chat.haus.computer`) so that process is
+a named app with the Haus icon: the LaunchAgent runs the bundle executable, every attachment
+daemon it spawns and every agent-desktop, `screencapture`, and `bash` child below them inherit it,
+and System Settings lists "Haus Computer". agent-desktop's `permissions --guide` resolves the same
+app. Development builds are `chat.haus.computer.dev` ("Haus Computer Dev"), so an ad-hoc build
+never replaces the release grant. CLI commands run from a terminal (`setup`, `start`, `restart`)
+never spawn attachment daemons themselves, because those would be charged to the terminal; they
+load or kickstart the LaunchAgent and the resident spawns the daemons. When LaunchServices opens
+the app with no arguments (a double-click, or System Settings' Quit & Reopen), it starts the
+LaunchAgent unless Haus Computer was stopped, and exits.
+
+The Computer probes readiness in a fresh `agent-desktop permissions` process every time, because a
+grant made after a process started is invisible to that process's own Screen Recording check. Each
+attachment daemon probes when it sends its inventory and again every minute, and sends a new
+inventory only when the answer changed. It reports `computerUse`: whether the embedded
+agent-desktop installed, its version, and `accessibility` and `screenRecording`, each `granted`,
+`denied`, or `unknown`. The Device page shows a warning under Access while agent-desktop is
+missing or either permission is not granted, asking for a Haus Computer update or naming which
+System Settings → Privacy & Security pane to open, and the inventory Refresh button rechecks it.
+
+Grants never carry over to a new holder: the Computers that ran as a bare executable lose theirs
+when they become `Haus Computer.app`. When the resident service's executable moves to a different
+holder, the Computer writes `<data-root>/computer-use-permissions-moved.json`, and while that
+marker exists and a permission is not granted it reports `permissionsMoved: true`. The Device page
+then says Haus Computer is an app now and asks for the permission again. The first probe that
+sees both granted removes the marker. An update inside the same app moves nothing.
 
 agent-desktop is built into every Computer. `apps/computer` pins `agent-desktop` 1.3.1, and the
 compiled Computer embeds its arm64 CLI and macOS helper (`agent-desktop-binary.ts`). On first use

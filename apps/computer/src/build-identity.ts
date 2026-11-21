@@ -7,6 +7,7 @@ export const computerReleasePublicKey = process.env.HAUS_COMPUTER_BUILD_RELEASE_
 export const computerAppleTeamId = process.env.HAUS_COMPUTER_BUILD_APPLE_TEAM_ID ?? '';
 export const computerAppleSigningIdentity =
     process.env.HAUS_COMPUTER_BUILD_APPLE_SIGNING_IDENTITY ?? '';
+export const computerBundleId = process.env.HAUS_COMPUTER_BUILD_BUNDLE_ID ?? '';
 export const computerStandalone = isStandaloneComputer(
     process.env.HAUS_COMPUTER_BUILD_STANDALONE,
     import.meta.url

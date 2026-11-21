@@ -1,30 +1,41 @@
 import type { ComputerUsePermissionState, ComputerUseReadiness } from '@haus/api';
 import {
     type AgentDesktopInstall,
+    agentDesktopToolsRoot,
     agentDesktopVersion,
     installAgentDesktop,
 } from './agent-desktop-binary.ts';
+import { clearPermissionsMoved, permissionsMoved } from './permission-holder.ts';
 
 const probeTimeoutMs = 10_000;
 
 export async function detectComputerUseReadiness(options: {
+    dataRoot: string;
     platform?: NodeJS.Platform;
-    toolsRoot: string;
 }) {
     if ((options.platform ?? process.platform) !== 'darwin') {
         return;
     }
-    const install = await installAgentDesktop(options.toolsRoot).catch((error: unknown) => {
-        console.error('[haus-computer] agent-desktop install failed', error);
-        return null;
-    });
+    const install = await installAgentDesktop(agentDesktopToolsRoot(options.dataRoot)).catch(
+        (error: unknown) => {
+            console.error('[haus-computer] agent-desktop install failed', error);
+            return null;
+        }
+    );
     if (!install) {
         return readiness({ installed: false });
     }
-    const permissions = await probe(install, 'permissions');
+    const permissions = readPermissions(await probe(install, 'permissions'));
+    const moved = await permissionsMoved(options.dataRoot);
+    const granted =
+        permissions.accessibility === 'granted' && permissions.screenRecording === 'granted';
+    if (moved && granted) {
+        await clearPermissionsMoved(options.dataRoot);
+    }
     return readiness({
         installed: true,
-        ...readPermissions(permissions),
+        ...permissions,
+        ...(moved && !granted ? { permissionsMoved: true } : {}),
         version: agentDesktopVersion,
     });
 }
@@ -41,6 +52,7 @@ function readiness(input: Partial<ComputerUseReadiness> & { installed: boolean }
     return {
         accessibility: input.accessibility ?? 'unknown',
         installed: input.installed,
+        ...(input.permissionsMoved ? { permissionsMoved: true } : {}),
         screenRecording: input.screenRecording ?? 'unknown',
         version: input.version ?? null,
     } satisfies ComputerUseReadiness;

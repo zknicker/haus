@@ -13,14 +13,15 @@ if [ "$(uname -s)" != "Darwin" ] || [ "$(/usr/sbin/sysctl -n hw.optional.arm64 2
 fi
 
 manifest_url="${HAUS_COMPUTER_RELEASE_MANIFEST_URL:-https://releases.haus.chat/computer/latest.json}"
-install_path="${HAUS_COMPUTER_INSTALL_PATH:-$HOME/.local/bin/haus-computer}"
+app_path="${HAUS_COMPUTER_APP_PATH:-$HOME/.local/share/haus-computer/Haus Computer.app}"
 expected_team_id="__HAUS_APPLE_TEAM_ID__"
 expected_identity="__HAUS_APPLE_SIGNING_IDENTITY__"
+expected_bundle_id="__HAUS_COMPUTER_BUNDLE_ID__"
 temporary_root="$(mktemp -d "${TMPDIR:-/tmp}/haus-computer-install.XXXXXX")"
 trap 'rm -rf "$temporary_root"' EXIT INT TERM
 
 descriptor="$temporary_root/latest.json"
-artifact="$temporary_root/haus-computer"
+archive="$temporary_root/haus-computer.zip"
 /usr/bin/curl --fail --silent --show-error --location "$manifest_url" --output "$descriptor"
 
 artifact_url="$(/usr/bin/plutil -extract release.artifactUrl raw -o - "$descriptor")"
@@ -37,38 +38,40 @@ if [ "${#expected_sha256}" -ne 64 ]; then
     exit 1
 fi
 
-/usr/bin/curl --fail --silent --show-error --location "$artifact_url" --output "$artifact"
-actual_sha256="$(/usr/bin/shasum -a 256 "$artifact" | /usr/bin/awk '{print $1}')"
+/usr/bin/curl --fail --silent --show-error --location "$artifact_url" --output "$archive"
+actual_sha256="$(/usr/bin/shasum -a 256 "$archive" | /usr/bin/awk '{print $1}')"
 if [ "$actual_sha256" != "$expected_sha256" ]; then
     echo "Haus Computer checksum verification failed." >&2
     exit 1
 fi
 
+/usr/bin/ditto -x -k "$archive" "$temporary_root/unpacked"
+artifact="$temporary_root/unpacked/Haus Computer.app"
 /usr/bin/codesign --verify --deep --strict "$artifact"
 signature_details="$(/usr/bin/codesign -dv --verbose=4 "$artifact" 2>&1)"
+printf '%s\n' "$signature_details" | /usr/bin/grep -Fqx "Identifier=$expected_bundle_id"
 printf '%s\n' "$signature_details" | /usr/bin/grep -Fqx "TeamIdentifier=$expected_team_id"
 printf '%s\n' "$signature_details" | /usr/bin/grep -Fqx "Authority=$expected_identity"
 
-/bin/chmod 755 "$artifact"
-/bin/mkdir -p "$(dirname "$install_path")"
-staged="$install_path.installing"
-previous="$install_path.prev"
-previous_next="$previous.next"
-/bin/cp "$artifact" "$staged"
-/bin/rm -f "$previous_next"
-if [ -e "$install_path" ]; then
-    /bin/cp "$install_path" "$previous_next"
-    /bin/chmod 755 "$previous_next"
-    if ! /bin/mv "$previous_next" "$previous"; then
-        /bin/rm -f "$staged" "$previous_next"
-        exit 1
-    fi
+/bin/mkdir -p "$(dirname "$app_path")"
+staged="$app_path.next"
+previous="$app_path.prev"
+/bin/rm -rf "$staged"
+/usr/bin/ditto "$artifact" "$staged"
+if [ -d "$app_path" ]; then
+    /bin/rm -rf "$previous"
+    /bin/mv "$app_path" "$previous"
 fi
-if ! /bin/mv "$staged" "$install_path"; then
+if ! /bin/mv "$staged" "$app_path"; then
+    if [ -d "$previous" ]; then
+        /bin/mv "$previous" "$app_path"
+    fi
+    /bin/rm -rf "$staged"
     exit 1
 fi
 
-"$install_path" install
+executable="$app_path/Contents/MacOS/haus-computer"
+"$executable" install
 if [ -n "$server_path" ]; then
-    "$install_path" setup "$server_path"
+    "$executable" setup "$server_path"
 fi

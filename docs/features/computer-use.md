@@ -25,6 +25,10 @@ agent-desktop ships inside Haus Computer, so nobody installs it. Like Haus Compu
 on Apple Silicon Macs only: there is no Intel (x64) build. While the switch is on and the
 Device reports that it couldn't set agent-desktop up, or that Accessibility or Screen Recording
 isn't granted, a warning under Access names what to do: update Haus Computer, or allow Haus
-Computer in System Settings → Privacy & Security → Accessibility or Screen Recording. A
-permission the Device couldn't read asks for a Refresh. An older Computer that reports nothing
+Computer in System Settings → Privacy & Security → Accessibility or Screen Recording. System
+Settings lists Haus Computer by name with the Haus icon. After the update that made Haus Computer
+an app, the permissions granted to the old executable no longer count, so the warning says "Haus
+Computer is an app now, so macOS asks again" before naming the pane. The Device rechecks every
+minute, so the warning clears on its own about a minute after the grant; Refresh rechecks at once.
+A permission the Device couldn't read asks for a Refresh. An older Computer that reports nothing
 shows no warning.

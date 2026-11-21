@@ -1,3 +1,4 @@
+import { detectComputerUseReadiness } from './desktop/desktop-readiness.ts';
 import {
     listAgentSkillImportReports,
     listAgentSkillReports,
@@ -24,6 +25,22 @@ export function createComputerReporter(dataRoot: string) {
     };
 }
 
+const reportedComputerUse = new Map<string, string>();
+
+export async function refreshComputerUseReport(input: {
+    send(frame: unknown): boolean;
+    serverId: string;
+    computerName: string;
+    dataRoot: string;
+}) {
+    const computerUse = await detectComputerUseReadiness({ dataRoot: input.dataRoot });
+    const reported = reportedComputerUse.get(reportKey(input));
+    if (reported === undefined || reported === JSON.stringify(computerUse ?? null)) {
+        return;
+    }
+    await sendEffectiveComputerReport(input);
+}
+
 export async function sendEffectiveComputerReport({
     send,
     serverId,
@@ -35,13 +52,14 @@ export async function sendEffectiveComputerReport({
     computerName: string;
     dataRoot: string;
 }) {
+    const inventory = await detectFullInventory({
+        dataRoot,
+        defaultCloudAgentProvider: await readDefaultCloudAgentProvider(dataRoot),
+    });
     send({
         agents: [],
         inventory: {
-            ...(await detectFullInventory({
-                dataRoot,
-                defaultCloudAgentProvider: await readDefaultCloudAgentProvider(dataRoot),
-            })),
+            ...inventory,
             runtimeIssues: await readRuntimeIssues(dataRoot),
             agentSkillImports: await listAgentSkillImportReports(dataRoot, serverId),
             agentSkills: await listAgentSkillReports(dataRoot, serverId),
@@ -56,6 +74,14 @@ export async function sendEffectiveComputerReport({
         },
         type: 'report',
     });
+    reportedComputerUse.set(
+        reportKey({ dataRoot, serverId }),
+        JSON.stringify(inventory.computerUse ?? null)
+    );
+}
+
+function reportKey(input: { dataRoot: string; serverId: string }) {
+    return `${input.dataRoot}:${input.serverId}`;
 }
 
 export function reportStateError(error: unknown) {
