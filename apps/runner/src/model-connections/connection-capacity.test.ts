@@ -6,19 +6,46 @@ import {
     chatgptPath,
     chatgptPlan,
     chatgptUsage,
-    claudePath,
     claudePlan,
     keys,
+    minute,
     reads,
 } from './connection-capacity-test-host.ts';
 
 afterEach(drainCleanups);
 
 describe('plan capacity readers', () => {
-    test('a Claude plan reads its setup-token windows as 5-hour, Weekly and Weekly Sonnet', async () => {
-        const { reader, server } = await capacityRunner([claudePlan]);
+    test('a Claude setup-token is never sent to the OAuth usage endpoint, which needs user:profile', async () => {
+        const { logs, reader, server } = await capacityRunner([claudePlan]);
 
         await reader.sweep();
+        await reader.afterAccessFailure('mc_claude');
+
+        expect(reads(server)).toEqual([]);
+        expect(await capacityFrames(server)).toEqual([]);
+        expect(logs).toEqual([]);
+    });
+
+    test('a Claude plan sends the windows its turns observed, tagged with the credential it ran on', async () => {
+        const { clock, reader, server } = await capacityRunner([claudePlan]);
+        const windows = [
+            {
+                id: 'current-session',
+                label: '5-hour',
+                resetsAt: '2026-11-19T15:00:00.000Z',
+                usedPercent: 42,
+            },
+            {
+                id: 'current-week-all-models',
+                label: 'Weekly',
+                resetsAt: '2026-11-24T08:00:00.000Z',
+                usedPercent: 81.6,
+            },
+        ];
+
+        reader.observed(claudePlan, windows);
+        clock.at += minute;
+        reader.observed({ ...claudePlan, credentialVersion: 2 }, windows.slice(1));
 
         expect(await capacityFrames(server)).toEqual([
             {
@@ -26,37 +53,17 @@ describe('plan capacity readers', () => {
                 credentialVersion: 1,
                 readAt: '2026-11-19T12:00:00.000Z',
                 type: 'runner-connection-capacity',
-                windows: [
-                    {
-                        id: 'current-session',
-                        label: '5-hour',
-                        resetsAt: '2026-11-19T15:00:00.123Z',
-                        usedPercent: 42,
-                    },
-                    {
-                        id: 'current-week-all-models',
-                        label: 'Weekly',
-                        resetsAt: '2026-11-24T08:00:00.000Z',
-                        usedPercent: 81.6,
-                    },
-                    {
-                        id: 'current-week-sonnet',
-                        label: 'Weekly Sonnet',
-                        resetsAt: null,
-                        usedPercent: 12,
-                    },
-                ],
+                windows,
             },
-        ]);
-        expect(server.requests).toEqual([
             {
-                authorization: 'Bearer sk-ant-oat01-team',
-                body: null,
-                dispatchId: null,
-                method: 'GET',
-                path: claudePath,
+                connectionId: 'mc_claude',
+                credentialVersion: 2,
+                readAt: '2026-11-19T12:01:00.000Z',
+                type: 'runner-connection-capacity',
+                windows: windows.slice(1),
             },
         ]);
+        expect(reads(server)).toEqual([]);
     });
 
     test('a ChatGPT plan reads with its access token and account, as 5-hour and Weekly', async () => {
@@ -109,8 +116,9 @@ describe('plan capacity readers', () => {
     });
 
     test('a refused read sends nothing, touches no status, and says capacity is unavailable', async () => {
-        const { logs, reader, server } = await capacityRunner([claudePlan, chatgptPlan(1)], {
-            [claudePath]: () => Response.json({ error: 'scope' }, { status: 403 }),
+        const second = { ...chatgptPlan(), id: 'mc_chatgpt_2' };
+        const { logs, reader, server } = await capacityRunner([chatgptPlan(1), second], {
+            [chatgptPath]: () => Response.json({ error: 'scope' }, { status: 403 }),
         });
 
         await reader.sweep();
@@ -119,10 +127,10 @@ describe('plan capacity readers', () => {
         expect(
             server.received.filter((frame) => frame.type === 'runner-connection-status')
         ).toEqual([]);
-        expect(reads(server)).toEqual([claudePath]);
+        expect(reads(server)).toEqual([chatgptPath]);
         expect(logs.toSorted()).toEqual([
             'Runner could not read capacity for mc_chatgpt: The access token has expired; the next turn refreshes it.',
-            'Runner could not read capacity for mc_claude: Claude session expired. Run `claude` to log in again.',
+            'Runner could not read capacity for mc_chatgpt_2: Codex session expired. Run `codex` to log in again.',
         ]);
     });
 });
