@@ -1,4 +1,5 @@
 import { Description, Input, Kbd, Label, ListBox, type Selection, TextField } from '@heroui/react';
+import { optionDisplayLabel, typedAnswerLabel } from './ask-copy.ts';
 import type { AskQuestion, QuestionAnswer } from './ask-model.ts';
 
 const keyedOptionLimit = 9;
@@ -16,34 +17,41 @@ export function QuestionStep({
     onText: (text: string) => void;
     question: AskQuestion;
 }) {
+    const typedLabel = typedAnswerLabel(question);
     return (
         <div className="flex flex-col gap-3">
             <p className="text-foreground text-sm font-medium text-balance">{question.question}</p>
-            <ListBox
-                aria-label={question.question}
-                onSelectionChange={(keys) => onPick(selectedLabels(keys, question))}
-                selectedKeys={new Set(answer.labels)}
-                selectionMode={question.multiSelect ? 'multiple' : 'single'}
-            >
-                {question.options.map((option, index) => (
-                    <ListBox.Item id={option.label} key={option.label} textValue={option.label}>
-                        {index < keyedOptionLimit ? (
-                            <Kbd aria-hidden="true">
-                                <Kbd.Content>{index + 1}</Kbd.Content>
-                            </Kbd>
-                        ) : null}
-                        <div className="flex min-w-0 flex-col">
-                            <Label>{option.label}</Label>
-                            {option.description ? (
-                                <Description>{option.description}</Description>
+            {question.options.length > 0 ? (
+                <ListBox
+                    aria-label={question.question}
+                    onSelectionChange={(keys) => onPick(selectedLabels(keys, question))}
+                    selectedKeys={new Set(answer.labels)}
+                    selectionMode={question.multiSelect ? 'multiple' : 'single'}
+                >
+                    {question.options.map((option, index) => (
+                        <ListBox.Item
+                            id={option.label}
+                            key={option.label}
+                            textValue={optionDisplayLabel(option.label)}
+                        >
+                            {index < keyedOptionLimit ? (
+                                <Kbd aria-hidden="true">
+                                    <Kbd.Content>{index + 1}</Kbd.Content>
+                                </Kbd>
                             ) : null}
-                        </div>
-                        <ListBox.ItemIndicator />
-                    </ListBox.Item>
-                ))}
-            </ListBox>
+                            <div className="flex min-w-0 flex-col">
+                                <Label>{optionDisplayLabel(option.label)}</Label>
+                                {option.description ? (
+                                    <Description>{option.description}</Description>
+                                ) : null}
+                            </div>
+                            <ListBox.ItemIndicator />
+                        </ListBox.Item>
+                    ))}
+                </ListBox>
+            ) : null}
             <TextField
-                aria-label="Or type an answer"
+                aria-label={typedLabel}
                 fullWidth
                 onChange={onText}
                 value={answer.text}
@@ -56,24 +64,11 @@ export function QuestionStep({
                             onEnter();
                         }
                     }}
-                    placeholder="Or type an answer"
+                    placeholder={typedLabel}
                 />
             </TextField>
         </div>
     );
-}
-
-export function toggleOption(question: AskQuestion, answer: QuestionAnswer, index: number) {
-    const option = question.options[index];
-    if (!option) {
-        return null;
-    }
-    if (!question.multiSelect) {
-        return [option.label];
-    }
-    return answer.labels.includes(option.label)
-        ? answer.labels.filter((label) => label !== option.label)
-        : [...answer.labels, option.label];
 }
 
 function selectedLabels(keys: Selection, question: AskQuestion) {

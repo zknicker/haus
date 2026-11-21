@@ -51,3 +51,7 @@ export function useWorkerStop() {
 export function useWorkerSendFollowUp() {
     return hausTrpc.worker.sendFollowUp.useMutation();
 }
+
+export function useWorkerDismissQuestion() {
+    return hausTrpc.worker.dismissQuestion.useMutation();
+}

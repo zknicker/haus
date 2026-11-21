@@ -1,10 +1,10 @@
 export interface AskOption {
-    description?: string;
+    description?: null | string;
     label: string;
 }
 
 export interface AskQuestion {
-    header: string;
+    header: null | string;
     multiSelect: boolean;
     options: readonly AskOption[];
     question: string;

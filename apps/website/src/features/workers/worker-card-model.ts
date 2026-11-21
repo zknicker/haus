@@ -7,6 +7,7 @@ import {
     type WorkerTurn,
     type WorkerTurnInput,
     isTerminalWorkerTurnStatus,
+    workerQuestionOf,
 } from '@haus/api';
 import { formatRelativeTime } from '../../lib/format.ts';
 import { messagePreviewLine } from '../chats/message-preview-line.ts';
@@ -29,6 +30,8 @@ export interface WorkerCardLine {
     text: string;
     tone: 'danger' | 'muted' | 'warning';
 }
+
+export const workerWaitingOnAnswer = 'Waiting on an answer';
 
 export const workerStatusLabels: Record<WorkerStatus, string> = {
     done: 'Done',
@@ -97,7 +100,10 @@ export function workerRowStatus(work: Pick<Worker, 'status' | 'turns'>) {
     return live.length > 0 ? ('queued' satisfies WorkerStatus) : work.status;
 }
 
-export function workerRowQuestion(work: Pick<Worker, 'status' | 'turns'>) {
+export function workerRowQuestion(work: Pick<Worker, 'closedAt' | 'closingAt' | 'turns'>) {
+    if (workerQuestionOf(work)?.open) {
+        return workerWaitingOnAnswer;
+    }
     const [newest] = work.turns;
     return newest?.outcome?.kind === 'report' && newest.outcome.report.outcome === 'needs-you'
         ? (newest.outcome.report.ask ?? null)

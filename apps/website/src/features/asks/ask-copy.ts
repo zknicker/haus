@@ -1,4 +1,6 @@
-import type { QuestionAnswer, QuestionRequest } from './ask-model.ts';
+import type { AskQuestion, QuestionAnswer, QuestionRequest } from './ask-model.ts';
+
+const recommendedSuffix = /\s*\(Recommended\)$/iu;
 
 export function questionTakeoverLabel(step: number, total: number) {
     if (total === 1) {
@@ -12,5 +14,15 @@ export function answerQuestionsLabel(request: QuestionRequest) {
 }
 
 export function answerText(answer: QuestionAnswer) {
-    return [...answer.labels, answer.text.trim()].filter(Boolean).join(', ');
+    return [...answer.labels.map(optionDisplayLabel), answer.text.trim()]
+        .filter(Boolean)
+        .join(', ');
+}
+
+export function optionDisplayLabel(label: string) {
+    return label.replace(recommendedSuffix, '') || label;
+}
+
+export function typedAnswerLabel(question: AskQuestion) {
+    return question.options.length > 0 ? 'Or type an answer' : 'Type an answer';
 }
