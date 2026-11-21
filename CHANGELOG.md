@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v26.1.0 - 2026-11-20
+
+- Captain turns on the Agent runner record the `haus.operation.count` and `haus.operation.duration` metrics again, for `operation=agent.turn`, with the same outcomes as before v23.0.0. These metrics now come from the Server, under `service.name=haus-server` instead of `haus-computer`, so update any Axiom dashboard or monitor that filters turn metrics by service. The runner's turn spans also carry turn timings again: time to the first stream event, first tool call and first and last message send, plus session start and reasoning effort.
+- After a Captain's session compacts while idle, the context ring under the composer drops right away instead of waiting for the next turn.
+- The context ring's compaction point for GPT, Grok, Gemini and OpenRouter Captains follows the compaction settings their session actually runs with.
+- Server-only release with no database migration. Haus Computer, Haus Agent, Haus for Desktop and Haus for iPhone are unchanged.
+
 ## v26.0.0 - 2026-11-20
 
 - Captains can see and drive a Device's macOS desktop. They can take screenshots, read apps, click, type and launch apps through the `desktop` tool. Each Device has a **Computer use allowed** switch under Settings → Devices → Access. It is off by default, and only the Device's owner or a Server Owner or Admin can turn it on. While it is off, every desktop command is refused, and the Captain is told how to turn it on.
