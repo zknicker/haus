@@ -28,13 +28,15 @@ reports **effective** state. The two are never conflated.
   fails closed; the Server never substitutes another runtime or model.
 - **Offline desired edits.** Runtime/model desired state may be saved while the
   Computer is offline, validated against its last-reported inventory. The
-  change is pending until the Computer reports a matching effective snapshot.
-- **Effective state.** The Computer reports each Agent's effective runtime,
-  model, and the list of any missing local resources. The App shows an Agent as:
-  - `pending` — no effective snapshot yet, or the latest effective snapshot
-    does not match the current desired runtime/model.
-  - `applied` — effective runtime/model match desired and the Computer reports
-    nothing missing.
+  change is pending until a run dispatches on it.
+- **Effective state.** Every Agent runs on the runner, which launches each run
+  on the configuration the Server froze onto it, so a dispatched run records
+  its runtime, model, and reasoning effort as the Agent's effective state.
+  Computer reports carry no Agent states. The App shows an Agent as:
+  - `pending` — no run has dispatched yet, or the latest dispatched run's
+    configuration does not match the current desired runtime/model (a
+    configure during a run applies at the next run).
+  - `applied` — effective runtime/model match desired and nothing is missing.
   - `degraded` — the Computer reports one or more required local resources
     missing (`missingResources`). The list is shown; nothing is substituted.
 - **Ordinary creation.** Once a Computer has reported inventory, guided
@@ -63,8 +65,8 @@ reports **effective** state. The two are never conflated.
 
 - The Computer attachment socket `hello` carries the sanitized inventory
   alongside the existing handshake. Subsequent `report` messages carry a fresh
-  inventory and per-Agent effective state (`agent` entries). A report for an
-  Agent not assigned to the reporting Computer updates no row (fail closed).
+  inventory. Its `agents` list is always empty: effective state is recorded
+  when a run dispatches to the runner.
 
 ## API
 

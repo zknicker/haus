@@ -51,7 +51,7 @@ export async function planChatlessRun(
     if (!lead) {
         throw new Error(`Chatless run ${runId} attached no inbox item.`);
     }
-    await store.beginActiveRun(tx, {
+    const started = await store.beginActiveRun(tx, {
         agentId,
         chatId: null,
         computerId: config.computerId,
@@ -70,6 +70,7 @@ export async function planChatlessRun(
     });
     return {
         ...(activity ? { activities: [activity] } : {}),
+        ...started,
         computerId: config.computerId,
         frame: chatlessStartFrame(
             {

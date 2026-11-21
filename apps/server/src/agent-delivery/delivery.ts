@@ -14,7 +14,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { publishRealtime } from '../realtime/topic.ts';
-import { artifactUpdatedTopic } from '../realtime/topics.ts';
+import { agentUpdatedTopic, artifactUpdatedTopic } from '../realtime/topics.ts';
 import {
     listReminderScriptCommands,
     settleReminderScript,
@@ -85,6 +85,8 @@ export interface DeliveryTransport {
 
 export interface DispatchPlan {
     activities?: AgentActivityEvent[];
+    /** The run changed the Agent's effective configuration, so the App rereads it. */
+    agentUpdated?: { agentId: string };
     /** `claim.updated` for the claims this run just made live. */
     claimEvents?: PreparedRealtimeEvent[];
     computerId: string;
@@ -692,7 +694,7 @@ export class AgentDelivery {
             selected: admitted.selected,
         });
         // Freeze execution configuration onto the run so every resend uses these values.
-        await store.beginActiveRun(tx, {
+        const started = await store.beginActiveRun(tx, {
             agentId,
             chatId: first.chatId,
             computerId: config.computerId,
@@ -711,6 +713,7 @@ export class AgentDelivery {
         });
         return {
             ...(activity ? { activities: [activity] } : {}),
+            ...started,
             computerId: config.computerId,
             claimEvents: await runLivenessClaimEvents(tx, {
                 agentId,
@@ -769,6 +772,12 @@ export class AgentDelivery {
             return;
         }
         publishRealtime(plan.claimEvents ?? []);
+        if (plan.agentUpdated) {
+            agentUpdatedTopic.announce({
+                agentId: plan.agentUpdated.agentId,
+                serverId: plan.serverId,
+            });
+        }
         for (const activity of plan.activities ?? []) {
             if (activity.category === 'starting_work' && activity.phase === 'started') {
                 continue;

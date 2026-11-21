@@ -91,17 +91,8 @@ test('a repeated state report announces nothing; a changed one announces once', 
     const [row] = (await harness.sql`
         select reported_inventory->>'name' as name, effective_model_id
         from computers, agents where computers.id = ${computerId} and agents.id = ${agentId}
-    `) as { effective_model_id: string; name: string }[];
-    expect(row).toEqual({ effective_model_id: 'gpt-5.6-sol', name: 'Studio Mac' });
-});
-
-test('a changed effective model announces even when inventory is unchanged', async () => {
-    const before = announced.length;
-    socket.send(JSON.stringify(stateReport('gpt-5.6-terra', 'Studio Mac')));
-    await waitForAnnouncements(before + 1);
-    socket.send(JSON.stringify(stateReport('gpt-5.6-terra', 'Studio Mac')));
-    await Bun.sleep(150);
-    expect(announced.length).toBe(before + 1);
+    `) as { effective_model_id: string | null; name: string }[];
+    expect(row).toEqual({ effective_model_id: null, name: 'Studio Mac' });
 });
 
 test('a repeated usage snapshot and replayed system events announce nothing', async () => {

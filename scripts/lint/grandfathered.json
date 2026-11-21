@@ -34,7 +34,7 @@
             "apps/server/test/haus-execution-journal-sync.test.ts": 3,
             "apps/server/test/haus-image-generation-links.test.ts": 2,
             "apps/server/test/haus-invitations.test.ts": 2,
-            "apps/server/test/haus-quiet-computer-reports.test.ts": 3,
+            "apps/server/test/haus-quiet-computer-reports.test.ts": 2,
             "apps/server/test/haus-reinvitation.test.ts": 2,
             "apps/server/test/haus-server-idle-compaction.test.ts": 1,
             "apps/server/test/haus-socket-session.test.ts": 1,
