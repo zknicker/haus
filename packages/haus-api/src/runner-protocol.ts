@@ -31,6 +31,7 @@ import {
     runnerModelConnectionDownFrameSchemas,
     runnerModelConnectionUpFrameSchemas,
 } from './model-connections.ts';
+import { runnerTurnSpanFrameSchema } from './runner-turn-span.ts';
 
 export const runnerSocketPath = '/runner/attachment';
 
@@ -152,6 +153,7 @@ export const runnerUpFrameSchema = z.union([
     agentContextReportSchema,
     invocationRequestFrameSchema,
     invocationCancelFrameSchema,
+    runnerTurnSpanFrameSchema,
     ...runnerModelConnectionUpFrameSchemas,
 ]);
 

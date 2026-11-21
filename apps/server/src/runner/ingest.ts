@@ -16,7 +16,9 @@ import { recordAgentContext } from '../server-agents/agent-context.ts';
 import type { AgentThoughts } from '../server-agents/agent-thought.ts';
 import { recordAgentIdleCompaction } from '../server-agents/record-agent-idle-compaction.ts';
 import type { ServerPostCommitWork } from '../server-post-commit-work.ts';
+import type { ServerRuntime } from '../server-runtime.ts';
 import type { RunnerLink } from './runner-link.ts';
+import { relayRunnerTurnSpan } from './turn-span-relay.ts';
 
 export interface RunnerIngest {
     computers: Pick<ComputerConnections, 'isOnline' | 'send'>;
@@ -26,6 +28,7 @@ export interface RunnerIngest {
     link: RunnerLink;
     modelConnections: ModelConnectionRelay;
     postCommitWork: ServerPostCommitWork;
+    runtime: ServerRuntime;
     thoughts: AgentThoughts;
 }
 
@@ -42,7 +45,8 @@ type LoopReport = Exclude<
             | 'runner-hello'
             | 'runner-inventory'
             | 'runner-sign-in-code'
-            | 'runner-sign-in-finished';
+            | 'runner-sign-in-finished'
+            | 'runner-turn-span';
     }
 >;
 
@@ -65,6 +69,11 @@ export async function ingestRunnerFrame(ingest: RunnerIngest, raw: string) {
             return;
         case 'invocation-request':
             await ingest.invocations.request(frame);
+            return;
+        case 'runner-turn-span':
+            await relayRunnerTurnSpan(ingest.runtime, frame).catch((error: unknown) =>
+                console.warn('[haus] dropped a runner turn span', error)
+            );
             return;
         case 'agent-execution-journal-records':
             await ingestExecutionJournalUpload(ingest.db, {

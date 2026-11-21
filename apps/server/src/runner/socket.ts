@@ -24,6 +24,7 @@ export type RunnerSocketServices = Pick<
     | 'modelConnections'
     | 'postCommitWork'
     | 'runnerLink'
+    | 'runtime'
 > & { invocations: InvocationRouter };
 
 export type RunnerSocketSettings = Pick<
@@ -37,7 +38,7 @@ export function startRunnerSocket(
     services: RunnerSocketServices
 ) {
     const { agentDelivery: delivery, hausDb: db, invocations, modelConnections } = services;
-    const { computerConnections: computers, postCommitWork, runnerLink: link } = services;
+    const { computerConnections: computers, postCommitWork, runnerLink: link, runtime } = services;
     const thoughts = createAgentThoughts({ summarizer: settings.thoughtSummarizer ?? null });
     const stopThoughtsOnSettle = onAgentLifecycle((event) => {
         if (event.phase === 'settled') {
@@ -52,6 +53,7 @@ export function startRunnerSocket(
         link,
         modelConnections,
         postCommitWork,
+        runtime,
         thoughts,
     };
     const sockets = new Set<WebSocket>();

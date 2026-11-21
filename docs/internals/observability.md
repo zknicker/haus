@@ -1,7 +1,8 @@
 ---
-summary: Effect-owned logs, OpenTelemetry traces and metrics, safe attributes, and Server-to-Computer propagation.
+summary: Effect-owned logs, OpenTelemetry traces and metrics, safe attributes, Server-to-Computer propagation, and the runner turn-span relay.
 read_when:
   - adding telemetry, logs, spans, metrics, or operational dashboards
+  - changing the runner's turn span, its trace context, or the Server relay that re-exports it
   - changing Server-to-Computer commands or Effect process runtimes
   - configuring an OTLP collector
   - confirming a run's execution journal reached the Server, or checking a Computer's or the runner's journal resend pass
@@ -84,13 +85,13 @@ healthy. Check current availability and recent work as well.
 
 Use the recent Agent turns and slow-or-failed turns views for daily triage. A
 turn span carries safe Agent, run, model, and runtime identifiers. Open it to
-see the trace tree: Server dispatch and Computer execution share a trace when
-both sides reported successfully. A missing Computer child is inconclusive:
-execution or telemetry delivery may be missing. Confirm the durable turn and
-Computer state before attributing it to execution failure. A failed child means
-the recorded operation failed. Long gaps between
-the Server and Computer spans isolate delivery or queueing delay from model and
-tool execution time.
+see the trace tree: Server dispatch, the runner's turn, and the Server MCP calls
+the turn made share a trace when every side reported successfully. A missing
+turn child is inconclusive: execution or telemetry delivery may be missing.
+Confirm the durable turn record before attributing it to execution failure. A
+failed child means the recorded operation failed. Long gaps between the dispatch
+and turn spans isolate delivery or queueing delay from model and tool execution
+time.
 
 The Agent summary separates completed, silent, failed, interrupted, and unknown
 outcomes. Unknown means the turn has no reported product outcome, not that it
@@ -165,7 +166,7 @@ are exported.
 The first distributed traces cover the operations where failures otherwise
 cross the most ownership boundaries:
 
-- Agent dispatch on Server → Agent turn on Computer → MCP discovery or invocation on Server;
+- Agent dispatch on Server → Agent turn on the runner → MCP discovery or invocation on Server;
 - Browser request on Server → Browser operation on Computer;
 - MCP discovery and invocation;
 - delivery retry sweeps and reminder ticks report aggregate health metrics, not spans.
@@ -179,11 +180,40 @@ not product state: do not persist it in Chats, messages, Agent history, or
 execution journals. Receivers reject malformed context at the API boundary and
 start a new trace when context is absent.
 
-The Computer loopback proxy supplies the active turn's trace context to Server
-MCP routes. It ignores Agent-supplied trace headers and clears context when the
-turn's runner authority ends. Malformed context starts a new trace without
-changing an otherwise valid MCP operation. Third-party MCP servers do not
-receive internal trace headers.
+The runner opens one turn span per run: a child of the start frame's
+`traceContext`, or a new root when the frame has none. Its MCP client sends that
+turn span's `traceparent` to Server MCP routes, so MCP spans are the turn's
+children. Each run gets a fresh turn span, so context never carries into the
+next turn. The Agent cannot set MCP headers: MCP calls come from runner code,
+and the `haus` proxy rebuilds every forwarded request's headers. Malformed
+context starts a new trace without changing an otherwise valid MCP operation.
+Third-party MCP servers do not receive internal trace headers.
+
+## Runner turn spans
+
+The runner has no exporter and no telemetry credential. After a turn settles it
+sends one `runner-turn-span` frame (`packages/haus-api/src/runner-turn-span.ts`)
+up the authenticated runner socket, and the Server re-exports it through its own
+trace pipeline as `haus.agent.turn` under `service.name` `haus-runner` and
+`haus.telemetry.source` `haus-runner-relay`. The socket already carries the
+runner token, so the relay needs no extra route, credential, or protobuf
+encoding in the runner.
+
+The frame carries the turn's trace and span ids, its parent span id, the sampled
+flag, start and end time from the durable turn summary, and the Agent, chat,
+run, model, and runtime ids, outcome, failure kind, message count, output
+produced, and token counts. It never carries message content, prompts, or tool
+output. Each frame is one span; ids are bounded to 128 characters, counts to
+integers, and the duration to seven days. The runner drops a frame the schema
+refuses.
+
+Telemetry never fails or slows a turn. The span is sent after the turn's summary,
+never queued while the Server is unreachable (product frames still queue), and
+dropped when the socket already has 1 MiB buffered. The Server drops spans with
+invalid ids or timing and logs a relay failure without closing the runner
+socket. With no trace exporter configured the relay is a cheap no-op. Runner
+turns export no `haus.operation.*` metrics and none of the Computer-era
+`haus.turn.*` timing attributes described under Agent turn timing.
 
 Do not force a Trigger fire and a later inbox drain into one parent chain.
 Retries and turns that drain multiple causes make that relationship ambiguous.
