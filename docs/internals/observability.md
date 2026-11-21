@@ -181,7 +181,8 @@ execution journals. Receivers reject malformed context at the API boundary and
 start a new trace when context is absent.
 
 The runner opens one turn span per run: a child of the start frame's
-`traceContext`, or a new root when the frame has none. Its MCP client sends that
+`traceContext`. A frame without context still gets a turn id for its MCP calls,
+but the Server exports no turn span for it. Its MCP client sends that
 turn span's `traceparent` to Server MCP routes, so MCP spans are the turn's
 children. Each run gets a fresh turn span, so context never carries into the
 next turn. The Agent cannot set MCP headers: MCP calls come from runner code,
@@ -199,13 +200,23 @@ trace pipeline as `haus.agent.turn` under `service.name` `haus-runner` and
 runner token, so the relay needs no extra route, credential, or protobuf
 encoding in the runner.
 
-The frame carries the turn's trace and span ids, its parent span id, the sampled
-flag, start and end time from the durable turn summary, and the Agent, chat,
-run, model, and runtime ids, outcome, failure kind, message count, output
-produced, and token counts. It never carries message content, prompts, or tool
-output. Each frame is one span; ids are bounded to 128 characters, counts to
-integers, and the duration to seven days. The runner drops a frame the schema
-refuses.
+The frame carries the turn span's own id, start and end time from the durable
+turn summary, and the Agent, Server, chat, run, model, and runtime ids, outcome,
+failure kind, message count, output produced, and token counts. It never carries
+message content, prompts, or tool output. Each frame is one span; ids are
+bounded to 128 characters, counts to integers, and the duration to seven days.
+The runner drops a frame the schema refuses.
+
+The frame names no trace. The Server stamps the trace id, parent span, and
+sampling from its own record of the run's dispatch, so a runner cannot place a
+span in another run's trace. `RunnerLink` records the `traceContext` of every
+`runner-start` it sends in a bounded in-memory map keyed by run id
+(`apps/server/src/runner/dispatched-turn-traces.ts`): the first dispatch of a
+run wins, entries expire after six hours, and the map holds at most 10,000 runs.
+A span is accepted once, only when its Agent and Server ids match the dispatch.
+A span for a run this process did not dispatch, dispatched without trace
+context, already relayed, or older than the window is dropped. A Server restart
+clears the map, so spans of runs dispatched before it are lost.
 
 Telemetry never fails or slows a turn. The span is sent after the turn's summary,
 never queued while the Server is unreachable (product frames still queue), and

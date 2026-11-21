@@ -31,7 +31,6 @@ describe('runner server link', () => {
             serverUrl: server.url,
             traceparent: run.trace.traceparent,
         });
-        expect(run.trace.parentSpanId).toBeUndefined();
         expect(run.reasoningEffort).toBe('xhigh');
         expect(run.modelConnectionId).toBe('mc_claude');
 

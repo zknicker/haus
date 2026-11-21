@@ -14,11 +14,10 @@ const span = (runId: string) =>
         outputProduced: false,
         runId,
         runtimeId: 'claude-agent-sdk',
-        sampled: true,
+        serverId: 'srv_1',
         spanId: 'c'.repeat(16),
         startedAtMs: 1_763_640_000_000,
         tokenUsage: null,
-        traceId: 'a'.repeat(32),
         type: 'runner-turn-span',
     }) satisfies RunnerTurnSpanFrame;
 

@@ -71,8 +71,8 @@ export async function ingestRunnerFrame(ingest: RunnerIngest, raw: string) {
             await ingest.invocations.request(frame);
             return;
         case 'runner-turn-span':
-            await relayRunnerTurnSpan(ingest.runtime, frame).catch((error: unknown) =>
-                console.warn('[haus] dropped a runner turn span', error)
+            await relayRunnerTurnSpan(ingest.runtime, ingest.link.dispatchedTraces, frame).catch(
+                (error: unknown) => console.warn('[haus] dropped a runner turn span', error)
             );
             return;
         case 'agent-execution-journal-records':

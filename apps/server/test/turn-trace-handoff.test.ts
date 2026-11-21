@@ -16,6 +16,7 @@ import { startHausProxy } from '../../runner/src/haus/haus-proxy.ts';
 import { cleanups, drainCleanups, runCredential } from '../../runner/src/runner-test-server.ts';
 import { mcpSearchCode, mcpSearchingRunner } from '../../runner/src/turn/mcp-turn.test-support.ts';
 import { traceAgentDispatch } from '../src/agent-delivery/dispatch-telemetry.ts';
+import { RunnerLink } from '../src/runner/runner-link.ts';
 import { relayRunnerTurnSpan } from '../src/runner/turn-span-relay.ts';
 import { McpClientCache } from '../src/server-mcp/client-cache.ts';
 import { makeClient } from '../src/server-mcp/runtime-test-fixtures.ts';
@@ -59,38 +60,43 @@ test('dispatch → runner turn → Server MCP keeps one trace without trusting A
         },
         2
     );
-    const relay = async () => {
-        const frame = await runner.server.frame('runner-turn-span');
-        await relayRunnerTurnSpan(serverRuntime, turnSpan(frame));
-        return frame;
+    const link = new RunnerLink();
+    link.attach({
+        close: () => undefined,
+        isOpen: () => true,
+        send: (frame) => runner.server.send(JSON.parse(JSON.stringify(frame))),
+    });
+    const runTurn = async (runId: string) => {
+        const dispatched = await traceAgentDispatch(
+            serverRuntime,
+            { agentId: 'agt_1', serverId: 'srv_1' },
+            async () => ({ frame: runnerStart(runId) })
+        );
+        if (dispatched?.frame.type !== 'runner-start') {
+            throw new Error('The dispatch did not produce a runner start.');
+        }
+        expect(link.send(dispatched.frame)).toBe(true);
+        expect(await runner.server.frame('turn')).toMatchObject({ runId, status: 'completed' });
+        const frame = turnSpan(await runner.server.frame('runner-turn-span'));
+        expect(await relayRunnerTurnSpan(serverRuntime, link.dispatchedTraces, frame)).toBe(true);
+        return { dispatch: dispatched.frame.start.traceContext?.traceparent, frame };
     };
 
-    const dispatched = await traceAgentDispatch(
-        serverRuntime,
-        { agentId: 'agt_1', serverId: 'srv_1' },
-        async () => ({ frame: runnerStart('run_1') })
-    );
-    runner.server.send(JSON.parse(JSON.stringify(dispatched?.frame)));
-    expect(await runner.server.frame('turn')).toMatchObject({
-        runId: 'run_1',
-        status: 'completed',
-    });
-    const firstFrame = await relay();
-
-    runner.server.start({ modelConnectionId: 'mc_xai', modelId: 'grok-faux', runId: 'run_2' });
-    expect(await runner.server.frame('turn')).toMatchObject({
-        runId: 'run_2',
-        status: 'completed',
-    });
-    await relay();
+    const firstTurn = await runTurn('run_1');
+    const secondTurn = await runTurn('run_2');
 
     const spans = exporter.getFinishedSpans();
-    const dispatch = only(spans, (span) => span.name === 'haus.agent.dispatch');
+    const dispatchOf = (traceparent: string | undefined) =>
+        only(spans, (span) => traceparent === traceparentOf(span));
+    const dispatch = dispatchOf(firstTurn.dispatch);
+    const secondDispatch = dispatchOf(secondTurn.dispatch);
     const first = only(spans, (span) => span.attributes['haus.run.id'] === 'run_1');
     const second = only(spans, (span) => span.attributes['haus.run.id'] === 'run_2');
     const mcp = spans.filter((span) => span.name === 'haus.mcp.operation');
     expect(mcp).toHaveLength(2);
     const [firstMcp, secondMcp] = mcp;
+    const firstFrame = firstTurn.frame;
+    expect(dispatch.name).toBe('haus.agent.dispatch');
     expect(first.name).toBe('haus.agent.turn');
     expect(first.spanContext().traceId).toBe(dispatch.spanContext().traceId);
     expect(first.parentSpanContext?.spanId).toBe(dispatch.spanContext().spanId);
@@ -110,7 +116,8 @@ test('dispatch → runner turn → Server MCP keeps one trace without trusting A
     });
     expect(first.resource.attributes['service.name']).toBe('haus-runner');
 
-    expect(second.parentSpanContext).toBeUndefined();
+    expect(second.parentSpanContext?.spanId).toBe(secondDispatch.spanContext().spanId);
+    expect(second.spanContext().traceId).toBe(secondDispatch.spanContext().traceId);
     expect(second.spanContext().traceId).not.toBe(dispatch.spanContext().traceId);
     expect(secondMcp?.parentSpanContext?.spanId).toBe(second.spanContext().spanId);
     expect(received).toEqual([traceparentOf(first), traceparentOf(second)]);

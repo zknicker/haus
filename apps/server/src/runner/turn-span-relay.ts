@@ -1,10 +1,16 @@
 import type { RunnerTurnSpanFrame } from '@haus/api';
 import { type EffectRuntime, relaySpan } from '@haus/effect';
+import type { DispatchedTurnTraces } from './dispatched-turn-traces.ts';
 
 export async function relayRunnerTurnSpan(
     runtime: EffectRuntime<never>,
+    traces: DispatchedTurnTraces,
     frame: RunnerTurnSpanFrame
 ) {
+    const dispatch = traces.claim(frame);
+    if (!dispatch) {
+        return false;
+    }
     const usage = frame.tokenUsage;
     await relaySpan(runtime, {
         attributes: {
@@ -30,10 +36,11 @@ export async function relayRunnerTurnSpan(
         endedAtMs: frame.endedAtMs,
         failed: frame.outcome === 'failed',
         name: 'haus.agent.turn',
-        ...(frame.parentSpanId ? { parentSpanId: frame.parentSpanId } : {}),
-        sampled: frame.sampled,
+        parentSpanId: dispatch.parentSpanId,
+        sampled: dispatch.sampled,
         spanId: frame.spanId,
         startedAtMs: frame.startedAtMs,
-        traceId: frame.traceId,
+        traceId: dispatch.traceId,
     });
+    return true;
 }

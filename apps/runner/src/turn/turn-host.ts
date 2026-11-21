@@ -214,7 +214,7 @@ export function createTurnHostWith(input: {
             visibleMessages: [...visible.values()],
         });
         await settle(start, records, summary);
-        const span = turnSpanFrame(run.trace, start, summary);
+        const span = turnSpanFrame(run, summary);
         if (span) {
             input.link.send(span);
         }

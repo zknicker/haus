@@ -9,8 +9,9 @@ const epochMsSchema = z.number().finite().positive();
 /**
  * One Agent turn span the runner recorded, sent once after the turn settles.
  * It carries ids, counts and timing only, never message content, prompts or
- * tool output. The Server re-exports it through its own trace pipeline; the
- * runner has no exporter and no egress beyond the Server.
+ * tool output. It names no trace: the Server stamps the trace id, parent and
+ * sampling from the dispatch context it put on the run's `runner-start`, then
+ * re-exports the span through its own trace pipeline.
  */
 export const runnerTurnSpanFrameSchema = z
     .object({
@@ -22,18 +23,14 @@ export const runnerTurnSpanFrameSchema = z
         modelId: boundedIdSchema,
         outcome: agentTurnStatusSchema,
         outputProduced: z.boolean(),
-        /** The dispatch span the Server started the run under; absent for a root turn. */
-        parentSpanId: z
-            .string()
-            .regex(/^[0-9a-f]{16}$/u)
-            .optional(),
         runId: boundedIdSchema,
         runtimeId: boundedIdSchema,
-        sampled: z.boolean(),
+        /** The Server the run's `runner-start` named; the Server checks it against its dispatch. */
+        serverId: boundedIdSchema,
+        /** The turn span's own id, the parent of the run's MCP spans. */
         spanId: z.string().regex(/^[0-9a-f]{16}$/u),
         startedAtMs: epochMsSchema,
         tokenUsage: agentTokenUsageSchema.nullable(),
-        traceId: z.string().regex(/^[0-9a-f]{32}$/u),
         type: z.literal('runner-turn-span'),
     })
     .strict()
