@@ -127,8 +127,7 @@ export function reasoningEffortsForModel(
 /**
  * Core abilities as Haus launches each runtime, so this list must follow the driver launch:
  * sub-agents come from `supportsSubagents` (runtime/runtime-subagents.ts), with Codex's
- * `agents.enabled = false` (codex-launch.ts) and Grok's `GROK_SUBAGENTS=0` (grok-launch.ts)
- * switching them off.
+ * `agents.enabled = false` and Grok's `GROK_SUBAGENTS=0` switching them off.
  * Codex and Grok Build keep their native image generation; Claude Code has none.
  */
 export function featuresForRuntime(runtimeId: ComputerRuntimeId): ComputerModelFeature[] {

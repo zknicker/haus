@@ -1,7 +1,6 @@
 import type {
     OpenSessionOptions,
-    RuntimeDriverFactory,
-    RuntimeDriverOptions,
+    RuntimeDriver,
     RuntimeSession,
     RuntimeTurn,
     SteerResult,
@@ -10,21 +9,17 @@ import type { RuntimeResumeState } from '../resume-state.ts';
 import type { RuntimeTokenUsage, TurnEvent } from '../turn-event.ts';
 
 /**
- * An in-memory `RuntimeDriver` for executor and launch tests: no process, no protocol, only the
+ * An in-memory `RuntimeDriver` for Worker launch tests: no process, no protocol, only the
  * contract. A test scripts what it needs (each turn's `TurnEvent`s, open failures, steer results,
- * parked states) and reads back what the executor asked of the driver.
+ * stopped states) and reads back what the Worker asked of the driver.
  */
 export interface FakeRuntimeScript<Input> {
-    /** The driver's bootstrap fingerprint; `'fake-bootstrap'` unless set. */
-    readonly bootstrapFingerprint?: string | null;
     destroy?(): void;
-    detach?(count: number): RuntimeResumeState | Promise<RuntimeResumeState>;
     /** Runs on every open, before the session exists; throw to fail the open. */
     open?(
         options: FakeOpen & { readonly signal?: AbortSignal },
         launch: FakeLaunch<Input>
     ): void | Promise<void>;
-    refreshBootstrap?(options: { sessionId: string }): Promise<void>;
     /** The runtime's own session id; the requested Haus session id unless set. */
     readonly sessionId?: string;
     steer?(text: string): Promise<SteerResult> | SteerResult;
@@ -36,7 +31,6 @@ export interface FakeRuntimeScript<Input> {
 
 export interface FakeLaunch<Input> {
     readonly input: Input;
-    readonly options: RuntimeDriverOptions;
 }
 
 export interface FakeOpen {
@@ -51,42 +45,33 @@ export interface FakeTurnContext<Input> {
     readonly signal: AbortSignal;
 }
 
-/** Everything the executor asked of the fake, in order. */
+/** Everything the Worker asked of the fake, in order. */
 export interface FakeRuntimeRecord<Input> {
-    readonly counts: { destroy: number; detach: number; refresh: number; stop: number };
+    readonly counts: { destroy: number; stop: number };
     readonly launches: FakeLaunch<Input>[];
     readonly opens: FakeOpen[];
     readonly prompts: string[];
     readonly steers: string[];
-    /** Per turn, whether the executor started it as a background-work wake. */
-    readonly wakes: boolean[];
 }
 
-export const fakeParkedState: RuntimeResumeState = {
+export const fakeStoppedState: RuntimeResumeState = {
     runtime: 'codex',
     threadId: 'native_session_1',
     version: 1,
 };
 
-export function fakeRuntimeDriver<Input extends { readonly runtimeId: string }>(
-    script: FakeRuntimeScript<Input> = {}
-): { factory: RuntimeDriverFactory<Input>; record: FakeRuntimeRecord<Input> } {
+export function fakeRuntimeDriver<Input>(script: FakeRuntimeScript<Input> = {}) {
     const record: FakeRuntimeRecord<Input> = {
-        counts: { destroy: 0, detach: 0, refresh: 0, stop: 0 },
+        counts: { destroy: 0, stop: 0 },
         launches: [],
         opens: [],
         prompts: [],
         steers: [],
-        wakes: [],
     };
-    const factory: RuntimeDriverFactory<Input> = (input, options) => {
-        const launch = { input, options };
+    const factory = (input: Input) => {
+        const launch = { input };
         record.launches.push(launch);
         return {
-            bootstrapFingerprint: async () =>
-                script.bootstrapFingerprint === undefined
-                    ? 'fake-bootstrap'
-                    : script.bootstrapFingerprint,
             openSession: async ({ resumeFrom, sessionId, signal }: OpenSessionOptions) => {
                 record.opens.push({ resumeFrom, sessionId });
                 await script.open?.({ resumeFrom, sessionId, signal }, launch);
@@ -96,12 +81,7 @@ export function fakeRuntimeDriver<Input extends { readonly runtimeId: string }>(
                     sessionId: script.sessionId ?? sessionId,
                 });
             },
-            refreshBootstrap: async ({ sessionId }) => {
-                record.counts.refresh += 1;
-                await script.refreshBootstrap?.({ sessionId });
-            },
-            runtimeId: input.runtimeId,
-        };
+        } satisfies RuntimeDriver;
     };
     return { factory, record };
 }
@@ -113,7 +93,7 @@ export function finishedTurn(
 ): TurnEvent[] {
     return [
         { contextTokens, type: 'step-finish', usage },
-        { claudePlanUsage: null, type: 'turn-finish', usage },
+        { type: 'turn-finish', usage },
     ];
 }
 
@@ -127,15 +107,10 @@ function fakeSession<Input>(
             record.counts.destroy += 1;
             script.destroy?.();
         },
-        detach: async () => {
-            record.counts.detach += 1;
-            return (await script.detach?.(record.counts.detach)) ?? fakeParkedState;
-        },
         isResume: session.isResume,
         sessionId: session.sessionId,
-        startTurn: async ({ prompt, signal, wake }): Promise<RuntimeTurn> => {
+        startTurn: async ({ prompt, signal }): Promise<RuntimeTurn> => {
             record.prompts.push(prompt);
-            record.wakes.push(wake === true);
             const context = { input: session.input, isResume: session.isResume, prompt, signal };
             const events = script.turn?.(context) ?? finishedTurn();
             const drained = Promise.withResolvers<void>();
@@ -159,7 +134,7 @@ function fakeSession<Input>(
         },
         stop: async () => {
             record.counts.stop += 1;
-            return (await script.stop?.(record.counts.stop)) ?? fakeParkedState;
+            return (await script.stop?.(record.counts.stop)) ?? fakeStoppedState;
         },
     };
 }

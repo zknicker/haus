@@ -24,7 +24,7 @@ test('a stall notice reaches the Agent as a valid inbox item', async () => {
     const seed = await seedAgent(connection.db);
     const { delivery, wake } = offlineDelivery(connection.db, seed);
     const turnId = await seedRun(seed);
-    const key = `${turnId}:stall:1793941134000:0`;
+    const key = `worker-stall:${turnId}:1793941134000:0`;
     await queueNotice(delivery, seed, turnId, key);
 
     const frame = await wake();

@@ -117,12 +117,6 @@ export class FakeAppServer implements CodexTransport {
                 return { result: { config: {}, layers: [] } };
             case 'thread/start':
             case 'thread/resume':
-                queueMicrotask(() =>
-                    this.notify('mcpServer/startupStatus/updated', {
-                        name: 'haus',
-                        status: 'ready',
-                    })
-                );
                 return {
                     result: {
                         thread: {

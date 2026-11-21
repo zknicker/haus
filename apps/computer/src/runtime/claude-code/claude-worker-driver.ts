@@ -7,15 +7,28 @@ import { claudeInitializeFailure } from './claude-errors.ts';
 import { ClaudeEventNormalizer } from './claude-event-normalizer.ts';
 import {
     type ClaudeInstallTarget,
-    claudeInstallFingerprint,
     claudeInstallTarget,
     ensureClaudeInstall,
 } from './claude-install.ts';
-import { CLAUDE_ALLOWED_TOOLS, CLAUDE_DISALLOWED_TOOLS } from './claude-launch.ts';
 import { spawnClaudeProcess } from './claude-process.ts';
 import { claudeResumeSessionId } from './claude-resume.ts';
 import { createClaudeSession } from './claude-session.ts';
 import { createWorkspaceStripper } from './claude-tool-names.ts';
+
+const CLAUDE_DISALLOWED_TOOLS = [
+    'EnterPlanMode',
+    'ExitPlanMode',
+    'ScheduleWakeup',
+    'CronCreate',
+    'CronList',
+    'CronDelete',
+    'AskUserQuestion',
+    'Monitor',
+    'RemoteTrigger',
+    'PushNotification',
+] as const;
+
+const CLAUDE_ALLOWED_TOOLS = ['Glob', 'Grep'] as const;
 
 export interface ClaudeWorkerDriverOptions {
     baseEnv?: NodeJS.ProcessEnv;
@@ -50,15 +63,7 @@ export function createClaudeWorkerDriver(options: ClaudeWorkerDriverOptions) {
             hostServer: 'haus',
             strip: createWorkspaceStripper([options.cwd, realPath(options.cwd)]),
         });
-        const connection = new ClaudeConnection(
-            child,
-            normalizer,
-            null,
-            'worker',
-            sessionId,
-            undefined,
-            { modelId: options.modelId ?? '' }
-        );
+        const connection = new ClaudeConnection(child, normalizer, sessionId);
         try {
             await connection.initialize();
         } catch (error) {
@@ -68,24 +73,14 @@ export function createClaudeWorkerDriver(options: ClaudeWorkerDriverOptions) {
         return connection;
     };
     return {
-        bootstrapFingerprint: () =>
-            Promise.resolve(target ? claudeInstallFingerprint(target) : null),
         async openSession({ resumeFrom, signal }) {
             const resumeSessionId = claudeResumeSessionId(resumeFrom);
             return createClaudeSession({
-                collectPlanUsage: false,
                 connection: await connect({ resumeSessionId, signal }),
                 isResume: resumeSessionId !== undefined,
-                park: (connection) => connection.stop(),
                 relaunch: (claudeSessionId) => connect({ resumeSessionId: claudeSessionId }),
             });
         },
-        async refreshBootstrap({ signal }) {
-            if (target) {
-                await ensureClaudeInstall(target, { signal });
-            }
-        },
-        runtimeId: 'claude-code',
     } satisfies RuntimeDriver;
 }
 

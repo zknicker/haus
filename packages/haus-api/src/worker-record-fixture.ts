@@ -14,7 +14,7 @@ export const work = {
     model: null,
     originChatId: 'cht_product',
     place: { kind: 'cursor' },
-    pullRequest: null,
+    pullRequests: [],
     providerAgentId: 'bc_abc',
     providerUrl: 'https://cursor.com/agents/bc_abc',
     repository: 'haus/haus',

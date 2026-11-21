@@ -10,10 +10,12 @@ import {
     type ComputerPlaceFrame,
     endBeforeLaunch,
     finishTurn,
+    resendProgress,
     sendEnded,
+    sendJournalMissing,
 } from './turn-finish.ts';
 import { ComputerTurnJournal, type ComputerTurnRef } from './turn-journal.ts';
-import { type ActiveTurn, launchComputerTurn, shutdownReason } from './turn-launch.ts';
+import { type ActiveTurn, exitOf, launchComputerTurn, shutdownReason } from './turn-launch.ts';
 import type { ComputerTurnRecord } from './turn-record.ts';
 import { removeWorkerWorktree } from './worktree.ts';
 
@@ -102,14 +104,17 @@ export class ComputerWorkerPlace {
 
     async stop(ref: ComputerTurnRef) {
         const turn = await this.journal.turn(ref);
+        const running = this.active.get(ref.turnId);
         if (!turn || turn.phase === 'ended') {
             if (turn) {
                 sendEnded(this.context, ref, turn);
+            } else if (running) {
+                await halt(running, 'stop');
+                await running.finished;
             }
             return;
         }
         await this.journal.advance(ref, (current) => ({ ...current, stopRequested: true }));
-        const running = this.active.get(ref.turnId);
         if (running) {
             running.retry.now();
             await halt(running, 'stop');
@@ -129,24 +134,10 @@ export class ComputerWorkerPlace {
         for (const entry of entries) {
             const turn = await this.journal.turn(entry);
             if (!turn) {
-                this.reportLost(entry);
+                await this.answerLost(entry);
                 continue;
             }
-            if (turn.sessionId) {
-                this.context.send({
-                    sessionId: turn.sessionId,
-                    turnId: entry.turnId,
-                    type: 'worker-turn-session',
-                });
-            }
-            if (turn.inputAccepted) {
-                this.context.send({
-                    attempt: turn.attempt,
-                    turnId: entry.turnId,
-                    type: 'worker-turn-input-accepted',
-                    workerMdRevisionId: turn.workerMdRevisionId,
-                });
-            }
+            resendProgress(this.context, entry, turn);
             if (entry.stopRequested) {
                 await this.stop(entry);
             } else {
@@ -186,7 +177,7 @@ export class ComputerWorkerPlace {
                 exit: 'crashed-before-launch',
             });
         } else if (turn.phase === 'running') {
-            await this.own(ref, () =>
+            await this.own(ref, turn.attempt, () =>
                 finishTurn(this.context, ref, {
                     branch: turn.frame.checkout?.branch ?? null,
                     detail: 'The Computer lost the harness process.',
@@ -194,37 +185,40 @@ export class ComputerWorkerPlace {
                 })
             );
         } else if (turn.phase === 'pushing') {
-            await this.own(ref, () => finishTurn(this.context, ref, null));
+            await this.own(ref, turn.attempt, () => finishTurn(this.context, ref, null));
         }
     }
 
-    private reportLost(entry: ComputerTurnRef & { attempt: number | null }) {
-        if (entry.attempt === null || this.active.has(entry.turnId)) {
-            return;
+    private async answerLost(
+        entry: ComputerTurnRef & { attempt: number | null; stopRequested: boolean }
+    ) {
+        if (this.active.has(entry.turnId)) {
+            if (entry.stopRequested) {
+                await this.stop(entry);
+            }
+        } else if (entry.attempt !== null) {
+            sendJournalMissing(this.context, entry, {
+                attempt: entry.attempt,
+                exit: 'uncertain',
+                sessionId: null,
+            });
         }
-        this.context.send({
-            attempt: entry.attempt,
-            branch: null,
-            branches: [],
-            detail: 'journal-missing',
-            exit: 'uncertain',
-            sessionId: null,
-            turnId: entry.turnId,
-            type: 'worker-turn-ended',
-        });
     }
 
     private launch(frame: WorkerTurnStartFrame) {
-        void this.own(refOf(frame), (running) => launchComputerTurn(this.context, frame, running));
+        void this.own(refOf(frame), frame.attempt, (running) =>
+            launchComputerTurn(this.context, frame, running)
+        );
     }
 
-    private own(ref: ComputerTurnRef, work: (running: Running) => Promise<void>) {
+    private own(ref: ComputerTurnRef, attempt: number, work: (running: Running) => Promise<void>) {
         const owned = this.active.get(ref.turnId);
         if (owned) {
             return owned.finished;
         }
         const running: Running = {
             abort: new AbortController(),
+            attempt,
             done: Promise.resolve(),
             finished: Promise.resolve(),
             retry: new PushRetry(this.schedule),
@@ -233,7 +227,14 @@ export class ComputerWorkerPlace {
         };
         this.active.set(ref.turnId, running);
         const first = work(running)
-            .then(() => this.awaitsPush(ref))
+            .then(
+                () => true,
+                (cause: unknown) => {
+                    logFailure('worker.computer-turn', ref, cause);
+                    return false;
+                }
+            )
+            .then((worked) => this.afterWork(ref, running, worked))
             .catch((cause: unknown) => {
                 logFailure('worker.computer-turn', ref, cause);
                 return false;
@@ -244,6 +245,18 @@ export class ComputerWorkerPlace {
             .finally(() => this.active.delete(ref.turnId));
         running.finished = first.then(() => undefined);
         return running.finished;
+    }
+
+    private async afterWork(ref: ComputerTurnRef, running: Running, worked: boolean) {
+        const turn = await this.journal.turn(ref);
+        if (!turn) {
+            sendJournalMissing(this.context, ref, {
+                attempt: running.attempt,
+                exit: exitOf(running, 'exited') === 'stopped' ? 'stopped' : 'uncertain',
+                sessionId: running.session?.sessionId ?? null,
+            });
+        }
+        return worked && turn?.phase === 'pushing';
     }
 
     private async pushAgain(ref: ComputerTurnRef) {

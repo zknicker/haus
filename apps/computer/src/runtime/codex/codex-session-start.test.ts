@@ -1,10 +1,10 @@
 // Ported from botiverse/raft-source packages/daemon/src/drivers/codex.test.ts (FSL-1.1-ALv2)
 import { describe, expect, test } from 'bun:test';
 import { isRuntimeResumeRejection } from '../resume-rejected.ts';
-import { resumeThreadId } from './codex-driver.ts';
 import { CodexResumeRejectedError, CodexThreadBusyError } from './codex-errors.ts';
+import { resumeThreadId } from './codex-worker-driver.ts';
 import { FakeAppServer } from './testing/fake-app-server.ts';
-import { flush, labels, openFake, startFakeTurn, turnStarted } from './testing/session-harness.ts';
+import { openFake, startFakeTurn } from './testing/session-harness.ts';
 
 const resumeFrom = { runtime: 'codex', threadId: 'existing-thread-1', version: 1 } as const;
 const refusal = (message: string) => () => ({ error: { code: -32_000, message } });
@@ -48,9 +48,8 @@ describe('Codex session start', () => {
         ]);
         expect(fake.request('thread/resume')?.params).toMatchObject({
             approvalPolicy: 'never',
-            developerInstructions: 'You are a Haus test Agent. Follow the user exactly.',
             excludeTurns: true,
-            sandbox: 'danger-full-access',
+            sandbox: 'workspace-write',
             threadId: 'existing-thread-1',
         });
         expect(fake.request('turn/start')?.params.threadId).toBe('existing-thread-1');
@@ -156,74 +155,19 @@ describe('Codex session start', () => {
         expect((error as Error).message).toContain('userAgent');
     });
 
-    test('the first turn waits for the host-tool MCP server', async () => {
-        const fake = new FakeAppServer({
-            'thread/start': () => ({ result: { thread: { id: 'thread-1' } } }),
-        });
-        const { session } = await openFake(fake);
-        const starting = startFakeTurn(fake, session);
-        await flush();
-        expect(fake.methods()).not.toContain('turn/start');
-        fake.notify('mcpServer/startupStatus/updated', { name: 'haus', status: 'ready' });
-        await starting;
-        expect(fake.methods()).toContain('turn/start');
-    });
-
-    test('a failed host-tool MCP server degrades to a turn with a visible warning', async () => {
-        const fake = new FakeAppServer({
-            'thread/start': () => ({ result: { thread: { id: 'thread-1' } } }),
-        });
-        const { session } = await openFake(fake);
-        const starting = startFakeTurn(fake, session);
-        await flush();
-        fake.notify('mcpServer/startupStatus/updated', {
-            error: 'connection refused',
-            name: 'haus',
-            status: 'failed',
-        });
-        const turn = await starting;
-        turnStarted(fake, turn.turnId);
-        await flush();
-        expect(labels(turn.events)[0]).toBe(
-            'session-failure:warning:host-tools:Haus host tools are unavailable to Codex: connection refused'
-        );
-    });
-
-    test('model and reasoning effort ride the thread request', async () => {
+    test('the model rides the thread request, and no model leaves Codex its default', async () => {
         const { fake } = await openFake(new FakeAppServer(), {
-            overrides: { modelId: 'gpt-5.5', reasoningEffort: 'xhigh' },
+            overrides: { modelId: 'gpt-5.5' },
         });
-        expect(fake.request('thread/start')?.params).toMatchObject({
-            config: { model_reasoning_effort: 'xhigh' },
-            model: 'gpt-5.5',
-        });
-        const defaulted = await openFake(new FakeAppServer(), {
-            overrides: { reasoningEffort: 'default' },
-        });
-        expect(
-            defaulted.fake.request('thread/start')?.params.config?.model_reasoning_effort
-        ).toBeUndefined();
+        expect(fake.request('thread/start')?.params).toMatchObject({ model: 'gpt-5.5' });
+        const defaulted = await openFake(new FakeAppServer(), { overrides: { modelId: null } });
+        expect(defaulted.fake.request('thread/start')?.params.model).toBeUndefined();
     });
 
-    test('a legacy AI SDK harness state resumes the codex-acp session id as the thread', () => {
-        expect(
-            resumeThreadId({
-                data: { acpSessionId: 'acp-thread' },
-                harnessId: 'codex',
-                type: 'resume-session',
-            })
-        ).toBe('acp-thread');
-        const rejection = (state: Parameters<typeof resumeThreadId>[0]) => {
-            try {
-                resumeThreadId(state);
-            } catch (error) {
-                return isRuntimeResumeRejection(error) ? (error as Error).message : null;
-            }
-            return null;
-        };
-        expect(rejection({ data: {}, harnessId: 'codex' })).toMatch(/holds no codex/u);
-        expect(rejection({ claudeSessionId: 'c', runtime: 'claude-code', version: 1 })).toMatch(
-            /belongs to claude-code/u
-        );
+    test('another runtime’s state is a resume rejection', () => {
+        expect(() =>
+            resumeThreadId({ claudeSessionId: 'c', runtime: 'claude-code', version: 1 })
+        ).toThrow(/belongs to claude-code/u);
+        expect(resumeThreadId({ runtime: 'codex', threadId: 't', version: 1 })).toBe('t');
     });
 });

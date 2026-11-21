@@ -1,4 +1,3 @@
-import { makeProcessTelemetryRelay } from '@haus/effect';
 import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
 import type { FastifyInstance } from 'fastify';
 import { registerAgentArtifactRoutes } from './agent-api/artifact-routes.ts';
@@ -92,7 +91,6 @@ export async function registerHausServerRoutes(
     registerComputerRoutes(app, {
         appOrigin: dependencies.appOrigin,
         db,
-        telemetryRelay: makeProcessTelemetryRelay(),
     });
     registerInvocationPayloadRoutes(app, {
         db,

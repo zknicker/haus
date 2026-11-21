@@ -29,27 +29,11 @@ export async function closeDaemonCoordination(runtime: DaemonRuntime): Promise<v
 }
 
 /** Create the one Effect runtime owned by a Computer attachment daemon. */
-export function makeDaemonRuntime(options?: {
-    readonly telemetryRelay?: {
-        readonly credential: string;
-        readonly serverOrigin: string;
-    };
-}): DaemonRuntime {
-    const relay = options?.telemetryRelay
-        ? {
-              authorization: `Bearer ${options.telemetryRelay.credential}`,
-              deploymentEnvironment: 'production' as const,
-              endpoint: new URL(
-                  '/computer/telemetry',
-                  options.telemetryRelay.serverOrigin
-              ).toString(),
-          }
-        : undefined;
+export function makeDaemonRuntime(): DaemonRuntime {
     return ManagedRuntime.make(
         Layer.merge(
             makeLifecycleLoggerLayer(),
             makeProcessTelemetryLayer({
-                relay,
                 serviceName: 'haus-computer',
                 serviceRevision: computerSourceRevision,
                 serviceVersion: computerVersion,
@@ -59,10 +43,9 @@ export function makeDaemonRuntime(options?: {
 }
 
 export async function withDaemonRuntime<Value>(
-    run: (runtime: DaemonRuntime) => Promise<Value>,
-    options?: Parameters<typeof makeDaemonRuntime>[0]
+    run: (runtime: DaemonRuntime) => Promise<Value>
 ): Promise<Value> {
-    const runtime = makeDaemonRuntime(options);
+    const runtime = makeDaemonRuntime();
     try {
         return await run(runtime);
     } finally {

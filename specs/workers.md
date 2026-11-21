@@ -477,7 +477,10 @@ A Computer that lost its journal still answers reconcile. Each entry carries the
 attempt, and a Computer-place turn the Computer holds no record of and runs no process for is
 reported ended `uncertain` with detail `journal-missing`. A turn the Server already settled
 records its end, so the turns behind it dispatch; an unsettled one settles through the table
-below. A turn whose process is still live is never reported missing.
+below. A turn whose process is still live is never reported missing. A live process whose journal
+is gone ends on an owed stop, from `worker-stop` or a reconcile entry, and on its own exit; either
+way the Computer reports it ended with detail `journal-missing`, `stopped` when it was stopped and
+`uncertain` otherwise, because nothing it journaled survives to push.
 
 Settlement is one locked transaction through one table:
 
@@ -488,7 +491,8 @@ Settlement is one locked transaction through one table:
 | `exited` | no | no | failed `no-report` |
 | `crashed-before-launch` | any | any | failed `harness-error` |
 | `uncertain` | yes | any | the report |
-| `uncertain` | no | any | failed `no-report` |
+| `uncertain` | no | yes | `stopped` |
+| `uncertain` | no | no | failed `no-report` |
 | `refused` | any | any | failed `launch-refused` |
 | `stopped` (the Computer killed it on `worker-stop`) | yes | yes | the report |
 | `stopped` | no | yes | `stopped` |

@@ -4,7 +4,6 @@ import {
     workerPushCredentialRequestSchema,
     workerTurnCredentialRequestSchema,
 } from '@haus/api';
-import type { OtlpTelemetryRelay } from '@haus/effect';
 import type { FastifyInstance } from 'fastify';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
@@ -32,20 +31,14 @@ import {
 } from './login-session-service.ts';
 import { mintRunnerCredential, revokeRunnerCredential } from './runner-credentials.ts';
 import { ComputerSetupDeniedError, validateComputerCredential } from './service.ts';
-import { registerComputerTelemetryRoutes } from './telemetry-routes.ts';
 
 export function registerComputerRoutes(
     app: FastifyInstance,
     options: {
         appOrigin: string;
         db: HausDatabase;
-        telemetryRelay?: OtlpTelemetryRelay | null;
     }
 ) {
-    registerComputerTelemetryRoutes(app, {
-        auth: { db: options.db, kind: 'database' },
-        relay: options.telemetryRelay ?? null,
-    });
     app.post('/computer/attach', async (request, reply) => {
         try {
             const input = attachComputerSchema.parse(request.body);

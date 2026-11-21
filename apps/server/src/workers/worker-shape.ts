@@ -14,7 +14,7 @@ import { workerTurnsTable, workersTable } from '../postgres/schema.ts';
 import {
     pullRequestKey,
     readPullRequestReadings,
-    reportedPullRequest,
+    reportedPullRequests,
 } from './pull-request-readings.ts';
 import { readPlaceComputerNames, workerPlaceViewOf } from './worker-row-place.ts';
 
@@ -24,11 +24,11 @@ type WorkerReader = Pick<HausDatabase, 'select'>;
 
 export interface WorkerDetails {
     computerName: string | null;
-    pullRequest: PullRequestReading | null;
+    pullRequests: PullRequestReading[];
     turns: TurnRow[];
 }
 
-const noDetails: WorkerDetails = { computerName: null, pullRequest: null, turns: [] };
+const noDetails: WorkerDetails = { computerName: null, pullRequests: [], turns: [] };
 
 export function toWorkerTurn(row: TurnRow): WorkerTurn {
     return workerTurnSchema.parse({
@@ -91,7 +91,7 @@ export function toWorker(row: WorkerRow, details: WorkerDetails = noDetails): Wo
         place: workerPlaceViewOf(row, details.computerName),
         providerAgentId: row.providerAgentId,
         providerUrl: row.providerUrl,
-        pullRequest: details.pullRequest,
+        pullRequests: details.pullRequests,
         repository: row.repository,
         runtime: row.runtime,
         startedAt,
@@ -138,18 +138,20 @@ export async function readWorkerDetails(
     workerIds: string[]
 ): Promise<Map<string, WorkerDetails>> {
     const turnsByWorker = await readTurns(db, serverId, workerIds);
-    const keyByWorker = new Map(
-        [...turnsByWorker].map(([workerId, turns]) => [workerId, reportedPullRequest(turns)])
+    const keysByWorker = new Map(
+        [...turnsByWorker].map(([workerId, turns]) => [workerId, reportedPullRequests(turns)])
     );
-    const readings = await readPullRequestReadings(db, serverId, [...keyByWorker.values()]);
+    const readings = await readPullRequestReadings(db, serverId, [...keysByWorker.values()].flat());
     const computerNames = await readPlaceComputerNames(db, serverId, workerIds);
     return new Map(
         [...turnsByWorker].map(([workerId, turns]) => {
-            const key = keyByWorker.get(workerId);
-            const pullRequest = key ? (readings.get(pullRequestKey(key)) ?? null) : null;
+            const pullRequests = (keysByWorker.get(workerId) ?? []).flatMap((key) => {
+                const reading = readings.get(pullRequestKey(key));
+                return reading ? [reading] : [];
+            });
             return [
                 workerId,
-                { computerName: computerNames.get(workerId) ?? null, pullRequest, turns },
+                { computerName: computerNames.get(workerId) ?? null, pullRequests, turns },
             ];
         })
     );

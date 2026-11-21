@@ -98,7 +98,7 @@ Adapt this without inserting a favored diagnosis:
 > questions, (5) the strongest challenge to the most tempting explanation, and (6) evidence gaps.
 > Stay available for follow-up hypothesis and fix review.
 
-For latency reports, include available Axiom and local phase timings in follow-up prompts. Ask
+For latency reports, include the durable turn timings and local phase timings in follow-up prompts. Ask
 which differences could explain the measured slow stage, not merely which designs differ. Check
 the current MCP implementation: old notes saying Raft exposes no Server-managed MCP are not a
 current contract. Do not infer a resident-process speedup or prompt-cache benefit without matched

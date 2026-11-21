@@ -71,11 +71,13 @@ changes its stream (Runtime drivers, "Recording fixtures"); the fixture diff is 
 surface. Each driver launches with `HOME` set to the Agent home, so a runtime's own state
 (`.claude/`, `.codex/`, `.grok/`) never lands in the operator's home.
 
-Adding a model is one entry in `apps/computer/src/inventory.ts`. Nothing
+Adding an Agent model is one entry in `apps/runner/src/model-catalog.ts` (a
+Worker's native CLI models stay in `apps/computer/src/inventory.ts`). Nothing
 validates a model id against the vendor, so prove a new one end to end before
-shipping it: start the visuals lab (`bun run visuals:lab`) and run the new
-model on one question. It drives the same runtime driver the Computer executor
-does, so a model id the runtime rejects fails there rather than in front of a
+shipping it: add it to the visuals lab lineup (`scripts/visuals-lab/models.mjs`),
+start the lab (`bun run visuals:lab`), and run the new model on one question.
+It drives the Agent runner's own harness on a dev Server Model connection, so a
+model id the harness or provider rejects fails there rather than in front of a
 user. That is a real model turn and costs money — see [Testing](testing.md),
 "Visuals Lab".
 

@@ -36,8 +36,6 @@ import {
     type ProcessTelemetryEnvironment,
     parseDeploymentEnvironment,
     readProcessTelemetryEnvironment,
-    relayEnvironment,
-    type TelemetryRelayConnection,
     telemetryDisabled,
     telemetryEnabled,
 } from './telemetry-configuration.ts';
@@ -89,17 +87,10 @@ class TelemetryOperationError extends Data.TaggedError('TelemetryOperationError'
 export function makeProcessTelemetryLayer(
     options: Omit<TelemetryLayerOptions, 'spanProcessor'> & {
         readonly environment?: ProcessTelemetryEnvironment;
-        readonly relay?: TelemetryRelayConnection;
     }
 ): Layer.Layer<never> {
-    const processEnvironment = options.environment ?? readProcessTelemetryEnvironment();
-    if (telemetryDisabled(processEnvironment)) {
-        return Layer.empty;
-    }
-    const usingRelay = !telemetryEnabled(processEnvironment) && Boolean(options.relay);
-    const environment =
-        usingRelay && options.relay ? relayEnvironment(options.relay) : processEnvironment;
-    if (!telemetryEnabled(environment)) {
+    const environment = options.environment ?? readProcessTelemetryEnvironment();
+    if (telemetryDisabled(environment) || !telemetryEnabled(environment)) {
         return Layer.empty;
     }
     const sharedEndpoint = environment.OTEL_EXPORTER_OTLP_ENDPOINT?.trim();
@@ -113,9 +104,7 @@ export function makeProcessTelemetryLayer(
         ...options,
         deploymentEnvironment:
             options.deploymentEnvironment ??
-            (usingRelay && options.relay
-                ? options.relay.deploymentEnvironment
-                : parseDeploymentEnvironment(environment.OTEL_RESOURCE_ATTRIBUTES)),
+            parseDeploymentEnvironment(environment.OTEL_RESOURCE_ATTRIBUTES),
         metricReader: metricsEnabled
             ? new PeriodicExportingMetricReader({
                   exporter: new OTLPMetricExporter(exporterConfig(environment, 'metrics')),

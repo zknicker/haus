@@ -1,54 +1,61 @@
-// The turn runner: the same runtime driver the Computer executor builds.
+// The turn runner: the Agent runner's own harnesses, the lane Haus ships.
 //
-// This is what Haus actually runs, so it is the lab's only lane. Claude Code and
-// Codex run the pinned CLI their driver installs, so a lab result is a judgement
-// about the product rather than about whichever CLI happens to be installed on
-// this Mac; Grok Build runs the operator's installed `grok`, as Haus does.
+// Claude models run on the Claude Agent SDK and every other model on Pi,
+// picked by `harnessFor` exactly as the runner picks them, on a Model
+// connection the dev Server holds (lab-connection.mjs). Tools run on the
+// Computer's invocation runners in process (lab-tools.mjs). So a lab result is
+// a judgement about the product: the same harness options, tool bridge, and
+// model login an Agent turn gets, with only the instructions swapped for the
+// lab's (instructions.mjs).
 import path from 'node:path';
-import { makeDaemonRuntime } from '../../../apps/computer/src/daemon-runtime.ts';
-import { createDriver } from '../../../apps/computer/src/runtime/driver-factory.ts';
-import {
-    closeRuntimeContext,
-    openRuntimeContext,
-} from '../../../apps/computer/src/runtime/runtime-context.ts';
-import { labInstructions } from './instructions.mjs';
+import { createHarnesses } from '../../../apps/runner/src/turn/harnesses.ts';
+import { harnessFor } from '../../../apps/runner/src/turn/runtime-driver.ts';
+import { openLabConnection } from './lab-connection.mjs';
+import { createLabTools } from './lab-tools.mjs';
 
 /** Builds the runner one lab run drives: one `runTurn` per battery prompt. */
-export const createHarnessRunner = ({
-    executable,
-    homeDir,
+export async function createHarnessRunner({
+    agentId,
+    agentsRoot,
+    instructions,
     modelId,
     reasoningEffort,
-    runtimeId,
-    workspaceDir,
-}) => {
-    const runtime = makeDaemonRuntime();
-    const context = openRuntimeContext(runtime);
-    const driver = createDriver(
-        {
-            agentRoot: path.dirname(workspaceDir),
-            homeDir,
-            modelId,
-            reasoningEffort,
-            runtimeId,
-            tools: [],
-            workspaceDir,
-        },
-        {
-            env: { PATH: [path.dirname(executable.path), executable.searchPath].join(':') },
-            instructions: labInstructions,
-        },
-        context
-    );
+    repositoryRoot,
+    runnerRoot,
+    skillListing,
+}) {
+    const login = await openLabConnection({ modelId, repositoryRoot });
+    const harnesses = createHarnesses({
+        agentBusy: () => false,
+        book: login.book,
+        link: login.link,
+        log: (line) => process.stderr.write(`${line}\n`),
+        maxWarm: 1,
+    });
+    const runId = crypto.randomUUID();
+    const driver = harnesses.factory({
+        agentDir: path.join(runnerRoot, agentId),
+        agentId,
+        connection: login.connection,
+        instructions,
+        modelId,
+        reasoningEffort,
+        runId,
+        sessionGeneration: 1,
+        skillListing,
+        tools: createLabTools({ agentId, agentsRoot, runId }),
+    });
 
     return {
+        connectionLabel: login.connection.label,
         dispose: async () => {
-            await closeRuntimeContext(runtime);
-            await runtime.dispose();
+            await harnesses.close();
+            await login.close();
         },
+        harness: harnessFor(modelId),
         runTurn: ({ prompt, timeoutMs }) => runTurn({ driver, prompt, timeoutMs }),
     };
-};
+}
 
 async function runTurn({ driver, prompt, timeoutMs }) {
     const signal = AbortSignal.timeout(timeoutMs);
@@ -59,6 +66,7 @@ async function runTurn({ driver, prompt, timeoutMs }) {
         signal,
     });
     const trace = [];
+    const failures = [];
     let text = '';
     let usage = null;
     let streamError = null;
@@ -75,18 +83,24 @@ async function runTurn({ driver, prompt, timeoutMs }) {
                 text += event.text;
             } else if (event.type === 'turn-finish') {
                 usage = event.usage;
+            } else if (event.type === 'session-failure') {
+                failures.push(`${event.severity} ${event.category}: ${event.title}`);
+                if (event.severity === 'error' || event.category === 'access') {
+                    streamError ??= new Error(event.title);
+                }
             } else if (event.type === 'error') {
                 streamError ??= event.error;
             } else if (event.type === 'abort') {
                 streamError ??= new Error(`turn timed out after ${timeoutMs}ms`);
             }
         }
+        await turn.settle();
         if (streamError) {
             throw streamError;
         }
-        // The driver surfaces a failure as a stream error, so there is no stderr of
-        // its own to keep; the field stays because the trace writer records one.
-        return { costUsd: null, stderr: '', text, trace, usage };
+        // Session failures that did not end the turn, such as a capacity warning,
+        // show up nowhere else, so they ride the trace file's stderr record.
+        return { costUsd: null, stderr: failures.join('\n'), text, trace, usage };
     } finally {
         await session.destroy();
     }

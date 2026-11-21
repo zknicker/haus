@@ -313,8 +313,8 @@ Their execution journals show explicit inline sends rather than thread targets.
 
 The original DM failure did not reproduce. These runs provide a clean current suite result,
 but do not establish the cause of that earlier failure or prove it fixed. Retain its report and
-the richer failure capture; no speculative prompt or routing change was made. Axiom was not
-connected in this session; evidence came from local journals and canonical Server records.
+the richer failure capture; no speculative prompt or routing change was made. Hosted telemetry was
+not consulted; evidence came from local journals and canonical Server records.
 
 ### Release verification, September 17
 

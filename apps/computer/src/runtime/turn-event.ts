@@ -1,5 +1,3 @@
-import type { ClaudeUsageSnapshot } from '@haus/claude-usage';
-
 /**
  * The one event vocabulary every runtime driver emits for a turn (specs/runtime-drivers.md).
  * Drivers normalize their wire format into these; Computer consumers never read a runtime's
@@ -150,7 +148,6 @@ export type TurnSettlementEvent =
           readonly usage: RuntimeTokenUsage | null;
       }
     | {
-          readonly claudePlanUsage: ClaudeUsageSnapshot | null;
           readonly type: 'turn-finish';
           readonly usage: RuntimeTokenUsage | null;
       }

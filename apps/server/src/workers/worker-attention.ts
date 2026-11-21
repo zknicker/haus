@@ -1,23 +1,16 @@
-import type { WorkerTurnNotice, WorkerTurnStall } from '@haus/api';
+import type { WorkerTurnStall } from '@haus/api';
 import { and, eq, isNotNull, isNull, or } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable } from '../postgres/schema.ts';
 import { linkParentChatsTable } from './worker-visibility.ts';
 
 /**
- * The opaque inbox key of one notice: a settling Run gets exactly one, keyed by
- * its own id. A stall repeats on every retry tick, so its key names the stall
- * and its reminder window: the same window collapses to one notice, and the
- * next window opens a fresh one.
+ * The opaque inbox key of one `worker_stall` item (specs/inbox.md "Worker items"). A stall
+ * repeats on every observation, so its key names the turn, the stall, and its reminder window:
+ * the same window collapses to one item, and the next window or a new stall opens a fresh one.
  */
-export function noticeDedupeKey(
-    turnId: string,
-    notice: WorkerTurnNotice,
-    stall: WorkerTurnStall | null
-): string {
-    return notice.kind === 'stall' && stall
-        ? `${turnId}:stall:${stall.since.getTime()}:${notice.window}`
-        : turnId;
+export function stallDedupeKey(turnId: string, stall: WorkerTurnStall, window: number): string {
+    return `worker-stall:${turnId}:${stall.since.getTime()}:${window}`;
 }
 
 /** A Chat that still exists and is not tombstoned, nor is its parent. */

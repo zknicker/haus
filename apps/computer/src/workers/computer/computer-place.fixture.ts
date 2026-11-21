@@ -60,7 +60,7 @@ export function registerComputerPlaces() {
                 let clock = 0;
                 const place = new ComputerWorkerPlace({
                     dataRoot: join(root, 'data'),
-                    driver: (launch) => fake.factory(launch, { env: launch.env, instructions: '' }),
+                    driver: fake.factory,
                     now: () => {
                         clock += 5000;
                         return clock;

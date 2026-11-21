@@ -1,49 +1,35 @@
 import type { RuntimeSession, RuntimeTurn, SteerResult } from '../driver.ts';
-import type { RuntimeResumeState } from '../resume-state.ts';
 import type { ClaudeConnection } from './claude-connection.ts';
 import { claudeResumeState } from './claude-resume.ts';
 import { ClaudeTurn } from './claude-turn.ts';
 
 export interface ClaudeSessionDeps {
-    collectPlanUsage: boolean;
     connection: ClaudeConnection;
     isResume: boolean;
-    /** Parks the live process in the Computer's warm pool for the Agent's next turn. */
-    park(connection: ClaudeConnection): Promise<void>;
     /** Resumes the conversation in a new process when this one died between turns. */
     relaunch(claudeSessionId: string): Promise<ClaudeConnection>;
 }
 
 /**
- * The live Claude Code session: one long-lived process, turns run on it one at a time.
- * `detach` parks the process warm for the next turn; `stop` and `destroy` end it.
+ * The live Claude Code session: one process, turns run on it one at a time. `stop` and
+ * `destroy` end it.
  */
 export function createClaudeSession(deps: ClaudeSessionDeps): RuntimeSession {
     let connection = deps.connection;
     let turn: ClaudeTurn | null = null;
     let closed = false;
-    const idle = async () => {
-        await turn?.settle();
-        turn = null;
-    };
     return {
         async destroy() {
             closed = true;
             await connection.stop();
         },
-        async detach(): Promise<RuntimeResumeState> {
-            await idle();
-            closed = true;
-            await deps.park(connection);
-            return claudeResumeState(connection.sessionId);
-        },
         isResume: deps.isResume,
         get sessionId() {
             return connection.sessionId;
         },
-        async startTurn({ prompt, signal, wake }): Promise<RuntimeTurn> {
+        async startTurn({ prompt, signal }): Promise<RuntimeTurn> {
             if (closed) {
-                throw new Error('The Claude Code session is parked.');
+                throw new Error('The Claude Code session is stopped.');
             }
             if (turn && !turn.isSettled) {
                 throw new Error('A Claude Code turn is already running.');
@@ -51,13 +37,7 @@ export function createClaudeSession(deps: ClaudeSessionDeps): RuntimeSession {
             if (!connection.alive) {
                 connection = await deps.relaunch(connection.sessionId);
             }
-            // A turn Claude Code started on its own while idle becomes part of this one.
-            const next = new ClaudeTurn(connection, {
-                adopted: connection.adoptSelfStartedTurn({ wake: wake === true }),
-                collectPlanUsage: deps.collectPlanUsage,
-                signal,
-                wake,
-            });
+            const next = new ClaudeTurn(connection, { signal });
             turn = next;
             await next.start(prompt);
             return {
@@ -72,8 +52,9 @@ export function createClaudeSession(deps: ClaudeSessionDeps): RuntimeSession {
             }
             return turn.steer(text);
         },
-        async stop(): Promise<RuntimeResumeState> {
-            await idle();
+        async stop() {
+            await turn?.settle();
+            turn = null;
             closed = true;
             await connection.stop();
             return claudeResumeState(connection.sessionId);

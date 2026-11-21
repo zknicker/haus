@@ -1,7 +1,7 @@
 ---
 summary: Effect-owned logs, OpenTelemetry traces and metrics, safe attributes, Server-to-Computer propagation, and the runner turn-span relay.
 read_when:
-  - adding telemetry, logs, spans, metrics, or operational dashboards
+  - adding telemetry, logs, spans, metrics, or operational diagnostics
   - changing the runner's turn span, its trace context, or the Server relay that re-exports it
   - changing Server-to-Computer commands or Effect process runtimes
   - configuring an OTLP collector
@@ -30,102 +30,21 @@ a local no-op and performs no network I/O. `OTEL_SDK_DISABLED=true` is the
 explicit off switch. Haus uses OTLP over HTTP and honors the shared or
 signal-specific header variables declared in `.env.schema`.
 
-Development Server and Computer processes export directly to Axiom's US East
-edge deployment. The production Server exports directly. A released Computer
-exports OTLP protobuf to authenticated `/computer/telemetry/v1/traces` and
-`/computer/telemetry/v1/metrics` Server endpoints using its existing attachment
-credential. Server decodes and rebuilds the payload before forwarding it with
-the Server-owned Axiom credential. The relay limits requests to 1 MiB and bounds
-the decoded collections. Malformed protobuf and invalid instrument shapes are
-rejected. Telemetry failure never changes Agent-turn behavior.
+Nothing configures an exporter by default: development, the hosted Server, and
+released Computers all run with telemetry as a no-op. To inspect traces or
+metrics locally, point the endpoint variables at any OTLP/HTTP collector for
+the process under test. Both signal exporters use OTLP/HTTP protobuf. Telemetry
+failure never changes Agent-turn behavior.
 
-The relay admits only known Computer operations and metric instruments. It
-removes arbitrary attributes, events, links, exception messages, scope metadata,
-schema URLs, and claimed release information. Server supplies service,
-environment, Server ID, and Computer ID from its own configuration and the
-authenticated attachment. Metric instance IDs must be UUIDs and are namespaced
-under that Computer to keep cumulative streams separate. Agent IDs must belong
-to an Agent currently assigned to the authenticated Computer.
+Telemetry is operational evidence, not the canonical product record. Production
+debugging reads the durable records instead: Agent turn records, the delivery
+ledger, and synced [execution journals](#execution-journal-sync) in the Server
+database, plus the Server and runner logs described in
+[Hosted Haus troubleshooting](../operations/haus-server-troubleshooting.md).
+Confirm exact messages, silent completion, token usage, and durable turn outcome
+in Haus's Agent Activity and Turn Details UI.
 
-Run, Chat, and request IDs remain bounded diagnostic claims. A compromised
-Computer can still lie about its own timing and outcomes. These records are not
-an authenticated audit trail or an authorization input. Confirm important facts
-against durable Haus records.
-
-Operation traces use `haus-operations` and metrics use `haus-metrics`.
-Each lifecycle's ingestion token must allow ingest into both datasets; token permissions cannot
-be changed after creation.
-Every signal carries the standard `deployment.environment.name` resource
-attribute, so dashboards can default to production while retaining direct
-development-versus-production comparisons. The independently rotated
-`Axiom Development OTLP - Haus` and `Axiom Production OTLP - Haus`
-credentials live in their lifecycle vaults. The schema owns endpoints, dataset
-headers, and environment identity; test remains offline.
-
-The hosted Server receives this configuration in its rendered production
-environment. A released Computer never receives the production Axiom
-credential. When no direct OTLP endpoint is present, its daemon runtime falls
-back to the authenticated Server relay and marks the signals as production.
-
-Axiom accepts metrics only as OTLP/HTTP protobuf. Both signal exporters use
-OTLP/HTTP protobuf. Server's narrow wire-schema projection is checked against
-the installed exporters by a loopback test for both signals.
-
-## Operator views
-
-`Haus Operations` answers what happened. Each row is one timed operation,
-such as Server startup, Agent dispatch, Agent turn, browser work, or MCP work.
-Scheduler checks emit metrics rather than individual spans; their downstream
-dispatches remain timed operations. Start with the production filter and the latest
-`haus.server.startup` span. Its successful status, timestamp,
-`service.version`, `haus.release.id`, and `haus.release.revision` prove that
-the corresponding Server release reached its listening state. A git push alone does not.
-A startup record is historical evidence, not proof that the process is still
-healthy. Check current availability and recent work as well.
-
-Use the recent Agent turns and slow-or-failed turns views for daily triage. A
-turn span carries safe Agent, run, model, and runtime identifiers. Open it to
-see the trace tree: Server dispatch, the runner's turn, and the Server MCP calls
-the turn made share a trace when every side reported successfully. A missing
-turn child is inconclusive: execution or telemetry delivery may be missing.
-Confirm the durable turn record before attributing it to execution failure. A
-failed child means the recorded operation failed. Long gaps between the dispatch
-and turn spans isolate delivery or queueing delay from model and tool execution
-time.
-
-The Agent summary separates completed, silent, failed, interrupted, and unknown
-outcomes. Unknown means the turn has no reported product outcome, not that it
-succeeded. The completion percentage divides completed and silent turns by
-completed, silent, and failed turns. Interruptions and unknown outcomes remain
-visible separately. The outcome filter affects turn tables, not headline
-denominators. No matching turns produces an empty statistic, not a green zero.
-
-Filter by Agent ID to investigate one Agent. Copy a row's `trace_id` into the
-Trace ID field to show its Server and Computer operations in time order.
-The trace detail table ignores Agent, service, and outcome filters so they
-cannot hide a parent or child operation. The environment and time range still
-apply. The background work section groups dispatch, Browser, MCP, and Trigger
-operations rather than internal scheduler polling.
-
-`Haus Metrics` answers whether the system is healthy in aggregate. Operation
-count is traffic; duration percentiles show normal and tail latency; outcome is
-the success or failure split. Effect fiber gauges and counters describe runtime
-pressure. A rising active-fiber gauge without matching completions suggests
-stuck work. A sudden failure-rate increase or p95 jump is a regression even
-when individual turns still succeed. Filter by deployment environment first,
-then service and operation. Development and production share datasets so the
-same saved views work everywhere without mixing environments accidentally.
-
-Metric rates account for cumulative-counter resets per process before combining
-streams. Failed and interrupted operation rates have separate charts. Internal
-fiber charts live in a collapsed diagnostics section because fibers are not
-Agent turns and fiber failures are not a product failure count.
-
-Telemetry is operational evidence, not the canonical product record. Confirm
-exact messages, silent completion, token usage, and durable turn outcome in
-Haus's Agent Activity and Turn Details UI.
-
-### Agent turn timing
+## Agent turn timing
 
 Turn spans include monotonic measurements under `haus.turn.*`. The runner takes
 them for both harnesses (Claude Agent SDK and Pi) in its shared turn path

@@ -198,9 +198,9 @@ so `docs:list` routes future agents correctly.
 
 - For AI bugs or performance problems anywhere in this repo, start with
   `.agents/skills/debug-haus-ai/SKILL.md`, even when the report is a recording or says only
-  "debug this" or "fix these bugs." Do not wait for the user to name Axiom or Raft. The skill
-  routes existing telemetry and creates a Luna-max Raft partner when useful. Pure visual or
-  layout bugs follow the App UI workflow instead.
+  "debug this" or "fix these bugs." Do not wait for the user to name Raft. The skill routes
+  production evidence (database, logs) and creates a Luna-max Raft partner when useful. Pure
+  visual or layout bugs follow the App UI workflow instead.
 
 - Haus Computer owns runtime discovery, model inventory, instruction composition, tools, and the
   chat-to-Agent turn runner under `apps/computer/src/`.
