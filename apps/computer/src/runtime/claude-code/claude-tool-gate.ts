@@ -7,10 +7,6 @@ export const askedMessage =
 export const refusedMessage =
     'Haus Workers run without permission prompts, so this request was refused. Continue without it, or report needs-you with `haus worker report`.';
 
-/**
- * Answers Claude Code's `can_use_tool` requests for a Worker: an `AskUserQuestion` is captured
- * once and ends the turn, and every other request is denied.
- */
 export function claudeToolGate(
     onQuestion: ((questions: WorkerQuestions) => Promise<void>) | undefined
 ) {

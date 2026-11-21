@@ -34,7 +34,6 @@ export async function readWorkerQuestion(tx: Pick<HausDatabase, 'select'>, worke
     return { newest: newest ?? null, question };
 }
 
-/** The open questions `turnId` asked, or the refusal that says who closed them first. */
 export async function requireOpenQuestion(
     tx: Pick<HausDatabase, 'select'>,
     worker: WorkerRow,

@@ -14,7 +14,6 @@ const askUserQuestionInputSchema = z.looseObject({
     ),
 });
 
-/** Claude Code's `AskUserQuestion` input as Haus's structured questions, or why it is not one. */
 export function claudeAskQuestions(input: unknown) {
     const asked = askUserQuestionInputSchema.safeParse(input);
     const questions = workerQuestionsSchema.safeParse(

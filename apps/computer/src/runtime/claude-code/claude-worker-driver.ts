@@ -18,7 +18,6 @@ import { createClaudeSession } from './claude-session.ts';
 import { claudeToolGate } from './claude-tool-gate.ts';
 import { createWorkspaceStripper } from './claude-tool-names.ts';
 
-/** The oldest Claude Code whose `can_use_tool` capture and interrupting deny Haus has proven. */
 export const claudeWorkerQuestionsMinVersion = '2.1.317';
 
 const CLAUDE_DISALLOWED_TOOLS = [
@@ -41,7 +40,6 @@ export interface ClaudeWorkerDriverOptions {
     binaryPath?: string;
     cwd: string;
     env: Readonly<Record<string, string>>;
-    /** The CLI's version; the pinned release unless `binaryPath` names another binary. */
     harnessVersion?: string;
     homeDir: string;
     installTarget?: ClaudeInstallTarget;
@@ -154,7 +152,6 @@ export function buildClaudeWorkerEnv(
     return { ...env, ...options.env, CLAUDE_CODE_ENTRYPOINT: 'sdk-ts', HOME: options.homeDir };
 }
 
-/** Whether this Claude Code version can carry Worker questions; below the minimum they stay off. */
 export function claudeWorkerAsks(version: string | null) {
     return version !== null && compareVersions(version, claudeWorkerQuestionsMinVersion) >= 0;
 }

@@ -19,10 +19,10 @@ import {
 } from '../postgres/schema.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { readTask } from '../tasks/task-read.ts';
-import { questionDraft } from './record-computer-turn-question.ts';
 import { isLiveChat } from './worker-attention.ts';
 import { revokeTurnCredentials } from './worker-credentials.ts';
 import { resolveAskingPerson, resolveWorkerPerson } from './worker-person.ts';
+import { questionDraft } from './worker-question-draft.ts';
 import { postWorkerReportMessage, workerReportContent } from './worker-report-message.ts';
 
 type WorkerRow = typeof workersTable.$inferSelect;

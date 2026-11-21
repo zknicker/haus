@@ -47,13 +47,13 @@ export function workerAnswersText(
         .join('\n');
 }
 
-type QuestionTurn = {
+interface QuestionTurn {
     outcome: {
         kind: string;
         report?: { questions?: WorkerQuestions; questionsClosed?: WorkerQuestionsClosed };
     } | null;
     turnId: string;
-};
+}
 
 /**
  * The newest turn's questions, when it asked some: open until answered (any
