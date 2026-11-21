@@ -1,8 +1,8 @@
 ---
 summary: Agent reasoning surfaces as one short first-person phrase in a thought bubble on the typing strip — the Server's Gemini 3.5 Flash-Lite rephrasing of a Codex title, a scrubbed reasoning excerpt, or a scrubbed description of a tool action (with a scrubbed excerpt of what a finished one returned, so it can state a finding), in terms of the human request the run is answering, skipped when it is only Agent housekeeping, else a filtered local heuristic; paced by workstream with "still" lines after a quiet stretch; always on, never persisted.
 read_when:
-  - changing the typing strip's thought bubble, chat.onThought, or the agent-thought Computer frame
-  - changing how reasoning is captured, excerpted, summarized, or kept on the Computer
+  - changing the typing strip's thought bubble, chat.onThought, or the agent-thought runner frame
+  - changing how reasoning is captured, excerpted, summarized, or kept on the runner
   - changing which tool actions become thoughts, or how their descriptions are scrubbed
   - changing which tool results ride a thought, or how result excerpts are scrubbed
   - changing HAUS_GEMINI_API_KEY, the thought summarizer, its SKIP rule, its request context, or its fallback
@@ -34,7 +34,13 @@ thinking summary with no forced openers. Amended again 2026-09-29: a finished co
 page, or tool sends a scrubbed excerpt of what it returned so a line can state a finding; the
 time ladder gives way to a workstream cadence (a new part of the work or a finding shows after a
 short floor, and the same work continuing shows a "still" line only after a quiet stretch); and
-bubbles hold five to seven and a half seconds.
+bubbles hold five to seven and a half seconds. Amended 2026-11-20: since every Agent runs on the
+Agent runner ([ADR 0057](0057-agents-run-on-the-server-and-machines-run-their-tools.md)), the
+runner does the Computer's part below, unchanged: `apps/runner/src/thoughts/` keeps the
+narrator, its four-second interval and ranking, and the result excerpts, fed from both harnesses'
+normalized reasoning and tool events (Claude's summarized thinking deltas, Pi's thinking blocks),
+and sends the same `agent-thought` frame over the runner socket, which the Server admits and
+phrases exactly as a Computer's. Read "Computer" below as the runner.
 
 ## Context
 

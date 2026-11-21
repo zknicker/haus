@@ -159,10 +159,13 @@ skipped for Agent housekeeping, paced by workstream, never persisted. Details li
 - Owner: [ADR 0035](../adr/0035-chat-engagement-shows-as-typing.md),
   [ADR 0036](../adr/0036-agent-thoughts-surface-as-condensed-phrases.md);
   `apps/server/src/server-agents/` (thought summarizer, cadence, novelty, housekeeping);
-  the runner reports the activity thoughts derive from (`apps/runner/src/turn/run-activity.ts`).
-- Guards: `apps/server/test/chat-engagement.test.ts`, `agent-thought*.test.ts`;
-  `apps/server/src/server-agents/thought-*.test.ts`, `agent-thought-summarizer*.test.ts`;
-  `apps/runner/src/turn/run-activity.test.ts`; App e2e `apps/website/e2e/tests/chat-typing.spec.ts`;
+  the runner reports the activity thoughts derive from (`apps/runner/src/turn/run-activity.ts`)
+  and narrates each run's reasoning and tool actions into `agent-thought` frames
+  (`apps/runner/src/thoughts/`).
+- Guards: `apps/server/test/chat-engagement.test.ts`, `agent-thought*.test.ts`,
+  `runner-thoughts.test.ts`; `apps/server/src/server-agents/thought-*.test.ts`,
+  `agent-thought-summarizer*.test.ts`; `apps/runner/src/turn/run-activity.test.ts`,
+  `apps/runner/src/thoughts/*.test.ts`; App e2e `apps/website/e2e/tests/chat-typing.spec.ts`;
   labeled eval `scripts/thought-housekeeping-eval.ts` with `scripts/thought-eval-checks.test.ts`.
 
 ## 7. Supporting reliability
