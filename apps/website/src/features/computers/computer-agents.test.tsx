@@ -13,7 +13,6 @@ test('Computer Agents render as a HeroUI Pro data grid', () => {
                     displayName: 'Blippy',
                     id: 'agent-blippy',
                     model: 'GPT-5.6 Sol',
-                    runtime: 'Codex',
                     wakePause: null,
                 },
             ]}
@@ -24,11 +23,10 @@ test('Computer Agents render as a HeroUI Pro data grid', () => {
     expect(html).toContain('data-slot="data-grid"');
     expect(html).toContain('aria-label="Captains on this device"');
     expect(html).toContain('Captain');
-    expect(html).toContain('Runtime');
+    expect(html).not.toContain('Runtime');
     expect(html).toContain('Model');
     expect(html).toContain('Status');
     expect(html).toContain('Blippy');
-    expect(html).toContain('Codex');
     expect(html).toContain('GPT-5.6 Sol');
     expect(html).toContain('Online');
     expect(html).toContain('chip--lg');
@@ -42,7 +40,7 @@ test('Computer Agents keep the data grid shell when empty', () => {
 
     expect(html).toContain('data-slot="data-grid"');
     expect(html).toContain('Captain');
-    expect(html).toContain('Runtime');
+    expect(html).not.toContain('Runtime');
     expect(html).toContain('Model');
     expect(html).toContain('Status');
     expect(html).toContain('data-slot="empty-state"');

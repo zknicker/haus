@@ -7,19 +7,7 @@ import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { CloudAgentModelGroup } from './cloud-agent-model-group.tsx';
 import { ModelConnectionsGroup } from './connections/model-connections-group.tsx';
-import {
-    buildModelCatalog,
-    buildRuntimeAccess,
-    type ModelCatalogItem,
-    type ModelsComputer,
-} from './model-catalog.ts';
-
-interface RuntimeRow {
-    computer: string;
-    id: string;
-    label: string;
-    models: string;
-}
+import { buildModelCatalog, type ModelCatalogItem, type ModelsComputer } from './model-catalog.ts';
 
 export function ModelsSettings({
     canManage,
@@ -33,14 +21,12 @@ export function ModelsSettings({
     const computers = useComputers(serverId);
     const [query, setQuery] = React.useState('');
     const items: ModelsComputer[] = computers.data ?? [];
-    const runtimeRows = runtimeAccessRows(items);
     const normalizedQuery = query.trim().toLowerCase();
     const models = buildModelCatalog(items).filter(
         (model) =>
             !normalizedQuery ||
             model.label.toLowerCase().includes(normalizedQuery) ||
-            model.id.toLowerCase().includes(normalizedQuery) ||
-            model.runtimes.some((runtime) => runtime.toLowerCase().includes(normalizedQuery))
+            model.id.toLowerCase().includes(normalizedQuery)
     );
 
     if (computers.error && !computers.data) {
@@ -48,8 +34,6 @@ export function ModelsSettings({
             <SettingsPageColumn width="table">
                 <SettingsPageHeader title="Models" />
                 <ModelConnectionsGroup isOwner={isOwner} serverId={serverId} />
-                {/* The model is a Server setting every member reads, even one
-                    who cannot see the Computers that report runtimes. */}
                 <CloudAgentModelGroup canManage={canManage} serverId={serverId} />
                 <Alert role="alert" status="danger">
                     <Alert.Indicator />
@@ -71,26 +55,6 @@ export function ModelsSettings({
             <CloudAgentModelGroup canManage={canManage} serverId={serverId} />
 
             <ImageGenerationSettings isOwner={isOwner} serverId={serverId} />
-
-            <ItemCardGroup variant="transparent">
-                <ItemCardGroup.Header>
-                    <ItemCardGroup.Title>Detected Runtimes</ItemCardGroup.Title>
-                </ItemCardGroup.Header>
-                {!computers.data && computers.isPending ? (
-                    <PendingRows label="Loading detected runtimes" />
-                ) : runtimeRows.length > 0 ? (
-                    <DataGrid
-                        aria-label="Detected runtimes"
-                        columns={runtimeColumns}
-                        data={runtimeRows}
-                        getRowId={(item) => item.id}
-                    />
-                ) : (
-                    <p className="text-muted text-sm">
-                        No runtimes detected. Attach a device with a detected runtime.
-                    </p>
-                )}
-            </ItemCardGroup>
 
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header className="flex flex-wrap items-center justify-between gap-3">
@@ -143,53 +107,6 @@ function PendingRows({ label }: { label: string }) {
     );
 }
 
-function runtimeAccessRows(computers: ModelsComputer[]): RuntimeRow[] {
-    return buildRuntimeAccess(computers).map(({ computer, computerId, runtime }) => ({
-        computer,
-        id: `${computerId}:${runtime.id}`,
-        label: runtime.label,
-        models: runtime.models.map((model) => model.label).join(', ') || 'No models reported',
-    }));
-}
-
-const runtimeColumns: DataGridColumn<RuntimeRow>[] = [
-    {
-        accessorKey: 'label',
-        allowsSorting: true,
-        cellClassName: 'whitespace-nowrap',
-        header: 'Runtime',
-        id: 'label',
-        isRowHeader: true,
-        minWidth: 140,
-    },
-    {
-        accessorKey: 'computer',
-        allowsSorting: true,
-        cellClassName: 'text-muted whitespace-nowrap',
-        header: 'Device',
-        id: 'computer',
-        minWidth: 160,
-    },
-    {
-        accessorKey: 'models',
-        cellClassName: 'text-muted',
-        header: 'Models',
-        id: 'models',
-        minWidth: 220,
-    },
-    {
-        align: 'end',
-        cell: () => (
-            <Chip color="success" size="sm" variant="soft">
-                Detected
-            </Chip>
-        ),
-        header: 'Status',
-        id: 'status',
-        minWidth: 100,
-    },
-];
-
 const modelColumns: DataGridColumn<ModelCatalogItem>[] = [
     {
         accessorKey: 'label',
@@ -208,20 +125,6 @@ const modelColumns: DataGridColumn<ModelCatalogItem>[] = [
         id: 'id',
         minWidth: 180,
         sortFn: (a, b) => a.id.localeCompare(b.id),
-    },
-    {
-        cell: (item) => (
-            <div className="flex flex-wrap gap-1.5">
-                {item.runtimes.map((runtime) => (
-                    <Chip key={runtime} size="sm" variant="secondary">
-                        {runtime}
-                    </Chip>
-                ))}
-            </div>
-        ),
-        header: 'Runtimes',
-        id: 'runtimes',
-        minWidth: 160,
     },
     {
         cell: (item) => (

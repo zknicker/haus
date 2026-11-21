@@ -54,7 +54,7 @@ test('a fresh form starts empty on the setup the first Agent already runs on', (
     );
 
     expect(markup).toContain('Cove Computer');
-    expect(markup).toContain('Codex');
+    expect(markup).not.toContain('Codex');
     expect(markup).toContain('Sol');
     expect(markup).toContain('Reasoning effort');
     expect(markup).toContain('aria-label="Upload avatar"');
@@ -80,7 +80,8 @@ test('a Server without Cove falls back to the first Computer that reports an inv
     );
 
     expect(markup).toContain('Laptop');
-    expect(markup).toContain('Claude Code');
+    expect(markup).toContain('Opus');
+    expect(markup).not.toContain('Claude Code');
 });
 
 test('keeps the form mounted with a recoverable creation error', () => {

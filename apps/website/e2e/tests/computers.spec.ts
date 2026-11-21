@@ -31,13 +31,13 @@ test('a populated Computer page never presents its attach flow while inventory l
     );
     try {
         await page.goto(`/s/loading-computer-hq/settings/computers/${computerId}`);
-        await expect(page.getByRole('heading', { name: 'Runtimes', exact: true })).toBeVisible();
+        await expect(page.getByRole('heading', { name: 'Plan usage', exact: true })).toBeVisible();
         await expect(page.getByText('Attach a device')).toHaveCount(0);
         await expect(page.locator('.skeleton')).toHaveCount(0);
     } finally {
         release();
     }
-    await expect(page.getByRole('heading', { name: 'Runtimes', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Plan usage', exact: true })).toBeVisible();
     await expect(page.getByText('Attach a device')).toHaveCount(0);
 });
 

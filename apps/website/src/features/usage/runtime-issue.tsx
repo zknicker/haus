@@ -97,7 +97,7 @@ export function RuntimeIssueHelpContent({
             {command ? <CodeSnippet lines={command} /> : null}
             <ReferencePreviewText>
                 {runtimeId === 'claude-code'
-                    ? 'Then refresh Runtimes to clear this warning and retry the request.'
+                    ? 'Then refresh this device to clear this warning and retry the request.'
                     : 'Then retry the request; a successful turn clears this warning.'}
             </ReferencePreviewText>
         </div>
