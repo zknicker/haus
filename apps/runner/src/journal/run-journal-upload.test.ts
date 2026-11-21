@@ -10,10 +10,10 @@ import {
     type RunnerUpFrame,
     replayExecutionJournalUpload,
 } from '@haus/api';
-import { listUnsyncedJournals } from '@haus/computer/src/execution-journal-upload/journal-upload-ledger.ts';
 import { connectedRunner } from '../model-connections/connection-test-host.ts';
 import { fauxProviderAs } from '../pi/pi-faux-run.ts';
 import { cleanups, drainCleanups, type ServerStandIn } from '../runner-test-server.ts';
+import { listUnsyncedJournals } from './execution-journal/journal-upload-ledger.ts';
 
 afterEach(drainCleanups);
 

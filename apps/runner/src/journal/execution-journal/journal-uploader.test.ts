@@ -9,10 +9,7 @@ import {
     type ExecutionJournalUploadRecord,
     replayExecutionJournalUpload,
 } from '@haus/api';
-import {
-    createComputerExecutionJournal,
-    executionJournalPath,
-} from '../harness/execution-journal.ts';
+import { createComputerExecutionJournal, executionJournalPath } from './execution-journal.ts';
 import { listUnsyncedJournals } from './journal-upload-ledger.ts';
 import { ExecutionJournalUploader } from './journal-uploader.ts';
 

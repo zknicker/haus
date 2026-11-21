@@ -5,7 +5,7 @@ read_when:
   - changing the runner's turn span, its trace context, or the Server relay that re-exports it
   - changing Server-to-Computer commands or Effect process runtimes
   - configuring an OTLP collector
-  - confirming a run's execution journal reached the Server, or checking a Computer's or the runner's journal resend pass
+  - confirming a run's execution journal reached the Server, or checking the runner's journal resend pass
 ---
 
 # Observability
@@ -211,17 +211,14 @@ where j.run_id = '<runId>';
 The row is present with `outlined = true` once the run has settled and fully synced. A run that is
 still running has records but no outline yet.
 
-On the Computer, a fully synced settled run has a `<runId>.uploaded` marker next to its journal in
-`<dataRoot>/servers/<serverId>/agents/<agentId>/runtime/execution-journal/` (`<dataRoot>` is
-`HAUS_COMPUTER_DATA_ROOT`, default `~/.haus/computer`). A journal without a
-marker is still pending. The Computer resends every unmarked journal younger than 30 days on
-each ordinary connect, newest first and one run at a time. The resend pass needs no command: it
-has caught up when every recent journal has its marker. The daemon logs a refused run, a failed
-resend pass, or a live run that overflowed while offline to stderr with
-a `[haus]` prefix. The runner keeps the same markers for its runs under
-`<HAUS_RUNNER_DATA_DIR>/agents/<agentId>/runtime/execution-journal/` (default `/data`), resends
-the same way on each connect to the Server, and logs the same failures to stderr. Bulk check per
-Agent:
+The Agent runner writes and uploads every run's journal (`apps/runner/src/journal/`). On the
+runner, a fully synced settled run has a `<runId>.uploaded` marker next to its journal in
+`<HAUS_RUNNER_DATA_DIR>/agents/<agentId>/runtime/execution-journal/` (default `/data`). A
+journal without a marker is still pending. The runner resends every unmarked journal younger
+than 30 days on each connect to the Server, newest first and one run at a time. The resend pass
+needs no command: it has caught up when every recent journal has its marker. The runner logs a
+refused run, a failed resend pass, or a live run that overflowed while offline to stderr with a
+`[haus]` prefix. Bulk check per Agent:
 
 ```sql
 select agent_id, count(*) as runs, min(run_started_at) as oldest, max(updated_at) as last_sync

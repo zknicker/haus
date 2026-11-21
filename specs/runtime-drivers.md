@@ -1016,9 +1016,9 @@ half-pulled folder and a sync never runs beside a tool; a cancelled invocation s
 that still does attaches update-required. The Computer report carries `agents: []`, and it no
 longer sends `haus-agent-report`, since nothing on the machine owns Agent state.
 The Computer keeps `agent-skill-import`, `agent-skill-file-request`, and
-`agent-workspace-request`, which read an Agent's directory on that machine. D3 retires them where Drive replaces them. The Computer keeps
-`apps/computer/src/harness/execution-journal*.ts`, `execution-journal-upload/`, and
-`execution-journal-outline.ts` because the runner imports them until they move into the runner.
+`agent-workspace-request`, which read an Agent's directory on that machine. D3 retires them where Drive replaces them. The
+execution journal, its outline, and its uploader live in the runner
+(`apps/runner/src/journal/execution-journal/`); the Computer no longer writes or uploads journals.
 
 **Computer protocol 46 (C1).** `invoke` gains the `desktop` operation
 ([Computer use](computer-use.md)), so a Computer that cannot run agent-desktop commands attaches

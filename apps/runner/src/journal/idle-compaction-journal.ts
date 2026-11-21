@@ -1,5 +1,5 @@
-import { createComputerExecutionJournal } from '@haus/computer/src/harness/execution-journal.ts';
 import { compactionToolName } from '../turn/turn-event.ts';
+import { createComputerExecutionJournal } from './execution-journal/execution-journal.ts';
 import type { JournalUploads } from './journal-uploads.ts';
 
 export async function journalIdleCompaction(input: {

@@ -2,7 +2,7 @@ import { afterEach, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, readdir, rm, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { journalDirectoryPath } from '../harness/execution-journal.ts';
+import { journalDirectoryPath } from './execution-journal.ts';
 import { pruneSyncedJournals } from './journal-upload-ledger.ts';
 
 let agentsDir: string;

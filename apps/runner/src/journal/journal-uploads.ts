@@ -5,8 +5,8 @@ import {
     EXECUTION_JOURNAL_RETENTION_DAYS,
     computerKnownSecrets,
 } from '@haus/api';
-import { pruneSyncedJournals } from '@haus/computer/src/execution-journal-upload/journal-upload-ledger.ts';
-import { ExecutionJournalUploader } from '@haus/computer/src/execution-journal-upload/journal-uploader.ts';
+import { pruneSyncedJournals } from './execution-journal/journal-upload-ledger.ts';
+import { ExecutionJournalUploader } from './execution-journal/journal-uploader.ts';
 
 const journalRetentionMs = EXECUTION_JOURNAL_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
