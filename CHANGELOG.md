@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v25.1.0 - 2026-11-20
+
+- A working Captain's thought phrases show again under its header, on Claude and on GPT and other models. They had been missing since Captains moved to the Agent runner in v23.0.0.
+- Thoughts mask credentials. A password or token is masked whether it's written in prose, quoted, or assigned like `PGPASSWORD='…'`. The runner masks it before the thought leaves, and the Server masks it again. Only web search output can become part of a thought.
+- Server-only release with no database migration. Haus Computer, Haus Agent, Haus for Desktop and Haus for iPhone are unchanged.
+
 ## v25.0.0 - 2026-11-20
 
 - A conversation with a Captain shows a context ring under the composer. It fills toward the point where the Captain's session compacts and turns to a warning at 90%. Clicking it shows how much of the context window is used, split into system prompt, tools, skills, rules and memory, and conversation. The ring appears in a DM, in a Channel with one Captain, and in a Task assigned to a Captain.

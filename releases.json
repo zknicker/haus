@@ -2317,5 +2317,16 @@
             "computer": "21.0.0",
             "agent": null
         }
+    },
+    {
+        "version": "25.1.0",
+        "date": "2026-11-20",
+        "targets": {
+            "server": "24.1.0",
+            "app": null,
+            "ios": null,
+            "computer": null,
+            "agent": null
+        }
     }
 ]
