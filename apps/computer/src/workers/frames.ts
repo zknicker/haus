@@ -1,8 +1,4 @@
-import type {
-    WorkerReconcileCommand,
-    WorkerStopCommand,
-    WorkerTurnStartFrame,
-} from '@haus/api';
+import type { WorkerReconcileCommand, WorkerStopCommand, WorkerTurnStartFrame } from '@haus/api';
 import {
     workerCloseCommandResponseSchema,
     workerReconcileCommandResponseSchema,
@@ -32,4 +28,3 @@ export function parseWorkerCloseCommand(frame: unknown) {
     const parsed = workerCloseCommandResponseSchema.safeParse(frame);
     return parsed.success ? parsed.data : null;
 }
-
