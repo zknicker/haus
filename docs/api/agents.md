@@ -502,13 +502,12 @@ revision; a later turn carries `WORKER.md` only when its revision differs from t
 last received. It sends `worker-turn-start` with `agentId`, `attempt` (bumped on every send),
 `workerMdRevisionId`, and for a Computer place the `runtime`, the `checkout` (the link's path or
 null, the `haus/<worker-id>/<key>-<n>` branch, the starting ref), and `resumeSessionId`;
-`worker-turn-accepted` records the acknowledgement. Dispatch runs after start, follow-up, settle, stop, accept, drain, and reconnect.
+`worker-turn-accepted` records the acknowledgement. Dispatch runs after start, follow-up, settle, stop, accept, and reconnect.
 On reconnect the Server resends every unaccepted start, then `worker-reconcile` frames (at most 200
 entries) for accepted unsettled turns and migrated turns whose input still sits on the Computer,
 with `stopRequested` and the turn's current `attempt` (null when no start was sent). A Computer
 that holds no journal record and no live process for an attempted Computer-place turn answers
-its entry with `worker-turn-ended` `uncertain`, detail `journal-missing`. A `worker-follow-up-drain` frame fills or creates its turn by id and is
-answered with `worker-follow-up-drain-ack`.
+its entry with `worker-turn-ended` `uncertain`, detail `journal-missing`.
 
 **Settlement.** A `worker-observation` applies idempotently (a stale, duplicate, or
 post-terminal one changes nothing; the schema stays non-`.strict()` for version skew). The first

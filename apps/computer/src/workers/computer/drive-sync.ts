@@ -3,6 +3,7 @@ import { pullDrive } from '../../drive/pull.ts';
 import { planDrivePush, sendDrivePush } from '../../drive/push.ts';
 import { serialized } from '../serialized.ts';
 import { mintPushCredential, type WorkerServer } from './credentials.ts';
+import { seedWorkerDrive } from './drive-seed.ts';
 import type { WorkerLayout } from './layout.ts';
 
 export interface WorkerDriveFolder {
@@ -14,6 +15,9 @@ export interface WorkerDriveFolder {
 export function pullWorkerDrive(folder: WorkerDriveFolder, token: string) {
     const layout = folder.layout.driveFolder(folder.agentId);
     return serialized(`drive:${layout.folder}`, async () => {
+        await seedWorkerDrive(folder.layout, folder.agentId).catch((error: unknown) =>
+            warn('worker.drive-seed-failed', folder, messageOf(error))
+        );
         const pulled = await pullDrive({
             layout,
             remote: driveRemote({ serverOrigin: folder.server.serverOrigin, token }),

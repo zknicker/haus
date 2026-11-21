@@ -19,6 +19,7 @@ import {
     workerUsageSchema,
 } from './worker-shared.ts';
 import { workerStallCodeSchema } from './worker-stall.ts';
+import { workerStepsSchema } from './worker-steps.ts';
 
 type HausAgentMessage = components['schemas']['AgentMessage'];
 
@@ -171,6 +172,8 @@ export const workerObservationSchema = z.object({
     turnId: idSchema,
     /** Set on every reading of a stuck live turn; absent means it is not stalled. */
     stallCode: workerStallCodeSchema.optional(),
+    /** The carrier's step summary of a cloud turn's tool calls so far; absent when it saw none. */
+    steps: workerStepsSchema.optional(),
     status: workerTurnStatusSchema,
     summary: z.string().trim().min(1).max(workerSummaryMaxLength).optional(),
     usage: workerUsageSchema.optional(),

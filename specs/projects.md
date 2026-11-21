@@ -126,7 +126,7 @@ starts with a digit is prefixed with `P` before step 2.
   Project. A link is a `project_repo_links` row: the repo, a Computer, and an optional local
   checkout path. A null path means the Computer clones the repo into its own data root on first
   use. A repo can be linked on several Computers and on none.
-- Workers of the Project's Tasks run in a worktree of a linked repo
+- Workers of the Project's Tasks run in their own clone of a linked repo
   ([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md) decisions 6 and 7).
   [Workers](workers.md#layout) owns the Worker side of this contract.
 - The person who attached a Computer, or an Owner or Admin, links a repo on that Computer, the

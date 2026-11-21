@@ -1,6 +1,7 @@
 import type { WorkerRuntime, WorkerTurnStartFrame } from '@haus/api';
 import type { RuntimeSession } from '../../runtime/driver.ts';
 import { activityLine, activityThrottle } from './activity.ts';
+import { addWorkerCheckout, checkoutGitRoots } from './checkout.ts';
 import { mintTurnCredential } from './credentials.ts';
 import { pullWorkerDrive } from './drive-sync.ts';
 import { prepareWorkerCli, workerResumeState } from './harness.ts';
@@ -14,7 +15,6 @@ import {
     sharedOf,
 } from './turn-finish.ts';
 import type { ComputerTurnRef } from './turn-journal.ts';
-import { addWorkerWorktree, worktreeGitRoots } from './worktree.ts';
 
 export interface ActiveTurn {
     readonly abort: AbortController;
@@ -111,7 +111,7 @@ async function prepare(
     const layout = context.journal.layout(frame.workerId);
     const repoPath = await resolveWorkerRepo(frame.checkout, { ...context.repos, signal });
     await context.journal.setRepo(frame.workerId, repoPath);
-    await addWorkerWorktree({
+    await addWorkerCheckout({
         branch: frame.checkout.branch,
         checkout: layout.checkout,
         repoPath,
@@ -132,7 +132,7 @@ async function prepare(
             layout.drive,
             layout.report,
             layout.tmp,
-            ...(await worktreeGitRoots(layout.checkout, frame.checkout.branch)),
+            ...(await checkoutGitRoots(layout.checkout, frame.checkout.branch)),
         ],
     };
 }

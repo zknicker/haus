@@ -392,7 +392,7 @@ Everything a Worker owns on the machine sits under its Server attachment's parti
 Computer data root, `servers/<serverId>/workers/<worker-id>/`:
 
 ```text
-servers/<serverId>/workers/<worker-id>/checkout/            git worktree of the Project repo
+servers/<serverId>/workers/<worker-id>/checkout/            the Worker's own clone of the Project repo
 servers/<serverId>/workers/<worker-id>/drive/               the Worker's drive/ folder
 servers/<serverId>/workers/<worker-id>/drive-refused/       files a push refused
 servers/<serverId>/workers/<worker-id>/runtime/drive.json   the folder's bookkeeping
@@ -402,14 +402,21 @@ servers/<serverId>/workers/<worker-id>/runtime/bin/         the Worker's haus wr
 servers/<serverId>/workers/<worker-id>/runtime/tmp/         the harness's TMPDIR
 ```
 
-The checkout is a `git worktree` of the repo's linked clone on that Computer (the link's
-`checkoutPath`, used after its `origin` matches `owner/name`), or of a clone in
-`repos/<owner>/<name>` under the data root, made once through a temp sibling and a rename. The
-branch is new, `haus/<worker-id>/<key>-<n>` with the key in lower case, from `--ref`, or from the remote
-default branch after a fetch. Later turns reuse the checkout. Worktree add and remove for one repo
-run one at a time. The drive folder sits outside the checkout ([Drive folder](drive-folder.md)),
-so the repo never sees it. A new drive folder pulls in full
-([Migration](#w3-transitional-decisions)).
+The checkout is the Worker's own clone of the repo's base clone on that Computer: the link's
+`checkoutPath`, used after its `origin` matches `owner/name`, or a clone in `repos/<owner>/<name>`
+under the data root, made once through a temp sibling and a rename. The Worker's clone is a local
+clone, so its objects are hardlinks and cost no storage, made in a temp sibling and renamed into
+place. It drops the base clone's branches and its own `origin`, and includes the base clone's config, so
+origin, credential helpers, hooks, and a partial clone's promisor carry over. Every ref, reflog,
+`packed-refs`, config, and `gc` write the Worker makes lands in its own `.git`, so it can fetch,
+push with `-u`, rebase, delete its own branches, and pack refs without reaching any ref it does
+not own. The branch is new, `haus/<worker-id>/<key>-<n>` with the key in lower case, from the
+base clone's branch of that name when one survives an earlier checkout, else from `--ref`, else
+from the remote default branch, after the base clone fetches. Later turns reuse the checkout.
+Checkout add and remove for one repo run one at a time. A checkout an earlier Computer made as a
+`git worktree` keeps working as one until its Worker closes. The drive folder sits outside the checkout ([Drive folder](drive-folder.md)),
+so the repo never sees it. A new drive folder seeds from a byte-checked copy of the freshest
+Worker folder on the machine before its first pull ([Drive folder](drive-folder.md#workers)).
 
 ### Run a turn
 
@@ -436,16 +443,17 @@ link with a null `checkoutPath` means "clone into the data root".
    ends the turn `refused`, and nothing launches. A re-mint for the same attempt revokes the
    earlier token. The Server keeps only the token's hash, and the Computer journals the newest
    token before it launches.
-4. It adds or reuses the worktree, then pulls the drive folder with the turn credential.
+4. It adds or reuses the checkout, then pulls the drive folder with the turn credential.
 5. It runs the harness in the checkout under the machine user's own environment, so Claude Code,
    Codex, git, and `gh` use the logins already on that machine. The first turn starts a new
    session. Later turns resume it. Claude Code runs with `bypassPermissions`, the machine user's
    HOME, every settings layer, and no Haus MCP or system prompt. Codex runs with its
    `workspace-write` sandbox and network access, the user's `CODEX_HOME`, native `AGENTS.md`
-   loading, and the checkout, the drive folder, the report folder, `runtime/tmp`, the worktree's
-   own git dir, the shared object store, and only its own branch's ref and reflog folders
-   (`refs/heads/haus/<worker-id>`) as writable roots, so it cannot move `main` or another
-   Worker's branch. `/tmp` and the inherited `$TMPDIR` are excluded. Both
+   loading, and the checkout, its `.git` (which Codex otherwise keeps read-only), the drive
+   folder, the report folder, and `runtime/tmp` as writable roots, so it cannot move the base
+   clone's `main` or another Worker's branch. An earlier `git worktree` checkout names its worktree git
+   dir, the shared object store, and only its own branch's ref and reflog folders
+   (`refs/heads/haus/<worker-id>`) instead. `/tmp` and the inherited `$TMPDIR` are excluded. Both
    harnesses get `TMPDIR`, `TMP`, and `TEMP` pointed at the Worker's `runtime/tmp`. Both run
    unattended and use none of the Agent host tools, warm pool, or background work.
 6. The harness gets `haus` on `PATH` and the turn credential in `HAUS_WORKER_TOKEN`. That `haus`
@@ -516,8 +524,13 @@ When a Task becomes done or canceled, the Server closes each of its Workers in t
    ([inbox](inbox.md#worker-items)). A written report posts as usual. A `stopped` outcome posts
    nothing.
 5. It sets `closedAt` and sends the Computer place `worker-close { workerId }`. Only then does the
-   Computer force-remove the worktree, run `git worktree prune`, and delete the drive folder. The
-   branch stays, so committed work survives. The native session files stay where the harness
+   Computer fetch the Worker's `haus/<worker-id>/` branches into the base clone, plus every other
+   local branch (and a detached HEAD) holding commits no remote-tracking ref has, as
+   `haus/<worker-id>/kept/<name>` (`kept/detached-head` for HEAD). Then it deletes the checkout (an
+   earlier `git worktree` checkout is force-removed and pruned instead) and the drive folder. The
+   branches stay, so committed work survives. A close that cannot keep them, because the fetch
+   fails or the base clone was moved or deleted, leaves the whole Worker folder, and the next
+   connect's `worker-close` tries again. The native session files stay where the harness
    keeps them. `worker-close` is idempotent.
 
 A place that is offline gets steps 3 and 5 when it reconnects. The Server settles the turn on its
@@ -628,7 +641,13 @@ names, then pending reminders. W4 builds it, following how a Capy parent shows i
   only on run, as the tail of its terminal output up to 4,000 characters. It never carries file
   contents, and the Computer redacts known secret patterns (tokens, keys, credentials, the turn
   credential) from `output` and `label` before sending. Each field drives one stock `ChatTool` prop. It is optional: without it the Worker's
-  message shows its report and activity. W3b adds the carrier and Server side.
+  message shows its report and activity. W3b adds the carrier and Server side for Computer
+  places, through `worker-turn-steps`. Cloud places report the same summary on the carrier's
+  `worker-observation` as `steps`, and the Server keeps the newest one on the turn. The Cursor
+  carrier builds it from the SDK stream's `tool_call` messages (`shell`, `read`, `edit`, `grep`,
+  `glob`, `ls`, `delete`, with their args and result), and the Claude carrier from the session
+  log's `tool_use` and `tool_result` blocks in the Run's window. A Cursor Run the carrier only
+  reads, never streams, shows no steps.
 
 The Task summary exposes the count and place labels of its live Workers, and the people named by
 needs-you reports that no later turn answered, for the sidebar row ("Forge · 6 workers · mini,
@@ -680,7 +699,9 @@ W2 migrates every caller and deletes the cloud agent path in one change.
   writes each into its turn, recovering the provider ids, and acknowledges each item. The
   Computer removes an entry only after its acknowledgement. The Server dispatches a migrated turn
   only once it holds that turn's input. An offline carrier drains when it reconnects. The drain
-  path stays through W3 and goes once every attached Computer reports an empty file.
+  path stayed through W3 and was deleted on 2026-11-21, once production held no turn still
+  waiting on a drained input. A Computer that still finds a pending entry in its launch journal
+  deletes it and treats the turn as unjournaled.
 - `cloud_agent_work` inbox rows become `worker_report`, `worker_stall`, or `pull_request` items by
   their notice.
 - Each Project's default place becomes the default provider of the Computer that launched the
@@ -714,9 +735,9 @@ until W4 and the Project settings UI replace them. Each says what retires it.
   link on that Computer (`WORKER_REPO_NOT_LINKED`), so the auto-add only starts cloud Workers. It
   retires when people manage repos in Project settings. A named repo the Project lacks then
   refuses with `WORKER_REPO_UNKNOWN`.
-- **New Worker drive folders pull in full.** Seeding a new folder from a copy of the freshest
-  folder on the machine is deferred, because copying a live folder can carry another writer's
-  unpushed edits. It retires when a seed copies only files whose bytes match their records.
+- **New Worker drive folders pulled in full** until a seed copied only files whose bytes match
+  their records. That seed now runs ([Drive folder](drive-folder.md#workers)), so this decision
+  is retired.
 - **Two credentials.** The turn credential is model-visible, so it carries only the report and the
   Drive reads. The Drive push runs in the daemon under a separate host-only push credential minted
   with the Computer credential. This replaces the single "credential for that turn" this spec
@@ -750,7 +771,7 @@ W2 to W4 add these.
 | A pull request change wakes the Agent of each settled Worker that reported it, once per head commit | `apps/server/test/pull-request-wake.test.ts` |
 | A `WORKER.md` change while a turn is queued rides that turn, and advances only on acknowledgement | `apps/server/test/worker-turn-input.test.ts` |
 | Closing a Task stops and settles its Workers, delivers each outcome, then removes checkouts | `apps/server/test/worker-close.test.ts` |
-| A pending local follow-up becomes a Server turn and leaves the Computer only after acknowledgement | `apps/computer/src/workers/follow-up-drain.test.ts` |
+| A pending local follow-up left from the W2 migration is dropped, and the Server's start still runs | `apps/computer/src/workers/pre-worker-journal.test.ts` |
 | A crash after acceptance never reruns the turn | `apps/computer/src/workers/turn-journal.test.ts` |
 | A Computer that restarts ends each turn it left mid-launch without running it, and finishes a push it left | `apps/computer/src/workers/computer/computer-place-recovery.test.ts` |
 | The launch fence mints only for the current attempt, and the turn token reaches only report and the Drive reads | `apps/server/test/worker-credential.test.ts` |

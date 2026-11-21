@@ -124,11 +124,6 @@ export class WorkerSupervisor {
         });
     }
 
-    /** The Server holds a drained follow-up now, so its local copy goes. */
-    forgetDrainedFollowUp(turnId: string): Promise<void> {
-        return this.journal.forgetHeldFollowUp(this.serverId, turnId);
-    }
-
     report(ref: WorkerTurnRef, observation: CloudAgentProviderObservation): void {
         this.connection?.send({
             observation: { ...observation, turnId: ref.turnId, workerId: ref.workerId },

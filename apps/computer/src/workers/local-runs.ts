@@ -5,13 +5,11 @@ import { abortWorkerLaunch } from './launch-attempt.ts';
 import type { CloudAgentProviderObservation, WorkerLaunch, WorkerTurnRef } from './provider.ts';
 import type { WorkerSendQueue } from './send-queue.ts';
 import type { WorkerTurnJournal } from './turn-journal.ts';
-import type { WorkerHeldFollowUp, WorkerSendingTurn } from './turn-record.ts';
+import type { WorkerSendingTurn } from './turn-record.ts';
 
 /** A monitored turn the provider has not addressed yet. */
 export interface LocalRun {
     readonly cancelRequested: boolean;
-    /** This connection drained the turn's held follow-up, so the Server now holds it. */
-    readonly drained?: boolean;
     readonly ref: WorkerTurnRef;
 }
 
@@ -24,11 +22,7 @@ export type LocalRunState =
           autoInterrupted: boolean;
       }
     /** Not at the provider; report the observation when one is given. */
-    | { kind: 'unsent'; observation: CloudAgentProviderObservation | null }
-    /** A follow-up from before Workers, waiting for the Server to take it. */
-    | { kind: 'held'; followUp: WorkerHeldFollowUp }
-    /** Its held follow-up was drained: the Server holds it and will start it again. */
-    | { kind: 'absent' };
+    | { kind: 'unsent'; observation: CloudAgentProviderObservation | null };
 
 /**
  * Resolves a turn without a provider address from this Computer's journal:
@@ -57,12 +51,6 @@ export class WorkerLocalRuns {
                             : queued(observedAt, sendingActivity(recorded))
                     );
                 }
-                case 'pending':
-                    if (run.cancelRequested) {
-                        yield* foreign(() => self.journal.cancel(self.serverId, run.ref));
-                        return yield* self.resolve(run);
-                    }
-                    return { followUp: recorded, kind: 'held' } as const;
                 case 'launched':
                     return {
                         autoInterrupted: recorded.autoInterrupted,
@@ -113,9 +101,6 @@ export class WorkerLocalRuns {
      * Server sends later loses it. Only a drained follow-up stays the Server's.
      */
     private settleUnaccepted(run: LocalRun): Effect.Effect<LocalRunState, WorkerOperationError> {
-        if (run.drained && !run.cancelRequested) {
-            return Effect.succeed({ kind: 'absent' });
-        }
         const self = this;
         return Effect.gen(function* () {
             yield* foreign(() =>

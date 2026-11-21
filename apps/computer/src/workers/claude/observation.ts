@@ -13,6 +13,7 @@ import {
     lastOf,
     logEntriesOf,
 } from './session-events.ts';
+import { claudeSteps } from './steps.ts';
 
 type Entry<Kind extends ClaudeLogEntry['kind']> = Extract<ClaudeLogEntry, { kind: Kind }>;
 
@@ -87,6 +88,7 @@ export function claudeRunObservation(input: {
     const startedAt = input.events.find((event) => isRunPrompt(event, tag))?.createdAt;
     const base: Base = {
         ...evidence(after),
+        ...claudeSteps(after),
         observedAt,
         providerRunId: prompt?.id ?? (anchoredRunId as string),
         rawStatus: session.workerStatus,

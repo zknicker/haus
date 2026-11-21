@@ -1,14 +1,12 @@
 import {
     type CloudAgentProvider as CloudAgentProviderId,
     isTerminalWorkerTurnStatus,
-    type WorkerFollowUpDrainFrame,
     type WorkerObservationFrame,
     type WorkerTurnAcceptedFrame,
 } from '@haus/api';
 import { Deferred, type Duration, Effect, type Scope } from 'effect';
 import type { DaemonRuntime } from '../daemon-runtime.ts';
 import type { ComputerPlaceFrame } from './computer/turn-finish.ts';
-import { followUpDrainFrame } from './follow-up-drain.ts';
 import { foreign } from './foreign-operation.ts';
 import { autoInterruptNote, type WorkerLocalRuns } from './local-runs.ts';
 import { type EnrichObservation, ObservationReports } from './observation-reports.ts';
@@ -21,14 +19,12 @@ import {
 
 export type WorkerComputerFrame =
     | ComputerPlaceFrame
-    | WorkerFollowUpDrainFrame
     | WorkerObservationFrame
     | WorkerTurnAcceptedFrame;
 
 export interface WatchedRun {
     addressed?: boolean;
     cancelRequested: boolean;
-    drained?: boolean;
     readonly ready: Deferred.Deferred<void>;
     ref: WorkerTurnRef;
     released?: boolean;
@@ -126,23 +122,11 @@ export class WorkerTurnMonitor {
                 return true;
             }
             const state = yield* self.localRuns.resolve(run);
-            switch (state.kind) {
-                case 'absent':
-                    run.released = true;
-                    return false;
-                case 'held':
-                    if (!run.drained && self.isLive(connection)) {
-                        run.drained = true;
-                        connection.send(followUpDrainFrame(run.ref, state.followUp));
-                    }
-                    return false;
-                case 'unsent':
-                    if (state.observation) {
-                        self.observe(connection, run, state.observation);
-                    }
-                    return false;
-                case 'launched':
-                    break;
+            if (state.kind === 'unsent') {
+                if (state.observation) {
+                    self.observe(connection, run, state.observation);
+                }
+                return false;
             }
             run.addressed = true;
             run.ref = {

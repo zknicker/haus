@@ -221,6 +221,7 @@ function turnObservationUpdate(
         stallSince: settledByHaus ? null : (step.stall?.since ?? null),
         providerResult: observation.report ?? null,
         summary: observation.summary ?? null,
+        ...(observation.steps ? { steps: observation.steps } : {}),
         ...(observation.usage ? { usage: observation.usage } : {}),
     };
 }

@@ -183,6 +183,10 @@ Follow-up:
 - Done: `specs/workers.md` is the Workers contract, replacing its older sense, and
   `specs/cloud-agents.md` carries the cloud places. The Worker credential, the per-Computer switch,
   and worktree runs on a Computer are in `specs/workers.md`.
+- Amended 2026-11-21: on a Computer the "worktree" in decision 7 is the Worker's own hardlinked
+  clone of the linked repo, not a `git worktree`, because a `git worktree` shares `packed-refs`,
+  remote-tracking refs, config, and `gc` state, which Codex's sandbox must not write. The branch
+  still lands in the linked repo when the Worker closes (`specs/workers.md` "Layout").
 - The prompt's delegation and report text goes through the guarded prompt contract.
 - OS isolation for Workers on a Computer: run them as a separate macOS user, in a VM, or in a
   container with their own logins, so a Worker can reach neither the Computer's Haus credential
