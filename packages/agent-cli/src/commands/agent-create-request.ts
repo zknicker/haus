@@ -18,8 +18,7 @@ export type AgentCreateRequest = Omit<AgentCreateAgentInput, 'nonce'>;
  * request rather than minted: re-issuing the identical command replays the
  * original creation instead of minting a second teammate, and changing any
  * field asks for a different one. The Server scopes nonces to the creating
- * Agent on its Server. Channel order and
- * repeats say nothing about which Agent this is, so they are normalized away.
+ * Agent on its Server.
  */
 export function deriveAgentCreateNonce(callerAgentId: string, request: AgentCreateRequest): string {
     const canonical = JSON.stringify([
@@ -29,7 +28,7 @@ export function deriveAgentCreateNonce(callerAgentId: string, request: AgentCrea
         request.description,
         request.avatarConcept,
         request.brief,
-        [...new Set(request.channels)].sort(),
+        request.project,
         // Appended only when set, so emoji-less requests keep their pre-emoji nonce.
         ...(request.signatureEmoji === null ? [] : [request.signatureEmoji]),
     ]);

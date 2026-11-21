@@ -85,8 +85,6 @@ function seedPageMessage(
          insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
          values ('${input.agentId}', '${input.serverId}', 'page-author', 'Page Author', 'America/New_York',
            '${input.homeProjectId}');
-         insert into channel_agent_participants (server_id, chat_id, agent_id)
-         values ('${input.serverId}', '${input.chatId}', '${input.agentId}');
          insert into chat_messages (id, server_id, chat_id, sequence, author_agent_id, content, nonce)
          select 'msg_e2e_page_cards', '${input.serverId}', '${input.chatId}',
            last_message_sequence + 1, '${input.agentId}', E'${content}', 'e2e-page-cards'

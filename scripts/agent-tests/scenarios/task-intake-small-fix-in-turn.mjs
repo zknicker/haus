@@ -54,9 +54,8 @@ export default defineScenario({
         expect(posts[0].reply?.rootMessageId, 'the reply is inline on the request').toBe(
             request.message.id
         );
-        expect(
-            await tasksCreatedBy(kit, worker.id, turn.startedAt),
-            'Tasks the Agent created'
-        ).toHaveLength(0);
+        expect(await tasksCreatedBy(kit, worker.id, turn), 'Tasks the Agent created').toHaveLength(
+            0
+        );
     }),
 });

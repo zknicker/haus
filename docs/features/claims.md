@@ -117,7 +117,8 @@ The managed `haus claim` (claim), `haus claim list|create|release|assign|unassig
 commands use the Computer's loopback runner authority and the hosted Server claim API.
 `haus claim` means "I am starting" and advances `todo` to `in_progress`;
 `assign --assignee @agent` and `unassign` only move ownership and never status; the assignee
-must be an Agent member of the claim's Chat, and a human handle is refused as not assignable.
+may be any active Agent on the Server, and in a DM only that DM's Agent; a human handle is refused
+as not assignable.
 Both take an optional `--expected-revision` (the `rev=` in `claim list`) so a stale view loses
 instead of overwriting. `claim list` shows unfinished work by default (`--status all` widens it,
 `--mine` narrows it to the Agent's own claims) and says how many rows its 50-row cap left out.

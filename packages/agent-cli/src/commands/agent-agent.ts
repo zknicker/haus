@@ -4,13 +4,14 @@ import {
     agentUpdateAgentReceiptSchema,
     signatureEmojiInputSchema,
     signatureEmojiRule,
+    TASK_KEY_PREFIX_PATTERN,
 } from '@haus/api';
 import { AgentApiClient, type AgentApiRequester } from '../agent-api-client.ts';
 import { resolveAgentContext } from '../agent-context.ts';
 import { AgentCliError } from '../agent-error.ts';
 import type { ParsedArgs } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
-import { assertAgentTarget, requiredValue, valuesFor } from './agent-command-utils.ts';
+import { assertAgentTarget, requiredValue } from './agent-command-utils.ts';
 import { requestAgentCreate } from './agent-create-request.ts';
 
 /** Avatar generation alone takes up to 75 s; an avatar call has to outwait it. */
@@ -18,13 +19,11 @@ const avatarTimeoutMs = 75_000;
 const maxNameLength = 80;
 const maxConceptLength = 280;
 const maxBriefLength = 4000;
-const maxChannels = 20;
 const handlePattern = /^@?[a-z0-9][a-z0-9-]{1,30}$/u;
-const channelPattern = /^#[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/u;
 
 const CREATE_RECIPE = `haus agent create --target "#all" --name "Orbit" \\
   --description "Keeps release notes current and chases missing changelog entries." \\
-  --channel "#product" \\
+  --project PRD \\
   --brief "You own release notes. Draft them from merged PRs, post a digest in #product every Friday, and ask the owner before changing the format." \\
   --avatar-concept "a moonlit raccoon cartographer" --emoji 🦝`;
 
@@ -55,9 +54,9 @@ const CREATE_COMMAND: SubCommand = {
             valueName: '<text>',
         },
         {
-            description: 'Channel to put it in, repeatable; #all is always joined',
-            name: '--channel',
-            valueName: '<#name>',
+            description: 'Key of its Project, which it hears; omitted, it joins your own Project',
+            name: '--project',
+            valueName: '<KEY>',
         },
         {
             description: 'Short avatar concept (1–280 characters)',
@@ -79,7 +78,7 @@ const CREATE_COMMAND: SubCommand = {
     positionals: [],
     run: (args) => runAgentCreate(args, defaultDeps()),
     summary: 'Create one Agent that inherits your runtime, model, reasoning effort, and Computer',
-    usage: 'haus agent create --target <target> --name <name> --description <text> --brief <text> [--channel <#name>] [--avatar-concept <text>] [--emoji <emoji>]',
+    usage: 'haus agent create --target <target> --name <name> --description <text> --brief <text> [--project <KEY>] [--avatar-concept <text>] [--emoji <emoji>]',
 };
 
 const UPDATE_COMMAND: SubCommand = {
@@ -134,15 +133,15 @@ export async function runAgentCreate(args: ParsedArgs, deps: AgentAgentDeps): Pr
         ? bounded(rawConcept, '--avatar-concept', maxConceptLength)
         : null;
     const brief = bounded(requiredValue(args, '--brief'), '--brief', maxBriefLength);
-    const channels = readChannels(args);
+    const project = readProject(args);
     const signatureEmoji = readSignatureEmoji(args);
 
     const receipt = await requestAgentCreate(deps.client, deps.callerAgentId, {
         avatarConcept,
         brief,
-        channels,
         description,
         displayName,
+        project,
         signatureEmoji,
         target,
     });
@@ -151,7 +150,7 @@ export async function runAgentCreate(args: ParsedArgs, deps: AgentAgentDeps): Pr
     const lines = [
         `Created @${agent.handle} (${agent.displayName}). Agent ID: ${agent.agentId}`,
         `Runtime ${receipt.runtimeId} · model ${receipt.modelId} · reasoning ${receipt.reasoningEffort} · Computer ${receipt.computerId} — inherited from you.`,
-        `In ${receipt.channels.join(', ')}.`,
+        `Project: ${receipt.project}. It hears that Project's channel and Tasks.`,
         'Its brief is in its memory; it reads it on every startup.',
         `@${agent.handle} introduces itself in #all on its first turn; do not post an introduction for it. Answer the human in ${receipt.target}.`,
     ];
@@ -194,23 +193,20 @@ export async function runAgentAvatar(args: ParsedArgs, deps: AgentAgentDeps): Pr
     return 0;
 }
 
-function readChannels(args: ParsedArgs): string[] {
-    const channels = [...new Set(valuesFor(args, '--channel').map((value) => value.trim()))];
-    for (const channel of channels) {
-        if (!channelPattern.test(channel)) {
-            throw new AgentCliError('INVALID_TARGET', `Invalid channel "${channel}".`, {
-                nextAction: 'Name each channel as --channel "#name".',
-            });
-        }
+/** Uppercased here so `prd` and `PRD` derive the same nonce. */
+function readProject(args: ParsedArgs) {
+    const raw = args.values['--project'];
+    if (raw === undefined) {
+        return null;
     }
-    if (channels.length > maxChannels) {
-        throw new AgentCliError(
-            'INVALID_ARG',
-            `--channel may name at most ${maxChannels} channels.`,
-            { nextAction: 'Create the Agent in its core channels and add the rest later.' }
-        );
+    const project = raw.trim().toUpperCase();
+    if (!TASK_KEY_PREFIX_PATTERN.test(project)) {
+        throw new AgentCliError('INVALID_ARG', `Invalid Project key "${raw}".`, {
+            nextAction:
+                'Name the Project by its key, as --project PRD. haus server info --channels lists each key.',
+        });
     }
-    return channels;
+    return project;
 }
 
 /** Normalized here so the derived nonce matches what the Server stores. */

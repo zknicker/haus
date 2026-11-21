@@ -10,10 +10,10 @@ type WorkerFixture = ReturnType<typeof workerRecordFixture>;
 export function workerLinkHelpers(fixture: WorkerFixture) {
     return { agentPost, createChannel, humanSend, linkRows, observe, sendAsAgent };
 
-    /** A Channel with Orbit, the owner, and the named extra members. */
+    /** A Project channel with the owner and the named extra members, no Agent's home. */
     async function createChannel(name: string, memberUserIds: string[] = []) {
-        const { id } = await createTestProject(fixture.harness, fixture.owner, {
-            agentIds: [fixture.orbitAgentId],
+        const { id } = await createTestProject(fixture.owner, {
+            agentIds: [],
             name,
             serverId: fixture.serverId,
         });

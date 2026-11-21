@@ -33,7 +33,7 @@ export default defineScenario({
             const requester = humanAuthorId(request.message);
             const launch = await settleTurn(worker.id);
             expectSettled(expect, launch, 'launch turn');
-            const tasks = await tasksCreatedBy(kit, worker.id, launch.startedAt);
+            const tasks = await tasksCreatedBy(kit, worker.id, launch);
             expect(tasks, 'Tasks the Agent created').toHaveLength(1);
             [task] = tasks;
             const origin = await originMessage(kit, task, { agentId: null, chatId: channel.id });

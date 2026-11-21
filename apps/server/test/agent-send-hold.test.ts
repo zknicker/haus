@@ -4,12 +4,17 @@ import { assertFreshAgentView } from '../src/agent-api/chat-freshness.ts';
 import { readAgentHistory } from '../src/agent-api/message-history.ts';
 import { type AgentSendModeInput, prepareAgentSend } from '../src/agent-api/send-hold.ts';
 import { readAgentInboxCursor } from '../src/agent-delivery/cursors.ts';
-import { joinChannelAgents } from '../src/chats/channel-agent-membership.ts';
 import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentInboxExactVisibilityTable, agentInboxTable } from '../src/postgres/schema.ts';
 import { seedAgent } from './agent-inbox-harness.ts';
-import { addTask, postMessage, readerRunner, seedReader } from './agent-read-fixture.ts';
+import {
+    addTask,
+    postMessage,
+    readerRunner,
+    seedReader,
+    homeAgentIn,
+} from './agent-read-fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 let cluster: TestDatabase;
@@ -31,8 +36,8 @@ test('history from before an Agent joined never holds its first send', async () 
     for (let index = 0; index < 72; index += 1) {
         await postMessage(db, seed, { chatId: seed.channelId, content: `Old ${index}` });
     }
-    await joinChannelAgents(db, {
-        agentIds: [seed.agentId],
+    await homeAgentIn(db, {
+        agentId: seed.agentId,
         chatId: seed.channelId,
         serverId: seed.serverId,
     });

@@ -1,16 +1,16 @@
 import type { AddressedReason } from '@haus/api';
-import { and, eq, inArray, isNull } from 'drizzle-orm';
-import { mentionedAgentIds } from '../chats/reply-subscriptions.ts';
+import { and, eq, isNull } from 'drizzle-orm';
+import { ensureInlineReplyParticipants, mentionedAgentIds } from '../chats/reply-subscriptions.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { agentsTable, agentTaskFollowsTable, chatsTable } from '../postgres/schema.ts';
 import {
-    agentChannelMutesTable,
-    agentsTable,
-    agentTaskFollowsTable,
-    channelAgentParticipantsTable,
-    chatsTable,
-} from '../postgres/schema.ts';
-import { isFollowedChatKind } from './followed-chat.ts';
-import { planInlineReplyMessage } from './inline-reply-recipients.ts';
+    type HearingPlace,
+    hearersOf,
+    hears,
+    listHearingCandidates,
+    readHearingPlace,
+} from './hearing.ts';
+import { readInlineReplyChain } from './inline-reply-recipients.ts';
 import { followMentionedIntoTask } from './task-recipients.ts';
 
 export interface AgentMessageRecipientPlan {
@@ -25,15 +25,17 @@ export interface AgentMessageRecipientPlan {
     taskFollowReactivated: boolean;
 }
 
+interface PlanInput {
+    authorAgentId: string | null;
+    chatId: string;
+    content: string;
+    messageId?: string;
+    serverId: string;
+}
+
 export async function planAgentMessageRecipients(
     db: HausDatabase,
-    input: {
-        authorAgentId: string | null;
-        chatId: string;
-        content: string;
-        messageId?: string;
-        serverId: string;
-    }
+    input: PlanInput
 ): Promise<AgentMessageRecipientPlan[]> {
     const [chat] = await db
         .select({
@@ -47,109 +49,95 @@ export async function planAgentMessageRecipients(
     if (!chat) {
         return [];
     }
-    const messageId = input.messageId;
-    const inlineReplyRecipients = messageId
-        ? await planInlineReplyMessage(db, { ...input, messageId })
-        : null;
-    if (inlineReplyRecipients) {
-        return inlineReplyRecipients;
-    }
     if (chat.kind === 'dm') {
+        if (input.messageId) {
+            await ensureInlineReplyParticipants(db, { ...input, messageId: input.messageId });
+        }
         return chat.dmAgentId && chat.dmAgentId !== input.authorAgentId
             ? await activeDmRecipient(db, input.serverId, chat.dmAgentId)
             : [];
     }
-
-    const followerGated = isFollowedChatKind(chat.kind);
-    const parentChatId = followerGated ? chat.parentChatId : input.chatId;
-    if (!parentChatId) {
-        return [];
-    }
-    const joined = await db
-        .select({ agentId: channelAgentParticipantsTable.agentId })
-        .from(channelAgentParticipantsTable)
-        .innerJoin(
-            agentsTable,
-            and(
-                eq(agentsTable.serverId, channelAgentParticipantsTable.serverId),
-                eq(agentsTable.id, channelAgentParticipantsTable.agentId)
-            )
-        )
-        .where(
-            and(
-                eq(channelAgentParticipantsTable.serverId, input.serverId),
-                eq(channelAgentParticipantsTable.chatId, parentChatId),
-                isNull(agentsTable.retiredAt)
-            )
-        );
-    const agentIds = joined
-        .map((row) => row.agentId)
-        .filter((agentId) => agentId !== input.authorAgentId);
-    if (agentIds.length === 0) {
+    const projectId = chat.kind === 'task' ? chat.parentChatId : input.chatId;
+    if (!projectId) {
         return [];
     }
     // Sequential, not Promise.all: `db` is often the caller's transaction, and
     // overlapping reads on that one connection deadlocked the send against the
     // Server row lock the same transaction already held.
-    const agents = await db
-        .select({ handle: agentsTable.handle, id: agentsTable.id })
-        .from(agentsTable)
-        .where(and(eq(agentsTable.serverId, input.serverId), inArray(agentsTable.id, agentIds)));
-    const mutes = await db
-        .select({ agentId: agentChannelMutesTable.agentId })
-        .from(agentChannelMutesTable)
-        .where(
-            and(
-                eq(agentChannelMutesTable.serverId, input.serverId),
-                eq(agentChannelMutesTable.chatId, parentChatId),
-                inArray(agentChannelMutesTable.agentId, agentIds)
-            )
-        );
-    const follows = followerGated
-        ? await db
-              .select({
-                  agentId: agentTaskFollowsTable.agentId,
-                  followed: agentTaskFollowsTable.followed,
-              })
-              .from(agentTaskFollowsTable)
-              .where(
-                  and(
-                      eq(agentTaskFollowsTable.serverId, input.serverId),
-                      eq(agentTaskFollowsTable.taskChatId, input.chatId),
-                      inArray(agentTaskFollowsTable.agentId, agentIds)
-                  )
-              )
-        : [];
-    const muted = new Set(mutes.map((row) => row.agentId));
-    const followByAgent = new Map(follows.map((row) => [row.agentId, row.followed]));
-    const mentioned = mentionedAgentIds(input.content, agents);
-    const reactivated = followerGated
-        ? await followMentionedIntoTask(db, {
-              agentIds,
-              causeMessageId: input.messageId ?? null,
-              followByAgent,
-              mentioned,
-              serverId: input.serverId,
-              taskChatId: input.chatId,
-          })
-        : new Set<string>();
-
-    return agentIds.flatMap((agentId) => {
-        const isMentioned = mentioned.has(agentId);
-        const isMuted = !followerGated && muted.has(agentId);
-        const followed = !followerGated || followByAgent.get(agentId) === true;
-        if (!isMentioned && (isMuted || !followed)) {
+    const everyone = await listHearingCandidates(db, input.serverId);
+    const place = await readHearingPlace(db, { projectId, serverId: input.serverId });
+    const hearerIds = new Set(hearersOf(everyone, place).map((agent) => agent.id));
+    const candidates = everyone.filter((agent) => agent.id !== input.authorAgentId);
+    const mentioned = mentionedAgentIds(input.content, candidates);
+    const heard =
+        chat.kind === 'task'
+            ? await readTaskFollows(db, input, candidates, mentioned)
+            : await readChannelPlace(db, input);
+    return candidates.flatMap((agent) => {
+        const hearer = {
+            ambient: hearerIds.has(agent.id),
+            follows: heard.follows.get(agent.id) === true,
+            mentioned: mentioned.has(agent.id),
+        };
+        if (!hears(heard.place, hearer)) {
             return [];
         }
         return [
             {
-                addressedReason: isMentioned ? 'mention' : null,
-                agentId,
-                mentioned: isMentioned,
-                taskFollowReactivated: reactivated.has(agentId),
+                addressedReason: hearer.mentioned ? ('mention' as const) : null,
+                agentId: agent.id,
+                mentioned: hearer.mentioned,
+                taskFollowReactivated: heard.reactivated.has(agent.id),
             },
         ];
     });
+}
+
+interface HeardPlace {
+    follows: Map<string, boolean>;
+    place: HearingPlace;
+    reactivated: Set<string>;
+}
+
+async function readChannelPlace(db: HausDatabase, input: PlanInput): Promise<HeardPlace> {
+    const chain = input.messageId
+        ? await readInlineReplyChain(db, { ...input, messageId: input.messageId })
+        : null;
+    return {
+        follows: chain ?? new Map(),
+        place: chain ? 'reply' : 'channel',
+        reactivated: new Set(),
+    };
+}
+
+async function readTaskFollows(
+    db: HausDatabase,
+    input: PlanInput,
+    candidates: { id: string }[],
+    mentioned: Set<string>
+): Promise<HeardPlace> {
+    const rows = await db
+        .select({
+            agentId: agentTaskFollowsTable.agentId,
+            followed: agentTaskFollowsTable.followed,
+        })
+        .from(agentTaskFollowsTable)
+        .where(
+            and(
+                eq(agentTaskFollowsTable.serverId, input.serverId),
+                eq(agentTaskFollowsTable.taskChatId, input.chatId)
+            )
+        );
+    const follows = new Map(rows.map((row) => [row.agentId, row.followed]));
+    const reactivated = await followMentionedIntoTask(db, {
+        agentIds: candidates.map((agent) => agent.id),
+        causeMessageId: input.messageId ?? null,
+        followByAgent: follows,
+        mentioned,
+        serverId: input.serverId,
+        taskChatId: input.chatId,
+    });
+    return { follows, place: 'task', reactivated };
 }
 
 /**

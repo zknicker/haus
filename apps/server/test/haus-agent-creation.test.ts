@@ -33,11 +33,8 @@ test('creation records the Agent and memberships without messages, Tasks, or inb
     });
     expect(await conversationCounts()).toEqual(before);
     await settleRealtime();
-    expect(lifecycle.events.map((event) => event.action)).toEqual([
-        'created',
-        'updated',
-        'updated',
-    ]);
+    // The Server Owner's new DM with the Agent is announced, then its Project.
+    expect(lifecycle.events.map((event) => event.action)).toEqual(['created', 'updated']);
     expect(await updates.next()).toMatchObject({ agentId, serverId: fixture.serverId });
     lifecycle.stop();
     updates.stop();
@@ -102,8 +99,8 @@ test('a reused nonce with different values is refused as a conflict', async () =
 });
 
 test('an archived target refuses the creation', async () => {
-    const archived = await createTestProject(fixture.harness, fixture.owner, {
-        agentIds: [fixture.orbitAgentId],
+    const archived = await createTestProject(fixture.owner, {
+        agentIds: [],
         name: 'retired-lane',
         serverId: fixture.serverId,
     });

@@ -66,6 +66,39 @@ describe('dev.cleanupEvalChats', () => {
         ).rejects.toMatchObject({ data: { code: 'FORBIDDEN' } });
     });
 
+    test('moves an Agent homed in a cleaned channel to the oldest other open Project', async () => {
+        if (!(harness && owner)) {
+            throw new Error('Expected Server test harness and owner client.');
+        }
+        const server = await owner.trpc.server.create.mutate({
+            displayName: 'Eval Cleanup Homes',
+            slug: 'eval-cleanup-homes',
+        });
+        await owner.trpc.project.create.mutate({ name: 'keeper', serverId: server.id });
+        const evalChannel = await owner.trpc.project.create.mutate({
+            name: 'eval-homed',
+            serverId: server.id,
+        });
+        await harness.sql`
+            insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
+            values ('agt_eval_homed', ${server.id}, 'eval-homed', 'Eval Homed', 'UTC', ${evalChannel.chat.id})
+        `;
+
+        await expect(
+            owner.trpc.dev.cleanupEvalChats.mutate({
+                chatIds: [evalChannel.chat.id],
+                serverId: server.id,
+            })
+        ).resolves.toEqual({ count: 1, deletedChatIds: [evalChannel.chat.id] });
+        expect(
+            await harness.sql`
+                select chats.name from agents
+                join chats on chats.server_id = agents.server_id and chats.id = agents.home_project_id
+                where agents.id = 'agt_eval_homed'
+            `
+        ).toEqual([{ name: 'keeper' }]);
+    });
+
     test('deletes only explicit chats from the requested Server and cascades their rows', async () => {
         if (!(harness && owner)) {
             throw new Error('Expected Server test harness and owner client.');

@@ -140,7 +140,7 @@ async function createChannel(
     },
     name: string
 ) {
-    const { id } = await createTestProject(context.harness, context.owner, {
+    const { id } = await createTestProject(context.owner, {
         agentIds: [context.orbitAgentId, context.scoutAgentId],
         name,
         serverId: context.serverId,

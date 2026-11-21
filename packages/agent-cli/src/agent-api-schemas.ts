@@ -143,13 +143,6 @@ export const agentMessageCheckResponseSchema = z.object({
 
 export type AgentCliAutomationEvent = z.infer<typeof agentAutomationEventSchema>;
 
-export const agentChannelActionResponseSchema = z.object({
-    joined: z.boolean().optional(),
-    left: z.boolean().optional(),
-    muted: z.boolean().optional(),
-    target: z.string().min(1),
-});
-
 export const agentHistoryResponseSchema = z.object({
     has_more: z.boolean(),
     has_newer: z.boolean(),
@@ -173,8 +166,10 @@ const directoryPersonSchema = z.object({
 export const agentChannelSchema = z.object({
     description: z.string().nullable(),
     handle: z.string().min(1),
-    joined: z.boolean(),
+    home: z.boolean(),
+    homeAgents: z.array(z.string().min(1)),
     memberCount: z.number().int().nonnegative(),
+    project: z.string().min(1).nullable(),
 });
 
 export const agentServerInfoSchema = z.object({
@@ -201,6 +196,7 @@ export const agentChannelMembersSchema = z.object({
             timezone: z.string().nullable().optional(),
         })
     ),
+    project: z.string().min(1).nullable(),
     target: z.string().min(1),
 });
 

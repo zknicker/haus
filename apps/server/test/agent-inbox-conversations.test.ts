@@ -13,11 +13,7 @@ import {
 } from '../src/agent-api/inbox-conversations.ts';
 import { mintRunnerCredential } from '../src/computers/runner-credentials.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import {
-    agentChannelMutesTable,
-    channelAgentParticipantsTable,
-    computersTable,
-} from '../src/postgres/schema.ts';
+import { computersTable } from '../src/postgres/schema.ts';
 import { addChannel } from './agent-inbox-harness.ts';
 import {
     addPeerAgent,
@@ -44,7 +40,7 @@ afterAll(async () => {
 
 const unreadView = { before: null, limit: 20, view: 'unread' as const };
 
-test('each joined conversation with someone else unread is one row, newest activity first', async () => {
+test('each conversation that reaches the Agent with someone else unread is one row, newest activity first', async () => {
     const db = connection.db;
     const seed = await seedReader(db);
     const peerId = await addPeerAgent(db, seed);
@@ -78,19 +74,19 @@ test('each joined conversation with someone else unread is one row, newest activ
     expect(inbox).toMatchObject({ hasMore: false, nextBefore: null, view: 'unread' });
 });
 
-test('read positions, unfollowed Tasks, and other channels stay out of the list', async () => {
+test('read positions, unfollowed Tasks elsewhere, and unheard channels stay out of the list', async () => {
     const db = connection.db;
     const seed = await seedReader(db);
-    const anchor = await postMessage(db, seed, { chatId: seed.channelId });
+    const read = await postMessage(db, seed, { chatId: seed.channelId });
+    await setReadPosition(db, seed, seed.channelId, read.sequence);
+    const otherChannel = await addChannel(db, seed, 'elsewhere');
+    const anchor = await postMessage(db, seed, { chatId: otherChannel });
     const { chatId: unfollowed } = await addTask(db, seed, {
         anchorId: anchor.id,
         followed: false,
-        parentChatId: seed.channelId,
+        parentChatId: otherChannel,
     });
     await postMessage(db, seed, { chatId: unfollowed });
-    const otherChannel = await addChannel(db, seed, 'elsewhere');
-    await postMessage(db, seed, { chatId: otherChannel });
-    await setReadPosition(db, seed, seed.channelId, anchor.sequence);
 
     const inbox = await listAgentInboxConversations(db, readerRunner(seed), unreadView);
 
@@ -98,33 +94,48 @@ test('read positions, unfollowed Tasks, and other channels stay out of the list'
     expect(inbox.totals).toEqual({ conversations: 0, dms: 0, mentions: 0 });
 });
 
-test('a muted channel counts only mentions, and a mention pierces the mute', async () => {
+test('a home Task lists without a follow', async () => {
     const db = connection.db;
     const seed = await seedReader(db);
-    await db.insert(agentChannelMutesTable).values({
-        agentId: seed.agentId,
-        chatId: seed.channelId,
-        serverId: seed.serverId,
+    const peerId = await addPeerAgent(db, seed);
+    const anchor = await postMessage(db, seed, { chatId: seed.channelId, agentId: seed.agentId });
+    const task = await addTask(db, seed, {
+        anchorId: anchor.id,
+        followed: false,
+        parentChatId: seed.channelId,
     });
-    await postMessage(db, seed, { chatId: seed.channelId });
+    await postMessage(db, seed, { chatId: task.chatId, agentId: peerId });
+
+    const inbox = await listAgentInboxConversations(db, readerRunner(seed), unreadView);
+
+    expect(inbox.items.map(({ target, unread }) => ({ target, unread }))).toEqual([
+        { target: task.target, unread: 1 },
+    ]);
+});
+
+test('a channel outside the home counts only what reached the Agent', async () => {
+    const db = connection.db;
+    const seed = await seedReader(db);
+    const elsewhere = await addChannel(db, seed, 'elsewhere');
+    await postMessage(db, seed, { chatId: elsewhere });
     expect((await listAgentInboxConversations(db, readerRunner(seed), unreadView)).items).toEqual(
         []
     );
 
-    await postMessage(db, seed, { chatId: seed.channelId, mentioned: true });
-    await postMessage(db, seed, { chatId: seed.channelId });
+    await postMessage(db, seed, { chatId: elsewhere, mentioned: true });
+    await postMessage(db, seed, { chatId: elsewhere });
 
     const inbox = await listAgentInboxConversations(db, readerRunner(seed), unreadView);
     expect(inbox.items).toEqual([
-        expect.objectContaining({ mentions: 1, target: '#product', unread: 1 }),
+        expect.objectContaining({ mentions: 1, target: '#elsewhere', unread: 1 }),
     ]);
     expect(inbox.totals).toEqual({ conversations: 1, dms: 0, mentions: 1 });
-    // The muted backlog is never counted, not merely hidden.
+    // The unheard backlog is never counted, not merely hidden.
     const rows = (await db.execute(conversationsSql(readerRunner(seed)))) as Array<{
-        muted: boolean;
+        outside: boolean;
         unread: number;
     }>;
-    expect(rows).toEqual([expect.objectContaining({ muted: true, unread: 0 })]);
+    expect(rows).toEqual([expect.objectContaining({ outside: true, unread: 0 })]);
 });
 
 test('the mentions view keeps only mentioned rows while totals cover every row', async () => {
@@ -152,15 +163,10 @@ test('keyset paging walks every row once with stable totals', async () => {
     const channels = [seed.channelId];
     for (const name of ['alpha', 'beta']) {
         const chatId = await addChannel(db, seed, name);
-        await db.insert(channelAgentParticipantsTable).values({
-            agentId: seed.agentId,
-            chatId,
-            serverId: seed.serverId,
-        });
         channels.push(chatId);
     }
     for (const chatId of channels) {
-        await postMessage(db, seed, { chatId });
+        await postMessage(db, seed, { chatId, recipient: true });
     }
 
     const first = await listAgentInboxConversations(db, readerRunner(seed), {

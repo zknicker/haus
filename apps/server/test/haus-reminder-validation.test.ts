@@ -49,11 +49,6 @@ test('reminder routes distinguish invalid credentials from malformed authenticat
 });
 
 test('unsupported timezone changes fail before changing a reminder or recording a command', async () => {
-    await fixture.harness.sql`
-        insert into channel_agent_participants (server_id,chat_id,agent_id)
-        values (${fixture.serverId},${fixture.channelId},${fixture.coveAgentId})
-        on conflict do nothing
-    `;
     const anchor = await fixture.owner.trpc.chat.send.mutate({
         chatId: fixture.channelId,
         content: 'Daily at 09:00 America/New_York. Keep this calendar zone.',
@@ -133,11 +128,6 @@ test('unsupported timezone changes fail before changing a reminder or recording 
 });
 
 test('calendar schedules start on a cadence slot and refuse off-slot fire times', async () => {
-    await fixture.harness.sql`
-        insert into channel_agent_participants (server_id,chat_id,agent_id)
-        values (${fixture.serverId},${fixture.channelId},${fixture.coveAgentId})
-        on conflict do nothing
-    `;
     const anchor = await fixture.owner.trpc.chat.send.mutate({
         chatId: fixture.channelId,
         content: 'Mondays at 3:57 PM Eastern, please.',

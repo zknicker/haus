@@ -56,11 +56,7 @@ export function createAgentTestKit(
 
     async function createChannel({ agentIds, name } = {}) {
         const channelName = name ?? `eval-${context.stamp.slice(-6)}-${marker('').toLowerCase()}`;
-        const chat = await createEvalProject(harness, {
-            agentIds,
-            name: channelName,
-            repositoryRoot,
-        });
+        const chat = await createEvalProject(harness, { agentIds, name: channelName });
         await trackChat(chat.id, { name: chat.name });
         return chat;
     }

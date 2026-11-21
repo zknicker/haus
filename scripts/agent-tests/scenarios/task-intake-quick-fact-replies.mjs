@@ -28,9 +28,8 @@ export default defineScenario({
             question.message.id
         );
         expect(answer.content, 'the answer carries the status code').toContain('429');
-        expect(
-            await tasksCreatedBy(kit, worker.id, turn.startedAt),
-            'Tasks the Agent created'
-        ).toHaveLength(0);
+        expect(await tasksCreatedBy(kit, worker.id, turn), 'Tasks the Agent created').toHaveLength(
+            0
+        );
     }),
 });

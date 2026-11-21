@@ -1,9 +1,8 @@
-import { and, count, eq, ilike, isNull } from 'drizzle-orm';
+import { and, count, eq, ilike, isNull, sql } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentsTable,
-    channelAgentParticipantsTable,
     channelParticipantsTable,
     chatsTable,
     serverMembershipsTable,
@@ -21,11 +20,7 @@ export async function countAgentDirectory(
     return { agents, channels, humans };
 }
 
-export async function countChannelMembers(
-    db: HausDatabase,
-    runner: ResolvedRunner,
-    chatId: string
-) {
+export async function countChannelHumans(db: HausDatabase, runner: ResolvedRunner, chatId: string) {
     const [humans] = await db
         .select({ total: count() })
         .from(channelParticipantsTable)
@@ -43,37 +38,14 @@ export async function countChannelMembers(
                 isNull(serverMembershipsTable.revokedAt)
             )
         );
-    const [agents] = await db
-        .select({ total: count() })
-        .from(channelAgentParticipantsTable)
-        .where(
-            and(
-                eq(channelAgentParticipantsTable.serverId, runner.serverId),
-                eq(channelAgentParticipantsTable.chatId, chatId)
-            )
-        );
-    return Number(humans?.total ?? 0) + Number(agents?.total ?? 0);
+    return Number(humans?.total ?? 0);
 }
 
 async function countChannels(db: HausDatabase, runner: ResolvedRunner, input: AgentDirectoryQuery) {
     const [row] = await db
         .select({ total: count() })
         .from(chatsTable)
-        .leftJoin(
-            channelAgentParticipantsTable,
-            and(
-                eq(channelAgentParticipantsTable.serverId, chatsTable.serverId),
-                eq(channelAgentParticipantsTable.chatId, chatsTable.id),
-                eq(channelAgentParticipantsTable.agentId, runner.agentId)
-            )
-        )
-        .where(
-            and(
-                eq(chatsTable.serverId, runner.serverId),
-                eq(chatsTable.kind, 'channel'),
-                input.joined ? eq(channelAgentParticipantsTable.agentId, runner.agentId) : undefined
-            )
-        );
+        .where(directoryChannelsWhere(runner, input));
     return Number(row?.total ?? 0);
 }
 
@@ -105,6 +77,24 @@ async function countHumans(db: HausDatabase, runner: ResolvedRunner, input: Agen
             )
         );
     return Number(row?.total ?? 0);
+}
+
+export function directoryChannelsWhere(
+    runner: Pick<ResolvedRunner, 'agentId' | 'serverId'>,
+    input: Pick<AgentDirectoryQuery, 'home' | 'query'>
+) {
+    return and(
+        eq(chatsTable.serverId, runner.serverId),
+        eq(chatsTable.kind, 'channel'),
+        isNull(chatsTable.deletedAt),
+        input.home
+            ? sql`${chatsTable.id} = (
+                select agent.home_project_id from agents agent
+                where agent.server_id = ${runner.serverId} and agent.id = ${runner.agentId}
+            )`
+            : undefined,
+        input.query ? ilike(chatsTable.name, `%${escapeLike(input.query)}%`) : undefined
+    );
 }
 
 function escapeLike(value: string) {

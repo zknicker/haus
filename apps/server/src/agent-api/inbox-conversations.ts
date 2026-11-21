@@ -22,10 +22,11 @@ export interface InboxConversationsQuery {
 }
 
 /**
- * `haus inbox check` (Raft's `listAgentInbox`): every conversation the Agent
- * belongs to — joined channels, its DMs, followed Tasks as their own rows —
- * with someone else's message past its read position. A muted channel counts
- * only mentions and appears only while it has one: a mention pierces mute.
+ * `haus inbox check` (Raft's `listAgentInbox`): every conversation that reaches
+ * the Agent (specs/inbox.md#hearing) with someone else's message past its read
+ * position: its home Project's channel and Tasks, Tasks it follows elsewhere,
+ * its DMs, and another channel while what reached the Agent there, a mention or
+ * a followed reply chain, is unread. Such a channel counts only those messages.
  * One statement, so the list, its paging, and its totals share one snapshot.
  */
 export async function listAgentInboxConversations(
@@ -59,13 +60,14 @@ export async function listAgentInboxConversations(
 interface ConversationRow {
     activityAt: string | null;
     chatId: string;
+    heard: number;
     kind: AgentInboxConversation['kind'];
     lastReadSequence: number;
     latestAt: Date | string | null;
     latestId: string | null;
     latestSenderHandle: string | null;
     mentions: number;
-    muted: boolean;
+    outside: boolean;
     target: string;
     unread: number;
 }
@@ -94,11 +96,11 @@ function toConversation(row: ConversationRow, activityKey: string): AgentInboxCo
         latestSenderHandle: row.latestSenderHandle,
         mentions: row.mentions,
         target: row.target,
-        unread: row.muted ? row.mentions : row.unread,
+        unread: row.outside ? row.heard : row.unread,
     };
 }
 
-/** Exported for the muted-backlog regression test; the list goes through `listAgentInboxConversations`. */
+/** Exported for the outside-channel backlog regression test; the list goes through `listAgentInboxConversations`. */
 export function conversationsSql(runner: ResolvedRunner) {
     const { agentId, serverId } = runner;
     return sql`
@@ -106,8 +108,9 @@ export function conversationsSql(runner: ResolvedRunner) {
             chats.id as "chatId",
             chats.kind as kind,
             position.sequence as "lastReadSequence",
-            (mute.agent_id is not null) as muted,
+            place.outside as outside,
             counts.unread as unread,
+            counts.heard as heard,
             counts.mentions as mentions,
             latest.created_at as "latestAt",
             coalesce(latest_agent.handle, latest_human.handle) as "latestSenderHandle",
@@ -120,6 +123,7 @@ export function conversationsSql(runner: ResolvedRunner) {
                 else ${taskTargetOfChatSql('chats')}
             end as target
         from chats
+        join agents me on me.server_id = chats.server_id and me.id = ${agentId}
         left join chats parent
             on parent.server_id = chats.server_id and parent.id = chats.parent_chat_id
         left join server_memberships dm_human
@@ -127,10 +131,9 @@ export function conversationsSql(runner: ResolvedRunner) {
             and dm_human.revoked_at is null
             and chats.kind = 'dm'
             and dm_human.user_id = chats.dm_member_one_user_id
-        left join agent_channel_mutes mute
-            on mute.server_id = chats.server_id
-            and mute.agent_id = ${agentId}
-            and mute.chat_id = chats.id
+        cross join lateral (
+            select chats.kind = 'channel' and chats.id <> me.home_project_id as outside
+        ) place
         cross join lateral (
             select coalesce((
                 select read.sequence from agent_chat_reads read
@@ -141,14 +144,24 @@ export function conversationsSql(runner: ResolvedRunner) {
         ) position
         cross join lateral (
             select
-                -- A muted channel lists only by mentions, so never scan its backlog.
-                case when mute.agent_id is not null then 0 else (
+                -- A channel outside the home lists only what reached the Agent, so never scan its backlog.
+                case when place.outside then 0 else (
                     select count(*)::integer from chat_messages unread
                     where unread.server_id = chats.server_id
                       and unread.chat_id = chats.id
                       and unread.sequence > position.sequence
                       and unread.author_agent_id is distinct from ${agentId}
                 ) end as unread,
+                (
+                    select count(*)::integer from agent_inbox item
+                    join chat_messages heard
+                        on heard.server_id = item.server_id and heard.id = item.dedupe_key
+                    where item.server_id = chats.server_id
+                      and item.agent_id = ${agentId}
+                      and item.chat_id = chats.id
+                      and heard.chat_id = chats.id
+                      and heard.sequence > position.sequence
+                ) as heard,
                 (
                     select count(*)::integer from agent_inbox item
                     join chat_messages mention
@@ -178,28 +191,19 @@ export function conversationsSql(runner: ResolvedRunner) {
           and (parent.id is null or parent.deleted_at is null)
           and ${visibleChatSql(runner)}
           and (
-              -- Tasks list only for Agents following them (ADR 0053) in a joined
-              -- channel: reading a Task is open, but this list follows hearing.
+              -- Reading a Task is open, but this list follows hearing: the home
+              -- Project's Tasks, and elsewhere the Tasks the Agent follows.
               chats.kind <> 'task'
-              or (
-                  exists (
-                      select 1 from agent_task_follows follow
-                      where follow.server_id = chats.server_id
-                        and follow.agent_id = ${agentId}
-                        and follow.task_chat_id = chats.id
-                        and follow.followed
-                  )
-                  and exists (
-                      select 1 from channel_agent_participants cap
-                      where cap.server_id = chats.server_id
-                        and cap.chat_id = chats.parent_chat_id
-                        and cap.agent_id = ${agentId}
-                  )
+              or chats.parent_chat_id = me.home_project_id
+              or exists (
+                  select 1 from agent_task_follows follow
+                  where follow.server_id = chats.server_id
+                    and follow.agent_id = ${agentId}
+                    and follow.task_chat_id = chats.id
+                    and follow.followed
               )
           )
           and (chats.kind = 'channel' or parent.kind = 'channel' or dm_human.handle is not null)
-          and case when mute.agent_id is not null
-              then counts.mentions > 0
-              else counts.unread > 0 end
+          and case when place.outside then counts.heard > 0 else counts.unread > 0 end
     `;
 }

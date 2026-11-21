@@ -127,7 +127,7 @@ export function createClaimSubcommands(resolveDeps: () => ClaimDeps): SubCommand
                 targetFlag,
                 numberFlag,
                 {
-                    description: 'Agent member of the target to hand the claim to',
+                    description: 'Agent to hand the claim to; in a DM, only its Agent',
                     name: '--assignee',
                     valueName: '<@agent>',
                 },
@@ -140,7 +140,7 @@ export function createClaimSubcommands(resolveDeps: () => ClaimDeps): SubCommand
             ],
             positionals: [],
             run: (args) => runClaimAssign(args, resolveDeps()),
-            summary: 'Hand a claim to an Agent member of its chat',
+            summary: 'Hand a claim to an Agent',
             usage: 'haus claim assign --target <target> --number <n> --assignee @agent [--expected-revision <n>]',
         },
         {

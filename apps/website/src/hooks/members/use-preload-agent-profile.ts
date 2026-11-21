@@ -40,6 +40,7 @@ export function usePreloadAgentProfile(
         }
         void utils.agent.deliveryState.prefetch(input, queryPolicy.syncedSnapshot);
         void utils.agent.chats.prefetch(input, queryPolicy.syncedSnapshot);
+        void utils.project.list.prefetch({ serverId: server.id }, queryPolicy.syncedSnapshot);
         void utils.agent.turns.prefetch(
             agentTurnsInput(server.id, agentId),
             queryPolicy.syncedSnapshot

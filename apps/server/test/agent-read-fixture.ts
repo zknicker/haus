@@ -8,24 +8,37 @@ import {
     agentChatReadsTable,
     agentsTable,
     agentTaskFollowsTable,
-    channelAgentParticipantsTable,
     chatMessagesTable,
     chatsTable,
     tasksTable,
 } from '../src/postgres/schema.ts';
+import { moveAgentHome } from '../src/projects/agent-home.ts';
 import { insertTaskKeyEntry } from '../src/tasks/task-key-ledger.ts';
 import { testAgentHome, testProject } from './agent-home.ts';
 import { FakeTransport, type Seed, seedAgent } from './agent-inbox-harness.ts';
 
-/** A seeded Agent already joined to `#product`, as the inbox and read position see it. */
+/** A seeded Agent whose home is `#product`, as the inbox and read position see it. */
 export async function seedReader(db: HausDatabase): Promise<Seed> {
     const seed = await seedAgent(db);
-    await db.insert(channelAgentParticipantsTable).values({
+    await homeAgentIn(db, {
         agentId: seed.agentId,
         chatId: seed.channelId,
         serverId: seed.serverId,
     });
     return seed;
+}
+
+/** Makes the channel a Project and moves the Agent's home there, as `agent.setHome` does. */
+export async function homeAgentIn(
+    db: HausDatabase,
+    input: { agentId: string; chatId: string; serverId: string }
+) {
+    await testProject(db, input.serverId, input.chatId);
+    await moveAgentHome(db, {
+        agentId: input.agentId,
+        projectId: input.chatId,
+        serverId: input.serverId,
+    });
 }
 
 /**

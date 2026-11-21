@@ -48,11 +48,12 @@ export async function listChats(
                     when ${chatsTable.kind} = 'dm'
                         then array_remove(array[${chatsTable.dmAgentId}], null)::text[]
                     else array(
-                        select participant.agent_id
-                        from channel_agent_participants participant
-                        where participant.server_id = "chats"."server_id"
-                            and participant.chat_id = "chats"."id"
-                        order by participant.agent_id
+                        select home.id
+                        from agents home
+                        where home.server_id = "chats"."server_id"
+                            and home.home_project_id = "chats"."id"
+                            and home.retired_at is null
+                        order by home.id
                     )
                 end
             `,

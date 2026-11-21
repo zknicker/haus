@@ -14,7 +14,7 @@ let notesChatId: string;
 
 beforeAll(async () => {
     connection = await connectHausDatabase(fixture.harness.databaseUrl);
-    const notes = await createTestProject(fixture.harness, fixture.owner, {
+    const notes = await createTestProject(fixture.owner, {
         agentIds: [fixture.orbitAgentId],
         name: 'drive-notes',
         serverId: fixture.serverId,

@@ -4,12 +4,12 @@ import { followAgentTask } from '../src/agent-api/attention.ts';
 import { readAgentHistory } from '../src/agent-api/message-history.ts';
 import { recordExactMessagesServed } from '../src/agent-delivery/cursors.ts';
 import { planAgentMessageRecipients } from '../src/agent-delivery/message-recipients.ts';
-import { joinChannelAgents } from '../src/chats/channel-agent-membership.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { agentChatReadsTable, agentsTable } from '../src/postgres/schema.ts';
 import {
     addPeerAgent,
     addTask,
+    homeAgentIn,
     postMessage,
     readerRunner,
     readPosition,
@@ -37,11 +37,7 @@ test('joining starts read at the present; a mention that follows the Agent in st
     const peerId = await addPeerAgent(db, seed);
     const anchor = await postMessage(db, seed, { chatId: seed.channelId });
     await postMessage(db, seed, { chatId: seed.channelId });
-    await joinChannelAgents(db, {
-        agentIds: [peerId],
-        chatId: seed.channelId,
-        serverId: seed.serverId,
-    });
+    await homeAgentIn(db, { agentId: peerId, chatId: seed.channelId, serverId: seed.serverId });
     const [peer] = await db
         .select({ sequence: agentChatReadsTable.sequence })
         .from(agentChatReadsTable)

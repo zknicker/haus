@@ -182,7 +182,6 @@ async function openKeptChannels(
     for (const name of ['design', 'ops']) {
         const created = await createProjectWithAgents(client, {
             agentIds: [agent.agentId],
-            databaseUrl: session.databaseUrl,
             name,
             serverId: server.id,
         });

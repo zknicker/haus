@@ -58,9 +58,8 @@ export default defineScenario({
             reaction.actors.some((actor) => actor.kind === 'agent' && actor.id === worker.id)
         );
         expect(reactions, 'Agent reactions on the question').toHaveLength(0);
-        expect(
-            await tasksCreatedBy(kit, worker.id, turn.startedAt),
-            'Tasks the Agent created'
-        ).toHaveLength(0);
+        expect(await tasksCreatedBy(kit, worker.id, turn), 'Tasks the Agent created').toHaveLength(
+            0
+        );
     }),
 });
