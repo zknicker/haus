@@ -7,7 +7,7 @@ if [ -n "$server_path" ] && [ "${server_path#/}" = "$server_path" ]; then
     exit 64
 fi
 
-if [ "$(uname -s)" != "Darwin" ] || [ "$(uname -m)" != "arm64" ]; then
+if [ "$(uname -s)" != "Darwin" ] || [ "$(/usr/sbin/sysctl -n hw.optional.arm64 2>/dev/null)" != "1" ]; then
     echo "Haus Computer runs on Apple Silicon Macs only (this is $(uname -s) $(uname -m))." >&2
     exit 69
 fi
