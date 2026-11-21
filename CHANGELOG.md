@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## v28.0.0 - 2026-11-21
+
+- Haus Computer 24.0.0 runs as an app, `Haus Computer.app`, so macOS lists "Haus Computer" with the Haus icon in System Settings → Privacy & Security instead of an unnamed executable. The app is signed and notarized. It installs at `~/.local/share/haus-computer/`, and `~/.local/bin/haus-computer` points into it. Updates and `haus-computer upgrade --rollback` keep the permissions.
+- macOS doesn't carry a permission over to a new app, so the Device page asks for Accessibility and Screen Recording again after the move, naming the pane to open. It rechecks every minute and clears on its own after you allow Haus Computer. On macOS 27.3, Accessibility is called System & App Protection Override, and you add Haus Computer with + rather than by dragging.
+- Captains no longer post a reminder's or trigger's title as a stray one-line message before their answer. A fire isn't a message, so it takes no claim.
+- The Server requires Computer protocol 47, so Server 27.0.0 and Haus Computer 24.0.0 ship together. Haus Computer 23.x can't update itself to the app: **Update** and `haus-computer upgrade` end failed at verifying and leave 23.x running. Once the Server deploys, a 23.x Computer is paused until you reinstall it with `curl -fsSL https://releases.haus.chat/computer/install.sh | sh` and allow it again in System Settings. No database migration. Haus Agent, Haus for Desktop and Haus for iPhone are unchanged.
+
 ## v27.1.0 - 2026-11-21
 
 - Each Worker on a Computer gets its own clone of the repository instead of a `git worktree`. A Worker can commit, push, fetch, rebase and delete its own branches, but still can't move the base `main` or change the base clone's config. When a Worker closes, its `haus/<worker>/*` branches are fetched back into the base clone before its checkout is deleted.
