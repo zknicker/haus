@@ -189,7 +189,7 @@ every start. They restart with the same policy.
   shell owns the one subscription, patches cached Activity History pages in Server order, and
   every start refreshes the snapshot, history, turns, and usage reads.
 * **Agent thoughts** (`chat.onThought`, [ADR 0036](../adr/0036-agent-thoughts-surface-as-condensed-phrases.md)):
-  Server-phrased lines from scrubbed Computer frames, announced once per engaged Chat; no read or
+  Server-phrased lines from scrubbed runner frames, announced once per engaged Chat; no read or
   recovery.
 * **Turn journal** (`agent.onExecutionJournal`): change notices for an open turn's journal, which
   re-reads itself.

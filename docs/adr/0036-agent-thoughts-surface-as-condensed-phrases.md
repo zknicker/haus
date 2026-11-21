@@ -1,8 +1,8 @@
 ---
 summary: Agent reasoning surfaces as one short first-person phrase in a thought bubble on the typing strip — the Server's Gemini 3.5 Flash-Lite rephrasing of a Codex title, a scrubbed reasoning excerpt, or a scrubbed description of a tool action (with a scrubbed excerpt of what a finished one returned, so it can state a finding), in terms of the human request the run is answering, skipped when it is only Agent housekeeping, else a filtered local heuristic; paced by workstream with "still" lines after a quiet stretch; always on, never persisted.
 read_when:
-  - changing the typing strip's thought bubble, chat.onThought, or the agent-thought Computer frame
-  - changing how reasoning is captured, excerpted, summarized, or kept on the Computer
+  - changing the typing strip's thought bubble, chat.onThought, or the agent-thought runner frame
+  - changing how reasoning is captured, excerpted, summarized, or kept on the runner
   - changing which tool actions become thoughts, or how their descriptions are scrubbed
   - changing which tool results ride a thought, or how result excerpts are scrubbed
   - changing HAUS_GEMINI_API_KEY, the thought summarizer, its SKIP rule, its request context, or its fallback
@@ -34,7 +34,25 @@ thinking summary with no forced openers. Amended again 2026-09-29: a finished co
 page, or tool sends a scrubbed excerpt of what it returned so a line can state a finding; the
 time ladder gives way to a workstream cadence (a new part of the work or a finding shows after a
 short floor, and the same work continuing shows a "still" line only after a quiet stretch); and
-bubbles hold five to seven and a half seconds.
+bubbles hold five to seven and a half seconds. Amended 2026-11-20: since every Agent runs on the
+Agent runner ([ADR 0057](0057-agents-run-on-the-server-and-machines-run-their-tools.md)), the
+runner does the Computer's part below, unchanged: `apps/runner/src/thoughts/` keeps the
+narrator, its four-second interval and ranking, and the result excerpts, fed from both harnesses'
+normalized reasoning and tool events (Claude's summarized thinking deltas, Pi's thinking blocks),
+and sends the same `agent-thought` frame over the runner socket, which the Server admits and
+phrases exactly as a Computer's. Read "Computer" below as the runner. Two rules changed with the
+port, because the Computer's versions leaked: every title, excerpt, action, and result passes the
+execution-journal redactor and `maskCredentialDisclosures` (`@haus/api`, which masks "the
+password is hunter2" style prose) before it leaves, and the Server masks again and drops a
+fallback line that had a credential masked; and a result rides only for a web search tool call
+(`web_search`, `webSearch`, hosted search; `result-allowlist.ts`). Test runners were cut too,
+since `npm test` and its kin run whatever the repo's script says. Shell commands, page fetches,
+and every other tool send no result; their start still shows as an action, so a forecast fetch
+or a test run no longer states its finding. Masking covers a quoted credential whole and any
+secret-named `NAME='…'` or `NAME=…` assignment, and a tool action is redacted before its quotes
+are scrubbed. Accepted risk: reasoning can still quote a local file's contents. A thought goes to
+the same people who read the Captain's messages, and the Captain could post that content directly,
+so the narrator doesn't try to detect it.
 
 ## Context
 
