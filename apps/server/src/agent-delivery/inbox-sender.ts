@@ -1,4 +1,4 @@
-import { type AgentInboxItem, computerUseInboxSource, type HausAgentMessage } from '@haus/api';
+import type { AgentInboxItem, HausAgentMessage } from '@haus/api';
 
 /** Server-authored inbox sources that speak as the Haus system sender. */
 const systemSources = new Set([
@@ -6,7 +6,6 @@ const systemSources = new Set([
     'claim_assignment',
     'trigger_problem',
     'image_generation_failed',
-    computerUseInboxSource,
 ]);
 
 export function inboxSender(input: {

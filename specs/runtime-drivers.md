@@ -1020,6 +1020,10 @@ The Computer keeps `agent-skill-import`, `agent-skill-file-request`, and
 `apps/computer/src/harness/execution-journal*.ts`, `execution-journal-upload/`, and
 `execution-journal-outline.ts` because the runner imports them until they move into the runner.
 
+**Computer protocol 46 (C1).** `invoke` gains the `desktop` operation
+([Computer use](computer-use.md)), so a Computer that cannot run agent-desktop commands attaches
+update-required.
+
 **Computer protocol, removed by R4:** `start`, `notice`, `stop`, `ack`, `notice-ack`, `turn`,
 `agent-activity`, `agent-thought`, `agent-execution-journal-records`,
 `agent-execution-journal-ack`, `agent-restart`, `agent-configure`, `agent-background-work`,

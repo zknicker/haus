@@ -34,7 +34,6 @@ export * from './schema/worker-turns.ts';
 export * from './schema/workers.ts';
 export * from './schema/computer-login.ts';
 export * from './schema/computer-system-events.ts';
-export * from './schema/computer-use-requests.ts';
 export * from './schema/computers.ts';
 export * from './schema/drive.ts';
 export * from './schema/github.ts';

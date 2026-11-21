@@ -1,8 +1,8 @@
 ---
-summary: Normative computer-use contract (C1, ADR 0057 decision 11). A Captain sees and drives its Device's macOS desktop through the `desktop` built-in behind `execute`, relayed to agent-desktop on the Computer as a `desktop` invocation. Looking never asks. Clicking or typing is gated by the Device's Computer use setting (Ask each chat, Always allow) and a one-time approval per chat, raised in the chat as a Permission request with Deny, Always allow and Allow. Covers the command classes, the setting, the request record, the refusal and inbox item the Agent sees, the App surfaces, and the macOS permissions the Device page shows.
+summary: Normative computer-use contract (C1, ADR 0057 decision 11). A Captain sees and drives its Device's macOS desktop through the `desktop` built-in behind `execute`, relayed to agent-desktop on the Computer as a `desktop` invocation. A per-Device switch, Computer use allowed (off by default), gates every `desktop` command; with it off the Server refuses the call and tells the model where to turn it on. Covers the command classes, the switch, the refusal the Agent sees, the App surface, and the macOS permissions the Device page shows.
 read_when:
   - changing computer use, agent-desktop, the `desktop` built-in, or the `desktop` invocation
-  - changing the Device's Computer use setting or the in-chat Permission request
+  - changing the Device's Computer use allowed switch or its gate
   - changing which agent-desktop commands look, act, or are refused
   - changing how a Computer reports Accessibility or Screen Recording
 ---
@@ -10,8 +10,7 @@ read_when:
 # Computer use
 
 A Captain can see and operate the desktop of its machine, a Device running Haus Computer on
-macOS. It copies Capy: looking at the screen never asks, and the first click or type in a
-conversation asks a person once, with Always allow to stop asking on that Device.
+macOS, once a person turns on **Computer use allowed** for that Device.
 [ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md) decision 11
 places it behind `execute`; this spec is the contract.
 
@@ -38,119 +37,65 @@ grant.
 ## Command classes
 
 `desktopCommandClass` in `packages/haus-api/src/computer-use.ts` classifies a command by its
-first argument. The Server gates by it and the Computer refuses by it, so both read one list.
+first argument. The Computer refuses by it.
 
-| Class | Commands | Gate |
-| --- | --- | --- |
-| look | `snapshot`, `find`, `get`, `is`, `screenshot`, `list-surfaces`, `list-apps`, `list-windows`, `list-displays`, `list-notifications`, `wait`, `status`, `version`, `skills` | Never asks |
-| act | ref actions (`click`, `double-click`, `triple-click`, `right-click`, `type`, `set-value`, `clear`, `focus`, `select`, `toggle`, `check`, `uncheck`, `expand`, `collapse`, `scroll`, `scroll-to`), keyboard and mouse (`press`, `hover`, `drag`, `mouse-move`, `mouse-click`, `mouse-wheel`), apps and windows (`launch`, `close-app`, `focus-window`, `resize-window`, `move-window`, `minimize`, `maximize`, `restore`, `open-system-surface`), notifications (`dismiss-notification`, `dismiss-all-notifications`, `notification-action`), and the clipboard (`clipboard-get`, `clipboard-set`, `clipboard-clear`) | The Device's setting and the chat's approval |
-| refused | everything else: `batch`, `session`, `trace`, `cursor-overlay`, `sandbox`, `mcp`, `permissions`, `key-down`, `key-up`, `mouse-down`, `mouse-up`, and unknown commands | Refused before any gate |
+| Class | Commands |
+| --- | --- |
+| look | `snapshot`, `find`, `get`, `is`, `screenshot`, `list-surfaces`, `list-apps`, `list-windows`, `list-displays`, `list-notifications`, `wait`, `status`, `version`, `skills` |
+| act | ref actions (`click`, `double-click`, `triple-click`, `right-click`, `type`, `set-value`, `clear`, `focus`, `select`, `toggle`, `check`, `uncheck`, `expand`, `collapse`, `scroll`, `scroll-to`), keyboard and mouse (`press`, `hover`, `drag`, `mouse-move`, `mouse-click`, `mouse-wheel`), apps and windows (`launch`, `close-app`, `focus-window`, `resize-window`, `move-window`, `minimize`, `maximize`, `restore`, `open-system-surface`), notifications (`dismiss-notification`, `dismiss-all-notifications`, `notification-action`), and the clipboard (`clipboard-get`, `clipboard-set`, `clipboard-clear`) |
+| refused | everything else: `batch`, `session`, `trace`, `cursor-overlay`, `sandbox`, `mcp`, `permissions`, `key-down`, `key-up`, `mouse-down`, `mouse-up`, and unknown commands |
 
 A command is also refused when any argument is `--session`, `--agent-id`, `--multi-agent`,
-`--stdin`, or starts with `--trace`, and `--headed` is allowed only on an act command. Reading the
-clipboard is an act: it is not looking at the screen.
+`--stdin`, or starts with `--trace`, and `--headed` is allowed only on an act command. The
+Computer runs look and act commands and answers `failed` for a refused one.
 
-## The Device setting
+## The Device switch
 
-Each Device has a **Computer use** setting, held by the Server on the Computer record
-(`computers.computer_use_access`).
+Each Device has one switch, held by the Server on the Computer record
+(`computers.computer_use_enabled`).
 
-| Value | Label | Meaning |
+| Setting | Default | Meaning |
 | --- | --- | --- |
-| `ask` (default) | Ask each chat | Every chat asks once before a Captain clicks or types in applications on this Device; Always allow in that prompt switches this. Looking at the screen never asks |
-| `always` | Always allow | Every chat may click and type in applications on this Device without asking |
+| Computer use allowed | Off | On: Captains can use every `desktop` command, looking and acting, on this Device. Off: every `desktop` call is refused |
 
-There is no off value, as in Capy. `computer.setComputerUse` changes it; only the attacher, an
+`computer.setComputerUse({ serverId, computerId, enabled })` changes it; only the attacher, an
 Owner, or an Admin may (the Computer steward rule `computer.setWorkers` uses). It publishes
-`computer.updated`. `computer.list` returns `computerUseAccess` and `canChangeComputerUse`.
-
-## The conversation
-
-An approval belongs to one chat and one Device. The Server picks the chat for an act from the
-invocation's run: the chat of the run's newest unanswered human request
-(`readActiveRunRequest`), else the run's trigger chat (`agent_run_triggers.chat_id`). A run with
-neither has no chat to ask in.
+`computer.updated`. `computer.list` returns `computerUseEnabled` and `canChangeComputerUse`.
 
 ## The gate
 
 The invocation router checks every `desktop` invocation after it resolves the machine and before
-it sends `invoke`. Refused commands never reach the gate; the Computer refuses them. A look
-command passes. An act command passes when the Device is `always`, or when the chat holds an
-allowed request for that Device. Otherwise the router records the invocation `finished` with
-outcome `failed`, sends nothing, and answers the runner with a refusal the model sees:
+it sends `invoke`. With the switch on, the invocation is sent. With it off, the router records
+the invocation `finished` with outcome `failed`, sends nothing to the Computer, and answers the
+runner with the text the model sees:
 
-- **No request open.** It records a request (below) and answers: "This chat hasn't allowed
-  computer use on <Device> yet. Haus asked in the chat. End your turn; an inbox item tells you
-  when someone answers. Looking at the screen needs no approval."
-- **A request already open** in that chat for that Device answers the same text and records no
-  second request.
-- **No chat.** It answers: "Computer use on <Device> asks a person in a chat, and this turn has
-  no chat to ask in." and records nothing.
+"Computer use is off on <Device>. A person can turn on Computer use allowed in Settings → Devices
+→ <Device>."
 
-The Agent never waits inside a tool call for a person. The approval wakes it through the inbox,
-which keeps the inbox the only way to wake an Agent.
-
-## Requests
-
-`computer_use_requests` holds one row per request: id, Server, chat, Computer, Agent, run, tool
-call id, the command (`args[0]`) and its detail (the remaining arguments joined by spaces, cut to
-200 characters), state (`requested`, `allowed`, `denied`), `standing`, `requested_at`,
-`decided_at`, and `decided_by_user_id`. At most one row per chat and Device is `requested`.
-
-`computerUse.decide({ serverId, requestId, decision })` answers a request, with `decision` one of
-`allow`, `always`, or `deny`. Only a steward of its Computer may decide; anyone else is refused
-`FORBIDDEN`. A request already decided is refused `CONFLICT`.
-
-- `allow` sets it `allowed`. Every later act in that chat on that Device passes.
-- `always` sets it `allowed` with `standing`, and sets the Device's setting to `always` in the
-  same transaction.
-- `deny` sets it `denied`. A later act in that chat raises a new request.
-
-Each decision enqueues one inbox item of source `computer_use` in the request's chat for its
-Agent, with dedupe key `computer-use:<requestId>`, and wakes it. It is human-caused, so it lifts
-wake pauses and failure holds and does not count against the chain budget. Its text:
-
-- allow: "<person> allowed computer use on <Device> in this chat. Next: run the desktop command
-  again."
-- always: "<person> always allowed computer use on <Device>. Next: run the desktop command again."
-- deny: "<person> denied computer use on <Device> in this chat. Next: don't click or type there;
-  say what you need, or go on without it."
-
-Requests keep the execution journal's 30-day window, as invocation records do, except that an
-`allowed` row stays while its chat and Computer exist, because it is the approval.
+<Device> is the Computer's reported name, or "this Device" when it has none. The Agent never
+waits inside a tool call for a person.
 
 ## App
 
-`computerUse.requests({ serverId, chatId })` returns the chat's requests, newest first, each with
-`agentId`, `computerId`, the Device's name, the command and detail, state, `standing`, the
-decider's name, timestamps, and `canDecide`. `computerUse.onRequestUpdated({ serverId, chatId })`
-announces `computerUse.requestUpdated` when a request in that chat is created or decided; it
-carries ids only, and the App invalidates the query.
-
-- **Device page.** Settings → Devices → [Device] has an **Access** section with a **Computer use**
-  row on macOS Devices: the label, the description of the current value from the table above, and
-  a select with Ask each chat and Always allow. A viewer who cannot change it sees the value as
-  text.
-- **Permission request.** An open request shows above the chat's composer as a panel labeled
-  Permission request: "<Captain> wants to control applications on <Device>", a box with the
-  command and `desktop · <detail>`, and Deny, Always allow, and Allow. A viewer who cannot decide
-  sees "Waiting for <Device owner>" instead of the buttons.
-- **Markers.** A decided request shows in the transcript at its decision time as a muted line:
-  "Allowed on <Device>", "Always allowed on <Device>", or "Denied on <Device>".
+- **Device page.** Settings → Devices → [Device] has an **Access** section with a **Computer use
+  allowed** switch row on macOS Devices, described "Captains can see the screen and click and type
+  in applications on this Device." A viewer who cannot change it sees the switch disabled.
+- **Readiness.** The Access section shows the readiness warning from
+  [macOS permissions](#macos-permissions).
 
 ## What the setting guards
 
-The Computer use setting and the per-chat approval are consent for the `desktop` tool. They are
-not a sandbox. A Captain whose machine is a Device already runs `bash` there as the machine user,
-with that user's full power: `osascript`, `open`, any CLI the user installed, and the Computer's
-own files. That is the local-trust model Workers already carry
+Computer use allowed is per-Device consent for the `desktop` tool. It is not a sandbox. A
+Captain whose machine is a Device already runs `bash` there as the machine user, with that user's
+full power: `osascript`, `open`, any CLI the user installed, and the Computer's own files. That is
+the local-trust model Workers already carry
 ([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md), amended 2026-11-20). The gate
-on that power is choosing the Device as the Captain's machine, not this setting.
+on that power is which Device is the Captain's machine, not this switch.
 
-Within that model Haus keeps the consent path honest. The bundled agent-desktop lives under the
-Computer's data root, never on the `PATH` that `bash` invocations get, and its location is passed
-only to `desktop` invocations. A Captain that wants to click or type is taught the `desktop` tool,
-which asks; nothing in Haus hands it a quieter route.
+Within that model Haus keeps the consent path honest. agent-desktop stays off the `PATH` that
+`bash` invocations get, and only `desktop` invocations run it. A Captain that wants to see or
+drive the screen is taught the `desktop` tool, which the switch gates; nothing in Haus hands it a
+quieter route.
 
 ## macOS permissions
 
@@ -167,7 +112,5 @@ with `npm install -g agent-desktop`. A missing binary answers `failed` with that
 
 ## Deferred
 
-- Revoking a chat's approval. Changing the setting back to Ask each chat keeps approvals already
-  given.
 - Computer use on Linux and Windows Computers, and on cloud machines.
 - Desktop recordings and live desktop view.

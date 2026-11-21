@@ -57,7 +57,7 @@ import {
 import type { EnqueueInput } from './enqueue-input.ts';
 import * as failureHold from './failure-hold.ts';
 import { buildInboxItems } from './inbox-items.ts';
-import { isConcreteInboxSource, isHumanCausedInboxSource } from './inbox-lanes.ts';
+import { isConcreteInboxSource as isConcreteSource } from './inbox-lanes.ts';
 import { inboxWork } from './inbox-work.ts';
 import { interruptActiveRun } from './interrupt-active-run.ts';
 import { publishAgentLifecycle } from './lifecycle.ts';
@@ -132,7 +132,7 @@ export class AgentDelivery {
         // Only human intent lifts a wake pause, releases a failure hold, or
         // releases the automation chain ceiling, even when older Agent or
         // Trigger rows precede it. Agent and automation work queues behind any hold.
-        if (isHumanCausedInboxSource(source)) {
+        if (source === 'human') {
             await failureHold.releaseHoldsForHuman(tx, input, this.wakePauseLifts);
         }
     }
@@ -682,7 +682,7 @@ export class AgentDelivery {
             return await planChatlessRun(tx, { agentId, config, rows, state });
         }
         const runId = createOpaqueId('run');
-        const concrete = isConcreteInboxSource(first.source);
+        const concrete = isConcreteSource(first.source);
         // The Server decides what may be drained; the Computer decides the lane,
         // because only it knows whether the harness session is still alive.
         const { drainRows, greets, noticeRows, selected, warmDrainRows } = await claimRunItems(tx, {

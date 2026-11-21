@@ -1,6 +1,6 @@
 // The attentions with no Chat (sub-agent wake, Task assignment, Drive conflict) are a first-party
 // contract; `@haus/api` owns the list.
-import { chatlessInboxSources, computerUseInboxSource } from '@haus/api';
+import { chatlessInboxSources } from '@haus/api';
 
 /**
  * Which inbox items ride the concrete lane. A concrete item's envelope is
@@ -19,7 +19,6 @@ export const concreteInboxSources = [
     'trigger',
     'trigger_problem',
     'image_generation_failed',
-    computerUseInboxSource,
     'delivery_problem',
     'reminder',
     'claim_assignment',
@@ -44,16 +43,9 @@ export const bodilessInboxSources = [
     'pull_request',
     'trigger_problem',
     'image_generation_failed',
-    computerUseInboxSource,
     'delivery_problem',
     ...chatlessInboxSources,
 ] as const;
-
-export const humanCausedInboxSources = ['human', computerUseInboxSource] as const;
-
-export function isHumanCausedInboxSource(source: string) {
-    return (humanCausedInboxSources as readonly string[]).includes(source);
-}
 
 /**
  * Attentions no notice row, unread digest, or `haus inbox check` lists: the
