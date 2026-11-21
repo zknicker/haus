@@ -6,6 +6,7 @@ import {
     workerPlaceViewSchema,
     workerProviderResultSchema,
     workerPullRequestSchema,
+    workerPullRequestsRetained,
     workerReconcileEntrySchema,
     workerReportSchema,
     workerSchema,
@@ -151,7 +152,7 @@ export const workerResponseSchema = z.looseObject({
     activity: workerActivityResponseSchema.nullable(),
     job: workerJobResponseSchema,
     place: workerPlaceViewResponseSchema,
-    pullRequest: pullRequestReadingResponseSchema.nullable(),
+    pullRequests: z.array(pullRequestReadingResponseSchema).max(workerPullRequestsRetained),
     turns: z.array(workerTurnResponseSchema).max(workerTurnsRetained),
 });
 

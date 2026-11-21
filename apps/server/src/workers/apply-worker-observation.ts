@@ -19,7 +19,7 @@ import { withDispatch } from './dispatch-worker-turns.ts';
 import { mergeBranchEvidence } from './merge-branch-evidence.ts';
 import { seedPullRequestReadings } from './pull-request-readings.ts';
 import { settleWorkerTurn } from './settle-worker-turn.ts';
-import { isLiveChat, noticeDedupeKey } from './worker-attention.ts';
+import { isLiveChat, stallDedupeKey } from './worker-attention.ts';
 import type { WorkerEffects } from './worker-effects.ts';
 
 type RecordedTurnStep = Extract<WorkerTurnStep, { kind: 'recorded' }>;
@@ -150,9 +150,9 @@ export async function applyWorkerObservation(
             effects.events.push(...settled.events);
             effects.wakes.push(...settled.wakes);
         }
-        if (!(step.settled || settledByHaus) && step.notice?.kind === 'stall') {
+        if (!(step.settled || settledByHaus) && step.notice?.kind === 'stall' && step.stall) {
             const queued = await queueStallNotice(tx, agentDelivery, {
-                dedupeKey: noticeDedupeKey(observation.turnId, step.notice, step.stall),
+                dedupeKey: stallDedupeKey(observation.turnId, step.stall, step.notice.window),
                 turnId: observation.turnId,
                 worker,
             });

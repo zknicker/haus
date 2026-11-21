@@ -113,22 +113,24 @@ test('a turn with steps groups them in a collapsed group that says how long it w
 test('the Pull requests column is reserved only for a Worker with a pull request, and only in a wide pane', () => {
     const bare = work({ turns: [turn({ input: [brief], status: 'running' })] });
     const withPullRequest = work({
-        pullRequest: {
-            additions: 12,
-            changedFiles: 2,
-            checks: 'passing',
-            deletions: 3,
-            headSha: null,
-            number: 352,
-            observedAt: '2026-09-04T12:06:00.000Z',
-            repository: 'zknicker/haus',
-            review: 'none',
-            settledAt: null,
-            source: 'github',
-            state: 'open',
-            title: 'Match the iPhone composer inset',
-            url: 'https://github.com/zknicker/haus/pull/352',
-        },
+        pullRequests: [
+            {
+                additions: 12,
+                changedFiles: 2,
+                checks: 'passing',
+                deletions: 3,
+                headSha: null,
+                number: 352,
+                observedAt: '2026-09-04T12:06:00.000Z',
+                repository: 'zknicker/haus',
+                review: 'none',
+                settledAt: null,
+                source: 'github',
+                state: 'open',
+                title: 'Match the iPhone composer inset',
+                url: 'https://github.com/zknicker/haus/pull/352',
+            },
+        ],
         turns: [turn({ input: [brief], status: 'running' })],
     });
     const bareHtml = renderWorkerSurface(<WorkerView workerId={bare.id} />, { task, worker: bare });

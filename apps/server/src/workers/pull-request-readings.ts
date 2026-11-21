@@ -1,5 +1,7 @@
 import {
     type WorkerBranch,
+    type WorkerOutcome,
+    workerPullRequestsRetained,
     type PullRequestReading,
     pullRequestReadingSchema,
     parseGithubPullRequestUrl,
@@ -28,19 +30,27 @@ export function pullRequestKey(key: PullRequestKey): string {
     return `${key.repository}#${key.number}`;
 }
 
-/** The pull request the newest reporting Run named; `runs` is newest first. */
-export function reportedPullRequest(
-    runs: readonly { branches: WorkerBranch[] }[]
-): PullRequestKey | null {
-    for (const run of runs) {
-        for (const { pullRequestUrl } of run.branches) {
-            const key = pullRequestUrl ? parseGithubPullRequestUrl(pullRequestUrl) : null;
-            if (key) {
-                return key;
+/**
+ * Every pull request the turns named, in their reports or their branches, once each and newest
+ * first; `turns` is newest first.
+ */
+export function reportedPullRequests(
+    turns: readonly { branches: WorkerBranch[]; outcome: WorkerOutcome | null }[]
+): PullRequestKey[] {
+    const keys = new Map<string, PullRequestKey>();
+    for (const turn of turns) {
+        const reported = turn.outcome?.kind === 'report' ? turn.outcome.report.pullRequestUrls : [];
+        const branched = turn.branches.flatMap(({ pullRequestUrl }) =>
+            pullRequestUrl ? [pullRequestUrl] : []
+        );
+        for (const url of [...reported, ...branched]) {
+            const key = parseGithubPullRequestUrl(url);
+            if (key && !keys.has(pullRequestKey(key))) {
+                keys.set(pullRequestKey(key), key);
             }
         }
     }
-    return null;
+    return [...keys.values()].slice(0, workerPullRequestsRetained);
 }
 
 export async function readPullRequestReadings(

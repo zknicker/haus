@@ -49,7 +49,7 @@ export function workerFixture(overrides: WorkerFixtureOverrides = {}): Worker {
         place: { kind: 'cursor' as const },
         providerAgentId: null,
         providerUrl: null,
-        pullRequest: null,
+        pullRequests: [],
         repository: 'haus/haus',
         runtime: null,
         startedAt: at,

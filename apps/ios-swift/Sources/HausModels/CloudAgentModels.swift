@@ -25,8 +25,11 @@ public struct CloudAgentWork: Codable, Identifiable, Hashable, Sendable {
     /// The Server's reading of the whole job across its Runs (`deriveCloudAgentJob`).
     public let job: CloudAgentJob
     public let runs: [CloudAgentRun]
-    /// The Server's live reading, which outlives a Run's frozen snapshot.
-    public var pullRequest: CloudAgentPullRequest? = nil
+    /// The Server's live readings of every pull request its turns named, newest first.
+    public var pullRequests: [CloudAgentPullRequest]? = nil
+
+    /// The newest live reading, which outlives a Run's frozen snapshot.
+    public var pullRequest: CloudAgentPullRequest? { pullRequests?.first }
 
     /// Where the Worker runs: `computer`, `cursor`, or `claude`.
     public var provider: String { place.kind }
@@ -40,7 +43,7 @@ public struct CloudAgentWork: Codable, Identifiable, Hashable, Sendable {
         case id, agentId, taskId, place, providerUrl, repository, startingRef, title
         case createdAt, updatedAt, startedAt, terminalAt, activity, job
         case runs = "turns"
-        case pullRequest
+        case pullRequests
     }
 }
 

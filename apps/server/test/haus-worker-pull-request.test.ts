@@ -17,12 +17,9 @@ test('work reads the live reading while its Run keeps the snapshot it reported',
         workerId: work.id,
     });
 
-    expect(read.pullRequest).toMatchObject({
-        checks: 'unknown',
-        number: 12,
-        repository: 'haus/haus',
-        state: 'merged',
-    });
+    expect(read.pullRequests).toMatchObject([
+        { checks: 'unknown', number: 12, repository: 'haus/haus', state: 'merged' },
+    ]);
     expect((await fixture.readBranches(turnId))[0]?.pullRequest?.state).toBe('draft');
 
     const connection = await connectHausDatabase(fixture.harness.databaseUrl);
