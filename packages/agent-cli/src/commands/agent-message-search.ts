@@ -33,7 +33,7 @@ export const messageSearchSubcommand: SubCommand = {
     name: 'search',
     positionals: [],
     run: (args) => runSearch(args, defaultDeps()),
-    summary: 'Search messages across joined channels and DMs',
+    summary: 'Search messages across every channel, Task, and DM you can read',
     usage: 'haus message search --query <text> [--target <t>] [--sender <handle>] [--sort relevance|recent] [--before <time>] [--after <time>] [--limit <n>] [--offset <n>]',
 };
 

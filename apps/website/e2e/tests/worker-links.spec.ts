@@ -1,97 +1,64 @@
 import { formatWorkerLink } from '@haus/api';
-import { seedWorker, startWorker } from '../support/agent-worker.ts';
+import { seedWorker } from '../support/agent-worker.ts';
 import { createProjectWithAgents } from '../support/project.ts';
-import { createTestServer, openChannel, openHappeningNow } from '../support/server.ts';
+import { createTestServer, openChannel } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 const credential = 'computer-worker-links-credential-12345';
 const slug = 'worker-links';
-const launchTitle = 'Move the export worker';
+const title = 'Move the export worker';
+const brief = 'Move the export worker onto the new queue.';
 
-// ADR 0044: Worker is referenced, not embedded. Any Message that
-// links the work shows the same live card, and the work outlives the Chat
-// that asked for it.
-test('linked Worker reads as the same card wherever it is linked', async ({ page }) => {
+test('a Worker opens from its Task, and a chat link to it reads as its title', async ({ page }) => {
     test.setTimeout(90_000);
     const { client, server, session } = await createTestServer(page, {
         displayName: 'Worker Links',
         slug,
     });
+    await createProjectWithAgents(client, { agentIds: [], name: 'launch', serverId: server.id });
+    const techOps = await createProjectWithAgents(client, {
+        agentIds: [],
+        name: 'tech-ops',
+        serverId: server.id,
+    });
     const seeded = await seedWorker({
         agentHandle: 'orbit',
-        channelName: 'all',
+        brief,
+        channelName: 'launch',
         computerCredential: credential,
-        content: 'Delegating the first fix.',
         databaseUrl: session.databaseUrl,
         repository: 'haus/haus',
         serverId: server.id,
         slug,
-        title: 'Fix the first thing',
+        title,
         token: session.accessToken,
     });
-    const channel = (name: string) =>
-        createProjectWithAgents(client, {
-            agentIds: [seeded.agentId],
-            databaseUrl: session.databaseUrl,
-            name,
-            serverId: server.id,
-        });
-    const launch = await channel('launch');
-    const techOps = await channel('tech-ops');
-    const started = await startWorker({
-        agentId: seeded.agentId,
-        chatId: launch.id,
-        computerCredential: credential,
-        content: 'Sending the export move to a Worker.',
-        repository: 'haus/haus',
-        target: '#launch',
-        title: launchTitle,
-    });
 
-    // A human moves the conversation and links the running work there; a
-    // made-up link to work nobody recorded stays words, with no card.
     const moved = await client.chat.send.mutate({
         chatId: techOps.id,
-        content: `Tracking the move here.\n\n${formatWorkerLink(launchTitle, started.worker.id)}`,
+        content: `Tracking the move here: ${formatWorkerLink(title, seeded.workerId)}`,
         nonce: 'link-move',
         serverId: server.id,
     });
-    const forgedLink = await client.chat.send.mutate({
+    const forged = await client.chat.send.mutate({
         chatId: techOps.id,
-        content: `Not real.\n\n${formatWorkerLink('Forged job', 'caw_forged')}`,
+        content: `Not real: ${formatWorkerLink('Forged job', 'wkr_forged')}`,
         nonce: 'link-forged',
         serverId: server.id,
     });
 
     await page.goto(`/s/${slug}`);
     await openChannel(page, 'tech-ops');
-    // Locate rows by id: back-to-back Messages share a grouping wrapper that
-    // also carries data-message-id and contains both texts.
     const linking = page.locator(`[data-message-id="${moved.message.id}"]`);
-    const card = linking.getByTestId('worker-card');
-    await expect(card).toContainText(launchTitle);
-    // No Run has reported yet, so the queued launch reads as its stage.
-    await expect(card).toContainText('Starting');
-    // The card states the work, so the closing link paragraph is not repeated.
-    await expect(linking.getByText(launchTitle, { exact: true })).toHaveCount(1);
-    // Every link carries the same actions as the launch Message's card.
-    await expect(card.getByRole('button', { name: 'Open in Cursor' })).toBeVisible();
-    const forged = page.locator(`[data-message-id="${forgedLink.message.id}"]`);
-    await expect(forged).toContainText('Forged job');
-    await expect(forged.getByTestId('worker-card')).toHaveCount(0);
+    await expect(linking).toContainText(`Tracking the move here: ${title}`);
+    await expect(linking.getByTestId('worker-row')).toHaveCount(0);
+    await expect(linking.getByRole('link', { name: title })).toHaveCount(0);
+    const forgedRow = page.locator(`[data-message-id="${forged.message.id}"]`);
+    await expect(forgedRow).toContainText('Forged job');
+    await expect(forgedRow.getByTestId('worker-row')).toHaveCount(0);
 
-    // Deleting the Chat that asked for the work keeps the worker: Happening now
-    // still lists it, and opening it goes to the Message that links it.
-    await client.chat.deleteChannel.mutate({
-        chatId: launch.id,
-        confirmation: 'launch',
-        serverId: server.id,
-    });
-    await page.goto(`/s/${slug}/inbox`);
-    const happeningNow = await openHappeningNow(page);
-    const row = happeningNow.getByRole('button', { name: new RegExp(launchTitle, 'u') });
-    await expect(row).toBeVisible();
-    await row.click();
-    await expect(page).toHaveURL(new RegExp(`/chats/${techOps.id}`, 'u'));
-    await expect(card).toContainText(launchTitle);
+    await page.goto(`/s/${slug}/tasks/${seeded.taskKey}`);
+    await page.getByRole('grid', { name: 'Workers' }).getByTestId('worker-row').click();
+    await expect(page).toHaveURL(new RegExp(`/s/${slug}/workers/${seeded.workerId}$`, 'u'));
+    await expect(page.getByText(brief)).toBeVisible();
 });

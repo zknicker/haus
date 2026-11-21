@@ -14,9 +14,6 @@ import { createHausClient, type HausClient } from './haus-client.ts';
 import { type HausServerHarness, startHausServerHarness } from './haus-server-harness.ts';
 import { createTestProject } from './project.fixture.ts';
 
-let agentId: string;
-let anchorMessageId: string;
-let chatId: string;
 let connection: HausConnection;
 let harness: HausServerHarness;
 let owner: HausClient;
@@ -32,16 +29,6 @@ beforeAll(async () => {
         slug: 'reminder-anchor-server',
     });
     serverId = server.id;
-    chatId = server.channels[0].id;
-    const anchor = await owner.trpc.chat.send.mutate({
-        chatId,
-        content: 'Check deployment health.',
-        nonce: 'reminder-anchor-access',
-        serverId,
-    });
-    anchorMessageId = anchor.message.id;
-    agentId = 'agt_reminder_anchor';
-    await addAgent(agentId);
 });
 
 afterAll(async () => {
@@ -51,15 +38,26 @@ afterAll(async () => {
 });
 
 describe('reminder author anchor access', () => {
-    test('lists and cancels a reminder after the author loses anchor access', async () => {
+    test('lists and cancels a reminder after its anchor channel is deleted', async () => {
         const removedAgentId = 'agt_removed_from_channel';
         await addAgent(removedAgentId);
+        const goneChat = await createTestProject(owner, {
+            agentIds: [],
+            name: 'tech-gone',
+            serverId,
+        });
+        const goneAnchor = await owner.trpc.chat.send.mutate({
+            chatId: goneChat.id,
+            content: 'Gone follow-up.',
+            nonce: 'gone-channel-anchor',
+            serverId,
+        });
         const scheduled = await scheduleReminder(
             connection.db,
             removedAgentId,
             {
-                anchorChatId: chatId,
-                anchorMessageId,
+                anchorChatId: goneChat.id,
+                anchorMessageId: goneAnchor.message.id,
                 commandId: 'removed-agent-schedule',
                 fireAt: new Date('2026-07-31T13:00:00.000Z'),
                 serverId,
@@ -67,10 +65,7 @@ describe('reminder author anchor access', () => {
             },
             { now: () => new Date('2026-07-31T12:00:00.000Z') }
         );
-        await harness.sql`
-            delete from channel_agent_participants
-            where server_id = ${serverId} and agent_id = ${removedAgentId}
-        `;
+        await softDeleteChat(goneChat.id);
 
         await expect(
             snoozeReminder(
@@ -125,15 +120,15 @@ describe('reminder author anchor access', () => {
         ).resolves.toEqual([]);
     });
 
-    test('left-channel reminders do not block list, update, cancel, or fire elsewhere', async () => {
+    test('deleted-channel reminders do not block list, update, cancel, or fire elsewhere', async () => {
         const authorId = 'agt_left_channel_author';
         await addAgent(authorId);
-        const leftChat = await createTestProject(harness, owner, {
+        const leftChat = await createTestProject(owner, {
             agentIds: [authorId],
             name: 'tech-ops',
             serverId,
         });
-        const keptChat = await createTestProject(harness, owner, {
+        const keptChat = await createTestProject(owner, {
             agentIds: [authorId],
             name: 'tech-alerts',
             serverId,
@@ -187,12 +182,7 @@ describe('reminder author anchor access', () => {
             },
             { now: () => new Date('2026-08-02T12:10:00.000Z') }
         );
-        await harness.sql`
-            delete from channel_agent_participants
-            where server_id = ${serverId}
-              and chat_id = ${leftChat.id}
-              and agent_id = ${authorId}
-        `;
+        await softDeleteChat(leftChat.id);
 
         await expect(
             listReminders(connection.db, {
@@ -277,8 +267,15 @@ async function addAgent(id: string) {
         insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
         values (${id}, ${serverId}, ${handle}, ${id}, 'America/New_York', ${await testSqlAgentHome(harness.sql, serverId)})
     `;
+}
+
+async function softDeleteChat(id: string) {
     await harness.sql`
-        insert into channel_agent_participants (server_id, chat_id, agent_id)
-        values (${serverId}, ${chatId}, ${id})
+        update chats set deleted_at = now(), deleted_by_user_id = (
+            select user_id from server_memberships
+            where server_id = ${serverId} and role = 'owner'
+            limit 1
+        )
+        where server_id = ${serverId} and id = ${id}
     `;
 }

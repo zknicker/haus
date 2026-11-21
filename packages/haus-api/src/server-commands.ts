@@ -10,7 +10,8 @@ export type ServerDeleteCommand = z.infer<typeof serverDeleteCommandSchema>;
 /**
  * The Server's settings a Computer's runtimes follow (replace semantics), sent on every change
  * and on attach while one is on. A Computer holds every setting off until a frame turns it on,
- * and again whenever its attachment socket closes.
+ * and again whenever its attachment socket closes. The runner receives the same frame on every
+ * attach, on or off, and on every change.
  */
 export const serverRuntimeSettingsCommandSchema = z
     .object({

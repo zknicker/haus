@@ -7,7 +7,6 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     agentInboxExactVisibilityTable,
-    channelAgentParticipantsTable,
     chatMessagesTable,
     chatsTable,
 } from '../src/postgres/schema.ts';
@@ -52,12 +51,6 @@ async function postToChannel(
 /** Wakes the Agent on a channel message and accepts the run, as the Computer's ack does. */
 async function wakeOn(content: string) {
     const seed = await seedAgent(connection.db);
-    await connection.db.insert(channelAgentParticipantsTable).values({
-        agentId: seed.agentId,
-        chatId: seed.channelId,
-        id: createOpaqueId('cap'),
-        serverId: seed.serverId,
-    });
     const { delivery, transport, wake } = offlineDelivery(connection.db, seed);
     const wakeMessage = await postToChannel(seed, delivery, content);
     const start = await wake();

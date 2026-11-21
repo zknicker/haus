@@ -11,6 +11,7 @@ import {
 } from '../../routes/app/server-route-state.ts';
 import { CreateAgentDialog } from '../members/create-agent-dialog.tsx';
 import { serverAgentDmRoute, serverChatRoute, taskRoute } from '../servers/server-routes.ts';
+import { ListedChatNavigationRow } from '../shell/chat-navigation-row.tsx';
 import { NewProjectDialog } from '../shell/new-project-dialog.tsx';
 import { sidebarActionIconSize } from '../shell/section-header.tsx';
 import { ShellSidebarPageContent } from '../shell/shell-sidebar.tsx';
@@ -115,6 +116,17 @@ function CapySidebarSectionView({
                     serverId={serverId}
                     slug={slug}
                 />
+            );
+        case 'team-room':
+            return (
+                <Sidebar.Menu aria-label="Team room">
+                    <ListedChatNavigationRow
+                        chatId={section.chatId}
+                        isCurrent={section.chatId === selection.selectedChatId}
+                        serverId={serverId}
+                        slug={slug}
+                    />
+                </Sidebar.Menu>
             );
         case 'projects':
             return (

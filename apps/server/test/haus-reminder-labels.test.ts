@@ -63,10 +63,6 @@ beforeAll(async () => {
         serverId,
     });
     agentId = created.agent.id;
-    await harness.sql`
-        insert into channel_agent_participants (server_id, chat_id, agent_id)
-        values (${serverId}, ${channelId}, ${agentId}) on conflict do nothing
-    `;
     anchorMessageId = (
         await owner.trpc.chat.send.mutate({
             chatId: channelId,

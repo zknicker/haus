@@ -1,5 +1,6 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { AgentTargetError, resolveAgentTarget } from '../agent-api/resolve-target.ts';
+import { isHearer } from '../agent-delivery/hearing.ts';
 import { deleteQueuedInlineReplyItems } from '../agent-delivery/inline-reply-queue.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -55,7 +56,7 @@ export async function setAgentInlineReplyFollow(
             serverId: runner.serverId,
         });
         if (!input.followed) {
-            await unfollowInlineReply(tx, runner, chatId, rootMessageId);
+            await unfollowInlineReply(tx, runner, { chatId, kind: chat.kind, rootMessageId });
             return { followed: false, target: input.target };
         }
         await tx
@@ -83,8 +84,11 @@ export async function setAgentInlineReplyFollow(
 async function unfollowInlineReply(
     db: Pick<HausDatabase, 'select' | 'update' | 'delete'>,
     runner: ResolvedRunner,
-    chatId: string,
-    rootMessageId: string
+    {
+        chatId,
+        kind,
+        rootMessageId,
+    }: { chatId: string; kind: 'channel' | 'dm'; rootMessageId: string }
 ) {
     const [existing] = await db
         .select({ agentId: agentMessageFollowsTable.agentId })
@@ -112,6 +116,9 @@ async function unfollowInlineReply(
                 eq(agentMessageFollowsTable.agentId, runner.agentId)
             )
         );
+    if (kind === 'channel' && (await isHearer(db, runner, chatId))) {
+        return;
+    }
     await deleteQueuedInlineReplyItems(db, {
         agentId: runner.agentId,
         chatId,

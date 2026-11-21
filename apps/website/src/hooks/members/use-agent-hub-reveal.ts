@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { queryPolicy } from '../../lib/query-policy.ts';
+import { useProjects } from '../projects/use-projects.ts';
 import { useClaims } from '../servers/use-claims.ts';
 import { useComputers } from '../servers/use-computers.ts';
 import { useConnections } from '../servers/use-connections.ts';
@@ -33,6 +34,7 @@ export function useAgentHubReveal(input: {
         useConnections(serverId),
         useClaims(serverId),
         useAgentChats(serverId, agentId),
+        useProjects(serverId),
         hausTrpc.agent.activityHistory.useQuery(agentActivityHistoryInput(serverId, agentId), {
             ...queryPolicy.syncedSnapshot,
             enabled: Boolean(serverId && agentId),

@@ -77,8 +77,6 @@ beforeAll(async () => {
     `;
     agentId = (await createAgent('Sage', 'sage')).id;
     peerAgentId = (await createAgent('Peer', 'peer')).id;
-    await joinChannel(agentId);
-    await joinChannel(peerAgentId);
     anchorMessageId = (
         await owner.trpc.chat.send.mutate({
             chatId: channelId,
@@ -707,14 +705,6 @@ async function createAgent(displayName: string, handle: string) {
         serverId,
     });
     return created.agent;
-}
-
-async function joinChannel(joiningAgentId: string) {
-    await harness.sql`
-        insert into channel_agent_participants (server_id, chat_id, agent_id)
-        values (${serverId}, ${channelId}, ${joiningAgentId})
-        on conflict do nothing
-    `;
 }
 
 async function beginRun(runId: string) {

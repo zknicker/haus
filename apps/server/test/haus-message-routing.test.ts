@@ -1,6 +1,7 @@
 import { beforeAll, expect, test } from 'bun:test';
 import type { MessageRouter, RoutingDecision, RoutingState } from '../src/message-routing/jev.ts';
 import { agentCreationFixture } from './agent-creation-fixture.ts';
+import { ensureCaptainsProject } from './agent-home.fixture.ts';
 import { createInlineReplyHelpers } from './haus-inline-replies-helpers.ts';
 
 const calls: RoutingState[] = [];
@@ -34,8 +35,11 @@ const narrow = async (): Promise<RoutingDecision> => ({
 });
 
 beforeAll(async () => {
-    const runner = await fixture.mintRunner('run_routing_setup');
-    await fixture.post('/api/agent/channels/add', runner, { agent: '@peer', target: '#product' });
+    await fixture.owner.trpc.agent.setHome.mutate({
+        agentId: fixture.peerAgentId,
+        projectId: fixture.channelId,
+        serverId: fixture.serverId,
+    });
     await send('@orbit, fix the CSV importer.');
 });
 
@@ -253,10 +257,14 @@ test('a concurrent message does not wait for inference and invalidates the old s
     expect(rows[0].outcome).toBe('stale');
 });
 
-test('a mute during inference cannot be bypassed by the selected Agent', async () => {
-    const runner = await fixture.mintRunner('run_routing_mute');
+test('a home move during inference cannot be bypassed by the selected Agent', async () => {
+    const captains = await ensureCaptainsProject(fixture.owner, fixture.serverId);
     judge = async () => {
-        await fixture.post('/api/agent/channels/mute', runner, { target: '#product' });
+        await fixture.owner.trpc.agent.setHome.mutate({
+            agentId: fixture.orbitAgentId,
+            projectId: captains,
+            serverId: fixture.serverId,
+        });
         return await narrow();
     };
     const receipt = await send('Please handle this too.');

@@ -1,4 +1,7 @@
 import { createClaudeHarness } from '../claude/claude-driver.ts';
+import { createIdleCompactionReporter } from '../claude/idle-compaction-reporter.ts';
+import type { IdleCompactionGate } from '../claude/idle-compaction-scheduler.ts';
+import type { JournalUploads } from '../journal/journal-uploads.ts';
 import type { ConnectionBook } from '../model-connections/connection-book.ts';
 import { createPiHarness } from '../pi/pi-driver.ts';
 import { connectionModels, piProviderFor } from '../pi/pi-models.ts';
@@ -6,12 +9,22 @@ import type { RunnerLink } from '../run-context.ts';
 import { harnessFor, type RuntimeDriverFactory } from './runtime-driver.ts';
 
 export function createHarnesses(input: {
+    agentBusy: (agentId: string) => boolean;
     book: ConnectionBook;
+    journal?: JournalUploads;
     link: RunnerLink;
     log: (line: string) => void;
     maxWarm: number;
 }) {
-    const claude = createClaudeHarness({ maxWarm: input.maxWarm });
+    const claude = createClaudeHarness({
+        hooks: createIdleCompactionReporter({
+            agentBusy: input.agentBusy,
+            link: input.link,
+            log: input.log,
+            ...(input.journal ? { uploads: input.journal } : {}),
+        }),
+        maxWarm: input.maxWarm,
+    });
     const pi = createPiHarness({
         log: input.log,
         maxWarm: input.maxWarm,
@@ -31,6 +44,9 @@ export function createHarnesses(input: {
             return pi.close();
         },
         factory,
+        setIdleCompaction(gate: IdleCompactionGate) {
+            claude.setIdleCompaction(gate);
+        },
         release(agentId: string) {
             return Promise.all([claude.release(agentId), pi.release(agentId)]);
         },

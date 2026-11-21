@@ -19,8 +19,8 @@ export async function seedWorkerBoard(
     const board = await seedTaskBoard(db);
     const { seed } = board;
     await db.execute(sql`
-        insert into channel_agent_participants (server_id, chat_id, agent_id)
-        values (${seed.serverId}, ${seed.channelId}, ${seed.agentId})
+        update agents set home_project_id = ${seed.channelId}
+        where server_id = ${seed.serverId} and id = ${seed.agentId}
     `);
     await db.execute(sql`
         insert into channel_participants (server_id, chat_id, user_id)

@@ -13,24 +13,16 @@ import {
 import * as React from 'react';
 import { AvatarPicker } from '../avatars/avatar-picker.tsx';
 import type { AvatarImage } from '../avatars/resize-avatar-image.ts';
-import type {
-    AgentCreationSubmitValues,
-    HomeProjectOption,
-    ReportedComputer,
-} from './agent-creation-contract.ts';
+import { ProjectSelect } from '../chats/project-select.tsx';
+import type { AgentCreationSubmitValues, ReportedComputer } from './agent-creation-contract.ts';
 import { resolveAgentCreationDefaults } from './agent-creation-defaults.ts';
 import { createAgentHandle } from './agent-handle.ts';
-import { HomeProjectSelect } from './home-project-select.tsx';
 import { InventorySelect } from './inventory-select.tsx';
 import { modelFeatureDescription } from './model-features.ts';
 import { ReasoningSelect, supportedReasoningEffort } from './reasoning-select.tsx';
 import { SignatureEmojiField } from './signature-emoji-field.tsx';
 
-export type {
-    AgentCreationSubmitValues,
-    HomeProjectOption,
-    ReportedComputer,
-} from './agent-creation-contract.ts';
+export type { AgentCreationSubmitValues, ReportedComputer } from './agent-creation-contract.ts';
 
 interface AgentCreationFormProps {
     agents: readonly Agent[];
@@ -39,8 +31,8 @@ interface AgentCreationFormProps {
     onAddDevice?: () => void;
     onCreated: (agentId: string) => void;
     onSubmit: (values: AgentCreationSubmitValues) => Promise<{ agentId: string }>;
-    projects: readonly HomeProjectOption[];
     reported: ReportedComputer[];
+    serverId: string;
 }
 
 export function AgentCreationForm({
@@ -50,8 +42,8 @@ export function AgentCreationForm({
     onAddDevice,
     onCreated,
     onSubmit,
-    projects,
     reported,
+    serverId,
 }: AgentCreationFormProps) {
     const defaults = React.useMemo(
         () => resolveAgentCreationDefaults(reported, agents),
@@ -65,8 +57,8 @@ export function AgentCreationForm({
     const [reasoningEffort, setReasoningEffort] = React.useState<AgentReasoningEffort>(
         defaults.reasoningEffort
     );
-    const [homeProjectId, setHomeProjectId] = React.useState('');
     const [displayName, setDisplayName] = React.useState('');
+    const [homeProjectId, setHomeProjectId] = React.useState<string | null>(null);
     const [description, setDescription] = React.useState('');
     const [signatureEmoji, setSignatureEmoji] = React.useState<string | null>(null);
     const [avatar, setAvatar] = React.useState<AvatarImage | null>(null);
@@ -83,6 +75,7 @@ export function AgentCreationForm({
         setModelId(defaults.modelId);
         setReasoningEffort(defaults.reasoningEffort);
         setDisplayName('');
+        setHomeProjectId(null);
         setDescription('');
         setSignatureEmoji(null);
         setAvatar(null);
@@ -94,15 +87,16 @@ export function AgentCreationForm({
     const runtime = runtimes.find((entry) => entry.id === runtimeId) ?? runtimes[0];
     const models = runtime?.models ?? [];
     const model = models.find((entry) => entry.id === modelId) ?? models[0];
-    const homeId = resolveHomeProjectId(projects, homeProjectId);
     const name = displayName.trim();
     const canSubmit =
-        [name, homeId, computer, runtime, model].every(Boolean) && !isPending && !avatarError;
+        [name, homeProjectId, computer, runtime, model].every(Boolean) &&
+        !isPending &&
+        !avatarError;
     const avatarSrc = avatar?.dataUrl ?? null;
 
     const handleSubmit = React.useEffectEvent(async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if (!(canSubmit && computer && runtime && model)) {
+        if (!(canSubmit && homeProjectId && computer && runtime && model)) {
             return;
         }
 
@@ -120,7 +114,7 @@ export function AgentCreationForm({
                 description: description.trim() || null,
                 displayName: name,
                 handle: createAgentHandle(name, agents),
-                homeProjectId: homeId,
+                homeProjectId,
                 modelId: model.id,
                 reasoningEffort: supportedReasoningEffort(model, reasoningEffort),
                 runtimeId: runtime.id,
@@ -155,11 +149,6 @@ export function AgentCreationForm({
                             </p>
                         </div>
                     </div>
-                    <HomeProjectSelect
-                        onChange={setHomeProjectId}
-                        projects={projects}
-                        value={homeId}
-                    />
                     <InventorySelect
                         description={
                             reported.length === 0
@@ -195,6 +184,14 @@ export function AgentCreationForm({
                         <Label>Name</Label>
                         <Input autoFocus maxLength={80} placeholder="e.g. Alice" />
                     </TextField>
+                    <ProjectSelect
+                        fullWidth
+                        onSelect={setHomeProjectId}
+                        serverId={serverId}
+                        value={homeProjectId}
+                    >
+                        <Label>Project</Label>
+                    </ProjectSelect>
                     <TextField
                         fullWidth
                         onChange={setDescription}
@@ -266,8 +263,4 @@ export function AgentCreationForm({
             </Modal.Footer>
         </>
     );
-}
-
-function resolveHomeProjectId(projects: readonly HomeProjectOption[], chosenId: string) {
-    return (projects.find((entry) => entry.id === chosenId) ?? projects[0])?.id ?? '';
 }

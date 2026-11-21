@@ -4,7 +4,6 @@ import { insertMessageCause, resolveMessageCause } from '../automations/message-
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import {
-    channelAgentParticipantsTable,
     channelParticipantsTable,
     chatMessagesTable,
     chatsTable,
@@ -53,10 +52,6 @@ export async function seedDevelopmentAutomationCauses(
             .insert(chatsTable)
             .values({ id: chatId, kind: 'channel', name: 'automations', serverId });
         await tx.insert(channelParticipantsTable).values({ chatId, serverId, userId });
-        await tx.insert(channelAgentParticipantsTable).values([
-            { agentId: blippyId, chatId, serverId },
-            { agentId: tinyId, chatId, serverId },
-        ]);
 
         const start = Date.now() - 90 * minuteMs;
         const at = (minutes: number) => new Date(start + minutes * minuteMs);

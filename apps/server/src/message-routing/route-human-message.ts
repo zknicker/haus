@@ -1,7 +1,6 @@
 import type { ChatSendInput, RoutingBypassReason } from '@haus/api';
 import { planAgentMessageRecipients } from '../agent-delivery/message-recipients.ts';
 import { requireChatWriteAccess } from '../chats/chat-access.ts';
-import { mentionedAgentIds } from '../chats/reply-subscriptions.ts';
 import { readExistingChatMessage } from '../chats/send-message-replay.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { HausUser } from '../users/haus-user.ts';
@@ -54,18 +53,23 @@ export async function prepareMessageRouting(
     if (await readExistingChatMessage(db, input.serverId, input.chatId, input.nonce)) {
         return bypass('disabled'); // The transaction returns the original receipt and audit.
     }
-    const agents = await readRoutingAgents(db, input.serverId, input.chatId);
-    if (agents.length > 32) {
-        return bypass('context-limit');
-    }
     const recipients = await planAgentMessageRecipients(db, {
         authorAgentId: null,
         chatId: input.chatId,
         content: input.content,
         serverId: input.serverId,
     });
+    const agents = await readRoutingAgents(
+        db,
+        input.serverId,
+        input.chatId,
+        mentionedRecipientIds(recipients)
+    );
+    if (agents.length > 32) {
+        return bypass('context-limit');
+    }
     const scope = { agents, chat, member, recipients, router };
-    if (mentionedAgentIds(input.content, agents).size) {
+    if (recipients.some((row) => row.mentioned)) {
         return await prepareMentionScope(db, input, scope);
     }
     const [sole] = recipients;
@@ -138,7 +142,7 @@ async function prepareMentionScope(
         content: input.content,
         agents,
         eligibleAgentIds: candidateAgentIds,
-        explicitAgentIds: recipients.flatMap((row) => (row.mentioned ? [row.agentId] : [])),
+        explicitAgentIds: mentionedRecipientIds(recipients),
         allowEmptyHistory: true,
     });
     if (!state) {
@@ -153,6 +157,12 @@ async function prepareMentionScope(
         decision: await judgeMentionScopeSafely(router, state),
         elapsedMs: Math.round(performance.now() - started),
     };
+}
+
+export function mentionedRecipientIds(
+    recipients: readonly { agentId: string; mentioned: boolean }[]
+) {
+    return recipients.flatMap((row) => (row.mentioned ? [row.agentId] : []));
 }
 
 /** Message shapes that keep their deterministic delivery before any read. */

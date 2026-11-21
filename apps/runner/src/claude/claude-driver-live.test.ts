@@ -6,6 +6,14 @@ import type { RunTools, ToolOutcome } from '../run-context.ts';
 import type { RuntimeTurn } from '../turn/runtime-driver.ts';
 import type { TurnEvent } from '../turn/turn-event.ts';
 import { createClaudeHarness } from './claude-driver.ts';
+import { createIdleCompactionReporter } from './idle-compaction-reporter.ts';
+
+const idleCompactionHooks = () =>
+    createIdleCompactionReporter({
+        agentBusy: () => false,
+        link: { send: () => undefined },
+        log: () => undefined,
+    });
 
 const setupToken = process.env.HAUS_RUNNER_TEST_CLAUDE_SETUP_TOKEN;
 const liveTest =
@@ -35,7 +43,7 @@ liveTest(
             reasoningEffort: 'default' as const,
             tools: localTools(),
         };
-        const warm = createClaudeHarness({ maxWarm: 2 });
+        const warm = createClaudeHarness({ hooks: idleCompactionHooks(), maxWarm: 2 });
         const session = await warm.driver(launch).openSession({
             resumeFrom: undefined,
             sessionId: 'agent-live-1',
@@ -73,7 +81,7 @@ liveTest(
         expect(warm.warm).toBe(1);
         warm.close();
 
-        const cold = createClaudeHarness({ maxWarm: 2 });
+        const cold = createClaudeHarness({ hooks: idleCompactionHooks(), maxWarm: 2 });
         const resumed = await cold.driver(launch).openSession({
             resumeFrom: nativeSessionId,
             sessionId: 'agent-live-1',

@@ -5,7 +5,7 @@ import { idSchema } from './chat.ts';
 const timestampSchema = z.iso.datetime({ offset: true });
 
 /**
- * Computer→Server: an idle compaction finished on a parked Agent session (specs/runtime-drivers.md
+ * Computer or runner→Server: an idle compaction finished on a parked Agent session (specs/runtime-drivers.md
  * "Idle compaction"). No run asked for it, so it settles no delivery; the Server records it as
  * the Agent's own completed turn under `compactionId`, so Usage counts what it spent. The usage is
  * the CLI's cumulative total across the compaction, which a compaction reports nowhere else.

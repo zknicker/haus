@@ -7,9 +7,8 @@ import { requireChatWritable } from '../chats/chat-access.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, chatsTable } from '../postgres/schema.ts';
-import { findLiveAgentHome } from '../projects/live-project.ts';
+import { findLiveProjectByKey, isLiveProject, readAgentHomeKey } from '../projects/agent-home.ts';
 import { readCreatedAgent } from './agent-created-shape.ts';
-import { readAgentChannels, requireCreationChannels } from './creation-channels.ts';
 import { requireAgentCreationGuidance } from './creation-guidance.ts';
 import { AgentCreateConflictError } from './errors.ts';
 
@@ -22,7 +21,8 @@ export function agentCreationRequestHash(input: AgentCreateAgentRequest): string
                 input.description,
                 input.avatarConcept,
                 input.brief,
-                [...new Set(input.channels)].sort(),
+                // The slot channel lists held, so a request without a Project keeps its hash.
+                input.project === null ? [] : [input.project],
                 // Appended only when set, so requests stored before the field keep their hash.
                 ...(input.signatureEmoji === null ? [] : [input.signatureEmoji]),
             ])
@@ -79,13 +79,11 @@ export async function readAgentCreationReplay(
     return {
         agent,
         avatar: { status: 'none' },
-        channels: (await readAgentChannels(db, runner.serverId, row.id)).map(
-            (channel) => `#${channel.name}`
-        ),
         chatId,
         computerId: row.computerId,
         idempotent: true,
         modelId: row.desiredModelId,
+        project: await readAgentHomeKey(db, { agentId: row.id, serverId: runner.serverId }),
         reasoningEffort: row.desiredReasoningEffort,
         runtimeId: row.desiredRuntimeId,
         target: input.target,
@@ -104,18 +102,47 @@ export async function precheckAgentCreation(
     }
     await assertFreshAgentView(db, runner, chatId);
     await requireAgentCreationGuidance(db, runner, input.brief);
-    await requireCreationChannels(db, runner.serverId, input.channels);
-    await requireCreationHome(db, runner);
+    await requireCreationHome(db, runner, input.project);
     return { replayed: false };
 }
 
+/** The live Project `--project` names, or else the creating Agent's own home. */
 export async function requireCreationHome(
     db: Pick<HausDatabase, 'select'>,
-    runner: ResolvedRunner
+    runner: ResolvedRunner,
+    key: string | null
 ) {
-    const home = await findLiveAgentHome(db, runner);
-    if (!home) {
-        throw new AgentTargetError('Your Project is not open, so the new Agent cannot join it.');
+    if (key === null) {
+        const home = await findCreatorHome(db, runner);
+        if (!home) {
+            throw new AgentTargetError(
+                'Your Project is not open, so the new Agent cannot join it. Pass --project <KEY>.'
+            );
+        }
+        return home;
     }
-    return home;
+    const project = await findLiveProjectByKey(db, { key, serverId: runner.serverId });
+    if (!project) {
+        throw new AgentTargetError(
+            `There is no open Project with key ${key} on this Server to make the new Agent's home.`
+        );
+    }
+    return project.id;
+}
+
+async function findCreatorHome(db: Pick<HausDatabase, 'select'>, runner: ResolvedRunner) {
+    const [creator] = await db
+        .select({ homeProjectId: agentsTable.homeProjectId })
+        .from(agentsTable)
+        .where(and(eq(agentsTable.serverId, runner.serverId), eq(agentsTable.id, runner.agentId)))
+        .limit(1);
+    if (!creator?.homeProjectId) {
+        return null;
+    }
+    return (await isLiveProject(db, {
+        projectId: creator.homeProjectId,
+        serverId: runner.serverId,
+    }))
+        ? creator.homeProjectId
+        : null;
 }

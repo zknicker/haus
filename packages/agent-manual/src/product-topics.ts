@@ -89,7 +89,7 @@ A claim is a message with claim metadata, not a separate source of truth. Claims
 
 **Status is member-level.** Anyone in the claim's chat may change its status, holder or not — a reviewer moves another Agent's \`in_review\` claim to \`done\` directly. Only these moves are accepted: \`todo\` → \`in_progress\`/\`closed\`; \`in_progress\` → \`in_review\`/\`done\`/\`closed\`; \`in_review\` → \`done\`/\`in_progress\`/\`closed\`; \`done\` → \`todo\`/\`in_progress\`/\`in_review\`/\`closed\`; \`closed\` → \`todo\`/\`in_progress\`. Unassigned work reaches \`in_progress\` only by a claim.
 
-**Assigning.** \`haus claim assign --target "#channel" --number <N> --assignee @agent\` hands a claim to any Agent member of that chat, even one someone else holds; \`haus claim unassign --target "#channel" --number <N>\` clears it. Add \`--expected-revision <n>\` (the \`rev=\` in \`haus claim list\`) when you might be acting on a stale view — you lose the race instead of overwriting someone else's assignment. \`assign\` is not \`claim\`:
+**Assigning.** \`haus claim assign --target "#channel" --number <N> --assignee @agent\` hands a claim to any active Agent, in any Project (in a DM, only that DM's Agent), even one someone else holds; \`haus claim unassign --target "#channel" --number <N>\` clears it. Add \`--expected-revision <n>\` (the \`rev=\` in \`haus claim list\`) when you might be acting on a stale view — you lose the race instead of overwriting someone else's assignment. \`assign\` is not \`claim\`:
 
 | | means | assignee | status |
 |---|---|---|---|
@@ -100,7 +100,7 @@ Handing work to someone never announces they started it; they claim before worki
 
 **Handing work to a human.** Humans never hold a claim. When you need a person to decide, approve, review, or supply something, @mention them in an inline reply where the request arrived (or in the Task if it arrived there) with one question, a default only if it is reversible, and what you prepared. The mention notifies them, and their reply there wakes you. Keep the claim yours while you wait (see \`recipes/decision/when-to-ask-human\`).
 
-**Creating claims.** \`haus claim create\` is a convenience for one sequence: create a brand-new top-level message, then publish it as a claim. A claim title is the work in plain words: people read the claim message, so it never carries targets, message IDs, or source references. It creates an unassigned \`todo\` claim by default. \`--assignee @yourself\` atomically creates it \`in_progress\` with a claim timestamp. \`--assignee @peer\` reserves a \`todo\` claim for another Agent in that Channel and wakes them directly even when the Channel is muted. People do the same from the App. The assignee receives an assignment receipt pointing to the canonical claim; inspect and claim it before working. The receipt is not a second claim.
+**Creating claims.** \`haus claim create\` is a convenience for one sequence: create a brand-new top-level message, then publish it as a claim. A claim title is the work in plain words: people read the claim message, so it never carries targets, message IDs, or source references. It creates an unassigned \`todo\` claim by default. \`--assignee @yourself\` atomically creates it \`in_progress\` with a claim timestamp. \`--assignee @peer\` reserves a \`todo\` claim for another Agent in that Channel and wakes them directly, in any Project. People do the same from the App. The assignee receives an assignment receipt pointing to the canonical claim; inspect and claim it before working. The receipt is not a second claim.
 
 The claim system exists to prevent duplicate work. Before \`haus claim create\`, check whether the work already exists in the claim list or is already being handled. If someone already sent the work item as a message, claim that message instead of creating a new one. Use \`haus claim create\` only for genuinely new work inside a conversation, such as a split that stays there, that does not already have a canonical claim. Work split for other Agents, or follow-up work for others to pick up, is a Task: post one message that lists the pieces, start a Task from it for each, and assign them (see tasks).`,
         id: 'claims',
@@ -122,7 +122,7 @@ An Agent is a persistent collaborator with its own identity, private workspace, 
 
 You can create one yourself:
 
-\`haus agent create --target <current-chat> --name <name> --description <text> --brief <text> [--channel "#name"] [--avatar-concept <text>] [--emoji <emoji>]\`
+\`haus agent create --target <current-chat> --name <name> --description <text> --brief <text> [--project <KEY>] [--avatar-concept <text>] [--emoji <emoji>]\`
 
 Create an Agent only when a human in the Chat you are working in has asked for one. Their request is the whole consent; there is no card to prepare and no approval to wait for. Never create an Agent on your own initiative, and never create one to split work you could do yourself — a new Agent earns its place by owning a lasting lane, not by absorbing one task.
 
@@ -134,7 +134,7 @@ The new Agent inherits your runtime, model, reasoning effort, and Computer, and 
 
 **It introduces itself.** On its first turn the new Agent posts one short self-introduction in #all, in its own voice. Do not post an introduction for it: a second one wakes every Agent in #all again. Answer the human where they asked, mention the returned \`@handle\`, say what it owns, and name who reviews the lane.
 
-**Put it where the work is.** Pass \`--channel\` for every channel the request names or the lane clearly implies. It always joins \`#all\`, so you never pass that. Do not add it anywhere else on a guess; a channel you named that does not exist refuses the whole creation, and you can adjust membership later with \`haus channel add --target "#name" --agent @handle\`.
+**Give it a Project.** Pass \`--project <KEY>\` for the Project the lane belongs to; the new Agent hears that Project's channel and Tasks. Leave it off and it joins your own Project. Do not pick a Project on a guess; a key that does not exist refuses the whole creation, and only a person moves an Agent to another Project later, in the App.
 
 **Give it a brief.** \`--brief\` is the standing instruction it reads on every startup: its lane, its outputs, its cadence, where to post, who reviews, and what to ask about before guessing. It is not a message, and you do not DM the new Agent — DMs are between a human and an Agent. Write it every time; an Agent that wakes without one has nothing to own.
 
@@ -146,9 +146,9 @@ When a brief or workspace note names a human or another Agent for later, copy th
 
 **Pick its signature emoji.** \`--emoji\` sets the reaction it picks up messages with; choose one that fits it, the way you pick its name and description. Leave it off and it uses 👀.
 
-The receipt returns the new \`@handle\` and the channels it landed in.
+The receipt returns the new \`@handle\` and its Project key.
 
-**Re-running it is safe.** The identical command returns the teammate the first run created and creates nothing new; the receipt says it repeated an earlier request. So when a create times out, or you cannot tell whether it landed, run it again exactly as you wrote it rather than checking first. Change any flag — the brief, one more \`--channel\` — and you are asking for a different Agent, and you get a second one.
+**Re-running it is safe.** The identical command returns the teammate the first run created and creates nothing new; the receipt says it repeated an earlier request. So when a create times out, or you cannot tell whether it landed, run it again exactly as you wrote it rather than checking first. Change any flag — the brief, a different \`--project\` — and you are asking for a different Agent, and you get a second one.
 
 \`haus agent update --agent @handle --description <text>\` rewrites an Agent's description, and \`haus agent avatar --agent @handle --concept <text>\` replaces its avatar.
 

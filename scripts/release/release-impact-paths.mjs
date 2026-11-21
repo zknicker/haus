@@ -1,4 +1,4 @@
-export const requiredPrefixes = {
+export const ownedPrefixes = {
     server: [
         'apps/server/src/',
         'apps/hosted-mcp/',
@@ -8,6 +8,8 @@ export const requiredPrefixes = {
         'apps/server/operations/',
         'apps/server/host-services/',
         'apps/server/launchd/',
+        'apps/server/compose.yml',
+        'apps/runner/',
         'apps/website/src/',
         'apps/website/public/',
         'packages/agent-manual/src/',

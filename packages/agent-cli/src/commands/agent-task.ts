@@ -54,7 +54,7 @@ export const TASK_SUBCOMMANDS: SubCommand[] = [
             },
             {
                 description:
-                    "The Project's key, like APP; defaults to the origin's channel, or your Project for a DM",
+                    "The Project's key, like APP; defaults to the origin's channel, or your Project for a DM or #all",
                 name: '--project',
                 valueName: '<KEY>',
             },

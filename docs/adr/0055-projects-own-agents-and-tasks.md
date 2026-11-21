@@ -79,6 +79,9 @@ someone @mentions it. Haus is a team, so it takes Capy's ownership and Amp's qui
    `#all`. In other Projects it
    receives @mentions, assignments, and the Tasks and inline reply chains it follows, since
    following is how it stays in work it was pulled into. DMs always reach it. Channel mutes go.
+   A Project with no home Agent delivers only @mentions, assignments, follows and DMs; no other
+   Agent hears it on its behalf (amended 2026-11-20 by Zach's decision that every Captain belongs
+   to a real Project, which retires the 2026-11-19 generalist fallback).
 
 8. **Work stays in its Project.** An Agent starts Tasks in its own Project. Work that belongs
    elsewhere it hands to that Project's Agent in that Project's channel, by @mention or assignment,

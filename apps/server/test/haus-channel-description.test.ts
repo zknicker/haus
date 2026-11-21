@@ -31,7 +31,7 @@ test('a new Server seeds #all with its shared description', async () => {
 });
 
 test('humans set, trim, clear, and keep a channel description', async () => {
-    const created = await createTestProject(fixture.harness, fixture.owner, {
+    const created = await createTestProject(fixture.owner, {
         agentIds: [fixture.orbitAgentId],
         description: '  Release coordination.  ',
         name: 'releases',

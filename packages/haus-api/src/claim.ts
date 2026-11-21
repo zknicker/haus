@@ -41,9 +41,9 @@ export const claimAssigneesInputSchema = z
     .strict();
 
 /**
- * Who a claim may be handed to: an Agent member of the claim's Chat. Humans are
- * never assignees (ADR 0037); an Agent hands work to a human by @mentioning
- * them in the conversation.
+ * Who a claim may be handed to: any active Agent on the Server, and in a DM only
+ * that DM's Agent. Humans are never assignees (ADR 0037); an Agent hands work to
+ * a human by @mentioning them in the conversation.
  */
 export const claimAssigneeSchema = z
     .object({

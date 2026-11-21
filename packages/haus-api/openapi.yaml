@@ -695,7 +695,7 @@ paths:
     get:
       operationId: searchAgentMessages
       tags: [Agent CLI]
-      summary: Search messages across joined chats.
+      summary: Search messages across every chat the Agent can read.
       parameters:
         - name: q
           in: query
@@ -808,7 +808,7 @@ paths:
         - { name: channels, in: query, schema: { type: boolean } }
         - { name: agents, in: query, schema: { type: boolean } }
         - { name: humans, in: query, schema: { type: boolean } }
-        - { name: joined, in: query, schema: { type: boolean } }
+        - { name: home, in: query, schema: { type: boolean } }
         - { name: query, in: query, schema: { type: string } }
         - $ref: '#/components/parameters/Limit'
         - { name: offset, in: query, schema: { type: integer, minimum: 0 } }
@@ -851,26 +851,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AgentChannelMembers'
-        default:
-          $ref: '#/components/responses/AgentError'
-  /api/agent/channels/add:
-    post:
-      operationId: addAgentToChannel
-      tags: [Agent CLI]
-      summary: Put another Agent in a channel.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AgentAddChannelAgentRequest'
-      responses:
-        '200':
-          description: The channel and the Agent now in it.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AgentAddChannelAgentResponse'
         default:
           $ref: '#/components/responses/AgentError'
   /api/agent/claims:
@@ -967,7 +947,7 @@ paths:
     post:
       operationId: assignAgentClaim
       tags: [Agent CLI]
-      summary: Assign one claim to an Agent member of its Chat without changing its status.
+      summary: Assign one claim to an active Agent, in a DM only that DM's Agent, without changing its status.
       requestBody:
         required: true
         content:
@@ -1946,14 +1926,14 @@ components:
       properties:
         avatarConcept: { type: [string, 'null'], minLength: 1, maxLength: 280, default: null }
         brief: { type: [string, 'null'], minLength: 1, maxLength: 4000, default: null, description: 'Required for fresh Agent-owned creation. Missing/null is decoded only for legacy nonce replay or an actionable refusal.' }
-        channels:
-          type: array
-          maxItems: 20
-          default: []
-          items: { type: string, pattern: '^#[A-Za-z0-9][A-Za-z0-9_-]{0,31}$' }
         description: { type: string, minLength: 1, maxLength: 280 }
         displayName: { type: string, minLength: 1, maxLength: 80 }
         nonce: { type: string, minLength: 1, maxLength: 128 }
+        project:
+          type: [string, 'null']
+          default: null
+          pattern: '^[A-Za-z][A-Za-z0-9]{1,4}$'
+          description: The new Agent's Project key. Null puts it in the creating Agent's own Project.
         signatureEmoji:
           type: [string, 'null']
           default: null
@@ -1993,37 +1973,20 @@ components:
     AgentCreateAgentResponse:
       type: object
       additionalProperties: false
-      required: [agent, avatar, channels, chatId, computerId, idempotent, modelId, reasoningEffort, runtimeId, target]
+      required: [agent, avatar, chatId, computerId, idempotent, modelId, project, reasoningEffort, runtimeId, target]
       properties:
         agent:
           $ref: '#/components/schemas/CreatedAgentSummary'
         avatar:
           $ref: '#/components/schemas/AgentCreatedAvatarOutcome'
-        channels:
-          type: array
-          items: { type: string, pattern: '^#[A-Za-z0-9][A-Za-z0-9_-]{0,31}$' }
         chatId: { type: string, minLength: 1 }
         computerId: { type: string, minLength: 1 }
         idempotent: { type: boolean }
         modelId: { type: string }
+        project: { type: string, pattern: '^[A-Z][A-Z0-9]{1,4}$', description: The new Agent's Project key. }
         reasoningEffort: { type: string, enum: [default, low, medium, high, xhigh, max] }
         runtimeId: { type: string }
         target: { type: string, minLength: 1 }
-    AgentAddChannelAgentRequest:
-      type: object
-      additionalProperties: false
-      required: [agent, target]
-      properties:
-        agent: { type: string, minLength: 1, maxLength: 64 }
-        target: { type: string, pattern: '^#[A-Za-z0-9][A-Za-z0-9_-]{0,31}$' }
-    AgentAddChannelAgentResponse:
-      type: object
-      additionalProperties: false
-      required: [added, handle, target]
-      properties:
-        added: { type: boolean }
-        handle: { type: string, minLength: 1, maxLength: 31 }
-        target: { type: string, pattern: '^#[A-Za-z0-9][A-Za-z0-9_-]{0,31}$' }
     AgentUpdateAgentRequest:
       type: object
       additionalProperties: false
@@ -2321,10 +2284,17 @@ components:
     AgentChannel:
       type: object
       additionalProperties: false
-      required: [handle, joined, description, memberCount]
+      required: [handle, home, project, homeAgents, description, memberCount]
       properties:
         handle: { type: string }
-        joined: { type: boolean }
+        # True when this channel is the calling Agent's Project.
+        home: { type: boolean }
+        # The Project key this channel is; null for #all, the team room, which is no Project.
+        project: { type: [string, 'null'] }
+        # Handles of the non-retired Agents whose Project this is; empty for #all.
+        homeAgents:
+          type: array
+          items: { type: string }
         description: { type: [string, 'null'] }
         memberCount: { type: integer, minimum: 0 }
     AgentServerInfo:
@@ -2375,9 +2345,10 @@ components:
     AgentChannelMembers:
       type: object
       additionalProperties: false
-      required: [target, members]
+      required: [target, project, members]
       properties:
         target: { type: string }
+        project: { type: [string, 'null'] }
         members:
           type: array
           items:
@@ -2465,7 +2436,7 @@ components:
         assignee:
           type: string
           minLength: 1
-          description: '@handle of an Agent member of the target Chat.'
+          description: '@handle of an active Agent; in a DM, only that DM''s Agent.'
         content: { type: string }
         # Idempotency key, minted once per CLI invocation. The same nonce and
         # request replay the original claims; a different request under it is
@@ -2510,7 +2481,7 @@ components:
         assignee:
           type: string
           minLength: 1
-          description: '@handle of an Agent member of the claim''s Chat. Humans are never assignees; human, missing, retired, and out-of-Chat handles share one not-assignable refusal.'
+          description: '@handle of an active Agent; in a DM, only that DM''s Agent. Humans are never assignees; human, missing, retired, and other-Agent-in-a-DM handles share one not-assignable refusal.'
         expectedRevision:
           type: integer
           minimum: 0
@@ -3196,8 +3167,8 @@ components:
           type: string
           pattern: '^[A-Z][A-Z0-9]{1,4}$'
           description: >-
-            The Task's Project by key, like `SEC`. Defaults to the origin's channel, or for a DM
-            origin to the caller's Project.
+            The Task's Project by key, like `SEC`. Defaults to the origin's channel, or for a DM or
+            `#all` origin to the caller's Project.
         state:
           description: Defaults to open.
           type: string

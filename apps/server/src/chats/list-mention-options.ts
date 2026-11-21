@@ -5,13 +5,9 @@ import {
     type MentionOption,
 } from '@haus/api';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
+import { listHearingCandidates } from '../agent-delivery/hearing.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    agentsTable,
-    channelAgentParticipantsTable,
-    chatsTable,
-    computersTable,
-} from '../postgres/schema.ts';
+import { agentsTable, computersTable } from '../postgres/schema.ts';
 import { listServerMembers } from '../servers/list-members.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
@@ -25,7 +21,7 @@ export async function listMentionOptions(
         | { agentId: string; agentIds: string[]; serverId: string; targetKind: 'agent-dm' }
         | { agentIds: string[]; chatId: string; serverId: string }
 ): Promise<{ options: MentionOption[] }> {
-    const participantAgentIds =
+    const { participantAgentIds, skillAgentIds: defaultSkillAgentIds } =
         'agentId' in input
             ? await listImplicitDmAgentIds(db, member, input)
             : await listChatMentionAgentIds(db, member, input);
@@ -33,7 +29,7 @@ export async function listMentionOptions(
     const skillAgentIds =
         input.agentIds.length > 0
             ? input.agentIds.filter((agentId) => participantSet.has(agentId))
-            : participantAgentIds;
+            : defaultSkillAgentIds;
 
     const rows =
         participantAgentIds.length === 0
@@ -62,7 +58,7 @@ export async function listMentionOptions(
                   .orderBy(agentsTable.createdAt);
 
     const agentOptions = rows.map((agent): MentionOption => ({
-        description: 'Agent in this chat',
+        description: 'Agent',
         id: formatAgentReferenceTarget(agent.id),
         insertText: `@${agent.displayName}`,
         kind: 'agent',
@@ -139,7 +135,8 @@ async function listImplicitDmAgentIds(
             )
         )
         .limit(1);
-    return agent ? [agent.id] : [];
+    const ids = agent ? [agent.id] : [];
+    return { participantAgentIds: ids, skillAgentIds: ids };
 }
 
 async function listChatMentionAgentIds(
@@ -148,39 +145,16 @@ async function listChatMentionAgentIds(
     input: { chatId: string; serverId: string }
 ) {
     const chat = await requireChatAccess(db, member, input);
-    return await listParticipantAgentIds(db, {
-        chatId: chat.kind === 'task' ? (chat.parentChatId ?? chat.id) : chat.id,
-        serverId: input.serverId,
-    });
-}
-
-async function listParticipantAgentIds(
-    db: HausDatabase,
-    input: { chatId: string; serverId: string }
-): Promise<string[]> {
-    const [chat] = await db
-        .select({ dmAgentId: chatsTable.dmAgentId, kind: chatsTable.kind })
-        .from(chatsTable)
-        .where(and(eq(chatsTable.serverId, input.serverId), eq(chatsTable.id, input.chatId)))
-        .limit(1);
-
-    if (!chat) {
-        return [];
-    }
     if (chat.kind === 'dm') {
-        return chat.dmAgentId ? [chat.dmAgentId] : [];
+        const ids = chat.dmAgentId ? [chat.dmAgentId] : [];
+        return { participantAgentIds: ids, skillAgentIds: ids };
     }
-
-    const participants = await db
-        .select({ agentId: channelAgentParticipantsTable.agentId })
-        .from(channelAgentParticipantsTable)
-        .where(
-            and(
-                eq(channelAgentParticipantsTable.serverId, input.serverId),
-                eq(channelAgentParticipantsTable.chatId, input.chatId)
-            )
-        )
-        .orderBy(channelAgentParticipantsTable.createdAt);
-
-    return participants.map((participant) => participant.agentId);
+    const projectId = chat.kind === 'task' ? chat.parentChatId : chat.id;
+    const agents = await listHearingCandidates(db, input.serverId);
+    return {
+        participantAgentIds: agents.map((agent) => agent.id),
+        skillAgentIds: agents
+            .filter((agent) => agent.homeProjectId === projectId)
+            .map((agent) => agent.id),
+    };
 }

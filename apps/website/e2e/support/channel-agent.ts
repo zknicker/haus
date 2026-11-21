@@ -42,16 +42,11 @@ export async function createChannelAgent(input: {
         computerId: agentComputerId,
         displayName: 'Orbit',
         handle: 'orbit',
+        homeProjectId: chatId,
         modelId: 'gpt-5.6-sol',
         runtimeId: 'codex',
         serverId: input.serverId,
     });
-    runPsql(
-        input.databaseUrl,
-        `insert into channel_agent_participants (server_id, chat_id, agent_id)
-         values ('${input.serverId}', '${chatId}', '${created.agent.id}')
-         on conflict do nothing`
-    );
     const runnerToken = await mintAgentRunner(created.agent.id, chatId, agentCredentialHash);
 
     const agentPost = (path: string, body: unknown) =>

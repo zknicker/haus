@@ -5,9 +5,9 @@ import type { TaskActor } from './task-actor.ts';
 
 /**
  * The Chats a Task actor can read, as a predicate on `chats`: the human rule
- * (`visibleChats`) for a person, and for an Agent its own DM, the Channels it
- * participates in, and every Task Chat under a live Project, as Projects are
- * open (the `requireAgentChatAccess` rule).
+ * (`visibleChats`) for a person, and for an Agent its own DM, every live
+ * Project channel, and every Task Chat under one, as Projects are open (the
+ * `requireAgentChatAccess` rule).
  * A Task is visible to everyone; the messages that mention it are not, so
  * Mentioned in, the Task Inbox context message, and Convert to Task all read
  * messages through this.
@@ -19,12 +19,7 @@ export function actorVisibleChats(actor: TaskActor): SQL {
 function agentVisibleChats(agentId: string): SQL {
     return sql`(
         (${chatsTable.kind} = 'dm' and ${chatsTable.dmAgentId} = ${agentId})
-        or exists (
-            select 1 from channel_agent_participants participant
-            where participant.server_id = ${chatsTable.serverId}
-                and participant.chat_id = ${chatsTable.id}
-                and participant.agent_id = ${agentId}
-        )
+        or (${chatsTable.kind} = 'channel' and ${chatsTable.deletedAt} is null)
         or (
             ${chatsTable.kind} = 'task'
             and exists (

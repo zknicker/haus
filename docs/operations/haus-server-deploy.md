@@ -212,9 +212,11 @@ previous one, which stays as the rollback target.
 
 The token comes from the `Agent Runner - Haus` Production item. Model logins are not in the
 container's environment: the runner reads them from the Server's connections (Settings → Models).
-The Server must hold the same `HAUS_RUNNER_TOKEN` and listen on
-an address the container reaches through `host.docker.internal`. `HAUS_RUNNER_SERVER_URL`
-overrides the default `http://host.docker.internal:18791`.
+The Server must hold the same `HAUS_RUNNER_TOKEN`. It listens only on the Mac's loopback
+(`127.0.0.1:18791`), and the container reaches it through Colima's `host.lima.internal`
+(192.168.5.2), which Lima forwards to the Mac's loopback. Docker's `host-gateway` does not work
+here: on Colima it names the bridge gateway inside the Lima VM, not the Mac. `HAUS_RUNNER_SERVER_URL`
+overrides the default `http://host.lima.internal:18791` on a host that is not Colima.
 
 The container starts as root with `CAP_NET_ADMIN`. Its entrypoint installs OUTPUT rules that
 deny PostgreSQL ports 5432 and 5438, the RFC 1918, link-local, and CGNAT ranges, and on IPv6 the
@@ -294,6 +296,35 @@ constraint mode carries from one migration into the next. A migration that runs
 `SET CONSTRAINTS ALL IMMEDIATE` ends with `SET CONSTRAINTS ALL DEFERRED`;
 `bun run lint` enforces this through `scripts/check-migration-constraint-mode.ts`. A
 migration failure prints PostgreSQL's code, constraint, and detail beneath the failed query.
+
+### Migration rehearsal
+
+A PR that adds or edits a migration, and every release PR that ships the Server, rehearses the
+migrations production has not applied against a copy of production before it merges:
+
+```bash
+bun run release:rehearse-migrations -- --ref <PR head SHA>
+```
+
+The command SSHes to the Server host with `~/.ssh/macmini_tailscale` (`--host` and `--identity`
+override it) and:
+
+1. starts a throwaway `haus-migration-rehearsal-<time>` container from the same image as
+   `haus-postgres`, with `--network none`
+2. streams `pg_dump --format custom` of `haus_production`, run inside `haus-postgres` as the
+   read-only `haus_backup` role over the local socket, straight into `pg_restore` in that container,
+   so no dump file is written and no credential is used
+3. reads the newest applied migration from the copy, and sends every migration in the ref's journal
+   after it as one transaction, the way drizzle runs them, with a `rehearsal: applying <tag>` notice
+   before each
+4. runs `SET CONSTRAINTS ALL IMMEDIATE` to check every deferred constraint, then `ROLLBACK`
+5. removes the container, which takes the restored copy with it
+
+On failure psql prints PostgreSQL's error code, message, and `DETAIL` after the notice of the
+migration that failed, and the command exits non-zero. It never writes to `haus-postgres`. A
+failed rehearsal blocks the merge; paste its error into the PR. A rehearsal is current only for the
+migration files at its ref, so rehearse again after a merge brings new ones.
+`apps/server/test/migration-rehearsal.test.ts` proves the same script catches the v20 failure.
 
 Haus 10.0.0 is an operator-approved exception: migration 0072 removes `chat_events` and
 `servers.last_chat_event_cursor` with the protocol 9 cutover. Server 8.4.0 cannot run against

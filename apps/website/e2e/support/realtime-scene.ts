@@ -10,7 +10,8 @@ import { expect } from './test.ts';
 /**
  * The incident detector's scene (specs/realtime-events.md, "App e2e"): a
  * desktop window whose shown tab A is `#all` and whose kept, hidden tab B is
- * `#product`, which holds an inline reply anchor and a Worker Message. Two
+ * `#product`, which holds an inline reply anchor and the Message that started a
+ * Task, whose page is a third kept tab listing its Worker. Two
  * Agents with no model write through the Agent API, and a Computer reports
  * the work's progress over its attachment.
  */
@@ -30,7 +31,6 @@ export async function createRealtimeScene(page: Page, slug: string) {
     });
     await createProjectWithAgents(client, {
         agentIds: [orbit.agentId],
-        databaseUrl: session.databaseUrl,
         name: 'product',
         serverId: server.id,
     });
@@ -38,7 +38,7 @@ export async function createRealtimeScene(page: Page, slug: string) {
         agentHandle: 'scout',
         channelName: 'product',
         computerCredential,
-        content: 'Delegating the index rebuild to a Worker.',
+        brief: 'Rebuild the search index from scratch.',
         databaseUrl: session.databaseUrl,
         repository: 'haus/haus',
         serverId: server.id,
@@ -59,6 +59,11 @@ export async function createRealtimeScene(page: Page, slug: string) {
     await expect(visibleSurface(page).getByText('Product anchor for inline replies')).toBeVisible();
     await page.getByRole('row', { exact: true, name: 'all' }).click({ modifiers: ['Meta'] });
     await expect(tabs(page)).toHaveCount(2);
+    await showTab(page, 'product');
+    await visibleSurface(page)
+        .getByRole('button', { name: new RegExp(`^Open task ${work.taskKey},`, 'u') })
+        .click({ modifiers: ['Meta'] });
+    await expect(tabs(page)).toHaveCount(3);
     await showTab(page, 'all');
 
     // Changes 1 and 2 come from the human's other device; `agentReply` is a
@@ -102,7 +107,15 @@ export async function createRealtimeScene(page: Page, slug: string) {
         },
     };
 
-    return { anchorId: anchor.message.id, changes, client, server, session, work };
+    return {
+        anchorId: anchor.message.id,
+        changes,
+        client,
+        homedAgentIds: [orbit.agentId, work.agentId],
+        server,
+        session,
+        work,
+    };
 }
 
 export function composer(page: Page, channel: string) {
@@ -124,12 +137,12 @@ export function visibleSurface(page: Page) {
 
 /**
  * The convergence assertions: tab A shows the `#all` reply with no reload;
- * revealing tab B shows the inline reply and the updated Worker row.
+ * revealing tab B shows the inline reply, and the Task tab shows the Worker working.
  */
 export async function expectConverged(
     page: Page,
     scene: Awaited<ReturnType<typeof createRealtimeScene>>,
-    expected: { activity: string; allReply: string; inlineReply: string }
+    expected: { allReply: string; inlineReply: string }
 ) {
     await expect(visibleSurface(page).getByText(expected.allReply)).toBeVisible({
         timeout: 15_000,
@@ -140,9 +153,13 @@ export async function expectConverged(
             timeout: 15_000,
         }
     );
+    await tabs(page)
+        .getByRole('button', { name: new RegExp(scene.work.taskKey, 'u') })
+        .click();
     await expect(
-        visibleSurface(page)
-            .locator(`[data-message-id="${scene.work.messageId}"]`)
-            .getByTestId('worker-status-line')
-    ).toContainText(expected.activity, { timeout: 15_000 });
+        page
+            .getByRole('grid', { name: 'Workers' })
+            .filter({ visible: true })
+            .getByRole('img', { name: 'Working' })
+    ).toBeVisible({ timeout: 15_000 });
 }

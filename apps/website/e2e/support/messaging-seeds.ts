@@ -10,8 +10,6 @@ export function seedArtifactReply(input: SeedInput) {
            'agt_e2e_artifact', '${input.serverId}', 'artifact-auditor',
            'Artifact Auditor', 'America/New_York', '${input.homeProjectId}'
          );
-         insert into channel_agent_participants (server_id, chat_id, agent_id)
-         values ('${input.serverId}', '${input.chatId}', 'agt_e2e_artifact');
          insert into chat_messages (
            id, server_id, chat_id, sequence, author_user_id, content, nonce
          )
@@ -87,12 +85,6 @@ export function seedReferenceFixture(input: SeedInput) {
          select '${input.serverId}', 'cht_e2e_product', user_id
          from server_memberships
          where server_id = '${input.serverId}' and role = 'owner';
-         insert into channel_agent_participants (server_id, chat_id, agent_id)
-         values
-           ('${input.serverId}', '${input.chatId}', 'agt_e2e_blippy'),
-           ('${input.serverId}', '${input.chatId}', 'agt_e2e_tiny'),
-           ('${input.serverId}', 'cht_e2e_product', 'agt_e2e_blippy'),
-           ('${input.serverId}', 'cht_e2e_product', 'agt_e2e_tiny');
          insert into chat_messages (
            id, server_id, chat_id, sequence, author_agent_id, content, nonce
          )
