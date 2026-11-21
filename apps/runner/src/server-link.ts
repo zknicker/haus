@@ -127,6 +127,7 @@ export function openServerLink(input: {
             runCredential,
             runId: start.runId,
             serverUrl: input.config.serverUrl,
+            ...(start.traceContext ? { traceparent: start.traceContext.traceparent } : {}),
         };
         const toolset = createRunTools({
             authority,
