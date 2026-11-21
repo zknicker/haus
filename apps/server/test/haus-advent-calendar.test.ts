@@ -46,7 +46,7 @@ beforeAll(async () => {
             serverId,
         })
     ).agent.id;
-    const channel = await createTestProject(harness, owner, {
+    const channel = await createTestProject(owner, {
         agentIds: [agentId],
         name: 'lanterns',
         serverId,

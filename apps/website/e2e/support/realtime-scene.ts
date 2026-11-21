@@ -30,7 +30,6 @@ export async function createRealtimeScene(page: Page, slug: string) {
     });
     await createProjectWithAgents(client, {
         agentIds: [orbit.agentId],
-        databaseUrl: session.databaseUrl,
         name: 'product',
         serverId: server.id,
     });

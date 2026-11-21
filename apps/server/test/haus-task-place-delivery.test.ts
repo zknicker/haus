@@ -30,10 +30,6 @@ beforeAll(async () => {
             serverId: fixture.serverId,
         })
     ).agent.id;
-    await fixture.harness.sql`
-        insert into channel_agent_participants (server_id, chat_id, agent_id)
-        values (${fixture.serverId}, ${fixture.channelId}, ${novaId}) on conflict do nothing
-    `;
 });
 
 afterAll(async () => {

@@ -9,7 +9,6 @@ import { connectHausDatabase, type HausConnection } from '../src/postgres/connec
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
 import {
     agentsTable,
-    channelAgentParticipantsTable,
     channelParticipantsTable,
     chatMessagesTable,
     chatsTable,
@@ -18,7 +17,7 @@ import {
     serversTable,
     usersTable,
 } from '../src/postgres/schema.ts';
-import { testAgentHome } from './agent-home.ts';
+import { testProject } from './agent-home.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 
 let cluster: TestDatabase;
@@ -67,6 +66,8 @@ async function seedChannel(agentNames = ['Ada', 'Bo']): Promise<Channel> {
         id: computerId,
         serverId,
     });
+    await db.insert(chatsTable).values({ id: chatId, kind: 'channel', name: 'product', serverId });
+    await testProject(db, serverId, chatId);
     const agentIds: string[] = [];
     for (const name of agentNames) {
         const agentId = createOpaqueId('agt');
@@ -79,17 +80,11 @@ async function seedChannel(agentNames = ['Ada', 'Bo']): Promise<Channel> {
             handle: `${name.toLowerCase()}-${randomBytes(4).toString('hex')}`,
             homeTimezone: 'UTC',
             id: agentId,
-            homeProjectId: await testAgentHome(db, serverId),
+            homeProjectId: chatId,
             serverId,
         });
     }
-    await db.insert(chatsTable).values({ id: chatId, kind: 'channel', name: 'product', serverId });
     await db.insert(channelParticipantsTable).values({ chatId, serverId, userId });
-    for (const agentId of agentIds) {
-        await db
-            .insert(channelAgentParticipantsTable)
-            .values({ agentId, chatId, id: createOpaqueId('cap'), serverId });
-    }
     await db.insert(chatMessagesTable).values({
         authorUserId: userId,
         chatId,

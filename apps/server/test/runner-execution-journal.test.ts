@@ -7,6 +7,7 @@ import {
     connectRunner,
     frameOfType,
     type RunnerClient,
+    reportRunnerModels,
     testRunnerToken,
 } from './runner.fixture.ts';
 
@@ -41,6 +42,7 @@ beforeAll(async () => {
             'healthy'
         )
     `;
+    await reportRunnerModels(harness);
     agentId = (
         await createHomedAgent(owner, {
             computerId,

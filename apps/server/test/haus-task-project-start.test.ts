@@ -6,6 +6,8 @@ import type { HausClient } from './haus-client.ts';
 const fixture = agentCreationFixture();
 let runner: { token: string };
 let bea: HausClient;
+let allId: string;
+let allTarget: string;
 let opsId: string;
 
 interface StartReceipt {
@@ -54,9 +56,11 @@ beforeAll(async () => {
         insert into channel_participants (server_id, chat_id, user_id)
         values (${serverId}, ${fixture.channelId}, ${await fixture.readUserId('user_task_project_bea')})
     `;
-    await fixture.harness.sql`
-        update agents set home_project_id = ${fixture.channelId} where id = ${fixture.orbitAgentId}
-    `;
+    const [all] = (await fixture.harness.sql`
+        select id, name from chats where server_id = ${serverId} and is_all
+    `) as { id: string; name: string }[];
+    allId = all?.id ?? '';
+    allTarget = `#${all?.name}`;
     opsId = (await owner.trpc.project.create.mutate({ key: 'OPS', name: 'ops', serverId })).chat.id;
 });
 
@@ -94,11 +98,35 @@ test('a DM origin starts a Task in the Agent’s home Project, shown only to tha
     ]);
 });
 
+test('an #all origin starts a Task in the Agent’s home Project, and #all previews it', async () => {
+    const { serverId } = fixture;
+    const origin = await send(allId, '@orbit the changelog is stale');
+    const started = await startTask({
+        from: origin.message.id,
+        target: allTarget,
+        title: 'Refresh the changelog',
+    });
+    expect(started).toMatchObject({ body: { target: 'task:PROD-2' }, status: 200 });
+
+    const seen = await fixture.owner.trpc.task.get.query({ key: 'PROD-2', serverId });
+    expect(seen).toMatchObject({
+        origin: { chatId: allId, messageId: origin.message.id },
+        projectId: fixture.channelId,
+    });
+    expect(await taskChatParent(seen.chatId ?? '')).toBe(fixture.channelId);
+    const page = await fixture.owner.trpc.chat.messages.query({ chatId: allId, serverId });
+    expect(page.tasks.map((task) => [task.key, task.originMessageId])).toEqual([
+        ['PROD-2', origin.message.id],
+    ]);
+});
+
 test('--project files a channel origin in another Project; the origin channel previews it', async () => {
     const { serverId } = fixture;
-    await fixture.harness.sql`
-        update agents set home_project_id = ${opsId} where id = ${fixture.orbitAgentId}
-    `;
+    await fixture.owner.trpc.agent.setHome.mutate({
+        agentId: fixture.orbitAgentId,
+        projectId: opsId,
+        serverId,
+    });
     const origin = await send(fixture.channelId, 'The ops dashboard is down');
     const started = await startTask({
         from: origin.message.id,
@@ -120,32 +148,6 @@ test('--project files a channel origin in another Project; the origin channel pr
         );
     expect(await previewKeys(fixture.channelId)).toEqual(['OPS-1']);
     expect(await previewKeys(opsId)).toEqual([]);
-});
-
-test('a #all origin starts a Task in the Agent’s home Project', async () => {
-    const { serverId } = fixture;
-    await fixture.harness.sql`
-        update agents set home_project_id = ${opsId} where id = ${fixture.orbitAgentId}
-    `;
-    const [all] = (await fixture.harness.sql`
-        select id from chats where server_id = ${serverId} and is_all
-    `) as { id: string }[];
-    const origin = await send(all?.id ?? '', 'Someone should check the ops alerts');
-    const started = await startTask({
-        from: origin.message.id,
-        target: '#all',
-        title: 'Check the ops alerts',
-    });
-    expect(started.status).toBe(200);
-    const task = await fixture.owner.trpc.task.get.query({
-        key: started.body.task?.key ?? '',
-        serverId,
-    });
-    expect(task).toMatchObject({
-        origin: { chatId: all?.id, messageId: origin.message.id },
-        projectId: opsId,
-    });
-    expect(await taskChatParent(task.chatId ?? '')).toBe(opsId);
 });
 
 test('an Agent starts only in its home Project; elsewhere it is TASK_PROJECT_NOT_HOME', async () => {

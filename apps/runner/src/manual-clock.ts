@@ -21,5 +21,6 @@ export function manualClock() {
             }
         },
         clock,
+        now: () => now,
     };
 }

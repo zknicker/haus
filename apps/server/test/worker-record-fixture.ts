@@ -78,7 +78,7 @@ export function workerRecordFixture() {
             })
         ).agent.id;
         channelId = (
-            await createTestProject(harness, owner, {
+            await createTestProject(owner, {
                 agentIds: [orbitAgentId],
                 name: 'product',
                 serverId,

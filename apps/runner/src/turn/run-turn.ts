@@ -65,11 +65,12 @@ export async function runTurn(input: RunTurnInput) {
     const context = await readAgentContext(input);
     const harness = harnessFor(start.modelId);
     const composed = composeInstructions(start, context.skills, harness);
-    const session = resolveTurnSession(await readAgentSession(input.agentDir), {
+    const assigned = {
         generation: start.sessionGeneration,
         harness,
         modelId: start.modelId,
-    });
+    };
+    const stored = resolveTurnSession(await readAgentSession(input.agentDir), assigned);
     const driver = input.factory({
         agentDir: input.agentDir,
         agentId: start.agentId,
@@ -77,14 +78,16 @@ export async function runTurn(input: RunTurnInput) {
         instructions: composed.instructions,
         modelId: start.modelId,
         reasoningEffort: input.reasoningEffort,
+        runtimeId: start.runtimeId,
         tools: input.tools,
     });
     const bootstrapFingerprint = await driver.bootstrapFingerprint(input.signal);
     const live = await driver.openSession({
-        resumeFrom: session.nativeSessionId ?? undefined,
-        sessionId: `${start.agentId}-${session.generation}`,
+        resumeFrom: stored.nativeSessionId ?? undefined,
+        sessionId: `${start.agentId}-${stored.generation}`,
         signal: input.signal,
     });
+    const session = resolveTurnSession(await readAgentSession(input.agentDir), assigned);
     const plan = planInstructionsUpdate({
         composed,
         isResume: live.isResume && driver.instructionsOnResume === 'launched',

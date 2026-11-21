@@ -112,7 +112,7 @@ async function findAnswer(kit, channelId, agentId, token, since) {
     if (inChannel) {
         return { message: inChannel, taskChatId: null };
     }
-    const tasks = (await tasksCreatedBy(kit, agentId, since)).filter(
+    const tasks = (await tasksCreatedBy(kit, agentId, { startedAt: since })).filter(
         (task) => task.origin?.chatId === channelId && task.chatId
     );
     for (const task of tasks) {

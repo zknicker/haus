@@ -96,6 +96,7 @@ export function createTurnObserver({ serverId, trpc }) {
         let lastHeartbeat = activeSince;
         let pendingIdleSince = null;
         const runIds = [];
+        let firstStartedAt = null;
         while (Date.now() < settleDeadline) {
             const [state, rows] = await Promise.all([deliveryState(agentId), listTurns(agentId)]);
             lastState = state;
@@ -105,10 +106,11 @@ export function createTurnObserver({ serverId, trpc }) {
                     runIds.push(turn.runId);
                 }
             }
+            firstStartedAt = earliestStart(firstStartedAt, fresh);
             newest = fresh[0] ?? newest;
             if (newest && !state.running) {
                 if (state.pending === 0) {
-                    return { ...newest, runIds };
+                    return { ...newest, firstStartedAt, runIds };
                 }
                 // Queued work with no running turn can be permanently parked:
                 // a delivery noticed during the settled turn and ignored never
@@ -116,7 +118,7 @@ export function createTurnObserver({ serverId, trpc }) {
                 // settle on the recorded turn rather than waiting forever.
                 pendingIdleSince ??= Date.now();
                 if (Date.now() - pendingIdleSince >= 20_000) {
-                    return { ...newest, pendingAtSettle: state.pending, runIds };
+                    return { ...newest, firstStartedAt, pendingAtSettle: state.pending, runIds };
                 }
             } else {
                 pendingIdleSince = null;
@@ -142,6 +144,16 @@ export function createTurnObserver({ serverId, trpc }) {
         listTurns,
         settleTurn,
     };
+}
+
+function earliestStart(current, turns) {
+    return turns.reduce(
+        (earliest, turn) =>
+            earliest === null || Date.parse(turn.startedAt) < Date.parse(earliest)
+                ? turn.startedAt
+                : earliest,
+        current
+    );
 }
 
 function normalizeTurn(agentId, row) {

@@ -19,7 +19,6 @@ import {
     agentSessionRotationsTable,
     agentsTable,
     agentTurnsTable,
-    channelAgentParticipantsTable,
     chatMessagesTable,
     chatsTable,
     computersTable,
@@ -789,9 +788,6 @@ test('attests a multi-message Computer-local pull without wedging the transactio
         name: 'briefings',
         serverId: seed.serverId,
     });
-    await connection.db
-        .insert(channelAgentParticipantsTable)
-        .values({ agentId: seed.agentId, chatId: channelId, serverId: seed.serverId });
     const originId = createOpaqueId('msg');
     await connection.db.insert(chatMessagesTable).values({
         authorUserId: seed.userId,

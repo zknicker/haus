@@ -139,12 +139,10 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
         'Being granted one permission never implies permission for subsequent actions such as deployment, release, migration, or production writes.'
     );
     expect(prompt).not.toContain('closed gate set');
+    // Channel mutes and membership are deleted (ADR 0055); unfollow is the only narrowing.
+    expect(prompt).not.toContain('To mute ordinary Activity delivery');
     expect(prompt).toContain(
-        'To mute ordinary Activity delivery from a regular channel itself without leaving'
-    );
-    expect(prompt).toContain('and Tasks you follow keep delivering independently');
-    expect(prompt).toContain(
-        'To stop following a Task and its ordinary delivery, use `haus task unfollow --target task:<KEY-n>`.'
+        'Outside your Project, `haus task unfollow --target task:<KEY-n>` and `haus message unfollow` stop what you follow.'
     );
 
     // A human is asked by @mention where the work lives (ADR 0037); there is no Ask command.
@@ -224,9 +222,9 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // rules, delivered on change) and WORKER.md beside MEMORY.md (ADR 0054 decisions 7 and 10, +208);
     // the Standing Preferences placeholder says "preferences people show in passing: terse imperative
     // lines; the rules people set live in AGENTS.md and WORKER.md" (+24).
-    // Lowered by exactly 1 (37,963 → 37,962): the welcome rule says #all again, the team room (ADR 0059 amended).
-    // Raised by exactly 37 (37,962 → 37,999): Discovering says "You always hear #all, the team room." (ADR 0059 decision 5), then by exactly 22 (→ 38,021) when the Workers entry named `haus worker places` (W3).
-    expect(prompt.length).toBeLessThanOrEqual(38_021);
+    // J3 (ADR 0055): -265 (37,963 → 37,698) for hearing by Project, +130 (→ 37,828) then -232 (→ 37,596) as generalists came and went, -6 (→ 37,590) when "home" left the prose.
+    // E2d (ADR 0059): -1 for the #all welcome rule, +37 for "You always hear #all, the team room."; W3: +22 for `haus worker places`. Measured after all three: 37,648.
+    expect(prompt.length).toBeLessThanOrEqual(37_648);
     expect(prompt).toContain('You always hear #all, the team room.');
     expect(prompt.toLowerCase()).not.toContain('thread');
 });

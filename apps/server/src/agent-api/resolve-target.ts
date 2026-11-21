@@ -1,11 +1,7 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    channelAgentParticipantsTable,
-    chatsTable,
-    serverMembershipsTable,
-} from '../postgres/schema.ts';
+import { chatsTable, serverMembershipsTable } from '../postgres/schema.ts';
 import { parseTaskTarget, resolveTaskTargetChat } from './resolve-task-target.ts';
 
 export async function resolveAgentTarget(
@@ -28,19 +24,12 @@ export async function resolveAgentTarget(
         const [channel] = await db
             .select({ id: chatsTable.id })
             .from(chatsTable)
-            .innerJoin(
-                channelAgentParticipantsTable,
-                and(
-                    eq(channelAgentParticipantsTable.serverId, chatsTable.serverId),
-                    eq(channelAgentParticipantsTable.chatId, chatsTable.id),
-                    eq(channelAgentParticipantsTable.agentId, runner.agentId)
-                )
-            )
             .where(
                 and(
                     eq(chatsTable.serverId, runner.serverId),
                     eq(chatsTable.kind, 'channel'),
-                    eq(chatsTable.name, channelName)
+                    eq(chatsTable.name, channelName),
+                    isNull(chatsTable.deletedAt)
                 )
             )
             .limit(1);
@@ -95,7 +84,7 @@ async function requireTaskTarget(db: HausDatabase, runner: ResolvedRunner, taskK
 }
 
 export class AgentTargetError extends Error {
-    constructor(message = 'That target does not exist or this Agent has not joined it.') {
+    constructor(message = 'That target does not exist.') {
         super(message);
         this.name = 'AgentTargetError';
     }

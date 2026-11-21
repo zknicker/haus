@@ -460,7 +460,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Search messages across joined chats. */
+        /** Search messages across every chat the Agent can read. */
         get: operations["searchAgentMessages"];
         put?: never;
         post?: never;
@@ -572,23 +572,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/agent/channels/add": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Put another Agent in a channel. */
-        post: operations["addAgentToChannel"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/agent/claims": {
         parameters: {
             query?: never;
@@ -666,7 +649,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Assign one claim to an Agent member of its Chat without changing its status. */
+        /** Assign one claim to an active Agent, in a DM only that DM's Agent, without changing its status. */
         post: operations["assignAgentClaim"];
         delete?: never;
         options?: never;
@@ -1353,11 +1336,14 @@ export interface components {
              * @default null
              */
             brief: string | null;
-            /** @default [] */
-            channels: string[];
             description: string;
             displayName: string;
             nonce: string;
+            /**
+             * @description The new Agent's Project key. Null puts it in the creating Agent's own Project.
+             * @default null
+             */
+            project: string | null;
             /**
              * @description Exactly one emoji grapheme, the new Agent's pickup reaction. Null means the default.
              * @default null
@@ -1390,23 +1376,15 @@ export interface components {
         AgentCreateAgentResponse: {
             agent: components["schemas"]["CreatedAgentSummary"];
             avatar: components["schemas"]["AgentCreatedAvatarOutcome"];
-            channels: string[];
             chatId: string;
             computerId: string;
             idempotent: boolean;
             modelId: string;
+            /** @description The new Agent's Project key. */
+            project: string;
             /** @enum {string} */
             reasoningEffort: "default" | "low" | "medium" | "high" | "xhigh" | "max";
             runtimeId: string;
-            target: string;
-        };
-        AgentAddChannelAgentRequest: {
-            agent: string;
-            target: string;
-        };
-        AgentAddChannelAgentResponse: {
-            added: boolean;
-            handle: string;
             target: string;
         };
         AgentUpdateAgentRequest: {
@@ -1589,7 +1567,9 @@ export interface components {
         };
         AgentChannel: {
             handle: string;
-            joined: boolean;
+            home: boolean;
+            project: string | null;
+            homeAgents: string[];
             description: string | null;
             memberCount: number;
         };
@@ -1619,6 +1599,7 @@ export interface components {
         };
         AgentChannelMembers: {
             target: string;
+            project: string | null;
             members: components["schemas"]["AgentChannelMember"][];
         };
         /** @enum {string} */
@@ -1656,7 +1637,7 @@ export interface components {
             claim: components["schemas"]["AgentClaimRow"];
         };
         AgentClaimCreateRequest: {
-            /** @description @handle of an Agent member of the target Chat. */
+            /** @description @handle of an active Agent; in a DM, only that DM's Agent. */
             assignee?: string;
             content?: string;
             nonce: string;
@@ -1673,7 +1654,7 @@ export interface components {
             target: string;
         };
         AgentClaimAssignRequest: {
-            /** @description @handle of an Agent member of the claim's Chat. Humans are never assignees; human, missing, retired, and out-of-Chat handles share one not-assignable refusal. */
+            /** @description @handle of an active Agent; in a DM, only that DM's Agent. Humans are never assignees; human, missing, retired, and other-Agent-in-a-DM handles share one not-assignable refusal. */
             assignee: string;
             /** @description Apply only if the claim is still at this revision. */
             expectedRevision?: number;
@@ -2053,7 +2034,7 @@ export interface components {
             /** @description The origin Message id. It must be in `target`. */
             from: string;
             priority?: components["schemas"]["AgentTaskPriority"];
-            /** @description The Task's Project by key, like `SEC`. Defaults to the origin's channel, or for a DM origin to the caller's Project. */
+            /** @description The Task's Project by key, like `SEC`. Defaults to the origin's channel, or for a DM or `#all` origin to the caller's Project. */
             project?: string;
             /**
              * @description Defaults to open.
@@ -3609,7 +3590,7 @@ export interface operations {
                 channels?: boolean;
                 agents?: boolean;
                 humans?: boolean;
-                joined?: boolean;
+                home?: boolean;
                 query?: string;
                 limit?: components["parameters"]["Limit"];
                 offset?: number;
@@ -3673,31 +3654,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AgentChannelMembers"];
-                };
-            };
-            default: components["responses"]["AgentError"];
-        };
-    };
-    addAgentToChannel: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AgentAddChannelAgentRequest"];
-            };
-        };
-        responses: {
-            /** @description The channel and the Agent now in it. */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AgentAddChannelAgentResponse"];
                 };
             };
             default: components["responses"]["AgentError"];

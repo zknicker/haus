@@ -24,8 +24,8 @@ those is one a human asked for.
   `reminders`, `receipt_message_id` on `reminder_fires` and
   `reminder_agent_attention` were dropped with the receipts they named, and
   `chat_messages.system_author` went with them entirely (ADR 0026).
-- The narrow hosted `agents` and `channel_agent_participants` rows provide only
-  reminder authorship and Chat authorization. Agent creation,
+- The narrow hosted `agents` rows provide only reminder authorship; every Agent
+  reaches every live Project's Chats. Agent creation,
   configuration, Computer assignment, execution, and transport are separate
   work.
 - Each `reminder_agent_attention` row is one durable, unacknowledged fire

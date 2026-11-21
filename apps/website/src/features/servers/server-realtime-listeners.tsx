@@ -11,6 +11,7 @@ import { useInvitationUpdateStream } from '../../hooks/realtime/use-invitation-u
 import { useMcpUpdateStream } from '../../hooks/realtime/use-mcp-update-stream.ts';
 import { useMessageReactionStream } from '../../hooks/realtime/use-message-reaction-stream.ts';
 import { useModelConnectionsStream } from '../../hooks/realtime/use-model-connections-stream.ts';
+import { useProjectUpdateStream } from '../../hooks/realtime/use-project-update-stream.ts';
 import { useReminderStream } from '../../hooks/realtime/use-reminder-stream.ts';
 import { useTaskCreatedStream } from '../../hooks/realtime/use-task-created-stream.ts';
 import { useTaskFollowStream } from '../../hooks/realtime/use-task-follow-stream.ts';
@@ -40,6 +41,7 @@ export const ServerRealtimeListeners = React.memo(function ServerRealtimeListene
             <MessageNotifications key={serverId} server={server} />
             <MessageReactionStream serverId={serverId} />
             <ChatLifecycleStream serverId={serverId} />
+            <ProjectUpdateStream serverId={serverId} />
             <ClaimChangeStream serverId={serverId} />
             <TaskLabelStream serverId={serverId} />
             <TaskCreatedStream serverId={serverId} />
@@ -70,6 +72,11 @@ function MessageReactionStream({ serverId }: StreamProps) {
 
 function ChatLifecycleStream({ serverId }: StreamProps) {
     useChatLifecycleStream(serverId);
+    return null;
+}
+
+function ProjectUpdateStream({ serverId }: StreamProps) {
+    useProjectUpdateStream(serverId);
     return null;
 }
 

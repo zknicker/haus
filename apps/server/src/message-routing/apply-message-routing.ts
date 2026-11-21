@@ -6,7 +6,7 @@ import { chatMessagesTable } from '../postgres/schema.ts';
 import { readChannelHumanIds, readRoutingAgents } from './context.ts';
 import { routingModel, routingPromptVersion, routingThreshold } from './jev.ts';
 import { mentionScopePromptVersion } from './mention-scope.ts';
-import type { PreparedMessageRouting } from './route-human-message.ts';
+import { mentionedRecipientIds, type PreparedMessageRouting } from './route-human-message.ts';
 
 interface RoutingCommit {
     chatId: string;
@@ -92,8 +92,14 @@ async function isStale(
     return (
         input.sequence !== prepared.sequence ||
         JSON.stringify(candidateAgentIds) !== JSON.stringify(prepared.candidateAgentIds) ||
-        JSON.stringify(await readRoutingAgents(db, input.serverId, input.chatId)) !==
-            prepared.agentsFingerprint
+        JSON.stringify(
+            await readRoutingAgents(
+                db,
+                input.serverId,
+                input.chatId,
+                mentionedRecipientIds(input.recipients)
+            )
+        ) !== prepared.agentsFingerprint
     );
 }
 

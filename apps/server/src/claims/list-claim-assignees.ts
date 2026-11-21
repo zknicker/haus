@@ -3,7 +3,7 @@ import { and, asc, eq, isNull } from 'drizzle-orm';
 import { avatarUrlFor } from '../avatars/avatar-url.ts';
 import { requireChatAccess } from '../chats/chat-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, channelAgentParticipantsTable } from '../postgres/schema.ts';
+import { agentsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { ClaimNotFoundError } from './claim-errors.ts';
@@ -23,9 +23,8 @@ export async function listClaimAssignees(
         chatId: claim.chatId,
         serverId: input.serverId,
     });
-    // Only an Agent holds a claim (ADR 0037); the picker lists the Chat's Agents.
+    // Only an Agent holds a claim (ADR 0037); a DM offers its Agent, a Project every Agent.
     return await listAssignableAgents(db, {
-        chatId: claim.chatId,
         dmAgentId: chat.dmAgentId,
         kind: chat.kind,
         serverId: input.serverId,
@@ -34,7 +33,7 @@ export async function listClaimAssignees(
 
 async function listAssignableAgents(
     db: HausDatabase,
-    input: { chatId: string; dmAgentId: null | string; kind: string; serverId: string }
+    input: { dmAgentId: null | string; kind: string; serverId: string }
 ): Promise<ClaimAssignee[]> {
     const selection = {
         agentId: agentsTable.id,
@@ -55,14 +54,7 @@ async function listAssignableAgents(
             : await db
                   .select(selection)
                   .from(agentsTable)
-                  .innerJoin(
-                      channelAgentParticipantsTable,
-                      and(
-                          eq(channelAgentParticipantsTable.serverId, agentsTable.serverId),
-                          eq(channelAgentParticipantsTable.agentId, agentsTable.id)
-                      )
-                  )
-                  .where(and(active, eq(channelAgentParticipantsTable.chatId, input.chatId)))
+                  .where(active)
                   .orderBy(asc(agentsTable.displayName));
 
     return rows.map((row): ClaimAssignee => ({

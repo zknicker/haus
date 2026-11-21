@@ -1,13 +1,8 @@
 import type { HausAgentMessage } from '@haus/api';
-import { and, desc, eq, gt, ilike, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, gt, ilike, isNull, lt, sql } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    agentsTable,
-    channelAgentParticipantsTable,
-    chatMessagesTable,
-    chatsTable,
-} from '../postgres/schema.ts';
+import { agentsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 import {
     messageSelection,
     targetForChat,
@@ -115,29 +110,15 @@ export async function requireAgentChatAccess(
     const [chat] = await db
         .select({ dmAgentId: chatsTable.dmAgentId, kind: chatsTable.kind })
         .from(chatsTable)
-        .where(and(eq(chatsTable.serverId, runner.serverId), eq(chatsTable.id, chatId)))
+        .where(
+            and(
+                eq(chatsTable.serverId, runner.serverId),
+                eq(chatsTable.id, chatId),
+                isNull(chatsTable.deletedAt)
+            )
+        )
         .limit(1);
-    if (chat?.kind === 'task') {
-        return;
-    }
-    if (chat?.kind === 'dm' && chat.dmAgentId === runner.agentId) {
-        return;
-    }
-    const [joined] =
-        chat?.kind === 'channel'
-            ? await db
-                  .select({ agentId: channelAgentParticipantsTable.agentId })
-                  .from(channelAgentParticipantsTable)
-                  .where(
-                      and(
-                          eq(channelAgentParticipantsTable.serverId, runner.serverId),
-                          eq(channelAgentParticipantsTable.chatId, chatId),
-                          eq(channelAgentParticipantsTable.agentId, runner.agentId)
-                      )
-                  )
-                  .limit(1)
-            : [];
-    if (!joined) {
+    if (!chat || (chat.kind === 'dm' && chat.dmAgentId !== runner.agentId)) {
         throw new AgentTargetError();
     }
 }

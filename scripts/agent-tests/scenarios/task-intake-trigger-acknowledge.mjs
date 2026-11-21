@@ -35,7 +35,7 @@ export default defineScenario({
             expect(post.reply ?? null, 'the acknowledgment is top level').toBe(null);
             expect(post.cause?.fireId, 'the acknowledgment names the fire').toBe(fireId);
             expect(
-                await tasksCreatedBy(kit, worker.id, turn.startedAt),
+                await tasksCreatedBy(kit, worker.id, turn),
                 'Tasks the Agent created'
             ).toHaveLength(0);
         } finally {

@@ -167,10 +167,6 @@ async function seedAgentRunner(
         insert into agents (id, server_id, handle, display_name, home_timezone, home_project_id)
         values (${agentId}, ${server.id}, ${handle}, ${handle}, 'UTC', ${await testSqlAgentHome(harness.sql, server.id)})
     `;
-    await harness.sql`
-        insert into channel_agent_participants (server_id, chat_id, agent_id)
-        values (${server.id}, ${server.chatId}, ${agentId})
-    `;
     return {
         agentId,
         capabilities: [],

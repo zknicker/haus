@@ -1,12 +1,7 @@
 import { expect, test } from 'bun:test';
 import type { AgentApiRequest, AgentApiRequester } from '../agent-api-client.ts';
 import type { ParsedArgs } from '../parse.ts';
-import {
-    CHANNEL_SUBCOMMANDS,
-    runChannelAdd,
-    runChannelMembers,
-    runServerInfo,
-} from './agent-directory.ts';
+import { CHANNEL_SUBCOMMANDS, runChannelMembers, runServerInfo } from './agent-directory.ts';
 
 function args(values: Record<string, string>): ParsedArgs {
     return { flags: {}, help: false, positionals: [], valueLists: {}, values };
@@ -26,61 +21,43 @@ function requester(
     };
 }
 
-test('channel add posts one membership change and confirms it', async () => {
+test('the channel family only inspects: people create Projects and set Agent homes', () => {
+    expect(CHANNEL_SUBCOMMANDS.map((command) => command.name)).toEqual(['info', 'members']);
+});
+
+test('server info --home asks for the home Project and keeps the filter when paging', async () => {
     const seen: AgentApiRequest[] = [];
-    const routes: string[] = [];
     const output: string[] = [];
+    await runServerInfo(
+        { ...args({}), flags: { '--channels': true, '--home': true } },
+        {
+            client: requester(seen, {
+                agents: [],
+                channels: [
+                    {
+                        description: null,
+                        handle: 'product',
+                        home: true,
+                        homeAgents: ['orbit'],
+                        memberCount: 2,
+                        project: 'PRD',
+                    },
+                ],
+                hasMore: { agents: false, channels: true, humans: false },
+                humans: [],
+                limit: 1,
+                offset: 0,
+                total: { agents: 0, channels: 2, humans: 0 },
+            }),
+            write: (text) => output.push(text),
+        }
+    );
 
-    const exitCode = await runChannelAdd(args({ '--agent': '@orbit', '--target': '#product' }), {
-        client: requester(seen, { added: true, handle: 'orbit', target: '#product' }, routes),
-        write: (text) => output.push(text),
-    });
-
-    expect(exitCode).toBe(0);
-    expect(routes).toEqual(['/api/agent/channels/add']);
-    expect(seen[0]?.body).toEqual({ agent: '@orbit', target: '#product' });
-    expect(seen[0]?.method).toBe('POST');
-    expect(output.join('')).toBe('Added @orbit to #product.\n');
-});
-
-// The add is idempotent, so a repeat has to read as a no-op, not a success.
-test('an Agent already in the channel is reported as already there', async () => {
-    const output: string[] = [];
-
-    await runChannelAdd(args({ '--agent': 'orbit', '--target': '#product' }), {
-        client: requester([], { added: false, handle: 'orbit', target: '#product' }),
-        write: (text) => output.push(text),
-    });
-
-    expect(output.join('')).toBe('@orbit was already in #product.\n');
-});
-
-test('channel add refuses a bad channel or handle before spending a request', async () => {
-    const seen: AgentApiRequest[] = [];
-    const deps = {
-        client: requester(seen, { added: true, handle: 'orbit', target: '#product' }),
-        write: () => undefined,
-    };
-
-    await expect(
-        runChannelAdd(args({ '--agent': '@orbit', '--target': 'product' }), deps)
-    ).rejects.toThrow(/A #channel target is required/u);
-    await expect(
-        runChannelAdd(args({ '--agent': 'Orbit Lane', '--target': '#product' }), deps)
-    ).rejects.toThrow(/--agent must name one Agent as @handle/u);
-    expect(seen).toHaveLength(0);
-});
-
-test('the channel family has no create: only people create Projects', () => {
-    expect(CHANNEL_SUBCOMMANDS.map((command) => command.name)).toEqual([
-        'info',
-        'members',
-        'add',
-        'join',
-        'leave',
-        'mute',
-        'unmute',
-    ]);
+    expect(seen[0]?.query).toMatchObject({ channels: true, home: true });
+    expect(output.join('')).toContain('#product [PRD, your Project] Agents: @orbit\n');
+    expect(output.join('')).toContain(
+        'Next: haus server info --channels --home --offset 1 --limit 1'
+    );
 });
 
 test('server directory gives copyable ID-backed references for people and agents', async () => {
@@ -130,7 +107,7 @@ test('people lookup shows each human’s timezone so Agents can resolve calendar
     expect(output.join('')).toContain('[@kai](user://usr_kai) [timezone: unknown]');
 });
 
-test('channel members show a human’s timezone and no zone for Agents', async () => {
+test('channel members name the Project, its home Agents, and each human’s timezone', async () => {
     const output: string[] = [];
     await runChannelMembers(
         { ...args({}), positionals: ['#product'] },
@@ -145,12 +122,14 @@ test('channel members show a human’s timezone and no zone for Agents', async (
                         timezone: 'Europe/Berlin',
                     },
                 ],
+                project: 'PRD',
                 target: '#product',
             }),
             write: (text) => output.push(text),
         }
     );
 
-    expect(output.join('')).toContain('@beacon [agent]\n');
+    expect(output.join('')).toContain('## Channel Members for #product, Project PRD (2 members)\n');
+    expect(output.join('')).toContain('@beacon [home agent]\n');
     expect(output.join('')).toContain('@zach [human] [timezone: Europe/Berlin] — Owner');
 });

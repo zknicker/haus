@@ -2,11 +2,7 @@ import type { AddressedReason, AgentTurnSummary } from '@haus/api';
 import { eq, max } from 'drizzle-orm';
 import type { HausDatabase } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
-import {
-    channelAgentParticipantsTable,
-    chatMessagesTable,
-    chatsTable,
-} from '../src/postgres/schema.ts';
+import { chatMessagesTable, chatsTable } from '../src/postgres/schema.ts';
 import { offlineDelivery, type Seed, seedAgent } from './agent-inbox-harness.ts';
 
 /** The next free sequence in a Chat, so human and Agent writes interleave in commit order. */
@@ -90,12 +86,6 @@ export async function wakeOn(
     addressedReason: AddressedReason | null = null
 ) {
     const seed = await seedAgent(db);
-    await db.insert(channelAgentParticipantsTable).values({
-        agentId: seed.agentId,
-        chatId: seed.channelId,
-        id: createOpaqueId('cap'),
-        serverId: seed.serverId,
-    });
     const { delivery, wake } = offlineDelivery(db, seed);
     const wakeMessage = await post(db, seed, delivery, seed.channelId, content, addressedReason);
     const start = await wake();

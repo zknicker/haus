@@ -5,6 +5,7 @@ import type {
     WorkerTurnEndedFrame,
     WorkerTurnInputAcceptedFrame,
     WorkerTurnSessionFrame,
+    WorkerTurnStepsFrame,
 } from '@haus/api';
 import type { PullRequestReader } from '../github/pull-request-reader.ts';
 import type { WorkerServer } from './credentials.ts';
@@ -21,7 +22,8 @@ export type ComputerPlaceFrame =
     | WorkerTurnActivityFrame
     | WorkerTurnEndedFrame
     | WorkerTurnInputAcceptedFrame
-    | WorkerTurnSessionFrame;
+    | WorkerTurnSessionFrame
+    | WorkerTurnStepsFrame;
 
 export interface ComputerPlaceContext {
     driver: WorkerDriverFactory;

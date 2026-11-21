@@ -5,11 +5,7 @@ import { replayImageGenerationLinks } from '../chats/image-generation-links.ts';
 import { replayWorkerLinks } from '../chats/worker-links.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    agentsTable,
-    channelAgentParticipantsTable,
-    chatMessagesTable,
-} from '../postgres/schema.ts';
+import { agentsTable, chatMessagesTable, chatsTable } from '../postgres/schema.ts';
 import { AgentClaimError, AgentClaimNonceReusedError } from './claim-error.ts';
 import { queryAgentClaims } from './claim-lookup.ts';
 import { claimRow, stripAt } from './claim-row.ts';
@@ -36,22 +32,13 @@ export async function resolveClaimAssignee(
     if (!agent) {
         throw new AgentClaimError(`No active Agent has handle @${handle}.`);
     }
-    if (agent.id === runner.agentId) {
-        return agent.id;
-    }
-    const [joined] = await db
-        .select({ agentId: channelAgentParticipantsTable.agentId })
-        .from(channelAgentParticipantsTable)
-        .where(
-            and(
-                eq(channelAgentParticipantsTable.serverId, runner.serverId),
-                eq(channelAgentParticipantsTable.chatId, chatId),
-                eq(channelAgentParticipantsTable.agentId, agent.id)
-            )
-        )
+    const [chat] = await db
+        .select({ kind: chatsTable.kind })
+        .from(chatsTable)
+        .where(and(eq(chatsTable.serverId, runner.serverId), eq(chatsTable.id, chatId)))
         .limit(1);
-    if (!joined) {
-        throw new AgentClaimError('The assigned Agent must belong to the target Channel.');
+    if (chat?.kind === 'dm' && agent.id !== runner.agentId) {
+        throw new AgentClaimError('A claim in a DM can be assigned only to its Agent.');
     }
     return agent.id;
 }

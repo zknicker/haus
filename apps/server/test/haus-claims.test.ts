@@ -221,7 +221,7 @@ test('a human is never a claim assignee', async () => {
     });
     const chatId = server.channels[0].id;
     const peer = await addClaimPeer(server.id, chatId);
-    const agent = await addClaimAgent(server.id, chatId);
+    const agent = await addClaimAgent(server.id);
     const created = await owner.trpc.claim.create.mutate({
         chatId,
         content: 'Only Agents hold claims',
@@ -276,7 +276,7 @@ test('any Chat member assigns an Agent, and an owner unassigns without moving st
     });
     const chatId = server.channels[0].id;
     const peer = await addClaimPeer(server.id, chatId);
-    const agent = await addClaimAgent(server.id, chatId);
+    const agent = await addClaimAgent(server.id);
     const created = await owner.trpc.claim.create.mutate({
         chatId,
         content: 'Reserve this claim',
@@ -325,8 +325,8 @@ test('serializes competing Agent assignments at one expected claim version', asy
         slug: 'claim-reservation-race',
     });
     const chatId = server.channels[0].id;
-    const first = await addClaimAgent(server.id, chatId);
-    const second = await addClaimAgent(server.id, chatId);
+    const first = await addClaimAgent(server.id);
+    const second = await addClaimAgent(server.id);
     const created = await owner.trpc.claim.create.mutate({
         chatId,
         content: 'Reserve for exactly one Agent',
@@ -583,7 +583,7 @@ test('assigns a claim to an Agent, wakes it with typed work, and writes no messa
     await harness.sql`
         update server_memberships set handle = 'claim-owner' where server_id = ${server.id}
     `;
-    const agent = await addClaimAgent(server.id, chatId);
+    const agent = await addClaimAgent(server.id);
     const created = await owner.trpc.claim.create.mutate({
         chatId,
         content: 'Hand this to an Agent',
@@ -640,28 +640,32 @@ test('assigns a claim to an Agent, wakes it with typed work, and writes no messa
     expect(history.messages.map((message) => message.content)).toEqual(['Hand this to an Agent']);
 });
 
-test('rejects assigning an Agent that does not belong to the parent Chat', async () => {
+test('assigns a Project claim to any active Agent, since Projects are open', async () => {
     const server = await owner.trpc.server.create.mutate({
         displayName: 'Claim Agent Outsider',
         slug: 'claim-agent-outsider',
     });
     const chatId = server.channels[0].id;
-    const outsider = await addClaimAgent(server.id, null);
+    const outsider = await addClaimAgent(server.id);
     const created = await owner.trpc.claim.create.mutate({
         chatId,
-        content: 'Outsiders cannot own this',
+        content: 'Any Agent can own this',
         nonce: 'claim-agent-outsider-message',
         serverId: server.id,
     });
 
-    await expect(
-        owner.trpc.claim.assign.mutate({
-            assignee: { agentId: outsider.agentId },
-            expectedVersion: created.claim.version,
-            messageId: created.claim.messageId,
-            serverId: server.id,
-        })
-    ).rejects.toThrow(/parent Chat/iu);
+    await owner.trpc.claim.assign.mutate({
+        assignee: { agentId: outsider.agentId },
+        expectedVersion: created.claim.version,
+        messageId: created.claim.messageId,
+        serverId: server.id,
+    });
+    expect(
+        await harness.sql`
+            select assignee_agent_id from message_claims
+            where server_id = ${server.id} and message_id = ${created.claim.messageId}
+        `
+    ).toEqual([{ assignee_agent_id: outsider.agentId }]);
 });
 
 test('rejects assigning a retired Agent', async () => {
@@ -670,7 +674,7 @@ test('rejects assigning a retired Agent', async () => {
         slug: 'claim-agent-retired',
     });
     const chatId = server.channels[0].id;
-    const agent = await addClaimAgent(server.id, chatId);
+    const agent = await addClaimAgent(server.id);
     await harness.sql`
         update agents set retired_at = now()
         where server_id = ${server.id} and id = ${agent.agentId}
@@ -692,7 +696,7 @@ test('rejects assigning a retired Agent', async () => {
     ).rejects.toThrow(/active Agent/iu);
 });
 
-async function addClaimAgent(serverId: string, chatId: null | string) {
+async function addClaimAgent(serverId: string) {
     const computerId = `cmp_${randomBytes(12).toString('base64url')}`;
     const agentId = `agt_${randomBytes(12).toString('base64url')}`;
     const handle = `ada-${crypto.randomUUID().slice(0, 8)}`;
@@ -710,11 +714,5 @@ async function addClaimAgent(serverId: string, chatId: null | string) {
         values (${agentId}, ${serverId}, ${computerId}, ${handle}, 'Ada',
             'fake-model', 'fake', 'UTC', ${await testSqlAgentHome(harness.sql, serverId)})
     `;
-    if (chatId) {
-        await harness.sql`
-            insert into channel_agent_participants (server_id, chat_id, agent_id)
-            values (${serverId}, ${chatId}, ${agentId})
-        `;
-    }
     return { agentId, handle };
 }

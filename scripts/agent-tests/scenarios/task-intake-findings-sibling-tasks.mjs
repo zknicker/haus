@@ -35,7 +35,7 @@ export default defineScenario({
             await kit.harness.waitForAgentQuiet(worker.id, 10_000, 300_000);
 
             log('checking gates');
-            const tasks = await tasksCreatedBy(kit, worker.id, turn.startedAt);
+            const tasks = await tasksCreatedBy(kit, worker.id, turn);
             log(`Tasks: ${tasks.map((task) => `${task.key} ${task.title}`).join('; ') || 'none'}`);
             expect(tasks, 'Tasks the Agent created').toHaveLength(3);
             for (const [index, pattern] of issues.entries()) {

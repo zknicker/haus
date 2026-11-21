@@ -7,11 +7,6 @@ export interface ReportedComputer {
     label: string;
 }
 
-export interface HomeProjectOption {
-    id: string;
-    label: string;
-}
-
 export interface AgentCreationSubmitValues {
     avatar?: {
         bytesBase64: string;

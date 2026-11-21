@@ -13,8 +13,10 @@ import {
 import type { CapacityReader } from '../model-connections/connection-capacity.ts';
 import { createConnectionStatus } from '../model-connections/connection-status.ts';
 import type { RunnerLink, RunStart, TurnHost } from '../run-context.ts';
+import { agentQueues } from './agent-queues.ts';
 import { agentSessions } from './agent-sessions.ts';
 import { createHarnesses } from './harnesses.ts';
+import { idleCompactionGate } from './idle-compaction-gate.ts';
 import { inboxStore } from './inbox-store.ts';
 import { recoverDispatches } from './recovered-dispatches.ts';
 import { createRunActivity } from './run-activity.ts';
@@ -43,7 +45,9 @@ export function createTurnHost(input: {
 }) {
     const log = input.log ?? ((line: string) => process.stderr.write(`${line}\n`));
     const harnesses = createHarnesses({
+        agentBusy: (agentId) => host.busy(agentId),
         book: input.book,
+        ...(input.journal ? { journal: input.journal } : {}),
         link: input.link,
         log,
         maxWarm: input.config.maxWarm,
@@ -58,6 +62,7 @@ export function createTurnHost(input: {
         link: input.link,
         log,
         release: harnesses.release,
+        setIdleCompaction: harnesses.setIdleCompaction,
     });
     return { ...host, close: harnesses.close };
 }
@@ -72,10 +77,12 @@ export function createTurnHostWith(input: {
     link: RunnerLink;
     log: (line: string) => void;
     release: (agentId: string) => unknown;
+    setIdleCompaction?: (gate: (agentId: string) => boolean) => void;
 }) {
     const status = createConnectionStatus(input.link);
     const active = new Map<string, ActiveRun>();
-    const queues = new Map<string, Promise<unknown>>();
+    const gate = idleCompactionGate();
+    const { busy, enqueue } = agentQueues();
     const paths = (agentId: string) => {
         const agentDir = join(input.dataDir, 'agents', agentPathSegment(agentId));
         return { agentDir, runtimeDir: join(agentDir, 'runtime') };
@@ -91,16 +98,6 @@ export function createTurnHostWith(input: {
         dataDir: input.dataDir,
         release: input.release,
     });
-
-    const enqueue = (agentId: string, work: () => Promise<void>) => {
-        const previous = queues.get(agentId) ?? Promise.resolve();
-        const next = previous.then(work);
-        queues.set(
-            agentId,
-            next.catch(() => undefined)
-        );
-        return next;
-    };
 
     const execute = async (run: RunStart, restartEpoch: number) => {
         const current: ActiveRun = {
@@ -246,7 +243,12 @@ export function createTurnHostWith(input: {
         await journals.recovered(dispatches);
     };
 
-    const host: TurnHost = {
+    const host: TurnHost & { busy(agentId: string): boolean } = {
+        busy,
+        runtimeSettings(settings) {
+            gate.update(settings.idleCompactionServerIds);
+            input.setIdleCompaction?.(gate.allows);
+        },
         async notice(notice) {
             const { runtimeDir } = paths(notice.agentId);
             const receipt = {
@@ -279,6 +281,7 @@ export function createTurnHostWith(input: {
             await enqueue(agentId, () => sessions.apply(agentId, reset));
         },
         start(run) {
+            gate.started(run.start.agentId, run.serverId);
             const restartEpoch = sessions.restartEpoch(run.start.agentId);
             return enqueue(run.start.agentId, () => execute(run, restartEpoch));
         },

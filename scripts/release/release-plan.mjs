@@ -3,11 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { appendFileSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-    assertRequiredTargetsSelected,
-    calculateReleaseImpact,
-    formatReleaseImpact,
-} from './release-impact.mjs';
+import { assertComputerProtocolOrder } from './computer-protocol-order.mjs';
+import { calculateReleaseImpact, formatReleaseImpact } from './release-impact.mjs';
 
 export const RELEASE_TARGETS = Object.freeze(['computer', 'agent', 'app', 'ios', 'server']);
 
@@ -266,7 +263,7 @@ async function main() {
         ? null
         : await calculateReleaseImpact({ ledger, candidateRef: after });
     if (impact) {
-        assertRequiredTargetsSelected({ impact, selectedTargets: plan.targets });
+        await assertComputerProtocolOrder({ impact, selectedTargets: plan.targets });
     }
     writeReleaseOutputs({
         rawPlan,

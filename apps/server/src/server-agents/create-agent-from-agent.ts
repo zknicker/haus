@@ -14,18 +14,13 @@ import { prepareLifecycleEvent } from '../chats/lifecycle-events.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
+import { homeChangeEvents, readAgentHomeKey } from '../projects/agent-home.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { suggestAvailableParticipantHandle } from '../servers/participant-handles.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { readCreatedAgent } from './agent-created-shape.ts';
 import { type AgentModelCatalog, inheritedModel } from './agent-model-catalog.ts';
 import { createAgentInTransaction } from './create-agent.ts';
-import {
-    channelMembershipEvents,
-    joinCreationChannels,
-    readAgentChannels,
-    requireCreationChannels,
-} from './creation-channels.ts';
 import { requireAgentCreationGuidance } from './creation-guidance.ts';
 import {
     agentCreationRequestHash,
@@ -58,7 +53,7 @@ export interface CreateAgentFromAgentResult {
     receipt: AgentCreateAgentReceipt;
 }
 
-/** Creates one Agent and its memberships. Introductions are ordinary later sends. */
+/** Creates one Agent in its home Project. Introductions are ordinary later sends. */
 export async function createAgentFromAgent(
     db: HausDatabase,
     runner: ResolvedRunner,
@@ -77,10 +72,9 @@ export async function createAgentFromAgent(
 
         await assertFreshAgentView(tx, runner, plan.chatId);
         await requireAgentCreationGuidance(tx, runner, input.brief);
-        // Nothing is written until every requested channel is there to join, so
-        // a typo in `--channel` creates nothing.
-        const channels = await requireCreationChannels(tx, runner.serverId, input.channels);
-        const homeProjectId = await requireCreationHome(tx, runner);
+        // Nothing is written until the requested Project is there to live in, so
+        // a typo in `--project` creates nothing.
+        const homeProjectId = await requireCreationHome(tx, runner, input.project);
         const caller = await requireCallerExecution(tx, runner);
         const execution = inheritedModel(catalog, caller);
         if (execution.modelId !== caller.modelId) {
@@ -139,11 +133,6 @@ export async function createAgentFromAgent(
             ? prepareLifecycleEvent({ chatId: dm.id, serverId: runner.serverId }, 'created')
             : null;
 
-        // `#all` is joined by the shared creation seam; these are the lanes the
-        // request named on top of it.
-        await joinCreationChannels(tx, runner.serverId, created.agent.id, channels);
-        const joined = await readAgentChannels(tx, runner.serverId, created.agent.id);
-
         const summary = await readCreatedAgent(tx, runner.serverId, created.agent.id);
         if (!summary) {
             throw new Error('The created Agent could not be projected after creation.');
@@ -161,16 +150,19 @@ export async function createAgentFromAgent(
             },
             events: [
                 ...(dmCreatedEvent ? [dmCreatedEvent] : []),
-                ...channelMembershipEvents(runner.serverId, joined),
+                ...homeChangeEvents(runner.serverId, [created.homeProjectId]),
             ],
             receipt: {
                 agent: summary,
                 avatar: avatar.outcome,
-                channels: joined.map((channel) => `#${channel.name}`),
                 chatId: plan.chatId,
                 computerId: execution.computerId,
                 idempotent: false,
                 modelId: execution.modelId,
+                project: await readAgentHomeKey(tx, {
+                    agentId: created.agent.id,
+                    serverId: runner.serverId,
+                }),
                 reasoningEffort: execution.reasoningEffort,
                 runtimeId: execution.runtimeId,
                 target: input.target,

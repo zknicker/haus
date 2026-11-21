@@ -35,7 +35,7 @@ export default defineScenario({
         await kit.trpc('agent.stop', { agentId: peer.id, serverId });
         const channel = await kit.createChannel({ agentIds: [worker.id, peer.id] });
         const announce = await kit.createChannel({
-            agentIds: [worker.id],
+            agentIds: [],
             name: `announce-${kit.stamp.slice(-6)}-${marker('').toLowerCase()}`,
         });
         const announcePosts = async () =>
