@@ -57,10 +57,42 @@ test('a Server with no model login strands no Agent silently: it keeps its sessi
     expect(await rotationReasons()).toEqual([]);
     expect(await awaitsCutover(connection.db, setup.agentId)).toBe(true);
     const steps = (await setup.harness.sql`select name from boot_steps`) as { name: string }[];
-    expect(steps.map((step) => step.name)).toEqual(['agents-move-to-runner-began']);
+    expect(steps.map((step) => step.name).sort()).toEqual([
+        'agents-mapped-onto-runner-catalog',
+        'agents-move-to-runner-began',
+    ]);
+});
+
+test('a waiting Agent switched to a provider its Server has a login for moves on the next sweep', async () => {
+    await setup.owner.trpc.modelConnections.add.mutate({
+        credential: { kind: 'setup-token', token: 'sk-ant-oat01-cutover-switch' },
+        label: 'Claude',
+        provider: 'claude',
+        serverId: setup.serverId,
+    });
+    expect(await awaitsCutover(connection.db, setup.agentId)).toBe(true);
+
+    await setup.owner.trpc.agent.configure.mutate({
+        agentId: setup.agentId,
+        modelId: 'claude-opus',
+        runtimeId: 'claude',
+        serverId: setup.serverId,
+    });
+
+    await moveAgentsToRunner(connection.db);
+    expect(await rotationReasons()).toContain('runner');
+    expect(await awaitsCutover(connection.db, setup.agentId)).toBe(false);
 });
 
 test('connecting the model login later moves the waiting Agent to a fresh runner session', async () => {
+    await setup.harness.sql`
+        update agents set desired_runtime_id = 'pi', desired_model_id = 'grok-4.3'
+        where id = ${setup.agentId}
+    `;
+    await setup.harness
+        .sql`delete from boot_steps where name <> 'agents-mapped-onto-runner-catalog'`;
+    await setup.harness.sql`delete from agent_session_rotations where agent_id = ${setup.agentId}`;
+    expect(await moveAgentsToRunner(connection.db)).toEqual({ moved: 0, stranded: 1 });
     const before = Number((await agentRow())?.session_generation);
 
     await setup.owner.trpc.modelConnections.add.mutate({

@@ -29,17 +29,34 @@ export async function awaitsCutover(db: Pick<HausDatabase, 'execute'>, agentId: 
     return rows[0]?.waiting === true;
 }
 
+export function cutoverSweep(db: HausDatabase, delivery: { sweep(): Promise<void> }) {
+    return { sweep: () => resumeAgentsOnRunner(db, delivery) };
+}
+
 export async function resumeAgentsOnRunner(db: HausDatabase, delivery: { sweep(): Promise<void> }) {
     await moveAgentsToRunner(db);
     await delivery.sweep();
 }
 
-export async function moveAgentsToRunner(db: HausDatabase) {
+let cutover: Promise<{ moved: number; stranded: number }> | null = null;
+
+export function moveAgentsToRunner(db: HausDatabase) {
+    cutover ??= cutOverWaitingAgents(db).finally(() => {
+        cutover = null;
+    });
+    return cutover;
+}
+
+async function cutOverWaitingAgents(db: HausDatabase) {
     const [done] = await db
         .select({ name: bootStepsTable.name })
         .from(bootStepsTable)
         .where(eq(bootStepsTable.name, cutoverStep));
-    if (done) {
+    const [mapped] = await db
+        .select({ name: bootStepsTable.name })
+        .from(bootStepsTable)
+        .where(eq(bootStepsTable.name, catalogMapped));
+    if (done || !mapped) {
         return { moved: 0, stranded: 0 };
     }
     await db.insert(bootStepsTable).values({ name: cutoverBegan }).onConflictDoNothing();
@@ -80,10 +97,6 @@ export async function moveAgentsToRunner(db: HausDatabase) {
         const connection = modelId ? await resolveModelConnection(db, { ...agent, modelId }) : null;
         if (!connection) {
             stranded += 1;
-            console.info(
-                '[haus] left an Agent on its old session until its Server connects a model login',
-                agent
-            );
             continue;
         }
         const reset = await resetInTransaction(db, { ...agent, kind: 'session', reason: 'runner' });
@@ -139,7 +152,9 @@ export async function mapAgentsOntoCatalog(db: HausDatabase, runtimes: readonly 
             to: `${mapped.runtimeId}/${mapped.modelId}`,
         });
     }
+    await db.insert(bootStepsTable).values({ name: catalogMapped }).onConflictDoNothing();
 }
 
 const cutoverStep = 'agents-move-to-runner';
 const cutoverBegan = 'agents-move-to-runner-began';
+const catalogMapped = 'agents-mapped-onto-runner-catalog';
