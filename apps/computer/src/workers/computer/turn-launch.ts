@@ -18,6 +18,7 @@ import { addWorkerWorktree, worktreeGitRoots } from './worktree.ts';
 
 export interface ActiveTurn {
     readonly abort: AbortController;
+    attempt: number;
     session: RuntimeSession | null;
 }
 
@@ -32,6 +33,7 @@ export async function launchComputerTurn(
     active: ActiveTurn
 ) {
     const ref = { turnId: frame.turnId, workerId: frame.workerId };
+    active.attempt = frame.attempt;
     if (!(frame.checkout && frame.runtime)) {
         await endBeforeLaunch(
             context,
@@ -217,7 +219,7 @@ async function noteSession(context: ComputerPlaceContext, ref: ComputerTurnRef, 
 
 export const shutdownReason = 'shutdown';
 
-function exitOf(active: ActiveTurn, otherwise: 'crashed-before-launch' | 'exited') {
+export function exitOf(active: ActiveTurn, otherwise: 'crashed-before-launch' | 'exited') {
     if (!active.abort.signal.aborted) {
         return otherwise;
     }

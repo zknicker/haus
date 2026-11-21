@@ -69,6 +69,30 @@ test('an owed stop whose Computer lost the turn ends it, and the follow-up dispa
     ).toEqual([followUp.receipt.turnId]);
 });
 
+test('a stopped turn whose start never reached the Computer settles stopped', async () => {
+    const board = await computerPlaceBoard(connection.db);
+    const { delivery } = offlineDelivery(connection.db, board.seed);
+    const { turnId, workerId } = await startComputerWorker(connection.db, board);
+    await stopAgentWorker(connection.db, board.runner, workerId, null);
+    const reconnect = await planCarrierReconnect(
+        connection.db,
+        { id: board.seed.computerId, serverId: board.seed.serverId },
+        null
+    );
+
+    await endTurn(connection.db, delivery, board, {
+        attempt: 1,
+        detail: 'journal-missing',
+        exit: 'uncertain',
+        turnId,
+    });
+
+    expect(reconnect.frames.map(({ frame }) => frame)).toMatchObject([
+        { type: 'worker-reconcile', workers: [{ attempt: 1, stopRequested: true, turnId }] },
+    ]);
+    expect((await readTurn(connection.db, turnId))?.outcome).toEqual({ kind: 'stopped' });
+});
+
 test('an acknowledged turn its Computer lost settles failed with the reason', async () => {
     const board = await computerPlaceBoard(connection.db);
     const { delivery } = offlineDelivery(connection.db, board.seed);

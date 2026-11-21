@@ -19,12 +19,11 @@ export function decideComputerTurn(input: {
         case 'refused':
             return failed('launch-refused');
         case 'exited':
+        case 'uncertain':
             if (draft) {
                 return { draft, kind: 'report' } satisfies Decided;
             }
             return stopRequested ? ({ kind: 'stopped' } satisfies Decided) : failed('no-report');
-        case 'uncertain':
-            return draft ? ({ draft, kind: 'report' } satisfies Decided) : failed('no-report');
         case 'stopped':
             return draft
                 ? ({ draft, kind: 'report' } satisfies Decided)
