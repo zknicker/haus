@@ -8,7 +8,7 @@ import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgentCloudAutomations } from '../../../hooks/members/use-agent-cloud-automations.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { WorkerKeycapFace } from '../../workers/cloud-agent-provider-mark.tsx';
-import { useOpenWorker } from '../../workers/use-open-worker.ts';
+import { useOpenWorkerView } from '../../workers/use-open-worker-view.ts';
 import { AgentLoading } from './agent-loading.tsx';
 import { cloudAutomationPresentation } from './cloud-automation-model.ts';
 import { ProfileListSection } from './profile-list-section.tsx';
@@ -67,9 +67,9 @@ export function AgentCloudAutomations({ agent, server }: { agent: Agent; server:
 }
 
 function CloudAutomationRow({ now, row }: { now: number; row: WorkerAutomation }) {
-    const openWork = useOpenWorker();
+    const openWorker = useOpenWorkerView();
     const presentation = cloudAutomationPresentation(row, now);
-    const open = () => openWork({ id: row.worker.id, location: row.location });
+    const open = () => openWorker(row.worker.id);
     return (
         <ItemCard<'button'>
             className="focus-visible:ring-focus relative w-full cursor-(--cursor-interactive) overflow-hidden text-left focus-visible:ring-2"
