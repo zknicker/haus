@@ -24,4 +24,21 @@ describe('runner container environment', () => {
             )
         ).toEqual([]);
     });
+
+    test('the runner reaches the loopback Server through Lima, never a Docker host-gateway alias', () => {
+        const compose = Bun.YAML.parse(
+            readFileSync(join(repositoryRoot, 'apps/server/compose.yml'), 'utf8')
+        ) as {
+            services: Record<
+                string,
+                { environment: Record<string, string>; extra_hosts?: string[] }
+            >;
+        };
+        const runner = compose.services['haus-runner'];
+
+        expect(runner?.environment.HAUS_SERVER_URL).toMatch(
+            /:-http:\/\/host\.lima\.internal:18791\}$/u
+        );
+        expect(runner?.extra_hosts).toBeUndefined();
+    });
 });

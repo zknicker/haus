@@ -212,9 +212,11 @@ previous one, which stays as the rollback target.
 
 The token comes from the `Agent Runner - Haus` Production item. Model logins are not in the
 container's environment: the runner reads them from the Server's connections (Settings → Models).
-The Server must hold the same `HAUS_RUNNER_TOKEN` and listen on
-an address the container reaches through `host.docker.internal`. `HAUS_RUNNER_SERVER_URL`
-overrides the default `http://host.docker.internal:18791`.
+The Server must hold the same `HAUS_RUNNER_TOKEN`. It listens only on the Mac's loopback
+(`127.0.0.1:18791`), and the container reaches it through Colima's `host.lima.internal`
+(192.168.5.2), which Lima forwards to the Mac's loopback. Docker's `host-gateway` does not work
+here: on Colima it names the bridge gateway inside the Lima VM, not the Mac. `HAUS_RUNNER_SERVER_URL`
+overrides the default `http://host.lima.internal:18791` on a host that is not Colima.
 
 The container starts as root with `CAP_NET_ADMIN`. Its entrypoint installs OUTPUT rules that
 deny PostgreSQL ports 5432 and 5438, the RFC 1918, link-local, and CGNAT ranges, and on IPv6 the
