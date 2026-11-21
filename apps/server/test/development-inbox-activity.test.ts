@@ -113,7 +113,11 @@ test('Happening now shows gallery samples and settled work keeps its evidence', 
     });
     const settled = chatWork.find((entry) => entry.worker.title === 'Sidebar Inbox badge');
 
-    expect(chatWork).toHaveLength(1);
+    // The channel lists its Tasks' Workers too, so the demo Task's Worker shows here.
+    expect(chatWork.map((entry) => entry.worker.title).toSorted()).toEqual([
+        'Avatar upload: crop, resize, and save',
+        'Sidebar Inbox badge',
+    ]);
     expect(settled?.worker).toMatchObject({
         place: { kind: 'cursor' },
         repository: 'zknicker/haus',
