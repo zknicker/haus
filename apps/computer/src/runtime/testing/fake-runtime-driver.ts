@@ -40,6 +40,7 @@ export interface FakeOpen {
 
 export interface FakeTurnContext<Input> {
     readonly input: Input;
+    readonly onQuestion: OpenSessionOptions['onQuestion'];
     readonly isResume: boolean;
     readonly prompt: string;
     readonly signal: AbortSignal;
@@ -72,12 +73,18 @@ export function fakeRuntimeDriver<Input>(script: FakeRuntimeScript<Input> = {}) 
         const launch = { input };
         record.launches.push(launch);
         return {
-            openSession: async ({ resumeFrom, sessionId, signal }: OpenSessionOptions) => {
+            openSession: async ({
+                onQuestion,
+                resumeFrom,
+                sessionId,
+                signal,
+            }: OpenSessionOptions) => {
                 record.opens.push({ resumeFrom, sessionId });
                 await script.open?.({ resumeFrom, sessionId, signal }, launch);
                 return fakeSession(script, record, {
                     input,
                     isResume: Boolean(resumeFrom),
+                    onQuestion,
                     sessionId: script.sessionId ?? sessionId,
                 });
             },
@@ -100,7 +107,12 @@ export function finishedTurn(
 function fakeSession<Input>(
     script: FakeRuntimeScript<Input>,
     record: FakeRuntimeRecord<Input>,
-    session: { input: Input; isResume: boolean; sessionId: string }
+    session: {
+        input: Input;
+        isResume: boolean;
+        onQuestion: OpenSessionOptions['onQuestion'];
+        sessionId: string;
+    }
 ): RuntimeSession {
     return {
         destroy: async () => {
@@ -111,7 +123,13 @@ function fakeSession<Input>(
         sessionId: session.sessionId,
         startTurn: async ({ prompt, signal }): Promise<RuntimeTurn> => {
             record.prompts.push(prompt);
-            const context = { input: session.input, isResume: session.isResume, prompt, signal };
+            const context = {
+                input: session.input,
+                isResume: session.isResume,
+                onQuestion: session.onQuestion,
+                prompt,
+                signal,
+            };
             const events = script.turn?.(context) ?? finishedTurn();
             const drained = Promise.withResolvers<void>();
             let started = false;

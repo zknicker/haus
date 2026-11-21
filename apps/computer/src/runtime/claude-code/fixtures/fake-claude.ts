@@ -4,7 +4,9 @@ import { createInterface } from 'node:readline';
 /**
  * A stand-in `claude` for driver tests: speaks the stream-json shapes the fixtures recorded.
  * Prompts: `crash` exits mid-turn, `slow` runs a tool until interrupted, `hold` waits for a
- * steer that then runs past its result, anything else echoes.
+ * steer that then runs past its result, `ask <json>` calls AskUserQuestion with that input,
+ * `rm` asks to run a dangerous rm, anything else echoes. Each answer to a `can_use_tool`
+ * request is appended to `FAKE_CLAUDE_RESPONSES`.
  * Each launch appends its argv and env facts to `FAKE_CLAUDE_LOG`.
  */
 const args = process.argv.slice(2);
@@ -67,6 +69,10 @@ for await (const line of createInterface({ input: process.stdin })) {
         type: string;
         uuid?: string;
     };
+    if (message.type === 'control_response') {
+        answerToolRequest(message as unknown as ToolAnswer);
+        continue;
+    }
     if (message.type === 'control_request') {
         print({
             response: { request_id: message.request_id, response: {}, subtype: 'success' },
@@ -108,6 +114,31 @@ for await (const line of createInterface({ input: process.stdin })) {
         process.stderr.write('boom\n');
         process.exit(3);
     }
+    if (text.startsWith('ask ') || text === 'rm') {
+        const ask = text.startsWith('ask ');
+        const input = ask ? JSON.parse(text.slice(4)) : { command: 'rm -rf /' };
+        const name = ask ? 'AskUserQuestion' : 'Bash';
+        print({
+            message: {
+                content: [{ id: 'toolu_ask', input, name, type: 'tool_use' }],
+            },
+            parent_tool_use_id: null,
+            type: 'assistant',
+        });
+        print({
+            request: {
+                display_name: name,
+                input,
+                requires_user_interaction: ask,
+                subtype: 'can_use_tool',
+                tool_name: name,
+                tool_use_id: 'toolu_ask',
+            },
+            request_id: `can-use-${name}`,
+            type: 'control_request',
+        });
+        continue;
+    }
     if (text === 'slow') {
         slowTurn = true;
         print({
@@ -140,4 +171,44 @@ for await (const line of createInterface({ input: process.stdin })) {
     });
     print({ event: { index: 0, type: 'content_block_stop' }, type: 'stream_event' });
     result({ result: `echo: ${text}` });
+}
+
+interface ToolAnswer {
+    response: {
+        request_id: string;
+        response: { behavior: string; interrupt?: boolean; message?: string };
+    };
+}
+
+function answerToolRequest(answer: ToolAnswer) {
+    const responses = process.env.FAKE_CLAUDE_RESPONSES;
+    if (responses) {
+        appendFileSync(responses, `${JSON.stringify(answer.response)}\n`);
+    }
+    const decision = answer.response.response;
+    print({
+        message: {
+            content: [
+                {
+                    content: decision.message ?? '',
+                    is_error: true,
+                    tool_use_id: 'toolu_ask',
+                    type: 'tool_result',
+                },
+            ],
+            role: 'user',
+        },
+        parent_tool_use_id: null,
+        type: 'user',
+    });
+    if (decision.interrupt) {
+        result({
+            is_error: true,
+            stop_reason: 'tool_use',
+            subtype: 'error_during_execution',
+            terminal_reason: 'aborted_tools',
+        });
+        return;
+    }
+    result({ result: `continued: ${decision.message ?? ''}` });
 }

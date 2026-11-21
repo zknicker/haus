@@ -2,7 +2,11 @@ import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { realpathSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
-import { createClaudeWorkerDriver } from './claude-worker-driver.ts';
+import { askedMessage, refusedMessage } from './claude-tool-gate.ts';
+import {
+    claudeWorkerQuestionsMinVersion,
+    createClaudeWorkerDriver,
+} from './claude-worker-driver.ts';
 import { createFakeDriverHarness, signal } from './fixtures/fake-driver.ts';
 import { collect } from './fixtures/fixture-replay.ts';
 
@@ -89,4 +93,103 @@ test('a later turn resumes the session it was given', async () => {
     expect(session.isResume).toBe(true);
     expect(session.sessionId).toBe('native-7');
     expect((await harness.launches())[0]?.args.slice(-2)).toEqual(['--resume', 'native-7']);
+});
+
+const asked = {
+    questions: [
+        {
+            header: 'Database',
+            multiSelect: false,
+            options: [
+                { description: 'The default.', label: 'Postgres' },
+                { description: 'Embedded.', label: 'SQLite' },
+            ],
+            question: 'Which database should I use?',
+        },
+    ],
+};
+
+async function askingTurn(prompt: string, harnessVersion: string) {
+    const cwd = join(harness.root, 'checkout');
+    await mkdir(cwd, { recursive: true });
+    const responses = join(harness.root, 'responses.jsonl');
+    const driver = createClaudeWorkerDriver({
+        baseEnv: {
+            FAKE_CLAUDE_LOG: join(harness.root, 'launches.jsonl'),
+            FAKE_CLAUDE_RESPONSES: responses,
+            PATH: process.env.PATH,
+        },
+        binaryPath: join(harness.root, 'claude'),
+        cwd,
+        env: {},
+        harnessVersion,
+        homeDir: join(harness.root, 'home'),
+        modelId: null,
+    });
+    const captured: unknown[] = [];
+    const session = await driver.openSession({
+        onQuestion: async (questions) => {
+            captured.push(questions);
+        },
+        resumeFrom: undefined,
+        sessionId: 'wrk_1',
+        signal: signal(),
+    });
+    await collect((await session.startTurn({ prompt, signal: signal() })).events);
+    await session.stop();
+    const answers = await Bun.file(responses)
+        .text()
+        .catch(() => '');
+    return {
+        answers: answers
+            .split('\n')
+            .filter(Boolean)
+            .map((line) => JSON.parse(line).response),
+        args: (await harness.launches())[0]?.args ?? [],
+        captured,
+    };
+}
+
+test('an AskUserQuestion is captured once and denied with an interrupt', async () => {
+    const turn = await askingTurn(`ask ${JSON.stringify(asked)}`, claudeWorkerQuestionsMinVersion);
+
+    expect(turn.args).toContain('--permission-prompt-tool');
+    expect(turn.args[turn.args.indexOf('--disallowedTools') + 1]).not.toContain('AskUserQuestion');
+    expect(turn.captured).toEqual([
+        [
+            {
+                header: 'Database',
+                multiSelect: false,
+                options: [
+                    { description: 'The default.', label: 'Postgres' },
+                    { description: 'Embedded.', label: 'SQLite' },
+                ],
+                question: 'Which database should I use?',
+            },
+        ],
+    ]);
+    expect(turn.answers).toEqual([{ behavior: 'deny', interrupt: true, message: askedMessage }]);
+});
+
+test('questions Haus cannot read are denied without ending the turn', async () => {
+    const turn = await askingTurn('ask {"questions":[]}', claudeWorkerQuestionsMinVersion);
+
+    expect(turn.captured).toEqual([]);
+    expect(turn.answers).toHaveLength(1);
+    expect(turn.answers[0].behavior).toBe('deny');
+    expect(turn.answers[0].interrupt).toBeUndefined();
+});
+
+test('every other permission prompt is denied', async () => {
+    const turn = await askingTurn('rm', claudeWorkerQuestionsMinVersion);
+
+    expect(turn.captured).toEqual([]);
+    expect(turn.answers).toEqual([{ behavior: 'deny', message: refusedMessage }]);
+});
+
+test('a Claude Code older than the minimum keeps the question tool off', async () => {
+    const turn = await askingTurn('hello', '2.1.284');
+
+    expect(turn.args).not.toContain('--permission-prompt-tool');
+    expect(turn.args[turn.args.indexOf('--disallowedTools') + 1]).toContain('AskUserQuestion');
 });

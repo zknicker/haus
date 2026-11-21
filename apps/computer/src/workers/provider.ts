@@ -4,6 +4,7 @@ import type {
     CloudAgentEnvironment,
     CloudAgentProvider as CloudAgentProviderId,
     WorkerObservedResult,
+    WorkerQuestions,
     WorkerProviderResult,
     WorkerTurnModel,
     WorkerStallCode,
@@ -134,6 +135,8 @@ export interface CloudAgentProviderObservation {
     rawStatus?: string;
     /** The full report `summary` was cut from (TECH-8); absent before any Run observes one. */
     report?: WorkerProviderResult;
+    /** The structured questions a `pending_input` Run is waiting on, when it asked some. */
+    questions?: WorkerQuestions;
     /** A settled turn's final answer with its `Haus-` lines read; null when it had none. */
     result?: WorkerObservedResult | null;
     /** Set on every reading of a stuck live Run. */
