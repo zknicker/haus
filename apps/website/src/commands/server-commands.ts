@@ -11,7 +11,6 @@ import {
 } from '@hugeicons-pro/core-stroke-rounded';
 import {
     activityRoute,
-    inboxRoute,
     serverArchivedChatsRoute,
     serverChatRoute,
     serverComputersRoute,
@@ -29,8 +28,6 @@ import { filterCommandGroups } from './types.ts';
 
 export interface CommandContext {
     agents: Agent[];
-    /** The Capy shell swaps Chat and Inbox for Home. */
-    capyShell?: boolean;
     chats: Chat[];
     devMode: boolean;
     navigate: (path: string) => void;
@@ -47,7 +44,7 @@ export function buildCommandGroups(context: CommandContext): AppCommandGroup[] {
     const currentChat = context.chats.find((candidate) => candidate.id === currentChatId) ?? null;
 
     const groups: AppCommandGroup[] = [
-        buildNavigationGroup(context, currentChat),
+        buildNavigationGroup(context),
         ...buildChatGroups(context),
         ...(currentChat ? [buildCurrentChatGroup(context, currentChat)] : []),
         buildSettingsGroup(context),
@@ -64,7 +61,7 @@ export function getCurrentChatId(pathname: string, serverSlug: string): string |
         : null;
 }
 
-function buildNavigationGroup(context: CommandContext, currentChat: Chat | null): AppCommandGroup {
+function buildNavigationGroup(context: CommandContext): AppCommandGroup {
     const routes = [
         {
             icon: getRouteTabIcon('search'),
@@ -72,31 +69,12 @@ function buildNavigationGroup(context: CommandContext, currentChat: Chat | null)
             route: serverSearchRoute(context.serverSlug),
             title: 'Search',
         },
-        ...(context.capyShell
-            ? [
-                  {
-                      icon: Home01Icon,
-                      id: 'home',
-                      route: serverRoute(context.serverSlug),
-                      title: 'Home',
-                  },
-              ]
-            : [
-                  {
-                      icon: getRouteTabIcon('chat'),
-                      id: 'chat',
-                      route: currentChat
-                          ? serverChatRoute(context.serverSlug, currentChat.id)
-                          : serverRoute(context.serverSlug),
-                      title: 'Chat',
-                  },
-                  {
-                      icon: getRouteTabIcon('inbox'),
-                      id: 'inbox',
-                      route: inboxRoute(context.serverSlug),
-                      title: 'Inbox',
-                  },
-              ]),
+        {
+            icon: Home01Icon,
+            id: 'home',
+            route: serverRoute(context.serverSlug),
+            title: 'Home',
+        },
         {
             icon: getRouteTabIcon('tasks'),
             id: 'tasks',

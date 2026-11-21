@@ -27,8 +27,7 @@ import { PageTopbar } from './shell-topbar.tsx';
  * the band paints over the page, whose scrollers then reach the shell's top
  * edge rather than being cut off at the band's bottom (`shell.css`). A page
  * that asks for it owns the rest: it insets its content by the band's height,
- * and fades what scrolls under the band so the trail stays legible (the
- * Inbox, `inbox-layout.ts`).
+ * and fades what scrolls under the band so the trail stays legible.
  */
 export function PageBand({
     children,
