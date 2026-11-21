@@ -13,6 +13,15 @@ read_when:
 Accepted 2026-07-28. Supersedes the npm artifact, environment-provided update key, and
 no-rollback portions of ADR 0019.
 
+**Amended 2026-11-21.** The executable now ships inside a signed, notarized, stapled
+`Haus Computer.app` (`chat.haus.computer`) distributed as a zip, installed at
+`~/.local/share/haus-computer/`, with `~/.local/bin/haus-computer` a symlink to it. macOS charges
+Accessibility and Screen Recording to the responsible process, and a bare executable has no name
+or icon in System Settings and no bundle for agent-desktop's guide to offer
+([Computer use](../../specs/computer-use.md#macos-permissions)). Updates and rollback swap whole
+bundles and keep one `.prev`. Computers that ran the bare executable reinstall once with the install
+command and grant the permissions again.
+
 ## Context
 
 WS6 implemented signed Computer update commands, graceful turn draining, shared progress, and a

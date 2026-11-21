@@ -1,13 +1,14 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import {
-    archiveComputerArtifact,
+    computerReleaseArtifactPath,
     computerReleaseRoot,
     verifyAppleSignature,
     verifyComputerIdentity,
 } from './build-computer-artifact.mjs';
+import { extractComputerApp } from './computer-app-bundle.mjs';
 import {
     computerArtifactName,
     sha256File,
@@ -70,13 +71,12 @@ export async function recoverImmutableComputerArtifact(input) {
     }
     await rm(computerReleaseRoot, { force: true, recursive: true });
     await mkdir(computerReleaseRoot, { recursive: true });
-    const artifactPath = path.join(computerReleaseRoot, computerArtifactName);
+    const artifactPath = computerReleaseArtifactPath;
     copyS3Object(uri, artifactPath);
-    await chmod(artifactPath, 0o755);
-    verifyAppleSignature(artifactPath, input);
-    await verifyComputerIdentity(artifactPath, input);
+    const appPath = extractComputerApp(artifactPath, computerReleaseRoot);
+    await verifyComputerIdentity(verifyAppleSignature(appPath, input), input);
     console.log(`Recovered verified immutable Computer artifact: ${uri}`);
-    return artifactPath;
+    return { appPath, artifactPath };
 }
 
 export function publishedComputerReleaseMatchesSource(production, candidate) {
@@ -106,10 +106,11 @@ export async function recoverPublishedComputerRelease(input) {
     ) {
         return null;
     }
-    const artifactPath = await recoverImmutableComputerArtifact(input);
-    if (!artifactPath) {
+    const recovered = await recoverImmutableComputerArtifact(input);
+    if (!recovered) {
         return null;
     }
+    const artifactPath = recovered.artifactPath;
     const candidate = {
         sha256: await sha256File(artifactPath),
         sourceRevision: input.sourceRevision,
@@ -125,12 +126,7 @@ export async function completePublishedComputerRelease(input) {
     await writeFile(descriptorPath, `${JSON.stringify(input.descriptor, null, 2)}\n`);
     ensureComputerReleaseTag(input.version, input.sourceRevision);
     ensureComputerGithubRelease(input.version, {
-        assets: [
-            input.artifactPath,
-            descriptorPath,
-            input.installerPath,
-            archiveComputerArtifact(input.artifactPath),
-        ],
+        assets: [input.artifactPath, descriptorPath, input.installerPath],
         sourceRevision: input.sourceRevision,
     });
 }
@@ -164,12 +160,12 @@ export async function verifyPublicObjects(input) {
             }
             return candidate;
         });
-        await writeFile(artifactPath, Buffer.from(await response.arrayBuffer()), { mode: 0o755 });
+        await writeFile(artifactPath, Buffer.from(await response.arrayBuffer()), { mode: 0o644 });
         if ((await sha256File(artifactPath)) !== descriptor.release.sha256) {
             fail('public Computer artifact digest does not match descriptor');
         }
-        verifyAppleSignature(artifactPath, input);
-        await verifyComputerIdentity(artifactPath, input);
+        const appPath = extractComputerApp(artifactPath, root);
+        await verifyComputerIdentity(verifyAppleSignature(appPath, input), input);
     } finally {
         await rm(root, { force: true, recursive: true });
     }

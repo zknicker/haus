@@ -116,12 +116,12 @@ It directs an authorized operator to that Computer even when no update is known 
 _Avoid_: update failure, blocked update, stale version
 
 **Computer install root**:
-The disposable location containing the signed standalone Haus Computer executable and its
-embedded managed Haus CLI. The canonical executable is
-`~/.local/bin/haus-computer`; the updater may retain one verified
-`~/.local/bin/haus-computer.prev` for explicit rollback. Installation and updates atomically
-replace code but never write to the Computer data root. npm, Homebrew, and the application bundle
-do not own this root.
+The disposable location containing the signed `Haus Computer.app` bundle, whose executable embeds
+the managed Haus CLI. The canonical app is `~/.local/share/haus-computer/Haus Computer.app`, and
+`~/.local/bin/haus-computer` is a symlink to its executable; the updater may retain one verified
+`Haus Computer.app.prev` beside it for explicit rollback. Installation and updates swap the whole
+bundle but never write to the Computer data root. npm, Homebrew, and the Haus App's application
+bundle do not own this root.
 _Avoid_: Computer data root, Agent workspace, attachment state
 
 **Computer data root**:
@@ -133,7 +133,7 @@ small Computer-owned records use atomic writes, and local schema changes are tra
 canonical path is `~/.haus`; resident service state lives under `computer/`, while each attachment
 owns `computer/servers/<server-id>/` with its credential, vault, queues, and
 `agents/<agent-id>/{home,skills,workspace,runtime}/` directories. Removing or reinstalling the
-standalone executable never deletes this root. Reinstalling resumes every still-valid attachment
+app never deletes this root. Reinstalling resumes every still-valid attachment
 and workspace. Immutable pinned runtime CLIs (`cache/claude-code/`, `cache/runtimes/codex/`) and the
 secrets runtime's pnpm store use the machine-wide `cache/` and may be shared by production
 Computers, development stacks, and Server attachments; Agent state and credentials never enter

@@ -26,6 +26,11 @@ the normative contract; this page lists the procedures. Inputs and results are t
 or an Admin) may change it; anyone else is refused `FORBIDDEN`. A change publishes
 `computer.updated`.
 
+A macOS Computer's reported inventory carries `computerUse`: `installed`, `version`,
+`accessibility` and `screenRecording` (`granted`, `denied`, or `unknown`), and `permissionsMoved:
+true` while an update has moved the permissions to `Haus Computer.app` and they are not granted
+again. Readers ignore keys they predate.
+
 ## The refusal
 
 While the switch is off, the invocation router answers every `desktop` invocation itself, outcome

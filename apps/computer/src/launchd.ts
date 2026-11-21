@@ -23,6 +23,17 @@ export function replaceLaunchdService(input: LaunchdService) {
     }
 }
 
+export function startLaunchdService(input: LaunchdService) {
+    const target = `${input.domain}/${input.label}`;
+    const started =
+        input.run(['print', target]) === 0
+            ? input.run(['kickstart', target])
+            : input.run(['bootstrap', input.domain, input.plistPath]);
+    if (started !== 0) {
+        throw new Error('Could not start Haus Computer service.');
+    }
+}
+
 export function restartLaunchdService(input: LaunchdService & { insideJob: boolean }) {
     if (!input.insideJob) {
         replaceLaunchdService(input);

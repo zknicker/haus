@@ -35,6 +35,20 @@ test('each permission not granted names its System Settings pane or asks for a r
     ]);
 });
 
+test('an update that moved the permissions asks for them again', () => {
+    expect(
+        texts({
+            ...ready,
+            accessibility: 'denied',
+            permissionsMoved: true,
+            screenRecording: 'denied',
+        })
+    ).toEqual([
+        'Haus Computer is an app now, so macOS asks again. Allow Haus Computer in System Settings → Privacy & Security → Accessibility.',
+        'Haus Computer is an app now, so macOS asks again. Allow Haus Computer in System Settings → Privacy & Security → Screen Recording.',
+    ]);
+});
+
 test('computer use is offered on macOS Devices only', () => {
     expect(supportsComputerUse({ operatingSystem: 'darwin' })).toBe(true);
     expect(supportsComputerUse({ operatingSystem: 'linux' })).toBe(false);

@@ -96,7 +96,7 @@ export const computerCommands: ComputerCommandHelp[] = [
     {
         group: 'Service',
         name: 'upgrade',
-        notes: ['--rollback restores the previous verified executable.'],
+        notes: ['--rollback restores the previous verified app.'],
         summary: 'Update to the latest release, or roll back',
         usage: 'upgrade [--rollback]',
     },

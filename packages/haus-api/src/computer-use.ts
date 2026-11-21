@@ -96,15 +96,20 @@ export function desktopCommandClass(args: readonly string[]) {
 export const computerUsePermissionStateSchema = z.enum(['granted', 'denied', 'unknown']);
 export type ComputerUsePermissionState = z.infer<typeof computerUsePermissionStateSchema>;
 
-/** What a macOS Computer reports about agent-desktop and the permissions it needs. */
-export const computerUseReadinessSchema = z
-    .object({
-        accessibility: computerUsePermissionStateSchema,
-        installed: z.boolean(),
-        screenRecording: computerUsePermissionStateSchema,
-        version: z.string().trim().min(1).max(64).nullable(),
-    })
-    .strict();
+/**
+ * What a macOS Computer reports about agent-desktop and the permissions it needs.
+ * `permissionsMoved` is true while an update has moved the permissions to a new
+ * holder (the bare executable became `Haus Computer.app`) and they are not granted
+ * again yet. Unknown keys are dropped so a newer Computer never invalidates the
+ * inventory an older Server reads.
+ */
+export const computerUseReadinessSchema = z.object({
+    accessibility: computerUsePermissionStateSchema,
+    installed: z.boolean(),
+    permissionsMoved: z.boolean().optional(),
+    screenRecording: computerUsePermissionStateSchema,
+    version: z.string().trim().min(1).max(64).nullable(),
+});
 export type ComputerUseReadiness = z.infer<typeof computerUseReadinessSchema>;
 
 function classOf(value: DesktopCommandClass) {

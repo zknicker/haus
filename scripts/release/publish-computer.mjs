@@ -2,14 +2,19 @@
 
 import { execFileSync } from 'node:child_process';
 import { generateKeyPairSync } from 'node:crypto';
-import { readFile, writeFile } from 'node:fs/promises';
+import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import {
-    archiveComputerArtifact,
     buildComputerArtifact,
     signAndNotarizeComputer,
     verifyComputerIdentity,
 } from './build-computer-artifact.mjs';
+import {
+    computerAppExecutable,
+    developmentComputerBundleId,
+    releaseComputerBundleId,
+} from './computer-app-bundle.mjs';
+import { renderComputerInstaller as renderInstaller } from './computer-installer.mjs';
 import {
     assertComputerReleaseKey,
     assertNewerComputerVersion,
@@ -77,6 +82,7 @@ async function main() {
     const appleSigningIdentity = dryRun
         ? (configuredSigningIdentity() ?? 'Developer ID Application: Haus (DRYRUN0000)')
         : requiredSigningIdentity();
+    const bundleId = dryRun ? developmentComputerBundleId : releaseComputerBundleId;
     assertSource(sourceRevision);
     const s3Root = dryRun ? null : requiredEnv('HAUS_RELEASE_S3_URI').replace(/\/+$/u, '');
     if (!dryRun) {
@@ -89,6 +95,7 @@ async function main() {
         const published = await recoverPublishedComputerRelease({
             appleSigningIdentity,
             appleTeamId,
+            bundleId,
             production,
             s3Root,
             sourceRevision,
@@ -97,7 +104,11 @@ async function main() {
         if (published) {
             await completePublishedComputerRelease({
                 ...published,
-                installerPath: await renderInstaller({ appleSigningIdentity, appleTeamId }),
+                installerPath: await renderInstaller({
+                    appleSigningIdentity,
+                    appleTeamId,
+                    bundleId,
+                }),
                 sourceRevision,
                 version,
             });
@@ -115,52 +126,58 @@ async function main() {
     run('bun', ['run', '--filter', '@haus/agent-cli', 'typecheck']);
     run('bun', ['run', '--filter', '@haus/computer', 'test']);
     run('bun', ['run', '--filter', '@haus/computer', 'typecheck']);
-    const recoveredArtifactPath = dryRun
+    const recovered = dryRun
         ? null
         : await recoverImmutableComputerArtifact({
               appleSigningIdentity,
               appleTeamId,
+              bundleId,
               s3Root,
               sourceRevision,
               version,
           });
-    const built = recoveredArtifactPath
-        ? { artifactPath: recoveredArtifactPath, publicKey: releasePublicKey }
-        : await buildComputerArtifact({
-              appleSigningIdentity,
-              appleTeamId,
-              publicKey: releasePublicKey,
-              sourceRevision,
-              version,
-          });
+    const built =
+        recovered ??
+        (await buildComputerArtifact({
+            appleSigningIdentity,
+            appleTeamId,
+            bundleId,
+            publicKey: releasePublicKey,
+            sourceRevision,
+            version,
+        }));
     if (dryRun) {
         console.log(`Computer ${version} dry run passed: ${built.artifactPath}`);
         return;
     }
-    const notarizationArchive = recoveredArtifactPath
-        ? archiveComputerArtifact(built.artifactPath)
-        : signAndNotarizeComputer(built.artifactPath, {
+    const artifactPath = recovered
+        ? recovered.artifactPath
+        : signAndNotarizeComputer(built.appPath, {
               appleSigningIdentity,
               appleTeamId,
+              bundleId,
           });
-    await verifyComputerIdentity(built.artifactPath, { sourceRevision, version });
+    await verifyComputerIdentity(computerAppExecutable(built.appPath), {
+        sourceRevision,
+        version,
+    });
     const release = {
         artifactUrl: `${releaseBaseUrl}/${version}/${computerArtifactName}`,
         protocolVersion: computerProtocolVersion,
-        sha256: await sha256File(built.artifactPath),
+        sha256: await sha256File(artifactPath),
         sourceRevision,
         version,
     };
     const descriptor = createSignedComputerRelease(release, privateKey);
-    verifySignedComputerRelease(descriptor, built.publicKey);
-    const descriptorPath = path.join(path.dirname(built.artifactPath), 'release.json');
+    verifySignedComputerRelease(descriptor, releasePublicKey);
+    const descriptorPath = path.join(path.dirname(artifactPath), 'release.json');
     await writeFile(descriptorPath, `${JSON.stringify(descriptor, null, 2)}\n`);
-    const installerPath = await renderInstaller({ appleSigningIdentity, appleTeamId });
+    const installerPath = await renderInstaller({ appleSigningIdentity, appleTeamId, bundleId });
     await publishComputerInOrder({
         promoteLatest: async () => promoteLatest(descriptorPath, s3Root),
         publishImmutable: async () =>
             await publishImmutableObjects({
-                artifactPath: built.artifactPath,
+                artifactPath,
                 descriptorPath,
                 installerPath,
                 s3Root,
@@ -170,8 +187,9 @@ async function main() {
             await verifyPublicObjects({
                 appleSigningIdentity,
                 appleTeamId,
+                bundleId,
                 descriptor,
-                publicKey: built.publicKey,
+                publicKey: releasePublicKey,
                 releaseBaseUrl,
                 sourceRevision,
                 version,
@@ -180,29 +198,16 @@ async function main() {
             await verifyPublicDescriptor(
                 `${releaseBaseUrl}/latest.json`,
                 descriptor,
-                built.publicKey
+                releasePublicKey
             ),
     });
     await promoteInstaller(installerPath, { releaseBaseUrl, s3Root });
     ensureComputerReleaseTag(version, sourceRevision);
     ensureComputerGithubRelease(version, {
-        assets: [built.artifactPath, descriptorPath, installerPath, notarizationArchive],
+        assets: [artifactPath, descriptorPath, installerPath],
         sourceRevision,
     });
     console.log(`Published and verified computer-v${version}.`);
-}
-
-async function renderInstaller(input) {
-    const template = await readFile(
-        path.join(repoRoot, 'scripts', 'release', 'install-haus-computer.sh'),
-        'utf8'
-    );
-    const rendered = template
-        .replaceAll('__HAUS_APPLE_TEAM_ID__', input.appleTeamId)
-        .replaceAll('__HAUS_APPLE_SIGNING_IDENTITY__', input.appleSigningIdentity);
-    const installerPath = path.join(repoRoot, 'apps', 'computer', 'release', 'install.sh');
-    await writeFile(installerPath, rendered, { mode: 0o755 });
-    return installerPath;
 }
 
 function assertPublishableComputerVersion(releaseVersion, production) {

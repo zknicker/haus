@@ -186,7 +186,7 @@ test('Computer inventory reports Cloud Agent provider readiness on the current p
             })
             .cloudAgentProviders?.map((provider) => provider.isDefault)
     ).toEqual([true]);
-    expect(computerProtocolVersion).toBe(46);
+    expect(computerProtocolVersion).toBe(47);
 });
 
 test('a Cloud Agent capability state names exactly one of ready or a reason', () => {

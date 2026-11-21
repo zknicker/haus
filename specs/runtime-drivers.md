@@ -1024,6 +1024,11 @@ execution journal, its outline, and its uploader live in the runner
 ([Computer use](computer-use.md)), so a Computer that cannot run agent-desktop commands attaches
 update-required.
 
+**Computer protocol 47 (computer use S1).** The inventory's `computerUse` gains
+`permissionsMoved` ([macOS permissions](computer-use.md#macos-permissions)). Protocol 46 Servers
+parse `computerUse` strictly and would reject the whole inventory, so only a protocol 47 Server
+receives the field.
+
 **Computer protocol, removed by R4:** `start`, `notice`, `stop`, `ack`, `notice-ack`, `turn`,
 `agent-activity`, `agent-thought`, `agent-execution-journal-records`,
 `agent-execution-journal-ack`, `agent-restart`, `agent-configure`, `agent-background-work`,

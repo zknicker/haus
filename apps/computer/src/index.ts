@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { randomBytes } from 'node:crypto';
-import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
-import { arch, homedir, platform, userInfo } from 'node:os';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { arch, homedir, platform } from 'node:os';
 import { join } from 'node:path';
 import type { AgentSkillImportCommand, AgentSkillImportRecord } from '@haus/api';
 import * as commandFrames from './agent-command-frames.ts';
@@ -50,17 +50,21 @@ import { handleBrowserRequest } from './browser/requests.ts';
 import { reconcileComputerBrowser } from './browser/settings.ts';
 import {
     computerAttachmentDaemonEntrypoint,
-    computerEntrypoint,
     computerSourceRevision,
     computerVersion,
 } from './build-identity.ts';
 import { printComputerHeader, printComputerHelpPage } from './cli/chrome.ts';
 import { findComputerCommandHelp, resolveComputerHelpRequest } from './cli/help.ts';
 import { cliColorsEnabled, createCliRenderer, stdoutRenderer } from './cli/render.ts';
+import { runningComputerApp } from './computer-app.ts';
 import { sendComputerDiskReport } from './computer-disk.ts';
 import { readComputerName } from './computer-name.ts';
 import { startComputerReportSchedule } from './computer-report-schedule.ts';
-import { createComputerReporter, reportStateError } from './computer-report.ts';
+import {
+    createComputerReporter,
+    refreshComputerUseReport,
+    reportStateError,
+} from './computer-report.ts';
 import { guardDevDaemonMemory } from './daemon-memory-guard.ts';
 import { type DaemonRuntime, withDaemonRuntime } from './daemon-runtime.ts';
 import {
@@ -82,12 +86,6 @@ import { runInternalCommand } from './internal-commands.ts';
 import { handleInventoryRefresh } from './inventory-refresh.ts';
 import { attachmentInvocations } from './invocations/attachment-invocations.ts';
 import {
-    computerServiceLabel,
-    replaceLaunchdService,
-    restartLaunchdService,
-    runsInsideLaunchdJob,
-} from './launchd.ts';
-import {
     completeComputerLogin,
     ensureComputerLoginSession,
     readComputerLoginSession,
@@ -96,7 +94,13 @@ import {
     runComputerLogin,
 } from './login.ts';
 import { parseReminderScriptCommand, runReminderScript } from './reminder-script.ts';
-import { runtimeSearchPath } from './runtime-discovery.ts';
+import {
+    handsOffToResident,
+    installResidentService,
+    restartResidentService,
+    startResidentService,
+    stopResidentService,
+} from './resident-service.ts';
 import { handleComputerSecretsRequest } from './secrets/requests.ts';
 import { deleteServerPartition } from './server-partition-purge.ts';
 import {
@@ -181,7 +185,8 @@ async function main(args: string[]) {
               })
             : false;
     if (command === 'install') {
-        await installResidentService();
+        await Promise.all((await listAttachments()).map(stopAttachmentDaemon));
+        await installResidentService(dataRoot);
         console.log(stdoutRenderer.ok('Haus Computer resident service installed.'));
         return;
     }
@@ -191,16 +196,14 @@ async function main(args: string[]) {
                 onPhase: (phase) => {
                     console.log(
                         phase === 'restoring'
-                            ? 'Restoring the previous verified Haus Computer executable…'
+                            ? 'Restoring the previous verified Haus Computer app…'
                             : 'Restarting Haus Computer…'
                     );
                 },
                 restart: restartAfterUpdate,
             });
             await recordManagementCommandForAttachments(dataRoot, 'rollback');
-            console.log(
-                stdoutRenderer.ok('Haus Computer restored the previous verified executable.')
-            );
+            console.log(stdoutRenderer.ok('Haus Computer restored the previous verified app.'));
             return;
         }
         console.log('Checking for the latest Haus Computer release…');
@@ -588,6 +591,10 @@ async function startAttachments(target: string | undefined) {
     if (await isStopped()) {
         return;
     }
+    if (handsOffToResident()) {
+        await handOffToResident();
+        return;
+    }
     if (target) {
         await startAttachmentDaemon(await requiredAttachment(target));
         return;
@@ -697,6 +704,10 @@ async function startAttachmentDaemon(attachment: Attachment) {
     if (await isTerminalUnlinked(dataRoot, attachment)) {
         return;
     }
+    if (handsOffToResident()) {
+        await handOffToResident();
+        return;
+    }
     const marker = await readAttachmentDaemonMarker(attachmentDaemonPath(attachment));
     const plan = await attachmentDaemonProcesses.planStart(
         marker,
@@ -752,52 +763,9 @@ function attachmentDaemonPath(attachment: Attachment) {
     return join(dataRoot, 'servers', attachment.serverId, 'attachment-daemon.pid');
 }
 
-async function installResidentService() {
-    replaceLaunchdService(await writeResidentService());
-}
-
-async function restartResidentService() {
-    restartLaunchdService({
-        ...(await writeResidentService()),
-        insideJob: runsInsideLaunchdJob(computerServiceLabel, process.env),
-    });
-}
-
-async function writeResidentService() {
-    const agentsRoot = join(homedir(), 'Library', 'LaunchAgents');
-    const plistPath = join(agentsRoot, `${computerServiceLabel}.plist`);
-    await mkdir(agentsRoot, { recursive: true });
-    await mkdir(dataRoot, { mode: 0o700, recursive: true });
-    await mkdir(join(dataRoot, 'logs'), { mode: 0o700, recursive: true });
-    const plist = launchdPlist(computerEntrypoint());
-    // An in-job kickstart keeps the loaded definition; a changed plist applies at the next load.
-    if ((await readFile(plistPath, 'utf8').catch(() => null)) !== plist) {
-        await writeFile(plistPath, plist, { mode: 0o600 });
-    }
-    return {
-        domain: `gui/${userInfo().uid}`,
-        label: computerServiceLabel,
-        plistPath,
-        run: (args: string[]) =>
-            Bun.spawnSync(['/bin/launchctl', ...args], {
-                stderr: 'ignore',
-                stdout: 'ignore',
-            }).exitCode,
-    };
-}
-
-async function stopResidentService() {
-    if (platform() !== 'darwin') {
-        return;
-    }
-    const plistPath = join(homedir(), 'Library', 'LaunchAgents', `${computerServiceLabel}.plist`);
-    if (!(await stat(plistPath).catch(() => null))) {
-        return;
-    }
-    const result = Bun.spawnSync(['/bin/launchctl', 'bootout', `gui/${userInfo().uid}`, plistPath]);
-    if (result.exitCode !== 0 && result.exitCode !== 3) {
-        throw new Error('Could not stop Haus Computer service.');
-    }
+async function handOffToResident() {
+    await rm(stoppedPath(), { force: true });
+    await startResidentService(dataRoot);
 }
 
 async function restartAfterUpdate() {
@@ -810,29 +778,10 @@ async function restartAfterUpdate() {
         }
         await rm(attachmentDaemonPath(attachment), { force: true });
     }
-    await restartResidentService();
+    await restartResidentService(dataRoot);
     if (process.env.HAUS_COMPUTER_ATTACHMENT_DAEMON === '1') {
         process.exit(0);
     }
-}
-
-export function launchdPlist(entrypoint: { args: string[]; executable: string }) {
-    const escaped = [entrypoint.executable, ...entrypoint.args, 'start', dataRoot].map(escapeXml);
-    const programArguments = escaped
-        .slice(0, -1)
-        .map((value) => `<string>${value}</string>`)
-        .join('');
-    const logPath = escapeXml(join(dataRoot, 'logs', 'computer.log'));
-    const path = escapeXml(runtimeSearchPath());
-    return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0"><dict><key>Label</key><string>${computerServiceLabel}</string><key>ProgramArguments</key><array>${programArguments}</array><key>EnvironmentVariables</key><dict><key>HAUS_COMPUTER_DATA_ROOT</key><string>${escaped.at(-1)}</string><key>HAUS_COMPUTER_RESIDENT</key><string>1</string><key>PATH</key><string>${path}</string></dict><key>StandardOutPath</key><string>${logPath}</string><key>StandardErrorPath</key><string>${logPath}</string><key>KeepAlive</key><true/><key>RunAtLoad</key><true/></dict></plist>\n`;
-}
-
-function escapeXml(value: string) {
-    return value
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;');
 }
 
 async function connect(
@@ -1009,8 +958,20 @@ async function connect(
                     });
                     if (!reportLoopsStarted) {
                         reportLoopsStarted = true;
-                        startComputerReportSchedule(connectionWork, dataRoot, sendFrame, () =>
-                            trackWriter(sendUsageReport(sendFrame))
+                        startComputerReportSchedule(
+                            connectionWork,
+                            dataRoot,
+                            sendFrame,
+                            () => trackWriter(sendUsageReport(sendFrame)),
+                            () =>
+                                trackWriter(
+                                    refreshComputerUseReport({
+                                        computerName,
+                                        dataRoot,
+                                        send: sendFrame,
+                                        serverId: attachment.serverId,
+                                    })
+                                )
                         );
                     }
                     startCloudAgentModelCatalogRefresh(connectionWork, () =>
@@ -1180,9 +1141,18 @@ function safeSkillImportError(error: unknown) {
     return 'The skill could not be imported.';
 }
 
+async function reopenResidentService() {
+    if (!(await isStopped())) {
+        await startResidentService(dataRoot);
+    }
+}
+
 if (import.meta.main) {
     try {
-        await main(process.argv.slice(2));
+        const args = process.argv.slice(2);
+        const reopened =
+            args.length === 0 && runningComputerApp() !== null && process.stdout.isTTY !== true;
+        await (reopened ? reopenResidentService() : main(args));
     } catch (error) {
         const stderrRenderer = createCliRenderer({
             colors: cliColorsEnabled(process.env, process.stderr.isTTY === true),

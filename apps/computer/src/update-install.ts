@@ -1,24 +1,28 @@
 import { createHash } from 'node:crypto';
-import { chmod, copyFile, mkdir, mkdtemp, open, rename, rm, stat } from 'node:fs/promises';
-import { homedir, tmpdir } from 'node:os';
+import { mkdtemp, open, rm, stat } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import {
     computerAppleSigningIdentity,
     computerAppleTeamId,
-    computerStandalone,
+    computerBundleId,
 } from './build-identity.ts';
+import {
+    computerAppExecutable,
+    computerAppName,
+    installedComputerApp,
+    linkComputerCli,
+    restorePreviousComputerApp,
+    swapInComputerApp,
+} from './computer-app.ts';
 import type { SignedComputerRelease } from './update-contract.ts';
-
-const installedPath =
-    process.env.HAUS_COMPUTER_INSTALL_PATH ??
-    (computerStandalone ? process.execPath : join(homedir(), '.local', 'bin', 'haus-computer'));
 
 export async function downloadAndVerifyArtifact(input: {
     onProgress(progress: { downloadedBytes: number; totalBytes: number | null }): Promise<void>;
     onVerify?: () => Promise<void>;
     release: SignedComputerRelease;
     verifyArtifact?: (path: string) => Promise<void>;
-}): Promise<string> {
+}) {
     const response = await fetch(input.release.release.artifactUrl);
     if (!(response.ok && response.body)) {
         throw new Error(`Computer release download failed (${response.status}).`);
@@ -30,123 +34,93 @@ export async function downloadAndVerifyArtifact(input: {
             ? parsedTotalBytes
             : null;
     const temporaryRoot = await mkdtemp(join(tmpdir(), 'haus-computer-update-'));
-    const artifactPath = join(temporaryRoot, 'haus-computer');
+    const archivePath = join(temporaryRoot, 'haus-computer.zip');
     const hash = createHash('sha256');
     let downloadedBytes = 0;
     try {
         const reader = response.body.getReader();
-        const artifact = await open(artifactPath, 'wx', 0o700);
+        const archive = await open(archivePath, 'wx', 0o600);
         try {
             for (;;) {
                 const { done, value } = await reader.read();
                 if (done) {
                     break;
                 }
-                await artifact.write(value);
+                await archive.write(value);
                 hash.update(value);
                 downloadedBytes += value.byteLength;
                 await input.onProgress({ downloadedBytes, totalBytes });
             }
         } finally {
-            await artifact.close();
+            await archive.close();
         }
         await input.onVerify?.();
         if (hash.digest('hex') !== input.release.release.sha256) {
             throw new Error('Computer release checksum verification failed.');
         }
         if (input.verifyArtifact) {
-            await input.verifyArtifact(artifactPath);
-        } else {
-            await verifyAppleExecutable(artifactPath);
-            await verifyArtifactIdentity(artifactPath, input.release);
+            await input.verifyArtifact(archivePath);
+            return archivePath;
         }
-        return artifactPath;
+        return await unpackVerifiedApp(archivePath, input.release);
     } catch (cause) {
         await rm(temporaryRoot, { force: true, recursive: true });
         throw cause;
     }
 }
 
-export async function installStandaloneExecutable(
-    artifactPath: string,
-    options: {
-        destination?: string;
-        verify?: (path: string) => Promise<void>;
-    } = {}
-): Promise<void> {
-    const destination = options.destination ?? installedPath;
-    const previous = `${destination}.prev`;
-    const previousNext = `${previous}.next`;
+export async function installComputerApp(appPath: string, destination = installedComputerApp()) {
     const staged = `${destination}.next`;
-    await mkdir(dirname(destination), { recursive: true });
-    await copyFile(artifactPath, staged);
-    await chmod(staged, 0o755);
-    await (options.verify ?? verifyAppleExecutable)(staged);
-    await rm(previousNext, { force: true });
+    await rm(staged, { force: true, recursive: true });
+    await run(['/usr/bin/ditto', appPath, staged], 'The Haus Computer app could not be staged.');
     try {
-        if (await exists(destination)) {
-            await copyFile(destination, previousNext);
-            await chmod(previousNext, 0o755);
-            await rename(previousNext, previous);
-        }
-        await rename(staged, destination);
+        await verifyComputerApp(staged);
     } catch (cause) {
-        await rm(staged, { force: true });
-        await rm(previousNext, { force: true });
-        throw new Error('The verified Computer executable could not be installed.', {
-            cause,
-        });
+        await rm(staged, { force: true, recursive: true });
+        throw cause;
     }
+    await swapInComputerApp(staged, destination);
+    await linkComputerCli(destination);
 }
 
-export async function rollbackStandaloneExecutable(
-    options: { destination?: string; verify?: (path: string) => Promise<void> } = {}
-): Promise<void> {
-    const destination = options.destination ?? installedPath;
+export async function rollbackComputerApp(destination = installedComputerApp()) {
     const previous = `${destination}.prev`;
-    const previousNext = `${previous}.next`;
-    const staged = `${destination}.rollback`;
-    if (!(await exists(previous))) {
-        throw new Error('No previous verified Haus Computer executable is available.');
+    if (!(await stat(previous).catch(() => null))) {
+        throw new Error('No previous verified Haus Computer is available.');
     }
-    await (options.verify ?? verifyAppleExecutable)(previous);
-    await rm(previousNext, { force: true });
-    await rm(staged, { force: true });
-    try {
-        await copyFile(previous, staged);
-        await chmod(staged, 0o755);
-        await copyFile(destination, previousNext);
-        await chmod(previousNext, 0o755);
-        await rename(staged, destination);
-        await rename(previousNext, previous);
-    } catch (cause) {
-        await rm(staged, { force: true });
-        await rm(previousNext, { force: true });
-        throw new Error('Haus Computer rollback failed.', { cause });
-    }
+    await verifyComputerApp(previous);
+    await restorePreviousComputerApp(destination);
+    await linkComputerCli(destination);
 }
 
-export async function verifyAppleExecutable(path: string): Promise<void> {
+export async function verifyComputerApp(appPath: string) {
     if (process.platform !== 'darwin') {
         if (process.env.NODE_ENV === 'test') {
             return;
         }
         throw new Error('Haus Computer releases require Apple Silicon macOS.');
     }
-    if (!(computerAppleTeamId && computerAppleSigningIdentity)) {
+    if (!(computerAppleTeamId && computerAppleSigningIdentity && computerBundleId)) {
         throw new Error('This Computer does not contain its Apple signing identity.');
     }
-    const verified = Bun.spawnSync(['/usr/bin/codesign', '--verify', '--deep', '--strict', path]);
+    const verified = Bun.spawnSync([
+        '/usr/bin/codesign',
+        '--verify',
+        '--deep',
+        '--strict',
+        appPath,
+    ]);
     if (verified.exitCode !== 0) {
         throw new Error('Computer Apple signature verification failed.');
     }
-    const details = Bun.spawnSync(['/usr/bin/codesign', '-dv', '--verbose=4', path], {
+    const details = Bun.spawnSync(['/usr/bin/codesign', '-dv', '--verbose=4', appPath], {
         stderr: 'pipe',
         stdout: 'pipe',
     });
     const output = `${details.stdout.toString()}\n${details.stderr.toString()}`;
     if (
         details.exitCode !== 0 ||
+        !hasExactLine(output, `Identifier=${computerBundleId}`) ||
         !hasExactLine(output, `TeamIdentifier=${computerAppleTeamId}`) ||
         !hasExactLine(output, `Authority=${computerAppleSigningIdentity}`)
     ) {
@@ -154,11 +128,19 @@ export async function verifyAppleExecutable(path: string): Promise<void> {
     }
 }
 
-function hasExactLine(output: string, expected: string) {
-    return output.split(/\r?\n/u).includes(expected);
+async function unpackVerifiedApp(archivePath: string, release: SignedComputerRelease) {
+    const root = dirname(archivePath);
+    await run(
+        ['/usr/bin/ditto', '-x', '-k', archivePath, root],
+        'The Haus Computer release archive could not be unpacked.'
+    );
+    const appPath = join(root, computerAppName);
+    await verifyComputerApp(appPath);
+    verifyArtifactIdentity(computerAppExecutable(appPath), release);
+    return appPath;
 }
 
-async function verifyArtifactIdentity(path: string, descriptor: SignedComputerRelease) {
+function verifyArtifactIdentity(path: string, descriptor: SignedComputerRelease) {
     const result = Bun.spawnSync([path, 'version'], { stderr: 'pipe', stdout: 'pipe' });
     if (result.exitCode !== 0) {
         throw new Error('Computer release executable identity could not be read.');
@@ -182,11 +164,13 @@ async function verifyArtifactIdentity(path: string, descriptor: SignedComputerRe
     }
 }
 
-async function exists(path: string) {
-    try {
-        await stat(path);
-        return true;
-    } catch {
-        return false;
+async function run(command: string[], failure: string) {
+    const child = Bun.spawn(command, { stderr: 'pipe', stdout: 'ignore' });
+    if ((await child.exited) !== 0) {
+        throw new Error(failure);
     }
+}
+
+function hasExactLine(output: string, expected: string) {
+    return output.split(/\r?\n/u).includes(expected);
 }

@@ -11,8 +11,8 @@ import {
 } from './update-contract.ts';
 import {
     downloadAndVerifyArtifact,
-    installStandaloneExecutable,
-    rollbackStandaloneExecutable,
+    installComputerApp,
+    rollbackComputerApp,
 } from './update-install.ts';
 import { tryAcquirePidLock, withUpdateLock } from './update-locks.ts';
 
@@ -160,7 +160,7 @@ export async function runSignedUpdate(input: {
             await waitForActiveRuns(dataRoot, targetVersion, publish);
             failedPhase = 'installing';
             await publish(progress('installing', targetVersion, 'Installing update.'));
-            await (input.install ?? installStandaloneExecutable)(artifactPath);
+            await (input.install ?? installComputerApp)(artifactPath);
         } finally {
             await rm(dirname(artifactPath), { force: true, recursive: true });
         }
@@ -198,7 +198,7 @@ export async function rollbackComputer(input: {
     rollback?: () => Promise<void>;
 }): Promise<void> {
     input.onPhase?.('restoring');
-    await (input.rollback ?? rollbackStandaloneExecutable)();
+    await (input.rollback ?? rollbackComputerApp)();
     input.onPhase?.('restarting');
     await input.restart();
 }
