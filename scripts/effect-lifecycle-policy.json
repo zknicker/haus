@@ -43,7 +43,7 @@
                 "timer": 1
             }
         },
-        "apps/computer/src/execution-journal-upload/journal-uploader.ts": {
+        "packages/execution-journal/src/journal-uploader.ts": {
             "disposition": "finite-cleanup",
             "reason": "Each run's idle waiter is one manual promise that resolves when the Server acks the run's last frame or the attachment socket closes; the on-connect resend pass and ledger writes are serialized promise chains owned by the daemon-lifetime uploader.",
             "risks": {
@@ -263,7 +263,7 @@
                 "timer": 0
             }
         },
-        "apps/computer/src/harness/execution-journal-file.ts": {
+        "packages/execution-journal/src/execution-journal-file.ts": {
             "disposition": "finite-cleanup",
             "reason": "The per-journal Promise tail serializes finite atomic writes, and callers await the current write failure.",
             "risks": {
