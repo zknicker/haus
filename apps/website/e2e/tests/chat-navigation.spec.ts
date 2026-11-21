@@ -97,51 +97,51 @@ for (const intent of ['hover', 'focus'] as const) {
     });
 }
 
-test('a channel row opens on press and still drags to reorder', async ({ page }, testInfo) => {
+test('a Project row opens on press and still drags to reorder', async ({ page }, testInfo) => {
     // Per repeat, so `--repeat-each` can prove the drag is not timing-sensitive.
     const run = testInfo.repeatEachIndex;
     const { server, session } = await createTestServer(page, {
-        displayName: 'Channel press',
-        slug: `channel-press-${run}`,
+        displayName: 'Project press',
+        slug: `project-press-${run}`,
     });
-    const allId = server.channels.find((channel) => channel.name === 'all')?.id;
-    assertOpaqueId(allId);
-    const productId = `cht_channel_press_product_${run}`;
+    const alphaId = `cht_project_press_alpha_${run}`;
+    const betaId = `cht_project_press_beta_${run}`;
     runPsql(
         session.databaseUrl,
         `
         insert into chats (id, server_id, kind, is_all, name)
-        values ('${productId}', '${server.id}', 'channel', false, 'product');
+        values ('${alphaId}', '${server.id}', 'channel', false, 'alpha'),
+               ('${betaId}', '${server.id}', 'channel', false, 'beta');
         insert into channel_participants (server_id, chat_id, user_id)
-        select '${server.id}', '${productId}', user_id from server_memberships
-        where server_id = '${server.id}' and role = 'owner';
+        select '${server.id}', chat.id, membership.user_id
+        from server_memberships membership
+        cross join (values ('${alphaId}'), ('${betaId}')) as chat(id)
+        where membership.server_id = '${server.id}' and membership.role = 'owner';
     `
     );
-    await page.goto(`/s/channel-press-${run}/chats/${productId}`);
-    const channels = page.getByRole('treegrid', { name: 'Projects' });
+    await page.goto(`/s/project-press-${run}/chats/${betaId}`);
+    const projects = page.getByRole('treegrid', { name: 'Projects' });
     const order = async () => {
-        const names = await channels.getByRole('row').allTextContents();
-        return names.indexOf('all') < names.indexOf('product') ? 'all first' : 'product first';
+        const names = await projects.getByRole('row').allTextContents();
+        return names.indexOf('alpha') < names.indexOf('beta') ? 'alpha first' : 'beta first';
     };
-    await expect.poll(order).toBe('all first');
-    const allBox = await channels.getByRole('row', { exact: true, name: 'all' }).boundingBox();
-    const productBox = await channels
-        .getByRole('row', { exact: true, name: 'product' })
-        .boundingBox();
-    if (!(allBox && productBox)) {
-        throw new Error('Channel rows have no layout.');
+    await expect.poll(order).toBe('alpha first');
+    const alphaBox = await projects.getByRole('row', { exact: true, name: 'alpha' }).boundingBox();
+    const betaBox = await projects.getByRole('row', { exact: true, name: 'beta' }).boundingBox();
+    if (!(alphaBox && betaBox)) {
+        throw new Error('Project rows have no layout.');
     }
 
-    // The press opens #all before the pointer moves, like a Chrome tab.
-    await page.mouse.move(allBox.x + allBox.width / 2, allBox.y + allBox.height / 2);
+    // The press opens #alpha before the pointer moves, like a Chrome tab.
+    await page.mouse.move(alphaBox.x + alphaBox.width / 2, alphaBox.y + alphaBox.height / 2);
     await page.mouse.down();
-    await expect(page).toHaveURL(new RegExp(`/chats/${allId}$`));
+    await expect(page).toHaveURL(new RegExp(`/chats/${alphaId}$`, 'u'));
 
-    // The same press still drags #all below #product, and the drop opens nothing else.
-    await page.mouse.move(productBox.x + productBox.width / 2, productBox.y + productBox.height, {
+    // The same press still drags #alpha below #beta, and the drop opens nothing else.
+    await page.mouse.move(betaBox.x + betaBox.width / 2, betaBox.y + betaBox.height, {
         steps: 12,
     });
     await page.mouse.up();
-    await expect.poll(order).toBe('product first');
-    await expect(page).toHaveURL(new RegExp(`/chats/${allId}$`));
+    await expect.poll(order).toBe('beta first');
+    await expect(page).toHaveURL(new RegExp(`/chats/${alphaId}$`, 'u'));
 });

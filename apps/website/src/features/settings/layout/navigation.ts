@@ -40,7 +40,21 @@ export const settingsNavItems = [
         id: 'appearance',
         kind: 'page',
         label: 'Appearance',
-        rows: ['Mode', 'Theme', 'Create theme', 'Colors', 'Snow'],
+        rows: [
+            'Mode',
+            'Theme',
+            'Create theme',
+            'Colors',
+            'Snow',
+            'Background',
+            'Background effect',
+            'Brightness',
+            'Blur',
+            'Image opacity',
+            'Bottom fade',
+            'Overlay opacity',
+            'Input opacity',
+        ],
     },
     {
         access: 'everyone',
@@ -81,7 +95,6 @@ export const settingsNavItems = [
             'Cloud Agents',
             'Effort',
             'Fast',
-            'Detected runtimes',
             'Reported models',
         ],
     },
@@ -107,7 +120,7 @@ export const settingsNavItems = [
         id: 'computers',
         kind: 'page',
         label: 'Devices',
-        rows: ['Add device', 'Runtimes', 'Browser', 'Secrets', '1Password', 'Updates'],
+        rows: ['Add device', 'Browser', 'Secrets', '1Password', 'Updates'],
     },
     {
         access: 'everyone',
@@ -188,28 +201,7 @@ export interface SettingsNavGroup {
     matches: SettingsNavMatch[];
 }
 
-const capyShellRows: Partial<Record<SettingsRouteTab, readonly string[]>> = {
-    appearance: [
-        'Background',
-        'Background effect',
-        'Brightness',
-        'Blur',
-        'Image opacity',
-        'Bottom fade',
-        'Overlay opacity',
-        'Input opacity',
-    ],
-};
-
-export function settingsNavGroups({
-    canOperate,
-    capyShell,
-    query,
-}: {
-    canOperate: boolean;
-    capyShell: boolean;
-    query: string;
-}) {
+export function settingsNavGroups({ canOperate, query }: { canOperate: boolean; query: string }) {
     const needle = query.trim().toLowerCase();
     return settingsNavSections.flatMap((section) => {
         const matches = section.itemIds.flatMap((id) => {
@@ -217,22 +209,18 @@ export function settingsNavGroups({
             if (!item || (item.access === 'operator' && !canOperate)) {
                 return [];
             }
-            return matchItem(item, needle, capyShell);
+            return matchItem(item, needle);
         });
         const group = { id: section.id, label: section.label, matches } satisfies SettingsNavGroup;
         return matches.length > 0 ? [group] : [];
     });
 }
 
-function matchItem(item: SettingsNavItem, needle: string, capyShell: boolean) {
+function matchItem(item: SettingsNavItem, needle: string) {
     const titleMatches = needle.length === 0 || startsWord(item.label, needle);
-    const rows: readonly string[] = [
-        ...item.rows,
-        ...(capyShell ? (capyShellRows[item.id] ?? []) : []),
-    ];
     const row = titleMatches
         ? null
-        : (rows.find((candidate) => startsWord(candidate, needle)) ?? null);
+        : (item.rows.find((candidate) => startsWord(candidate, needle)) ?? null);
     const matches: SettingsNavMatch[] = titleMatches || row ? [{ item, row }] : [];
     return matches;
 }

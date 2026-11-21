@@ -996,7 +996,7 @@ written with. A tapped chip pushes the Task. There is no Convert to Task: only A
 
 The Inbox is the phone's landing screen and the sidebar's anchor. It mirrors the App page section
 for section — header, **Active this week**, **Unread**, **Happening now** —
-because [that page's order is the contract](../features/inbox.md), and it renders from the Store
+because that page's order was the contract (the App's Inbox page is retired), and it renders from the Store
 snapshots below rather than from reads of its own: `HausUI/Inbox` owns the row projections and the
 page, and `HausApp/InboxPresentationAdapters.swift` is the only place the Store's records become
 them. A section renders nothing at all until its read lands, so an unsettled section is blank rather
@@ -1074,7 +1074,7 @@ Opening a Chat row reads it the way any open transcript does. **Mark read** send
 with the row's `lastMessageSequence`; newer activity brings the row back. The sidebar's Inbox dot
 counts Chat rows and Task rows alike, matching the icon badge (`chat.unreadChatCount`).
 There is no question screen, card, or marker — the mention chip in the transcript is the whole
-presentation of a question ([Inbox](../features/inbox.md#notifications)).
+presentation of a question ([Notifications](../features/notifications.md)).
 
 A Task is unread only for its followers (ADR 0053 decision 9), and being assigned a Task makes the
 assignee a follower, so an assigned Task simply shows as unread; there is no separate assignment

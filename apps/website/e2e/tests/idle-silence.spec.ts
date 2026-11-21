@@ -7,7 +7,7 @@ import {
 } from '../support/app-traffic.ts';
 import { createChannelAgent } from '../support/channel-agent.ts';
 import { expectBurstCoalesced, recordPosts } from '../support/realtime-burst.ts';
-import { createTestServer, openChannel, openSection } from '../support/server.ts';
+import { captainTile, createTestServer, openChannel } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 // An App nobody touches sends nothing but its justified polls
@@ -62,15 +62,17 @@ test.describe('an idle App stays silent', () => {
         await expectIdleSilence(page, traffic);
     });
 
-    test('on the Inbox', async ({ page }) => {
-        const traffic = await openIdleApp(page, 'idle-inbox');
-        await openSection(page, 'Inbox');
+    test('on Home', async ({ page }) => {
+        const traffic = await openIdleApp(page, 'idle-home');
+        await openChannel(page, 'all');
+        await page.getByRole('link', { exact: true, name: 'Haus' }).click();
+        await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toContainText('Home');
         await expectIdleSilence(page, traffic);
     });
 
     test('on an Agent profile', async ({ page }) => {
         const traffic = await openIdleApp(page, 'idle-profile', { withAgent: true });
-        await page.getByRole('row', { exact: true, name: 'Orbit' }).click({ button: 'right' });
+        await captainTile(page, 'Orbit').click({ button: 'right' });
         await page.getByRole('menuitem', { exact: true, name: 'View Captain profile' }).click();
         await expect(page.getByRole('heading', { exact: true, name: 'Orbit' })).toBeVisible();
         await expectIdleSilence(page, traffic);

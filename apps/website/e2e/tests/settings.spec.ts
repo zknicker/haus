@@ -48,23 +48,13 @@ test.beforeAll(async () => {
     );
 });
 
-test('aligns the Settings escape row with the first Chat navigation row', async ({ page }) => {
+test('the Settings escape row sits on the Settings rows and leaves Settings', async ({ page }) => {
     await signInAsAppHuman(page);
-    await page.goto(`/s/${slug}`);
-
-    // Inbox leads the chat navigation, so it is the line the escape row has to
-    // land on: each leads its own sidebar page, so both take the shell's lead
-    // offset and meet the content topbar's midline.
-    const inboxBox = await page.getByRole('row', { exact: true, name: 'Inbox' }).boundingBox();
-    expect(inboxBox).not.toBeNull();
-
     await page.goto(`/s/${slug}/settings/appearance`);
     const backBox = await page
         .getByRole('row', { exact: true, name: 'Back to chat' })
         .boundingBox();
     expect(backBox).not.toBeNull();
-    expect(backBox?.y).toBe(inboxBox?.y);
-    expect(backBox?.height).toBe(inboxBox?.height);
     const profileBox = await page.getByRole('row', { exact: true, name: 'Profile' }).boundingBox();
     expect(profileBox).not.toBeNull();
     expect(backBox?.x).toBe(profileBox?.x);
@@ -169,9 +159,9 @@ test('reports current Computer models and skills in Server Settings', async ({ p
     await page.goto(`/s/${slug}/settings/models`);
 
     await expect(page.getByRole('heading', { level: 1, name: 'Models' })).toBeVisible();
-    await expect(page.getByText('Codex', { exact: true }).first()).toBeVisible();
     await expect(page.getByText('GPT-5.6 Terra', { exact: true })).toBeVisible();
     await expect(page.getByText('gpt-5.6-terra', { exact: true })).toBeVisible();
+    await expect(page.getByText('Detected Runtimes')).toHaveCount(0);
 
     await page.goto(`/s/${slug}/settings/skills`);
     await page.getByRole('button', { name: /Durable Testing/u }).click();

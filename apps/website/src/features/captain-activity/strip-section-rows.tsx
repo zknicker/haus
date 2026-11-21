@@ -1,0 +1,179 @@
+import { ItemCardGroup } from '@heroui-pro/react';
+import { Separator } from '@heroui/react';
+import { AnimatePresence, LayoutGroup, motion, useReducedMotion } from 'framer-motion';
+import type { ReactNode, Ref } from 'react';
+import { springs } from '../../lib/springs.ts';
+
+/** One strip row's height, which is the slot's height and the strip's floor. */
+export const stripRowHeight = 56;
+
+/**
+ * The one transition every strip arrival, departure, and reorder rides. It is
+ * the app's own `springs.slow` with the bounce taken out: a strip row is a
+ * record appearing, not a control responding to a press, and a record that
+ * overshoots reads as excited about itself.
+ */
+const stripRowTransition = { ...springs.slow, bounce: 0 };
+
+/**
+ * What a list's layout animation follows: its members, in order. Motion
+ * otherwise measures a `layout` node on every render and animates any shift
+ * it finds, so a render that lands with a resize — a pane divider drag
+ * re-renders the whole tab page each frame — slid rows after the new width.
+ * Keyed on membership, only an arrival, a departure, or a reorder moves a row.
+ */
+export function stripLayoutKey(ids: readonly string[]): string {
+    return ids.length === 0 ? 'empty' : ids.join('\n');
+}
+
+/**
+ * A section's rows, and the slot they land in when there are none.
+ *
+ * The slot is the point. An empty section used to be a line of text, which
+ * said the right thing and showed nothing: the reader learned that the section
+ * was empty but never learned what would fill it or where. A slot exactly one
+ * row tall, inside the frame the rows would share, says both — this is the
+ * shape of the thing that is missing, and here is where it will be — and it
+ * makes the arrival continuous, because the box it hands over is already the
+ * size of the row that takes it.
+ *
+ * Blank-until-settled belongs to the section, not to this: a section renders
+ * this only once its reads have settled, so a slot always means empty and
+ * never means loading.
+ */
+export function StripRowList<Row extends { id: string }>({
+    emptyLabel,
+    listId,
+    renderRow,
+    rows,
+}: {
+    /** The fact a settled, empty section states, in the slot. */
+    emptyLabel: string;
+    /** Scopes layout animation to this list, so two sections never pair rows. */
+    listId: string;
+    renderRow: (row: Row) => ReactNode;
+    rows: readonly Row[];
+}) {
+    const layoutKey = stripLayoutKey(rows.map((row) => row.id));
+    return (
+        <ItemCardGroup className="item-card-group--strip-rows overflow-hidden">
+            <LayoutGroup id={listId}>
+                <AnimatePresence initial={false} mode="popLayout">
+                    {rows.length === 0 ? (
+                        <StripEmptySlot
+                            key={`${listId}-empty`}
+                            label={emptyLabel}
+                            layoutKey={layoutKey}
+                        />
+                    ) : (
+                        rows.map((row, index) => (
+                            <StripMotionItem key={row.id} layoutKey={layoutKey}>
+                                {index > 0 ? <Separator /> : null}
+                                {renderRow(row)}
+                            </StripMotionItem>
+                        ))
+                    )}
+                </AnimatePresence>
+            </LayoutGroup>
+        </ItemCardGroup>
+    );
+}
+
+/**
+ * One arriving, leaving, or moving row in a section's list. It fades up a few
+ * pixels on arrival and a few pixels away on exit, and `layout` carries it
+ * when the list reorders under it, so a row that changes place slides rather
+ * than teleports.
+ */
+export function StripMotionItem({
+    children,
+    layoutKey,
+    ref,
+}: {
+    children: ReactNode;
+    /** The list's `stripLayoutKey`: the only change that may move this item. */
+    layoutKey: string;
+    /**
+     * `popLayout`'s own ref. `AnimatePresence` clones a leaving child with a
+     * ref and measures the node to pin it out of flow; a component that eats
+     * the ref measures nothing, so the pop never happens and the neighbours
+     * wait for the exit instead of closing over it.
+     */
+    ref?: Ref<HTMLDivElement>;
+}) {
+    const shouldReduceMotion = useReducedMotion() === true;
+
+    return (
+        <motion.div
+            animate={{ opacity: 1, y: 0 }}
+            className="min-w-0"
+            exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
+            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+            layout={shouldReduceMotion ? false : 'position'}
+            layoutDependency={layoutKey}
+            ref={ref}
+            transition={
+                shouldReduceMotion
+                    ? { duration: 0 }
+                    : { default: stripRowTransition, layout: stripRowTransition }
+            }
+        >
+            {children}
+        </motion.div>
+    );
+}
+
+/**
+ * The settled empty section: one row-shaped slot, inset inside the row frame
+ * every section's rows share.
+ *
+ * A dashed outline and no fill, because a filled block that pulses is a
+ * skeleton, and a skeleton promises that something is loading. This promises
+ * nothing — it is the settled answer, drawn as the outline of the row that
+ * isn't there. The breathing is deliberately below the threshold of a
+ * skeleton's: a quarter of opacity over four and a half seconds, gone under
+ * reduced motion.
+ */
+export function StripEmptySlot({
+    label,
+    layoutKey,
+    ref,
+}: {
+    label: string;
+    /** The list's `stripLayoutKey`, as `StripMotionItem` takes it. */
+    layoutKey: string;
+    /** `popLayout`'s own ref, for the same reason `StripMotionItem` takes one. */
+    ref?: Ref<HTMLDivElement>;
+}) {
+    const shouldReduceMotion = useReducedMotion() === true;
+
+    return (
+        <motion.div
+            animate={{ opacity: 1, y: 0 }}
+            className="p-1.5"
+            exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -4 }}
+            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 6 }}
+            layout={shouldReduceMotion ? false : 'position'}
+            layoutDependency={layoutKey}
+            ref={ref}
+            style={{ height: stripRowHeight }}
+            transition={
+                shouldReduceMotion
+                    ? { duration: 0 }
+                    : { default: stripRowTransition, layout: stripRowTransition }
+            }
+        >
+            <motion.p
+                animate={shouldReduceMotion ? undefined : { opacity: [0.75, 1, 0.75] }}
+                className="border-border text-muted flex h-full items-center rounded-xl border border-dashed ps-2.5 text-sm"
+                transition={
+                    shouldReduceMotion
+                        ? undefined
+                        : { duration: 4.5, ease: 'easeInOut', repeat: Number.POSITIVE_INFINITY }
+                }
+            >
+                {label}
+            </motion.p>
+        </motion.div>
+    );
+}

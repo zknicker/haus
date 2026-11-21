@@ -81,6 +81,11 @@ function catalogModel(model: Model<Api>) {
     };
 }
 
+export function defaultThinkingLevel(model: Model<Api>) {
+    const efforts = model.reasoning ? reasoningEfforts(model) : [];
+    return efforts.includes('medium') ? 'medium' : (efforts[0] ?? null);
+}
+
 function reasoningEfforts(model: Model<Api>) {
     const levels = model.thinkingLevelMap ?? {};
     return effortLevels.filter((effort) => levels[effort] !== null);

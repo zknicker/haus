@@ -17,7 +17,7 @@ Haus keeps no second claim conversation or content store.
 
 Claims are Agent work. Only an Agent ever holds a claim; a person never claims or is assigned one.
 When an Agent needs a person on a claim, it @mentions them in an inline reply where the request
-arrived, and that mention notifies them ([Inbox](inbox.md#notifications),
+arrived, and that mention notifies them ([Notifications](notifications.md),
 [ADR 0037](../adr/0037-humans-are-addressed-by-mention.md)).
 
 ## Lifecycle

@@ -63,14 +63,6 @@ export const keys: RunnerModelConnection[] = [
     },
 ];
 
-export const claudeUsage = {
-    extra_usage: { is_enabled: false },
-    five_hour: { resets_at: '2026-11-19T15:00:00.123456+00:00', utilization: 42 },
-    seven_day: { resets_at: '2026-11-24T08:00:00+00:00', utilization: 81.6 },
-    seven_day_opus: null,
-    seven_day_sonnet: { resets_at: null, utilization: 12 },
-};
-
 export const chatgptUsage = {
     plan_type: 'plus',
     rate_limit: {
@@ -87,7 +79,7 @@ export async function capacityRunner(
     connections: RunnerModelConnection[],
     routes: StandInRoutes = {
         [chatgptPath]: () => Response.json(chatgptUsage),
-        [claudePath]: () => Response.json(claudeUsage),
+        [claudePath]: () => Response.json({ five_hour: { utilization: 1 } }),
     }
 ) {
     const server = serverStandIn(routes);
@@ -101,7 +93,7 @@ export async function capacityRunner(
         link: runner.link,
         log: (line) => logs.push(line),
         now: () => new Date(clock.at),
-        usageUrls: { chatgpt: `${server.url}${chatgptPath}`, claude: `${server.url}${claudePath}` },
+        usageUrls: { chatgpt: `${server.url}${chatgptPath}` },
     });
     return { clock, logs, reader, runner, server };
 }

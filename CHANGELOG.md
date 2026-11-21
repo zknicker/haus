@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## v24.0.0 - 2026-11-20
+
+- Haus has one shell. The sidebar lists Captains as tiles, #all as the team room, and Projects, with Home at the top. The Inbox page is gone, and `/inbox` opens Home.
+- New Captain picks a model from one picker grouped by provider. Devices and Settings → Models no longer mention runtimes: a Device shows its plan usage, and Settings → Models shows each login's usage.
+- A Captain on a GPT, Grok, Gemini or OpenRouter model with the default reasoning effort reasons at its model's default again, and its turns show Thought summaries. Since v23.0.0 these Captains had run with reasoning off.
+- On a GPT Captain's turn, its Haus CLI calls fold into "Haus bookkeeping" again instead of showing as separate commands.
+- A Claude login added with a setup token shows its 5-hour and weekly usage in Settings → Models, read from the Captain's own turns. It no longer reports "Claude session expired".
+- The Server now records how much of its context window each Captain's session uses. The App shows this in a later release.
+- The Server deploy applies database migration 0148, rehearsed on a copy of production. Rolling back the Server does not reverse it.
+- Haus Computer, Haus Agent, Haus for Desktop and Haus for iPhone are unchanged.
+
+## v23.0.1 - 2026-11-20
+
+- A busy Captain on the Agent runner now acknowledges a notice about finished Worker reports. The same reports no longer get announced again on later notices.
+- This is a Server-only release with no database migration. Haus Computer, Haus Agent, Haus for Desktop and Haus for iPhone are unchanged.
+
 ## v23.0.0 - 2026-11-20
 
 - Every Captain now runs on the Server's sandboxed Agent runner instead of on Haus Computer. A Captain's model comes from the runner's catalog and uses the Server's logins in Settings → Models. Haus Computer still runs Workers and syncs Drive. When it moves, each Captain starts one fresh session, and its workspace, memory and chat history carry over.

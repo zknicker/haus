@@ -15,6 +15,7 @@ import {
 import { ackManagedSkillNotice, type ManagedSkillNotice } from './managed-skill-notice.ts';
 import { observeTurn, turnNoProgress } from './observe-turn.ts';
 import type { NoticeReceipt } from './pending-notice.ts';
+import { readHarnessContext, reportContext } from './report-context.ts';
 import { createRunActivity } from './run-activity.ts';
 import type { runRecords } from './run-records.ts';
 import { harnessFor, type RuntimeDriverFactory, type RuntimeTurn } from './runtime-driver.ts';
@@ -103,20 +104,20 @@ export async function runTurn(input: RunTurnInput) {
         isResume: live.isResume,
         receipts: session.deliveredRuleDigests,
     });
-    const record = (outcome: 'completed' | 'failed' | 'interrupted', compacted: boolean) =>
-        writeAgentSession(
-            input.agentDir,
-            sessionAfterTurn({
-                composedFingerprint: composed.fingerprint,
-                memory,
-                nativeSessionId: live.sessionId,
-                outcome,
-                plan,
-                rules,
-                session,
-                turn: { bootstrapFingerprint, compacted },
-            })
-        );
+    const record = async (outcome: 'completed' | 'failed' | 'interrupted', compacted: boolean) => {
+        const recorded = sessionAfterTurn({
+            composedFingerprint: composed.fingerprint,
+            memory,
+            nativeSessionId: live.sessionId,
+            outcome,
+            plan,
+            rules,
+            session,
+            turn: { bootstrapFingerprint, compacted },
+        });
+        await writeAgentSession(input.agentDir, recorded);
+        return recorded;
+    };
     if (input.signal.aborted) {
         await live.detach();
         await record('interrupted', false);
@@ -193,9 +194,19 @@ export async function runTurn(input: RunTurnInput) {
         };
         return failed;
     }
+    const harnessContext = await readHarnessContext(live, input.log);
     await live.detach();
     const outcome = stalled || observation.aborted ? 'interrupted' : 'completed';
-    await record(outcome, observation.compacted);
+    reportContext({
+        composed,
+        harness: harnessContext,
+        link: input.link,
+        memory: context.memory,
+        providerTokens: observation.contextTokens,
+        recorded: await record(outcome, observation.compacted),
+        rules: context.rules,
+        start,
+    });
     await settleSkillNotice(input, outcome, context.skillNotice);
     if (stalled) {
         input.activity.finish('thinking', 'failed');

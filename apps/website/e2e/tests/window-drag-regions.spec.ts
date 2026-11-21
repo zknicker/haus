@@ -4,7 +4,7 @@ import {
     moveTabToRightPane,
     openDesktopWindow,
 } from '../support/desktop-browser-stub.ts';
-import { createTestServer, openChannel } from '../support/server.ts';
+import { createTestServer, openChannel, sectionLink } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 /**
@@ -31,7 +31,7 @@ test('the window band drags from every empty spot and only its controls opt out'
 
     await expectDragContract(page, 'one pane');
 
-    await page.getByRole('row', { exact: true, name: 'Tasks' }).click({ modifiers: ['Meta'] });
+    await sectionLink(page, 'Tasks').click({ modifiers: ['Meta'] });
     await moveTabToRightPane(page, 'Tasks');
     await expectDragContract(page, 'two panes');
 });

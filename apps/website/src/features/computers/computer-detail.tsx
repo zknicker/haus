@@ -53,9 +53,6 @@ export function ComputerDetail({
             } => runtime.detected && isComputerRuntimeId(runtime.id)
         )
         .map((runtime) => runtime.id);
-    const undetectedRuntimeLabels = runtimes
-        .filter((runtime) => !runtime.detected)
-        .map((runtime) => runtime.label);
 
     return (
         // The settings nav is one reading column; a Computer is a settings
@@ -125,17 +122,7 @@ export function ComputerDetail({
             <section>
                 <ItemCardGroup variant="transparent">
                     <ItemCardGroup.Header className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                            <ItemCardGroup.Title>Runtimes</ItemCardGroup.Title>
-                            {undetectedRuntimeLabels.length > 0 ? (
-                                // A runtime with nothing installed has no limit
-                                // and no reset, so it says so as the section's
-                                // description rather than claiming a data row.
-                                <ItemCardGroup.Description>
-                                    Not detected: {undetectedRuntimeLabels.join(', ')}
-                                </ItemCardGroup.Description>
-                            ) : null}
-                        </div>
+                        <ItemCardGroup.Title>Plan usage</ItemCardGroup.Title>
                         <ComputerInventoryRefresh computerId={computerId} serverId={serverId} />
                     </ItemCardGroup.Header>
                     <ComputerUsageCapacity

@@ -6,6 +6,7 @@ import type {
     RunFailure,
 } from '@earendil-works/pi-durable';
 import type { InvocationOutcome } from '@haus/api';
+import { shellCommandOf } from '../tools/shell-command.ts';
 import {
     addTokenUsage,
     compactionToolName,
@@ -93,7 +94,7 @@ export class PiTurnEvents {
         for (const block of message.content) {
             if (block.type === 'toolCall') {
                 events.push({
-                    input: block.arguments,
+                    input: journaledInput(block.name, block.arguments),
                     toolCallId: block.id,
                     toolName: block.name,
                     type: 'tool-call',
@@ -175,6 +176,24 @@ export function piTokenUsage(usage: Usage) {
 
 export function liveOf(view: ConversationView) {
     return (view.docs['pi.live'] ?? {}) as LiveState;
+}
+
+function journaledInput(toolName: string, input: Record<string, unknown>) {
+    const { command, workdir, ...rest } = input;
+    if (!(toolName === 'shell' && isArgv(command))) {
+        return input;
+    }
+    return {
+        ...rest,
+        command: shellCommandOf(command).script,
+        ...(typeof workdir === 'string' ? { cwd: workdir } : {}),
+    };
+}
+
+function isArgv(value: unknown): value is readonly string[] {
+    return (
+        Array.isArray(value) && value.length > 0 && value.every((part) => typeof part === 'string')
+    );
 }
 
 function toolOutputOf(content: ToolResultMessage['content']) {

@@ -151,7 +151,7 @@ The runner reads each plan connection's capacity and sends it up as `runner-conn
 { connectionId, credentialVersion, windows, readAt }`, tagged with the credential version it read
 with. Settings → Models shows it on the connection's row.
 
-- **When.** A sweep every minute reads each plan connection whose last read finished 15 minutes
+- **When.** A sweep every minute reads each polled plan connection whose last read finished 15 minutes
   ago, or whose `credentialVersion` changed since. A turn that marks the connection `failed` reads
   it right away when its last read finished at least a minute ago. Reads run one connection at a
   time per provider, and a connection already queued or in flight is never queued again.
@@ -159,13 +159,17 @@ with. Settings → Models shows it on the connection's row.
   - ChatGPT plans: ChatGPT's `wham/usage` endpoint with the connection's access token and account
     id, through `@haus/codex-usage`. An expired access token is not refreshed for a read; the next
     turn refreshes it.
-  - Claude plans: Anthropic's OAuth usage endpoint with the setup-token, through
-    `@haus/claude-usage`. Whether that endpoint accepts a setup-token is not yet proven live.
+  - Claude plans: no polled reader. A setup-token carries only the `user:inference` scope, and
+    Anthropic's OAuth usage endpoint needs `user:profile`, so it refuses the token. Instead the
+    Claude CLI reads the `anthropic-ratelimit-unified-*` headers on every inference response and
+    reports `rate_limit_info.unifiedWindows` in a `rate_limit_event` whenever a window moves. The
+    runner sends `five_hour` and `seven_day` as a capacity reading for the connection the session
+    launched with, at its launch `credentialVersion`. A Claude plan's reading is as fresh as its
+    last turn, and `five_hour` is absent while the account has no open 5-hour window.
   - SuperGrok: none. The only xAI capacity endpoint Haus knows takes the Grok CLI's key and user
     id, which a Pi sign-in does not hold.
   - API-key connections have no plan capacity.
-- **Windows** are `{ id, label, resetsAt, usedPercent }`: `5-hour` and `Weekly` for both plans,
-  plus `Weekly Sonnet` and `Weekly Opus` when Claude reports them.
+- **Windows** are `{ id, label, resetsAt, usedPercent }`: `5-hour` and `Weekly` for both plans.
 - **Failures.** A failed read sends nothing and never changes the connection's status. The runner
   logs that capacity is unavailable. A `429` holds every read on that provider for its
   `Retry-After` (seconds or an HTTP date), 15 minutes when it gives none, and never more than an

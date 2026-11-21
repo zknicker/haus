@@ -6,8 +6,7 @@ import {
 import type { TabLocation } from '../../hooks/desktop-tabs/desktop-tabs-model.ts';
 import { useDesktopTabShortcuts } from '../../hooks/desktop-tabs/use-desktop-tab-shortcuts.ts';
 import { useDesktopTabsController } from '../../hooks/desktop-tabs/use-desktop-tabs-controller.ts';
-import { useCapyShell } from '../capy-shell/capy-shell-preference.ts';
-import { inboxRoute, serverRoute } from '../servers/server-routes.ts';
+import { serverRoute } from '../servers/server-routes.ts';
 import { useTabMenuBar } from './use-tab-menu-bar.ts';
 
 /**
@@ -48,7 +47,7 @@ function ServerTabs({
 }) {
     const home: TabLocation = {
         kind: 'app',
-        path: useCapyShell() ? serverRoute(slug) : inboxRoute(slug),
+        path: serverRoute(slug),
     };
     const commands = useDesktopTabsController({ home, seed, serverId });
     // The value never changes, so a tab change re-renders only what subscribes to it.

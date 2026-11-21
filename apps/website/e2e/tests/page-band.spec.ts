@@ -10,7 +10,6 @@ test('every surface leads its band with Back, Forward, and a Haus trail', async 
     const trail = page.getByRole('navigation', { name: 'Breadcrumb' });
 
     const surfaces = [
-        ['inbox', ['Haus', 'Inbox']],
         ['tasks', ['Haus', 'Tasks']],
         ['activity', ['Haus', 'Activity']],
         ['search', ['Haus', 'Search']],
@@ -23,7 +22,7 @@ test('every surface leads its band with Back, Forward, and a Haus trail', async 
         await expect(trail.getByRole('listitem')).toHaveText([...crumbs]);
         await expect(trail.getByRole('link', { name: 'Haus', exact: true })).toHaveAttribute(
             'href',
-            `/s/${slug}/inbox`
+            `/s/${slug}`
         );
         // The chevrons precede the trail on every surface.
         const [backBox, trailBox] = await Promise.all([back.boundingBox(), trail.boundingBox()]);

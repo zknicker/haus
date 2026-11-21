@@ -51,16 +51,6 @@ export function AgentRuntime({
                     <Separator />
                     <AgentModelConnectionRow agent={agent} canEdit={canEdit} />
                     <ExecutionRow
-                        color={execution.runtime ? 'default' : 'warning'}
-                        label="Runtime"
-                        value={
-                            execution.runtime
-                                ? execution.runtimeLabel
-                                : `${execution.runtimeLabel} · not installed`
-                        }
-                    />
-                    <Separator />
-                    <ExecutionRow
                         color="default"
                         label="Reasoning effort"
                         value={agentReasoningEffortLabels[agent.desiredReasoningEffort]}

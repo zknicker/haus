@@ -33,7 +33,10 @@ test('an Owner sees an Agent reminder on the Agent profile', async ({
 
     await page.goto('/s/reminders/agents/agt_e2e_reminder/home');
     await expect(page.getByRole('heading', { level: 1, name: 'Cove' })).toBeVisible();
-    await page.getByRole('button', { name: /^Automations/u }).click();
+    await page
+        .getByLabel('Scrollable main content')
+        .getByRole('button', { name: /^Automations/u })
+        .click();
     await expect(page.getByText('Local watchdog', { exact: true })).toBeVisible();
     // A row is one short line in the viewer's time, led by its kind: the
     // cadence for a recurring reminder, "Once" for a one-time one. The

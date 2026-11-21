@@ -4,7 +4,7 @@ import { installDesktopBrowserStub, openDesktopWindow } from '../support/desktop
 import { createProjectWithAgents } from '../support/project.ts';
 import { installRenderBudget } from '../support/render-budget.ts';
 import { readRenders } from '../support/render-counter.ts';
-import { createClient, createTestServer, openChannel } from '../support/server.ts';
+import { captainTile, createClient, createTestServer, openChannel } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 // Component renders per interaction with kept chat views, against the
@@ -41,7 +41,7 @@ test('web: idle, realtime messages, a warm switch, and a profile stay within bud
     expect(switchRenders.byName.ServerUpdateStream ?? 0).toBe(0);
     expect(switchRenders.byName.MemberUpdateStream ?? 0).toBe(0);
     await budget.measure('open-agent-profile', async () => {
-        await sidebarRow(page, 'Orbit').click({ button: 'right' });
+        await captainTile(page, 'Orbit').click({ button: 'right' });
         await page.getByRole('menuitem', { exact: true, name: 'View Captain profile' }).click();
         await expect(page.getByRole('heading', { exact: true, name: 'Orbit' })).toBeVisible();
     });

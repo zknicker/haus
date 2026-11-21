@@ -15,7 +15,6 @@ export type AppSection =
     | 'agent'
     | 'artifacts'
     | 'chat'
-    | 'inbox'
     | 'search'
     | 'settings'
     | 'tasks';
@@ -58,9 +57,6 @@ export function resolveActiveSection(pathname: string, slug: string): AppSection
     }
     if (suffix.startsWith('/activity')) {
         return 'activity';
-    }
-    if (suffix.startsWith('/inbox')) {
-        return 'inbox';
     }
     if (suffix.startsWith('/search')) {
         return 'search';

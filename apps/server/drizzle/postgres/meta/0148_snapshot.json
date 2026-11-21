@@ -1,5 +1,5 @@
 {
-  "id": "d162a690-239a-4130-a414-e8463169d80d",
+  "id": "7d14f489-f05b-4a97-bfb9-b1511c89a1fb",
   "prevId": "b503ea30-de1d-42ce-a0e1-730e3e03757d",
   "version": "7",
   "dialect": "postgresql",
@@ -538,6 +538,91 @@
         "agent_chat_reads_nonnegative": {
           "name": "agent_chat_reads_nonnegative",
           "value": "\"agent_chat_reads\".\"sequence\" >= 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.agent_context_snapshots": {
+      "name": "agent_context_snapshots",
+      "schema": "",
+      "columns": {
+        "agent_id": {
+          "name": "agent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "measured_at": {
+          "name": "measured_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reported_at": {
+          "name": "reported_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "run_id": {
+          "name": "run_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "server_id": {
+          "name": "server_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "session_generation": {
+          "name": "session_generation",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "snapshot": {
+          "name": "snapshot",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "agent_context_snapshots_agent_fk": {
+          "name": "agent_context_snapshots_agent_fk",
+          "tableFrom": "agent_context_snapshots",
+          "tableTo": "agents",
+          "columnsFrom": [
+            "server_id",
+            "agent_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "agent_context_snapshots_server_id_agent_id_pk": {
+          "name": "agent_context_snapshots_server_id_agent_id_pk",
+          "columns": [
+            "server_id",
+            "agent_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "agent_context_snapshots_generation": {
+          "name": "agent_context_snapshots_generation",
+          "value": "\"agent_context_snapshots\".\"session_generation\" >= 0"
         }
       },
       "isRLSEnabled": false
@@ -8015,271 +8100,6 @@
       },
       "isRLSEnabled": false
     },
-    "public.computer_use_requests": {
-      "name": "computer_use_requests",
-      "schema": "",
-      "columns": {
-        "agent_id": {
-          "name": "agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "chat_id": {
-          "name": "chat_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "command": {
-          "name": "command",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "computer_id": {
-          "name": "computer_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "decided_at": {
-          "name": "decided_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "decided_by_user_id": {
-          "name": "decided_by_user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "detail": {
-          "name": "detail",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "requested_at": {
-          "name": "requested_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "run_id": {
-          "name": "run_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "server_id": {
-          "name": "server_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "standing": {
-          "name": "standing",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "state": {
-          "name": "state",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tool_call_id": {
-          "name": "tool_call_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "computer_use_requests_open_key": {
-          "name": "computer_use_requests_open_key",
-          "columns": [
-            {
-              "expression": "server_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "chat_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "computer_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"computer_use_requests\".\"state\" = 'requested'",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "computer_use_requests_chat_idx": {
-          "name": "computer_use_requests_chat_idx",
-          "columns": [
-            {
-              "expression": "server_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "chat_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "computer_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "state",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "computer_use_requests_requested_idx": {
-          "name": "computer_use_requests_requested_idx",
-          "columns": [
-            {
-              "expression": "requested_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "computer_use_requests_decided_by_user_id_users_id_fk": {
-          "name": "computer_use_requests_decided_by_user_id_users_id_fk",
-          "tableFrom": "computer_use_requests",
-          "tableTo": "users",
-          "columnsFrom": [
-            "decided_by_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "computer_use_requests_server_id_servers_id_fk": {
-          "name": "computer_use_requests_server_id_servers_id_fk",
-          "tableFrom": "computer_use_requests",
-          "tableTo": "servers",
-          "columnsFrom": [
-            "server_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "computer_use_requests_chat_fk": {
-          "name": "computer_use_requests_chat_fk",
-          "tableFrom": "computer_use_requests",
-          "tableTo": "chats",
-          "columnsFrom": [
-            "server_id",
-            "chat_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "computer_use_requests_computer_fk": {
-          "name": "computer_use_requests_computer_fk",
-          "tableFrom": "computer_use_requests",
-          "tableTo": "computers",
-          "columnsFrom": [
-            "server_id",
-            "computer_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "computer_use_requests_agent_fk": {
-          "name": "computer_use_requests_agent_fk",
-          "tableFrom": "computer_use_requests",
-          "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "computer_use_requests_state": {
-          "name": "computer_use_requests_state",
-          "value": "\"computer_use_requests\".\"state\" in ('requested', 'allowed', 'denied')"
-        },
-        "computer_use_requests_decided_shape": {
-          "name": "computer_use_requests_decided_shape",
-          "value": "(\"computer_use_requests\".\"state\" = 'requested') = (\"computer_use_requests\".\"decided_at\" is null)"
-        },
-        "computer_use_requests_standing_shape": {
-          "name": "computer_use_requests_standing_shape",
-          "value": "not \"computer_use_requests\".\"standing\" or \"computer_use_requests\".\"state\" = 'allowed'"
-        },
-        "computer_use_requests_detail_length": {
-          "name": "computer_use_requests_detail_length",
-          "value": "char_length(\"computer_use_requests\".\"detail\") <= 200"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.computers": {
       "name": "computers",
       "schema": "",
@@ -8301,13 +8121,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "computer_use_access": {
-          "name": "computer_use_access",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'ask'"
         },
         "created_at": {
           "name": "created_at",
@@ -8584,10 +8397,6 @@
         "computers_worker_limit": {
           "name": "computers_worker_limit",
           "value": "\"computers\".\"worker_limit\" between 1 and 50"
-        },
-        "computers_computer_use_access": {
-          "name": "computers_computer_use_access",
-          "value": "\"computers\".\"computer_use_access\" in ('ask', 'always')"
         },
         "computers_update_phase": {
           "name": "computers_update_phase",

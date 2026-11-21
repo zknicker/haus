@@ -2,8 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { settingsNavGroups, settingsNavItems, settingsPages } from './navigation.ts';
 
-function railShape(input: { canOperate: boolean; capyShell?: boolean; query: string }) {
-    return settingsNavGroups({ capyShell: false, ...input }).map((group) => ({
+function railShape(input: { canOperate: boolean; query: string }) {
+    return settingsNavGroups(input).map((group) => ({
         label: group.label,
         rows: group.matches.map((match) =>
             match.row ? `${match.item.label} · ${match.row}` : match.item.label
@@ -30,7 +30,7 @@ test('Devices is an operator page, so members never see it', () => {
 });
 
 test('every registered item sits in exactly one rail group', () => {
-    const grouped = settingsNavGroups({ canOperate: true, capyShell: true, query: '' })
+    const grouped = settingsNavGroups({ canOperate: true, query: '' })
         .flatMap((group) => group.matches.map((match) => match.item.id))
         .sort();
     assert.deepEqual(grouped, settingsNavItems.map((item) => item.id).sort());
@@ -46,10 +46,7 @@ test('search matches at the start of a word, not inside one', () => {
     assert.deepEqual(railShape({ canOperate: true, query: 'time' }), [
         { label: 'You', rows: ['Profile · Timezone'] },
     ]);
-    assert.deepEqual(railShape({ canOperate: true, query: 'runtimes' }), [
-        { label: 'Captains', rows: ['Models · Detected runtimes'] },
-        { label: 'Haus', rows: ['Devices · Runtimes'] },
-    ]);
+    assert.deepEqual(railShape({ canOperate: true, query: 'runtimes' }), []);
     assert.deepEqual(railShape({ canOperate: true, query: 'ember' }), []);
 });
 
@@ -81,13 +78,11 @@ test('search does not reveal operator pages to members', () => {
     ]);
 });
 
-test('search finds Background rows only while the Capy shell is on', () => {
-    assert.deepEqual(railShape({ canOperate: true, capyShell: false, query: 'blur' }), []);
-    assert.deepEqual(railShape({ canOperate: true, capyShell: false, query: 'background' }), []);
-    assert.deepEqual(railShape({ canOperate: true, capyShell: true, query: 'blur' }), [
+test('search finds the Background rows under Appearance', () => {
+    assert.deepEqual(railShape({ canOperate: true, query: 'blur' }), [
         { label: 'You', rows: ['Appearance · Blur'] },
     ]);
-    assert.deepEqual(railShape({ canOperate: true, capyShell: true, query: 'background' }), [
+    assert.deepEqual(railShape({ canOperate: true, query: 'background' }), [
         { label: 'You', rows: ['Appearance · Background'] },
     ]);
 });

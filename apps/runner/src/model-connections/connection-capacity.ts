@@ -1,4 +1,5 @@
 import type {
+    ModelConnectionCapacityWindow,
     ModelProvider,
     RunnerConnectionCapacityFrame,
     RunnerModelConnection,
@@ -49,17 +50,24 @@ export function createCapacityReader(input: {
 
     const held = (provider: ModelProvider, at: number) => at < (heldUntil.get(provider) ?? 0);
 
+    const send = (
+        connection: RunnerModelConnection,
+        windows: readonly ModelConnectionCapacityWindow[],
+        readAt: Date
+    ) => {
+        const frame: RunnerConnectionCapacityFrame = {
+            connectionId: connection.id,
+            credentialVersion: connection.credentialVersion,
+            readAt: readAt.toISOString(),
+            type: 'runner-connection-capacity',
+            windows: [...windows],
+        };
+        input.link.send(frame);
+    };
+
     const attempt = async (connection: RunnerModelConnection, readAt: Date) => {
         try {
-            const windows = await readWindows(connection, readAt, input.usageUrls ?? {});
-            const frame: RunnerConnectionCapacityFrame = {
-                connectionId: connection.id,
-                credentialVersion: connection.credentialVersion,
-                readAt: readAt.toISOString(),
-                type: 'runner-connection-capacity',
-                windows,
-            };
-            input.link.send(frame);
+            send(connection, await readWindows(connection, readAt, input.usageUrls ?? {}), readAt);
             return 'read' as const;
         } catch (error) {
             input.log(
@@ -123,6 +131,12 @@ export function createCapacityReader(input: {
                 due(connection, 'access-failure', now().getTime())
                 ? enqueue(connection)
                 : Promise.resolve();
+        },
+        observed(
+            connection: RunnerModelConnection,
+            windows: readonly ModelConnectionCapacityWindow[]
+        ) {
+            send(connection, windows, now());
         },
         async sweep() {
             const listed = input.book.list().filter(readsCapacity);

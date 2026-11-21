@@ -1,25 +1,20 @@
 ---
-summary: The Capy shell preview — a per-device flag (off by default, toggled from Cmd+K) that swaps the App's sidebar for Captain tiles, Projects, open Tasks and People, and makes Home a prompt box; where each sidebar fact comes from.
+summary: The App's shell — a sidebar of Captain tiles, the #all team room, Projects, open Tasks and People, with Home as a prompt box; where each sidebar fact comes from.
 read_when:
-  - changing the Capy shell flag, its sidebar, its footer, or Home (Home's background is in appearance.md)
-  - changing what a Capy shell sidebar row reads or shows
-  - flipping the flag on for everyone or deleting the old shell (J4)
+  - changing the sidebar, its footer, or Home (Home's background is in appearance.md)
+  - changing what a sidebar row reads or shows
 ---
 
 # Capy shell
 
-The Capy shell is a parallel App interface built toward the
-[Capy product model](../proposals/capy-product-model.md). It sits behind one per-device
-preference, `capyShell`, which is off by default. With it off, the App is exactly as before.
+The Capy shell is the App's shell, built toward the
+[Capy product model](../proposals/capy-product-model.md). It replaced the old sidebar and the
+Inbox page in J4; there is no flag.
 
-Turn it on or off with **Toggle Capy shell** in Cmd+K. There is no Settings row. The choice is
-stored in `localStorage` under `haus.capy-shell` and follows into other open windows
-(`features/capy-shell/capy-shell-preference.ts`).
-
-## What changes with the flag on
+## The shell
 
 - **Sidebar.** Top to bottom: the logo (opens Home) with Search and New task at the right, then
-  Captains as avatar tiles, Projects, Open tasks, and People. On the web the logo and actions ride
+  Captains as avatar tiles, the #all team room, Projects, Open tasks, and People. On the web the logo and actions ride
   the titlebar strip; on the desktop they take the sidebar's first line, since the window band
   holds the strip.
   - Section headers ("Captains", "Projects", "Open tasks", "People") are plain body-size labels
@@ -30,6 +25,8 @@ stored in `localStorage` under `haus.capy-shell` and follows into other open win
     badge for unread DM messages. A click opens your DM with that Captain; hover warms the DM and
     the Captain's record. Right-click opens the old sidebar's DM menu (open in a new tab or
     pane, View agent profile, Attachments on desktop), and People rows carry the same menu. Owners and Admins get a + that opens New Captain.
+  - #all is the team room (ADR 0059): one row of its own above Projects, never a Project, and
+    never a choice in Home's Project picker.
   - A Project row is its mark, its name and its unread badge. The + opens New project. Projects
     reorder by drag or from the keyboard (Space picks a row up, the arrows move it, Space drops),
     through the old sidebar's `SortableChannelList` and its stored order.
@@ -38,7 +35,7 @@ stored in `localStorage` under `haus.capy-shell` and follows into other open win
     row reads and tooltips "Waiting on you". Waiting Tasks sort first.
   - People lists person-to-person DMs and appears only when you have any.
   - Alt+Down and Alt+Up open the next or previous row with unread messages, in sidebar order
-    across Captains, Projects, open Tasks and People, wrapping at the ends.
+    across Captains, the team room, Projects, open Tasks and People, wrapping at the ends.
 - **Footer.** Your avatar menu (Settings, Sign out, the version) and icons for Tasks, Drive,
   Automations (a menu of Captains, each opening its Automations), and Activity. Drive opens the
   Files route (`/s/<slug>/artifacts`), which D5 turns into the Drive page. Tasks, Drive and
@@ -70,7 +67,7 @@ stored in `localStorage` under `haus.capy-shell` and follows into other open win
   list loads. It reads the Device list (`computer.list`) only for an Owner or Admin with no
   Captains, waits for it only then, and treats a failed read as no Device. The sidebar keeps the
   Captains and Projects headers with their "+" and nothing below them (`home-state.ts`).
-- **Activity.** The Inbox's Captain activity strip (each Captain's 7-day tokens with the spike
+- **Activity.** The Captain activity strip (each Captain's 7-day tokens with the spike
   flag, and "N running" with its popover) heads the Activity page.
 
 ## Where the sidebar reads from
@@ -97,7 +94,9 @@ description (`planHomeTask` in `features/capy-shell/home-send.ts`). `useHomeSend
 Task and then opens its page. While the create is in flight the composer shows its submitted
 state, and a failed create keeps the text and shows the error under the composer.
 
-## Retiring the flag
+## Activity strip
 
-J4 flips the flag on for everyone and deletes the old shell: `AppSidebar`, `ChatNavigation`, the
-Inbox page, and the flag itself.
+The Captain activity strip that headed the old Inbox now heads the Activity page
+(`features/captain-activity/`): each Captain's 7-day tokens with the spike flag, and "N running"
+with its Happening now popover. The desktop dock badge counts unread Chats and followed Tasks
+(`useUnreadCount`). Notifications are in [Notifications](notifications.md).

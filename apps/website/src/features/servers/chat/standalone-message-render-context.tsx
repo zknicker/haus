@@ -1,0 +1,110 @@
+import type { ChatMessage } from '@haus/api';
+import * as React from 'react';
+import { useParams } from 'react-router-dom';
+import { useOpenAgentProfile } from '../../../hooks/agents/use-open-agent-profile.ts';
+import { useAgentAppearances } from '../../../hooks/members/use-agents.ts';
+import type { ChatMessageLayout } from '../../../hooks/servers/chat-message-layout.ts';
+import { useAttachmentDownload } from '../../../hooks/servers/use-attachment-download.ts';
+import { useChatAppearances } from '../../../hooks/servers/use-chats.ts';
+import { useHumanDirectory } from '../../../hooks/servers/use-human-directory.ts';
+import { useMembers } from '../../../hooks/servers/use-members.ts';
+import type { TranscriptRenderContextValue } from '../../chats/chat-transcript-render-context.tsx';
+import { useResolveActorProfile } from './chat-actor-profiles.ts';
+import { useChatMessageEntityProjector } from './chat-message-projection.ts';
+import { ServerChatMessageContent } from './server-chat-message-content.tsx';
+import { useRenderMessageMedia } from './use-message-media.tsx';
+import type { PendingChatMessage } from './use-pending-messages.ts';
+
+const conversationLayout = { showAgentIdentity: true, showHumanIdentity: true } as const;
+const noPendingMessages: ReadonlyMap<string, PendingChatMessage> = new Map();
+const noRepliedRuns: ReadonlySet<string> = new Set();
+
+export function useStandaloneMessageRenderContext({
+    chatId,
+    messages,
+    onOpenConversation,
+    serverId,
+}: {
+    chatId: string;
+    messages: readonly ChatMessage[];
+    onOpenConversation: () => void;
+    serverId: string;
+}): TranscriptRenderContextValue {
+    const { slug = '' } = useParams();
+    const agentList = useAgentAppearances(serverId);
+    const download = useAttachmentDownload();
+    const humans = useHumanDirectory(serverId);
+    const chatsById = useChatAppearances(serverId);
+    const viewerUserId = useMembers(serverId).data?.viewerUserId;
+    const openAgentProfile = useOpenAgentProfile();
+    const projectMessageEntity = useChatMessageEntityProjector(agentList);
+    const agentsById = React.useMemo(
+        () => new Map(agentList.map((agent) => [agent.id, agent])),
+        [agentList]
+    );
+    const resolveActorProfile = useResolveActorProfile({ agentsById, humans, messages });
+    // Media resolves a message's attachments by id when its row renders.
+    const lookupRef = useLatestRef({
+        messagesById: React.useMemo(
+            () =>
+                new Map<string, ChatMessageLayout>(
+                    messages.map((message) => [message.id, message])
+                ),
+            [messages]
+        ),
+        pendingById: noPendingMessages,
+    });
+    const renderMessageAttachments = useRenderMessageMedia({ download, lookupRef, serverId });
+    const openRef = useLatestRef(onOpenConversation);
+    const openArtifact = React.useCallback(() => openRef.current(), [openRef]);
+
+    return React.useMemo(
+        () =>
+            ({
+                canRequestMention: false,
+                chatId,
+                conversationLayout,
+                defaultOpenWorkGroups: false,
+                flashMessageId: null,
+                hiddenCount: 0,
+                openAgentProfile,
+                projectMessageEntity,
+                renderMessageAttachments,
+                renderMessageContent: (message) => (
+                    <ServerChatMessageContent
+                        agentsById={agentsById}
+                        chatsById={chatsById}
+                        humans={humans}
+                        message={message}
+                        onOpenArtifact={openArtifact}
+                        serverId={serverId}
+                        slug={slug}
+                    />
+                ),
+                repliedRunIds: noRepliedRuns,
+                resolveActorProfile,
+                turnDetails: { access: 'summary', serverId },
+                viewerUserId,
+            }) satisfies TranscriptRenderContextValue,
+        [
+            agentsById,
+            chatId,
+            chatsById,
+            humans,
+            openAgentProfile,
+            openArtifact,
+            projectMessageEntity,
+            renderMessageAttachments,
+            resolveActorProfile,
+            serverId,
+            slug,
+            viewerUserId,
+        ]
+    );
+}
+
+function useLatestRef<T>(value: T) {
+    const ref = React.useRef(value);
+    ref.current = value;
+    return ref;
+}

@@ -17,7 +17,7 @@ export function ComputerInventoryRefresh({
     return (
         <Tooltip delay={0}>
             <Button
-                aria-label="Refresh runtimes"
+                aria-label="Refresh"
                 isDisabled={
                     !computer ||
                     computer.health === 'offline' ||
@@ -30,10 +30,10 @@ export function ComputerInventoryRefresh({
                         { computerId, serverId },
                         {
                             onError: (error) =>
-                                toast.danger('Could not refresh runtimes', {
+                                toast.danger('Could not refresh', {
                                     description: error.message,
                                 }),
-                            onSuccess: () => toast.success('Runtimes refreshed'),
+                            onSuccess: () => toast.success('Refreshed'),
                         }
                     )
                 }
@@ -48,7 +48,7 @@ export function ComputerInventoryRefresh({
                     )
                 }
             </Button>
-            <Tooltip.Content>Refresh runtimes</Tooltip.Content>
+            <Tooltip.Content>Refresh</Tooltip.Content>
         </Tooltip>
     );
 }

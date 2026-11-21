@@ -107,7 +107,7 @@ describe('Server command groups', () => {
 
         groups
             .find((group) => group.id === 'navigation')
-            ?.commands.find((command) => command.title === 'Chat')
+            ?.commands.find((command) => command.title === 'Home')
             ?.run();
         expect(navigated).toEqual(['/s/dev']);
     });
@@ -172,12 +172,12 @@ describe('Server command groups', () => {
             serverSlug: 'dev',
             setDevMode: () => undefined,
         };
-        const navigation = (capyShell: boolean) =>
-            buildCommandGroups({ ...context, capyShell })
+        const navigation = () =>
+            buildCommandGroups(context)
                 .find((group) => group.id === 'navigation')
                 ?.commands.map((command) => command.title);
 
-        expect(navigation(true)).toEqual([
+        expect(navigation()).toEqual([
             'Search',
             'Home',
             'Tasks',
@@ -185,16 +185,7 @@ describe('Server command groups', () => {
             'Members',
             'Archived chats',
         ]);
-        expect(navigation(false)).toEqual([
-            'Search',
-            'Chat',
-            'Inbox',
-            'Tasks',
-            'Activity',
-            'Members',
-            'Archived chats',
-        ]);
-        buildCommandGroups({ ...context, capyShell: true })
+        buildCommandGroups(context)
             .find((group) => group.id === 'navigation')
             ?.commands.find((command) => command.title === 'Home')
             ?.run();

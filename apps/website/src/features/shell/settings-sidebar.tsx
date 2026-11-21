@@ -2,7 +2,6 @@ import { Sidebar } from '@heroui-pro/react';
 import { SearchField } from '@heroui/react';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
-import { useCapyShell } from '../capy-shell/capy-shell-preference.ts';
 import { serverSettingsSectionRoute } from '../servers/server-routes.ts';
 import { type SettingsRouteTab, settingsNavGroups } from '../settings/layout/navigation.ts';
 import {
@@ -29,7 +28,7 @@ export function SettingsSidebar({
     slug: string;
 }) {
     const [query, setQuery] = React.useState('');
-    const groups = settingsNavGroups({ canOperate, capyShell: useCapyShell(), query });
+    const groups = settingsNavGroups({ canOperate, query });
     const railTabId = useSettingsRailTabId();
     return (
         <SettingsRailRouter>
