@@ -2,13 +2,11 @@ import {
     type WorkerStep,
     type WorkerTurnStepsFrame,
     type WorkerStepKind,
+    computerKnownSecrets,
+    createJournalRedactor,
     workerStepOutputMaxLength,
     workerStepsRetained,
 } from '@haus/api';
-import {
-    computerKnownSecrets,
-    createJournalRedactor,
-} from '../../execution-journal-upload/journal-redaction.ts';
 import type { TurnEvent } from '../../runtime/turn-event.ts';
 import { activityIntervalMs } from './activity.ts';
 

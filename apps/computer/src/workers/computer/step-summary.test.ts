@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { createJournalRedactor } from '../../execution-journal-upload/journal-redaction.ts';
+import { createJournalRedactor } from '@haus/api';
 import { workerStepRecorder, workerStepReporter, workerTextMask } from './step-summary.ts';
 
 const token = 'hwt_turntokenvalue0123456789';
