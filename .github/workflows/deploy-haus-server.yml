@@ -335,16 +335,6 @@ jobs:
       - name: Prove public Server and hosted Haus App
         run: bun scripts/release/verify-hosted-haus.mjs "${HAUS_RELEASE_VERSION#v}"
 
-      # The runner's own bridge gets a Haus-owned DOCKER-USER chain inside the Colima VM: the one
-      # allow to the Server through Lima, then the private-range drops. Re-run every deploy; it
-      # flushes and re-adds only its own chain and jump, and leaves other containers' rules alone.
-      - name: Install the runner egress rules
-        if: env.HAUS_RUNNER_SOURCE != ''
-        run: |
-          set -euo pipefail
-          colima ssh -- sudo sh -s -- 192.168.5.2 18791 \
-            <"${HAUS_RUNNER_SOURCE}/apps/server/operations/install-runner-egress"
-
       - name: Start the Agent runner
         if: env.HAUS_RUNNER_SOURCE != ''
         run: |

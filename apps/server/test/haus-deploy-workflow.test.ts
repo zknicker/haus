@@ -83,12 +83,6 @@ test('a deploy builds the runner from the release tree before activation and rol
     expect(prune).toContain('HAUS_RUNNER_PREVIOUS_IMAGE');
     expect(prune).toContain('docker image rm');
     expect(prune).toContain('::warning::');
-    const egress = named('Install the runner egress rules')?.run ?? '';
-    expect(names.indexOf('Install the runner egress rules')).toBe(
-        names.indexOf('Start the Agent runner') - 1
-    );
-    expect(egress).toContain('colima ssh -- sudo sh -s -- 192.168.5.2 18791');
-    expect(egress).toContain('apps/server/operations/install-runner-egress');
     expect(names.at(-1)).toBe('Roll the Agent runner back');
     expect(rollback?.if).toBe("failure() && env.HAUS_RUNNER_REPLACED == 'true'");
     expect(rollback?.run).toContain('docker rm -f haus-runner');

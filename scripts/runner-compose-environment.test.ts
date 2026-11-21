@@ -41,25 +41,4 @@ describe('runner container environment', () => {
         );
         expect(runner?.extra_hosts).toBeUndefined();
     });
-
-    test('the runner has its own bridge, which the Haus egress chain matches by name', () => {
-        const compose = Bun.YAML.parse(
-            readFileSync(join(repositoryRoot, 'apps/server/compose.yml'), 'utf8')
-        ) as {
-            networks: Record<string, { driver_opts: Record<string, string> }>;
-            services: Record<string, { networks?: string[] }>;
-        };
-        const script = readFileSync(
-            join(repositoryRoot, 'apps/server/operations/install-runner-egress'),
-            'utf8'
-        );
-
-        expect(compose.services['haus-runner']?.networks).toEqual(['haus-runner']);
-        expect(compose.networks['haus-runner']?.driver_opts['com.docker.network.bridge.name']).toBe(
-            'haus-runner0'
-        );
-        expect(script).toContain('bridge=haus-runner0');
-        expect(script).toContain('iptables -N "$chain" 2>/dev/null || iptables -F "$chain"');
-        expect(script).toContain('iptables -I DOCKER-USER 1 -i "$bridge" -j "$chain"');
-    });
 });
