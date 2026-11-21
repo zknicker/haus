@@ -21,7 +21,7 @@ test('bash invocations cannot reach the bundled agent-desktop by name or locatio
     const result = await bashRunner(
         {
             command:
-                'command -v agent-desktop || true; printf "%s" "${AGENT_DESKTOP_MACOS_HELPER_PATH:-}"',
+                'command -v agent-desktop || true; printenv AGENT_DESKTOP_MACOS_HELPER_PATH || true',
             kind: 'bash',
         },
         {
