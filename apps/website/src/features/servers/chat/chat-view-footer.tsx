@@ -1,5 +1,7 @@
 import type { Chat } from '@haus/api';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
+import { chatCaptainId } from '../../agent-context/context-usage-model.ts';
+import { ContextUsageRing } from '../../agent-context/context-usage-ring.tsx';
 import { canRunAgentActions } from '../../members/agent-profile/agent-actions-model.ts';
 import { ArchivedChannelBar } from './archived-channel-bar.tsx';
 import { ChatComposer } from './chat-composer-variants.tsx';
@@ -26,6 +28,7 @@ export function ChatViewFooter({
     peerRetired: boolean;
     server: ServerDetail;
 }) {
+    const captainId = chatCaptainId(chat);
     return (
         <>
             {ensureDmError && !peerRetired ? (
@@ -54,6 +57,11 @@ export function ChatViewFooter({
                         agentDmId={chat.peerAgentId ?? undefined}
                         chatId={chat.id}
                         chatName={chatName}
+                        footer={
+                            captainId ? (
+                                <ContextUsageRing agentId={captainId} serverId={chat.serverId} />
+                            ) : null
+                        }
                         inlineReply={inlineReply}
                         onInlineReplyCancel={onInlineReplyCancel}
                         onInlineReplySent={onInlineReplySent}
