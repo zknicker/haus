@@ -10,6 +10,7 @@ import {
     useChatMessageNavigation,
 } from '../../../hooks/servers/use-chat-message-navigation.ts';
 import { useChatMessages } from '../../../hooks/servers/use-chat-messages.ts';
+import { ContextUsageRing } from '../../agent-context/context-usage-ring.tsx';
 import { openDesktopArtifact } from '../../chats/artifact-panel-context.tsx';
 import { ChatDetailFrame } from '../../chats/chat-detail-frame.tsx';
 import type { HausResourceTarget } from '../../chats/haus-resource-link.ts';
@@ -29,10 +30,12 @@ import { serverChatRoute } from '../../servers/server-routes.ts';
 import { TaskOrigin } from './task-origin.tsx';
 
 export function TaskConversation({
+    captainId,
     chatId,
     origin,
     title,
 }: {
+    captainId: string | null;
     chatId: string;
     origin: TaskOriginRecord | null;
     title: string;
@@ -102,6 +105,11 @@ export function TaskConversation({
                         <ChatComposer
                             chatId={chatId}
                             chatName={title}
+                            footer={
+                                captainId ? (
+                                    <ContextUsageRing agentId={captainId} serverId={server.id} />
+                                ) : null
+                            }
                             inlineReply={inlineReply}
                             onInlineReplyCancel={clearInlineReply}
                             onInlineReplySent={clearSentInlineReply}
