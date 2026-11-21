@@ -16,12 +16,9 @@ import {
     EXECUTION_JOURNAL_RETENTION_DAYS,
     type ExecutionJournalDocument,
 } from '@haus/api';
-import { outlineExecutionJournal } from '../execution-journal-outline.ts';
-import type { JournalRecord } from '../harness/execution-journal-records.ts';
-import {
-    type ExecutionJournalSink,
-    readComputerExecutionJournal,
-} from '../harness/execution-journal.ts';
+import { outlineExecutionJournal } from './execution-journal-outline.ts';
+import type { JournalRecord } from './execution-journal-records.ts';
+import { type ExecutionJournalSink, readComputerExecutionJournal } from './execution-journal.ts';
 import {
     createJournalRecordPresenter,
     type JournalRecordPresenter,

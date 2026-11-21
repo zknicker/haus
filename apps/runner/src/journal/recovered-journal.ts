@@ -1,10 +1,10 @@
 import { dispatchIdOf } from '@haus/api';
+import type { RecoveredDispatch } from '../dispatch/ledger.ts';
+import { RunnerCrashedError } from '../turn/turn-failure.ts';
 import {
     createComputerExecutionJournal,
     readComputerExecutionJournal,
-} from '@haus/computer/src/harness/execution-journal.ts';
-import type { RecoveredDispatch } from '../dispatch/ledger.ts';
-import { RunnerCrashedError } from '../turn/turn-failure.ts';
+} from './execution-journal/execution-journal.ts';
 import type { JournalUploads } from './journal-uploads.ts';
 
 export const unknownDispatchMessage =
