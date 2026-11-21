@@ -1,7 +1,7 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { Attachment } from './attachment.ts';
 import { type CliRenderer, plainCliRenderer } from './cli/render.ts';
-import type { Attachment } from './launch.ts';
 import { readComputerLoginSession } from './login.ts';
 import { validateComputerRuntimeAssets } from './runtime/runtime-assets.ts';
 

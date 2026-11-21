@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import { createRunThoughts } from '../thoughts/run-thoughts.ts';
 import { observeTurn } from './observe-turn.ts';
 import { createRunActivity } from './run-activity.ts';
 import type { TurnEvent } from './turn-event.ts';
@@ -25,6 +26,12 @@ test('a turn stuck on an open tool call trips the no-progress watchdog', async (
         gate: { toolCallSettled: () => undefined, toolCallStarted: () => undefined },
         noProgress: { checkEveryMs: 1, deadlineMs: 5 },
         onNoProgress: () => stalled.resolve(),
+        thoughts: createRunThoughts({
+            agentId: 'agt_1',
+            knownSecrets: [],
+            runId: 'run_1',
+            send: () => undefined,
+        }),
     });
 
     expect(observation).toEqual({

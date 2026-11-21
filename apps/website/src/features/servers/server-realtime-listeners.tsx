@@ -1,5 +1,6 @@
 import * as React from 'react';
 import type { RealtimeServer } from '../../hooks/realtime/realtime-server.ts';
+import { useAgentContextStream } from '../../hooks/realtime/use-agent-context-stream.ts';
 import { useAgentUpdateStream } from '../../hooks/realtime/use-agent-update-stream.ts';
 import { useArtifactUpdateStream } from '../../hooks/realtime/use-artifact-update-stream.ts';
 import { useChatLifecycleStream } from '../../hooks/realtime/use-chat-lifecycle-stream.ts';
@@ -50,6 +51,7 @@ export const ServerRealtimeListeners = React.memo(function ServerRealtimeListene
             <WorkerStream serverId={serverId} />
             <ImageGenerationStream serverId={serverId} />
             <AgentUpdateStream server={server} />
+            <AgentContextStream serverId={serverId} />
             <ComputerUpdateStream server={server} />
             <McpUpdateStream serverId={serverId} />
             <ArtifactUpdateStream serverId={serverId} />
@@ -117,6 +119,11 @@ function ImageGenerationStream({ serverId }: StreamProps) {
 
 function AgentUpdateStream({ server }: { server: RealtimeServer }) {
     useAgentUpdateStream(server);
+    return null;
+}
+
+function AgentContextStream({ serverId }: StreamProps) {
+    useAgentContextStream(serverId);
     return null;
 }
 

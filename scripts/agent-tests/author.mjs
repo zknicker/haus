@@ -140,7 +140,7 @@ export function computerAttachmentPath({ repositoryRoot, serverId }) {
 
 /**
  * The dev Computer's workspace directory for one Agent, the directory the
- * Agent's shell starts in (`apps/computer/src/launch.ts`).
+ * Agent's shell starts in on the Computer's disk (`specs/runtime-drivers.md`).
  */
 export function agentWorkspacePath({ agentId, repositoryRoot, serverId }) {
     const statePaths = createDevStackStatePaths({ baseEnvironment: process.env, repositoryRoot });

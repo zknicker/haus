@@ -22,17 +22,6 @@ test('setup signs in, stores only a Server credential, and reruns by validation'
     const opener = '#!/bin/sh\nprintf \'%s\' "$1" > "$HAUS_BROWSER_OPEN_MARKER"\n';
     await writeFile(join(browserBin, 'open'), opener, { mode: 0o755 });
     await writeFile(join(browserBin, 'xdg-open'), opener, { mode: 0o755 }); // Linux opener
-    const effectiveAgentRoot = join(dataRoot, 'servers', 'srv_test', 'agents', 'agt_effective');
-    await mkdir(effectiveAgentRoot, { recursive: true });
-    await writeFile(
-        join(effectiveAgentRoot, 'session.json'),
-        JSON.stringify({
-            effectiveModel: { modelId: 'gpt-5.6-sol', runtimeId: 'codex' },
-            generation: 1,
-            resumeState: null,
-            runtimeSessionId: 'runtime-session',
-        })
-    );
     const requests: string[] = [];
     const socketFrames: unknown[] = [];
     const peer = Bun.serve({
@@ -137,34 +126,9 @@ test('setup signs in, stores only a Server credential, and reruns by validation'
                 frame.type === 'report'
         );
         expect(reportFrame).toMatchObject({
-            agents: [
-                {
-                    agentId: 'agt_effective',
-                    missingResources: [],
-                    modelId: 'gpt-5.6-sol',
-                    runtimeId: 'codex',
-                },
-            ],
+            agents: [],
             inventory: { name: expect.any(String) },
             type: 'report',
-        });
-        const hausAgentReportFrame = socketFrames.find(
-            (frame) =>
-                typeof frame === 'object' &&
-                frame !== null &&
-                'type' in frame &&
-                frame.type === 'haus-agent-report'
-        );
-        expect(hausAgentReportFrame).toMatchObject({
-            agents: [
-                {
-                    agentId: 'agt_effective',
-                    appliedAt: null,
-                    status: 'pending',
-                    version: null,
-                },
-            ],
-            type: 'haus-agent-report',
         });
 
         await writeFile(

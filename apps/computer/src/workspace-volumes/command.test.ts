@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { Attachment } from '../launch.ts';
+import type { Attachment } from '../attachment.ts';
 import { runWorkspaceMaintenance } from './command.ts';
 
 test.skipIf(process.platform !== 'darwin')(

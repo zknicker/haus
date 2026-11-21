@@ -4,7 +4,6 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { visualsSkillFiles } from '@haus/agent-workspace';
 import { parseResetCommand } from './agent-command-frames.ts';
-import { applyAgentConfiguration, parseAgentConfigureCommand } from './agent-configuration.ts';
 import { resetAgentState } from './agent-reset.ts';
 import { prepareAgentDrive } from './drive-migration/prepare-agent-drive.ts';
 import { createDriveRoutes, serveDrive } from './drive-migration/testing/drive-server.ts';
@@ -21,19 +20,17 @@ afterEach(async () => {
     await rm(dataRoot, { force: true, recursive: true });
 });
 
-test('session reset rotates harness context while preserving Agent-owned state', async () => {
-    const { agentRoot, configurationJson, drive } = await seedResetFixture();
-
+test('a reset command parses only the two reset kinds', () => {
     expect(
         parseResetCommand({
             agentId: 'agt_reset',
-            kind: 'session',
+            kind: 'full',
             sessionGeneration: 2,
             type: 'agent-reset',
         })
     ).toEqual({
         agentId: 'agt_reset',
-        kind: 'session',
+        kind: 'full',
         sessionGeneration: 2,
         type: 'agent-reset',
     });
@@ -45,25 +42,12 @@ test('session reset rotates harness context while preserving Agent-owned state',
             type: 'agent-reset',
         })
     ).toBe(null);
-
-    await resetAgentState({ agentId, dataRoot, kind: 'session', serverId: 'srv_reset' });
-
-    await expect(stat(join(agentRoot, 'session.json'))).rejects.toThrow();
-    await expect(stat(join(agentRoot, '.agent-runs'))).rejects.toThrow();
-    await expect(stat(join(agentRoot, 'runtime', 'inbox'))).rejects.toThrow();
-    await expect(stat(join(agentRoot, 'runtime', 'pending-notice.json'))).rejects.toThrow();
-    expect(await readFile(drive.memory, 'utf8')).toBe(memory);
-    expect(await readFile(join(agentRoot, 'workspace', 'kept.txt'), 'utf8')).toBe('kept');
-    expect(await readFile(join(drive.skills, 'custom-skill', 'SKILL.md'), 'utf8')).toBe(
-        'name: custom-skill\n'
-    );
-    expect(await readFile(join(agentRoot, 'configuration.json'), 'utf8')).toBe(configurationJson);
 });
 
 test('full reset clears the Drive folder and the next launch seeds the factory area', async () => {
     const { agentRoot, configurationJson, drive } = await seedResetFixture();
 
-    await resetAgentState({ agentId, dataRoot, kind: 'full', serverId: 'srv_reset' });
+    await resetAgentState({ agentId, dataRoot, serverId: 'srv_reset' });
 
     await expect(stat(join(agentRoot, 'session.json'))).rejects.toThrow();
     await expect(stat(join(agentRoot, '.agent-runs'))).rejects.toThrow();
@@ -123,7 +107,7 @@ test('full reset of an unmigrated Agent keeps every legacy source for the next l
         await writeFile(join(agentRoot, relative), text);
     }
 
-    await resetAgentState({ agentId, dataRoot, kind: 'full', serverId: 'srv_reset' });
+    await resetAgentState({ agentId, dataRoot, serverId: 'srv_reset' });
 
     for (const [relative, text] of Object.entries(legacy)) {
         expect(await readFile(join(agentRoot, relative), 'utf8')).toBe(text);
@@ -170,34 +154,9 @@ test('full reset of an unmigrated Agent keeps every legacy source for the next l
 
 async function seedResetFixture() {
     const agentRoot = join(dataRoot, 'servers', 'srv_reset', 'agents', agentId);
-    const configuration = parseAgentConfigureCommand({
-        agentDescription: 'Onboarding guide',
-        agentId,
-        agentName: 'Scout',
-        modelId: 'gpt-5.6-sol',
-        runtimeId: 'codex',
-        sessionGeneration: 1,
-        sessionResetKind: 'full',
-        type: 'agent-configure',
-    });
-    if (!configuration) {
-        throw new Error('Reset configuration fixture did not parse.');
-    }
-    await applyAgentConfiguration({
-        command: configuration,
-        dataRoot,
-        inventory: {
-            runtimes: [
-                {
-                    id: 'codex',
-                    label: 'Codex',
-                    models: [{ id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' }],
-                },
-            ],
-        },
-        serverId: 'srv_reset',
-    });
-    const configurationJson = await readFile(join(agentRoot, 'configuration.json'), 'utf8');
+    const configurationJson = '{"agentId":"agt_resetxxxxxxxxxxx"}\n';
+    await mkdir(agentRoot, { recursive: true });
+    await writeFile(join(agentRoot, 'configuration.json'), configurationJson);
     const drive = agentDrive(agentRoot, 'scout');
     await Promise.all(
         [

@@ -1,13 +1,13 @@
 import { randomBytes } from 'node:crypto';
 import { readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { AgentSeedConfiguration } from '../agent-configuration.ts';
 import { type AgentDrive, agentDrive, recordAgentDriveHandle } from '../drive/agent-drive.ts';
 import { exists } from '../workspace-volumes/workspace-volume.ts';
 import { type DriveEntryOutcome, resolveEntries } from './drive-outcomes.ts';
 import { applyOutcome, refusedLocation, removeLegacyDirectories } from './drive-placement.ts';
 import { legacyEntries, legacyFiles, seedEntries, sha256Of } from './drive-sources.ts';
 import { type DriveAuthority, DriveMigrationError } from './drive-upload.ts';
+import type { AgentSeedConfiguration } from './seed-configuration.ts';
 
 export { DriveMigrationError } from './drive-upload.ts';
 

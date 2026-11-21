@@ -36,6 +36,7 @@ export function ServerChatComposer({
     chatId,
     chatName,
     draftKey,
+    footer,
     inlineReply,
     onMaterialized,
     onInlineReplyCancel,
@@ -53,6 +54,8 @@ export function ServerChatComposer({
     chatId?: string;
     chatName: string;
     draftKey: string;
+    /** Sits under the composer, right-aligned: the Captain's context ring. */
+    footer?: React.ReactNode;
     inlineReply?: ChatInlineReplyTarget | null;
     onMaterialized?: (chatId: string) => void;
     onInlineReplyCancel?: () => void;
@@ -260,6 +263,7 @@ export function ServerChatComposer({
                     shell, which clips its overflow. */}
                 <MentionComposerPicker composer={mentionComposer} />
             </PromptInput>
+            {footer ? <div className="flex h-8 items-center justify-end pt-1">{footer}</div> : null}
             {errorMessage ? <p className="text-danger mt-2 text-sm">{errorMessage}</p> : null}
         </div>
     );

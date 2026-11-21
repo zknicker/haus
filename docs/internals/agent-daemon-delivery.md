@@ -1,8 +1,8 @@
 ---
-summary: Haus Computer Agent daemon lifecycle, structured delivery, exact visibility proofs, crash recovery, and invariant tests.
+summary: Runner-hosted Agent turn lifecycle (the former Computer daemon, read Computer as runner), structured delivery, exact visibility proofs, crash recovery, and invariant tests.
 read_when:
-  - changing Computer Agent execution or runtime-driver session lifecycle
-  - changing Server-to-Computer Agent delivery or busy notices
+  - changing runner Agent execution or runtime-driver session lifecycle
+  - changing Server-to-runner Agent delivery or busy notices
   - changing accepted, served, or seen semantics, or the retained delivery ledger
   - changing which visibility writes or lifecycle facts start and end chat engagement
   - changing automation chain limits (Agent and Trigger wakes) or turn failure retry policy
@@ -10,6 +10,14 @@ read_when:
 ---
 
 # Agent Daemon And Delivery
+
+**Read "Computer" as the runner.** R4d moved every Agent onto the runner, and R4d-4 deleted the
+Computer's Agent daemon (turn runner, inbox store, session store, warm pool, loopback proxy).
+Server-side delivery state, the ledger, and the chain budget below are current. Where a section
+describes the Computer accepting a run, caching an inbox, rotating a proxy credential, or rendering
+a turn, the runner does that: see `apps/runner/src/turn/` (run-turn, turn-input, inbox-store,
+turn-notices, composed-drain, agent-sessions) and `apps/runner/src/haus/`. For the host contract,
+frames, and cutover, [Runtime drivers](../../specs/runtime-drivers.md) is the owner.
 
 The product contract lives in
 [Raft alignment](../../specs/raft-alignment/README.md),
@@ -21,9 +29,11 @@ the Server and Computer implementation.
 
 - Server owns canonical Chats, messages, pending work, exact model visibility,
   verified contiguous seen boundaries, and the 16-turn automation chain budget.
-- Computer owns one isolated execution host per assigned Agent: workspace,
-  HOME, skills, durable inbox acceptance, runtime session state, and a
-  resident loopback proxy.
+- The runner owns one isolated execution host per Agent: workspace,
+  HOME, skills, durable inbox acceptance, session state, and a Haus proxy
+  (`apps/runner/src/turn/`, `apps/runner/src/haus/`). The Computer owns none of this. Its
+  remaining Agent role is machine tools (invocations), Drive folder sync, reminder scripts,
+  Workers, and clearing an Agent's directory on a full reset or retire.
 - Haus runtime drivers are the execution implementation
   ([Runtime drivers](../../specs/runtime-drivers.md)). A settled turn detaches its session,
   parking resume state (and, while it stays warm, the native process) for the next delivery.
@@ -143,7 +153,7 @@ If steering is unsupported, rejected, or no safe boundary remains, the durable n
 unacknowledged. Server wakes the same Agent session again after settlement. The composed system
 prompt tells every Agent that a notice may arrive mid-turn; a runtime that cannot steer must
 bring back a next-turn prompt variant before it joins the driver map in
-`apps/computer/src/runtime/driver-factory.ts`. The Agent can still pull its inbox during the active turn;
+the runner's harness map (`apps/runner/src/turn/harnesses.ts`). The Agent can still pull its inbox during the active turn;
 those exact visibility receipts prevent a redundant wake for already-read work.
 Rejected steering also preserves the notice without changing the primary turn's
 outcome. A steer a running turn refused (`failed`) emits an
@@ -399,23 +409,23 @@ composition bubble remains tied only to an explicit in-flight message and its co
 
 | Principle | Smallest proving lane |
 | --- | --- |
-| One persistent session; pending delivery or cold `Start.`, then resume | `apps/computer/src/harness/executor.test.ts` |
-| Restart preserves generation and refreshes instructions exactly once | `apps/server/test/agent-delivery.test.ts`, `apps/computer/src/harness/executor.test.ts`, `apps/computer/src/harness/session-restart.test.ts` |
-| Instruction, runtime bootstrap, or Haus Agent version drift refreshes once in place and exposes the outcome safely | `apps/computer/src/harness/executor.test.ts`, `apps/computer/src/harness/executor-instructions-update.test.ts`, `packages/haus-api/src/agent-activity.test.ts` |
-| A resumed session receives changed instructions exactly once, never on a host-facts-only release | `apps/computer/src/harness/instructions-update.test.ts`, `apps/computer/src/harness/executor-instructions-update.test.ts`; live: `instructions-update-live.test.ts` |
-| Known tools map through the semantic registry; unknown and MCP tools remain generic | `apps/computer/src/harness/executor.test.ts` |
-| Runtime/model switch and rejected resume start exactly one fresh generation | `apps/computer/src/harness/executor.test.ts` |
-| Session reset preserves workspace and skills; full reset restores the factory workspace, the same for every Agent, and only factory-managed skills | `apps/computer/src/launch.test.ts` |
-| Stable local proxy; per-turn Server authority rotates | `apps/computer/src/proxy.test.ts` |
+| One persistent session; pending delivery or cold `Start.`, then resume | `apps/runner/src/turn/agent-sessions.test.ts` |
+| Restart preserves generation and refreshes instructions exactly once | `apps/server/test/agent-delivery.test.ts`, `apps/runner/src/turn/agent-sessions.test.ts` |
+| Instruction, runtime bootstrap, or Haus Agent version drift refreshes once in place and exposes the outcome safely | `apps/runner/src/turn/agent-sessions.test.ts`, `packages/haus-api/src/agent-activity.test.ts` |
+| A resumed session receives changed instructions exactly once, never on a host-facts-only release | `apps/runner/src/turn/instructions.test.ts` |
+| Known tools map through the semantic registry; unknown and MCP tools remain generic | `apps/runner/src/turn/agent-sessions.test.ts` |
+| Runtime/model switch and rejected resume start exactly one fresh generation | `apps/runner/src/turn/agent-sessions.test.ts` |
+| Session reset preserves workspace and skills; full reset restores the factory workspace, the same for every Agent, and only factory-managed skills | `apps/runner/src/turn/agent-reset.test.ts` |
+| Stable local proxy; per-turn Server authority rotates | `apps/runner/src/haus/haus-cli.test.ts` |
 | Exact message envelopes and content-free notices | `packages/agent-prompt/src/inbox-format.test.ts` |
-| Session continuity picks the drain lane; a composed drain attests and consumes itself | `apps/computer/src/harness/turn-prompt.test.ts`, `apps/computer/src/harness/executor.test.ts` |
-| A composed drain reaches the Server before the model streams and exempts its messages from the freshness hold | `apps/computer/src/harness/composed-drain-receipt.test.ts`, `apps/computer/src/visibility-receipt.test.ts`, `apps/server/test/agent-composed-drain-visibility.test.ts` |
+| Session continuity picks the drain lane; a composed drain attests and consumes itself | `apps/runner/src/turn/turn-input.test.ts`, `apps/runner/src/turn/agent-sessions.test.ts` |
+| A composed drain reaches the Server before the model streams and exempts its messages from the freshness hold | `apps/runner/src/turn/turn-input.test.ts`, `apps/server/test/agent-composed-drain-visibility.test.ts` |
 | Addressed drains, warm drain candidates, and the unread digest partition | `apps/server/test/agent-inbox-lanes.test.ts`, `apps/server/test/agent-inbox-digest.test.ts` |
-| Every model-visible identity consumes one local notice contribution | `apps/computer/src/inbox-store.test.ts`, `apps/computer/src/proxy.test.ts` |
-| Live notice injection cannot race accepted-run consumption | `apps/computer/src/inbox-store.test.ts`, `apps/computer/src/harness/executor.test.ts` |
+| Every model-visible identity consumes one local notice contribution | `apps/runner/src/turn/inbox-store.test.ts`, `apps/runner/src/haus/haus-cli.test.ts` |
+| Live notice injection cannot race accepted-run consumption | `apps/runner/src/turn/inbox-store.test.ts`, `apps/runner/src/turn/agent-sessions.test.ts` |
 | Pipe and redirected-file input reach the managed Agent CLI | `packages/agent-cli/src/stdin.test.ts` |
-| Durable accepted inbox; accepted crash replays | `apps/computer/src/delivery.test.ts`, `apps/computer/src/inbox-store.test.ts` |
-| One concurrent turn per Agent | `apps/computer/src/delivery.test.ts` |
+| Durable accepted inbox; accepted crash replays | `apps/runner/src/turn/crash-recovery.test.ts`, `apps/runner/src/turn/inbox-store.test.ts` |
+| One concurrent turn per Agent | `apps/runner/src/turn/crash-recovery.test.ts` |
 | Server resends accepted in-flight work after reconnect | `apps/server/test/agent-delivery.test.ts` |
 | Busy pull settles with its active run; unsettled pull replays | `apps/server/test/agent-delivery.test.ts` |
 | Exact exposure cannot consume without settled `seen` | `apps/server/test/agent-delivery.test.ts` |
@@ -425,7 +435,7 @@ composition bubble remains tied only to an explicit in-flight message and its co
 | Terminal vs retryable runtime failures | `apps/computer/src/runtime-failure.test.ts`, `apps/server/src/agent-delivery/failure-policy.test.ts` |
 | Backoff schedule and rate-limit exemption | `apps/server/src/agent-delivery/retry-policy.test.ts`, `apps/server/test/agent-delivery-backoff.test.ts` |
 | Wake pause opens on a repeated or persistent failure, probes 1h → 4h → 24h, clears on success, and lifts only for human intent | `apps/server/src/agent-delivery/wake-pause.test.ts`, `apps/server/test/agent-wake-pause.test.ts`, `apps/server/test/haus-agent-wake-pause.test.ts` |
-| A typed provider failure fails the turn; a rejected credential ends it at the first retry; the runtime issue clears on success | `apps/computer/src/harness/runtime-session-failure.test.ts`, `apps/computer/src/harness/runtime-session-failure-turn.test.ts`, `apps/computer/src/launch-runtime-auth.test.ts`, `apps/computer/src/runtime/codex/codex-turn-failures.test.ts` |
+| A typed provider failure fails the turn; a rejected credential ends it at the first retry; the runtime issue clears on success | `apps/computer/src/harness/runtime-session-failure.test.ts`, `apps/computer/src/runtime/codex/codex-turn-failures.test.ts` |
 | Dispatch, acceptance, and settlement project semantic lifecycle phases | `apps/server/test/agent-delivery.test.ts` |
 | A claim enters the inbox with canonical claim metadata | `apps/server/test/haus-agent-run.test.ts`, `packages/agent-prompt/src/inbox-format.test.ts` |
 | Mute purges ordinary work without blocking personal mentions; a mention in a Task restores an unfollow | `apps/server/test/haus-agent-run.test.ts` |

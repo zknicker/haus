@@ -84,6 +84,7 @@ export * from './agent-task.ts';
 export * from './agent-task-assignment.ts';
 export * from './agent-task-refusals.ts';
 export * from './agent-thought.ts';
+export * from './agent-thought-credentials.ts';
 export * from './agent-thought-phrase.ts';
 export * from './agent-thought-request-narration.ts';
 export * from './agent-triggers.ts';

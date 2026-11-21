@@ -1,6 +1,6 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { Attachment } from './launch.ts';
+import type { Attachment } from './attachment.ts';
 
 export function createAttachmentStore(dataRoot: string) {
     const root = join(dataRoot, 'servers');

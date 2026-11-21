@@ -1,29 +1,10 @@
 import { createHash } from 'node:crypto';
-import type { RunAgentLaunchOptions } from './launch.ts';
 
 const authorityTimeoutMs = 30_000;
 
 interface ComputerAttachment {
     credential: string;
     serverOrigin: string;
-}
-
-export async function mintRunner(options: RunAgentLaunchOptions) {
-    return await mintRunCredential(
-        { credential: options.attachment.credential, serverOrigin: options.serverOrigin },
-        {
-            agentId: options.command.agentId,
-            chatId: options.command.chatId,
-            runId: options.command.runId,
-        }
-    );
-}
-
-export async function revokeRunner(options: RunAgentLaunchOptions, runnerId: string) {
-    await revokeRunCredential(
-        { credential: options.attachment.credential, serverOrigin: options.serverOrigin },
-        runnerId
-    );
 }
 
 export async function mintRunCredential(
