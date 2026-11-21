@@ -4,7 +4,7 @@
  * classifier (`execution-bookkeeping.ts`) checks.
  *
  * Heredoc bodies are skipped (they are file contents or message text, not
- * commands), line continuations join, and unquoted `;`, `&&`, `||`, `|`, `&`
+ * commands), line continuations and line breaks inside quotes join, and unquoted `;`, `&&`, `||`, `|`, `&`
  * separate commands. A pipeline's filters (`| head -3`) are marked `piped` so
  * they never name a row. This is a display heuristic, not a shell parser: it
  * degrades to "the line as typed" rather than failing.
@@ -79,7 +79,7 @@ export function parseShellScript(script: string): ShellScript {
     return { commands, hasHeredoc, lines };
 }
 
-/** Lines outside heredoc bodies, with `\`-continued lines joined. */
+/** Lines outside heredoc bodies, with `\`-continued lines and quoted line breaks joined. */
 function readLogicalLines(script: string): string[] {
     const raw = script.split('\n');
     const result: string[] = [];
@@ -91,6 +91,10 @@ function readLogicalLines(script: string): string[] {
             if (line.trim() === pending[0]) {
                 pending = pending.slice(1);
             }
+            continue;
+        }
+        if (isInsideQuote(current + line)) {
+            current += `${line}\n`;
             continue;
         }
         if (line.endsWith('\\')) {
@@ -106,6 +110,25 @@ function readLogicalLines(script: string): string[] {
         result.push(current);
     }
     return result;
+}
+
+/** Whether `text` ends inside an unclosed quote, so its line break belongs to a word. */
+function isInsideQuote(text: string): boolean {
+    let quote: string | null = null;
+    for (let index = 0; index < text.length; index += 1) {
+        const char = text[index] ?? '';
+        if (char === '\\' && quote !== "'") {
+            index += 1;
+        } else if (quote) {
+            quote = char === quote ? null : quote;
+        } else if (char === '"' || char === "'") {
+            quote = char;
+        } else if (char === '#' && /^\s?$/u.test(text[index - 1] ?? '')) {
+            const end = text.indexOf('\n', index);
+            index = end === -1 ? text.length : end;
+        }
+    }
+    return quote !== null;
 }
 
 interface Segment {
