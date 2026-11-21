@@ -1,11 +1,11 @@
 import type { WorkerRuntime, WorkerTurnStartFrame } from '@haus/api';
-import { createJournalRedactor } from '../../execution-journal-upload/journal-redaction.ts';
 import type { RuntimeSession } from '../../runtime/driver.ts';
 import { activityLine, activityThrottle } from './activity.ts';
 import { mintTurnCredential } from './credentials.ts';
 import { pullWorkerDrive } from './drive-sync.ts';
 import { prepareWorkerCli, workerResumeState } from './harness.ts';
 import { resolveWorkerRepo } from './repos.ts';
+import { workerStepReporter, workerTextMask } from './step-summary.ts';
 import {
     bounded,
     type ComputerPlaceContext,
@@ -170,18 +170,33 @@ async function runHarness(
         if (frame.runtime === 'codex') {
             await acceptInput();
         }
-        const redact = createJournalRedactor([launch.env.HAUS_WORKER_TOKEN]);
+        const layout = context.journal.layout(frame.workerId);
+        const redact = workerTextMask({
+            checkout: layout.checkout,
+            drive: layout.drive,
+            environment: { ...process.env, ...launch.env },
+            token: launch.env.HAUS_WORKER_TOKEN,
+        });
         const offer = activityThrottle({
             now: context.now,
             send: (line) =>
                 context.send({ ...line, turnId: frame.turnId, type: 'worker-turn-activity' }),
+        });
+        const steps = workerStepReporter({
+            attempt: frame.attempt,
+            now: context.now,
+            send: context.send,
+            redact,
+            turnId: frame.turnId,
         });
         let failure: string | null = null;
         for await (const event of turn.events) {
             await acceptInput();
             failure = failureOf(event) ?? failure;
             offer(activityLine(event, redact));
+            steps.offer(event);
         }
+        steps.flush();
         await turn.settle();
         await session.stop().catch(() => session.destroy());
         return { branch, detail: failure, exit: exitOf(active, 'exited') };
@@ -229,5 +244,19 @@ function crashed(frame: Launchable | null, detail: string) {
 }
 
 function messageOf(error: unknown) {
-    return error instanceof Error ? error.message : String(error);
+    const text = error instanceof Error ? error.message : String(error);
+    return providerMessage(text) ?? text;
+}
+
+export function providerMessage(text: string) {
+    try {
+        const parsed: unknown = JSON.parse(text);
+        const body = typeof parsed === 'object' && parsed !== null ? parsed : {};
+        const nested = 'error' in body && typeof body.error === 'object' ? body.error : body;
+        return nested && 'message' in nested && typeof nested.message === 'string'
+            ? nested.message
+            : null;
+    } catch {
+        return null;
+    }
 }

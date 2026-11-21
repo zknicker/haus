@@ -169,8 +169,10 @@ cold-starts once.
 R3 left these Computer turn features unported, and R4 ports each before it moves an Agent:
 execution journal upload (including journaling dispatches the ledger recovers as `unknown`;
 ported, see [Execution journal](#execution-journal)),
-thoughts, idle compaction, rich-reference projection of message content, Claude plan usage after a
-turn, and `haus worker start`, which the Computer's proxy handled.
+thoughts, rich-reference projection of message content, Claude plan usage after a turn, and
+`haus worker start`, which the Computer's proxy handled.
+
+R4c moved idle compaction ([Idle compaction](#idle-compaction)).
 
 R4b already moved these: `drive-pull` when a runner run starts and `drive-push` when it settles
 (Drive folder below); voice calls that no longer need a healthy Computer; and restart, session
@@ -320,8 +322,51 @@ restart reason, `computer_restart`.
 Idle compaction moves to the runner's Claude Agent SDK harness with every rule unchanged: the
 gate, arming at 90 percent of the one-hour cache, the skips, `/compact` on the parked session,
 the races, the spend reading, and the `agent-idle-compaction` record. The Server sends
-`server-runtime-settings` to the runner instead of to Computers. Pi Durable has no idle
+`runner-runtime-settings` to the runner instead of `server-runtime-settings` to Computers. Pi Durable has no idle
 compaction, and the setting has no effect on its Agents.
+
+What the runner does:
+
+- **Gate.** One runner serves every Server of a deployment, so the setting is per Server. The
+  `runner-runtime-settings` frame lists the live Servers with idle compaction on, and every
+  `runner-start` names its Agent's Server. An Agent compacts only while its own Server is in the
+  list; nothing compacts until the first frame. The Server sends the list on every runner attach
+  and on every change, in order, so an attach read that began before a change can never land
+  after it. A change arms the parked sessions of Agents whose Server turned it on and cancels the
+  timers of Agents whose Server turned it off.
+- **Arming.** When a Claude session parks after a turn, the warm pool arms one timer per Agent at
+  90 percent of the way from the last main request to the end of the one-hour prompt cache, 54
+  minutes. Nothing is armed when the setting is off, before the session's first request, when its
+  last request did not write the one-hour cache, or when the pool would close the session first.
+  The last request, its prompt size, the cache lifetime it wrote, and the plan's rate-limit
+  status are read off the SDK stream. The minimum prompt is
+  `max(100000, CLAUDE_CODE_IDLE_COMPACT_MIN_TOKENS ?? 200000)`.
+- **Skips.** At fire time the compaction is skipped, and logged, when the timer is more than a
+  minute late (a sleeping machine), a newer request moved the session, the prompt is under the
+  minimum, the plan is near its usage limit, the session holds background work (`background_tasks_changed`
+  lists a live task or sub-agent), or the Agent is busy: a run is queued, running, or waiting
+  behind a reset or retire. Pi Durable sessions never arm.
+- **Run.** The runner sends `/compact` as a user message on the parked session and waits for the
+  compact boundary, the summary, and a result naming that message. A session that ends, refuses,
+  or reports no boundary rejects it, and a compaction that outlasts 10 minutes ends its session so
+  the next turn resumes cold.
+- **Races.** One compaction runs per Agent at a time. A turn that needs the session waits for a
+  running compaction and for the reset of its delivery receipts, and never interleaves with it. The
+  wait honors the run's stop: a stopped run leaves the session parked and does not wait behind a
+  hung `/compact`.
+  The idle close skips a session that is compacting and takes it on the next expiry sweep. A reset,
+  restart, retire, eviction, or shutdown closes the session and cancels its timer. A claimed
+  session disarms.
+- **Receipts.** The compaction may have summarized the memory and rules away, so it resets the
+  memory digest, the rule digests, and the delivered instruction fingerprint in `session.json`,
+  as a compacted turn does. A turn reads `session.json` after it opens its session, so it sees
+  the reset.
+- **Spend and record.** The compaction's cost and token usage are the difference of the
+  process's cumulative cost and model usage before and after, because its own result reports
+  zero. The runner journals the compaction under its `compaction-` id as the `compaction` tool
+  pair (trigger `idle`, tokens, summary), as a turn's compaction is journaled, then sends an
+  `agent-idle-compaction` frame up the runner socket, and the Server records it as the Agent's completed turn so Usage counts it. A
+  resend changes nothing.
 
 ## The Agent's tools
 

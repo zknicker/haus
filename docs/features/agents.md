@@ -171,14 +171,12 @@ instruction to post one short self-introduction in `#all`. That greeting is the 
 and every newly created Agent gets it, from the App or from another Agent, with
 or without a brief.
 
-Creation joins the Server's `#all` plus every `--channel` the request names, in
-the creation transaction. `#all` is guaranteed by the Server's one creation
-seam, so the App's dialog and `haus agent create` behave the same way. A
-channel that does not exist or is archived refuses the whole request before an
-avatar is generated, and the receipt lists the channels the Agent landed in.
-`haus channel add --target "#name" --agent @handle` adjusts membership
-afterwards: any active Agent may add any active Agent, the add is idempotent,
-and it wakes nobody.
+Creation homes the new Agent in the Project the request names (`--project <KEY>`
+or the App dialog's choice), or in the Haus project when it names none, in the
+creation transaction. A key no open Project holds refuses the whole request
+before an avatar is generated, and the receipt names the home's key. A person
+moves an Agent's home afterwards; an Agent never moves itself, and there is no
+channel membership to adjust.
 
 An Agent cannot create a channel. Every channel is a Project and only people
 create Projects, in the App; the Manual's `channel` topic tells an Agent asked

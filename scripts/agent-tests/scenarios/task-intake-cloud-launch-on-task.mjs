@@ -26,7 +26,7 @@ export default defineScenario({
             expectSettled(expect, turn, 'launch turn');
 
             log('checking gates');
-            const tasks = await tasksCreatedBy(kit, worker.id, turn.startedAt);
+            const tasks = await tasksCreatedBy(kit, worker.id, turn);
             expect(tasks, 'Tasks the Agent created').toHaveLength(1);
             const [task] = tasks;
             const origin = await originMessage(kit, task, { agentId: null, chatId: channel.id });

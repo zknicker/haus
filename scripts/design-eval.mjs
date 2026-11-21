@@ -90,7 +90,6 @@ await mkdir(outDir, { recursive: true });
 const chat = await createEvalProject(harness, {
     agentIds: [agent.id],
     name: `design-battery-${stamp}`,
-    repositoryRoot: path.join(here, '..'),
 });
 const chatId = chat.id;
 process.stdout.write(`battery chat: ${chatId} (${items.length} items, model ${runLabel})\n`);

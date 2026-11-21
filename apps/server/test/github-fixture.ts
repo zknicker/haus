@@ -182,10 +182,5 @@ async function createAgent(
         runtimeId: 'codex',
         serverId,
     });
-    await harness.sql`
-        insert into channel_agent_participants (server_id, chat_id, agent_id)
-        values (${serverId}, ${channelId}, ${created.agent.id})
-        on conflict do nothing
-    `;
     return created.agent.id;
 }

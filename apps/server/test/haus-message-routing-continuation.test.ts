@@ -66,7 +66,7 @@ beforeAll(async () => {
     beaconId = await fixture.createAgent('Beacon', 'beacon');
     juniperId = await fixture.createAgent('Juniper', 'juniper');
     channelId = (
-        await createTestProject(fixture.harness, fixture.owner, {
+        await createTestProject(fixture.owner, {
             agentIds: [beaconId, juniperId],
             name: 'joy-haus-ops',
             serverId: fixture.serverId,

@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import { createTestProject } from './project.fixture.ts';
 import { startTestTask } from './task-place-fixture.ts';
 import { workerLinkHelpers } from './worker-link-helpers.ts';
 import { workerRecordFixture } from './worker-record-fixture.ts';
@@ -6,18 +7,22 @@ import { workerRecordFixture } from './worker-record-fixture.ts';
 const fixture = workerRecordFixture();
 const { agentPost } = workerLinkHelpers(fixture);
 
-test('a followed Task wakes through a Channel mute; unfollow quiets it until a mention', async () => {
+test('a followed Task outside the home wakes the Agent; unfollow quiets it until a mention', async () => {
+    const design = await createTestProject(fixture.owner, {
+        agentIds: [],
+        key: 'DSN',
+        name: 'design',
+        serverId: fixture.serverId,
+    });
     const task = await startTestTask(fixture.harness, fixture.owner, {
-        channelId: fixture.channelId,
+        channelId: design.id,
+        key: 'DSN',
         serverId: fixture.serverId,
         title: 'Attention check',
     });
     const [orbit] = (await fixture.harness.sql`
         select handle from agents where id = ${fixture.orbitAgentId}
     `) as { handle: string }[];
-    const [channel] = (await fixture.harness.sql`
-        select name from chats where id = ${fixture.channelId}
-    `) as { name: string }[];
     const send = async (content: string, nonce: string) =>
         (
             await fixture.owner.trpc.chat.send.mutate({
@@ -31,10 +36,6 @@ test('a followed Task wakes through a Channel mute; unfollow quiets it until a m
     await send(`@${orbit?.handle} take this one.`, 'attention-follow');
     expect(await followed()).toEqual([{ followed: true }]);
     const runner = await fixture.mintRunner('run_task_attention');
-    const channelTarget = `#${channel?.name}`;
-    expect(
-        (await agentPost(runner, '/api/agent/channels/mute', { target: channelTarget })).status
-    ).toBe(200);
     const ordinary = await send('Routine update.', 'attention-ordinary');
     expect(await pending(ordinary)).toEqual([{ mentioned: false, task_follow_reactivated: false }]);
 
@@ -52,10 +53,6 @@ test('a followed Task wakes through a Channel mute; unfollow quiets it until a m
     expect(await followed()).toEqual([{ followed: true }]);
     const after = await send('Ordinary again.', 'attention-after');
     expect(await pending(after)).toEqual([{ mentioned: false, task_follow_reactivated: false }]);
-
-    expect(
-        (await agentPost(runner, '/api/agent/channels/unmute', { target: channelTarget })).status
-    ).toBe(200);
 
     async function followed() {
         return await fixture.harness.sql`

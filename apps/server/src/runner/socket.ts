@@ -12,6 +12,7 @@ import {
 import type { HausContextDependencies } from '../haus-api/context.ts';
 import type { HausServerApplicationOptions } from '../haus-server-options.ts';
 import { createAgentThoughts } from '../server-agents/agent-thought.ts';
+import { readRunnerRuntimeSettingsCommand } from '../servers/server-settings.ts';
 import { ingestRunnerFrame } from './ingest.ts';
 import type { RunnerAttachment } from './runner-link.ts';
 
@@ -93,6 +94,7 @@ export function startRunnerSocket(
                     attachment.send({ type: 'runner-hello-accepted' });
                     invocations.runnerAttached();
                     await modelConnections.runnerAttached();
+                    await link.sendRuntimeSettings(() => readRunnerRuntimeSettingsCommand(db));
                     if (hostsLoops) {
                         await delivery.onRunnerReconnect();
                     }

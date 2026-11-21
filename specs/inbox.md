@@ -96,14 +96,33 @@ only what is addressed to it or what it follows. A message reaches an Agent when
 | Another Project's channel, inline reply | It @mentions the Agent, or the Agent follows the reply chain |
 | A Task of another Project | It @mentions the Agent, or the Agent follows the Task |
 | A DM with the Agent | Always |
+| `#all`, the team room | Always, as in its home, for every active Agent |
 
-- A generalist's home is the Haus project, so it hears the Haus channel and its Tasks, and
-  mentions elsewhere, like any Agent.
+- `#all` is no Agent's home and no Project, but every active Agent on the Server hears it the way
+  it hears its home: its top-level messages, and its inline replies before anyone has
+  participated. Its ADR 0030 candidates are every active Agent, and Jev narrows there as in any
+  channel. A retired Agent never hears it, and an Agent never hears its own message. One
+  function decides hearers for both cases (`hearersOf` in `agent-delivery/hearing.ts`), keyed on
+  `chats.is_all`. Decided by Zach 2026-11-20, so team-wide updates reach every Captain.
+- Delivery splits in two. Every active Agent on the Server is **reachable**: it can be
+  @mentioned, can follow a Task or reply chain, and can read and post anywhere
+  (`resolveAgentTarget`, `listMentionOptions`, `mentionedAgentIds`,
+  `ensureInlineReplyParticipants`). Only a channel's hearers are **ambient listeners**, hearing
+  its top-level messages and inline replies without being addressed: a Project's home Agents,
+  or in `#all` every active Agent.
+- A Project's **hearers** are its non-retired home Agents, and no one else. They hear the
+  channel, its inline replies, and the Tasks, and they are the ADR 0030 candidates. A Project
+  with no home Agent delivers only @mentions, assignments, follows and DMs; nothing else hears
+  it. Amended 2026-11-20 by Zach's decision that every Captain belongs to a real Project:
+  generalists are retired, so no Agent hears a Project with no home Agent on its behalf
+  ([projects.md](projects.md#generalists)).
 - An Agent follows a Task by the follower rules in [tasks.md](tasks.md#followers-and-unread):
   being its assignee, authoring or being mentioned in its origin Message, posting in it, or
   following by hand. So an assignment always reaches the Agent, in any Project, both as the
   `task_assignment` item and as every later message in the Task.
 - An Agent follows a reply chain by the rules in [Inline reply attention](#inline-reply-attention).
+- A DM reaches its Agent always, inline replies included: chain follows decide delivery only in
+  channels.
 - Claim assignments, reminder and Trigger fires, Cloud Agent notices, and the other concrete
   kinds reach their recipient wherever their Chat is. Hearing narrows only ordinary `human`
   delivery.
@@ -111,24 +130,28 @@ only what is addressed to it or what it follows. A message reaches an Agent when
   for messages planned after the move. Items already queued stay queued.
 - There are no channel mutes. `agent_channel_mutes` and `haus channel mute` and `unmute` are
   deleted: a Project is the place an Agent answers first, and other Projects already reach it
-  only by mention. Home hearing is absolute: a home Agent hears every message in its Project's
-  channel and Tasks, and unfollowing a home Task changes nothing for it. Outside its home, an Agent
-  stops hearing a Task by unfollowing it (`haus task unfollow`).
+  only by mention. Hearing in its Project is absolute: a Project's hearers hear every message in
+  its channel and Tasks, and unfollowing one of its Tasks changes nothing for them: the unfollow
+  is recorded and its queued items stay. Outside its Project, an Agent stops hearing a Task by
+  unfollowing it (`haus task unfollow`).
 
 Across all Servers with the TypeSafe credential configured, [ADR 0030](../docs/adr/0030-semantic-channel-addressing.md)
 permits semantic narrowing of unaddressed human top-level channel messages. Its eligible Agents in
-a Project's channel are the Project's home Agents. The final recipient set is committed with the
+a Project's channel are the Project's hearers. The final recipient set is committed with the
 message; kept, uncertain, failed or stale judgments retain ordinary delivery. This does not change
-explicit mention, reply, Task, or DM rules. In a Project with one home Agent, the message is
-addressed to it as `sole` when the author is the channel's only human member. With more human
-members, Jev judges whether the one Agent is the addressee, and recipients stay unchanged either
-way. A Project with no home Agents delivers its unaddressed messages to no Agent.
+explicit mention, reply, Task, or DM rules. Jev also sees any Agent the message @mentions from
+outside the Project, but only hearers can be narrowed away. In a Project with one hearer, the
+message is addressed to it as `sole` when the author is the channel's only human member. With more
+human members, Jev judges whether the one Agent is the addressee, and recipients stay unchanged
+either way. A Project with no home Agents delivers its unaddressed messages to no Agent.
 
-ADR 0030 narrowing of top-level channel messages among several home Agents is the one exception
-to absolute home hearing.
+ADR 0030 narrowing of top-level channel messages among several hearers is the one exception to
+absolute home hearing.
 
-Hearing lands with J3. Each row of the table, and the generalist case, has a delivery test in
-`apps/server/test/agent-hearing.test.ts`, and the migration has one for each step of
+Hearing lands with J3. Each row of the table, and a Project with no home Agent, has a delivery test in
+`apps/server/test/agent-hearing.test.ts`, inline replies in
+`apps/server/test/agent-reply-hearing.test.ts`, `#all` in
+`apps/server/test/agent-all-hearing.test.ts`, and the migration has one for each step of
 [projects.md](projects.md#migration-from-channels).
 
 ### Planning
@@ -240,13 +263,15 @@ by chat, root, and Agent, independently from the claim's single assignee.
 
 Root authors and mentions, reply authors and mentions, and successful claimants join that
 chain. Send and claim update follows in their existing transaction. Losing a claim adds no
-subscription. Ordinary top-level messages follow [hearing](#hearing); inline replies reach eligible
-followers and direct mentions, excluding the author. Before any Agent has participated, human
-inline replies reach the Project's home Agents as ordinary delivery. An empty chain after
-unfollow does not broadcast.
+subscription. Ordinary top-level messages follow [hearing](#hearing). An inline reply in a
+channel reaches the Project's [hearers](#hearing), the chain's followers, and its direct
+mentions, excluding the author. The hearers stay recipients however many Agents join, leave, or
+retire from the chain, as home hearing is absolute.
 
-Followed chains deliver in any Project, home or not. Unfollow suppresses ordinary chain
-delivery; an explicit follow, new post, successful claim, or direct mention restores it.
+Followed chains deliver in any Project, home or not. For an Agent that is not one of the
+Project's hearers, unfollow suppresses ordinary chain delivery and withdraws its queued chain
+items; an explicit follow, new post, successful claim, or direct mention restores it. A hearer's
+unfollow is recorded and changes nothing for it: its queued items stay.
 Unfollowing a chain never joined is a no-op. Claim completion preserves follows. Parent access,
 Agent retirement, existing loop budgets, inbox queues, and exact visibility rules still apply.
 Queued channel messages are not withdrawn when an Agent claims their request.
@@ -365,7 +390,9 @@ the Agent (`N new, not yet delivered`) come first, and pending Cloud Agent resul
 print as one `Cloud Agent results · N pending · fetch with haus message check` line.
 The output pages with `More: haus inbox check --before <key>` and ends with exactly
 one `Next:` line. `--view mentions` keeps only conversations that mention the Agent;
-a channel outside its Project appears only when it mentions the Agent. A 503 `INBOX_UNAVAILABLE`
+a Task outside its Project appears only while the Agent follows it, and a channel outside its
+Project appears only while a message that reached the Agent there, a mention or a reply in a
+chain it follows, is unread, and counts only those. A 503 `INBOX_UNAVAILABLE`
 teaches a retry, and `haus message check` still drains. Listing advances nothing.
 
 The read position advances when `haus message read --unread` returns messages, when a

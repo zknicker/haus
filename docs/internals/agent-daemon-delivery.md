@@ -187,7 +187,7 @@ canonical claim number, state, priority, and assignee metadata. A mention may by
 without unmuting it. A direct mention in a Task restores an explicit unfollow; the recipient's
 pending row persists the `taskFollowReactivated` effect so Computer can repeat the restoration
 notice and exact unfollow command on replay without changing canonical Chat content. Muting or
-unfollowing purges already-queued ambient work on that exact target while preserving personal
+unfollowing outside the Agent's home Project purges already-queued ambient work on that exact target while preserving personal
 mentions, assigned claims, and reminder wakes by their canonical domain relationships. Muting a
 Channel does not purge or suppress ordinary work from the Tasks the Agent follows there.
 

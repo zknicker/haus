@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import type { WorkerRuntime } from '@haus/api';
+import type { ComputerRuntime, WorkerRuntime } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
@@ -16,7 +16,24 @@ interface ComputerPlaceSetup {
     limit?: number;
     name?: string;
     ready?: readonly WorkerRuntime[];
+    runtimes?: ComputerRuntime[];
 }
+
+export const fixtureRuntimes: ComputerRuntime[] = [
+    {
+        id: 'claude-code',
+        label: 'Claude Code',
+        models: [{ id: 'claude-opus-5-5', label: 'Claude Opus 5.5' }],
+    },
+    {
+        id: 'codex',
+        label: 'Codex',
+        models: [
+            { id: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' },
+            { id: 'gpt-5.5', label: 'GPT-5.5' },
+        ],
+    },
+];
 
 export async function setComputerPlace(
     db: HausDatabase,
@@ -36,7 +53,7 @@ export async function setComputerPlace(
             reportedInventory: {
                 ...current?.inventory,
                 name: setup.name ?? 'mini',
-                runtimes: current?.inventory?.runtimes ?? [],
+                runtimes: setup.runtimes ?? fixtureRuntimes,
                 workerRuntimes: (['claude-code', 'codex'] as const).map((runtime) => ({
                     detail: null,
                     ready: ready.has(runtime),

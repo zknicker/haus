@@ -32,7 +32,6 @@ test('linked Worker reads as the same card wherever it is linked', async ({ page
     const channel = (name: string) =>
         createProjectWithAgents(client, {
             agentIds: [seeded.agentId],
-            databaseUrl: session.databaseUrl,
             name,
             serverId: server.id,
         });

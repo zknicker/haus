@@ -97,7 +97,7 @@ test('a Project with home Agents refuses archive and delete with PROJECT_HAS_AGE
     );
     await expect(
         owner.trpc.chat.deleteChannel.mutate({ ...target, confirmation: 'ops' })
-    ).rejects.toThrow('This Project is home to @peer. Move them to another Project first.');
+    ).rejects.toThrow('Captains live in this Project: @peer. Move them to another Project first.');
     expect(
         (await owner.trpc.project.list.query({ serverId })).find(
             (project) => project.chatId === ops.chat.id

@@ -52,10 +52,9 @@ export default defineScenario({
         expectSharedPlacement(expect, result);
         expectDoneToRequest(expect, placement, { requestIds: [question.message.id] });
         expect(placement.channelPosts, 'channel posts').toHaveLength(1);
-        expect(
-            await tasksCreatedBy(kit, worker.id, turn.startedAt),
-            'Tasks the Agent created'
-        ).toHaveLength(0);
+        expect(await tasksCreatedBy(kit, worker.id, turn), 'Tasks the Agent created').toHaveLength(
+            0
+        );
         const asked = placement.page.messages.find((message) => message.id === question.message.id);
         const reactions = (asked?.reactions ?? []).filter((reaction) =>
             reaction.actors.some((actor) => actor.kind === 'agent' && actor.id === worker.id)

@@ -5,17 +5,14 @@ import { createInlineReplyHelpers } from './haus-inline-replies-helpers.ts';
 const fixture = agentCreationFixture();
 const { follows, recipients, sendInlineAgent } = createInlineReplyHelpers(fixture);
 
-test('inline replies deliver to exact chain subscribers and preserve mute rules', async () => {
+test('inline replies reach the home Agents and the exact chain subscribers', async () => {
     const orbit = await fixture.mintRunner('run_inline_orbit');
     const peer = await fixture.mintRunner(
         'run_inline_peer',
         fixture.peerAgentId,
         fixture.channelId
     );
-    await fixture.post('/api/agent/channels/add', orbit, {
-        agent: '@peer',
-        target: '#product',
-    });
+    const home = [{ agentId: fixture.orbitAgentId, mentioned: false }];
 
     const root = await fixture.owner.trpc.chat.send.mutate({
         chatId: fixture.channelId,
@@ -23,11 +20,7 @@ test('inline replies deliver to exact chain subscribers and preserve mute rules'
         nonce: 'inline_root_human',
         serverId: fixture.serverId,
     });
-    expect(await recipients(root.message.id)).toEqual(
-        [fixture.orbitAgentId, fixture.peerAgentId]
-            .sort()
-            .map((agentId) => ({ agentId, mentioned: false }))
-    );
+    expect(await recipients(root.message.id)).toEqual(home);
 
     const first = await sendInlineAgent(orbit.token, {
         content: 'Orbit replies first.',
@@ -47,7 +40,6 @@ test('inline replies deliver to exact chain subscribers and preserve mute rules'
         { agentId: fixture.orbitAgentId, followed: true },
     ]);
 
-    await fixture.post('/api/agent/channels/mute', peer, { target: '#product' });
     const followed = await fixture.post('/api/agent/messages/follow', peer, {
         messageId: root.message.id.slice(4, 12),
         target: '#product',
@@ -55,7 +47,7 @@ test('inline replies deliver to exact chain subscribers and preserve mute rules'
     expect(followed).toMatchObject({ body: { followed: true, target: '#product' }, status: 200 });
 
     const second = await sendInlineAgent(orbit.token, {
-        content: 'The muted Agent follows the chain explicitly.',
+        content: 'Peer follows the chain explicitly from outside its home.',
         nonce: 'inline_reply_second',
         replyToMessageId: first.body.message?.id ?? '',
         target: '#product',
@@ -73,9 +65,7 @@ test('inline replies deliver to exact chain subscribers and preserve mute rules'
         body: { followed: false, target: '#product' },
         status: 200,
     });
-    expect(await recipients(root.message.id)).toEqual([
-        { agentId: fixture.orbitAgentId, mentioned: false },
-    ]);
+    expect(await recipients(root.message.id)).toEqual(home);
     expect(await recipients(second.body.message?.id)).toEqual([]);
     expect(await follows(root.message.id)).toEqual(
         [
@@ -117,12 +107,10 @@ test('inline replies deliver to exact chain subscribers and preserve mute rules'
     });
     const orphanReply = await fixture.owner.trpc.chat.send.mutate({
         chatId: fixture.channelId,
-        content: 'Only the unmuted Agent receives this never-subscribed reply.',
+        content: 'Every home Agent receives this never-subscribed reply.',
         nonce: 'inline_orphan_reply',
         replyToMessageId: orphanRoot.message.id,
         serverId: fixture.serverId,
     });
-    expect(await recipients(orphanReply.message.id)).toEqual([
-        { agentId: fixture.orbitAgentId, mentioned: false },
-    ]);
+    expect(await recipients(orphanReply.message.id)).toEqual(home);
 });

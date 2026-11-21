@@ -6,7 +6,10 @@ import {
     type SDKUserMessage,
 } from '@anthropic-ai/claude-agent-sdk';
 import { EventQueue } from '../turn/event-queue.ts';
+import { ClaudeBackgroundTasks } from './claude-background-tasks.ts';
+import { runClaudeCompaction } from './claude-compaction.ts';
 import { ClaudeSessionEndedError, claudeResumeRejection } from './claude-errors.ts';
+import { ClaudeIdleActivity } from './claude-idle-activity.ts';
 import {
     type ClaudeCommandLifecycle,
     type ParsedClaudeMessage,
@@ -14,6 +17,7 @@ import {
 } from './claude-messages.ts';
 import { ClaudeNormalizer } from './claude-normalizer.ts';
 import { createHausMcpServer, HausToolBinding } from './haus-tools.ts';
+import type { IdleCompactable, IdleCompactionOwner } from './idle-compaction.ts';
 
 export interface TurnSink {
     readonly accepting: boolean;
@@ -25,8 +29,11 @@ export interface TurnSink {
 const initializeTimeoutMs = 30_000;
 const stderrTailLines = 20;
 
-export class ClaudeConnection {
+export class ClaudeConnection implements IdleCompactable {
     readonly binding = new HausToolBinding();
+    private readonly tasks = new ClaudeBackgroundTasks();
+    readonly idleActivity: ClaudeIdleActivity;
+    readonly modelId: string;
     readonly normalizer: ClaudeNormalizer;
     private readonly input = new EventQueue<SDKUserMessage>();
     private readonly query: Query;
@@ -35,14 +42,18 @@ export class ClaudeConnection {
     private endedWith: { error: unknown } | null = null;
     readonly ended: Promise<void>;
     initTools: readonly string[] = [];
+    owner: IdleCompactionOwner | null = null;
     sessionId: string;
 
     private constructor(
         options: Options,
         readonly launchKey: string,
-        sessionId: string
+        sessionId: string,
+        minTokens: number
     ) {
         this.sessionId = sessionId;
+        this.modelId = options.model ?? '';
+        this.idleActivity = new ClaudeIdleActivity(minTokens);
         this.normalizer = new ClaudeNormalizer({
             invocations: this.binding.invocations,
             newId: () => crypto.randomUUID(),
@@ -59,11 +70,21 @@ export class ClaudeConnection {
         this.ended = this.pump();
     }
 
-    static async open(input: { launchKey: string; options: Options; sessionId: string }) {
+    static async open(input: {
+        launchKey: string;
+        minTokens: number;
+        options: Options;
+        sessionId: string;
+    }) {
         if (input.options.cwd) {
             await mkdir(input.options.cwd, { mode: 0o700, recursive: true });
         }
-        const connection = new ClaudeConnection(input.options, input.launchKey, input.sessionId);
+        const connection = new ClaudeConnection(
+            input.options,
+            input.launchKey,
+            input.sessionId,
+            input.minTokens
+        );
         try {
             await connection.initialize();
         } catch (error) {
@@ -107,9 +128,21 @@ export class ClaudeConnection {
         return receipt?.still_queued ?? [];
     }
 
+    get holdsBackgroundWork() {
+        return this.alive && this.tasks.running;
+    }
+
     close() {
         this.input.end();
         this.query.close();
+    }
+
+    compact() {
+        return runClaudeCompaction(this);
+    }
+
+    idleCompactionSnapshot() {
+        return this.owner ? this.idleActivity.snapshot() : null;
     }
 
     private async initialize() {
@@ -141,11 +174,16 @@ export class ClaudeConnection {
             failure = error;
         }
         this.endedWith = { error: new Error(this.stderrText(failure), { cause: failure }) };
+        this.tasks.clear();
         this.input.end();
         this.sink?.onEnded(this.endedWith.error);
     }
 
     private dispatch(parsed: ParsedClaudeMessage) {
+        this.idleActivity.observe(parsed);
+        if (parsed.message.kind === 'system') {
+            this.tasks.apply(parsed.message.message);
+        }
         if (parsed.sessionId) {
             this.sessionId = parsed.sessionId;
         }

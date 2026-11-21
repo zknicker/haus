@@ -1,4 +1,4 @@
-export const requiredPrefixes = {
+export const ownedPrefixes = {
     server: [
         'apps/server/src/',
         'apps/hosted-mcp/',

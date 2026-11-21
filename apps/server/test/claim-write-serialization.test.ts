@@ -4,11 +4,7 @@ import { updateAgentClaim } from '../src/agent-api/claims.ts';
 import { updateClaim } from '../src/claims/update-claim.ts';
 import type { ResolvedRunner } from '../src/computers/runner-credentials.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import {
-    channelAgentParticipantsTable,
-    channelParticipantsTable,
-    usersTable,
-} from '../src/postgres/schema.ts';
+import { channelParticipantsTable, usersTable } from '../src/postgres/schema.ts';
 import type { HausUser } from '../src/users/haus-user.ts';
 import {
     type BackgroundClaim,
@@ -118,11 +114,6 @@ test(
 /** A claimed Channel message whose assignee Agent has an in-flight run. */
 async function seedLiveClaim(): Promise<BackgroundClaim> {
     const claim = await seedBackgroundClaim(connection.db);
-    await connection.db.insert(channelAgentParticipantsTable).values({
-        agentId: claim.agentId,
-        chatId: claim.chatId,
-        serverId: claim.serverId,
-    });
     await connection.db.insert(channelParticipantsTable).values({
         chatId: claim.chatId,
         serverId: claim.serverId,

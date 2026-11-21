@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { assertRequiredTargetsSelected, calculateReleaseImpact } from './release-impact.mjs';
+import { calculateReleaseImpact } from './release-impact.mjs';
 
 const sha = (character) => character.repeat(40);
 const ledger = [
@@ -27,7 +27,7 @@ const resolveTag = async (tag) =>
         'v1.8.25': sha('b'),
     })[tag] ?? null;
 
-test('pending Computer code remains required after later Server-only releases', async () => {
+test('pending Computer code stays changed after later Server-only releases', async () => {
     const impact = await calculateReleaseImpact({
         ledger,
         candidateRef: sha('f'),
@@ -42,15 +42,10 @@ test('pending Computer code remains required after later Server-only releases', 
     });
 
     assert.equal(impact.targets.computer.baseline.tag, 'computer-v1.4.8');
-    assert.equal(impact.targets.computer.status, 'required');
-    assert.throws(
-        () =>
-            assertRequiredTargetsSelected({
-                impact,
-                selectedTargets: { server: true, app: false, ios: false, computer: false },
-            }),
-        /apps\/computer\/src\/harness\/managed-instructions\.ts/
-    );
+    assert.equal(impact.targets.computer.status, 'changed');
+    assert.deepEqual(impact.targets.computer.ownedFiles, [
+        'apps/computer/src/harness/managed-instructions.ts',
+    ]);
 });
 
 test('shared contracts request agent review while tests and docs stay unchanged', async () => {
@@ -73,12 +68,6 @@ test('shared contracts request agent review while tests and docs stay unchanged'
     assert.equal(impact.targets.app.status, 'review');
     assert.equal(impact.targets.computer.status, 'review');
     assert.equal(impact.targets.ios.status, 'review');
-    assert.doesNotThrow(() =>
-        assertRequiredTargetsSelected({
-            impact,
-            selectedTargets: { server: true, app: false, ios: false, computer: false },
-        })
-    );
 });
 
 test('dependency inputs request review from every Node artifact they can affect', async () => {
@@ -118,7 +107,7 @@ test('direct shipping paths require their owning targets', async () => {
     });
 
     for (const target of ['server', 'app', 'ios', 'computer', 'agent']) {
-        assert.equal(impact.targets[target].status, 'required');
+        assert.equal(impact.targets[target].status, 'changed');
     }
 });
 
@@ -134,8 +123,8 @@ test('shared Icon Composer source requires both installed App targets', async ()
         listChangedFiles: async () => ['assets/mac-icon.icon/icon.json'],
     });
 
-    assert.equal(impact.targets.app.status, 'required');
-    assert.equal(impact.targets.ios.status, 'required');
+    assert.equal(impact.targets.app.status, 'changed');
+    assert.equal(impact.targets.ios.status, 'changed');
     assert.equal(impact.targets.server.status, 'unchanged');
 });
 
@@ -154,8 +143,8 @@ test('Agent actions and their Server implementation require a Haus Agent release
         ],
     });
 
-    assert.equal(impact.targets.agent.status, 'required');
-    assert.deepEqual(impact.targets.agent.requiredFiles, [
+    assert.equal(impact.targets.agent.status, 'changed');
+    assert.deepEqual(impact.targets.agent.ownedFiles, [
         'packages/agent-cli/src/agent-cli.ts',
         'apps/server/src/agent-api/agent-routes.ts',
     ]);
@@ -178,8 +167,8 @@ for (const file of requiredAgentContractFiles) {
             listChangedFiles: async () => [file],
         });
 
-        assert.equal(impact.targets.agent.status, 'required');
-        assert.deepEqual(impact.targets.agent.requiredFiles, [file]);
+        assert.equal(impact.targets.agent.status, 'changed');
+        assert.deepEqual(impact.targets.agent.ownedFiles, [file]);
         assert.deepEqual(impact.targets.agent.reviewFiles, []);
     });
 }
@@ -201,7 +190,7 @@ for (const file of agentLifecycleReviewFiles) {
         });
 
         assert.equal(impact.targets.agent.status, 'review');
-        assert.deepEqual(impact.targets.agent.requiredFiles, []);
+        assert.deepEqual(impact.targets.agent.ownedFiles, []);
         assert.deepEqual(impact.targets.agent.reviewFiles, [file]);
     });
 }
@@ -221,32 +210,20 @@ for (const file of nonAgentControlFiles) {
         });
 
         assert.equal(impact.targets.agent.status, 'unchanged');
-        assert.deepEqual(impact.targets.agent.requiredFiles, []);
+        assert.deepEqual(impact.targets.agent.ownedFiles, []);
         assert.deepEqual(impact.targets.agent.reviewFiles, []);
     });
 }
 
-test('an unselected required Agent contract fails release selection enforcement', async () => {
+test('a changed Agent contract marks Haus Agent changed', async () => {
     const impact = await calculateReleaseImpact({
         ledger,
         resolveTag,
         listChangedFiles: async () => ['packages/haus-api/src/agent.ts'],
     });
 
-    assert.throws(
-        () =>
-            assertRequiredTargetsSelected({
-                impact,
-                selectedTargets: {
-                    server: true,
-                    app: false,
-                    ios: false,
-                    computer: false,
-                    agent: false,
-                },
-            }),
-        /agent: packages\/haus-api\/src\/agent\.ts/
-    );
+    assert.equal(impact.targets.agent.status, 'changed');
+    assert.deepEqual(impact.targets.agent.ownedFiles, ['packages/haus-api/src/agent.ts']);
 });
 
 test('legacy targets without tags use the last historical release commit, not the candidate', async () => {
@@ -290,6 +267,6 @@ test('legacy targets without tags use the last historical release commit, not th
     });
 
     assert.equal(impact.targets.ios.baseline.tag, 'release:v1.8.25');
-    assert.equal(impact.targets.ios.status, 'required');
+    assert.equal(impact.targets.ios.status, 'changed');
     assert.deepEqual([...new Set(resolvedVersions)], ['1.8.25', '1.8.26']);
 });

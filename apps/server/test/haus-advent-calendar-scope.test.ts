@@ -56,7 +56,7 @@ beforeAll(async () => {
         })
     ).agent.id;
     lanternsId = (
-        await createTestProject(harness, carol, {
+        await createTestProject(carol, {
             agentIds: [agentId],
             name: 'lanterns',
             serverId,
@@ -96,8 +96,8 @@ test('in-demand counts mentions only in Chats the member can read', async () => 
 test('a soft-deleted channel takes its inline replies out of every count', async () => {
     const baseline = await read(25);
 
-    const attic = await createTestProject(harness, carol, {
-        agentIds: [agentId],
+    const attic = await createTestProject(carol, {
+        agentIds: [],
         name: 'attic',
         serverId,
     });

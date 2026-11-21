@@ -1,13 +1,16 @@
 import type { AgentCreated, AvatarMediaType, CreateAgentInput } from '@haus/api';
+import { and, eq } from 'drizzle-orm';
 import { enqueueAgentGreeting } from '../agent-delivery/greeting.ts';
 import { type AvatarBytes, createAvatarId, readAvatarBytes } from '../avatars/avatar-bytes.ts';
-import { findAllChannel, joinChannelAgents } from '../chats/channel-agent-membership.ts';
-import { prepareLifecycleEvent } from '../chats/lifecycle-events.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { agentsTable, avatarsTable } from '../postgres/schema.ts';
-import { isLiveProject } from '../projects/live-project.ts';
+import { agentsTable, avatarsTable, chatsTable } from '../postgres/schema.ts';
+import {
+    homeChangeEvents,
+    openAgentHomeReads,
+    requireHomeProject,
+} from '../projects/agent-home.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { participantHandleConstraint } from '../servers/participant-handles.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
@@ -26,7 +29,7 @@ import { toAgent } from './agent-shape.ts';
 export type AgentCreator = { agentId: string; kind: 'agent' } | { kind: 'human'; user: HausUser };
 
 export interface CreatedAgentFromApp extends AgentCreated {
-    /** The `#all` and Project membership changes, for the App's channel member lists. */
+    /** The home Project's change, for the App's Project and channel reads. */
     events: PreparedRealtimeEvent[];
 }
 
@@ -40,6 +43,10 @@ export async function createAgent(
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const creator = await requireAgentCreationAuthority(tx, member, input.serverId);
+        await requireHomeProject(tx, creator, {
+            projectId: input.homeProjectId,
+            serverId: input.serverId,
+        });
         const avatar = input.avatar
             ? {
                   ...readAvatarBytes(input.avatar.bytesBase64, input.avatar.mediaType),
@@ -55,9 +62,7 @@ export async function createAgent(
         );
         return {
             agent: created.agent,
-            events: created.joinedChannelIds.map((chatId) =>
-                prepareLifecycleEvent({ chatId, serverId: input.serverId }, 'updated')
-            ),
+            events: homeChangeEvents(input.serverId, [created.homeProjectId]),
         };
     });
 }
@@ -72,7 +77,7 @@ export async function createAgentInTransaction(
     },
     avatar: (AvatarBytes & { mediaType: AvatarMediaType }) | null,
     catalog: AgentModelCatalog
-): Promise<AgentCreated & { joinedChannelIds: string[] }> {
+): Promise<AgentCreated & { homeProjectId: string }> {
     const createdByAgentId = creator.kind === 'agent' ? creator.agentId : null;
     const createdByUserId = creator.kind === 'human' ? creator.user.id : null;
 
@@ -81,7 +86,6 @@ export async function createAgentInTransaction(
         serverId: input.serverId,
     });
     await assertModelAvailable(db, catalog, inventory, input);
-    await requireLiveHome(db, input);
 
     const avatarId = avatar ? createAvatarId() : null;
     if (avatar && avatarId) {
@@ -95,6 +99,7 @@ export async function createAgentInTransaction(
     }
 
     const agentId = createOpaqueId('agt');
+    const { homeProjectId } = input;
     try {
         await db.insert(agentsTable).values({
             avatarId,
@@ -110,7 +115,7 @@ export async function createAgentInTransaction(
             desiredRuntimeId: input.runtimeId,
             displayName: input.displayName,
             handle: input.handle,
-            homeProjectId: input.homeProjectId,
+            homeProjectId,
             homeTimezone: 'UTC',
             id: agentId,
             serverId: input.serverId,
@@ -126,33 +131,17 @@ export async function createAgentInTransaction(
         throw cause;
     }
 
-    // Every Agent belongs to `#all`, whoever made it. The Server owns that
-    // guarantee here, at the one seam both creation paths share, rather than in
-    // the App dialog and the Agent route separately.
-    const allChannel = await findAllChannel(db, input.serverId);
-    if (allChannel) {
-        await joinChannelAgents(db, {
-            agentIds: [agentId],
-            chatId: allChannel.id,
-            serverId: input.serverId,
-        });
-        // The new Agent introduces itself once, as soon as it can run, rather
-        // than waiting for its first delivery. The caller dispatches after commit.
-        await enqueueAgentGreeting(db, {
-            agentId,
-            allChannelId: allChannel.id,
-            serverId: input.serverId,
-        });
-    }
-
-    await joinChannelAgents(db, {
-        agentIds: [agentId],
-        chatId: input.homeProjectId,
+    await openAgentHomeReads(db, { agentId, projectId: homeProjectId, serverId: input.serverId });
+    // The new Agent introduces itself once in `#all`, as soon as it can run,
+    // rather than waiting for its first delivery. The caller dispatches after commit.
+    await enqueueAgentGreeting(db, {
+        agentId,
+        allChannelId: await requireAllChannelId(db, input.serverId),
         serverId: input.serverId,
     });
 
     return {
-        joinedChannelIds: [...(allChannel ? [allChannel.id] : []), input.homeProjectId],
+        homeProjectId,
         agent: toAgent({
             activeRunId: null,
             avatarId,
@@ -208,13 +197,14 @@ async function requireAgentCreationAuthority(
     return member;
 }
 
-async function requireLiveHome(
-    db: Pick<HausDatabase, 'select'>,
-    input: { homeProjectId: string; serverId: string }
-) {
-    if (!(await isLiveProject(db, { projectId: input.homeProjectId, serverId: input.serverId }))) {
-        throw new AgentConfigDeniedError(
-            'Its Project must be open and on this Server, and #all is not a Project.'
-        );
+async function requireAllChannelId(db: Pick<HausDatabase, 'select'>, serverId: string) {
+    const [channel] = await db
+        .select({ id: chatsTable.id })
+        .from(chatsTable)
+        .where(and(eq(chatsTable.serverId, serverId), eq(chatsTable.isAll, true)))
+        .limit(1);
+    if (!channel) {
+        throw new Error(`Server ${serverId} has no #all channel for the greeting.`);
     }
+    return channel.id;
 }

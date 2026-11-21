@@ -93,10 +93,14 @@ function turnHostDriver() {
     });
     const starts: string[] = [];
     const resets: ({ agentId: string } & AgentReset)[] = [];
+    const settings: string[][] = [];
     const turnHost: TurnHost = {
         notice: async () => undefined,
         resetAgent: async (agentId, reset) => {
             resets.push({ agentId, ...reset });
+        },
+        runtimeSettings: (frame) => {
+            settings.push(frame.idleCompactionServerIds);
         },
         start: async (run) => {
             starts.push(run.start.runId);
@@ -104,7 +108,7 @@ function turnHostDriver() {
         },
         stop: async (agentId, runId) => onStop({ agentId, runId }),
     };
-    return { resets, started, starts, stopped, turnHost };
+    return { resets, settings, started, starts, stopped, turnHost };
 }
 
 export type ServerStandIn = ReturnType<typeof serverStandIn>;
@@ -219,6 +223,7 @@ export function serverStandIn(routes: StandInRoutes = {}) {
                 modelConnectionId,
                 ...(reasoningEffort ? { reasoningEffort } : {}),
                 runCredential,
+                serverId: 'srv_1',
                 sessionResetKind: 'session',
                 start: {
                     ...startCommand(),

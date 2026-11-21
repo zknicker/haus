@@ -41,6 +41,7 @@ async function createFixture() {
     );
     await Promise.all(
         [
+            'computer-protocol-order.mjs',
             'release-impact.mjs',
             'release-impact-paths.mjs',
             'release-ledger.mjs',

@@ -15,11 +15,7 @@ import {
 } from '../src/agent-api/inbox-conversations.ts';
 import { mintRunnerCredential } from '../src/computers/runner-credentials.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
-import {
-    channelAgentParticipantsTable,
-    chatMessagesTable,
-    computersTable,
-} from '../src/postgres/schema.ts';
+import { chatMessagesTable, computersTable } from '../src/postgres/schema.ts';
 import { addChannel, type Seed } from './agent-inbox-harness.ts';
 import { postMessage, readerRunner, seedReader } from './agent-read-fixture.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
@@ -62,9 +58,14 @@ test('equal timestamps break ties by id across a page boundary', async () => {
     const db = connection.db;
     const seed = await seedReader(db);
     const ids = ['msg_tie_a', 'msg_tie_b', 'msg_tie_c'];
-    const chats = await joinedChannels(seed, 3);
+    const chats = await otherChannels(seed, 3);
     for (const [index, chatId] of chats.entries()) {
-        await postMessage(db, seed, { chatId, createdAt: at(10), id: ids[index] });
+        await postMessage(db, seed, {
+            chatId,
+            createdAt: at(10),
+            id: ids[index],
+            recipient: true,
+        });
     }
 
     const first = await page(seed, { before: null, limit: 2 });
@@ -78,10 +79,14 @@ test('equal timestamps break ties by id across a page boundary', async () => {
 test('continuation over stable data walks every conversation once', async () => {
     const db = connection.db;
     const seed = await seedReader(db);
-    const chats = await joinedChannels(seed, 7);
+    const chats = await otherChannels(seed, 7);
     for (const [index, chatId] of chats.entries()) {
         // Pairs share a timestamp so ties straddle page boundaries too.
-        await postMessage(db, seed, { chatId, createdAt: at(20 + Math.floor(index / 2)) });
+        await postMessage(db, seed, {
+            chatId,
+            createdAt: at(20 + Math.floor(index / 2)),
+            recipient: true,
+        });
     }
 
     const seen: string[] = [];
@@ -106,11 +111,15 @@ test('continuation over stable data walks every conversation once', async () => 
 test('deleting a newest message between pages reorders that conversation without an error', async () => {
     const db = connection.db;
     const seed = await seedReader(db);
-    const [moved, second, third] = await joinedChannels(seed, 3);
-    await postMessage(db, seed, { chatId: moved ?? '', createdAt: at(1) });
-    const newest = await postMessage(db, seed, { chatId: moved ?? '', createdAt: at(50) });
-    await postMessage(db, seed, { chatId: second ?? '', createdAt: at(40) });
-    await postMessage(db, seed, { chatId: third ?? '', createdAt: at(30) });
+    const [moved, second, third] = await otherChannels(seed, 3);
+    await postMessage(db, seed, { chatId: moved ?? '', createdAt: at(1), recipient: true });
+    const newest = await postMessage(db, seed, {
+        chatId: moved ?? '',
+        createdAt: at(50),
+        recipient: true,
+    });
+    await postMessage(db, seed, { chatId: second ?? '', createdAt: at(40), recipient: true });
+    await postMessage(db, seed, { chatId: third ?? '', createdAt: at(30), recipient: true });
     // `#product` has nothing unread, so the list is exactly these three.
 
     const first = await page(seed, { before: null, limit: 2 });
@@ -200,16 +209,11 @@ function decode(key: string | null) {
     return position;
 }
 
-/** Channels the seeded Agent has joined, beyond `#product`. */
-async function joinedChannels(seed: Seed, count: number): Promise<string[]> {
+/** Channels outside the seeded Agent's home, listed by the messages that reached it. */
+async function otherChannels(seed: Seed, count: number): Promise<string[]> {
     const chats: string[] = [];
     for (let index = 0; index < count; index += 1) {
         const chatId = await addChannel(connection.db, seed, `paging-${index}`);
-        await connection.db.insert(channelAgentParticipantsTable).values({
-            agentId: seed.agentId,
-            chatId,
-            serverId: seed.serverId,
-        });
         chats.push(chatId);
     }
     return chats;

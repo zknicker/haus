@@ -7,9 +7,15 @@ import {
     useChannelUnarchive,
 } from '../../../hooks/servers/use-channel-lifecycle.ts';
 import { useServer } from '../../../hooks/servers/use-server.ts';
+import { projectRefusalCode } from '../../../lib/project-homes.ts';
 import { DeleteDialog } from '../../../routes/app/delete-dialog.tsx';
 import { ChannelAppearanceDialog } from '../../chats/channel-appearance-dialog.tsx';
 import { ChannelDetailsDialog } from '../../chats/channel-details-dialog.tsx';
+import { ProjectCaptainsDialog } from '../../chats/project-captains-dialog.tsx';
+import {
+    type ProjectRehomeAction,
+    ProjectRehomeDialog,
+} from '../../chats/project-rehome-dialog.tsx';
 
 /** Where a chat menu's links go; each surface places them its own way. */
 export interface ChatActionRoutes {
@@ -26,9 +32,9 @@ export interface ChannelActions {
     run: (chat: Chat, key: React.Key) => void;
 }
 
-// Editing a channel is two separate decisions, so each one gets its own
+// Editing a channel is several separate decisions, so each one gets its own
 // small dialog instead of one dialog that asks for everything at once.
-type ChannelEditDialog = 'appearance' | 'rename';
+type ChannelEditDialog = 'appearance' | 'captains' | 'rename';
 
 /**
  * Every channel menu's actions — the web topbar's •••, the sidebar row, and
@@ -55,13 +61,30 @@ export function useChannelActions({
         kind: ChannelEditDialog;
     } | null>(null);
     const [deleting, setDeleting] = React.useState<Chat | null>(null);
+    const [rehoming, setRehoming] = React.useState<{
+        action: ProjectRehomeAction;
+        chat: Chat;
+    } | null>(null);
+
+    const archiveProject = (chat: Chat) =>
+        archive
+            .mutateAsync({ chatId: chat.id, serverId: chat.serverId })
+            .then(() => toast.success('Project archived'));
+    const deleteProject = (chat: Chat) =>
+        deleteChannel
+            .mutateAsync({
+                chatId: chat.id,
+                confirmation: chat.name ?? '',
+                serverId: chat.serverId,
+            })
+            .then(() => onDeleted?.(chat));
 
     const run = (chat: Chat, key: React.Key) => {
         if (key === 'files') {
             openFiles?.(chat.id);
             return;
         }
-        if (key === 'rename' || key === 'appearance') {
+        if (key === 'rename' || key === 'appearance' || key === 'captains') {
             setEditDialog({ chat, kind: key });
             return;
         }
@@ -73,13 +96,19 @@ export function useChannelActions({
         if (key !== 'archive' && key !== 'restore') {
             return;
         }
-        const mutation = key === 'restore' ? unarchive : archive;
-        mutation
-            .mutateAsync({ chatId: chat.id, serverId: chat.serverId })
-            .then(() => toast.success(key === 'restore' ? 'Project restored' : 'Project archived'))
-            .catch((error: Error) =>
-                toast.danger('Project update failed', { description: error.message })
-            );
+        const lifecycle =
+            key === 'restore'
+                ? unarchive
+                      .mutateAsync({ chatId: chat.id, serverId: chat.serverId })
+                      .then(() => toast.success('Project restored'))
+                : archiveProject(chat);
+        lifecycle.catch((error: Error) => {
+            if (projectRefusalCode(error) === 'PROJECT_HAS_AGENTS') {
+                setRehoming({ action: 'archive', chat });
+                return;
+            }
+            toast.danger('Project update failed', { description: error.message });
+        });
     };
 
     const closeEditDialog = () => setEditDialog(null);
@@ -93,23 +122,35 @@ export function useChannelActions({
             {editDialog?.kind === 'appearance' ? (
                 <ChannelAppearanceDialog chat={editDialog.chat} onClose={closeEditDialog} />
             ) : null}
+            {editDialog?.kind === 'captains' ? (
+                <ProjectCaptainsDialog chat={editDialog.chat} onClose={closeEditDialog} />
+            ) : null}
+            {rehoming ? (
+                <ProjectRehomeDialog
+                    action={rehoming.action}
+                    chat={rehoming.chat}
+                    onClose={() => setRehoming(null)}
+                    onContinue={() =>
+                        rehoming.action === 'archive'
+                            ? archiveProject(rehoming.chat)
+                            : deleteProject(rehoming.chat)
+                    }
+                />
+            ) : null}
             {deleting ? (
                 <DeleteDialog
                     confirmation={deleting.name ?? ''}
                     description="This permanently deletes the project, its messages, claims, reminders, reactions, and attachments. This cannot be undone."
                     error={deleteChannel.error?.message}
                     onConfirm={() => {
-                        deleteChannel
-                            .mutateAsync({
-                                chatId: deleting.id,
-                                confirmation: deleting.name ?? '',
-                                serverId: deleting.serverId,
-                            })
-                            .then(() => {
-                                setDeleting(null);
-                                onDeleted?.(deleting);
-                            })
-                            .catch(() => undefined);
+                        deleteProject(deleting)
+                            .then(() => setDeleting(null))
+                            .catch((error: unknown) => {
+                                if (projectRefusalCode(error) === 'PROJECT_HAS_AGENTS') {
+                                    setDeleting(null);
+                                    setRehoming({ action: 'delete', chat: deleting });
+                                }
+                            });
                     }}
                     onOpenChange={(isOpen) => {
                         if (!isOpen) {
