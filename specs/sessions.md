@@ -153,6 +153,27 @@ Agent profile and Activity History.
 Long-horizon continuity across resets comes from engine-native compaction
 and the agent's workspace MEMORY.md ([ADR 0014](../docs/adr/0014-cli-is-the-agents-only-output-channel.md)).
 
+## Context
+
+After every turn that settles with its session alive, the runner reports what fills the session
+window as an `agent-context` frame (`packages/haus-api/src/agent-context.ts`). The snapshot names
+the model window, where the harness compacts (`compactAtTokens`), the tokens in use, and five
+sections in a fixed order: system prompt, tools, skills, rules and memory, and conversation.
+
+- Claude sessions answer from the SDK's own accounting (`getContextUsage`, summary detail). Its
+  compaction buffer sets the threshold. The runner moves its estimate of the skill listing out of
+  the system prompt row, and its estimate of delivered rules and memory out of the conversation
+  row, so the total stays the harness's count (`source: harness`).
+- Pi sessions report the model window, Pi's compaction policy (window minus reserve minus
+  background tokens), and the tool schemas. The runner measures the prompt, skills, rules and
+  memory around the provider's reported request size, and conversation takes the rest
+  (`source: measured`).
+- The Server keeps one snapshot per Agent (`agent_context_snapshots`), drops a snapshot from a
+  retired session generation or older than the stored one, and announces
+  `agent.onContextUpdated`. `agent.context` returns null until the current generation reports.
+- A runner idle compaction does not report a snapshot yet, so the ring reads high until the
+  Agent's next turn.
+
 ## Generation in the transcript
 
 Every rotation is durable. `agents.session_generation` is the current generation,
