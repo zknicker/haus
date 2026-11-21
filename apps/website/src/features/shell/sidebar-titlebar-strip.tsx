@@ -2,7 +2,7 @@ import type * as React from 'react';
 import { Link } from 'react-router-dom';
 import { HausMascot } from '../../components/haus-mascot.tsx';
 import { useOptionalServerWorkState } from '../../hooks/agents/use-current-agent-activity.tsx';
-import { inboxRoute } from '../servers/server-routes.ts';
+import { serverRoute } from '../servers/server-routes.ts';
 import { resolveAgentActivityGhostTempo } from './agent-activity-ghost-tempo.ts';
 
 /**
@@ -55,7 +55,7 @@ export function SidebarTitlebarStrip({
                 <Link
                     aria-label="Haus"
                     className="app-shell-titlebar-mark inline-flex rounded-md"
-                    to={markHref ?? inboxRoute(slug)}
+                    to={markHref ?? serverRoute(slug)}
                 >
                     {/* 22, the same box the mark takes on the Inbox row's icon
                         column on the macOS desktop, so the ghost is one size

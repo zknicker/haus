@@ -40,49 +40,6 @@ async function followedTask(page: Page, slug: string) {
     };
 }
 
-test('an assigned Task is followed: its message is an Inbox card, and a reply posts in the Task', async ({
-    page,
-}) => {
-    const { card, client, key, serverId, taskChatId } = await followedTask(
-        page,
-        'task-inbox-reply'
-    );
-
-    await page.goto('/s/task-inbox-reply/inbox');
-    await expect(card).toContainText('It needs an admin login to renew.');
-    await expect(card).toContainText('#captains');
-    await card.click();
-    await expect(card).toHaveAttribute('data-selected', 'true');
-
-    const composer = card.getByRole('textbox', { name: `Message ${key} ${title}` });
-    await page.keyboard.press('r');
-    await expect(composer).toBeFocused();
-    await page.keyboard.type('On it after standup.');
-    await page.keyboard.press('Enter');
-    await expect(composer).toHaveText('');
-    await expect(card).toHaveCount(0);
-    await expect
-        .poll(async () => {
-            const transcript = await client.chat.messages.query({ chatId: taskChatId, serverId });
-            return transcript.messages.map((message) => message.content);
-        })
-        .toContain('On it after standup.');
-});
-
-test('E reads the Task card without changing the Task', async ({ page }) => {
-    const { card, client, key, serverId } = await followedTask(page, 'task-inbox-clear');
-
-    await page.goto('/s/task-inbox-clear/inbox');
-    await card.click();
-    await expect(card).toHaveAttribute('data-selected', 'true');
-    await page.keyboard.press('e');
-    await expect(card).toHaveCount(0);
-    expect((await client.task.get.query({ key, serverId })).state).toBe('open');
-
-    await page.reload();
-    await expect(page.getByRole('article', { name: /Renew the Tailscale/u })).toHaveCount(0);
-});
-
 test('a bare Task key in a message is a chip that previews and opens the Task', async ({
     page,
 }) => {

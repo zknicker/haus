@@ -1,5 +1,5 @@
 import { captainsProjectId } from '../support/project.ts';
-import { attachComputer, createTestServer, runPsql } from '../support/server.ts';
+import { attachComputer, captainTile, createTestServer, runPsql } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('a cold Agent profile keeps identity and navigation available before its content arrives', async ({
@@ -35,7 +35,7 @@ test('a cold Agent profile keeps identity and navigation available before its co
         '${homeProjectId}')`
     );
     await page.reload();
-    const row = page.getByRole('row', { name: 'Iris', exact: true });
+    const row = captainTile(page, 'Iris');
     await expect(row).toBeVisible();
     await page.route(
         (url) =>

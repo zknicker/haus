@@ -83,9 +83,12 @@ export async function runAgentAction(page: Page, agentName: string, action: stri
     await item.click();
 }
 
+/**
+ * The Capy shell's places: Tasks, Drive and Activity are footer links, Search is
+ * the header button, Settings sits in the Account menu, and Chat is the sidebar
+ * itself (a Settings page offers a back row on the web).
+ */
 export async function openSection(page: Page, name: string) {
-    // Chat has no dedicated row: non-chat sidebar pages expose a back link,
-    // and everywhere else the chat navigation is already the visible sidebar.
     if (name === 'Chat') {
         const back = page.getByRole('row', { exact: true, name: 'Back to chat' });
         if (await back.isVisible().catch(() => false)) {
@@ -93,7 +96,27 @@ export async function openSection(page: Page, name: string) {
         }
         return;
     }
-    await page.getByRole('row', { exact: true, name }).click();
+    if (name === 'Settings') {
+        await openSettings(page);
+        return;
+    }
+    await sectionLink(page, name).click();
+}
+
+/** A sidebar place: a footer link, or the header's Search button. */
+export function sectionLink(page: Page, name: string) {
+    if (name === 'Search') {
+        return page.getByRole('button', { exact: true, name: 'Search' });
+    }
+    return page.getByRole('navigation', { name: 'Sections' }).getByRole('link', {
+        exact: true,
+        name,
+    });
+}
+
+export async function openSettings(page: Page) {
+    await page.getByRole('button', { exact: true, name: 'Account' }).click();
+    await page.getByRole('menuitem', { exact: true, name: 'Settings' }).click();
 }
 
 /** Opens the Inbox strip's Happening now popover; `page` must already be on the Inbox. */
@@ -201,4 +224,11 @@ function resolvePsql() {
     ].filter((root): root is string => root !== undefined);
 
     return roots.map((root) => join(root, 'psql')).find(existsSync) ?? 'psql';
+}
+
+/** A Captain's tile in the sidebar; its name leads the label, then presence and unread. */
+export function captainTile(page: Page, name: string) {
+    return page
+        .getByRole('list', { name: 'Captains' })
+        .getByRole('link', { name: new RegExp(`^${name}(,|$)`, 'u') });
 }

@@ -9,7 +9,7 @@ import {
     seedArtifactLibrary,
     seededArtifactAgent,
 } from '../support/artifacts.ts';
-import { createTestServer, openSection, runPsql } from '../support/server.ts';
+import { createTestServer, openSection, runPsql, sectionLink } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
 test('a Server member opens the shared library and reloads its stable address', async ({
@@ -288,7 +288,7 @@ test('an unavailable fixed revision reports an error within the persistent Serve
 
     await page.goto(`/s/${slug}/artifacts/art_missing?revision=rev_missing`);
     await expect(page.getByRole('alert')).toContainText('File or revision was not found.');
-    await expect(page.getByRole('row', { name: 'Inbox', exact: true })).toBeVisible();
+    await expect(sectionLink(page, 'Drive')).toBeVisible();
     await page.reload();
     await expect(page.getByRole('alert')).toContainText('File or revision was not found.');
     await openSection(page, 'Drive');
