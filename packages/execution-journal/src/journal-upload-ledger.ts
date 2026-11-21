@@ -7,7 +7,7 @@
 import type { Dirent } from 'node:fs';
 import { readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { isExecutionJournalRunId, journalDirectoryPath } from '../harness/execution-journal.ts';
+import { isExecutionJournalRunId, journalDirectoryPath } from './execution-journal.ts';
 
 const markerSuffix = '.uploaded';
 const journalName = /^(.+)\.(json|ndjson)$/u;

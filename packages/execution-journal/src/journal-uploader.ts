@@ -12,16 +12,13 @@
 import {
     type AgentExecutionJournalAck,
     type AgentExecutionJournalRecordsFrame,
+    type AgentExecutionOutline,
     agentExecutionJournalAckSchema,
     EXECUTION_JOURNAL_RETENTION_DAYS,
     type ExecutionJournalDocument,
 } from '@haus/api';
-import { outlineExecutionJournal } from '../execution-journal-outline.ts';
-import type { JournalRecord } from '../harness/execution-journal-records.ts';
-import {
-    type ExecutionJournalSink,
-    readComputerExecutionJournal,
-} from '../harness/execution-journal.ts';
+import type { JournalRecord } from './execution-journal-records.ts';
+import { type ExecutionJournalSink, readComputerExecutionJournal } from './execution-journal.ts';
 import {
     createJournalRecordPresenter,
     type JournalRecordPresenter,
@@ -55,6 +52,7 @@ export interface ExecutionJournalUploaderOptions {
     /** A live run's unacknowledged bytes past this drop, and the run resends once settled. */
     maxQueuedBytes?: number;
     now?: () => number;
+    outline?: (document: ExecutionJournalDocument) => AgentExecutionOutline;
     send(frame: AgentExecutionJournalRecordsFrame): boolean;
 }
 
@@ -163,7 +161,7 @@ export class ExecutionJournalUploader {
         const finishing = records.some((record) => record.type === 'finish');
         run.live = !finishing;
         if (!run.resendWhole) {
-            const outline = finishing ? outlineExecutionJournal(document) : undefined;
+            const outline = finishing ? this.options.outline?.(document) : undefined;
             this.enqueue(run, records.flatMap(present), outline, finishing);
         }
         if (run.resendWhole && finishing) {
@@ -258,7 +256,7 @@ export class ExecutionJournalUploader {
             run.idle = resolve;
         });
         this.runs.set(key, run);
-        const outline = outlineExecutionJournal(document);
+        const outline = this.options.outline?.(document);
         this.enqueue(run, present({ document, type: 'open' }), outline, true);
         await idle;
     }

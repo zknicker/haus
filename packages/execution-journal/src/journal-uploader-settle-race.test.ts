@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AgentExecutionJournalRecordsFrame } from '@haus/api';
-import { createComputerExecutionJournal } from '../harness/execution-journal.ts';
+import { createComputerExecutionJournal } from './execution-journal.ts';
 
 // The sync mark lands late, as on a slow disk, so a backfill pass lists the run before it.
 const ledger = { ...(await import('./journal-upload-ledger.ts')) };

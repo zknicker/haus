@@ -5,8 +5,8 @@ import {
     EXECUTION_JOURNAL_RETENTION_DAYS,
     computerKnownSecrets,
 } from '@haus/api';
-import { pruneSyncedJournals } from '@haus/computer/src/execution-journal-upload/journal-upload-ledger.ts';
-import { ExecutionJournalUploader } from '@haus/computer/src/execution-journal-upload/journal-uploader.ts';
+import { outlineExecutionJournal } from '@haus/computer/src/execution-journal-outline.ts';
+import { ExecutionJournalUploader, pruneSyncedJournals } from '@haus/execution-journal';
 
 const journalRetentionMs = EXECUTION_JOURNAL_RETENTION_DAYS * 24 * 60 * 60 * 1000;
 
@@ -27,6 +27,7 @@ export function createJournalUploads(input: {
         agentsDir,
         knownSecrets: computerKnownSecrets(input.runnerToken, input.environment),
         log: input.log,
+        outline: outlineExecutionJournal,
         send: (frame) => live?.(frame) ?? false,
     });
     let pruning: Promise<void> | null = null;

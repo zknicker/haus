@@ -1,4 +1,4 @@
-import { createComputerExecutionJournal } from '@haus/computer/src/harness/execution-journal.ts';
+import { createComputerExecutionJournal } from '@haus/execution-journal';
 import { compactionToolName } from '../turn/turn-event.ts';
 import type { JournalUploads } from './journal-uploads.ts';
 

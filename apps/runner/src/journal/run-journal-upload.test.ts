@@ -10,7 +10,7 @@ import {
     type RunnerUpFrame,
     replayExecutionJournalUpload,
 } from '@haus/api';
-import { listUnsyncedJournals } from '@haus/computer/src/execution-journal-upload/journal-upload-ledger.ts';
+import { listUnsyncedJournals } from '@haus/execution-journal';
 import { connectedRunner } from '../model-connections/connection-test-host.ts';
 import { fauxProviderAs } from '../pi/pi-faux-run.ts';
 import { cleanups, drainCleanups, type ServerStandIn } from '../runner-test-server.ts';
@@ -50,6 +50,7 @@ describe('runner execution journal', () => {
             },
         ]);
         expect(frames.at(-1)?.outline).toMatchObject({ runId: 'run_1', status: 'completed' });
+        expect(frames.slice(0, -1).every((frame) => frame.outline === undefined)).toBe(true);
         expect(await unsynced(runner.dataDir)).toEqual(['run_1']);
 
         acknowledge(runner.server, frames);

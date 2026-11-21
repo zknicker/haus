@@ -59,6 +59,7 @@
         "@haus/api": "workspace:*",
         "@haus/codex-usage": "workspace:*",
         "@haus/computer": "workspace:*",
+        "@haus/execution-journal": "workspace:*",
         "@haus/mcp-executor": "workspace:*",
         "@napi-rs/canvas": "1.1.0",
         "pdfjs-dist": "6.4.299",
@@ -270,6 +271,16 @@
         "@opentelemetry/sdk-trace-node": "2.10.0",
         "@opentelemetry/semantic-conventions": "1.43.0",
         "effect": "3.22.1",
+      },
+      "devDependencies": {
+        "@types/bun": "1.3.13",
+        "typescript": "5.9.3",
+      },
+    },
+    "packages/execution-journal": {
+      "name": "@haus/execution-journal",
+      "dependencies": {
+        "@haus/api": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "1.3.13",
@@ -639,6 +650,8 @@
     "@haus/computer": ["@haus/computer@workspace:apps/computer"],
 
     "@haus/effect": ["@haus/effect@workspace:packages/effect"],
+
+    "@haus/execution-journal": ["@haus/execution-journal@workspace:packages/execution-journal"],
 
     "@haus/mcp-executor": ["@haus/mcp-executor@workspace:packages/mcp-executor"],
 

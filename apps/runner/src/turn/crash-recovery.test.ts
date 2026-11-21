@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { type AgentExecutionJournalRecordsFrame, replayExecutionJournalUpload } from '@haus/api';
-import { createComputerExecutionJournal } from '@haus/computer/src/harness/execution-journal.ts';
+import { createComputerExecutionJournal } from '@haus/execution-journal';
 import { openDispatchLedger } from '../dispatch/ledger.ts';
 import { createJournalUploads } from '../journal/journal-uploads.ts';
 import { unknownDispatchMessage } from '../journal/recovered-journal.ts';

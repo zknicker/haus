@@ -2,7 +2,7 @@ import { dispatchIdOf } from '@haus/api';
 import {
     createComputerExecutionJournal,
     readComputerExecutionJournal,
-} from '@haus/computer/src/harness/execution-journal.ts';
+} from '@haus/execution-journal';
 import type { RecoveredDispatch } from '../dispatch/ledger.ts';
 import { RunnerCrashedError } from '../turn/turn-failure.ts';
 import type { JournalUploads } from './journal-uploads.ts';

@@ -1,7 +1,7 @@
 import {
     type ComputerExecutionJournal,
     createComputerExecutionJournal,
-} from '@haus/computer/src/harness/execution-journal.ts';
+} from '@haus/execution-journal';
 import type { ToolResultTurnEvent, TurnEvent } from '../turn/turn-event.ts';
 import type { JournalUploads } from './journal-uploads.ts';
 
