@@ -8,6 +8,7 @@ import {
     replayExecutionJournalUpload,
 } from '@haus/api';
 import { createIdleCompactionReporter } from '../claude/idle-compaction-reporter.ts';
+import { compactedProcess, compactionOwner } from '../claude/idle-compaction.test-support.ts';
 import { createJournalUploads } from './journal-uploads.ts';
 
 let dataDir: string;
@@ -43,20 +44,16 @@ test('an idle compaction is journaled as the compaction tool pair before its rep
         uploads,
     });
     const agentDir = join(dataDir, 'agents', 'agt_one');
-    await hooks.report(
-        'agt_one',
-        { owner: { agentDir, agentId: 'agt_one', runtimeId: 'claude-agent-sdk' } },
-        {
-            costUsd: 0.1,
-            endedAt: new Date('2026-11-20T10:01:00.000Z'),
-            modelId: 'claude-opus-4-7',
-            startedAt: new Date('2026-11-20T10:00:00.000Z'),
-            summary: 'the summary',
-            tokensAfter: 30_000,
-            tokensBefore: 400_000,
-            usage: null,
-        }
-    );
+    await hooks.report('agt_one', compactedProcess(compactionOwner(agentDir, 'agt_one')), {
+        costUsd: 0.1,
+        endedAt: new Date('2026-11-20T10:01:00.000Z'),
+        modelId: 'claude-opus-4-7',
+        startedAt: new Date('2026-11-20T10:00:00.000Z'),
+        summary: 'the summary',
+        tokensAfter: 30_000,
+        tokensBefore: 400_000,
+        usage: null,
+    });
     await uploads.drained();
 
     const report = sent[0] as { compactionId: string; type: string };
@@ -96,13 +93,7 @@ test('a compaction whose journal cannot be written is still reported', async () 
     await Bun.write(join(dataDir, 'blocked'), 'a file where the agent directory should be');
     await hooks.report(
         'agt_one',
-        {
-            owner: {
-                agentDir: join(dataDir, 'blocked', 'agt_one'),
-                agentId: 'agt_one',
-                runtimeId: 'claude-agent-sdk',
-            },
-        },
+        compactedProcess(compactionOwner(join(dataDir, 'blocked', 'agt_one'), 'agt_one')),
         {
             costUsd: null,
             endedAt: new Date(1),

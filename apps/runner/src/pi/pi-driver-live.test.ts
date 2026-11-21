@@ -80,6 +80,9 @@ function launch(connection: RunnerModelConnection, agentDir: string, tools: RunT
             'You are a terse test Agent. Use your shell tool when asked to look at files, then answer in one sentence.\n',
         modelId,
         reasoningEffort: 'low' as const,
+        runId: 'run_live',
+        sessionGeneration: 1,
+        skillListing: '',
         tools,
     };
 }

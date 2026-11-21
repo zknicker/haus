@@ -83,7 +83,10 @@ export async function runTurn(input: RunTurnInput) {
         instructions: composed.instructions,
         modelId: start.modelId,
         reasoningEffort: input.reasoningEffort,
+        runId: start.runId,
         runtimeId: start.runtimeId,
+        sessionGeneration: start.sessionGeneration,
+        skillListing: composed.skillListing,
         tools: input.tools,
     });
     const bootstrapFingerprint = await driver.bootstrapFingerprint(input.signal);

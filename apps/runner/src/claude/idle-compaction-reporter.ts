@@ -2,9 +2,16 @@ import type { AgentIdleCompactionReport } from '@haus/api';
 import { journalIdleCompaction } from '../journal/idle-compaction-journal.ts';
 import type { JournalUploads } from '../journal/journal-uploads.ts';
 import type { RunnerLink } from '../run-context.ts';
+import type { HarnessContext } from '../turn/context-snapshot.ts';
 import { resetReceiptsAfterCompaction } from '../turn/session-file.ts';
+import { reportCompactedContext } from './idle-compaction-context.ts';
 import type { IdleCompactionHooks } from './idle-compaction-scheduler.ts';
 import type { IdleCompactionOwner, IdleCompactionResult } from './idle-compaction.ts';
+
+export interface CompactedProcess {
+    contextUsage(): Promise<HarnessContext>;
+    readonly owner: IdleCompactionOwner | null;
+}
 
 export function createIdleCompactionReporter(deps: {
     agentBusy(agentId: string): boolean;
@@ -12,7 +19,7 @@ export function createIdleCompactionReporter(deps: {
     log: (line: string) => void;
     uploads?: JournalUploads;
 }) {
-    const hooks: IdleCompactionHooks<{ readonly owner: IdleCompactionOwner | null }> = {
+    const hooks: IdleCompactionHooks<CompactedProcess> = {
         busy: (agentId) => deps.agentBusy(agentId),
         compacted: async (agentId, process) => {
             if (!process.owner) {
@@ -25,6 +32,12 @@ export function createIdleCompactionReporter(deps: {
                     `Runner could not reset ${agentId}'s delivery receipts after an idle compaction: ${describe(error)}`
                 );
             }
+            await reportCompactedContext({
+                basis: process.owner.context,
+                link: deps.link,
+                log: deps.log,
+                usage: () => process.contextUsage(),
+            });
         },
         failed: (agentId, error) =>
             deps.log(

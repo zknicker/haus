@@ -41,6 +41,9 @@ liveTest(
                 'You are a test agent. Use the bash tool when asked to run a command. Answer in one short line.',
             modelId: 'claude-haiku-4-5',
             reasoningEffort: 'default' as const,
+            runId: 'run_live',
+            sessionGeneration: 1,
+            skillListing: '',
             tools: localTools(),
         };
         const warm = createClaudeHarness({ hooks: idleCompactionHooks(), maxWarm: 2 });

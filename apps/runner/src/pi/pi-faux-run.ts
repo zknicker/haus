@@ -66,6 +66,9 @@ export function launch(dir: string, tools: RunTools, modelId = 'faux-1') {
         instructions: 'You are Blippy, a Haus Agent.\n',
         modelId,
         reasoningEffort: 'default' as const,
+        runId: 'run_1',
+        sessionGeneration: 1,
+        skillListing: '',
         tools,
     };
 }

@@ -148,6 +148,16 @@ function owner(launch: RuntimeLaunch) {
     const idleOwner: IdleCompactionOwner = {
         agentDir: launch.agentDir,
         agentId: launch.agentId,
+        context: {
+            instructions: launch.instructions,
+            skillListing: launch.skillListing,
+            start: {
+                agentId: launch.agentId,
+                modelId: launch.modelId,
+                runId: launch.runId,
+                sessionGeneration: launch.sessionGeneration,
+            },
+        },
         runtimeId: launch.runtimeId,
     };
     return idleOwner;
