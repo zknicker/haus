@@ -3,45 +3,61 @@ import SwiftUI
 
 /// A Task state's disc, as the App draws it: a plain ring for todo, a
 /// half-filled ring for open, and a solid disc with a check or a cross once the
-/// work has ended. A state this build does not know wears the todo ring.
+/// work has ended. A state this build does not know wears the todo ring. An
+/// unfinished Task waiting on the reader wears an accent ring with a dot.
 ///
 /// Geometry is `TaskStatusDisc`'s 16pt viewBox scaled by `size`.
 struct TaskStateDisc: View {
     let state: TaskState
     var size: CGFloat = 16
     var surface: Color = HausPlatformColor.background
+    var isWaitingOnYou = false
 
     var body: some View {
         ZStack {
-            switch state {
-            case .todo, .unknown:
+            if isWaitingOnYou, !state.isClosed {
                 ring
-            case .open:
-                ZStack {
-                    ring
-                    Circle()
-                        .trim(from: 0, to: 0.5)
-                        .stroke(tint, style: StrokeStyle(lineWidth: 4 * unit, lineCap: .butt))
-                        .frame(width: 4 * unit, height: 4 * unit)
-                        .rotationEffect(.degrees(-90))
-                }
-            case .done:
-                closedDisc { TaskDoneCheck() }
-            case .canceled:
-                closedDisc { TaskClosedCross() }
+                Circle()
+                    .fill(tint)
+                    .frame(width: 4.5 * unit, height: 4.5 * unit)
+            } else {
+                disc
             }
         }
         .frame(width: size, height: size)
         .accessibilityHidden(true)
     }
 
+    @ViewBuilder
+    private var disc: some View {
+        switch state {
+        case .todo, .unknown:
+            ring
+        case .open:
+            ZStack {
+                ring
+                Circle()
+                    .trim(from: 0, to: 0.5)
+                    .stroke(tint, style: StrokeStyle(lineWidth: 4 * unit, lineCap: .butt))
+                    .frame(width: 4 * unit, height: 4 * unit)
+                    .rotationEffect(.degrees(-90))
+            }
+        case .done:
+            closedDisc { TaskDoneCheck() }
+        case .canceled:
+            closedDisc { TaskClosedCross() }
+        }
+    }
+
     private var unit: CGFloat { size / 16 }
 
     private var tint: Color {
-        switch state {
-        case .todo, .unknown, .canceled: .secondary
-        case .open: .orange
-        case .done: .blue
+        if isWaitingOnYou, !state.isClosed { return HausPlatformColor.accentInk }
+        return switch state {
+        case .todo, .unknown: HausPlatformColor.mutedInk
+        case .canceled: HausPlatformColor.faintInk
+        case .open: HausPlatformColor.caution
+        case .done: HausPlatformColor.positive
         }
     }
 

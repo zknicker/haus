@@ -16,7 +16,7 @@ struct TaskPlacePresentationTests {
 
     @Test func taskStatesReadAsTheAppSaysThem() {
         let labels = [TaskState.todo, .open, .done, .canceled, .unknown].map(TaskStateLabel.text)
-        #expect(labels == ["Todo", "Open", "Done", "Canceled", "Unknown state"])
+        #expect(labels == ["Todo", "In progress", "Done", "Canceled", "Unknown state"])
     }
 
     @Test func pullRequestFactsReadAsWords() throws {
@@ -74,8 +74,8 @@ struct TaskPlacePresentationTests {
         #expect(presentation.recentMessages.map(\.id) == ["m2", "m4"])
         #expect(presentation.messagesLabel == "9 messages")
         #expect(presentation.unreadLabel == "2 new")
-        #expect(presentation.summaryLine == "Open · 9 messages · 2 new")
-        #expect(presentation.accessibilityLabel == "Open task SEC-12, Rate-limit, Open, 9 messages, 2 new")
+        #expect(presentation.summaryLine == "In progress · 9 messages · 2 new")
+        #expect(presentation.accessibilityLabel == "Open task SEC-12, Rate-limit, In progress, 9 messages, 2 new")
     }
 
     @Test func aQuietPreviewSaysNothingNew() {

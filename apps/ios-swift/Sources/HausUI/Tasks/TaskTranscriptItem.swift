@@ -1,25 +1,24 @@
 import Foundation
 
+/// One Task chat row: where the Task started, or a message in the assistant
+/// layout with the centered time that leads each turn.
 enum TaskTranscriptItem: Identifiable, Equatable {
     case startedFrom(TaskStartedFromPresentation)
-    case message(MessagePresentation, grouping: TranscriptRowGrouping)
-    case dayDivider(Date)
+    case message(MessageTimelineEntry)
 
     var id: String {
         switch self {
         case .startedFrom: "task-started-from"
-        case .message(let message, _): message.id
-        case .dayDivider(let date): "task-day-\(Int(date.timeIntervalSinceReferenceDate))"
+        case .message(let entry): entry.id
         }
     }
 
     var isPending: Bool {
-        if case .message(let message, _) = self { return message.isPending }
-        return false
+        message?.isPending ?? false
     }
 
     var message: MessagePresentation? {
-        if case .message(let message, _) = self { return message }
+        if case .message(let entry) = self { return entry.message }
         return nil
     }
 
@@ -29,20 +28,9 @@ enum TaskTranscriptItem: Identifiable, Equatable {
         hasOlder: Bool,
         calendar: Calendar = .current
     ) -> [TaskTranscriptItem] {
-        var items: [TaskTranscriptItem] = []
-        if let startedFrom, !hasOlder {
-            items.append(.startedFrom(startedFrom))
-        }
-        var previous: MessagePresentation?
-        for message in messages {
-            let grouping = TranscriptRowGrouping(message, after: previous, calendar: calendar)
-            if grouping.startsDay {
-                items.append(.dayDivider(calendar.startOfDay(for: message.createdAt)))
-            }
-            items.append(.message(message, grouping: grouping))
-            previous = message
-        }
-        return items
+        let lead: [TaskTranscriptItem] = startedFrom.flatMap { hasOlder ? nil : [.startedFrom($0)] } ?? []
+        let entries = MessageTimelineProjection.entries(for: messages, style: .assistant, calendar: calendar)
+        return lead + entries.map(TaskTranscriptItem.message)
     }
 }
 

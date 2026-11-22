@@ -67,6 +67,7 @@
 		96550EF01529DFA5F7B037B9 /* VoiceAudioStartup.swift in Sources */ = {isa = PBXBuildFile; fileRef = E268A7933042825548C9FB2F /* VoiceAudioStartup.swift */; };
 		A406D3697FB81609EE18BD38 /* HausStoreChatListRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB6091A95BBA5FC3DEA3CBCB /* HausStoreChatListRefresh.swift */; };
 		A57173988EB2AAA7F998517A /* AuthenticatedHausView+Reads.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA7862918F19A262989712BD /* AuthenticatedHausView+Reads.swift */; };
+		AEE4E3124B31F0760FA49299 /* TaskBoardScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11DF77A87CD79FA6FFA98D03 /* TaskBoardScreen.swift */; };
 		AF15E7CEEDD94078E44902A6 /* TranscriptRenderingPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0771A40C5602C904730B80CD /* TranscriptRenderingPerformanceTests.swift */; };
 		B7EBCFDD218F89C868E6FE75 /* SettingsPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5423D9ED47D5C0EED5A8433E /* SettingsPresentationAdapters.swift */; };
 		B8D82894CDA748B68BB5E770 /* AuthenticatedHausView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EA9AD3B9155443B2AE9B5B4 /* AuthenticatedHausView.swift */; };
@@ -97,6 +98,7 @@
 		F44D29509DCB18FC6F3FAF8F /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72AD2C0C53BC211A604E6276 /* NotificationService.swift */; };
 		F54865A4738553181ADADA05 /* IdentityPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53B9855BFA098D23FD4E9EBD /* IdentityPresentationAdapters.swift */; };
 		F5AFE88E2DA7359D6F6E5CA1 /* HausModels in Frameworks */ = {isa = PBXBuildFile; productRef = 5EC6967227E68FD69E891391 /* HausModels */; };
+		F6582950BBD619CE62B29DE3 /* TaskBoardAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 288CF5FD85685EBD3933CFC0 /* TaskBoardAdapters.swift */; };
 		F67377AD066715CF4B5900FC /* PushNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = C33E22F3873B8A832FCD4467 /* PushNotifications.swift */; };
 		F6A04385187D5B5E3482132B /* HausStoreMessageLoading.swift in Sources */ = {isa = PBXBuildFile; fileRef = 861156C1A6033F868DB6FA7E /* HausStoreMessageLoading.swift */; };
 		FBA812BFF6948CDE7B63A9CB /* MessageHistoryNavigationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CCA5EAECEFF7A9AE34DFB26 /* MessageHistoryNavigationTests.swift */; };
@@ -136,6 +138,7 @@
 		0A9452EF0C34538A8523C32B /* CodeBlockRowLayoutTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodeBlockRowLayoutTests.swift; sourceTree = "<group>"; };
 		0C0F44CF7F9F5FCFA3C846AD /* MessageRenderingPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageRenderingPerformanceTests.swift; sourceTree = "<group>"; };
 		114C9BE553275D26E429E17F /* HausStoreChatReads.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreChatReads.swift; sourceTree = "<group>"; };
+		11DF77A87CD79FA6FFA98D03 /* TaskBoardScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskBoardScreen.swift; sourceTree = "<group>"; };
 		147265512B955B90F06F98BE /* TaskPresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskPresentationAdapters.swift; sourceTree = "<group>"; };
 		16A78D1EF0B10B20E7B2D1CB /* AuthenticatedHausView+Tasks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthenticatedHausView+Tasks.swift"; sourceTree = "<group>"; };
 		17B1E79D62CDCC8E8BC2268C /* DrawerPanDelegateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawerPanDelegateTests.swift; sourceTree = "<group>"; };
@@ -145,6 +148,7 @@
 		230C77C9132A14378B26E67F /* HausStoreChatEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreChatEvents.swift; sourceTree = "<group>"; };
 		23B21F3BBD09D71AD7C4DFFB /* HausRenderingTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = HausRenderingTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		25A9247649992AD4B411E84D /* AuthenticatedHausView+Routes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthenticatedHausView+Routes.swift"; sourceTree = "<group>"; };
+		288CF5FD85685EBD3933CFC0 /* TaskBoardAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskBoardAdapters.swift; sourceTree = "<group>"; };
 		289CE0DDE04F299E41767304 /* HausStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStore.swift; sourceTree = "<group>"; };
 		2CCA5EAECEFF7A9AE34DFB26 /* MessageHistoryNavigationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessageHistoryNavigationTests.swift; sourceTree = "<group>"; };
 		2E4B2ED9778AEC1A58F21CC6 /* Launch.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Launch.xcassets; sourceTree = "<group>"; };
@@ -391,6 +395,8 @@
 				8A8F1BAA49F991D4C2E86B11 /* PrivacyInfo.xcprivacy */,
 				C33E22F3873B8A832FCD4467 /* PushNotifications.swift */,
 				5423D9ED47D5C0EED5A8433E /* SettingsPresentationAdapters.swift */,
+				288CF5FD85685EBD3933CFC0 /* TaskBoardAdapters.swift */,
+				11DF77A87CD79FA6FFA98D03 /* TaskBoardScreen.swift */,
 				4F3442CFF7F141228FFA4C88 /* TaskChatAdapters.swift */,
 				147265512B955B90F06F98BE /* TaskPresentationAdapters.swift */,
 				440C5A5A0C9E02BF363FC625 /* UtilityPresentationAdapters.swift */,
@@ -653,6 +659,8 @@
 				0B98EA28D4EB397868C03D7F /* PresentationAdapters.swift in Sources */,
 				F67377AD066715CF4B5900FC /* PushNotifications.swift in Sources */,
 				B7EBCFDD218F89C868E6FE75 /* SettingsPresentationAdapters.swift in Sources */,
+				F6582950BBD619CE62B29DE3 /* TaskBoardAdapters.swift in Sources */,
+				AEE4E3124B31F0760FA49299 /* TaskBoardScreen.swift in Sources */,
 				55CBE7147ECA55D0D9A195CA /* TaskChatAdapters.swift in Sources */,
 				D64E21F3C9B2593262584CBC /* TaskPresentationAdapters.swift in Sources */,
 				52551422BE2056D26C78745F /* UtilityPresentationAdapters.swift in Sources */,

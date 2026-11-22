@@ -87,6 +87,28 @@ extension TasksModel {
         return true
     }
 
+    /// The Task board's reads: `filter`'s list, plus the Projects, labels,
+    /// and unread Task chats its rows and filters draw from, each read once.
+    public func loadBoard(_ filter: TaskListFilter) async {
+        await withTaskGroup(of: Void.self) { group in
+            group.addTask { await self.logged { try await self.showList(filter) } }
+            if projects == nil {
+                group.addTask { await self.logged { try await self.reloadProjects() } }
+            }
+            if labels == nil {
+                group.addTask { await self.logged { try await self.reloadLabels() } }
+            }
+            if unreadTasks == nil {
+                group.addTask { await self.refreshUnreadTasks() }
+            }
+        }
+    }
+
+    public func loadLabelsIfUnknown() async {
+        guard labels == nil else { return }
+        await logged { try await reloadLabels() }
+    }
+
     // MARK: - Realtime
 
     /// The reads one batch of live events asks for, against what is held.

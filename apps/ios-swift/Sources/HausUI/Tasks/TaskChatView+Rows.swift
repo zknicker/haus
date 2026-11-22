@@ -7,7 +7,27 @@ extension TaskChatView {
         case .startedFrom(let origin):
             TaskStartedFromRow(origin: origin, onOpen: onOpenOrigin)
                 .padding(.bottom, 8)
-        case .message(let message, let grouping):
+        case .message(let entry):
+            messageRow(entry)
+        }
+    }
+
+    private func messageRow(_ entry: MessageTimelineEntry) -> some View {
+        let message = entry.message
+        let grouping = entry.grouping
+        return VStack(alignment: .leading, spacing: 0) {
+            switch grouping.divider {
+            case .time:
+                TranscriptTimeDivider(date: message.createdAt)
+                    .padding(.top, entry.isFirst ? 0 : 14)
+                    .padding(.bottom, 8)
+            case .day:
+                TranscriptDayDivider(date: message.createdAt)
+                    .padding(.top, entry.isFirst ? 0 : 12)
+                    .padding(.bottom, 4)
+            case nil:
+                EmptyView()
+            }
             MessageTimelineRow(
                 message: message,
                 isContinuation: grouping.isContinuation,
@@ -20,13 +40,10 @@ extension TaskChatView {
                 reactionBoard: reactionBoard,
                 onOpenInlineReply: revealInlineReply,
                 onOpenAttachment: onOpenAttachment,
-                accessibilityActions: accessibilityActions(for: message)
+                accessibilityActions: accessibilityActions(for: message),
+                style: entry.style
             )
-            .padding(.top, grouping.startsDay ? 0 : grouping.isContinuation ? 4 : 16)
-        case .dayDivider(let date):
-            TranscriptDayDivider(date: date)
-                .padding(.top, 12)
-                .padding(.bottom, 4)
+            .padding(.top, entry.topSpacing)
         }
     }
 
@@ -54,6 +71,25 @@ extension TaskChatView {
 
     static func drawerMessage(for item: TaskTranscriptItem) -> MessagePresentation? {
         item.message.flatMap { $0.isPending ? nil : $0 }
+    }
+
+    /// The reader's own send lands whole, at the top with room for the reply
+    /// when "Scroll new messages to top" is on, as in every chat.
+    func appendBehavior(
+        previousItems: [TaskTranscriptItem],
+        items: [TaskTranscriptItem],
+        isNearNewest: Bool
+    ) -> TranscriptAppendBehavior {
+        let isLatestPending = items.last?.isPending == true
+        return MessageTimelineTailScroll.behavior(
+            decision: MessageTimelineTailScroll.decide(
+                hadMessages: previousItems.contains { $0.message != nil },
+                isNearBottom: isNearNewest && history.followsLatest,
+                isLatestPending: isLatestPending
+            ),
+            isLatestPending: isLatestPending,
+            scrollsNewMessagesToTop: scrollsNewMessagesToTop
+        )
     }
 
     var rowRevision: Int {

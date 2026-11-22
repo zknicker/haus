@@ -32,7 +32,6 @@ extension AuthenticatedHausView {
         }
         return TaskChatView(
             header: store.taskChatHeader(taskID: taskID),
-            contextLabel: store.taskContextLabel(taskID: taskID),
             startedFrom: store.taskStartedFrom(taskID: taskID),
             onOpenOrigin: {
                 guard let origin else { return }
@@ -53,6 +52,7 @@ extension AuthenticatedHausView {
             },
             history: chatID.map { store.messageHistory(chatID: $0) } ?? .init(),
             engagementChatID: chatID,
+            editing: store.taskChatEditing(taskID: taskID),
             mentionOptions: originDestination.map { store.mentionOptions(for: $0) } ?? [],
             onLoadMentionOptions: {
                 guard let originDestination else { return }

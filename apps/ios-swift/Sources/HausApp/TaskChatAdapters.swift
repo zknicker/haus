@@ -48,13 +48,6 @@ extension HausStore {
         tasks.detailsByID[taskID]?.task.origin
     }
 
-    func taskContextLabel(taskID: String) -> String? {
-        let originChatID = taskOrigin(taskID: taskID)?.chatID
-            ?? tasks.unreadTasks?.first { $0.task?.taskID == taskID }?.task?.projectID
-        guard let chat = originChatID.flatMap({ chatsByID[$0] }), let name = chat.name else { return nil }
-        return "#\(name)"
-    }
-
     func taskStartedFrom(taskID: String) -> TaskStartedFromPresentation? {
         guard let origin = taskOrigin(taskID: taskID) else { return nil }
         let place = chatsByID[origin.chatID]?.name.map { "#\($0)" } ?? "its project"
