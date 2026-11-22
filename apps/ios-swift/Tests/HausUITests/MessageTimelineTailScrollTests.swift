@@ -55,45 +55,6 @@ struct MessageTimelineTailScrollTests {
     }
 }
 
-struct ChatCanvasOpenTests {
-    @Test func opensTheSelectedChatWhileTheCanvasIsVisible() {
-        #expect(
-            ChatCanvasOpen.chatID(selectedID: .chat("c1"), isCovered: false) == "c1"
-        )
-    }
-
-    @Test func standsDownWhileAPushedRouteCoversTheCanvas() {
-        #expect(
-            ChatCanvasOpen.chatID(selectedID: .chat("c1"), isCovered: true) == nil
-        )
-    }
-
-    @Test func reopensTheSameChatOnceTheStackEmpties() {
-        // Popping back from the Tasks list lands on the Chat the user left,
-        // which the canvas then owns again.
-        let covered = ChatCanvasOpen.chatID(selectedID: .chat("left"), isCovered: true)
-        let uncovered = ChatCanvasOpen.chatID(selectedID: .chat("left"), isCovered: false)
-        #expect(covered == nil)
-        #expect(uncovered == "left")
-    }
-
-    @Test func anImplicitAgentDMHasNoServerChatToOpen() {
-        #expect(ChatCanvasOpen.chatID(selectedID: .agentDM("a1"), isCovered: false) == nil)
-        #expect(ChatCanvasOpen.chatID(selectedID: nil, isCovered: false) == nil)
-    }
-
-    @Test func namesTheCanvasChatEvenWhileAPushedRouteCoversIt() {
-        // The canvas stands down from opening a covered Chat, but the Chat it
-        // is showing still has to be nameable: it is what a pop lands on.
-        #expect(ChatCanvasOpen.canvasChatID(selectedID: .chat("c1")) == "c1")
-    }
-
-    @Test func namesNoCanvasChatWithoutADurableChatSelection() {
-        #expect(ChatCanvasOpen.canvasChatID(selectedID: .agentDM("a1")) == nil)
-        #expect(ChatCanvasOpen.canvasChatID(selectedID: nil) == nil)
-    }
-}
-
 struct OpenChatPagesTests {
     @Test func refreshesTheCanvasOnceWhenItIsTheSurfaceOnScreen() {
         #expect(

@@ -56,16 +56,7 @@ final class HausStore {
     var inlineReplyLoadsInFlight: Set<String> = []
     /// (`HausStoreIconBadge.swift`).
     var iconBadgeCount: Int?
-    var serverUsage: ServerUsageSnapshot?
     private var storedPendingMessagesByChatID: [String: [PendingChatMessage]] = [:]
-    /// The sidebar's row order, frozen while the drawer is open so a new
-    /// message cannot move a row under the reader's finger. See
-    /// `holdSidebarOrder()`.
-    var sidebarOrder = HeldOrder<ChatDestination.ID>() {
-        didSet {
-            if oldValue != sidebarOrder { projections.chatDestinations = nil }
-        }
-    }
     @ObservationIgnored lazy var reactionStickers = Self.makeReactionStickerBoard { [weak self] in self }
     // Realtime streams (`HausStoreEventStreams.swift`).
     @ObservationIgnored var realtimeServerID: String?

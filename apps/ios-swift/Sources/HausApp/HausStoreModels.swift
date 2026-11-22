@@ -50,8 +50,6 @@ extension HausStore {
     }
 
     var currentActivityByAgentID: [String: AgentActivityEvent] { captains.currentActivityByAgentID }
-    var isAnyAgentWorking: Bool { captains.isAnyAgentWorking }
-    var hasAgentActivitySnapshot: Bool { captains.hasActivitySnapshot }
     var lifecycleRevision: Int { captains.lifecycleRevision }
 
     // MARK: - Workers and settings

@@ -28,7 +28,6 @@ extension HausStore {
         chats = snapshot.chats
         agents = snapshot.agents
         members = snapshot.members
-        serverUsage = snapshot.serverUsage
         for (chatID, page) in snapshot.pagesByChatID {
             writeTranscript(page, to: .chat(chatID), as: .replace)
             historyNavigation.retention.touch(chatID)
@@ -86,8 +85,7 @@ extension HausStore {
             chats: chats,
             agents: agents,
             members: members,
-            pagesByChatID: LaunchSnapshot.pages(messagesByChatID, priority: priority),
-            serverUsage: serverUsage
+            pagesByChatID: LaunchSnapshot.pages(messagesByChatID, priority: priority)
         )
     }
 }

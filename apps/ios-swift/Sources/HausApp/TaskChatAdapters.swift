@@ -55,7 +55,7 @@ extension HausStore {
         let excerpt = message.flatMap { message -> String? in
             let line = RichMessageParser.oneLinePreview(message.displayContent)
             guard !line.isEmpty else { return nil }
-            let author = authorPresentation(message.author)?.name ?? InboxActorName.stored(message.author)
+            let author = authorPresentation(message.author)?.name ?? StoredActorName.text(message.author)
             return "\(author): \(line)"
         }
         return TaskStartedFromPresentation(placeLabel: place, excerpt: excerpt)

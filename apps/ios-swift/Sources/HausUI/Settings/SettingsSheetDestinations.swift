@@ -66,7 +66,6 @@ extension SettingsSheet {
                     stoppedClaims: stoppedClaims,
                     onOpenClaim: { item in
                         stoppedClaims.open(item)
-                        dismiss()
                     }
                 )
             } else {
@@ -96,7 +95,6 @@ extension SettingsSheet {
                     viewerZone: HumanTimezone.viewerZone(saved: data.viewer.timezone),
                     onOpenChat: { chatID in
                         automations.openChat(chatID)
-                        dismiss()
                     }
                 )
             } else {

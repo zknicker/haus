@@ -8,10 +8,6 @@ extension HausStore {
         let applied = captains.apply(event)
         guard applied != .ignored else { return }
         markConnected()
-        // The turn's tokens now count toward the Inbox strip's week.
-        if applied == .settled, serverUsage != nil {
-            requestRecovery([.serverUsage], serverID: event.serverID)
-        }
     }
 
     func handle(activityEvent event: AgentActivityEvent) {

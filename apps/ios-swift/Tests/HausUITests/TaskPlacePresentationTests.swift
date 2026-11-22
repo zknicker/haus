@@ -116,42 +116,6 @@ struct TaskPlacePresentationTests {
         #expect(items.map(\.id) == ["task-started-from"])
     }
 
-    // MARK: - Inbox
-
-    @Test func anUnreadTaskIsAnUnreadRowThatOpensTheTask() {
-        let rows = InboxUnreadRows.rows(
-            [InboxFixtures.chat(id: "chat_old", name: "product", lastActivityAt: Date(timeIntervalSince1970: 1_800_000_100))],
-            taskChats: [taskChat(at: Date(timeIntervalSince1970: 1_800_000_200))],
-            viewerDisplayName: "Marlow"
-        )
-        #expect(rows.map(\.id) == ["chat_task_12", "chat_old"])
-        let row = rows[0]
-        #expect(row.open == .task(taskID: "task_12"))
-        #expect(row.preview == "Forge: Done")
-        #expect(rows[1].facts == nil)
-    }
-
-    @Test func anUnreadTaskRowKeepsItsWholeTitleAndPutsKeyAndStateUnderIt() {
-        let title = "Rate-limit the Trigger webhooks before the partner launch on Thursday"
-        let row = taskChat(at: Date(timeIntervalSince1970: 1_800_000_200), title: title, state: .todo)
-            .row(viewerDisplayName: "Marlow")
-        #expect(row.title == title)
-        #expect(row.facts == "SEC-12 · Todo")
-        #expect(!row.title.contains("SEC-12"))
-    }
-
-    private func taskChat(
-        at date: Date,
-        title: String = "Rate-limit",
-        state: TaskState = .open
-    ) -> InboxUnreadTaskChat {
-        InboxUnreadTaskChat(
-            id: "chat_task_12", taskID: "task_12", key: "SEC-12", title: title, state: state,
-            mark: .channel(ChannelAppearance(icon: nil, color: nil)), lastActivityAt: date,
-            latestMessage: InboxFixtures.lastMessage(author: "Forge", content: "Done")
-        )
-    }
-
     // MARK: - Fixtures
 
     private var utc: Calendar {

@@ -54,8 +54,8 @@ extension HausStore {
 
     /// The transcript the canvas renders.
     ///
-    /// `HausShellView.body` calls this on every evaluation — every frame of a
-    /// drawer pan, every keyboard inset change — so the result is memoized per
+    /// The Chat route calls this on every evaluation — every keyboard inset
+    /// change, every engagement tick — so the result is memoized per
     /// Chat. It is rebuilt only when one of its inputs is written: the Chat's
     /// page, its optimistic rows, the Agent and Member directories, and the
     /// lifecycle presence overlay. Each of those is a `HausStore` accessor

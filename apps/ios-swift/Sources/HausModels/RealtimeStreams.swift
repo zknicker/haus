@@ -72,13 +72,12 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
         case .taskFollowUpdated:
             [.unreadTasks]
         case .agentLifecycle:
-            // A settled turn moves the usage the Inbox strip ranks.
-            [.agentAvailability, .serverUsage]
+            [.agentAvailability]
         case .agentActivity:
             [.agentActivity]
         case .computerUpdated:
             // A Computer attaching or detaching moves every Agent it runs.
-            [.agentAvailability, .agentActivity, .serverUsage, .computers]
+            [.agentAvailability, .agentActivity, .computers]
         case .serverUpdated:
             [.serverList]
         case .projectUpdated, .agentUpdated, .agentExecutionJournal, .artifactUpdated, .modelConnectionsUpdated:
@@ -114,8 +113,6 @@ public enum RealtimeProjection: Hashable, Sendable, CaseIterable {
     case activeWorkers
     case agentAvailability
     case agentActivity
-    /// `stats.live`: the Inbox strip's token usage, once loaded.
-    case serverUsage
     /// `computer.list`.
     case computers
 }
