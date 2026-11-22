@@ -841,7 +841,7 @@ W2 to W4 add these.
 | Switching Workers off refuses new work, settles queued turns `place-off`, and clears Project defaults | `apps/server/test/worker-computer-settings.test.ts` |
 | A Worker push writes as the Worker and never closes its Agent's run push | `apps/server/test/worker-drive-push.test.ts` |
 | A question settles needs-you at once, posts once, notifies the asker or the Agent, and survives the process, the Computer going offline, and a stale attempt | `apps/server/test/worker-question.test.ts` |
-| The first answer wins, Dismiss and Stop close questions attributed, and a closed Task refuses answers | `apps/server/test/worker-question.test.ts` |
+| The first answer wins, Dismiss and Stop close questions attributed, and a closed Task refuses answers | `apps/server/test/worker-question-answer.test.ts` |
 | Claude Code captures AskUserQuestion once, denies every other prompt, and keeps the tool off below the minimum version | `apps/computer/src/runtime/claude-code/claude-worker-driver.test.ts` |
 | Codex captures request_user_input once, interrupts, and resumes on the same thread | `apps/computer/src/runtime/codex/codex-questions.test.ts` |
 | A question is journaled and resent before the end, also after a restart | `apps/computer/src/workers/computer/computer-place-question.test.ts` |
