@@ -45,6 +45,22 @@ The iPhone app (`apps/ios-swift`) is a native SwiftUI client of Haus Server.
   the bottom edge.
 - **Navigation:** each tab owns one `NavigationStack`. Interactive back restores the previous screen's scroll
   position.
+- **Home:**
+  - The `+` starts a new Captain, for Owners and Admins.
+  - Captain tiles show a working badge from live activity and an unread dot for an unread DM. A stopped or
+    away Captain's name dims. Long-press offers the profile and automations.
+  - Below the tiles, Happening now lists running Workers.
+  - Recent lists every unread Chat and every followed Task chat with unread messages, then the newest DMs.
+  - Open tasks lists `task.listOpen`. An unread Task chat gets a dot there instead of a Recent row.
+  - Every unread row offers Mark Read. The Inbox week card is retired.
+  - A fresh Server shows its next steps above the tiles.
+- **Projects:**
+  - The `+` creates a Project.
+  - The "Joined ⌄" chip narrows the list to unread Projects, and "+ Filter" narrows it to one Captain's Projects.
+  - Each Project row shows its Captains and its open Task count, then `#all`, People (human DMs), and an
+    "Archived N" row that opens the archived list with restore.
+  - Long-press opens Project details or Project settings: name, key, repos and their Devices, and the default
+    Worker place.
 
 ## Router
 
@@ -70,6 +86,7 @@ holds its own navigation state.
 | `work(place)` | the current tab | Workers, Tasks, PRs, and Files for one place. |
 | `driveFile(path)` | the current tab | Sandboxed preview for HTML. |
 | `settings(SettingsRoute)` | You | |
+| `projectSettings(projectId)` | Projects | A Project's name, key, repos, and default Worker place. |
 
 A route opened from inside a tab pushes onto that tab's stack. A route opened from outside (push, deep link) selects
 its tab and replaces that tab's stack with the route on top of the tab's root.

@@ -32,6 +32,7 @@ struct HausRouterTests {
             (.channel(chatID: "chat_product"), .projects),
             (.task(taskID: "task_1"), .tasks),
             (.settings(.computers), .you),
+            (.projectSettings(projectID: "chat_product"), .projects),
         ]
     )
     func outsideResets(route: HausRoute, tab: HausTab) {

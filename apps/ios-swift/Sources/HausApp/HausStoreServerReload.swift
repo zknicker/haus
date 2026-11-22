@@ -196,6 +196,7 @@ extension HausStore {
         pendingMessagesByChatID = [:]
         tasks.reset()
         workers.reset()
+        projects.reset()
         drive.reset()
         settingsModel.reset()
         serverUsage = nil

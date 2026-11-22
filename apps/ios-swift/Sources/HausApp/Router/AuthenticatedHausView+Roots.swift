@@ -9,29 +9,28 @@ import SwiftUI
 extension AuthenticatedHausView {
     var homeRoot: some View {
         HomeTabView(
-            greetingName: store.inboxGreetingName,
-            agentWeeks: store.inboxAgentWeeks(),
-            unread: store.inboxUnreadRows,
-            cloudAgentWork: store.activeWorkers,
-            workingAgents: store.inboxWorkingAgents,
-            resolveActor: { agentID, userID in store.actorPresentation(agentID: agentID, userID: userID) },
             firstRun: firstRun,
-            onOpen: openInboxRequest,
-            onMarkRead: { rowID in Task { await store.markInboxRowRead(id: rowID) } },
-            onRefresh: { await store.loadInbox() },
-            onNewTask: { router.present(.askAnything) }
+            tiles: store.captainTiles,
+            workers: store.activeWorkers,
+            recent: store.homeRecentRows,
+            openTasks: store.homeOpenTaskRows,
+            tileActions: captainTileActions,
+            onOpen: openHomeRow,
+            onOpenWorker: { openInboxRequest(.cloudAgentWork(workID: $0.id)) },
+            onMarkRead: { chatID in Task { await store.markInboxRowRead(id: chatID) } },
+            onRefresh: refreshHome,
+            onNewCaptain: store.canManageServer ? { router.present(.newCaptain) } : nil
         )
     }
 
     var projectsRoot: some View {
         ProjectsTabView(
-            destinations: store.chatDestinations,
+            projects: store.projectRows,
+            people: store.personRows,
+            captains: store.agents.map(store.captainIdentity),
+            archivedCount: store.projects.archivedCount,
             isLoaded: store.hasLoadedChats,
-            onOpen: { router.open(route(for: $0)) },
-            onMarkRead: { chat in Task { await store.markChatRead(chatID: chat.id) } },
-            onOpenDetails: { router.present(.chatDetails(conversation(for: $0))) },
-            onOpenArchived: { router.present(.archivedProjects) },
-            onNewProject: { router.present(.newProject) }
+            actions: projectsTabActions
         )
     }
 

@@ -5,7 +5,7 @@ import XCTest
 final class ProjectContractTests: XCTestCase {
     private let project = """
     {"archived":false,"chatId":"chat_sec","defaultWorkerPlace":{"computerId":"cmp_1","computerName":null,"kind":"computer"},
-     "homeAgentIds":["agent_1"],"id":"project_sec","isHaus":false,"key":"SEC","keyEditable":true,"name":"sec",
+     "homeAgentIds":["agent_1"],"isHaus":false,"key":"SEC","keyEditable":true,"name":"sec",
      "repos":[{"id":"repo_1","links":[{"checkoutPath":null,"computerId":"cmp_1","computerName":"Studio"}],
        "repository":"haus/haus"}],
      "serverId":"server_1","taskKeyId":"key_sec"}
@@ -42,7 +42,7 @@ final class ProjectContractTests: XCTestCase {
     func testMutationResultsDecode() throws {
         let result = try ContractFixtures.decode(ProjectMutationResult.self, #"{"chat":\#(ContractFixtures.chat),"project":\#(project)}"#)
         XCTAssertEqual(result.chat.id, "chat_sec")
-        XCTAssertEqual(result.project.id, "project_sec")
+        XCTAssertEqual(result.project.id, "chat_sec")
         let added = try ContractFixtures.decode(ProjectRepoAdded.self, #"{"projectRepoId":"repo_2","repository":"haus/site"}"#)
         XCTAssertEqual(added.projectRepoID, "repo_2")
         let linked = try ContractFixtures.decode(ProjectRepoLinkReceipt.self, #"{"computerId":"cmp_1","projectRepoId":"repo_2"}"#)
