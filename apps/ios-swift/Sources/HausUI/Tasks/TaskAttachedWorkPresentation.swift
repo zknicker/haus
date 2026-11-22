@@ -1,8 +1,8 @@
 import Foundation
 import HausModels
 
-extension CloudAgentPresentation {
-    public static func runStatusLabel(_ status: CloudAgentStatus) -> String {
+extension WorkerPresentation {
+    public static func runStatusLabel(_ status: WorkerTurnStatus) -> String {
         switch status {
         case .queued: "Queued"
         case .running: "Running"
@@ -14,7 +14,7 @@ extension CloudAgentPresentation {
         }
     }
 
-    public var newestRun: CloudAgentRun? { work.runs.first }
+    public var newestRun: WorkerTurn? { work.runs.first }
 
     public var runStatusText: String {
         Self.runStatusLabel(newestRun?.status ?? work.status)
@@ -28,9 +28,9 @@ extension CloudAgentPresentation {
 }
 
 public struct TaskPullRequestPresentation: Identifiable, Hashable, Sendable {
-    public let reading: CloudAgentPullRequestReading
+    public let reading: PullRequestReading
 
-    public init(reading: CloudAgentPullRequestReading) {
+    public init(reading: PullRequestReading) {
         self.reading = reading
     }
 
@@ -41,7 +41,7 @@ public struct TaskPullRequestPresentation: Identifiable, Hashable, Sendable {
         return "PR #\(reading.number) · \(title)"
     }
 
-    public var url: URL? { CloudAgentPresentation.externalURL(reading.url) }
+    public var url: URL? { WorkerPresentation.externalURL(reading.url) }
 
     public var stateLabel: String { Self.stateLabel(reading.state) }
 
@@ -81,10 +81,10 @@ public struct TaskPullRequestPresentation: Identifiable, Hashable, Sendable {
 }
 
 public struct TaskAttachedWorkPresentation: Hashable, Sendable {
-    public let cloudAgents: [CloudAgentPresentation]
+    public let cloudAgents: [WorkerPresentation]
     public let pullRequests: [TaskPullRequestPresentation]
 
-    public init(cloudAgents: [CloudAgentPresentation], pullRequests: [CloudAgentPullRequestReading]) {
+    public init(cloudAgents: [WorkerPresentation], pullRequests: [PullRequestReading]) {
         self.cloudAgents = cloudAgents
         let shown = Set(cloudAgents.compactMap { $0.pullRequestURL?.absoluteString })
         self.pullRequests = pullRequests

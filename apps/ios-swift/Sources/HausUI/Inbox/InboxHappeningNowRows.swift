@@ -43,7 +43,7 @@ public enum InboxHappeningNowRows {
     /// can still be unknown, and a half-answered section would claim nothing is
     /// running when something is.
     public static func rows(
-        work: [ActiveCloudAgentWork]?,
+        work: [ActiveWorker]?,
         agents: [InboxWorkingAgent],
         now: Date,
         resolveActor: InboxActorResolver
@@ -54,7 +54,7 @@ public enum InboxHappeningNowRows {
     }
 
     static func workRow(
-        _ item: ActiveCloudAgentWork,
+        _ item: ActiveWorker,
         now: Date,
         resolveActor: InboxActorResolver
     ) -> InboxHappeningNowRow {
@@ -76,11 +76,11 @@ public enum InboxHappeningNowRows {
     /// This list is what is running now, so a job listed only because a
     /// follow-up is live reads as that follow-up, not as the settled job
     /// behind it. Mirrors the App's `happening-now-work.ts`.
-    static func liveStatus(_ work: CloudAgentWork, now: Date) -> String {
+    static func liveStatus(_ work: Worker, now: Date) -> String {
         guard work.job.state != .working, let followUp = work.job.followUp else {
-            return CloudAgentPresentation(work: work).jobText(at: now)
+            return WorkerPresentation(work: work).jobText(at: now)
         }
-        let elapsed = CloudAgentPresentation.duration(from: followUp.since, to: now)
+        let elapsed = WorkerPresentation.duration(from: followUp.since, to: now)
         return "Follow-up \(followUp.state.rawValue) · \(elapsed)"
     }
 

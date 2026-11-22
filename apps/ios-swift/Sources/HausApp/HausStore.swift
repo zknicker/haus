@@ -17,6 +17,7 @@ final class HausStore {
     var servers: [ServerSummary] = []
     // Internal so the app-only computer loader can live in its own file.
     var computers: [ComputerSummary]?
+    var modelConnections: ModelConnectionsRead?
     var mentionOptionsByDestinationID: [ChatDestination.ID: [MentionOptionPresentation]] = [:]
     var currentActivityByAgentID: [String: AgentActivityEvent] = [:] {
         didSet {
@@ -72,7 +73,7 @@ final class HausStore {
     /// (`HausStoreIconBadge.swift`).
     var iconBadgeCount: Int?
     let taskSnapshots = TaskSnapshots()
-    var activeCloudAgentWork: [ActiveCloudAgentWork]?
+    var activeWorkers: [ActiveWorker]?
     var serverUsage: ServerUsageSnapshot?
     private var storedPendingMessagesByChatID: [String: [PendingChatMessage]] = [:]
     private var storedLifecycleAvailability: [String: AgentAvailability] = [:]

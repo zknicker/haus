@@ -93,7 +93,7 @@ struct MessageTimelineRow: View {
                 }
 
                 ForEach(message.cloudAgents) { agent in
-                    CloudAgentCard(agent: agent).padding(.top, 6)
+                    WorkerCard(agent: agent).padding(.top, 6)
                 }
 
                 if !message.isPending {

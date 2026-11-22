@@ -24,7 +24,7 @@ final class AgentActivityModelsTests: XCTestCase {
             AgentActivityHistoryPage.self,
             from: Data(
                 """
-                {"events":[\(row("delegating", "started")),\(row("updating_instructions", "completed")),\(row("drafting", "interrupted"))],"nextBefore":null}
+                {"events":[\(row("delegating", "started")),\(row("updating_instructions", "completed")),\(row("drafting", "interrupted"))],"nextBefore":null,"runTriggers":[]}
                 """.utf8
             )
         )

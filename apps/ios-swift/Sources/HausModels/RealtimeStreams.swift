@@ -23,8 +23,26 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
     /// `server.updated`, so this stream ends with `membership_lost` for
     /// whoever just lost access.
     case serverUpdated = "server.onUpdated"
+    case projectUpdated = "project.onUpdated"
+    case agentUpdated = "agent.onUpdated"
+    case agentExecutionJournal = "agent.onExecutionJournal"
+    case artifactUpdated = "artifact.onUpdated"
+    case modelConnectionsUpdated = "modelConnections.onUpdated"
+
+    public static let liveSession = allCases.filter(\.joinsLiveSession)
 
     public var path: String { rawValue }
+
+    public var joinsLiveSession: Bool {
+        switch self {
+        case .projectUpdated, .agentUpdated, .agentExecutionJournal, .artifactUpdated, .modelConnectionsUpdated:
+            false
+        case .messageCreated, .messageReactionUpdated, .chatRead, .chatLifecycle, .cloudAgentWorkUpdated,
+             .claimChanged, .taskLabelUpdated, .taskCreated, .taskUpdated, .taskFollowUpdated, .agentLifecycle,
+             .agentActivity, .computerUpdated, .serverUpdated:
+            true
+        }
+    }
 
     /// Whether this stream's outage is the Server's: the connection indicator
     /// follows these. Activity and the annotation streams are decoration on
@@ -44,7 +62,7 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
         case .claimChanged:
             [.openTranscripts, .chatList]
         case .cloudAgentWorkUpdated:
-            [.openTranscripts, .chatList, .activeCloudAgentWork]
+            [.openTranscripts, .chatList, .activeWorkers]
         case .chatLifecycle:
             [.chatList]
         case .taskLabelUpdated:
@@ -63,6 +81,8 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
             [.agentAvailability, .agentActivity, .serverUsage, .computers]
         case .serverUpdated:
             [.serverList]
+        case .projectUpdated, .agentUpdated, .agentExecutionJournal, .artifactUpdated, .modelConnectionsUpdated:
+            []
         }
     }
 
@@ -91,7 +111,7 @@ public enum RealtimeProjection: Hashable, Sendable, CaseIterable {
     /// `taskLabel.list`, once loaded.
     case taskLabels
     case unreadTasks
-    case activeCloudAgentWork
+    case activeWorkers
     case agentAvailability
     case agentActivity
     /// `stats.live`: the Inbox strip's token usage, once loaded.

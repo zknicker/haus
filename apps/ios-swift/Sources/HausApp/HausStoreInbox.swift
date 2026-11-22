@@ -15,7 +15,7 @@ extension HausStore {
     func loadInbox() async {
         async let chats: Void = refreshInboxChats()
         async let unreadTasks: Void = loadUnreadTasks()
-        async let work: Void = loadActiveCloudAgentWork()
+        async let work: Void = loadActiveWorkers()
         async let usage: Void = loadServerUsage()
         _ = await (chats, unreadTasks, work, usage)
     }
@@ -65,18 +65,18 @@ extension HausStore {
 
     /// Every queued or running Cloud Agent work the viewer can see on this
     /// Server, oldest first. `cloudAgentWork.onUpdated` owns the refresh.
-    func loadActiveCloudAgentWork() async {
+    func loadActiveWorkers() async {
         guard let serverID = activeServer?.id else { return }
         let readStart = realtimeReconciliation.beginRead()
         do {
             let rows = try await (client.query(
                 "worker.listActive",
                 input: ServerScopedInput(serverId: serverID)
-            ) as ActiveCloudAgentWorkList).rows
+            ) as ActiveWorkerList).rows
             guard activeServer?.id == serverID,
-                  realtimeReconciliation.landed(.activeCloudAgentWork, readStartedAt: readStart)
+                  realtimeReconciliation.landed(.activeWorkers, readStartedAt: readStart)
             else { return }
-            if activeCloudAgentWork != rows { activeCloudAgentWork = rows }
+            if activeWorkers != rows { activeWorkers = rows }
         } catch {
             Self.logger.error("Loading active cloud agent work failed: \(error.localizedDescription, privacy: .public)")
         }

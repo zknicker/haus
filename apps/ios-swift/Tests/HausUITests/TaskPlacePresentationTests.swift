@@ -8,8 +8,8 @@ struct TaskPlacePresentationTests {
 
     @Test func runStatusesReadAsWords() {
         let labels = [
-            CloudAgentStatus.queued, .running, .completed, .failed, .cancelled, .expired, .pendingInput,
-        ].map(CloudAgentPresentation.runStatusLabel)
+            WorkerTurnStatus.queued, .running, .completed, .failed, .cancelled, .expired, .pendingInput,
+        ].map(WorkerPresentation.runStatusLabel)
         #expect(labels == ["Queued", "Running", "Completed", "Failed", "Stopped", "Expired", "Waiting on you"])
         #expect(!labels.contains { $0.contains("_") })
     }
@@ -20,7 +20,7 @@ struct TaskPlacePresentationTests {
     }
 
     @Test func pullRequestFactsReadAsWords() throws {
-        let reading = CloudAgentPullRequestReading(
+        let reading = PullRequestReading(
             number: 42, repository: "haus/haus", state: "merged", checks: "failing", review: "changes-requested",
             title: "Rate-limit webhooks", url: "https://github.com/haus/haus/pull/42", changedFiles: 1
         )
@@ -35,9 +35,9 @@ struct TaskPlacePresentationTests {
     // MARK: - Attached work
 
     @Test func theHeaderReadsTheNewestRun() throws {
-        let agent = try CloudAgentWorkFixture.work(
+        let agent = try WorkerFixture.work(
             status: "pending_input",
-            job: CloudAgentWorkFixture.Job.pendingInput(question: "Which key?"),
+            job: WorkerFixture.Job.pendingInput(question: "Which key?"),
             runs: [run(id: "run_new", status: "pending_input", summary: "Paused: **which** key should rotate?"),
                    run(id: "run_old", status: "completed", summary: "Earlier run")]
         )
@@ -46,13 +46,13 @@ struct TaskPlacePresentationTests {
         #expect(agent.newestRunSummary == "Paused: which key should rotate?")
     }
 
-    @Test func aPullRequestShownByItsCloudAgentIsNotRepeated() throws {
-        let agent = try CloudAgentWorkFixture.work(runs: [
-            CloudAgentWorkFixture.run(branches: [CloudAgentWorkFixture.branch(url: "https://github.com/haus/haus/pull/482")]),
+    @Test func aPullRequestShownByItsWorkerIsNotRepeated() throws {
+        let agent = try WorkerFixture.work(runs: [
+            WorkerFixture.run(branches: [WorkerFixture.branch(url: "https://github.com/haus/haus/pull/482")]),
         ])
         let work = TaskAttachedWorkPresentation(cloudAgents: [agent], pullRequests: [
-            CloudAgentPullRequestReading(number: 482, repository: "haus/haus", state: "open", url: "https://github.com/haus/haus/pull/482"),
-            CloudAgentPullRequestReading(number: 7, repository: "haus/haus", state: "draft", url: "https://github.com/haus/haus/pull/7"),
+            PullRequestReading(number: 482, repository: "haus/haus", state: "open", url: "https://github.com/haus/haus/pull/482"),
+            PullRequestReading(number: 7, repository: "haus/haus", state: "draft", url: "https://github.com/haus/haus/pull/7"),
         ])
         #expect(work.pullRequests.map(\.reading.number) == [7])
         #expect(!work.isEmpty)
@@ -177,8 +177,8 @@ struct TaskPlacePresentationTests {
 
     private func run(id: String, status: String, summary: String) -> String {
         """
-        {"branches":[],"createdAt":"\(CloudAgentWorkFixture.start)","errorCode":null,"turnId":"\(id)",
-         "startedAt":"\(CloudAgentWorkFixture.start)","status":"\(status)","summary":"\(summary)","terminalAt":null}
+        {"branches":[],"createdAt":"\(WorkerFixture.start)","errorCode":null,"turnId":"\(id)",
+         "startedAt":"\(WorkerFixture.start)","status":"\(status)","summary":"\(summary)","terminalAt":null}
         """
     }
 }

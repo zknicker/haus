@@ -109,7 +109,7 @@ extension SettingsSheet {
         case .computers:
             ServerComputersView(computers: data.computers)
         case .cloudAgents:
-            CloudAgentSettingsView(
+            WorkerSettingsView(
                 computers: data.computers,
                 canManage: canManageServer,
                 actions: cloudAgentActions

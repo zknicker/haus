@@ -23,7 +23,7 @@ public struct InboxPageView: View {
     private let greetingName: String?
     private let agentWeeks: [InboxAgentWeek]?
     private let unread: [InboxUnreadRow]?
-    private let cloudAgentWork: [ActiveCloudAgentWork]?
+    private let cloudAgentWork: [ActiveWorker]?
     private let workingAgents: [InboxWorkingAgent]
     private let resolveActor: InboxActorResolver
     private let onOpen: (InboxOpenRequest) -> Void
@@ -44,7 +44,7 @@ public struct InboxPageView: View {
         greetingName: String?,
         agentWeeks: [InboxAgentWeek]?,
         unread: [InboxUnreadRow]?,
-        cloudAgentWork: [ActiveCloudAgentWork]?,
+        cloudAgentWork: [ActiveWorker]?,
         workingAgents: [InboxWorkingAgent],
         resolveActor: @escaping InboxActorResolver,
         onOpen: @escaping (InboxOpenRequest) -> Void,

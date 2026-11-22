@@ -17,7 +17,7 @@ extension HausStore {
         stopEventStreams()
         realtimeServerID = serverID
         streamRestarts = RealtimeStreamRestarts()
-        for stream in RealtimeStream.allCases {
+        for stream in RealtimeStream.liveSession {
             startStream(stream, serverID: serverID)
         }
     }
@@ -34,6 +34,7 @@ extension HausStore {
     }
 
     private func startStream(_ stream: RealtimeStream, serverID: String) {
+        guard stream.joinsLiveSession else { return }
         let task: Task<Void, Never> = switch stream {
         case .messageCreated:
             streamTask(stream, serverID: serverID) { (store, event: MessageCreatedEvent) in
@@ -52,7 +53,7 @@ extension HausStore {
                 await store.receive(.lifecycle(event), serverID: serverID)
             }
         case .cloudAgentWorkUpdated:
-            streamTask(stream, serverID: serverID) { (store, event: CloudAgentWorkUpdatedEvent) in
+            streamTask(stream, serverID: serverID) { (store, event: WorkerUpdatedEvent) in
                 await store.receive(.cloudAgentWorkUpdated(event), serverID: serverID)
             }
         case .claimChanged:
@@ -92,6 +93,8 @@ extension HausStore {
                 guard event.serverID == serverID else { return }
                 await store.reloadServerList(serverID: serverID)
             }
+        case .projectUpdated, .agentUpdated, .agentExecutionJournal, .artifactUpdated, .modelConnectionsUpdated:
+            preconditionFailure("\(stream.path) is not part of the live session.")
         }
         eventTasks.replace(stream, with: task)
     }
