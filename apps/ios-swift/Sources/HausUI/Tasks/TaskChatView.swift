@@ -17,7 +17,10 @@ public struct TaskChatView: View {
     private let onLoadMentionOptions: () async -> Void
     private let onVisibleMessagesChange: ([String]) -> Void
 
-    @State private var draft = ""
+    /// Owned above this screen, keyed by Server and Task, so leaving the Task
+    /// keeps the draft and its staged files.
+    @Binding private var draft: String
+    private let composerInteraction: ComposerInteraction
     @State var projection = TaskTranscriptProjection()
     @State private var showsOutage = false
     @State private var holdExpired = false
@@ -30,7 +33,6 @@ public struct TaskChatView: View {
     @Environment(\.reactionStickers) var reactionBoard
     @State var actionMessage: MessagePresentation?
     @State var heldMessageID: String?
-    @State private var composerInteraction = ComposerInteraction()
     @FocusState private var isComposerFocused: Bool
     @Namespace private var composerTransitionNamespace
 
@@ -43,6 +45,8 @@ public struct TaskChatView: View {
         isLoaded: Bool,
         isConnected: Bool = true,
         isReadOnly: Bool = false,
+        draft: Binding<String>,
+        composerInteraction: ComposerInteraction,
         onSend: @escaping (String, [ComposerAttachment]) async -> Bool,
         onOpenAttachment: @escaping (MessageAttachmentPresentation) async throws -> URL = { attachment in
             guard let localURL = attachment.localURL else { throw CancellationError() }
@@ -63,6 +67,8 @@ public struct TaskChatView: View {
         self.isLoaded = isLoaded
         self.isConnected = isConnected
         self.isReadOnly = isReadOnly
+        _draft = draft
+        self.composerInteraction = composerInteraction
         self.onSend = onSend
         self.onOpenAttachment = onOpenAttachment
         self.history = history

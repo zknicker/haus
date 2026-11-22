@@ -5,11 +5,6 @@ import HausUI
 import OSLog
 
 extension HausStore {
-    func cancelWorker(workID: String) async throws {
-        guard let serverID = activeServer?.id else { throw HausStoreError.serverUnavailable }
-        _ = try await client.call(WorkerProcedures.stop, WorkerTarget(serverID: serverID, workerID: workID))
-    }
-
     /// One card for `work` as `presentingChatID` shows it. The Agent is the
     /// work's delegating Agent, never the Message that links it.
     func cloudAgentPresentation(_ work: Worker, presentingChatID: String) -> WorkerPresentation {

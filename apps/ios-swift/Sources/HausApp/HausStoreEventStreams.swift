@@ -188,19 +188,18 @@ extension HausStore {
 
     /// `membership_lost`: final for every stream of the Server. Closes the
     /// siblings, cancels in-flight reads (a cancelled read writes nothing),
-    /// clears the Server's state, and reloads the Server list. Idempotent:
+    /// clears the Server's state, snapshot, and drafts, and reloads the
+    /// Server list, which picks another Server or the empty state. Idempotent:
     /// several streams may end with the refusal.
     func handleMembershipLost(serverID: String) async {
         guard activeServer?.id == serverID, !membershipLossInFlight else { return }
         membershipLossInFlight = true
         defer { membershipLossInFlight = false }
         Self.logger.notice("Server membership lost; clearing its state")
-        stopEventStreams()
-        cancelTranscriptReads()
-        resetInlineReplyCache()
-        discardServerScopedState()
+        lostServer = activeServer
+        leaveActiveServer()
         servers.removeAll { $0.id == serverID }
-        hasLiveServerState = false
+        await lifecycle.membershipLost(serverID)
         state = .loading
         await loadLiveServer(attempt: 0)
     }

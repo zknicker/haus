@@ -29,7 +29,7 @@ extension HausStore {
             "agent.start",
             input: AgentStartInput(agentId: agentID, serverId: serverID)
         )
-        await reloadAgentAvailability(serverID: serverID)
+        await captains.reloadAvailability(serverID: serverID)
     }
 }
 

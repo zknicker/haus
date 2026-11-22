@@ -50,7 +50,7 @@ public struct SettingsPersistence: Sendable {
             )
         },
         saveAgentProfile: { id, displayName, description in
-            let agent = SettingsFixtures.cove
+            let agent = SettingsFixtures.blippy
             return SettingsAgent(
                 id: id,
                 displayName: displayName,
@@ -64,12 +64,12 @@ public struct SettingsPersistence: Sendable {
                 initials: agent.initials
             )
         },
-        saveAgentRuntime: { _, _ in SettingsFixtures.cove },
+        saveAgentRuntime: { _, _ in SettingsFixtures.blippy },
         saveHumanAvatar: { _, _ in
             SettingsFixtures.viewer
         },
         saveAgentAvatar: { _, _ in
-            SettingsFixtures.cove
+            SettingsFixtures.blippy
         },
         saveHumanTimezone: { _, timezone in
             let person = SettingsFixtures.viewer

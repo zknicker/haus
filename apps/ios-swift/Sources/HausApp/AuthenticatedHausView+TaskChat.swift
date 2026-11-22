@@ -1,3 +1,4 @@
+import HausAppModel
 import HausModels
 import HausUI
 import SwiftUI
@@ -41,6 +42,8 @@ extension AuthenticatedHausView {
             isLoaded: store.isTaskChatLoaded(chatID: chatID),
             isConnected: store.isConnected,
             isReadOnly: origin.flatMap { store.chatsByID[$0.chatID]?.isReadOnly } ?? false,
+            draft: store.draftBinding(for: .task(taskID)),
+            composerInteraction: store.composerInteraction(for: .task(taskID)),
             onSend: { content, attachments in
                 guard let chatID else { return false }
                 return await store.send(content, to: chatID, attachments: attachments)

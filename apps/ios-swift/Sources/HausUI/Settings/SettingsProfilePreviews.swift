@@ -8,6 +8,6 @@ import SwiftUI
 
 #Preview("Agent profile") {
     NavigationStack {
-        AgentProfileView(agent: SettingsFixtures.cove) { _, _ in }
+        AgentProfileView(agent: SettingsFixtures.blippy) { _, _ in }
     }
 }

@@ -3,7 +3,8 @@ import HausUI
 
 extension HausStore {
     /// Closes the live streams before clearing auth, then drops this account's
-    /// app-local state so it cannot paint the next session.
+    /// app-local state so it cannot paint the next session: every Server's
+    /// snapshot, drafts, and staged attachments, and the persisted Server.
     func signOut() async throws {
         stopEventStreams()
         let push = PushNotifications.shared
@@ -20,7 +21,9 @@ extension HausStore {
             throw error
         }
         push.didSignOut()
-        await clearLaunchSnapshot()
+        hasLiveServerState = false
+        cancelLaunchSnapshotWrite()
+        await lifecycle.signOut()
         UserDefaults.standard.removeObject(forKey: ChatDestination.ID.lastOpenDefaultsKey)
         AvatarImageCache.shared.removeAll()
         AttachmentImageMemory.removeAll()

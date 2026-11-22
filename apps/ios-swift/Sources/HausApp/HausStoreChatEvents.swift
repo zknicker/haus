@@ -59,13 +59,12 @@ extension HausStore {
         }
         let unreadByChatID = Dictionary(chats.map { ($0.id, $0.unreadCount) }, uniquingKeysWith: max)
         let readsChatList = effects.needsChatListRead { unreadByChatID[$0] }
-        // Inbox snapshots refresh only when this client already holds them:
-        // an event must not start a Server-wide read nobody has opened.
-        let readsWork = effects.reloadsActiveWorkers && activeWorkers != nil
+        // Each model refreshes only what this client already holds: an event
+        // must not start a Server-wide read nobody has opened.
         await withTaskGroup(of: Void.self) { group in
             if readsChatList { group.addTask { await self.refreshChatList(serverID: serverID) } }
-            if readsWork { group.addTask { await self.loadActiveWorkers() } }
-            group.addTask { await self.applyTaskEffects(effects) }
+            group.addTask { await self.workers.apply(effects) }
+            group.addTask { await self.tasks.apply(effects) }
             group.addTask { await self.applyTaskPlaceEffects(effects) }
         }
         // Mounted search reruns on new messages, after the Chat list it maps
@@ -126,26 +125,21 @@ extension HausStore {
             if projections.contains(.serverList) {
                 group.addTask { await self.reloadServerList(serverID: serverID) }
             }
-            group.addTask { await self.recoverTaskProjections(projections) }
-            if projections.contains(.unreadTasks), taskSnapshots.unreadTasks != nil {
-                group.addTask { await self.loadUnreadTasks() }
-            }
-            if projections.contains(.activeWorkers), activeWorkers != nil {
-                group.addTask { await self.loadActiveWorkers() }
-            }
+            group.addTask { await self.tasks.recover(projections) }
+            group.addTask { await self.workers.recover(projections) }
             if projections.contains(.agentAvailability) {
-                group.addTask { await self.reloadAgentAvailability(serverID: serverID) }
+                group.addTask { await self.captains.reloadAvailability(serverID: serverID) }
             }
             // An availability reload re-reads activity after the Agent list
             // it is derived from, so a second read would only race it.
             if projections.contains(.agentActivity), !projections.contains(.agentAvailability) {
-                group.addTask { await self.reloadActiveActivity(serverID: serverID) }
+                group.addTask { await self.captains.reloadActiveActivity(serverID: serverID) }
             }
             if projections.contains(.serverUsage), serverUsage != nil {
                 group.addTask { await self.loadServerUsage() }
             }
             if projections.contains(.computers) {
-                group.addTask { await self.loadComputers(serverID: serverID) }
+                group.addTask { await self.settingsModel.load(serverID: serverID) }
             }
         }
     }

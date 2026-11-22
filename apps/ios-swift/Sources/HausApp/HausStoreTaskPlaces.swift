@@ -6,34 +6,20 @@ extension HausStore {
     // MARK: - Unread Tasks
 
     var visibleUnreadTasks: [ChatUnreadPreview] {
-        (taskSnapshots.unreadTasks ?? []).filter { markedReadThrough[$0.chatID] == nil }
+        (tasks.unreadTasks ?? []).filter { markedReadThrough[$0.chatID] == nil }
     }
 
     func loadUnreadTasks() async {
-        guard let serverID = activeServer?.id else { return }
-        let readStart = realtimeReconciliation.beginRead()
-        do {
-            let list: ChatUnreadPreviewList = try await client.query(
-                "chat.unreadPreviews",
-                input: ServerScopedInput(serverId: serverID)
-            )
-            guard activeServer?.id == serverID,
-                  realtimeReconciliation.landed(.unreadTasks, readStartedAt: readStart)
-            else { return }
-            let tasks = list.taskPreviews
-            if taskSnapshots.unreadTasks != tasks { taskSnapshots.unreadTasks = tasks }
-        } catch {
-            Self.logger.error("Loading unread tasks failed: \(error.localizedDescription, privacy: .public)")
-        }
+        await tasks.refreshUnreadTasks()
     }
 
     func isUnreadTaskChat(_ chatID: String) -> Bool {
-        taskSnapshots.unreadTasks?.contains { $0.chatID == chatID } == true
+        tasks.isUnreadTaskChat(chatID)
     }
 
     func markTaskChatRead(chatID: String) async {
         guard let serverID = activeServer?.id,
-              let preview = taskSnapshots.unreadTasks?.first(where: { $0.chatID == chatID }),
+              let preview = tasks.unreadTasks?.first(where: { $0.chatID == chatID }),
               let sequence = preview.messages.map(\.sequence).max()
         else { return }
         markedReadThrough[chatID] = sequence
@@ -80,14 +66,14 @@ extension HausStore {
 
     func applyTaskPlaceEffects(_ effects: ChatRealtimeEffects) async {
         refreshTaskPreviews(effects.taskIDsToRefreshPreview, unknownTaskIDs: effects.changedTaskIDs)
-        let workTaskIDs = taskSnapshots.detailsByID.values
+        let workTaskIDs = tasks.detailsByID.values
             .filter { $0.task.chatID.map(effects.cloudAgentWorkChatIDs.contains) == true }
             .map(\.task.id)
         await withTaskGroup(of: Void.self) { group in
             for taskID in workTaskIDs where !effects.changedTaskIDs.contains(taskID) {
                 group.addTask { try? await self.reloadTaskDetail(taskID: taskID) }
             }
-            if effects.reloadsUnreadTasks, taskSnapshots.unreadTasks != nil {
+            if effects.reloadsUnreadTasks, tasks.unreadTasks != nil {
                 group.addTask { await self.loadUnreadTasks() }
             }
         }
@@ -100,10 +86,10 @@ extension HausStore {
         let named = Set(taskIDs.filter { transcripts.taskPreview(taskID: $0) != nil })
         for taskID in unknownTaskIDs.intersection(taskIDs).subtracting(named) {
             Task {
-                if taskSnapshots.detailsByID[taskID] == nil {
+                if tasks.detailsByID[taskID] == nil {
                     try? await reloadTaskDetail(taskID: taskID)
                 }
-                guard let origin = taskSnapshots.detailsByID[taskID]?.task.origin,
+                guard let origin = tasks.detailsByID[taskID]?.task.origin,
                       transcripts.isListed(origin.messageID)
                 else { return }
                 readOriginPage(EntityRefresh(chatID: origin.chatID, messageID: origin.messageID))

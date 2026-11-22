@@ -4,19 +4,19 @@ import HausUI
 
 extension HausStore {
     func taskChatID(taskID: String) -> String? {
-        taskSnapshots.detailsByID[taskID]?.task.chatID
+        tasks.detailsByID[taskID]?.task.chatID
             ?? transcripts.taskPreview(taskID: taskID)?.chatID
-            ?? taskSnapshots.unreadTasks?.first { $0.task?.taskID == taskID }?.chatID
+            ?? tasks.unreadTasks?.first { $0.task?.taskID == taskID }?.chatID
     }
 
     func taskID(forChatID chatID: String) -> String? {
-        taskSnapshots.detailsByID.values.first { $0.task.chatID == chatID }?.task.id
-            ?? taskSnapshots.unreadTasks?.first { $0.chatID == chatID }?.task?.taskID
+        tasks.detailsByID.values.first { $0.task.chatID == chatID }?.task.id
+            ?? tasks.unreadTasks?.first { $0.chatID == chatID }?.task?.taskID
             ?? transcripts.taskPreview(chatID: chatID)?.taskID
     }
 
     func opensTaskAsChat(taskID: String) -> Bool? {
-        if let detail = taskSnapshots.detailsByID[taskID] { return detail.task.chatID != nil }
+        if let detail = tasks.detailsByID[taskID] { return detail.task.chatID != nil }
         return taskChatID(taskID: taskID) != nil ? true : nil
     }
 
@@ -38,19 +38,19 @@ extension HausStore {
                 key: preview.key, title: preview.title, state: preview.state, attachedWork: .empty
             )
         }
-        if let task = taskSnapshots.unreadTasks?.first(where: { $0.task?.taskID == taskID })?.task {
+        if let task = tasks.unreadTasks?.first(where: { $0.task?.taskID == taskID })?.task {
             return TaskChatHeaderPresentation(key: task.key, title: task.title, state: task.state, attachedWork: .empty)
         }
         return nil
     }
 
     func taskOrigin(taskID: String) -> TaskOrigin? {
-        taskSnapshots.detailsByID[taskID]?.task.origin
+        tasks.detailsByID[taskID]?.task.origin
     }
 
     func taskContextLabel(taskID: String) -> String? {
         let originChatID = taskOrigin(taskID: taskID)?.chatID
-            ?? taskSnapshots.unreadTasks?.first { $0.task?.taskID == taskID }?.task?.projectID
+            ?? tasks.unreadTasks?.first { $0.task?.taskID == taskID }?.task?.projectID
         guard let chat = originChatID.flatMap({ chatsByID[$0] }), let name = chat.name else { return nil }
         return "#\(name)"
     }

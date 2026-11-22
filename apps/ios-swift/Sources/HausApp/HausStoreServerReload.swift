@@ -1,4 +1,5 @@
 import Foundation
+import HausAppModel
 import HausModels
 import HausTransport
 import HausUI
@@ -36,22 +37,25 @@ extension HausStore {
                 let _: ServerSummary = try await client.mutation("server.developmentBootstrap")
             }
             let loadedServers: [ServerSummary] = try await client.query("server.list")
-            if activeServer?.id != loadedServers.first?.id {
+            let adoption = lifecycle.adopt(loadedServers)
+            if case .activated(_, previous: .some) = adoption {
                 resetInlineReplyCache()
                 discardServerScopedState()
             }
             servers = loadedServers
-            guard let server = loadedServers.first else {
+            guard let serverID = adoption.serverID else {
                 state = .failed("You do not have a Haus Server yet.")
                 return
             }
-            try await reloadServer(server.id)
+            let ticket = try scope.requireTicket()
+            try await reloadServer(serverID)
+            guard scope.isCurrent(ticket) else { return }
             hasLiveServerState = true
             if case .loaded = state {} else { state = .loaded }
             markConnected()
-            startEventStreams(serverID: server.id)
+            startEventStreams(serverID: serverID)
             scheduleLaunchSnapshotWrite()
-            Task { await self.loadDeferredServerState(serverID: server.id) }
+            Task { await self.loadDeferredServerState(serverID: serverID) }
         } catch is CancellationError {
             return
         } catch {
@@ -103,26 +107,27 @@ extension HausStore {
     }
 
     /// `server.onUpdated` and its start reconciliation: the Server's name or
-    /// the viewer's Server list changed. A list that no longer leads with the
-    /// active Server means it was lost; that runs the membership-loss purge
-    /// rather than letting another Server's id stand beside this one's state.
+    /// the viewer's Server list changed. Only a list without the active Server
+    /// means it was lost; a list that merely leads with another Server is the
+    /// viewer belonging to several.
     func reloadServerList(serverID: String) async {
-        guard activeServer?.id == serverID else { return }
+        guard let ticket = scope.ticket, ticket.serverID == serverID else { return }
         let readStart = realtimeReconciliation.beginRead()
         do {
             let loaded: [ServerSummary] = try await client.query("server.list")
-            guard activeServer?.id == serverID,
+            guard scope.isCurrent(ticket),
                   realtimeReconciliation.landed(.serverList, readStartedAt: readStart)
             else { return }
-            guard loaded.first?.id == serverID else {
+            switch ServerSelection.change(activeServerID: serverID, current: servers, loaded: loaded) {
+            case .membershipLost:
                 // Unstructured: the purge stops the streams and recovery
                 // pass this read may be running inside.
-                if !loaded.contains(where: { $0.id == serverID }) {
-                    Task { await self.handleMembershipLost(serverID: serverID) }
-                }
-                return
+                Task { await self.handleMembershipLost(serverID: serverID) }
+            case let .updated(list):
+                servers = list
+            case .unchanged:
+                break
             }
-            if servers != loaded { servers = loaded }
         } catch is CancellationError {
             return
         } catch {
@@ -181,16 +186,19 @@ extension HausStore {
         }
     }
 
-    /// Server-scoped state painted for a Server the live list no longer
-    /// leads with. Nothing of it may stand beside the new Server's reads.
+    /// Server-scoped state shown for a Server that is no longer active.
+    /// Nothing of it may stand beside the new Server's reads.
     func discardServerScopedState() {
-        guard activeServer != nil else { return }
-        chats = []
-        agents = []
+        chatList.reset()
+        captains.reset()
         members = nil
         resetTranscripts()
         pendingMessagesByChatID = [:]
-        taskSnapshots.reset()
-        activeWorkers = nil
+        tasks.reset()
+        workers.reset()
+        drive.reset()
+        settingsModel.reset()
+        serverUsage = nil
+        mentionOptionsByDestinationID = [:]
     }
 }

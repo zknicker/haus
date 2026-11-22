@@ -117,7 +117,7 @@ public final class ComposerInteraction {
     /// calls this — the shell, when a destination leaves the list. Leaving a
     /// screen does not: the files are the user's, and staging them is not a
     /// commitment to send from the Chat they were staged in.
-    func cleanUp() {
+    public func cleanUp() {
         preparationTask?.cancel()
         attachments.forEach(ComposerAttachmentStager.remove)
         attachments.removeAll()

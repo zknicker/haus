@@ -49,6 +49,8 @@ targets:
         product: HausTransport
       - package: HausIOS
         product: HausUI
+      - package: HausIOS
+        product: HausAppModel
       - target: HausNotificationService
     settings:
       base:
