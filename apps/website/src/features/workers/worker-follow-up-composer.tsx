@@ -7,17 +7,23 @@ import { isWorkerStopping, isWorkerTurnLive, liveWorkerTurns } from './worker-ca
 import { workerFollowUpControls } from './worker-follow-up-controls.ts';
 
 export function WorkerFollowUpComposer({
+    children,
+    initialText = '',
+    onSent,
     serverId,
     work,
 }: {
+    children?: React.ReactNode;
+    initialText?: string;
+    onSent?: () => void;
     serverId: string;
     work: Pick<Worker, 'id' | 'status' | 'title' | 'turns'>;
 }) {
-    const [text, setText] = React.useState('');
+    const [text, setText] = React.useState(initialText);
     const [stopHeldFor, setStopHeldFor] = React.useState<null | string>(null);
     const [stopSentFor, setStopSentFor] = React.useState<null | string>(null);
     const nonce = React.useRef<null | string>(null);
-    const latestText = React.useRef('');
+    const latestText = React.useRef(initialText);
     const send = useWorkerSendFollowUp();
     const stop = useWorkerStop();
     const live = isWorkerTurnLive(work);
@@ -55,6 +61,7 @@ export function WorkerFollowUpComposer({
                 onSuccess: () => {
                     nonce.current = null;
                     setStopHeldFor(liveTurnId);
+                    onSent?.();
                     if (latestText.current === sent) {
                         latestText.current = '';
                         setText('');
@@ -100,6 +107,9 @@ export function WorkerFollowUpComposer({
                         />
                     </PromptInput.Content>
                     <PromptInput.Toolbar>
+                        {children ? (
+                            <PromptInput.ToolbarStart>{children}</PromptInput.ToolbarStart>
+                        ) : null}
                         <PromptInput.ToolbarEnd>
                             <PromptInput.Send
                                 aria-label={controls.label}

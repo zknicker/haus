@@ -4,7 +4,7 @@ import { observedResultOf } from '../report-from-result.ts';
 import { boundedReport, boundedSummary } from '../report-text.ts';
 import type { ClaudeSession, ClaudeSessionEvent } from './controller.ts';
 import { evidence } from './evidence.ts';
-import { questionOf } from './pending-question.ts';
+import { pendingQuestionOf } from './pending-question.ts';
 import {
     type ClaudeLogEntry,
     claudeRunTag,
@@ -128,12 +128,13 @@ function afterPrompt(
         return { ...base, status: 'cancelled', summary: 'Stopped from Haus.' };
     }
     if (session.workerStatus === 'requires_action') {
-        const question = questionOf(after, session.pendingAction);
+        const pending = pendingQuestionOf(after, session.pendingAction);
         return {
             ...base,
-            result: observedResultOf(question, base.branches),
+            ...(pending.questions ? { questions: pending.questions } : {}),
+            result: observedResultOf(pending.text, base.branches),
             status: 'pending_input',
-            summary: bounded(question, workerSummaryMaxLength),
+            summary: bounded(pending.text, workerSummaryMaxLength),
         };
     }
     const tasks = openTasks(after);

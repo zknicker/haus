@@ -4,6 +4,7 @@ import {
     workerTurnStepsFrameSchema,
     workerTurnEndedFrameSchema,
     workerTurnInputAcceptedFrameSchema,
+    workerTurnQuestionFrameSchema,
     workerTurnSessionFrameSchema,
 } from '@haus/api';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
@@ -16,6 +17,7 @@ import {
     recordComputerTurnSteps,
     recordComputerTurnSession,
 } from '../workers/computer-turn-frames.ts';
+import { recordComputerTurnQuestion } from '../workers/record-computer-turn-question.ts';
 import { settleComputerTurn } from '../workers/settle-computer-turn.ts';
 
 export async function applyComputerTurnFrame(input: {
@@ -33,6 +35,13 @@ export async function applyComputerTurnFrame(input: {
         return await settleComputerTurn(db, input.delivery, input.storage, {
             ...scope,
             frame: ended.data,
+        });
+    }
+    const question = workerTurnQuestionFrameSchema.safeParse(frame);
+    if (question.success) {
+        return await recordComputerTurnQuestion(db, input.delivery, input.storage, {
+            ...scope,
+            frame: question.data,
         });
     }
     const accepted = workerTurnInputAcceptedFrameSchema.safeParse(frame);

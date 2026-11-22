@@ -7,6 +7,7 @@ import {
     workerTurnActivityFrameSchema,
     workerTurnEndedFrameSchema,
     workerTurnInputAcceptedFrameSchema,
+    workerTurnQuestionFrameSchema,
     workerTurnSessionFrameSchema,
     workerTurnStepsFrameSchema,
 } from '@haus/api';
@@ -29,6 +30,7 @@ const wireSchemas = {
     'worker-turn-activity': workerTurnActivityFrameSchema,
     'worker-turn-ended': workerTurnEndedFrameSchema,
     'worker-turn-input-accepted': workerTurnInputAcceptedFrameSchema,
+    'worker-turn-question': workerTurnQuestionFrameSchema,
     'worker-turn-session': workerTurnSessionFrameSchema,
     'worker-turn-steps': workerTurnStepsFrameSchema,
 };

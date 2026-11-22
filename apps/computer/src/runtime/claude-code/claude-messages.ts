@@ -159,6 +159,18 @@ const controlResponseSchema = z.looseObject({
 });
 export type ClaudeControlResponse = z.infer<typeof controlResponseSchema>;
 
+const controlRequestSchema = z.looseObject({
+    request: z.looseObject({
+        input: z.unknown().optional(),
+        subtype: z.string(),
+        tool_name: z.string().optional(),
+        tool_use_id: z.string().optional(),
+    }),
+    request_id: z.string(),
+    type: z.literal('control_request'),
+});
+export type ClaudeControlRequest = z.infer<typeof controlRequestSchema>;
+
 const rateLimitSchema = z.looseObject({
     rate_limit_info: z
         .looseObject({ resetsAt: z.number().optional(), status: z.string().optional() })
@@ -170,6 +182,7 @@ export type ClaudeRateLimitEvent = z.infer<typeof rateLimitSchema>;
 /** One stdout message, discriminated for the normalizer; `other` carries only its type. */
 export type ClaudeMessage =
     | { readonly kind: 'conversation'; readonly message: ClaudeConversationMessage }
+    | { readonly kind: 'control-request'; readonly message: ClaudeControlRequest }
     | { readonly kind: 'control-response'; readonly message: ClaudeControlResponse }
     | { readonly kind: 'lifecycle'; readonly message: ClaudeCommandLifecycle }
     | { readonly kind: 'other'; readonly nativeType: string }
@@ -226,6 +239,11 @@ function classify(type: string, json: unknown): ClaudeMessage | null {
             }));
         case 'command_lifecycle':
             return parsed(lifecycleSchema, json, (message) => ({ kind: 'lifecycle', message }));
+        case 'control_request':
+            return parsed(controlRequestSchema, json, (message) => ({
+                kind: 'control-request',
+                message,
+            }));
         case 'control_response':
             return parsed(controlResponseSchema, json, (message) => ({
                 kind: 'control-response',

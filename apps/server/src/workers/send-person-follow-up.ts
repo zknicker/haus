@@ -13,13 +13,20 @@ import { WorkerNotFoundError } from './errors.ts';
 import { queueWorkerFollowUp } from './queue-worker-follow-up.ts';
 import { lockWorker, requireOpenWorker } from './stop-worker-turns.ts';
 import type { WorkerEffects, WorkerFrame } from './worker-effects.ts';
+import { requireOpenQuestion } from './worker-question.ts';
 import { requireWorker } from './worker-shape.ts';
 import { canSeeWorker } from './worker-visibility.ts';
 
 export async function sendPersonFollowUp(
     db: HausDatabase,
     member: HausUser,
-    input: { nonce: string; serverId: string; text: string; workerId: string },
+    input: {
+        answersTurnId?: string;
+        nonce: string;
+        serverId: string;
+        text: string;
+        workerId: string;
+    },
     agentDelivery: AgentDelivery,
     storage: ArtifactStorage | null,
     messageRouter?: MessageRouter
@@ -48,6 +55,10 @@ export async function sendPersonFollowUp(
         {
             body: { kind: 'worker-follow-up', workerId: worker.id },
             record: async (tx, messageId) => {
+                const locked = requireOpenWorker(await lockWorker(tx, input.serverId, worker.id));
+                if (input.answersTurnId) {
+                    await requireOpenQuestion(tx, locked, input.answersTurnId);
+                }
                 const followUp: WorkerTurnInput = {
                     at: new Date().toISOString(),
                     author: { id: member.id, kind: 'user' },
@@ -59,7 +70,7 @@ export async function sendPersonFollowUp(
                     followUp,
                     interrupt: false,
                     nonce: null,
-                    worker: requireOpenWorker(await lockWorker(tx, input.serverId, worker.id)),
+                    worker: locked,
                 });
                 const dispatched = await withDispatch(tx, storage, input.serverId, {
                     ...queued.effects,

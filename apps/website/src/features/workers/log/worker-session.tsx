@@ -2,9 +2,9 @@ import type { Worker } from '@haus/api';
 import { useRelativeNow } from '../../../components/time/relative-time.tsx';
 import { useTask } from '../../../hooks/tasks/use-task.ts';
 import { useServerContext } from '../../servers/server-context.ts';
+import { WorkerComposerDock } from '../question/worker-composer-dock.tsx';
 import { WorkerConversation } from '../view/worker-conversation.tsx';
-import { canFollowUpWorker, isWorkerTurnLive, workerCardLine } from '../worker-card-model.ts';
-import { WorkerFollowUpComposer } from '../worker-follow-up-composer.tsx';
+import { isWorkerTurnLive, workerCardLine } from '../worker-card-model.ts';
 import { useWorkerAuthorName } from './use-worker-author-name.ts';
 
 export function WorkerSession({ work }: { work: Worker }) {
@@ -25,9 +25,9 @@ export function WorkerSession({ work }: { work: Worker }) {
                     work={work}
                 />
             </div>
-            {task?.chatId && canFollowUpWorker(work) ? (
+            {task?.chatId ? (
                 <div className="mx-auto w-full max-w-3xl">
-                    <WorkerFollowUpComposer serverId={server.id} work={work} />
+                    <WorkerComposerDock serverId={server.id} work={work} />
                 </div>
             ) : null}
         </div>

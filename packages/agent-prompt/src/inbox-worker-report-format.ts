@@ -50,6 +50,13 @@ function outcomeLines(attention: WorkerReportAttention) {
 }
 
 function askLines(attention: WorkerReportAttention, report: WorkerReport) {
+    if (report.questions) {
+        return [
+            attention.person
+                ? `Asked @${attention.person.handle} in the Task. Their answer reaches the Worker as its next turn.`
+                : 'The Worker asked these questions, and they are for you. Answer with a numbered list in one follow-up.',
+        ];
+    }
     const ask =
         report.ask && report.ask !== report.text
             ? [`Ask: ${indentContinuationLines(report.ask)}`]

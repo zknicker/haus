@@ -1,4 +1,12 @@
-import type { ChatMessage, Worker, WorkerReport, WorkerStep, WorkerTurn } from '@haus/api';
+import {
+    type ChatMessage,
+    type Worker,
+    type WorkerQuestions,
+    type WorkerReport,
+    type WorkerStep,
+    type WorkerTurn,
+    workerQuestionOf,
+} from '@haus/api';
 import { cloudAgentProviderPresentation } from '../cloud-agent-provider-presentation.ts';
 import { workerFailureLabels } from '../worker-card-model.ts';
 import { workerPlaceName, workerPlaceProvider } from '../worker-place.ts';
@@ -25,10 +33,12 @@ export function workerTranscriptMessages(input: {
     liveLine: null | string;
     reportMessages: ReadonlyMap<string, ChatMessage>;
     serverId: string;
-    work: Pick<Worker, 'id' | 'place' | 'turns' | 'updatedAt'>;
+    work: Pick<Worker, 'closedAt' | 'closingAt' | 'id' | 'place' | 'turns' | 'updatedAt'>;
 }) {
     const base = { chatId: input.chatId, serverId: input.serverId };
     const author = workerAuthor(input.work);
+    const asking = workerQuestionOf(input.work);
+    const questionsInFull = asking && !asking.open ? asking.turnId : null;
     const items: WorkerTranscriptMessage[] = [];
     for (const turn of [...input.work.turns].reverse()) {
         for (const [index, item] of (turn.input ?? []).entries()) {
@@ -52,6 +62,7 @@ export function workerTranscriptMessages(input: {
                 base,
                 liveLine: input.liveLine,
                 reportMessages: input.reportMessages,
+                questionsInFull: questionsInFull === turn.turnId,
             })
         );
     }
@@ -81,12 +92,13 @@ function turnOutputItems(
         author: ChatMessage['author'];
         base: { chatId: string; serverId: string };
         liveLine: null | string;
+        questionsInFull: boolean;
         reportMessages: ReadonlyMap<string, ChatMessage>;
     }
 ) {
     const items: WorkerTranscriptMessage[] = [];
     const steps = turnSteps(turn);
-    const output = turnOutput(turn, context.reportMessages);
+    const output = turnOutput(turn, context.reportMessages, context.questionsInFull);
     const line = turnLine(turn, steps !== null);
     const live = turn.outcome === null && turn.terminalAt === null;
     if (output) {
@@ -153,21 +165,26 @@ function workerAuthor(work: Pick<Worker, 'id' | 'place'>) {
     } satisfies ChatMessage['author'];
 }
 
-function turnOutput(turn: WorkerTurn, reportMessages: ReadonlyMap<string, ChatMessage>) {
+function turnOutput(
+    turn: WorkerTurn,
+    reportMessages: ReadonlyMap<string, ChatMessage>,
+    questionsInFull: boolean
+) {
     const at = turn.terminalAt ?? turn.createdAt;
     if (turn.outcome?.kind === 'report') {
         const report = turn.outcome.report;
         const posted = report.messageId ? reportMessages.get(report.messageId) : undefined;
-        return (
-            posted ??
-            message(
-                { chatId: '', serverId: '' },
-                {
-                    content: reportContent(report),
-                    createdAt: at,
-                    id: `${turn.turnId}:report`,
-                }
-            )
+        const asked = report.questions && !questionsInFull ? askedLine(report.questions) : null;
+        if (posted) {
+            return asked ? { ...posted, content: asked } : posted;
+        }
+        return message(
+            { chatId: '', serverId: '' },
+            {
+                content: asked ?? reportContent(report),
+                createdAt: at,
+                id: `${turn.turnId}:report`,
+            }
         );
     }
     if (turn.outcome === null && turn.summary && turn.terminalAt) {
@@ -181,6 +198,10 @@ function turnOutput(turn: WorkerTurn, reportMessages: ReadonlyMap<string, ChatMe
         );
     }
     return null;
+}
+
+function askedLine(questions: WorkerQuestions) {
+    return questions.length === 1 ? 'Asked a question' : `Asked ${questions.length} questions`;
 }
 
 function reportContent(report: WorkerReport) {

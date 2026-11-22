@@ -8,7 +8,9 @@ import {
     WorkerHistoryReadOnlyError,
     WorkerNotFoundError,
     WorkerNotLiveError,
+    WorkerQuestionClosedError,
 } from '../../workers/errors.ts';
+import { WorkerPlaceOffError } from '../../workers/place-errors.ts';
 import type { HausContext } from '../context.ts';
 
 export async function requireWorkerMember(
@@ -40,6 +42,8 @@ export function toWorkerTrpcError(cause: unknown) {
         cause instanceof WorkerNotLiveError ||
         cause instanceof WorkerClosedError ||
         cause instanceof WorkerCarrierRemovedError ||
+        cause instanceof WorkerQuestionClosedError ||
+        cause instanceof WorkerPlaceOffError ||
         cause instanceof WorkerHistoryReadOnlyError
     ) {
         return new TRPCError({ cause, code: 'CONFLICT', message: cause.message });

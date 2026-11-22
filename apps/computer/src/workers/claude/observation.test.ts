@@ -87,8 +87,19 @@ test('an open question settles the Run as pending input with the question', () =
         ],
     });
     expect(observe([prompt, asked], session({ workerStatus: 'requires_action' }))).toMatchObject({
+        questions: [
+            {
+                header: null,
+                multiSelect: false,
+                options: [
+                    { description: null, label: '9am' },
+                    { description: null, label: '10am' },
+                ],
+                question: 'When should the reminder fire?',
+            },
+        ],
         status: 'pending_input',
-        summary: 'When should the reminder fire? (9am / 10am)',
+        summary: 'When should the reminder fire?\n- 9am\n- 10am',
     });
 });
 
@@ -99,6 +110,12 @@ test('a permission prompt reads as the tool Claude wants to use', () => {
             session({ workerStatus: 'requires_action' })
         )
     ).toMatchObject({ status: 'pending_input', summary: 'Claude is asking to use WebFetch.' });
+    expect(
+        observe(
+            [prompt, toolUse('t1', 'WebFetch', {})],
+            session({ workerStatus: 'requires_action' })
+        )
+    ).not.toHaveProperty('questions');
 });
 
 test('an idle worker after a result completes with its summary and usage', () => {

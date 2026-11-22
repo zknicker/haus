@@ -107,6 +107,10 @@ export class CodexTurnRouter {
             error: new CodexTurnFailedError(message),
             type: 'error',
         });
+        if (run.question && !run.abortRequested && end.kind !== 'failed') {
+            const { failure } = run.question;
+            return failure ? [finish, { error: failure, type: 'error' }] : [finish];
+        }
         switch (end.kind) {
             case 'completed':
                 return this.normalizer.hadEvidence

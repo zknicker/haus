@@ -1,4 +1,5 @@
 import { createRouter } from '../trpc.ts';
+import { dismissWorkerQuestionProcedure } from './dismiss-question.ts';
 import { getWorkerProcedure } from './get.ts';
 import { listActiveWorkerProcedure } from './list-active.ts';
 import { listWorkerAutomationsProcedure } from './list-automations.ts';
@@ -13,6 +14,7 @@ import { stopWorkerProcedure } from './stop.ts';
  * Worker, its turns, and settlement are Agent and Computer work.
  */
 export const workerRouter = createRouter({
+    dismissQuestion: dismissWorkerQuestionProcedure,
     get: getWorkerProcedure,
     listActive: listActiveWorkerProcedure,
     listAutomations: listWorkerAutomationsProcedure,

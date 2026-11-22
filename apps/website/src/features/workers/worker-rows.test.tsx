@@ -85,3 +85,36 @@ test('a follow-up waiting behind a working turn reads Working, not Queued', () =
     expect(html).toContain('aria-label="Working"');
     expect(html).not.toContain('Queued');
 });
+
+test('a row whose newest report holds open questions waits on an answer; a dismissed one reads its ask', () => {
+    const questions = [
+        { header: null, multiSelect: false, options: [], question: 'Which database?' },
+    ];
+    const asking = (report: typeof askReport) =>
+        work({ turns: [turn({ outcome: { kind: 'report', report }, status: 'pending_input' })] });
+    const html = renderWorkerSurface(
+        <WorkerRows
+            label="Workers"
+            works={[
+                asking({ ...askReport, questions }),
+                {
+                    ...asking({
+                        ...askReport,
+                        ask: 'Which database? (dismissed)',
+                        questions,
+                        questionsClosed: {
+                            at: '2026-09-04T12:10:00.000Z',
+                            by: { id: 'usr_zach', kind: 'user' },
+                            reason: 'dismissed',
+                        },
+                    }),
+                    id: 'caw_two',
+                },
+            ]}
+        />
+    );
+
+    expect(html).toContain('Waiting on an answer');
+    expect(html).toContain('Which database? (dismissed)');
+    expect(html.match(/Waiting on an answer/gu)).toHaveLength(1);
+});

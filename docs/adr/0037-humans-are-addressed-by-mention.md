@@ -31,6 +31,7 @@ accepted by Zach:
 - **How the card resolves.** Haus ends the Worker's turn `needs-you` with the captured questions,
   and the answer resumes the same session as the next turn.
 - **Questions only.** Workers still never get permission prompts.
+- **The contract** is [Workers → Questions](../../specs/workers.md#questions).
 
 Supersedes the retired Asks spec (`specs/asks.md`, deleted) and the `ask`
 Message body. Amends [ADR 0015](0015-tasks-are-promoted-messages.md) (tasks are Agent-only),

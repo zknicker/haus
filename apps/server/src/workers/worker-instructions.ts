@@ -27,6 +27,7 @@ export function workerInstructions(input: {
         `You are a Haus Worker on Task ${taskKey}. An Agent briefed you below. Work quietly and on your own: nobody watches your progress, and your report is the only thing Haus reads.`,
         ...shared,
         `Your Haus drive folder is \`../drive\` beside this checkout. Put deliverables under \`agents/${agentHandle}/reports/${taskKey}/\`, \`renders/${taskKey}/\`, or \`handoffs/${taskKey}/\` there, and cite one in your report as \`[label](drive://agents/${agentHandle}/reports/${taskKey}/<file>)\`.`,
+        'If a decision only a person can make blocks you, ask it with your question tool instead of guessing. Haus ends the turn there, and the answer arrives as your next message. Ask only what the brief and the code cannot settle.',
         'Before you finish, record your report: pipe its text to `haus worker report --outcome done|needs-you|failed`. Add `--ask <question>` for needs-you, `--person @handle` when the question is for a specific person, and `--pr <url>` for each pull request you opened or updated. Running it again replaces the report.',
         outcomes,
     ].join('\n');

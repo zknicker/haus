@@ -3,7 +3,7 @@ import { handshakeDeadline } from '../handshake-deadline.ts';
 import type { RuntimeProcessRegistry } from '../process-registry.ts';
 import { type RuntimeResumeState, resumeStateFor } from '../resume-state.ts';
 import { openAppServer } from './app-server.ts';
-import { type CodexExecutable, resolvePinnedCodex } from './codex-executable.ts';
+import { CODEX_CLI_VERSION, type CodexExecutable, resolvePinnedCodex } from './codex-executable.ts';
 import { CodexSession } from './codex-session.ts';
 import {
     type CodexProcessLaunch,
@@ -34,12 +34,25 @@ export function resumeThreadId(state: RuntimeResumeState | undefined) {
     return state ? resumeStateFor('codex', state).threadId : undefined;
 }
 
+export const codexWorkerQuestionVersions: readonly string[] = ['0.159.0'];
+
+export function codexWorkerAsks(version: string) {
+    return codexWorkerQuestionVersions.includes(version);
+}
+
 export function codexWorkerThreadParams(
-    options: Pick<CodexWorkerDriverOptions, 'cwd' | 'modelId' | 'writableRoots'>
+    options: Pick<CodexWorkerDriverOptions, 'cwd' | 'modelId' | 'writableRoots'>,
+    asks = false
 ) {
     return {
         approvalPolicy: 'never',
         config: {
+            ...(asks
+                ? {
+                      features: { default_mode_request_user_input: true },
+                      suppress_unstable_features_warning: true,
+                  }
+                : {}),
             sandbox_workspace_write: {
                 exclude_slash_tmp: true,
                 exclude_tmpdir_env_var: true,
@@ -74,6 +87,7 @@ async function openWorkerSession(
 ) {
     const executable = await resolveExecutable(open.signal);
     open.signal?.throwIfAborted();
+    const onQuestion = codexWorkerAsks(CODEX_CLI_VERSION) ? open.onQuestion : undefined;
     options.processes?.assertOpen();
     const transport = (options.spawn ?? spawnCodexProcess)({
         args: ['app-server', '--listen', 'stdio://'],
@@ -98,10 +112,10 @@ async function openWorkerSession(
             cwd: options.cwd,
             resumeThreadId: resumeThreadId(open.resumeFrom),
             signal: deadline.signal,
-            threadParams: () => codexWorkerThreadParams(options),
+            threadParams: () => codexWorkerThreadParams(options, onQuestion !== undefined),
             transport,
         });
-        return new CodexSession(server, release, options.cwd);
+        return new CodexSession(server, release, options.cwd, onQuestion);
     } catch (error) {
         await release();
         throw error;

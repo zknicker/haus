@@ -568,7 +568,11 @@ history: every write answers `WORKER_HISTORY_READ_ONLY`.
 **People.** `worker.get`, `worker.stop`, and `worker.sendFollowUp({ serverId, workerId, text, nonce })`
 are open to anyone who can read the Worker's Task. `sendFollowUp` posts a person-authored Message
 with body `{ kind: 'worker-follow-up', workerId }` in the Task, delivered as ordinary Task traffic,
-and queues the same text. `worker.listActive` lists open Workers with a queued or working turn,
+and queues the same text. With `answersTurnId` it is the Worker card's answer to that turn's
+[questions](../../specs/workers.md#questions), refused (CONFLICT) once another answer, a dismissal,
+a stop, or the Task's close got there first. `worker.dismissQuestion({ serverId, workerId, turnId })`
+closes open questions for everyone, attributed, and starts no turn. `worker.stop` on a Worker with
+open questions and no live turn closes them. `worker.listActive` lists open Workers with a queued or working turn,
 each opening its Task. `worker.onUpdated` publishes `{ serverId, taskId, chatId, workerId }`,
 scoped to readers of the Task's Chat. Setting a Task `done` or `canceled` closes its Workers
 ([Workers](../../specs/workers.md#closing)). The Task's Workers ride `task.get`

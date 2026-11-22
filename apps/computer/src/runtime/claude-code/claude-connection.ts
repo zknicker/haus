@@ -3,10 +3,12 @@ import * as z from 'zod';
 import type { ClaudeEventNormalizer } from './claude-event-normalizer.ts';
 import {
     type ClaudeCommandLifecycle,
+    type ClaudeControlRequest,
     type ParsedClaudeLine,
     parseClaudeLine,
 } from './claude-messages.ts';
 import type { ClaudeExit, ClaudeProcess } from './claude-process.ts';
+import { claudeToolGate } from './claude-tool-gate.ts';
 
 /** How long a new process may take to answer the `initialize` handshake. */
 const initializeTimeoutMs = 30_000;
@@ -42,7 +44,8 @@ export class ClaudeConnection {
     constructor(
         readonly process: ClaudeProcess,
         readonly normalizer: ClaudeEventNormalizer,
-        public sessionId: string
+        public sessionId: string,
+        private readonly gate = claudeToolGate(undefined)
     ) {
         process.onLine((line) => this.dispatch(line));
         void process.exited.then((exit) => {
@@ -122,6 +125,22 @@ export class ClaudeConnection {
         return this.process.stop();
     }
 
+    private async answerTool(request: ClaudeControlRequest) {
+        const decision = await this.gate(request.request);
+        await this.process
+            .write(
+                JSON.stringify({
+                    response: {
+                        request_id: request.request_id,
+                        response: decision,
+                        subtype: 'success',
+                    },
+                    type: 'control_response',
+                })
+            )
+            .catch(() => this.process.stop());
+    }
+
     private dispatch(line: string) {
         // A finishing turn takes nothing more; what follows is idle traffic or the next turn's.
         const sink = this.sink?.accepting ? this.sink : null;
@@ -152,6 +171,12 @@ export class ClaudeConnection {
                     new Error(response.error ?? 'Claude Code refused a control request.')
                 );
             }
+        }
+        if (
+            message.kind === 'control-request' &&
+            message.message.request.subtype === 'can_use_tool'
+        ) {
+            void this.answerTool(message.message);
         }
         if (message.kind === 'lifecycle') {
             sink?.onLifecycle(message.message);

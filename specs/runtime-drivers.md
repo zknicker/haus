@@ -215,6 +215,7 @@ credential.
 | --- | --- |
 | `bootstrapFingerprint(signal)` | Hash of the harness version and its launch options. Drift parks and restarts a resumed session. |
 | `openSession({ sessionId, resumeFrom, signal })` | Fresh session, or a native resume of `resumeFrom`. A resume the harness proves unusable throws `RuntimeResumeRejectedError`, and nothing else does. |
+| `openSession({ onQuestion })` | A Worker driver given `onQuestion` turns its harness's question tool on when its version supports it, captures one question set per turn, awaits `onQuestion`, then ends the turn itself. Without it, the tool stays off ([Workers](workers.md#questions)). |
 
 A `RuntimeSession` keeps `isResume`, `sessionId`, `startTurn({ prompt, signal })`, `steer(text)`,
 `detach()`, `stop()`, and `destroy()` with their current meanings. `startTurn` loses `wake`,
