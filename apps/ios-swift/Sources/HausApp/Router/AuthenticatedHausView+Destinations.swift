@@ -9,13 +9,24 @@ import SwiftUI
 extension AuthenticatedHausView {
     @ViewBuilder
     func routeDestination(_ route: HausRoute) -> some View {
-        switch route {
-        case .captainDM, .channel, .dm:
+        switch RouteScreen(route) {
+        case .conversation:
             chatRoute(route.conversation.flatMap(destination(for:)))
-        case .task(let taskID, _):
+        case .task(let taskID):
             taskDestination(taskID)
                 .toolbar(.hidden, for: .tabBar)
-        case .worker, .pullRequest, .work, .driveFile, .settings:
+        case .work(let place):
+            workDestination(place)
+        case .worker(let workerID):
+            workerDestination(workerID)
+                .toolbar(.hidden, for: .tabBar)
+        case .pullRequest(let reading):
+            pullRequestDestination(reading)
+        case .driveFolder(let prefix):
+            driveFolderDestination(prefix)
+        case .driveFile(let path):
+            driveFileDestination(path)
+        case .none:
             Color.clear
         }
     }
@@ -64,6 +75,11 @@ extension AuthenticatedHausView {
             onOpenAttachment: { try await store.downloadAttachment($0) },
             onOpenAgent: { router.open(.captainDM(agentID: $0)) },
             onCall: callAction(for: destination),
+            workPill: destination.durableChat.flatMap { store.workPill(.chat($0.id), now: .now) },
+            onOpenWork: {
+                guard let chat = destination.durableChat else { return }
+                router.open(.work(.chat(chat.id)))
+            },
             history: destination.durableChat.map { store.messageHistory(chatID: $0.id) } ?? .init(),
             mentionOptions: store.mentionOptions(for: destination),
             onLoadMentionOptions: { await store.loadMentionOptions(for: destination) },
@@ -72,6 +88,10 @@ extension AuthenticatedHausView {
             onVisibleMessagesChange: { reportVisibleMessages(destination, $0) }
         )
         .id(destination.id)
+        .task(id: destination.durableChat?.id) {
+            guard let chat = destination.durableChat else { return }
+            await store.loadWork(.chat(chat.id), includingFiles: false)
+        }
     }
 
     private func send(_ content: String, attachments: [ComposerAttachment], to destination: ChatDestination) async -> Bool {

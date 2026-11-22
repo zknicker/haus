@@ -25,7 +25,7 @@ struct WorkerReferenceTests {
         // A title keeps its leading `#`: no sigil is stripped from it.
         #expect(reference.label == #"#12 C:\fix"#)
         #expect(reference.mark == .glyph(.cloud))
-        #expect(reference.activationURL == nil)
+        #expect(reference.activationURL.flatMap { WorkerMarkdownLink.workID(target: $0.absoluteString) } == "caw_1")
     }
 
 }

@@ -46,12 +46,11 @@ struct WorkViewContentTests {
         #expect(content.showsCount(.running))
     }
 
-    @Test func workerRowMetaReadsDurationPlaceAndTaskKey() throws {
-        let start = WorkFixture.start
+    @Test func workerRowsDrawTheWorkerRowWithTheTaskKey() throws {
         let running = try WorkFixture.item(id: "w1", job: .working, computerName: "mini", taskKey: "HAUS-41")
-        #expect(WorkWorkerLine.meta(running, now: start.addingTimeInterval(360)) == ["Working for 6m", "mini", "HAUS-41"])
-        let finished = try WorkFixture.item(id: "w2", job: .done, runtime: "claude-code", taskKey: "HAUS-39")
-        #expect(WorkWorkerLine.meta(finished, now: start) == ["Worked for 28m", "Claude Code", "HAUS-39"])
+        let row = running.row(now: WorkFixture.start)
+        #expect(row.id == "w1")
+        #expect(row.subtitle.hasSuffix("mini · HAUS-41"))
     }
 }
 

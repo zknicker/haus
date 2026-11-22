@@ -19,6 +19,10 @@ public struct TaskChatView: View {
     /// is not loaded, which leaves the header read-only.
     let editing: TaskChatEditing?
     let unreadMessageID: String?
+    /// The Task's Work pill over the composer; nil or hidden while it has no work.
+    private let workPill: WorkPillState?
+    private let onOpenWork: () -> Void
+    let onOpenWorker: (String) -> Void
 
     /// Owned above this screen, keyed by Server and Task, so leaving the Task
     /// keeps the draft and its staged files.
@@ -65,6 +69,9 @@ public struct TaskChatView: View {
         landingMessageID: String? = nil,
         unreadMessageID: String? = nil,
         editing: TaskChatEditing? = nil,
+        workPill: WorkPillState? = nil,
+        onOpenWork: @escaping () -> Void = {},
+        onOpenWorker: @escaping (String) -> Void = { _ in },
         mentionOptions: [MentionOptionPresentation] = [],
         onLoadMentionOptions: @escaping () async -> Void = {},
         onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
@@ -84,6 +91,9 @@ public struct TaskChatView: View {
         self.engagementChatID = engagementChatID
         self.unreadMessageID = unreadMessageID
         self.editing = editing
+        self.workPill = workPill
+        self.onOpenWork = onOpenWork
+        self.onOpenWorker = onOpenWorker
         self.mentionOptions = mentionOptions
         self.onLoadMentionOptions = onLoadMentionOptions
         self.onVisibleMessagesChange = onVisibleMessagesChange
@@ -123,24 +133,22 @@ public struct TaskChatView: View {
                             HeaderEngagement(chatID: engagementChatID, style: .roster)
                         }
                     }
-                    .safeAreaInset(edge: .top, spacing: 0) {
-                        if let header, !header.attachedWork.isEmpty {
-                            TaskChatHeader(attachedWork: header.attachedWork, maxHeight: geometry.size.height * 0.3)
-                        }
-                    }
                     .safeAreaInset(edge: .bottom, spacing: 0) {
-                        if isReadOnly {
-                            ReadOnlyConversationNotice()
-                        } else {
-                            MessageComposerView(
-                                text: $draft,
-                                interaction: composerInteraction,
-                                place: .task,
-                                isTextFocused: $isComposerFocused,
-                                mentionOptions: mentionOptions,
-                                transitionNamespace: composerTransitionNamespace,
-                                onSend: onSend
-                            )
+                        VStack(spacing: 0) {
+                            WorkPillSlot(state: workPill, open: onOpenWork)
+                            if isReadOnly {
+                                ReadOnlyConversationNotice()
+                            } else {
+                                MessageComposerView(
+                                    text: $draft,
+                                    interaction: composerInteraction,
+                                    place: .task,
+                                    isTextFocused: $isComposerFocused,
+                                    mentionOptions: mentionOptions,
+                                    transitionNamespace: composerTransitionNamespace,
+                                    onSend: onSend
+                                )
+                            }
                         }
                     }
             }

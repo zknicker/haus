@@ -40,10 +40,16 @@ public enum DriveQueryError: LocalizedError, Equatable {
 @Observable
 public final class DriveModel {
     public internal(set) var listing: DriveListing?
+    /// A place's newest files under its folder, for its Work view.
+    public internal(set) var recentByFolder: [String: [ArtifactRecord]] = [:]
+    /// `artifact.byPath`, per path a file preview has opened.
+    public internal(set) var fileByPath: [String: ArtifactRecord] = [:]
 
     @ObservationIgnored let client: TRPCClient
     @ObservationIgnored let scope: ServerScope
     @ObservationIgnored var reads = ReadSequence<WholeList>()
+    @ObservationIgnored var recentReads = ReadSequence<String>()
+    @ObservationIgnored var fileReads = ReadSequence<String>()
 
     public init(client: TRPCClient, scope: ServerScope) {
         self.client = client
@@ -52,7 +58,11 @@ public final class DriveModel {
 
     public func reset() {
         listing = nil
+        recentByFolder = [:]
+        fileByPath = [:]
         reads.reset()
+        recentReads.reset()
+        fileReads.reset()
     }
 
     public func show(_ query: DriveQuery) async throws {

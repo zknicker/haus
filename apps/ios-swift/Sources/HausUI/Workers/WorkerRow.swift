@@ -1,7 +1,8 @@
 import SwiftUI
 
 /// A Worker in a Work list: a 60pt plain row with the status glyph leading,
-/// the title, and a muted line that shimmers while the Worker runs.
+/// the title, and a muted line that shimmers while the Worker runs. The list
+/// owns the side margins.
 public struct WorkerRow: View {
     private let presentation: WorkerRowPresentation
     private let open: () -> Void
@@ -32,11 +33,11 @@ public struct WorkerRow: View {
                 }
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 20)
-            .frame(minHeight: 60)
+            .padding(.vertical, 8)
+            .frame(minHeight: 60, alignment: .top)
             .contentShape(.rect)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.pressableRow)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(presentation.title), \(presentation.subtitle)")
     }

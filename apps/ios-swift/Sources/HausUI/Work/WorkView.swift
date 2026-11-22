@@ -107,12 +107,7 @@ public struct WorkView: View {
 
     private func workerRows(_ items: [WorkWorkerItem], now: Date) -> some View {
         ForEach(items) { item in
-            Button {
-                actions.openWorker(item)
-            } label: {
-                WorkWorkerRow(item: item, now: now)
-            }
-            .buttonStyle(.pressableRow)
+            WorkerRow(item.row(now: now)) { actions.openWorker(item) }
         }
     }
 

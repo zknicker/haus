@@ -20,10 +20,12 @@ struct WorkPill: View {
                 DotGrid(dot: glyphSide * 3.2 / 24, gap: glyphSide * 2.8 / 24)
                     .frame(width: glyphSide, height: glyphSide)
                     .foregroundStyle(HausPlatformColor.mutedInk)
-                Text(count, format: .number)
-                    .monospacedDigit()
-                    .hausFont(.workPill)
-                    .foregroundStyle(HausPlatformColor.ink)
+                if count > 0 {
+                    Text(count, format: .number)
+                        .monospacedDigit()
+                        .hausFont(.workPill)
+                        .foregroundStyle(HausPlatformColor.ink)
+                }
                 Image(systemName: "chevron.up")
                     .hausFont(.workPillChevron)
                     .foregroundStyle(HausPlatformColor.mutedInk)
@@ -36,6 +38,25 @@ struct WorkPill: View {
         .buttonStyle(.plain)
         .glassEffect(.regular.interactive(), in: .capsule)
         .accessibilityLabel("Work")
-        .accessibilityValue(Text(count, format: .number))
+        .accessibilityValue(count > 0 ? Text(count, format: .number) : Text(""))
+    }
+}
+
+/// The Work pill floated centered above a place's composer, or nothing while
+/// the place has no work to show.
+struct WorkPillSlot: View {
+    let state: WorkPillState?
+    let open: () -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if let state, state.isVisible {
+                WorkPill(count: state.count, action: open)
+                    .frame(maxWidth: .infinity)
+                    .padding(.bottom, 10)
+                    .transition(.opacity.combined(with: .scale(scale: 0.9)))
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: state?.isVisible)
     }
 }

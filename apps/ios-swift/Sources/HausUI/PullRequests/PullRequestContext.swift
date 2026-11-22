@@ -12,6 +12,11 @@ public struct PullRequestAuthor: Hashable, Sendable {
         self.tint = tint
     }
 
+    /// A Captain whose mark wears the accent until it carries its own color.
+    public init(captainName: String) {
+        self.init(captainName: captainName, tint: HausPlatformColor.accent)
+    }
+
     public var workerLabel: String { "\(captainName)’s Worker" }
 }
 

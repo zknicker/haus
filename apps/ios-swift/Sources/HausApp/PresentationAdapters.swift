@@ -106,9 +106,16 @@ extension HausStore {
                 richBlocks: parsed.richBlocks,
                 visualBody: parsed.visuals,
                 cause: message.cause.flatMap(MessageCausePresentation.init),
-                tasks: tasksByOrigin[message.id] ?? []
+                tasks: tasksByOrigin[message.id] ?? [],
+                workerReport: workerReport(message)
             )
         }
+    }
+
+    private func workerReport(_ message: ChatMessage) -> MessageWorkerReport? {
+        guard case let .workerReport(workerID, turnID, outcome) = message.body else { return nil }
+        let worker = message.cloudAgentWork.first { $0.id == workerID } ?? workers.worker(id: workerID)
+        return MessageWorkerReport(workerID: workerID, turnID: turnID, outcome: outcome, worker: worker)
     }
 
     /// An optimistic row is projected only until the page carries its nonce.
