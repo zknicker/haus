@@ -18,6 +18,9 @@ public final class TasksModel {
     public internal(set) var openTasks: [TaskRecord]?
     /// The Tasks tab's filtered `task.list`, with the filter it answers.
     public internal(set) var list: TaskListSnapshot?
+    /// `project.list`: the Projects a new Task can be filed in, and the names
+    /// Task rows show.
+    public internal(set) var projects: [Project]?
 
     @ObservationIgnored let client: TRPCClient
     @ObservationIgnored let scope: ServerScope
@@ -26,6 +29,7 @@ public final class TasksModel {
     @ObservationIgnored var unreadReads = ReadSequence<WholeList>()
     @ObservationIgnored var openReads = ReadSequence<WholeList>()
     @ObservationIgnored var listReads = ReadSequence<WholeList>()
+    @ObservationIgnored var projectReads = ReadSequence<WholeList>()
     /// The filter the next list refresh asks for: the last one shown.
     @ObservationIgnored public internal(set) var listFilter: TaskListFilter?
 
@@ -40,12 +44,14 @@ public final class TasksModel {
         unreadTasks = nil
         openTasks = nil
         list = nil
+        projects = nil
         listFilter = nil
         detailReads.reset()
         labelReads.reset()
         unreadReads.reset()
         openReads.reset()
         listReads.reset()
+        projectReads.reset()
     }
 
     // MARK: - Details

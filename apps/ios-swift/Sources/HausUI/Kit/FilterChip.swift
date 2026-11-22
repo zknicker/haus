@@ -32,32 +32,73 @@ struct FilterChip: View {
     }
 
     var body: some View {
-        let style = FilterChipStyle(isSelected: isSelected)
         Button(action: action) {
-            HStack(spacing: 6) {
-                if accessory == .add {
-                    glyph("plus").foregroundStyle(style.addGlyphInk.color)
-                }
-                Text(title)
-                    .hausFont(.chip)
-                    .lineLimit(1)
-                if accessory == .menu {
-                    glyph("chevron.down")
-                }
-            }
-            .padding(.horizontal, 13)
-            .frame(height: height)
-            .foregroundStyle(style.ink.color)
-            .background(style.fill.color, in: .capsule)
-            .overlay {
-                if style.edgeWidth > 0 {
-                    Capsule().strokeBorder(HausPlatformColor.edge, lineWidth: style.edgeWidth)
-                }
-            }
-            .contentShape(.capsule)
+            FilterChipLabel(title: title, isSelected: isSelected, accessory: accessory, height: height)
         }
         .buttonStyle(.pressable)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+/// A ``FilterChip`` that opens a menu of choices, such as "Open ⌄".
+struct FilterChipMenu<Content: View>: View {
+    private let title: String
+    private let isSelected: Bool
+    private let accessory: FilterChip.Accessory
+    @ViewBuilder private let content: () -> Content
+
+    @ScaledMetric(relativeTo: .callout) private var height: CGFloat = 33
+
+    init(
+        _ title: String,
+        isSelected: Bool = false,
+        accessory: FilterChip.Accessory = .menu,
+        @ViewBuilder content: @escaping () -> Content
+    ) {
+        self.title = title
+        self.isSelected = isSelected
+        self.accessory = accessory
+        self.content = content
+    }
+
+    var body: some View {
+        Menu(content: content) {
+            FilterChipLabel(title: title, isSelected: isSelected, accessory: accessory, height: height)
+        }
+        .buttonStyle(.pressable)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+private struct FilterChipLabel: View {
+    let title: String
+    let isSelected: Bool
+    let accessory: FilterChip.Accessory
+    let height: CGFloat
+
+    var body: some View {
+        let style = FilterChipStyle(isSelected: isSelected)
+        HStack(spacing: 6) {
+            if accessory == .add {
+                glyph("plus").foregroundStyle(style.addGlyphInk.color)
+            }
+            Text(title)
+                .hausFont(.chip)
+                .lineLimit(1)
+            if accessory == .menu {
+                glyph("chevron.down")
+            }
+        }
+        .padding(.horizontal, 13)
+        .frame(height: height)
+        .foregroundStyle(style.ink.color)
+        .background(style.fill.color, in: .capsule)
+        .overlay {
+            if style.edgeWidth > 0 {
+                Capsule().strokeBorder(HausPlatformColor.edge, lineWidth: style.edgeWidth)
+            }
+        }
+        .contentShape(.capsule)
     }
 
     private func glyph(_ systemName: String) -> some View {

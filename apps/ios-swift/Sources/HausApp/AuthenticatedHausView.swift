@@ -10,6 +10,7 @@ struct AuthenticatedHausView: View {
     @State var agentCall: AgentCallRequest?
     @State var ask = AskAnythingDraft()
     @State var youTabIcon: Image?
+    @State var taskBoardFilter = TaskBoardFilter()
     /// iOS reaches `.active` through `.inactive` from both a real suspension and
     /// a Control Center pull or app-switcher peek. Only the first is a stale
     /// cache, so the refresh waits for a phase run that actually backgrounded.

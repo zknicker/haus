@@ -58,24 +58,22 @@ struct TranscriptDayTests {
         #expect(title(day(-30, hour: 12, minute: 0)) == "Sun, Dec 6, 2026")
     }
 
-    @Test func taskMessagesOpenEachNewDayUnderTheStartedFromRow() {
+    @Test func taskMessagesUseTheAssistantLayoutUnderTheStartedFromRow() {
         let origin = TaskStartedFromPresentation(placeLabel: "#security", excerpt: nil)
         let messages = [
             message("r1", at: day(0, hour: 10, minute: 0)),
             message("r2", at: day(1, hour: 8, minute: 0)),
-            message("r3", at: day(1, hour: 9, minute: 0)),
+            message("r3", at: day(1, hour: 8, minute: 1)),
         ]
 
         let items = TaskTranscriptItem.items(startedFrom: origin, messages: messages, hasOlder: false, calendar: utc)
+        let entries = items.compactMap { item -> MessageTimelineEntry? in
+            if case .message(let entry) = item { entry } else { nil }
+        }
 
-        #expect(items.map(\.id) == [
-            "task-started-from",
-            "task-day-\(Int(day(0, hour: 0, minute: 0).timeIntervalSinceReferenceDate))",
-            "r1",
-            "task-day-\(Int(day(1, hour: 0, minute: 0).timeIntervalSinceReferenceDate))",
-            "r2",
-            "r3",
-        ])
+        #expect(items.map(\.id) == ["task-started-from", "r1", "r2", "r3"])
+        #expect(entries.allSatisfy { $0.style == .assistant })
+        #expect(entries.map(\.grouping.divider) == [.time, .time, nil])
     }
 
     @Test func aRunOfRepliesToOneParentStatesItsReferenceOnce() {

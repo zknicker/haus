@@ -36,16 +36,20 @@ extension AuthenticatedHausView {
     }
 
     var tasksRoot: some View {
-        TasksTabView(
-            unreadTasks: store.inboxUnreadRows?.filter { if case .task = $0.open { true } else { false } },
-            assigned: store.tasks.list?.filter == assignedToMe ? store.tasks.list?.tasks : nil,
-            isAssignedToMe: Binding(
-                get: { router.tasksFilter == .assignedToMe },
-                set: { router.tasksFilter = $0 ? .assignedToMe : .following }
+        TaskBoardScreen(
+            store: store,
+            filter: Binding(
+                get: {
+                    var filter = taskBoardFilter
+                    if router.tasksFilter == .assignedToMe { filter.scope = .assignedToMe }
+                    return filter
+                },
+                set: { filter in
+                    taskBoardFilter = filter
+                    router.tasksFilter = filter.scope == .assignedToMe ? .assignedToMe : .following
+                }
             ),
-            onOpen: openInboxRequest,
-            onMarkRead: { rowID in Task { await store.markInboxRowRead(id: rowID) } },
-            onRefresh: refreshTasks
+            onOpenTask: { router.open(.task(taskID: $0, messageID: nil)) }
         )
     }
 
@@ -114,26 +118,10 @@ extension AuthenticatedHausView {
         )
     }
 
-    private var assignedToMe: TaskListFilter {
-        TaskListFilter(assignee: .user(store.viewer.id), states: [.todo, .open])
-    }
-
     private var settingsPath: Binding<[SettingsRoute]> {
         Binding(
             get: { router.path(.you).compactMap { if case .settings(let route) = $0 { route } else { nil } } },
             set: { router.setPath($0.map(HausRoute.settings), for: .you) }
         )
-    }
-
-    private func refreshTasks() async {
-        guard router.tasksFilter == .assignedToMe else {
-            await store.loadUnreadTasks()
-            return
-        }
-        do {
-            try await store.tasks.showList(assignedToMe)
-        } catch {
-            HausStore.logger.error("Loading assigned Tasks failed: \(error.localizedDescription, privacy: .public)")
-        }
     }
 }

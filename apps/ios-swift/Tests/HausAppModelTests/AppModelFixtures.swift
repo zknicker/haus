@@ -18,13 +18,29 @@ enum AppModelFixtures {
         decode(#"{"displayName":"\#(name)","id":"\#(id)","role":"owner","slug":"\#(id)"}"#)
     }
 
-    static func task(_ id: String, key: String = "SEC-1", state: String = "todo", serverID: String = "srv_a") -> TaskRecord {
+    static func task(
+        _ id: String,
+        key: String = "SEC-1",
+        state: String = "todo",
+        serverID: String = "srv_a",
+        version: Int = 1
+    ) -> TaskRecord {
         decode(
             """
             {"assignee":null,"chatId":"chat_\(id)","completedAt":null,"createdAt":"2026-11-03T00:00:00.000Z",
              "createdBy":{"kind":"user","userId":"user_1"},"description":"","dueOn":null,"id":"\(id)",
              "key":"\(key)","labelIds":[],"number":1,"origin":null,"priority":"none","serverId":"\(serverID)",
-             "state":"\(state)","title":"Rotate tokens","updatedAt":"2026-11-03T00:00:00Z","version":1}
+             "state":"\(state)","title":"Rotate tokens","updatedAt":"2026-11-03T00:00:00Z","version":\(version)}
+            """
+        )
+    }
+
+    static func project(_ id: String, name: String = "product") -> Project {
+        decode(
+            """
+            {"archived":false,"chatId":"chat_\(id)","defaultWorkerPlace":null,"homeAgentIds":[],"id":"\(id)",
+             "isHaus":false,"key":"PROD","keyEditable":true,"name":"\(name)","repos":[],"serverId":"srv_a",
+             "taskKeyId":"key_\(id)"}
             """
         )
     }

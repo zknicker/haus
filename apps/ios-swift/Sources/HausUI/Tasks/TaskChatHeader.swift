@@ -1,8 +1,11 @@
 import HausModels
 import SwiftUI
 
+/// The Task's attached work under the centered header, as a compact strip: one
+/// line per Worker and pull request, a Worker card on tap. The title and state
+/// live in the navigation bar. The Work view replaces this strip (W1).
 struct TaskChatHeader: View {
-    let header: TaskChatHeaderPresentation
+    let attachedWork: TaskAttachedWorkPresentation
     let maxHeight: CGFloat
     @State private var expandedAgentID: String?
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -14,41 +17,27 @@ struct TaskChatHeader: View {
                 .scrollBounceBehavior(.basedOnSize)
         }
         .frame(maxHeight: maxHeight, alignment: .top)
-        .background(.bar)
-        .overlay(alignment: .bottom) { Divider() }
+        .background(HausPlatformColor.canvas)
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(HausPlatformColor.hairline).frame(height: 1)
+        }
     }
 
     private var content: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(header.title)
-                    .font(.headline)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    TaskStateDisc(state: header.state, size: 15)
-                        .alignmentGuide(.firstTextBaseline) { $0[.bottom] - 2 }
-                    Text(header.stateLabel)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel("State: \(header.stateLabel)")
-            }
-
-            ForEach(header.attachedWork.cloudAgents) { agent in
+        VStack(alignment: .leading, spacing: 2) {
+            ForEach(attachedWork.cloudAgents) { agent in
                 TaskWorkerRow(
                     agent: agent,
                     isExpanded: expandedAgentID == agent.id,
                     onToggle: { toggle(agent.id) }
                 )
             }
-            ForEach(header.attachedWork.pullRequests) { pullRequest in
+            ForEach(attachedWork.pullRequests) { pullRequest in
                 TaskPullRequestRow(pullRequest: pullRequest)
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 4)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -67,30 +56,25 @@ private struct TaskWorkerRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Button(action: onToggle) {
-                HStack(alignment: .top, spacing: 10) {
-                    WorkerMark(provider: agent.work.provider, size: 28)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(agent.work.title)
-                            .font(.subheadline.weight(.semibold))
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text(agent.runStatusText)
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(statusColor)
-                        if let summary = agent.newestRunSummary {
-                            Text(summary)
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(isExpanded ? nil : 2)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                HStack(spacing: 8) {
+                    WorkerMark(provider: agent.work.provider, size: 18)
+                    Text(agent.work.title)
+                        .font(.subheadline)
+                        .foregroundStyle(HausPlatformColor.ink)
+                        .lineLimit(1)
+                    Text(agent.runStatusText)
+                        .font(.footnote)
+                        .foregroundStyle(statusColor)
+                        .lineLimit(1)
+                        .layoutPriority(1)
+                    Spacer(minLength: 0)
                     Image(systemName: "chevron.down")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(HausPlatformColor.faintInk)
                         .rotationEffect(.degrees(isExpanded ? 180 : 0))
                         .accessibilityHidden(true)
                 }
+                .frame(minHeight: 36)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.pressableRow(cornerRadius: HausRadius.medium))
@@ -128,24 +112,25 @@ private struct TaskPullRequestRow: View {
     }
 
     private var label: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "arrow.triangle.pull")
-                .font(.subheadline.weight(.semibold))
-                .frame(width: 28, height: 28)
-                .foregroundStyle(.secondary)
+        HStack(spacing: 8) {
+            HausIcon(.pullRequest, size: 16, weight: 1.8)
+                .foregroundStyle(HausPlatformColor.mutedInk)
+                .frame(width: 18)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(pullRequest.title)
-                    .font(.subheadline.weight(.semibold))
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("\(pullRequest.stateLabel) · \(pullRequest.facts)")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            Text(pullRequest.title)
+                .font(.subheadline)
+                .foregroundStyle(HausPlatformColor.ink)
+                .lineLimit(1)
+            Text(pullRequest.stateLabel)
+                .font(.footnote)
+                .foregroundStyle(HausPlatformColor.mutedInk)
+                .lineLimit(1)
+                .layoutPriority(1)
+            Spacer(minLength: 0)
         }
+        .frame(minHeight: 36)
         .contentShape(Rectangle())
+        .accessibilityValue(pullRequest.facts)
         .accessibilityElement(children: .combine)
     }
 }
