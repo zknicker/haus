@@ -45,8 +45,11 @@ public enum AppIconChoice: String, CaseIterable, Sendable {
 /// change with its own alert; that is the platform's, not ours.
 public struct AppIconRow: View {
     @State private var choice = AppIconChoice.ghost
+    private let showsDivider: Bool
 
-    public init() {}
+    public init(showsDivider: Bool = true) {
+        self.showsDivider = showsDivider
+    }
 
     public var body: some View {
         PickerRow(
@@ -54,6 +57,7 @@ public struct AppIconRow: View {
             value: choice,
             icon: .appIcon,
             options: AppIconChoice.allCases.map { ($0, $0.title) },
+            showsDivider: showsDivider,
             onChange: select
         )
         .task { choice = AppIconSwitcher.current }

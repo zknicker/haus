@@ -112,11 +112,11 @@ struct AgentProfileView: View {
         }
         .loadsStoppedClaims(agentID: agent.id, actions: stoppedClaims, into: $stoppedClaimsState)
         .scrollIndicators(.hidden)
-        .background(HausPlatformColor.groupedBackground)
+        .background(HausPlatformColor.canvas)
         .navigationTitle(agent.displayName)
         .hausInlineNavigationTitle()
         #if os(iOS)
-        .toolbarBackground(HausPlatformColor.groupedBackground, for: .navigationBar)
+        .toolbarBackground(HausPlatformColor.canvas, for: .navigationBar)
         #endif
         .toolbar {
             ToolbarItem(placement: .automatic) {

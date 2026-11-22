@@ -136,14 +136,25 @@ public struct SettingsComputer: Identifiable, Hashable, Sendable {
     public let isHealthy: Bool
     public let system: String
     public let version: String
+    /// Nil when the Server does not report the switch.
+    public let workers: SettingsComputerWorkers?
 
-    public init(id: String, name: String, health: String, isHealthy: Bool, system: String, version: String) {
+    public init(
+        id: String,
+        name: String,
+        health: String,
+        isHealthy: Bool,
+        system: String,
+        version: String,
+        workers: SettingsComputerWorkers? = nil
+    ) {
         self.id = id
         self.name = name
         self.health = health
         self.isHealthy = isHealthy
         self.system = system
         self.version = version
+        self.workers = workers
     }
 }
 
@@ -166,6 +177,17 @@ public struct SettingsData: Hashable, Sendable {
         self.members = members
         self.agents = agents
         self.computers = computers
+    }
+
+    /// Owners and Admins manage the Server: Automations, runtimes, and Cursor connections.
+    public var canManageServer: Bool {
+        ["owner", "admin"].contains(server.role.lowercased())
+    }
+
+    /// The Devices row's value: the one Device's name, else how many there are.
+    public var devicesValue: String? {
+        guard let computers, !computers.isEmpty else { return nil }
+        return computers.count == 1 ? computers[0].name : String(computers.count)
     }
 }
 
@@ -208,7 +230,8 @@ public enum SettingsFixtures {
             health: "Online",
             isHealthy: true,
             system: "Mac · Apple Silicon",
-            version: "v1.0.0"
+            version: "v1.0.0",
+            workers: SettingsComputerWorkers(isEnabled: true, canChange: true)
         ),
     ]
 

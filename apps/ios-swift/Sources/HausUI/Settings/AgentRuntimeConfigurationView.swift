@@ -85,11 +85,11 @@ struct AgentRuntimeConfigurationView: View {
             .padding(.bottom, 28)
         }
         .scrollIndicators(.hidden)
-        .background(HausPlatformColor.groupedBackground)
+        .background(HausPlatformColor.canvas)
         .navigationTitle("Runtime & model")
         .hausInlineNavigationTitle()
         #if os(iOS)
-        .toolbarBackground(HausPlatformColor.groupedBackground, for: .navigationBar)
+        .toolbarBackground(HausPlatformColor.canvas, for: .navigationBar)
         #endif
         .toolbar {
             ToolbarItem(placement: .automatic) {
