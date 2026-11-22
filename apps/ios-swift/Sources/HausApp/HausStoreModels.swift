@@ -65,8 +65,4 @@ extension HausStore {
     func loadActiveWorkers() async {
         await workers.loadActive()
     }
-
-    func cancelWorker(workID: String) async throws {
-        _ = try await workers.stop(workerID: workID)
-    }
 }

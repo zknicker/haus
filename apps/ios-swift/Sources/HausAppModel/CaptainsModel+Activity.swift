@@ -67,6 +67,7 @@ extension CaptainsModel {
             agents = refreshed
             clearLifecycleAvailability(ifRevisionIs: revisionAtStart)
             await reloadActiveActivity(serverID: serverID)
+            await refreshPendingStops(serverID: serverID)
         } catch is CancellationError {
             return
         } catch {

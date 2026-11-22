@@ -122,6 +122,7 @@ public enum AgentProcedures {
         .query("agent.activeActivity")
     public static let create = HausProcedure<CreateAgentInput, AgentCreated>.mutation("agent.create")
     public static let stop = HausProcedure<AgentTarget, AgentDeliveryState>.mutation("agent.stop")
+    public static let deliveryState = HausProcedure<AgentTarget, AgentDeliveryState>.query("agent.deliveryState")
     public static let configure = HausProcedure<ConfigureAgentInput, AgentSummary>.mutation("agent.configure")
     public static let executionOutlines = HausProcedure<AgentExecutionOutlinesInput, AgentExecutionOutlines>
         .query("agent.executionOutlines")

@@ -22,24 +22,13 @@ extension HausStore {
 
     func taskChatHeader(taskID: String) -> TaskChatHeaderPresentation? {
         if let detail = taskDetail(taskID: taskID) {
-            let chatID = detail.task.chatID ?? taskID
-            return TaskChatHeaderPresentation(
-                key: detail.task.key,
-                title: detail.task.title,
-                state: detail.task.state,
-                attachedWork: TaskAttachedWorkPresentation(
-                    cloudAgents: detail.attachedWork.map { cloudAgentPresentation($0, presentingChatID: chatID) },
-                    pullRequests: detail.pullRequests
-                )
-            )
+            return TaskChatHeaderPresentation(key: detail.task.key, title: detail.task.title, state: detail.task.state)
         }
         if let preview = transcripts.taskPreview(taskID: taskID) {
-            return TaskChatHeaderPresentation(
-                key: preview.key, title: preview.title, state: preview.state, attachedWork: .empty
-            )
+            return TaskChatHeaderPresentation(key: preview.key, title: preview.title, state: preview.state)
         }
         if let task = tasks.unreadTasks?.first(where: { $0.task?.taskID == taskID })?.task {
-            return TaskChatHeaderPresentation(key: task.key, title: task.title, state: task.state, attachedWork: .empty)
+            return TaskChatHeaderPresentation(key: task.key, title: task.title, state: task.state)
         }
         return nil
     }

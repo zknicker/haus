@@ -10,9 +10,4 @@ extension AuthenticatedHausView {
     func openTaskReminder(_ reminder: TaskReminderRef) {
         router.open(route(forChatID: reminder.anchorChatID))
     }
-
-    var cloudAgentCancel: WorkerCancelAction? {
-        guard store.canManageServer else { return nil }
-        return WorkerCancelAction { [store] workID in try await store.cancelWorker(workID: workID) }
-    }
 }

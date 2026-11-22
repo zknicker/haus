@@ -1,8 +1,8 @@
 ---
-summary: Ownership, dependency, navigation, and rendering boundaries for the native Haus iPhone app, including how it opens Tasks (chat screen, read-only legacy details, origin previews, Inbox rows, push routing).
+summary: Ownership, dependency, navigation, and rendering boundaries for the native Haus iPhone app, including how it opens Tasks (chat screen, read-only legacy details, origin previews, Home rows, reference chips, push routing).
 read_when:
   - changing the iPhone app, mobile navigation, or native rendering architecture
-  - changing how iPhone shows or opens a Task, its origin preview, its Inbox row, or a Task push
+  - changing how iPhone shows or opens a Task, its origin preview, its Home row, its chip, or a Task push
   - deciding whether mobile behavior belongs in shared logic, native UI, or an artifact web canvas
   - adding a dependency to apps/ios-swift
 ---
@@ -622,8 +622,8 @@ reader the channel glyphs use, `HausGhostPalette` carries its colors and stop ta
 rim, white dome, speculars, hairline edge, eyes — into a `Canvas`. `HausGhost` is the view, with the
 App component's API: `fill` (`.solid` tints the body in the current foreground with the eyes punched
 out even-odd; `.iridescent` is the glass), `animated`, `tempo`, and `size` as the rendered height.
-It is drawn three places: the sidebar's Inbox row, the sign-in screen, and the opening frame the app
-holds while authentication resolves. The launch screen carries a still render of that opening ghost
+It is drawn on the sign-in screen and in the opening frame the app holds while authentication
+resolves. The launch screen carries a still render of that opening ghost
 (`LaunchGhost` in `HausApp/Launch.xcassets`, light and dark, at the drift's first frame) on the same
 system background, and the opening frame centres its ghost on the full screen as the launch screen
 does, so launch hands off without a pop. Re-render the imageset if the mark or its palette changes. The retired `HausBrandMark` and its `HausMark` imageset are
@@ -644,11 +644,8 @@ nested in two masks and a clip, so what costs is the number of frames the mark r
 many blobs moved in one. `TimelineView` ticks the canvas on exactly that grid and emits a single
 entry when the drift is stopped, which it is under Reduce Motion and whenever the scene is not
 active. Every offset is a pure function of elapsed seconds, so a pause freezes the mark where it
-stands instead of snapping it back to the loop's start. The drawer is the third pause, beside
-Reduce Motion and the scene phase: the sidebar stays mounted behind the canvas, so the sidebar's
-drawer root sets the `hausSidebarHidden` environment value whenever no sliver of the drawer is
-showing — mid-drag counts as visible —
-and `HausGhostDriftClock` subtracts the slept stretch so reopening resumes the held frame.
+stands instead of snapping it back to the loop's start, and `HausGhostDriftClock` subtracts the
+slept stretch so a resumed drift picks up the held frame.
 
 SF Symbols stay wherever the system owns the grammar: inside `ContentUnavailableView`, `Menu` labels,
 and `Label`, and for navigation backs, disclosure chevrons, picker chevrons, and selection
@@ -727,92 +724,14 @@ Search offers that Chat as a scope beside Everywhere, through `chat.search`'s ow
 a scoped search lists messages only. A message result opens its Chat and reveals the message through
 the transcript's existing jump-and-flash path.
 
-Dark mode cannot use the canvas shadow to separate an open drawer from the sidebar, because a black
-canvas over a black sidebar has no edge. The veil painted over the slid-aside canvas therefore
-reverses by scheme: light mode fades the canvas toward the background and reads its edge from the
-shadow, while dark mode lifts the canvas to an elevated surface so the sidebar stays the recessed
-plane. `HausDrawerVeil` owns that rule.
-
-The sidebar drawer tracks the finger. A horizontal drag anywhere on the Chat canvas attaches the
-canvas to the finger, moves it one to one inside its travel, and stops at both ends because nothing
-sits behind the canvas past either edge; `DrawerInteraction` owns that math and its release decision,
-so a flick settles the drawer by velocity and a slow drag settles it by position. The drag uses a UIKit pan recognizer so it can claim
-only horizontal movement, cancel an in-flight vertical timeline scroll once it begins, and leave
-horizontally scrollable content such as staged attachments alone. It recognizes alongside scroll views
-only, so once it begins every tap and press under the finger fails: the canvas travels with the
-finger, so a drag ends inside the row it started on, and a still-live row tap would open that Chat
-on release (`DrawerPanDelegateTests`). There is no edge-only hit zone and
-no all-or-nothing open. Because the drawer owns every right-drag on the canvas, no canvas row carries
-a leading swipe action: a row's swipe actions sit on the trailing edge (swipe-left), as the Inbox's
-Mark read and Archived's Restore do, so one drag never both reveals a row action and moves the drawer. Putting something on the canvas is the only action that closes the drawer:
-selecting a Chat, or a route from outside the sidebar such as a Task's mention or a tapped
-notification (`closeForCanvasRoute`), which would otherwise land behind a drawer left open under a
-pushed Task. Every sidebar entry point that presents another surface — Search, Settings,
-Archived, New channel — leaves the drawer open behind it, so dismissing returns to the open drawer
-and no presentation ever runs against the closing spring.
-
-A drag of the drawer is GPU-composited translation and nothing else: a pan frame evaluates no
-SwiftUI body and lays out neither the sidebar nor the canvas. `HausDrawerContainer` hosts each side
-in its own `UIHostingController` inside `HausDrawerController`, a UIKit container that owns the pan
-recognizer, the per-frame offset, and the settle. A frame writes layer properties only, all derived
-from one offset by `DrawerGeometry`: the canvas's translation and corner radius, the shadow's alpha,
-the veil's alpha, the sidebar's parallax translation, and the width of the rectangular clip that
-keeps the sidebar (glass included) out of the canvas's rounded corners. The canvas shadow is a
-`shadowPath` on a view of its own, so the canvas's content — bar materials, glass buttons, the
-transcript — is never rendered offscreen to find its outline; the corner is the layer's own
-continuous `cornerRadius`. Release starts a `UIViewPropertyAnimator` spring seeded with the
-release velocity (a short ease-out under Reduce Motion), and a finger that lands mid-settle catches
-the canvas where it is on screen rather than where it was heading. Do not move any of this back into
-SwiftUI state: the SwiftUI drawer (observable offset read by two small frame views, `.offset`,
-`.shadow`, `.clipShape`, and a sidebar `.mask`) re-ran two bodies and re-rendered every effect each
-frame, and missed the frame budget on device even after the shell body stopped observing the drag.
-
-`HausDrawerState` is the drawer's discrete state, shared by the shell and the container, and it
-never changes per frame. The container reports only the moments a SwiftUI reader needs: a drag
-starting (`isDragging`, which with `isPresented` makes `isEngaged`), the drawer committing to a side,
-and the sidebar becoming visible or hidden. Each side's hosted root observes exactly one of those
-booleans and republishes it into the environment (`hausDrawerEngaged`, `hausSidebarHidden`), so a
-drag invalidates each side once when it starts and once when it ends. `set(open:)` from SwiftUI
-(the header button, a selection, the veil tap) asks the container to settle. Each committed side
-change is a `.selection` haptic from the container, and a Chat switch made without a drawer snap
-(from Search or a route) ticks on its own. `onDrawerPresentedChange` reports every settled open and
-close so the App can hold the sidebar's order still while the drawer is open; the sidebar animates
-a re-sort's row moves when it lands.
-
-A hosting controller starts a fresh SwiftUI environment, so environment the App sets above the shell
-does not reach either side on its own. `HausDrawerEnvironment` reads those values where the container
-sits and re-applies them inside: the scene phase, the opening entrance, the reaction board, Cloud
-Agent cancel, and the engagement and stopped-Agent sources. A new value set above the shell and read
-by the sidebar or a canvas screen must be added there. The sidebar host keeps the screen's container
-safe area and ignores the keyboard; the canvas host has no safe area at all, because its screens take
-their insets as values and read the keyboard themselves.
-
-The sidebar marks what is on screen — the Inbox while it is the canvas, otherwise the selected
-Chat — with one selection capsule. A Chat row's long press offers **Mark
-Read** (when unread, through the Inbox's own `chat.markRead` path) and the Chat's details sheet.
-There is no Archive or Copy link there: the phone has no archive action for a Chat, and no app
-origin to build a shareable link from. Row heights, the glyph column, and section labels scale with
-Dynamic Type (`SidebarRowMetrics`); at accessibility sizes a title may wrap to two lines.
-
-The Chat canvas is keyed by the selected destination: a Chat switch remounts the screen, so each
-Chat lays out bottom-anchored and fully formed before the drawer reveals it, and no scroll offset or
-screen-local state crosses between Chats. The swap and the closing slide are two events and must land
-in two frames. The drawer's geometry — offset, corner radius, veil, shadow, and the pan — belongs to
-the UIKit container, which outlives the keyed screen, so the incoming screen mounts inside the moving
-canvas and travels with it, its leading edge fixed to the canvas's. The selection reaches the canvas's
-hosting controller in the shell's next SwiftUI update, after `selectDestination` returns, so
-`selectDestination` defers `HausDrawerState.set(open:)` to the next main-actor turn, and the
-container lays the new screen out before the closing spring's first frame; closing in the same turn
-slid the outgoing screen for a frame and then showed an empty canvas while the new one mounted. The
-hold is the new screen's first layout. The veil decides how the close reads. An interactive close
-(drag, veil tap, header button) fades it with the closing spring — the canvas lifting off the same
-Chat — while a Chat selection drops it at once, in the frame the new screen appears, so the
-incoming Chat arrives fully lit and the slide is the whole transition. `HausDrawerClose` carries that
-distinction and `HausDrawerVeil.isPainted` applies it. Anything that must survive a switch — the composer draft,
-the staged attachments and their in-flight preparation, a pending message reveal — is owned by the
-shell per destination and reaches the screen as a binding or by reference; a remount resets only
-presentation state (an open portal, a frozen keyboard inset, an error notice). A page arriving for a Chat that was showing nothing is that Chat's first paint and settles
-at the bottom without animation; only genuine appends animate.
+The shell is the stock tab bar (Home · Projects · Tasks · You · Search); the drawer, the Inbox page,
+and the Settings sheet are gone. Every Chat is a route pushed onto its tab's `NavigationStack`, so a
+Chat switch mounts a fresh screen and no scroll offset or screen-local state crosses between Chats.
+Anything that must survive a switch — the composer draft, the staged attachments and their
+in-flight preparation, a pending message reveal — is owned by the Store per Server and destination
+and reaches the screen as a binding or by reference. A page arriving for a Chat that was showing
+nothing is that Chat's first paint and settles at the bottom without animation; only genuine
+appends animate.
 
 Both transcripts — the Chat timeline and a Task's messages — sit on `TranscriptListView`, the
 flipped-table substrate in `HausUI/Platform`: a `UITableView` scaled by `-1` vertically, each
@@ -954,9 +873,7 @@ showing; it never selects the canvas Chat. Until the Store holds a record that s
 has a Chat, the screen is blank rather than guessing. A Task with a Chat opens as `TaskChatView`:
 the Chat timeline's own rows and the iPhone composer, under `TaskChatHeader`, a band in the layout
 above the transcript (never over it) with the Task's title, which wraps at every size, its state
-disc and words, and the work attached to it — each Worker with its newest turn's status and
-summary, expanding in place to the full `WorkerCard`, and each pull request no Worker card
-already shows. At large text sizes the band stops growing at a fraction of the screen and scrolls
+disc and words; its Workers, pull requests, and files open from the Work pill. At large text sizes the band stops growing at a fraction of the screen and scrolls
 inside itself. A quiet **Started from #channel** row heads the transcript once its oldest page is
 loaded and opens the origin Message in its Channel. The Task's Chat is the open Chat while the
 screen shows, so what the reader sees there is what reads it, and opening it clears the
@@ -995,94 +912,24 @@ reads the Task's current key, since a Task can be re-keyed while the message kee
 written with. A tapped chip pushes the Task. There is no Convert to Task: only Agents start Tasks
 (decision 4), so the message drawer offers none.
 
-The Inbox is the phone's landing screen and the sidebar's anchor. It mirrors the App page section
-for section — header, **Active this week**, **Unread**, **Happening now** —
-because that page's order was the contract (the App's Inbox page is retired), and it renders from the Store
-snapshots below rather than from reads of its own: `HausUI/Inbox` owns the row projections and the
-page, and `HausApp/InboxPresentationAdapters.swift` is the only place the Store's records become
-them. A section renders nothing at all until its read lands, so an unsettled section is blank rather
-than an empty box that fills a moment later; **Unread** waits for the Chat list, which is the
-same read the sidebar dot waits for.
+A Task chip wears its Task's state disc in place of the Tasks glyph — no fill, the mark plus the
+dotted rule every reference draws — whenever the app already holds a read of that Task: a page's
+Task previews, the open Tasks, the Tasks list, or a detail, freshest last
+(`HausStore.taskReferenceStateIndex`). A chip reads nothing to render, so a Task the app has no read
+of keeps the glyph rather than fanning out one read per chip. `TaskReferenceStates` stamps the
+states after the parse, so a state change retires the drawn rows and never a parsed body. A
+library link to a Drive file opens that file's Drive route once its metadata is loaded
+(`InAppReferenceRoutes.openDriveArtifact`); a link pinned to a revision keeps the artifact viewer,
+because Drive shows the newest revision.
 
-It is the canvas itself, not a push on the root stack. A cold start shows the Inbox page as the
-shell's canvas — no navigation bar, no title, no Back chevron, because there is nothing behind a
-landing screen to go back to — and the page's greeting and date are its first content. The Chat
-canvas and the Inbox take turns in the one canvas slot, so the drawer belongs to the slot rather
-than to either of them: the leading chrome button sits where it sits on a Chat screen, and the veil
-and the edge pan are the same ones. `showsInbox` is App-owned state (`AuthenticatedHausView`) and
-the shell clears it whenever a Chat is selected; the sidebar's Inbox row sets it back. The last-open
-Chat is still restored for the drawer's selection, and selecting one swaps the canvas the way it
-always did. `HausRootRoute` therefore carries only `.task`. A Worker row attached to a
-Task (`taskId`, ADR 0053 decision 6) opens that Task. Older work opens the row's `location`, the
-newest visible linking Message, revealed in its Channel or DM. A location kind the phone does not
-know (an older Server's `work-thread`) skips that row; an Unread row opens its DM, Channel, or Task.
-Unread and **Happening now** rows share one Messages-style row (`InboxRowView`): a 44pt mark, the
-title with its perishable fact trailing, and the context below in secondary. A conversation's lines
-are each capped at one, so those rows are the same height at a given text size. At accessibility
-sizes the title may wrap and the trailing fact stacks under it instead of squeezing the title to a
-letter, and the mark scales with the text up to 64 points. Every row's separator starts under its
-title, whatever its mark drew. An Unread row
-is the Chat's name, its age, and the quoted line truncated to one line. A followed Task's Unread row
-follows the native-rows rule instead of squeezing two facts into one line: its first line is the
-Task's title alone, which wraps at word boundaries at every text size and is never truncated or
-hyphenated (SwiftUI `Text` breaks lines at words and does not hyphenate); a secondary line under it
-carries the key and state, `SEC-12 · Open`, and wraps rather than truncates at the largest sizes;
-then the quote. Like every Unread row it carries no count — being in the section is the dot. A Worker row is
-the work's title (`Cloud work` when untitled), its job status (`Working · 3m`, `Working · 1h 59m`,
-or `Follow-up waiting · 2m` for a settled job listed only for its live follow-up —
-`WorkerPresentation.duration`, the App's `formatWorkerDuration`, whose hours never roll
-into days), and `#channel · Agent`; the provider glyph, boxed like a Channel mark, already says
-it is Cloud work, and carries a presence-style dot — yellow running, gray queued. An Agent mid-turn is its name, time in its step, and the step itself. The page is a stock `.insetGrouped` `List`, so an Unread
-row marks read with a trailing swipe (swipe-left; `.swipeActions(edge: .trailing)`, full swipe
-allowed) whose button is a bare image, which iOS 26 draws as an icon-only circle (its accessibility label is "Mark read"),
-confirmed by a success haptic, or the long-press peek's **Mark Read**. A week card that lands after
-the **Active this week** strip has drawn joins it with an animated insertion rather than a reshuffle.
-An Agent's stopped claims live on its profile, under **Stopped before finishing** (`StoppedClaims`),
-read with one `claim.list` per profile opened; claims have no list of their own. One row still lands somewhere the App does not send it, because the phone
-has nowhere else: an Agent in **Happening now** opens that Agent's DM rather than a profile page. The sidebar's first row is the
-Inbox, wearing the iridescent Haus ghost at 26 points in the same glyph
-column every other row uses — a deliberate exception to the column's 26-point boxed glyphs, because
-this mark is the logo rather than a place's icon, and it grows inside the shared column so the
-`Inbox` label stays on the Chat labels' edge. It marks
-`unreadChatCount` with the unread dot the Chat rows wear — absent at zero, which is also
-what it reads while the count is still unknown. Its mesh drifts, and drifts quicker while an Agent
-on this Server is working: `HausStore.agentActivityGhostTempo` resolves the App's own rule through
-`HausGhostTempo.resolve`, and reads one stored bit rather than the activity dictionary
-`agent.onActivity` rewrites on every tool call, so a busy Server does not invalidate the shell.
-
-What the Inbox stands on is Server-wide and Store-owned rather than screen-owned. `HausStoreInbox`
-reads the Chat list's unread Chats, the followed unread Tasks (`chat.unreadPreviews`' rows that name a Task), the Workers running right now
-(`worker.listActive`), and the Server's token-usage snapshot (`stats.live`), and each stays
-nil until its first load. That nil is load-bearing: `unreadChatCount` is nil until the Chat list
-has landed, so "nothing unread" is never confused with "not yet known". The count is the number of
-Unread rows on the active Server — Chats with an `unreadCount` above zero and followed unread
-Tasks, the same rows the App lists — and it
-drives the sidebar's Inbox dot. The app icon badge is not that count: it is the Server's cross-Server
-`chat.unreadChatCount`, the number push puts on `aps.badge`. `HausStoreIconBadge` reads it into
-`iconBadgeCount` wherever the Chat list reloads (Server load, snapshot refresh on foreground or
-reconnect, every `reloadChats`) and on becoming active without a background trip. Durable events refresh only what this
-client already holds, the way the App's invalidation only refetches a live query:
-`message.created` and `chat.read` reload the Chat list, `claim.onChanged` reloads the affected Chat
-page, a Task message, read, change, or follow reloads the followed unread Tasks once held,
-`worker.updated` reloads the active
-work list beside its own, and a settled Agent turn or a Computer update reloads the usage snapshot.
-A failed Inbox read keeps the previous snapshot and is logged — a stale row is honest, while a
-Chat-level send alert raised by a background read is not.
-
-An Unread row ([ADR 0038](../adr/0038-inbox-is-unread-not-attention.md)) is one Chat from the
-Chat list with an `unreadCount` above zero, merged by activity with the followed Task rows below.
-Opening a Chat row reads it the way any open transcript does. **Mark read** sends `chat.markRead`
-with the row's `lastMessageSequence`; newer activity brings the row back. The sidebar's Inbox dot
-counts Chat rows and Task rows alike, matching the icon badge (`chat.unreadChatCount`).
-There is no question screen, card, or marker — the mention chip in the transcript is the whole
-presentation of a question ([Notifications](../features/notifications.md)).
-
-A Task is unread only for its followers (ADR 0053 decision 9), and being assigned a Task makes the
-assignee a follower, so an assigned Task simply shows as unread; there is no separate assignment
-item. Each followed Task with messages waiting is its own Unread row (`InboxUnreadTaskChat`), never
-bundled, merged by activity and wearing its origin Channel's mark. Opening it pushes the Task; Mark
-read sends `chat.markRead` for the Task's own Chat through the newest message the row quotes, and
-the row leaves at once and comes back if the read fails.
+Home is the cold-start tab and stands on Server-wide, Store-owned reads (`HausStoreInbox`): the
+Chat list's unread Chats, the followed unread Tasks (`chat.unreadPreviews`' rows that name a Task),
+and the Workers running now (`worker.listActive`). Each stays nil until its first load, so "nothing
+unread" is never confused with "not yet known". Happening now, Recent (with Mark Read on a row's
+long press), and Open tasks render from them; unread shows as row dots, never counts, and archived
+Projects restore from Projects. The Inbox page, its sidebar row, and the **Active this week** card
+(with its `stats.live` read) are retired. The app icon badge is the Server's cross-Server
+`chat.unreadChatCount`, the number push puts on `aps.badge`.
 
 A tapped notification is a `PushNotificationPayload` decoded from `userInfo`; keys this build does
 not know are ignored, and its `route` is the whole decision. A push for a Message in a Task's Chat
@@ -1127,9 +974,7 @@ own), so the client never patches unread locally.
 
 A cold launch paints from an on-disk launch snapshot before the network answers
 (`LaunchSnapshot`, `HausStoreLaunchSnapshot.swift`): the last Server list, Chat list, Agent and
-member directories, the Server usage read behind the Inbox's week strip (optional, so an older
-snapshot still decodes; without it the strip popped in after the paint and shoved the page down), and
-up to three bounded latest-message pages (the canvas and open Chats first), written as versioned JSON to Application Support atomically (file protection until first unlock, the
+member directories, and up to three bounded latest-message pages (the canvas and open Chats first), written as versioned JSON to Application Support atomically (file protection until first unlock, the
 directory excluded from iCloud and Finder backups; Application Support rather than Caches so storage
 pressure cannot purge the paint), off the main actor, at most once per two
 seconds and again when the app leaves the foreground. It is a cache: scoped to the signed-in Haus
@@ -1193,8 +1038,8 @@ are modeled with their payloads but not subscribed until a surface reads what th
 `worker.onUpdated` names the Worker's Task, and refreshes that Task's held detail. `computer.onUpdated` owns Agent presence beside the lifecycle stream: after a
 Server restart the streams resubscribe before the Computer reattaches, so their start reads an
 offline Agent list, and only the attach's `computer.updated` says presence came back. Its events
-run the same coalesced owned-projection pass a start does (Agent list and activity, Computers, and
-the Inbox usage once loaded). Each
+run the same coalesced owned-projection pass a start does (Agent list and activity, and
+Computers). Each
 stream ends and restarts alone with capped backoff (1 s doubling to 30 s, reset after 30 s
 connected); a sibling never notices. The connection indicator follows only the message and Agent
 lifecycle streams. Chat events coalesce into targeted reads (`ChatRealtimeEffects`): a tail read per
@@ -1284,9 +1129,8 @@ the keyboard bottom inset it lays out against (`ComposerPortalFreeze`), so the t
 stay pixel-static for the portal's whole lifecycle and the keyboard is restored on close only if it
 was up when the portal opened.
 
-The Chat canvas answers the keyboard by hand. The shell's geometry ignores the keyboard entirely
-(`.ignoresSafeArea(.keyboard)` on `HausShellView`), so the sidebar never resizes for one, and the
-Chat screen reads the keyboard itself through `onKeyboardInsetChange` (`KeyboardInset.swift`): a
+The Chat canvas answers the keyboard by hand. The Chat route's geometry ignores the keyboard
+entirely (`.ignoresSafeArea(.keyboard)`), and the Chat screen reads the keyboard itself through `onKeyboardInsetChange` (`KeyboardInset.swift`): a
 probe pinned to UIKit's `keyboardLayoutGuide`, which follows a finger through interactive dismissal
 frame by frame, plus the announced end frame of `keyboardWillChangeFrame`, which lands a keyboard
 that leaves while the screen is mid-transition. Each reading carries its own transaction — the
@@ -1297,17 +1141,14 @@ swipe out of a Task, UIKit keeps reporting a 233-point keyboard that is not on s
 
 Do not go back to SwiftUI's keyboard safe area read through the shell's `GeometryReader`: it
 floated the composer a growing gap above the keyboard as a draft grew (about 57pt at six lines),
-went stale across a pushed screen's pop so a returning keyboard covered the composer, shrank the sidebar
-under a keyboard still up, and, with a spring on every step, trailed the finger through a drag.
+went stale across a pushed screen's pop so a returning keyboard covered the composer, and, with a spring on every step, trailed the finger through a drag.
 
 Three gestures put the keyboard away. Dragging the transcript down into the keyboard dismisses it
 interactively (`keyboardDismissMode = .interactive` on the flipped table) and is cancellable by
 dragging back up. A tap on the transcript that lands on no row control resigns the composer
 (`onContentTap`); links and controls still act on that tap, and a long
-press still opens the message drawer. And anything that covers the composer resigns it first: the
-drawer as soon as it is open or under a finger (`HausDrawerState.isEngaged`, published to the screen
-as `hausDrawerEngaged`), and a pushed Task. Neither raises the keyboard again when it goes away;
-a sheet, which takes the keyboard for itself, hands it back on dismissal the way UIKit does. A
+press still opens the message drawer. A pushed Task resigns the composer first and does not raise
+the keyboard again when it pops; a sheet, which takes the keyboard for itself, hands it back on dismissal the way UIKit does. A
 pushed Task keeps the system bar and native keyboard avoidance, and needs none of
 this.
 
@@ -1728,31 +1569,10 @@ instead: an icon mark is `HausRadius.mark(side:)`, a third of its side, the Chan
 box nested in a rounded surface is concentric with it (`HausRadius.nested(in:inset:)`). The composer's
 own surfaces and portal keep their measured corners for now.
 
-Settings stay inside one native sheet and `NavigationStack`. Settings is entered from the sidebar's
-floating gear control, pinned bottom-trailing over the scrolling chat list. The sidebar navigation
-carries the App's own order: the Inbox row first, then Channels, then DMs. The phone has no Tasks
-page ([ADR 0053](../adr/0053-channels-and-tasks-are-the-only-places.md) decision 15): a Task opens
-from its origin preview, a chip, its Unread row, or a push. The sidebar's
-Server header is the Server menu; archived chats open from there
-rather than spending a navigation row. That header carries the Server's name and nothing else —
-Agent and member counts are a Settings readout, not standing sidebar chrome — so `ServerPresentation`
-carries only the identity the Chat surfaces render.
-
-Every line in that sidebar starts on one rail: the Server identity, the section labels, and each
-row's glyph share a single left edge, and one glyph box size puts the labels behind them on a single
-column too. A row's selection capsule is the only thing outside the rail — it bleeds into the margin,
-so the scrolling list is inset by the difference and each row re-adds it. Sections are plain labels,
-not disclosures: a phone sidebar holds few enough rows that folding one saves nothing, and the caret
-it would need is the one element that cannot sit on the rail with the rest.
-
-An unread chat hangs a disc off the sidebar's leading edge and lets that edge cut it in half, so
-what shows is a nub in the margin. The clip is load-bearing, which is why the rail inset rides on
-the scrolling list rather than on the scroll view: the scroll view has to reach the sidebar's own
-leading edge, or its bounds cut the marker away before the sidebar edge can halve it. That disc is
-the phone's whole unread vocabulary: `UnreadDot` owns it, the drawer's Inbox row and every Chat row
-hang it off the edge together, and the Inbox's Conversations rows and Search show the same disc
-whole beside the row's time. The phone never counts — a number a reader cannot act on is not worth a
-chip beside the fact it repeats — so no surface here carries an unread badge. A channel's Chat
+Settings are the You tab's root (`SettingsSheet` with the tab's path), each screen pushed onto the
+tab's own stack. Unread is one disc, `UnreadDot`, on every row that carries it: Captain tiles,
+Home's rows, Project rows, and Search. The phone never counts — a number a reader cannot act on is
+not worth a chip beside the fact it repeats — so no surface here carries an unread badge. A channel's Chat
 details sheet shows its Server description in an "About" section under the hero, the same shape as
 an Agent profile's About, and shows nothing when the channel has none. The phone reads channel
 descriptions but does not edit them; editing stays in the App. The Chat

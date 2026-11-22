@@ -6,69 +6,9 @@ import Testing
 private typealias Fixture = WorkerFixture
 private typealias Job = WorkerFixture.Job
 
-/// Ports the App's `cloud-agent-presentation.test.ts`: the headline reads the
-/// Server's `job`, never the newest Run.
+/// Ports the App's `cloud-agent-presentation.test.ts`: durations, branches,
+/// and the wire shape of a Worker.
 @Suite struct WorkerPresentationTests {
-    private let now = Fixture.date("2026-09-04T12:04:00.000Z")
-
-    @Test func aJobWhoseFirstRunIsStillQueuedReadsAsStarting() throws {
-        let agent = try Fixture.work(status: "queued", job: Job.working(startedAt: nil))
-        #expect(agent.jobText(at: now) == "Starting · 4m")
-    }
-
-    @Test func aWorkingJobCountsUpFromWhenTheProviderStartedIt() throws {
-        #expect(try Fixture.work().jobText(at: now) == "Working · 4m")
-        let start = Fixture.date(Fixture.start)
-        for (minutes, text) in [(59, "Working · 59m"), (60, "Working · 1h"), (119, "Working · 1h 59m"),
-                                (27 * 60 + 5, "Working · 27h 5m")] {
-            #expect(try Fixture.work().jobText(at: start.addingTimeInterval(Double(minutes * 60))) == text)
-        }
-    }
-
-    @Test func aDoneJobStatesHowLongItTookNotHowLongAgo() throws {
-        let agent = try Fixture.work(
-            status: "completed", job: Job.done(startedAt: Fixture.start, settledAt: "2026-09-04T13:12:00.000Z")
-        )
-        #expect(agent.jobText(at: now) == "Done · 1h 12m")
-    }
-
-    @Test func aFollowUpQueuedBehindAFinishedRunKeepsTheJobDone() throws {
-        let agent = try Fixture.work(
-            status: "queued",
-            job: Job.done(
-                startedAt: Fixture.start, settledAt: "2026-09-04T12:02:00.000Z",
-                followUp: Job.followUp("waiting", since: "2026-09-04T12:03:00.000Z")
-            ),
-            runs: [Fixture.run(runId: "car_two", status: "queued"), Fixture.run(terminalAt: Fixture.start)]
-        )
-        #expect(agent.work.job.state == .done)
-        #expect(agent.jobText(at: now) == "Done · 2m")
-    }
-
-    @Test func failedCancelledAndExpiredNameOnlyTheirOutcome() throws {
-        #expect(try Fixture.work(status: "failed", job: Job.failed()).jobText(at: now) == "Failed")
-        #expect(try Fixture.work(status: "expired", job: Job.ended("expired", settledAt: Fixture.start))
-            .jobText(at: now) == "Expired")
-        #expect(try Fixture.work(status: "cancelled", job: Job.ended("cancelled", settledAt: Fixture.start))
-            .jobText(at: now) == "Stopped")
-    }
-
-    @Test func anyLiveRunThatHasNotReportedForTenMinutesReadsAsQuiet() throws {
-        let quietAt = "2026-09-04T11:50:00.000Z"
-        #expect(try Fixture.work(updatedAt: quietAt).quietFor(at: now) == 14 * 60)
-        // A follow-up waiting in the queue is live too.
-        #expect(try Fixture.work(status: "queued", updatedAt: quietAt).quietFor(at: now) == 14 * 60)
-        #expect(try Fixture.work(updatedAt: "2026-09-04T12:03:00.000Z").quietFor(at: now) == nil)
-        // A settled work is not quiet; it is finished.
-        #expect(try Fixture.work(status: "completed", updatedAt: quietAt).quietFor(at: now) == nil)
-    }
-
-    @Test func onlyALiveUncancelledRunCanBeCancelled() throws {
-        #expect(try Fixture.work().canBeCancelled)
-        #expect(try !Fixture.work(status: "completed").canBeCancelled)
-        #expect(try !Fixture.work(cancelRequestedAt: Fixture.start).canBeCancelled)
-    }
-
     @Test func durationsReadCoarsely() {
         #expect(WorkerPresentation.duration(seconds: -5) == "0s")
         #expect(WorkerPresentation.duration(seconds: 42) == "42s")

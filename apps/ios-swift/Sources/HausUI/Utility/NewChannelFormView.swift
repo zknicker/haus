@@ -133,7 +133,7 @@ public struct NewChannelFormView: View {
                                 Image(systemName: selectedAgentIDs.contains(agent.id) ? "checkmark.circle.fill" : "circle")
                                     .font(.title3)
                                     .foregroundStyle(
-                                        selectedAgentIDs.contains(agent.id) ? Color.accentColor : Color.secondary
+                                        selectedAgentIDs.contains(agent.id) ? HausPlatformColor.accentInk : Color.secondary
                                     )
                                     .accessibilityHidden(true)
                             }

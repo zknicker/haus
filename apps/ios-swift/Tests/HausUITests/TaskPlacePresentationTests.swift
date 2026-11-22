@@ -6,14 +6,6 @@ import Testing
 struct TaskPlacePresentationTests {
     // MARK: - Status words
 
-    @Test func runStatusesReadAsWords() {
-        let labels = [
-            WorkerTurnStatus.queued, .running, .completed, .failed, .cancelled, .expired, .pendingInput,
-        ].map(WorkerPresentation.runStatusLabel)
-        #expect(labels == ["Queued", "Running", "Completed", "Failed", "Stopped", "Expired", "Waiting on you"])
-        #expect(!labels.contains { $0.contains("_") })
-    }
-
     @Test func taskStatesReadAsTheAppSaysThem() {
         let labels = [TaskState.todo, .open, .done, .canceled, .unknown].map(TaskStateLabel.text)
         #expect(labels == ["Todo", "In progress", "Done", "Canceled", "Unknown state"])
@@ -34,7 +26,7 @@ struct TaskPlacePresentationTests {
 
     // MARK: - Attached work
 
-    @Test func theHeaderReadsTheNewestRun() throws {
+    @Test func aWorkerReadsItsNewestRun() throws {
         let agent = try WorkerFixture.work(
             status: "pending_input",
             job: WorkerFixture.Job.pendingInput(question: "Which key?"),
@@ -42,21 +34,7 @@ struct TaskPlacePresentationTests {
                    run(id: "run_old", status: "completed", summary: "Earlier run")]
         )
         #expect(agent.newestRun?.runId == "run_new")
-        #expect(agent.runStatusText == "Waiting on you")
         #expect(agent.newestRunSummary == "Paused: which key should rotate?")
-    }
-
-    @Test func aPullRequestShownByItsWorkerIsNotRepeated() throws {
-        let agent = try WorkerFixture.work(runs: [
-            WorkerFixture.run(branches: [WorkerFixture.branch(url: "https://github.com/haus/haus/pull/482")]),
-        ])
-        let work = TaskAttachedWorkPresentation(cloudAgents: [agent], pullRequests: [
-            PullRequestReading(number: 482, repository: "haus/haus", state: "open", url: "https://github.com/haus/haus/pull/482"),
-            PullRequestReading(number: 7, repository: "haus/haus", state: "draft", url: "https://github.com/haus/haus/pull/7"),
-        ])
-        #expect(work.pullRequests.map(\.reading.number) == [7])
-        #expect(!work.isEmpty)
-        #expect(TaskAttachedWorkPresentation.empty.isEmpty)
     }
 
     // MARK: - Origin preview

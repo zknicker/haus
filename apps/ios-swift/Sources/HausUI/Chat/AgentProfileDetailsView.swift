@@ -52,6 +52,8 @@ struct AgentProfileDetailsView: View {
 
             AgentStoppedClaimsSection(state: stoppedClaimsState) { onOpenClaim?($0) }
 
+            CaptainStopListSection(agentID: agent.id, name: agent.name)
+
             if let onManageInSettings {
                 Section {
                     Button(action: onManageInSettings) {

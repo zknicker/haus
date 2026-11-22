@@ -102,7 +102,7 @@ struct MessageTimelineRow: View {
     }
 
     /// Everything that hangs off what the message said: visuals, attachments,
-    /// Worker cards, reactions, the failed-send caption, the claim, and Tasks.
+    /// the Workers it started, reactions, the failed-send caption, the claim, and Tasks.
     @ViewBuilder
     func cards(alignment: HorizontalAlignment) -> some View {
         let frameAlignment: Alignment = alignment == .trailing ? .trailing : .leading
@@ -123,7 +123,7 @@ struct MessageTimelineRow: View {
             .frame(maxWidth: .infinity, alignment: frameAlignment)
         }
         ForEach(message.cloudAgents) { agent in
-            WorkerCard(agent: agent).padding(.top, 6)
+            MessageWorkerLine(worker: agent).padding(.top, 4)
         }
         if !message.isPending {
             ReactionPileView(messageID: message.id, reactions: message.reactions, board: reactionBoard)

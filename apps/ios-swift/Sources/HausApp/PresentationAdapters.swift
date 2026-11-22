@@ -63,6 +63,9 @@ extension HausStore {
     /// A rebuild reuses each unchanged message's parsed body.
     func messagePresentations(chatID: String) -> [MessagePresentation] {
         trackProjectionDirectory()
+        // Task chips wear the state of every Task this client holds; a state
+        // change retires the drawn rows, never a parsed body.
+        syncTaskReferenceStates()
         let page = messagesByChatID[chatID]
         let pending = pendingMessagesByChatID[chatID] ?? []
         if let cached = projections.messagePresentationsByChatID[chatID] { return cached }
@@ -101,9 +104,9 @@ extension HausStore {
                     replyReferencePresentation(reply.parent)
                 },
                 claim: message.claim.map(claimPresentation),
-                cloudAgents: linkedWork.map { cloudAgentPresentation($0, presentingChatID: message.chatID) },
+                cloudAgents: linkedWork.map(cloudAgentPresentation),
                 reactions: reactionPresentations(message.reactions),
-                richBlocks: parsed.richBlocks,
+                richBlocks: stampedBlocks(parsed),
                 visualBody: parsed.visuals,
                 cause: message.cause.flatMap(MessageCausePresentation.init),
                 tasks: tasksByOrigin[message.id] ?? [],
@@ -143,7 +146,7 @@ extension HausStore {
                 inlineReply: message.inlineReply,
                 isPending: true,
                 isSendFailed: message.sendState == .failed,
-                richBlocks: parsed.richBlocks,
+                richBlocks: stampedBlocks(parsed),
                 visualBody: parsed.visuals
             )
         }

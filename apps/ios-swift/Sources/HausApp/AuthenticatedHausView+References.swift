@@ -20,6 +20,10 @@ extension AuthenticatedHausView {
             }
             return { router.open(.pullRequest(pullRequest.reading)) }
         }
+        InAppReferenceRoutes.openDriveArtifact = { target in
+            guard let path = store.sharedArtifactDrivePath(target) else { return nil }
+            return { router.open(.driveFile(path: path)) }
+        }
         ArtifactPageReader.read = { [store] agentID, path in
             try await store.readArtifactPage(agentID: agentID, path: path)
         }

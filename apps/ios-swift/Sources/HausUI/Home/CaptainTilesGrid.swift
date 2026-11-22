@@ -1,23 +1,20 @@
 import SwiftUI
 
-/// What a Captain tile's long-press menu offers. Stop is a slot the shell
-/// fills once Captains can be stopped from here.
+/// What a Captain tile's long-press menu offers. Stop comes from the App's
+/// `CaptainStopControl`, the same one the DM header and the profile read.
 public struct CaptainTileActions {
     let open: (CaptainIdentity) -> Void
     let openProfile: (CaptainIdentity) -> Void
     let openAutomations: (CaptainIdentity) -> Void
-    let stop: ((CaptainIdentity) -> Void)?
 
     public init(
         open: @escaping (CaptainIdentity) -> Void,
         openProfile: @escaping (CaptainIdentity) -> Void,
-        openAutomations: @escaping (CaptainIdentity) -> Void,
-        stop: ((CaptainIdentity) -> Void)? = nil
+        openAutomations: @escaping (CaptainIdentity) -> Void
     ) {
         self.open = open
         self.openProfile = openProfile
         self.openAutomations = openAutomations
-        self.stop = stop
     }
 }
 
@@ -50,6 +47,8 @@ private struct CaptainTile: View {
     let tile: CaptainTilePresentation
     let side: CGFloat
     let actions: CaptainTileActions
+    @Environment(\.captainStop) private var captainStop
+    @State private var stopTarget: CaptainStopTarget?
 
     var body: some View {
         Button { actions.open(tile.captain) } label: {
@@ -73,10 +72,19 @@ private struct CaptainTile: View {
         .contextMenu {
             Button("Profile", systemImage: "person.crop.square") { actions.openProfile(tile.captain) }
             Button("Automations", systemImage: "clock.arrow.circlepath") { actions.openAutomations(tile.captain) }
-            if let stop = actions.stop, tile.isWorking {
-                Button("Stop", systemImage: "stop.circle", role: .destructive) { stop(tile.captain) }
+            if let phase = captainStop?.phase(tile.captain.id) {
+                let isActionable = CaptainStopCopy.isActionable(phase)
+                Button(
+                    CaptainStopCopy.title(phase),
+                    systemImage: CaptainStopCopy.systemImage(phase),
+                    role: isActionable ? .destructive : nil
+                ) {
+                    stopTarget = CaptainStopTarget(id: tile.captain.id, name: tile.captain.name)
+                }
+                .disabled(!isActionable)
             }
         }
+        .captainStopConfirmation($stopTarget)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(tile.captain.name)
         .accessibilityValue(accessibilityState)
