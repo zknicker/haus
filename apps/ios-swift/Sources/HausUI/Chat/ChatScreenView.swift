@@ -19,6 +19,9 @@ public struct ChatScreenView: View {
     private let onCall: (() -> Void)?
     /// Place-specific actions for the header's `…` menu, such as Stop on a Captain DM.
     private let menuActions: [ChatHeaderMenuAction]
+    /// The place's Work pill over the composer; nil or hidden while it has no work.
+    let workPill: WorkPillState?
+    let onOpenWork: () -> Void
     private let history: MessageHistoryNavigation
     let mentionOptions: [MentionOptionPresentation]
     private let onLoadMentionOptions: () async -> Void
@@ -69,6 +72,8 @@ public struct ChatScreenView: View {
         onOpenAgent: @escaping (String) -> Void = { _ in },
         onCall: (() -> Void)? = nil,
         menuActions: [ChatHeaderMenuAction] = [],
+        workPill: WorkPillState? = nil,
+        onOpenWork: @escaping () -> Void = {},
         history: MessageHistoryNavigation = .init(),
         mentionOptions: [MentionOptionPresentation] = [],
         onLoadMentionOptions: @escaping () async -> Void = {},
@@ -94,6 +99,8 @@ public struct ChatScreenView: View {
         self.onOpenAgent = onOpenAgent
         self.onCall = onCall
         self.menuActions = menuActions
+        self.workPill = workPill
+        self.onOpenWork = onOpenWork
         self.history = history
         self.mentionOptions = mentionOptions
         self.onLoadMentionOptions = onLoadMentionOptions

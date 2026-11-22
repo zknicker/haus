@@ -59,11 +59,12 @@ extension HausStore {
         }
         let unreadByChatID = Dictionary(chats.map { ($0.id, $0.unreadCount) }, uniquingKeysWith: max)
         let readsChatList = effects.needsChatListRead { unreadByChatID[$0] }
+        let parentChatIDs = workParentChatIDs(taskChatIDs: effects.cloudAgentWorkChatIDs)
         // Each model refreshes only what this client already holds: an event
         // must not start a Server-wide read nobody has opened.
         await withTaskGroup(of: Void.self) { group in
             if readsChatList { group.addTask { await self.refreshChatList(serverID: serverID) } }
-            group.addTask { await self.workers.apply(effects) }
+            group.addTask { await self.workers.apply(effects, parentChatIDs: parentChatIDs) }
             group.addTask { await self.tasks.apply(effects) }
             group.addTask { await self.applyTaskPlaceEffects(effects) }
         }

@@ -28,23 +28,34 @@ extension TaskChatView {
             case nil:
                 EmptyView()
             }
-            MessageTimelineRow(
-                message: message,
-                isContinuation: grouping.isContinuation,
-                showsReplyReference: grouping.showsReplyReference,
-                isHighlighted: highlightedMessageID == message.id,
-                isPressed: message.id == heldMessageID || message.id == actionMessage?.id,
-                attachmentPreview: $attachmentPreview,
-                attachmentTiles: attachmentTiles,
-                visualHeights: visualHeights,
-                reactionBoard: reactionBoard,
-                onOpenInlineReply: revealInlineReply,
-                onOpenAttachment: onOpenAttachment,
-                accessibilityActions: accessibilityActions(for: message),
-                style: entry.style
-            )
-            .padding(.top, entry.topSpacing)
+            if let report = message.workerReport {
+                WorkerReportLine(report.line) { onOpenWorker(report.workerID) }
+                    .padding(.top, entry.topSpacing)
+            } else {
+                messageBody(entry)
+            }
         }
+    }
+
+    private func messageBody(_ entry: MessageTimelineEntry) -> some View {
+        let message = entry.message
+        let grouping = entry.grouping
+        return MessageTimelineRow(
+            message: message,
+            isContinuation: grouping.isContinuation,
+            showsReplyReference: grouping.showsReplyReference,
+            isHighlighted: highlightedMessageID == message.id,
+            isPressed: message.id == heldMessageID || message.id == actionMessage?.id,
+            attachmentPreview: $attachmentPreview,
+            attachmentTiles: attachmentTiles,
+            visualHeights: visualHeights,
+            reactionBoard: reactionBoard,
+            onOpenInlineReply: revealInlineReply,
+            onOpenAttachment: onOpenAttachment,
+            accessibilityActions: accessibilityActions(for: message),
+            style: entry.style
+        )
+        .padding(.top, entry.topSpacing)
     }
 
     func revealInlineReply(_ reference: MessageReplyReferencePresentation) {

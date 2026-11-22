@@ -111,7 +111,7 @@ struct WorkerFollowUpComposer: View {
                 stopHeldFor = heldTurn
             } catch {
                 sending = false
-                failure = "Could not send the follow-up"
+                failure = (error as? LocalizedError)?.errorDescription ?? "Could not send the follow-up"
             }
         }
     }

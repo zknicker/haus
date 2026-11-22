@@ -8,6 +8,7 @@ extension ChatScreenView {
     /// dragged transcript never puts a sharp row below the composer.
     var composer: some View {
         VStack(spacing: 0) {
+            WorkPillSlot(state: workPill, open: onOpenWork)
             ChatComposerStatus(peerAgentID: chat.kind.peerAgentID)
             MessageComposerView(
                 text: $draft,

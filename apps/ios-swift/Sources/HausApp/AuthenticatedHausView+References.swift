@@ -11,6 +11,15 @@ extension AuthenticatedHausView {
         InAppReferenceRoutes.openTask = { reference in
             router.open(.task(taskID: reference.taskID))
         }
+        InAppReferenceRoutes.openWorker = { workerID in
+            router.open(.worker(workerID: workerID))
+        }
+        InAppReferenceRoutes.openPullRequest = { url in
+            guard let pullRequest = PullRequestLookup.find(url: url, in: store.knownPullRequests(now: .now)) else {
+                return nil
+            }
+            return { router.open(.pullRequest(pullRequest.reading)) }
+        }
         ArtifactPageReader.read = { [store] agentID, path in
             try await store.readArtifactPage(agentID: agentID, path: path)
         }

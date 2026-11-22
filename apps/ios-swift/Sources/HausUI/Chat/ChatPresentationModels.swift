@@ -175,6 +175,8 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     /// The Reminder or Trigger fire this message answers, when it answers one.
     public let cause: MessageCausePresentation?
     public let tasks: [TaskPreviewPresentation]
+    /// A Worker report, which a Task chat draws as one centered line.
+    public let workerReport: MessageWorkerReport?
 
     public init(
         id: String,
@@ -192,9 +194,11 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         richBlocks: [RichMessageBlock]? = nil,
         visualBody: VisualMessageBody? = nil,
         cause: MessageCausePresentation? = nil,
-        tasks: [TaskPreviewPresentation] = []
+        tasks: [TaskPreviewPresentation] = [],
+        workerReport: MessageWorkerReport? = nil
     ) {
         self.tasks = tasks
+        self.workerReport = workerReport
         let body = Self.body(content: content)
         // Fences are split off the resolved body before anything renders it:
         // the message content IS the visual, and the prose above the cards is

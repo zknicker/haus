@@ -43,6 +43,28 @@ public struct WorkerReportLinePresentation: Hashable, Sendable {
     }
 }
 
+/// A Task chat message that carries a Worker turn's report, drawn as its line.
+public struct MessageWorkerReport: Hashable, Sendable {
+    public let workerID: String
+    public let line: WorkerReportLinePresentation
+
+    /// Reads the line from the linked Worker when the message carries it, and
+    /// from the report's own outcome when it does not.
+    public init(workerID: String, turnID: String, outcome: WorkerReportOutcome, worker: Worker?) {
+        self.workerID = workerID
+        if let worker, let line = WorkerReportLinePresentation(worker: worker, turnId: turnID) {
+            self.line = line
+            return
+        }
+        let words: WorkerReportLinePresentation.Outcome = switch outcome {
+        case .done: .finished
+        case .needsYou: .needsYou
+        case .failed: .failed
+        }
+        line = WorkerReportLinePresentation(title: worker?.title, outcome: words, span: nil, pullRequestCount: 0)
+    }
+}
+
 /// The report line view: tapping it opens the Worker.
 public struct WorkerReportLine: View {
     private let presentation: WorkerReportLinePresentation

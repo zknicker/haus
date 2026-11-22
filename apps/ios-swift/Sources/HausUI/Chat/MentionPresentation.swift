@@ -180,6 +180,8 @@ public struct RichReferencePresentation: Hashable, Sendable {
         case .sharedArtifact: SharedArtifactLinkTarget(key: id)?.inAppURL
         // In-app too: `InAppReferenceRoutes` pushes the Task.
         case .task: TaskReferenceTarget(taskID: id).url
+        // In-app too: `InAppReferenceRoutes` pushes the Worker.
+        case .cloudAgentWork: URL(string: "worker://\(id.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? id)")
         default: nil
         }
     }
