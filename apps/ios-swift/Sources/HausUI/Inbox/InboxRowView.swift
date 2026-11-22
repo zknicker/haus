@@ -121,7 +121,7 @@ struct InboxMarkView: View {
         case .channel(let appearance):
             ChannelIconBox(appearance: appearance, size: size)
         case .cloudAgent(let provider, let isRunning):
-            CloudAgentMark(provider: provider, size: size * 0.5, style: .glyph)
+            WorkerMark(provider: provider, size: size * 0.5, style: .glyph)
                 .frame(width: size, height: size)
                 .background(
                     ChannelIconBox.mutedFill(colorScheme),

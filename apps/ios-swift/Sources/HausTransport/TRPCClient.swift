@@ -1,4 +1,5 @@
 import Foundation
+import HausModels
 
 /// A small, dependency-free client for the subset of tRPC used by the iPhone
 /// app. Queries and mutations intentionally use one POST per operation; this

@@ -101,7 +101,7 @@ extension HausStore {
                 let runtimeConfiguration = SettingsAgentRuntimeConfiguration(
                     desired: desiredConfiguration,
                     effective: effectiveConfiguration,
-                    runtimes: computer?.reportedInventory?.runtimes.map(SettingsRuntime.init) ?? [],
+                    runtimes: (modelConnections?.runtimeCatalog ?? []).map(SettingsRuntime.init),
                     computerHealth: computer?.health,
                     status: agent.status,
                     canEdit: canManageServer

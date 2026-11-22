@@ -37,7 +37,7 @@ public enum InboxActorName {
 /// surface already states elapsed time in: `45s`, `25m`, `2h`, `2h 5m`.
 public enum InboxElapsed {
     public static func label(since start: Date, now: Date) -> String {
-        CloudAgentPresentation.duration(seconds: Int(now.timeIntervalSince(start)))
+        WorkerPresentation.duration(seconds: Int(now.timeIntervalSince(start)))
     }
 }
 

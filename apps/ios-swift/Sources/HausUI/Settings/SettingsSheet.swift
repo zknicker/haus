@@ -40,7 +40,7 @@ public enum AppearancePreference: String, CaseIterable, Hashable, Sendable {
 public struct SettingsSheet: View {
     @Environment(\.dismiss) var dismiss
     let persistence: SettingsPersistence
-    let cloudAgentActions: CloudAgentSettingsActions
+    let cloudAgentActions: WorkerSettingsActions
     let automations: AgentAutomationsActions
     let stoppedClaims: AgentStoppedClaimsActions
     let onSignOut: SettingsSignOut?
@@ -59,7 +59,7 @@ public struct SettingsSheet: View {
     public init(
         data: SettingsData = SettingsFixtures.data,
         persistence: SettingsPersistence = .preview,
-        cloudAgentActions: CloudAgentSettingsActions = .unavailable,
+        cloudAgentActions: WorkerSettingsActions = .unavailable,
         automations: AgentAutomationsActions = .preview,
         stoppedClaims: AgentStoppedClaimsActions = .unavailable,
         notifications: PushNotificationsSetting = PushNotificationsSetting(),

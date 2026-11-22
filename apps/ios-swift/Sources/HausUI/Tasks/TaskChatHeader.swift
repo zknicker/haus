@@ -37,7 +37,7 @@ struct TaskChatHeader: View {
             }
 
             ForEach(header.attachedWork.cloudAgents) { agent in
-                TaskCloudAgentRow(
+                TaskWorkerRow(
                     agent: agent,
                     isExpanded: expandedAgentID == agent.id,
                     onToggle: { toggle(agent.id) }
@@ -59,8 +59,8 @@ struct TaskChatHeader: View {
     }
 }
 
-private struct TaskCloudAgentRow: View {
-    let agent: CloudAgentPresentation
+private struct TaskWorkerRow: View {
+    let agent: WorkerPresentation
     let isExpanded: Bool
     let onToggle: () -> Void
 
@@ -68,7 +68,7 @@ private struct TaskCloudAgentRow: View {
         VStack(alignment: .leading, spacing: 8) {
             Button(action: onToggle) {
                 HStack(alignment: .top, spacing: 10) {
-                    CloudAgentMark(provider: agent.work.provider, size: 28)
+                    WorkerMark(provider: agent.work.provider, size: 28)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(agent.work.title)
                             .font(.subheadline.weight(.semibold))
@@ -98,7 +98,7 @@ private struct TaskCloudAgentRow: View {
             .accessibilityHint(isExpanded ? "Hides the cloud agent card" : "Shows the cloud agent card")
 
             if isExpanded {
-                CloudAgentCard(agent: agent)
+                WorkerCard(agent: agent)
                     .transition(.opacity)
             }
         }
@@ -106,7 +106,7 @@ private struct TaskCloudAgentRow: View {
 
     private var statusColor: Color {
         switch agent.newestRun?.status ?? agent.work.status {
-        case .pendingInput: CloudAgentTone.warning
+        case .pendingInput: WorkerTone.warning
         case .failed: .red
         case .running, .queued: .accentColor
         case .completed, .cancelled, .expired: .secondary

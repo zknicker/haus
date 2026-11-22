@@ -6,7 +6,7 @@ import Testing
 struct InboxHappeningNowRowsTests {
     private let now = Date(timeIntervalSince1970: 1_800_000_000)
 
-    @Test func leadsWithCloudAgentWorkAndStatesElapsedTime() throws {
+    @Test func leadsWithWorkerAndStatesElapsedTime() throws {
         let rows = try #require(InboxHappeningNowRows.rows(
             work: [InboxFixtures.activeWork(startedAt: Date(timeIntervalSince1970: 1_799_998_500))],
             agents: [
@@ -119,12 +119,12 @@ struct InboxHappeningNowRowsTests {
     }
 
     @Test func formatsElapsedTimeTheWayEveryOtherHausSurfaceDoes() {
-        #expect(CloudAgentPresentation.duration(seconds: 0) == "0s")
-        #expect(CloudAgentPresentation.duration(seconds: 59) == "59s")
-        #expect(CloudAgentPresentation.duration(seconds: 60) == "1m")
-        #expect(CloudAgentPresentation.duration(seconds: 3_599) == "59m")
-        #expect(CloudAgentPresentation.duration(seconds: 7_200) == "2h")
-        #expect(CloudAgentPresentation.duration(seconds: 7_500) == "2h 5m")
+        #expect(WorkerPresentation.duration(seconds: 0) == "0s")
+        #expect(WorkerPresentation.duration(seconds: 59) == "59s")
+        #expect(WorkerPresentation.duration(seconds: 60) == "1m")
+        #expect(WorkerPresentation.duration(seconds: 3_599) == "59m")
+        #expect(WorkerPresentation.duration(seconds: 7_200) == "2h")
+        #expect(WorkerPresentation.duration(seconds: 7_500) == "2h 5m")
     }
 }
 

@@ -32,7 +32,7 @@ enum InboxFixtures {
         job: String? = nil,
         agentName: String = "Blippy",
         agentID: String = "agent_blippy"
-    ) -> ActiveCloudAgentWork {
+    ) -> ActiveWorker {
         let started = quoted(HausISO8601.string(from: startedAt))
         let job = job ?? #"{"followUp":null,"startedAt":\#(started),"state":"working"}"#
         return decode(

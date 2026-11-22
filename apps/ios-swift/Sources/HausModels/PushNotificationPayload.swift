@@ -59,6 +59,84 @@ public struct PushNotificationPayload: Sendable, Equatable {
     }
 }
 
+public struct PushTaskAssignment: Sendable, Equatable {
+    public let serverID: String
+    public let taskID: String
+    public let key: String
+
+    public init?(userInfo: [AnyHashable: Any]) {
+        guard userInfo["kind"] as? String == "task_assignment",
+              let serverID = PushUserInfo.id(userInfo["serverId"]),
+              let taskID = PushUserInfo.id(userInfo["taskId"]),
+              let key = (userInfo["key"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              key.wholeMatch(of: /[A-Z][A-Z0-9]{1,4}-[1-9][0-9]*/) != nil
+        else { return nil }
+        self.serverID = serverID
+        self.taskID = taskID
+        self.key = key
+    }
+}
+
+public struct PushTaskAssignmentBurst: Sendable, Equatable {
+    public let serverID: String
+    public let count: Int
+
+    public init?(userInfo: [AnyHashable: Any]) {
+        guard userInfo["kind"] as? String == "task_assignment_burst",
+              let serverID = PushUserInfo.id(userInfo["serverId"]),
+              let count = PushUserInfo.integer(userInfo["count"]),
+              count >= 2
+        else { return nil }
+        self.serverID = serverID
+        self.count = count
+    }
+}
+
+public enum HausPush: Sendable, Equatable {
+    case message(PushNotificationPayload)
+    case taskAssignment(PushTaskAssignment)
+    case taskAssignmentBurst(PushTaskAssignmentBurst)
+
+    public init?(userInfo: [AnyHashable: Any]) {
+        switch userInfo["kind"] as? String {
+        case "task_assignment":
+            guard let push = PushTaskAssignment(userInfo: userInfo) else { return nil }
+            self = .taskAssignment(push)
+        case "task_assignment_burst":
+            guard let push = PushTaskAssignmentBurst(userInfo: userInfo) else { return nil }
+            self = .taskAssignmentBurst(push)
+        case nil:
+            guard let push = PushNotificationPayload(userInfo: userInfo) else { return nil }
+            self = .message(push)
+        default:
+            return nil
+        }
+    }
+
+    public var serverID: String {
+        switch self {
+        case let .message(push): push.serverID
+        case let .taskAssignment(push): push.serverID
+        case let .taskAssignmentBurst(push): push.serverID
+        }
+    }
+}
+
+enum PushUserInfo {
+    static func id(_ value: Any?) -> String? {
+        guard let value = (value as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !value.isEmpty
+        else { return nil }
+        return value
+    }
+
+    static func integer(_ value: Any?) -> Int? {
+        guard let number = value as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID() else { return nil }
+        let integer = number.intValue
+        return Double(integer) == number.doubleValue ? integer : nil
+    }
+}
+
 public enum PushNotificationRoute: Sendable, Equatable {
     case chat(chatID: String)
     case task(taskID: String, chatID: String)

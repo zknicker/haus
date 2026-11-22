@@ -8,7 +8,7 @@ final class RealtimeStreamRestartsTests: XCTestCase {
     /// The iPhone's focused subscriptions, `taskLabel.onUpdated` and the
     /// `server.onUpdated` membership sentinel included.
     func testTheIPhoneSubscribesToEveryFocusedChatStream() {
-        XCTAssertEqual(Set(RealtimeStream.allCases.map(\.path)), [
+        XCTAssertEqual(Set(RealtimeStream.liveSession.map(\.path)), [
             "chat.onMessageCreated", "chat.onMessageReactionUpdated", "chat.onRead",
             "chat.onLifecycle", "worker.onUpdated",
             "claim.onChanged", "taskLabel.onUpdated", "task.onCreated",
@@ -154,7 +154,7 @@ final class RealtimeStreamRestartsTests: XCTestCase {
         XCTAssertEqual(RealtimeStream.taskFollowUpdated.ownedProjections, [.unreadTasks])
         XCTAssertEqual(
             RealtimeStream.cloudAgentWorkUpdated.ownedProjections,
-            [.openTranscripts, .chatList, .activeCloudAgentWork]
+            [.openTranscripts, .chatList, .activeWorkers]
         )
         XCTAssertEqual(RealtimeStream.chatLifecycle.ownedProjections, [.chatList])
         XCTAssertEqual(RealtimeStream.agentLifecycle.ownedProjections, [.agentAvailability, .serverUsage])

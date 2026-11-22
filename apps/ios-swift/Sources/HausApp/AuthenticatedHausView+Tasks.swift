@@ -30,8 +30,8 @@ extension AuthenticatedHausView {
         openCanvasChat(.chat(reminder.anchorChatID))
     }
 
-    var cloudAgentCancel: CloudAgentCancelAction? {
+    var cloudAgentCancel: WorkerCancelAction? {
         guard store.canManageServer else { return nil }
-        return CloudAgentCancelAction { [store] workID in try await store.cancelCloudAgent(workID: workID) }
+        return WorkerCancelAction { [store] workID in try await store.cancelWorker(workID: workID) }
     }
 }

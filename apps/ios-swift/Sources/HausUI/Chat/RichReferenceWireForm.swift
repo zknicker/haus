@@ -39,9 +39,9 @@ public enum RichReferenceWireForm {
         if !target.contains("?"), let id = schemeID(target, scheme: "chat") {
             return RichReferenceTarget(kind: .channel, id: id, label: nil)
         }
-        if let id = CloudAgentWorkLink.workID(target: target) {
+        if let id = WorkerMarkdownLink.workID(target: target) {
             // The link text is the escaped work title; read it back unescaped.
-            return RichReferenceTarget(kind: .cloudAgentWork, id: id, label: CloudAgentWorkLink.unescapedLabel(text))
+            return RichReferenceTarget(kind: .cloudAgentWork, id: id, label: WorkerMarkdownLink.unescapedLabel(text))
         }
         // The App accepts a bare `plugin://` where every other scheme needs an
         // identity after it, so the prefix alone is the whole test.

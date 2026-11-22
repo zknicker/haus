@@ -98,26 +98,25 @@ public struct ChatLifecycleEvent: Decodable, Sendable, Equatable {
     }
 }
 
-/// `cloudAgentWork.onUpdated`: one Cloud Agent work changed. The Server sends
-/// one event per linking Message in a live Chat; `chatID`/`messageID` name
-/// that linking Message (ADR 0044).
-public struct CloudAgentWorkUpdatedEvent: Decodable, Sendable, Equatable {
+/// `worker.onUpdated`: one Worker record changed, scoped to the readers of its
+/// Task's Chat (`chatID`).
+public struct WorkerUpdatedEvent: Decodable, Sendable, Equatable {
     public let serverID: String
     public let chatID: String
-    public let messageID: String
+    public let taskID: String
     public let workID: String
 
-    public init(serverID: String, chatID: String, messageID: String, workID: String) {
+    public init(serverID: String, chatID: String, taskID: String, workID: String) {
         self.serverID = serverID
         self.chatID = chatID
-        self.messageID = messageID
+        self.taskID = taskID
         self.workID = workID
     }
 
     enum CodingKeys: String, CodingKey {
         case serverID = "serverId"
         case chatID = "chatId"
-        case messageID = "messageId"
+        case taskID = "taskId"
         case workID = "workerId"
     }
 }
@@ -130,7 +129,7 @@ public enum ChatRealtimeEvent: Sendable, Equatable {
     case lifecycle(ChatLifecycleEvent)
     case claimChanged(ClaimChangedEvent)
     case taskLabelUpdated(TaskLabelUpdatedEvent)
-    case cloudAgentWorkUpdated(CloudAgentWorkUpdatedEvent)
+    case cloudAgentWorkUpdated(WorkerUpdatedEvent)
     case taskChanged(TaskChangedEvent)
     case taskFollowUpdated(TaskFollowUpdatedEvent)
 

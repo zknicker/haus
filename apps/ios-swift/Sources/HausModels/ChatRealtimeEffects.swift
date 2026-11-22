@@ -25,7 +25,7 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
     /// Chats whose read moved; the Chat list read is skipped when it already
     /// shows each of them with nothing unread.
     public private(set) var readChatIDs: Set<String> = []
-    public private(set) var reloadsActiveCloudAgentWork = false
+    public private(set) var reloadsActiveWorkers = false
     public private(set) var cloudAgentWorkChatIDs: Set<String> = []
     public private(set) var cloudAgentWorkIDs: Set<String> = []
     public private(set) var changedLabelIDs: Set<String> = []
@@ -90,7 +90,7 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
     mutating func absorb(lifecycle event: ChatLifecycleEvent) {
         if event.action == .deleted {
             deletedChatIDs.insert(event.chatID)
-            reloadsActiveCloudAgentWork = true
+            reloadsActiveWorkers = true
         }
         reloadsChatList = true
     }
@@ -115,11 +115,11 @@ public struct ChatRealtimeEffects: Sendable, Equatable {
         reloadsUnreadTasks = true
     }
 
-    mutating func absorb(cloudAgentWork event: CloudAgentWorkUpdatedEvent) {
-        entityRefreshes.insert(EntityRefresh(chatID: event.chatID, messageID: event.messageID))
+    mutating func absorb(cloudAgentWork event: WorkerUpdatedEvent) {
+        changedTaskIDs.insert(event.taskID)
         cloudAgentWorkIDs.insert(event.workID)
         cloudAgentWorkChatIDs.insert(event.chatID)
-        reloadsActiveCloudAgentWork = true
+        reloadsActiveWorkers = true
     }
 
     /// Whether the batch needs a Chat list read, given what the settled list

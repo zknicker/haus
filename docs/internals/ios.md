@@ -164,7 +164,8 @@ Reminder detail (with `reminder.runs` and Cancel Reminder) or a read-only Trigge
 `trigger.runs`). Trigger authoring and the Agent-wide history drawers stay in the App.
 
 Owners and Admins can edit an Agent's runtime, model, and reasoning in its Settings profile through
-`agent.configure`. Choices come from its assigned Computer's reported inventory. The native reasoning
+`agent.configure`. Choices come from the runner catalog `modelConnections.list` reports
+(`runnerModels`), as on the web; a Server without one offers none. The native reasoning
 contract includes `default`, `low`, `medium`, `high`, `xhigh`, and `max`; `default` means the model is
 not configurable, rather than an extra automatic-effort choice. A model change keeps a supported
 effort or selects the model's concrete default. The editor explains next-turn application and the
@@ -175,7 +176,7 @@ Computer owns the Cursor sign-in attempt and credentials. The phone presents the
 sign-in link, checks progress while the screen is active, and supports cancellation and retry after
 failure or expiry. Returning from the browser refreshes the attempt; leaving the screen does not
 cancel it. A later visit can resume the pending attempt on the same Computer.
-The screen's Model row reads `cloudAgentSettings.get` and pushes a searchable list: Auto (Cursor picks a model for each run) first, then the reported Cursor catalog in family sections (Claude, GPT, Gemini, Grok, Composer, Other) in Cursor's order. Below it, an Effort picker (a menu for five or fewer options, a pushed list for more) and a Fast toggle appear only when the chosen model offers them, starting at the saved param or the model's default. Picking a model saves `params: {}`; picking a param's default value leaves it unset; every edit saves immediately through `cloudAgentSettings.setModel` (Owners and Admins) and shows in place until the Server answers. Members read the values. An unavailable saved model, a saved param the model no longer offers, a missing catalog, and save failures are explained in the section footer. The Model row is a custom navigation row, not a stock `Picker`, so a long value stacks and wraps instead of truncating. `CloudAgentModelChoice` owns the list, control, and footer logic.
+The screen's Model row reads `cloudAgentSettings.get` and pushes a searchable list: Auto (Cursor picks a model for each run) first, then the reported Cursor catalog in family sections (Claude, GPT, Gemini, Grok, Composer, Other) in Cursor's order. Below it, an Effort picker (a menu for five or fewer options, a pushed list for more) and a Fast toggle appear only when the chosen model offers them, starting at the saved param or the model's default. Picking a model saves `params: {}`; picking a param's default value leaves it unset; every edit saves immediately through `cloudAgentSettings.setModel` (Owners and Admins) and shows in place until the Server answers. Members read the values. An unavailable saved model, a saved param the model no longer offers, a missing catalog, and save failures are explained in the section footer. The Model row is a custom navigation row, not a stock `Picker`, so a long value stacks and wraps instead of truncating. `WorkerModelChoice` owns the list, control, and footer logic.
 
 Server-provided relative avatar URLs resolve against the configured Server origin, including local
 development; no Swift surface hardcodes the production host or substitutes local seeded artwork.
@@ -913,11 +914,11 @@ Admin inspect, connect, or disconnect Cursor on a selected Computer. Connecting 
 sign-in browser on that Computer, not on the phone; iOS never receives the credential.
 
 Each Message's `workers` annotation (decoded as `cloudAgentWork`) supplies one inline card per linked Worker in
-a Chat or Task (`ChatMessageCloudAgentWork.swift`); the card names the Agent from the work's
+a Chat or Task (`ChatMessageWorkers.swift`); the card names the Agent from the work's
 `agentId`, and `RichMessageParser` reads `worker://` links as reference chips. Cards follow the
 [card contract](../../specs/cloud-agents.md): the Server's `job` headlines in Cursor's vocabulary
 (never "Queued"), an optional PR row, exactly one single-line status line
-(`CloudAgentStatusLine`), and View PR / Open in Cursor / a chevron menu with Copy link and, for
+(`WorkerStatusLine`), and View PR / Open in Cursor / a chevron menu with Copy link and, for
 Owners/Admins, Cancel run. Missing diff evidence stays absent, not zero.
 `worker.updated`, sent once per linking Message, refreshes that Message through the normal durable event/reconnect path; a deleted Chat reloads the active work
 list, since linked work outlives it. Cards scroll with their Messages and follow-ups update the same card.
@@ -954,7 +955,7 @@ has a Chat, the screen is blank rather than guessing. A Task with a Chat opens a
 the Chat timeline's own rows and the iPhone composer, under `TaskChatHeader`, a band in the layout
 above the transcript (never over it) with the Task's title, which wraps at every size, its state
 disc and words, and the work attached to it — each Worker with its newest turn's status and
-summary, expanding in place to the full `CloudAgentCard`, and each pull request no Worker card
+summary, expanding in place to the full `WorkerCard`, and each pull request no Worker card
 already shows. At large text sizes the band stops growing at a fraction of the screen and scrolls
 inside itself. A quiet **Started from #channel** row heads the transcript once its oldest page is
 loaded and opens the origin Message in its Channel. The Task's Chat is the open Chat while the
@@ -1029,7 +1030,7 @@ carries the key and state, `SEC-12 · Open`, and wraps rather than truncates at 
 then the quote. Like every Unread row it carries no count — being in the section is the dot. A Worker row is
 the work's title (`Cloud work` when untitled), its job status (`Working · 3m`, `Working · 1h 59m`,
 or `Follow-up waiting · 2m` for a settled job listed only for its live follow-up —
-`CloudAgentPresentation.duration`, the App's `formatWorkerDuration`, whose hours never roll
+`WorkerPresentation.duration`, the App's `formatWorkerDuration`, whose hours never roll
 into days), and `#channel · Agent`; the provider glyph, boxed like a Channel mark, already says
 it is Cloud work, and carries a presence-style dot — yellow running, gray queued. An Agent mid-turn is its name, time in its step, and the step itself. The page is a stock `.insetGrouped` `List`, so an Unread
 row marks read with a trailing swipe (swipe-left; `.swipeActions(edge: .trailing)`, full swipe
@@ -1186,7 +1187,10 @@ contract and `specs/realtime-events.md` the normative spec; this is the iPhone's
 `chat.onMessageCreated`, `chat.onMessageReactionUpdated`, `chat.onRead`,
 `chat.onLifecycle`, `worker.onUpdated`, `claim.onChanged`, `taskLabel.onUpdated`,
 `task.onCreated`, `task.onUpdated`, `task.onFollowUpdated`, `agent.onLifecycle`, `agent.onActivity`, `computer.onUpdated`, and `server.onUpdated`, the
-membership sentinel. `computer.onUpdated` owns Agent presence beside the lifecycle stream: after a
+membership sentinel. These are `RealtimeStream.liveSession`. The other cases (`project.onUpdated`,
+`agent.onUpdated`, `agent.onExecutionJournal`, `artifact.onUpdated`, `modelConnections.onUpdated`)
+are modeled with their payloads but not subscribed until a surface reads what they invalidate.
+`worker.onUpdated` names the Worker's Task, and refreshes that Task's held detail. `computer.onUpdated` owns Agent presence beside the lifecycle stream: after a
 Server restart the streams resubscribe before the Computer reattaches, so their start reads an
 offline Agent list, and only the attach's `computer.updated` says presence came back. Its events
 run the same coalesced owned-projection pass a start does (Agent list and activity, Computers, and
@@ -1443,7 +1447,10 @@ UI, and its in-memory Store cache. When connectivity is lost, persistent UI rend
 already present in that cache.
 
 Shared wire contracts and model projections belong in `HausModels`; authenticated operations,
-realtime delivery, and recovery belong in `HausTransport`. `HausUI` receives narrow models and
+realtime delivery, and recovery belong in `HausTransport`. Each Server procedure the phone calls
+through the typed path is a `HausProcedure<Input, Output>` in a per-area namespace
+(`TaskProcedures`, `WorkerProcedures`, `ProjectProcedures`, `AgentProcedures`, `DriveProcedures`,
+`ModelConnectionProcedures`), and `TRPCClient.call` runs it. `HausUI` receives narrow models and
 closures from `HausApp` rather than owning Server transport or inventing mobile-only records.
 
 The Chat timeline uses cursor-based pages. Live events trigger targeted reads, and every stream start

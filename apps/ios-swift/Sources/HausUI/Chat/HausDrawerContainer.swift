@@ -51,7 +51,7 @@ struct HausDrawerEnvironment: ViewModifier {
     private let scenePhase: ScenePhase
     private let opensWithEntrance: Bool
     private let reactionStickers: ReactionStickerBoard?
-    private let cloudAgentCancel: CloudAgentCancelAction?
+    private let cloudAgentCancel: WorkerCancelAction?
     private let chatEngagementSource: ChatEngagementSource?
     private let stoppedAgentSource: StoppedAgentSource?
 

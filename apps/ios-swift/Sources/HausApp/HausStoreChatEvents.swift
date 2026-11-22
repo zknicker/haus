@@ -50,7 +50,7 @@ extension HausStore {
         // A work change reaches every loaded Message that links it, not only
         // the linking Messages the Server's events named.
         let entityRefreshes = effects.entityRefreshes
-            .union(transcripts.refreshes(carryingCloudAgentWork: effects.cloudAgentWorkIDs))
+            .union(transcripts.refreshes(carryingWorkers: effects.cloudAgentWorkIDs))
         for refresh in entityRefreshes where !deletedChatIDs.contains(refresh.chatID) {
             refreshEntity(refresh)
         }
@@ -61,10 +61,10 @@ extension HausStore {
         let readsChatList = effects.needsChatListRead { unreadByChatID[$0] }
         // Inbox snapshots refresh only when this client already holds them:
         // an event must not start a Server-wide read nobody has opened.
-        let readsWork = effects.reloadsActiveCloudAgentWork && activeCloudAgentWork != nil
+        let readsWork = effects.reloadsActiveWorkers && activeWorkers != nil
         await withTaskGroup(of: Void.self) { group in
             if readsChatList { group.addTask { await self.refreshChatList(serverID: serverID) } }
-            if readsWork { group.addTask { await self.loadActiveCloudAgentWork() } }
+            if readsWork { group.addTask { await self.loadActiveWorkers() } }
             group.addTask { await self.applyTaskEffects(effects) }
             group.addTask { await self.applyTaskPlaceEffects(effects) }
         }
@@ -130,8 +130,8 @@ extension HausStore {
             if projections.contains(.unreadTasks), taskSnapshots.unreadTasks != nil {
                 group.addTask { await self.loadUnreadTasks() }
             }
-            if projections.contains(.activeCloudAgentWork), activeCloudAgentWork != nil {
-                group.addTask { await self.loadActiveCloudAgentWork() }
+            if projections.contains(.activeWorkers), activeWorkers != nil {
+                group.addTask { await self.loadActiveWorkers() }
             }
             if projections.contains(.agentAvailability) {
                 group.addTask { await self.reloadAgentAvailability(serverID: serverID) }

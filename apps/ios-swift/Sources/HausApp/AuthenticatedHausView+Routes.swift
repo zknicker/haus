@@ -22,7 +22,7 @@ extension AuthenticatedHausView {
             greetingName: store.inboxGreetingName,
             agentWeeks: store.inboxAgentWeeks(),
             unread: store.inboxUnreadRows,
-            cloudAgentWork: store.activeCloudAgentWork,
+            cloudAgentWork: store.activeWorkers,
             workingAgents: store.inboxWorkingAgents,
             resolveActor: { agentID, userID in
                 store.actorPresentation(agentID: agentID, userID: userID)
@@ -51,14 +51,14 @@ extension AuthenticatedHausView {
         case .chat(let chatID):
             openCanvasChat(.chat(chatID))
         case .cloudAgentWork(let workID):
-            guard let work = store.activeCloudAgentWork?.first(where: { $0.work.id == workID }) else { return }
-            openCloudAgentWork(work)
+            guard let work = store.activeWorkers?.first(where: { $0.work.id == workID }) else { return }
+            openWorker(work)
         case .task(let taskID):
             openTask(taskID)
         }
     }
 
-    private func openCloudAgentWork(_ work: ActiveCloudAgentWork) {
+    private func openWorker(_ work: ActiveWorker) {
         switch work.location {
         case .task(_, let taskID):
             openTask(taskID)
