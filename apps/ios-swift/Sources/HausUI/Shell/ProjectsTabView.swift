@@ -1,147 +1,147 @@
 import SwiftUI
 
-/// The Projects tab's root. Until Projects is rebuilt it hosts the drawer's
-/// list as it was: Projects with `#all`, then People and Captain DMs, then
-/// Archived.
+/// What the Projects tab does with a row.
+public struct ProjectsTabActions {
+    let open: (String) -> Void
+    let markRead: (String) -> Void
+    let openDetails: (String) -> Void
+    let openSettings: (String) -> Void
+    let openArchived: () -> Void
+    let newProject: () -> Void
+    let refresh: () async -> Void
+
+    /// - Parameters:
+    ///   - open: a Project's or a DM's Chat id.
+    ///   - openSettings: a Project's id.
+    public init(
+        open: @escaping (String) -> Void,
+        markRead: @escaping (String) -> Void,
+        openDetails: @escaping (String) -> Void,
+        openSettings: @escaping (String) -> Void,
+        openArchived: @escaping () -> Void,
+        newProject: @escaping () -> Void,
+        refresh: @escaping () async -> Void
+    ) {
+        self.open = open
+        self.markRead = markRead
+        self.openDetails = openDetails
+        self.openSettings = openSettings
+        self.openArchived = openArchived
+        self.newProject = newProject
+        self.refresh = refresh
+    }
+}
+
+/// The Projects tab's root: the joined Projects with their Captains, open
+/// Task counts, and unread dots, then `#all`, People, and Archived.
 public struct ProjectsTabView: View {
-    private static let listInset: CGFloat = 8
-    private static let rowCapsuleBleed: CGFloat = 12
-
-    private let destinations: [ChatDestination]
+    private let projects: [ProjectRowPresentation]
+    private let people: [PersonRowPresentation]
+    private let captains: [CaptainIdentity]
+    private let archivedCount: Int?
     private let isLoaded: Bool
-    private let onOpen: (ChatDestination) -> Void
-    private let onMarkRead: (ChatPresentation) -> Void
-    private let onOpenDetails: (ChatDestination) -> Void
-    private let onOpenArchived: () -> Void
-    private let onNewProject: () -> Void
+    private let actions: ProjectsTabActions
 
-    @ScaledMetric(relativeTo: .body) private var rowGlyphSize: CGFloat = 26
-    @ScaledMetric(relativeTo: .body) private var rowHeight: CGFloat = 42
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @State private var filter = ProjectsFilter()
 
     public init(
-        destinations: [ChatDestination],
+        projects: [ProjectRowPresentation],
+        people: [PersonRowPresentation],
+        captains: [CaptainIdentity],
+        archivedCount: Int?,
         isLoaded: Bool,
-        onOpen: @escaping (ChatDestination) -> Void,
-        onMarkRead: @escaping (ChatPresentation) -> Void,
-        onOpenDetails: @escaping (ChatDestination) -> Void,
-        onOpenArchived: @escaping () -> Void,
-        onNewProject: @escaping () -> Void
+        actions: ProjectsTabActions
     ) {
-        self.destinations = destinations
+        self.projects = projects
+        self.people = people
+        self.captains = captains
+        self.archivedCount = archivedCount
         self.isLoaded = isLoaded
-        self.onOpen = onOpen
-        self.onMarkRead = onMarkRead
-        self.onOpenDetails = onOpenDetails
-        self.onOpenArchived = onOpenArchived
-        self.onNewProject = onNewProject
+        self.actions = actions
     }
 
     public var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 5) {
-                if isLoaded, channels.isEmpty {
-                    emptyProjects
-                } else if !channels.isEmpty {
-                    sectionHeader("Projects")
-                    ForEach(channels) { row($0) }
-                }
-                if !people.isEmpty {
-                    sectionHeader("People").padding(.top, 10)
-                    ForEach(people) { row($0) }
-                }
-                if isLoaded {
-                    archivedRow.padding(.top, 10)
-                }
-            }
-            .padding(.horizontal, Self.listInset)
-            .padding(.bottom, 24)
-            .animation(.snappy(duration: 0.35), value: destinations.map(\.id))
+        TimelineView(.periodic(from: .now, by: 60)) { context in
+            list(now: context.date)
         }
-        .scrollIndicators(.hidden)
-        .background(HausPlatformColor.background)
+        .scrollContentBackground(.hidden)
+        .background(HausPlatformColor.canvas)
+        .refreshable { await actions.refresh() }
+        .task { await actions.refresh() }
         .navigationTitle("Projects")
         .hausInlineNavigationTitle()
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button("New project", systemImage: "plus", action: onNewProject)
+                Button("New project", systemImage: "plus", action: actions.newProject)
             }
         }
     }
 
-    private var channels: [ChatDestination] {
-        destinations.filter { $0.kind.isChannel }
+    private func list(now: Date) -> some View {
+        let shown = filter.apply(projects)
+        return List {
+            ProjectsFilterChips(filter: $filter, captains: captains)
+                .padding(.vertical, 8)
+                .hausPlainRow(margin: 0)
+            if isLoaded, shown.isEmpty {
+                emptyProjects.hausPlainRow()
+            }
+            ForEach(shown) { project in
+                Button { actions.open(project.chatID) } label: { ProjectRow(row: project, now: now) }
+                    .buttonStyle(.plain)
+                    .hausPlainRow()
+                    .contextMenu { menu(for: project) }
+                    .swipeActions(edge: .trailing) { markReadButton(project.isUnread ? project.chatID : nil) }
+            }
+            if !people.isEmpty, !filter.isNarrowed {
+                SectionCountLabel("People", count: people.count).hausSectionLabelRow()
+                ForEach(people) { person in
+                    Button { actions.open(person.chatID) } label: { PersonRow(row: person) }
+                        .buttonStyle(.plain)
+                        .hausPlainRow()
+                        .contextMenu { markReadButton(person.isUnread ? person.chatID : nil) }
+                        .swipeActions(edge: .trailing) { markReadButton(person.isUnread ? person.chatID : nil) }
+                }
+            }
+            if isLoaded, !filter.isNarrowed {
+                Button(action: actions.openArchived) { ArchivedProjectsRow(count: archivedCount) }
+                    .buttonStyle(.plain)
+                    .padding(.top, 20)
+                    .hausPlainRow()
+            }
+        }
+        .listStyle(.plain)
+        .environment(\.defaultMinListRowHeight, 0)
+        .animation(.snappy(duration: 0.35), value: shown)
     }
 
-    private var people: [ChatDestination] {
-        destinations.filter { !$0.kind.isChannel }
+    @ViewBuilder
+    private func menu(for project: ProjectRowPresentation) -> some View {
+        markReadButton(project.isUnread ? project.chatID : nil)
+        Button("Project details", systemImage: "info.circle") { actions.openDetails(project.chatID) }
+        if let projectID = project.projectID, !project.isAll {
+            Button("Project settings", systemImage: "gearshape") { actions.openSettings(projectID) }
+        }
     }
 
-    private var metrics: SidebarRowMetrics {
-        SidebarRowMetrics(
-            glyph: min(rowGlyphSize, 40),
-            rowHeight: rowHeight,
-            capsuleBleed: Self.rowCapsuleBleed,
-            listInset: Self.listInset,
-            isAccessibilitySize: dynamicTypeSize.isAccessibilitySize
-        )
+    @ViewBuilder
+    private func markReadButton(_ chatID: String?) -> some View {
+        if let chatID {
+            Button("Mark Read", systemImage: "envelope.open") { actions.markRead(chatID) }
+                .tint(HausPlatformColor.accent)
+        }
     }
 
     private var emptyProjects: some View {
-        VStack(spacing: 10) {
-            Text("No projects yet")
-                .font(.headline)
-            Text("A project is where people and Captains work together.")
+        VStack(alignment: .leading, spacing: 4) {
+            Text(filter.isNarrowed ? "No projects match" : "No projects yet")
+                .font(.body.weight(.medium))
+                .foregroundStyle(HausPlatformColor.ink)
+            Text(filter.isNarrowed ? "Clear the filter to see every project." : "A project is where people and Captains work together.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            Button("New project", action: onNewProject)
-                .buttonStyle(.glassProminent)
+                .foregroundStyle(HausPlatformColor.mutedInk)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 32)
-    }
-
-    private func sectionHeader(_ title: String) -> some View {
-        Text(title)
-            .font(.body)
-            .foregroundStyle(HausPlatformColor.secondaryLabel)
-            .padding(.horizontal, Self.rowCapsuleBleed)
-            .frame(minHeight: 34)
-            .accessibilityAddTraits(.isHeader)
-    }
-
-    private func row(_ chat: ChatDestination) -> some View {
-        SidebarChatRow(
-            chat: chat,
-            isSelected: false,
-            metrics: metrics,
-            onSelect: { onOpen(chat) },
-            onMarkRead: markReadAction(for: chat),
-            onOpenDetails: { onOpenDetails(chat) }
-        )
-    }
-
-    private var archivedRow: some View {
-        Button(action: onOpenArchived) {
-            HStack(spacing: 10) {
-                Image(systemName: "archivebox")
-                    .frame(width: metrics.glyph, height: metrics.glyph)
-                    .foregroundStyle(HausPlatformColor.secondaryLabel)
-                Text("Archived")
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-            }
-            .sidebarRowFrame(metrics, isSelected: false)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.pressableRow(cornerRadius: metrics.pressRadius))
-    }
-
-    private func markReadAction(for chat: ChatDestination) -> (() -> Void)? {
-        guard chat.unreadCount > 0, let durable = chat.durableChat else { return nil }
-        return { onMarkRead(durable) }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 16)
     }
 }

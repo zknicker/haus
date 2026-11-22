@@ -73,7 +73,6 @@ public struct Project: Decodable, Identifiable, Hashable, Sendable {
     public let chatID: String
     public let defaultWorkerPlace: WorkerPlace?
     public let homeAgentIDs: [String]
-    public let id: String
     public let isHaus: Bool
     public let key: ProjectKey
     public let keyEditable: Bool
@@ -82,12 +81,15 @@ public struct Project: Decodable, Identifiable, Hashable, Sendable {
     public let serverID: String
     public let taskKeyID: String
 
+    /// A Project is its Channel: the wire names it by `chatId`, and every
+    /// `projectId` input takes that id.
+    public var id: String { chatID }
+
     enum CodingKeys: String, CodingKey {
         case archived
         case chatID = "chatId"
         case defaultWorkerPlace
         case homeAgentIDs = "homeAgentIds"
-        case id
         case isHaus
         case key
         case keyEditable
@@ -103,7 +105,6 @@ public struct Project: Decodable, Identifiable, Hashable, Sendable {
         chatID = try container.decode(String.self, forKey: .chatID)
         defaultWorkerPlace = try container.decode(WorkerPlace?.self, forKey: .defaultWorkerPlace)
         homeAgentIDs = try container.decode([String].self, forKey: .homeAgentIDs)
-        id = try container.decode(String.self, forKey: .id)
         isHaus = try container.decode(Bool.self, forKey: .isHaus)
         key = try container.decode(ProjectKey.self, forKey: .key)
         keyEditable = try container.decode(Bool.self, forKey: .keyEditable)

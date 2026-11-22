@@ -44,12 +44,14 @@ public enum HausRoute: Hashable, Sendable {
     case work(HausWorkPlace)
     case driveFile(path: String)
     case settings(SettingsRoute)
+    /// A Project's keys, repos, and default Worker place.
+    case projectSettings(projectID: String)
 
     /// The tab an outside open lands in. Nil opens in the current tab.
     public var homeTab: HausTab? {
         switch self {
         case .captainDM, .dm: .home
-        case .channel: .projects
+        case .channel, .projectSettings: .projects
         case .task: .tasks
         case .settings: .you
         case .worker, .pullRequest, .work, .driveFile: nil
@@ -60,7 +62,7 @@ public enum HausRoute: Hashable, Sendable {
     public var isChat: Bool {
         switch self {
         case .captainDM, .channel, .dm, .task, .worker: true
-        case .pullRequest, .work, .driveFile, .settings: false
+        case .pullRequest, .work, .driveFile, .settings, .projectSettings: false
         }
     }
 
@@ -71,7 +73,7 @@ public enum HausRoute: Hashable, Sendable {
         case let .captainDM(agentID): .captain(agentID)
         case let .channel(chatID, _), let .dm(chatID, _): .chat(chatID)
         case let .task(taskID, _): .task(taskID)
-        case .worker, .pullRequest, .work, .driveFile, .settings: nil
+        case .worker, .pullRequest, .work, .driveFile, .settings, .projectSettings: nil
         }
     }
 

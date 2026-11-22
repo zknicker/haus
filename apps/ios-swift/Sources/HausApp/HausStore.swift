@@ -30,6 +30,7 @@ final class HausStore {
     let tasks: TasksModel
     let captains: CaptainsModel
     let workers: WorkersModel
+    let projects: ProjectsModel
     let drive: DriveModel
     let settingsModel: SettingsModel
     // Everything the memoized Chat projections read that no model owns yet is
@@ -149,6 +150,7 @@ final class HausStore {
         tasks = TasksModel(client: client, scope: scope)
         captains = CaptainsModel(client: client, scope: scope)
         workers = WorkersModel(client: client, scope: scope)
+        projects = ProjectsModel(client: client, scope: scope)
         drive = DriveModel(client: client, scope: scope)
         settingsModel = SettingsModel(client: client, scope: scope)
         connectModelChanges()

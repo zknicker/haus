@@ -1,65 +1,63 @@
 import HausModels
 import SwiftUI
 
-/// The Home tab's root. Until Home is rebuilt it hosts the Inbox sections as
-/// they were (Today, Active this week, Unread, Happening now) under a stock
-/// centered title, with the fresh-Server next steps on top.
+/// The Home tab's root: Captain tiles, then Happening now, Recent, and Open
+/// tasks as plain sections. Unread Chats and followed Task chats surface in
+/// Recent; a fresh Server shows its next steps first.
 public struct HomeTabView: View {
-    private let greetingName: String?
-    private let agentWeeks: [InboxAgentWeek]?
-    private let unread: [InboxUnreadRow]?
-    private let cloudAgentWork: [ActiveWorker]?
-    private let workingAgents: [InboxWorkingAgent]
-    private let resolveActor: InboxActorResolver
     private let firstRun: FirstRunPresentation?
-    private let onOpen: (InboxOpenRequest) -> Void
+    private let tiles: [CaptainTilePresentation]
+    private let workers: [ActiveWorker]?
+    private let recent: [HomeRowPresentation]?
+    private let openTasks: [HomeRowPresentation]?
+    private let tileActions: CaptainTileActions
+    private let onOpen: (HomeRowTarget) -> Void
+    private let onOpenWorker: (ActiveWorker) -> Void
     private let onMarkRead: (String) -> Void
     private let onRefresh: () async -> Void
-    private let onNewTask: () -> Void
-
-    @State private var swipedReadFeedback = 0
+    private let onNewCaptain: (() -> Void)?
 
     public init(
-        greetingName: String?,
-        agentWeeks: [InboxAgentWeek]?,
-        unread: [InboxUnreadRow]?,
-        cloudAgentWork: [ActiveWorker]?,
-        workingAgents: [InboxWorkingAgent],
-        resolveActor: @escaping InboxActorResolver,
         firstRun: FirstRunPresentation?,
-        onOpen: @escaping (InboxOpenRequest) -> Void,
+        tiles: [CaptainTilePresentation],
+        workers: [ActiveWorker]?,
+        recent: [HomeRowPresentation]?,
+        openTasks: [HomeRowPresentation]?,
+        tileActions: CaptainTileActions,
+        onOpen: @escaping (HomeRowTarget) -> Void,
+        onOpenWorker: @escaping (ActiveWorker) -> Void,
         onMarkRead: @escaping (String) -> Void,
         onRefresh: @escaping () async -> Void,
-        onNewTask: @escaping () -> Void
+        onNewCaptain: (() -> Void)?
     ) {
-        self.greetingName = greetingName
-        self.agentWeeks = agentWeeks
-        self.unread = unread
-        self.cloudAgentWork = cloudAgentWork
-        self.workingAgents = workingAgents
-        self.resolveActor = resolveActor
         self.firstRun = firstRun
+        self.tiles = tiles
+        self.workers = workers
+        self.recent = recent
+        self.openTasks = openTasks
+        self.tileActions = tileActions
         self.onOpen = onOpen
+        self.onOpenWorker = onOpenWorker
         self.onMarkRead = onMarkRead
         self.onRefresh = onRefresh
-        self.onNewTask = onNewTask
+        self.onNewCaptain = onNewCaptain
     }
 
     public var body: some View {
-        TimelineView(.periodic(from: .now, by: isCountingUp ? 5 : 60)) { context in
+        TimelineView(.periodic(from: .now, by: workers?.isEmpty == false ? 5 : 60)) { context in
             list(now: context.date)
         }
         .scrollContentBackground(.hidden)
-        .background(HausPlatformColor.groupedBackground)
-        .sensoryFeedback(.success, trigger: swipedReadFeedback)
+        .background(HausPlatformColor.canvas)
         .refreshable { await onRefresh() }
         .task { await onRefresh() }
         .navigationTitle("Home")
         .hausInlineNavigationTitle()
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button("New task", systemImage: "plus", action: onNewTask)
-                    .disabled(firstRun != nil)
+            if let onNewCaptain {
+                ToolbarItem(placement: .primaryAction) {
+                    Button("New Captain", systemImage: "plus", action: onNewCaptain)
+                }
             }
         }
     }
@@ -67,50 +65,53 @@ public struct HomeTabView: View {
     private func list(now: Date) -> some View {
         List {
             if let firstRun {
-                Section { FirstRunPanel(firstRun: firstRun).inboxBareRow() }
+                FirstRunPanel(firstRun: firstRun).hausPlainRow()
             }
-            if let greetingName {
-                Section { greeting(greetingName, now: now).inboxBareRow() }
+            if !tiles.isEmpty {
+                CaptainTilesGrid(tiles: tiles, actions: tileActions)
+                    .padding(.top, 8)
+                    .hausPlainRow()
             }
-            InboxActiveAgentsSection(weeks: agentWeeks, onOpen: onOpen)
-            InboxUnreadSection(
-                rows: unread,
-                now: now,
-                onOpen: onOpen,
-                onMarkRead: onMarkRead,
-                onSwipedRead: { swipedReadFeedback += 1 }
-            )
-            InboxHappeningNowSection(
-                rows: InboxHappeningNowRows.rows(
-                    work: cloudAgentWork,
-                    agents: workingAgents,
-                    now: now,
-                    resolveActor: resolveActor
-                ),
-                onOpen: onOpen
-            )
+            if let workers, !workers.isEmpty {
+                SectionCountLabel("Happening now").hausSectionLabelRow()
+                ForEach(workers) { worker in
+                    WorkerRow(WorkerRowPresentation(worker: worker.work, taskKey: worker.taskKey, now: now)) {
+                        onOpenWorker(worker)
+                    }
+                    .hausPlainRow(margin: 0)
+                }
+            }
+            if let recent, !recent.isEmpty {
+                SectionCountLabel("Recent").hausSectionLabelRow()
+                ForEach(recent) { row($0, now: now) }
+            }
+            if let openTasks, !openTasks.isEmpty {
+                SectionCountLabel("Open tasks", count: openTasks.count).hausSectionLabelRow()
+                ForEach(openTasks) { row($0, now: now) }
+            }
         }
-        #if os(iOS)
-        .listStyle(.insetGrouped)
-        .listSectionSpacing(InboxMetrics.sectionSpacing)
-        #endif
+        .listStyle(.plain)
         .environment(\.defaultMinListRowHeight, 0)
-        .animation(.default, value: unread?.map(\.id))
+        .animation(.default, value: recent)
+        .animation(.default, value: openTasks)
     }
 
-    private func greeting(_ name: String, now: Date) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(InboxToday.greeting(name: name, now: now))
-                .font(.title3.weight(.semibold))
-            Text(InboxToday.dateLabel(now: now))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+    private func row(_ row: HomeRowPresentation, now: Date) -> some View {
+        Button { onOpen(row.target) } label: {
+            HomeRow(row: row, now: now)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, InboxMetrics.rowInset)
-    }
-
-    private var isCountingUp: Bool {
-        !(cloudAgentWork ?? []).isEmpty || !workingAgents.isEmpty
+        .buttonStyle(.plain)
+        .hausPlainRow()
+        .swipeActions(edge: .trailing) {
+            if let chatID = row.markReadChatID {
+                Button("Mark Read", systemImage: "envelope.open") { onMarkRead(chatID) }
+                    .tint(HausPlatformColor.accent)
+            }
+        }
+        .contextMenu {
+            if let chatID = row.markReadChatID {
+                Button("Mark Read", systemImage: "envelope.open") { onMarkRead(chatID) }
+            }
+        }
     }
 }

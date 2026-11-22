@@ -1,0 +1,145 @@
+import Foundation
+import HausAppModel
+import HausModels
+import HausUI
+
+/// Home's and Projects' rows, from the Chat list, the Captains and their live
+/// work, the open Tasks, and the Projects.
+extension HausStore {
+    func captainIdentity(_ agent: AgentSummary) -> CaptainIdentity {
+        CaptainIdentity(id: agent.id, name: agent.displayName, avatarURL: resolvedAvatarURL(agent.avatarURL))
+    }
+
+    var captainTiles: [CaptainTilePresentation] {
+        let unreadAgentIDs = Set((unreadChats ?? []).compactMap(\.peerAgentID))
+        return agents.map { agent in
+            let presence = presence(availability(for: agent))
+            return CaptainTilePresentation(
+                captain: captainIdentity(agent),
+                isWorking: presence == .working || currentActivityByAgentID[agent.id] != nil,
+                isUnread: unreadAgentIDs.contains(agent.id),
+                isResting: CaptainTilePresentation.isResting(presence)
+            )
+        }
+    }
+
+    /// Nil until the Chat list has landed.
+    var homeRecentRows: [HomeRowPresentation]? {
+        guard let unreadChats else { return nil }
+        let openChatIDs = Set((tasks.openTasks ?? []).compactMap(\.chatID))
+        return HomeRecent.items(
+            chats: chats,
+            unreadChatIDs: Set(unreadChats.map(\.id)),
+            unreadTasks: tasks.unreadTasks ?? [],
+            openTaskChatIDs: openChatIDs
+        )
+        .map(homeRow)
+    }
+
+    /// Nil until `task.listOpen` has landed.
+    var homeOpenTaskRows: [HomeRowPresentation]? {
+        tasks.openTasks?.map { task in
+            let captain = task.assignee?.agentID.flatMap { agentsByID[$0] }.map(captainIdentity)
+            let assignee = captain?.name ?? task.assignee?.userID.map(personName)
+            return HomeRowPresentation(
+                id: task.id,
+                lead: .task(task.state),
+                title: task.title,
+                subtitle: [assignee, task.key].compactMap(\.self).joined(separator: " · "),
+                metaCaptain: captain,
+                time: task.updatedAt,
+                timePlacement: .meta,
+                isUnread: task.chatID.map(isUnreadTaskChat) ?? false,
+                target: .task(task.id),
+                markReadChatID: task.chatID
+            )
+        }
+    }
+
+    var projectRows: [ProjectRowPresentation] {
+        let counts = tasks.openTasks.map(ProjectTaskCounts.open)
+        let unreadIDs = Set((unreadChats ?? []).map(\.id))
+        return chats
+            .filter { $0.kind == .channel }
+            .map { chat in
+                ProjectRowPresentation(
+                    chatID: chat.id,
+                    name: chat.name ?? (chat.isAll ? "all" : "Project"),
+                    appearance: ChannelAppearance(icon: chat.icon, color: chat.color),
+                    isAll: chat.isAll,
+                    captains: chat.participantAgentIDs.compactMap { agentsByID[$0] }.map(captainIdentity),
+                    openTaskCount: counts.map { $0[chat.id] ?? 0 },
+                    lastActivityAt: chat.lastMessage?.createdAt ?? chat.lastActivityAt,
+                    isUnread: unreadIDs.contains(chat.id),
+                    projectID: projects.project(chatID: chat.id)?.id
+                )
+            }
+            .sorted { ($0.lastActivityAt ?? .distantPast) > ($1.lastActivityAt ?? .distantPast) }
+    }
+
+    var personRows: [PersonRowPresentation] {
+        let unreadIDs = Set((unreadChats ?? []).map(\.id))
+        return chats.compactMap { chat in
+            guard chat.kind == .dm, let userID = chat.peerUserID else { return nil }
+            return PersonRowPresentation(
+                chatID: chat.id,
+                name: personName(userID),
+                avatarURL: resolvedAvatarURL(membersByID[userID]?.avatarURL),
+                isUnread: unreadIDs.contains(chat.id)
+            )
+        }
+    }
+
+    private func homeRow(_ item: HomeRecent.Item) -> HomeRowPresentation {
+        switch item {
+        case let .chat(chat, isUnread):
+            HomeRowPresentation(
+                id: chat.id,
+                lead: lead(for: chat),
+                title: title(for: chat),
+                subtitle: chat.lastMessage.map {
+                    HomeRowPresentation.preview($0.content, author: chat.kind == .channel ? $0.authorDisplayName : nil)
+                } ?? "",
+                time: item.activityAt,
+                isUnread: isUnread,
+                target: chat.peerAgentID.map(HomeRowTarget.captain) ?? .chat(chat.id),
+                markReadChatID: chat.id
+            )
+        case let .task(preview):
+            HomeRowPresentation(
+                id: preview.chatID,
+                lead: .task(preview.task?.state ?? .unknown),
+                title: preview.task?.title ?? "Task",
+                subtitle: preview.messages.last.map { HomeRowPresentation.preview($0.content, author: nil) } ?? "",
+                time: item.activityAt,
+                isUnread: true,
+                target: preview.task.map { .task($0.taskID) } ?? .chat(preview.chatID),
+                markReadChatID: preview.chatID
+            )
+        }
+    }
+
+    private func lead(for chat: ChatSummary) -> HomeRowLead {
+        if let agentID = chat.peerAgentID {
+            return .captain(agentsByID[agentID].map(captainIdentity)
+                ?? CaptainIdentity(id: agentID, name: title(for: chat), avatarURL: nil))
+        }
+        if let userID = chat.peerUserID {
+            return .person(name: personName(userID), avatarURL: resolvedAvatarURL(membersByID[userID]?.avatarURL))
+        }
+        return .project(ChannelAppearance(icon: chat.icon, color: chat.color))
+    }
+
+    private func title(for chat: ChatSummary) -> String {
+        if let agentID = chat.peerAgentID {
+            return agentsByID[agentID]?.displayName ?? chat.peerAgentDisplayName ?? "Former Captain"
+        }
+        if let userID = chat.peerUserID { return personName(userID) }
+        return chat.name ?? (chat.isAll ? "all" : "Project")
+    }
+
+    private func personName(_ userID: String) -> String {
+        let member = membersByID[userID]
+        return member?.displayName ?? member?.handle ?? member?.email ?? "Former member"
+    }
+}

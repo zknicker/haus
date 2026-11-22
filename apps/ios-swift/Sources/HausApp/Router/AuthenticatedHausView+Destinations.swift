@@ -15,6 +15,8 @@ extension AuthenticatedHausView {
         case .task(let taskID, _):
             taskDestination(taskID)
                 .toolbar(.hidden, for: .tabBar)
+        case .projectSettings(let projectID):
+            projectSettingsDestination(projectID)
         case .worker, .pullRequest, .work, .driveFile, .settings:
             Color.clear
         }
