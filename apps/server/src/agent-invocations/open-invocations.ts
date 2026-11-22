@@ -1,4 +1,4 @@
-import type { DispatchKey, InvokeCommand } from '@haus/api';
+import type { DispatchKey, InvokeCommand, InvokeResult } from '@haus/api';
 import type { ComputerConnections } from '../computers/connections.ts';
 import { desktopActivityTopic } from '../realtime/topics.ts';
 
@@ -43,4 +43,32 @@ export function stopDesktopCommands(
         stopped += 1;
     }
     return stopped;
+}
+
+export function stoppedResult(invocationId: string) {
+    const result: InvokeResult = {
+        invocationId,
+        outcome: 'cancelled',
+        output: { kind: 'text', text: '' },
+        truncated: false,
+        type: 'invoke-result',
+    };
+    return result;
+}
+
+export function resendGateInput(
+    appOrigin: string,
+    invocationId: string,
+    invocation: OpenInvocation
+) {
+    return {
+        agentId: invocation.command.agentId,
+        appOrigin,
+        computerId: invocation.computerId,
+        invocationId,
+        key: { ...invocation.key, agentId: invocation.command.agentId },
+        online: true,
+        operation: invocation.command.operation,
+        serverId: invocation.serverId,
+    };
 }

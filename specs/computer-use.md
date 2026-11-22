@@ -142,12 +142,18 @@ changed. Then stop. When they reply, try again."
 
 ## One command at a time
 
-Each attached Server runs its own `__attachment-daemon` process, so the queue is a file lock, not
-an in-process queue. Before a command, the Computer starts `/usr/bin/lockf -k
-<data-root>/computer-use.lock /bin/cat` and waits for the holder to echo a byte; closing its stdin
-releases the lock (`desktop-lock.ts`). The kernel drops the lock if the daemon dies, waiting needs
-no polling, and cancelling a wait kills the holder. Wrapping the command in `lockf` is not used,
-because a SIGTERM to `lockf` orphans its child while the lock is freed.
+Each attached Server runs its own `__attachment-daemon` process, so the queue is a kernel file
+lock, not an in-process queue, and the lock and the command share one owner
+(`apps/computer/src/desktop/desktop-lock.ts`). The Computer starts `/usr/bin/lockf -k
+<data-root>/computer-use.lock /bin/sh` in a new process group. Once the lock is held, the shell
+reports "held" on a control pipe and waits for "go", which the daemon sends after the screen
+preflight; a refusal closes its stdin instead and nothing runs. The shell then runs the command
+with a watchdog that kills the whole group the moment the daemon's stdin closes. So:
+
+- a daemon that dies, while waiting or while the command runs, never leaves a command driving
+  the screen, and the kernel drops the lock with the group;
+- cancel and timeout kill the group, lock and command together;
+- waiting needs no polling.
 
 ## Stop Agent Input
 

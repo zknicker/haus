@@ -4,7 +4,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Readable, Writable } from 'node:stream';
-import { holdDesktopLock } from './desktop-lock.ts';
+import { openLockedDesktop } from './desktop-lock.ts';
 
 const holderScript = join(import.meta.dir, 'fixtures', 'hold-desktop-lock.ts');
 const lockTempFail = 75;
@@ -69,7 +69,7 @@ describe.if(process.platform === 'darwin')('the machine-wide desktop lock', () =
         const first = startHolder('first', []);
         await first.reached('held');
         const controller = new AbortController();
-        const waiting = holdDesktopLock(lockPath, controller.signal);
+        const waiting = openLockedDesktop(lockPath, trueCommand, controller.signal);
         controller.abort('cancel');
         await expect(waiting).rejects.toBe('cancel');
 
@@ -77,20 +77,41 @@ describe.if(process.platform === 'darwin')('the machine-wide desktop lock', () =
         await first.exited;
         expect(tryLock()).toBe(0);
     });
+
+    test('a daemon that dies takes its running command down with the lock', async () => {
+        const daemon = startHolder('daemon', [], 'run');
+        const pid = Number((await daemon.reachedPrefix('command ')).slice('command '.length));
+        expect(processState(pid)).not.toBe('');
+
+        daemon.child.kill('SIGKILL');
+        await daemon.exited;
+        const next = await openLockedDesktop(lockPath, trueCommand, new AbortController().signal);
+        expect(['', 'Z']).toContain(processState(pid).slice(0, 1));
+        await next.abandon();
+        expect(tryLock()).toBe(0);
+    });
 });
+
+const trueCommand = { args: [], env: {}, executable: '/usr/bin/true' };
+
+function processState(pid: number) {
+    return spawnSync('/bin/ps', ['-o', 'stat=', '-p', String(pid)])
+        .stdout.toString()
+        .trim();
+}
 
 function tryLock() {
     return spawnSync('/usr/bin/lockf', ['-k', '-t', '0', lockPath, '/usr/bin/true']).status;
 }
 
-function startHolder(name: string, events: string[]) {
+function startHolder(name: string, events: string[], mode: 'hold' | 'run' = 'hold') {
     const child: ChildProcessByStdio<Writable, Readable, null> = spawn(
         process.execPath,
-        [holderScript, lockPath],
+        [holderScript, mode, lockPath],
         { stdio: ['pipe', 'pipe', 'inherit'] }
     );
     const seen = new Set<string>();
-    const waiters: { line: string; resolve: () => void }[] = [];
+    const waiters: { line: string; resolve: (line: string) => void }[] = [];
     let buffered = '';
     child.stdout.on('data', (data: Buffer) => {
         buffered += data.toString();
@@ -99,17 +120,27 @@ function startHolder(name: string, events: string[]) {
         for (const line of lines) {
             events.push(`${name} ${line}`);
             seen.add(line);
-            for (const waiter of waiters.filter((entry) => entry.line === line)) {
-                waiter.resolve();
+            for (const waiter of waiters.filter((entry) => line.startsWith(entry.line))) {
+                waiter.resolve(line);
             }
         }
     });
     return {
         child,
         exited: new Promise<void>((resolve) => child.once('close', () => resolve())),
-        reached: (line: string) =>
-            seen.has(line)
-                ? Promise.resolve()
-                : new Promise<void>((resolve) => waiters.push({ line, resolve })),
+        reached: async (line: string) => {
+            if (!seen.has(line)) {
+                await new Promise<string>((resolve) => waiters.push({ line, resolve }));
+            }
+        },
+        reachedPrefix: (prefix: string) =>
+            new Promise<string>((resolve) => {
+                const earlier = [...seen].find((line) => line.startsWith(prefix));
+                if (earlier) {
+                    resolve(earlier);
+                } else {
+                    waiters.push({ line: prefix, resolve });
+                }
+            }),
     };
 }

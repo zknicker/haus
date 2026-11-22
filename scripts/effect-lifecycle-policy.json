@@ -373,24 +373,13 @@
                 "timer": 1
             }
         },
-        "apps/computer/src/desktop/desktop-command.ts": {
-            "disposition": "finite-cleanup",
-            "reason": "Holds the machine-wide desktop lock for one command and releases it in lexical finally, whether the preflight refuses, the command runs, or the signal aborts.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 0,
-                "finallyBlock": 1,
-                "manualPromise": 0,
-                "timer": 0
-            }
-        },
         "apps/computer/src/desktop/desktop-lock.ts": {
             "disposition": "external-adapter",
-            "reason": "Adapts a lockf holder process to an abort signal: the holder's echoed byte resolves the wait, an abort kills the holder, and release closes its stdin so the kernel drops the lock.",
+            "reason": "Adapts one lockf process group, which owns both the kernel lock and the command, to an abort signal: the held line on the control pipe resolves the wait, an abort kills the whole group, and closing stdin ends the group.",
             "risks": {
                 "abortController": 0,
                 "catchAndIgnore": 0,
-                "finallyBlock": 1,
+                "finallyBlock": 0,
                 "manualPromise": 2,
                 "timer": 0
             }

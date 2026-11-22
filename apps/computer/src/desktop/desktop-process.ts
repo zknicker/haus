@@ -1,28 +1,24 @@
-import { spawn } from 'node:child_process';
 import { stoppedOutcome, textResult } from '../invocations/operation.ts';
 import { OutputTail } from '../invocations/pi/output-tail.ts';
-import { killProcessTree, waitForChildProcess } from '../invocations/pi/shell.ts';
+import { waitForChildProcess } from '../invocations/pi/shell.ts';
 import { formatTail } from '../invocations/pi/tail-notice.ts';
 import { exitStatus } from '../invocations/stream-process.ts';
+import type { LockedDesktop } from './desktop-lock.ts';
 
-export interface DesktopProcess {
-    args: string[];
-    cwd?: string;
-    env: Record<string, string>;
-    executable: string;
-    logPath: string;
-    signal: AbortSignal;
-}
-
-export async function runDesktopProcess(command: DesktopProcess) {
+export async function runDesktopProcess(
+    desktop: LockedDesktop,
+    command: { logPath: string; signal: AbortSignal }
+) {
     const output = new OutputTail(command.logPath);
+    const { child } = desktop;
     let exitCode: number;
     try {
-        const child = spawnDesktopProcess(command);
-        child.stdout.on('data', (data: Buffer) => output.append(data, 'stdout'));
-        child.stderr.on('data', (data: Buffer) => output.append(data, 'stderr'));
+        child.stdout?.on('data', (data: Buffer) => output.append(data, 'stdout'));
+        child.stderr?.on('data', (data: Buffer) => output.append(data, 'stderr'));
+        desktop.start();
         exitCode = exitStatus(child, await waitForChildProcess(child));
     } finally {
+        desktop.finish();
         output.finish();
         await output.close();
     }
@@ -32,24 +28,4 @@ export async function runDesktopProcess(command: DesktopProcess) {
     return stopped
         ? textResult(stopped, text, extra)
         : textResult('completed', text, { ...extra, exitCode });
-}
-
-export function spawnDesktopProcess(command: Omit<DesktopProcess, 'logPath'>) {
-    const child = spawn(command.executable, command.args, {
-        ...(command.cwd ? { cwd: command.cwd } : {}),
-        detached: true,
-        env: { ...process.env, ...command.env },
-        stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    const kill = () => {
-        if (child.pid !== undefined) {
-            killProcessTree(child.pid);
-        }
-    };
-    if (command.signal.aborted) {
-        kill();
-    }
-    command.signal.addEventListener('abort', kill, { once: true });
-    child.once('close', () => command.signal.removeEventListener('abort', kill));
-    return child;
 }

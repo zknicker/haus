@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { runDesktopProcess, spawnDesktopProcess } from './desktop-process.ts';
+import { type LockedCommand, openLockedDesktop } from './desktop-lock.ts';
+import { runDesktopProcess } from './desktop-process.ts';
 
 let root: string;
 
@@ -15,56 +16,53 @@ afterEach(async () => {
 });
 
 describe.if(process.platform === 'darwin')('desktop processes', () => {
-    test('cancel kills the display hold and every process the command started', async () => {
+    test('cancel kills the lock, the display hold, and every process the command started', async () => {
         const controller = new AbortController();
-        const child = spawnDesktopProcess({
-            args: ['-d', '/bin/sh', '-c', '/usr/bin/tail -f /dev/null & echo ready; wait'],
-            env: {},
-            executable: '/usr/bin/caffeinate',
+        const desktop = await open(
+            {
+                args: ['-d', '/bin/sh', '-c', '/usr/bin/tail -f /dev/null & echo ready; wait'],
+                env: {},
+                executable: '/usr/bin/caffeinate',
+            },
+            controller.signal
+        );
+        const running = runDesktopProcess(desktop, {
+            logPath: join(root, 'cancel.log'),
             signal: controller.signal,
         });
-        const closed = new Promise<void>((resolve) => child.once('close', () => resolve()));
-        await new Promise((resolve) => child.stdout.once('data', resolve));
-        child.stdout.resume();
-        child.stderr.resume();
+        await new Promise((resolve) => desktop.child.stdout?.once('data', resolve));
 
         controller.abort('cancel');
-        await closed;
-        expect(child.signalCode).toBe('SIGKILL');
+        expect(await running).toMatchObject({ outcome: 'cancelled' });
+        expect(desktop.child.signalCode).toBe('SIGKILL');
     });
 
-    test('a cancelled command answers cancelled and a timed-out one timed-out', async () => {
-        const cancelled = new AbortController();
-        cancelled.abort('cancel');
-        const timedOut = new AbortController();
-        timedOut.abort('timeout');
-        const command = { args: ['-f', '/dev/null'], env: {}, executable: '/usr/bin/tail' };
-
+    test('a command aborted before it starts answers timed-out without running', async () => {
+        const controller = new AbortController();
+        const desktop = await open(
+            { args: ['-c', 'echo ran'], env: {}, executable: '/bin/sh' },
+            controller.signal
+        );
+        controller.abort('timeout');
         expect(
-            await runDesktopProcess({
-                ...command,
-                logPath: join(root, 'cancelled.log'),
-                signal: cancelled.signal,
-            })
-        ).toMatchObject({ outcome: 'cancelled' });
-        expect(
-            await runDesktopProcess({
-                ...command,
+            await runDesktopProcess(desktop, {
                 logPath: join(root, 'timed-out.log'),
-                signal: timedOut.signal,
+                signal: controller.signal,
             })
-        ).toMatchObject({ outcome: 'timed-out' });
+        ).toMatchObject({
+            outcome: 'timed-out',
+            output: { text: expect.not.stringContaining('ran') },
+        });
     });
 
     test('a finished command answers its output and exit code', async () => {
+        const signal = new AbortController().signal;
+        const desktop = await open(
+            { args: ['-c', 'echo snapshot; exit 2'], env: {}, executable: '/bin/sh' },
+            signal
+        );
         expect(
-            await runDesktopProcess({
-                args: ['-c', 'echo snapshot; exit 2'],
-                env: {},
-                executable: '/bin/sh',
-                logPath: join(root, 'done.log'),
-                signal: new AbortController().signal,
-            })
+            await runDesktopProcess(desktop, { logPath: join(root, 'done.log'), signal })
         ).toEqual({
             exitCode: 2,
             logPath: join(root, 'done.log'),
@@ -74,3 +72,7 @@ describe.if(process.platform === 'darwin')('desktop processes', () => {
         });
     });
 });
+
+async function open(command: LockedCommand, signal: AbortSignal) {
+    return await openLockedDesktop(join(root, 'computer-use.lock'), command, signal);
+}

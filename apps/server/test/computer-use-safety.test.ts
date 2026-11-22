@@ -90,6 +90,44 @@ test('Stop Agent Input cancels the running desktop command and tells the Captain
     expect(await member.trpc.computer.desktopActivity.query(device)).toEqual({ commands: [] });
 });
 
+test('Stop during a reconnect resend never sends the command again', async () => {
+    const device = { computerId: setup.computerId, serverId: setup.serverId };
+    desktop('run_resend_stop', 'toolu_resend_stop', ['click', '@s1:e3']);
+    const invoke = await computer.next(frameOfType('invoke', { runId: 'run_resend_stop' }));
+    computer.close();
+    await computer.closed;
+
+    let release = () => undefined as void;
+    const released = new Promise<void>((resolve) => {
+        release = resolve;
+    });
+    let locked = () => undefined as void;
+    const holding = new Promise<void>((resolve) => {
+        locked = resolve;
+    });
+    const lock = setup.harness.sql.begin(async (tx) => {
+        await tx`lock table computer_use_agents in access exclusive mode`;
+        locked();
+        await released;
+    });
+    await holding;
+    computer = await connectComputer(setup.harness, setup.computerCredential);
+    expect(await member.trpc.computer.stopDesktopInput.mutate(device)).toEqual({ stopped: 1 });
+    release();
+    await lock;
+
+    expect(await answerFor('toolu_resend_stop')).toMatchObject({
+        outcome: 'cancelled',
+        output: { text: expect.stringContaining('A person stopped agent input on Studio') },
+    });
+    expect(
+        computer.frames.filter(
+            (frame) => frame.type === 'invoke' && frame.invocationId === invoke.invocationId
+        )
+    ).toEqual([]);
+    expect(await member.trpc.computer.desktopActivity.query(device)).toEqual({ commands: [] });
+});
+
 function desktop(runId: string, toolCallId: string, args: string[]) {
     runner.send({
         agentId: setup.agentId,

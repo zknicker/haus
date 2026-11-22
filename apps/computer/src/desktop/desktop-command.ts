@@ -1,7 +1,7 @@
 import { dirname, join } from 'node:path';
 import { desktopCommandClass } from '@haus/api';
 import { computerUseLockPath, installAgentDesktop } from './agent-desktop-binary.ts';
-import { holdDesktopLock } from './desktop-lock.ts';
+import { openLockedDesktop } from './desktop-lock.ts';
 import { prepareScreen } from './desktop-preflight.ts';
 import { runDesktopProcess } from './desktop-process.ts';
 import { refusalResult } from './desktop-refusals.ts';
@@ -26,26 +26,30 @@ export async function runAgentDesktopCommand(command: AgentDesktopCommand) {
         );
     }
     const install = await installAgentDesktop(command.toolsRoot);
-    const lock = await holdDesktopLock(computerUseLockPath(command.toolsRoot), command.signal);
-    try {
-        const refusal = await prepareScreen(command.signal);
-        if (refusal) {
-            return refusalResult(refusal);
-        }
-        command.signal.throwIfAborted();
-        const args = withScreenshotPath(command.args, command.logPath);
-        return await runDesktopProcess({
+    const args = withScreenshotPath(command.args, command.logPath);
+    const desktop = await openLockedDesktop(
+        computerUseLockPath(command.toolsRoot),
+        {
             ...(commandClass === 'act'
                 ? { args: ['-d', install.executable, ...args], executable: '/usr/bin/caffeinate' }
                 : { args, executable: install.executable }),
             ...(command.cwd ? { cwd: command.cwd } : {}),
             env: { AGENT_DESKTOP_MACOS_HELPER_PATH: install.helper },
-            logPath: command.logPath,
-            signal: command.signal,
-        });
-    } finally {
-        await lock.release();
+        },
+        command.signal
+    );
+    try {
+        const refusal = await prepareScreen(command.signal);
+        if (refusal) {
+            await desktop.abandon();
+            return refusalResult(refusal);
+        }
+        command.signal.throwIfAborted();
+    } catch (error) {
+        await desktop.abandon();
+        throw error;
     }
+    return await runDesktopProcess(desktop, command);
 }
 
 export function withScreenshotPath(args: string[], logPath: string) {

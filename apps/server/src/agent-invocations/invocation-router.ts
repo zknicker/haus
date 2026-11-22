@@ -29,7 +29,9 @@ import {
 import {
     announceDesktopActivity,
     type OpenInvocation,
+    resendGateInput,
     stopDesktopCommands,
+    stoppedResult,
 } from './open-invocations.ts';
 
 export type InvocationRouter = ReturnType<typeof routeInvocations>;
@@ -206,19 +208,34 @@ function routeInvocations(input: RouterInput) {
         }
     }
 
+    async function settleStopped(invocationId: string, invocation: OpenInvocation) {
+        const result = stoppedResult(invocationId);
+        const settlement = await recordResult(db, invocation.computerId, result);
+        if (settlement.kind === 'finished') {
+            forget(invocationId);
+            answer(
+                await desktopResultAnswer(db, {
+                    appOrigin,
+                    record: settlement.record,
+                    result,
+                    stopped: true,
+                })
+            );
+        }
+    }
+
     async function resend(invocationId: string, invocation: OpenInvocation) {
-        const refusal = await gateDesktopInvocation(db, {
-            agentId: invocation.command.agentId,
-            appOrigin,
-            computerId: invocation.computerId,
-            invocationId,
-            key: { ...invocation.key, agentId: invocation.command.agentId },
-            online: true,
-            operation: invocation.command.operation,
-            serverId: invocation.serverId,
-        });
+        const refusal = await gateDesktopInvocation(
+            db,
+            resendGateInput(appOrigin, invocationId, invocation)
+        );
         if (!refusal) {
-            if (open.get(invocationId) === invocation && !invocation.accepted) {
+            if (open.get(invocationId) !== invocation || invocation.accepted) {
+                return;
+            }
+            if (invocation.stopped) {
+                await settleStopped(invocationId, invocation);
+            } else if (!invocation.cancelled) {
                 computers.send(invocation.computerId, invocation.command);
             }
             return;
