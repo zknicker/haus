@@ -12,7 +12,9 @@ enum HausRuntimeConfiguration {
     private static let cachedAppOrigin = "haus.debug.app-origin"
     private static let explicitSignOutKey = "haus.debug.explicit-sign-out"
 
-    static var development: Development? {
+    /// Resolved once per launch: caching writes `UserDefaults`, and a write on
+    /// every read wakes each `@AppStorage` view, which reads this again.
+    static let development: Development? = {
         #if DEBUG
         let environment = ProcessInfo.processInfo.environment
         if let configured = validatedDevelopment(
@@ -31,7 +33,7 @@ enum HausRuntimeConfiguration {
         #else
         nil
         #endif
-    }
+    }()
 
     /// Debug auto sign-in stands down after an explicit sign-out, across
     /// relaunches, until the human signs in again from the signed-out screen.
