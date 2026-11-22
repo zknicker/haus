@@ -12,10 +12,16 @@ extension View {
     func messageActionDrawer(
         for message: Binding<MessagePresentation?>,
         board: ReactionStickerBoard?,
-        onReply: ((MessagePresentation) -> Void)? = nil
+        onReply: ((MessagePresentation) -> Void)? = nil,
+        onViewTurnDetails: ((MessagePresentation) -> Void)? = nil
     ) -> some View {
         #if os(iOS)
-        modifier(MessageActionDrawerPresenter(message: message, board: board, onReply: onReply))
+        modifier(MessageActionDrawerPresenter(
+            message: message,
+            board: board,
+            onReply: onReply,
+            onViewTurnDetails: onViewTurnDetails
+        ))
         #else
         self
         #endif
@@ -30,6 +36,7 @@ private struct MessageActionDrawerPresenter: ViewModifier {
     @Binding var message: MessagePresentation?
     let board: ReactionStickerBoard?
     let onReply: ((MessagePresentation) -> Void)?
+    let onViewTurnDetails: ((MessagePresentation) -> Void)?
     @State private var afterDismiss: (() -> Void)?
 
     func body(content: Content) -> some View {
@@ -43,7 +50,11 @@ private struct MessageActionDrawerPresenter: ViewModifier {
                 MessageActionDrawer(
                     message: target,
                     board: board,
-                    groups: MessageActionMenu.groups(for: target, canReplyInline: onReply != nil),
+                    groups: MessageActionMenu.groups(
+                        for: target,
+                        canReplyInline: onReply != nil,
+                        canViewTurnDetails: onViewTurnDetails != nil
+                    ),
                     onAction: { action in perform(action, on: target) },
                     onReact: { emoji, remove in react(emoji, remove: remove, on: target) }
                 )
@@ -53,6 +64,7 @@ private struct MessageActionDrawerPresenter: ViewModifier {
     private func perform(_ action: MessageAction, on target: MessagePresentation) {
         switch action {
         case .reply: afterDismiss = { onReply?(target) }
+        case .viewTurnDetails: afterDismiss = { onViewTurnDetails?(target) }
         case .copyText:
             UIPasteboard.general.string = target.prose
         }

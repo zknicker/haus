@@ -178,7 +178,8 @@ extension HausStore {
                 id: agentID,
                 name: agent?.displayName ?? "Deleted Captain",
                 avatarURL: resolvedAvatarURL(agent?.avatarURL),
-                presence: agent.map { presence(availability(for: $0)) }
+                presence: agent.map { presence(availability(for: $0)) },
+                kind: .captain
             )
         }
         if let userID {
@@ -200,7 +201,8 @@ extension HausStore {
                 id: agentID,
                 name: agent?.displayName ?? profile?.displayName ?? "Deleted Captain",
                 avatarURL: resolvedAvatarURL(agent?.avatarURL ?? profile?.avatarURL),
-                presence: agent.map { presence(availability(for: $0)) }
+                presence: agent.map { presence(availability(for: $0)) },
+                kind: .captain
             )
         case .human(let profile, let userID):
             let member = membersByID[userID]

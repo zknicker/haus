@@ -16,7 +16,8 @@ enum TranscriptStyleFixture {
         id: "agent-blippy",
         name: "Blippy",
         avatarURL: nil,
-        presence: .idle
+        presence: .idle,
+        kind: .captain
     )
 
     static func message(

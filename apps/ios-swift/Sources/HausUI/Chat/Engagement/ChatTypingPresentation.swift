@@ -25,13 +25,21 @@ public struct ChatEngagementSource: Sendable {
     /// The typist an engaged Agent reads as, or nil while the directory does
     /// not know it — an unknown Agent is left out rather than named generically.
     public let typist: @MainActor @Sendable (_ agentID: String) -> ChatTypist?
+    /// Turn details' reads; nil leaves the header indicator and "View turn details" inert.
+    public let turnDetails: TurnDetailsSource?
+    /// The composer model chip for a Captain DM; nil when the App offers none.
+    public let captainModel: CaptainModelSource?
 
     public init(
         connect: @escaping @MainActor @Sendable (String, ChatTypingModel) async -> Void,
-        typist: @escaping @MainActor @Sendable (String) -> ChatTypist?
+        typist: @escaping @MainActor @Sendable (String) -> ChatTypist?,
+        turnDetails: TurnDetailsSource? = nil,
+        captainModel: CaptainModelSource? = nil
     ) {
         self.connect = connect
         self.typist = typist
+        self.turnDetails = turnDetails
+        self.captainModel = captainModel
     }
 }
 
@@ -60,10 +68,16 @@ public enum ChatTypingLabel {
     /// "Juniper is working", "Juniper and Cove are working", and from three on
     /// "Juniper, Cove, and 2 others are working".
     public static func text(_ names: [String]) -> String? {
+        guard let subject = Self.names(names) else { return nil }
+        return "\(subject) \(names.count == 1 ? "is" : "are") working"
+    }
+
+    /// "Juniper", "Juniper and Cove", and from three on "Juniper, Cove, and 2 others".
+    public static func names(_ names: [String]) -> String? {
         guard let first = names.first else { return nil }
-        guard names.count > 1 else { return "\(first) is working" }
-        if names.count == 2 { return "\(first) and \(names[1]) are working" }
+        guard names.count > 1 else { return first }
+        if names.count == 2 { return "\(first) and \(names[1])" }
         let others = names.count - 2
-        return "\(first), \(names[1]), and \(others) \(others == 1 ? "other" : "others") are working"
+        return "\(first), \(names[1]), and \(others) \(others == 1 ? "other" : "others")"
     }
 }

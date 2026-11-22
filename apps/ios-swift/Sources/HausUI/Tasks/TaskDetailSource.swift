@@ -35,7 +35,7 @@ extension TaskDetailSource {
         detail: { _ in TaskPreviewFixtures.detail },
         labels: { TaskPreviewFixtures.labels },
         actor: { actor in
-            actor.agentID.map { MessageAuthorPresentation(id: $0, name: "Forge", avatarURL: nil) }
+            actor.agentID.map { MessageAuthorPresentation(id: $0, name: "Forge", avatarURL: nil, kind: .captain) }
         },
         conversationLabel: { _ in "#security" },
         descriptionBlocks: { detail in

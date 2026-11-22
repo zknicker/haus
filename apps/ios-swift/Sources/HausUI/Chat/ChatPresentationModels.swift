@@ -80,17 +80,33 @@ public struct ChatPresentation: Identifiable, Hashable, Sendable {
     }
 }
 
+/// Who wrote a message: a Captain (an Agent on the wire) or a person.
+public enum MessageAuthorKind: Hashable, Sendable {
+    case person
+    case captain
+}
+
 public struct MessageAuthorPresentation: Identifiable, Hashable, Sendable {
     public let id: String
     public let name: String
     public let avatarURL: URL?
     public let presence: AgentPresence?
+    /// From the message's author, never from presence: a deleted Captain has no presence but
+    /// still wrote as a Captain.
+    public let kind: MessageAuthorKind
 
-    public init(id: String, name: String, avatarURL: URL?, presence: AgentPresence? = nil) {
+    public init(
+        id: String,
+        name: String,
+        avatarURL: URL?,
+        presence: AgentPresence? = nil,
+        kind: MessageAuthorKind = .person
+    ) {
         self.id = id
         self.name = name
         self.avatarURL = avatarURL
         self.presence = presence
+        self.kind = kind
     }
 }
 

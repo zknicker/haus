@@ -22,7 +22,9 @@ extension HausStore {
                     name: agent.displayName,
                     avatarURL: resolvedAvatarURL(agent.avatarURL)
                 )
-            }
+            },
+            turnDetails: turnDetailsSource,
+            captainModel: captainModelSource
         )
     }
 

@@ -42,7 +42,8 @@ public enum ChatFixtures {
                 id: cove.id,
                 name: cove.name,
                 avatarURL: cove.avatarURL,
-                presence: cove.presence
+                presence: cove.presence,
+                kind: .captain
             ),
             content: "I’ll keep the plan tight and surface decisions early. The native shell can diverge at the rendering layer while the Server contract stays shared.",
             createdAt: .now.addingTimeInterval(-120)

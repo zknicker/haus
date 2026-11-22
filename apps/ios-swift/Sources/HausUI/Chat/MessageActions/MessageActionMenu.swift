@@ -4,6 +4,7 @@ import Foundation
 enum MessageAction: Hashable, Identifiable, Sendable {
     case reply
     case copyText
+    case viewTurnDetails
 
     var id: Self { self }
 
@@ -11,6 +12,7 @@ enum MessageAction: Hashable, Identifiable, Sendable {
         switch self {
         case .reply: "Reply"
         case .copyText: "Copy Text"
+        case .viewTurnDetails: "View Turn Details"
         }
     }
 
@@ -18,6 +20,7 @@ enum MessageAction: Hashable, Identifiable, Sendable {
         switch self {
         case .reply: "arrowshape.turn.up.left"
         case .copyText: "doc.on.doc"
+        case .viewTurnDetails: "list.bullet.rectangle"
         }
     }
 }
@@ -32,14 +35,17 @@ enum MessageActionMenu {
     /// Action groups, each drawn as one inset card: the conversation actions,
     static func groups(
         for message: MessagePresentation,
-        canReplyInline: Bool
+        canReplyInline: Bool,
+        canViewTurnDetails: Bool = false
     ) -> [[MessageAction]] {
         var conversation: [MessageAction] = []
         if canReplyInline { conversation.append(.reply) }
         // A body is drawn block by block and a selection cannot cross two text
         // views, so copying the whole message is the drawer's job.
         let copying: [MessageAction] = message.prose.isEmpty ? [] : [.copyText]
-        return [conversation, copying].filter { !$0.isEmpty }
+        // A Captain's reply leads back to the turn that wrote it.
+        let tracing: [MessageAction] = canViewTurnDetails && message.author.kind == .captain ? [.viewTurnDetails] : []
+        return [conversation, copying, tracing].filter { !$0.isEmpty }
     }
 
     /// The quick tiles: the head of the viewer's frequently used emoji.

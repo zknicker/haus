@@ -58,6 +58,7 @@
 		6B43803A86BC7E9519218903 /* HausStoreEventStreams.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73709D1E08C0F2545F2E0E2D /* HausStoreEventStreams.swift */; };
 		6BC577C46EBBEEC48369B741 /* AuthenticatedHausSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B834451B996028D83D752D26 /* AuthenticatedHausSupport.swift */; };
 		72468F6096B648799300F613 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 8A8F1BAA49F991D4C2E86B11 /* PrivacyInfo.xcprivacy */; };
+		7A017FC0D37C603A6F60C0F2 /* HausStoreTurnDetails.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3F07C8DB8E089AD7166B591 /* HausStoreTurnDetails.swift */; };
 		7A34EAA64D7180268387609E /* AuthenticatedHausView+Roots.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E08E5DEFD1A05E1C54F7701 /* AuthenticatedHausView+Roots.swift */; };
 		7C9046426418FE8EC9E82F4C /* VoiceCallAudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0892F4FABCDEEA08CCCF6BB /* VoiceCallAudio.swift */; };
 		7D04A02F8292E2F5D10AC97B /* HausStoreTasks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0329C162166D08C65D149B64 /* HausStoreTasks.swift */; };
@@ -224,6 +225,7 @@
 		DC799CB8FAC41CB382B7ACC9 /* Intents.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Intents.framework; path = System/Library/Frameworks/Intents.framework; sourceTree = SDKROOT; };
 		E0892F4FABCDEEA08CCCF6BB /* VoiceCallAudio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceCallAudio.swift; sourceTree = "<group>"; };
 		E268A7933042825548C9FB2F /* VoiceAudioStartup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAudioStartup.swift; sourceTree = "<group>"; };
+		E3F07C8DB8E089AD7166B591 /* HausStoreTurnDetails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreTurnDetails.swift; sourceTree = "<group>"; };
 		E45EDC3114F9952D72C4F7DA /* InboxPresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxPresentationAdapters.swift; sourceTree = "<group>"; };
 		E5CD0E9C85581C948DF53EC2 /* HausStoreInbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreInbox.swift; sourceTree = "<group>"; };
 		E65CA6A2037D1673EE578190 /* HausStoreModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreModels.swift; sourceTree = "<group>"; };
@@ -410,6 +412,7 @@
 				FF50F82C855B4F2221B129A1 /* HausStoreTaskPlaces.swift */,
 				0329C162166D08C65D149B64 /* HausStoreTasks.swift */,
 				7880F55DF81599F9343DEEE6 /* HausStoreTranscripts.swift */,
+				E3F07C8DB8E089AD7166B591 /* HausStoreTurnDetails.swift */,
 				C799DCE0C12DFA6D65C82F1E /* HausStoreUtilities.swift */,
 				CC6B796E153CCBF0FC7A964C /* HausStoreWorkers.swift */,
 				53B9855BFA098D23FD4E9EBD /* IdentityPresentationAdapters.swift */,
@@ -682,6 +685,7 @@
 				138049282F2BEB1910661FB4 /* HausStoreTaskPlaces.swift in Sources */,
 				7D04A02F8292E2F5D10AC97B /* HausStoreTasks.swift in Sources */,
 				3690B636684E98D6E84A99B6 /* HausStoreTranscripts.swift in Sources */,
+				7A017FC0D37C603A6F60C0F2 /* HausStoreTurnDetails.swift in Sources */,
 				FDA688D0A2B9DBBE1B9F0776 /* HausStoreUtilities.swift in Sources */,
 				5A3235CF74BDFF4AD938ADA9 /* HausStoreWorkers.swift in Sources */,
 				F54865A4738553181ADADA05 /* IdentityPresentationAdapters.swift in Sources */,

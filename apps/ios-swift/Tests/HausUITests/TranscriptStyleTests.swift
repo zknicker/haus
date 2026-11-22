@@ -25,6 +25,26 @@ struct TranscriptStyleTests {
         #expect(MessageRowLayout(style: .assistant, message: reply) == .prose)
     }
 
+    @Test func theSpeakerComesFromTheAuthorKindNotPresence() {
+        let deletedCaptain = MessageAuthorPresentation(id: "agent-gone", name: "Deleted Captain", avatarURL: nil, kind: .captain)
+        let personWithPresence = MessageAuthorPresentation(id: "user-x", name: "X", avatarURL: nil, presence: .idle)
+
+        #expect(MessageRowLayout(style: .assistant, message: Fixture.message("m1", by: deletedCaptain, at: 0)) == .prose)
+        #expect(MessageRowLayout(style: .assistant, message: Fixture.message("m2", by: personWithPresence, at: 5)) == .bubble)
+    }
+
+    @Test func aCaptainDMIsTheAssistantLayoutAndEveryOtherPlaceKeepsRosterRows() {
+        let captain = ChatKind.agentDirectMessage(ChatFixtures.cove)
+        let person = ChatKind.humanDirectMessage(HumanPresentation(id: "u", name: "Mia", handle: nil, avatarURL: nil))
+
+        #expect(captain.transcriptStyle == .assistant)
+        #expect(ChatKind.channel.transcriptStyle == .roster)
+        #expect(person.transcriptStyle == .roster)
+        #expect(captain.composerPlace(title: "Cove").placeholder == "Reply")
+        #expect(ChatKind.channel.composerPlace(title: "product").placeholder == "Message #product")
+        #expect(person.composerPlace(title: "Mia").placeholder == "Message Mia")
+    }
+
     @Test func theRosterKeepsDayDividersAndIdentityBlocks() {
         let messages = [
             Fixture.message("m1", by: Fixture.person, at: 0),
