@@ -190,17 +190,6 @@ public enum SettingsFixtures {
         timezone: "America/New_York"
     )
 
-    public static let cove = SettingsAgent(
-        id: "agent-cove",
-        displayName: "Cove",
-        handle: "cove",
-        description: "Keeps the Server's setup tidy.",
-        runtime: "Computer",
-        model: "Default",
-        status: "Online",
-        initials: "CO"
-    )
-
     public static let blippy = SettingsAgent(
         id: "agent-blippy",
         displayName: "Blippy",
@@ -227,7 +216,7 @@ public enum SettingsFixtures {
         server: server,
         viewer: viewer,
         members: [viewer],
-        agents: [cove],
+        agents: [blippy],
         computers: computers
     )
 }

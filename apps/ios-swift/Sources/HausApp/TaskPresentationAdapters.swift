@@ -8,7 +8,7 @@ extension HausStore {
     var taskDetailSource: TaskDetailSource {
         TaskDetailSource(
             detail: { [weak self] taskID in self?.taskDetail(taskID: taskID) },
-            labels: { [weak self] in self?.taskSnapshots.labels ?? [] },
+            labels: { [weak self] in self?.tasks.labels ?? [] },
             actor: { [weak self] actor in
                 self?.actorPresentation(agentID: actor.agentID, userID: actor.userID)
             },

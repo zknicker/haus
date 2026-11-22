@@ -44,7 +44,7 @@ public struct AvatarGenerationDebugPreview: View {
         case .profile:
             profile(SettingsFixtures.blippy)
         case .factoryProfile:
-            profile(SettingsFixtures.cove)
+            profile(SettingsFixtures.blippy)
         default:
             AgentAvatarGenerationView(
                 agentName: "Blippy",

@@ -53,33 +53,13 @@ extension HausStore {
     /// The Chats the Inbox lists as unread: the Chat list's, less any Mark
     /// read still settling. Nil until the Chat list has landed.
     var unreadChats: [ChatSummary]? {
-        guard hasLoadedChats else { return nil }
-        return UnreadChats.visible(chats, markedReadThrough: markedReadThrough)
+        chatList.unreadChats
     }
 
     /// How many Unread rows there are, for surfaces that mark the Inbox
     var unreadChatCount: Int? {
         guard let unreadChats else { return nil }
         return unreadChats.count + visibleUnreadTasks.count
-    }
-
-    /// Every queued or running Cloud Agent work the viewer can see on this
-    /// Server, oldest first. `cloudAgentWork.onUpdated` owns the refresh.
-    func loadActiveWorkers() async {
-        guard let serverID = activeServer?.id else { return }
-        let readStart = realtimeReconciliation.beginRead()
-        do {
-            let rows = try await (client.query(
-                "worker.listActive",
-                input: ServerScopedInput(serverId: serverID)
-            ) as ActiveWorkerList).rows
-            guard activeServer?.id == serverID,
-                  realtimeReconciliation.landed(.activeWorkers, readStartedAt: readStart)
-            else { return }
-            if activeWorkers != rows { activeWorkers = rows }
-        } catch {
-            Self.logger.error("Loading active cloud agent work failed: \(error.localizedDescription, privacy: .public)")
-        }
     }
 
     /// The Chat list is part of the shell's own snapshot and durable events

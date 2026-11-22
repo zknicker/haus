@@ -101,13 +101,13 @@ extension HausStore {
 
     func reloadChats(serverID: String) async throws {
         async let iconBadge: Void = refreshIconBadge()
-        async let tasks: Void = taskSnapshots.unreadTasks == nil ? loadUnreadTasks() : ()
+        async let unreadTaskRead: Void = tasks.unreadTasks == nil ? loadUnreadTasks() : ()
         let readStart = realtimeReconciliation.beginRead()
         let refreshed: [ChatSummary] = try await client.query(
             "chat.list",
             input: ServerScopedInput(serverId: serverID)
         )
-        _ = await (iconBadge, tasks)
+        _ = await (iconBadge, unreadTaskRead)
         // An answer older than one already applied writes nothing.
         guard activeServer?.id == serverID,
               realtimeReconciliation.landed(.chatList, readStartedAt: readStart)

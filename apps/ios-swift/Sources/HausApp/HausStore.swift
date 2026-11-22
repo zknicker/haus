@@ -1,46 +1,41 @@
 import Foundation
+import HausAppModel
 import HausModels
 import HausTransport
 import HausUI
 import Observation
 import OSLog
 
+/// The composition root: it owns the per-noun models in `HausAppModel`, the
+/// transcripts they share, and the Chat projections views read. Each model
+/// owns its reads and the events it applies; the extensions here wire them to
+/// the realtime streams and to the views.
 @MainActor
 @Observable
 final class HausStore {
     static let logger = Logger(subsystem: "chat.haus.ios", category: "server")
-    // Internal so the launch can live in `HausStoreServerReload.swift`.
     var state: State = .idle
     var isConnected = false
-    // Internal so the batched snapshot apply can live with the rest of the
-    // realtime plumbing.
+    /// The viewer's Server list. Which one is active is `scope`'s, persisted
+    /// by `lifecycle`, never list order.
     var servers: [ServerSummary] = []
-    // Internal so the app-only computer loader can live in its own file.
-    var computers: [ComputerSummary]?
-    var modelConnections: ModelConnectionsRead?
+    /// The Server the viewer was last removed from, so a surface can say why
+    /// the app moved on. Nil until it happens.
+    var lostServer: ServerSummary?
     var mentionOptionsByDestinationID: [ChatDestination.ID: [MentionOptionPresentation]] = [:]
-    var currentActivityByAgentID: [String: AgentActivityEvent] = [:] {
-        didSet {
-            // One bit for the sidebar's Haus mark, so the shell subscribes to
-            // that rather than to a dictionary `agent.onActivity` rewrites on
-            // every tool call.
-            let working = !currentActivityByAgentID.isEmpty
-            if isAnyAgentWorking != working { isAnyAgentWorking = working }
-        }
-    }
-    /// Whether any Agent on the active Server is working right now, and whether
-    /// the Server has answered that question at all yet. Until it has, the
-    /// answer is "no" rather than a guess — see `HausGhostTempo.resolve`.
-    private(set) var isAnyAgentWorking = false
-    var hasAgentActivitySnapshot = false
-    var currentActivityPositionByRunID: [String: Int] = [:]
-    var lifecycleRevision = 0
-    // Everything the memoized Chat projections read is stored here and
-    // published through the accessors under "Projected Server state" below.
-    private var storedAgents: [AgentSummary] = []
+    // MARK: - Models
+    let scope: ServerScope
+    let lifecycle: ServerLifecycle<ComposerInteraction>
+    let chatList: ChatsModel
+    let tasks: TasksModel
+    let captains: CaptainsModel
+    let workers: WorkersModel
+    let drive: DriveModel
+    let settingsModel: SettingsModel
+    // Everything the memoized Chat projections read that no model owns yet is
+    // stored here and published through the accessors under "Projected Server
+    // state" below.
     private var storedMembers: MemberList?
-    private var storedChats: [ChatSummary] = []
-    private var storedReceiptBackedAgentDMsByChatID: [String: String] = [:]
     private var storedMessagesByChatID: [String: ChatMessagePage] = [:]
     // The normalized transcript cache and its targeted reads
     // (`HausStoreTranscripts.swift`). `messagesByChatID` and
@@ -58,25 +53,10 @@ final class HausStore {
     var inlineReplyChatIDByRootID: [String: String] = [:]
     var inlineReplyCacheGeneration = 0
     var inlineReplyLoadsInFlight: Set<String> = []
-    // MARK: - Inbox snapshots
-    //
-    // The Server-wide reads the Inbox stands on, loaded and refreshed by
-    // `HausStoreInbox.swift`. Each stays nil until its first load, which is
-    // what lets a durable event refresh only what this client actually holds.
-    /// Inbox Mark read presses still settling, by Chat id and the sequence
-    /// each covered. A Chat stays hidden until the Server answers unless a
-    /// newer message arrives first (`UnreadChats.isUnread`).
-    var markedReadThrough: [String: Int] = [:]
-    /// Whether the Chat list has landed once, so the unread count stays silent
-    /// until it can answer honestly.
-    private(set) var hasLoadedChats = false
     /// (`HausStoreIconBadge.swift`).
     var iconBadgeCount: Int?
-    let taskSnapshots = TaskSnapshots()
-    var activeWorkers: [ActiveWorker]?
     var serverUsage: ServerUsageSnapshot?
     private var storedPendingMessagesByChatID: [String: [PendingChatMessage]] = [:]
-    private var storedLifecycleAvailability: [String: AgentAvailability] = [:]
     /// The sidebar's row order, frozen while the drawer is open so a new
     /// message cannot move a row under the reader's finger. See
     /// `holdSidebarOrder()`.
@@ -90,7 +70,6 @@ final class HausStore {
     @ObservationIgnored var realtimeServerID: String?
     @ObservationIgnored var streamRestarts = RealtimeStreamRestarts()
     @ObservationIgnored var streamRestartTasks: [RealtimeStream: Task<Void, Never>] = [:]
-    @ObservationIgnored var realtimeReconciliation = RealtimeReconciliation()
     @ObservationIgnored var recoveryFlush: Task<Void, Never>?
     @ObservationIgnored var membershipLossInFlight = false
     var streamsHealthy: Bool { realtimeServerID != nil && streamRestarts.allRunning }
@@ -103,15 +82,13 @@ final class HausStore {
     @ObservationIgnored var hasLiveServerState = false
     @ObservationIgnored var launchRetry: Task<Void, Never>?
     @ObservationIgnored var launchSnapshotWrite: Task<Void, Never>?
-    let launchSnapshots = LaunchSnapshotStore.applicationSupport(appProtocolVersion: HausAppProtocol.version)
     @ObservationIgnored var chatListRefreshAgain = false
     /// The deepest Chat surface on the user's stack, and the only Chat that
     /// acknowledges reads: it is what the user is actually looking at.
     var openChatID: String?
     /// The Chat the shell canvas is showing, whether or not a pushed route
-    /// covers it. A covered canvas is still a surface the user will return to,
-    /// so its page has to stay fresh — but it never acknowledges reads, which
-    /// stay with `openChatID`.
+    /// covers it. A covered canvas still has to stay fresh, but it never
+    /// acknowledges reads, which stay with `openChatID`.
     var canvasChatID: String?
     /// Memoized Chat projections. Cache writes must stay invisible to
     /// Observation: a projection read happens inside a view body, and a tracked
@@ -120,8 +97,8 @@ final class HausStore {
     /// Advances when a shared artifact chip's title lands (`HausStoreSharedArtifacts.swift`).
     var sharedArtifactRevision = 0
     /// What each Chat has shown the reader, what Server has confirmed, and what
-    /// is in flight. Observation-ignored: no view reads it, and a read
-    /// acknowledgement must not repaint the app.
+    /// is in flight. Observation-ignored: a read acknowledgement must not
+    /// repaint the app.
     @ObservationIgnored var chatReads = ChatReadLedger()
     /// Whether the app is frontmost. A transcript on a backgrounded phone is
     /// not being read, so nothing acknowledges until it returns.
@@ -134,8 +111,6 @@ final class HausStore {
     @ObservationIgnored var liveChatEventFlush: Task<Void, Never>?
     /// Advances when a new message lands, so mounted Server search reruns.
     var messageSearchRevision = 0
-    // Internal so the foreground refresh can live with the rest of the
-    // realtime plumbing it drives.
     var foregroundRefreshInFlight = false
     /// The Chat the App wants warm first — its restored last-open Chat — so
     /// the initial page load readies the screen the user actually lands on.
@@ -155,42 +130,41 @@ final class HausStore {
             serverOrigin: HausRuntimeConfiguration.serverOrigin,
             productVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0"
         )
-        client = TRPCClient(
+        let client = TRPCClient(
             config: config,
             sessionTokenProvider: HausSessionTokenProvider(authClient: authClient),
             decoder: HausJSON.decoder()
         )
+        let scope = ServerScope()
+        self.client = client
+        self.scope = scope
+        lifecycle = ServerLifecycle(
+            userID: session.user.id,
+            scope: scope,
+            preference: ActiveServerPreference(userID: session.user.id),
+            launchSnapshots: .applicationSupport(appProtocolVersion: HausAppProtocol.version),
+            drafts: ComposerDraftStore(makeStaged: ComposerInteraction.init, discardStaged: { $0.cleanUp() })
+        )
+        chatList = ChatsModel()
+        tasks = TasksModel(client: client, scope: scope)
+        captains = CaptainsModel(client: client, scope: scope)
+        workers = WorkersModel(client: client, scope: scope)
+        drive = DriveModel(client: client, scope: scope)
+        settingsModel = SettingsModel(client: client, scope: scope)
+        connectModelChanges()
     }
 
     deinit {
         eventTasks.cancelAll()
     }
 
-    var activeServer: ServerSummary? { servers.first }
-
     // MARK: - Projected Server state
     //
-    // The Chat projections are memoized, and these fields are their inputs. Each
-    // one is stored privately and published through the accessor below it, so
-    // the invalidation contract holds structurally rather than by convention: a
-    // write cannot reach this state without passing through a setter that
-    // retires the projections that field feeds.
-    //
-    // The setters also drop equal-value writes. Observation reports those as
-    // changes, and every event path here refetches lists that usually come back
-    // byte-identical.
-
-    /// Names, avatars, and presence for every Agent-authored row, mention, and
-    /// sidebar entry, so an Agent write retires both projections.
-    var agents: [AgentSummary] {
-        get { storedAgents }
-        set {
-            guard storedAgents != newValue else { return }
-            storedAgents = newValue
-            scheduleLaunchSnapshotWrite()
-            projections.retireAgents(newValue)
-        }
-    }
+    // The Chat projections are memoized, and these fields are their inputs.
+    // Each is stored privately (or in a model that reports its writes through
+    // `connectModelChanges`), so a write cannot reach this state without
+    // retiring the projections that field feeds. The setters also drop
+    // equal-value writes: Observation reports those as changes.
 
     /// Names and avatars for human authors, mentions, and human DMs.
     var members: MemberList? {
@@ -200,40 +174,6 @@ final class HausStore {
             storedMembers = newValue
             scheduleLaunchSnapshotWrite()
             projections.retireMembers(newValue?.members ?? [])
-        }
-    }
-
-    /// The live presence overlay. It reaches message rows through the author's
-    /// presence dot and sidebar rows through the Agent's, so it counts as part
-    /// of the directory.
-    var lifecycleAvailability: [String: AgentAvailability] {
-        get { storedLifecycleAvailability }
-        set {
-            guard storedLifecycleAvailability != newValue else { return }
-            storedLifecycleAvailability = newValue
-            projections.retirePresence()
-        }
-    }
-
-    var chats: [ChatSummary] {
-        get { storedChats }
-        set {
-            if !hasLoadedChats { hasLoadedChats = true }
-            let newValue = newValue.filter(\.kind.isListedConversation)
-            guard storedChats != newValue else { return }
-            storedChats = newValue
-            scheduleLaunchSnapshotWrite()
-            projections.retireChatList(newValue)
-        }
-    }
-
-    /// Agent DMs Server has materialized but the Chat list has not caught up to.
-    var receiptBackedAgentDMsByChatID: [String: String] {
-        get { storedReceiptBackedAgentDMsByChatID }
-        set {
-            guard storedReceiptBackedAgentDMsByChatID != newValue else { return }
-            storedReceiptBackedAgentDMsByChatID = newValue
-            projections.chatDestinations = nil
         }
     }
 
@@ -257,6 +197,29 @@ final class HausStore {
             guard !changed.isEmpty else { return }
             storedPendingMessagesByChatID = newValue
             projections.retireMessages(chatIDs: changed)
+        }
+    }
+
+    private func connectModelChanges() {
+        chatList.onChange = { [weak self] change in
+            guard let self else { return }
+            switch change {
+            case let .chatList(chats):
+                scheduleLaunchSnapshotWrite()
+                projections.retireChatList(chats)
+            case .receiptBackedDMs:
+                projections.chatDestinations = nil
+            }
+        }
+        captains.onChange = { [weak self] change in
+            guard let self else { return }
+            switch change {
+            case let .agents(agents):
+                scheduleLaunchSnapshotWrite()
+                projections.retireAgents(agents)
+            case .presence:
+                projections.retirePresence()
+            }
         }
     }
 }

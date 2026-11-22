@@ -11,6 +11,7 @@
 		036C7762C629E5EAE0884A8B /* HausStoreLaunchSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 459A88E8ECAFA371E4300FF9 /* HausStoreLaunchSnapshot.swift */; };
 		084CC9C64DD93F5D5A2E689F /* AuthBoundaryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01E1396B8EC9FE21A0383DE6 /* AuthBoundaryModel.swift */; };
 		0B354A8B657EE023A9EE4E61 /* VoiceAudioStartup.swift in Sources */ = {isa = PBXBuildFile; fileRef = E268A7933042825548C9FB2F /* VoiceAudioStartup.swift */; };
+		0B67D21B536544ECD8D683BA /* HausAppModel in Frameworks */ = {isa = PBXBuildFile; productRef = DBDD511F0CAE06A137A7E3ED /* HausAppModel */; };
 		0B98EA28D4EB397868C03D7F /* PresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6479EFBFB200B67B041489C1 /* PresentationAdapters.swift */; };
 		0DE10FD705D86DDDD6DC2CBC /* HausStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 289CE0DDE04F299E41767304 /* HausStore.swift */; };
 		122F254A49A4BF494962CD60 /* HausStoreProfiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE16B456BE9D7C8D1129D79A /* HausStoreProfiles.swift */; };
@@ -23,8 +24,10 @@
 		251F4347D29A196865AE3129 /* HausStoreInlineReplies.swift in Sources */ = {isa = PBXBuildFile; fileRef = 789E7748649B73A8DADD1383 /* HausStoreInlineReplies.swift */; };
 		29FABC5EB976C4941B46402D /* CodeBlockRowLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A9452EF0C34538A8523C32B /* CodeBlockRowLayoutTests.swift */; };
 		2D59ED3AEE18F90971211BC7 /* HausStoreEngagement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A505BEC3D0CB539BE1085D6 /* HausStoreEngagement.swift */; };
+		2D75EA1547C8D6F5BAF9C91B /* HausStoreDrafts.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85DA925E71686EE324FF319 /* HausStoreDrafts.swift */; };
 		3690B636684E98D6E84A99B6 /* HausStoreTranscripts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7880F55DF81599F9343DEEE6 /* HausStoreTranscripts.swift */; };
 		36E11B61F6B7923EF0774757 /* ActivityPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 876CEDBE5B2CC4CDF301EFF6 /* ActivityPresentationAdapters.swift */; };
+		383663B381B01EBF3FE843BD /* HausStoreModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = E65CA6A2037D1673EE578190 /* HausStoreModels.swift */; };
 		39EEB584383C49126A3A58A9 /* DrawerPanDelegateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17B1E79D62CDCC8E8BC2268C /* DrawerPanDelegateTests.swift */; };
 		3C7596C63D050A5AD2F99480 /* HausStoreMessageBodies.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98180CA66F0FB2C45C041767 /* HausStoreMessageBodies.swift */; };
 		3DF2040138423821D77FC199 /* HausStoreArtifacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = C52F0B1DA203DF7B2F7F315D /* HausStoreArtifacts.swift */; };
@@ -32,6 +35,7 @@
 		41B04BD7EABE5C585B663283 /* halloween-icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 9E9E1387FDC4B811FF25DD22 /* halloween-icon.icon */; };
 		44B50B0FDF5AD409888415AE /* HausStoreMentions.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9D58A2E06B71FDA6ABF4D58 /* HausStoreMentions.swift */; };
 		486715E59C541662E4EA3377 /* AuthenticatedHausView+References.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8397321F27C0C2610051B5AE /* AuthenticatedHausView+References.swift */; };
+		4C7CE530BB55277672AF9AED /* HausStoreServerSwitch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8096FDD8A785B21FBB90BD6D /* HausStoreServerSwitch.swift */; };
 		4DB1FFCA73D4632113FDD0E6 /* HausStoreReactions.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB87577C6DF7147FA7C8E74D /* HausStoreReactions.swift */; };
 		4DCE55C82B0FF476161F79B2 /* HausStorePush.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73D804D45D075913F4A3A028 /* HausStorePush.swift */; };
 		52551422BE2056D26C78745F /* UtilityPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 440C5A5A0C9E02BF363FC625 /* UtilityPresentationAdapters.swift */; };
@@ -49,7 +53,6 @@
 		6AE65D0A2CDE609CE0252838 /* mac-icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = AA24DB188EBB52388C52CF86 /* mac-icon.icon */; };
 		6B43803A86BC7E9519218903 /* HausStoreEventStreams.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73709D1E08C0F2545F2E0E2D /* HausStoreEventStreams.swift */; };
 		6BC577C46EBBEEC48369B741 /* AuthenticatedHausSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B834451B996028D83D752D26 /* AuthenticatedHausSupport.swift */; };
-		706A5F38A3EDB1A53744B2D9 /* HausStoreComputers.swift in Sources */ = {isa = PBXBuildFile; fileRef = E56E7535CC7FF21EC23A66EF /* HausStoreComputers.swift */; };
 		72468F6096B648799300F613 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 8A8F1BAA49F991D4C2E86B11 /* PrivacyInfo.xcprivacy */; };
 		7C9046426418FE8EC9E82F4C /* VoiceCallAudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0892F4FABCDEEA08CCCF6BB /* VoiceCallAudio.swift */; };
 		7D04A02F8292E2F5D10AC97B /* HausStoreTasks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0329C162166D08C65D149B64 /* HausStoreTasks.swift */; };
@@ -65,7 +68,6 @@
 		A406D3697FB81609EE18BD38 /* HausStoreChatListRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB6091A95BBA5FC3DEA3CBCB /* HausStoreChatListRefresh.swift */; };
 		A57173988EB2AAA7F998517A /* AuthenticatedHausView+Reads.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA7862918F19A262989712BD /* AuthenticatedHausView+Reads.swift */; };
 		AF15E7CEEDD94078E44902A6 /* TranscriptRenderingPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0771A40C5602C904730B80CD /* TranscriptRenderingPerformanceTests.swift */; };
-		B6CC4A49BC7FF119DEE16248 /* TaskSnapshots.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68BE0294A6DFD9864B064E35 /* TaskSnapshots.swift */; };
 		B7EBCFDD218F89C868E6FE75 /* SettingsPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5423D9ED47D5C0EED5A8433E /* SettingsPresentationAdapters.swift */; };
 		B8D82894CDA748B68BB5E770 /* AuthenticatedHausView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EA9AD3B9155443B2AE9B5B4 /* AuthenticatedHausView.swift */; };
 		BC06046AA4A782C42B2B80B3 /* VoicePCMEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3245FFB40F82AA7C35827964 /* VoicePCMEncoder.swift */; };
@@ -159,7 +161,6 @@
 		599DA44C9DA817DC367BE98B /* HausRuntimeConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausRuntimeConfiguration.swift; sourceTree = "<group>"; };
 		63342E1AAABDD7D434433BC6 /* HausStoreClaims.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreClaims.swift; sourceTree = "<group>"; };
 		6479EFBFB200B67B041489C1 /* PresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationAdapters.swift; sourceTree = "<group>"; };
-		68BE0294A6DFD9864B064E35 /* TaskSnapshots.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TaskSnapshots.swift; sourceTree = "<group>"; };
 		6A505BEC3D0CB539BE1085D6 /* HausStoreEngagement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreEngagement.swift; sourceTree = "<group>"; };
 		6B53C2D0C19204903D3EE0F3 /* TranscriptWindowScrollingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptWindowScrollingTests.swift; sourceTree = "<group>"; };
 		6D29006F0E77B5BBD69D81CA /* VoiceCallSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceCallSession.swift; sourceTree = "<group>"; };
@@ -172,6 +173,7 @@
 		7880F55DF81599F9343DEEE6 /* HausStoreTranscripts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreTranscripts.swift; sourceTree = "<group>"; };
 		789E7748649B73A8DADD1383 /* HausStoreInlineReplies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreInlineReplies.swift; sourceTree = "<group>"; };
 		79E99BCD80EEC7975869319D /* HausStoreSendDelivery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreSendDelivery.swift; sourceTree = "<group>"; };
+		8096FDD8A785B21FBB90BD6D /* HausStoreServerSwitch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreServerSwitch.swift; sourceTree = "<group>"; };
 		8397321F27C0C2610051B5AE /* AuthenticatedHausView+References.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthenticatedHausView+References.swift"; sourceTree = "<group>"; };
 		861156C1A6033F868DB6FA7E /* HausStoreMessageLoading.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreMessageLoading.swift; sourceTree = "<group>"; };
 		863A796FD5EC6B10A14B9623 /* HausApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausApp.swift; sourceTree = "<group>"; };
@@ -188,6 +190,7 @@
 		A36840BDE2C8BF0E48A3D72E /* AgentCallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentCallView.swift; sourceTree = "<group>"; };
 		A36E0B52EFEAC490DDCC5888 /* HausStoreMessaging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreMessaging.swift; sourceTree = "<group>"; };
 		A5AEB3552D7356CDC1E3B8C4 /* HausStoreServerReload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreServerReload.swift; sourceTree = "<group>"; };
+		A85DA925E71686EE324FF319 /* HausStoreDrafts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreDrafts.swift; sourceTree = "<group>"; };
 		AA24DB188EBB52388C52CF86 /* mac-icon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = "mac-icon.icon"; sourceTree = "<group>"; };
 		B09206EC655FA6C9134513FB /* AuthBoundaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthBoundaryView.swift; sourceTree = "<group>"; };
 		B834451B996028D83D752D26 /* AuthenticatedHausSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticatedHausSupport.swift; sourceTree = "<group>"; };
@@ -206,8 +209,8 @@
 		E0892F4FABCDEEA08CCCF6BB /* VoiceCallAudio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceCallAudio.swift; sourceTree = "<group>"; };
 		E268A7933042825548C9FB2F /* VoiceAudioStartup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceAudioStartup.swift; sourceTree = "<group>"; };
 		E45EDC3114F9952D72C4F7DA /* InboxPresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InboxPresentationAdapters.swift; sourceTree = "<group>"; };
-		E56E7535CC7FF21EC23A66EF /* HausStoreComputers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreComputers.swift; sourceTree = "<group>"; };
 		E5CD0E9C85581C948DF53EC2 /* HausStoreInbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreInbox.swift; sourceTree = "<group>"; };
+		E65CA6A2037D1673EE578190 /* HausStoreModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreModels.swift; sourceTree = "<group>"; };
 		EA7862918F19A262989712BD /* AuthenticatedHausView+Reads.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthenticatedHausView+Reads.swift"; sourceTree = "<group>"; };
 		EB6091A95BBA5FC3DEA3CBCB /* HausStoreChatListRefresh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreChatListRefresh.swift; sourceTree = "<group>"; };
 		EE6D4F94243A206BB010F00B /* ios-swift */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "ios-swift"; path = .; sourceTree = SOURCE_ROOT; };
@@ -242,6 +245,7 @@
 				F5AFE88E2DA7359D6F6E5CA1 /* HausModels in Frameworks */,
 				91CD1375E99A47E7F7363F09 /* HausTransport in Frameworks */,
 				1A8B2635CFEBDFBDBD95B72A /* HausUI in Frameworks */,
+				0B67D21B536544ECD8D683BA /* HausAppModel in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -351,7 +355,7 @@
 				EB6091A95BBA5FC3DEA3CBCB /* HausStoreChatListRefresh.swift */,
 				114C9BE553275D26E429E17F /* HausStoreChatReads.swift */,
 				63342E1AAABDD7D434433BC6 /* HausStoreClaims.swift */,
-				E56E7535CC7FF21EC23A66EF /* HausStoreComputers.swift */,
+				A85DA925E71686EE324FF319 /* HausStoreDrafts.swift */,
 				6A505BEC3D0CB539BE1085D6 /* HausStoreEngagement.swift */,
 				73709D1E08C0F2545F2E0E2D /* HausStoreEventStreams.swift */,
 				8F320C65051725B25AFAB257 /* HausStoreHistory.swift */,
@@ -363,12 +367,14 @@
 				98180CA66F0FB2C45C041767 /* HausStoreMessageBodies.swift */,
 				861156C1A6033F868DB6FA7E /* HausStoreMessageLoading.swift */,
 				A36E0B52EFEAC490DDCC5888 /* HausStoreMessaging.swift */,
+				E65CA6A2037D1673EE578190 /* HausStoreModels.swift */,
 				CE16B456BE9D7C8D1129D79A /* HausStoreProfiles.swift */,
 				73D804D45D075913F4A3A028 /* HausStorePush.swift */,
 				DB87577C6DF7147FA7C8E74D /* HausStoreReactions.swift */,
 				752D9C819F8C3513DCBD350E /* HausStoreRealtime.swift */,
 				79E99BCD80EEC7975869319D /* HausStoreSendDelivery.swift */,
 				A5AEB3552D7356CDC1E3B8C4 /* HausStoreServerReload.swift */,
+				8096FDD8A785B21FBB90BD6D /* HausStoreServerSwitch.swift */,
 				FE06C82504A2B87E2B11572D /* HausStoreSharedArtifacts.swift */,
 				960626C05BC402D32C2B6895 /* HausStoreSignOut.swift */,
 				1A65F91E2B21B774C3DBC0A3 /* HausStoreSupport.swift */,
@@ -387,7 +393,6 @@
 				5423D9ED47D5C0EED5A8433E /* SettingsPresentationAdapters.swift */,
 				4F3442CFF7F141228FFA4C88 /* TaskChatAdapters.swift */,
 				147265512B955B90F06F98BE /* TaskPresentationAdapters.swift */,
-				68BE0294A6DFD9864B064E35 /* TaskSnapshots.swift */,
 				440C5A5A0C9E02BF363FC625 /* UtilityPresentationAdapters.swift */,
 				C96F439D98FECEC5E0DDB0C1 /* Voice */,
 			);
@@ -439,6 +444,7 @@
 				5EC6967227E68FD69E891391 /* HausModels */,
 				1DB905D686A4CE7B1959646B /* HausTransport */,
 				0941F47FDECBF6CD658D96BF /* HausUI */,
+				DBDD511F0CAE06A137A7E3ED /* HausAppModel */,
 			);
 			productName = Haus;
 			productReference = 19D2775FC5AB696722A326FE /* Haus.app */;
@@ -613,7 +619,7 @@
 				A406D3697FB81609EE18BD38 /* HausStoreChatListRefresh.swift in Sources */,
 				23F49FE4C0A512B9B169FD44 /* HausStoreChatReads.swift in Sources */,
 				E4D4833D8895FFD21141E3DA /* HausStoreClaims.swift in Sources */,
-				706A5F38A3EDB1A53744B2D9 /* HausStoreComputers.swift in Sources */,
+				2D75EA1547C8D6F5BAF9C91B /* HausStoreDrafts.swift in Sources */,
 				2D59ED3AEE18F90971211BC7 /* HausStoreEngagement.swift in Sources */,
 				6B43803A86BC7E9519218903 /* HausStoreEventStreams.swift in Sources */,
 				EF499854B2F9D70B435232F4 /* HausStoreHistory.swift in Sources */,
@@ -625,12 +631,14 @@
 				3C7596C63D050A5AD2F99480 /* HausStoreMessageBodies.swift in Sources */,
 				F6A04385187D5B5E3482132B /* HausStoreMessageLoading.swift in Sources */,
 				8FE296002F3C29657170772A /* HausStoreMessaging.swift in Sources */,
+				383663B381B01EBF3FE843BD /* HausStoreModels.swift in Sources */,
 				122F254A49A4BF494962CD60 /* HausStoreProfiles.swift in Sources */,
 				4DCE55C82B0FF476161F79B2 /* HausStorePush.swift in Sources */,
 				4DB1FFCA73D4632113FDD0E6 /* HausStoreReactions.swift in Sources */,
 				C17ACBD581A41085B44710D1 /* HausStoreRealtime.swift in Sources */,
 				D6291CE345361C1F2F6234DC /* HausStoreSendDelivery.swift in Sources */,
 				1248FDA3AFA26F36E6FE6AE4 /* HausStoreServerReload.swift in Sources */,
+				4C7CE530BB55277672AF9AED /* HausStoreServerSwitch.swift in Sources */,
 				65765C213F4A36403206C9FD /* HausStoreSharedArtifacts.swift in Sources */,
 				81557844D44B791D6174731E /* HausStoreSignOut.swift in Sources */,
 				C294E516F409A496974B8D9B /* HausStoreSupport.swift in Sources */,
@@ -647,7 +655,6 @@
 				B7EBCFDD218F89C868E6FE75 /* SettingsPresentationAdapters.swift in Sources */,
 				55CBE7147ECA55D0D9A195CA /* TaskChatAdapters.swift in Sources */,
 				D64E21F3C9B2593262584CBC /* TaskPresentationAdapters.swift in Sources */,
-				B6CC4A49BC7FF119DEE16248 /* TaskSnapshots.swift in Sources */,
 				52551422BE2056D26C78745F /* UtilityPresentationAdapters.swift in Sources */,
 				96550EF01529DFA5F7B037B9 /* VoiceAudioStartup.swift in Sources */,
 				7C9046426418FE8EC9E82F4C /* VoiceCallAudio.swift in Sources */,
@@ -970,6 +977,10 @@
 		6E627B7AF11A724FBA288003 /* HausUI */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = HausUI;
+		};
+		DBDD511F0CAE06A137A7E3ED /* HausAppModel */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = HausAppModel;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
