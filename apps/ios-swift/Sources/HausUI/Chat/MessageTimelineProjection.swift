@@ -9,8 +9,20 @@ struct MessageTimelineEntry: Identifiable, Equatable {
     let message: MessagePresentation
     let grouping: TranscriptRowGrouping
     let isFirst: Bool
+    /// Part of the entry so a style change re-hosts every row it reaches.
+    var style = TranscriptStyle.roster
 
     var id: String { message.id }
+
+    /// The air above the row's message, under any divider that leads it. A
+    /// divider carries its own.
+    var topSpacing: CGFloat {
+        guard !isFirst, grouping.divider == nil else { return 0 }
+        switch style {
+        case .roster: return grouping.isContinuation ? 4 : 16
+        case .assistant: return grouping.isContinuation ? 12 : 18
+        }
+    }
 }
 
 /// The per-page work the timeline needs, done once per page rather than once
@@ -24,20 +36,25 @@ struct MessageTimelineEntry: Identifiable, Equatable {
 @MainActor
 final class MessageTimelineProjection {
     private(set) var messages: [MessagePresentation] = []
+    private(set) var style = TranscriptStyle.roster
     private(set) var entries: [MessageTimelineEntry] = []
     private(set) var messageIDs: [String] = []
     private(set) var imagePages: [MessageAttachmentPresentation] = []
 
-    func update(_ messages: [MessagePresentation]) {
-        guard messages != self.messages else { return }
+    func update(_ messages: [MessagePresentation], style: TranscriptStyle = .roster) {
+        guard messages != self.messages || style != self.style else { return }
+        if messages != self.messages {
+            messageIDs = messages.map(\.id)
+            imagePages = AttachmentImagePages.pages(in: messages)
+        }
         self.messages = messages
-        entries = Self.entries(for: messages)
-        messageIDs = messages.map(\.id)
-        imagePages = AttachmentImagePages.pages(in: messages)
+        self.style = style
+        entries = Self.entries(for: messages, style: style)
     }
 
     nonisolated static func entries(
         for messages: [MessagePresentation],
+        style: TranscriptStyle = .roster,
         calendar: Calendar = .current
     ) -> [MessageTimelineEntry] {
         messages.indices.map { index in
@@ -46,9 +63,11 @@ final class MessageTimelineProjection {
                 grouping: TranscriptRowGrouping(
                     messages[index],
                     after: index > 0 ? messages[index - 1] : nil,
+                    style: style,
                     calendar: calendar
                 ),
-                isFirst: index == 0
+                isFirst: index == 0,
+                style: style
             )
         }
     }

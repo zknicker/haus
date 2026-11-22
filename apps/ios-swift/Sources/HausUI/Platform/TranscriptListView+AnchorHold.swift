@@ -17,6 +17,7 @@ extension TranscriptListCoordinator {
             [weak self] table, change in
             guard change.oldValue != change.newValue else { return }
             MainActor.assumeIsolated {
+                self?.holdSendLanding(table)
                 self?.reapplyHeldAnchor(table)
             }
         }
