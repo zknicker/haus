@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## v28.1.0 - 2026-11-21
+
+- Each Device's computer use setting can now name which Captains may use it: all Captains on the Device, including ones added later, or only the ones you pick. A Captain that moves to another Device drops off the list. Settings → Devices → (Device) → Access has the picker under **Computer use allowed**.
+- A Captain refused computer use is told exactly why: it's off, the Captain isn't on the list, the Device is offline or isn't a Mac, a macOS permission is missing, or the Mac's screen is locked, at the login window, or switched to another user. The refusal names who attached the Device, links its settings page, and tells the Captain to ask once in plain text. A Captain refused again for the same reason is told it already asked, and a second refusal in one turn tells it to stop.
+- The Access section lists each macOS permission as Granted or Not granted, with Open Settings, the steps for that Mac's macOS version, and a Copy path button for the hidden Haus Computer app. It rechecks when you come back to the window or press **Check again**. Open Settings opens System Settings on that Mac, in a browser or in Haus for Desktop 7.3.0.
+- **Stop Agent Input** on the Device page cancels a Captain's running desktop command, and the Captain is told a person stopped it.
+- Haus Computer 24.1.0 runs one desktop command at a time across the whole Mac, even with several Servers attached, and a command never outlives the Haus Computer process that started it. Desktop commands refuse on a locked screen, wake a sleeping display first, and hold the display awake only while clicking or typing.
+- Workers in Claude Code (2.1.317 or later), Codex (0.159.0) and Claude cloud can ask you structured questions. Their turn ends right away, the Worker page shows the questions as a card with numbered options, and your answer resumes the same session. The report @mentions the person whose follow-up started that turn, or wakes the Captain that delegated the Worker. Claude Code and Codex Workers now deny every other approval request.
+- Server 27.1.0, Haus Computer 24.1.0 and Haus for Desktop 7.3.0 publish together. Computer protocol 47 is unchanged, so either can update first. Database migration 0150 adds the Captains list and the refusal record. Haus Agent and Haus for iPhone are unchanged.
+
 ## v28.0.0 - 2026-11-21
 
 - Haus Computer 24.0.0 runs as an app, `Haus Computer.app`, so macOS lists "Haus Computer" with the Haus icon in System Settings → Privacy & Security instead of an unnamed executable. The app is signed and notarized. It installs at `~/.local/share/haus-computer/`, and `~/.local/bin/haus-computer` points into it. Updates and `haus-computer upgrade --rollback` keep the permissions.
