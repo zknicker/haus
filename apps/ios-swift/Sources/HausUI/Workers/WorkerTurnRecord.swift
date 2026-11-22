@@ -51,22 +51,30 @@ public struct WorkerTurnRecord: Hashable, Sendable, Identifiable {
         return max(0, terminalAt.timeIntervalSince(startedAt))
     }
 
-    /// Reads a wire turn. The model carries no turn input, steps, or cited
-    /// files yet, so those stay empty until it does.
+    /// Reads a wire turn: its input as prompts, its steps, and its settled
+    /// outcome with the report's prose, pull requests, and cited Drive files.
+    /// A turn that settled before outcomes existed reads its status and summary.
     public init(turn: WorkerTurn) {
-        let outcome = Self.outcome(turn)
-        let reportText = outcome == nil ? nil : turn.summary
+        let settled = turn.outcome.map(Self.settled) ?? Self.legacySettled(turn)
+        let branchPullRequests = turn.branches.compactMap { WorkerCitedPullRequest(branch: $0) }
         self.init(
             id: turn.runId,
+            prompts: (turn.input ?? []).map(\.text),
+            steps: (turn.steps ?? []).map(WorkerStepEntry.init(step:)),
             startedAt: turn.startedAt,
             terminalAt: turn.terminalAt,
-            outcome: outcome.map { outcome in
-                if case .failed = outcome, reportText != nil { return .failed(reason: nil) }
-                return outcome
-            },
-            report: reportText,
-            pullRequests: turn.branches.compactMap { WorkerCitedPullRequest(branch: $0) }
+            outcome: settled?.outcome,
+            report: settled?.report,
+            pullRequests: Self.merging(branchPullRequests, settled?.pullRequestUrls ?? []),
+            files: settled?.report.map(WorkerDriveCitations.paths(in:)) ?? []
         )
+    }
+
+    static func legacySettled(_ turn: WorkerTurn) -> Settled? {
+        guard let outcome = outcome(turn) else { return nil }
+        guard let summary = turn.summary else { return Settled(outcome: outcome, report: nil, pullRequestUrls: []) }
+        if case .failed = outcome { return Settled(outcome: .failed(reason: nil), report: summary, pullRequestUrls: []) }
+        return Settled(outcome: outcome, report: summary, pullRequestUrls: [])
     }
 
     static func outcome(_ turn: WorkerTurn) -> Outcome? {
