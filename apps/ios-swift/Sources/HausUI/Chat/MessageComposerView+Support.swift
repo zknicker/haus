@@ -1,6 +1,36 @@
 import SwiftUI
 
 extension MessageComposerView {
+    /// A composer whose placeholder follows its place: "Reply" in Captain DMs and Task chats,
+    /// "Message #name" in Projects.
+    public init(
+        text: Binding<String>,
+        interaction: ComposerInteraction,
+        place: ComposerPlace,
+        isTextFocused: FocusState<Bool>.Binding,
+        allowsAttachments: Bool = true,
+        mentionOptions: [MentionOptionPresentation] = [],
+        inlineReply: MessageReplyReferencePresentation? = nil,
+        onCancelInlineReply: @escaping () -> Void = {},
+        transitionNamespace: Namespace.ID? = nil,
+        model: ComposerModelControl? = nil,
+        onSend: @escaping (String, [ComposerAttachment]) async -> Bool
+    ) {
+        self.init(
+            text: text,
+            interaction: interaction,
+            placeholder: place.placeholder,
+            isTextFocused: isTextFocused,
+            allowsAttachments: allowsAttachments,
+            mentionOptions: mentionOptions,
+            inlineReply: inlineReply,
+            onCancelInlineReply: onCancelInlineReply,
+            transitionNamespace: transitionNamespace,
+            model: model,
+            onSend: onSend
+        )
+    }
+
     /// Deliberately blind to the portal: the plus button on a collapsed composer opens the source
     /// menu over the pill without expanding it, and a portal opened from a focused composer keeps
     /// its keyboard — so focus alone holds the expanded shell for the portal's whole lifecycle.

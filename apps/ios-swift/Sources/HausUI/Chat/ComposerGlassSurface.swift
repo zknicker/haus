@@ -24,6 +24,14 @@ struct ComposerGlassSurface: ViewModifier {
 enum ComposerSurfaceMetrics {
     static let restingCornerRadius: CGFloat = 24
     static let expandedCornerRadius: CGFloat = 28
+    /// The composer's side margin, resting and expanded alike.
+    static let sideMargin: CGFloat = 16
+    /// The inset of the 36pt circles inside the shell: (47 − 36) / 2 at rest.
+    static let restingControlInset: CGFloat = 5.5
+    static let expandedControlInset: CGFloat = 6
+    /// How far below the screen's top edge a full-height card stops, so the chat header's
+    /// title and circles stay clear above it.
+    static let fullHeightTopClearance: CGFloat = 116
 }
 
 extension View {
