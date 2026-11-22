@@ -17,7 +17,8 @@ enum InboxFixtures {
                 id: "agent_blippy",
                 name: "Blippy",
                 avatarURL: nil,
-                presence: .working
+                presence: .working,
+                kind: .captain
             )
         }
         if let userID {

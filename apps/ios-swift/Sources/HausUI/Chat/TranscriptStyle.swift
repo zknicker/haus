@@ -18,8 +18,9 @@ enum TranscriptSpeaker: Equatable, Sendable {
     /// A Captain, drawn as full-width prose.
     case captain
 
-    /// Captain authors carry their presence; people never do.
+    /// The author's kind decides, so a Captain with no presence (deleted, or not yet listed)
+    /// still speaks as a Captain.
     init(_ message: MessagePresentation) {
-        self = message.author.presence == nil ? .person : .captain
+        self = message.author.kind == .captain ? .captain : .person
     }
 }

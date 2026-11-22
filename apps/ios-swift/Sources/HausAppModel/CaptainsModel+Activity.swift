@@ -8,6 +8,7 @@ extension CaptainsModel {
     /// Applies one `agent.onActivity` event, in run-position order.
     public func apply(_ event: AgentActivityEvent) {
         guard scope.isActive(event.serverID) else { return }
+        defer { recordLiveStep(event) }
         let latestPosition = activityPositionByRunID[event.runID] ?? 0
         guard event.position > latestPosition else { return }
         activityPositionByRunID[event.runID] = event.position
@@ -43,6 +44,7 @@ extension CaptainsModel {
         // Re-read on every stream connect and snapshot, and usually identical.
         if currentActivityByAgentID != activity { currentActivityByAgentID = activity }
         if activityPositionByRunID != positions { activityPositionByRunID = positions }
+        replaceLiveRuns(snapshot.current.filter { workingAgentIDs.contains($0.event.agentID) })
     }
 
     // MARK: - Reads

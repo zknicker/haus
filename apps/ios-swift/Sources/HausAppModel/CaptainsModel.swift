@@ -31,6 +31,8 @@ public final class CaptainsModel {
     public private(set) var isAnyAgentWorking = false
     public internal(set) var hasActivitySnapshot = false
     public internal(set) var activityPositionByRunID: [String: Int] = [:]
+    /// Each working Captain's running turn, step by step, for turn details. Settlement removes it.
+    public internal(set) var liveRunsByAgentID: [String: CaptainLiveRun] = [:]
     /// Advances on every lifecycle event, so a list read can tell whether
     /// the overlay moved while it was in flight.
     public private(set) var lifecycleRevision = 0
@@ -82,6 +84,7 @@ public final class CaptainsModel {
         lifecycleAvailability = [:]
         currentActivityByAgentID = [:]
         activityPositionByRunID = [:]
+        liveRunsByAgentID = [:]
         hasActivitySnapshot = false
     }
 
@@ -98,6 +101,9 @@ public final class CaptainsModel {
             if let current = currentActivityByAgentID[event.agentID], current.runID != event.runID {
                 currentActivityByAgentID.removeValue(forKey: event.agentID)
             }
+            if let live = liveRunsByAgentID[event.agentID], live.runID != event.runID {
+                liveRunsByAgentID.removeValue(forKey: event.agentID)
+            }
             setLifecycleAvailability(.working, for: event.agentID)
             return .working
         case .settled:
@@ -113,6 +119,9 @@ public final class CaptainsModel {
             }
             if activityPositionByRunID[event.runID] != nil {
                 activityPositionByRunID.removeValue(forKey: event.runID)
+            }
+            if liveRunsByAgentID[event.agentID] != nil {
+                liveRunsByAgentID.removeValue(forKey: event.agentID)
             }
             return .settled
         }

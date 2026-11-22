@@ -14,6 +14,8 @@ public struct MessageTimelineView: View {
     let onSelectInlineReply: (MessagePresentation) -> Void
     let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
     private let onOpenAgent: (String) -> Void
+    /// A Captain message's "View Turn Details"; nil leaves the action out.
+    let onViewTurnDetails: ((MessagePresentation) -> Void)?
     let history: MessageHistoryNavigation
     /// How rows are laid out: the assistant layout for Captain DMs and Task
     /// chats, roster rows for Projects.
@@ -75,6 +77,7 @@ public struct MessageTimelineView: View {
             return localURL
         },
         onOpenAgent: @escaping (String) -> Void = { _ in },
+        onViewTurnDetails: ((MessagePresentation) -> Void)? = nil,
         history: MessageHistoryNavigation = .init(),
         scrollTargetMessageID: Binding<String?> = .constant(nil),
         onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
@@ -91,6 +94,7 @@ public struct MessageTimelineView: View {
         self.onSelectInlineReply = onSelectInlineReply
         self.onOpenAttachment = onOpenAttachment
         self.onOpenAgent = onOpenAgent
+        self.onViewTurnDetails = onViewTurnDetails
         self.history = history
     }
 
@@ -182,7 +186,8 @@ public struct MessageTimelineView: View {
         .messageActionDrawer(
             for: $actionMessage,
             board: reactionBoard,
-            onReply: allowsInlineReplies ? onSelectInlineReply : nil
+            onReply: allowsInlineReplies ? onSelectInlineReply : nil,
+            onViewTurnDetails: onViewTurnDetails
         )
         .alert("Message unavailable", isPresented: historyRevealErrorPresented) {
             Button("Retry") {

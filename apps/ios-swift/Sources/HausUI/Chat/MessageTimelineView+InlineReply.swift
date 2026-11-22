@@ -62,7 +62,8 @@ extension MessageTimelineView {
             message,
             canReplyInline: allowsInlineReplies,
             onReact: { actionMessage = message },
-            onReply: { onSelectInlineReply(message) }
+            onReply: { onSelectInlineReply(message) },
+            onViewTurnDetails: onViewTurnDetails.map { open in { open(message) } }
         )
     }
 }
