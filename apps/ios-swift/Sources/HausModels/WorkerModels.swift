@@ -112,11 +112,19 @@ public struct WorkerTurn: Codable, Hashable, Sendable {
     /// Nil only for a Server older than the model contract.
     public let model: WorkerTurnModel?
     public let stopRequestedAt: Date?
+    /// What the turn was asked, in order; nil only on a migrated turn whose
+    /// follow-up still sits on its carrier.
+    public var input: [WorkerTurnInput]? = nil
+    /// Set exactly when the turn settled.
+    public var outcome: WorkerOutcome? = nil
+    /// The carrier's step summary, in the order the steps ran; nil until the
+    /// carrier reports one.
+    public var steps: [WorkerStep]? = nil
 
     enum CodingKeys: String, CodingKey {
         case runId = "turnId"
         case status, createdAt, branches, startedAt, terminalAt, summary, errorCode, model
-        case stopRequestedAt
+        case stopRequestedAt, input, outcome, steps
     }
 }
 
