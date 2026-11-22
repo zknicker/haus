@@ -53,7 +53,7 @@ struct DescriptionEditorView: View {
         .padding(.horizontal, 16)
         .padding(.top, 10)
         .padding(.bottom, 16)
-        .background(HausPlatformColor.groupedBackground)
+        .background(HausPlatformColor.canvas)
         .navigationTitle(title)
         .hausInlineNavigationTitle()
         .toolbar {

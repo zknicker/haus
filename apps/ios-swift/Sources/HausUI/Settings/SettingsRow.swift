@@ -44,17 +44,18 @@ public struct SettingsRow<Content: View>: View {
 
     public var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 14) {
+            HStack(spacing: SettingsCardMetrics.valueGap) {
                 if let icon {
-                    HausIcon(icon, size: 21, weight: 1.8)
-                        .frame(width: 24)
-                        .foregroundStyle(.primary)
+                    HausIcon(icon, size: SettingsCardMetrics.iconSide, weight: 1.8)
+                        .frame(width: SettingsCardMetrics.iconSide)
+                        .foregroundStyle(HausPlatformColor.ink)
+                        .padding(.trailing, SettingsCardMetrics.iconGap - SettingsCardMetrics.valueGap)
                 }
                 if let value {
                     SettingsValueLayout { labels } value: {
                         Text(value)
                             .font(.body)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(HausPlatformColor.mutedInk)
                             .settingsRowValueText()
                     }
                     content()
@@ -75,13 +76,13 @@ public struct SettingsRow<Content: View>: View {
                 }
             }
             .padding(.vertical, 10)
-            .frame(minHeight: 52)
-            .padding(.horizontal, 16)
+            .frame(minHeight: SettingsCardMetrics.rowHeight)
+            .padding(.leading, SettingsCardMetrics.leadingInset)
+            .padding(.trailing, SettingsCardMetrics.trailingInset)
             .contentShape(Rectangle())
 
             if showsDivider {
-                Divider()
-                    .padding(.leading, icon == nil ? 16 : 54)
+                SettingsSeparator(leading: SettingsCardMetrics.separatorLeading(hasIcon: icon != nil))
             }
         }
     }
@@ -90,12 +91,12 @@ public struct SettingsRow<Content: View>: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
                 .font(.body)
-                .foregroundStyle(.primary)
+                .foregroundStyle(HausPlatformColor.ink)
                 .fixedSize(horizontal: false, vertical: true)
             if let subtitle {
                 Text(subtitle)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(HausPlatformColor.mutedInk)
                     .lineLimit(1)
             }
         }

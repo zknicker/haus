@@ -43,24 +43,12 @@ struct ServerSwitcherSection: View {
                         }
                     }
                 } label: {
-                    HStack(spacing: 14) {
-                        Image(systemName: "arrow.left.arrow.right")
-                            .frame(width: 30)
-                            .foregroundStyle(.secondary)
-                        Text("Switch Server")
-                            .foregroundStyle(.primary)
-                        Spacer(minLength: 8)
-                        Text(activeName)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.footnote.weight(.semibold))
-                            .foregroundStyle(.tertiary)
+                    SettingsRow(title: "Switch Server", value: activeName, icon: .server, showsDivider: false) {
+                        SettingsChevron()
                     }
-                    .frame(minHeight: 52)
-                    .padding(.horizontal, 16)
-                    .contentShape(Rectangle())
                 }
+                .tint(.primary)
+                .accessibilityLabel("Switch Server, \(activeName)")
                 .disabled(switcher.servers.count < 2)
             }
         }

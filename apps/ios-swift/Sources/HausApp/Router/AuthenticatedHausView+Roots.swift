@@ -65,6 +65,7 @@ extension AuthenticatedHausView {
                     automations: store.agentAutomations { router.open(route(forChatID: $0), from: .outside) },
                     stoppedClaims: store.agentStoppedClaims { openClaim($0) },
                     notifications: push.setting,
+                    server: store.settingsServerContent { router.open(.driveFile(path: $0.metadata.path)) },
                     appearance: appearanceBinding,
                     serverSwitcher: ServerSwitcher(
                         servers: store.servers.map { ServerSwitcher.Server(id: $0.id, name: $0.displayName) },
@@ -85,6 +86,18 @@ extension AuthenticatedHausView {
             searchMessages: { query, chatID in try await store.searchMessagePresentations(query: query, chatID: chatID) },
             searchRecoveryRevision: store.messageSearchRevision,
             isTabRoot: true,
+            palette: store.searchPaletteContent,
+            actions: SearchPaletteActions(
+                onSelectCaptain: { router.open(.captainDM(agentID: $0), from: .outside) },
+                onSelectTask: { router.open(.task(taskID: $0), from: .outside) },
+                onOpenPeople: { router.open(.settings(.people), from: .outside) },
+                onNewTask: { router.present(.askAnything) },
+                onNewProject: { router.present(.newProject) },
+                onGoToTasks: { router.selectedTab = .tasks },
+                onGoToSettings: { router.selectedTab = .you },
+                onClose: { router.selectedTab = .home },
+                onAppear: { await store.loadSearchPalette() }
+            ),
             onSelectChat: { router.open(route(forChatID: $0.id), from: .outside) },
             onSelectMessage: { router.open(route(forChatID: $0.chatID, messageID: $0.id), from: .outside) }
         )

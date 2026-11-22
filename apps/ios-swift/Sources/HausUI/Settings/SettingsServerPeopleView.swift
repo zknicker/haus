@@ -34,7 +34,7 @@ struct ServerPeopleView: View {
             .padding(.bottom, 28)
         }
         .scrollIndicators(.hidden)
-        .background(HausPlatformColor.groupedBackground)
+        .background(HausPlatformColor.canvas)
         .navigationTitle("People")
         .hausInlineNavigationTitle()
     }
@@ -84,10 +84,10 @@ private struct SettingsMemberRow: View {
             }
             .padding(.vertical, 10)
             .frame(minHeight: 76)
-            .padding(.horizontal, 16)
+            .padding(.horizontal, SettingsCardMetrics.leadingInset)
 
             if showsDivider {
-                Divider().padding(.leading, 72)
+                SettingsSeparator(leading: 76)
             }
         }
         .accessibilityElement(children: .combine)

@@ -20,7 +20,7 @@ struct SettingsSignOutSection: View {
                     HStack(spacing: 8) {
                         Text("Sign Out")
                             .font(.body)
-                            .foregroundStyle(.red)
+                            .foregroundStyle(HausPlatformColor.critical)
                         Spacer(minLength: 8)
                         if isSigningOut {
                             ProgressView().controlSize(.small)
@@ -28,7 +28,7 @@ struct SettingsSignOutSection: View {
                     }
                     .padding(.vertical, 10)
                     .frame(minHeight: 52)
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, SettingsCardMetrics.leadingInset)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)

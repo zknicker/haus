@@ -1,10 +1,10 @@
 import Foundation
 import SwiftUI
 
-/// One search surface for the active Server: chats resolve locally from the
-/// Store cache while messages resolve through the Server. Search work is
-/// injected so the view stays independent from tRPC, authentication, and the
-/// App's cache policy.
+/// Search narrowed to one Chat, as a sheet from a chat header: chats resolve
+/// locally from the Store cache while messages resolve through the Server.
+/// Search work is injected so the view stays independent from tRPC,
+/// authentication, and the App's cache policy.
 ///
 /// The field is focused the moment the sheet opens, so the keyboard is already
 /// up when it lands. Opened from inside a Chat, the sheet also offers that Chat
@@ -23,17 +23,12 @@ struct ServerSearchView: View {
     /// Returns `false` when the result's Chat is no longer in the directory, so
     /// the sheet can report the failure instead of dismissing into nothing.
     private let onSelectMessage: (MessageSearchResultPresentation) -> Bool
-    /// The Search tab hosts this as its root, where there is nothing to dismiss.
-    private let isTabRoot: Bool
 
     @State private var query = ""
     @State private var scope = ServerSearchScope.everywhere
     @State private var isSearchPresented = false
     @State private var selectionError: String?
-    @State private var results: [MessageSearchResultPresentation] = []
-    @State private var hasSearched = false
-    @State private var isSearching = false
-    @State private var searchError: String?
+    @State private var search = MessageSearchRun()
     @State private var retryToken = 0
 
     init(
@@ -42,10 +37,8 @@ struct ServerSearchView: View {
         searchMessages: @escaping MessageSearch,
         searchRecoveryRevision: Int = 0,
         onSelectChat: @escaping (ChatPresentation) -> Void,
-        onSelectMessage: @escaping (MessageSearchResultPresentation) -> Bool,
-        isTabRoot: Bool = false
+        onSelectMessage: @escaping (MessageSearchResultPresentation) -> Bool
     ) {
-        self.isTabRoot = isTabRoot
         self.chats = chats
         self.scopeChat = scopeChat
         self.searchMessages = searchMessages
@@ -64,10 +57,8 @@ struct ServerSearchView: View {
                 .navigationTitle("Search")
                 .hausInlineNavigationTitle()
                 .toolbar {
-                    if !isTabRoot {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") { dismiss() }
-                        }
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Close", systemImage: "xmark") { dismiss() }
                     }
                 }
                 .alert("Couldn’t open that chat", isPresented: hasSelectionError) {
@@ -77,7 +68,7 @@ struct ServerSearchView: View {
                 }
         }
         .task(id: "\(query)|\(scope)|\(retryToken)|\(searchRecoveryRevision)") {
-            await runSearch(for: query)
+            await search.run(query, chatID: scopedChatID, search: searchMessages)
         }
         // Raising the field in the sheet's first turn is too early for the
         // navigation bar to own it; one turn later the keyboard comes up as
@@ -134,7 +125,7 @@ struct ServerSearchView: View {
 
     @ViewBuilder
     private var content: some View {
-        if results.isEmpty, chatMatches.isEmpty, let searchError {
+        if search.results.isEmpty, chatMatches.isEmpty, let searchError = search.error {
             ContentUnavailableView {
                 Label("Search unavailable", systemImage: "exclamationmark.triangle")
             } description: {
@@ -143,9 +134,9 @@ struct ServerSearchView: View {
                 Button("Try again") { retryToken += 1 }
                     .buttonStyle(.borderedProminent)
             }
-        } else if results.isEmpty, chatMatches.isEmpty {
+        } else if search.results.isEmpty, chatMatches.isEmpty {
             ZStack(alignment: .top) {
-                if hasSearched {
+                if search.hasSearched {
                     ContentUnavailableView(
                         "No matches",
                         systemImage: "text.magnifyingglass",
@@ -160,14 +151,14 @@ struct ServerSearchView: View {
                         description: Text("Find a project or Captain, or a message anyone has sent.")
                     )
                 }
-                searchProgress
+                SearchProgressBadge(isSearching: search.isSearching)
             }
         } else {
             ZStack(alignment: .top) {
                 resultList
-                searchProgress
-                if let searchError {
-                    searchErrorBanner(searchError)
+                SearchProgressBadge(isSearching: search.isSearching)
+                if let searchError = search.error {
+                    SearchErrorBanner(message: searchError) { retryToken += 1 }
                 }
             }
         }
@@ -189,9 +180,9 @@ struct ServerSearchView: View {
                 }
             }
 
-            if !results.isEmpty {
+            if !search.results.isEmpty {
                 Section("Messages") {
-                    ForEach(results) { result in
+                    ForEach(search.results) { result in
                         Button {
                             guard onSelectMessage(result) else {
                                 selectionError = "That message’s chat is no longer in this Server."
@@ -215,9 +206,13 @@ struct ServerSearchView: View {
         .scrollDismissesKeyboard(.immediately)
         .background(HausPlatformColor.groupedBackground)
     }
+}
 
-    @ViewBuilder
-    private var searchProgress: some View {
+/// The small capsule that shows a message search is in flight.
+struct SearchProgressBadge: View {
+    let isSearching: Bool
+
+    var body: some View {
         if isSearching {
             ProgressView()
                 .controlSize(.small)
@@ -227,13 +222,19 @@ struct ServerSearchView: View {
                 .padding(.top, 10)
         }
     }
+}
 
-    private func searchErrorBanner(_ message: String) -> some View {
+/// Message search failed while local matches still show: say so, and retry.
+struct SearchErrorBanner: View {
+    let message: String
+    let retry: () -> Void
+
+    var body: some View {
         HStack(spacing: 8) {
             Label("Messages unavailable", systemImage: "exclamationmark.triangle")
                 .lineLimit(1)
             Spacer(minLength: 4)
-            Button("Retry") { retryToken += 1 }
+            Button("Retry", action: retry)
                 .font(.caption.weight(.semibold))
         }
         .font(.caption)
@@ -245,41 +246,5 @@ struct ServerSearchView: View {
         .padding(.horizontal, 16)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Messages unavailable: \(message)")
-    }
-
-    private func runSearch(for rawQuery: String) async {
-        let term = rawQuery.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !term.isEmpty else {
-            results = []
-            hasSearched = false
-            isSearching = false
-            searchError = nil
-            return
-        }
-
-        // Chat matches are already on screen. Keep the current message results
-        // while the user is still composing, and only show progress after the
-        // debounce, so keyboard input never causes a full-screen loading flash.
-        isSearching = false
-        hasSearched = false
-        searchError = nil
-        do {
-            try await Task.sleep(for: .milliseconds(250))
-            guard !Task.isCancelled else { return }
-            isSearching = true
-            let results = try await searchMessages(term, scopedChatID)
-            guard !Task.isCancelled else { return }
-            self.results = results
-            hasSearched = true
-            isSearching = false
-            searchError = nil
-        } catch is CancellationError {
-            // A new keystroke cancels the previous search normally.
-        } catch {
-            guard !Task.isCancelled else { return }
-            hasSearched = true
-            isSearching = false
-            searchError = error.localizedDescription
-        }
     }
 }

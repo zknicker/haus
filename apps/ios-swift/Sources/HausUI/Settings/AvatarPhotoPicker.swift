@@ -173,7 +173,7 @@ public struct AvatarPhotoPicker: View {
             .frame(width: 32, height: 32)
             .background(HausPlatformColor.groupedSurface, in: .circle)
             .overlay {
-                Circle().stroke(HausPlatformColor.groupedBackground, lineWidth: 2)
+                Circle().stroke(HausPlatformColor.canvas, lineWidth: 2)
             }
         }
         .buttonStyle(.plain)

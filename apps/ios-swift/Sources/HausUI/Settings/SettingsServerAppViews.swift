@@ -31,7 +31,7 @@ struct ServerDetailsView: View {
             .padding(.bottom, 28)
         }
         .scrollIndicators(.hidden)
-        .background(HausPlatformColor.groupedBackground)
+        .background(HausPlatformColor.canvas)
         .navigationTitle("Server")
         .hausInlineNavigationTitle()
     }
@@ -57,7 +57,7 @@ struct AppInfoView: View {
             .padding(.bottom, 28)
         }
         .scrollIndicators(.hidden)
-        .background(HausPlatformColor.groupedBackground)
+        .background(HausPlatformColor.canvas)
         .navigationTitle("Haus for iPhone")
         .hausInlineNavigationTitle()
     }

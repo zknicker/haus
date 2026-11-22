@@ -131,7 +131,10 @@ extension HausStore {
             isHealthy: computer.health == .healthy,
             system: computerSystemLabel(computer),
             // A Computer that has never reported has no version to show.
-            version: computer.productVersion.map { "v\($0)" } ?? ""
+            version: computer.productVersion.map { "v\($0)" } ?? "",
+            workers: computer.workersEnabled.map { enabled in
+                SettingsComputerWorkers(isEnabled: enabled, canChange: computer.canChangeWorkers ?? false)
+            }
         )
     }
 

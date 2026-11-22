@@ -27,6 +27,7 @@
 		2D59ED3AEE18F90971211BC7 /* HausStoreEngagement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A505BEC3D0CB539BE1085D6 /* HausStoreEngagement.swift */; };
 		2D75EA1547C8D6F5BAF9C91B /* HausStoreDrafts.swift in Sources */ = {isa = PBXBuildFile; fileRef = A85DA925E71686EE324FF319 /* HausStoreDrafts.swift */; };
 		3544783881DB61FCB14E5143 /* AuthenticatedHausView+Tabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EEEC89F282AF1A6A80074CB /* AuthenticatedHausView+Tabs.swift */; };
+		35CB42DA716ECD15A88894E4 /* SettingsServerAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D9EFEB07542DA3493E90F5F /* SettingsServerAdapters.swift */; };
 		35F12A83CC399D9C4BC74B0E /* AuthenticatedHausView+Sheets.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABAF10A501B5BDA65EEB865D /* AuthenticatedHausView+Sheets.swift */; };
 		3690B636684E98D6E84A99B6 /* HausStoreTranscripts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7880F55DF81599F9343DEEE6 /* HausStoreTranscripts.swift */; };
 		36E11B61F6B7923EF0774757 /* ActivityPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 876CEDBE5B2CC4CDF301EFF6 /* ActivityPresentationAdapters.swift */; };
@@ -36,6 +37,7 @@
 		3DF2040138423821D77FC199 /* HausStoreArtifacts.swift in Sources */ = {isa = PBXBuildFile; fileRef = C52F0B1DA203DF7B2F7F315D /* HausStoreArtifacts.swift */; };
 		3EC31C6D2A9BC16BEBB57141 /* ChatPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EA4A3F1787540E29C3BE266 /* ChatPresentationAdapters.swift */; };
 		41B04BD7EABE5C585B663283 /* halloween-icon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 9E9E1387FDC4B811FF25DD22 /* halloween-icon.icon */; };
+		449338184448632A2D3D33B8 /* SearchPaletteAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99127CC785EDBF70123807EA /* SearchPaletteAdapters.swift */; };
 		44B50B0FDF5AD409888415AE /* HausStoreMentions.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9D58A2E06B71FDA6ABF4D58 /* HausStoreMentions.swift */; };
 		486715E59C541662E4EA3377 /* AuthenticatedHausView+References.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8397321F27C0C2610051B5AE /* AuthenticatedHausView+References.swift */; };
 		4C7CE530BB55277672AF9AED /* HausStoreServerSwitch.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8096FDD8A785B21FBB90BD6D /* HausStoreServerSwitch.swift */; };
@@ -203,7 +205,9 @@
 		937950507521A90521FCDD85 /* christmas-icon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = "christmas-icon.icon"; sourceTree = "<group>"; };
 		960626C05BC402D32C2B6895 /* HausStoreSignOut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreSignOut.swift; sourceTree = "<group>"; };
 		98180CA66F0FB2C45C041767 /* HausStoreMessageBodies.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreMessageBodies.swift; sourceTree = "<group>"; };
+		99127CC785EDBF70123807EA /* SearchPaletteAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchPaletteAdapters.swift; sourceTree = "<group>"; };
 		99F461CB50C4296185DBCD6F /* CommunicationNotification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CommunicationNotification.swift; sourceTree = "<group>"; };
+		9D9EFEB07542DA3493E90F5F /* SettingsServerAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsServerAdapters.swift; sourceTree = "<group>"; };
 		9E9E1387FDC4B811FF25DD22 /* halloween-icon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = "halloween-icon.icon"; sourceTree = "<group>"; };
 		9EEEC89F282AF1A6A80074CB /* AuthenticatedHausView+Tabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthenticatedHausView+Tabs.swift"; sourceTree = "<group>"; };
 		A25C9CB2C17FDE37245B3CE1 /* LongTranscriptPerformanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LongTranscriptPerformanceTests.swift; sourceTree = "<group>"; };
@@ -428,7 +432,9 @@
 				6479EFBFB200B67B041489C1 /* PresentationAdapters.swift */,
 				8A8F1BAA49F991D4C2E86B11 /* PrivacyInfo.xcprivacy */,
 				C33E22F3873B8A832FCD4467 /* PushNotifications.swift */,
+				99127CC785EDBF70123807EA /* SearchPaletteAdapters.swift */,
 				5423D9ED47D5C0EED5A8433E /* SettingsPresentationAdapters.swift */,
+				9D9EFEB07542DA3493E90F5F /* SettingsServerAdapters.swift */,
 				288CF5FD85685EBD3933CFC0 /* TaskBoardAdapters.swift */,
 				11DF77A87CD79FA6FFA98D03 /* TaskBoardScreen.swift */,
 				4F3442CFF7F141228FFA4C88 /* TaskChatAdapters.swift */,
@@ -702,7 +708,9 @@
 				64C971A18A233433443BD688 /* NativeWebAuthenticationSession.swift in Sources */,
 				0B98EA28D4EB397868C03D7F /* PresentationAdapters.swift in Sources */,
 				F67377AD066715CF4B5900FC /* PushNotifications.swift in Sources */,
+				449338184448632A2D3D33B8 /* SearchPaletteAdapters.swift in Sources */,
 				B7EBCFDD218F89C868E6FE75 /* SettingsPresentationAdapters.swift in Sources */,
+				35CB42DA716ECD15A88894E4 /* SettingsServerAdapters.swift in Sources */,
 				F6582950BBD619CE62B29DE3 /* TaskBoardAdapters.swift in Sources */,
 				AEE4E3124B31F0760FA49299 /* TaskBoardScreen.swift in Sources */,
 				55CBE7147ECA55D0D9A195CA /* TaskChatAdapters.swift in Sources */,

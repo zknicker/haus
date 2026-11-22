@@ -5,6 +5,15 @@ public enum SettingsRoute: Hashable, Sendable {
     case agent(id: String)
     case agentRuntime(id: String)
     case agentAutomations(id: String)
+    case automations
+    case drive(prefix: String)
+    case general
+    case notifications
+    case captains
+    case models
+    case modelUsage
+    case projects
+    case project(id: String)
     case server
     case people
     case computers
