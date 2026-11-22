@@ -14,6 +14,9 @@ public final class HausRouter {
     public private(set) var reveal: MessageReveal?
     /// The Server the stacks belong to. Another Server resets them.
     public private(set) var serverID: String?
+    /// Follows the horizontal size class. A layout change keeps every
+    /// stack, so folding and unfolding keep what is open.
+    public var layout: TabLayout = .stack
 
     public init() {}
 
@@ -33,23 +36,32 @@ public final class HausRouter {
     }
 
     /// The conversation the reader is looking at: the selected tab's top
-    /// route, never a chat mounted lower in a stack or in another tab.
+    /// route, or, split, the content pane's top beside a side pane. Never a
+    /// chat mounted lower in a stack or in another tab.
     public var visibleConversation: HausConversation? {
-        topRoute?.conversation
+        if case let .split(selection, stack, _?) = panes(selectedTab) {
+            return (stack.last ?? selection)?.conversation
+        }
+        return topRoute?.conversation
     }
 
     public var showsTabBar: Bool {
         !(topRoute?.isChat ?? false)
     }
 
-    /// Inside a tab, a route pushes onto that tab's stack. From outside, it
-    /// selects its tab and replaces that stack with the route over the root.
-    /// A tab that cannot hold the route opens it as from outside.
+    /// Inside a tab, a route pushes onto that tab's stack; in a split tab a
+    /// conversation replaces the selection instead. From outside, it selects
+    /// its tab and replaces that stack with the route over the root. A tab
+    /// that cannot hold the route opens it as from outside.
     public func open(_ route: HausRoute, from origin: RouteOrigin = .inside) {
         sheet = nil
         reveal = route.revealedMessage
         if origin == .inside, Self.canStack(route, on: selectedTab) {
             guard topRoute != route else { return }
+            if isSplit(selectedTab), route.conversation != nil {
+                paths[selectedTab] = [route]
+                return
+            }
             paths[selectedTab, default: []].append(route)
             return
         }

@@ -205,3 +205,9 @@ Layout follows size classes, never orientation.
     surface.
   - No control crosses the fold. Custom chrome uses `ReservedRegion`.
 - **Pose changes** keep drafts, scroll anchors, and the open sheet.
+- **Routing at regular width:** Home, Projects, and Tasks split; You and Search keep their stacks.
+  - The bottom of the tab's stack is the selection in the content pane, and the rest stacks over it. Folding and
+    unfolding never rewrite a stack.
+  - A conversation opened inside a split tab replaces the selection. Anything else stacks over it.
+  - A Worker opened straight from its Task sits in an equal pane beside the Task, and the list steps aside. That
+    Task is the visible conversation.

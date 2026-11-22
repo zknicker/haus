@@ -9,17 +9,17 @@ extension AuthenticatedHausView {
     var tabShell: some View {
         TabView(selection: $router.selectedTab) {
             Tab(value: HausTab.home) {
-                stack(.home) { homeRoot }
+                adaptiveStack(.home) { homeRoot }
             } label: {
                 tabIcon("Home", systemImage: "house")
             }
             Tab(value: HausTab.projects) {
-                stack(.projects) { projectsRoot }
+                adaptiveStack(.projects) { projectsRoot }
             } label: {
                 tabIcon("Projects", systemImage: "number")
             }
             Tab(value: HausTab.tasks) {
-                stack(.tasks) { tasksRoot }
+                adaptiveStack(.tasks) { tasksRoot }
             } label: {
                 tabIcon("Tasks", systemImage: "list.bullet")
             }
@@ -36,6 +36,7 @@ extension AuthenticatedHausView {
             }
         }
         .tabBarMinimizeBehavior(.onScrollDown)
+        .onRegularWidthChange { router.layout = $0 ? .split : .stack }
         .askAnythingAccessory(isEnabled: router.showsTabBar) { router.present(.askAnything) }
         .sheet(item: sheetBinding) { routerSheet($0) }
         .task(id: store.settingsData?.viewer.avatarURL) {
@@ -47,6 +48,45 @@ extension AuthenticatedHausView {
         NavigationStack(path: pathBinding(tab)) {
             root().navigationDestination(for: HausRoute.self) { routeDestination($0) }
         }
+    }
+
+    /// Compact width keeps the tab's stack. Regular width shows its list
+    /// beside the selection, with a Worker opened from its Task beside the
+    /// Task (specs/ios-app.md, iPhone Duo).
+    @ViewBuilder
+    private func adaptiveStack<Root: View>(_ tab: HausTab, @ViewBuilder root: () -> Root) -> some View {
+        switch router.panes(tab) {
+        case .stack:
+            stack(tab, root: root)
+        case let .split(selection, _, side):
+            AdaptiveSplitView(showsSide: side != nil) {
+                root()
+            } content: {
+                NavigationStack(path: splitStackBinding(tab)) {
+                    Group {
+                        if let selection { routeDestination(selection) } else { Color.clear }
+                    }
+                    .navigationDestination(for: HausRoute.self) { routeDestination($0) }
+                }
+                .id(selection)
+            } side: {
+                if let side {
+                    NavigationStack { routeDestination(side) }
+                        .id(side)
+                }
+            }
+            .toolbar(side == nil ? .visible : .hidden, for: .tabBar)
+        }
+    }
+
+    private func splitStackBinding(_ tab: HausTab) -> Binding<[HausRoute]> {
+        Binding(
+            get: {
+                guard case let .split(_, stack, _) = router.panes(tab) else { return [] }
+                return stack
+            },
+            set: { router.setSplitStack($0, for: tab) }
+        )
     }
 
     private func pathBinding(_ tab: HausTab) -> Binding<[HausRoute]> {
