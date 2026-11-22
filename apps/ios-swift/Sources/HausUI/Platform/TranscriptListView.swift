@@ -78,14 +78,12 @@ where Item.ID == String {
         table.register(TranscriptCell.self, forCellReuseIdentifier: "row")
         table.dataSource = context.coordinator
         table.delegate = context.coordinator
-        if #available(iOS 26, *) {
-            // The system scroll edge effect computes its region from safe
-            // areas the flipped table does not have; letting it paint washes
-            // the whole viewport. The header's soft dissolve is drawn by the
-            // chrome bar instead.
-            table.topEdgeEffect.isHidden = true
-            table.bottomEdgeEffect.isHidden = true
-        }
+        // The system scroll edge effect computes its region from safe
+        // areas the flipped table does not have; letting it paint washes
+        // the whole viewport. The header's soft dissolve is drawn by the
+        // chrome bar instead.
+        table.topEdgeEffect.isHidden = true
+        table.bottomEdgeEffect.isHidden = true
         if onContentTap != nil {
             let tap = UITapGestureRecognizer(
                 target: context.coordinator,

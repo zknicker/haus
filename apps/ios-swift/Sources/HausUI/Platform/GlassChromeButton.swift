@@ -25,37 +25,10 @@ struct GlassChromeButton: View {
     private let label: String
     private let action: () -> Void
 
-    @Environment(\.colorScheme) private var colorScheme
-
     init(_ glyph: Glyph, label: String, action: @escaping () -> Void) {
         self.glyph = glyph
         self.label = label
         self.action = action
-    }
-
-    private var rimColor: Color {
-        colorScheme == .dark ? .white.opacity(0.14) : .white.opacity(0.75)
-    }
-
-    private var shadowColor: Color {
-        .black.opacity(colorScheme == .dark ? 0.40 : 0.10)
-    }
-
-    @ViewBuilder
-    var body: some View {
-        if #available(iOS 26, macOS 26, *) {
-            // Liquid Glass owns the whole press treatment: it lights, lifts,
-            // and settles the circle itself. A rim stroke or shadow layered
-            // over it does not move with that morph, so the press left the
-            // stroke stranded inside a grown circle and the shadow pinned to
-            // the resting size. Nothing is drawn around the glass here.
-            glassButton
-        } else {
-            // Pre-26 `.regularMaterial` has neither an edge nor a lift of its
-            // own, so the fallback still draws both — inside the button label,
-            // so the whole circle answers a press the way the glass one does.
-            standardButton
-        }
     }
 
     /// The glass button style owns its own padding, so the label is inset by
@@ -64,8 +37,9 @@ struct GlassChromeButton: View {
     /// out at `diameter + glassButtonInset * 2`.
     private static let glassButtonInset: CGFloat = 7
 
-    @available(iOS 26, macOS 26, *)
-    private var glassButton: some View {
+    /// Liquid Glass owns the whole press treatment: it lights, lifts, and
+    /// settles the circle itself, so nothing is drawn around the glass.
+    var body: some View {
         Button(action: action) {
             glyphContent
                 .frame(
@@ -76,22 +50,6 @@ struct GlassChromeButton: View {
         .buttonStyle(.glass)
         .buttonBorderShape(.circle)
         .foregroundStyle(HausPlatformColor.label)
-        .fixedSize()
-        .accessibilityLabel(label)
-    }
-
-    private var standardButton: some View {
-        Button(action: action) {
-            glyphContent
-                .frame(width: Self.diameter, height: Self.diameter)
-                .background(.regularMaterial, in: .circle)
-                .overlay(Circle().strokeBorder(rimColor, lineWidth: 1))
-                .shadow(color: shadowColor, radius: 8, x: 0, y: 2)
-                .contentShape(.circle)
-        }
-        .buttonStyle(.pressable)
-        .foregroundStyle(HausPlatformColor.label)
-        .frame(width: Self.diameter, height: Self.diameter)
         .fixedSize()
         .accessibilityLabel(label)
     }

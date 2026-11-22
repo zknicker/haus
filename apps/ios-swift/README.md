@@ -12,7 +12,7 @@ bounded bidirectional history loading, foreground snapshot recovery, Server-back
 People and Computers, the native sidebar and composer, and one sheet-local
 settings navigation stack backed by Server profile data.
 
-The package targets iOS 18 and uses Swift 6. The XcodeGen app specification
+The package targets iOS 26 (macOS 26 for `swift test`) and uses Swift 6.2. The XcodeGen app specification
 uses Apple AuthenticationServices and Keychain APIs for native OAuth and secure
 credential storage. It intentionally does not add an OpenAPI generator or a
 community tRPC client. `HausTransport` sends the existing app protocol headers
