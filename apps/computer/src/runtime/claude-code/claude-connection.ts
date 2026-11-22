@@ -138,7 +138,7 @@ export class ClaudeConnection {
                     type: 'control_response',
                 })
             )
-            .catch(() => undefined);
+            .catch(() => this.process.stop());
     }
 
     private dispatch(line: string) {
