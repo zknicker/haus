@@ -28,6 +28,9 @@ procedure runs for an active member of `serverId`.
 - `named` needs at least one `agentId`, each an Agent whose machine is this Device, or
   `BAD_REQUEST`. `computer.list` can return a named list with no ids once its Captains moved or
   were deleted.
+- Planned by [ADR 0057](../adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
+  decision 4 (amended 2026-11-22): the agents list gates every invocation kind on this Device,
+  a `named` entry may be any Agent on the Server, and the Device's home Agents are always allowed.
 - `computer.stewards`, `computer.desktopActivity`, and `computer.stopDesktopInput` answer
   `NOT_FOUND` for a Device that is gone.
 

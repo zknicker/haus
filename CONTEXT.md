@@ -233,9 +233,10 @@ _Avoid_: Reusable join link, Server membership
 
 **Agent**:
 A persistent non-human Server member whose collaboration identity belongs to one Haus server.
-An Agent is created on one Computer, where its workspace and execution state live; that assignment
-never changes. An offline Computer leaves the Agent offline, and the Computer cannot be removed
-until the Agent is explicitly deleted.
+An Agent has one home Computer, the Computer it was created on, where its workspace lives and its
+tools run by default. Its tool calls may also target any other Computer whose access list allows
+it (ADR 0057, amended 2026-11-22). The home Computer cannot be removed until the Agent is
+explicitly deleted.
 _Avoid_: Hosted Agent, Agent session, Agent turn, executor, Computer
 
 **Agent handle**:

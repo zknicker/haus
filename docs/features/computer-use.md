@@ -25,6 +25,11 @@ A Captain can look at and operate the desktop of a macOS Device when a person al
   Studio" with a Stop button. Stop cancels the running command at once, and the Captain is told a
   person stopped it.
 
+Planned by [ADR 0057](../adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
+decision 4 (amended 2026-11-22): the Captains list leaves the switch and decides which Captains
+may run any tool on the Device, including Captains whose home is another Device. The Device's own
+Captains are always allowed, and a named Captain stays on the list when it moves.
+
 The Device's attacher, Owners, and Admins can change the switch and the list. Anyone else sees
 them disabled. A change shows at once and rolls back with a toast if the Server refuses it. A
 member who opens a refusal's link for a Device they can't see reads who attached it and who can
