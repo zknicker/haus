@@ -22,7 +22,8 @@ workspace lives and its tools run by default. No API or App surface changes the
 home yet; Move to device is a later feature. Under
 [ADR 0057](../adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
 decision 4 (amended 2026-11-22, not yet implemented), a tool call may also
-target any other Computer whose access list allows the Agent. The App changes
+target any other Computer whose Agent access list allows the Agent, and only
+a Computer's attacher may place an Agent's home there. The App changes
 desired configuration through Server APIs; it never chooses workspace paths or
 writes Computer-local files.
 

@@ -42,6 +42,11 @@ the people and the Agent on it, and a merged pull request never closes it.
 
 ## Record
 
+> **Superseded in part 2026-11-22 by
+> [ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md):**
+> `repository` becomes an ordered list of repos the Server knows, not one of the Task's Project
+> repos.
+
 The Server is canonical. It mints every id, timestamp, and credential. Computers and providers
 report evidence against those ids and never invent one.
 
@@ -218,6 +223,12 @@ limit counts working turns, not Workers, so an idle Worker between turns holds n
 the limit waits as `queued`, first come first served per place, and starts when a slot frees.
 
 ## The CLI
+
+> **Superseded in part 2026-11-22 by
+> [ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md):**
+> `--repo` is required and repeatable and may name any repo. A Computer place clones a repo it
+> has no folder for instead of refusing `WORKER_REPO_NOT_LINKED`, and `haus worker places` lists
+> each Computer's repo folders.
 
 `haus worker` is the Agent surface. After R4 an Agent calls it through `execute`, and the Server
 handles it. A Worker calls only `haus worker report` and the Drive read commands.
@@ -445,6 +456,12 @@ Worker keeps its harness on the machine.
 
 ### Layout
 
+> **Superseded 2026-11-22 by
+> [ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md)** for
+> the checkout: each of a Worker's repos is a git worktree of that Computer's repo folder, at
+> `servers/<serverId>/worktrees/<worker-id>/<owner>/<name>/`, not a clone under `checkout/`, and
+> its branch lives in the folder from the start. The rest of this layout stands.
+
 Everything a Worker owns on the machine sits under its Server attachment's partition of the
 Computer data root, `servers/<serverId>/workers/<worker-id>/`:
 
@@ -476,6 +493,11 @@ so the repo never sees it. A new drive folder seeds from a byte-checked copy of 
 Worker folder on the machine before its first pull ([Drive folder](drive-folder.md#workers)).
 
 ### Run a turn
+
+> **Superseded in part 2026-11-22 by
+> [ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md):** no
+> turn fails `repo-unlinked`, and in step 5 a Codex Worker's writable roots name the repo
+> folder's whole `.git`.
 
 The Server dispatches a Computer-place turn only while the switch is on, the Computer is online,
 and the Computer has a free slot under its `worker_limit`. A queued turn whose repo has no link on
@@ -569,6 +591,11 @@ A Computer-place turn whose Computer stays disconnected for 30 minutes settles a
 `machine-offline`. A dead machine is a failed turn, not a moved Worker.
 
 ### Closing
+
+> **Superseded in part 2026-11-22 by
+> [ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md):** step
+> 5 removes each clean worktree and deletes its pushed local branch, and keeps any worktree with
+> uncommitted, untracked or unpushed work, which the Worker's final outcome names.
 
 When a Task becomes done or canceled, the Server closes each of its Workers in this order:
 
@@ -781,6 +808,11 @@ W2 migrates every caller and deletes the cloud agent path in one change.
   `TranscriptWorker` row type is now `TranscriptSubagent`, so the word means one thing.
 
 ### W3 transitional decisions
+
+> **Superseded in part 2026-11-22 by
+> [ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md):** the
+> "Repos until the Project settings UI ships them" decision retires with `project_repos`, not
+> with a Project settings UI.
 
 W3 (Workers on Computers) ships the Server and Computer halves with no App UI. People have no App
 control yet for a Computer's switch, a Project's repos, or its default place, so W3 keeps these

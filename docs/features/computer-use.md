@@ -26,9 +26,10 @@ A Captain can look at and operate the desktop of a macOS Device when a person al
   person stopped it.
 
 Planned by [ADR 0057](../adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
-decision 4 (amended 2026-11-22): the Captains list leaves the switch and decides which Captains
-may run any tool on the Device, including Captains whose home is another Device. The Device's own
-Captains are always allowed, and a named Captain stays on the list when it moves.
+decision 4 (amended 2026-11-22): a separate Captain access list decides which Captains may run
+any tool on the Device. Its own Captains always may, and only the person who attached it adds
+Captains whose home is another Device. The switch and this Captains list stay as they are, and
+the list can then name any Captain the Device allows.
 
 The Device's attacher, Owners, and Admins can change the switch and the list. Anyone else sees
 them disabled. A change shows at once and rolls back with a toast if the Server refuses it. A
