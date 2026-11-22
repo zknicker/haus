@@ -1,12 +1,13 @@
 ---
 status: proposed
-summary: A Project is an area of work and asks for no repos. Repos belong to the Server, identified by GitHub `owner/name`, and any Agent or Worker in any Project may use any of them. Each Computer lists where its repos live as repo folders, added by its attacher from the Device page or `haus-computer repo add`; a Worker that needs a repo with no folder clones it into the Server's partition, and that clone becomes the folder. Workers and Agents work in git worktrees of the folder at `<dataRoot>/servers/<serverId>/worktrees/<worker-or-agent-id>/<owner>/<name>/`, for Claude Code and Codex alike, reversing the 2026-11-21 move to separate clones; a Codex Worker writing hooks or config into the shared `.git`, or moving `main`, is an accepted risk disclosed at "Add folder". A Worker takes one repo. An Agent gets a worktree on its own named branch with `haus repo checkout`, only for repos already on that Computer, and commits there but does not push. A Worker's worktree goes when it closes once its commits are on the remote, an Agent's after 7 days unused once clean, and unpushed work always stays. A repo joins the Server's list only after a successful folder add or clone. `project_repos` and `project_repo_links` retire. Proposed 2026-11-22, not yet implemented.
+summary: A Project is an area of work and asks for no repos. Repos belong to the Server, identified by GitHub `owner/name`, and any Agent or Worker in any Project may use any of them. Each Computer lists where its repos live as repo folders, added by its attacher from the Device page or `haus-computer repo add`; a Worker that needs a repo with no folder clones it into the Server's partition, and that clone becomes the folder. Workers and Agents work in git worktrees of the folder at `<dataRoot>/servers/<serverId>/worktrees/<worker-or-agent-id>/<owner>/<name>/`, for Claude Code and Codex alike, reversing the 2026-11-21 move to separate clones; a Codex Worker writing hooks or config into the shared `.git`, or moving `main`, is an accepted risk disclosed at "Add folder". A Worker takes one repo. An Agent gets a worktree on its own named branch with `haus repo checkout`, only for repos already on that Computer, and commits, pushes and opens pull requests there as the Server's Haus GitHub App bot, with the person who asked as co-author. A Worker's worktree goes when it closes once its commits are on the remote, an Agent's after 7 days unused once clean, and unpushed work always stays. A repo joins the Server's list only after a successful folder add or clone. `project_repos` and `project_repo_links` retire. Proposed 2026-11-22, not yet implemented.
 read_when:
   - changing where repos are recorded, how a Computer finds or clones a repo, or repo folders
   - changing Project creation or Project settings that mention repos
   - changing where a Worker or Agent checks out a repo, its worktree path, its branch, or its cleanup
   - changing `haus worker start --repo`, `haus repo list`, `haus repo checkout`, or `haus-computer repo`
   - changing the Codex Worker sandbox's writable roots, or the "Add folder" disclosure
+  - changing an Agent's commit identity, its branch prefix, or how it pushes and opens pull requests
   - migrating or deleting `project_repos` or `project_repo_links`
 ---
 
@@ -15,7 +16,9 @@ read_when:
 ## Status
 
 Proposed 2026-11-22. Not yet implemented. Revised 2026-11-22 after a council review: worktrees
-stay, by Zach's call, and the review's other answers and must-fixes are applied. Amends
+stay, by Zach's call, and the review's other answers and must-fixes are applied. Revised again
+2026-11-22 with Zach's answers: Agents commit, push and open pull requests themselves as the Haus
+GitHub App bot, with the person who asked as co-author. Amends
 [ADR 0055](0055-projects-own-agents-and-tasks.md) decisions 2 and 4,
 [ADR 0056](0056-agents-run-quiet-workers-anywhere.md) decisions 6 and 7 and its 2026-11-21
 follow-up, [specs/projects.md](../../specs/projects.md) and
@@ -57,6 +60,20 @@ call reaches there and where Workers and Agents work on disk.
     every day, sharing each repo's `.git`.
   - Zach prefers the Claude Code and Codex model to Capy's, because it is more flexible and
     configurable.
+  - A Capy Captain is a full thread that "acts as its owner": it commits, pushes and opens pull
+    requests itself. Capy's Settings → Git sets the **Commit author**: "You, Capy co-author" by
+    default, or "You", "Capy, you co-author" or "Capy". It also sets a commit email, signed
+    commits and a branch prefix, with a per-PR override
+    ([Capy GitHub docs](https://docs.capy.ai/integrations/github.md)).
+- **Haus already has a GitHub bot.** The Server's Haus GitHub App mints installation tokens
+  (`ghs_`, one hour, kept in memory; `createInstallationTokens` in
+  `apps/server/src/github/github-bot.ts`), and `github-bot.ts` sends an Agent's GitHub MCP tool
+  calls with them, so GitHub attributes them to the bot
+  ([specs/github-app-connection.md](../../specs/github-app-connection.md#agent-identity)). The App
+  holds Contents and Pull requests read and write, and `agent-signature.ts` adds "Posted by
+  <Agent> via Haus" to pull request bodies and comments. An Agent can therefore already open a
+  pull request as the bot through `execute`. Nothing gives git on a Computer a token to push
+  with: installation tokens never leave the Server.
 
 ## Decision
 
@@ -166,12 +183,30 @@ call reaches there and where Workers and Agents work on disk.
      Agent per repo per Computer. A second checkout reuses it. With a different `--ref`, it resets
      the branch to that ref when the worktree is clean, and refuses when it is not. The receipt
      prints the path, and the Agent `cd`s into it.
-   - **What an Agent may do there.** Read, edit, build, test and commit. The Computer sets the
-     commit author and committer to the Agent for its invocations, through `GIT_AUTHOR_*` and
-     `GIT_COMMITTER_*` in their environment, because the Agent's `HOME` has no git identity
-     (ADR 0057 decision 4). An Agent does not push in v1, since it has no `gh` or ssh login.
-     Pushing and pull requests are Worker work. An Agent hands its branch on by starting a Worker
-     on the same Computer with `--ref haus/<agent-id>/<name>`.
+   - **What an Agent may do there.** Everything a Captain does in Capy: read, edit, build, test,
+     commit, push its branch, and open a pull request. Nothing requires handing code to a Worker.
+     It does all of this as the Server's Haus GitHub App, never through a personal login on the
+     Mac, which its own `HOME` cannot see anyway (ADR 0057 decision 4). It opens pull requests
+     through the GitHub connection's MCP tools, which already run as the bot. It pushes over HTTPS
+     with an installation token the Server mints for that repo. An installation token reaches
+     only the repositories its installation selected, so a repo outside that selection cannot be
+     pushed, and the refusal says the App needs access to it.
+   - **Commit identity.** Haus follows Capy's Commit author setting, with a multiplayer default:
+     the Haus bot is the author, and the person who asked is a co-author. A Captain in a shared
+     channel works for whoever asked, so it never commits as one person when another person asked.
+     - The Computer sets `GIT_AUTHOR_NAME`, `GIT_AUTHOR_EMAIL`, `GIT_COMMITTER_NAME` and
+       `GIT_COMMITTER_EMAIL` to the App's bot account (`<HAUS_GITHUB_APP_SLUG>[bot]` and its
+       GitHub noreply address) in the environment of every Agent invocation. `HAUS_GITHUB_APP_SLUG`
+       is already configured (`apps/server/src/github/app-auth.ts`).
+     - Each commit ends with a `Co-authored-by:` trailer for each person whose message the turn
+       is acting on, by the name and email on their Haus account. GitHub links the co-author
+       only when that email is on their GitHub account. The Manual teaches the trailer, the way
+       Workers are taught the `Haus-Task` trailer.
+     - Every Agent branch starts with `haus/`.
+     - **"As me"**, the person as author with Haus as co-author, needs a per-person GitHub
+       sign-in for pushing, and is a later option.
+     - **Workers are unchanged.** They commit and push with the machine's own git login
+       ([ADR 0056](0056-agents-run-quiet-workers-anywhere.md) decision 7).
 
 6. **Cleanup.** Work that is not pushed is never deleted. A worktree is clean when it has no
    uncommitted or untracked changes and every commit on its branch is on a remote-tracking ref,
@@ -232,6 +267,12 @@ call reaches there and where Workers and Agents work on disk.
   checkout and `.git`, so that person decides.
 - **A registry kept only on the Computer**, like Capy's `workspaces.json`. The Server could not
   show folders in the App or in `haus worker places`, or check who added one.
+- **Agents handing every branch to a Worker to push.** A Capy Captain acts as its owner and ships
+  its own pull requests. A Worker for every push is ceremony.
+- **Agents pushing through the machine's git login.** It is the person on the Mac, and the
+  Agent's own `HOME` cannot see it. The bot is the Server's identity, shared by every Agent.
+- **The person as author by default**, Capy's default. In a shared channel the person whose Mac
+  it is may not be the one who asked, and Haus has no per-person GitHub sign-in for pushing yet.
 - **Several repos per Worker now.** Nobody asked for it yet, and it changes the single repo, ref,
   branch and checkout fields from the record to the wire.
 
@@ -252,8 +293,8 @@ Deleted: `project_repos`, `project_repo_links`, their four procedures, `WORKER_R
 `WORKER_REPO_UNKNOWN`, `repo-unlinked`, the W3 repo auto-add, the Worker's separate clone, and
 Haus clones outside a Server's partition.
 
-Deferred: several repos per Worker, Agents pushing from a checkout, a Server-level Repos settings
-page, base branches per repo, and setup scripts per repo.
+Deferred: several repos per Worker; the "As me" commit author, signed commits and a per-PR author
+override; a Server-level Repos settings page; base branches per repo; and setup scripts per repo.
 
 Follow-up:
 
@@ -267,8 +308,16 @@ Follow-up:
 - `haus repo list` and `haus repo checkout`, each with a row in
   `apps/runner/src/haus/command-access.ts`; the `repo-checkout` operation kind in
   `invocationOperationKindSchema` and `invocationTimeoutsMs`
-  (`packages/haus-api/src/agent-invocations.ts:11-30`) and its Computer handler; the Agent's git
-  identity in the invocation environment.
+  (`packages/haus-api/src/agent-invocations.ts:11-30`) and its Computer handler; the bot's git
+  identity in the Agent invocation environment.
+- Agent pushes. Missing today: a way for git on a Computer to use an installation token. The
+  token is minted and cached only on the Server (`github-bot.ts`), and only MCP tool calls use
+  it. The follow-up designs how a push gets a token scoped to one repo, short-lived and kept out
+  of the model's view, and which GitHub connection's installation a Computer's repo maps to.
+- The bot's noreply address. The App's slug is configured, but its bot user id, which the
+  address needs, is not; read it from GitHub once per App.
+- The `Co-authored-by` trailer in the Manual, and which people it names when a turn answers
+  several messages.
 - `haus-computer repo add|list|remove`, and the folder list and its "Add folder" disclosure on the
   Computer's settings page.
 - The prompt's command families gain a `repo` entry beside `computer`, through the prompt
@@ -279,12 +328,8 @@ Follow-up:
 
 ## Open questions
 
-- **The Agent's commit address.** Which email the Computer gives an Agent's commits, for example a
-  noreply address per Agent handle, so GitHub never links them to a person.
-- **Agents pushing.** Whether Agents stay unable to push, handing every branch to a Worker, or a
-  later version gives an Agent a push credential of its own.
-
-The council settled the draft's other questions: worktrees stay for Claude Code and Codex, with
+None. Zach decided that Agents commit, push and open pull requests themselves as the Haus GitHub
+App bot, with the person who asked as co-author, and that "As me" comes later. The council settled the draft's other questions: worktrees stay for Claude Code and Codex, with
 the Codex risk accepted; close deletes a pushed local branch; the idle period is 7 days from last
 use; a repo joins the list only after a successful clone or folder add; and paths end in
 `<owner>/<name>`.

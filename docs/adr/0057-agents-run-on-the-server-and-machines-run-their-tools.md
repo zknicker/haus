@@ -150,9 +150,10 @@ that any of your threads can use" ([Capy Desktop](https://capy.ai/blog/capy-desk
    - **Revoke and retire are fenced.** The Computer accepts a call before it reaches the head of
      the Agent's queue (`apps/computer/src/invocations/handler.ts:55-59`), so the resend check
      alone cannot stop accepted calls. Revoking access, and retiring the Agent, sends that
-     Computer a fence for the Agent. The fence cancels the Agent's running call there and settles
-     each accepted, queued one as refused with no run. A Computer that is offline gets it on
-     reconnect, before any queued call starts.
+     Computer a fence for the Agent. The fence stops the Agent's running call there at once, the
+     way Stop Agent Input stops a `desktop` command, and settles each accepted, queued one as
+     refused with no run. A Computer that is offline gets it on reconnect, before any queued call
+     starts.
    - **Refusals keep their text.** The `agent_invocations_refusal` CHECK gains `not-found` and
      `no-access`, and `agent_invocations_sent_shape` allows a null `computer_id` for `not-found`
      (`apps/server/src/postgres/schema/agent-invocations.ts:83-90`). A replayed answer re-renders
@@ -178,8 +179,10 @@ that any of your threads can use" ([Capy Desktop](https://capy.ai/blog/capy-desk
      config. It is not a boundary either: the Agent can read anything that user can by absolute
      path. Anyone who can message the Agent can reach the Computer through it. Nothing an Agent
      runs uses the machine's GitHub login on its behalf: `haus repo checkout` reaches only repos
-     already on that Computer (ADR 0060 decision 5). Work that needs the machine's logins goes to
-     a Worker there ([ADR 0056](0056-agents-run-quiet-workers-anywhere.md) decision 7).
+     already on that Computer, and an Agent pushes and opens pull requests as the Server's Haus
+     GitHub App, never as the person on the Mac (ADR 0060 decision 5). Work that needs the
+     machine's own logins goes to a Worker there
+     ([ADR 0056](0056-agents-run-quiet-workers-anywhere.md) decision 7).
    - **Retirement reaches every Computer.** Retiring an Agent fences and then purges its folders
      on every Computer that holds any. The Server sends `agent-retire` to each online Computer on
      the Server. On every connect a Computer reports the Agent ids it holds folders or worktrees
@@ -442,10 +445,7 @@ Follow-up:
 
 ## Open questions (2026-11-22)
 
-- **Revoking a running call.** The fence cancels the Agent's running call on that Computer, as
-  Stop Agent Input does for `desktop`. Whether a revoke should instead let a running call finish
-  and stop only the queued ones.
-
-The second council settled the draft's other questions: no Owner takeover; off-home results and
+None. The second council settled the draft's questions: no Owner takeover; off-home results and
 refusals name the Computer; Agents may place Agents on their own home; `all` means home Agents,
-so an access grant never grants the desktop; and the optional field gets a baseline eval.
+so an access grant never grants the desktop; and the optional field gets a baseline eval. Zach
+then decided that a revoke stops a running call at once and cancels the queued ones.
