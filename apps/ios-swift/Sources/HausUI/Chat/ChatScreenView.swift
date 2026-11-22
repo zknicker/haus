@@ -49,7 +49,6 @@ public struct ChatScreenView: View {
     /// Set once the Server refuses a model change; the inner nil is a refusal with no reason.
     @State var modelRefusal: String??
     @State var modelChangeError: String?
-    @Environment(\.hausDrawerEngaged) private var isDrawerEngaged
     @Environment(\.chatEngagementSource) var engagementSource
 
     public init(
@@ -145,10 +144,6 @@ public struct ChatScreenView: View {
                 withTransaction(Transaction(animation: sample.animation)) {
                     keyboardInset = sample.inset
                 }
-            }
-            // The keyboard leaves before anything covers the composer — the drawer, a pushed
-            .onChange(of: isDrawerEngaged) { _, engaged in
-                if engaged { isComposerFocused = false }
             }
             .modelChangeConfirmation($pendingModelChange, onConfirm: applyModelChange)
             .modelChangeFailure($modelChangeError)

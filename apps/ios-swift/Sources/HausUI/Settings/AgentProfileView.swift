@@ -99,6 +99,8 @@ struct AgentProfileView: View {
 
                 stoppedClaimsSection
 
+                CaptainStopSection(agentID: agent.id, name: agent.displayName)
+
                 if let errorMessage {
                     Text(errorMessage)
                         .font(.footnote)

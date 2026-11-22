@@ -199,7 +199,6 @@ extension HausStore {
         projects.reset()
         drive.reset()
         settingsModel.reset()
-        serverUsage = nil
         mentionOptionsByDestinationID = [:]
     }
 }

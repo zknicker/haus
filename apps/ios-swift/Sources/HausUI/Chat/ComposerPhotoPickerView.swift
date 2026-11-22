@@ -79,7 +79,7 @@ struct ComposerPhotoPickerView: View {
                                         .font(.caption2.bold())
                                         .foregroundStyle(.white)
                                         .frame(width: 22, height: 22)
-                                        .background(.blue, in: .circle)
+                                        .background(HausPlatformColor.accent, in: .circle)
                                         .padding(5)
                                 }
                             }
@@ -140,7 +140,7 @@ struct ComposerPhotoPickerView: View {
                     .padding(.horizontal, 18)
                     .frame(height: 44)
                     .foregroundStyle(.white)
-                    .background(Color.accentColor, in: .capsule)
+                    .background(HausPlatformColor.accent, in: .capsule)
                 }
                 .buttonStyle(.plain)
                 .disabled(isExporting)

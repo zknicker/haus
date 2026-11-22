@@ -54,8 +54,8 @@ extension HausStore {
 
     /// The transcript the canvas renders.
     ///
-    /// `HausShellView.body` calls this on every evaluation — every frame of a
-    /// drawer pan, every keyboard inset change — so the result is memoized per
+    /// The Chat route calls this on every evaluation — every keyboard inset
+    /// change, every engagement tick — so the result is memoized per
     /// Chat. It is rebuilt only when one of its inputs is written: the Chat's
     /// page, its optimistic rows, the Agent and Member directories, and the
     /// lifecycle presence overlay. Each of those is a `HausStore` accessor
@@ -63,6 +63,9 @@ extension HausStore {
     /// A rebuild reuses each unchanged message's parsed body.
     func messagePresentations(chatID: String) -> [MessagePresentation] {
         trackProjectionDirectory()
+        // Task chips wear the state of every Task this client holds; a state
+        // change retires the drawn rows, never a parsed body.
+        syncTaskReferenceStates()
         let page = messagesByChatID[chatID]
         let pending = pendingMessagesByChatID[chatID] ?? []
         if let cached = projections.messagePresentationsByChatID[chatID] { return cached }
@@ -101,9 +104,9 @@ extension HausStore {
                     replyReferencePresentation(reply.parent)
                 },
                 claim: message.claim.map(claimPresentation),
-                cloudAgents: linkedWork.map { cloudAgentPresentation($0, presentingChatID: message.chatID) },
+                cloudAgents: linkedWork.map(cloudAgentPresentation),
                 reactions: reactionPresentations(message.reactions),
-                richBlocks: parsed.richBlocks,
+                richBlocks: stampedBlocks(parsed),
                 visualBody: parsed.visuals,
                 cause: message.cause.flatMap(MessageCausePresentation.init),
                 tasks: tasksByOrigin[message.id] ?? [],
@@ -143,7 +146,7 @@ extension HausStore {
                 inlineReply: message.inlineReply,
                 isPending: true,
                 isSendFailed: message.sendState == .failed,
-                richBlocks: parsed.richBlocks,
+                richBlocks: stampedBlocks(parsed),
                 visualBody: parsed.visuals
             )
         }

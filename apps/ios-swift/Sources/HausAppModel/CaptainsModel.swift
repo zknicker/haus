@@ -33,6 +33,9 @@ public final class CaptainsModel {
     public internal(set) var activityPositionByRunID: [String: Int] = [:]
     /// Each working Captain's running turn, step by step, for turn details. Settlement removes it.
     public internal(set) var liveRunsByAgentID: [String: CaptainLiveRun] = [:]
+    /// Captains whose stop the Server took while their turn still runs. The
+    /// turn's settlement clears it (`CaptainsModel+Stop.swift`).
+    public internal(set) var pendingStops: Set<String> = []
     /// Advances on every lifecycle event, so a list read can tell whether
     /// the overlay moved while it was in flight.
     public private(set) var lifecycleRevision = 0
@@ -85,6 +88,7 @@ public final class CaptainsModel {
         currentActivityByAgentID = [:]
         activityPositionByRunID = [:]
         liveRunsByAgentID = [:]
+        pendingStops = []
         hasActivitySnapshot = false
     }
 
@@ -122,6 +126,9 @@ public final class CaptainsModel {
             }
             if liveRunsByAgentID[event.agentID] != nil {
                 liveRunsByAgentID.removeValue(forKey: event.agentID)
+            }
+            if pendingStops.contains(event.agentID) {
+                pendingStops.remove(event.agentID)
             }
             return .settled
         }

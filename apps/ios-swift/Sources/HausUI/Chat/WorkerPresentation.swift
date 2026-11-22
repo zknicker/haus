@@ -1,25 +1,17 @@
 import Foundation
 import HausModels
 
-/// One Cloud Agent work as every surface reads it. Mirrors the App's
-/// `cloud-agent-presentation.ts`; the card's headline is the Server-derived
-/// `job`, never the newest Run's status.
+/// One Worker as every surface reads it. Mirrors the App's
+/// `cloud-agent-presentation.ts`.
 public struct WorkerPresentation: Identifiable, Hashable, Sendable {
     public let work: Worker
-    /// The App link to the conversation presenting this card, for Copy link.
-    /// Nil when the Server or conversation is not known, which hides the action.
-    public let conversationLink: URL?
     /// The delegating Agent, who sends any follow-up. The App resolves it from
     /// its Agent list; a retired Agent reads as `Agent <id suffix>`, like the App.
     public let agentName: String
     public var id: String { work.id }
 
-    /// A live work that has not reported for this long reads as gone quiet.
-    public static let staleAfter: TimeInterval = 10 * 60
-
-    public init(work: Worker, conversationLink: URL? = nil, agentName: String? = nil) {
+    public init(work: Worker, agentName: String? = nil) {
         self.work = work
-        self.conversationLink = conversationLink
         self.agentName = agentName ?? "Captain \(work.agentId.suffix(6))"
     }
 
@@ -31,50 +23,6 @@ public struct WorkerPresentation: Identifiable, Hashable, Sendable {
         case "claude": "Claude"
         default: provider
         }
-    }
-
-    /// The headline: the job's state, never its newest Run's. A working job
-    /// states how long it has been going; a done one how long it took.
-    public func jobText(at now: Date) -> String {
-        if work.status.isActive, work.cancelRequestedAt != nil { return "Stopping" }
-        if case .failed(let errorCode, _, _, _) = work.job,
-           let errorCode, errorCode.hasPrefix("launch-") || errorCode.hasPrefix("provider-launch-") {
-            return "Stopped"
-        }
-        if work.status == .queued, case .working = work.job, work.job.followUp == nil {
-            return "Starting · \(Self.duration(from: work.createdAt, to: now))"
-        }
-        let label = Self.jobLabel(work.job.state)
-        switch work.job {
-        case .working(let startedAt, _):
-            guard let startedAt else { return label }
-            return "\(label) · \(Self.duration(from: startedAt, to: now))"
-        case .done(let startedAt, let settledAt, _):
-            guard let startedAt, let settledAt else { return label }
-            return "\(label) · \(Self.duration(from: startedAt, to: settledAt))"
-        case .failed, .cancelled, .expired, .pendingInput:
-            return label
-        }
-    }
-
-    public static func jobLabel(_ state: WorkerJobState) -> String {
-        switch state {
-        case .working: "Working"
-        case .done: "Done"
-        case .failed: "Failed"
-        case .cancelled: "Stopped"
-        case .expired: "Expired"
-        case .pendingInput: "Needs input"
-        }
-    }
-
-    /// How long a live work has been quiet, once that passes the stale
-    /// threshold. Reads the work's own `updatedAt`, which any Run's observation
-    /// advances, never Computer connection state.
-    public func quietFor(at now: Date) -> TimeInterval? {
-        guard work.status.isActive else { return nil }
-        let quiet = now.timeIntervalSince(work.updatedAt)
-        return quiet > Self.staleAfter ? quiet : nil
     }
 
     /// The branch evidence the job has produced: the newest Run that reported
@@ -97,10 +45,6 @@ public struct WorkerPresentation: Identifiable, Hashable, Sendable {
         if let pr = branch.pullRequest { return pr.number }
         return branch.pullRequestUrl.flatMap(RichReferenceWireForm.pullRequestNumber(in:))
     }
-
-    /// Cancel is for a live Run nobody has asked to stop; the role gate is the
-    /// App's cancel action, installed only for Owners and Admins.
-    public var canBeCancelled: Bool { work.status.isActive && work.cancelRequestedAt == nil }
 
     /// The Cloud Agent duration grammar, matching the App's
     /// `formatWorkerDuration`: `45s`, `25m`, `2h`, `2h 5m`, `26h 5m`.

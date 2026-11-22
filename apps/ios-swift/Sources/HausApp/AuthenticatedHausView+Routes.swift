@@ -4,21 +4,13 @@ import HausUI
 import SwiftUI
 
 /// Every open in the app goes through the router; these turn the things views
-/// hand back (an Inbox row, a Chat, a search result, a claim) into routes.
+/// hand back (a Home row, a Chat, a search result, a claim) into routes.
 extension AuthenticatedHausView {
-    func openInboxRequest(_ request: InboxOpenRequest) {
-        switch request {
-        case .agent(let agentID):
-            router.open(.captainDM(agentID: agentID))
-        case .chat(let chatID):
-            router.open(route(forChatID: chatID))
-        case .cloudAgentWork(let workID):
-            guard let work = store.activeWorkers?.first(where: { $0.work.id == workID }) else { return }
-            switch work.location {
-            case .task(_, let taskID):
-                router.open(.task(taskID: taskID))
-            }
-        case .task(let taskID):
+    /// A Happening now row opens the Task its Worker runs for.
+    func openActiveWorker(workID: String) {
+        guard let work = store.activeWorkers?.first(where: { $0.work.id == workID }) else { return }
+        switch work.location {
+        case .task(_, let taskID):
             router.open(.task(taskID: taskID))
         }
     }

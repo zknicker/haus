@@ -24,9 +24,6 @@ public struct LaunchSnapshot: Codable, Sendable, Equatable {
     public let agents: [AgentSummary]
     public let members: MemberList?
     public let pagesByChatID: [String: ChatMessagePage]
-    /// The Inbox's week strip. Optional, so a snapshot without it still
-    /// decodes; without it the strip popped in a beat after the paint.
-    public let serverUsage: ServerUsageSnapshot?
 
     public init(
         appProtocolVersion: Int,
@@ -36,8 +33,7 @@ public struct LaunchSnapshot: Codable, Sendable, Equatable {
         chats: [ChatSummary],
         agents: [AgentSummary],
         members: MemberList?,
-        pagesByChatID: [String: ChatMessagePage],
-        serverUsage: ServerUsageSnapshot? = nil
+        pagesByChatID: [String: ChatMessagePage]
     ) {
         version = Self.currentVersion
         self.appProtocolVersion = appProtocolVersion
@@ -48,7 +44,6 @@ public struct LaunchSnapshot: Codable, Sendable, Equatable {
         self.agents = agents
         self.members = members
         self.pagesByChatID = pagesByChatID
-        self.serverUsage = serverUsage
     }
 
     /// The pages worth carrying: the given Chats in priority order, skipping

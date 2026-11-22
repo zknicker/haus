@@ -5,22 +5,10 @@ import HausUI
 import OSLog
 
 extension HausStore {
-    /// One card for `work` as `presentingChatID` shows it. The Agent is the
-    /// work's delegating Agent, never the Message that links it.
-    func cloudAgentPresentation(_ work: Worker, presentingChatID: String) -> WorkerPresentation {
-        WorkerPresentation(
-            work: work,
-            conversationLink: cloudAgentConversationLink(presentingChatID: presentingChatID),
-            agentName: agentsByID[work.agentId]?.displayName
-        )
-    }
-
-    /// The App link Copy link shares, matching the web card: the
-    private func cloudAgentConversationLink(presentingChatID chatID: String) -> URL? {
-        guard let slug = activeServer?.slug, chatsByID[chatID] != nil else { return nil }
-        var components = URLComponents(url: HausRuntimeConfiguration.serverOrigin, resolvingAgainstBaseURL: false)
-        components?.path = "/s/\(slug)/chats/\(chatID)"
-        return components?.url
+    /// One Worker under the Message that links it. The Agent is the work's
+    /// delegating Agent, never the Message that links it.
+    func cloudAgentPresentation(_ work: Worker) -> WorkerPresentation {
+        WorkerPresentation(work: work, agentName: agentsByID[work.agentId]?.displayName)
     }
 
     var cloudAgentSettings: WorkerSettingsActions {

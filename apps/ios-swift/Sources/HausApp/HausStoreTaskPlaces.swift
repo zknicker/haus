@@ -36,32 +36,6 @@ extension HausStore {
         }
     }
 
-    var inboxUnreadTaskChats: [InboxUnreadTaskChat] {
-        visibleUnreadTasks.compactMap { preview in
-            guard let task = preview.task else { return nil }
-            let newest = preview.messages.last
-            let author = newest.flatMap { authorPresentation($0.author) }
-            return InboxUnreadTaskChat(
-                id: preview.chatID,
-                taskID: task.taskID,
-                key: task.key,
-                title: task.title,
-                state: task.state,
-                mark: .channel(chatsByID[task.projectID].map {
-                    ChannelAppearance(icon: $0.icon, color: $0.color)
-                } ?? ChannelAppearance(icon: nil, color: nil)),
-                lastActivityAt: newest?.createdAt,
-                latestMessage: newest.map {
-                    ChatLastMessage(
-                        authorDisplayName: author?.name ?? InboxActorName.stored($0.author),
-                        content: $0.displayContent,
-                        createdAt: $0.createdAt
-                    )
-                }
-            )
-        }
-    }
-
     // MARK: - Realtime
 
     func applyTaskPlaceEffects(_ effects: ChatRealtimeEffects) async {

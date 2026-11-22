@@ -1,3 +1,4 @@
+import HausModels
 import SwiftUI
 
 /// One extra action in the Chat header's `…` menu, such as Stop on a Captain DM. It shows above
@@ -7,6 +8,8 @@ public struct ChatHeaderMenuAction: Identifiable, Sendable {
     public let title: String
     public let systemImage: String
     public let isDestructive: Bool
+    /// A disabled action still shows, to state where something stands.
+    public let isEnabled: Bool
     public let perform: @MainActor @Sendable () -> Void
 
     public init(
@@ -14,13 +17,27 @@ public struct ChatHeaderMenuAction: Identifiable, Sendable {
         title: String,
         systemImage: String,
         isDestructive: Bool = false,
+        isEnabled: Bool = true,
         perform: @escaping @MainActor @Sendable () -> Void
     ) {
         self.id = id
         self.title = title
         self.systemImage = systemImage
         self.isDestructive = isDestructive
+        self.isEnabled = isEnabled
         self.perform = perform
+    }
+
+    /// Stop on a Captain DM, in the phase the Server's answers put it.
+    static func captainStop(_ phase: CaptainStopPhase, confirm: @escaping @MainActor @Sendable () -> Void) -> Self {
+        ChatHeaderMenuAction(
+            id: "captain-stop",
+            title: CaptainStopCopy.title(phase),
+            systemImage: CaptainStopCopy.systemImage(phase),
+            isDestructive: CaptainStopCopy.isActionable(phase),
+            isEnabled: CaptainStopCopy.isActionable(phase),
+            perform: confirm
+        )
     }
 }
 
@@ -42,6 +59,8 @@ struct ChatScreenHeader: View {
 
     @State private var showsOutage = false
     @Environment(\.chatHeaderShowsBack) private var showsBack
+    @State private var stopTarget: CaptainStopTarget?
+    @Environment(\.captainStop) private var captainStop
 
     var body: some View {
         ChromeHeader(inset: 20) {
@@ -64,7 +83,7 @@ struct ChatScreenHeader: View {
             }
         } trailing: {
             ChatHeaderMenu(
-                actions: menuActions,
+                actions: placeActions,
                 onCall: onCall,
                 onOpenSearch: onOpenSearch,
                 onOpenChatDetails: onOpenChatDetails
@@ -72,6 +91,16 @@ struct ChatScreenHeader: View {
         }
         .overlay(alignment: .top) { engagement }
         .connectionOutage(isConnected: isConnected, showsOutage: $showsOutage)
+        .captainStopConfirmation($stopTarget)
+    }
+
+    /// The caller's actions, with Stop first on a Captain DM.
+    private var placeActions: [ChatHeaderMenuAction] {
+        guard case .agentDirectMessage(let agent) = chat.kind,
+              let phase = captainStop?.phase(agent.id)
+        else { return menuActions }
+        let target = CaptainStopTarget(id: agent.id, name: agent.name)
+        return [.captainStop(phase) { stopTarget = target }] + menuActions
     }
 
     private var title: some View {
@@ -122,6 +151,7 @@ private struct ChatHeaderMenu: View {
                         Button(role: action.isDestructive ? .destructive : nil, action: action.perform) {
                             Label(action.title, systemImage: action.systemImage)
                         }
+                        .disabled(!action.isEnabled)
                     }
                 }
             }

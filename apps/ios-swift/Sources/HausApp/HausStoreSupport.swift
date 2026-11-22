@@ -180,6 +180,15 @@ struct ChatProjectionCaches {
     private var references = ReferenceDirectory()
     /// Shared artifact chips' scope and loaded titles (`HausStoreSharedArtifacts.swift`).
     var sharedArtifacts = SharedArtifactChips()
+    /// The Task states reference chips wear (`HausStoreMessageBodies.swift`).
+    private(set) var taskReferenceStates: [String: TaskState] = [:]
+
+    /// A Task changed state: rows restamp their chips, and no body reparses.
+    mutating func retireTaskReferenceStates(_ states: [String: TaskState]) {
+        guard taskReferenceStates != states else { return }
+        taskReferenceStates = states
+        retireAllRows()
+    }
 
     /// A chip that resolves differently without any directory write: a shared
     /// artifact's title landing, or the library scope moving to another Server.
@@ -245,6 +254,9 @@ struct ParsedMessageBody {
     let richBlocks: [RichMessageBlock]
     /// The Message's Task links this body chipped.
     var taskLinks: [TaskLink] = []
+    /// Every Task the body references, so rows stamp state discs only on
+    /// bodies that carry a Task chip.
+    var taskReferenceIDs: Set<String> = []
 }
 
 enum HausStoreError: LocalizedError {

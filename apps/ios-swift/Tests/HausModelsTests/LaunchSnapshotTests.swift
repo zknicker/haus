@@ -41,17 +41,6 @@ struct LaunchSnapshotTests {
         #expect(!FileManager.default.fileExists(atPath: store.fileURL(serverID: "srv_other").path))
     }
 
-    @Test("A snapshot without usage still paints, without the strip")
-    func usageIsOptional() async throws {
-        let store = makeStore()
-        try await store.save(fixtureSnapshot(userID: "user_preview"))
-        try rewrite(store) { $0.removeValue(forKey: "serverUsage") }
-
-        let loaded = try #require(await store.load(userID: "user_preview", serverID: serverID))
-        #expect(loaded.serverUsage == nil)
-        #expect(loaded.chats == HausPreviewFixtures.chats)
-    }
-
     @Test("Another user's snapshot is never painted, and is deleted")
     func otherUserIsDiscarded() async throws {
         let store = makeStore()
@@ -173,9 +162,6 @@ struct LaunchSnapshotTests {
                     nextBeforeSequence: nil,
                 ),
             ],
-            serverUsage: ServerUsageSnapshot(tokenUsage: ServerTokenUsage(breakdown: [
-                AgentTokenUsageRow(agentID: "agent_blippy", date: "2026-10-08", totalTokens: 1200),
-            ]))
         )
     }
 

@@ -60,3 +60,11 @@ extension HausPlatformColor {
     static var caution: Color { HausTone.caution.color }
     static var critical: Color { HausTone.critical.color }
 }
+
+public extension View {
+    /// Haus blue as the tint every stock control below inherits, in place of
+    /// the system blue. The App applies it once at its scene root.
+    func hausAccentTint() -> some View {
+        tint(HausPlatformColor.accentInk)
+    }
+}

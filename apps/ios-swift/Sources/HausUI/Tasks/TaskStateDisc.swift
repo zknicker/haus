@@ -53,7 +53,12 @@ struct TaskStateDisc: View {
 
     private var tint: Color {
         if isWaitingOnYou, !state.isClosed { return HausPlatformColor.accentInk }
-        return switch state {
+        return Self.tint(for: state)
+    }
+
+    /// A state's ink, shared with the disc a Task reference draws inline.
+    static func tint(for state: TaskState) -> Color {
+        switch state {
         case .todo, .unknown: HausPlatformColor.mutedInk
         case .canceled: HausPlatformColor.faintInk
         case .open: HausPlatformColor.caution

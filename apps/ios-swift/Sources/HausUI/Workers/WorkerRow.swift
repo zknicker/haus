@@ -17,8 +17,7 @@ public struct WorkerRow: View {
     public var body: some View {
         Button(action: open) {
             HStack(alignment: .top, spacing: 14) {
-                glyph
-                    .frame(width: glyphSide, height: glyphSide)
+                WorkerStatusMark(glyph: presentation.glyph, side: glyphSide)
                     .padding(.top, 4)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(presentation.title)
@@ -41,27 +40,36 @@ public struct WorkerRow: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(presentation.title), \(presentation.subtitle)")
     }
+}
 
-    @ViewBuilder
-    private var glyph: some View {
-        switch presentation.glyph {
-        case .working:
-            DotGrid(dot: glyphSide * 3.2 / 24, gap: glyphSide * 2.8 / 24)
-                .foregroundStyle(HausPlatformColor.mutedInk)
-        case .finished:
-            symbol("checkmark", tint: HausPlatformColor.mutedInk)
-        case .needsYou:
-            symbol("questionmark", tint: HausPlatformColor.caution)
-        case .failed:
-            symbol("xmark", tint: HausPlatformColor.critical)
-        case .stopped:
-            symbol("stop", tint: HausPlatformColor.mutedInk)
+/// A Worker's status glyph: a dot grid while it runs, then a check, a
+/// question mark, a cross, or a stop square.
+struct WorkerStatusMark: View {
+    let glyph: WorkerRowPresentation.Glyph
+    let side: CGFloat
+
+    var body: some View {
+        Group {
+            switch glyph {
+            case .working:
+                DotGrid(dot: side * 3.2 / 24, gap: side * 2.8 / 24)
+                    .foregroundStyle(HausPlatformColor.mutedInk)
+            case .finished:
+                symbol("checkmark", tint: HausPlatformColor.mutedInk)
+            case .needsYou:
+                symbol("questionmark", tint: HausPlatformColor.caution)
+            case .failed:
+                symbol("xmark", tint: HausPlatformColor.critical)
+            case .stopped:
+                symbol("stop", tint: HausPlatformColor.mutedInk)
+            }
         }
+        .frame(width: side, height: side)
     }
 
     private func symbol(_ name: String, tint: Color) -> some View {
         Image(systemName: name)
-            .font(.system(size: glyphSide * 0.85, weight: .semibold))
+            .font(.system(size: side * 0.85, weight: .semibold))
             .foregroundStyle(tint)
             .accessibilityHidden(true)
     }

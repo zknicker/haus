@@ -16,7 +16,7 @@ extension AuthenticatedHausView {
             openTasks: store.homeOpenTaskRows,
             tileActions: captainTileActions,
             onOpen: openHomeRow,
-            onOpenWorker: { openInboxRequest(.cloudAgentWork(workID: $0.id)) },
+            onOpenWorker: { openActiveWorker(workID: $0.id) },
             onMarkRead: { chatID in Task { await store.markInboxRowRead(id: chatID) } },
             onRefresh: refreshHome,
             onNewCaptain: store.canManageServer ? { router.present(.newCaptain) } : nil

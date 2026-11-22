@@ -48,9 +48,9 @@ struct AuthenticatedHausView: View {
                 loadedContent
                     .environment(\.opensWithEntrance, !openingEntranceFinished)
                     .environment(\.reactionStickers, store.reactionStickers)
-                    .environment(\.cloudAgentCancel, cloudAgentCancel)
                     .environment(\.chatEngagementSource, store.chatEngagementSource)
                     .environment(\.stoppedAgentSource, store.stoppedAgentSource)
+                    .environment(\.captainStop, store.captainStopControl)
                     .onChange(of: router.topRoute) { openingEntranceFinished = true }
             }
         }

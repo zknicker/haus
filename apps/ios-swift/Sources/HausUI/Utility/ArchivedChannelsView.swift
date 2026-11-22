@@ -208,7 +208,7 @@ private struct ArchivedChannelRow: View {
         .accessibilityLabel("\(channel.name), archived")
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button("Restore", action: onRestore)
-                .tint(.accentColor)
+                .tint(HausPlatformColor.accentInk)
         }
     }
 }

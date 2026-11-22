@@ -50,8 +50,6 @@ extension HausStore {
     }
 
     var currentActivityByAgentID: [String: AgentActivityEvent] { captains.currentActivityByAgentID }
-    var isAnyAgentWorking: Bool { captains.isAnyAgentWorking }
-    var hasAgentActivitySnapshot: Bool { captains.hasActivitySnapshot }
     var lifecycleRevision: Int { captains.lifecycleRevision }
 
     // MARK: - Workers and settings
@@ -66,9 +64,5 @@ extension HausStore {
 
     func loadActiveWorkers() async {
         await workers.loadActive()
-    }
-
-    func cancelWorker(workID: String) async throws {
-        _ = try await workers.stop(workerID: workID)
     }
 }

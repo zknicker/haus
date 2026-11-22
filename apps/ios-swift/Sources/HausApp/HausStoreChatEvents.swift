@@ -136,9 +136,6 @@ extension HausStore {
             if projections.contains(.agentActivity), !projections.contains(.agentAvailability) {
                 group.addTask { await self.captains.reloadActiveActivity(serverID: serverID) }
             }
-            if projections.contains(.serverUsage), serverUsage != nil {
-                group.addTask { await self.loadServerUsage() }
-            }
             if projections.contains(.computers) {
                 group.addTask { await self.settingsModel.load(serverID: serverID) }
             }

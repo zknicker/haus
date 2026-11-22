@@ -2,7 +2,7 @@ import HausModels
 import HausUI
 
 extension HausStore {
-    /// Every Chat the sidebar can open, in one memoized list.
+    /// Every Chat a route can open, in one memoized list.
     ///
     /// Rebuilt only when the Chat list, its receipt-backed Agent DMs, or the
     /// directories are written — each of those is a `HausStore` accessor
@@ -11,32 +11,11 @@ extension HausStore {
         trackProjectionDirectory()
         let chats = chats
         let receiptBackedAgentDMs = receiptBackedAgentDMsByChatID
-        let order = sidebarOrder
         if let cached = projections.chatDestinations { return cached }
 
-        let destinations = order.apply(
-            buildChatDestinations(chats: chats, receiptBackedAgentDMs: receiptBackedAgentDMs),
-            id: \.id
-        )
+        let destinations = buildChatDestinations(chats: chats, receiptBackedAgentDMs: receiptBackedAgentDMs)
         projections.chatDestinations = destinations
         return destinations
-    }
-
-    /// Freezes the sidebar's row order at the live order. Rows keep updating
-    /// their unread counts, names, and presence, but a Chat that gains a
-    /// message does not move until the order is held again or released.
-    ///
-    /// The shell calls this as the drawer opens — animating the change, since
-    /// it adopts any reordering that happened while the drawer was shut — and
-    /// `releaseSidebarOrder()` as it closes.
-    func holdSidebarOrder() {
-        sidebarOrder.hold(
-            buildChatDestinations(chats: chats, receiptBackedAgentDMs: receiptBackedAgentDMsByChatID).map(\.id)
-        )
-    }
-
-    func releaseSidebarOrder() {
-        sidebarOrder.release()
     }
 
     private func buildChatDestinations(
