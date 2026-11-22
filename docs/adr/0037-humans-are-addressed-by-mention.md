@@ -1,12 +1,12 @@
 ---
-summary: An Agent asks a human by @mentioning them, inline-replying to or answering in a Thread on their message, or writing in their DM where the work lives; Asks are deleted and tasks are Agent-only. Its Needs you section, Done marker, and notify-on-Needs-you rule are superseded by ADR 0038.
+summary: An Agent asks a human by @mentioning them, inline-replying to or answering in a Thread on their message, or writing in their DM where the work lives; Asks are deleted and tasks are Agent-only. Its Needs you section, Done marker, and notify-on-Needs-you rule are superseded by ADR 0038. Amended 2026-11-21: the no-question-record rule is scoped to conversations; a Worker's own harness question shows as a card on the Worker page (proposals/settings-grant-workers-ask.md).
 read_when:
   - changing how an Agent asks a human for a decision, approval, or input
   - reading the history behind ADR 0038 (the Inbox is unread; Needs you and Done are gone)
   - changing human `user://` mention semantics or `chat_messages.mentioned_user_ids`
   - changing task assignees, claiming, or who can hold a task
   - considering a question record, action card, or option buttons for humans
-  - changing the Worker question card, which is this ADR's one amended exception
+  - changing the Worker page's question card, or deciding whether a question card belongs in a conversation
 ---
 
 # ADR 0037: Humans Are Addressed by Mention
@@ -20,10 +20,18 @@ Needs you are gone. Addressing a human by @mention, inline reply, a Thread on th
 their DM stands, and now decides who a message notifies. The Needs you and push passages below are
 history.
 
-**Amended 2026-11-21:** conversations still get no question records or cards. A Worker's own
-harness question (`AskUserQuestion`, `request_user_input`) is the one exception, scoped to the
-Worker page: it rides the Worker's needs-you report as structured questions, and any follow-up
-answers it ([Workers](../../specs/workers.md#questions)). Captains keep asking by @mention.
+**Amended 2026-11-21** by [Settings grant, conversations ask](../proposals/settings-grant-workers-ask.md),
+accepted by Zach:
+- **Conversations keep this rule.** DMs, channels, Projects and Tasks still have no question
+  record, option list, action card or answered state. Captains ask by @mention, and a gated
+  capability is granted by a setting, not by a card.
+- **The scoped exception is a Worker's own harness question.** That's Claude Code's
+  `AskUserQuestion` or Codex's `request_user_input`, shown as a question card on the Worker page,
+  never in a conversation transcript.
+- **How the card resolves.** Haus ends the Worker's turn `needs-you` with the captured questions,
+  and the answer resumes the same session as the next turn.
+- **Questions only.** Workers still never get permission prompts.
+- **The contract** is [Workers → Questions](../../specs/workers.md#questions).
 
 Supersedes the retired Asks spec (`specs/asks.md`, deleted) and the `ask`
 Message body. Amends [ADR 0015](0015-tasks-are-promoted-messages.md) (tasks are Agent-only),
