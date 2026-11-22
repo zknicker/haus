@@ -1,5 +1,6 @@
 // Ported from botiverse/raft-source packages/daemon/src/drivers/codex.test.ts (FSL-1.1-ALv2)
 import { describe, expect, test } from 'bun:test';
+import { refusedApproval } from './server-requests.ts';
 import { FakeAppServer } from './testing/fake-app-server.ts';
 import {
     emitTurn,
@@ -155,7 +156,7 @@ describe('Codex steering and Stop', () => {
         ).rejects.toThrow(/app-server exited/u);
     });
 
-    test('unsupported server requests are refused; approvals follow full access', async () => {
+    test('unsupported server requests are refused, and every approval is denied', async () => {
         const { fake } = await openFake();
         fake.emit({
             id: 'srv-1',
@@ -175,12 +176,11 @@ describe('Codex steering and Stop', () => {
         expect(String((reply('srv-1')?.error as { message: string }).message)).toContain(
             'item/tool/requestUserInput'
         );
-        expect(reply('srv-2')?.result).toEqual({ decision: 'accept' });
-        expect(reply('srv-3')?.result).toEqual({ decision: 'approved' });
-        expect(reply('srv-4')?.result).toEqual({
-            permissions: { fileSystem: { write: ['/x'] } },
-            scope: 'session',
+        expect(reply('srv-2')?.result).toEqual({ decision: 'decline' });
+        expect(reply('srv-3')?.result).toEqual({
+            decision: { denied: { rejection: refusedApproval } },
         });
+        expect(reply('srv-4')?.result).toEqual({ permissions: {}, scope: 'turn' });
     });
 
     test('a server request reusing a client request id is not taken for its response', async () => {
@@ -194,7 +194,7 @@ describe('Codex steering and Stop', () => {
         fake.reply('turn/start', { result: { turn: { id: 'turn-1' } } });
         await starting;
         expect(fake.replies.find((message) => message.id === id)?.result).toMatchObject({
-            scope: 'session',
+            scope: 'turn',
         });
     });
 });

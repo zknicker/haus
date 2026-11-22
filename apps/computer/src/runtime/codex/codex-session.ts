@@ -69,7 +69,7 @@ export class CodexSession implements RuntimeSession {
             server.answer((method, params) =>
                 method === codexQuestionMethod
                     ? this.question(onQuestion, params)
-                    : answerCodexServerRequest(method, params)
+                    : answerCodexServerRequest(method)
             );
         }
     }

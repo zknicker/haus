@@ -6,6 +6,7 @@ import { offlineDelivery } from './agent-inbox-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { observe, startOn } from './worker-board.fixture.ts';
 import {
+    bringComputerOnline,
     computerPlaceBoard,
     endTurn,
     readTurn,
@@ -13,6 +14,7 @@ import {
     takeComputerOffline,
 } from './worker-computer-turn.fixture.ts';
 import {
+    answer,
     ask,
     personTurn,
     questions,
@@ -94,6 +96,39 @@ test('a captured question outlives the process and the Computer going offline', 
     const turn = await readTurn(connection.db, turnId);
     expect(turn?.outcome).toEqual(asked ?? null);
     expect(turn?.endedAt).not.toBeNull();
+});
+
+test('a question replayed after an offline failure replaces it, unless a later turn moved on', async () => {
+    const board = await computerPlaceBoard(connection.db);
+    const { delivery } = offlineDelivery(connection.db, board.seed);
+    const { turnId } = await startComputerWorker(connection.db, board);
+    await takeComputerOffline(connection.db, board);
+    await failOfflineComputerTurns(connection.db, delivery, new Date(Date.now() + 3_600_000));
+    expect((await readTurn(connection.db, turnId))?.outcome).toMatchObject({
+        reason: 'machine-offline',
+    });
+
+    await ask(connection.db, board, delivery, turnId);
+
+    expect((await readTurn(connection.db, turnId))?.outcome).toMatchObject({
+        report: { outcome: 'needs-you', questions },
+    });
+    expect(await reportItems(connection.db, board, turnId)).toEqual(['worker_report']);
+    expect(await reportMessages(connection.db, board)).toHaveLength(1);
+
+    await bringComputerOnline(connection.db, board);
+    const moved = await personTurn(connection.db, board, delivery);
+    await takeComputerOffline(connection.db, board);
+    await failOfflineComputerTurns(connection.db, delivery, new Date(Date.now() + 3_600_000));
+    const failed = (await readTurn(connection.db, moved.turnId))?.outcome;
+    expect(failed).toMatchObject({ reason: 'machine-offline' });
+    await answer(connection.db, board, delivery, {
+        nonce: 'moved-on',
+        text: 'Never mind, use Postgres.',
+        workerId: moved.workerId,
+    });
+    await ask(connection.db, board, delivery, moved.turnId);
+    expect((await readTurn(connection.db, moved.turnId))?.outcome).toEqual(failed ?? null);
 });
 
 test('a stale attempt asks nothing', async () => {

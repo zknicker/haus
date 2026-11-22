@@ -122,7 +122,7 @@ export async function queueWorkerReport(
         agentId: worker.agentId,
         chatId: taskChatId,
         content: '',
-        dedupeKey: `worker-report:${input.turnId}`,
+        dedupeKey: `worker-report:${input.turnId}${outcome.kind === 'report' && outcome.report.questions ? ':questions' : ''}`,
         serverId: worker.serverId,
         source: 'worker_report',
         workerTurnId: input.turnId,

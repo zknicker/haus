@@ -136,6 +136,30 @@ describe('Codex Worker questions', () => {
         await session.destroy();
     });
 
+    test('a session that captures questions still denies every approval', async () => {
+        const asked: WorkerQuestions[] = [];
+        const { fake, finished, session } = await askingFake(async (questions) => {
+            asked.push(questions);
+        });
+        fake.emit({ id: 7, method: 'item/commandExecution/requestApproval', params: {} });
+        fake.emit({
+            id: 8,
+            method: 'item/permissions/requestApproval',
+            params: { permissions: {} },
+        });
+        await flush();
+        const result = (id: number) =>
+            (fake.replies.find((reply) => reply.id === id) as { result?: unknown } | undefined)
+                ?.result;
+        expect(result(7)).toEqual({ decision: 'decline' });
+        expect(result(8)).toEqual({ permissions: {}, scope: 'turn' });
+        expect(asked).toEqual([]);
+        usage(fake, fake.lastTurnId);
+        turnCompleted(fake, fake.lastTurnId);
+        await finished;
+        await session.destroy();
+    });
+
     test('an invalid question is refused with a reason and the turn runs on', async () => {
         const asked: WorkerQuestions[] = [];
         const { ask, fake, finished, session } = await askingFake(async (questions) => {

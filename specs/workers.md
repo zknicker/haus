@@ -371,7 +371,9 @@ questions ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md), amen
    with `source: 'worker'` (`'provider'` on `claude`), `questions`, the questions as its text, and
    the first question as its ask. A report draft's pull requests carry over. The turn holds no slot
    from here, and the owed-stop fence holds later turns until the process ends. A process that dies,
-   a restart, or an offline Computer after capture never settles it again.
+   a restart, or an offline Computer after capture never settles it again. A question the
+   Computer replays after the turn settled failed `machine-offline` replaces that failure while
+   the turn is still the Worker's newest.
 4. **Notify.** The report @mentions the newest person whose follow-up was in the asking turn's
    input, when they can still read the Task. Then the delegating Agent gets no `worker_report`, so it
    doesn't race the person. Otherwise the report names no one and wakes the Agent, which answers or
@@ -385,8 +387,9 @@ questions ([ADR 0037](../docs/adr/0037-humans-are-addressed-by-mention.md), amen
    `questionsClosed`, and starts no turn. The Worker stays `needs-you`. Stop on a Worker with open
    questions and no live turn closes them the same way, with reason `stopped`.
 
-Every other `can_use_tool` request a Claude Code Worker sends is denied, so Claude Code's own
-dangerous-`rm` checks stay closed. A Claude cloud `requires_action` that is not an
+Every other prompt a Worker's harness raises is denied: Claude Code's other `can_use_tool`
+requests, so its own dangerous-`rm` checks stay closed, and Codex's command, file and permission
+approvals, which `approvalPolicy: never` keeps from arising inside the `workspace-write` sandbox. A Claude cloud `requires_action` that is not an
 `AskUserQuestion` settles as a plain needs-you report with no `questions`. Cursor has no question
 tool and keeps the `Haus-Outcome: needs-you` footer.
 
