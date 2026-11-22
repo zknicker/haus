@@ -1,11 +1,11 @@
 ---
 status: accepted
-summary: An Agent's loop runs on the Server in a sandboxed runner, on the Claude Agent SDK for Claude plans and Pi Durable for every other model, with sessions on the runner's persistent volume. Each Agent is pinned to one harness, and the first harness ships before the second. The Agent has one home Computer, where its drive/ folder lives and its tools run by default; amended 2026-11-22, every machine tool takes an optional per-call `computer` target, each Computer keeps an Agent access list (home Agents, plus Agents its attacher names) beside its unchanged computer use list, the target gate fails closed for every invocation kind, off-home calls run in the Agent's own folder on that Computer, `haus` file paths follow the call's target, and the Agent finds its Computers with `haus computer list`. Moving the home ships later. Its tools are bash and edit, the haus CLI run by the runner, and the one execute tool. Every invocation has an id, is recorded as accepted before it runs, and never reruns after an unknown outcome; an offline machine answers at once. Model logins are configured in the App and held encrypted by the Server, several per provider. Inbox items go to the runner. Workers keep native harnesses on machines. User-configured local MCP is descoped. Accepted 2026-11-19, not yet implemented.
+summary: An Agent's loop runs on the Server in a sandboxed runner, on the Claude Agent SDK for Claude plans and Pi Durable for every other model, with sessions on the runner's persistent volume. Each Agent is pinned to one harness, and the first harness ships before the second. The Agent has one home Computer, where its drive/ folder lives and its tools run by default; amended 2026-11-22, every machine tool takes an optional per-call `computer` target, each Computer keeps an Agent access list (home Agents, plus Agents its attacher names) beside its unchanged computer use list, only the attacher grants access, places a home or turns on Workers can run here, the Server resolves the target and its gate fails closed for every invocation kind, revoke and retire are fenced against queued calls, off-home calls run in the Agent's own folder on that Computer, `haus` file paths follow the call's target, and the Agent finds its Computers with `haus computer list`. Moving the home ships later. Its tools are bash and edit, the haus CLI run by the runner, and the one execute tool. Every invocation has an id, is recorded as accepted before it runs, and never reruns after an unknown outcome; an offline machine answers at once. Model logins are configured in the App and held encrypted by the Server, several per provider. Inbox items go to the runner. Workers keep native harnesses on machines. User-configured local MCP is descoped. Accepted 2026-11-19, not yet implemented.
 read_when:
   - changing where an Agent's loop runs, its harnesses, or where its session is stored
   - changing the Agent's machine, moving an Agent, or what an Agent can do while its machine is offline
   - changing which Computers an Agent's tool calls may target, a Computer's Agent access list, or `haus computer list`
-  - changing who may place an Agent's home on a Computer
+  - changing who may place an Agent's home on a Computer, or turn on Workers can run here
   - changing the Agent's tools, the invocation contract, timeouts, offline answers, refusals, or the Computer result ledger
   - changing which harness an Agent runs on, or resetting or retiring an Agent
   - changing who holds model logins for Agents or Workers
@@ -92,15 +92,19 @@ that any of your threads can use" ([Capy Desktop](https://capy.ai/blog/capy-desk
    - **Per-call target.** Every machine tool takes an optional `computer` field, a Computer id or
      a unique name: `bash`, `str_replace_based_edit_tool`, `shell`, `apply_patch`, `view_image`,
      and `execute`'s `browser` and `desktop` built-ins, whose input becomes `{ args, computer? }`.
-     The runner resolves a name against the Agent's Computer list and sends the id as a
-     frame-level `computerId` on `invocation-request`, never inside the operation. A name that
-     matches no Computer, or several, is refused before dispatch with the candidates listed. The
-     default is the home. There is no sticky switch: the session spans every chat
-     ([specs/sessions.md](../../specs/sessions.md)), so a "current Computer" set in one channel
-     would run the next channel's command on someone's laptop. Each result names the Computer
-     that ran it, so a call that silently fell back to the home is visible.
-     `agent_invocations.computer_id` already records where a call was routed. The session, the
-     turn and the conversation stay on the runner.
+     The runner sends the string as it came, as a frame-level `computer` on `invocation-request`,
+     never inside the operation. Only the Server resolves it, within the Agent's Server, the way
+     it resolves a Worker's `--on` ([specs/workers.md](../../specs/workers.md#places)): a name
+     that matches no Computer refuses `not-found`, and one that matches several refuses with their
+     ids listed. The runner holds no Computer list (`runnerStartFrameSchema` carries none,
+     `packages/haus-api/src/runner-protocol.ts`), and names and grants can change mid-turn.
+     `agent_invocations.computer_id` records the resolved id, and a resend keeps it. The default
+     is the home, and an explicit target never falls back to it. There is no sticky switch: the
+     session spans every chat ([specs/sessions.md](../../specs/sessions.md)), so a "current
+     Computer" set in one channel would run the next channel's command on someone's laptop. A
+     result from a Computer other than the home names that Computer, and so does every refusal.
+     Home results stay as they are. The session, the turn and the conversation stay on the
+     runner.
    - **Two lists per Computer.** Capy's Device carries `agentAccess` and `computerUseAccess`, and
      Haus keeps the same two:
      - **Agent access** says which Agents may run any tool there. Home Agents always may. Others
@@ -108,38 +112,56 @@ that any of your threads can use" ([Capy Desktop](https://capy.ai/blog/capy-desk
        "All Agents" grant in v1. A new Computer, and every existing one at migration, allows its
        home Agents only. The new table gets no trigger on `agents.computer_id`, unlike
        `computer_use_agents` (`apps/server/drizzle/postgres/0150_computer-use-captains.sql:18-24`).
-     - **Computer use** keeps its switch, its scope and its rows. Its candidates become the
-       Agents allowed on that Computer: `all` covers every allowed Agent, and a named list may name
-       any of them, not only home Agents
-       (`apps/server/src/computers/set-computer-use-agents.ts:18-33`). An empty named list still
-       allows nobody.
-     - The migration copies no rows. Today every allowed Agent is a home Agent, so `all` means
-       what it meant and nobody's access widens. A `desktop` call needs both lists. Granting
-       access on a Computer whose computer use list is `all` also grants its desktop, so the grant
-       says so before the attacher confirms.
+     - **Computer use** keeps its switch, its scope and its rows. `all` still means the
+       Computer's home Agents. A named list may also name an Agent that Agent access allows, not
+       only a home Agent (`apps/server/src/computers/set-computer-use-agents.ts:18-33`), so a
+       borrowed Agent reaches the desktop only when a person names it there. An empty named list
+       still allows nobody.
+     - The migration copies no rows, and nobody's access widens: `all` keeps its meaning, and an
+       access grant never grants the desktop as a side effect. A `desktop` call needs both lists.
+       Revoking an Agent's access also deletes that Computer's computer use row for it.
    - **Who grants.** Only the attacher grants Agent access. The attacher, Owners and Admins can
      revoke it. Computer use keeps today's stewards (the attacher, Owners and Admins,
-     `apps/server/src/computers/computer-steward.ts:35-45`), who choose only among allowed
-     Agents. An Admin cannot consent for someone else's laptop, because an allowed Agent runs
+     `apps/server/src/computers/computer-steward.ts:35-45`), who name only Agents that access
+     allows. An Admin cannot consent for someone else's laptop, because an allowed Agent runs
      shell commands there and anyone who can message it can ask it to, since channels are open.
-   - **The gate fails closed, for every invocation kind.** The Server resolves the target within
-     the Agent's Server and checks, in order: `not-found` (no such Computer), `not-listed` (not on
-     Agent access), then for `desktop` the computer use causes (`off`, `not-listed`, `not-mac`,
-     `offline`, `not-ready`), then `offline`. Today the desktop gate returns no refusal when it
-     finds no Device (`apps/server/src/computer-use/computer-use-gate.ts:34-37`), and with a
-     caller-chosen target that would send the call. The access check runs before the desktop
-     gate, because `readDesktopDevice` has no home check
-     (`apps/server/src/computer-use/desktop-device.ts:42`). A reconnect resend runs the same checks
-     for every kind; today it re-gates `desktop` only (`invocation-router.ts:227-246`). The screen
-     preflight still reports `locked`, `no-session` and `switched-out`. A refusal names the
-     Computer and its attacher, as computer use refusals do, and its text says which list refused.
-   - **Refusals keep their text.** The `agent_invocations_refusal` CHECK gains `not-found`, and
-     `agent_invocations_sent_shape` allows a null `computer_id` for it
+     For the same reason **Workers can run here** becomes attacher-only to turn on, and the
+     attacher, Owners and Admins can turn it off. Today any steward sets it
+     (`apps/server/src/computers/set-computer-workers.ts:23`), and it lets Agents run unsandboxed
+     Claude Code there with the machine's logins (ADR 0056 decision 7). When the attacher leaves
+     the Server nobody takes over: an Owner can detach the Computer, and whoever attaches it again
+     becomes its attacher, so consent stays with the person at the machine.
+   - **The gate fails closed, for every invocation kind.** The Server resolves the target and
+     checks, in order: `not-found` (no such Computer), `no-access` (not on Agent access), then for
+     `desktop` the computer use causes (`off`, `not-listed`, `not-mac`, `offline`, `not-ready`),
+     then `offline`. `no-access` is its own cause because `not-listed` already means the computer
+     use list (`apps/server/src/postgres/schema/agent-invocations.ts:85`), and a replay must say
+     which list refused. All of this runs before the router records the row. Today it records
+     `offline` first (`invocation-router.ts:113-121`), and `recordDesktopRefusal` then keeps that
+     `offline` outcome (`apps/server/src/agent-invocations/invocation-store.ts:102`). Today the
+     desktop gate also returns no refusal when it finds no Device
+     (`apps/server/src/computer-use/computer-use-gate.ts:34-37`), and with a caller-chosen target
+     that would send the call. The access check runs before the desktop gate, because
+     `readDesktopDevice` has no home check (`apps/server/src/computer-use/desktop-device.ts:42`). A
+     reconnect resend runs the same checks for every kind; today it re-gates `desktop` only
+     (`invocation-router.ts:227-246`). The screen preflight still reports `locked`, `no-session`
+     and `switched-out`. A refusal names the Computer and its attacher, as computer use refusals
+     do.
+   - **Revoke and retire are fenced.** The Computer accepts a call before it reaches the head of
+     the Agent's queue (`apps/computer/src/invocations/handler.ts:55-59`), so the resend check
+     alone cannot stop accepted calls. Revoking access, and retiring the Agent, sends that
+     Computer a fence for the Agent. The fence cancels the Agent's running call there and settles
+     each accepted, queued one as refused with no run. A Computer that is offline gets it on
+     reconnect, before any queued call starts.
+   - **Refusals keep their text.** The `agent_invocations_refusal` CHECK gains `not-found` and
+     `no-access`, and `agent_invocations_sent_shape` allows a null `computer_id` for `not-found`
      (`apps/server/src/postgres/schema/agent-invocations.ts:83-90`). A replayed answer re-renders
-     the refusal from its stored cause instead of the generic notice (`settledAnswer`,
-     `apps/server/src/agent-invocations/invocation-answers.ts:54`), and the runner keeps the
-     Server's text on an `offline` answer instead of replacing it with
-     `invocationOutcomeNotices.offline` (`apps/runner/src/invocations/invocation-client.ts:226-228`).
+     the refusal from its stored cause instead of the generic notice. That makes `settledAnswer`
+     (`apps/server/src/agent-invocations/invocation-answers.ts:54`), which is synchronous today,
+     an async lookup of the Computer and its attacher, with text from the cause alone once the
+     Computer is gone. The runner keeps the Server's text on an `offline` answer instead of
+     replacing it with `invocationOutcomeNotices.offline`
+     (`apps/runner/src/invocations/invocation-client.ts:226-228`).
    - **The working folder off the home** is the one the Agent has on every Computer:
      `<dataRoot>/servers/<serverId>/agents/<agentId>/workspace`, with `HOME` at the sibling
      `home`. Haus Computer already creates both for any Agent id
@@ -154,21 +176,28 @@ that any of your threads can use" ([Capy Desktop](https://capy.ai/blog/capy-desk
      Logins the tools find through `$HOME` are not seen, because `HOME` is the Agent's folder
      (`apps/computer/src/reminder-script.ts:162`): no ssh keys, no `gh` login, no user git
      config. It is not a boundary either: the Agent can read anything that user can by absolute
-     path. Anyone who can message the Agent can reach the Computer through it. Work that needs
-     the machine's logins goes to a Worker there
-     ([ADR 0056](0056-agents-run-quiet-workers-anywhere.md) decision 7).
-   - **Retirement sweeps every Computer.** Retiring an Agent purges its folders on every Computer
-     its invocation ledger names, not only the home, and replays on each one's reconnect. Today
-     `agent-retire` goes to the home only
+     path. Anyone who can message the Agent can reach the Computer through it. Nothing an Agent
+     runs uses the machine's GitHub login on its behalf: `haus repo checkout` reaches only repos
+     already on that Computer (ADR 0060 decision 5). Work that needs the machine's logins goes to
+     a Worker there ([ADR 0056](0056-agents-run-quiet-workers-anywhere.md) decision 7).
+   - **Retirement reaches every Computer.** Retiring an Agent fences and then purges its folders
+     on every Computer that holds any. The Server sends `agent-retire` to each online Computer on
+     the Server. On every connect a Computer reports the Agent ids it holds folders or worktrees
+     for (`agent-held`, like `worker-held`), and the Server answers `agent-retire` for each retired
+     one. The invocation ledger cannot drive this, because its rows are deleted after 30 days
+     (`apps/server/src/agent-invocations/invocation-retention.ts:13`,
+     `EXECUTION_JOURNAL_RETENTION_DAYS`). Today `agent-retire` goes to the home only
      (`apps/server/src/agent-delivery/delivery.ts:418-423,462-465`). Full Reset recreates the
      home's folders only (`delivery.ts:261-265`). Folders on other Computers are scratch, and the
      Manual says so.
    - **Discovery.** `haus computer list` shows each Computer on the Server: its id, name, whether
      it is online, its OS, which one is home, whether this Agent is allowed there, and whether
-     computer use is on for it. A Manual topic teaches targeting. The system prompt lists no
-     Computers, but its "Use ONLY these command families" list
-     (`packages/agent-prompt/src/managed-instructions.ts:146`) gains a `computer` entry, through
-     the prompt contract and the register row "Communication — CLI ONLY, command families".
+     computer use is on for it. A Manual topic teaches targeting. The command needs a row in
+     `apps/runner/src/haus/command-access.ts`, or the runner refuses it as `UNKNOWN_HAUS_COMMAND`.
+     The system prompt lists no Computers, but its command families
+     (`packages/agent-prompt/src/managed-instructions.ts:120-137`, introduced at line 146 by "Use
+     ONLY these command families") gain a `computer` entry, through the prompt contract and the
+     register row "Communication — CLI ONLY, command families".
    - **Moving the home ships later.** Move to device, Capy's "Continue on", changes the home while
      the Agent is idle. Who may move a home follows "Placing a home is a grant". What it carries
      over is decided when it ships; Capy carries the branch and uncommitted work.
@@ -282,6 +311,16 @@ Added 2026-11-22, for tool calls that target another Computer:
   every home Agent, and turns an empty named list from "nobody" into "home Agents".
 - **Owners and Admins granting access.** An Admin could give themselves shell on a teammate's
   laptop through an Agent, without that person's consent.
+- **An Owner taking over a departed attacher's Computer.** The machine still belongs to the person
+  who attached it. Re-attaching at the machine makes a new attacher.
+- **`all` covering borrowed Agents.** Every access grant would then grant the desktop too, so a
+  borrowed Agent is named on the computer use list or not at all.
+- **Resolving names on the runner.** The runner has no Computer list, and a list sent at turn
+  start goes stale when a Computer is renamed or a grant changes mid-turn. The Server already
+  resolves Worker places by name.
+- **Naming the Computer on every result.** Home results would change for every Agent on every
+  call. An explicit target never falls back to the home, so off-home results and refusals are
+  the ones that need the name.
 - **The machine user's real home as the working folder.** The user's ssh, `gh` and git logins
   would work, but every Agent's shell history and tool caches would land in the user's home, and
   `~` would mean the user's dotfiles. The per-Agent folder already exists, and work that needs
@@ -322,7 +361,9 @@ Added 2026-11-22, for tool calls that target another Computer:
 - **The 2026-11-22 council** (Opus, GPT Sol and Gemini Neon) reviewed the first draft of decision
   4. This amendment takes its recommendation: the per-call field, two lists, attacher-only
   grants, the existing per-Agent folder, file paths that follow the target, and its must-fix
-  list.
+  list. A second review of this amendment settled its open questions and added the `no-access`
+  cause, Server-only name resolution, the revoke and retire fence, `agent-held`, and the
+  attacher-only Workers switch.
 
 ## Consequences
 
@@ -337,17 +378,22 @@ Amended:
   pulled at turn start and pushed after the reply.
 - `specs/inbox.md`: the Server delivers inbox items to the runner, not a Computer.
 - [ADR 0056](0056-agents-run-quiet-workers-anywhere.md): Workers keep machine logins and native
-  harnesses. The Agent's runtime and tools live here.
+  harnesses. The Agent's runtime and tools live here. Decision 6 (2026-11-22): only the attacher
+  turns **Workers can run here** on, and the attacher, Owners and Admins turn it off.
 - [specs/computer-use.md](../../specs/computer-use.md) (2026-11-22): the Captains list keeps its
-  switch and rows and draws its candidates from the Device's Agent access list, and the gate runs
-  after the access check. Its sections carry a dated note until the rewrite.
+  switch, rows and the meaning of `all`, a named entry may be any Agent the Device's access list
+  allows, and the gate runs after the target and access checks. Its sections carry a dated note
+  until the rewrite.
+- [specs/workers.md](../../specs/workers.md) "Places" (2026-11-22): the switch is attacher-only to
+  turn on. The section carries a dated note.
 - [specs/runtime-drivers.md](../../specs/runtime-drivers.md) (2026-11-22): the Route step resolves
   the call's target, or the home, then runs the gate in decision 4. The tool shapes gain the
   `computer` field, and `haus` machine paths follow it. Its sections carry a dated note until the
   rewrite.
 
 Changed capability (2026-11-22): an Owner or Admin can no longer create an Agent on a Computer
-someone else attached. Existing Agents keep their homes.
+someone else attached, or turn on **Workers can run here** there. Existing Agents keep their
+homes, and a switch already on stays on.
 
 Deleted:
 
@@ -373,15 +419,19 @@ Follow-up:
 - Move the prompt contract (size cap, divergence register, `test:prompt-contract`) to the runner.
 - For any-Computer tool calls (2026-11-22):
   - the `computer` field in both tool adapters and the `execute` built-ins, and the frame-level
-    `computerId`;
-  - the target lookup, the Agent access table, attacher-only grants and home placement, and the
-    computer use candidate change;
-  - the gate order for every kind, on request and on resend;
-  - the `not-found` CHECK and sent-shape change, and refusal text kept on replay and offline;
+    `computer` string;
+  - Server-side name resolution, the Agent access table, attacher-only grants, home placement
+    and Workers switch, and named computer use entries for allowed Agents, deleted on revoke;
+  - the gate order for every kind, before the row is recorded, on request and on resend;
+  - the revoke and retire fence for accepted, queued calls;
+  - the `not-found` and `no-access` CHECK and sent-shape change, an async `settledAnswer`, and
+    refusal text kept on replay and offline;
   - `haus` machine paths that follow the target;
-  - retirement on every Computer;
-  - `haus computer list`, its Manual topic, the families entry through the prompt contract, and
-    the Device page's Access section;
+  - retirement on every Computer, through `agent-retire` fan-out and the `agent-held` report;
+  - `haus computer list`, its `command-access` row, its Manual topic, the families entry through
+    the prompt contract, and the Device page's Access section;
+  - a small baseline eval through `.agents/skills/tune-agent-behavior/SKILL.md`, on both harness
+    families: calls with no target are unchanged, and "screenshot my MacBook" routes there;
   - rewrite [specs/computer-use.md](../../specs/computer-use.md) "The Device settings" and "The
     gate", and [specs/runtime-drivers.md](../../specs/runtime-drivers.md) "Lifecycle" and
     "`haus` runs on the runner";
@@ -392,15 +442,10 @@ Follow-up:
 
 ## Open questions (2026-11-22)
 
-- **A departed attacher.** Only the attacher grants access, so once they leave the Server nobody
-  can allow a new Agent on that Computer, and an Owner can only detach it. Whether an Owner may
-  take over as attacher.
-- **Results that name the Computer.** Whether every machine tool result names its Computer, or
-  only results from a Computer other than the home, which keeps home results unchanged.
-- **Agents creating Agents.** Whether an Agent may keep placing new Agents on its own home without
-  the attacher, as this ADR allows.
-- **Granting desktop with access.** Whether granting Agent access on a Computer whose computer use
-  list is `all` should grant its desktop, as decided, or leave the new Agent off the desktop until
-  a person names it.
-- **The trained tool shapes.** Whether the added optional field changes how models call `bash` and
-  edit. The implementation's eval has to show it does not.
+- **Revoking a running call.** The fence cancels the Agent's running call on that Computer, as
+  Stop Agent Input does for `desktop`. Whether a revoke should instead let a running call finish
+  and stop only the queued ones.
+
+The second council settled the draft's other questions: no Owner takeover; off-home results and
+refusals name the Computer; Agents may place Agents on their own home; `all` means home Agents,
+so an access grant never grants the desktop; and the optional field gets a baseline eval.

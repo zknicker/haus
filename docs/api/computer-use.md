@@ -31,7 +31,9 @@ procedure runs for an active member of `serverId`.
 - Planned by [ADR 0057](../adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
   decision 4 (amended 2026-11-22): a separate Agent access list, granted only by the attacher,
   gates every invocation kind on this Device, and its home Agents are always on it. This list
-  keeps its rows and meaning, and a `named` entry may then be any Agent that access list allows.
+  keeps its rows and meaning, `all` still covers home Agents only, and a `named` entry may then be
+  any Agent that access list allows. Revoking access deletes the Agent's named entry here, and an
+  access refusal is the new cause `no-access`, never `not-listed`.
 - `computer.stewards`, `computer.desktopActivity`, and `computer.stopDesktopInput` answer
   `NOT_FOUND` for a Device that is gone.
 

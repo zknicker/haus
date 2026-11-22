@@ -16,7 +16,9 @@ read_when:
 Accepted 2026-11-19. Not yet implemented. Proposed to be amended 2026-11-22 by
 [ADR 0060](0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md) in decisions 6 and 7
 and the 2026-11-21 follow-up: repos belong to the Server, and a Worker on a Computer works in git
-worktrees of that Computer's repo folders. Amended 2026-11-20 in decision 7: Workers on a Computer run with the
+worktrees of that Computer's repo folders. Amended 2026-11-22 by
+[ADR 0057](0057-agents-run-on-the-server-and-machines-run-their-tools.md) decision 4 in decision
+6: only the attacher turns **Workers can run here** on. Amended 2026-11-20 in decision 7: Workers on a Computer run with the
 machine user's full local access, including the Computer's Haus credential, until OS isolation
 lands. Amended 2026-11-19 by the Workers contract
 ([specs/workers.md](../../specs/workers.md), [specs/cloud-agents.md](../../specs/cloud-agents.md))

@@ -755,9 +755,10 @@ same maximum again, so a bad frame cannot hold a command past it.
 
 > **Amended 2026-11-22 by
 > [ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
-> decision 4:** the request may carry a frame-level `computerId`, and Route sends the call there
-> instead of the home after the target and access checks, which fail closed. A refusal keeps its
-> text when it is answered again.
+> decision 4:** the request may carry a frame-level `computer`, the id or name the tool call
+> gave. Route resolves it on the Server, records the resolved id, and sends the call there instead
+> of the home after the target and access checks, which fail closed and run before the row is
+> recorded. A refusal keeps its text when it is answered again.
 
 1. **Request.** The runner records the dispatch as accepted in its ledger, then sends
    `invocation-request` with `runId`, `toolCallId`, `seq`, and the operation. The Server keys it

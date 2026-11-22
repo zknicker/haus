@@ -353,22 +353,24 @@ _Avoid_: local cloud agent, device place, machine Worker
 **Workers can run here**:
 The per-Computer switch, Server state on the Computer record, that lets Agents run unattended
 Worker sessions there. Only the person who attached the Computer, an Owner, or an Admin sets it,
-with the Computer's Worker limit beside it. It is off for a newly attached Computer. Turning it off
+with the Computer's Worker limit beside it; under ADR 0057 (amended 2026-11-22) only the attacher
+turns it on. It is off for a newly attached Computer. Turning it off
 refuses new starts and follow-ups there, settles queued turns `place-off`, lets working turns
 finish, and clears Project defaults that name the Computer. Carrying a cloud place needs no switch.
 _Avoid_: local execution toggle, Worker mode, enable Workers
 
 **Repo**:
-A GitHub repository (`owner/name`) known to the Server. Any Agent or Worker in any Project may use
-it ([ADR 0060](docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md), which
+A GitHub repository (`owner/name`) known to the Server, once a folder for it was added or a clone
+of it succeeded. Any Agent or Worker in any Project may use it
+([ADR 0060](docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md), which
 retires the per-Project `project_repos` rows).
 _Avoid_: Project repo, workspace repo, Project repository setting
 
 **Repo folder**:
 Where one repo lives on one Computer: an existing checkout the Computer's attacher added, or Haus's
-own clone in `repos/<owner>/<name>` under the data root, made the first time the repo is needed
-there. Workers and Agents work in git worktrees of it (ADR 0060, which retires
-`project_repo_links`).
+own clone in the Server's partition (`servers/<server-id>/repos/<owner>/<name>`), made the first
+time a Worker needs the repo there. Workers and Agents work in git worktrees of it, which share
+its `.git` (ADR 0060, which retires `project_repo_links`).
 _Avoid_: repo link, linked repo, checkout setting, repo mapping
 
 **Turn credential**:

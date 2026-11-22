@@ -44,8 +44,8 @@ the people and the Agent on it, and a merged pull request never closes it.
 
 > **Superseded in part 2026-11-22 by
 > [ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md):**
-> `repository` becomes an ordered list of repos the Server knows, not one of the Task's Project
-> repos.
+> `repository` is any repo the Server knows, not one of the Task's Project repos. It stays one
+> repo.
 
 The Server is canonical. It mints every id, timestamp, and credential. Computers and providers
 report evidence against those ids and never invent one.
@@ -175,6 +175,11 @@ resolve. The Worker record shows the place as `workerPlaceViewSchema`, which add
 reported name (`computerName`, null when unknown). Inputs, frames, and storage never carry the
 name.
 
+> **Amended 2026-11-22 by
+> [ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
+> decision 4:** only the attacher turns the switch on. The attacher, Owners and Admins can turn it
+> off.
+
 **The switch.** A Computer runs Workers locally only while its **Workers can run here** switch is on. The
 person who attached the Computer, or an Owner or Admin, sets it from the Computer's settings
 (`computer.setWorkers`, with the Worker limit; the App control is W4). `computer.list` shows
@@ -226,9 +231,9 @@ the limit waits as `queued`, first come first served per place, and starts when 
 
 > **Superseded in part 2026-11-22 by
 > [ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md):**
-> `--repo` is required and repeatable and may name any repo. A Computer place clones a repo it
-> has no folder for instead of refusing `WORKER_REPO_NOT_LINKED`, and `haus worker places` lists
-> each Computer's repo folders.
+> `--repo` is required, takes one repo, and may name any repo. A Computer place clones a repo it
+> has no folder for into the Server's partition instead of refusing `WORKER_REPO_NOT_LINKED`,
+> `WORKER_REPO_UNKNOWN` goes, and `haus worker places` lists each Computer's repo folders.
 
 `haus worker` is the Agent surface. After R4 an Agent calls it through `execute`, and the Server
 handles it. A Worker calls only `haus worker report` and the Drive read commands.
@@ -458,7 +463,7 @@ Worker keeps its harness on the machine.
 
 > **Superseded 2026-11-22 by
 > [ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md)** for
-> the checkout: each of a Worker's repos is a git worktree of that Computer's repo folder, at
+> the checkout: a Worker's repo is a git worktree of that Computer's repo folder, at
 > `servers/<serverId>/worktrees/<worker-id>/<owner>/<name>/`, not a clone under `checkout/`, and
 > its branch lives in the folder from the start. The rest of this layout stands.
 
@@ -594,8 +599,9 @@ A Computer-place turn whose Computer stays disconnected for 30 minutes settles a
 
 > **Superseded in part 2026-11-22 by
 > [ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md):** step
-> 5 removes each clean worktree and deletes its pushed local branch, and keeps any worktree with
-> uncommitted, untracked or unpushed work, which the Worker's final outcome names.
+> 5 removes the worktree once it is clean and its commits are on the remote, and deletes its
+> local branch. Otherwise it keeps both, and `worker-held` on each connect names the kept
+> worktree for the Worker card, since the final `worker_report` (step 4) goes out first.
 
 When a Task becomes done or canceled, the Server closes each of its Workers in this order:
 
