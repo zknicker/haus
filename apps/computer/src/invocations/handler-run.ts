@@ -73,6 +73,7 @@ function invokeResult(invocationId: string, result: OperationResult) {
         ...(result.logPath === undefined ? {} : { logPath: result.logPath }),
         outcome: result.outcome,
         output: result.output,
+        ...(result.refusal === undefined ? {} : { refusal: result.refusal }),
         truncated: result.truncated,
         type: 'invoke-result',
     } satisfies InvokeResult;

@@ -8,6 +8,7 @@ import {
     cloudAgentSettingsUpdatedEventSchema,
     workerUpdatedEventSchema,
     computerUpdatedEventSchema,
+    desktopActivityEventSchema,
     imageGenerationUpdatedEventSchema,
     invitationUpdatedEventSchema,
     mcpUpdatedEventSchema,
@@ -57,6 +58,11 @@ export const agentContextUpdatedTopic = createTopic(
 );
 export const artifactUpdatedTopic = createTopic('artifact.updated', artifactUpdatedEventSchema);
 export const computerUpdatedTopic = createTopic('computer.updated', computerUpdatedEventSchema);
+/** Volatile: a Device's open `desktop` commands changed. */
+export const desktopActivityTopic = createTopic(
+    'computer.desktopActivity',
+    desktopActivityEventSchema
+);
 export const mcpUpdatedTopic = createTopic('mcp.updated', mcpUpdatedEventSchema);
 /** Also the membership sentinel: every publish that can revoke membership sends it. */
 export const serverUpdatedTopic = createTopic('server.updated', serverUpdatedEventSchema);

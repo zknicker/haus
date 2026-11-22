@@ -1,8 +1,9 @@
 ---
-summary: Computer use in the App — the Device page's Access section with the "Computer use allowed" switch (off by default) and the macOS readiness warning.
+summary: Computer use in the App — the Device page's Access section with the "Computer use allowed" switch (off by default), which Captains may use it, the macOS permission list with live re-checks, and Stop Agent Input.
 read_when:
-  - changing Settings → Devices → (Device) → Access or the Computer use allowed switch
-  - changing the agent-desktop or Accessibility / Screen Recording warning on a Device
+  - changing Settings → Devices → (Device) → Access, the Computer use allowed switch, or its Captains picker
+  - changing the macOS permission rows, their deep links, or the Copy path row
+  - changing Stop Agent Input or what a person sees when a Captain is refused computer use
 ---
 
 # Computer use
@@ -13,22 +14,52 @@ A Captain can look at and operate the desktop of a macOS Device when a person al
 
 ## Device page
 
-**Settings → Devices → (Device)** has an **Access** section on macOS Devices with one row,
-**Computer use allowed**: "Captains can see the screen and click and type in applications on
-this Device." It is a switch, off by default. While it is off, every desktop command a Captain
-tries on that Device is refused and the Captain is told how to turn it on.
+**Settings → Devices → (Device)** has an **Access** section on macOS Devices.
 
-The Device's attacher, Owners, and Admins can flip it. Anyone else sees the switch disabled. The
-change shows at once and rolls back with a toast if the Server refuses it.
+- **Computer use allowed**: "Captains can see the screen and click and type in applications on
+  this Device." A switch, off by default. While it is off, every desktop command a Captain tries on
+  that Device is refused, and the Captain asks in the chat with a link to this page.
+- **Captains**, once the switch is on: All Captains (including ones added later), or only the ones
+  you pick. The description names them. A Captain that moves to another Device drops off the list.
+- **Stop Agent Input**: while a Captain is driving the Device, the section says "Cove is using
+  Studio" with a Stop button. Stop cancels the running command at once, and the Captain is told a
+  person stopped it.
+
+The Device's attacher, Owners, and Admins can change the switch and the list. Anyone else sees
+them disabled. A change shows at once and rolls back with a toast if the Server refuses it. A
+member who opens a refusal's link for a Device they can't see reads who attached it and who can
+change it.
+
+## macOS permissions
 
 agent-desktop ships inside Haus Computer, so nobody installs it. Like Haus Computer itself, it runs
-on Apple Silicon Macs only: there is no Intel (x64) build. While the switch is on and the
-Device reports that it couldn't set agent-desktop up, or that Accessibility or Screen Recording
-isn't granted, a warning under Access names what to do: update Haus Computer, or allow Haus
-Computer in System Settings → Privacy & Security → Accessibility or Screen Recording. System
-Settings lists Haus Computer by name with the Haus icon. After the update that made Haus Computer
-an app, the permissions granted to the old executable no longer count, so the warning says "Haus
-Computer is an app now, so macOS asks again" before naming the pane. The Device rechecks every
-minute, so the warning clears on its own about a minute after the grant; Refresh rechecks at once.
-A permission the Device couldn't read asks for a Refresh. An older Computer that reports nothing
-shows no warning.
+on Apple Silicon Macs only. Once the switch is on, **macOS permissions** lists what macOS needs to
+allow, one row each:
+
+- **System & App Protection Override** on macOS 27.3 and later (Device Control and Data Access on
+  27.0–27.2, Accessibility before that): lets Captains read and click the apps on screen.
+- **Screen & System Audio Recording** (Screen Recording before macOS 15): lets Captains take
+  screenshots.
+
+Each row reads Granted or Not granted. A row that isn't granted shows the steps for that macOS
+version and **Open Settings**, which opens that System Settings pane on the Mac you're using. On
+27.3 the steps are + → Override System Protections → Choose Apps → Haus Computer → Control Your
+Entire Mac and All Apps. Haus Computer lives in a hidden folder, so a row gives its path with
+**Copy path**; paste it into the file picker with ⌘⇧G. Do this on the Device itself. For a Mac
+mini or another Mac without a display, connect with Screen Sharing first
+([headless Devices](../operations/computer-use-headless-devices.md)).
+
+The section rechecks in a fresh process when you come back to the App and when you press **Check
+again**, so a grant shows within a second or two. After the update that made Haus Computer an
+app, the old grants no longer count, and the section says "Haus Computer is an app now, so macOS
+asks again". If the Device couldn't set agent-desktop up, the section asks for a Haus Computer
+update instead. An older Computer that reports nothing shows no rows.
+
+## When a Captain is refused
+
+The Captain gets a reason it can act on, and asks once in the chat with a link to this page:
+computer use is off, it isn't on the Captains list, the Device is offline or isn't a Mac, a macOS
+permission is missing, or the Mac is locked, at the login window, or switched to another user.
+The text names the attacher by @handle and never names other Captains. A Captain refused again
+for the same reason is told it already asked and to wait for a reply, and a second refusal in one
+turn tells it to stop.

@@ -6,6 +6,7 @@ import {
     type InvokeResult,
     invocationInlineBytesMax,
     type MachineInvocationOutcome,
+    type ScreenRefusal,
 } from '@haus/api';
 
 export type StopReason = 'cancel' | 'timeout';
@@ -31,6 +32,7 @@ export interface OperationResult {
     logPath?: string;
     outcome: Exclude<MachineInvocationOutcome, 'unknown'>;
     output: InvocationOutput;
+    refusal?: ScreenRefusal;
     truncated: boolean;
 }
 

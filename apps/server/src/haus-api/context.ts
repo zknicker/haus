@@ -1,6 +1,7 @@
 import { appProtocolHeaders } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import type { InvocationRouter } from '../agent-invocations/invocation-router.ts';
 import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { ArtifactThumbnails } from '../artifacts/thumbnails.ts';
 import type { AttachmentRoot } from '../attachments/attachment-root.ts';
@@ -49,6 +50,8 @@ export interface HausContext {
     githubApp: GithubApp | null;
     hausDb: HausDatabase;
     hausSessions: HausSessions;
+    /** Open machine invocations; Stop Agent Input cancels a Device's `desktop` command through it. */
+    invocations: Pick<InvocationRouter, 'stopDesktop'>;
     /** HTTP response handle for ending SSE subscriptions on local sign-out. */
     httpSessionConnection: HttpSessionConnection | null;
     managedSkills: ManagedSkillSeeder;
@@ -103,6 +106,7 @@ export interface HausContextDependencies {
     githubApp: GithubApp | null;
     hausDb: HausDatabase;
     hausSessions: HausSessions;
+    invocations: Pick<InvocationRouter, 'stopDesktop'>;
     managedSkills: ManagedSkillSeeder;
     mcpIconResolver: McpIconResolver;
     mcpOAuthRelay: McpOAuthRelay;

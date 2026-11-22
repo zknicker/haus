@@ -10,11 +10,11 @@ import {
     invokeResultSchema,
 } from '@haus/api';
 import { onAgentLifecycle } from '../agent-delivery/lifecycle.ts';
-import { gateDesktopInvocation } from '../computer-use/computer-use-gate.ts';
+import { desktopResultAnswer, gateDesktopInvocation } from '../computer-use/computer-use-gate.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { RunnerLink } from '../runner/runner-link.ts';
-import { clampTimeoutMs, noticeAnswer, resultAnswer, settledAnswer } from './invocation-answers.ts';
+import { clampTimeoutMs, noticeAnswer, settledAnswer } from './invocation-answers.ts';
 import { type InvocationClock, systemInvocationClock } from './invocation-clock.ts';
 import { bindRunnerUpload } from './invocation-payloads.ts';
 import {
@@ -26,25 +26,22 @@ import {
     recordSendFailure,
     recordUnknown,
 } from './invocation-store.ts';
+import {
+    announceDesktopActivity,
+    type OpenInvocation,
+    resendGateInput,
+    stopDesktopCommands,
+    stoppedResult,
+} from './open-invocations.ts';
 
 export type InvocationRouter = ReturnType<typeof routeInvocations>;
 
 interface RouterInput {
+    appOrigin: string;
     clock: InvocationClock;
     computers: Pick<ComputerConnections, 'isOnline' | 'send'>;
     db: HausDatabase;
     runner: Pick<RunnerLink, 'send'>;
-}
-
-interface OpenInvocation {
-    accepted: boolean;
-    cancelled: boolean;
-    command: InvokeCommand;
-    computerId: string;
-    grace: { cancel(): void };
-    key: DispatchKey;
-    runSettled: boolean;
-    serverId: string;
 }
 
 export async function openInvocationRouter(
@@ -55,7 +52,7 @@ export async function openInvocationRouter(
 }
 
 function routeInvocations(input: RouterInput) {
-    const { clock, computers, db } = input;
+    const { appOrigin, clock, computers, db } = input;
     const open = new Map<string, OpenInvocation>();
     const byDispatch = new Map<string, string>();
     const undelivered = new Map<string, InvocationResultFrame>();
@@ -82,6 +79,7 @@ function routeInvocations(input: RouterInput) {
         open.delete(invocationId);
         if (invocation) {
             byDispatch.delete(dispatchIdOf(invocation.key));
+            announceDesktopActivity(invocation);
         }
     }
 
@@ -130,19 +128,24 @@ function routeInvocations(input: RouterInput) {
         if (frame.operation.kind === 'file-write' && frame.operation.bytes.kind === 'attachment') {
             await bindRunnerUpload(db, record, frame.operation.bytes.attachmentId);
         }
-        if (!(online && computerId)) {
-            answer(noticeAnswer(frame, 'offline', record.id));
-            return;
-        }
-        const refusal = await gateDesktopInvocation(db, {
-            computerId,
-            invocationId: record.id,
-            key: frame,
-            operation: frame.operation,
-            serverId: agent.serverId,
-        });
+        const refusal = computerId
+            ? await gateDesktopInvocation(db, {
+                  agentId: frame.agentId,
+                  appOrigin,
+                  computerId,
+                  invocationId: record.id,
+                  key: frame,
+                  online,
+                  operation: frame.operation,
+                  serverId: agent.serverId,
+              })
+            : null;
         if (refusal) {
             answer(refusal);
+            return;
+        }
+        if (!(online && computerId)) {
+            answer(noticeAnswer(frame, 'offline', record.id));
             return;
         }
         const command: InvokeCommand = {
@@ -153,7 +156,7 @@ function routeInvocations(input: RouterInput) {
             timeoutMs,
             type: 'invoke',
         };
-        open.set(record.id, {
+        const invocation: OpenInvocation = {
             accepted: false,
             cancelled: false,
             command,
@@ -162,13 +165,17 @@ function routeInvocations(input: RouterInput) {
             key: { runId: frame.runId, seq: frame.seq, toolCallId: frame.toolCallId },
             runSettled: false,
             serverId: agent.serverId,
-        });
+            stopped: false,
+        };
+        open.set(record.id, invocation);
         byDispatch.set(dispatchIdOf(frame), record.id);
         if (!computers.send(computerId, command)) {
             forget(record.id);
             await recordSendFailure(db, record.id);
             answer(noticeAnswer(frame, 'offline', record.id));
+            return;
         }
+        announceDesktopActivity(invocation);
     }
 
     function cancel(key: DispatchKey) {
@@ -182,6 +189,7 @@ function routeInvocations(input: RouterInput) {
     }
 
     async function settle(computerId: string, result: InvokeResult) {
+        const stopped = open.get(result.invocationId)?.stopped === true;
         const settlement = await recordResult(db, computerId, result);
         computers.send(computerId, {
             invocationId: result.invocationId,
@@ -189,20 +197,45 @@ function routeInvocations(input: RouterInput) {
         });
         if (settlement.kind === 'finished') {
             forget(result.invocationId);
-            answer(resultAnswer(settlement.record, result));
+            answer(
+                await desktopResultAnswer(db, {
+                    appOrigin,
+                    record: settlement.record,
+                    result,
+                    stopped,
+                })
+            );
+        }
+    }
+
+    async function settleStopped(invocationId: string, invocation: OpenInvocation) {
+        const result = stoppedResult(invocationId);
+        const settlement = await recordResult(db, invocation.computerId, result);
+        if (settlement.kind === 'finished') {
+            forget(invocationId);
+            answer(
+                await desktopResultAnswer(db, {
+                    appOrigin,
+                    record: settlement.record,
+                    result,
+                    stopped: true,
+                })
+            );
         }
     }
 
     async function resend(invocationId: string, invocation: OpenInvocation) {
-        const refusal = await gateDesktopInvocation(db, {
-            computerId: invocation.computerId,
-            invocationId,
-            key: { ...invocation.key, agentId: invocation.command.agentId },
-            operation: invocation.command.operation,
-            serverId: invocation.serverId,
-        });
+        const refusal = await gateDesktopInvocation(
+            db,
+            resendGateInput(appOrigin, invocationId, invocation)
+        );
         if (!refusal) {
-            if (open.get(invocationId) === invocation && !invocation.accepted) {
+            if (open.get(invocationId) !== invocation || invocation.accepted) {
+                return;
+            }
+            if (invocation.stopped) {
+                await settleStopped(invocationId, invocation);
+            } else if (!invocation.cancelled) {
                 computers.send(invocation.computerId, invocation.command);
             }
             return;
@@ -252,6 +285,8 @@ function routeInvocations(input: RouterInput) {
             return false;
         },
         request,
+        stopDesktop: (target: { computerId: string; serverId: string }) =>
+            stopDesktopCommands(open, computers, target),
         runnerAttached() {
             for (const [dispatchId, frame] of undelivered) {
                 if (!input.runner.send(frame)) {

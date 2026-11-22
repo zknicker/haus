@@ -96,6 +96,7 @@ export async function createHausServerApplication(
         const runnerLink = new RunnerLink();
         const modelConnections = new ModelConnectionRelay(connectedHaus.db, runnerLink, options);
         const invocations = await openInvocationRouter({
+            appOrigin: options.appOrigin,
             clock: options.invocationClock,
             computers: computerConnections,
             db: connectedHaus.db,
@@ -158,6 +159,7 @@ export async function createHausServerApplication(
                 options.computerReleaseManifestUrl ?? productionComputerManifestUrl,
             githubApp: options.githubApp ?? null,
             hausDb: connectedHaus.db,
+            invocations,
             mcpIconResolver,
             mcpOAuthRelay,
             mcpRuntime: startedMcpRuntime,
@@ -222,10 +224,7 @@ export async function createHausServerApplication(
             artifactStorage,
             options.computerSocketLiveness
         );
-        handles.runnerSocket = startRunnerSocket(startedApp.server, options, {
-            ...contextDependencies,
-            invocations,
-        });
+        handles.runnerSocket = startRunnerSocket(startedApp.server, options, contextDependencies);
         const reminderClock = options.reminderClock ?? { now: () => new Date() };
         await startServerSweeps(runtime, scope, shutdown, {
             agentDelivery,

@@ -1,5 +1,10 @@
-import type { InvocationOperationKind, InvocationRequestFrame, InvokeResult } from '@haus/api';
-import { and, eq, inArray, isNull } from 'drizzle-orm';
+import type {
+    DesktopRefusal,
+    InvocationOperationKind,
+    InvocationRequestFrame,
+    InvokeResult,
+} from '@haus/api';
+import { and, asc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentInvocationsTable, agentsTable } from '../postgres/schema.ts';
@@ -85,15 +90,72 @@ export async function recordSendFailure(db: HausDatabase, invocationId: string) 
         );
 }
 
-export async function recordGateRefusal(db: HausDatabase, invocationId: string) {
-    const refused = await db
+export async function recordDesktopRefusal(
+    db: HausDatabase,
+    invocationId: string,
+    refusal: DesktopRefusal
+) {
+    const [refused] = await db
         .update(agentInvocationsTable)
-        .set({ finishedAt: new Date(), outcome: 'failed', state: 'finished' })
+        .set({
+            finishedAt: sql`coalesce(${agentInvocationsTable.finishedAt}, now())`,
+            outcome: sql`case when ${agentInvocationsTable.state} = 'sent' then 'failed' else ${agentInvocationsTable.outcome} end`,
+            refusal,
+            state: 'finished',
+        })
         .where(
-            and(eq(agentInvocationsTable.id, invocationId), eq(agentInvocationsTable.state, 'sent'))
+            and(
+                eq(agentInvocationsTable.id, invocationId),
+                isNull(agentInvocationsTable.refusal),
+                or(
+                    eq(agentInvocationsTable.state, 'sent'),
+                    and(
+                        eq(agentInvocationsTable.state, 'finished'),
+                        eq(agentInvocationsTable.outcome, 'offline')
+                    )
+                )
+            )
         )
-        .returning({ id: agentInvocationsTable.id });
-    return refused.length > 0;
+        .returning({ outcome: agentInvocationsTable.outcome });
+    return refused?.outcome === 'failed' || refused?.outcome === 'offline' ? refused.outcome : null;
+}
+
+export async function recordScreenRefusal(
+    db: HausDatabase,
+    invocationId: string,
+    refusal: DesktopRefusal
+) {
+    await db
+        .update(agentInvocationsTable)
+        .set({ refusal })
+        .where(
+            and(
+                eq(agentInvocationsTable.id, invocationId),
+                eq(agentInvocationsTable.state, 'finished')
+            )
+        );
+}
+
+export async function readOpenDesktopCommands(
+    db: HausDatabase,
+    input: { computerId: string; serverId: string }
+) {
+    return await db
+        .select({
+            agentId: agentInvocationsTable.agentId,
+            invocationId: agentInvocationsTable.id,
+            since: agentInvocationsTable.requestedAt,
+        })
+        .from(agentInvocationsTable)
+        .where(
+            and(
+                eq(agentInvocationsTable.serverId, input.serverId),
+                eq(agentInvocationsTable.computerId, input.computerId),
+                eq(agentInvocationsTable.operationKind, 'desktop'),
+                inArray(agentInvocationsTable.state, openStates)
+            )
+        )
+        .orderBy(asc(agentInvocationsTable.requestedAt));
 }
 
 export async function recordAccepted(db: HausDatabase, invocationId: string, computerId: string) {

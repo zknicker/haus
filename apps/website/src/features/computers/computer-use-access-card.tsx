@@ -1,15 +1,13 @@
-import type { ComputerUseReadiness } from '@haus/api';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { Alert, Switch } from '@heroui/react';
+import { Switch } from '@heroui/react';
 import { useSetComputerUseEnabled } from '../../hooks/computer-use/use-computer-use-enabled.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { withSaveErrorToast } from '../../lib/saving-toast.ts';
-import {
-    computerUseDescription,
-    computerUseReadinessIssues,
-    computerUseReadinessText,
-    supportsComputerUse,
-} from './computer-use-model.ts';
+import { ComputerUseCaptainsRow } from './computer-use-captains-row.tsx';
+import { computerUseDescription, supportsComputerUse } from './computer-use-model.ts';
+import { ComputerUsePermissions } from './computer-use-permissions.tsx';
+import { ComputerUseStop } from './computer-use-stop.tsx';
+import { computerLabel } from './presentation.ts';
 
 export function ComputerUseAccessCard({
     computerId,
@@ -23,17 +21,18 @@ export function ComputerUseAccessCard({
     if (!(computer && supportsComputerUse(computer))) {
         return null;
     }
+    const deviceName = computerLabel(computer);
     return (
         <section>
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>
                     <ItemCardGroup.Title>Access</ItemCardGroup.Title>
                 </ItemCardGroup.Header>
-                {computer.computerUseEnabled ? (
-                    <ComputerUseReadinessWarning
-                        readiness={computer.reportedInventory?.computerUse}
-                    />
-                ) : null}
+                <ComputerUseStop
+                    computerId={computerId}
+                    deviceName={deviceName}
+                    serverId={serverId}
+                />
                 <ItemCardGroup className="overflow-hidden">
                     <ComputerUseAccessRow
                         canChange={computer.canChangeComputerUse}
@@ -41,8 +40,24 @@ export function ComputerUseAccessCard({
                         enabled={computer.computerUseEnabled}
                         serverId={serverId}
                     />
+                    {computer.computerUseEnabled ? (
+                        <ComputerUseCaptainsRow
+                            agents={computer.computerUseAgents}
+                            canChange={computer.canChangeComputerUse}
+                            computerId={computerId}
+                            serverId={serverId}
+                        />
+                    ) : null}
                 </ItemCardGroup>
             </ItemCardGroup>
+            {computer.computerUseEnabled ? (
+                <ComputerUsePermissions
+                    computerId={computerId}
+                    deviceName={deviceName}
+                    readiness={computer.reportedInventory?.computerUse}
+                    serverId={serverId}
+                />
+            ) : null}
         </section>
     );
 }
@@ -86,29 +101,5 @@ export function ComputerUseAccessRow({
                 </Switch>
             </ItemCard.Action>
         </ItemCard>
-    );
-}
-
-export function ComputerUseReadinessWarning({
-    readiness,
-}: {
-    readiness: ComputerUseReadiness | undefined;
-}) {
-    const issues = computerUseReadinessIssues(readiness);
-    if (issues.length === 0) {
-        return null;
-    }
-    return (
-        <Alert status="warning">
-            <Alert.Indicator />
-            <Alert.Content>
-                <Alert.Title>Computer use isn’t ready</Alert.Title>
-                {issues.map((issue) => (
-                    <Alert.Description key={issue.kind === 'install' ? issue.kind : issue.pane}>
-                        {computerUseReadinessText(issue)}
-                    </Alert.Description>
-                ))}
-            </Alert.Content>
-        </Alert>
     );
 }

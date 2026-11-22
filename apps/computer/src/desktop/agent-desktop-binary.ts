@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { chmod, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import embeddedBinary from 'agent-desktop/bin/agent-desktop-darwin-arm64' with { type: 'file' };
 import embeddedHelper from 'agent-desktop/bin/agent-desktop-macos-helper-darwin-arm64' with { type: 'file' };
 
@@ -28,6 +28,10 @@ export interface AgentDesktopInstall {
 
 export function agentDesktopToolsRoot(dataRoot: string) {
     return join(dataRoot, 'tools', 'agent-desktop', agentDesktopVersion);
+}
+
+export function computerUseLockPath(toolsRoot: string) {
+    return resolve(toolsRoot, '..', '..', '..', 'computer-use.lock');
 }
 
 export function installAgentDesktop(toolsRoot: string) {

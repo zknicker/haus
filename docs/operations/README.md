@@ -17,3 +17,4 @@ read_when:
 | iOS and TestFlight | [iOS TestFlight](ios-testflight.md) |
 | iPhone push (APNs) | [iPhone Push](ios-push.md) |
 | Hosted Server deployment | [Haus Server Deployment](haus-server-deploy.md) |
+| Computer use on a Mac mini or headless Mac | [Headless Devices](computer-use-headless-devices.md) |

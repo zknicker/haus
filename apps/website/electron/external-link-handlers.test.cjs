@@ -53,8 +53,14 @@ describe('external link handlers', () => {
         );
         webContents.openHandler({ url: 'https://amazon.com' });
         webContents.openHandler({ url: 'mailto:hello@example.com' });
+        webContents.openHandler({
+            url: 'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility',
+        });
         expect(browser).toEqual(['https://amazon.com']);
-        expect(external).toEqual(['mailto:hello@example.com']);
+        expect(external).toEqual([
+            'mailto:hello@example.com',
+            'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility',
+        ]);
     });
     test('opens new-window links in the desktop browser and denies Haus windows', () => {
         const opened = [];

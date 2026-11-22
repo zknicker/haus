@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
+import { screenRefusalSchema } from './computer-use.ts';
 
 /** Every invocation frame stays under this size; larger bytes move as attachment references. */
 export const invocationFrameMaxBytes = 1024 * 1024;
@@ -223,6 +224,8 @@ export const invokeResultSchema = z
         logPath: z.string().min(1).max(4096).optional(),
         outcome: machineInvocationOutcomeSchema,
         output: invocationOutputSchema,
+        /** A `desktop` command the screen preflight refused; the Server writes the text the Agent sees. */
+        refusal: screenRefusalSchema.optional(),
         truncated: z.boolean(),
         type: z.literal('invoke-result'),
     })
