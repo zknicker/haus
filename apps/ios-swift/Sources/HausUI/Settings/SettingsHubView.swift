@@ -1,3 +1,4 @@
+import HausModels
 import SwiftUI
 
 struct SettingsHubView: View {
@@ -6,6 +7,7 @@ struct SettingsHubView: View {
     var notifications = PushNotificationsSetting()
     let onNavigate: (SettingsRoute) -> Void
     var onSignOut: SettingsSignOut?
+    var serverSwitcher: ServerSwitcher?
 
     var body: some View {
         ScrollView {
@@ -14,6 +16,10 @@ struct SettingsHubView: View {
                     viewer: data.viewer,
                     action: { onNavigate(.profile) }
                 )
+
+                if let serverSwitcher {
+                    ServerSwitcherSection(switcher: serverSwitcher)
+                }
 
                 if !data.agents.isEmpty {
                     SettingsSection("Captain profiles") {

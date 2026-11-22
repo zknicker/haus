@@ -36,7 +36,7 @@ extension AuthenticatedHausView {
             startedFrom: store.taskStartedFrom(taskID: taskID),
             onOpenOrigin: {
                 guard let origin else { return }
-                openCanvasChat(.chat(origin.chatID), revealing: origin.messageID)
+                router.open(route(forChatID: origin.chatID, messageID: origin.messageID))
             },
             messages: { chatID.map { store.messagePresentations(chatID: $0) } ?? [] },
             isLoaded: store.isTaskChatLoaded(chatID: chatID),
@@ -53,6 +53,7 @@ extension AuthenticatedHausView {
             },
             history: chatID.map { store.messageHistory(chatID: $0) } ?? .init(),
             engagementChatID: chatID,
+            landingMessageID: router.revealedMessageID(in: .task(taskID)),
             mentionOptions: originDestination.map { store.mentionOptions(for: $0) } ?? [],
             onLoadMentionOptions: {
                 guard let originDestination else { return }
@@ -63,11 +64,6 @@ extension AuthenticatedHausView {
                 store.reportVisibleMessages(chatID: chatID, messageIDs: messageIDs)
             }
         )
-        .task(id: chatID) {
-            guard let chatID else { return }
-            await store.openChat(chatID: chatID)
-            await push.clearDelivered(openedChatID: chatID)
-        }
     }
 
     func viewingTaskChatID(_ taskID: String) -> String? {

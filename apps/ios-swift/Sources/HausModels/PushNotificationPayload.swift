@@ -8,6 +8,8 @@ public struct PushNotificationPayload: Sendable, Equatable {
     public let messageID: String
     public let taskID: String?
     public let taskKey: String?
+    /// `conversation.kind`: whether the message is in a Channel or a DM.
+    public let conversationKind: PushConversationKind?
 
     public init(
         serverID: String,
@@ -15,7 +17,8 @@ public struct PushNotificationPayload: Sendable, Equatable {
         conversationChatID: String,
         messageID: String,
         taskID: String? = nil,
-        taskKey: String? = nil
+        taskKey: String? = nil,
+        conversationKind: PushConversationKind? = nil
     ) {
         self.serverID = serverID
         self.chatID = chatID
@@ -23,6 +26,7 @@ public struct PushNotificationPayload: Sendable, Equatable {
         self.messageID = messageID
         self.taskID = taskID
         self.taskKey = taskKey
+        self.conversationKind = conversationKind
     }
 
     ///
@@ -44,7 +48,10 @@ public struct PushNotificationPayload: Sendable, Equatable {
             conversationChatID: conversationChatID,
             messageID: messageID,
             taskID: taskID,
-            taskKey: taskID == nil ? nil : Self.string(userInfo["taskKey"])
+            taskKey: taskID == nil ? nil : Self.string(userInfo["taskKey"]),
+            conversationKind: (userInfo["conversation"] as? [String: Any])
+                .flatMap { Self.string($0["kind"]) }
+                .flatMap(PushConversationKind.init(rawValue:))
         )
     }
 
@@ -57,6 +64,11 @@ public struct PushNotificationPayload: Sendable, Equatable {
         guard let value = value as? String, !value.isEmpty else { return nil }
         return value
     }
+}
+
+public enum PushConversationKind: String, Sendable, Equatable {
+    case channel
+    case dm
 }
 
 public struct PushTaskAssignment: Sendable, Equatable {

@@ -1,19 +1,6 @@
 import SwiftUI
 import HausModels
 
-public enum SettingsRoute: Hashable {
-    case profile
-    case agent(id: String)
-    case agentRuntime(id: String)
-    case agentAutomations(id: String)
-    case server
-    case people
-    case computers
-    case cloudAgents
-    case appInfo
-    case description(ownerID: String, title: String)
-}
-
 public enum AppearancePreference: String, CaseIterable, Hashable, Sendable {
     case system
     case light
@@ -46,12 +33,23 @@ public struct SettingsSheet: View {
     let onSignOut: SettingsSignOut?
     let notifications: PushNotificationsSetting
     @State var data: SettingsData
-    @State var path: [SettingsRoute]
+    @State private var ownedPath: [SettingsRoute]
+    /// The You tab's stack, when Settings is that tab's root rather than a sheet.
+    private let tabPath: Binding<[SettingsRoute]>?
+    private let sourceData: SettingsData
+    private let serverSwitcher: ServerSwitcher?
     @State var avatarGenerator: AvatarGeneratorSheet?
     /// One generation session per Agent, kept for the life of Settings so that
     /// closing the generator never discards variants or a run in flight.
     @State var avatarSessions: [String: AvatarGenerationSession] = [:]
     @Binding private var appearance: AppearancePreference
+
+    var path: [SettingsRoute] {
+        get { tabPath?.wrappedValue ?? ownedPath }
+        nonmutating set {
+            if let tabPath { tabPath.wrappedValue = newValue } else { ownedPath = newValue }
+        }
+    }
 
     /// - Parameter initialPath: screens the sheet opens already pushed to, so a
     ///   deep link such as the sidebar's Server header lands on its screen with
@@ -74,12 +72,69 @@ public struct SettingsSheet: View {
         self.stoppedClaims = stoppedClaims
         self.notifications = notifications
         _data = State(initialValue: data)
-        _path = State(initialValue: initialPath)
+        _ownedPath = State(initialValue: initialPath)
         _appearance = appearance
+        tabPath = nil
+        sourceData = data
+        serverSwitcher = nil
+    }
+
+    /// Settings as the You tab's root: the hub under a "You" title, with its
+    /// screens pushed onto the tab's own stack.
+    public init(
+        tabPath: Binding<[SettingsRoute]>,
+        data: SettingsData,
+        persistence: SettingsPersistence,
+        cloudAgentActions: WorkerSettingsActions,
+        automations: AgentAutomationsActions,
+        stoppedClaims: AgentStoppedClaimsActions,
+        notifications: PushNotificationsSetting,
+        appearance: Binding<AppearancePreference>,
+        serverSwitcher: ServerSwitcher,
+        onSignOut: SettingsSignOut?
+    ) {
+        self.onSignOut = onSignOut
+        self.persistence = persistence
+        self.cloudAgentActions = cloudAgentActions
+        self.automations = automations
+        self.stoppedClaims = stoppedClaims
+        self.notifications = notifications
+        _data = State(initialValue: data)
+        _ownedPath = State(initialValue: [])
+        _appearance = appearance
+        self.tabPath = tabPath
+        sourceData = data
+        self.serverSwitcher = serverSwitcher
     }
 
     public var body: some View {
-        NavigationStack(path: $path) {
+        if tabPath != nil {
+            tabRoot
+        } else {
+            sheet
+        }
+    }
+
+    private var tabRoot: some View {
+        SettingsHubView(
+            data: data,
+            appearance: $appearance,
+            notifications: notifications,
+            onNavigate: { path.append($0) },
+            onSignOut: onSignOut,
+            serverSwitcher: serverSwitcher
+        )
+        .navigationTitle("You")
+        .hausInlineNavigationTitle()
+        .navigationDestination(for: SettingsRoute.self) { route in
+            destination(for: route)
+        }
+        .onChange(of: sourceData) { _, latest in data = latest }
+        .sheet(item: $avatarGenerator) { generator in avatarGeneration(generator) }
+    }
+
+    private var sheet: some View {
+        NavigationStack(path: $ownedPath) {
             // The hub carries the same system navigation bar its pushed screens
             // do. It must not hide the bar and draw a `ChromeHeader` instead:
             // inside a sheet, a hidden-to-visible bar toggle lays the pushed
@@ -113,23 +168,25 @@ public struct SettingsSheet: View {
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
         .presentationBackground(HausPlatformColor.groupedBackground)
-        .sheet(item: $avatarGenerator) { generator in
-            AgentAvatarGenerationView(
-                agentName: generator.agentName,
-                currentAvatarURL: generator.avatarURL,
-                initials: generator.initials,
-                session: generator.session,
-                onGenerate: { concept in
-                    try await persistence.generateAgentAvatar(generator.agentID, concept)
-                },
-                onSave: { payload in
-                    let saved = try await persistence.saveAgentAvatar(generator.agentID, payload)
-                    await MainActor.run {
-                        updateAgent(saved)
-                    }
+        .sheet(item: $avatarGenerator) { generator in avatarGeneration(generator) }
+    }
+
+    private func avatarGeneration(_ generator: AvatarGeneratorSheet) -> some View {
+        AgentAvatarGenerationView(
+            agentName: generator.agentName,
+            currentAvatarURL: generator.avatarURL,
+            initials: generator.initials,
+            session: generator.session,
+            onGenerate: { concept in
+                try await persistence.generateAgentAvatar(generator.agentID, concept)
+            },
+            onSave: { payload in
+                let saved = try await persistence.saveAgentAvatar(generator.agentID, payload)
+                await MainActor.run {
+                    updateAgent(saved)
                 }
-            )
-        }
+            }
+        )
     }
 
     func openAvatarGenerator(for agent: SettingsAgent) {

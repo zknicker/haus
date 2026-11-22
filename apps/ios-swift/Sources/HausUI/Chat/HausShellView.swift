@@ -1,5 +1,6 @@
-import SwiftUI
 import Foundation
+import HausModels
+import SwiftUI
 
 public struct HausShellView<SettingsContent: View, InboxCanvas: View>: View {
     private let server: ServerPresentation
