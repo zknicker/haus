@@ -1,3 +1,4 @@
+import HausAppModel
 import HausModels
 import HausTransport
 import HausUI
@@ -5,38 +6,22 @@ import SwiftUI
 
 struct AuthenticatedHausView: View {
     @State var store: HausStore
-    /// the Store's read acknowledgements always name the same Chat.
-    @State var selectedDestinationID: ChatDestination.ID?
-    @State var canvasScrollTarget: MessageScrollTarget?
-    /// Ticks when a route puts something on the canvas, so a drawer left open
-    /// behind a pushed Task closes rather than covering it.
-    @State var canvasRouteRevision = 0
-    @State var path: [HausRootRoute] = []
+    @State var router = HausRouter()
     @State var agentCall: AgentCallRequest?
-    /// A cold start lands on the Inbox, which is the canvas itself rather than
-    /// a screen over it; see `AuthenticatedHausView+Routes`.
-    @State var showsInboxCanvas = true
+    @State var ask = AskAnythingDraft()
+    @State var youTabIcon: Image?
     /// iOS reaches `.active` through `.inactive` from both a real suspension and
     /// a Control Center pull or app-switcher peek. Only the first is a stale
     /// cache, so the refresh waits for a phase run that actually backgrounded.
     @State private var hasBackgrounded = false
-    /// The opening entrance plays once, on the screen the initial load mounts;
-    /// after it settles, chat switches and reloads mount plainly.
+    /// The opening entrance plays once, on the screen the initial load mounts.
     @State private var openingEntranceFinished = false
     let push = PushNotifications.shared
-    @AppStorage("appearancePreference") private var appearanceRawValue = AppearancePreference.system.rawValue
+    @AppStorage("appearancePreference") var appearanceRawValue = AppearancePreference.system.rawValue
     @Environment(\.scenePhase) private var scenePhase
 
     init(session: AppSession, authClient: NativeAuthClient) {
-        let store = HausStore(session: session, authClient: authClient)
-        let restored = UserDefaults.standard
-            .string(forKey: ChatDestination.ID.lastOpenDefaultsKey)
-            .flatMap(ChatDestination.ID.init(storageValue:))
-        if case .chat(let chatID) = restored {
-            store.preferredInitialChatID = chatID
-        }
-        _store = State(initialValue: store)
-        _selectedDestinationID = State(initialValue: restored)
+        _store = State(initialValue: HausStore(session: session, authClient: authClient))
     }
 
     var body: some View {
@@ -65,24 +50,12 @@ struct AuthenticatedHausView: View {
                     .environment(\.cloudAgentCancel, cloudAgentCancel)
                     .environment(\.chatEngagementSource, store.chatEngagementSource)
                     .environment(\.stoppedAgentSource, store.stoppedAgentSource)
-                    .task {
-                        guard !openingEntranceFinished else { return }
-                        try? await Task.sleep(for: .seconds(1.2))
-                        openingEntranceFinished = true
-                    }
+                    .onChange(of: router.topRoute) { openingEntranceFinished = true }
             }
         }
         .task { await store.start() }
         .onAppear(perform: installTranscriptRoutes)
         .sheet(item: $agentCall) { request in AgentCallView(request: request, client: store.client) }
-        .onChange(of: selectedDestinationID) { previous, current in
-            // The first selection lands from the shell's own sync; a change
-            // from one destination to another is the user navigating, and a
-            // screen mounted by navigation must not replay the entrance.
-            if previous != nil { openingEntranceFinished = true }
-            guard let current else { return }
-            UserDefaults.standard.set(current.storageValue, forKey: ChatDestination.ID.lastOpenDefaultsKey)
-        }
         .onChange(of: scenePhase, initial: true) { _, phase in
             applyReadForeground(phase)
             switch phase {
@@ -91,16 +64,12 @@ struct AuthenticatedHausView: View {
             case .active:
                 Task { await push.clearDelivered(openedChatID: push.viewingChatID) }
                 guard hasBackgrounded else {
-                    // Pushes that arrived while inactive may have moved the
-                    // badge; a return from the background refreshes it with
-                    // the rest of the snapshot.
                     Task { await store.refreshIconBadge() }
                     return
                 }
                 hasBackgrounded = false
                 Task {
                     await store.resumeAfterForeground()
-                    // The reader may have changed permission in the Settings app.
                     await push.refreshAuthorization()
                 }
             default:
@@ -109,162 +78,37 @@ struct AuthenticatedHausView: View {
         }
     }
 
-    @ViewBuilder
     private var loadedContent: some View {
-        Group {
-            if let server = store.serverPresentation, !store.chatDestinations.isEmpty {
-                NavigationStack(path: $path) {
-                HausShellView(
-                    server: server,
-                    destinations: store.chatDestinations,
-                    selectedDestinationID: $selectedDestinationID,
-                    showsInbox: $showsInboxCanvas,
-                    scrollTarget: $canvasScrollTarget,
-                    canvasRouteRevision: canvasRouteRevision,
-                    messagesForDestination: { store.messagePresentations(chatID: $0.pendingKey) },
-                    isMessageHistoryLoaded: { destination in
-                        guard let chat = destination.durableChat else { return true }
-                        return store.hasLoadedMessageHistory(chatID: chat.id)
-                    },
-                    isConnected: store.isConnected,
-                    settingsContent: { initialPath in
-                        if let settingsData = store.settingsData {
-                            SettingsSheet(
-                                data: settingsData,
-                                persistence: store.settingsPersistence,
-                                cloudAgentActions: store.cloudAgentSettings,
-                                automations: store.agentAutomations { openCanvasChat(.chat($0)) },
-                                stoppedClaims: store.agentStoppedClaims { openClaim($0) },
-                                notifications: push.setting,
-                                appearance: appearanceBinding,
-                                initialPath: initialPath,
-                                onSignOut: { try await store.signOut() }
-                            )
-                        } else {
-                            SettingsUnavailableSheet()
-                        }
-                    },
-                    inboxCanvas: inboxCanvas(contentInsets:onOpenSidebar:),
-                    onOpenInbox: openInbox,
-                    inboxHasUnread: (store.unreadChatCount ?? 0) > 0,
-                    ghostTempo: store.agentActivityGhostTempo,
-                    onSend: { destination, content, attachments in
-                        switch destination {
-                        case .durableChat(let chat):
-                            return await store.send(content, to: chat.id, attachments: attachments)
-                        case .implicitAgentDM(let agent):
-                            guard attachments.isEmpty else { return false }
-                            let outcome = await store.sendAgentDM(content, to: agent.id)
-                            if case .sent(let chatID?) = outcome { selectedDestinationID = .chat(chatID) }
-                            return outcome != .rejected
-                        }
-                    },
-                    onSendInlineReply: { destination, content, attachments, reference in
-                        guard case .durableChat(let chat) = destination else { return false }
-                        return await store.send(
-                            content,
-                            to: chat.id,
-                            attachments: attachments,
-                            replyToMessageID: reference.id,
-                            replyPreview: reference
-                        )
-                    },
-                    onOpenAttachment: { attachment in
-                        try await store.downloadAttachment(attachment)
-                    },
-                    onCallAgent: openAgentCall,
-                    onMarkRead: { chat in
-                        Task { await store.markChatRead(chatID: chat.id) }
-                    },
-                    messageHistory: { store.messageHistory(chatID: $0.id) },
-                    searchMessages: { query, chatID in
-                        try await store.searchMessagePresentations(query: query, chatID: chatID)
-                    },
-                    searchRecoveryRevision: store.messageSearchRevision,
-                    loadArchivedChannels: {
-                        guard let serverID = await store.activeServer?.id else {
-                            throw HausStoreError.serverUnavailable
-                        }
-                        return try await store.archivedChannelPresentations(serverID: serverID)
-                    },
-                    restoreArchivedChannel: { channel in
-                        guard let serverID = await store.activeServer?.id else {
-                            throw HausStoreError.serverUnavailable
-                        }
-                        _ = try await store.unarchiveChannel(
-                            chatID: channel.id,
-                            serverID: serverID
-                        )
-                    },
-                    newChannelAgents: { store.newChannelAgentPresentations },
-                    currentAgentActivity: { store.currentActivityPresentation(agentID: $0) },
-                    loadAgentActivity: { agentID in
-                        try await store.agentActivityPresentations(agentID: agentID)
-                    },
-                    agentProfile: { store.agentProfilePresentation(agentID: $0) },
-                    agentStoppedClaims: store.agentStoppedClaims { openClaim($0) },
-                    mentionOptions: { store.mentionOptions(for: $0) },
-                    loadMentionOptions: { await store.loadMentionOptions(for: $0) },
-                    createChannel: { draft in
-                        try await store.createNativeChannel(draft)
-                    },
-                    onVisibleMessages: reportVisibleMessages,
-                    // Runs inside the drawer's animation, so a re-sort animates.
-                    onDrawerPresentedChange: { open in
-                        open ? store.holdSidebarOrder() : store.releaseSidebarOrder()
-                    }
-                )
-                .hausHiddenNavigationBar()
-                .navigationDestination(for: HausRootRoute.self) { route in
-                    taskRouteDestination(route)
-                }
-                // One load at a time: selecting another Chat cancels the load
-                // the previous selection started, so a slow `chat.list` behind a
-                // stale read acknowledgement cannot land after a newer one.
-                .task(id: canvasOpenChatID) {
-                    guard let canvasOpenChatID else { return }
-                    await store.openChat(chatID: canvasOpenChatID)
-                }
-                // The canvas Chat is recorded even while a pushed route covers
-                // it, because that is the surface a pop returns to and the
-                // Store has to keep its page fresh across a foreground. The
-                // open-Chat load above deliberately stands down when covered,
-                // so it cannot carry this.
-                .onChange(of: selectedCanvasChatID, initial: true) { _, current in
-                    store.canvasChatID = current
-                }
-                .onChange(of: viewingChatID, initial: true) { _, current in
-                    push.viewingChatID = current
-                    // Reads follow what is on screen. With the Inbox or the
-                    // Task list showing, no Chat is open, so a covered canvas
-                    // transcript cannot acknowledge what nobody is reading.
-                    if current == nil { store.openChatID = nil }
-                    Task { await push.clearDelivered(openedChatID: current) }
-                }
-                .onChange(of: store.iconBadgeCount, initial: true) { _, count in
-                    push.updateBadge(unreadChatCount: count)
-                }
-                .task { await push.attach(store) }
-                // Consumed outside the change handler: clearing the value a
-                .onChange(of: push.pendingOpen, initial: true) { _, request in
-                    guard let request else { return }
-                    push.pendingOpen = nil
-                    Task { await openPushNotification(request) }
-                }
-                .preferredColorScheme(preferredColorScheme)
-                .seasonalIconOffer()
-                }
-            } else {
-                ContentUnavailableView(
-                    "No chats yet",
-                    systemImage: "bubble.left.and.bubble.right",
-                    description: Text("Create a project from the sidebar, or message a Captain once one joins this Server.")
-                )
+        tabShell
+            .onChange(of: store.activeServer?.id, initial: true) { _, serverID in
+                router.adopt(serverID: serverID)
             }
-        }
+            .task(id: visibleChatID) { await showVisibleChat(visibleChatID) }
+            .onChange(of: store.iconBadgeCount, initial: true) { _, count in
+                push.updateBadge(unreadChatCount: count)
+            }
+            .task { await push.attach(store) }
+            .onAppear {
+                push.taps.mount()
+                Task { await routePendingPush() }
+            }
+            .onDisappear { push.taps.unmount() }
+            .onChange(of: push.taps.pending) { Task { await routePendingPush() } }
+            .alert("Notification unavailable", isPresented: pushNoticeBinding) {
+                Button("OK") { push.taps.clearNotice() }
+            } message: {
+                Text(push.taps.notice ?? "")
+            }
+            .preferredColorScheme(preferredColorScheme)
+            .seasonalIconOffer()
+            .task {
+                guard !openingEntranceFinished else { return }
+                try? await Task.sleep(for: .seconds(1.2))
+                openingEntranceFinished = true
+            }
     }
 
-    private var appearanceBinding: Binding<AppearancePreference> {
+    var appearanceBinding: Binding<AppearancePreference> {
         Binding(
             get: { AppearancePreference(rawValue: appearanceRawValue) ?? .system },
             set: { appearanceRawValue = $0.rawValue }
@@ -273,5 +117,9 @@ struct AuthenticatedHausView: View {
 
     private var preferredColorScheme: ColorScheme? {
         (AppearancePreference(rawValue: appearanceRawValue) ?? .system).colorScheme
+    }
+
+    private var pushNoticeBinding: Binding<Bool> {
+        Binding(get: { push.taps.notice != nil }, set: { if !$0 { push.taps.clearNotice() } })
     }
 }

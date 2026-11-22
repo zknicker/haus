@@ -1,3 +1,5 @@
+import HausModels
+
 /// A request to present Settings, optionally already pushed to a screen.
 struct SettingsPresentationRequest: Identifiable, Hashable {
     let path: [SettingsRoute]

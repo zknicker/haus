@@ -6,10 +6,10 @@ import SwiftUI
 extension AuthenticatedHausView {
     func installTranscriptRoutes() {
         InAppReferenceRoutes.openMessage = { reference in
-            openCanvasChat(.chat(reference.chatID), revealing: reference.messageID)
+            router.open(route(forChatID: reference.chatID, messageID: reference.messageID))
         }
         InAppReferenceRoutes.openTask = { reference in
-            openTask(reference.taskID)
+            router.open(.task(taskID: reference.taskID))
         }
         ArtifactPageReader.read = { [store] agentID, path in
             try await store.readArtifactPage(agentID: agentID, path: path)

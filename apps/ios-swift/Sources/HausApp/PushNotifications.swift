@@ -1,4 +1,5 @@
 import Foundation
+import HausAppModel
 import HausModels
 import HausUI
 import Observation
@@ -21,10 +22,11 @@ final class PushNotifications {
     static let logger = Logger(subsystem: "chat.haus.ios", category: "push")
 
     let setting: PushNotificationsSetting
-    /// A tapped notification waiting for the signed-in shell to open it.
-    var pendingOpen: PushNotificationPayload?
-    /// What the reader is looking at, reported by the shell, so a push for
-    /// that very conversation does not banner over it.
+    /// Tapped notifications on their way to the router. A tap can arrive
+    /// before any Store does, so the queue lives here.
+    let taps = PushTaps()
+    /// The Chat the selected tab's top route shows, reported by the shell, so
+    /// a push for that very conversation does not banner over it.
     @ObservationIgnored var viewingChatID: String?
     @ObservationIgnored private(set) var deviceToken: String?
     /// The token this Store last told the Server about, so a foreground
@@ -110,8 +112,8 @@ final class PushNotifications {
         )
     }
 
-    func open(_ request: PushNotificationPayload) {
-        pendingOpen = request
+    func open(_ push: HausPush) {
+        taps.receive(push)
     }
 
     /// Before sign-out ends the session: stop this account's pushes to this
@@ -144,7 +146,7 @@ final class PushNotifications {
     func didSignOut() {
         store = nil
         registeredToken = nil
-        pendingOpen = nil
+        taps.discard()
         viewingChatID = nil
         pendingUnregister.isPending = false
         persistPreference(false)

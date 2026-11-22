@@ -23,6 +23,8 @@ struct ServerSearchView: View {
     /// Returns `false` when the result's Chat is no longer in the directory, so
     /// the sheet can report the failure instead of dismissing into nothing.
     private let onSelectMessage: (MessageSearchResultPresentation) -> Bool
+    /// The Search tab hosts this as its root, where there is nothing to dismiss.
+    private let isTabRoot: Bool
 
     @State private var query = ""
     @State private var scope = ServerSearchScope.everywhere
@@ -40,8 +42,10 @@ struct ServerSearchView: View {
         searchMessages: @escaping MessageSearch,
         searchRecoveryRevision: Int = 0,
         onSelectChat: @escaping (ChatPresentation) -> Void,
-        onSelectMessage: @escaping (MessageSearchResultPresentation) -> Bool
+        onSelectMessage: @escaping (MessageSearchResultPresentation) -> Bool,
+        isTabRoot: Bool = false
     ) {
+        self.isTabRoot = isTabRoot
         self.chats = chats
         self.scopeChat = scopeChat
         self.searchMessages = searchMessages
@@ -60,8 +64,10 @@ struct ServerSearchView: View {
                 .navigationTitle("Search")
                 .hausInlineNavigationTitle()
                 .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") { dismiss() }
+                    if !isTabRoot {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { dismiss() }
+                        }
                     }
                 }
                 .alert("Couldn’t open that chat", isPresented: hasSelectionError) {
