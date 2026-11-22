@@ -110,9 +110,10 @@ final class ProjectContractTests: XCTestCase {
         ))
     }
 
-    func testTheProjectStreamWaitsOutsideTheLiveSession() {
+    func testTheProjectStreamKeepsTheProjectListLive() {
         XCTAssertEqual(RealtimeStream.projectUpdated.path, "project.onUpdated")
-        XCTAssertFalse(RealtimeStream.projectUpdated.joinsLiveSession)
-        XCTAssertTrue(RealtimeStream.projectUpdated.ownedProjections.isEmpty)
+        XCTAssertTrue(RealtimeStream.liveSession.contains(.projectUpdated))
+        XCTAssertEqual(RealtimeStream.projectUpdated.ownedProjections, [.projects])
+        XCTAssertFalse(RealtimeStream.projectUpdated.reportsOutage)
     }
 }

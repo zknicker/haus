@@ -64,7 +64,11 @@ extension AuthenticatedHausView {
             } content: {
                 NavigationStack(path: splitStackBinding(tab)) {
                     Group {
-                        if let selection { routeDestination(selection) } else { Color.clear }
+                        if let selection {
+                            routeDestination(selection).environment(\.chatHeaderShowsBack, false)
+                        } else {
+                            Color.clear
+                        }
                     }
                     .navigationDestination(for: HausRoute.self) { routeDestination($0) }
                 }

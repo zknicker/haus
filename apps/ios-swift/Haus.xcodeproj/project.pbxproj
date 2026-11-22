@@ -47,6 +47,7 @@
 		4DCE55C82B0FF476161F79B2 /* HausStorePush.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73D804D45D075913F4A3A028 /* HausStorePush.swift */; };
 		52551422BE2056D26C78745F /* UtilityPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 440C5A5A0C9E02BF363FC625 /* UtilityPresentationAdapters.swift */; };
 		5376EAB5B5D3CF0671600353 /* CommunicationNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99F461CB50C4296185DBCD6F /* CommunicationNotification.swift */; };
+		5407C93318BF3F49B2657805 /* Inter-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 60637EC440962728355A2196 /* Inter-Bold.ttf */; };
 		54DDC07A0274D4027D26EB8C /* AuthenticatedHausView+Ask.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4222A8D6ABAB76C4A695D610 /* AuthenticatedHausView+Ask.swift */; };
 		55CBE7147ECA55D0D9A195CA /* TaskChatAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F3442CFF7F141228FFA4C88 /* TaskChatAdapters.swift */; };
 		5702A14908CDE0E53C84C0C7 /* AgentCallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A36840BDE2C8BF0E48A3D72E /* AgentCallView.swift */; };
@@ -68,6 +69,7 @@
 		7D04A02F8292E2F5D10AC97B /* HausStoreTasks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0329C162166D08C65D149B64 /* HausStoreTasks.swift */; };
 		81557844D44B791D6174731E /* HausStoreSignOut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 960626C05BC402D32C2B6895 /* HausStoreSignOut.swift */; };
 		816A3D99028641C226608DAF /* HausModels in Frameworks */ = {isa = PBXBuildFile; productRef = 1397DB42B0E113FE68BA5BA5 /* HausModels */; };
+		81B10C418BE6A351E5268ED1 /* OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = FD8585BB9B23C3D5D3B6958E /* OFL.txt */; };
 		841294F8BCF8D400843DFF93 /* HausRuntimeConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 599DA44C9DA817DC367BE98B /* HausRuntimeConfiguration.swift */; };
 		89D8EF10B9318198A0BDB33E /* SenderAvatar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 707CB06A0A216FDE227C67B8 /* SenderAvatar.swift */; };
 		8EAEDF93D0FA4AE035B57605 /* VoiceAudioStartupTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33D6A4874EFA3EF4859BCD4F /* VoiceAudioStartupTests.swift */; };
@@ -93,6 +95,7 @@
 		C2F90B8B72E9969E770A8C2A /* Intents.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DC799CB8FAC41CB382B7ACC9 /* Intents.framework */; };
 		C323DE156E64DD8A5301B545 /* AuthenticatedHausView+Routes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25A9247649992AD4B411E84D /* AuthenticatedHausView+Routes.swift */; };
 		C540FBF117E5602A92C592A8 /* HausUI in Frameworks */ = {isa = PBXBuildFile; productRef = 6E627B7AF11A724FBA288003 /* HausUI */; };
+		CB0D1D183EE53083A38C94F1 /* Inter-Medium.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 6E933B09B79EE067E23807E6 /* Inter-Medium.ttf */; };
 		CCCAED6A9405E8E3A27F7ECB /* HomeProjectsPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 460A2D1AB0624C661235C1F7 /* HomeProjectsPresentationAdapters.swift */; };
 		CE5F5B90A8942EA8E8DA665E /* AuthBoundaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B09206EC655FA6C9134513FB /* AuthBoundaryView.swift */; };
 		D092E7CCC6F51D02BCB62DC1 /* HausStoreChatEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 230C77C9132A14378B26E67F /* HausStoreChatEvents.swift */; };
@@ -103,10 +106,12 @@
 		DC65B9DA2EBFE374F9FCA953 /* LongTranscriptPerformanceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A25C9CB2C17FDE37245B3CE1 /* LongTranscriptPerformanceTests.swift */; };
 		E4D4833D8895FFD21141E3DA /* HausStoreClaims.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63342E1AAABDD7D434433BC6 /* HausStoreClaims.swift */; };
 		E6A30E8C50CB2576ECAB96CF /* HausStoreIconBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 418FFEC09EE99BB4ADABBF7D /* HausStoreIconBadge.swift */; };
+		E7697FD376A099392761AD80 /* Inter-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = FA351053E35DF6CC5494D19D /* Inter-SemiBold.ttf */; };
 		E7AED1D7D7B0AA1AE73102EE /* TranscriptWindowScrollingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B53C2D0C19204903D3EE0F3 /* TranscriptWindowScrollingTests.swift */; };
 		EECBD3F5DF1F0DB3BA83E5D0 /* HausStoreActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 197041FDE46D01CE30061965 /* HausStoreActivity.swift */; };
 		EF431CD8172F457FDB5BB64E /* AuthenticatedHausView+TaskChat.swift in Sources */ = {isa = PBXBuildFile; fileRef = C97D3947F3A8D3DD87D2FFF5 /* AuthenticatedHausView+TaskChat.swift */; };
 		EF499854B2F9D70B435232F4 /* HausStoreHistory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F320C65051725B25AFAB257 /* HausStoreHistory.swift */; };
+		F268F4D112D67DA67AD3AA59 /* Inter-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 91B8EBA60987022D44F40702 /* Inter-Regular.ttf */; };
 		F2DC68086562D376F82AAF6C /* AuthenticatedHausView+Calls.swift in Sources */ = {isa = PBXBuildFile; fileRef = CACE5B858776957137DD4839 /* AuthenticatedHausView+Calls.swift */; };
 		F44D29509DCB18FC6F3FAF8F /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72AD2C0C53BC211A604E6276 /* NotificationService.swift */; };
 		F54865A4738553181ADADA05 /* IdentityPresentationAdapters.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53B9855BFA098D23FD4E9EBD /* IdentityPresentationAdapters.swift */; };
@@ -183,12 +188,14 @@
 		53B9855BFA098D23FD4E9EBD /* IdentityPresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentityPresentationAdapters.swift; sourceTree = "<group>"; };
 		5423D9ED47D5C0EED5A8433E /* SettingsPresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsPresentationAdapters.swift; sourceTree = "<group>"; };
 		599DA44C9DA817DC367BE98B /* HausRuntimeConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausRuntimeConfiguration.swift; sourceTree = "<group>"; };
+		60637EC440962728355A2196 /* Inter-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Bold.ttf"; sourceTree = "<group>"; };
 		63342E1AAABDD7D434433BC6 /* HausStoreClaims.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreClaims.swift; sourceTree = "<group>"; };
 		6479EFBFB200B67B041489C1 /* PresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationAdapters.swift; sourceTree = "<group>"; };
 		6A505BEC3D0CB539BE1085D6 /* HausStoreEngagement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreEngagement.swift; sourceTree = "<group>"; };
 		6B53C2D0C19204903D3EE0F3 /* TranscriptWindowScrollingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranscriptWindowScrollingTests.swift; sourceTree = "<group>"; };
 		6D29006F0E77B5BBD69D81CA /* VoiceCallSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceCallSession.swift; sourceTree = "<group>"; };
 		6DDC737869512159FFB57F68 /* InteractivePopRestorer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InteractivePopRestorer.swift; sourceTree = "<group>"; };
+		6E933B09B79EE067E23807E6 /* Inter-Medium.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Medium.ttf"; sourceTree = "<group>"; };
 		6EA4A3F1787540E29C3BE266 /* ChatPresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatPresentationAdapters.swift; sourceTree = "<group>"; };
 		707CB06A0A216FDE227C67B8 /* SenderAvatar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SenderAvatar.swift; sourceTree = "<group>"; };
 		72AD2C0C53BC211A604E6276 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
@@ -207,6 +214,7 @@
 		876CEDBE5B2CC4CDF301EFF6 /* ActivityPresentationAdapters.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityPresentationAdapters.swift; sourceTree = "<group>"; };
 		8A8F1BAA49F991D4C2E86B11 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		8F320C65051725B25AFAB257 /* HausStoreHistory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreHistory.swift; sourceTree = "<group>"; };
+		91B8EBA60987022D44F40702 /* Inter-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Regular.ttf"; sourceTree = "<group>"; };
 		934132B2BEA791BD55DCB3E9 /* HausAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausAppDelegate.swift; sourceTree = "<group>"; };
 		937950507521A90521FCDD85 /* christmas-icon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = "christmas-icon.icon"; sourceTree = "<group>"; };
 		960626C05BC402D32C2B6895 /* HausStoreSignOut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreSignOut.swift; sourceTree = "<group>"; };
@@ -246,7 +254,9 @@
 		EA7862918F19A262989712BD /* AuthenticatedHausView+Reads.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AuthenticatedHausView+Reads.swift"; sourceTree = "<group>"; };
 		EB6091A95BBA5FC3DEA3CBCB /* HausStoreChatListRefresh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreChatListRefresh.swift; sourceTree = "<group>"; };
 		EE6D4F94243A206BB010F00B /* ios-swift */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "ios-swift"; path = .; sourceTree = SOURCE_ROOT; };
+		FA351053E35DF6CC5494D19D /* Inter-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-SemiBold.ttf"; sourceTree = "<group>"; };
 		FD02DB1BCB72207C5CF8E670 /* NativeWebAuthenticationSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeWebAuthenticationSession.swift; sourceTree = "<group>"; };
+		FD8585BB9B23C3D5D3B6958E /* OFL.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = OFL.txt; sourceTree = "<group>"; };
 		FE06C82504A2B87E2B11572D /* HausStoreSharedArtifacts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreSharedArtifacts.swift; sourceTree = "<group>"; };
 		FF50F82C855B4F2221B129A1 /* HausStoreTaskPlaces.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreTaskPlaces.swift; sourceTree = "<group>"; };
 		FF6D9A0CC0F2B5FB1CD0F782 /* HausStoreAutomations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HausStoreAutomations.swift; sourceTree = "<group>"; };
@@ -449,6 +459,7 @@
 				4F3442CFF7F141228FFA4C88 /* TaskChatAdapters.swift */,
 				147265512B955B90F06F98BE /* TaskPresentationAdapters.swift */,
 				440C5A5A0C9E02BF363FC625 /* UtilityPresentationAdapters.swift */,
+				EBFFBF8507DECD0BA12049E6 /* Fonts */,
 				AAA9A65BE16F125279CC098C /* Router */,
 				C96F439D98FECEC5E0DDB0C1 /* Voice */,
 			);
@@ -475,6 +486,18 @@
 				3245FFB40F82AA7C35827964 /* VoicePCMEncoder.swift */,
 			);
 			path = Voice;
+			sourceTree = "<group>";
+		};
+		EBFFBF8507DECD0BA12049E6 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				60637EC440962728355A2196 /* Inter-Bold.ttf */,
+				6E933B09B79EE067E23807E6 /* Inter-Medium.ttf */,
+				91B8EBA60987022D44F40702 /* Inter-Regular.ttf */,
+				FA351053E35DF6CC5494D19D /* Inter-SemiBold.ttf */,
+				FD8585BB9B23C3D5D3B6958E /* OFL.txt */,
+			);
+			path = Fonts;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -584,7 +607,12 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5407C93318BF3F49B2657805 /* Inter-Bold.ttf in Resources */,
+				CB0D1D183EE53083A38C94F1 /* Inter-Medium.ttf in Resources */,
+				F268F4D112D67DA67AD3AA59 /* Inter-Regular.ttf in Resources */,
+				E7697FD376A099392761AD80 /* Inter-SemiBold.ttf in Resources */,
 				15E90AF3E7B18D5CE4BC24F1 /* Launch.xcassets in Resources */,
+				81B10C418BE6A351E5268ED1 /* OFL.txt in Resources */,
 				72468F6096B648799300F613 /* PrivacyInfo.xcprivacy in Resources */,
 				C09BAE5239370B2E63CDFF73 /* christmas-icon.icon in Resources */,
 				41B04BD7EABE5C585B663283 /* halloween-icon.icon in Resources */,

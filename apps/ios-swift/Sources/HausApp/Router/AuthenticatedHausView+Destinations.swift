@@ -3,8 +3,8 @@ import HausModels
 import HausUI
 import SwiftUI
 
-/// What each route draws. Chat routes hide the tab bar and its accessory so
-/// the composer owns the bottom edge; a route whose record has not arrived
+/// What each route draws. Stacked, chat routes hide the tab bar and its
+/// accessory so the composer owns the bottom edge; a route whose record has not arrived
 /// yet stays blank until it does.
 extension AuthenticatedHausView {
     @ViewBuilder
@@ -14,14 +14,14 @@ extension AuthenticatedHausView {
             chatRoute(route.conversation.flatMap(destination(for:)))
         case .task(let taskID):
             taskDestination(taskID)
-                .toolbar(.hidden, for: .tabBar)
+                .toolbar(chatTabBarVisibility, for: .tabBar)
         case .projectSettings(let projectID):
             projectSettingsDestination(projectID)
         case .work(let place):
             workDestination(place)
         case .worker(let workerID):
             workerDestination(workerID)
-                .toolbar(.hidden, for: .tabBar)
+                .toolbar(chatTabBarVisibility, for: .tabBar)
         case .pullRequest(let reading):
             pullRequestDestination(reading)
         case .driveFolder(let prefix):
@@ -47,7 +47,7 @@ extension AuthenticatedHausView {
             }
         }
         .hausHiddenNavigationBar()
-        .toolbar(.hidden, for: .tabBar)
+        .toolbar(chatTabBarVisibility, for: .tabBar)
         .background(InteractivePopRestorer())
     }
 
@@ -109,6 +109,12 @@ extension AuthenticatedHausView {
     private func callAction(for destination: ChatDestination) -> (() -> Void)? {
         guard destination.durableChat != nil, case .agentDirectMessage = destination.kind else { return nil }
         return { openAgentCall(destination) }
+    }
+
+    /// Stacked, a chat route gives the bottom edge to its composer. Split,
+    /// the tab bar belongs to the list pane beside it and stays.
+    private var chatTabBarVisibility: Visibility {
+        router.layout == .split ? .automatic : .hidden
     }
 
     func revealBinding(_ conversation: HausConversation) -> Binding<String?> {

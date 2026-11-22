@@ -97,13 +97,23 @@ targets:
         NSCameraUsageDescription: Take photos to attach to Haus messages.
         NSMicrophoneUsageDescription: Talk with your Haus Agents during voice calls.
         NSPhotoLibraryUsageDescription: Choose photos to attach to Haus messages.
-        UIRequiresFullScreen: true
         # Lets the Notification Service extension present pushes as
         # communication notifications with the sender's avatar.
         NSUserActivityTypes:
           - INSendMessageIntent
+        # Resizable, so iPhone Duo's inner display gets the split layouts
+        # instead of a letterboxed phone. The outer display turns with the
+        # device; the inner one ignores this list.
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        # Inter, the Haus brand font (SIL Open Font License; see Fonts/OFL.txt).
+        UIAppFonts:
+          - Inter-Regular.ttf
+          - Inter-Medium.ttf
+          - Inter-SemiBold.ttf
+          - Inter-Bold.ttf
     entitlements:
       path: Config/Haus.entitlements
       properties:

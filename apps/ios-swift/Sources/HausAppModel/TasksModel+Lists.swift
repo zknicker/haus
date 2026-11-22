@@ -138,6 +138,9 @@ extension TasksModel {
             if projections.contains(.unreadTasks), unreadTasks != nil {
                 group.addTask { await self.logged { try await self.reloadUnreadTasks() } }
             }
+            if projections.contains(.projects), projects != nil {
+                group.addTask { await self.logged { try await self.reloadProjects() } }
+            }
         }
     }
 

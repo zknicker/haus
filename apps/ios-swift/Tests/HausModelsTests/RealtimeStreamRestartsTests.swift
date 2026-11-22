@@ -13,7 +13,7 @@ final class RealtimeStreamRestartsTests: XCTestCase {
             "chat.onLifecycle", "worker.onUpdated",
             "claim.onChanged", "taskLabel.onUpdated", "task.onCreated",
             "task.onUpdated", "task.onFollowUpdated", "agent.onLifecycle", "agent.onActivity",
-            "computer.onUpdated", "server.onUpdated",
+            "computer.onUpdated", "server.onUpdated", "project.onUpdated", "artifact.onUpdated",
         ])
     }
 

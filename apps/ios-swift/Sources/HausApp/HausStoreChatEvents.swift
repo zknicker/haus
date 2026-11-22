@@ -142,6 +142,8 @@ extension HausStore {
             if projections.contains(.computers) {
                 group.addTask { await self.settingsModel.load(serverID: serverID) }
             }
+            group.addTask { await self.projects.recover(projections) }
+            group.addTask { await self.drive.recover(projections) }
         }
     }
 }

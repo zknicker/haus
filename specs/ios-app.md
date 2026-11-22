@@ -91,8 +91,8 @@ holds its own navigation state.
 A route opened from inside a tab pushes onto that tab's stack. A route opened from outside (push, deep link) selects
 its tab and replaces that tab's stack with the route on top of the tab's root.
 
-- **Tabs that cannot hold a route:** You holds only `settings` routes, Search hosts its own palette, and `settings`
-  lives only in You. A route opened inside a tab that cannot hold it opens as from outside; a route with no tab of its
+- **Tabs that cannot hold a route:** You holds only `settings` routes and the Drive it browses (`driveFile`), Search
+  hosts its own palette, and `settings` lives only in You. Closing Search returns to the tab it was opened from. A route opened inside a tab that cannot hold it opens as from outside; a route with no tab of its
   own then lands in Home.
 - **Sheets:** "Ask anything", New project, New Captain, Archived, chat details, and scoped chat search are the
   router's one sheet. Any open closes it.

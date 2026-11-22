@@ -6,7 +6,13 @@ import Observation
 @MainActor
 @Observable
 public final class HausRouter {
-    public var selectedTab: HausTab = .home
+    public var selectedTab: HausTab = .home {
+        didSet {
+            if selectedTab == .search, oldValue != .search { tabBeforeSearch = oldValue }
+        }
+    }
+    /// The tab Search returns to when it closes.
+    public private(set) var tabBeforeSearch: HausTab = .home
     public private(set) var paths: [HausTab: [HausRoute]] = [:]
     public private(set) var sheet: HausSheet?
     public var tasksFilter: TasksTabFilter = .following
@@ -85,6 +91,12 @@ public final class HausRouter {
         }
     }
 
+    /// Closes Search, back to the tab it was opened from.
+    public func closeSearch() {
+        guard selectedTab == .search else { return }
+        selectedTab = tabBeforeSearch
+    }
+
     public func pop() {
         guard paths[selectedTab]?.isEmpty == false else { return }
         paths[selectedTab]?.removeLast()
@@ -121,15 +133,15 @@ public final class HausRouter {
         tasksFilter = .following
     }
 
-    /// You holds settings and nothing else; Search hosts its own palette and
-    /// opens results in their own tabs; every other tab holds any route but
-    /// settings.
+    /// You holds settings and the Drive it browses; Search hosts its own
+    /// palette and opens results in their own tabs; every other tab holds any
+    /// route but settings.
     nonisolated static func canStack(_ route: HausRoute, on tab: HausTab) -> Bool {
-        let isSettings = if case .settings = route { true } else { false }
-        switch tab {
-        case .you: return isSettings
-        case .search: return false
-        case .home, .projects, .tasks: return !isSettings
+        switch (tab, route) {
+        case (.you, .settings), (.you, .driveFile): true
+        case (.you, _), (.search, _): false
+        case (.home, .settings), (.projects, .settings), (.tasks, .settings): false
+        case (.home, _), (.projects, _), (.tasks, _): true
         }
     }
 }

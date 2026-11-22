@@ -103,12 +103,11 @@ enum RichMessageAttributedText {
         bodyColor: PlatformColor = RichReferenceChipInk.bodyText
     ) -> NSAttributedString {
         let geometry = RichReferenceMarkGeometry(metrics: metrics)
-        // The same point size as the body, only heavier: SF's ascent and
+        // The same point size as the body, only heavier: the face's ascent and
         // descent do not move with weight, so the line box is untouched.
-        let referenceFont = PlatformFont.systemFont(
-            ofSize: font.pointSize,
-            weight: referenceWeight
-        )
+        let referenceFont = HausTypeface.isRegistered
+            ? HausTypeface(platformWeight: referenceWeight.rawValue).platformFont(size: font.pointSize)
+            : PlatformFont.systemFont(ofSize: font.pointSize, weight: referenceWeight)
         let body = NSMutableAttributedString()
         for segment in segments {
             switch segment {

@@ -55,6 +55,17 @@ public final class ProjectsModel {
         }
     }
 
+    /// `project.onUpdated` and its stream starts: re-reads the list once one
+    /// has landed.
+    public func recover(_ projections: Set<RealtimeProjection>) async {
+        guard Self.recovers(projections, holding: projects) else { return }
+        await load()
+    }
+
+    nonisolated static func recovers(_ projections: Set<RealtimeProjection>, holding projects: [Project]?) -> Bool {
+        projections.contains(.projects) && projects != nil
+    }
+
     public func reload() async throws {
         let read = try beginRead()
         let loaded = try await client.call(ProjectProcedures.list, ServerScopeInput(serverID: read.serverID))

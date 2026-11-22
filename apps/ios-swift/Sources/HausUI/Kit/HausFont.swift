@@ -1,10 +1,10 @@
 import SwiftUI
 
-/// The one place Haus type is chosen. Every kit component reaches its font
-/// through here, so bringing in Inter is a change to `font(size:weight:)` alone.
+/// The one place Haus type is chosen: Inter (`HausTypeface`) at an exact size.
+/// `hausFont(_:)` scales a role's size with Dynamic Type before it gets here.
 enum HausFont {
     static func font(size: CGFloat, weight: Font.Weight = .regular) -> Font {
-        .system(size: size, weight: weight)
+        HausTypeface(weight).font(size: size)
     }
 }
 
@@ -33,6 +33,7 @@ extension View {
 private struct HausFontModifier: ViewModifier {
     let role: HausTextRole
     @ScaledMetric private var size: CGFloat
+    @Environment(\.legibilityWeight) private var legibilityWeight
 
     init(role: HausTextRole) {
         self.role = role
@@ -40,6 +41,14 @@ private struct HausFontModifier: ViewModifier {
     }
 
     func body(content: Content) -> some View {
-        content.font(HausFont.font(size: size, weight: role.weight))
+        content.font(HausFont.font(size: size, weight: legibilityWeight == .bold ? role.boldTextWeight : role.weight))
+    }
+}
+
+extension HausTextRole {
+    /// The role's weight under Bold Text: a fixed custom face does not take
+    /// the system's bolder step on its own.
+    var boldTextWeight: Font.Weight {
+        HausTypeface(weight).bolder.fontWeight
     }
 }

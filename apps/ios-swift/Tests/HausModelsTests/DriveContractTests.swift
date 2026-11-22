@@ -80,6 +80,8 @@ final class DriveContractTests: XCTestCase {
         XCTAssertEqual(try ContractFixtures.decode(ArtifactUpdatedEvent.self, #"{"artifactId":"art_1","serverId":"server_1"}"#).artifactID, "art_1")
         XCTAssertNil(try ContractFixtures.decode(ArtifactUpdatedEvent.self, #"{"artifactId":null,"serverId":"server_1"}"#).artifactID)
         XCTAssertEqual(RealtimeStream.artifactUpdated.path, "artifact.onUpdated")
-        XCTAssertFalse(RealtimeStream.artifactUpdated.joinsLiveSession)
+        XCTAssertTrue(RealtimeStream.liveSession.contains(.artifactUpdated))
+        XCTAssertEqual(RealtimeStream.artifactUpdated.ownedProjections, [.driveListings, .driveFiles])
+        XCTAssertFalse(RealtimeStream.artifactUpdated.reportsOutage)
     }
 }

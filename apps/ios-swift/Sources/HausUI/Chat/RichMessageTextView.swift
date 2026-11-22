@@ -22,6 +22,8 @@ struct RichMessageTextView: UIViewRepresentable {
         /// author's own marks: a heading's step of size and weight, a quote's
         /// muted ink, or the body exactly as it was.
         var appearance: RichMessageTextAppearance = .body
+        /// The pitch of the lines, set by the transcript layout.
+        var lineHeight: RichMessageLineHeight = .natural
     }
 
     let content: Content
@@ -96,12 +98,14 @@ struct RichMessageTextView: UIViewRepresentable {
     private func apply(to view: RichMessageUITextView) {
         if view.content != content {
             view.content = content
-            view.attributedText = RichMessageAttributedText.make(
-                segments: content.segments,
-                textStyle: content.textStyle,
-                dynamicTypeSize: content.dynamicTypeSize,
-                legibilityWeight: content.legibilityWeight,
-                appearance: content.appearance
+            view.attributedText = content.lineHeight.applied(
+                to: RichMessageAttributedText.make(
+                    segments: content.segments,
+                    textStyle: content.textStyle,
+                    dynamicTypeSize: content.dynamicTypeSize,
+                    legibilityWeight: content.legibilityWeight,
+                    appearance: content.appearance
+                )
             )
             view.accessibilityLabel = RichMessageAttributedText
                 .accessibilityLabel(for: content.segments)

@@ -1186,10 +1186,13 @@ contract and `specs/realtime-events.md` the normative spec; this is the iPhone's
 `HausStoreEventStreams.swift` runs one focused subscription per `RealtimeStream`:
 `chat.onMessageCreated`, `chat.onMessageReactionUpdated`, `chat.onRead`,
 `chat.onLifecycle`, `worker.onUpdated`, `claim.onChanged`, `taskLabel.onUpdated`,
-`task.onCreated`, `task.onUpdated`, `task.onFollowUpdated`, `agent.onLifecycle`, `agent.onActivity`, `computer.onUpdated`, and `server.onUpdated`, the
-membership sentinel. These are `RealtimeStream.liveSession`. The other cases (`project.onUpdated`,
-`agent.onUpdated`, `agent.onExecutionJournal`, `artifact.onUpdated`, `modelConnections.onUpdated`)
-are modeled with their payloads but not subscribed until a surface reads what they invalidate.
+`task.onCreated`, `task.onUpdated`, `task.onFollowUpdated`, `agent.onLifecycle`, `agent.onActivity`, `computer.onUpdated`,
+`server.onUpdated` (the membership sentinel), `project.onUpdated`, and `artifact.onUpdated`. These are
+`RealtimeStream.liveSession`. The other cases (`agent.onUpdated`, `agent.onExecutionJournal`,
+`modelConnections.onUpdated`) are modeled with their payloads but not subscribed until a surface reads what they
+invalidate. `project.onUpdated` re-reads `project.list` once loaded (the Projects tab's and the Task picker's)
+through the coalesced pass. `artifact.onUpdated` re-reads the named file's open previews at once (every open
+preview for a null id) and the browsed Drive folder and each place's recent files through the coalesced pass.
 `worker.onUpdated` names the Worker's Task, and refreshes that Task's held detail. `computer.onUpdated` owns Agent presence beside the lifecycle stream: after a
 Server restart the streams resubscribe before the Computer reattaches, so their start reads an
 offline Agent list, and only the attach's `computer.updated` says presence came back. Its events
@@ -1325,7 +1328,7 @@ straight through unless a portal is actually open (`ComposerPortalWindowRule`); 
 leaving, or a media card collapsing into its landing tile, hands taps back to the composer underneath.
 Because the portal now measures against the display rather than against the screen that opened it, the
 composer reports `composerSurfaceFrame` and `morphDestinationFrame` in `.global` — window coordinates,
-which the two windows share exactly, the app being portrait-only and full-screen.
+which the two windows share exactly: both fill the same scene, in every orientation and pane layout.
 
 The media card is inset a uniform 12pt from the display on both sides and the floor
 (`ComposerPortalGeometry.nestingInset`), and rounds its corners with a fixed *number*

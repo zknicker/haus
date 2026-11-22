@@ -52,31 +52,37 @@ extension AuthenticatedHausView {
         )
     }
 
-    @ViewBuilder
+    /// Settings and the Drive it browses, on one stack: the hub pushes its
+    /// own screens, and Drive opens through the router.
     var youStack: some View {
-        let path = settingsPath
-        NavigationStack(path: path) {
-            if let data = store.settingsData {
-                SettingsSheet(
-                    tabPath: path,
-                    data: data,
-                    persistence: store.settingsPersistence,
-                    cloudAgentActions: store.cloudAgentSettings,
-                    automations: store.agentAutomations { router.open(route(forChatID: $0), from: .outside) },
-                    stoppedClaims: store.agentStoppedClaims { openClaim($0) },
-                    notifications: push.setting,
-                    server: store.settingsServerContent { router.open(.driveFile(path: $0.metadata.path)) },
-                    appearance: appearanceBinding,
-                    serverSwitcher: ServerSwitcher(
-                        servers: store.servers.map { ServerSwitcher.Server(id: $0.id, name: $0.displayName) },
-                        activeServerID: store.activeServer?.id,
-                        onSwitch: { serverID in Task { await switchServer(serverID) } }
-                    ),
-                    onSignOut: { try await store.signOut() }
-                )
-            } else {
-                Color.clear.navigationTitle("You")
-            }
+        NavigationStack(path: youPath) {
+            youRoot(settingsPath)
+                .navigationDestination(for: HausRoute.self) { routeDestination($0) }
+        }
+    }
+
+    @ViewBuilder
+    private func youRoot(_ path: Binding<[SettingsRoute]>) -> some View {
+        if let data = store.settingsData {
+            SettingsSheet(
+                tabPath: path,
+                data: data,
+                persistence: store.settingsPersistence,
+                cloudAgentActions: store.cloudAgentSettings,
+                automations: store.agentAutomations { router.open(route(forChatID: $0), from: .outside) },
+                stoppedClaims: store.agentStoppedClaims { openClaim($0) },
+                notifications: push.setting,
+                server: store.settingsServerContent { router.open(.driveFile(path: $0.metadata.path)) },
+                appearance: appearanceBinding,
+                serverSwitcher: ServerSwitcher(
+                    servers: store.servers.map { ServerSwitcher.Server(id: $0.id, name: $0.displayName) },
+                    activeServerID: store.activeServer?.id,
+                    onSwitch: { serverID in Task { await switchServer(serverID) } }
+                ),
+                onSignOut: { try await store.signOut() }
+            )
+        } else {
+            Color.clear.navigationTitle("You")
         }
     }
 
@@ -95,7 +101,7 @@ extension AuthenticatedHausView {
                 onNewProject: { router.present(.newProject) },
                 onGoToTasks: { router.selectedTab = .tasks },
                 onGoToSettings: { router.selectedTab = .you },
-                onClose: { router.selectedTab = .home },
+                onClose: { router.closeSearch() },
                 onAppear: { await store.loadSearchPalette() }
             ),
             onSelectChat: { router.open(route(forChatID: $0.id), from: .outside) },
@@ -132,8 +138,22 @@ extension AuthenticatedHausView {
 
     private var settingsPath: Binding<[SettingsRoute]> {
         Binding(
-            get: { router.path(.you).compactMap { if case .settings(let route) = $0 { route } else { nil } } },
-            set: { router.setPath($0.map(HausRoute.settings), for: .you) }
+            get: { YouStack.settings(in: router.path(.you)) },
+            set: { router.setPath(YouStack.path(router.path(.you), writing: $0), for: .you) }
+        )
+    }
+
+    /// You's stack as its `NavigationStack` holds it: settings screens as
+    /// themselves, so the hub's destinations draw them, and Drive as routes.
+    /// Only back and interactive pop write it, so a write keeps a prefix.
+    private var youPath: Binding<NavigationPath> {
+        Binding(
+            get: {
+                router.path(.you).reduce(into: NavigationPath()) { navigation, route in
+                    if case .settings(let settings) = route { navigation.append(settings) } else { navigation.append(route) }
+                }
+            },
+            set: { router.setPath(Array(router.path(.you).prefix($0.count)), for: .you) }
         )
     }
 }

@@ -27,7 +27,9 @@ extension MessageTimelineRow {
             if message.prose.isEmpty {
                 accessibilityAnchor
             } else {
-                prose.messageRowAccessibility(message, actions: accessibilityActions)
+                prose
+                    .environment(\.richMessageLineHeight, .assistantProse)
+                    .messageRowAccessibility(message, actions: accessibilityActions)
             }
             cards(alignment: .leading)
             if !message.isPending, !message.prose.isEmpty {

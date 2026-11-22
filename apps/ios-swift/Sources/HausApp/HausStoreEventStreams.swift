@@ -93,7 +93,22 @@ extension HausStore {
                 guard event.serverID == serverID else { return }
                 await store.reloadServerList(serverID: serverID)
             }
-        case .projectUpdated, .agentUpdated, .agentExecutionJournal, .artifactUpdated, .modelConnectionsUpdated:
+        case .projectUpdated:
+            // One Project's settings changed; `project.list` is read whole, so
+            // a burst of updates shares the coalesced pass its start uses.
+            streamTask(stream, serverID: serverID) { (store, event: ProjectUpdatedEvent) in
+                guard event.serverID == serverID else { return }
+                store.requestRecovery(stream.ownedProjections, serverID: serverID)
+            }
+        case .artifactUpdated:
+            // The named file's preview reads at once (every open one for a
+            // null id); the listings share the coalesced pass.
+            streamTask(stream, serverID: serverID) { (store, event: ArtifactUpdatedEvent) in
+                guard event.serverID == serverID else { return }
+                store.requestRecovery([.driveListings], serverID: serverID)
+                await store.drive.refreshFiles(changedArtifact: event.artifactID)
+            }
+        case .agentUpdated, .agentExecutionJournal, .modelConnectionsUpdated:
             preconditionFailure("\(stream.path) is not part of the live session.")
         }
         eventTasks.replace(stream, with: task)

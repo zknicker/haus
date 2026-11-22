@@ -41,10 +41,13 @@ struct ChatScreenHeader: View {
     @Binding var turnDetails: TurnDetailsFocus?
 
     @State private var showsOutage = false
+    @Environment(\.chatHeaderShowsBack) private var showsBack
 
     var body: some View {
         ChromeHeader(inset: 20) {
-            GlassChromeButton(.system("chevron.left"), label: "Back", action: onBack)
+            if showsBack {
+                GlassChromeButton(.system("chevron.left"), label: "Back", action: onBack)
+            }
         } center: {
             Button(action: onOpenChatDetails) {
                 HStack(spacing: 8) {
@@ -140,4 +143,10 @@ private struct ChatHeaderMenu: View {
         .fixedSize()
         .accessibilityLabel("More")
     }
+}
+
+extension EnvironmentValues {
+    /// False where the Chat is the root of its pane, such as the content pane
+    /// of a split tab: there is nothing behind it to go back to.
+    @Entry public var chatHeaderShowsBack = true
 }

@@ -35,11 +35,11 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
 
     public var joinsLiveSession: Bool {
         switch self {
-        case .projectUpdated, .agentUpdated, .agentExecutionJournal, .artifactUpdated, .modelConnectionsUpdated:
+        case .agentUpdated, .agentExecutionJournal, .modelConnectionsUpdated:
             false
         case .messageCreated, .messageReactionUpdated, .chatRead, .chatLifecycle, .cloudAgentWorkUpdated,
              .claimChanged, .taskLabelUpdated, .taskCreated, .taskUpdated, .taskFollowUpdated, .agentLifecycle,
-             .agentActivity, .computerUpdated, .serverUpdated:
+             .agentActivity, .computerUpdated, .serverUpdated, .projectUpdated, .artifactUpdated:
             true
         }
     }
@@ -81,7 +81,11 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
             [.agentAvailability, .agentActivity, .serverUsage, .computers]
         case .serverUpdated:
             [.serverList]
-        case .projectUpdated, .agentUpdated, .agentExecutionJournal, .artifactUpdated, .modelConnectionsUpdated:
+        case .projectUpdated:
+            [.projects]
+        case .artifactUpdated:
+            [.driveListings, .driveFiles]
+        case .agentUpdated, .agentExecutionJournal, .modelConnectionsUpdated:
             []
         }
     }
@@ -118,6 +122,12 @@ public enum RealtimeProjection: Hashable, Sendable, CaseIterable {
     case serverUsage
     /// `computer.list`.
     case computers
+    /// `project.list`, once loaded.
+    case projects
+    /// Every held Drive listing: the browsed folder and each place's recent files.
+    case driveListings
+    /// Every file preview opened (`artifact.byPath`).
+    case driveFiles
 }
 
 /// Why the Server refused or ended a stream (`hausRefusal` in the tRPC error data).
