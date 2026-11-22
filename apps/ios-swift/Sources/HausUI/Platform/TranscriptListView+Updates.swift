@@ -37,6 +37,9 @@ extension TranscriptListCoordinator {
                 survivingIDs: Set(view.items.map(\.id))
             )
             : nil
+        if !itemsUnchanged {
+            reconcileSendLanding(oldItems: previousItems, newItems: view.items, update: update)
+        }
         items = view.items
         showsAccessory = view.showsAccessory
         appliedRowRevision = view.rowRevision
@@ -100,6 +103,7 @@ extension TranscriptListCoordinator {
             // update keeps holding what the last real one anchored.
             heldAnchor = nil
         }
+        holdSendLanding(table)
         holdFollowedTop(table: table)
         performReveal(view: view, table: table)
         // Covers every path above — a reset's `reloadData`, an inset change, an
