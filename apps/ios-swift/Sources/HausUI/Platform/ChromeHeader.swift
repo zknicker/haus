@@ -140,26 +140,16 @@ extension View {
     ///
     /// The bar is also deliberately taller than the chrome it carries, because
     /// the region is what sets how far the dissolve ramps —
-    /// ``HausChrome/scrollEdgeRunway`` explains the trade. Pre-26 has no edge
-    /// effect at all, so it gets neither the bar nor the runway: there the plain
-    /// inset is the whole behavior and the extra room would only be dead space.
-    @ViewBuilder
+    /// ``HausChrome/scrollEdgeRunway`` explains the trade.
     func chromeBar<Content: View>(
         edge: VerticalEdge,
         spacing: CGFloat? = nil,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        if #available(iOS 26, macOS 26, *) {
-            safeAreaBar(edge: edge, spacing: spacing) {
-                content()
-                    .padding(edge == .top ? .bottom : .top, HausChrome.scrollEdgeRunway)
-                    .background { if edge == .top { ChromeScrollEdge() } }
-            }
-        } else {
-            safeAreaInset(edge: edge, spacing: spacing) {
-                content()
-                    .background { if edge == .top { ChromeScrollEdge() } }
-            }
+        safeAreaBar(edge: edge, spacing: spacing) {
+            content()
+                .padding(edge == .top ? .bottom : .top, HausChrome.scrollEdgeRunway)
+                .background { if edge == .top { ChromeScrollEdge() } }
         }
     }
 }
@@ -200,7 +190,7 @@ extension View {
     /// chrome, the way the system scroll edge effect painted for a SwiftUI
     /// scroll view. The system effect computes its region from safe areas the
     /// flipped transcript table does not have, so the dissolve is a mask —
-    /// same ramp shape as the iOS 26 soft edge, on every iOS version. Rows
+    /// same ramp shape as the system soft edge. Rows
     /// are crisp below the bar, at roughly a seventh of their contrast behind
     /// the chrome row, and gone by the status bar.
     ///

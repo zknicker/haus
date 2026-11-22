@@ -38,13 +38,12 @@ struct EmojiCatalog: Sendable {
     /// Decoded once; the file is ~160 KB.
     static let shared = EmojiCatalog.bundled(maxVersion: EmojiCatalog.deviceEmojiVersion)
 
-    /// The newest Emoji version this OS draws: iOS 18.4 brought Emoji 16.0 and
+    /// The newest Emoji version this OS draws: iOS 26.0 draws Emoji 16.0 and
     /// iOS 26.4 Emoji 17.0. Anything newer would render as a missing glyph.
     static var deviceEmojiVersion: Double {
         #if os(iOS)
         if #available(iOS 26.4, *) { return 17.0 }
-        if #available(iOS 18.4, *) { return 16.0 }
-        return 15.1
+        return 16.0
         #else
         return 17.0
         #endif

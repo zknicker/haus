@@ -215,15 +215,10 @@ private struct AvatarStageCounter: View {
     let count: Int
 
     var body: some View {
-        Group {
-            if #available(iOS 26, macOS 26, *) {
-                label.glassEffect(.regular, in: .capsule)
-            } else {
-                label.background(.thinMaterial, in: .capsule)
-            }
-        }
-        .accessibilityHidden(true)
-        .accessibilityIdentifier("avatar-stage-counter")
+        label
+            .glassEffect(.regular, in: .capsule)
+            .accessibilityHidden(true)
+            .accessibilityIdentifier("avatar-stage-counter")
     }
 
     private var label: some View {
