@@ -67,6 +67,10 @@ export const computerAddRepoFolderInputSchema = z
     .object({ computerId: idSchema, path: repoFolderPathSchema, serverId: idSchema })
     .strict();
 
+/** Whether a folder is still there with its origin, as its online Computer answers. */
+export const repoFolderStateSchema = z.enum(['present', 'missing', 'other-origin']);
+export type RepoFolderState = z.infer<typeof repoFolderStateSchema>;
+
 /**
  * `computer.removeRepoFolder`: the attacher, an Owner, or an Admin drops a
  * folder. Refuses while a Haus worktree of it exists, naming them.
@@ -76,8 +80,6 @@ export const computerRemoveRepoFolderInputSchema = z
     .strict();
 
 /** `computer.repoFolderStates`: whether each folder is still there, asked of the online Computer. */
-export const repoFolderStateSchema = z.enum(['present', 'missing', 'other-origin']);
-export type RepoFolderState = z.infer<typeof repoFolderStateSchema>;
 export const computerRepoFolderStatesSchema = z
     .object({
         states: z

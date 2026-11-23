@@ -5,6 +5,7 @@ import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { SettingsFact } from '../layout/settings-text.tsx';
+import { ReposLinkRow } from '../repos/repos-link-row.tsx';
 
 export function GitSettings() {
     return (
@@ -38,6 +39,7 @@ export function GitSettings() {
                     </ItemCardGroup>
                 </ItemCardGroup>
             ))}
+            <ReposLinkRow />
         </SettingsPageColumn>
     );
 }

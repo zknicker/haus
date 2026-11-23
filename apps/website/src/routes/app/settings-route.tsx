@@ -59,7 +59,7 @@ const sectionRenderers: Record<SettingsRouteTab, (context: SectionContext) => Re
     preferences: () => <PreferencesSettings />,
     profile: ({ server }) => <ProfileSettings serverId={server.id} />,
     projects: () => <ProjectsSettings />,
-    repos: () => <ReposSettings />,
+    repos: ({ server }) => <ReposSettings serverId={server.id} serverSlug={server.slug} />,
     servers: () => <ServersSettings />,
     shortcuts: () => <ShortcutsSettings />,
     skills: ({ server }) => <SkillsSettings serverId={server.id} />,

@@ -52,6 +52,7 @@ export function applyComputerUpdate(
     invalidate(getQueryKey(hausTrpc.computer.systemLog, computer));
     invalidate(getQueryKey(hausTrpc.computer.repoFolders, computer));
     invalidate(getQueryKey(hausTrpc.computer.repoFolderStates, computer));
+    invalidate(getQueryKey(hausTrpc.repo.list, { serverId }));
     invalidate(getQueryKey(hausTrpc.agent.activeActivity, { serverId }));
     invalidate(getQueryKey(hausTrpc.agent.deliveryState, { serverId }));
     invalidate(getQueryKey(hausTrpc.agent.list, { serverId }));

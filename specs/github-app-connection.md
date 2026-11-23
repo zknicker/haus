@@ -301,6 +301,37 @@ installation** appears when owner-checked candidates exist. Remove confirmation 
 Triggers. The OAuth app access restriction copy is deleted. iOS has no connection UI and gets
 none. Trigger UI is in [GitHub Triggers](github-triggers.md#app-ui).
 
+### Repo access
+
+`repo.list` answers, for each repo on the Server's list
+([ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md)), the
+Devices that hold a folder for it and whether the App reaches it, decided the way a push is
+([Git on a Computer](#git-on-a-computer)):
+
+| Status | When |
+| --- | --- |
+| `ready` | The owner's live installation selects all repositories, or GitHub mints a `contents: read` token scoped to the repo. |
+| `app-needs-access` | The owner has no live installation, or it is suspended, or GitHub refuses the scoped token. |
+| `github-not-connected` | The Server has no GitHub connection, or no App configured. |
+| `github-unavailable` | GitHub did not answer the token request. |
+
+`accessible_repository_ids` is not used here: it holds the connection user's reach by GitHub
+id, and a Server repo is only an `owner/name`. A minted token is cached like the git credential's,
+so `ready` can lag a revoked selection by up to an hour; `app-needs-access` is never cached, so
+Recheck after granting answers at once. `computer.addRepoFolder` returns the same status for the
+repo it added.
+
+**Settings → Repositories** lists each repo with its GitHub mark, its Devices, and its status.
+App access needed offers **Grant on GitHub**: the installation's settings on GitHub when the owner
+has one, `github.startInstall` for an Owner or Admin when it has none, otherwise the GitHub
+connection page. Every status but Ready and GitHub not connected offers **Recheck**, which
+refetches `repo.list`. **Add repository** opens the add flow: pick a Device (this Mac when the
+desktop App runs on an attached Mac, else the first online Device the viewer attached), then
+**Choose folder…** in the native picker on this Mac, or type the path on the web or for another
+Device. After the add it shows the repo, its status with Grant on GitHub, and one line when no
+Captain can reach that Device or Workers are off there, linking to the Device's Access. A Device's
+**Folders** card opens the same flow for that Device. Captains → Git links to Repositories.
+
 ## Security
 
 - The App JWT and private key never leave Server memory or `server.env`.

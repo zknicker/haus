@@ -1,10 +1,13 @@
 'use strict';
 
 const { isAppIcon } = require('./dock-app-icon.cjs');
+const { registerRepoFolderIpc } = require('./repo-folder-ipc.cjs');
 const { assertTrustedRenderer } = require('./trusted-renderer.cjs');
 
 /** Small app-wide shell facts and controls: build info, the Dock badge and icon, and the window theme. */
 function registerDesktopShellIpc({ app, appUrl, dockAppIcon, ipcMain, nativeTheme }) {
+    registerRepoFolderIpc({ appUrl, ipcMain });
+
     ipcMain.handle('desktop:get-info', (event) => {
         assertTrustedRenderer(event, appUrl);
         return {

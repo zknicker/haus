@@ -11,6 +11,9 @@ const bridge = {
     onePasswordCreateServiceAccount: (request) =>
         ipcRenderer.invoke('desktop:1password:create-service-account', request),
     openedFromWindow: isOpenedFromWindow(process.argv),
+    pickRepoFolder: () => ipcRenderer.invoke('desktop:repo-folder:pick'),
+    localComputerId: (serverId) =>
+        ipcRenderer.invoke('desktop:repo-folder:local-computer', serverId),
     browserCommand: (command) => ipcRenderer.invoke('desktop:browser:command', command),
     browserSnapshot: () => ipcRenderer.invoke('desktop:browser:snapshot'),
     browserCapture: (id) => ipcRenderer.invoke('desktop:browser:capture', id),

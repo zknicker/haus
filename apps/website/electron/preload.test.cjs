@@ -102,6 +102,28 @@ describe('desktop preload bridge', () => {
         }
     });
 
+    test('the repo folder bridge asks main for a picked folder and for this Mac on a Server', () => {
+        const invoked = [];
+        const exposed = new Map();
+        runPreload({
+            contextBridge: { exposeInMainWorld: (name, value) => exposed.set(name, value) },
+            ipcRenderer: {
+                invoke: (...call) => invoked.push(call),
+                off: () => undefined,
+                on: () => undefined,
+            },
+        });
+        const bridge = exposed.get('hausDesktop');
+
+        bridge.pickRepoFolder('/ignored');
+        bridge.localComputerId('srv_1');
+
+        expect(invoked).toEqual([
+            ['desktop:repo-folder:pick'],
+            ['desktop:repo-folder:local-computer', 'srv_1'],
+        ]);
+    });
+
     test('the window layout stays renderer-only: no bridge channel carries it', () => {
         const bridge = exposeDesktopBridge().get('hausDesktop');
 

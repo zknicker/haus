@@ -128,6 +128,7 @@ export * from './worker-outcome.ts';
 export * from './worker-computer-frames.ts';
 export * from './worker-credentials.ts';
 export * from './worker-place.ts';
+export * from './repo-list.ts';
 export * from './repos.ts';
 export * from './worker-places.ts';
 export * from './worker-settings.ts';
