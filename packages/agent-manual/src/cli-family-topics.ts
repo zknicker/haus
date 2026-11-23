@@ -17,6 +17,7 @@ export const cliFamilyTopics = {
     message: 'message',
     profile: 'profile',
     reminder: 'reminder',
+    repo: 'repos',
     server: 'server',
     skill: 'skill',
     task: 'tasks',

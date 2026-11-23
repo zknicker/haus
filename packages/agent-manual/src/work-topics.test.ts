@@ -80,7 +80,7 @@ test('no Manual topic teaches boards, columns, pickup-note threads, or work thre
 test('a Worker starts on a Task at --on, the Project default, or the cloud default, and reports there', () => {
     const body = getManualTopic('workers')?.body ?? '';
     expect(body).toContain(
-        '`haus worker start --task <KEY-n> --title <text> [--on <place>] [--repo <owner/name>] [--ref <ref>] [--runtime <claude-code|codex>] [--model <id>]`'
+        '`haus worker start --task <KEY-n> --repo <owner/name> --title <text> [--on <place>] [--ref <ref>] [--runtime <claude-code|codex>] [--model <id>]`'
     );
     expect(body).toContain(
         "Without `--on` a start runs on the Task's Project default, else on your Computer's ready cloud default (Settings → Devices → (your device) → Cloud Agents → Make default)."
@@ -102,7 +102,7 @@ test('a Worker starts on a Task at --on, the Project default, or the cloud defau
 test('haus worker places lists Computers and cloud agents, and --on names one', () => {
     const body = getManualTopic('workers')?.body ?? '';
     expect(body).toContain(
-        "`haus worker places --task SEC-12` lists where a Worker can run: each Computer with its **Workers can run here** switch, runtimes, linked repos, and free slots, then `cursor` and `claude`, with the Project's default marked."
+        "`haus worker places --task SEC-12` lists where a Worker can run: each Computer with its **Workers can run here** switch, runtimes, repo folders, and free slots, then `cursor` and `claude`, with the Project's default marked."
     );
     expect(body).toContain(
         '(`computer:mini` or `mini`, or the `computer:<id>` that `places` prints'
@@ -115,12 +115,26 @@ test('haus worker places lists Computers and cloud agents, and --on names one', 
 test('a Worker on a Computer uses its own worktree and logins, reports with haus worker report, and writes per-Task Drive folders', () => {
     const body = getManualTopic('workers')?.body ?? '';
     expect(body).toContain(
-        "runs Claude Code or Codex on that machine with the machine's own logins, in its own git worktree on its own branch, and records its report with `haus worker report`."
+        "runs Claude Code or Codex on that machine with the machine's own logins, in a git worktree of that Computer's folder for the repo on its own branch, and records its report with `haus worker report`."
     );
     expect(body).toContain(
         '`agents/<handle>/reports/<KEY-n>/`, `renders/<KEY-n>/`, or `handoffs/<KEY-n>/`'
     );
     expect(body).not.toContain('no flag carries one');
+});
+
+test('--repo is required, any repo works on any place, and closing keeps unpushed work (ADR 0060)', () => {
+    const body = getManualTopic('workers')?.body ?? '';
+    expect(body).toContain(
+        "`--repo` is required, and any repo works on any place: a Computer with no folder for it clones it once into Haus's own data (see repos)."
+    );
+    expect(body).toContain(
+        'Closing the Worker removes the worktree once its commits are pushed, and keeps unpushed work, which its card shows.'
+    );
+    for (const retired of ['can be left out', 'WORKER_REPO_', 'linked repos', 'link to the repo']) {
+        expect(body).not.toContain(retired);
+    }
+    expect(getManualTopic('workers')?.related).toContain('repos');
 });
 
 test('every W3 start refusal code reads in plain words', () => {
@@ -130,8 +144,6 @@ test('every W3 start refusal code reads in plain words', () => {
         'WORKER_PLACE_OFF',
         'WORKER_PLACE_UNAVAILABLE',
         'WORKER_PLACE_AMBIGUOUS',
-        'WORKER_REPO_UNKNOWN',
-        'WORKER_REPO_NOT_LINKED',
         'WORKER_RUNTIME_UNAVAILABLE',
         'WORKER_OPTION_CLOUD',
     ]) {
