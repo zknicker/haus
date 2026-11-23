@@ -1,138 +1,71 @@
-import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { Button, Dropdown, Label } from '@heroui/react';
+import { ItemCard } from '@heroui-pro/react';
+import { Button, Dropdown, Label, Separator } from '@heroui/react';
 import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
+import { Fragment } from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
-import {
-    useGrantAgentAccess,
-    useRevokeAgentAccess,
-} from '../../hooks/computer-access/use-agent-access.ts';
-import { useAgents } from '../../hooks/members/use-agents.ts';
-import { useComputers } from '../../hooks/servers/use-computers.ts';
-import { useMembers } from '../../hooks/servers/use-members.ts';
-import { withSaveErrorToast } from '../../lib/saving-toast.ts';
-import { humanDirectory } from '../servers/human-identity.ts';
+import { SettingsRowTitle } from '../settings/layout/settings-row-title.tsx';
 import {
     type AccessCaptain,
     type AgentAccessView,
     agentAccessDescription,
-    agentAccessView,
     homeCaptainsSummary,
 } from './agent-access-model.ts';
 
-export function AgentAccessCard({
-    computerId,
-    serverId,
-}: {
-    computerId: string;
-    serverId: string;
-}) {
-    const computers = useComputers(serverId);
-    const computer = computers.data?.find((candidate) => candidate.id === computerId);
-    const agents = useAgents(serverId);
-    const members = useMembers(serverId).data?.members;
-    const grant = useGrantAgentAccess(serverId);
-    const revoke = useRevokeAgentAccess(serverId);
-    if (!(computer && agents.data)) {
-        return null;
-    }
-    const view = agentAccessView({
-        agents: agents.data,
-        computerId,
-        grants: computer.agentAccessGrants,
-        personName: humanDirectory(members ?? []).name,
-    });
-    return (
-        <AgentAccessSection
-            canGrant={computer.canGrantAgentAccess}
-            canRevoke={computer.canRevokeAgentAccess}
-            isPending={grant.isPending || revoke.isPending}
-            onGrant={(agentId) => {
-                withSaveErrorToast(() =>
-                    grant.mutateAsync({ agentId, computerId, serverId })
-                ).catch(() => undefined);
-            }}
-            onRevoke={(agentId) => {
-                withSaveErrorToast(() =>
-                    revoke.mutateAsync({ agentId, computerId, serverId })
-                ).catch(() => undefined);
-            }}
-            view={view}
-        />
-    );
-}
-
-export function AgentAccessSection({
-    canGrant,
+/** Captain access's rows in the Access card: who is always allowed, then each named grant. */
+export function AgentAccessRows({
     canRevoke,
     isPending,
-    onGrant,
     onRevoke,
     view,
 }: {
-    canGrant: boolean;
     canRevoke: boolean;
     isPending: boolean;
-    onGrant: (agentId: string) => void;
     onRevoke: (agentId: string) => void;
     view: AgentAccessView;
 }) {
     return (
-        <section>
-            <ItemCardGroup variant="transparent">
-                <ItemCardGroup.Header className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                        <ItemCardGroup.Title>Agent access</ItemCardGroup.Title>
-                        <ItemCardGroup.Description>
-                            {agentAccessDescription}
-                        </ItemCardGroup.Description>
-                    </div>
-                    {canGrant ? (
-                        <CaptainPicker
-                            candidates={view.candidates}
-                            isDisabled={isPending}
-                            onPick={onGrant}
-                        />
-                    ) : null}
-                </ItemCardGroup.Header>
-                <ItemCardGroup className="overflow-hidden">
+        <>
+            <ItemCard>
+                <ItemCard.Content>
+                    <SettingsRowTitle info={agentAccessDescription}>
+                        Captain access
+                    </SettingsRowTitle>
+                    <ItemCard.Description className="whitespace-normal">
+                        {homeCaptainsSummary(view.home)}
+                    </ItemCard.Description>
+                </ItemCard.Content>
+            </ItemCard>
+            {view.granted.map((captain) => (
+                <Fragment key={captain.id}>
+                    <Separator />
                     <ItemCard>
                         <ItemCard.Content>
-                            <ItemCard.Title>Captains on this device</ItemCard.Title>
-                            <ItemCard.Description className="whitespace-normal">
-                                {homeCaptainsSummary(view.home)}
+                            <ItemCard.Title>{captain.displayName}</ItemCard.Title>
+                            <ItemCard.Description>
+                                Allowed by {captain.grantedBy}
                             </ItemCard.Description>
                         </ItemCard.Content>
+                        {canRevoke ? (
+                            <ItemCard.Action>
+                                <Button
+                                    aria-label={`Remove ${captain.displayName}`}
+                                    isDisabled={isPending}
+                                    onPress={() => onRevoke(captain.id)}
+                                    size="sm"
+                                    variant="secondary"
+                                >
+                                    Remove
+                                </Button>
+                            </ItemCard.Action>
+                        ) : null}
                     </ItemCard>
-                    {view.granted.map((captain) => (
-                        <ItemCard key={captain.id}>
-                            <ItemCard.Content>
-                                <ItemCard.Title>{captain.displayName}</ItemCard.Title>
-                                <ItemCard.Description>
-                                    Allowed by {captain.grantedBy}
-                                </ItemCard.Description>
-                            </ItemCard.Content>
-                            {canRevoke ? (
-                                <ItemCard.Action>
-                                    <Button
-                                        aria-label={`Remove ${captain.displayName}`}
-                                        isDisabled={isPending}
-                                        onPress={() => onRevoke(captain.id)}
-                                        size="sm"
-                                        variant="secondary"
-                                    >
-                                        Remove
-                                    </Button>
-                                </ItemCard.Action>
-                            ) : null}
-                        </ItemCard>
-                    ))}
-                </ItemCardGroup>
-            </ItemCardGroup>
-        </section>
+                </Fragment>
+            ))}
+        </>
     );
 }
 
-function CaptainPicker({
+export function CaptainPicker({
     candidates,
     isDisabled,
     onPick,

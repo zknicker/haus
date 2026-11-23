@@ -40,12 +40,13 @@ test('Computer profile reserves all its sections before its roster resolves', ()
         <ComputerPage computerId="cmp_one" serverId={server.id} serverSlug={server.slug} />
     );
     for (const label of [
+        'Access',
+        'Repositories',
         'Plan usage',
         'Browser',
         'Cloud Agents',
         'Captains on this device',
-        'System Log',
-        'Device management',
+        'Updates',
     ]) {
         expect(markup).toContain(label);
     }

@@ -1,15 +1,51 @@
-import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { Switch } from '@heroui/react';
+import { ItemCard } from '@heroui-pro/react';
+import { Separator, Switch } from '@heroui/react';
 import { useSetComputerUseEnabled } from '../../hooks/computer-use/use-computer-use-enabled.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
+import type { HausOutputs } from '../../lib/haus-server.tsx';
 import { withSaveErrorToast } from '../../lib/saving-toast.ts';
+import { SettingsRowTitle } from '../settings/layout/settings-row-title.tsx';
 import { ComputerUseCaptainsRow } from './computer-use-captains-row.tsx';
 import { computerUseDescription, supportsComputerUse } from './computer-use-model.ts';
 import { ComputerUsePermissions } from './computer-use-permissions.tsx';
-import { ComputerUseStop } from './computer-use-stop.tsx';
 import { computerLabel } from './presentation.ts';
 
-export function ComputerUseAccessCard({
+type AccessComputer = HausOutputs['computer']['list'][number];
+
+/** Computer use's rows in the Access card: the switch, then which Captains while it is on. */
+export function ComputerUseRows({
+    computer,
+    serverId,
+}: {
+    computer: AccessComputer;
+    serverId: string;
+}) {
+    return (
+        <>
+            <ComputerUseAccessRow
+                canChange={computer.canChangeComputerUse}
+                computerId={computer.id}
+                enabled={computer.computerUseEnabled}
+                serverId={serverId}
+            />
+            {computer.computerUseEnabled ? (
+                <>
+                    <Separator />
+                    <ComputerUseCaptainsRow
+                        agents={computer.computerUseAgents}
+                        canChange={computer.canChangeComputerUse}
+                        computerId={computer.id}
+                        grantedAgentIds={computer.agentAccessGrants.map((grant) => grant.agentId)}
+                        serverId={serverId}
+                    />
+                </>
+            ) : null}
+        </>
+    );
+}
+
+/** macOS permissions, its own section right after Access, while computer use is on. */
+export function ComputerUsePermissionsSection({
     computerId,
     serverId,
 }: {
@@ -18,49 +54,17 @@ export function ComputerUseAccessCard({
 }) {
     const computers = useComputers(serverId);
     const computer = computers.data?.find((candidate) => candidate.id === computerId);
-    if (!(computer && supportsComputerUse(computer))) {
+    if (!(computer && supportsComputerUse(computer) && computer.computerUseEnabled)) {
         return null;
     }
-    const deviceName = computerLabel(computer);
     return (
         <section>
-            <ItemCardGroup variant="transparent">
-                <ItemCardGroup.Header>
-                    <ItemCardGroup.Title>Computer use</ItemCardGroup.Title>
-                </ItemCardGroup.Header>
-                <ComputerUseStop
-                    computerId={computerId}
-                    deviceName={deviceName}
-                    serverId={serverId}
-                />
-                <ItemCardGroup className="overflow-hidden">
-                    <ComputerUseAccessRow
-                        canChange={computer.canChangeComputerUse}
-                        computerId={computerId}
-                        enabled={computer.computerUseEnabled}
-                        serverId={serverId}
-                    />
-                    {computer.computerUseEnabled ? (
-                        <ComputerUseCaptainsRow
-                            agents={computer.computerUseAgents}
-                            canChange={computer.canChangeComputerUse}
-                            computerId={computerId}
-                            grantedAgentIds={computer.agentAccessGrants.map(
-                                (grant) => grant.agentId
-                            )}
-                            serverId={serverId}
-                        />
-                    ) : null}
-                </ItemCardGroup>
-            </ItemCardGroup>
-            {computer.computerUseEnabled ? (
-                <ComputerUsePermissions
-                    computerId={computerId}
-                    deviceName={deviceName}
-                    readiness={computer.reportedInventory?.computerUse}
-                    serverId={serverId}
-                />
-            ) : null}
+            <ComputerUsePermissions
+                computerId={computerId}
+                deviceName={computerLabel(computer)}
+                readiness={computer.reportedInventory?.computerUse}
+                serverId={serverId}
+            />
         </section>
     );
 }
@@ -80,10 +84,9 @@ export function ComputerUseAccessRow({
     return (
         <ItemCard>
             <ItemCard.Content>
-                <ItemCard.Title>Computer use allowed</ItemCard.Title>
-                <ItemCard.Description className="whitespace-normal">
-                    {computerUseDescription}
-                </ItemCard.Description>
+                <SettingsRowTitle info={computerUseDescription}>
+                    Computer use allowed
+                </SettingsRowTitle>
             </ItemCard.Content>
             <ItemCard.Action>
                 <Switch
