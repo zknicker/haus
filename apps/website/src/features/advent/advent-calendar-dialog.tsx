@@ -20,7 +20,7 @@ export function AdventCalendarDialog({
                     <Modal.CloseTrigger />
                     <Modal.Header>
                         <Modal.Heading>Advent · December</Modal.Heading>
-                        <p className="text-muted text-sm leading-5">Your year in Haus</p>
+                        <p>Your year in Haus</p>
                     </Modal.Header>
                     <Modal.Body>
                         <AdventCalendar season={season} serverId={serverId} />

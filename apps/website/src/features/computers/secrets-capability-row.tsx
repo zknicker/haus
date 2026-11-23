@@ -1,7 +1,8 @@
 import { ItemCard } from '@heroui-pro/react';
-import { Button, Chip, Dropdown, Label } from '@heroui/react';
+import { Button, Dropdown, Label } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
+import { SettingsStatusChip, SettingsStatusTitle } from '../settings/layout/settings-row-title.tsx';
 import type { SecretsCapabilityView } from './secrets-capability-model.ts';
 
 export function SecretsCapabilityRow({
@@ -20,17 +21,15 @@ export function SecretsCapabilityRow({
     return (
         <ItemCard>
             <ItemCard.Content>
-                <ItemCard.Title>
+                <SettingsStatusTitle
+                    status={
+                        <SettingsStatusChip color={statusColor(view.status)}>
+                            {view.statusLabel}
+                        </SettingsStatusChip>
+                    }
+                >
                     1Password
-                    <Chip
-                        className="ms-2 align-middle"
-                        color={statusColor(view.status)}
-                        size="sm"
-                        variant="soft"
-                    >
-                        {view.statusLabel}
-                    </Chip>
-                </ItemCard.Title>
+                </SettingsStatusTitle>
                 <ItemCard.Description>{view.description}</ItemCard.Description>
             </ItemCard.Content>
             <ItemCard.Action>

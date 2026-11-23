@@ -1,10 +1,11 @@
 import type { ComputerUseReadiness } from '@haus/api';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { Alert, Button, Chip, toast } from '@heroui/react';
+import { Alert, Button, toast } from '@heroui/react';
 import { Copy01Icon, Image01Icon, Mouse01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useComputerUseRecheck } from '../../hooks/computer-use/use-computer-use-recheck.ts';
 import { writeClipboardText } from '../../lib/clipboard.ts';
+import { SettingsStatusChip, SettingsStatusTitle } from '../settings/layout/settings-row-title.tsx';
 import {
     type ComputerUsePermission,
     computerUseNeedsGrant,
@@ -47,7 +48,7 @@ export function ComputerUsePermissions({
     const appPath = readiness?.appPath ?? defaultComputerAppPath;
     return (
         <ItemCardGroup variant="transparent">
-            <ItemCardGroup.Header className="flex items-start justify-between gap-3">
+            <ItemCardGroup.Header>
                 <ItemCardGroup.Title>macOS permissions</ItemCardGroup.Title>
                 {needsGrant ? (
                     <Button
@@ -68,7 +69,7 @@ export function ComputerUsePermissions({
                     </Alert.Content>
                 </Alert>
             ) : null}
-            <ItemCardGroup className="overflow-hidden">
+            <ItemCardGroup>
                 {permissions.map((permission) => (
                     <PermissionRow key={permission.id} permission={permission} />
                 ))}
@@ -89,16 +90,21 @@ function PermissionRow({ permission }: { permission: ComputerUsePermission }) {
                 />
             </ItemCard.Icon>
             <ItemCard.Content>
-                <ItemCard.Title>{permission.pane}</ItemCard.Title>
+                <SettingsStatusTitle
+                    status={
+                        <SettingsStatusChip color={granted ? 'success' : 'warning'}>
+                            {permissionStateLabel(permission.state)}
+                        </SettingsStatusChip>
+                    }
+                >
+                    {permission.pane}
+                </SettingsStatusTitle>
                 <ItemCard.Description className="whitespace-normal">
                     {granted ? permission.purpose : `${permission.purpose} ${permission.steps}`}
                 </ItemCard.Description>
             </ItemCard.Content>
-            <ItemCard.Action className="flex items-center gap-2">
-                <Chip color={granted ? 'success' : 'warning'} size="sm" variant="soft">
-                    <Chip.Label>{permissionStateLabel(permission.state)}</Chip.Label>
-                </Chip>
-                {granted ? null : (
+            {granted ? null : (
+                <ItemCard.Action>
                     <Button
                         onPress={() => window.location.assign(permission.settingsUrl)}
                         size="sm"
@@ -106,8 +112,8 @@ function PermissionRow({ permission }: { permission: ComputerUsePermission }) {
                     >
                         Open Settings
                     </Button>
-                )}
-            </ItemCard.Action>
+                </ItemCard.Action>
+            )}
         </ItemCard>
     );
 }

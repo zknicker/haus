@@ -61,20 +61,20 @@ export function CloudAgentSignInDialog({
                 <Modal.Dialog>
                     <Modal.CloseTrigger />
                     <Modal.Header>
-                        <Modal.Icon className="bg-default text-foreground">
+                        <Modal.Icon className="modal__icon--neutral">
                             <Icon className="size-5" icon={Key01Icon} />
                         </Modal.Icon>
                         <Modal.Heading>
                             {view.status === 'connected' ? 'Cursor connected' : 'Sign in to Cursor'}
                         </Modal.Heading>
-                        <p className="text-muted mt-1.5 text-sm leading-5">
+                        <p>
                             {view.status === 'connected'
                                 ? `${computerName} can now start Cloud Agents.`
                                 : `Sign in with your browser to connect ${computerName}.`}
                         </p>
                     </Modal.Header>
                     <Modal.Body>
-                        <ItemCardGroup className="overflow-hidden">
+                        <ItemCardGroup>
                             <ItemCard>
                                 <ItemCard.Content>
                                     <ItemCard.Title aria-live="polite">

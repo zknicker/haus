@@ -28,7 +28,7 @@ export function PreferencesSettings() {
     return (
         <SettingsPageColumn>
             <SettingsPageHeader title="Preferences" />
-            <ItemCardGroup className="overflow-hidden">
+            <ItemCardGroup>
                 {rows.map(({ id, row }, index) => (
                     <Fragment key={id}>
                         {index > 0 ? <Separator /> : null}

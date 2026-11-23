@@ -15,7 +15,7 @@ export function SnowField({ snow }: { snow: RooflineSnow | null }) {
         return null;
     }
     return (
-        <ItemCardGroup className="overflow-hidden">
+        <ItemCardGroup>
             <ItemCard>
                 <ItemCard.Content>
                     <ItemCard.Title>Snow</ItemCard.Title>

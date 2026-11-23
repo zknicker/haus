@@ -1,6 +1,6 @@
 import type { GithubInstallation, GithubInstallCandidate } from '@haus/api';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { Button, Chip, Dropdown, Label, Separator } from '@heroui/react';
+import { Button, Dropdown, Label, Separator } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Fragment, useState } from 'react';
 import { EntityAvatar } from '../../../../../components/ui/entity-avatar.tsx';
@@ -9,6 +9,7 @@ import { useGithubBindInstallation } from '../../../../../hooks/github/use-githu
 import { useGithubInstallCandidates } from '../../../../../hooks/github/use-github-install-candidates.ts';
 import { useGithubInstallations } from '../../../../../hooks/github/use-github-installations.ts';
 import { useGithubStartInstall } from '../../../../../hooks/github/use-github-start-install.ts';
+import { SettingsStatusChip, SettingsStatusTitle } from '../../../layout/settings-row-title.tsx';
 import { ConnectionSection } from '../../../mcp/connection-section.tsx';
 import { ConnectionAddRow } from '../../../mcp/mcp-connection-account.tsx';
 import type { BuiltInConnectionSectionProps } from '../built-in-connection-definition.ts';
@@ -90,21 +91,24 @@ function InstallationRow({
         <ItemCard>
             <EntityAvatar name={login} size="sm" />
             <ItemCard.Content>
-                <ItemCard.Title>{login}</ItemCard.Title>
+                <SettingsStatusTitle
+                    status={
+                        status ? (
+                            <SettingsStatusChip
+                                color={installation.status === 'active' ? 'warning' : 'danger'}
+                            >
+                                {status}
+                            </SettingsStatusChip>
+                        ) : null
+                    }
+                >
+                    {login}
+                </SettingsStatusTitle>
                 <ItemCard.Description className="tabular-nums">
                     {githubRepositoryScopeLabel(installation)}
                 </ItemCard.Description>
             </ItemCard.Content>
-            <ItemCard.Action className="flex items-center gap-2">
-                {status ? (
-                    <Chip
-                        color={installation.status === 'active' ? 'warning' : 'danger'}
-                        size="sm"
-                        variant="soft"
-                    >
-                        <Chip.Label>{status}</Chip.Label>
-                    </Chip>
-                ) : null}
+            <ItemCard.Action>
                 <Dropdown>
                     <Button
                         aria-label={`Actions for ${login}`}

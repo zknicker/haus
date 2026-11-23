@@ -30,7 +30,7 @@ export function AgentRuntime({
     return (
         <>
             <ItemCardGroup variant="transparent">
-                <ItemCardGroup.Header className="flex items-center justify-between gap-3">
+                <ItemCardGroup.Header>
                     <ItemCardGroup.Title>Model</ItemCardGroup.Title>
                     {canEdit ? (
                         <Button onPress={() => setOpen(true)} size="sm" variant="secondary">

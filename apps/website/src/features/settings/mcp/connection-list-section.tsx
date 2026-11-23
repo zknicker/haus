@@ -1,10 +1,12 @@
-import { EmptyState, ItemCard } from '@heroui-pro/react';
-import { Button, Chip } from '@heroui/react';
-import { Plug01Icon } from '@hugeicons-pro/core-stroke-rounded';
-import { Icon } from '../../../components/ui/icon.tsx';
+import { ItemCard } from '@heroui-pro/react';
+import { Button } from '@heroui/react';
+import { PlugSocketIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
 import { SettingsCardGrid, SettingsGridCard } from '../layout/settings-card-grid.tsx';
+import { SettingsEmptyState } from '../layout/settings-empty.tsx';
+import { SettingsStatusChip, SettingsStatusTitle } from '../layout/settings-row-title.tsx';
+import { SettingsRowError } from '../layout/settings-text.tsx';
 import { ConnectionGlyph } from './connection-mark.tsx';
 import { toConnectionView } from './connection-view.tsx';
 import { connectionStatusLabel, type McpConnection } from './mcp-server-shared.ts';
@@ -49,18 +51,21 @@ export function ConnectionListSection({
                         <ConnectionGlyph connection={connection} />
                     </ItemCard.Icon>
                     <ItemCard.Content>
-                        <ItemCard.Title>{connection.name}</ItemCard.Title>
+                        <SettingsStatusTitle
+                            status={
+                                connection.connected ? null : (
+                                    <SettingsStatusChip>
+                                        {connectionStatusLabel(connection)}
+                                    </SettingsStatusChip>
+                                )
+                            }
+                        >
+                            {connection.name}
+                        </SettingsStatusTitle>
                         <ItemCard.Description className="max-w-full">
                             {connectionAccountLabel(connection)}
                         </ItemCard.Description>
                     </ItemCard.Content>
-                    {connection.connected ? null : (
-                        <ItemCard.Action>
-                            <Chip size="sm" variant="soft">
-                                {connectionStatusLabel(connection)}
-                            </Chip>
-                        </ItemCard.Action>
-                    )}
                 </SettingsGridCard>
             ))}
         </SettingsCardGrid>
@@ -84,28 +89,16 @@ function connectionsStatus({
         );
     }
     if (connections.error && !connections.data) {
-        return (
-            <p className="text-danger py-8 text-center text-sm" role="alert">
-                {connections.error.message}
-            </p>
-        );
+        return <SettingsRowError>{connections.error.message}</SettingsRowError>;
     }
     if (count === 0) {
         return (
-            <EmptyState className="py-10">
-                <EmptyState.Header>
-                    <EmptyState.Media variant="icon">
-                        <Icon icon={Plug01Icon} />
-                    </EmptyState.Media>
-                    <EmptyState.Title>Connect a service</EmptyState.Title>
-                    <EmptyState.Description>
-                        Captains use connections to reach your tools and accounts.
-                    </EmptyState.Description>
-                </EmptyState.Header>
-                <EmptyState.Content>
-                    <Button onPress={onExplore}>Explore connections</Button>
-                </EmptyState.Content>
-            </EmptyState>
+            <SettingsEmptyState
+                action={<Button onPress={onExplore}>Explore connections</Button>}
+                description="Captains use connections to reach your tools and accounts."
+                icon={PlugSocketIcon}
+                title="Connect a service"
+            />
         );
     }
     return null;

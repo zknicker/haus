@@ -57,7 +57,7 @@ export function BrowserSettingsDialog({
             title="Browser"
         >
             <div className="grid grid-cols-1 gap-6">
-                <ItemCardGroup className="overflow-hidden">
+                <ItemCardGroup>
                     <ItemCard>
                         <ItemCard.Content>
                             <ItemCard.Title>Allow Captain access</ItemCard.Title>

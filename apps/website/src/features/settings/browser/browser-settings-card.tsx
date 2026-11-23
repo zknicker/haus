@@ -7,6 +7,7 @@ import {
     browserCapabilityView,
     browserCheckingView,
 } from '../../computers/browser-capability-model.ts';
+import { SettingsStatusTitle } from '../layout/settings-row-title.tsx';
 import { BrowserSettingsDialog } from './browser-settings-dialog.tsx';
 import {
     type BrowserSettingsDraft,
@@ -141,10 +142,9 @@ function InertBrowserRow({ view }: { view: BrowserCapabilityView }) {
     return (
         <ItemCard>
             <ItemCard.Content>
-                <ItemCard.Title>
+                <SettingsStatusTitle status={<BrowserStatusChip view={view} />}>
                     Chrome
-                    <BrowserStatusChip view={view} />
-                </ItemCard.Title>
+                </SettingsStatusTitle>
                 <ItemCard.Description>{view.description}</ItemCard.Description>
             </ItemCard.Content>
             <ItemCard.Action>

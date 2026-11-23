@@ -1,12 +1,13 @@
 import type { RepoFolder, RepoFolderState } from '@haus/api';
 import { ItemCard } from '@heroui-pro/react';
-import { Button, Chip, Dropdown, Label } from '@heroui/react';
+import { Button, Dropdown, Label } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
 import {
     type RepoFolderTarget,
     useRemoveRepoFolder,
 } from '../../hooks/servers/use-computer-repo-folders.ts';
+import { SettingsStatusChip, SettingsStatusTitle } from '../settings/layout/settings-row-title.tsx';
 import { SettingsFact, SettingsRowError } from '../settings/layout/settings-text.tsx';
 
 export function ComputerRepoFolderRow({
@@ -25,19 +26,15 @@ export function ComputerRepoFolderRow({
     return (
         <ItemCard>
             <ItemCard.Content>
-                <ItemCard.Title>
+                <SettingsStatusTitle
+                    status={
+                        chip ? (
+                            <SettingsStatusChip color="warning">{chip}</SettingsStatusChip>
+                        ) : null
+                    }
+                >
                     {folder.repository}
-                    {chip ? (
-                        <Chip
-                            className="ms-2 align-middle"
-                            color="warning"
-                            size="sm"
-                            variant="soft"
-                        >
-                            {chip}
-                        </Chip>
-                    ) : null}
-                </ItemCard.Title>
+                </SettingsStatusTitle>
                 <ItemCard.Description title={folder.path}>{folder.path}</ItemCard.Description>
                 <SettingsRowError>{remove.error?.message}</SettingsRowError>
             </ItemCard.Content>

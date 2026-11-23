@@ -99,9 +99,7 @@ export function TriggerCreatePanel({
         <>
             <Sheet.Header>
                 <Sheet.Heading>New trigger</Sheet.Heading>
-                <p className="text-muted mt-1.5 text-sm leading-5">
-                    Wake {agent.displayName} when something outside Haus happens.
-                </p>
+                <p>Wake {agent.displayName} when something outside Haus happens.</p>
             </Sheet.Header>
             <Sheet.Body>
                 <Form

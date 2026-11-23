@@ -27,7 +27,7 @@ export function ComputerUpdates({
     return (
         <section>
             <ItemCardGroup variant="transparent">
-                <ItemCardGroup.Header className="flex items-center justify-between">
+                <ItemCardGroup.Header>
                     <ItemCardGroup.Title>Updates</ItemCardGroup.Title>
                     {import.meta.env.DEV ? (
                         <ComputerUpdatePreviewMenu
@@ -36,7 +36,7 @@ export function ComputerUpdates({
                         />
                     ) : null}
                 </ItemCardGroup.Header>
-                <ItemCardGroup className="overflow-hidden">
+                <ItemCardGroup>
                     <ComputerUpdateControls
                         computer={computer}
                         previewState={updatePreviewState}

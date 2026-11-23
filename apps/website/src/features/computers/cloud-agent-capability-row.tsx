@@ -1,7 +1,8 @@
 import { ItemCard } from '@heroui-pro/react';
-import { Button, Chip, Dropdown, Label, ListBox, Select } from '@heroui/react';
+import { Button, Dropdown, Label, ListBox, Select } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
+import { SettingsStatusChip, SettingsStatusTitle } from '../settings/layout/settings-row-title.tsx';
 import type { CloudAgentCapabilityView } from './cloud-agent-capability-model.ts';
 
 export function CloudAgentCapabilityRow({
@@ -24,22 +25,20 @@ export function CloudAgentCapabilityRow({
     return (
         <ItemCard>
             <ItemCard.Content>
-                <ItemCard.Title>
+                <SettingsStatusTitle
+                    status={
+                        <>
+                            {view.isDefault ? (
+                                <SettingsStatusChip>Default</SettingsStatusChip>
+                            ) : null}
+                            <SettingsStatusChip color={statusColor(view.status)}>
+                                {view.statusLabel}
+                            </SettingsStatusChip>
+                        </>
+                    }
+                >
                     {title}
-                    {view.isDefault ? (
-                        <Chip className="ms-2 align-middle" size="sm" variant="soft">
-                            Default
-                        </Chip>
-                    ) : null}
-                    <Chip
-                        className="ms-2 align-middle"
-                        color={statusColor(view.status)}
-                        size="sm"
-                        variant="soft"
-                    >
-                        {view.statusLabel}
-                    </Chip>
-                </ItemCard.Title>
+                </SettingsStatusTitle>
                 <ItemCard.Description className="whitespace-normal">
                     {view.description}
                 </ItemCard.Description>

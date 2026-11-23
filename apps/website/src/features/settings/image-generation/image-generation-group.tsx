@@ -80,7 +80,7 @@ function ProviderGroup({
     };
 
     return (
-        <ItemCardGroup className="overflow-hidden">
+        <ItemCardGroup>
             <ItemCard>
                 <ItemCard.Content>
                     <SettingsRowTitle

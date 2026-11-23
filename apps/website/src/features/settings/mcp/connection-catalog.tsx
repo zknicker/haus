@@ -14,6 +14,7 @@ import { useConnectionPresetIcons } from '../../../hooks/servers/use-connection-
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
 import { useSkoolConnect } from '../../../hooks/servers/use-skool-connect.ts';
 import { SettingsGridItem } from '../layout/settings-card-grid.tsx';
+import { SettingsEmptyState } from '../layout/settings-empty.tsx';
 import { ConnectionGlyph } from './connection-mark.tsx';
 import { connectionPresets, recommendedPresets } from './connection-presets.ts';
 import { McpBearerTokenDialog } from './mcp-bearer-token-dialog.tsx';
@@ -32,7 +33,7 @@ export function ConnectionCatalog({ serverId }: { serverId: string }) {
         return null;
     }
     if (availablePresets.length === 0) {
-        return <p className="text-muted py-8 text-center text-sm">Every connection is added.</p>;
+        return <SettingsEmptyState title="Every connection is added" />;
     }
 
     const add = (preset: McpPreset, name: string) => {

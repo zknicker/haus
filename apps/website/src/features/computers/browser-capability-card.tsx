@@ -22,7 +22,7 @@ export function BrowserCapabilityCard({
                 <ItemCardGroup.Header>
                     <ItemCardGroup.Title>Browser</ItemCardGroup.Title>
                 </ItemCardGroup.Header>
-                <ItemCardGroup className="overflow-hidden">
+                <ItemCardGroup>
                     <BrowserSettingsCard
                         error={settings.error?.message ?? save.error?.message ?? null}
                         isLoading={settings.isPending}

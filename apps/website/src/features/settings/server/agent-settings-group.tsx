@@ -15,7 +15,7 @@ export function AgentSettingsGroup({ isOwner, serverId }: { isOwner: boolean; se
             <ItemCardGroup.Header>
                 <ItemCardGroup.Title>Captains</ItemCardGroup.Title>
             </ItemCardGroup.Header>
-            <ItemCardGroup className="overflow-hidden">
+            <ItemCardGroup>
                 <ItemCard>
                     <ItemCard.Content>
                         <SettingsRowTitle info="Before an idle Claude Code session's one-hour prompt cache expires, compact it so the next turn resumes from a summary instead of the full history.">

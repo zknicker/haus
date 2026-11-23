@@ -15,7 +15,7 @@ export function GitSettings() {
                     <ItemCardGroup.Header>
                         <ItemCardGroup.Title>{section.title}</ItemCardGroup.Title>
                     </ItemCardGroup.Header>
-                    <ItemCardGroup className="overflow-hidden">
+                    <ItemCardGroup>
                         {section.facts.map((fact, index) => (
                             <Fragment key={fact.title}>
                                 {index > 0 ? <Separator /> : null}

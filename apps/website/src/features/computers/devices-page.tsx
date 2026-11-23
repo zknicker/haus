@@ -33,7 +33,7 @@ export function DevicesPage({ serverId, serverSlug }: { serverId: string; server
         <SettingsPageColumn width="table">
             <SettingsPageHeader title="Devices" />
             <ItemCardGroup variant="transparent">
-                <ItemCardGroup.Header className="flex items-center justify-between gap-3">
+                <ItemCardGroup.Header>
                     <ItemCardGroup.Title>
                         Your devices
                         {computers.data ? (

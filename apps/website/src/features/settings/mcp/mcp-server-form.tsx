@@ -47,7 +47,7 @@ export function McpConnectionFormDrawer({
                     <Drawer.CloseTrigger />
                     <Drawer.Header>
                         <Drawer.Heading>Add connection</Drawer.Heading>
-                        <p className="text-muted mt-1.5 text-sm leading-5">
+                        <p>
                             Point Haus at an MCP server, then authorize it if it asks for
                             credentials.
                         </p>
@@ -174,7 +174,7 @@ function OAuthAdvancedFields({
         <Disclosure>
             <Disclosure.Heading>
                 <Button slot="trigger" variant="ghost">
-                    Advanced OAuth Settings
+                    Advanced OAuth settings
                     <Disclosure.Indicator />
                 </Button>
             </Disclosure.Heading>

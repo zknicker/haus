@@ -30,7 +30,7 @@ export function SkillList({
 }) {
     return (
         <ItemCardGroup variant="transparent">
-            <ItemCardGroup.Header className="flex items-center justify-between gap-3">
+            <ItemCardGroup.Header>
                 <ItemCardGroup.Title>
                     Skills
                     <span className="text-muted ms-2 tabular-nums">{skills.length}</span>

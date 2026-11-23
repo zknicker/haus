@@ -37,7 +37,7 @@ export function ComputerRepoFolderAddDialog({
 
 export function RepoFolderDisclosure() {
     return (
-        <p className="text-muted mt-1.5 text-sm leading-5">
+        <p>
             {'Workers and Captains work in git worktrees of this folder and share its '}
             <code>.git</code>
             {'. A Worker can change its branches, including '}

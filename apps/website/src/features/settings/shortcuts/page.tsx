@@ -3,6 +3,7 @@ import { SearchField } from '@heroui/react';
 import * as React from 'react';
 import { isMacPlatform } from '../../../hooks/browser/browser-shortcut-keys.ts';
 import { matchingShortcuts, type Shortcut } from '../../shortcuts/shortcut-registry.ts';
+import { SettingsEmptyState } from '../layout/settings-empty.tsx';
 import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { ShortcutChords } from './shortcut-chord.tsx';
@@ -35,7 +36,7 @@ export function ShortcutsSettings() {
                 data={rows}
                 getRowId={(row) => row.id}
                 renderEmptyState={() => (
-                    <p className="text-muted py-8 text-center text-sm">No shortcuts match.</p>
+                    <SettingsEmptyState role="status" title="No shortcuts match" />
                 )}
             />
         </SettingsPageColumn>

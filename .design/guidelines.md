@@ -1022,9 +1022,22 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   fields, tables and card edges share the column's one left edge; row text keeps its inset
   inside the card. All sidebars share one density (Zach chose one density, 2026-11-23): the
   Settings rail and the chat sidebar both run `--spacing-compact`, a ~26px pitch for a text
-  row, and the rail's search field and group labels take it with no rail-only rule. A catalog
+  row, and the rail's search field and group labels take it with no rail-only rule. Every
+  sidebar's nav icons draw at 16px in a 16px slot, at a 2-unit Hugeicons stroke (~1.33px,
+  Capy's weight) and in their label's ink; the rail's search glyph is a Hugeicons
+  `Search01Icon` on the same x-axis and stroke (`default-theme.css`). The Settings rail's
+  footer keeps only the account control. A catalog
   row carries no check mark when its section title already says
   Installed or Connected, and no description that only repeats its own name.
+  Shared settings parts: a section header that carries a control just puts it after the
+  `ItemCardGroup.Title` (the theme lays the header out as a wrapping row); a row's status is
+  `SettingsStatusTitle` with `SettingsStatusChip`s (soft, `sm`, `Chip.Label`), never a chip
+  in `Action`, a description, or a bare fact; an empty page or section is
+  `SettingsEmptyState` (Pro `EmptyState` at `md`, no padding classes) and an empty list box
+  holds one `SettingsEmptyRow`; a pressable row (`ItemCard` as a link or button) gets its
+  inset focus ring from the theme. A dialog's description is a plain `<p>` in its Modal,
+  Drawer or Sheet header, and a neutral header tile is `Modal.Icon` with
+  `modal__icon--neutral`; `haus/heroui-compound-children` rejects a class on that `<p>`.
   Connection logos use `ConnectionGlyph` inside the shared surface tile: artwork occupies
   75% of the box with `object-fit: contain`, preserving circular and irregular brand shapes
   without cropping them. Artwork inherits the tile's corner radius so square brand
@@ -1172,7 +1185,7 @@ artifact-panel toggle; artifacts open as their own tabs.
 - Do use neutral surface tokens for containers, cards, stat pills, and nested panels; reserve accent and status colors for real meaning.
 - Do create hierarchy with surface levels, spacing, typography, and content order before adding more borders or decoration.
 - Do use accent for primary emphasis and success, warning, and danger only for their semantic meanings.
-- Do keep typography concise and scannable with short Title Case headings, muted secondary text, and tabular numbers for metrics.
+- Do keep typography concise and scannable with short sentence-case headings (ADR 0058), muted secondary text, and tabular numbers for metrics.
 - Do keep descriptions and supporting text short; aim for two or three lines so content stays easy to scan.
 - Do visually align large numbers, prices, temperatures, and metrics with their supporting labels using tight line-height and optical adjustment.
 - Do use elevation deliberately with tokenized surface and overlay shadows; avoid stacking extra custom shadows on elevated components.
@@ -1193,7 +1206,7 @@ artifact-panel toggle; artifacts open as their own tabs.
 - Don't nest visually heavy surfaces inside other heavy surfaces; avoid card-on-card depth unless hierarchy truly needs it.
 - Don't let badges, chips, tags, or compact indicators stretch full width; they should remain content-sized.
 - Don't add redundant icons, logos, badges, wrappers, or trust signals that do not introduce new information.
-- Don't use ALL CAPS labels or verbose headings when short Title Case labels communicate the section clearly. The one exception is the turn trace's micro-label tier (see **Turn trace**).
+- Don't use ALL CAPS or Title Case labels, or verbose headings, when short sentence-case labels (ADR 0058) communicate the section clearly. The one exception is the turn trace's micro-label tier (see **Turn trace**).
 - Don't misuse warning for neutral emphasis or decoration; reserve it for genuine caution.
 - Don't allow floating controls to overlap content; add enough spacing or padding for close buttons, badges, and overlay actions.
 - Don't add hover or transition behavior to non-interactive content; reserve feedback for actual interactions.

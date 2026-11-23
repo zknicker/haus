@@ -52,9 +52,7 @@ export function ChannelAppearanceDialog({ chat, onClose }: { chat: Chat; onClose
                             />
                         </Modal.Icon>
                         <Modal.Heading>Icon &amp; color</Modal.Heading>
-                        <p className="text-muted text-sm leading-5">
-                            How #{chat.name} looks in the sidebar and across the app.
-                        </p>
+                        <p>How #{chat.name} looks in the sidebar and across the app.</p>
                     </Modal.Header>
                     <Modal.Body>
                         <Form

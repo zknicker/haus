@@ -125,7 +125,7 @@ export function ComputerDetail({
             <ComputerRepoFoldersCard computerId={computerId} serverId={serverId} />
             <section>
                 <ItemCardGroup variant="transparent">
-                    <ItemCardGroup.Header className="flex items-start justify-between gap-3">
+                    <ItemCardGroup.Header>
                         <ItemCardGroup.Title>Plan usage</ItemCardGroup.Title>
                         <ComputerInventoryRefresh computerId={computerId} serverId={serverId} />
                     </ItemCardGroup.Header>

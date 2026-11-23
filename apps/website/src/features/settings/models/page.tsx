@@ -3,6 +3,7 @@ import { Alert, Chip, SearchField } from '@heroui/react';
 import * as React from 'react';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import { ImageGenerationSettings } from '../image-generation/image-generation-group.tsx';
+import { SettingsEmptyState } from '../layout/settings-empty.tsx';
 import { SettingsPageColumn } from '../layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { CloudAgentModelGroup } from './cloud-agent-model-group.tsx';
@@ -57,7 +58,7 @@ export function ModelsSettings({
             <ImageGenerationSettings isOwner={isOwner} serverId={serverId} />
 
             <ItemCardGroup variant="transparent">
-                <ItemCardGroup.Header className="flex flex-wrap items-center justify-between gap-3">
+                <ItemCardGroup.Header>
                     <ItemCardGroup.Title>
                         Reported models
                         {computers.data ? (
@@ -89,9 +90,10 @@ export function ModelsSettings({
                         getRowId={(item) => item.id}
                     />
                 ) : (
-                    <p className="text-muted py-8 text-center text-sm">
-                        {query ? 'No models match your search.' : 'No models reported yet.'}
-                    </p>
+                    <SettingsEmptyState
+                        role="status"
+                        title={query ? 'No models match your search' : 'No models reported yet'}
+                    />
                 )}
             </ItemCardGroup>
         </SettingsPageColumn>

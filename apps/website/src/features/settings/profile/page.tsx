@@ -89,7 +89,7 @@ function ProfileIdentity({ serverId, viewer }: { serverId: string; viewer: Serve
     };
 
     return (
-        <ItemCardGroup className="overflow-hidden">
+        <ItemCardGroup>
             <ItemCard>
                 <ItemCard.Content>
                     <ItemCard.Title>Photo</ItemCard.Title>
@@ -190,7 +190,7 @@ function SignOutSection() {
             <ItemCardGroup.Header>
                 <ItemCardGroup.Title>Account</ItemCardGroup.Title>
             </ItemCardGroup.Header>
-            <ItemCardGroup className="overflow-hidden">
+            <ItemCardGroup>
                 <ItemCard>
                     <ItemCard.Content>
                         <SettingsRowTitle info="Sign out of Haus here. Your chats stay on the Server.">

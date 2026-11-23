@@ -38,7 +38,7 @@ export function CustomThemeColors({ theme }: { theme: CustomTheme }) {
 
     return (
         <ItemCardGroup variant="transparent">
-            <ItemCardGroup.Header className="flex items-center justify-between">
+            <ItemCardGroup.Header>
                 <ItemCardGroup.Title>Colors</ItemCardGroup.Title>
                 <Segment
                     aria-label="Colors for mode"
@@ -51,7 +51,7 @@ export function CustomThemeColors({ theme }: { theme: CustomTheme }) {
                 </Segment>
             </ItemCardGroup.Header>
             <div className="grid gap-2">
-                <ItemCardGroup className="overflow-hidden">{rows(coreRoles)}</ItemCardGroup>
+                <ItemCardGroup>{rows(coreRoles)}</ItemCardGroup>
                 <Disclosure>
                     <Disclosure.Heading>
                         <Disclosure.Trigger>
@@ -62,9 +62,7 @@ export function CustomThemeColors({ theme }: { theme: CustomTheme }) {
                         </Disclosure.Trigger>
                     </Disclosure.Heading>
                     <Disclosure.Content>
-                        <ItemCardGroup className="overflow-hidden">
-                            {rows(advancedRoles)}
-                        </ItemCardGroup>
+                        <ItemCardGroup>{rows(advancedRoles)}</ItemCardGroup>
                     </Disclosure.Content>
                 </Disclosure>
             </div>

@@ -69,13 +69,11 @@ function HeaderCredentialsForm({
     return (
         <>
             <Modal.Header>
-                <Modal.Icon className="bg-default text-foreground">
+                <Modal.Icon className="modal__icon--neutral">
                     <Icon className="size-5" icon={Key01Icon} />
                 </Modal.Icon>
                 <Modal.Heading>Connect {connection.name}</Modal.Heading>
-                <p className="text-muted mt-1.5 text-sm leading-5">
-                    Enter the request headers this server uses to authenticate.
-                </p>
+                <p>Enter the request headers this server uses to authenticate.</p>
             </Modal.Header>
             <Modal.Body>
                 <Form

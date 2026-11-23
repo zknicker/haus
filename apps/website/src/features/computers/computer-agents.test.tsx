@@ -28,7 +28,8 @@ test('Computer Agents render as a HeroUI Pro data grid', () => {
     expect(html).toContain('Blippy');
     expect(html).toContain('GPT-5.6 Sol');
     expect(html).toContain('Online');
-    expect(html).toContain('chip--lg');
+    expect(html).toContain('chip--sm');
+    expect(html).toContain('data-slot="chip-label"');
     expect(html).not.toContain('min-h-64');
 });
 

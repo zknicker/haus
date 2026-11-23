@@ -1,11 +1,12 @@
 import { DataGrid, type DataGridColumn, ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { Button, Chip } from '@heroui/react';
+import { Button } from '@heroui/react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.ts';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import type { HausOutputs } from '../../lib/haus-server.tsx';
 import { availabilityBadgeColor } from '../members/agent-avatar.tsx';
+import { SettingsStatusChip } from '../settings/layout/settings-row-title.tsx';
 import { agentExecutionLabels, availabilityLabel } from './presentation.ts';
 
 type Agent = HausOutputs['agent']['list'][number];
@@ -92,7 +93,7 @@ export function ComputerAgentsEmpty({ state }: { state: ComputerAgentGridState }
         );
     }
     return (
-        <ItemCardGroup className="overflow-hidden">
+        <ItemCardGroup>
             <ItemCard>
                 <ItemCard.Content>
                     <ItemCard.Title>
@@ -161,9 +162,9 @@ const agentColumns: DataGridColumn<ComputerAgentRow>[] = [
     {
         align: 'end',
         cell: (item) => (
-            <Chip color={availabilityBadgeColor(item.availability)} size="lg" variant="soft">
+            <SettingsStatusChip color={availabilityBadgeColor(item.availability)}>
                 {availabilityLabel(item)}
-            </Chip>
+            </SettingsStatusChip>
         ),
         header: 'Status',
         id: 'availability',
