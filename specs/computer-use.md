@@ -63,7 +63,8 @@ replaces this section, "The gate" and "App" until the rewrite:
 - Agent access is Selected Captains or All Captains on this Server, and only the attacher widens
   it.
 - Computer use is one switch over every Agent with access. The Captains list, its `all` scope and
-  `not-listed` go.
+  `not-listed` go. Only the attacher turns the switch on; the attacher, Owners and Admins turn it
+  off.
 - The migration turns a Device's switch off wherever one switch would widen its desktop access.
 
 The Server holds two lists on each Device

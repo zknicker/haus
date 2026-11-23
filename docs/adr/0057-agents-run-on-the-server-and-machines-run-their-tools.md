@@ -1,6 +1,6 @@
 ---
 status: accepted
-summary: An Agent's loop runs on the Server in a sandboxed runner, on the Claude Agent SDK for Claude plans and Pi Durable for every other model, with sessions on the runner's persistent volume. Each Agent is pinned to one harness, and the first harness ships before the second. Amended 2026-11-23, each Agent has a changeable Machine instead of a home Computer, where its drive/ folder syncs and its tools run by default; it is set at creation and changed in the Agent's settings or DM, never a chat composer, between turns, with the destination attacher's consent, a Drive flush and a durable placement generation, and worktrees stay on the old Mac. Every machine tool takes an optional per-call `computer` target (2026-11-22). Each Computer's Agent access is Selected Captains or All Captains on this Server; only the attacher widens it, stewards narrow it, the Machine always has it, and Workers honor it. Computer use is one switch over every Agent with access, migrated so nobody's desktop access widens. There are no in-chat permission Asks. The Server resolves the target and its gate fails closed for every invocation kind, revoke and retire are fenced against queued calls, off-Machine calls run in the Agent's own folder on that Computer, `haus` file paths follow the call's target, and the Agent finds its Computers with `haus computer list`. Its tools are bash and edit, the haus CLI run by the runner, and the one execute tool. Every invocation has an id, is recorded as accepted before it runs, and never reruns after an unknown outcome; an offline machine answers at once. Model logins are configured in the App and held encrypted by the Server, several per provider. Inbox items go to the runner. Workers keep native harnesses on machines. User-configured local MCP is descoped. Accepted 2026-11-19, not yet implemented.
+summary: An Agent's loop runs on the Server in a sandboxed runner, on the Claude Agent SDK for Claude plans and Pi Durable for every other model, with sessions on the runner's persistent volume. Each Agent is pinned to one harness, and the first harness ships before the second. Amended 2026-11-23, each Agent has a changeable Machine instead of a home Computer, where its drive/ folder syncs and its tools run by default; it is set at creation and changed in the Agent's settings or DM, never a chat composer, between turns, with the destination attacher's consent, a Drive flush and a durable placement generation, and worktrees stay on the old Mac. Every machine tool takes an optional per-call `computer` target (2026-11-22). Each Computer's Agent access is Selected Captains or All Captains on this Server; only the attacher widens it, stewards narrow it, the Machine always has it, and Workers honor it. Computer use is one switch over every Agent with access, turned on only by the attacher and migrated so nobody's desktop access widens. There are no in-chat permission Asks. The Server resolves the target and its gate fails closed for every invocation kind, revoke and retire are fenced against queued calls, off-Machine calls run in the Agent's own folder on that Computer, `haus` file paths follow the call's target, and the Agent finds its Computers with `haus computer list`. Its tools are bash and edit, the haus CLI run by the runner, and the one execute tool. Every invocation has an id, is recorded as accepted before it runs, and never reruns after an unknown outcome; an offline machine answers at once. Model logins are configured in the App and held encrypted by the Server, several per provider. Inbox items go to the runner. Workers keep native harnesses on machines. User-configured local MCP is descoped. Accepted 2026-11-19, not yet implemented.
 read_when:
   - changing where an Agent's loop runs, its harnesses, or where its session is stored
   - changing the Agent's machine, moving an Agent, or what an Agent can do while its machine is offline
@@ -356,8 +356,9 @@ it".
      trigger (`apps/server/drizzle/postgres/0150_computer-use-captains.sql:18-24`, replaced at
      `0153_computer-agent-access.sql:17-22`). The gate no longer produces `not-listed`, and the
      refusal CHECK keeps it for old ledger rows.
-   - The switch keeps today's stewards: the attacher, Owners and Admins
-     (`apps/server/src/computers/set-computer-use.ts:14`).
+   - Turning the switch on widens desktop access, so only the attacher turns it on, as with
+     **Workers can run here**. The attacher, Owners and Admins turn it off. Today any steward
+     turns it on (`apps/server/src/computers/set-computer-use.ts:14`).
    - **Changed capability.** A person can no longer let an Agent run shell on a Computer while
      keeping it off the desktop there when the switch is on. Access is the grant, and the switch
      says whether access includes the desktop.
@@ -374,7 +375,7 @@ it".
      D is never larger than A: a named entry needs access
      (`apps/server/src/computers/set-computer-use-agents.ts:23-33`), and a revoke deletes it
      (`apps/server/src/computers/computer-agent-access.ts:72-80`). The third row narrows: the
-     Agents in D lose the desktop there until a steward turns the switch on, which then covers
+     Agents in D lose the desktop there until the attacher turns the switch on, which then covers
      all of A. The migration logs each Computer it turns off. It never translates `all` into
      "every Agent with access". Access rows are untouched, so no shell access changes either.
    - **Possible later, not decided:** Off, Screen only and Full control, split by
@@ -463,7 +464,8 @@ Amended:
 - [CONTEXT.md](../../CONTEXT.md): Machine, with home Computer as a word to avoid.
 
 Changed capability: shell without the desktop on a Computer whose switch is on; desktop access on
-a Computer the migration turns off; and Worker starts on a Computer the Agent has no access to.
+a Computer the migration turns off; Worker starts on a Computer the Agent has no access to; and
+Owners and Admins turning computer use on for a Computer they did not attach.
 
 Deferred: Cloud as a Machine; no Machine at all, which needs the `agents_configuration` CHECK
 (`apps/server/src/postgres/schema/agents.ts:186-191`), `toAgent`
@@ -475,7 +477,8 @@ Follow-up:
 
 - The Agent access setting and its migration, the attacher-only widening, and the Worker start
   check.
-- The computer use migration in decision 5, and the retired scope, table and trigger.
+- The computer use migration in decision 5, the retired scope, table and trigger, and the
+  attacher-only check for turning the switch on.
 - `agent.setMachine` (not `agent.setHome`, which moves the Project), the placement generation, the
   Drive handoff, the decision 8 list, and the removal flow.
 - The App: Machine in the create form and the Agent's settings and DM, the Device page labels
