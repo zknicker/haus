@@ -43,6 +43,7 @@ test('Forge can express deploy and CI policies in alternative workflow groups', 
         sender: { login: 'octocat' },
         workflow_run: {
             head_branch: 'trunk',
+            head_repository: { full_name: 'acme/api' },
             path: '.github/workflows/deploy.yml',
             conclusion: 'cancelled',
             event: 'push',

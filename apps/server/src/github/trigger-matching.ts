@@ -9,6 +9,11 @@ import { matchesSelection } from './trigger-pattern.ts';
 
 const collaboratorAssociations = new Set(['COLLABORATOR', 'MEMBER', 'OWNER']);
 
+// `push`, `release`, and `deployment_status` get no `authors` gate: GitHub's
+// own access control already gates who can cause those events to exist (a
+// fork can't push to the base repo, publish its release, or deploy it).
+// Narrow further with `actors`/`actorsIgnore`, already on every event.
+
 /** A delivery's event when it is one a `github` Trigger may listen to. */
 export function triggerEventName(event: string): GithubTriggerEventName | null {
     const parsed = githubTriggerEventNameSchema.safeParse(event);
@@ -75,56 +80,36 @@ function matchesEntry(entry: GithubTriggerEvent, payload: Payload): boolean {
         case 'workflow_run': {
             const run = field(payload, 'workflow_run');
             return (
-                oneOf(entry.actions, action) &&
-                oneOf(entry.conclusions, text(run, 'conclusion')) &&
-                matchesSelection(
-                    entry.branches,
-                    entry.branchesIgnore,
-                    text(run, 'head_branch'),
-                    defaultBranch
-                ) &&
+                matchesCiResult(entry, action, run, text(run, 'head_branch'), defaultBranch, {
+                    trusted: sameRepository(
+                        text(field(run, 'head_repository'), 'full_name'),
+                        text(repository, 'full_name')
+                    ),
+                }) &&
                 matchesSelection(entry.workflows, entry.workflowsIgnore, text(run, 'path')) &&
                 oneOf(entry.workflowEvents, text(run, 'event'))
             );
         }
         case 'workflow_job': {
             const job = field(payload, 'workflow_job');
-            return (
-                oneOf(entry.actions, action) &&
-                oneOf(entry.conclusions, text(job, 'conclusion')) &&
-                matchesSelection(
-                    entry.branches,
-                    entry.branchesIgnore,
-                    text(job, 'head_branch'),
-                    defaultBranch
-                )
-            );
+            return matchesCiResult(entry, action, job, text(job, 'head_branch'), defaultBranch, {
+                trusted: workflowJobTrusted,
+            });
         }
         case 'check_suite': {
             const suite = field(payload, 'check_suite');
-            return (
-                oneOf(entry.actions, action) &&
-                oneOf(entry.conclusions, text(suite, 'conclusion')) &&
-                matchesSelection(
-                    entry.branches,
-                    entry.branchesIgnore,
-                    text(suite, 'head_branch'),
-                    defaultBranch
-                )
-            );
+            const headBranch = text(suite, 'head_branch');
+            return matchesCiResult(entry, action, suite, headBranch, defaultBranch, {
+                trusted: checkTrusted(headBranch),
+            });
         }
         case 'check_run': {
             const run = field(payload, 'check_run');
+            const headBranch = text(field(run, 'check_suite'), 'head_branch');
             return (
-                oneOf(entry.actions, action) &&
-                oneOf(entry.conclusions, text(run, 'conclusion')) &&
-                matchesSelection(
-                    entry.branches,
-                    entry.branchesIgnore,
-                    text(field(run, 'check_suite'), 'head_branch'),
-                    defaultBranch
-                ) &&
-                matchesSelection(entry.checkNames, entry.checkNamesIgnore, text(run, 'name'))
+                matchesCiResult(entry, action, run, headBranch, defaultBranch, {
+                    trusted: checkTrusted(headBranch),
+                }) && matchesSelection(entry.checkNames, entry.checkNamesIgnore, text(run, 'name'))
             );
         }
         case 'deployment_status': {
@@ -149,7 +134,7 @@ function matchesEntry(entry: GithubTriggerEvent, payload: Payload): boolean {
                     defaultBranch
                 ) &&
                 anyLabel(entry.labels, labelNames(pull)) &&
-                authorAllowed(entry.authors, text(pull, 'author_association'))
+                authorAllowed(entry.authors, associationTrusted(text(pull, 'author_association')))
             );
         }
         case 'pull_request_review': {
@@ -157,7 +142,7 @@ function matchesEntry(entry: GithubTriggerEvent, payload: Payload): boolean {
             return (
                 oneOf(entry.actions, action) &&
                 oneOf(entry.states, text(review, 'state')?.toLowerCase() ?? null) &&
-                authorAllowed(entry.authors, text(review, 'author_association'))
+                authorAllowed(entry.authors, associationTrusted(text(review, 'author_association')))
             );
         }
         case 'push':
@@ -167,7 +152,7 @@ function matchesEntry(entry: GithubTriggerEvent, payload: Payload): boolean {
             return (
                 oneOf(entry.actions, action) &&
                 anyLabel(entry.labels, labelNames(issue)) &&
-                authorAllowed(entry.authors, text(issue, 'author_association'))
+                authorAllowed(entry.authors, associationTrusted(text(issue, 'author_association')))
             );
         }
         case 'release':
@@ -210,8 +195,65 @@ function anyLabel(filter: readonly string[] | undefined, labels: readonly string
     return labels.some((label) => wanted.has(label.toLowerCase()));
 }
 
-function authorAllowed(authors: 'anyone' | 'collaborators', association: string | null) {
+type CiResultEntry = Extract<
+    GithubTriggerEvent,
+    { event: 'check_run' | 'check_suite' | 'workflow_job' | 'workflow_run' }
+>;
+
+function matchesCiResult(
+    entry: CiResultEntry,
+    action: string | null,
+    result: unknown,
+    headBranch: string | null,
+    defaultBranch: string | null,
+    origin: { trusted: boolean }
+) {
     return (
-        authors === 'anyone' || (association !== null && collaboratorAssociations.has(association))
+        oneOf(entry.actions, action) &&
+        oneOf(entry.conclusions, text(result, 'conclusion')) &&
+        matchesSelection(entry.branches, entry.branchesIgnore, headBranch, defaultBranch) &&
+        authorAllowed(entry.authors, origin.trusted)
     );
+}
+
+function authorAllowed(authors: 'anyone' | 'collaborators', trusted: boolean): boolean {
+    return authors === 'anyone' || trusted;
+}
+
+function associationTrusted(association: string | null): boolean {
+    return association !== null && collaboratorAssociations.has(association);
+}
+
+/**
+ * `workflow_run` is the only CI event that reports a head repository; it is
+ * trusted when that matches the base repository the workflow ran in.
+ */
+function sameRepository(headFullName: string | null, baseFullName: string | null): boolean {
+    return headFullName !== null && baseFullName !== null && headFullName === baseFullName;
+}
+
+/**
+ * `workflow_job` reports no `head_repository`, and GitHub's own documented
+ * null-on-fork `head_branch` behavior covers only `check_suite`/`check_run`
+ * (confirmed against GitHub's Checks API docs) — a fork PR's `workflow_job`
+ * carries the fork's real branch name, non-null, so treating a non-null
+ * `head_branch` as trusted would do nothing. With no reliable signal in the
+ * payload, `workflow_job` is untrusted under the default gate; `authors:
+ * anyone` is the only way to receive it.
+ */
+const workflowJobTrusted = false;
+
+/**
+ * `check_suite`/`check_run` report a null `head_branch` when their commit
+ * lives only in a fork (GitHub's own documented behavior), but the same null
+ * also shows up for a tag push and a detached-commit check — GitHub has no
+ * per-event field that tells these apart. So a default-gated `check_suite` or
+ * `check_run` Trigger also misses tag- and detached-commit-triggered checks,
+ * not only fork ones; `authors: anyone` or a matching `actors` entry gets
+ * them back. Documented in specs/github-triggers.md#events and the website's
+ * Authors hint rather than solved here, since nothing in the payload
+ * distinguishes the two.
+ */
+function checkTrusted(headBranch: string | null): boolean {
+    return headBranch !== null;
 }

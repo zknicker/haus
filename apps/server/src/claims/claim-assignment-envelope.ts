@@ -1,3 +1,5 @@
+import { createLineBreakPattern } from '@haus/api';
+
 /**
  * The assignment handoff is a private Agent-facing delivery, so it is typed
  * an inbox item rather than a Chat message: everything in `chat_messages` is
@@ -24,7 +26,14 @@ export function claimAssignmentKey(messageId: string, version: number): string {
     return `claim-assign:${messageId}:${version}`;
 }
 
+/**
+ * The whole envelope is one line, so a title's own line breaks must flatten
+ * to spaces first — plain `\s` misses FS/GS/RS and NEL, which would otherwise
+ * ride through and forge a fresh column-0 line, the same bypass `indentPayload`
+ * closes for Triggers. The universal set goes first, then ordinary whitespace
+ * collapses as before.
+ */
 function envelopeTitle(title: string): string {
-    const flat = title.replaceAll(/\s+/gu, ' ').trim();
+    const flat = title.replace(createLineBreakPattern(), ' ').replaceAll(/\s+/gu, ' ').trim();
     return flat.length > 80 ? `${flat.slice(0, 77).trimEnd()}…` : flat;
 }

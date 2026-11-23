@@ -188,7 +188,7 @@ function applyAuthors(args: ParsedArgs, entries: Record<string, unknown>[]) {
     if (takers.length === 0) {
         throw new AgentCliError(
             'INVALID_ARG',
-            '--authors applies only to pull_request, pull_request_review, and issues.'
+            '--authors applies only to pull_request, pull_request_review, issues, workflow_run, workflow_job, check_suite, and check_run.'
         );
     }
     for (const entry of takers) {

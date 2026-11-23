@@ -1,3 +1,5 @@
+import { createLineBreakPattern } from '@haus/api';
+
 /**
  * The header facts every inbox line prints — the `msg=` short id, the `time=`
  * instant, and a human sender's `sender_tz=` — shared by envelopes, notices,
@@ -75,10 +77,12 @@ export function shortInboxId(id: string): string {
  * breaks on counts, not just `\n`; `\r\n` matches as one.
  */
 const bodyContinuationPrefix = '  │ ';
-const bodyLineSeparator = /\r\n|[\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029]/gu;
 
 export function indentContinuationLines(text: string): string {
-    return text.replace(bodyLineSeparator, (separator) => `${separator}${bodyContinuationPrefix}`);
+    return text.replace(
+        createLineBreakPattern(),
+        (separator) => `${separator}${bodyContinuationPrefix}`
+    );
 }
 
 /**

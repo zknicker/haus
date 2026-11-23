@@ -1,3 +1,4 @@
+import { createLineBreakPattern } from '@haus/api';
 import { automationReplyLine } from '../automations/automation-envelope.ts';
 
 /** Largest script output one wake envelope carries; launch caps an item at 32 KiB. */
@@ -95,5 +96,5 @@ function indent(output: string): string[] {
     if (output.length === 0) {
         return [];
     }
-    return output.split(/\r\n|\r|\n/u).map((line) => `  ${line}`);
+    return output.split(createLineBreakPattern()).map((line) => `  ${line}`);
 }
