@@ -16,7 +16,7 @@ interface ComputerDeps {
 }
 
 const targetHint =
-    'Target one with the `computer` field (its name or id) on a bash, shell, edit, view_image, or execute call. Without it, tools run on your home Computer.';
+    'Target one with the `computer` field (its name or id) on a bash, shell, edit, view_image, or execute call. Without it, tools run on your Machine.';
 
 export const COMPUTER_SUBCOMMANDS: SubCommand[] = [
     {
@@ -57,8 +57,8 @@ function computerLine(computer: ComputerEntry) {
 }
 
 function accessMark(computer: ComputerEntry) {
-    if (computer.home) {
-        return 'home';
+    if (computer.machine) {
+        return 'machine';
     }
     return computer.allowed ? 'allowed' : 'no access';
 }

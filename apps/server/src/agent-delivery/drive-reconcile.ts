@@ -18,6 +18,7 @@ export async function driveReconcileFrames(db: HausDatabase, machineId: string) 
         }
         const run = {
             agentId: agent.agentId,
+            placementGeneration: agent.placementGeneration,
             runId,
             sessionGeneration: agent.sessionGeneration,
         };

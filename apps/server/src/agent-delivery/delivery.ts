@@ -8,6 +8,18 @@ import {
     type ReminderScriptResult,
 } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
+import type { MachineChangeStep } from '../agent-machine/advance-machine-change.ts';
+import {
+    advanceAgentMachine,
+    advancePendingMachines,
+    type MachineChangeDeps,
+} from '../agent-machine/machine-change-delivery.ts';
+import {
+    commitMachineChangeStep,
+    type MachineFences,
+    unfencedMachines,
+} from '../agent-machine/machine-change-effects.ts';
+import { machineChangeHolds } from '../agent-machine/machine-change-read.ts';
 import { retireOnServerComputers } from '../computers/agent-retirement.ts';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -15,10 +27,7 @@ import { createOpaqueId } from '../postgres/opaque-id.ts';
 import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import { artifactUpdatedTopic } from '../realtime/topics.ts';
-import {
-    listReminderScriptCommands,
-    settleReminderScript,
-} from '../reminders/reminder-script-delivery.ts';
+import { settleReminderScript } from '../reminders/reminder-script-delivery.ts';
 import { recordReminderWakeUsage } from '../reminders/reminder-wake-usage.ts';
 import { readActiveAgentActivity } from '../server-agents/agent-activity-history.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
@@ -30,6 +39,8 @@ import { publishCommittedAgentActivity } from './activity-events.ts';
 import { planBusyNotice } from './busy-notice.ts';
 import { admitQueuedAgentDrain, restartIdleAgentChain } from './chain-budget.ts';
 import { planChatlessRun } from './chatless-run.ts';
+import { reconcileComputerAgents } from './computer-reconnect.ts';
+import { applyConfiguration, sendAgentConfiguration } from './configuration-apply.ts';
 import { markCursorSubsumedSeen } from './cursors.ts';
 import {
     configureFrame,
@@ -40,9 +51,7 @@ import {
 } from './deferred-configuration.ts';
 import {
     type AgentConfigureRequest,
-    listComputerAgents,
     readAgentDispatchConfig,
-    reconcileConfigureFrame,
     startPromptFacts,
 } from './dispatch-config.ts';
 import { dispatchEach } from './dispatch-each.ts';
@@ -91,6 +100,8 @@ export interface DispatchPlan {
     computerId: string;
     configuration?: DeferredConfiguration;
     frame: LoopFrame;
+    /** The Agent's placement generation, set when a run's start is bound for the runner. */
+    placementGeneration?: number;
     serverId: string;
     suppressSend?: boolean;
 }
@@ -116,9 +127,22 @@ export class AgentDelivery {
         private readonly db: HausDatabase,
         private readonly transport: DeliveryTransport,
         readonly runtime?: EffectRuntime<never>,
-        runner: RunnerWire = offlineRunner
+        runner: RunnerWire = offlineRunner,
+        private readonly fences: MachineFences = unfencedMachines
     ) {
         this.route = new AgentLoopRoute(transport, runner);
+    }
+
+    /** Moves the Agent's pending Machine change a step (ADR 0057 decision 7). */
+    async advanceMachineChange(agentId: string) {
+        await advanceAgentMachine(this.machineDeps(), { agentId });
+    }
+
+    /** Commits Machine switches made inside another transaction, such as a Device removal. */
+    async commitMachineSteps(steps: readonly MachineChangeStep[]) {
+        for (const step of steps) {
+            await commitMachineChangeStep(step, this.machineDeps());
+        }
     }
 
     /**
@@ -197,6 +221,7 @@ export class AgentDelivery {
                 type: 'agent-stop-background',
             });
         }
+        await this.advanceMachineChange(input.agentId);
     }
 
     /** Human Start: clear the flag and any backoff, then drain the pending inbox. */
@@ -369,6 +394,7 @@ export class AgentDelivery {
                 serverId,
             });
             this.emit(recovery.plan);
+            await this.advanceMachineChange(summary.agentId);
             return;
         }
         const settlement = await this.db.transaction(async (tx) => {
@@ -404,6 +430,7 @@ export class AgentDelivery {
             serverId,
         });
         this.emit(settlement.plan);
+        await this.advanceMachineChange(summary.agentId);
     }
 
     /**
@@ -413,35 +440,8 @@ export class AgentDelivery {
      * accepted-but-unsettled run intentionally replays at least once.
      */
     async onComputerReconnect(computerId: string): Promise<void> {
-        for (const command of await listReminderScriptCommands(this.db, computerId)) {
-            this.transport.send(computerId, command);
-        }
-        const agents = await listComputerAgents(this.db, computerId);
-        for (const agent of agents) {
-            if (agent.retiredAt) {
-                this.transport.send(computerId, {
-                    agentId: agent.agentId,
-                    type: 'agent-retire',
-                });
-                continue;
-            }
-            const state = await store.readDeliveryState(this.db, agent.agentId);
-            const activeConfigurationChanged =
-                Boolean(state?.activeRunId) &&
-                (state?.activeRunModelId !== agent.desiredModelId ||
-                    state?.activeRunRuntimeId !== agent.desiredRuntimeId ||
-                    state?.activeRunReasoningEffort !== agent.desiredReasoningEffort);
-            const { desiredModelId, desiredRuntimeId } = agent;
-            if (!activeConfigurationChanged && desiredModelId && desiredRuntimeId) {
-                this.transport.send(
-                    computerId,
-                    reconcileConfigureFrame({ ...agent, desiredModelId, desiredRuntimeId })
-                );
-            }
-            await this.dispatchAgent(agent.agentId, agent.serverId, {
-                resendActive: false,
-            });
-        }
+        await reconcileComputerAgents(this.machineDeps(), computerId);
+        await advancePendingMachines(this.machineDeps(), { fromComputerId: computerId });
     }
 
     /**
@@ -473,65 +473,19 @@ export class AgentDelivery {
         agent: Agent;
         rotation: AgentConfigurationRotation | null;
     }): Promise<void> {
-        const { agent, rotation } = input;
-        if (rotation?.deferred) {
-            return;
-        }
-        if (rotation) {
-            if (rotation.activity) {
-                publishCommittedAgentActivity(rotation.activity);
-            }
-            if (rotation.runId) {
-                publishAgentLifecycle({
-                    agentId: agent.id,
-                    chatId: rotation.chatId,
-                    outcome: 'stopped',
-                    phase: 'settled',
-                    runId: rotation.runId,
-                    serverId: agent.serverId,
-                });
-                this.route.send(this.route.hostOf(rotation.computerId), {
-                    agentId: agent.id,
-                    runId: rotation.runId,
-                    type: 'stop',
-                });
-            }
-        }
-        await this.configureAgent({
-            agentDescription: agent.description,
-            agentId: agent.id,
-            agentName: agent.displayName,
-            computerId: agent.computerId,
-            modelId: agent.desiredModelId,
-            reasoningEffort: agent.desiredReasoningEffort,
-            runtimeId: agent.desiredRuntimeId,
-        });
-        if (rotation) {
-            await this.dispatchAgent(agent.id, agent.serverId);
-        }
+        await applyConfiguration(
+            {
+                configure: (request) => this.configureAgent(request),
+                dispatchAgent: (agentId, serverId) => this.dispatchAgent(agentId, serverId),
+                route: this.route,
+            },
+            input
+        );
     }
 
     /** Best-effort immediate apply; reconnect reconciliation resends the full snapshot. */
     async configureAgent(input: AgentConfigureRequest): Promise<void> {
-        const config = await readAgentDispatchConfig(this.db, input.agentId);
-        if (!config) {
-            return;
-        }
-        this.transport.send(input.computerId, {
-            agentDescription: input.agentDescription,
-            agentId: input.agentId,
-            agentName: input.agentName,
-            // The brief is durable Agent state, so it rides every configure
-            // rather than only the one that follows creation.
-            brief: config.brief,
-            briefAuthorHandle: config.briefAuthorHandle,
-            modelId: input.modelId,
-            reasoningEffort: input.reasoningEffort,
-            runtimeId: input.runtimeId,
-            sessionGeneration: config.sessionGeneration,
-            sessionResetKind: config.sessionResetKind,
-            type: 'agent-configure',
-        });
+        await sendAgentConfiguration(this.db, this.transport, input);
     }
 
     dispatchReminderScript(computerId: string, command: ReminderScriptCommand): void {
@@ -553,6 +507,7 @@ export class AgentDelivery {
 
     /** Periodic reconciliation: resend unacknowledged deliveries, drain stragglers. */
     async sweep(): Promise<void> {
+        await advancePendingMachines(this.machineDeps());
         await dispatchEach(this, await store.listDispatchCandidates(this.db));
     }
 
@@ -658,7 +613,7 @@ export class AgentDelivery {
                   }
                 : null;
         }
-        if (isBackedOff(state)) {
+        if (await this.holdsNewRun(tx, state)) {
             return null;
         }
         const { candidates, lead: preferred, mayLead } = await readDrainCandidates(tx, agentId);
@@ -779,7 +734,13 @@ export class AgentDelivery {
         if (plan.suppressSend) {
             return;
         }
-        if (!this.route.send(this.route.hostOf(plan.computerId), plan.frame)) {
+        if (
+            !this.route.send(
+                this.route.hostOf(plan.computerId),
+                plan.frame,
+                plan.placementGeneration
+            )
+        ) {
             return;
         }
         const start = startOf(plan.frame);
@@ -819,5 +780,20 @@ export class AgentDelivery {
         if (kill.configuration) {
             sendDeferredConfiguration(this.transport, input.agentId, kill.configuration);
         }
+    }
+
+    private async holdsNewRun(tx: HausDatabase, state: store.AgentDeliveryRow) {
+        const isOnline = (computerId: string) => this.transport.isOnline(computerId);
+        return isBackedOff(state) || (await machineChangeHolds(tx, { ...state, isOnline }));
+    }
+
+    private machineDeps() {
+        return {
+            db: this.db,
+            dispatchAgent: (agentId: string, serverId: string) =>
+                this.dispatchAgent(agentId, serverId),
+            fences: this.fences,
+            transport: this.transport,
+        } satisfies MachineChangeDeps;
     }
 }

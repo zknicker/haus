@@ -87,6 +87,11 @@ export const agentsTable = pgTable(
         conversationStyle: text('personality'),
         /** The model connection a human chose; null runs on the default for its model's provider. */
         modelConnectionId: text('model_connection_id'),
+        /**
+         * Counts Machine changes (ADR 0057 decision 7). Work started under an older generation
+         * (a Drive push, a call routed to the default Machine) is refused.
+         */
+        placementGeneration: integer('placement_generation').notNull().default(0),
         /** Counts full resets; a Drive push from a run of an earlier generation is refused. */
         resetGeneration: integer('reset_generation').notNull().default(0),
         retiredAt: timestamp('retired_at', { withTimezone: true }),
@@ -162,6 +167,7 @@ export const agentsTable = pgTable(
             sql`${table.effectiveHausAgentStatus} is null or ${table.effectiveHausAgentStatus} in ('current', 'failed', 'pending')`
         ),
         check('agents_positive_session_generation', sql`${table.sessionGeneration} > 0`),
+        check('agents_placement_generation', sql`${table.placementGeneration} >= 0`),
         check('agents_session_reset_kind', sql`${table.sessionResetKind} in ('full', 'session')`),
         check(
             'agents_handle_grammar',

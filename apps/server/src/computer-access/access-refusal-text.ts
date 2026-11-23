@@ -26,6 +26,11 @@ export function workerNoAccessText(computer: ComputerFacts, appOrigin: string | 
     return `You don't have access to ${computer.name}, so no Worker started there. Only ${person} can give you access, in Settings → Devices → ${computer.name}${link}. Ask them once in plain text, or start the Worker on another place.`;
 }
 
+export function movedText(machineName: string | null) {
+    const now = machineName ? `Your Machine is now ${machineName}` : 'Your Machine changed';
+    return `${now}, and this run started before that, so a call that names no Computer ran nothing. Your next turn runs on the new Machine. To reach a Computer now, name it with \`computer\`. ${listHint}`;
+}
+
 export function computerOfflineText(name: string) {
     return `${name} is offline. Nothing ran. \`haus\` and \`execute\` still work, and \`haus computer list\` shows which Computers are online.`;
 }
@@ -43,6 +48,7 @@ export function ranOnLine(name: string) {
 
 const gonePhrases = {
     'no-access': 'you didn’t have access to that Computer',
+    moved: 'your Machine changed after this run started',
     'no-session': 'nobody was logged in to that Computer’s screen',
     'not-listed': 'computer use there wasn’t allowed for you',
     'not-mac': 'that Computer isn’t a Mac',

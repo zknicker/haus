@@ -422,7 +422,7 @@ test('retires an Agent immediately, preserves authored history, and then permits
             confirmation: 'REMOVE',
             serverId,
         })
-    ).rejects.toThrow(/Delete every assigned Agent/i);
+    ).rejects.toThrow(/Choose a new Machine for/i);
     await expect(
         owner.trpc.agent.delete.mutate({
             agentId: agent.id,

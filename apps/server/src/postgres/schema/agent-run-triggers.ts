@@ -24,6 +24,8 @@ export const agentRunTriggersTable = pgTable(
         agentId: text('agent_id').notNull(),
         chatId: text('chat_id'),
         createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+        /** The Agent's placement generation when the run was dispatched. */
+        placementGeneration: integer('placement_generation').notNull().default(0),
         /** The Agent's reset generation when the run was dispatched. */
         resetGeneration: integer('reset_generation').notNull().default(0),
         runId: text('run_id').notNull(),

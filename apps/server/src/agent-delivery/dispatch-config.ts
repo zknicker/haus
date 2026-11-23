@@ -89,7 +89,7 @@ export async function readAgentDispatchConfig(
     return { ...config, connectionChips: availableChipKinds(connections) };
 }
 
-/** Agents assigned to one Computer, for reconnect reconciliation. */
+/** Agents whose Machine is one Computer, for reconnect reconciliation. */
 export interface ComputerAgentRow {
     agentDescription: string | null;
     agentId: string;
@@ -99,6 +99,7 @@ export interface ComputerAgentRow {
     desiredModelId: string | null;
     desiredReasoningEffort: AgentReasoningEffort;
     desiredRuntimeId: string | null;
+    placementGeneration: number;
     retiredAt: Date | null;
     serverId: string;
     sessionGeneration: number;
@@ -120,6 +121,7 @@ export async function listComputerAgents(
             desiredModelId: agentsTable.desiredModelId,
             desiredReasoningEffort: agentsTable.desiredReasoningEffort,
             desiredRuntimeId: agentsTable.desiredRuntimeId,
+            placementGeneration: agentsTable.placementGeneration,
             retiredAt: agentsTable.retiredAt,
             sessionGeneration: agentsTable.sessionGeneration,
             sessionResetKind: agentsTable.sessionResetKind,

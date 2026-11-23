@@ -118,6 +118,7 @@ function routeInvocations(input: RouterInput) {
             frame,
             home: agent.computerId,
             isOnline: (computerId) => computers.isOnline(computerId),
+            placementGeneration: agent.placementGeneration,
             serverId: agent.serverId,
         });
         const timeoutMs = clampTimeoutMs(frame.operation, frame.timeoutMs);
@@ -148,6 +149,7 @@ function routeInvocations(input: RouterInput) {
             computerId,
             fenceEpochs,
             frame,
+            placementGeneration: frame.computer === undefined ? agent.placementGeneration : null,
             record,
             serverId: agent.serverId,
         };

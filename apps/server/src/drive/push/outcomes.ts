@@ -14,6 +14,7 @@ type Artifact = typeof artifacts.$inferSelect;
 type Revision = typeof revisions.$inferSelect;
 
 const refusalCodes = new Set<ArtifactErrorCode>([
+    'AGENT_MOVED',
     'AGENT_RESET',
     'CONTENT_TYPE',
     'FORBIDDEN',

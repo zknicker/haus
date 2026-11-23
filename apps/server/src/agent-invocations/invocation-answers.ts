@@ -7,6 +7,7 @@ import type {
 import {
     computerOfflineText,
     goneComputerText,
+    movedText,
     noAccessText,
     notFoundText,
     ranOnLine,
@@ -110,6 +111,16 @@ async function refusalText(
     const { record, refusal } = input;
     if (refusal === 'not-found') {
         return notFoundText(input.candidates ?? []);
+    }
+    if (refusal === 'moved') {
+        const machine = await readAgentMachine(db, record.agentId);
+        const facts = machine?.computerId
+            ? await readComputerFacts(db, {
+                  computerId: machine.computerId,
+                  serverId: record.serverId,
+              })
+            : null;
+        return movedText(facts?.name ?? null);
     }
     const { computerId } = record;
     if (!computerId) {

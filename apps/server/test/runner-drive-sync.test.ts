@@ -51,6 +51,7 @@ test('a runner run pulls the Agent drive folder on its machine when it starts an
     const pull = await computer.next((frame) => frame.type === 'drive-pull');
     expect(pull).toEqual({
         agentId: setup.agentId,
+        placementGeneration: 0,
         runId,
         sessionGeneration,
         type: 'drive-pull',
@@ -62,6 +63,7 @@ test('a runner run pulls the Agent drive folder on its machine when it starts an
     const push = await computer.next((frame) => frame.type === 'drive-push');
     expect(push).toEqual({
         agentId: setup.agentId,
+        placementGeneration: 0,
         runId,
         sessionGeneration,
         type: 'drive-push',

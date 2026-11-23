@@ -73,6 +73,7 @@ export const drivePushesTable = pgTable(
         closedAt: timestamp('closed_at', { withTimezone: true }),
         id: text('id').notNull(),
         openedAt: timestamp('opened_at', { withTimezone: true }).notNull().defaultNow(),
+        placementGeneration: integer('placement_generation').notNull().default(0),
         resetGeneration: integer('reset_generation').notNull().default(0),
         serverId: text('server_id').notNull(),
         taskId: text('task_id'),

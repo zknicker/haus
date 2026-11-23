@@ -15,6 +15,7 @@ import { agentExecutionOutlinesProcedure } from './execution-outlines.ts';
 import { getAgentProcedure } from './get.ts';
 import { importAgentSkillProcedure } from './import-skill.ts';
 import { listAgentsProcedure } from './list.ts';
+import { agentMachineProcedure, setAgentMachineProcedure } from './machine.ts';
 import { onAgentActivityProcedure } from './on-activity.ts';
 import { onAgentContextUpdatedProcedure } from './on-context-updated.ts';
 import { onAgentExecutionJournalProcedure } from './on-execution-journal.ts';
@@ -59,6 +60,7 @@ export const agentRouter = createRouter({
     skillFile: agentSkillFileProcedure,
     deleteSkillFile: deleteAgentSkillFileProcedure,
     list: listAgentsProcedure,
+    machine: agentMachineProcedure,
     onLifecycle: onAgentLifecycleProcedure,
     onActivity: onAgentActivityProcedure,
     onContextUpdated: onAgentContextUpdatedProcedure,
@@ -71,6 +73,7 @@ export const agentRouter = createRouter({
     sessionRotation: agentSessionRotationProcedure,
     setConnectionAdmin: setAgentConnectionAdminProcedure,
     setHome: setAgentHomeProcedure,
+    setMachine: setAgentMachineProcedure,
     start: startAgentProcedure,
     stop: stopAgentProcedure,
     turns: agentTurnsProcedure,

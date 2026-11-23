@@ -86,6 +86,8 @@ export async function recordRunTrigger(
         .values({
             ...run,
             chatId: first.chatId,
+            placementGeneration: sql`(select ${agentsTable.placementGeneration} from ${agentsTable}
+                where ${agentsTable.serverId} = ${run.serverId} and ${agentsTable.id} = ${run.agentId})`,
             resetGeneration: sql`(select ${agentsTable.resetGeneration} from ${agentsTable}
                 where ${agentsTable.serverId} = ${run.serverId} and ${agentsTable.id} = ${run.agentId})`,
             source: first.source,

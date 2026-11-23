@@ -1,5 +1,6 @@
 import { and, eq, isNull, ne } from 'drizzle-orm';
 import type { AgentDelivery } from '../../agent-delivery/delivery.ts';
+import { readFlushSource } from '../../agent-machine/machine-change-store.ts';
 import type { ArtifactAccess } from '../../artifacts/access.ts';
 import { lockLiveServer } from '../../artifacts/move.ts';
 import { ArtifactError } from '../../artifacts/storage.ts';
@@ -60,7 +61,10 @@ export async function requireOpenPush(tx: HausDatabase, access: PushAgentAccess,
 
 export async function requireRunSinceReset(tx: HausDatabase, push: DrivePush) {
     const [agent] = await tx
-        .select({ resetGeneration: agentsTable.resetGeneration })
+        .select({
+            placementGeneration: agentsTable.placementGeneration,
+            resetGeneration: agentsTable.resetGeneration,
+        })
         .from(agentsTable)
         .where(and(eq(agentsTable.serverId, push.serverId), eq(agentsTable.id, push.agentId)))
         .limit(1);
@@ -69,6 +73,13 @@ export async function requireRunSinceReset(tx: HausDatabase, push: DrivePush) {
             `A full reset replaced run \`${push.id}\`, so its push writes nothing.`,
             409,
             'AGENT_RESET'
+        );
+    }
+    if (agent && push.workerId === null && agent.placementGeneration !== push.placementGeneration) {
+        throw new ArtifactError(
+            `Your Machine changed after run \`${push.id}\` started, so its push writes nothing. Its files stay in that Computer's folder.`,
+            409,
+            'AGENT_MOVED'
         );
     }
 }
@@ -111,6 +122,7 @@ async function openPushIn(
         .values({
             agentId,
             id: pushId,
+            placementGeneration: source.placementGeneration,
             resetGeneration: source.resetGeneration,
             serverId: access.serverId,
             taskId: source.taskId,
@@ -144,14 +156,17 @@ async function pushSource(
             )
             .limit(1);
         const [agent] = await tx
-            .select({ resetGeneration: agentsTable.resetGeneration })
+            .select({
+                placementGeneration: agentsTable.placementGeneration,
+                resetGeneration: agentsTable.resetGeneration,
+            })
             .from(agentsTable)
             .where(and(eq(agentsTable.serverId, access.serverId), eq(agentsTable.id, agentId)))
             .limit(1);
         if (!(worker && agent)) {
             throw notDispatched(pushId);
         }
-        return { resetGeneration: agent.resetGeneration, taskId: worker.taskId };
+        return { ...agent, taskId: worker.taskId };
     }
     const [trigger] = await tx
         .select()
@@ -165,9 +180,17 @@ async function pushSource(
         )
         .limit(1);
     if (!trigger) {
-        throw notDispatched(pushId);
+        const flush = await readFlushSource(tx, { agentId, pushId, serverId: access.serverId });
+        if (!flush) {
+            throw notDispatched(pushId);
+        }
+        return { ...flush, taskId: null };
     }
-    return { resetGeneration: trigger.resetGeneration, taskId: await runTask(tx, trigger) };
+    return {
+        placementGeneration: trigger.placementGeneration,
+        resetGeneration: trigger.resetGeneration,
+        taskId: await runTask(tx, trigger),
+    };
 }
 
 async function runTask(tx: HausDatabase, trigger: typeof agentRunTriggersTable.$inferSelect) {

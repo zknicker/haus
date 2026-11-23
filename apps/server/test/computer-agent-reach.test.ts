@@ -18,7 +18,7 @@ afterAll(async () => {
     await board?.close();
 });
 
-test('haus computer list shows every Computer with home, access, computer use and presence', async () => {
+test('haus computer list shows every Computer with its Machine, access, computer use and presence', async () => {
     await board.attacher.trpc.computer.grantAgentAccess.mutate(accessInput(board));
     await board.attacher.trpc.computer.setComputerUse.mutate({
         computerId: board.laptopId,
@@ -33,7 +33,7 @@ test('haus computer list shows every Computer with home, access, computer use an
             allowed: true,
             computerId: board.laptopId,
             computerUse: true,
-            home: false,
+            machine: false,
             name: 'Laptop',
             online: true,
             operatingSystem: 'darwin',
@@ -42,7 +42,7 @@ test('haus computer list shows every Computer with home, access, computer use an
             allowed: true,
             computerId: board.setup.computerId,
             computerUse: false,
-            home: true,
+            machine: true,
             name: 'Studio',
             online: false,
             operatingSystem: null,
@@ -51,8 +51,8 @@ test('haus computer list shows every Computer with home, access, computer use an
     expect(
         agentComputerListResponseSchema.parse(await listComputers(board.peerAgentId)).computers
     ).toMatchObject([
-        { allowed: false, computerId: board.laptopId, computerUse: false, home: false },
-        { allowed: true, computerId: board.setup.computerId, home: true },
+        { allowed: false, computerId: board.laptopId, computerUse: false, machine: false },
+        { allowed: true, computerId: board.setup.computerId, machine: true },
     ]);
 
     await board.attacher.trpc.computer.setAgentAccessScope.mutate({
@@ -62,10 +62,15 @@ test('haus computer list shows every Computer with home, access, computer use an
     });
     expect(
         agentComputerListResponseSchema.parse(await listComputers(board.peerAgentId)).computers[0]
-    ).toMatchObject({ allowed: true, computerId: board.laptopId, computerUse: true, home: false });
+    ).toMatchObject({
+        allowed: true,
+        computerId: board.laptopId,
+        computerUse: true,
+        machine: false,
+    });
 });
 
-test('retiring an Agent fences it, then sends agent-retire, to an online Computer that is not its home', async () => {
+test('retiring an Agent fences it, then sends agent-retire, to an online Computer that is not its Machine', async () => {
     await board.setup.owner.trpc.agent.delete.mutate({
         agentId: board.peerAgentId,
         confirmation: 'Peer',

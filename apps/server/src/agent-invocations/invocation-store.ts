@@ -16,7 +16,11 @@ const openStates = ['sent', 'accepted'] as const;
 
 export async function readAgentMachine(db: HausDatabase, agentId: string) {
     const [agent] = await db
-        .select({ computerId: agentsTable.computerId, serverId: agentsTable.serverId })
+        .select({
+            computerId: agentsTable.computerId,
+            placementGeneration: agentsTable.placementGeneration,
+            serverId: agentsTable.serverId,
+        })
         .from(agentsTable)
         .where(eq(agentsTable.id, agentId))
         .limit(1);

@@ -147,13 +147,16 @@ async function pushDrive(ingest: RunnerIngest, run: { agentId: string; runId: st
         readAgentPlacement(ingest.db, run.agentId),
         readDeliveryState(ingest.db, run.agentId),
     ]);
+    const machineId = state?.activeRunComputerId;
     if (
         placement &&
-        state?.activeRunId === run.runId &&
-        ingest.computers.isOnline(placement.computerId)
+        machineId &&
+        state.activeRunId === run.runId &&
+        ingest.computers.isOnline(machineId)
     ) {
-        ingest.computers.send(placement.computerId, {
+        ingest.computers.send(machineId, {
             agentId: run.agentId,
+            placementGeneration: placement.placementGeneration,
             runId: run.runId,
             sessionGeneration: placement.sessionGeneration,
             type: 'drive-push',
@@ -165,6 +168,7 @@ async function readAgentPlacement(db: HausDatabase, agentId: string) {
     const [agent] = await db
         .select({
             computerId: agentsTable.computerId,
+            placementGeneration: agentsTable.placementGeneration,
             serverId: agentsTable.serverId,
             sessionGeneration: agentsTable.sessionGeneration,
         })
@@ -174,6 +178,7 @@ async function readAgentPlacement(db: HausDatabase, agentId: string) {
     return agent?.computerId
         ? {
               computerId: agent.computerId,
+              placementGeneration: agent.placementGeneration,
               serverId: agent.serverId,
               sessionGeneration: agent.sessionGeneration,
           }
