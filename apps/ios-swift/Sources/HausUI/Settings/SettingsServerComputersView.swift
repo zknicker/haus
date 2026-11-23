@@ -69,7 +69,7 @@ private struct ComputerWorkersRow: View {
             "Workers can run here",
             subtitle: failure,
             icon: .terminal,
-            isOn: Binding(get: { pending ?? workers.isEnabled }, set: change),
+            isOn: Binding(get: { pending ?? workers.isEnabled }, set: { change($0) }),
             showsDivider: false
         )
         .disabled(!workers.canChange || pending != nil)
