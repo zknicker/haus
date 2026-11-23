@@ -26,8 +26,16 @@ test('haus repo checkout makes your own worktree on a named branch, only where a
     expect(body).toContain('goes 7 days after its last use, and the branch stays');
 });
 
-test('the repos topic teaches no pushing or pull requests from a checkout', () => {
-    expect(body).not.toMatch(/git push|pull request|Co-authored-by/iu);
+test('Agents push and open pull requests as the bot, with a co-author trailer per asker', () => {
+    expect(body).toContain("as the Server's Haus GitHub App");
+    expect(body).toContain('`haus repo co-author @handle [@handle...]` prints the lines');
+    expect(body).toContain(
+        '`Co-authored-by:` trailer for each person whose message you are acting on'
+    );
+    expect(body).toContain('Push with plain `git push -u origin HEAD`');
+    expect(body).toContain("never the machine's own GitHub login");
+    expect(body).toContain("with the GitHub connection's `create_pull_request`");
+    expect(body).toContain('the error names which, and who can fix it');
 });
 
 test('the repo family noun and its words resolve to the repos topic', () => {

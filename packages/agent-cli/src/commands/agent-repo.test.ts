@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import type { AgentApiRequester } from '../agent-api-client.ts';
 import { commandGroups } from '../agent-cli.ts';
 import { UsageError } from '../parse.ts';
-import { readRepoCheckout, runRepoList } from './agent-repo.ts';
+import { readRepoCheckout, runRepoCoAuthor, runRepoList } from './agent-repo.ts';
 
 const mini = 'cmp_1234567890abcdef';
 const laptop = 'cmp_abcdef1234567890';
@@ -17,7 +17,7 @@ function requester(seen: string[], response: unknown) {
 }
 
 test('the repo family lists and checks out, and help shows the checkout usage', () => {
-    expect(commandGroups.repo.map((sub) => sub.name)).toEqual(['list', 'checkout']);
+    expect(commandGroups.repo.map((sub) => sub.name)).toEqual(['list', 'checkout', 'co-author']);
     const checkout = commandGroups.repo.find((sub) => sub.name === 'checkout');
     expect(checkout?.usage).toBe('haus repo checkout <owner/name> [--ref <ref>]');
     expect(checkout?.flags.map((flag) => flag.name)).toEqual(['--ref']);
@@ -83,4 +83,38 @@ test('checkout args read the repo and an optional ref the way dispatch does', ()
     expect(() => readRepoCheckout(['haus/haus', '--ref'])).toThrow(
         new UsageError("Flag '--ref' requires a value.")
     );
+});
+
+test('repo co-author prints a trailer per person and notes who it cannot name', async () => {
+    const seen: string[] = [];
+    const output: string[] = [];
+    const code = await runRepoCoAuthor(
+        {
+            client: requester(seen, {
+                coAuthors: [
+                    { handle: 'ada', trailer: 'Co-authored-by: Ada Lovelace <ada@example.test>' },
+                ],
+                missing: [
+                    { handle: 'grace', reason: 'no-email' },
+                    { handle: 'ghost', reason: 'unknown' },
+                ],
+            }),
+            write: (text) => output.push(text),
+        },
+        ['@ada', '@grace', '@ghost']
+    );
+
+    expect(code).toBe(0);
+    expect(seen).toEqual(['/api/agent/repos/co-authors']);
+    expect(output.join('')).toBe(
+        [
+            'Co-authored-by: Ada Lovelace <ada@example.test>',
+            '# @grace has no email on their Haus account, so leave them out.',
+            '# No one on this Server is @ghost.',
+            '',
+        ].join('\n')
+    );
+    await expect(
+        runRepoCoAuthor({ client: requester([], {}), write: () => undefined }, ['ada'])
+    ).rejects.toThrow('Name each person as an @handle.');
 });
