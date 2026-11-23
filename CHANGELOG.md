@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v29.1.2 - 2026-11-23
+
+- Haus for iPhone 13.0.2 scrolls Home, Projects, Tasks and You smoothly again. In 13.0.1, every scroll frame redrew the whole app. Server, Haus Computer, Haus Agent and Haus for Desktop are unchanged.
+
 ## v29.1.1 - 2026-11-23
 
 - Haus for iPhone 13.0.1 delivers the 13.0.0 changes to TestFlight. The 13.0.0 build stopped before upload, so 13.0.1 is the first build with the new five-tab iPhone app. Server, Haus Computer, Haus Agent and Haus for Desktop are unchanged.
