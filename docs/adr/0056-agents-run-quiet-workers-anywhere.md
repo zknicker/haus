@@ -16,7 +16,7 @@ read_when:
 
 Accepted 2026-11-19. Not yet implemented. Amended 2026-11-23 in decision 6 by
 [ADR 0057's Machine amendment](0057-agents-run-on-the-server-and-machines-run-their-tools.md#amendment-2026-11-23-the-machine-replaces-the-home-computer):
-[Workers honor Agent access](#amendment-2026-11-23-workers-honor-agent-access). Proposed to be
+[Workers honor Agent access](#amendment-2026-11-23-workers-honor-agent-access), implemented 2026-11-23. Proposed to be
 amended 2026-11-22 by
 [ADR 0060](0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md) in decisions 6 and 7
 and the 2026-11-21 follow-up: repos belong to the Server, and a Worker on a Computer works in git
@@ -151,8 +151,8 @@ here** switch being on.
   plain text. There is no in-chat Ask
   ([ADR 0037](0037-humans-are-addressed-by-mention.md)).
 - A cloud place is unchanged: carrying it needs only the provider login, as decision 2 says.
-- A running Worker keeps its place. Whether a later revoke also stops the Agent's Workers on that
-  Computer is decided with the implementation.
+- A running Worker keeps its place. Decided with the implementation (2026-11-23): a later revoke does not stop the Agent's Workers on that
+  Computer or refuse their follow-ups.
 
 **Changed capability.** An Agent can no longer start a Worker on a Computer that does not allow
 it. On a Server whose Computers keep the default Selected Captains setting, that is every

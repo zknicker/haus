@@ -475,9 +475,9 @@ people Access.
 
 Follow-up:
 
-- The Agent access setting and its migration, the attacher-only widening, and the Worker start
+- Done 2026-11-23 (migration 0154): the Agent access setting and its migration, the attacher-only widening, and the Worker start
   check.
-- The computer use migration in decision 5, the retired scope, table and trigger, and the
+- Done 2026-11-23 (migration 0154): the computer use migration in decision 5, the retired scope, table and trigger, and the
   attacher-only check for turning the switch on.
 - `agent.setMachine` (not `agent.setHome`, which moves the Project), the placement generation, the
   Drive handoff, the decision 8 list, and the removal flow.

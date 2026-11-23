@@ -103,7 +103,7 @@ test('a Worker starts on a Task at --on or the Project default, and reports ther
 test('haus worker places lists Computers and cloud agents, and --on names one', () => {
     const body = getManualTopic('workers')?.body ?? '';
     expect(body).toContain(
-        "`haus worker places --task SEC-12` lists where a Worker can run: each Computer with its **Workers can run here** switch, runtimes, repo folders, and free slots, then `cursor` and `claude`, with the Project's default marked."
+        "`haus worker places --task SEC-12` lists where a Worker can run: each Computer with its **Run Workers here** setting, runtimes, repo folders, and free slots, then `cursor` and `claude`, with the Project's default marked."
     );
     expect(body).toContain(
         '(`computer:mini` or `mini`, or the `computer:<id>` that `places` prints'

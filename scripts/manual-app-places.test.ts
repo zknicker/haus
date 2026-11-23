@@ -82,8 +82,8 @@ test('the app topic renders each place as one line with its role and caveat', ()
     expect(body).toContain('Haus App lists no support email, phone number, or response time');
     expect(
         body.length,
-        'raised from 5000 for the Models connection place, the Repositories place (ADR 0060), the Agent access place, its attacher role and the other-Computer answer (ADR 0057), the Project default place for Workers (Make default retired), and Settings → Repositories (repo access)'
-    ).toBeLessThanOrEqual(5716);
+        'raised from 5000 for the Models connection place, the Repositories place (ADR 0060), the Agent access place, its attacher role and the other-Computer answer (ADR 0057), the Project default place for Workers (Make default retired), Settings → Repositories (repo access), and the All Captains, computer use and Run Workers here places (ADR 0057, amended 2026-11-23)'
+    ).toBeLessThanOrEqual(6307);
 });
 
 function anchorRoot(anchor: AppPlaceAnchor): string {

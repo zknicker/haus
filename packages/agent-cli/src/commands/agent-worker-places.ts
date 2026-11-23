@@ -17,6 +17,7 @@ const placesResponseSchema = z.looseObject({
             z.discriminatedUnion('kind', [
                 z.looseObject({
                     ...computerEntry.shape,
+                    allowed: z.boolean().default(true),
                     runtimes: z.array(z.looseObject(workerRuntimeReadinessSchema.shape)).max(2),
                 }),
                 z.looseObject(cursorEntry.shape),
@@ -71,8 +72,11 @@ function placeLine(place: PlaceEntry) {
     }
     const name = place.name ? ` ${place.name}` : '';
     const lead = `computer:${place.computerId}${name}`;
+    if (!place.allowed) {
+        return `${lead}: you have no access there${marker}`;
+    }
     if (!place.workersEnabled) {
-        return `${lead}: Workers can run here is off${marker}`;
+        return `${lead}: Run Workers here is Off${marker}`;
     }
     if (!place.online) {
         return `${lead}: offline${marker}`;
