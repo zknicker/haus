@@ -62,7 +62,12 @@ Workers and their places are [ADR 0056](../docs/adr/0056-agents-run-quiet-worker
 
 ## Settings
 
-Settings sit behind the channel header menu. There is no Overview pane.
+Settings live on the Project's page in the App, Settings → Projects → the Project
+(`settings/projects/:projectId`, the id being the channel's Chat id). The Projects list shows every
+open Project with its key, home Agents, and default Worker place, and its archived Projects with
+Restore. Every Project menu (sidebar row, tab, header) has one **Project settings** item that
+opens the page; `#all`, which has no page, keeps its own name, description, icon, and color
+dialogs. There is no Overview pane.
 
 | Setting | Owner | Lands in |
 | --- | --- | --- |
