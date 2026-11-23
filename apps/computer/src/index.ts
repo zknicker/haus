@@ -5,13 +5,8 @@ import { arch, homedir, platform } from 'node:os';
 import { join } from 'node:path';
 import type { AgentSkillImportCommand, AgentSkillImportRecord } from '@haus/api';
 import * as commandFrames from './agent-command-frames.ts';
-import { sendAgentHeld } from './agent-held.ts';
 import { handleAgentResetFrame } from './agent-reset-frames.ts';
-import {
-    parseAgentRetireCommand,
-    purgeRetiredAgent,
-    reportRetirementError,
-} from './agent-retirement.ts';
+import { handleAgentRetireFrame } from './agent-retire-frames.ts';
 import { handleAgentSkillFileRequest } from './agent-skill-files.ts';
 import { AttachmentConnectionWork } from './attachment-connection-work.ts';
 import { type AttachmentConnectionOutcome, runAttachmentDaemon } from './attachment-daemon-loop.ts';
@@ -937,7 +932,6 @@ async function connect(
                     daemonWork.workers?.attach(sendFrame);
                     const initialReport = Promise.resolve().then(async () => {
                         await Promise.all([
-                            sendAgentHeld(sendFrame, dataRoot, attachment.serverId),
                             sendComputerReport(sendFrame, attachment.serverId, computerName, true),
                             sendSystemEventReport(dataRoot, sendFrame, attachment.serverId),
                             sendComputerDiskReport(dataRoot, sendFrame),
@@ -1018,23 +1012,17 @@ async function connect(
             ) {
                 return;
             }
-            const retirement = parseAgentRetireCommand(frame);
-            if (retirement) {
-                retiredAgents.add(retirement.agentId);
-                void trackWriter(
-                    invocations
-                        .fence(retirement.agentId)
-                        .then(() =>
-                            purgeRetiredAgent({
-                                agentId: retirement.agentId,
-                                dataRoot,
-                                serverId: attachment.serverId,
-                            })
-                        )
-                        .catch((error) => reportRetirementError(retirement.agentId, error))
-                        .then(() => reportComputer())
-                        .catch(reportStateError)
-                );
+            if (
+                handleAgentRetireFrame(frame, {
+                    dataRoot,
+                    fence: invocations.fence,
+                    onFailure: reportStateError,
+                    report: () => reportComputer(),
+                    retiredAgents,
+                    serverId: attachment.serverId,
+                    track: trackWriter,
+                })
+            ) {
                 return;
             }
             const skillImport = parseAgentSkillImportCommand(frame);

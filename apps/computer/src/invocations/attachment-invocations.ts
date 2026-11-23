@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import { agentFenceCommandSchema, invocationCommandSchemas } from '@haus/api';
+import { sendAgentHeld } from '../agent-held.ts';
 import { agentDesktopToolsRoot } from '../desktop/agent-desktop-binary.ts';
 import { driveSyncFrames } from '../drive/drive-sync-frames.ts';
 import { bashRunner } from './bash.ts';
@@ -55,6 +56,11 @@ export function attachmentInvocations(
     };
     const created: AttachmentInvocations = {
         connected: () => {
+            void sendAgentHeld(
+                (frame) => daemonWork.send(frame),
+                dataRoot,
+                attachment.serverId
+            ).catch(logFailure);
             if (handler) {
                 deliver(handler, { kind: 'connected' });
                 return;

@@ -102,7 +102,9 @@ test('only the attacher turns Workers on; an Admin can change the limit while on
     const device = { computerId: board.laptopId, serverId: board.setup.serverId };
     await expect(
         board.admin.trpc.computer.setWorkers.mutate({ ...device, enabled: true })
-    ).rejects.toThrow('Only the person who attached this Computer can turn on "Workers can run here".');
+    ).rejects.toThrow(
+        'Only the person who attached this Computer can turn on "Workers can run here".'
+    );
 
     await board.attacher.trpc.computer.setWorkers.mutate({ ...device, enabled: true });
     await board.admin.trpc.computer.setWorkers.mutate({ ...device, enabled: true, limit: 2 });

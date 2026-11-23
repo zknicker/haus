@@ -94,7 +94,7 @@ test('an unknown Computer refuses not-found, records no Computer, and replays th
 });
 
 test('a name several Computers share refuses with their ids and never falls back to the home', async () => {
-    const twin = 'cmp_invtargetstwins';
+    const twin = 'cmp_invtargetsdouble';
     await attachComputer(setup, { health: 'offline', id: twin, name: 'laptop' });
     call('run_ambiguous', 'Laptop');
     expect(textOf(await answerFor('run_ambiguous'))).toBe(
