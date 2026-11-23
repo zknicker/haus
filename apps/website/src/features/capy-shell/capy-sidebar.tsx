@@ -1,6 +1,6 @@
 import { Sidebar } from '@heroui-pro/react';
 import { Button } from '@heroui/react';
-import { Plus } from '@hugeicons/core-free-icons';
+import { Add01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
@@ -185,7 +185,7 @@ function CapySidebarSectionView({
 function AddButton({ label, onPress }: { label: string; onPress: () => void }) {
     return (
         <Button aria-label={label} isIconOnly onPress={onPress} size="sm" variant="ghost">
-            <Icon aria-hidden="true" icon={Plus} size={sidebarActionIconSize} />
+            <Icon aria-hidden="true" icon={Add01Icon} size={sidebarActionIconSize} />
         </Button>
     );
 }

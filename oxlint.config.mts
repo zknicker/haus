@@ -32,6 +32,7 @@ export default defineConfig({
         'haus/runner-boundary': 'error',
         'haus/heroui-compound-children': 'error',
         'haus/heroui-dialog-form': 'error',
+        'haus/hugeicons-pro-only': 'error',
         'haus/update-required-code': 'error',
 
         // Turned off by the repo's previous lint config too.

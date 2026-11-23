@@ -1,6 +1,10 @@
 import { type AgentReasoningEffort, agentReasoningEffortLabels } from '@haus/api';
 import { Chip } from '@heroui/react';
-import { LowSignalIcon, MediumSignalIcon, SignalFull02Icon } from '@hugeicons/core-free-icons';
+import {
+    LowSignalIcon,
+    MediumSignalIcon,
+    SignalFull02Icon,
+} from '@hugeicons-pro/core-stroke-rounded';
 import type { HugeiconsIconProps } from '@hugeicons/react';
 import { ModelProviderBadge } from '../../components/badges/model-provider-badge.tsx';
 import { Icon } from '../../components/ui/icon.tsx';

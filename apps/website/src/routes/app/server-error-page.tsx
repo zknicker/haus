@@ -1,6 +1,6 @@
 import { EmptyState } from '@heroui-pro/react';
 import { Button, Disclosure, Surface } from '@heroui/react';
-import { AlertCircleIcon } from '@hugeicons/core-free-icons';
+import { AlertCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { isRouteErrorResponse, useNavigate, useParams, useRouteError } from 'react-router-dom';
 import { Icon } from '../../components/ui/icon.tsx';
 import { serverRoute } from '../../features/servers/server-routes.ts';

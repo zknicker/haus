@@ -1,6 +1,10 @@
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Button, Chip, Separator } from '@heroui/react';
-import { CheckmarkCircle02Icon, CircleIcon, PencilEdit02Icon } from '@hugeicons/core-free-icons';
+import {
+    CheckmarkCircle02Icon,
+    CircleIcon,
+    PencilEdit02Icon,
+} from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { optionDisplayLabel } from './ask-copy.ts';

@@ -1,5 +1,5 @@
 import { Button } from '@heroui/react';
-import { ArrowLeft01Icon } from '@hugeicons/core-free-icons';
+import { ArrowLeft01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
 import { isAnswered } from '../asks/ask-model.ts';
 import { AskTakeoverFrame, StepDots, SubmitKbd } from '../asks/ask-takeover-frame.tsx';
