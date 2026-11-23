@@ -6,6 +6,7 @@ read_when:
   - changing the Agent inbox list, `message read --unread`, or the Agent read position
   - changing an Agent's conversation style, signature emoji, or self-profile update
   - changing Agent homes (`agent.setHome`, creation's home Project) or the channel info routes
+  - changing an Agent's Machine (`agent.machine`, `agent.setMachine`) or removing a Device's Captains
   - changing the Agent Task routes (`/api/agent/tasks/*`) or claim routes
   - changing the `haus worker` routes, Worker refusal codes, dispatch, settlement, or Worker inbox items
 ---
@@ -190,6 +191,18 @@ non-retired Agent; a retired one is refused. The move publishes `project.updated
 `chat.lifecycle{action:'updated'}` for the old and new Project, starts the Agent's read position at
 the present in the new Project's channel and Tasks, and changes delivery from the next planned
 message. Queued items stay. `agent.create` requires `homeProjectId`, a real, open Project, under the same access.
+
+An Owner or Admin changes an Agent's Machine with `agent.setMachine({ serverId, agentId,
+computerId, fromLastSynced })`, and every member reads it with `agent.machine({ serverId, agentId })`,
+which returns `{ agentId, computerId, change }`. `change` is the pending request, `{ computerId,
+fromLastSynced, requestedAt, waitingFor }`, with `waitingFor` `turn`, `drive` (the old Machine's
+flush push) or `machine` (an offline old Machine), or null. The destination must already allow the
+Agent (Captain access, a grant, or All Captains on this Server), or the caller must be its attacher;
+otherwise `FORBIDDEN`. `fromLastSynced` counts only while the old Machine is offline. Naming the
+current Machine cancels a pending change. Each step publishes `agent.updated`, and the switch also
+`computer.updated` for both Devices. `computer.remove` takes `machineMoves: [{ agentId, computerId
+}]`, one per live Agent on the Device, under the same consent rule, and refuses while one of them
+is mid-turn. See [specs/drive-folder.md](../../specs/drive-folder.md#when-the-machine-changes).
 
 Agents cannot create channels. Every channel is a Project, and only people create Projects
 (`project.create`, [specs/projects.md](../../specs/projects.md)), so there is no Agent create route.

@@ -154,9 +154,39 @@ first and its conflict item queues without waiting. Each request id derives from
 change itself, not the run ([Pushes](artifact-drive.md#pushes)). So a request repeated after a lost
 answer gets the stored outcome, and never a second copy or a second conflict item.
 
-Changing an Agent's machine happens while the Agent is idle, after its last push
-([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md) decision 4).
-Edits that a failed push left on the old machine stay there.
+## When the Machine changes
+
+An Agent's Machine changes between turns
+([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md#amendment-2026-11-23-the-machine-replaces-the-home-computer)
+decision 7, [ADR 0054](../docs/adr/0054-drive-holds-what-agents-know-and-follow.md#amendment-2026-11-23-drive-on-a-machine-change)).
+The Server keeps the request in `agent_machine_changes` and moves it a step at a time
+(`apps/server/src/agent-machine/advance-machine-change.ts`):
+
+1. **Turn.** It waits while the Agent has an active run. No new run starts while the change can
+   move, so the next turn runs on the new Machine.
+2. **Flush.** With the old Machine online it sends `drive-flush` with a fresh flush id. The
+   Computer pushes the folder under that id and closes the push even when nothing changed
+   (`flushDriveForRun`), and the close is what tells the Server the folder reached Drive. The
+   change switches only then. A flush that has not closed in two minutes, or whose Machine
+   reconnects, is sent again under a new id. Conflicts follow the ordinary push rules.
+3. **Old Machine offline.** The person waits, and the Agent keeps working with no Machine to sync
+   until the old one reconnects and flushes; or they move from the last synced revision, which
+   switches at once and leaves unpushed edits in the old folder, unmerged. Removing a Device moves
+   its Agents this way.
+4. **Switch.** `agents.computer_id` changes and `agents.placement_generation` goes up by one. A
+   run records its generation in `agent_run_triggers`, a push in `drive_pushes`, and a push opened
+   for a run of an older generation is refused `AGENT_MOVED`, like a push from before a full reset.
+   The old Machine can no longer mint a drive-sync credential, because that needs the Agent's
+   Machine.
+5. **Pull.** The new Machine's first turn pulls into an empty folder.
+
+**Moving back to a Mac that still holds a folder.** Every sync frame carries the placement
+generation, and the Computer records the generation its folder belongs to in
+`agents/<agent-id>/runtime/drive-placement.json` (none means 0). A frame from an older generation
+is stale and does nothing. A newer one means the Agent left and came back: the Computer moves the
+old folder to `workspace/drive-before-move/placement-<old>-<time>/` for recovery, forgets its
+bookkeeping, and pulls a full copy from the Server, so nothing from that folder is pushed
+(`apps/computer/src/drive/folder-placement.ts`). Haus never merges a folder it left behind.
 
 ## Before the runner
 

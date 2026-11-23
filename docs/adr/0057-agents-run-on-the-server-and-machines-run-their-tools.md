@@ -479,10 +479,16 @@ Follow-up:
   check.
 - Done 2026-11-23 (migration 0154): the computer use migration in decision 5, the retired scope, table and trigger, and the
   attacher-only check for turning the switch on.
-- `agent.setMachine` (not `agent.setHome`, which moves the Project), the placement generation, the
-  Drive handoff, the decision 8 list, and the removal flow.
+- Done 2026-11-23 (migration 0155, Computer protocol 49): `agent.setMachine` (not
+  `agent.setHome`, which moves the Project), the placement generation, the Drive handoff, the
+  decision 8 list, and the removal flow. A pending change holds new turns only while it can move;
+  a default-routed call from a run of an older generation is refused `moved`; moving back to a Mac
+  that still holds a folder sets that folder aside and pulls fresh
+  ([specs/drive-folder.md](../../specs/drive-folder.md#when-the-machine-changes)).
 - The App: Machine in the create form and the Agent's settings and DM, the Device page labels
-  ([ADR 0058](0058-the-ui-uses-capy-names.md)), and refusal links.
+  ([ADR 0058](0058-the-ui-uses-capy-names.md)), and refusal links. Done 2026-11-23: the create
+  form's label, the Machine row in the Agent's Runs on section, and the move offer when removing
+  a Device. The DM's Machine control is not built.
 - Rewrite [specs/computer-use.md](../../specs/computer-use.md) "The Device settings", "The
   gate" and "App", and note the change in [docs/features/computer-use.md](../features/computer-use.md)
   and [docs/features/agents.md](../features/agents.md). The Manual's targeting topic calls the

@@ -51,8 +51,8 @@ Computer.app` and they are not granted again. Readers ignore keys they predate.
 ## Agent computer list
 
 `GET /api/agent/computers` (`haus computer list`) answers an Agent's run credential with every
-Computer on its Server: `{ computers: [{ computerId, name, online, operatingSystem, home,
-allowed, computerUse }] }`. `allowed` is Agent access, and `computerUse` is whether a `desktop`
+Computer on its Server: `{ computers: [{ computerId, name, online, operatingSystem, machine,
+allowed, computerUse }] }`. `machine` marks the Agent's Machine, `allowed` is Agent access, and `computerUse` is whether a `desktop`
 call from this Agent would pass the switch. The CLI prints one line each, such as
 `MacBook (cmp_123) · online · macOS · allowed · computer use`.
 
