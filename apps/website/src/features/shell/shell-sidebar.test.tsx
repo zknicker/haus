@@ -194,6 +194,8 @@ test('offsets the sidebar’s first navigation row onto the shell band’s midli
         'margin-block-start: calc( (var(--app-shell-band-height) - var(--spacing) * 9) / 2 )'
     );
     expect(lead).not.toContain('min-height');
+    // Every sidebar shares one density, so no page brings its own lead offset.
+    expect(shellCss).not.toContain('settings-rail');
     // The sidebar's top padding is the titlebar strip and nothing else, so the
     // offset starts at the sidebar's content top on every surface.
     expect(shellCss).toContain('padding-block-start: var(--app-shell-titlebar-inset);');
