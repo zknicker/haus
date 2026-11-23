@@ -43,8 +43,9 @@ holds throughout: Projects, Tasks, Workers, and one session per Captain.
 - **Work view.** A floating Work pill with a count, above each place's composer, opens its Workers, Tasks, PRs
   (read-only), and Files.
   The Worker view has steps, the report, a follow-up composer, and Stop Worker.
-- **Composer.** It gains a grabber for full height, plus a model chip that opens the Model sheet. The sheet writes
-  the Captain's model. Members see it read-only.
+- **Composer.** It gains a model chip that opens the Model sheet. The sheet writes the Captain's model. Members
+  see it read-only. (A full-height grabber shipped in 13.0.0 and was removed: swipes meant for the keyboard caught
+  it.)
 - **iPhone Duo.** Per Apple's HIG:
   - On the outer display, controls sit in a trailing-edge column in every pose.
   - The inner display, fully open, shows a narrower list and a wider content pane.
@@ -80,8 +81,7 @@ Deferred by decision:
   reactions, mentions, visuals, claims, automations, archived chats, scoped chat search, and avatar generation.
 - [ ] **No iOS compatibility stubs.** Old installed builds may break.
 - [ ] **Code.**
-  - Swift files stay at or under 300 lines (`scripts/source-size-policy.json`; `MessageComposerView.swift` has a
-    legacy 356).
+  - Swift files stay at or under 300 lines (`scripts/source-size-policy.json`).
   - Landmines rules: no test doubles, sleeps, retries, prose comments, or explicit return types where inferred.
 - [ ] **Copy uses ADR 0058 names:** Captain, Project, Device. Code and wire names stay Agent, Channel, Computer,
   and `cloudAgent*`.
@@ -286,7 +286,7 @@ back that keeps its scroll position, a fresh Server as Owner and as Member, and 
     through T2's param.
   - Centered time dividers, a copy glyph on replies, and stopped claims kept.
   - Send landing ("Scroll new messages to top" in General). It needs a tail inset in the flipped table, specified
-    and benchmarked here.
+    and benchmarked here. Off by default since 13.0.3: the held-open room read as empty space after a send.
   - Latest and unread jumps.
   - Compare both styles on one long-history fixture: paging, exact jumps, optimistic reconciliation, and row reuse.
 - [ ] **C2. Header and turn details.** It owns `ChatScreenView`, `ChatScreenHeader`, `Chat/Engagement/**`, and the
