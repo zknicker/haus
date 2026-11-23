@@ -136,6 +136,20 @@ export async function connectComputer(
     return client;
 }
 
+export async function attachComputer(
+    setup: InvocationHarness,
+    input: { health?: string; id: string; name: string }
+) {
+    const credential = `computer-credential-${input.id}`;
+    await setup.harness.sql`
+        insert into computers (id, server_id, attached_by_user_id, credential_hash, reported_inventory, operating_system, health)
+        select ${input.id}, server_id, attached_by_user_id, ${digest(credential)},
+            ${{ name: input.name, runtimes: [] }}::jsonb, 'darwin', ${input.health ?? 'healthy'}
+        from computers where id = ${setup.computerId}
+    `;
+    return credential;
+}
+
 export function invocationRequest(agentId: string, runId: string, toolCallId: string) {
     return {
         agentId,

@@ -3,6 +3,7 @@ import { fileURLToPath } from 'node:url';
 import {
     AGENT_DISPATCH_OUTCOME_UNKNOWN,
     type InvocationOperation,
+    invocationComputerTargetSchema,
     invocationOperationSchema,
 } from '@haus/api';
 import { executeMcpCode } from '@haus/mcp-executor';
@@ -20,7 +21,9 @@ import { type McpClient, McpToolError } from './mcp-client.ts';
 const searchSchema = z.object({ query: z.string().max(200).default('') }).strict();
 const describeSchema = z.object({ name: z.string().min(1).max(256) }).strict();
 const callSchema = describeSchema.extend({ args: z.unknown() });
-const builtinArgsSchema = z.object({ args: z.unknown() }).strict();
+const builtinArgsSchema = z
+    .object({ args: z.unknown(), computer: invocationComputerTargetSchema.optional() })
+    .strict();
 
 const runnerEntrypoint = join(dirname(fileURLToPath(import.meta.url)), '..', 'index.ts');
 
@@ -100,11 +103,12 @@ async function invokePath(
     const call = callSchema.parse(args);
     const builtin = findBuiltinTool(call.name);
     if (builtin) {
+        const { args: builtinArgs, computer } = builtinArgsSchema.parse(call.args);
         const operation = invocationOperationSchema.parse({
-            ...builtinArgsSchema.parse(call.args),
+            args: builtinArgs,
             kind: builtin.name,
         });
-        return await callMachine(operation, signal, input);
+        return await callMachine({ computer, operation }, signal, input);
     }
     const key = await input.dispatches.open(input.toolCallId, 'mcp-call');
     try {
@@ -120,11 +124,14 @@ async function invokePath(
 }
 
 async function callMachine(
-    operation: InvocationOperation,
+    call: { computer?: string; operation: InvocationOperation },
     signal: AbortSignal,
     input: { invocations: InvocationClient; toolCallId: string }
 ) {
-    const answer = await input.invocations.invoke(input.toolCallId, operation, { signal });
+    const answer = await input.invocations.invoke(input.toolCallId, call.operation, {
+        computer: call.computer,
+        signal,
+    });
     if (answer.frame.outcome === 'completed') {
         return {
             exitCode: answer.frame.exitCode ?? 0,

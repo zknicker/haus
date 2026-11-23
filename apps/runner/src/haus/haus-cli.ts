@@ -22,6 +22,7 @@ const machineFileReadMaxBytes = 256 * 1024 ** 2;
 export async function runHausCommand(input: {
     argv: readonly string[];
     authority: RunAuthority;
+    computer?: string;
     invocations: InvocationClient;
     proxy: HausProxy;
     signal: AbortSignal;
@@ -125,15 +126,11 @@ async function spawnAgentCli(input: {
     }
 }
 
-async function readMachineFile(
-    path: MachinePath,
-    workdir: string,
-    input: { invocations: InvocationClient; signal: AbortSignal; toolCallId: string }
-) {
+async function readMachineFile(path: MachinePath, workdir: string, input: MachineFileCall) {
     const answer = await input.invocations.invoke(
         input.toolCallId,
         { kind: 'file-read', maxBytes: machineFileReadMaxBytes, path: path.machinePath },
-        { signal: input.signal }
+        { computer: input.computer, signal: input.signal }
     );
     if (answer.frame.outcome !== 'completed') {
         return invocationToolOutcome(answer);
@@ -148,7 +145,7 @@ async function readMachineFile(
 async function writeMachineFiles(
     workdir: string,
     paths: readonly MachinePath[],
-    input: { invocations: InvocationClient; signal: AbortSignal; toolCallId: string }
+    input: MachineFileCall
 ) {
     const notes: string[] = [];
     for (const file of await filesUnder(workdir)) {
@@ -156,7 +153,7 @@ async function writeMachineFiles(
         const answer = await input.invocations.writeFile(
             input.toolCallId,
             { bytes: await readFile(file), mode: 0o600, path: machinePath },
-            { signal: input.signal }
+            { computer: input.computer, signal: input.signal }
         );
         if (answer.frame.outcome !== 'completed') {
             notes.push(`${machinePath} was not written to the machine.`);
@@ -164,6 +161,13 @@ async function writeMachineFiles(
         }
     }
     return notes;
+}
+
+interface MachineFileCall {
+    readonly computer?: string;
+    readonly invocations: InvocationClient;
+    readonly signal: AbortSignal;
+    readonly toolCallId: string;
 }
 
 async function filesUnder(dir: string) {

@@ -1,7 +1,27 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
-import { screenRefusalSchema } from './computer-use.ts';
+import { desktopRefusalSchema, screenRefusalSchema } from './computer-use.ts';
 import { repoFolderPathSchema, repoNameSchema } from './repos.ts';
+
+/**
+ * A machine tool call's optional `computer` field: a Computer id or a unique
+ * name, sent as the model wrote it. Only the Server resolves it (ADR 0057
+ * decision 4); a call without one runs on the Agent's home Computer.
+ */
+export const invocationComputerTargetSchema = z.string().trim().min(1).max(200);
+
+/**
+ * Why the Server or the Computer refused an invocation, kept in the ledger so
+ * a replay re-renders the same text. `not-found` names no Computer on the
+ * Server, `no-access` is the Computer's Agent access list, and the rest are
+ * the computer use causes of `desktop` calls.
+ */
+export const invocationRefusalSchema = z.enum([
+    'not-found',
+    'no-access',
+    ...desktopRefusalSchema.options,
+]);
+export type InvocationRefusal = z.infer<typeof invocationRefusalSchema>;
 
 /** Every invocation frame stays under this size; larger bytes move as attachment references. */
 export const invocationFrameMaxBytes = 1024 * 1024;

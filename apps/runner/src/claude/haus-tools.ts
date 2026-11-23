@@ -3,6 +3,7 @@ import { runnerToolDescriptions } from '@haus/agent-prompt';
 import type { InvocationOutcome } from '@haus/api';
 import * as z from 'zod';
 import type { RunTools, ToolOutcome } from '../run-context.ts';
+import { computerTargetBounds, computerTargetDescription } from '../tools/computer-target.ts';
 import { hausServerName } from './claude-tool-events.ts';
 
 export const hausToolNames = ['bash', 'str_replace_based_edit_tool', 'execute'] as const;
@@ -52,6 +53,7 @@ export function createHausMcpServer(binding: HausToolBinding) {
                 runnerToolDescriptions.bash,
                 {
                     command: z.string().min(1),
+                    computer: computerField,
                     description: z.string().optional(),
                     timeout: z.number().int().positive().max(600_000).optional(),
                 },
@@ -63,6 +65,7 @@ export function createHausMcpServer(binding: HausToolBinding) {
                 runnerToolDescriptions.str_replace_based_edit_tool,
                 {
                     command: z.enum(['view', 'create', 'str_replace', 'insert']),
+                    computer: computerField,
                     file_text: z.string().optional(),
                     insert_line: z.number().int().nonnegative().optional(),
                     new_str: z.string().optional(),
@@ -94,6 +97,14 @@ function toolResult(outcome: Pick<ToolOutcome, 'content' | 'isError'>) {
         ...(outcome.isError ? { isError: true } : {}),
     };
 }
+
+const computerField = z
+    .string()
+    .trim()
+    .min(computerTargetBounds.minLength)
+    .max(computerTargetBounds.maxLength)
+    .optional()
+    .describe(computerTargetDescription);
 
 const extraSchema = z.looseObject({
     _meta: z.looseObject({ 'claudecode/toolUseId': z.string().min(1).optional() }).optional(),

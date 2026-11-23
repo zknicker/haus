@@ -1,5 +1,6 @@
 import type { ComputerUseReadiness, DesktopRefusal } from '@haus/api';
-import { and, desc, eq, isNotNull, ne } from 'drizzle-orm';
+import { and, desc, eq, isNotNull, lt, or } from 'drizzle-orm';
+import { computerLabel, computerSettingsLink } from '../computer-access/computer-facts.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
     agentInvocationsTable,
@@ -11,12 +12,11 @@ import {
 } from '../postgres/schema.ts';
 import type { DesktopReadinessGap, DesktopRefusalFacts } from './desktop-refusal-text.ts';
 
-export interface DesktopGateInput {
+export interface DesktopRefusalSubject {
     agentId: string;
-    appOrigin: string;
     computerId: string;
-    invocationId: string;
-    online: boolean;
+    id: string;
+    requestedAt: Date;
     runId: string;
     serverId: string;
 }
@@ -25,7 +25,7 @@ export function desktopGateCause(device: DesktopDevice, online: boolean) {
     if (!device.enabled) {
         return 'off' as const;
     }
-    if (device.scope === 'named' && !device.listed) {
+    if (!(device.scope === 'all' ? device.home : device.listed)) {
         return 'not-listed' as const;
     }
     if (device.operatingSystem !== null && device.operatingSystem.toLowerCase() !== 'darwin') {
@@ -41,7 +41,7 @@ export type DesktopDevice = NonNullable<Awaited<ReturnType<typeof readDesktopDev
 
 export async function readDesktopDevice(
     db: HausDatabase,
-    input: Pick<DesktopGateInput, 'agentId' | 'computerId' | 'serverId'>
+    input: { agentId: string; computerId: string; serverId: string }
 ) {
     const [row] = await db
         .select({
@@ -49,6 +49,7 @@ export async function readDesktopDevice(
             attacherHandle: serverMembershipsTable.handle,
             changedAt: computersTable.computerUseChangedAt,
             enabled: computersTable.computerUseEnabled,
+            homeComputerId: agentsTable.computerId,
             inventory: computersTable.reportedInventory,
             listedAgentId: computerUseAgentsTable.agentId,
             operatingSystem: computersTable.operatingSystem,
@@ -93,8 +94,9 @@ export async function readDesktopDevice(
         attacherHandle: row.attacherHandle,
         changedAt: row.changedAt,
         enabled: row.enabled,
+        home: row.homeComputerId === input.computerId,
         listed: row.listedAgentId !== null,
-        name: row.inventory?.name ?? 'this Device',
+        name: computerLabel({ id: input.computerId, name: row.inventory?.name }),
         operatingSystem: row.operatingSystem,
         readiness: row.inventory?.computerUse,
         scope: row.scope,
@@ -106,38 +108,35 @@ export async function readDesktopDeviceName(
     db: HausDatabase,
     record: { computerId: string | null; serverId: string }
 ) {
-    const [row] = record.computerId
-        ? await db
-              .select({ inventory: computersTable.reportedInventory })
-              .from(computersTable)
-              .where(
-                  and(
-                      eq(computersTable.serverId, record.serverId),
-                      eq(computersTable.id, record.computerId)
-                  )
-              )
-              .limit(1)
-        : [];
-    return row?.inventory?.name ?? 'this Device';
+    const { computerId } = record;
+    if (!computerId) {
+        return 'that Computer';
+    }
+    const [row] = await db
+        .select({ inventory: computersTable.reportedInventory })
+        .from(computersTable)
+        .where(and(eq(computersTable.serverId, record.serverId), eq(computersTable.id, computerId)))
+        .limit(1);
+    return computerLabel({ id: computerId, name: row?.inventory?.name });
 }
 
 export async function desktopRefusalFacts(
     db: HausDatabase,
-    input: DesktopGateInput,
-    device: DesktopDevice,
-    cause: DesktopRefusal
+    input: { appOrigin: string; cause: DesktopRefusal; device: DesktopDevice },
+    subject: DesktopRefusalSubject
 ) {
+    const { device } = input;
     const facts: DesktopRefusalFacts = {
         agentName: device.agentName,
         attacherHandle: device.attacherHandle,
-        cause,
+        cause: input.cause,
         changedAt: device.changedAt,
         device: device.name,
-        history: await readRefusalHistory(db, input, cause),
-        link: new URL(
-            `/s/${device.slug}/settings/computers/${input.computerId}`,
-            input.appOrigin
-        ).toString(),
+        history: await readRefusalHistory(db, subject, input.cause),
+        link: computerSettingsLink(input.appOrigin, {
+            id: subject.computerId,
+            slug: device.slug,
+        }),
         readiness: {
             macosVersion: device.readiness?.macosVersion,
             missing: readinessGaps(device.readiness),
@@ -148,25 +147,31 @@ export async function desktopRefusalFacts(
 
 async function readRefusalHistory(
     db: HausDatabase,
-    input: DesktopGateInput,
+    subject: DesktopRefusalSubject,
     cause: DesktopRefusal
 ) {
-    const refusals = and(
-        eq(agentInvocationsTable.agentId, input.agentId),
-        eq(agentInvocationsTable.computerId, input.computerId),
+    const earlier = and(
+        eq(agentInvocationsTable.agentId, subject.agentId),
+        eq(agentInvocationsTable.computerId, subject.computerId),
         isNotNull(agentInvocationsTable.refusal),
-        ne(agentInvocationsTable.id, input.invocationId)
+        or(
+            lt(agentInvocationsTable.requestedAt, subject.requestedAt),
+            and(
+                eq(agentInvocationsTable.requestedAt, subject.requestedAt),
+                lt(agentInvocationsTable.id, subject.id)
+            )
+        )
     );
     const [sameCause] = await db
         .select({ requestedAt: agentInvocationsTable.requestedAt })
         .from(agentInvocationsTable)
-        .where(and(refusals, eq(agentInvocationsTable.refusal, cause)))
+        .where(and(earlier, eq(agentInvocationsTable.refusal, cause)))
         .orderBy(desc(agentInvocationsTable.requestedAt))
         .limit(1);
     const [thisTurn] = await db
         .select({ id: agentInvocationsTable.id })
         .from(agentInvocationsTable)
-        .where(and(refusals, eq(agentInvocationsTable.runId, input.runId)))
+        .where(and(earlier, eq(agentInvocationsTable.runId, subject.runId)))
         .limit(1);
     return {
         lastRefusedAt: sameCause?.requestedAt ?? null,

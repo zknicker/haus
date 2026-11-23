@@ -1,8 +1,9 @@
 ---
-summary: Normative computer-use contract (C1 and S2, ADR 0057 decision 11). A Captain sees and drives its Device's macOS desktop through the `desktop` built-in behind `execute`, relayed to agent-desktop on the Computer as a `desktop` invocation. A per-Device switch, Computer use allowed (off by default), and a typed Captains list (all, or named) gate every `desktop` command. Refusals are cause-specific (off, not listed, not a Mac, offline, macOS not ready, locked, nobody logged in, another user), name the attacher, and read the invocation ledger so a Captain asks once. Covers the command classes, the settings, the gate and refusal text, the one-at-a-time machine lock, the screen preflight, Stop Agent Input, the App surface, and the macOS permission list.
+summary: Normative computer-use contract (C1 and S2, ADR 0057 decision 11). A Captain sees and drives its Device's macOS desktop through the `desktop` built-in behind `execute`, relayed to agent-desktop on the Computer as a `desktop` invocation. A per-Device switch, Computer use allowed (off by default), and a typed Captains list (all, or named) gate every `desktop` command. Refusals are cause-specific (off, not listed, not a Mac, offline, macOS not ready, locked, nobody logged in, another user), name the attacher, and read the invocation ledger so a Captain asks once. A Device's Agent access list (home Agents plus Agents its attacher names, ADR 0057 decision 4) gates every invocation kind with `not-found` and `no-access` first. Covers the command classes, the settings, the gate and refusal text, the one-at-a-time machine lock, the screen preflight, Stop Agent Input, the App surface, and the macOS permission list.
 read_when:
   - changing computer use, agent-desktop, the `desktop` built-in, or the `desktop` invocation
   - changing the Device's Computer use allowed switch, its Captains list, or its gate
+  - changing a Device's Agent access list, `computer.grantAgentAccess` or `computer.revokeAgentAccess`, or the invocation gate's `not-found` and `no-access`
   - changing refusal text, the refusal ledger, Stop Agent Input, or `computer.desktopActivity`
   - changing the machine-wide desktop lock, the screen preflight, or the display hold
   - changing which agent-desktop commands look, act, or are refused
@@ -55,32 +56,56 @@ Computer runs look and act commands and answers `failed` for a refused one.
 
 ## The Device settings
 
-> **Amended 2026-11-22 by
-> [ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
-> decision 4:** a separate Agent access list decides which Agents may run any tool on the Device.
-> The Captains list keeps its rows, and `all` still means the Device's home Agents. A named entry
-> may also be an Agent that access list allows, so a borrowed Agent reaches the desktop only when
-> it is named. Revoking an Agent's access deletes its named entry here.
-
-The Server holds two settings on the Computer record.
+The Server holds two lists on each Device
+([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
+decision 4). **Agent access** decides which Agents may run any tool there. **Computer use**
+decides which of those may also drive the desktop.
 
 | Setting | Default | Meaning |
 | --- | --- | --- |
+| Agent access (`computer_agent_access`) | Home Agents only | Every Agent whose machine is this Device is always allowed and never listed. Any other Agent on the Server is allowed only by a named row, with the person who granted it (`granted_by_user_id`) and when (`granted_at`) |
 | Computer use allowed (`computers.computer_use_enabled`) | Off | On: eligible Captains can use every `desktop` command, looking and acting, on this Device. Off: every `desktop` call is refused |
-| Captains (`computers.computer_use_scope` plus `computer_use_agents`) | All | `{ kind: 'all' }` covers every Agent whose machine is this Device, including ones added later. `{ kind: 'named', agentIds }` allows only the listed Agents |
+| Captains (`computers.computer_use_scope` plus `computer_use_agents`) | All | `{ kind: 'all' }` covers every Agent whose machine is this Device, including ones added later. `{ kind: 'named', agentIds }` allows only the listed Agents, each a home Agent or one Agent access allows |
+
+**Agent access.**
+
+- `computer.grantAgentAccess({ serverId, computerId, agentId })` adds a named row. Only the
+  person who attached the Device may grant (`FORBIDDEN` for anyone else, Owners and Admins
+  included), because the Agent then runs commands as that person's machine user. The Agent must be
+  a live Agent on the Server and not one of the Device's home Agents (`BAD_REQUEST`). Granting an
+  Agent already on the list does nothing.
+- `computer.revokeAgentAccess({ serverId, computerId, agentId })` deletes the named row and the
+  Agent's `computer_use_agents` row on the Device in one transaction. The attacher, an Owner, or
+  an Admin may revoke (`FORBIDDEN` otherwise). When a row was deleted, the Server fences the
+  Agent on the Device: it sends `agent-fence`, which cancels the Agent's running commands there,
+  and their answers read `no-access`; an invocation the Computer had not accepted settles
+  `no-access` without running. A Computer that reconnects fences every held Agent the list no
+  longer allows.
+- Both publish `computer.updated`.
+
+**Computer use.**
 
 - `computers.computer_use_changed_at` records when the switch last changed. It is null while the
   switch has never been turned on. Migration 0150 dated every existing Device at the migration.
 - Named entries live in `computer_use_agents`, keyed by Device and Agent. A row goes when its Agent
-  or Device is deleted, and a trigger on `agents.computer_id` drops it when the Agent moves to
-  another machine, so moving back needs consent again. A named list can end up empty, which allows
-  nobody.
+  or Device is deleted, when its Agent's access to the Device is revoked, and, through a trigger
+  on `agents.computer_id`, when a home Agent moves to another machine, so moving back needs
+  consent again. A named list can end up empty, which allows nobody.
 - `computer.setComputerUse({ serverId, computerId, enabled })` changes the switch, and
   `computer.setComputerUseAgents({ serverId, computerId, agents })` changes the list. A person names
-  at least one Captain, and each must be an Agent on this Device (`BAD_REQUEST` otherwise). Only the
-  attacher, an Owner, or an Admin may change either (`FORBIDDEN`). Both publish `computer.updated`.
-- `computer.list` returns `computerUseEnabled`, `computerUseAgents`, `computerUseChangedAt`, and
+  at least one Captain, and each must be a home Agent or one Agent access allows (`BAD_REQUEST`
+  otherwise). Only the attacher, an Owner, or an Admin may change either (`FORBIDDEN`). Both
+  publish `computer.updated`.
+
+**Reading them.**
+
+- `computer.list` returns `agentAccessGrants` (`{ agentId, grantedAt, grantedByUserId }`, oldest
+  first), `canGrantAgentAccess` (the attacher), `canRevokeAgentAccess` (the attacher, an Owner, or
+  an Admin), `computerUseEnabled`, `computerUseAgents`, `computerUseChangedAt`, and
   `canChangeComputerUse`.
+- `GET /api/agent/computers` (`haus computer list`) gives an Agent every Computer on its Server
+  with `home`, `allowed` (Agent access), `computerUse` (whether a `desktop` call would pass the
+  Captains list), `online`, `name`, and `operatingSystem`.
 - `computer.stewards({ serverId, computerId })` tells any member who attached the Device
   (`{ attacher: { displayName, handle }, name }`), so a refusal's link lands on a page that says who
   can change it even for someone who cannot open the Device.
@@ -89,31 +114,31 @@ The Server holds two settings on the Computer record.
 
 ## The gate
 
-> **Amended 2026-11-22 by
-> [ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
-> decision 4:** before these causes, every invocation kind is refused `not-found` when its target
-> is no Computer on the Agent's Server and `no-access` when the Agent is not on that Computer's
-> access list, on request and on every resend. The gate runs before the router records the row,
-> so a refusal is never first written `offline`. A Device the gate cannot find refuses instead of
-> passing.
+The invocation router resolves the call's `computer` field (an id, then a unique name, case
+insensitive; `computer:` prefix allowed) and gates every invocation before it records the ledger
+row, so a refusal is never first written `offline`
+(`apps/server/src/agent-invocations/invocation-gate.ts`). It gates again whenever it resends an
+unaccepted invoke on a Computer's reconnect. The first cause that applies wins:
 
-The invocation router checks every `desktop` invocation after it records the ledger row and
-before it sends `invoke`, and again whenever it resends an unaccepted `desktop` invoke on a
-Computer's reconnect. The first cause that applies wins:
+| Cause (`refusal`) | Applies to | When |
+| --- | --- | --- |
+| `not-found` | Every kind | No Computer on the Agent's Server has that id or name, or several share the name (the text lists their ids) |
+| `no-access` | Every kind | Agent access does not allow this Agent |
+| `off` | `desktop` | Computer use allowed is off |
+| `not-listed` | `desktop` | The list is named and this Agent is not on it |
+| `not-mac` | `desktop` | The Device reports an operating system other than macOS |
+| `offline` | Every kind | The Device is not connected |
+| `not-ready` | `desktop` | The Device reports agent-desktop missing, or Accessibility or Screen Recording `denied` |
 
-| Cause (`refusal`) | When |
-| --- | --- |
-| `off` | Computer use allowed is off |
-| `not-listed` | The list is named and this Agent is not on it |
-| `not-mac` | The Device reports an operating system other than macOS |
-| `offline` | The Device is not connected |
-| `not-ready` | The Device reports agent-desktop missing, or Accessibility or Screen Recording `denied` |
+A call with no `computer` runs on the Agent's home and never falls back: a named Computer that
+refuses ran nothing. A Device the gate cannot read refuses instead of passing. A refused command
+sends nothing to the Computer. The router records the row `finished` with its `refusal` (outcome
+`failed`, or `offline` for an offline Device) and answers the runner with the refusal text. On a
+resend refusal it also sends `invoke-cancel`, and nothing runs (`computer-use-gate.test.ts`). An
+`unknown` permission is not a refusal: agent-desktop reports its own failure. The Agent never
+waits inside a tool call for a person.
 
-A refused command sends nothing to the Computer. The router records the row `finished` with its
-`refusal` (outcome `failed`, or `offline` for an offline Device) and answers the runner with the
-refusal text. On a resend refusal it also sends `invoke-cancel`, and nothing runs
-(`computer-use-gate.test.ts`). An `unknown` permission is not a refusal: agent-desktop reports its
-own failure. The Agent never waits inside a tool call for a person.
+A text result from a Computer other than the Agent's home starts with `[Ran on <name>]`.
 
 ## The screen preflight
 
@@ -190,12 +215,23 @@ with a watchdog that kills the whole group the moment the daemon's stdin closes.
 
 ## App
 
-- **Device page.** Settings → Devices → [Device] has an **Access** section on macOS Devices:
+- **Agent access.** Settings → Devices → [Device] has an **Agent access** section on every
+  Device, before Computer use (`apps/website/src/features/computers/agent-access-card.tsx`):
+  - Its description: "An allowed Captain runs commands on this device as its user, and anyone who
+    can message the Captain can ask it to."
+  - **Captains on this device**, always first and never removable: "Always allowed: Cove and
+    Forge."
+  - One row per granted Captain, "Allowed by Ada", with **Remove** for a viewer who can revoke.
+    Remove takes the row out at once and puts it back if the Server refuses.
+  - **Add Captain**, a menu in the section header for the attacher only, listing Captains on the
+    Server that are neither home here nor already allowed. It is disabled when none are left.
+- **Computer use.** The **Computer use** section, on macOS Devices:
   - **Computer use allowed**, a switch, described "Captains can see the screen and click and type
     in applications on this Device."
-  - **Captains**, shown while the switch is on: an inline multi-select of "All Captains" and each
-    Captain on this Device. Its description says "All Captains on this Device, including ones added
-    later (now Cove and Forge)." or "Only Cove."
+  - **Captains**, shown while the switch is on: an inline multi-select of "All Captains", each
+    Captain on this Device, and each Captain Agent access allows. Its description says "All
+    Captains on this Device, including ones added later (now Cove and Forge)." or "Only Cove."
+    "All Captains" means the home Captains only.
   - While a Captain is driving the Device, "Cove is using Studio" with **Stop Agent Input**.
   - **macOS permissions**, shown while the switch is on: see [macOS permissions](#macos-permissions).
   - A viewer who cannot change the settings sees them disabled.

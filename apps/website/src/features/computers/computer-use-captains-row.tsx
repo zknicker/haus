@@ -8,6 +8,7 @@ import {
     allCaptainsKey,
     computerUseAgentKeys,
     computerUseAgentsSummary,
+    computerUseCaptains,
     nextComputerUseAgents,
 } from './computer-use-model.ts';
 
@@ -15,15 +16,17 @@ export function ComputerUseCaptainsRow({
     agents,
     canChange,
     computerId,
+    grantedAgentIds,
     serverId,
 }: {
     agents: ComputerUseAgents;
     canChange: boolean;
     computerId: string;
+    grantedAgentIds: readonly string[];
     serverId: string;
 }) {
     const allAgents = useAgents(serverId);
-    const captains = (allAgents.data ?? []).filter((agent) => agent.computerId === computerId);
+    const captains = computerUseCaptains(allAgents.data ?? [], computerId, grantedAgentIds);
     const setAgents = useSetComputerUseAgents(serverId);
     return (
         <ItemCard>

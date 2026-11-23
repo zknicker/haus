@@ -43,6 +43,19 @@ export const computerAppPlaces: readonly AppPlace[] = [
     },
     {
         area: 'connections-and-computers',
+        task: 'Let a Captain from another device run tools on a device',
+        path: ['Settings', 'Devices', '(your device)', 'Agent access', 'Add Captain'],
+        who: 'attacher',
+        note: 'An Owner or Admin can Remove a Captain there but not add one.',
+        anchors: [
+            settingsEntry(),
+            computers(),
+            label('features/computers/agent-access-card.tsx', 'Agent access'),
+            label('features/computers/agent-access-card.tsx', 'Add Captain'),
+        ],
+    },
+    {
+        area: 'connections-and-computers',
         task: "Choose a Computer's default Cloud Agent provider",
         path: ['Settings', 'Devices', '(your device)', 'Cloud Agents', 'Make default'],
         who: 'owner-or-admin',

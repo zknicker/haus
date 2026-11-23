@@ -1,9 +1,14 @@
-import type { ComputerUseSettings, ComputerWorkerSettings } from '@haus/api';
+import type {
+    ComputerAgentAccessSettings,
+    ComputerUseSettings,
+    ComputerWorkerSettings,
+} from '@haus/api';
 import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computersTable, computerUseAgentsTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
+import { readAgentAccessGrants } from './computer-agent-access.ts';
 import { presentComputer } from './computer-presence.ts';
 import { isComputerSteward } from './computer-steward.ts';
 import type { ComputerConnections } from './connections.ts';
@@ -55,6 +60,10 @@ export async function listServerComputers(
         db,
         computers.filter((computer) => computer.computerUseScope === 'named').map(({ id }) => id)
     );
+    const grants = await readAgentAccessGrants(
+        db,
+        computers.map(({ id }) => id)
+    );
     return computers.map(
         ({
             attachedByUserId,
@@ -66,10 +75,17 @@ export async function listServerComputers(
             ...computer
         }) => {
             const steward = isComputerSteward(server.role, attachedByUserId, member?.id);
+            const attacher = attachedByUserId === member?.id;
             const workers: ComputerWorkerSettings = {
                 canChangeWorkers: steward,
+                canEnableWorkers: attacher,
                 workerLimit,
                 workersEnabled,
+            };
+            const agentAccess: ComputerAgentAccessSettings = {
+                agentAccessGrants: grants.get(computer.id) ?? [],
+                canGrantAgentAccess: attacher,
+                canRevokeAgentAccess: steward,
             };
             const computerUse: ComputerUseSettings = {
                 canChangeComputerUse: steward,
@@ -84,8 +100,9 @@ export async function listServerComputers(
                 ...presentComputer(computer, connections),
                 ...workers,
                 ...computerUse,
+                ...agentAccess,
                 name: computer.reportedInventory?.name ?? null,
-                attachedByCurrentUser: attachedByUserId === member?.id,
+                attachedByCurrentUser: attacher,
                 diskStatus: connections.diskStatus(computer.id),
             };
         }

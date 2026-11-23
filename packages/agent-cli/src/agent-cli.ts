@@ -2,6 +2,7 @@ import { AgentCliError, renderAgentCliError } from './agent-error.ts';
 import { AGENT_SUBCOMMANDS } from './commands/agent-agent.ts';
 import { ATTACHMENT_SUBCOMMANDS } from './commands/agent-attachment.ts';
 import { CLAIM_SUBCOMMANDS } from './commands/agent-claim.ts';
+import { COMPUTER_SUBCOMMANDS } from './commands/agent-computer.ts';
 import { CONNECTION_SUBCOMMANDS } from './commands/agent-connection.ts';
 import { CHANNEL_SUBCOMMANDS, SERVER_SUBCOMMANDS } from './commands/agent-directory.ts';
 import { DRIVE_SUBCOMMANDS } from './commands/agent-drive.ts';
@@ -26,6 +27,7 @@ export const commandGroups = {
     channel: CHANNEL_SUBCOMMANDS,
     claim: CLAIM_SUBCOMMANDS,
     worker: WORKER_SUBCOMMANDS,
+    computer: COMPUTER_SUBCOMMANDS,
     connection: CONNECTION_SUBCOMMANDS,
     drive: DRIVE_SUBCOMMANDS,
     image: IMAGE_SUBCOMMANDS,

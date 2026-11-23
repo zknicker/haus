@@ -49,6 +49,13 @@ Computers; one physical machine may have a separate Computer attachment in multi
 servers. The physical installation shares only installed software and native runtime/model access.
 _Avoid_: Hosted Computer, Haus server, tenant, Haus Computer installation, agent runtime, model provider
 
+**Agent access**:
+The per-Computer list of Agents whose tool calls may run there. The Computer's home Agents are
+always on it and never listed; every other Agent is a named grant that only the person who
+attached the Computer adds, and that person, an Owner, or an Admin removes. A call it refuses
+answers `no-access` and runs nothing. Computer use is a further list inside it, for `desktop`.
+_Avoid_: Computer sharing, borrowed Agent, Computer permission
+
 **Haus Computer**:
 The local service installation that connects a physical machine to zero or more Haus servers and
 supervises each Server-scoped Computer attachment independently. One resident OS service supervises
@@ -234,8 +241,8 @@ _Avoid_: Reusable join link, Server membership
 **Agent**:
 A persistent non-human Server member whose collaboration identity belongs to one Haus server.
 An Agent has one home Computer, the Computer it was created on, where its workspace lives and its
-tools run by default. Its tool calls may also target any other Computer whose Agent access list
-allows it (ADR 0057, amended 2026-11-22). The home Computer cannot be removed until the Agent is
+tools run by default. A tool call may also name any other Computer whose Agent access list
+allows it (ADR 0057 decision 4). The home Computer cannot be removed until the Agent is
 explicitly deleted.
 _Avoid_: Hosted Agent, Agent session, Agent turn, executor, Computer
 
@@ -352,9 +359,8 @@ _Avoid_: local cloud agent, device place, machine Worker
 
 **Workers can run here**:
 The per-Computer switch, Server state on the Computer record, that lets Agents run unattended
-Worker sessions there. Only the person who attached the Computer, an Owner, or an Admin sets it,
-with the Computer's Worker limit beside it; under ADR 0057 (amended 2026-11-22) only the attacher
-turns it on. It is off for a newly attached Computer. Turning it off
+Worker sessions there. Only the person who attached the Computer turns it on; that person, an
+Owner, or an Admin turns it off or sets the Worker limit beside it (ADR 0057 decision 4). It is off for a newly attached Computer. Turning it off
 refuses new starts and follow-ups there, settles queued turns `place-off`, lets working turns
 finish, and clears Project defaults that name the Computer. Carrying a cloud place needs no switch.
 _Avoid_: local execution toggle, Worker mode, enable Workers

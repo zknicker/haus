@@ -100,7 +100,7 @@ aliases.
 
 The release-owned Manual ships `index`, `haus-cli-overview`, the product
 reference topics `agent`, `workers`, `tasks`, `replies`, `secrets`,
-`app`, and `amazon-product-references`, one product-noun topic per remaining command
+`computers` (targeting a tool call at another Computer, and `haus computer list`), `app`, and `amazon-product-references`, one product-noun topic per remaining command
 family (`message`, `inbox`, `channel`, `server`, `profile`,
 `attachment`, `skill`, `reminder`, `trigger`), `recipes/index`, `recipes/seeded`,
 and 33 complete recipe cards: 12 seeded cards and 21 query-tier cards. Delivery tiers are editorial

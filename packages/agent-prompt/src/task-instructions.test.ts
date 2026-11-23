@@ -88,7 +88,7 @@ test('splitting for other agents starts Tasks from one message, and claims stay 
 
 test('the Tasks family names every verb and points at the Manual; there is no Boards family', () => {
     expect(prompt).toContain(
-        '15. **Tasks**: `haus task start`, `haus task list`, `haus task show`, `haus task state`, `haus task attach-pr`, `haus task update`, `haus task assign`. Read the `tasks` Manual topic before the first one.\n16. **Manual**'
+        '15. **Tasks**: `haus task start`, `haus task list`, `haus task show`, `haus task state`, `haus task attach-pr`, `haus task update`, `haus task assign`. Read the `tasks` Manual topic before the first one.\n16. **Computers**'
     );
     expect(prompt).not.toContain('**Boards**');
     expect(prompt).not.toContain('haus task create');

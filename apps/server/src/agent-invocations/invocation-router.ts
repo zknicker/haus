@@ -10,14 +10,17 @@ import {
     invokeResultSchema,
 } from '@haus/api';
 import { onAgentLifecycle } from '../agent-delivery/lifecycle.ts';
-import { desktopResultAnswer, gateDesktopInvocation } from '../computer-use/computer-use-gate.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { RunnerLink } from '../runner/runner-link.ts';
-import { clampTimeoutMs, noticeAnswer, settledAnswer } from './invocation-answers.ts';
+import { createFenceEpochs } from './fence-epochs.ts';
+import { machineResultAnswer, offlineAnswer, settledAnswer } from './invocation-answers.ts';
 import { type InvocationClock, systemInvocationClock } from './invocation-clock.ts';
-import { gateInvocation } from './invocation-gates.ts';
+import { clampTimeoutMs, noticeAnswer } from './invocation-frames.ts';
+import { decideInvocation } from './invocation-gate.ts';
 import { bindRunnerUpload } from './invocation-payloads.ts';
+import { reattachInvocations } from './invocation-reattach.ts';
+import { gateSend } from './invocation-send-gate.ts';
 import {
     readAgentMachine,
     recordAccepted,
@@ -25,12 +28,12 @@ import {
     recordOpenInvocationsUnknown,
     recordResult,
     recordSendFailure,
+    recordSentRefusal,
     recordUnknown,
 } from './invocation-store.ts';
 import {
     announceDesktopActivity,
     type OpenInvocation,
-    resendGateInput,
     stopDesktopCommands,
     stoppedResult,
 } from './open-invocations.ts';
@@ -57,6 +60,7 @@ function routeInvocations(input: RouterInput) {
     const open = new Map<string, OpenInvocation>();
     const byDispatch = new Map<string, string>();
     const undelivered = new Map<string, InvocationResultFrame>();
+    const fenceEpochs = createFenceEpochs();
     const stopSettleWatch = onAgentLifecycle((event) => {
         if (event.phase !== 'settled') {
             return;
@@ -109,44 +113,49 @@ function routeInvocations(input: RouterInput) {
             answer(noticeAnswer(frame, 'offline'));
             return;
         }
-        const computerId = agent.computerId;
-        const online = computerId !== null && computers.isOnline(computerId);
+        const requestedAt = new Date();
+        const decision = await decideInvocation(db, {
+            frame,
+            home: agent.computerId,
+            isOnline: (computerId) => computers.isOnline(computerId),
+            serverId: agent.serverId,
+        });
         const timeoutMs = clampTimeoutMs(frame.operation, frame.timeoutMs);
         const { created, record } = await recordInvocation(db, {
-            computerId,
+            computerId: decision.computerId,
             frame,
-            offline: !online,
-            operationKind: frame.operation.kind,
+            requestedAt,
             serverId: agent.serverId,
             timeoutMs,
+            verdict: decision.verdict,
         });
         if (!created) {
             if (record.state === 'finished' || record.state === 'unknown') {
-                answer(settledAnswer(record));
+                answer(await settledAnswer(db, { appOrigin, record }));
             }
             return;
         }
         if (frame.operation.kind === 'file-write' && frame.operation.bytes.kind === 'attachment') {
             await bindRunnerUpload(db, record, frame.operation.bytes.attachmentId);
         }
-        const gated = await gateInvocation(db, {
-            agentId: frame.agentId,
+        const { computerId } = decision;
+        if (decision.verdict.kind !== 'send' || computerId === null) {
+            answer(await settledAnswer(db, { appOrigin, candidates: decision.candidates, record }));
+            return;
+        }
+        const scope = {
             appOrigin,
             computerId,
-            invocationId: record.id,
-            key: frame,
-            online,
-            operation: frame.operation,
+            fenceEpochs,
+            frame,
+            record,
             serverId: agent.serverId,
-        });
+        };
+        const gated = await gateSend(db, scope);
         if (gated.kind === 'refused') {
             if (gated.answer) {
                 answer(gated.answer);
             }
-            return;
-        }
-        if (!(online && computerId)) {
-            answer(noticeAnswer(frame, 'offline', record.id));
             return;
         }
         const command: InvokeCommand = {
@@ -162,7 +171,9 @@ function routeInvocations(input: RouterInput) {
             cancelled: false,
             command,
             computerId,
+            fenced: false,
             grace: armGrace(record.id, timeoutMs),
+            homeComputerId: agent.computerId,
             key: { runId: frame.runId, seq: frame.seq, toolCallId: frame.toolCallId },
             runSettled: false,
             serverId: agent.serverId,
@@ -172,8 +183,8 @@ function routeInvocations(input: RouterInput) {
         byDispatch.set(dispatchIdOf(frame), record.id);
         if (!computers.send(computerId, command)) {
             forget(record.id);
-            await recordSendFailure(db, record.id);
-            answer(noticeAnswer(frame, 'offline', record.id));
+            const failed = await recordSendFailure(db, record.id);
+            answer(failed ? await offlineAnswer(db, failed) : noticeAnswer(frame, 'offline'));
             return;
         }
         announceDesktopActivity(invocation);
@@ -189,62 +200,51 @@ function routeInvocations(input: RouterInput) {
         computers.send(invocation.computerId, { invocationId, type: 'invoke-cancel' });
     }
 
-    async function settle(computerId: string, result: InvokeResult) {
-        const stopped = open.get(result.invocationId)?.stopped === true;
+    async function settle(computerId: string, result: InvokeResult, local?: OpenInvocation) {
+        const invocation = local ?? open.get(result.invocationId);
         const settlement = await recordResult(db, computerId, result);
-        computers.send(computerId, {
-            invocationId: result.invocationId,
-            type: 'invoke-result-ack',
-        });
+        if (!local) {
+            computers.send(computerId, {
+                invocationId: result.invocationId,
+                type: 'invoke-result-ack',
+            });
+        }
         if (settlement.kind === 'finished') {
             forget(result.invocationId);
             answer(
-                await desktopResultAnswer(db, {
+                await machineResultAnswer(db, {
                     appOrigin,
+                    fenced: invocation?.fenced === true,
+                    homeComputerId: invocation ? invocation.homeComputerId : undefined,
                     record: settlement.record,
                     result,
-                    stopped,
+                    stopped: invocation?.stopped === true,
                 })
             );
         }
     }
 
-    async function settleStopped(invocationId: string, invocation: OpenInvocation) {
-        const result = stoppedResult(invocationId);
-        const settlement = await recordResult(db, invocation.computerId, result);
-        if (settlement.kind === 'finished') {
-            forget(invocationId);
-            answer(
-                await desktopResultAnswer(db, {
-                    appOrigin,
-                    record: settlement.record,
-                    result,
-                    stopped: true,
-                })
-            );
-        }
-    }
-
-    async function resend(invocationId: string, invocation: OpenInvocation) {
-        const refusal = await gateDesktopInvocation(
-            db,
-            resendGateInput(appOrigin, invocationId, invocation)
-        );
-        if (!refusal) {
-            if (open.get(invocationId) !== invocation || invocation.accepted) {
-                return;
-            }
-            if (invocation.stopped) {
-                await settleStopped(invocationId, invocation);
-            } else if (!invocation.cancelled) {
-                computers.send(invocation.computerId, invocation.command);
-            }
+    async function settleUnsent(invocationId: string, invocation: OpenInvocation) {
+        if (!invocation.fenced) {
+            await settle(invocation.computerId, stoppedResult(invocationId), invocation);
             return;
         }
         forget(invocationId);
-        computers.send(invocation.computerId, { invocationId, type: 'invoke-cancel' });
-        answer(refusal);
+        const record = await recordSentRefusal(db, invocationId, 'no-access');
+        if (record) {
+            answer(await settledAnswer(db, { appOrigin, record }));
+        }
     }
+
+    const { fence, fenceHeld, reattach } = reattachInvocations({
+        answer,
+        appOrigin,
+        computers,
+        db,
+        forget,
+        open,
+        settleUnsent,
+    });
 
     return {
         cancel,
@@ -255,18 +255,14 @@ function routeInvocations(input: RouterInput) {
             }
         },
         computerAttached(computerId: string) {
-            for (const [invocationId, invocation] of open) {
-                if (invocation.computerId !== computerId) {
-                    continue;
-                }
-                if (invocation.runSettled || invocation.cancelled) {
-                    computers.send(computerId, { invocationId, type: 'invoke-cancel' });
-                } else if (!invocation.accepted) {
-                    void resend(invocationId, invocation).catch((error: unknown) =>
-                        console.error('[haus] invocation resend failed', error)
-                    );
-                }
-            }
+            void reattach(computerId).catch((error: unknown) =>
+                console.error('[haus] invocation reattach failed', error)
+            );
+        },
+        computerAttaching: fenceHeld,
+        fenceAgent(target: { agentId: string; computerId: string; serverId: string }) {
+            fenceEpochs.bump(target);
+            return fence(target);
         },
         async ingestComputerFrame(computerId: string, frame: unknown) {
             const accepted = invokeAcceptedSchema.safeParse(frame);

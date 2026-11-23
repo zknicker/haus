@@ -14,7 +14,7 @@ const description =
 test('a steward of a Mac sees Computer use allowed, off by default, as a switch', () => {
     const html = render({ canChangeComputerUse: true });
 
-    expect(html).toContain('Access');
+    expect(html).toContain('Computer use');
     expect(html).toContain('Computer use allowed');
     expect(html).toContain(description);
     expect(html).toContain('aria-label="Computer use allowed"');
@@ -91,6 +91,7 @@ function render(overrides: Record<string, unknown>) {
     const utils = createTRPCQueryUtils({ client, queryClient });
     utils.computer.list.setData({ serverId }, [
         {
+            agentAccessGrants: [],
             canChangeComputerUse: true,
             computerUseAgents: { kind: 'all' },
             computerUseChangedAt: null,

@@ -510,7 +510,7 @@ test('replays durable Agent retirement tombstones on Computer reconnect', async 
     transport.online.add(seed.computerId);
     runner.attach(seed.agentId);
 
-    delivery.retireAgent({ agentId: seed.agentId, computerId: seed.computerId });
+    await delivery.retireAgent({ agentId: seed.agentId, serverId: seed.serverId });
     expect(transport.framesOfType('agent-retire')).toEqual([
         { agentId: seed.agentId, type: 'agent-retire' },
     ]);

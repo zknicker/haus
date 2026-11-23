@@ -224,7 +224,8 @@ test('keeps the managed prompt within its reviewed size budget', () => {
     // lines; the rules people set live in AGENTS.md and WORKER.md" (+24).
     // J3 (ADR 0055): -265 (37,963 → 37,698) for hearing by Project, +130 (→ 37,828) then -232 (→ 37,596) as generalists came and went, -6 (→ 37,590) when "home" left the prose.
     // E2d (ADR 0059): -1 for the #all welcome rule, +37 for "You always hear #all, the team room."; W3: +22 for `haus worker places`. Measured after all three: 37,648.
-    expect(prompt.length).toBeLessThanOrEqual(37_648);
+    // Raised by exactly 128 (37,648 → 37,776): the Computers family entry (ADR 0057 decision 4).
+    expect(prompt.length).toBeLessThanOrEqual(37_776);
     expect(prompt).toContain('You always hear #all, the team room.');
     expect(prompt.toLowerCase()).not.toContain('thread');
 });

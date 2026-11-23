@@ -7,6 +7,7 @@ import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { SettingsPageColumn } from '../settings/layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../settings/layout/settings-page-header.tsx';
 import { ComputerUsageCapacity } from '../usage/computer-usage-capacity.tsx';
+import { AgentAccessCard } from './agent-access-card.tsx';
 import { BrowserCapabilityCard } from './browser-capability-card.tsx';
 import { CloudAgentCapabilityCard } from './cloud-agent-capability-card.tsx';
 import { ComputerActions } from './computer-actions.tsx';
@@ -135,6 +136,7 @@ export function ComputerDetail({
                 </ItemCardGroup>
             </section>
 
+            <AgentAccessCard computerId={computerId} serverId={serverId} />
             <ComputerUseAccessCard computerId={computerId} serverId={serverId} />
             <BrowserCapabilityCard computerId={computerId} serverId={serverId} />
             <CloudAgentCapabilityCard computerId={computerId} serverId={serverId} />

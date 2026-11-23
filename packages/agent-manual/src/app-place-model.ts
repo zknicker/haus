@@ -4,7 +4,7 @@
  * segment is covered by an anchor that scripts/manual-app-places.test.ts
  * resolves against App source, so a renamed or removed control fails CI.
  */
-export type AppPlaceRole = 'anyone' | 'owner-or-admin' | 'owner';
+export type AppPlaceRole = 'anyone' | 'attacher' | 'owner-or-admin' | 'owner';
 
 export type AppArea =
     | 'you'

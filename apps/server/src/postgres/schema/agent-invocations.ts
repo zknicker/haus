@@ -1,5 +1,5 @@
 import type {
-    DesktopRefusal,
+    InvocationRefusal,
     InvocationOperationKind,
     InvocationOutcome,
     MachineInvocationOutcome,
@@ -35,7 +35,7 @@ export const agentInvocationsTable = pgTable(
         lateResultAt: timestamp('late_result_at', { withTimezone: true }),
         operationKind: text('operation_kind').notNull().$type<InvocationOperationKind>(),
         outcome: text('outcome').$type<InvocationOutcome>(),
-        refusal: text('refusal').$type<DesktopRefusal>(),
+        refusal: text('refusal').$type<InvocationRefusal>(),
         requestedAt: timestamp('requested_at', { withTimezone: true }).notNull(),
         runId: text('run_id').notNull(),
         seq: integer('seq').notNull(),
@@ -82,11 +82,11 @@ export const agentInvocationsTable = pgTable(
         ),
         check(
             'agent_invocations_refusal',
-            sql`${table.refusal} is null or (${table.refusal} in ('off', 'not-listed', 'not-mac', 'offline', 'not-ready', 'locked', 'no-session', 'switched-out') and ${table.state} = 'finished')`
+            sql`${table.refusal} is null or (${table.refusal} in ('not-found', 'no-access', 'off', 'not-listed', 'not-mac', 'offline', 'not-ready', 'locked', 'no-session', 'switched-out') and ${table.state} = 'finished')`
         ),
         check(
             'agent_invocations_sent_shape',
-            sql`${table.computerId} is not null or ${table.outcome} = 'offline'`
+            sql`${table.computerId} is not null or ${table.outcome} = 'offline' or coalesce(${table.refusal}, '') = 'not-found'`
         ),
     ]
 );

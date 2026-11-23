@@ -19,6 +19,14 @@ describe('hausCommandAccess', () => {
         expect(unclassified).toEqual([]);
     });
 
+    test('runs `haus computer list` in Haus with no machine paths', () => {
+        expect(hausCommandAccess(['computer', 'list'])).toEqual({ kind: 'run', machineFlags: [] });
+        expect(hausCommandAccess(['computer', 'use'])).toMatchObject({
+            kind: 'refused',
+            text: expect.stringContaining('UNKNOWN_HAUS_COMMAND'),
+        });
+    });
+
     test.each([[[]], [['help']], [['--version']], [['drive']], [['drive', '--help']]])(
         'lets help through: %j',
         (argv) => {

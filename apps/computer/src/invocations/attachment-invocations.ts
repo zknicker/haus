@@ -1,5 +1,6 @@
 import { join } from 'node:path';
-import { invocationCommandSchemas } from '@haus/api';
+import { agentFenceCommandSchema, invocationCommandSchemas } from '@haus/api';
+import { sendAgentHeld } from '../agent-held.ts';
 import { agentDesktopToolsRoot } from '../desktop/agent-desktop-binary.ts';
 import { driveSyncFrames } from '../drive/drive-sync-frames.ts';
 import { bashRunner } from './bash.ts';
@@ -14,14 +15,21 @@ import { createRepoCheckoutRunner } from './repo-checkout.ts';
 
 interface AttachmentInvocations {
     connected: () => void;
+    disconnected: () => void;
+    fence: (agentId: string) => Promise<void>;
     receive: (frame: unknown) => boolean;
 }
 
-type Arrival = { kind: 'connected' } | { frame: unknown; kind: 'frame' };
+type Arrival =
+    | { kind: 'connected' }
+    | { kind: 'disconnected' }
+    | { agentId: string; fenced: () => void; kind: 'fence' }
+    | { frame: unknown; kind: 'frame' };
 
-const frameTypes = new Set<unknown>(
-    invocationCommandSchemas.map((schema) => schema.shape.type.value)
-);
+const frameTypes = new Set<unknown>([
+    ...invocationCommandSchemas.map((schema) => schema.shape.type.value),
+    agentFenceCommandSchema.shape.type.value,
+]);
 
 const attachments = new Map<string, AttachmentInvocations>();
 
@@ -43,15 +51,43 @@ export function attachmentInvocations(
             ready.receive(arrival.frame);
             return;
         }
+        if (arrival.kind === 'fence') {
+            void ready.fence(arrival.agentId).then(arrival.fenced);
+            return;
+        }
+        if (arrival.kind === 'disconnected') {
+            ready.disconnected();
+            return;
+        }
         void ready.connected().catch(logFailure);
     };
     const created: AttachmentInvocations = {
         connected: () => {
+            void sendAgentHeld(
+                (frame) => daemonWork.send(frame),
+                dataRoot,
+                attachment.serverId
+            ).catch(logFailure);
             if (handler) {
                 deliver(handler, { kind: 'connected' });
                 return;
             }
             arrivals.push({ kind: 'connected' });
+        },
+        disconnected: () => {
+            if (handler) {
+                deliver(handler, { kind: 'disconnected' });
+                return;
+            }
+            arrivals.push({ kind: 'disconnected' });
+        },
+        fence: (agentId) => {
+            if (handler) {
+                return handler.fence(agentId);
+            }
+            const { promise, resolve } = Promise.withResolvers<void>();
+            arrivals.push({ agentId, fenced: resolve, kind: 'fence' });
+            return promise;
         },
         receive: (frame) => {
             if (driveSync.receive(frame)) {
@@ -97,6 +133,11 @@ export function attachmentInvocations(
         },
         (error) => {
             attachments.delete(attachment.serverId);
+            for (const arrival of arrivals.splice(0)) {
+                if (arrival.kind === 'fence') {
+                    arrival.fenced();
+                }
+            }
             logFailure(error);
         }
     );

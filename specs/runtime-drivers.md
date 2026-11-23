@@ -388,6 +388,12 @@ Each machine tool keeps the input shape its models are trained on:
 | `apply_patch` | `{ input: string }`, Codex's patch grammar |
 | `view_image` | `{ path: string }` |
 
+Every machine tool also takes an optional `computer`, a Computer id or name
+([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
+decision 4). Without it the call runs on the Agent's home; nothing stays switched between calls.
+`execute`'s `browser` and `desktop` built-ins take `{ args, computer }` the same way. Only the
+Server resolves it ([Lifecycle](#lifecycle)).
+
 The implementations come from Pi's MIT tool code where Pi has the operation (bash spawning,
 process-tree kill, truncation, file reads, exact-match replacement) and from OpenAI Codex's
 Apache-2.0 `apply_patch` parser for the patch grammar. Ported code lives in its own folder
@@ -488,11 +494,6 @@ through a tool result waits on the SDK carrying one, so Claude models get page i
 
 ### `haus` runs on the runner
 
-> **Amended 2026-11-22 by
-> [ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
-> decision 5:** a `haus` flag that names a machine path reads or writes it on the Computer the
-> enclosing `bash` or `shell` call targeted, not always on the home.
-
 The `haus` CLI is the Agent's way to act in Haus, and it never needs the machine. When a `bash`
 or `shell` command is exactly one `haus` invocation, the runner runs it itself against the Server
 with the run credential, and nothing reaches the machine. That covers every message send, so an
@@ -510,7 +511,10 @@ here-string. Otherwise:
 - Every command without `haus` goes to the machine as an invocation.
 
 A `haus` flag that names a machine path reads or writes it through a `file-read` or `file-write`
-invocation: `attachment upload --path`, `attachment view --output`,
+invocation on the Computer the enclosing `bash` or `shell` call targets with its `computer` field,
+or on the home when it names none
+([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
+decision 5): `attachment upload --path`, `attachment view --output`,
 `image generate --reference <path>`, `image wait --out`, `trigger preview --payload-file`, and
 `trigger create|rotate --output`. Only those commands need the machine. A write works at any
 size up to the 50 MiB attachment limit: bytes over 700 KiB go up first and the `file-write`
@@ -753,21 +757,21 @@ same maximum again, so a bad frame cannot hold a command past it.
 
 ### Lifecycle
 
-> **Amended 2026-11-22 by
-> [ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
-> decision 4:** the request may carry a frame-level `computer`, the id or name the tool call
-> gave. Route resolves it on the Server, records the resolved id, and sends the call there instead
-> of the home after the target and access checks, which fail closed and run before the row is
-> recorded. A refusal keeps its text when it is answered again.
-
 1. **Request.** The runner records the dispatch as accepted in its ledger, then sends
-   `invocation-request` with `runId`, `toolCallId`, `seq`, and the operation. The Server keys it
+   `invocation-request` with `runId`, `toolCallId`, `seq`, the operation, and the tool call's
+   `computer` (an id or name) when it gave one. The Server keys it
    by `(runId, toolCallId, seq)`, so a resend returns the same invocation: a settled one answers
    its outcome again (without output, which the Server never keeps), and one still in flight
    answers once, when its result arrives.
-2. **Route.** The Server mints the invocation id and resolves the Agent's machine from its
-   setting. No machine, a detached one, or one in update-required mode answers `offline` at once,
-   recorded, and nothing is sent.
+2. **Route.** The Server mints the invocation id and resolves the target: the Computer that
+   `computer` names, or the Agent's home machine when it names none
+   ([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
+   decision 4). It never falls back to the home. Before it records the row it runs the gate
+   ([Computer use](computer-use.md#the-gate)): `not-found`, `no-access`, the computer use causes
+   for `desktop`, then `offline` for no machine, a detached one, or one in update-required mode.
+   A refusal is recorded `finished` with the resolved Computer id and its `refusal`, answered at
+   once with the same text on every replay, and nothing is sent. A text result from a Computer
+   other than the home starts with `[Ran on <name>]`.
 3. **Send.** The Server records the invocation `sent`, then sends `invoke` to the Computer with
    the id, Agent, run, operation, and timeout clamped to the operation's maximum. A send the
    socket refuses at that moment settles `offline`.

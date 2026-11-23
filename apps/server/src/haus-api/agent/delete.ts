@@ -1,5 +1,6 @@
 import { deleteAgentInputSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
+import { readServerComputerIds } from '../../computers/agent-retirement.ts';
 import { publishRealtime } from '../../realtime/topic.ts';
 import { agentUpdatedTopic } from '../../realtime/topics.ts';
 import { AgentDeleteDeniedError } from '../../server-agents/agent-config-errors.ts';
@@ -15,9 +16,16 @@ export const deleteAgentProcedure = memberProcedure
                 publishRealtime(event);
             }
             publishRealtime(result.taskEvents);
-            ctx.agentDelivery.retireAgent({
+            for (const computerId of await readServerComputerIds(ctx.hausDb, input.serverId)) {
+                ctx.invocations.fenceAgent({
+                    agentId: result.agentId,
+                    computerId,
+                    serverId: input.serverId,
+                });
+            }
+            await ctx.agentDelivery.retireAgent({
                 agentId: result.agentId,
-                computerId: result.computerId,
+                serverId: input.serverId,
             });
             agentUpdatedTopic.announce({
                 agentId: result.agentId,

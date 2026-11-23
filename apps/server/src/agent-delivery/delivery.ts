@@ -8,6 +8,7 @@ import {
     type ReminderScriptResult,
 } from '@haus/api';
 import type { EffectRuntime } from '@haus/effect';
+import { retireOnServerComputers } from '../computers/agent-retirement.ts';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
@@ -458,12 +459,9 @@ export class AgentDelivery {
         await this.sweep();
     }
 
-    /** Best-effort immediate cleanup; the durable retirement tombstone replays on reconnect. */
-    retireAgent(input: { agentId: string; computerId: string }): void {
-        this.transport.send(input.computerId, {
-            agentId: input.agentId,
-            type: 'agent-retire',
-        });
+    /** Best-effort cleanup on every online Computer; `agent-held` replays it on reconnect. */
+    retireAgent(input: { agentId: string; serverId: string }) {
+        return retireOnServerComputers(this.db, this.transport, input);
     }
 
     /**
