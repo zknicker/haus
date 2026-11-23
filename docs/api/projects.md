@@ -72,6 +72,19 @@ Changes publish `computer.updated`. On the machine, `haus-computer repo add <pat
 Haus's own clones with `repo-clones`, and each becomes its folder for that repo. Agents read the
 list with `GET /api/agent/repos` (`haus repo list`) and check out with `haus repo checkout`, a
 `repo-checkout` invocation the Server sends only to a Computer with a folder for that repo.
+`POST /api/agent/repos/co-authors` (`haus repo co-author @handle…`) answers a `Co-authored-by:`
+trailer per person, from their Haus account name and email, and names who has no email.
+
+An Agent's git on a Computer reaches GitHub only as the Haus GitHub App
+([specs/github-app-connection.md](../../specs/github-app-connection.md#git-on-a-computer)). The
+Computer's credential helper calls `POST /computer/github/git-credential` with the Computer
+credential and `{ access: 'write', invocationId, repository }` (git inside an open Agent command)
+or `{ access: 'read', agentId, repository }` (the Computer's own cleanup fetch), and gets
+`{ token, expiresAt }`: an installation token scoped to that one repo with `contents` at that
+level. A refusal is `403 { code, error }` with `github_app_needs_access`,
+`github_connection_not_granted`, `repo_folder_missing`, `agent_not_allowed` or
+`invocation_not_open`, and `503 github_app_unavailable` when the Server has no App.
+`GET /computer/github/bot` answers the bot's git identity, `{ name: '<slug>[bot]', email }`.
 
 ## Refusals
 

@@ -1,6 +1,6 @@
 ---
 status: proposed
-summary: A Project is an area of work and asks for no repos. Repos belong to the Server, identified by GitHub `owner/name`, and any Agent or Worker in any Project may use any of them. Each Computer lists where its repos live as repo folders, added by its attacher from the Device page or `haus-computer repo add`; a Worker that needs a repo with no folder clones it into the Server's partition, and that clone becomes the folder. Workers and Agents work in git worktrees of the folder at `<dataRoot>/servers/<serverId>/worktrees/<worker-or-agent-id>/<owner>/<name>/`, for Claude Code and Codex alike, reversing the 2026-11-21 move to separate clones; a Codex Worker writing hooks or config into the shared `.git`, or moving `main`, is an accepted risk disclosed at "Add folder". A Worker takes one repo. An Agent gets a worktree on its own named branch with `haus repo checkout`, only for repos already on that Computer, and commits, pushes and opens pull requests there as the Server's Haus GitHub App bot, with the person who asked as co-author. A Worker's worktree goes when it closes once its commits are on the remote, an Agent's after 7 days unused once clean, and unpushed work always stays. A repo joins the Server's list only after a successful folder add or clone. `project_repos` and `project_repo_links` retire. Implemented 2026-11-22 except Agent pushes, pull requests and commit identity (slice C).
+summary: A Project is an area of work and asks for no repos. Repos belong to the Server, identified by GitHub `owner/name`, and any Agent or Worker in any Project may use any of them. Each Computer lists where its repos live as repo folders, added by its attacher from the Device page or `haus-computer repo add`; a Worker that needs a repo with no folder clones it into the Server's partition, and that clone becomes the folder. Workers and Agents work in git worktrees of the folder at `<dataRoot>/servers/<serverId>/worktrees/<worker-or-agent-id>/<owner>/<name>/`, for Claude Code and Codex alike, reversing the 2026-11-21 move to separate clones; a Codex Worker writing hooks or config into the shared `.git`, or moving `main`, is an accepted risk disclosed at "Add folder". A Worker takes one repo. An Agent gets a worktree on its own named branch with `haus repo checkout`, only for repos already on that Computer, and commits, pushes and opens pull requests there as the Server's Haus GitHub App bot, with the person who asked as co-author. A Worker's worktree goes when it closes once its commits are on the remote, an Agent's after 7 days unused once clean, and unpushed work always stays. A repo joins the Server's list only after a successful folder add or clone. `project_repos` and `project_repo_links` retire. Implemented 2026-11-22; Agent pushes, pull requests and commit identity (slice C) 2026-11-23.
 read_when:
   - changing where repos are recorded, how a Computer finds or clones a repo, or repo folders
   - changing Project creation or Project settings that mention repos
@@ -8,6 +8,7 @@ read_when:
   - changing `haus worker start --repo`, `haus repo list`, `haus repo checkout`, or `haus-computer repo`
   - changing the Codex Worker sandbox's writable roots, or the "Add folder" disclosure
   - changing an Agent's commit identity, its branch prefix, or how it pushes and opens pull requests
+  - changing which login a checkout, cleanup or purge fetch of an Agent's worktree uses
   - migrating or deleting `project_repos` or `project_repo_links`
 ---
 
@@ -27,8 +28,9 @@ follow-up, [specs/projects.md](../../specs/projects.md) and
 2026-11-22), which decides which Computer a tool call runs on. This ADR decides which repos the
 call reaches there and where Workers and Agents work on disk.
 
-Implemented 2026-11-22 (slice B), except Agent pushes, pull requests and commit identity in
-decision 5, which slice C builds.
+Implemented 2026-11-22 (slice B). Agent pushes, pull requests and commit identity in decision 5
+implemented 2026-11-23 (slice C), as
+[specs/github-app-connection.md](../../specs/github-app-connection.md#git-on-a-computer) describes.
 
 ## Context
 
@@ -194,6 +196,9 @@ decision 5, which slice C builds.
      with an installation token the Server mints for that repo. An installation token reaches
      only the repositories its installation selected, so a repo outside that selection cannot be
      pushed, and the refusal says the App needs access to it.
+     (2026-11-23) A token also needs the Agent's grant on the GitHub connection that holds the
+     installation, as that connection's MCP tools do, and a folder for the repo on that Computer,
+     so the Server's repo list, not every repo the App reaches, bounds what an Agent pushes.
    - **Commit identity.** Haus follows Capy's Commit author setting, with a multiplayer default:
      the Haus bot is the author, and the person who asked is a co-author. A Captain in a shared
      channel works for whoever asked, so it never commits as one person when another person asked.
@@ -229,6 +234,12 @@ decision 5, which slice C builds.
      partition remove each clean worktree from its folder and keep its branch. A worktree with
      uncommitted changes stays where it is, and `haus-computer repo list` shows it until the
      person removes it. A purge also keeps the Haus clone backing any worktree it keeps.
+   - **Which login a cleanup fetch uses** (2026-11-23). An Agent's worktree is fetched as the Haus
+     GitHub App, never the machine's login: the checkout's fetch with the command's own token,
+     the 7-day sweep and retirement with a read-only token the Computer asks for. A purge runs
+     after the Server is gone, with no App to ask, so it checks an Agent's worktree against the
+     remote-tracking refs it already has, which the Agent's own pushes moved. A Worker's worktree
+     is fetched with the machine's login, as the Worker pushed with it.
 
 7. **`project_repos` and `project_repo_links` retire.** The migration:
    - makes a `repos` row for each distinct `workers.repository` on a Server, and for the one
@@ -313,14 +324,22 @@ Follow-up:
   `invocationOperationKindSchema` and `invocationTimeoutsMs`
   (`packages/haus-api/src/agent-invocations.ts:11-30`) and its Computer handler; the bot's git
   identity in the Agent invocation environment.
-- Agent pushes. Missing today: a way for git on a Computer to use an installation token. The
-  token is minted and cached only on the Server (`github-bot.ts`), and only MCP tool calls use
-  it. The follow-up designs how a push gets a token scoped to one repo, short-lived and kept out
-  of the model's view, and which GitHub connection's installation a Computer's repo maps to.
-- The bot's noreply address. The App's slug is configured, but its bot user id, which the
-  address needs, is not; read it from GitHub once per App.
-- The `Co-authored-by` trailer in the Manual, and which people it names when a turn answers
-  several messages.
+- Agent pushes. Done 2026-11-23: a git credential helper on the Computer
+  (`haus-computer __git-credential`) asks the Server for an installation token scoped to the one
+  repo, an hour at most, written only to git's pipe. A repo maps to the Server's live
+  installation on its owner. A push or private fetch the App cannot reach refuses with "The Haus
+  GitHub App needs access to owner/name." The checkout and cleanup fetches use the same contract
+  (decision 6). See [specs/github-app-connection.md](../../specs/github-app-connection.md#git-on-a-computer).
+- The bot's noreply address. Done 2026-11-23: the Server reads the bot user id from
+  `GET /users/<slug>[bot]` once per process, and no new environment variable is needed.
+- The `Co-authored-by` trailer in the Manual. Done 2026-11-23: the `repos` topic teaches one
+  trailer per person whose message the turn is acting on, and `haus repo co-author @handle…`
+  prints them from each Haus account's name and email.
+- Pull requests as the bot. Done 2026-11-23: the GitHub connection's MCP tools already ran as the
+  bot for an installed owner, and now refuse an owner with no installation instead of falling
+  back to the signed-in person's token. Ownerless reads (`get_*`, `list_*`, `search_*`) and MCP
+  discovery are the stated exception, as
+  [specs/github-app-connection.md](../../specs/github-app-connection.md#agent-identity) says.
 - `haus-computer repo add|list|remove`, and the folder list and its "Add folder" disclosure on the
   Computer's settings page.
 - The prompt's command families gain a `repo` entry beside `computer`, through the prompt
