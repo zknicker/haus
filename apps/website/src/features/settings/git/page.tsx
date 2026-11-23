@@ -6,10 +6,6 @@ import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
 import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { SettingsFact } from '../layout/settings-text.tsx';
 
-/**
- * How Captains and Workers sign their git work today (ADR 0060 decision 5).
- * Facts only: there is nothing to choose yet, so the page offers no controls.
- */
 export function GitSettings() {
     return (
         <SettingsPageColumn>

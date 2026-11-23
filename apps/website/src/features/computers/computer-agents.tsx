@@ -83,7 +83,6 @@ export function ComputerAgentGrid({
     );
 }
 
-/** No table without rows: one stock row says what is (or is not) here. */
 export function ComputerAgentsEmpty({ state }: { state: ComputerAgentGridState }) {
     if (state.status === 'loading') {
         return (

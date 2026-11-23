@@ -3,10 +3,6 @@ import { useState } from 'react';
 import { RecoveryCommands } from './computer-actions.tsx';
 import { ComputerSystemLog } from './computer-system-log-card.tsx';
 
-/**
- * The system log and recovery commands, closed until asked for. They are for
- * when something is wrong, so they sit at the bottom and load only when open.
- */
 export function ComputerDiagnostics({
     computerId,
     serverId,

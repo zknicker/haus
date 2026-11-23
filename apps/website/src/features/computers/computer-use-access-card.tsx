@@ -12,7 +12,6 @@ import { computerLabel } from './presentation.ts';
 
 type AccessComputer = HausOutputs['computer']['list'][number];
 
-/** Computer use's rows in the Access card: the switch, then which Captains while it is on. */
 export function ComputerUseRows({
     computer,
     serverId,
@@ -44,7 +43,6 @@ export function ComputerUseRows({
     );
 }
 
-/** macOS permissions, its own section right after Access, while computer use is on. */
 export function ComputerUsePermissionsSection({
     computerId,
     serverId,

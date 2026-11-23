@@ -16,7 +16,6 @@ export interface BrowserCapabilityView {
     statusLabel: string;
 }
 
-/** While the device answers, the row is already the row it will be, with nothing to press yet. */
 export const browserCheckingView: BrowserCapabilityView = {
     canConfigure: false,
     canDisable: false,

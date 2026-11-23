@@ -16,7 +16,6 @@ import { supportsComputerUse } from './computer-use-model.ts';
 import { ComputerUseStop } from './computer-use-stop.tsx';
 import { computerLabel } from './presentation.ts';
 
-/** Who may act on this device: Captain access, then computer use on a Mac, in one card. */
 export function ComputerAccessSection({
     computerId,
     serverId,

@@ -11,7 +11,6 @@ import {
     homeCaptainsSummary,
 } from './agent-access-model.ts';
 
-/** Captain access's rows in the Access card: who is always allowed, then each named grant. */
 export function AgentAccessRows({
     canRevoke,
     isPending,

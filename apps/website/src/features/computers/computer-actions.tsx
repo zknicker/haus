@@ -8,7 +8,6 @@ import {
     type ComputerUpdatePreviewState,
 } from './computer-update-preview.tsx';
 
-/** Updates for this device. Removing it lives in the page's `⋯` menu, once. */
 export function ComputerUpdates({
     computerId,
     serverId,
