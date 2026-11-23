@@ -3,6 +3,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { readDeliveryState } from '../agent-delivery/store.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable } from '../postgres/schema.ts';
+import { hasOutstandingScripts } from '../reminders/reminder-script-placement.ts';
 import { AgentConfigDeniedError } from '../server-agents/agent-config-errors.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
@@ -38,6 +39,8 @@ export async function readMachineState(
     }
     const change = await readPendingChange(db, input);
     const running = Boolean((await readDeliveryState(db, input.agentId))?.activeRunId);
+    const online = isOnline(computerId);
+    const scripting = online && (await hasOutstandingScripts(db, { ...input, computerId }));
     return {
         agentId: input.agentId,
         change: change
@@ -45,21 +48,29 @@ export async function readMachineState(
                   computerId: change.computerId,
                   fromLastSynced: change.fromLastSynced,
                   requestedAt: change.requestedAt,
-                  waitingFor: waitOf(change, { online: isOnline(computerId), running }),
+                  waitingFor: waitOf(change, { online, running, scripting }),
               }
             : null,
         computerId,
     } satisfies AgentMachine;
 }
 
-function waitOf(change: PendingMachineChange, now: { online: boolean; running: boolean }) {
-    const wait: AgentMachineWait =
-        now.running || change.fromLastSynced || change.flushedAt
-            ? 'turn'
-            : now.online
-              ? 'drive'
-              : 'machine';
-    return wait;
+function waitOf(
+    change: PendingMachineChange,
+    now: { online: boolean; running: boolean; scripting: boolean }
+) {
+    if (now.running) {
+        return 'turn' satisfies AgentMachineWait;
+    }
+    if (now.scripting) {
+        return 'script' satisfies AgentMachineWait;
+    }
+    if (change.fromLastSynced || change.flushedAt) {
+        return 'turn' satisfies AgentMachineWait;
+    }
+    return now.online
+        ? ('drive' satisfies AgentMachineWait)
+        : ('machine' satisfies AgentMachineWait);
 }
 
 async function readMachineId(

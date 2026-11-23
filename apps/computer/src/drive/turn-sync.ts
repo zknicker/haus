@@ -79,13 +79,15 @@ export function flushDriveForRun(agentRoot: string, run: DriveRun) {
         const plan = await planDrivePush(driveFolderLayout(agentRoot, run.agentId));
         await withRunToken(run, 'drive-flush-failed', async (token) => {
             const remote = driveRemote({ serverOrigin: run.serverOrigin, token });
-            if (!plan.isEmpty) {
-                const pushed = await sendDrivePush(plan, remote, run.runId);
-                for (const file of pushed.failed) {
-                    run.warn('drive-flush-file-failed', `${file.path}: ${file.message}`);
-                }
+            const pushed = plan.isEmpty
+                ? { failed: [] }
+                : await sendDrivePush(plan, remote, run.runId, { closeWithFailures: false });
+            for (const file of pushed.failed) {
+                run.warn('drive-flush-file-failed', `${file.path}: ${file.message}`);
             }
-            await remote.close(run.runId);
+            if (pushed.failed.length === 0) {
+                await remote.close(run.runId);
+            }
         });
     });
 }

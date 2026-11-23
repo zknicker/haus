@@ -58,6 +58,8 @@ export function pendingMachineText(input: {
     switch (input.waitingFor) {
         case 'turn':
             return `Moving to ${input.to} when this turn ends.`;
+        case 'script':
+            return `Moving to ${input.to} once a reminder check finishes on ${input.from}.`;
         case 'drive':
             return `Moving to ${input.to} once ${input.from} pushes its Drive folder.`;
         case 'machine':

@@ -44,7 +44,12 @@ export async function planDrivePush(layout: DriveFolderLayout) {
 }
 export type DrivePushPlan = Awaited<ReturnType<typeof planDrivePush>>;
 
-export async function sendDrivePush(plan: DrivePushPlan, remote: DriveRemote, pushId: string) {
+export async function sendDrivePush(
+    plan: DrivePushPlan,
+    remote: DriveRemote,
+    pushId: string,
+    options: { closeWithFailures: boolean } = { closeWithFailures: true }
+) {
     const { files, layout, state } = plan;
     const context: OutcomeContext = { files, layout, remote, state };
     const writer = layout.writer;
@@ -107,9 +112,12 @@ export async function sendDrivePush(plan: DrivePushPlan, remote: DriveRemote, pu
                 }
             });
         }
+        const sent = plan.deletes.length + plan.puts.length - failed.length;
+        if (failed.length > 0 && !options.closeWithFailures) {
+            return { failed, listed: [], sent };
+        }
         const closed = await ignorePushClosed(remote.close(pushId));
         await state.openPush(null);
-        const sent = plan.deletes.length + plan.puts.length - failed.length;
         return { failed, listed: closed?.listed ?? [], sent };
     } catch (error) {
         if (error instanceof DriveRemoteError && error.code === 'PUSH_CLOSED') {

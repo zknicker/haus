@@ -60,6 +60,21 @@ export async function dropPendingChange(
         );
 }
 
+export async function invalidateFlush(
+    db: HausDatabase,
+    input: { agentId: string; serverId: string }
+) {
+    await db
+        .update(agentMachineChangesTable)
+        .set({ flushedAt: null, flushId: null, flushSentAt: null })
+        .where(
+            and(
+                eq(agentMachineChangesTable.serverId, input.serverId),
+                eq(agentMachineChangesTable.agentId, input.agentId)
+            )
+        );
+}
+
 export async function noteFlushSent(
     db: HausDatabase,
     input: { agentId: string; flushId: string; serverId: string }

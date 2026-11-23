@@ -68,6 +68,31 @@ test('a change from an offline Machine waits for it and holds no turns meanwhile
     });
 });
 
+test('a turn admitted while the old Mac is offline voids its earlier flush, so a late close confirms nothing', async () => {
+    const { agentId, owner, serverId } = setup;
+    await setup.harness.sql`
+        update agent_machine_changes set flush_id = 'flush_before_offline', flush_sent_at = now()
+        where agent_id = ${agentId}
+    `;
+    const chatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId })).id;
+    const started = nextAfter(runner, (frame) => frame.type === 'runner-start');
+    await owner.trpc.chat.send.mutate({ chatId, content: 'Again?', nonce: 'offline_2', serverId });
+    const runId = ((await started).start as { runId: string }).runId;
+
+    expect(await closeFlush(setup, setup.computerCredential, 'flush_before_offline')).toBe(404);
+    expect(
+        await setup.harness.sql`
+            select flush_id, flushed_at from agent_machine_changes where agent_id = ${agentId}
+        `
+    ).toEqual([{ flush_id: null, flushed_at: null }]);
+    runner.send({ agentId, runId, type: 'ack' });
+    runner.send(settledTurn(agentId, runId));
+    await runnerBarrier(runner, agentId, 'barrier_offline_turn_2');
+    expect((await owner.trpc.agent.machine.query({ agentId, serverId })).change).toMatchObject({
+        waitingFor: 'machine',
+    });
+});
+
 test('a change survives a Server restart and applies once the old Machine reconnects and flushes', async () => {
     setup.owner.close();
     runner.close();

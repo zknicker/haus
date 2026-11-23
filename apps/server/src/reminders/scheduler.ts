@@ -60,7 +60,7 @@ export async function tickReminders(
             await delivery.dispatchAgent(result.dispatch.agentId, result.dispatch.serverId);
         }
         if (delivery && result.dispatch?.kind === 'script') {
-            delivery.dispatchReminderScript(result.dispatch.computerId, result.dispatch.command);
+            await delivery.dispatchReminderScript(result.dispatch);
         }
     }
 }

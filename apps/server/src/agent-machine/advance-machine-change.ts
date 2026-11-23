@@ -4,9 +4,14 @@ import { readDeliveryState } from '../agent-delivery/store.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentsTable } from '../postgres/schema.ts';
+import {
+    abandonReminderScripts,
+    hasOutstandingScripts,
+} from '../reminders/reminder-script-placement.ts';
 import { destinationAllows } from './machine-authority.ts';
 import {
     dropPendingChange,
+    invalidateFlush,
     noteFlushSent,
     type PendingMachineChange,
     readPendingChange,
@@ -66,7 +71,8 @@ export async function advanceMachineChange(tx: HausDatabase, input: AdvanceInput
         await dropPendingChange(tx, scope);
         return { ...scope, kind: 'dropped' } satisfies MachineChangeStep;
     }
-    if ((await readDeliveryState(tx, input.agentId))?.activeRunId) {
+    const old = { ...scope, computerId: agent.computerId, flushId: change.flushId };
+    if (await waitsForOldWork(tx, { ...old, isOnline: input.isOnline })) {
         return { ...scope, kind: 'waiting' } satisfies MachineChangeStep;
     }
     if (!(change.fromLastSynced || change.flushedAt)) {
@@ -111,11 +117,34 @@ export async function switchMachine(
         throw new Error('The Agent vanished while its Machine changed.');
     }
     await dropPendingChange(tx, scope);
+    await abandonReminderScripts(tx, { ...scope, computerId: input.from });
     return {
         ...input,
         kind: 'applied',
         placementGeneration: moved.placementGeneration,
     } satisfies MachineChangeStep;
+}
+
+async function waitsForOldWork(
+    tx: HausDatabase,
+    input: {
+        agentId: string;
+        computerId: string;
+        flushId: string | null;
+        isOnline: (computerId: string) => boolean;
+        serverId: string;
+    }
+) {
+    if ((await readDeliveryState(tx, input.agentId))?.activeRunId) {
+        return true;
+    }
+    if (!(input.isOnline(input.computerId) && (await hasOutstandingScripts(tx, input)))) {
+        return false;
+    }
+    if (input.flushId) {
+        await invalidateFlush(tx, input);
+    }
+    return true;
 }
 
 export const flushResendMs = 2 * 60 * 1000;

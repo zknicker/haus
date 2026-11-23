@@ -195,8 +195,9 @@ message. Queued items stay. `agent.create` requires `homeProjectId`, a real, ope
 An Owner or Admin changes an Agent's Machine with `agent.setMachine({ serverId, agentId,
 computerId, fromLastSynced })`, and every member reads it with `agent.machine({ serverId, agentId })`,
 which returns `{ agentId, computerId, change }`. `change` is the pending request, `{ computerId,
-fromLastSynced, requestedAt, waitingFor }`, with `waitingFor` `turn`, `drive` (the old Machine's
-flush push) or `machine` (an offline old Machine), or null. The destination must already allow the
+fromLastSynced, requestedAt, waitingFor }`, with `waitingFor` `turn`, `script` (a reminder script
+still running on the old Machine), `drive` (the old Machine's flush push) or `machine` (an offline
+old Machine), or null. The destination must already allow the
 Agent (Captain access, a grant, or All Captains on this Server), or the caller must be its attacher;
 otherwise `FORBIDDEN`. `fromLastSynced` counts only while the old Machine is offline. Naming the
 current Machine cancels a pending change. Each step publishes `agent.updated`, and the switch also

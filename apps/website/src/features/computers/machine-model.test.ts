@@ -72,6 +72,9 @@ test('a pending change says what it waits for', () => {
     expect(pendingMachineText({ ...move, waitingFor: 'turn' })).toBe(
         'Moving to Studio when this turn ends.'
     );
+    expect(pendingMachineText({ ...move, waitingFor: 'script' })).toBe(
+        'Moving to Studio once a reminder check finishes on Mac mini.'
+    );
     expect(pendingMachineText({ ...move, waitingFor: 'drive' })).toBe(
         'Moving to Studio once Mac mini pushes its Drive folder.'
     );
