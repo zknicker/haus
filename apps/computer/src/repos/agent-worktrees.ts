@@ -4,6 +4,7 @@ import { agentRepoBranch, agentWorktreeIdleMs } from '@haus/api';
 import { runGit, WorkerCheckoutError } from '../workers/computer/git.ts';
 import { worktreePath, worktreesRoot } from '../workers/computer/layout.ts';
 import { verifyRepoFolder } from '../workers/computer/repos.ts';
+import { withAgentCleanup } from './agent-use.ts';
 import {
     lastUseMs,
     readMarker,
@@ -20,6 +21,7 @@ import {
     removeCleanWorktreesOf,
     startPoint,
     withFolderLock,
+    worktreeState,
 } from './worktree.ts';
 
 export interface AgentCheckout {
@@ -43,10 +45,13 @@ export async function checkoutAgentWorktree(input: AgentCheckout) {
         );
     }
     const before = existing ? await readMarker(path) : null;
+    if (!(await fetchFolder(input.folder, 'none', input.signal))) {
+        throw new WorkerCheckoutError(needsGithubAppText(input.repository, input.folder));
+    }
     const added = await addWorktree({
         branch,
         credentials: 'none',
-        fetch: 'best-effort',
+        fetch: 'done',
         folder: input.folder,
         path,
         ref: input.ref,
@@ -60,7 +65,6 @@ export async function checkoutAgentWorktree(input: AgentCheckout) {
     await touchWorktree(path);
     return {
         branch,
-        fetched: moved?.fetched ?? added.fetched,
         from: moved?.from ?? added.start,
         path,
         reused: !added.created,
@@ -72,9 +76,6 @@ export function agentCheckoutText(receipt: AgentCheckoutReceipt) {
     const days = agentWorktreeIdleMs / 86_400_000;
     return [
         `${receipt.reused ? 'Reused' : 'Made'} the worktree ${receipt.path} on ${receipt.branch}, from ${receipt.from}.`,
-        ...(receipt.fetched === false
-            ? ['Origin could not be fetched, so it starts from this folder’s last fetch.']
-            : []),
         `Run \`cd ${receipt.path}\` to work there. Once nothing in it is uncommitted or unpushed, it goes ${days} days after its last use; the branch stays.`,
     ].join('\n');
 }
@@ -87,17 +88,27 @@ export async function pruneIdleAgentWorktrees(input: {
     const root = worktreesRoot(input.dataRoot, input.serverId);
     const now = input.now ?? Date.now();
     const removed: string[] = [];
+    const idle = async (path: string) => {
+        const last = await lastUseMs(path);
+        return last !== null && now - last >= agentWorktreeIdleMs;
+    };
     for (const worktree of await listWorktrees(root)) {
-        const last = isAgentId(worktree.id) ? await lastUseMs(worktree.path) : null;
-        if (last === null || now - last < agentWorktreeIdleMs) {
+        if (!(isAgentId(worktree.id) && (await idle(worktree.path)))) {
             continue;
         }
-        const state = await removeCleanWorktree({
-            credentials: 'machine',
-            deleteBranch: false,
-            path: worktree.path,
-            root,
-        });
+        if ((await worktreeState(worktree.path, 'machine')) !== 'clean') {
+            continue;
+        }
+        const state = await withAgentCleanup(worktree.id, async () =>
+            (await idle(worktree.path))
+                ? await removeCleanWorktree({
+                      credentials: 'fetched',
+                      deleteBranch: false,
+                      path: worktree.path,
+                      root,
+                  })
+                : 'in-use'
+        );
         if (state === 'clean') {
             removed.push(worktree.path);
         }
@@ -132,6 +143,10 @@ export async function touchAgentWorktreeAt(path: string, root: string) {
     }
 }
 
+function needsGithubAppText(repository: string, folder: string) {
+    return `This Computer could not fetch ${repository} into ${folder}. A Captain fetches without the machine's own GitHub login or SSH keys, so a private repo, or an SSH origin, needs the Haus GitHub App's access, which Haus does not give Computers yet. Hand the work to a Worker with \`haus worker start --repo ${repository}\` meanwhile, or ask the person who attached this Computer.`;
+}
+
 function isAgentId(id: string) {
     return id.startsWith('agt_');
 }
@@ -140,7 +155,6 @@ async function resetAgentWorktree(
     input: AgentCheckout & { branch: string; path: string; ref: string }
 ) {
     return await withFolderLock(input.folder, async () => {
-        const fetched = await fetchFolder(input.folder, 'none', input.signal);
         if (await hasLocalWork(input.path)) {
             throw new WorkerCheckoutError(
                 `${input.path} has uncommitted or unpushed work on ${input.branch}, so it was not moved to ${input.ref}. Commit and push it first, or check out without --ref.`
@@ -157,6 +171,6 @@ async function resetAgentWorktree(
             signal: input.signal,
         });
         await writeMarker(input.path, { branch: input.branch, ref: input.ref });
-        return { fetched, from };
+        return { from };
     });
 }

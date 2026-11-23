@@ -4,6 +4,7 @@ import {
     type InvokeResult,
     invocationTimeoutsMs,
 } from '@haus/api';
+import { withAgentUse } from '../repos/agent-use.ts';
 import { invocationEnvironment } from './environment.ts';
 import {
     type InvocationPayloads,
@@ -35,17 +36,20 @@ export async function executeInvocation(
             command.agentId,
             operation.kind === 'bash' ? operation.cwd : undefined
         );
-        result = await runOperation(input.runners, operation, {
-            agentId: command.agentId,
-            cwd,
-            env,
-            invocationId: command.invocationId,
-            logPath: input.logPath,
-            payloads: input.payloads,
-            signal: input.controller.signal,
-            timeoutMs,
+        result = await withAgentUse(command.agentId, async () => {
+            const ran = await runOperation(input.runners, operation, {
+                agentId: command.agentId,
+                cwd,
+                env,
+                invocationId: command.invocationId,
+                logPath: input.logPath,
+                payloads: input.payloads,
+                signal: input.controller.signal,
+                timeoutMs,
+            });
+            await recordWorktreeUse(input.agentsRoot, operation, { cwd, env }).catch(logUseFailure);
+            return ran;
         });
-        await recordWorktreeUse(input.agentsRoot, operation, { cwd, env }).catch(logUseFailure);
     } catch (error) {
         result = textResult('failed', error instanceof Error ? error.message : String(error));
     } finally {

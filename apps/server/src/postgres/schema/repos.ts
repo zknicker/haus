@@ -10,6 +10,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { computersTable } from './computers.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
+import { serversTable } from './servers.ts';
 
 export const reposTable = pgTable(
     'repos',
@@ -20,6 +21,11 @@ export const reposTable = pgTable(
     },
     (table) => [
         primaryKey({ columns: [table.serverId, table.repository], name: 'repos_pkey' }),
+        foreignKey({
+            columns: [table.serverId],
+            foreignColumns: [serversTable.id],
+            name: 'repos_server_fk',
+        }).onDelete('cascade'),
         check(
             'repos_repository_shape',
             sql`${table.repository} ~ '^[a-z0-9._-]+/[a-z0-9._-]+$'

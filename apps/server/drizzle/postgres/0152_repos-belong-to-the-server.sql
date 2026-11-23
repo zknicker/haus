@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS "repo_folders" (
 );
 --> statement-breakpoint
 ALTER TABLE "workers" ADD COLUMN IF NOT EXISTS "kept_worktree_path" text;--> statement-breakpoint
+ALTER TABLE "repos" DROP CONSTRAINT IF EXISTS "repos_server_fk";--> statement-breakpoint
+ALTER TABLE "repos" ADD CONSTRAINT "repos_server_fk" FOREIGN KEY ("server_id") REFERENCES "public"."servers"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "repo_folders" DROP CONSTRAINT IF EXISTS "repo_folders_repo_fk";--> statement-breakpoint
 ALTER TABLE "repo_folders" ADD CONSTRAINT "repo_folders_repo_fk" FOREIGN KEY ("server_id","repository") REFERENCES "public"."repos"("server_id","repository") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "repo_folders" DROP CONSTRAINT IF EXISTS "repo_folders_computer_fk";--> statement-breakpoint

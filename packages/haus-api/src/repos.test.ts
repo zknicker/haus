@@ -3,10 +3,12 @@ import { invocationOperationSchema } from './agent-invocations.ts';
 import { agentRepoBranch, repoFolderRequestSchema, repoNameSchema } from './repos.ts';
 import { workerHeldFrameSchema } from './worker-computer-frames.ts';
 
-test('a repo is a lower-cased owner/name that never starts a part with a dot', () => {
+test('a repo is a lower-cased owner/name, .github included, and never a . or .. segment', () => {
     expect(repoNameSchema.parse(' ZKnicker/Grotto ')).toBe('zknicker/grotto');
+    expect(repoNameSchema.parse('acme/.github')).toBe('acme/.github');
     expect(repoNameSchema.safeParse('grotto').success).toBe(false);
-    expect(repoNameSchema.safeParse('.git/hooks').success).toBe(false);
+    expect(repoNameSchema.safeParse('../hooks').success).toBe(false);
+    expect(repoNameSchema.safeParse('acme/.').success).toBe(false);
     expect(repoNameSchema.safeParse('owner/name/extra').success).toBe(false);
 });
 

@@ -16,7 +16,7 @@ import { readMarker, worktreeGitDirs, writeMarker } from './worktree-marker.ts';
 export interface WorktreeStart {
     branch: string;
     credentials: GitCredentials;
-    fetch: 'required' | 'best-effort';
+    fetch: 'required' | 'best-effort' | 'done';
     folder: string;
     path: string;
     ref: string | null;
@@ -40,9 +40,10 @@ export async function addWorktree(start: WorktreeStart) {
         await rm(start.path, { force: true, recursive: true });
         await git('prune stale worktrees', 'worktree', 'prune');
         const fetched =
-            start.fetch === 'required'
+            start.fetch === 'done' ||
+            (start.fetch === 'required'
                 ? await git('fetch origin', 'fetch', '--quiet', 'origin').then(() => true)
-                : await fetchFolder(start.folder, start.credentials, start.signal);
+                : await fetchFolder(start.folder, start.credentials, start.signal));
         start.signal?.throwIfAborted();
         const branchKept = await gitSucceeds(
             ['show-ref', '--verify', '--quiet', `refs/heads/${start.branch}`],
@@ -71,7 +72,7 @@ export async function addWorktree(start: WorktreeStart) {
 
 export async function worktreeState(
     path: string,
-    credentials: GitCredentials,
+    credentials: GitCredentials | 'fetched',
     signal?: AbortSignal
 ) {
     if (!existsSync(path)) {
@@ -80,7 +81,7 @@ export async function worktreeState(
     if ((await worktreeGitDirs(path)) === null) {
         return 'broken' as const;
     }
-    if (!(await fetchFolder(path, credentials, signal))) {
+    if (credentials !== 'fetched' && !(await fetchFolder(path, credentials, signal))) {
         return 'dirty' as const;
     }
     return (await hasLocalWork(path)) ? ('dirty' as const) : ('clean' as const);
@@ -104,7 +105,7 @@ export async function hasLocalWork(path: string) {
 }
 
 export async function removeCleanWorktree(input: {
-    credentials: GitCredentials;
+    credentials: GitCredentials | 'fetched';
     deleteBranch: boolean;
     path: string;
     root: string;

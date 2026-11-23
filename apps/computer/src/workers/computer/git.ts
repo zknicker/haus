@@ -16,6 +16,8 @@ interface GitOptions {
 const gitTimeoutMs = 300_000;
 const lockAttempts = 4;
 const lockBackoffMs = 150;
+const keylessSsh =
+    'ssh -F /dev/null -o IdentityAgent=none -o IdentitiesOnly=yes -o IdentityFile=/dev/null -o BatchMode=yes -o PasswordAuthentication=no';
 const lockError = /\.lock'?: File exists|Unable to create '[^']+\.lock'|cannot lock ref/u;
 
 export async function runGit(args: readonly string[], options: GitOptions) {
@@ -77,10 +79,24 @@ const githubRemotes = [
 
 async function spawnGit(args: readonly string[], options: GitOptions) {
     const agent = options.credentials === 'none';
-    const { GIT_ASKPASS: askpass, SSH_ASKPASS: sshAskpass, ...rest } = process.env;
+    const {
+        GIT_ASKPASS: askpass,
+        GIT_SSH: gitSsh,
+        GIT_SSH_COMMAND: sshCommand,
+        SSH_ASKPASS: sshAskpass,
+        SSH_AUTH_SOCK: sshAuthSock,
+        ...rest
+    } = process.env;
+    const machine = {
+        GIT_ASKPASS: askpass,
+        GIT_SSH: gitSsh,
+        GIT_SSH_COMMAND: sshCommand,
+        SSH_ASKPASS: sshAskpass,
+        SSH_AUTH_SOCK: sshAuthSock,
+    };
     const env = {
         ...rest,
-        ...(agent ? {} : { GIT_ASKPASS: askpass, SSH_ASKPASS: sshAskpass }),
+        ...(agent ? { GIT_SSH_COMMAND: keylessSsh } : machine),
         GIT_TERMINAL_PROMPT: '0',
     };
     const child = Bun.spawn(['git', ...(agent ? ['-c', 'credential.helper='] : []), ...args], {

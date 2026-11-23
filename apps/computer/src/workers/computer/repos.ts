@@ -71,7 +71,7 @@ export async function directories(path: string) {
     try {
         const entries = await readdir(path, { withFileTypes: true });
         return entries
-            .filter((entry) => entry.isDirectory() && !entry.name.startsWith('.'))
+            .filter((entry) => entry.isDirectory() && !isStagingClone(entry.name))
             .map((entry) => entry.name)
             .sort();
     } catch (cause) {
@@ -120,4 +120,8 @@ async function clone(repository: string, directory: string, options: RepoOptions
             `This Computer could not clone ${repository} with its GitHub access.`
         );
     }
+}
+
+function isStagingClone(name: string) {
+    return name.startsWith('.') && name.endsWith('.clone');
 }

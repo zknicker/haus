@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs';
 import { utimes, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { agentWorktreeIdleMs } from '@haus/api';
+import { withAgentUse } from './agent-use.ts';
 import {
     agentCheckoutText,
     agentWorktreeOf,
@@ -41,12 +42,11 @@ describe('haus repo checkout', () => {
 
         expect(first).toEqual({
             branch: 'haus/agt_alpha/app',
-            fetched: true,
             from: 'origin/main',
             path,
             reused: false,
         });
-        expect(second).toMatchObject({ fetched: null, reused: true });
+        expect(second).toMatchObject({ reused: true });
         expect(git(path, 'log', '--format=%s')).toBe('agent work\nfirst');
         expect(git(folder, 'branch', '--list', 'haus/*')).toBe('+ haus/agt_alpha/app');
         expect(agentCheckoutText(first)).toBe(
@@ -57,16 +57,15 @@ describe('haus repo checkout', () => {
         );
     });
 
-    test('a failed fetch still checks out from the local refs, and says so', async () => {
+    test('a fetch the Captain cannot make refuses, naming the GitHub App, and makes nothing', async () => {
         const { checkout, cutOff, folder, path } = setup();
         cutOff(folder);
-        const receipt = await checkout();
+        const refused = await checkout().catch((error: Error) => error.message);
 
-        expect(receipt).toMatchObject({ fetched: false, from: 'origin/main', reused: false });
-        expect(git(path, 'log', '--format=%s', '-1')).toBe('first');
-        expect(agentCheckoutText(receipt)).toContain(
-            'Origin could not be fetched, so it starts from this folder’s last fetch.'
+        expect(refused).toBe(
+            `This Computer could not fetch acme/app into ${folder}. A Captain fetches without the machine's own GitHub login or SSH keys, so a private repo, or an SSH origin, needs the Haus GitHub App's access, which Haus does not give Computers yet. Hand the work to a Worker with \`haus worker start --repo acme/app\` meanwhile, or ask the person who attached this Computer.`
         );
+        expect(existsSync(path)).toBe(false);
     });
 
     test('a new --ref moves a clean worktree, and refuses one with unpushed work', async () => {
@@ -76,7 +75,7 @@ describe('haus repo checkout', () => {
         git(path, 'commit', '--quiet', '--allow-empty', '-m', 'unpushed');
         const refused = await checkout('main').catch((error: Error) => error.message);
 
-        expect(moved).toMatchObject({ fetched: true, from: 'origin/feature', reused: true });
+        expect(moved).toMatchObject({ from: 'origin/feature', reused: true });
         expect(refused).toBe(
             `${path} has uncommitted or unpushed work on haus/agt_alpha/app, so it was not moved to main. Commit and push it first, or check out without --ref.`
         );
@@ -131,6 +130,27 @@ describe('Agent worktree cleanup', () => {
             path,
         ]);
         expect(existsSync(join(path, 'draft.md'))).toBe(true);
+    });
+
+    test('the sweep keeps what an invocation writes while it waits for that invocation', async () => {
+        const { checkout, dataRoot, path } = setup();
+        await checkout();
+        const dirs = await worktreeGitDirs(path);
+        const old = new Date(Date.now() - 2 * agentWorktreeIdleMs);
+        for (const file of ['haus-worktree.json', 'index']) {
+            await utimes(join(dirs?.admin ?? '', file), old, old);
+        }
+        const gate = Promise.withResolvers<void>();
+        const invocation = withAgentUse(agentId, async () => {
+            await gate.promise;
+            await writeFile(join(path, 'fresh.md'), 'written during the sweep');
+        });
+        const sweep = pruneIdleAgentWorktrees({ dataRoot, serverId: 'srv_1' });
+        gate.resolve();
+        await invocation;
+
+        expect(await sweep).toEqual([]);
+        expect(existsSync(join(path, 'fresh.md'))).toBe(true);
     });
 
     test('a path inside an Agent worktree names it; Worker worktrees and other paths do not', () => {

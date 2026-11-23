@@ -69,5 +69,5 @@ export function repoParts(repository: string) {
 }
 
 function unsafePart(part: string) {
-    return part.startsWith('.') || !/^[a-z0-9._-]+$/u.test(part);
+    return part === '.' || part === '..' || !/^[a-z0-9._-]+$/u.test(part);
 }

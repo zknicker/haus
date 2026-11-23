@@ -57,6 +57,14 @@ test('0152 lists every Worker and Project repo once, lower-cased, per Server, an
                 database`INSERT INTO repos (server_id, repository) VALUES ('srv_a', 'Acme/Up')`
             )
         ).toContain('"repos_repository_shape"');
+        expect(
+            await refusal(
+                database`INSERT INTO repos (server_id, repository) VALUES ('srv_gone', 'acme/app')`
+            )
+        ).toContain('"repos_server_fk"');
+        expect(
+            await database`SELECT confdeltype FROM pg_constraint WHERE conname = 'repos_server_fk'`
+        ).toEqual([{ confdeltype: 'c' }]);
     } finally {
         await database.close();
         await cluster.stop();

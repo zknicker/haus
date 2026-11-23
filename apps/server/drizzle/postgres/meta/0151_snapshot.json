@@ -15099,7 +15099,21 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "repos_server_fk": {
+          "name": "repos_server_fk",
+          "tableFrom": "repos",
+          "tableTo": "servers",
+          "columnsFrom": [
+            "server_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {
         "repos_pkey": {
           "name": "repos_pkey",

@@ -1351,6 +1351,17 @@
                 "manualPromise": 1,
                 "timer": 0
             }
+        },
+        "apps/computer/src/repos/agent-use.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "An in-process per-Agent use lock: each invocation and each worktree cleanup runs one awaited callback and releases its count or its cleaning promise in lexical finally, so a cleanup never removes a worktree while an invocation of that Agent runs. It owns no timer or detached work.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 2,
+                "manualPromise": 2,
+                "timer": 0
+            }
         }
     },
     "staticRuntimeCeilings": {}

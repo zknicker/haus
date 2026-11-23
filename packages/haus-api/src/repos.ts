@@ -11,8 +11,8 @@ export const repoNameSchema = z
     .min(3)
     .max(200)
     .regex(/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/u, 'A repo reads as owner/name.')
-    .refine((value) => !value.split('/').some((part) => part.startsWith('.')), {
-        message: 'A repo owner or name never starts with a dot.',
+    .refine((value) => !value.split('/').some((part) => part === '.' || part === '..'), {
+        message: 'A repo owner or name is never . or ..',
     })
     .transform((value) => value.toLowerCase());
 export type RepoName = z.infer<typeof repoNameSchema>;
