@@ -1,8 +1,6 @@
 import type { AgentWorkerStartInput, WorkerPlace, WorkerRuntime } from '@haus/api';
-import { and, eq } from 'drizzle-orm';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { projectRepoLinksTable, projectReposTable } from '../postgres/schema.ts';
 import { computerPlaceLabel, readComputerPlace, readyRuntimeOf } from './computer-places.ts';
 import { WorkerOptionCloudError, WorkerPlaceRequiredError } from './errors.ts';
 import {
@@ -10,8 +8,6 @@ import {
     WorkerPlaceOffError,
     WorkerPlaceUnknownError,
     WorkerProjectDefaultUnusableError,
-    WorkerProjectReposError,
-    WorkerRepoNotLinkedError,
     WorkerRuntimeUnavailableError,
 } from './place-errors.ts';
 import {
@@ -23,7 +19,6 @@ import { chooseCarrier, readDefaultPlace } from './worker-carrier.ts';
 import { chooseWorkerModel } from './worker-model.ts';
 
 export interface WorkerStartPlan {
-    addRepository: boolean;
     carrierComputerId: string;
     model: string | null;
     place: WorkerPlace;
@@ -38,13 +33,11 @@ export async function resolveWorkerStart(
 ) {
     const { serverId } = runner;
     const place = input.requested ?? (await readFallbackPlace(tx, runner, input.projectId));
-    const repo = await resolveRepository(tx, serverId, input);
     if (place.kind !== 'computer') {
         if (input.runtime || input.model) {
             throw new WorkerOptionCloudError(place.kind);
         }
         return {
-            addRepository: repo.id === null,
             carrierComputerId: await chooseCarrier(tx, {
                 agentId: runner.agentId,
                 place: place.kind,
@@ -52,7 +45,7 @@ export async function resolveWorkerStart(
             }),
             model: null,
             place,
-            repository: repo.repository,
+            repository: input.repository,
             runtime: null,
         } satisfies WorkerStartPlan;
     }
@@ -71,9 +64,6 @@ export async function resolveWorkerStart(
     if (!runtime) {
         throw new WorkerRuntimeUnavailableError(label, input.runtime ?? null);
     }
-    if (!(repo.id && (await isLinked(tx, serverId, repo.id, computer.computerId)))) {
-        throw new WorkerRepoNotLinkedError(repo.repository, label);
-    }
     const model = await chooseWorkerModel(tx, {
         agentId: runner.agentId,
         place: computer,
@@ -82,11 +72,10 @@ export async function resolveWorkerStart(
         serverId,
     });
     return {
-        addRepository: false,
         carrierComputerId: computer.computerId,
         model,
         place,
-        repository: repo.repository,
+        repository: input.repository,
         runtime,
     } satisfies WorkerStartPlan;
 }
@@ -111,53 +100,4 @@ async function readFallbackPlace(
         throw new WorkerPlaceRequiredError(await readUsablePlaces(tx, runner.serverId));
     }
     return { kind: cloudDefault } satisfies WorkerPlace;
-}
-
-async function resolveRepository(
-    tx: HausDatabase,
-    serverId: string,
-    input: { projectId: string; repository?: string | undefined }
-) {
-    const repos = await tx
-        .select({ id: projectReposTable.id, repository: projectReposTable.repository })
-        .from(projectReposTable)
-        .where(
-            and(
-                eq(projectReposTable.serverId, serverId),
-                eq(projectReposTable.projectId, input.projectId)
-            )
-        )
-        .orderBy(projectReposTable.repository);
-    const { repository } = input;
-    if (repository) {
-        const known = repos.find(
-            (repo) => repo.repository.toLowerCase() === repository.toLowerCase()
-        );
-        return known ?? { id: null, repository };
-    }
-    const [only, ...others] = repos;
-    if (!only || others.length > 0) {
-        throw new WorkerProjectReposError(repos.map((repo) => repo.repository));
-    }
-    return only;
-}
-
-async function isLinked(
-    tx: HausDatabase,
-    serverId: string,
-    projectRepoId: string,
-    computerId: string
-) {
-    const [link] = await tx
-        .select({ computerId: projectRepoLinksTable.computerId })
-        .from(projectRepoLinksTable)
-        .where(
-            and(
-                eq(projectRepoLinksTable.serverId, serverId),
-                eq(projectRepoLinksTable.projectRepoId, projectRepoId),
-                eq(projectRepoLinksTable.computerId, computerId)
-            )
-        )
-        .limit(1);
-    return link !== undefined;
 }

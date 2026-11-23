@@ -5,7 +5,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { chatsTable, computersTable, projectsTable, taskKeysTable } from '../postgres/schema.ts';
 import { requireServerMembership } from '../servers/server-access.ts';
 import type { HausUser } from '../users/haus-user.ts';
-import { computerNameSql, defaultWorkerPlaceOf, readProjectRepos } from './project-worker-read.ts';
+import { computerNameSql, defaultWorkerPlaceOf } from './project-worker-read.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
@@ -88,11 +88,6 @@ async function readProjects(db: Reader, serverId: string, chatId?: string) {
             )
         )
         .orderBy(asc(chatsTable.name));
-    const repos = await readProjectRepos(
-        db,
-        serverId,
-        rows.map((row) => row.chatId)
-    );
     return rows.map(
         ({
             defaultWorkerComputerId,
@@ -112,7 +107,6 @@ async function readProjects(db: Reader, serverId: string, chatId?: string) {
                     defaultWorkerPlace,
                 }),
                 name,
-                repos: repos.get(row.chatId) ?? [],
             } satisfies Project;
         }
     );

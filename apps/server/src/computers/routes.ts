@@ -1,4 +1,7 @@
 import {
+    computerCliRepoAddInputSchema,
+    computerCliRepoListInputSchema,
+    computerCliRepoRemoveInputSchema,
     runnerMintRequestSchema,
     runnerRevokeRequestSchema,
     workerPushCredentialRequestSchema,
@@ -7,10 +10,17 @@ import {
 import type { FastifyInstance } from 'fastify';
 import type { HausDatabase } from '../postgres/connection.ts';
 import {
+    addRepoFolderByCli,
+    listRepoFoldersByCli,
+    removeRepoFolderByCli,
+} from '../repos/cli-repo-folders.ts';
+import { RepoFolderRefusalError } from '../repos/repo-errors.ts';
+import {
     mintWorkerPushCredential,
     mintWorkerTurnCredential,
 } from '../workers/worker-credentials.ts';
 import { attachComputer, ComputerAttachmentError } from './attachment-service.ts';
+import type { ComputerConnections } from './connections.ts';
 import {
     attachComputerSchema,
     beginComputerLoginSchema,
@@ -36,6 +46,7 @@ export function registerComputerRoutes(
     app: FastifyInstance,
     options: {
         appOrigin: string;
+        connections: Pick<ComputerConnections, 'isOnline' | 'repoFolders'>;
         db: HausDatabase;
     }
 ) {
@@ -131,6 +142,37 @@ export function registerComputerRoutes(
             return setupError(reply, cause);
         }
     });
+    app.post('/computer/repos/add', async (request, reply) => {
+        try {
+            return await addRepoFolderByCli(
+                options.db,
+                computerCliRepoAddInputSchema.parse(request.body)
+            );
+        } catch (cause) {
+            return repoFolderError(reply, cause);
+        }
+    });
+    app.post('/computer/repos/remove', async (request, reply) => {
+        try {
+            return await removeRepoFolderByCli(
+                options.db,
+                options.connections,
+                computerCliRepoRemoveInputSchema.parse(request.body)
+            );
+        } catch (cause) {
+            return repoFolderError(reply, cause);
+        }
+    });
+    app.post('/computer/repos/list', async (request, reply) => {
+        try {
+            return await listRepoFoldersByCli(
+                options.db,
+                computerCliRepoListInputSchema.parse(request.body)
+            );
+        } catch (cause) {
+            return repoFolderError(reply, cause);
+        }
+    });
     app.post('/computer/workers/turn-credential', async (request, reply) => {
         try {
             const input = workerTurnCredentialRequestSchema.parse(request.body);
@@ -159,6 +201,19 @@ function attachmentError(
         ...(cause instanceof ComputerAttachmentError ? { code: cause.code } : {}),
         error: message,
     });
+}
+
+function repoFolderError(
+    reply: { code(statusCode: number): { send(payload: unknown): unknown } },
+    cause: unknown
+) {
+    if (cause instanceof ComputerLoginError) {
+        return loginError(reply, cause);
+    }
+    if (cause instanceof RepoFolderRefusalError) {
+        return reply.code(cause.httpStatus).send({ code: cause.reason, error: cause.message });
+    }
+    return setupError(reply, cause);
 }
 
 function setupError(

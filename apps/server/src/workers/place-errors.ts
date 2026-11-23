@@ -43,26 +43,6 @@ export class WorkerProjectDefaultUnusableError extends Error {
     }
 }
 
-export class WorkerRepoNotLinkedError extends Error {
-    constructor(repository: string, name: string) {
-        super(
-            `${repository} is not linked on ${name}. Ask the person who attached it, an Owner, or an Admin to link it in the Project's settings, or pick another place.`
-        );
-        this.name = 'WorkerRepoNotLinkedError';
-    }
-}
-
-export class WorkerProjectReposError extends Error {
-    constructor(repositories: readonly string[]) {
-        super(
-            repositories.length > 0
-                ? `This Task's Project has several repos, so name one with --repo: ${repositories.join(', ')}.`
-                : "This Task's Project has no repos yet. Name the repository with --repo <owner/name>."
-        );
-        this.name = 'WorkerProjectReposError';
-    }
-}
-
 export class WorkerRuntimeUnavailableError extends Error {
     constructor(name: string, runtime: string | null) {
         super(

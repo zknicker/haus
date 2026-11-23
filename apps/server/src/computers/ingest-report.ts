@@ -13,6 +13,8 @@ import {
     hausAgentReportFrameSchema,
     hostSkillFileResultSchema,
     reminderScriptResultSchema,
+    repoClonesFrameSchema,
+    repoFolderResultSchema,
     usageReportSchema,
 } from '@haus/api';
 import { z } from 'zod';
@@ -21,6 +23,7 @@ import type { InvocationRouter } from '../agent-invocations/invocation-router.ts
 import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computerUpdatedTopic } from '../realtime/topics.ts';
+import { ingestRepoClones } from '../repos/repo-folder-write.ts';
 import type { AgentThoughts } from '../server-agents/agent-thought.ts';
 import { ingestAgentIdleCompaction } from '../server-agents/record-agent-idle-compaction.ts';
 import { recordHausAgentState } from '../server-agents/record-haus-agent-state.ts';
@@ -172,6 +175,11 @@ async function recordStateReport(
         return await recordHausAgentState(db, computerId, hausAgentReport.data.agents);
     }
 
+    const repoClones = repoClonesFrameSchema.safeParse(frame);
+    if (repoClones.success) {
+        return await ingestRepoClones(db, { computerId, serverId }, repoClones.data.clones);
+    }
+
     const report = reportSchema.safeParse(frame);
     if (!report.success) {
         if (
@@ -196,6 +204,11 @@ function acceptComputerReply(connections: ComputerConnections, computerId: strin
     const inventoryRefresh = computerInventoryRefreshResultSchema.safeParse(frame);
     if (inventoryRefresh.success) {
         connections.inventoryRefresh.accept(computerId, inventoryRefresh.data);
+        return true;
+    }
+    const repoFolder = repoFolderResultSchema.safeParse(frame);
+    if (repoFolder.success) {
+        connections.repoFolders.accept(computerId, repoFolder.data);
         return true;
     }
     const skillImport = agentSkillImportResultSchema.safeParse(frame);

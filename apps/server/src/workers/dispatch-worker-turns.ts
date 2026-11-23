@@ -22,11 +22,9 @@ import {
     workersTable,
 } from '../postgres/schema.ts';
 import { owesHarnessStop } from './harness-stop.ts';
-import { readWorkerRepoLink } from './read-worker-repo-link.ts';
 import { workerCloseFrames } from './worker-close-frames.ts';
 import type { WorkerEffects, WorkerFrame } from './worker-effects.ts';
 import { prepareWorkerEvents } from './worker-events.ts';
-import { refuseUnlinkedTurn } from './worker-repo-link.ts';
 import { workerTurnStartFrame } from './worker-turn-start-frame.ts';
 
 export const defaultWorkerPlaceLimit = 10;
@@ -44,21 +42,7 @@ export async function dispatchWorkerTurns(
     const candidates = await readDispatchCandidates(tx, serverId);
     const free = await readFreeSlots(tx, serverId);
     const dispatched: Array<{ turn: TurnRow; worker: WorkerRow }> = [];
-    const refusedWorkerIds: string[] = [];
-    const wakes: Array<{ agentId: string; serverId: string }> = [];
     for (const candidate of candidates) {
-        if (
-            candidate.worker.place === 'computer' &&
-            !(await readWorkerRepoLink(tx, candidate.worker))
-        ) {
-            const wake = await refuseUnlinkedTurn(tx, {
-                turnId: candidate.turn.id,
-                worker: candidate.worker,
-            });
-            wakes.push(...(wake ? [wake] : []));
-            refusedWorkerIds.push(candidate.worker.id);
-            continue;
-        }
         const key = slotKey(candidate.worker);
         const slots = free.get(key) ?? defaultWorkerPlaceLimit;
         if (slots <= 0) {
@@ -89,11 +73,7 @@ export async function dispatchWorkerTurns(
             frame: await workerTurnStartFrame(tx, storage, { turn, worker }),
         });
     }
-    return {
-        frames,
-        wakes,
-        workerIds: [...dispatched.map(({ worker }) => worker.id), ...refusedWorkerIds],
-    };
+    return { frames, workerIds: dispatched.map(({ worker }) => worker.id) };
 }
 
 export async function withDispatch(
@@ -113,7 +93,7 @@ export async function withDispatch(
             })),
         ],
         frames: [...effects.frames, ...closing, ...dispatched.frames],
-        wakes: [...effects.wakes, ...dispatched.wakes],
+        wakes: effects.wakes,
     } satisfies WorkerEffects;
 }
 

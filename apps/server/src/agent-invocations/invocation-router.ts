@@ -16,6 +16,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import type { RunnerLink } from '../runner/runner-link.ts';
 import { clampTimeoutMs, noticeAnswer, settledAnswer } from './invocation-answers.ts';
 import { type InvocationClock, systemInvocationClock } from './invocation-clock.ts';
+import { gateInvocation } from './invocation-gates.ts';
 import { bindRunnerUpload } from './invocation-payloads.ts';
 import {
     readAgentMachine,
@@ -128,20 +129,20 @@ function routeInvocations(input: RouterInput) {
         if (frame.operation.kind === 'file-write' && frame.operation.bytes.kind === 'attachment') {
             await bindRunnerUpload(db, record, frame.operation.bytes.attachmentId);
         }
-        const refusal = computerId
-            ? await gateDesktopInvocation(db, {
-                  agentId: frame.agentId,
-                  appOrigin,
-                  computerId,
-                  invocationId: record.id,
-                  key: frame,
-                  online,
-                  operation: frame.operation,
-                  serverId: agent.serverId,
-              })
-            : null;
-        if (refusal) {
-            answer(refusal);
+        const gated = await gateInvocation(db, {
+            agentId: frame.agentId,
+            appOrigin,
+            computerId,
+            invocationId: record.id,
+            key: frame,
+            online,
+            operation: frame.operation,
+            serverId: agent.serverId,
+        });
+        if (gated.kind === 'refused') {
+            if (gated.answer) {
+                answer(gated.answer);
+            }
             return;
         }
         if (!(online && computerId)) {
@@ -151,7 +152,7 @@ function routeInvocations(input: RouterInput) {
         const command: InvokeCommand = {
             agentId: frame.agentId,
             invocationId: record.id,
-            operation: frame.operation,
+            operation: gated.operation,
             runId: frame.runId,
             timeoutMs,
             type: 'invoke',
