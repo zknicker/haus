@@ -464,7 +464,7 @@ Reproduce the flake in delivery.test.ts, make it deterministic, and open a pull 
 BRIEF
 ```
 
-`POST /api/agent/workers` takes `{ brief, nonce, place?, repository?, runtime?, model?, startingRef,
+`POST /api/agent/workers` takes `{ brief, nonce, place?, repository, runtime?, model?, startingRef,
 task?, title }` (`agentWorkerStartInputSchema`). `place` is the object form or a string:
 `computer:<id>`, `cursor`, `claude`, or a Computer name, bare or after `computer:`. Without `place`
 the start uses the Task's Project default, then the Agent's Computer's ready cloud default (W3
@@ -473,12 +473,12 @@ Agent cannot reach), `WORKER_TASK_CLOSED`, `WORKER_PLACE_REQUIRED` (no usable pl
 default that cannot take one now; the message lists the usable places), `WORKER_PLACE_UNAVAILABLE`
 (an unknown or offline place, or no online carrier with it ready), `WORKER_PLACE_OFF` (the
 Computer's switch is off), `WORKER_PLACE_AMBIGUOUS` (two Computers share the name; the message lists
-their `computer:<id>` forms), `WORKER_REPO_UNKNOWN` (no `repository` while the Project has none or
-several), `WORKER_REPO_NOT_LINKED` (the Computer has no link for it), `WORKER_RUNTIME_UNAVAILABLE`,
+their `computer:<id>` forms), `WORKER_RUNTIME_UNAVAILABLE`,
 `WORKER_MODEL_UNAVAILABLE` (the runtime there cannot run that `model`, or reports none; the message
 lists the ones it can; an omitted `model` is the Agent's own when it runs there, else the first
-reported), and `WORKER_OPTION_CLOUD` (`runtime` or `model` on a cloud place). A named `repository` the Project
-lacks joins its repos at start (R15, until Project settings ship repos). A start then passes the
+reported), and `WORKER_OPTION_CLOUD` (`runtime` or `model` on a cloud place). `repository` is a
+required GitHub `owner/name`, lower-cased, and any repo works on any place
+([ADR 0060](../adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md)). A start then passes the
 Task Chat's freshness hold like `haus message send` and answers `held` with the newer messages.
 Otherwise it records the Worker (`wkr_`) and its first turn (`wkt_`, input `[{ kind: 'brief' }]`),
 follows the Task for the Agent, posts no Message, and answers
@@ -488,8 +488,8 @@ different start under that nonce is `WORKER_IDEMPOTENCY_CONFLICT`. The carrier i
 Computer when it reports the place ready and is online, else the online one attached longest.
 
 `GET /api/agent/workers/places?task=<KEY-n>` answers `workerPlacesResponseSchema`: every cloud
-place and every Computer, usable or not, with its switch, online state, runtimes, linked repos,
-limit, free slots, and whether it is the Task's Project default.
+place and every Computer, usable or not, with its switch, online state, runtimes, `repoFolders`
+(the repos it has a folder for), limit, free slots, and whether it is the Task's Project default.
 
 **Dispatch.** A turn goes to its carrier when every earlier turn of its Worker has settled, its
 input is recorded, and its place has a free slot: `worker_place_limits` per Server and cloud place,
@@ -526,7 +526,7 @@ settled queues a `pull_request` item ([Workers](../../specs/workers.md#pull-requ
 `POST /computer/workers/turn-credential { attempt, credentialHash, turnId }`. This launch fence
 refuses with `not-dispatched-here`, `settled`, `stop-requested`, `stale-attempt`,
 `earlier-turn-stopping` (an earlier turn the Server settled after launch, stopped or failed `machine-offline`, has not been reported ended), `closing`,
-`place-off`, or `repo-unlinked`; a re-mint for the same attempt revokes the earlier token. The minted token is the
+or `place-off`; a re-mint for the same attempt revokes the earlier token. The minted token is the
 Worker's `HAUS_WORKER_TOKEN` and reaches only `POST /api/worker/report` and the Drive reads
 (`/api/agent/drive/changes`, `/api/agent/artifacts/by-path`, `/api/agent/artifacts/:id/download`).
 `POST /computer/workers/push-credential { credentialHash, turnId }` mints the daemon's push token
@@ -546,7 +546,8 @@ is `harness-error`; `uncertain` is the draft or `no-report`; `refused` is `launc
 `stopped` is the draft or `stopped`; a failure keeps the frame's `detail`), posts the report with citations
 bound to the turn's own push outcomes, attaches pull requests, seeds readings from `branches`, and
 queues `worker_report`. `worker-held` is answered with `worker-close` for each closed or unknown
-Worker, and a Worker that closes gets `worker-close`. A Computer-place turn whose Computer has
+Worker, and its `keptWorktrees` set `workers.kept_worktree_path` (the Worker's `keptWorktree`) for
+that Computer's Workers and clear it on the rest, and a Worker that closes gets `worker-close`. A Computer-place turn whose Computer has
 been disconnected for 30 minutes fails `machine-offline`.
 
 **Follow-ups and stop.** `POST /api/agent/workers/send` takes `{ workerId, nonce, text, interrupt }`
