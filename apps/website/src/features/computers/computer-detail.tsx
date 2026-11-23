@@ -1,11 +1,9 @@
-import type { ComputerRuntimeId } from '@haus/api';
 import { Chip } from '@heroui/react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { ProfileFact, ProfileFacts } from '../../components/ui/profile-facts.tsx';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { SettingsPageColumn } from '../settings/layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../settings/layout/settings-page-header.tsx';
-import { CloudWorkersSection } from './cloud-agent-capability-card.tsx';
 import { ComputerAccessSection } from './computer-access-section.tsx';
 import { ComputerUpdates } from './computer-actions.tsx';
 import { ComputerAgents } from './computer-agents.tsx';
@@ -15,12 +13,13 @@ import { ComputerRepoFoldersCard } from './computer-repo-folders-card.tsx';
 import { ComputerRuntimeIssues } from './computer-runtime-issues.tsx';
 import { ComputerToolsSection } from './computer-tools-section.tsx';
 import type { ComputerUpdatePreviewState } from './computer-update-preview.tsx';
+import { ComputerUsePermissionWarning } from './computer-use-permissions.tsx';
+import { ComputerWorkersSection } from './computer-workers-section.tsx';
 import {
     computerHealthColor,
     computerHealthLabel,
     computerLabel,
     computerPlatformIcon,
-    computerRuntimePresentations,
     computerSystemLabel,
 } from './presentation.ts';
 
@@ -44,10 +43,6 @@ export function ComputerDetail({
         return null;
     }
 
-    const workerRuntimeIds = computerRuntimePresentations(computer.reportedInventory)
-        .filter((runtime) => runtime.detected)
-        .map((runtime) => runtime.id)
-        .filter(isWorkerRuntimeId);
     const online = computer.health !== 'offline';
 
     return (
@@ -103,27 +98,29 @@ export function ComputerDetail({
                 previewState={updatePreview}
                 serverId={serverId}
             />
+            {computer.computerUseEnabled ? (
+                <ComputerUsePermissionWarning
+                    computerId={computerId}
+                    deviceName={computerLabel(computer)}
+                    readiness={computer.reportedInventory?.computerUse}
+                    serverId={serverId}
+                />
+            ) : null}
             <ComputerAccessSection computerId={computerId} serverId={serverId} />
+            <ComputerWorkersSection computerId={computerId} serverId={serverId} />
             <ComputerRepoFoldersCard computerId={computerId} serverId={serverId} />
             <ComputerToolsSection computerId={computerId} serverId={serverId} />
-            <CloudWorkersSection computerId={computerId} serverId={serverId} />
             <ComputerAgents computerId={computerId} serverId={serverId} />
             <ComputerDiagnostics
                 computerId={computerId}
                 key={computerId}
                 onUpdatePreviewChange={onUpdatePreviewChange}
-                runtimeIds={workerRuntimeIds}
                 serverId={serverId}
                 serverSlug={serverSlug}
                 updatePreview={updatePreview}
             />
         </SettingsPageColumn>
     );
-}
-
-/** Workers run Claude Code or Codex; Grok Build is no longer a runtime (ADR 0057). */
-function isWorkerRuntimeId(value: string): value is ComputerRuntimeId {
-    return value === 'codex' || value === 'claude-code';
 }
 
 function formatTimestamp(value: Date | string) {

@@ -11,7 +11,8 @@ import type { AgentCreationSubmitValues, ReportedComputer } from './agent-creati
 type Computer = HausOutputs['computer']['list'][number];
 
 /**
- * The Computers a person may create an Agent on: the ones they attached, each
+ * The Computers a person may create an Agent on: the ones they attached, and
+ * any that allow All Captains on this Server (ADR 0057 decision 7), each
  * offering the Server's runner models.
  */
 export function creatableComputers(
@@ -19,7 +20,7 @@ export function creatableComputers(
     runnerModels: readonly ComputerRuntime[]
 ) {
     return computers
-        .filter((computer) => computer.attachedByCurrentUser)
+        .filter((computer) => computer.attachedByCurrentUser || computer.agentAccessScope === 'all')
         .map(
             (computer) =>
                 ({

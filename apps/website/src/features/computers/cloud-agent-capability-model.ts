@@ -67,7 +67,7 @@ export function cloudAgentCapabilityView(input: {
             ...identity,
             canConnect: false,
             canDisconnect: false,
-            description: 'Reconnect this device to manage its Cloud Workers.',
+            description: 'Reconnect this device to manage its cloud Workers.',
             status: 'unavailable',
             statusLabel: 'Unavailable',
         };

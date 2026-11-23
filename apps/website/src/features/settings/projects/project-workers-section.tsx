@@ -32,7 +32,7 @@ export function ProjectWorkersSection({
             <ItemCardGroup>
                 <ItemCard>
                     <ItemCard.Content>
-                        <SettingsRowTitle info="A Captain's Worker runs here unless the Captain names a place. A Device is listed once “Workers can run here” is on for it.">
+                        <SettingsRowTitle info="A Captain's Worker runs here unless the Captain names a place. A Device is listed once “Run Workers here” is on for it.">
                             Default place
                         </SettingsRowTitle>
                         <SettingsRowError>{setPlace.error?.message}</SettingsRowError>

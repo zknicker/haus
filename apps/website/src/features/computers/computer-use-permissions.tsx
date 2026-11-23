@@ -1,16 +1,12 @@
 import type { ComputerUseReadiness } from '@haus/api';
-import { ItemCard } from '@heroui-pro/react';
+import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Alert, Button, Separator, toast } from '@heroui/react';
 import { Copy01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Fragment } from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useComputerUseRecheck } from '../../hooks/computer-use/use-computer-use-recheck.ts';
 import { writeClipboardText } from '../../lib/clipboard.ts';
-import {
-    SettingsRowTitle,
-    SettingsStatusChip,
-    SettingsStatusTitle,
-} from '../settings/layout/settings-row-title.tsx';
+import { SettingsStatusChip, SettingsStatusTitle } from '../settings/layout/settings-row-title.tsx';
 import {
     type ComputerUsePermission,
     computerUseNeedsGrant,
@@ -53,7 +49,7 @@ export function ComputerUsePermissionNotices({
     return null;
 }
 
-export function ComputerUsePermissionRows({
+export function ComputerUsePermissionWarning({
     computerId,
     deviceName,
     readiness,
@@ -67,38 +63,14 @@ export function ComputerUsePermissionRows({
     const needsGrant = computerUseNeedsGrant(readiness);
     const recheck = useComputerUseRecheck({ active: needsGrant, computerId, serverId });
     const permissions = computerUsePermissions(readiness);
-    if (permissions.length === 0) {
+    if (!needsGrant) {
         return null;
     }
-    if (!needsGrant) {
-        return (
-            <>
-                <Separator />
-                <ItemCard>
-                    <ItemCard.Content>
-                        <SettingsStatusTitle
-                            info={`Computer use needs ${permissions.map((permission) => permission.pane).join(' and ')}.`}
-                            status={
-                                <SettingsStatusChip color="success">Granted</SettingsStatusChip>
-                            }
-                        >
-                            macOS permissions
-                        </SettingsStatusTitle>
-                    </ItemCard.Content>
-                </ItemCard>
-            </>
-        );
-    }
     return (
-        <>
-            <Separator />
-            <ItemCard>
-                <ItemCard.Content>
-                    <SettingsRowTitle info="Grant these on the device itself in System Settings › Privacy & Security.">
-                        macOS permissions
-                    </SettingsRowTitle>
-                </ItemCard.Content>
-                <ItemCard.Action>
+        <section>
+            <ItemCardGroup variant="transparent">
+                <ItemCardGroup.Header>
+                    <ItemCardGroup.Title>macOS permissions</ItemCardGroup.Title>
                     <Button
                         isPending={recheck.isPending}
                         onPress={() => recheck.mutate({ computerId, serverId })}
@@ -107,20 +79,22 @@ export function ComputerUsePermissionRows({
                     >
                         Check again
                     </Button>
-                </ItemCard.Action>
-            </ItemCard>
-            {permissions.map((permission) => (
-                <Fragment key={permission.id}>
+                </ItemCardGroup.Header>
+                <ItemCardGroup>
+                    {permissions.map((permission, index) => (
+                        <Fragment key={permission.id}>
+                            {index > 0 ? <Separator /> : null}
+                            <PermissionRow permission={permission} />
+                        </Fragment>
+                    ))}
                     <Separator />
-                    <PermissionRow permission={permission} />
-                </Fragment>
-            ))}
-            <Separator />
-            <AppPathRow
-                appPath={readiness?.appPath ?? defaultComputerAppPath}
-                deviceName={deviceName}
-            />
-        </>
+                    <AppPathRow
+                        appPath={readiness?.appPath ?? defaultComputerAppPath}
+                        deviceName={deviceName}
+                    />
+                </ItemCardGroup>
+            </ItemCardGroup>
+        </section>
     );
 }
 

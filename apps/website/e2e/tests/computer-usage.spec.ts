@@ -39,16 +39,14 @@ test('old provider usage stays labeled until a fresh Computer snapshot arrives',
             JSON.stringify({ type: 'usage-report', usage: planUsage('2026-08-19T04:08:16.193Z') })
         );
         await page.goto(`/s/usage-hq/settings/computers/${computerId}`);
-        await page.getByRole('button', { name: 'Diagnostics' }).click();
-        const rows = page.getByRole('grid', { name: 'Plans on this device' });
-        await expect(rows.getByText('Usage out of date')).toBeVisible({ timeout: 20_000 });
-        await expect(rows.getByText('22%', { exact: true })).toBeVisible();
-        await expect(rows.getByText(/^Resets /)).toHaveCount(0);
+        await expect(page.getByText('22% of the week left · out of date')).toBeVisible({
+            timeout: 20_000,
+        });
         computer.send(
             JSON.stringify({ type: 'usage-report', usage: planUsage(new Date().toISOString()) })
         );
-        await expect(rows.getByText('Usage out of date')).toHaveCount(0);
-        await expect(rows.getByText(/^Resets /)).toBeVisible();
+        await expect(page.getByText(/% of the week left$/u)).toBeVisible();
+        await expect(page.getByText(/out of date/u)).toHaveCount(0);
     } finally {
         computer.close();
     }
@@ -106,10 +104,11 @@ test('manual refresh updates the device plans without reloading', async ({ page 
             JSON.stringify({ type: 'usage-report', usage: planUsage(new Date().toISOString()) })
         );
         await page.goto(`/s/${slug}/settings/computers/${attachment.computerId}`);
-        await page.getByRole('button', { name: 'Diagnostics' }).click();
-        const plans = page.getByRole('grid', { name: 'Plans on this device' });
-        await expect(plans).toContainText('Codex');
-        await expect(plans).not.toContainText('Grok Build');
+        const workers = page.locator('section', {
+            has: page.getByRole('heading', { exact: true, name: 'Workers' }),
+        });
+        await expect(workers).toContainText('Codex');
+        await expect(workers).not.toContainText('Grok Build');
         const refreshRequest = new Promise<
             ReturnType<typeof computerInventoryRefreshRequestSchema.parse>
         >((resolve) => {
@@ -142,8 +141,8 @@ test('manual refresh updates the device plans without reloading', async ({ page 
             })
         );
         await expect(page.getByText('Refreshed', { exact: true })).toBeVisible();
-        // Grok Build is not a Worker runtime (ADR 0057), so plan usage never lists it.
-        await expect(plans.getByText('Grok Build')).toHaveCount(0);
+        // Grok Build is not a Worker runtime (ADR 0057), so Workers never lists it.
+        await expect(workers.getByText('Grok Build')).toHaveCount(0);
         await expect(page.getByText(/Not detected/u)).toHaveCount(0);
         await page.screenshot({ path: test.info().outputPath('refreshed-plans.png') });
     } finally {

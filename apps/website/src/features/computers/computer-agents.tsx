@@ -39,7 +39,7 @@ export function ComputerAgents({ computerId, serverId }: { computerId: string; s
         <section>
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>
-                    <ItemCardGroup.Title>Home Captains</ItemCardGroup.Title>
+                    <ItemCardGroup.Title>Captains using this device by default</ItemCardGroup.Title>
                 </ItemCardGroup.Header>
                 {agents.data ? (
                     <HomeCaptainList
@@ -81,7 +81,7 @@ export function HomeCaptainList({
     return (
         <ItemCardGroup>
             {rows.length === 0 ? (
-                <SettingsEmptyRow>No Captains live on this device</SettingsEmptyRow>
+                <SettingsEmptyRow>No Captains use this device by default</SettingsEmptyRow>
             ) : (
                 rows.map((row, index) => (
                     <Fragment key={row.id}>
