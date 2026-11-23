@@ -1,10 +1,9 @@
-import { Button, Spinner, Tooltip } from '@heroui/react';
+import { Badge, Button, Spinner, Tooltip } from '@heroui/react';
 import { ArrowReloadHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useComputerInventoryRefresh } from '../../hooks/servers/use-computer-inventory-refresh.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
-import { cn } from '../../lib/utils.ts';
 import { type AddDeviceStatus, addDeviceStatus } from './add-device-status.ts';
 
 export function useAddDeviceStatus(serverId: string) {
@@ -56,12 +55,10 @@ function StatusMark({ tone }: { tone: AddDeviceStatus['tone'] }) {
         return <Spinner size="sm" />;
     }
     return (
-        <span
-            aria-hidden="true"
-            className={cn(
-                'size-2 shrink-0 rounded-full',
-                tone === 'success' ? 'bg-success' : 'bg-warning'
-            )}
+        <Badge
+            className="static transform-none"
+            color={tone === 'success' ? 'success' : 'warning'}
+            size="sm"
         />
     );
 }
