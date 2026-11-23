@@ -9,7 +9,11 @@ import {
     useRemoveImageGenerationKey,
     useSetImageGenerationKey,
 } from '../../../hooks/servers/use-image-generation-settings.ts';
-import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
+import {
+    SettingsRowTitle,
+    SettingsStatusChip,
+    SettingsStatusTitle,
+} from '../layout/settings-row-title.tsx';
 import { SettingsFact, SettingsRowError } from '../layout/settings-text.tsx';
 import { ImageGenerationKeyDialog } from './image-generation-key-dialog.tsx';
 import {
@@ -83,17 +87,21 @@ function ProviderGroup({
         <ItemCardGroup>
             <ItemCard>
                 <ItemCard.Content>
-                    <SettingsRowTitle
+                    <SettingsStatusTitle
                         info={`Captains use your ${name} API key to generate images. The key stays on the Server and is never shown again.`}
+                        status={
+                            <SettingsStatusChip color={status.connected ? 'success' : 'default'}>
+                                {status.connected ? 'Connected' : 'Not connected'}
+                            </SettingsStatusChip>
+                        }
                     >
                         {name}
-                    </SettingsRowTitle>
+                    </SettingsStatusTitle>
                     <SettingsRowError>
                         {setKey.error?.message ?? removeKey.error?.message}
                     </SettingsRowError>
                 </ItemCard.Content>
-                <ItemCard.Action className="flex items-center gap-2">
-                    <SettingsFact>{status.connected ? 'Connected' : 'Not connected'}</SettingsFact>
+                <ItemCard.Action>
                     <KeyMenu label={`${name} key actions`} onAction={onAction} status={status} />
                 </ItemCard.Action>
             </ItemCard>
@@ -102,8 +110,9 @@ function ProviderGroup({
                     <Separator />
                     <ItemCard>
                         <ItemCard.Content>
-                            <ItemCard.Title>{model.displayName}</ItemCard.Title>
-                            <ItemCard.Description>{model.strengths}</ItemCard.Description>
+                            <SettingsRowTitle info={model.strengths}>
+                                {model.displayName}
+                            </SettingsRowTitle>
                         </ItemCard.Content>
                         <ItemCard.Action>
                             <SettingsFact className="tabular-nums">
