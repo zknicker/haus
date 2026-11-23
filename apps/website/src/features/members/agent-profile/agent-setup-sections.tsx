@@ -24,9 +24,11 @@ export function AgentRuntimeSection({ agent, server }: { agent: Agent; server: S
 
     return (
         <>
-            <SectionShell title="Machine">
-                <AgentMachineRow agent={agent} canEdit={canEdit} />
-            </SectionShell>
+            <ItemCardGroup variant="transparent">
+                <ItemCardGroup className="overflow-hidden">
+                    <AgentMachineRow agent={agent} canEdit={canEdit} />
+                </ItemCardGroup>
+            </ItemCardGroup>
             <AgentRuntime
                 agent={agent}
                 canEdit={canEdit}
