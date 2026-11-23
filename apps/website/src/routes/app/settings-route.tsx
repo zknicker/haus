@@ -44,7 +44,7 @@ const sectionRenderers: Record<SettingsRouteTab, (context: SectionContext) => Re
             <DevicesPage serverId={server.id} serverSlug={server.slug} />
         </RequireOperator>
     ),
-    connections: () => <ConnectionsPage embedded />,
+    connections: () => <ConnectionsPage />,
     general: ({ server }) => <ServerSettings server={server} />,
     git: () => <GitSettings />,
     members: ({ server }) => <MembersSection server={server} />,

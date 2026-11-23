@@ -29,8 +29,9 @@ import { useConnectionCredentials } from './use-connection-credentials.ts';
 import type { ConnectionSignIn } from './use-connection-sign-in.ts';
 
 /**
- * One connection's settings page, read like a product page: identity and setup
- * action, the account it signs in as, what it adds to chat, which Agents may use it, then reference
+ * One connection's settings page, read like a product page: identity, the
+ * account it signs in as (and the action that finishes setup), what it adds
+ * to chat, which Agents may use it, then reference
  * material — what it exposes and, for a custom connection, the facts the
  * Server keeps. Confirmations and
  * the credentials form stay dialogs over the page.
@@ -79,12 +80,7 @@ export function ConnectionPage({
             <div className="flex flex-col gap-10">
                 <ConnectionDetailHeader
                     connection={connection}
-                    onAddCredentials={credentials.editCredentials}
                     onRemove={() => setDestructiveAction('delete')}
-                    onSignIn={() => signIn.begin(connection)}
-                    saving={saving}
-                    signingIn={signIn.starting}
-                    usesToken={tokenPreset !== null}
                 />
                 {signIn.retryMessage ? (
                     <Alert status="danger">
@@ -97,13 +93,16 @@ export function ConnectionPage({
                 <McpAccountSection
                     connection={connection}
                     onAddAccount={credentials.addAccount}
+                    onAddCredentials={credentials.editCredentials}
                     onDisconnect={() => setDestructiveAction('disconnect')}
                     onReauthorize={() =>
                         connection.auth === 'oauth'
                             ? signIn.begin(connection)
                             : credentials.editCredentials()
                     }
+                    onSignIn={() => signIn.begin(connection)}
                     saving={saving}
+                    signingIn={signIn.starting}
                     usesToken={tokenPreset !== null}
                 />
                 <ConnectionChipsSection preset={connection.preset} />

@@ -1,120 +1,65 @@
 import { Button, Dropdown, Label } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
+import { PageTopbar } from '../../shell/shell-topbar.tsx';
+import { SettingsPageHeader } from '../layout/settings-page-header.tsx';
+import { SettingsInfo } from '../layout/settings-row-title.tsx';
 import { ConnectionGlyph } from './connection-mark.tsx';
 import type { McpConnection } from './mcp-server-shared.ts';
 
 /**
- * The connection page's identity and its page-level actions, laid out like a
- * product page: the mark on its own line, then the name with a quiet menu
- * and — only while the connection still needs credentials — the one primary
- * action that finishes setup. Account actions belong to the account card.
- *
- * The title takes the settings page title role (`SettingsPageHeader`), but
- * the header is its own: that one insets to the row text of padded groups,
- * and this page's sections sit flush on the column edge.
+ * The connection page's identity: its mark, then the settings page title with
+ * the server's own words about itself behind an info button. The page's
+ * overflow menu rides in the shell band, as a Device page's does; finishing
+ * setup belongs to the Connected account section.
  */
 export function ConnectionDetailHeader({
     connection,
-    onAddCredentials,
     onRemove,
-    onSignIn,
-    saving,
-    signingIn,
-    usesToken,
 }: {
     connection: McpConnection;
-    onAddCredentials: () => void;
     onRemove: () => void;
-    onSignIn: () => void;
-    saving: boolean;
-    signingIn: boolean;
-    /** A bearer-token preset (X): its credentials are one pasted token. */
-    usesToken: boolean;
 }) {
     return (
-        <header className="flex flex-col gap-5">
+        <div className="flex flex-col gap-5">
+            <PageTopbar>
+                <ConnectionBandMenu name={connection.name} onRemove={onRemove} />
+            </PageTopbar>
             <span className="connection-hero-mark">
                 <ConnectionGlyph connection={connection} />
             </span>
-            <div className="flex min-w-0 items-center gap-2">
-                <h1 className="text-foreground min-w-0 flex-1 truncate text-2xl font-semibold tracking-tight">
-                    {connection.name}
-                </h1>
-                <Dropdown>
-                    <Button
-                        aria-label={`${connection.name} actions`}
-                        isIconOnly
-                        size="sm"
-                        variant="ghost"
-                    >
-                        <Icon aria-hidden="true" icon={MoreHorizontalIcon} size={16} />
-                    </Button>
-                    <Dropdown.Popover placement="bottom end">
-                        <Dropdown.Menu>
-                            <Dropdown.Item
-                                id="remove"
-                                onAction={onRemove}
-                                textValue="Remove from Haus"
-                                variant="danger"
-                            >
-                                <Label>Remove from Haus</Label>
-                            </Dropdown.Item>
-                        </Dropdown.Menu>
-                    </Dropdown.Popover>
-                </Dropdown>
-                {connection.connected ? null : (
-                    <SetupAction
-                        connection={connection}
-                        onAddCredentials={onAddCredentials}
-                        onSignIn={onSignIn}
-                        saving={saving}
-                        signingIn={signingIn}
-                        usesToken={usesToken}
-                    />
-                )}
-            </div>
-            {/* The server's own words about itself; its address is a fact
-                below, so a server that says nothing gets no line here. */}
-            {connection.summary ? (
-                <p className="text-foreground text-sm">{connection.summary}</p>
-            ) : null}
-        </header>
+            <SettingsPageHeader
+                info={
+                    connection.summary ? (
+                        <SettingsInfo label={`About ${connection.name}`}>
+                            {connection.summary}
+                        </SettingsInfo>
+                    ) : null
+                }
+                title={connection.name}
+            />
+        </div>
     );
 }
 
-function SetupAction({
-    connection,
-    onAddCredentials,
-    onSignIn,
-    saving,
-    signingIn,
-    usesToken,
-}: {
-    connection: McpConnection;
-    onAddCredentials: () => void;
-    onSignIn: () => void;
-    saving: boolean;
-    signingIn: boolean;
-    usesToken: boolean;
-}) {
-    if (connection.auth === 'oauth') {
-        return (
-            <Button isDisabled={saving} isPending={signingIn} onPress={onSignIn} size="sm">
-                Sign in
+function ConnectionBandMenu({ name, onRemove }: { name: string; onRemove: () => void }) {
+    return (
+        <Dropdown>
+            <Button aria-label={`${name} actions`} isIconOnly size="sm" variant="ghost">
+                <Icon aria-hidden="true" icon={MoreHorizontalIcon} size={16} />
             </Button>
-        );
-    }
-    if (connection.auth === 'headers') {
-        return (
-            <Button isDisabled={saving} onPress={onAddCredentials} size="sm">
-                {connection.preset === 'skool'
-                    ? 'Sign in'
-                    : usesToken
-                      ? 'Add token'
-                      : 'Add credentials'}
-            </Button>
-        );
-    }
-    return null;
+            <Dropdown.Popover placement="bottom end">
+                <Dropdown.Menu>
+                    <Dropdown.Item
+                        id="remove"
+                        onAction={onRemove}
+                        textValue="Remove from Haus"
+                        variant="danger"
+                    >
+                        <Label>Remove from Haus</Label>
+                    </Dropdown.Item>
+                </Dropdown.Menu>
+            </Dropdown.Popover>
+        </Dropdown>
+    );
 }
