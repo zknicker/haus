@@ -58,7 +58,7 @@ export type ComputerAgentAccessSettings = z.infer<typeof computerAgentAccessSett
 
 /**
  * One row of `haus computer list` (`GET /api/agent/computers`): every Computer
- * on the Agent's Server. `home` is the Agent's Machine, `allowed` is whether
+ * on the Agent's Server. `machine` is the Agent's Machine, `allowed` is whether
  * Agent access allows this Agent there, and `computerUse` is whether a
  * `desktop` call from this Agent would pass the switch.
  */
@@ -67,7 +67,7 @@ export const agentComputerEntrySchema = z
         allowed: z.boolean(),
         computerId: idSchema,
         computerUse: z.boolean(),
-        home: z.boolean(),
+        machine: z.boolean(),
         name: z.string().trim().min(1).max(100).nullable(),
         online: z.boolean(),
         operatingSystem: z.string().trim().min(1).max(100).nullable(),
