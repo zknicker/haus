@@ -80,17 +80,33 @@ public struct ChatPresentation: Identifiable, Hashable, Sendable {
     }
 }
 
+/// Who wrote a message: a Captain (an Agent on the wire) or a person.
+public enum MessageAuthorKind: Hashable, Sendable {
+    case person
+    case captain
+}
+
 public struct MessageAuthorPresentation: Identifiable, Hashable, Sendable {
     public let id: String
     public let name: String
     public let avatarURL: URL?
     public let presence: AgentPresence?
+    /// From the message's author, never from presence: a deleted Captain has no presence but
+    /// still wrote as a Captain.
+    public let kind: MessageAuthorKind
 
-    public init(id: String, name: String, avatarURL: URL?, presence: AgentPresence? = nil) {
+    public init(
+        id: String,
+        name: String,
+        avatarURL: URL?,
+        presence: AgentPresence? = nil,
+        kind: MessageAuthorKind = .person
+    ) {
         self.id = id
         self.name = name
         self.avatarURL = avatarURL
         self.presence = presence
+        self.kind = kind
     }
 }
 
@@ -143,7 +159,7 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     /// A pending row whose send did not reach Server: the viewer's own row,
     /// marked "Not sent", until they retry or delete it.
     public let isSendFailed: Bool
-    public let cloudAgents: [CloudAgentPresentation]
+    public let cloudAgents: [WorkerPresentation]
     /// Grouped emoji reactions in the Server's order, reactors resolved.
     public let reactions: [MessageReactionPresentation]
     /// What the row draws: the prose read as Markdown blocks.
@@ -159,6 +175,8 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
     /// The Reminder or Trigger fire this message answers, when it answers one.
     public let cause: MessageCausePresentation?
     public let tasks: [TaskPreviewPresentation]
+    /// A Worker report, which a Task chat draws as one centered line.
+    public let workerReport: MessageWorkerReport?
 
     public init(
         id: String,
@@ -171,14 +189,16 @@ public struct MessagePresentation: Identifiable, Hashable, Sendable {
         claim: ClaimPresentation? = nil,
         isPending: Bool = false,
         isSendFailed: Bool = false,
-        cloudAgents: [CloudAgentPresentation] = [],
+        cloudAgents: [WorkerPresentation] = [],
         reactions: [MessageReactionPresentation] = [],
         richBlocks: [RichMessageBlock]? = nil,
         visualBody: VisualMessageBody? = nil,
         cause: MessageCausePresentation? = nil,
-        tasks: [TaskPreviewPresentation] = []
+        tasks: [TaskPreviewPresentation] = [],
+        workerReport: MessageWorkerReport? = nil
     ) {
         self.tasks = tasks
+        self.workerReport = workerReport
         let body = Self.body(content: content)
         // Fences are split off the resolved body before anything renders it:
         // the message content IS the visual, and the prose above the cards is

@@ -16,7 +16,7 @@ struct EmojiCategoryBar: View {
                 Button { onSelect(section.id) } label: {
                     Image(systemName: Self.symbol(for: section.id))
                         .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(isCurrent ? Color.accentColor : Color.secondary)
+                        .foregroundStyle(isCurrent ? HausPlatformColor.accentInk : Color.secondary)
                         .frame(maxWidth: .infinity, minHeight: 44)
                         .contentShape(.rect)
                 }

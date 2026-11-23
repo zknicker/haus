@@ -17,7 +17,14 @@ extension TranscriptListCoordinator {
             [weak self] table, change in
             guard change.oldValue != change.newValue else { return }
             MainActor.assumeIsolated {
+                self?.holdRestingInset(table)
                 self?.reapplyHeldAnchor(table)
+            }
+        }
+        boundsObservation = table.observe(\.bounds, options: [.old, .new]) { [weak self] table, change in
+            guard change.oldValue?.size.height != change.newValue?.size.height else { return }
+            MainActor.assumeIsolated {
+                self?.holdRestingInset(table)
             }
         }
     }

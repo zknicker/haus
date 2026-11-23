@@ -41,7 +41,7 @@ struct MessageReactorsList: View {
             if row.reactor.isViewer {
                 Image(systemName: "checkmark")
                     .fontWeight(.semibold)
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(HausPlatformColor.accentInk)
                     .accessibilityHidden(true)
             }
         }

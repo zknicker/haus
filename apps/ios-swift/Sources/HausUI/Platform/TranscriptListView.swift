@@ -78,14 +78,12 @@ where Item.ID == String {
         table.register(TranscriptCell.self, forCellReuseIdentifier: "row")
         table.dataSource = context.coordinator
         table.delegate = context.coordinator
-        if #available(iOS 26, *) {
-            // The system scroll edge effect computes its region from safe
-            // areas the flipped table does not have; letting it paint washes
-            // the whole viewport. The header's soft dissolve is drawn by the
-            // chrome bar instead.
-            table.topEdgeEffect.isHidden = true
-            table.bottomEdgeEffect.isHidden = true
-        }
+        // The system scroll edge effect computes its region from safe
+        // areas the flipped table does not have; letting it paint washes
+        // the whole viewport. The header's soft dissolve is drawn by the
+        // chrome bar instead.
+        table.topEdgeEffect.isHidden = true
+        table.bottomEdgeEffect.isHidden = true
         if onContentTap != nil {
             let tap = UITapGestureRecognizer(
                 target: context.coordinator,
@@ -133,7 +131,13 @@ where Item.ID == String {
     var view: TranscriptListView<Item, Row, Accessory>?
     var items: [Item] = []
     var showsAccessory = false
-    private(set) var appliedInsets: UIEdgeInsets?
+    /// The insets the screen asked for, the send landing's room included;
+    /// `TranscriptListView+Insets`.
+    var appliedInsets: UIEdgeInsets?
+    /// The reader's own send held at the top, and the room held open under
+    /// it; `TranscriptListView+SendLanding`.
+    var landedItemID: String?
+    var landingInsetTop: CGFloat?
     var appliedRowRevision = 0
     /// Rows re-hosted by updates since mount; the substrate's cost, counted
     /// so tests can pin that an inset change re-hosts nothing.
@@ -149,6 +153,8 @@ where Item.ID == String {
     var heldAnchor: (anchor: TranscriptScrollAnchor, offset: CGFloat)?
     var isReapplyingAnchor = false
     var contentSizeObservation: NSKeyValueObservation?
+    /// A viewport that changes height moves where short content rests.
+    var boundsObservation: NSKeyValueObservation?
     var handledRevealToken: UUID?
     /// The near-newest answer the view currently holds. It is cached here and
     /// not read back from the binding: the binding write is asynchronous, so a
@@ -180,50 +186,6 @@ where Item.ID == String {
         scheduleNearNewestSync(table)
     }
 
-    // MARK: Anchoring
-
-    func applyInsets(
-        view: TranscriptListView<Item, Row, Accessory>,
-        table: UITableView,
-        wasNearNewest: Bool
-    ) {
-        // Flipped mapping: the table's top inset renders at the visual bottom.
-        let insets = UIEdgeInsets(
-            top: view.bottomInset + HausChrome.transcriptBottomRunway,
-            left: 0,
-            bottom: view.topInset + 14,
-            right: 0
-        )
-        guard insets != appliedInsets else { return }
-        let previousTop = appliedInsets?.top
-        let isFirst = previousTop == nil
-        appliedInsets = insets
-        let rides = isFirst || (wasNearNewest && !table.isDragging && !table.isDecelerating)
-        let shrinks = previousTop.map { insets.top < $0 } ?? false
-        let eases = rides && (settleTravel != nil || shrinks)
-        // UIKit clamps the offset into the inset it is handed; an easing
-        // transcript holds it open to where the rows stand until it arrives.
-        var tableInsets = insets
-        if eases { tableInsets.top = max(insets.top, -table.contentOffset.y) }
-        table.contentInset = tableInsets
-        table.verticalScrollIndicatorInsets = UIEdgeInsets(
-            top: view.bottomInset, left: 0, bottom: view.topInset, right: 0
-        )
-        // A resting transcript rides an inset change. Growing lifts the newest
-        // message at once, so nothing slides under the composer. Shrinking
-        // eases: the composer drops its attachment strip in one frame while
-        // its glass collapses over several, and a snap dropped the transcript
-        // a frame before a send's row arrived. A settle in flight re-reads home.
-        guard rides else { return }
-        if settleTravel != nil {
-            stepSettle(table)
-        } else if eases {
-            settleToNewest(table: table)
-        } else {
-            table.contentOffset = CGPoint(x: 0, y: settleHome(table))
-        }
-    }
-
     // MARK: UITableViewDataSource
 
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -245,7 +207,7 @@ where Item.ID == String {
                 view.accessory()
             }
             .margins(.vertical, 0)
-            .margins(.horizontal, 16)
+            .margins(.horizontal, TranscriptMargins.side)
             .minSize(width: 0, height: 0)
         } else {
             let item = items[items.count - 1 - indexPath.row]
@@ -253,7 +215,7 @@ where Item.ID == String {
                 view.row(item)
             }
             .margins(.vertical, 0)
-            .margins(.horizontal, 16)
+            .margins(.horizontal, TranscriptMargins.side)
             .minSize(width: 0, height: 0)
         }
         // The counter-flip lives on the UIKit contentView, not inside the

@@ -26,10 +26,12 @@ extension TranscriptListCoordinator {
             endSettling()
             followedTopItemID = nil
             table.contentOffset = rest
-        case .animateToNewest, .followNewest:
+        case .animateToNewest, .followNewest, .landAtTop:
             // Nothing new to stage, and a travel already bound for the newest
             // row owns the viewport: let it finish rather than restart it.
             if appended == 0, nearNewest.isSettling { break }
+            if behavior == .landAtTop { beginSendLanding() }
+            refreshRestingInset(table)
             // In flipped space inserted rows appear in place; the ease-in is
             // staged by holding the viewport on the previous newest row and
             // releasing it toward rest, across everything that arrived. The

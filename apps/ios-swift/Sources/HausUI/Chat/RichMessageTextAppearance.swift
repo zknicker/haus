@@ -35,10 +35,14 @@ struct RichMessageTextAppearance: Equatable, Sendable {
     /// appearance asks for it.
     func font(base: PlatformFont) -> PlatformFont {
         guard scale != 1 || weight != nil else { return base }
-        return PlatformFont.systemFont(
-            ofSize: (base.pointSize * scale).rounded(),
-            weight: weight.map { PlatformFont.Weight(rawValue: $0) } ?? .regular
-        )
+        let size = (base.pointSize * scale).rounded()
+        guard HausTypeface.isRegistered else {
+            return PlatformFont.systemFont(
+                ofSize: size,
+                weight: weight.map { PlatformFont.Weight(rawValue: $0) } ?? .regular
+            )
+        }
+        return HausTypeface(platformWeight: weight ?? 0).platformFont(size: size)
     }
 }
 
@@ -52,6 +56,10 @@ extension RichInlineStyle {
                 ofSize: base.pointSize,
                 weight: contains(.bold) ? .semibold : .regular
             )
+        }
+        if let face = HausTypeface.face(of: base) {
+            let set = contains(.bold) ? face.bolder.platformFont(size: base.pointSize) : base
+            return contains(.italic) ? HausTypeface.oblique(set) : set
         }
         var traits = base.fontDescriptor.symbolicTraits
         #if canImport(UIKit)

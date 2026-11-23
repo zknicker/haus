@@ -41,16 +41,9 @@ public struct ChannelIconBox: View {
             .task { ChannelIconCatalog.shared.load() }
     }
 
-    @ViewBuilder
     private var glyph: some View {
-        if let subpaths = ChannelIconCatalog.shared.subpaths(for: appearance.icon) {
-            HugeiconGlyph(subpaths: subpaths)
-                .frame(width: glyphSize, height: glyphSize)
-                .foregroundStyle(tint ?? .secondary)
-        } else {
-            HausIcon(.channel, size: glyphSize, weight: 2)
-                .foregroundStyle(tint ?? .secondary)
-        }
+        ChannelGlyphShape(appearance: appearance, size: glyphSize, weight: 2)
+            .foregroundStyle(tint ?? .secondary)
     }
 
     private var tint: Color? {
@@ -80,6 +73,44 @@ public struct ChannelIconBox: View {
             AnyShape(Circle())
         case .roundedRect:
             AnyShape(RoundedRectangle(cornerRadius: Self.cornerRadius(for: size), style: .continuous))
+        }
+    }
+}
+
+/// A channel's glyph with no box, for a list row's lead column: the preset's
+/// tint when the channel has one, otherwise the muted ink.
+public struct ChannelGlyph: View {
+    private let appearance: ChannelAppearance
+    private let size: CGFloat
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    public init(appearance: ChannelAppearance, size: CGFloat) {
+        self.appearance = appearance
+        self.size = size
+    }
+
+    public var body: some View {
+        ChannelGlyphShape(appearance: appearance, size: size, weight: 1.5)
+            .foregroundStyle(ChannelColorPalette.preset(for: appearance.color)?.tint(colorScheme) ?? HausPlatformColor.mutedInk)
+            .accessibilityHidden(true)
+            .task { ChannelIconCatalog.shared.load() }
+    }
+}
+
+/// The catalog glyph for a channel, or the hash while the catalog loads or
+/// when the channel has none.
+private struct ChannelGlyphShape: View {
+    let appearance: ChannelAppearance
+    let size: CGFloat
+    let weight: CGFloat
+
+    var body: some View {
+        if let subpaths = ChannelIconCatalog.shared.subpaths(for: appearance.icon) {
+            HugeiconGlyph(subpaths: subpaths)
+                .frame(width: size, height: size)
+        } else {
+            HausIcon(.channel, size: size, weight: weight)
         }
     }
 }

@@ -13,7 +13,7 @@ public enum MentionPresentationKind: CaseIterable, Hashable, Sendable {
     case app
     case channel
     /// Cloud Agent work, by its id (`worker://<workerId>`); see
-    /// `CloudAgentWorkLink`. A quiet chip: the live card sits below the Message.
+    /// `WorkerMarkdownLink`. A quiet chip: the live card sits below the Message.
     case cloudAgentWork
     case directory
     case file
@@ -44,6 +44,8 @@ public enum RichReferenceMark: Hashable, Sendable {
     /// A brand's own glyph, in the brand's ink rather than the label's — the
     /// App's `brandColor`, which only its appearance overrides set.
     case brandGlyph(HausIconName, ReferenceBrandInk)
+    /// A Task's state disc, drawn as `TaskStateDisc` draws it.
+    case taskState(TaskState)
 
     /// The App draws the three-sparkle Skill mark at 16px where every other
     /// mark is 18px. The ratio, not the pixels, is what carries over: the
@@ -151,6 +153,10 @@ public struct RichReferencePresentation: Hashable, Sendable {
     /// A shared artifact's file-kind glyph once its metadata has loaded. Nil
     /// for every other kind, and the generic document glyph until then.
     public let fileGlyph: HausIconName?
+    /// A Task reference's state, when the app holds a read of that Task. Nil
+    /// for every other kind, and the Tasks glyph stands in until then: a chip
+    /// reads nothing to render.
+    public let taskState: TaskState?
 
     public init(
         id: String,
@@ -158,7 +164,8 @@ public struct RichReferencePresentation: Hashable, Sendable {
         label: String,
         avatarURL: URL?,
         channelAppearance: ChannelAppearance? = nil,
-        fileGlyph: HausIconName? = nil
+        fileGlyph: HausIconName? = nil,
+        taskState: TaskState? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -166,11 +173,26 @@ public struct RichReferencePresentation: Hashable, Sendable {
         self.avatarURL = avatarURL
         self.channelAppearance = channelAppearance
         self.fileGlyph = fileGlyph
+        self.taskState = taskState
+    }
+
+    /// The same reference wearing a Task state.
+    func with(taskState: TaskState?) -> RichReferencePresentation {
+        RichReferencePresentation(
+            id: id,
+            kind: kind,
+            label: label,
+            avatarURL: avatarURL,
+            channelAppearance: channelAppearance,
+            fileGlyph: fileGlyph,
+            taskState: taskState
+        )
     }
 
     /// The address this reference opens when it is activated. A web link and a
-    /// pull request are the two kinds whose target is a real address; every
-    /// other kind names a Haus record, and the phone has no route to one yet.
+    /// pull request are the two kinds whose target is a real address; a
+    /// message, a library file, a Task, and a Worker carry an in-app address
+    /// `InAppReferenceRoutes` opens natively. The rest stay inert.
     public var activationURL: URL? {
         switch kind {
         case .pullRequest, .website: RichReferenceWireForm.activationURL(for: id)
@@ -180,6 +202,8 @@ public struct RichReferencePresentation: Hashable, Sendable {
         case .sharedArtifact: SharedArtifactLinkTarget(key: id)?.inAppURL
         // In-app too: `InAppReferenceRoutes` pushes the Task.
         case .task: TaskReferenceTarget(taskID: id).url
+        // In-app too: `InAppReferenceRoutes` pushes the Worker.
+        case .cloudAgentWork: URL(string: "worker://\(id.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? id)")
         default: nil
         }
     }
@@ -198,7 +222,7 @@ public struct RichReferencePresentation: Hashable, Sendable {
         case .pullRequest: .glyph(.pullRequest)
         case .sharedArtifact: .glyph(fileGlyph ?? .document)
         case .skill: overrideMark ?? .glyph(.skill)
-        case .task: .glyph(.tasks)
+        case .task: taskState.map(RichReferenceMark.taskState) ?? .glyph(.tasks)
         case .message: .glyph(.message)
         case .website: .glyph(.website)
         }

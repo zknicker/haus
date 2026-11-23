@@ -5,6 +5,9 @@ enum TranscriptAppendBehavior: Equatable {
     case snapToNewest
     /// Ease the newest item in — the reader's own send.
     case animateToNewest
+    /// Ease the reader's own send up to the top of the viewport and hold it
+    /// there, with the room below it for the reply (`TranscriptSendLanding`).
+    case landAtTop
     /// Ease the newest item in, but when it is taller than the viewport bring
     /// its top into view and hold it there as it grows — someone else's reply
     /// while the reader is at the tail, read from its beginning.

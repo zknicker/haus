@@ -166,34 +166,3 @@ public struct AgentActivityEvent: Codable, Identifiable, Sendable, Equatable {
         )
     }
 }
-
-public struct AgentActiveActivitySnapshot: Codable, Sendable, Equatable {
-    public let activities: [AgentActivityEvent]
-}
-
-public struct AgentActivityCursor: Codable, Sendable, Equatable {
-    public let position: Int
-    public let runID: String
-
-    enum CodingKeys: String, CodingKey {
-        case position
-        case runID = "runId"
-    }
-}
-
-public struct AgentActivityHistoryPage: Codable, Sendable, Equatable {
-    public let events: [AgentActivityEvent]
-    public let nextBefore: AgentActivityCursor?
-}
-
-public struct AgentActivityHistoryInput: Encodable, Sendable {
-    public let agentId: String
-    public let limit: Int
-    public let serverId: String
-
-    public init(agentId: String, limit: Int = 30, serverId: String) {
-        self.agentId = agentId
-        self.limit = limit
-        self.serverId = serverId
-    }
-}

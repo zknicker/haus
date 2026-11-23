@@ -22,7 +22,7 @@ public enum TRPCSessions {
     /// Every stream the App can hold at once, with headroom. Derived from the
     /// stream inventory so adding a Server-wide stream raises the limit.
     public static let streamConnectionsPerHost =
-        RealtimeStream.allCases.count + streamsPerOpenChat * openChatAllowance + streamHeadroom
+        RealtimeStream.liveSession.count + streamsPerOpenChat * openChatAllowance + streamHeadroom
 
     /// How often the Server pings every SSE stream (`sse.ping` in
     /// `apps/server/src/haus-api/trpc.ts`).

@@ -1,9 +1,10 @@
 import SwiftUI
 
 enum HausChrome {
-    /// Every chrome row is this tall, so a chrome button in the sidebar and one
-    /// on the Chat canvas land on the same centerline.
-    static let headerHeight: CGFloat = 56
+    /// Every chrome row is this tall: the system navigation bar's row, so a
+    /// Chat's header circles land on the centerline of the list screens' bars
+    /// and nothing jumps on a push.
+    static let headerHeight: CGFloat = 44
 
     /// Extra bar region below the chrome row, reserved purely as runway for the
     /// system's scroll edge effect.
@@ -140,58 +141,52 @@ extension View {
     ///
     /// The bar is also deliberately taller than the chrome it carries, because
     /// the region is what sets how far the dissolve ramps —
-    /// ``HausChrome/scrollEdgeRunway`` explains the trade. Pre-26 has no edge
-    /// effect at all, so it gets neither the bar nor the runway: there the plain
-    /// inset is the whole behavior and the extra room would only be dead space.
-    @ViewBuilder
+    /// ``HausChrome/scrollEdgeRunway`` explains the trade.
     func chromeBar<Content: View>(
         edge: VerticalEdge,
         spacing: CGFloat? = nil,
         @ViewBuilder content: () -> Content
     ) -> some View {
-        if #available(iOS 26, macOS 26, *) {
-            safeAreaBar(edge: edge, spacing: spacing) {
-                content()
-                    .padding(edge == .top ? .bottom : .top, HausChrome.scrollEdgeRunway)
-                    .background { if edge == .top { ChromeScrollEdge() } }
-            }
-        } else {
-            safeAreaInset(edge: edge, spacing: spacing) {
-                content()
-                    .background { if edge == .top { ChromeScrollEdge() } }
-            }
+        safeAreaBar(edge: edge, spacing: spacing) {
+            content()
+                .padding(edge == .top ? .bottom : .top, HausChrome.scrollEdgeRunway)
+                .background {
+                    if edge == .top {
+                        ChromeTopScrim(fade: ChromeTopScrim.rowFade + HausChrome.scrollEdgeRunway)
+                            .ignoresSafeArea(edges: .top)
+                    }
+                }
         }
     }
 }
 
-/// The frosted edge under top chrome: the status bar and the chrome row sit on
-/// the bar material, which then feathers out across the runway below them.
+/// The canvas under top chrome: solid from the screen's top edge to just above
+/// the chrome row's bottom, then fading to clear across `fade`.
 ///
-/// The system soft edge only dims what scrolls under a bar, and on a
-/// transcript the dissolve is a mask over the rows themselves; either way a
-/// passing line of body text stayed legible behind the clock, a floating title,
-/// and the chrome buttons, and read as two layers of text colliding. Blurring
-/// the region is what the system navigation bar does, so the title and the
-/// buttons always sit on a quiet ground, while the feathered bottom keeps the
-/// header floating rather than capping the screen with a hard edge.
-struct ChromeScrollEdge: View {
+/// A dissolve over the rows alone left a passing line of body text legible
+/// behind the clock, the title, and the chrome buttons, where it read as two
+/// layers of text colliding. Painting the canvas itself means text is gone
+/// before it reaches the title, and since the scrim is the same color as the
+/// screen there is no band to see behind the header.
+struct ChromeTopScrim: View {
+    /// The sliver of the chrome row the fade starts inside, so text is gone
+    /// before it reaches the buttons.
+    static let rowFade: CGFloat = 6
+
+    let fade: CGFloat
+
     var body: some View {
-        Rectangle()
-            .fill(.bar)
-            .mask {
-                LinearGradient(
-                    stops: [
-                        .init(color: .black, location: 0),
-                        .init(color: .black, location: 0.62),
-                        .init(color: .black.opacity(0), location: 1),
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            }
-            .ignoresSafeArea(edges: .top)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
+        VStack(spacing: 0) {
+            HausPlatformColor.canvas
+            LinearGradient(
+                colors: [HausPlatformColor.canvas, HausPlatformColor.canvas.opacity(0)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: fade)
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 }
 
@@ -200,7 +195,7 @@ extension View {
     /// chrome, the way the system scroll edge effect painted for a SwiftUI
     /// scroll view. The system effect computes its region from safe areas the
     /// flipped transcript table does not have, so the dissolve is a mask —
-    /// same ramp shape as the iOS 26 soft edge, on every iOS version. Rows
+    /// same ramp shape as the system soft edge. Rows
     /// are crisp below the bar, at roughly a seventh of their contrast behind
     /// the chrome row, and gone by the status bar.
     ///

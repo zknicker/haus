@@ -1,6 +1,36 @@
 import SwiftUI
 
 extension MessageComposerView {
+    /// A composer whose placeholder follows its place: "Reply" in Captain DMs and Task chats,
+    /// "Message #name" in Projects.
+    public init(
+        text: Binding<String>,
+        interaction: ComposerInteraction,
+        place: ComposerPlace,
+        isTextFocused: FocusState<Bool>.Binding,
+        allowsAttachments: Bool = true,
+        mentionOptions: [MentionOptionPresentation] = [],
+        inlineReply: MessageReplyReferencePresentation? = nil,
+        onCancelInlineReply: @escaping () -> Void = {},
+        transitionNamespace: Namespace.ID? = nil,
+        model: ComposerModelControl? = nil,
+        onSend: @escaping (String, [ComposerAttachment]) async -> Bool
+    ) {
+        self.init(
+            text: text,
+            interaction: interaction,
+            placeholder: place.placeholder,
+            isTextFocused: isTextFocused,
+            allowsAttachments: allowsAttachments,
+            mentionOptions: mentionOptions,
+            inlineReply: inlineReply,
+            onCancelInlineReply: onCancelInlineReply,
+            transitionNamespace: transitionNamespace,
+            model: model,
+            onSend: onSend
+        )
+    }
+
     /// Deliberately blind to the portal: the plus button on a collapsed composer opens the source
     /// menu over the pill without expanding it, and a portal opened from a focused composer keeps
     /// its keyboard — so focus alone holds the expanded shell for the portal's whole lifecycle.
@@ -14,6 +44,15 @@ extension MessageComposerView {
 }
 
 extension View {
+    /// The send control shows only with something to send, as Capy's does. Its slot keeps its
+    /// width, so the field does not reflow as the first character lands.
+    func composerSendPresence(_ canSend: Bool) -> some View {
+        disabled(!canSend)
+            .opacity(canSend ? 1 : 0)
+            .accessibilityHidden(!canSend)
+            .animation(.easeOut(duration: 0.15), value: canSend)
+    }
+
     /// Why a picked file could not join the draft, as a native alert. The
     /// message clears when the alert is dismissed.
     func composerAttachmentAlert(message: Binding<String?>) -> some View {

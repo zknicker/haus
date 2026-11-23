@@ -6,21 +6,13 @@ import Testing
 struct TaskPlacePresentationTests {
     // MARK: - Status words
 
-    @Test func runStatusesReadAsWords() {
-        let labels = [
-            CloudAgentStatus.queued, .running, .completed, .failed, .cancelled, .expired, .pendingInput,
-        ].map(CloudAgentPresentation.runStatusLabel)
-        #expect(labels == ["Queued", "Running", "Completed", "Failed", "Stopped", "Expired", "Waiting on you"])
-        #expect(!labels.contains { $0.contains("_") })
-    }
-
     @Test func taskStatesReadAsTheAppSaysThem() {
         let labels = [TaskState.todo, .open, .done, .canceled, .unknown].map(TaskStateLabel.text)
-        #expect(labels == ["Todo", "Open", "Done", "Canceled", "Unknown state"])
+        #expect(labels == ["Todo", "In progress", "Done", "Canceled", "Unknown state"])
     }
 
     @Test func pullRequestFactsReadAsWords() throws {
-        let reading = CloudAgentPullRequestReading(
+        let reading = PullRequestReading(
             number: 42, repository: "haus/haus", state: "merged", checks: "failing", review: "changes-requested",
             title: "Rate-limit webhooks", url: "https://github.com/haus/haus/pull/42", changedFiles: 1
         )
@@ -34,29 +26,15 @@ struct TaskPlacePresentationTests {
 
     // MARK: - Attached work
 
-    @Test func theHeaderReadsTheNewestRun() throws {
-        let agent = try CloudAgentWorkFixture.work(
+    @Test func aWorkerReadsItsNewestRun() throws {
+        let agent = try WorkerFixture.work(
             status: "pending_input",
-            job: CloudAgentWorkFixture.Job.pendingInput(question: "Which key?"),
+            job: WorkerFixture.Job.pendingInput(question: "Which key?"),
             runs: [run(id: "run_new", status: "pending_input", summary: "Paused: **which** key should rotate?"),
                    run(id: "run_old", status: "completed", summary: "Earlier run")]
         )
         #expect(agent.newestRun?.runId == "run_new")
-        #expect(agent.runStatusText == "Waiting on you")
         #expect(agent.newestRunSummary == "Paused: which key should rotate?")
-    }
-
-    @Test func aPullRequestShownByItsCloudAgentIsNotRepeated() throws {
-        let agent = try CloudAgentWorkFixture.work(runs: [
-            CloudAgentWorkFixture.run(branches: [CloudAgentWorkFixture.branch(url: "https://github.com/haus/haus/pull/482")]),
-        ])
-        let work = TaskAttachedWorkPresentation(cloudAgents: [agent], pullRequests: [
-            CloudAgentPullRequestReading(number: 482, repository: "haus/haus", state: "open", url: "https://github.com/haus/haus/pull/482"),
-            CloudAgentPullRequestReading(number: 7, repository: "haus/haus", state: "draft", url: "https://github.com/haus/haus/pull/7"),
-        ])
-        #expect(work.pullRequests.map(\.reading.number) == [7])
-        #expect(!work.isEmpty)
-        #expect(TaskAttachedWorkPresentation.empty.isEmpty)
     }
 
     // MARK: - Origin preview
@@ -74,8 +52,8 @@ struct TaskPlacePresentationTests {
         #expect(presentation.recentMessages.map(\.id) == ["m2", "m4"])
         #expect(presentation.messagesLabel == "9 messages")
         #expect(presentation.unreadLabel == "2 new")
-        #expect(presentation.summaryLine == "Open · 9 messages · 2 new")
-        #expect(presentation.accessibilityLabel == "Open task SEC-12, Rate-limit, Open, 9 messages, 2 new")
+        #expect(presentation.summaryLine == "In progress · 9 messages · 2 new")
+        #expect(presentation.accessibilityLabel == "Open task SEC-12, Rate-limit, In progress, 9 messages, 2 new")
     }
 
     @Test func aQuietPreviewSaysNothingNew() {
@@ -116,42 +94,6 @@ struct TaskPlacePresentationTests {
         #expect(items.map(\.id) == ["task-started-from"])
     }
 
-    // MARK: - Inbox
-
-    @Test func anUnreadTaskIsAnUnreadRowThatOpensTheTask() {
-        let rows = InboxUnreadRows.rows(
-            [InboxFixtures.chat(id: "chat_old", name: "product", lastActivityAt: Date(timeIntervalSince1970: 1_800_000_100))],
-            taskChats: [taskChat(at: Date(timeIntervalSince1970: 1_800_000_200))],
-            viewerDisplayName: "Marlow"
-        )
-        #expect(rows.map(\.id) == ["chat_task_12", "chat_old"])
-        let row = rows[0]
-        #expect(row.open == .task(taskID: "task_12"))
-        #expect(row.preview == "Forge: Done")
-        #expect(rows[1].facts == nil)
-    }
-
-    @Test func anUnreadTaskRowKeepsItsWholeTitleAndPutsKeyAndStateUnderIt() {
-        let title = "Rate-limit the Trigger webhooks before the partner launch on Thursday"
-        let row = taskChat(at: Date(timeIntervalSince1970: 1_800_000_200), title: title, state: .todo)
-            .row(viewerDisplayName: "Marlow")
-        #expect(row.title == title)
-        #expect(row.facts == "SEC-12 · Todo")
-        #expect(!row.title.contains("SEC-12"))
-    }
-
-    private func taskChat(
-        at date: Date,
-        title: String = "Rate-limit",
-        state: TaskState = .open
-    ) -> InboxUnreadTaskChat {
-        InboxUnreadTaskChat(
-            id: "chat_task_12", taskID: "task_12", key: "SEC-12", title: title, state: state,
-            mark: .channel(ChannelAppearance(icon: nil, color: nil)), lastActivityAt: date,
-            latestMessage: InboxFixtures.lastMessage(author: "Forge", content: "Done")
-        )
-    }
-
     // MARK: - Fixtures
 
     private var utc: Calendar {
@@ -177,8 +119,8 @@ struct TaskPlacePresentationTests {
 
     private func run(id: String, status: String, summary: String) -> String {
         """
-        {"branches":[],"createdAt":"\(CloudAgentWorkFixture.start)","errorCode":null,"turnId":"\(id)",
-         "startedAt":"\(CloudAgentWorkFixture.start)","status":"\(status)","summary":"\(summary)","terminalAt":null}
+        {"branches":[],"createdAt":"\(WorkerFixture.start)","errorCode":null,"turnId":"\(id)",
+         "startedAt":"\(WorkerFixture.start)","status":"\(status)","summary":"\(summary)","terminalAt":null}
         """
     }
 }

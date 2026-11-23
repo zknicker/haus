@@ -54,7 +54,7 @@ final class InboxReadModelsTests: XCTestCase {
         XCTAssertNil(chat.lastMessage)
     }
 
-    func testDecodesServerWideActiveCloudAgentWork() throws {
+    func testDecodesServerWideActiveWorkers() throws {
         let json = """
         [{"agentName":"Blippy","chatKind":"dm","chatName":null,"chatPeerUserId":"user_2",
           "conversationChatId":"chat_1",
@@ -62,7 +62,7 @@ final class InboxReadModelsTests: XCTestCase {
           "worker":\(workJSON)}]
         """
 
-        let rows = try HausJSON.decoder().decode([ActiveCloudAgentWork].self, from: Data(json.utf8))
+        let rows = try HausJSON.decoder().decode([ActiveWorker].self, from: Data(json.utf8))
         let row = try XCTUnwrap(rows.first)
 
         XCTAssertEqual(row.id, "work_1")
@@ -82,7 +82,7 @@ final class InboxReadModelsTests: XCTestCase {
          "conversationChatId":"chat_1","worker":\(workJSON)}
         """
 
-        XCTAssertThrowsError(try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8)))
+        XCTAssertThrowsError(try HausJSON.decoder().decode(ActiveWorker.self, from: Data(json.utf8)))
     }
 
     /// `activeWorkLocations.message`: the newest visible link, after the launch
@@ -95,7 +95,7 @@ final class InboxReadModelsTests: XCTestCase {
          "worker":\(workJSON)}
         """
 
-        let row = try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8))
+        let row = try HausJSON.decoder().decode(ActiveWorker.self, from: Data(json.utf8))
 
         XCTAssertEqual(
             row.location,
@@ -109,8 +109,8 @@ final class InboxReadModelsTests: XCTestCase {
          "location":{"kind":"elsewhere"},"worker":\(workJSON)}
         """
 
-        XCTAssertThrowsError(try HausJSON.decoder().decode(ActiveCloudAgentWork.self, from: Data(json.utf8))) {
-            XCTAssertEqual($0 as? ActiveCloudAgentWorkLocation.UnknownKind, .init(kind: "elsewhere"))
+        XCTAssertThrowsError(try HausJSON.decoder().decode(ActiveWorker.self, from: Data(json.utf8))) {
+            XCTAssertEqual($0 as? ActiveWorkerLocation.UnknownKind, .init(kind: "elsewhere"))
         }
     }
 
@@ -128,7 +128,7 @@ final class InboxReadModelsTests: XCTestCase {
         """
 
         let list = try HausJSON.decoder().decode(
-            ActiveCloudAgentWorkList.self,
+            ActiveWorkerList.self,
             from: Data("[\(unknown),\(known),\(unknown)]".utf8)
         )
 
@@ -141,7 +141,7 @@ final class InboxReadModelsTests: XCTestCase {
         """
 
         XCTAssertThrowsError(
-            try HausJSON.decoder().decode(ActiveCloudAgentWorkList.self, from: Data("[\(malformed)]".utf8))
+            try HausJSON.decoder().decode(ActiveWorkerList.self, from: Data("[\(malformed)]".utf8))
         )
     }
 }

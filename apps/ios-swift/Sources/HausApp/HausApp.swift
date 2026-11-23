@@ -8,15 +8,18 @@ struct HausApp: App {
 
     var body: some Scene {
         WindowGroup {
-            #if DEBUG
-            if let scene = AvatarGenerationDebugScene.resolve(ProcessInfo.processInfo.arguments) {
-                AvatarGenerationDebugPreview(scene: scene)
-            } else {
+            Group {
+                #if DEBUG
+                if let scene = AvatarGenerationDebugScene.resolve(ProcessInfo.processInfo.arguments) {
+                    AvatarGenerationDebugPreview(scene: scene)
+                } else {
+                    AuthBoundaryView()
+                }
+                #else
                 AuthBoundaryView()
+                #endif
             }
-            #else
-            AuthBoundaryView()
-            #endif
+            .hausAccentTint()
         }
     }
 }

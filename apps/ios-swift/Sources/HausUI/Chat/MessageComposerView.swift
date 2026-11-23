@@ -13,6 +13,7 @@ public struct MessageComposerView: View {
     private let inlineReply: MessageReplyReferencePresentation?
     private let onCancelInlineReply: () -> Void
     private let transitionNamespace: Namespace.ID?
+    private let model: ComposerModelControl?
     private let onSend: (String, [ComposerAttachment]) async -> Bool
 
     @FocusState.Binding private var isTextFocused: Bool
@@ -20,16 +21,15 @@ public struct MessageComposerView: View {
     @State private var attachmentReadyFeedback = 0
     @State private var sendFeedback = 0
     @State private var sendFailureFeedback = 0
-    /// Fixed metrics the composer owns, scaled with Dynamic Type so the pill,
-    /// the send circle, and the one-line field grow with the text.
+    /// The pill's one-line field and its circles, scaled with Dynamic Type.
     @ScaledMetric(relativeTo: .body) private var compactFieldHeightLimit: CGFloat = 24
-    @ScaledMetric(relativeTo: .body) private var sendDiameter: CGFloat = 34
-    @ScaledMetric(relativeTo: .body) private var sendGlyphSize: CGFloat = 19
-    @ScaledMetric(relativeTo: .body) private var attachmentHitSize: CGFloat = 32
-    @ScaledMetric(relativeTo: .body) private var attachmentGlyphSize: CGFloat = 21
+    @ScaledMetric(relativeTo: .body) private var controlDiameter: CGFloat = 36
     /// True while a surface tap re-issues a focus summons, so the momentary
     /// focus drop never reaches the expansion layout.
     @State private var isReissuingFocus = false
+    /// The live height floor while a finger holds the grabber.
+    @State private var dragFloor: CGFloat?
+    @State private var controlsHeight: CGFloat = 0
 
     public init(
         text: Binding<String>,
@@ -41,6 +41,7 @@ public struct MessageComposerView: View {
         inlineReply: MessageReplyReferencePresentation? = nil,
         onCancelInlineReply: @escaping () -> Void = {},
         transitionNamespace: Namespace.ID? = nil,
+        model: ComposerModelControl? = nil,
         onSend: @escaping (String, [ComposerAttachment]) async -> Bool
     ) {
         _text = text
@@ -52,17 +53,12 @@ public struct MessageComposerView: View {
         self.inlineReply = inlineReply
         self.onCancelInlineReply = onCancelInlineReply
         self.transitionNamespace = transitionNamespace
+        self.model = model
         self.onSend = onSend
     }
 
     public var body: some View {
-        // Deliberately not wrapped in a `GlassEffectContainer`: a container exists to merge sibling
-        // glass shapes into one layer, and the composer has a single glass shape, so there is
-        // nothing here to merge. The earlier reason — that
-        // the merged layer dimmed the shell's rim — described the hand-rolled specular overlay that
-        // `ComposerGlassSurface` no longer paints, so it no longer argues against a container. If
-        // the composer and the attachment portal are ever morphed as one glass object, that is the
-        // change to reach for.
+        // No `GlassEffectContainer`: the composer has one glass shape, so there is nothing to merge.
         MessageComposerStack(
             text: $text,
             mentionOptions: mentionOptions,
@@ -70,8 +66,8 @@ public struct MessageComposerView: View {
             onCancelInlineReply: onCancelInlineReply,
             surface: { composerSurface }
         )
-            .padding(.horizontal, isExpanded ? 12 : 24)
-            .padding(.top, 4)
+            .padding(.horizontal, ComposerSurfaceMetrics.sideMargin)
+            .padding(.top, isFullHeight ? ComposerSurfaceMetrics.fullHeightTopClearance : 4)
             .padding(.bottom, isExpanded ? 8 : 0)
             // No opaque band: the transcript runs to the bottom of the screen and passes under the
             // glass, which is the only thing that gives it something to be translucent against.
@@ -80,6 +76,7 @@ public struct MessageComposerView: View {
             .sensoryFeedback(.success, trigger: attachmentReadyFeedback)
             .sensoryFeedback(.impact(weight: .light), trigger: sendFeedback)
             .sensoryFeedback(.error, trigger: sendFailureFeedback)
+            .sensoryFeedback(.selection, trigger: interaction.draftHeight)
             // Text focus belongs to the portal freeze, which restores exactly what the portal
             // interrupted; this view only moves VoiceOver's cursor back to the plus button when no
             // keyboard is coming back to claim it.
@@ -92,6 +89,14 @@ public struct MessageComposerView: View {
                     await Task.yield()
                     isAttachmentButtonFocused = !isTextFocused
                 }
+            }
+            // A full-height draft that collapses on its own settles back to the card. A portal
+            // round trip does not count: it hands focus back to the draft it interrupted.
+            .onChange(of: isExpanded) { _, expanded in
+                guard !expanded else { return }
+                dragFloor = nil
+                guard interaction.overlay == nil, !interaction.portalFreeze.isEngaged else { return }
+                interaction.draftHeight = .card
             }
             .onChange(of: interaction.attachmentReadySequence) { _, _ in
                 let addedCount = interaction.lastReadyAttachmentCount
@@ -116,13 +121,9 @@ public struct MessageComposerView: View {
             // A file that could not be staged is a native alert, not a caption
             // floating over the transcript the composer sits on.
             .composerAttachmentAlert(message: $interaction.errorMessage)
-            // The interaction outlives this view — a Chat switch or a push-over
-            // destroys the screen while the shell keeps the staged attachments —
-            // so leaving takes the presentation state and nothing else. Files
-            // the user picked are discarded only by sending, by removing a tile,
-            // or by their whole destination going away. Skipped while the file
-            // importer owns the screen: that presentation is what dismissed this
-            // view, and resetting would dismiss the importer with it.
+            // The interaction outlives this view, so leaving takes the presentation state and
+            // nothing else. Skipped while the file importer owns the screen: that presentation is
+            // what dismissed this view, and resetting would dismiss the importer with it.
             .onDisappear {
                 guard !interaction.isFileImporterPresented else { return }
                 interaction.resetPresentation()
@@ -139,15 +140,9 @@ public struct MessageComposerView: View {
                     isTextFocused = true
                     return
                 }
-                // Already focused: either the keyboard is up and the tap has
-                // nothing to do, or a prior programmatic focus never reached
-                // UIKit's responder chain and the field only looks focused —
-                // the same failure the portal freeze recovers from. Cycling
-                // re-issues the summons. `isReissuingFocus` holds the expanded
-                // layout through the flip: without it, every tap in an
-                // environment where no keyboard can rise (a hardware keyboard)
-                // visibly collapses and re-expands the composer, and the
-                // controls dodge the very tap trying to reach them.
+                // Already focused: either the keyboard is up and the tap has nothing to do, or a
+                // prior programmatic focus never reached UIKit's responder chain. Cycling re-issues
+                // the summons; `isReissuingFocus` holds the expanded layout through the flip.
                 isReissuingFocus = true
                 isTextFocused = false
                 Task { @MainActor in
@@ -169,14 +164,21 @@ public struct MessageComposerView: View {
 
     private var surfaceBody: some View {
         composerContents
-            .padding(.leading, isExpanded ? 10 : 12)
-            // The send circle's trailing inset matches its vertical inset in both states — nesting
-            // into the expanded corner, centering in the pill — so the gap around it reads uniform.
-            .padding(.trailing, 7)
-            // A staged attachment tile sits square in the corner: its top inset matches the 10pt
-            // leading inset. The taller 17pt top belongs to the text-only expanded state.
-            .padding(.top, showsAttachmentStrip ? 10 : isExpanded ? 17 : 7)
-            .padding(.bottom, 7)
+            .padding(.horizontal, ComposerSurfaceMetrics.expandedControlInset)
+            .padding(.top, isExpanded ? ComposerGrabber.zoneHeight : ComposerSurfaceMetrics.restingControlInset)
+            .padding(.bottom, isExpanded
+                ? ComposerSurfaceMetrics.expandedControlInset
+                : ComposerSurfaceMetrics.restingControlInset)
+            .overlay(alignment: .top) {
+                if isExpanded {
+                    ComposerGrabber(
+                        draftHeight: $interaction.draftHeight,
+                        dragFloor: $dragFloor,
+                        currentHeight: controlsHeight
+                    )
+                    .transition(.opacity)
+                }
+            }
             .composerGlassSurface(cornerRadius: surfaceCornerRadius)
     }
 
@@ -194,117 +196,86 @@ public struct MessageComposerView: View {
     private var composerContents: some View {
         VStack(alignment: .leading, spacing: 10) {
             if showsAttachmentStrip {
-                attachmentStrip.transition(.move(edge: .bottom).combined(with: .opacity))
+                ComposerAttachmentStrip(
+                    interaction: interaction,
+                    runsFlight: transitionNamespace != nil
+                ) { attachment in
+                    announceAccessibility("Removed \(attachment.filename)")
+                    interaction.remove(attachment)
+                }
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
             ComposerControlLayout(
                 expansion: isExpanded ? 1 : 0,
                 compactFieldHeightLimit: compactFieldHeightLimit,
-                compactMinimumHeight: sendDiameter
+                compactMinimumHeight: controlDiameter,
+                expandedHeightFloor: isExpanded ? dragFloor ?? 0 : 0,
+                fillsProposedHeight: isFullHeight && dragFloor == nil
             ) {
-                attachmentButton
+                ComposerCircleButton(
+                    icon: .plus,
+                    style: .plus(isEnabled: canAttach),
+                    label: "Add attachment",
+                    action: toggleSourceMenu
+                )
+                .disabled(!canAttach)
+                .accessibilityFocused($isAttachmentButtonFocused)
                 messageField
-                sendButton
+                toolbarAccessory
+                ComposerCircleButton(
+                    icon: .send,
+                    style: .send(canSend: canSend),
+                    label: "Send message",
+                    action: submit
+                )
+                .composerSendPresence(canSend)
             }
+            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { controlsHeight = $0 }
         }
     }
 
     private var messageField: some View {
-        ZStack(alignment: .leading) {
+        ZStack(alignment: .topLeading) {
             if text.isEmpty {
                 Text(placeholder)
-                    .foregroundStyle(HausPlatformColor.secondaryLabel)
+                    .foregroundStyle(HausTone.mutedInk.color)
                     .lineLimit(1)
                     .allowsHitTesting(false)
             }
 
-            ComposerMessageInput(text: $text, options: mentionOptions, label: placeholder)
-                .focused($isTextFocused)
+            ComposerMessageInput(
+                text: $text,
+                options: mentionOptions,
+                label: placeholder,
+                fillsHeight: isExpanded && (isFullHeight || dragFloor != nil)
+            )
+            .focused($isTextFocused)
         }
         .clipped()
     }
 
-    /// Explicit colors — not the hierarchical `.primary`/`.secondary` styles — so the glass
-    /// vibrancy context cannot wash the send circle out to grey.
-    private var sendButton: some View {
-        Button(action: submit) {
-            Circle()
-                .fill(canSend ? HausPlatformColor.label : HausPlatformColor.disabledControlFill)
-                .frame(width: sendDiameter, height: sendDiameter)
-                .overlay {
-                    HausIcon(.send, size: sendGlyphSize, weight: 2.4)
-                        .foregroundStyle(HausPlatformColor.background)
-                }
-                .compositingGroup()
-        }
-        .buttonStyle(.pressable)
-        .disabled(!canSend)
-        .animation(.easeOut(duration: 0.16), value: canSend)
-        .accessibilityLabel("Send message")
-    }
-
-    private var attachmentButton: some View {
-        Button {
-            let opens = interaction.overlay == nil
-            withAnimation(opens ? ComposerPortalMotion.open : ComposerPortalMotion.close) {
-                interaction.overlay = opens ? .sources : nil
-            }
-        } label: {
-            HausIcon(.plus, size: attachmentGlyphSize, weight: 1.8)
-                .frame(width: attachmentHitSize, height: attachmentHitSize)
-                .contentShape(.circle)
-        }
-        .buttonStyle(.pressable)
-        .foregroundStyle(.primary)
-        .disabled(!allowsAttachments || interaction.remainingCapacity == 0)
-        .accessibilityLabel("Add attachment")
-        .accessibilityFocused($isAttachmentButtonFocused)
-    }
-
-    private var attachmentStrip: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: 4) {
-                ForEach(interaction.attachments) { attachment in
-                    attachmentTile(attachment)
-                }
-                if interaction.isPreparingAttachment {
-                    ProgressView()
-                        .frame(width: 88, height: 88)
-                        .background(.quaternary, in: .rect(cornerRadius: 14))
-                        .accessibilityLabel("Preparing attachment")
-                }
-            }
-        }
-        .scrollIndicators(.hidden)
-    }
-
-    private func attachmentTile(_ attachment: ComposerAttachment) -> some View {
-        // Only a screen that owns a transition namespace runs the attachment flight, and only its
-        // landing tile hides itself and reports where the flying photo has to arrive. The frame is
-        // reported for as long as the flight lasts, because the tile keeps moving while the
-        // composer grows the strip around it.
-        let isFlightDestination = transitionNamespace != nil
-            && interaction.morphingAttachmentID == attachment.id
-        return ComposerAttachmentTile(attachment: attachment) {
-            announceAccessibility("Removed \(attachment.filename)")
-            interaction.remove(attachment)
-        }
-        .opacity(isFlightDestination ? 0 : 1)
-        .background {
-            if isFlightDestination {
-                GeometryReader { geometry in
-                    Color.clear
-                        .onAppear { reportDestinationFrame(geometry) }
-                        .onChange(of: geometry.frame(in: .global)) { _, _ in
-                            reportDestinationFrame(geometry)
-                        }
-                }
-            }
+    @ViewBuilder
+    private var toolbarAccessory: some View {
+        if let model {
+            ComposerModelChip(control: model)
+                .opacity(isExpanded ? 1 : 0)
+                .allowsHitTesting(isExpanded)
+                .accessibilityHidden(!isExpanded)
+        } else {
+            Color.clear.frame(width: 0, height: 0)
         }
     }
 
-    private func reportDestinationFrame(_ geometry: GeometryProxy) {
-        interaction.morphDestinationFrame = geometry.frame(in: .global)
+    private func toggleSourceMenu() {
+        let opens = interaction.overlay == nil
+        withAnimation(opens ? ComposerPortalMotion.open : ComposerPortalMotion.close) {
+            interaction.overlay = opens ? .sources : nil
+        }
+    }
+
+    private var canAttach: Bool {
+        allowsAttachments && interaction.remainingCapacity > 0
     }
 
     private var canSend: Bool {
@@ -321,6 +292,8 @@ public struct MessageComposerView: View {
         )
     }
 
+    private var isFullHeight: Bool { isExpanded && interaction.draftHeight == .full }
+
     private var surfaceCornerRadius: CGFloat {
         isExpanded
             ? ComposerSurfaceMetrics.expandedCornerRadius
@@ -335,12 +308,11 @@ public struct MessageComposerView: View {
         text = ""
         interaction.attachments = []
         interaction.errorMessage = nil
+        withAnimation(ComposerDraftHeight.settleMotion) { interaction.draftHeight = .card }
         sendFeedback += 1
         Task {
-            // True means the message is the viewer's row in the transcript —
-            // sent, or kept there marked failed with Try Again. The Store owns
-            // the staged files from here. False means it never left, so the
-            // draft comes back.
+            // True means the message is the viewer's row in the transcript — sent, or kept there
+            // marked failed with Try Again. False means it never left, so the draft comes back.
             if await onSend(content, submittedAttachments) { return }
             text = text.isEmpty ? content : [content, text].filter { !$0.isEmpty }.joined(separator: "\n")
             interaction.attachments = submittedAttachments + interaction.attachments

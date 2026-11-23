@@ -59,8 +59,8 @@ public struct TaskDetail: Decodable, Identifiable, Hashable, Sendable {
     public let descriptionTaskLinks: [TaskLink]
     public let mentions: [TaskMention]
     public let reminders: [TaskReminderRef]
-    public let attachedWork: [CloudAgentWork]
-    public let pullRequests: [CloudAgentPullRequestReading]
+    public let attachedWork: [Worker]
+    public let pullRequests: [PullRequestReading]
     public let followed: Bool
     public let unreadCount: Int
 
@@ -72,8 +72,8 @@ public struct TaskDetail: Decodable, Identifiable, Hashable, Sendable {
         descriptionTaskLinks: [TaskLink] = [],
         mentions: [TaskMention],
         reminders: [TaskReminderRef],
-        attachedWork: [CloudAgentWork] = [],
-        pullRequests: [CloudAgentPullRequestReading] = [],
+        attachedWork: [Worker] = [],
+        pullRequests: [PullRequestReading] = [],
         followed: Bool = false,
         unreadCount: Int = 0
     ) {
@@ -107,8 +107,8 @@ public struct TaskDetail: Decodable, Identifiable, Hashable, Sendable {
         descriptionTaskLinks = try container.decodeLossyArray(TaskLink.self, forKey: .descriptionTaskLinks)
         mentions = try container.decodeLossyArray(TaskMention.self, forKey: .mentions)
         reminders = try container.decodeLossyArray(TaskReminderRef.self, forKey: .reminders)
-        attachedWork = try container.decodeLossyArray(CloudAgentWork.self, forKey: .attachedWork)
-        pullRequests = try container.decodeLossyArray(CloudAgentPullRequestReading.self, forKey: .pullRequests)
+        attachedWork = try container.decodeLossyArray(Worker.self, forKey: .attachedWork)
+        pullRequests = try container.decodeLossyArray(PullRequestReading.self, forKey: .pullRequests)
         followed = try container.decodeIfPresent(Bool.self, forKey: .followed) ?? false
         unreadCount = try container.decodeIfPresent(Int.self, forKey: .unreadCount) ?? 0
     }

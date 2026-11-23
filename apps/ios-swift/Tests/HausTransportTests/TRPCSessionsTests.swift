@@ -8,7 +8,7 @@ import XCTest
 /// all six to streams, so every query timed out.
 final class TRPCSessionsTests: XCTestCase {
     /// Server-wide streams plus one open Chat's engagement and thought streams.
-    private let heldStreamCount = RealtimeStream.allCases.count + 2
+    private let heldStreamCount = RealtimeStream.liveSession.count + 2
 
     func testClientDefaultsToSeparateRequestAndStreamSessions() {
         let client = TRPCClient(

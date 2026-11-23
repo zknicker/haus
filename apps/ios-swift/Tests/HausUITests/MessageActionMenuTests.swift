@@ -27,6 +27,17 @@ struct MessageActionMenuTests {
         #expect(MessageActionMenu.groups(for: message(""), canReplyInline: false) == [])
     }
 
+    @Test func aCaptainsMessageLeadsBackToItsTurnAndAPersonsDoesNot() {
+        let captain = MessageAuthorPresentation(id: "agent_blippy", name: "Blippy", avatarURL: nil, kind: .captain)
+        let reply = MessagePresentation(id: "m2", author: captain, content: "Done", createdAt: .now)
+
+        #expect(MessageActionMenu.groups(for: reply, canReplyInline: true, canViewTurnDetails: true)
+            == [[.reply], [.copyText], [.viewTurnDetails]])
+        #expect(MessageActionMenu.groups(for: reply, canReplyInline: true) == [[.reply], [.copyText]])
+        #expect(MessageActionMenu.groups(for: message(), canReplyInline: true, canViewTurnDetails: true)
+            == [[.reply], [.copyText]])
+    }
+
     @Test func quickTilesAreTheHeadOfFrequentlyUsed() {
         let tiles = MessageActionMenu.quickTiles(frequent: ["🦖"] + FrequentEmoji.seed)
         #expect(tiles == ["🦖", "👍", "❤️", "😂", "💯", "🔥"])

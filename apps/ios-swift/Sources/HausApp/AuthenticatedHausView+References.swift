@@ -6,10 +6,23 @@ import SwiftUI
 extension AuthenticatedHausView {
     func installTranscriptRoutes() {
         InAppReferenceRoutes.openMessage = { reference in
-            openCanvasChat(.chat(reference.chatID), revealing: reference.messageID)
+            router.open(route(forChatID: reference.chatID, messageID: reference.messageID))
         }
         InAppReferenceRoutes.openTask = { reference in
-            openTask(reference.taskID)
+            router.open(.task(taskID: reference.taskID))
+        }
+        InAppReferenceRoutes.openWorker = { workerID in
+            router.open(.worker(workerID: workerID))
+        }
+        InAppReferenceRoutes.openPullRequest = { url in
+            guard let pullRequest = PullRequestLookup.find(url: url, in: store.knownPullRequests(now: .now)) else {
+                return nil
+            }
+            return { router.open(.pullRequest(pullRequest.reading)) }
+        }
+        InAppReferenceRoutes.openDriveArtifact = { target in
+            guard let path = store.sharedArtifactDrivePath(target) else { return nil }
+            return { router.open(.driveFile(path: path)) }
         }
         ArtifactPageReader.read = { [store] agentID, path in
             try await store.readArtifactPage(agentID: agentID, path: path)

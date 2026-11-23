@@ -1,22 +1,43 @@
-# Haus iPhone — SwiftUI prototype
+# Haus iPhone
 
-This directory is the native SwiftUI prototype for the iPhone client. It keeps
-the existing Haus Server, Computer, Cloudflare Access Google sign-in, and tRPC
-API intact. It does not introduce a mobile backend.
+The native SwiftUI client of Haus Server. It uses the existing Server,
+Cloudflare Access Google sign-in, and tRPC API; there is no mobile backend.
+[`specs/ios-app.md`](../../specs/ios-app.md) is the app contract, and
+[the rearchitecture plan](../../docs/plans/ios-rearchitecture.md) orders the
+work in flight.
 
-The prototype currently proves native Google sign-in through Cloudflare Access,
-Haus AppSession renewal, Server discovery,
-channels and Agent DMs, real message history, live Chat event refresh, Agent
-lifecycle presence, optimistic Chat and Task sends with draft recovery,
-bounded bidirectional history loading, foreground snapshot recovery, Server-backed
-People and Computers, the native sidebar and composer, and one sheet-local
-settings navigation stack backed by Server profile data.
+The package targets iOS 26 (macOS 26 for `swift test`) and uses Swift 6.2. The
+XcodeGen app specification uses Apple AuthenticationServices and Keychain APIs
+for native OAuth and secure credential storage. It does not add an OpenAPI
+generator or a community tRPC client: `HausTransport` sends the app protocol
+headers and performs typed tRPC HTTP operations and SSE subscriptions directly.
 
-The package targets iOS 18 and uses Swift 6. The XcodeGen app specification
-uses Apple AuthenticationServices and Keychain APIs for native OAuth and secure
-credential storage. It intentionally does not add an OpenAPI generator or a
-community tRPC client. `HausTransport` sends the existing app protocol headers
-and performs typed tRPC HTTP operations and SSE subscriptions directly.
+## Architecture
+
+| Target | Owns |
+| --- | --- |
+| `HausModels` | Wire models, procedure descriptors, the transcript cache (`TranscriptStore`), realtime reconciliation, and the per-Server launch snapshot (`LaunchSnapshotStore`). |
+| `HausTransport` | Native auth, the tRPC client, and SSE subscriptions. |
+| `HausAppModel` | App state by product noun: `ChatsModel`, `TasksModel`, `CaptainsModel`, `WorkersModel`, `DriveModel`, `SettingsModel`, plus the Server lifecycle (`ServerScope`, `ServerLifecycle`) and `ComposerDraftStore`. Tested in `HausAppModelTests`. |
+| `HausUI` | Screens and components. It knows nothing of the network. |
+| `Sources/HausApp` | The app target. `HausStore` is the composition root: it owns the models, the shared `TRPCClient` and transcripts, the realtime streams, and the memoized Chat projections, and adapts them to `HausUI`. |
+
+- **Models.** Each model owns its reads and applies the realtime effects of
+  the events it cares about. A read begins under a `ServerTicket` and lands only
+  while that ticket is current and no newer read of the same thing has landed,
+  so a late answer after a Server switch writes nothing. Models report writes
+  that feed the Chat projections back to `HausStore` through `onChange`.
+- **Server lifecycle.** `activeServerID` is persisted per user
+  (`ActiveServerPreference`); the active Server is never list order. Each Server
+  keeps its own launch snapshot, and a cold launch paints only the active
+  Server's. `HausStore.switchServer(_:)` stops the old Server's streams and
+  reads, paints the new Server's snapshot, and loads it live. Membership loss
+  clears that Server's snapshot and drafts; sign-out clears every Server's.
+- **Drafts.** `ComposerDraftStore` keeps drafts and staged attachments above
+  every screen, keyed by Server and destination (Chat, Task, or Worker).
+- **Not yet split.** Transcripts, history, sends, reactions, and profiles still
+  live in `HausStore` extensions, and the realtime streams start from one place
+  (`HausStoreEventStreams.swift`) and route each event type to its model.
 
 ## Run in Simulator
 
@@ -104,7 +125,5 @@ raw values of `HausIconName`, so the curation lives in one place and the two
 clients cannot offer different icons. The app icon script fails if a name
 `HausIconName` asks for is not in the stroke-rounded family.
 
-The application target under `Sources/HausApp` consumes the local
-`HausModels`, `HausTransport`, and `HausUI` products. SwiftUI previews can
-use `HausPreviewFixtures` and `SettingsFixtures` without a Server or app
-session.
+SwiftUI previews use `HausPreviewFixtures` and `SettingsFixtures`, which
+mirror the demo Server's Captains, without a Server or app session.

@@ -99,7 +99,7 @@ struct HumanProfileView: View {
             .padding(.bottom, 28)
         }
         .scrollIndicators(.hidden)
-        .background(HausPlatformColor.groupedBackground)
+        .background(HausPlatformColor.canvas)
         .navigationDestination(isPresented: $isPickingTimezone) {
             TimezonePickerView(selection: timezone) { zone in
                 Task { await saveTimezone(zone) }
@@ -108,7 +108,7 @@ struct HumanProfileView: View {
         .navigationTitle("Profile")
         .hausInlineNavigationTitle()
         #if os(iOS)
-        .toolbarBackground(HausPlatformColor.groupedBackground, for: .navigationBar)
+        .toolbarBackground(HausPlatformColor.canvas, for: .navigationBar)
         #endif
         .toolbar {
             ToolbarItem(placement: .automatic) {

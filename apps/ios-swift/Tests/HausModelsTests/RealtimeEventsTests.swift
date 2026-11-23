@@ -60,13 +60,16 @@ final class RealtimeEventsTests: XCTestCase {
         XCTAssertEqual(label, TaskLabelUpdatedEvent(serverID: "server_1", labelID: "label_1"))
     }
 
-    func testDecodesCloudAgentWorkUpdated() throws {
-        let event = try decode(CloudAgentWorkUpdatedEvent.self, """
-        {"chatId":"chat_1","messageId":"m1","parentChatId":null,"serverId":"server_1","workerId":"work_1"}
+    func testDecodesWorkerUpdated() throws {
+        let event = try decode(WorkerUpdatedEvent.self, """
+        {"chatId":"chat_1","serverId":"server_1","taskId":"task_1","workerId":"work_1"}
         """)
-        XCTAssertEqual(event, CloudAgentWorkUpdatedEvent(
-            serverID: "server_1", chatID: "chat_1", messageID: "m1", workID: "work_1"
+        XCTAssertEqual(event, WorkerUpdatedEvent(
+            serverID: "server_1", chatID: "chat_1", taskID: "task_1", workID: "work_1"
         ))
+        XCTAssertThrowsError(try decode(WorkerUpdatedEvent.self, """
+        {"chatId":"chat_1","messageId":"m1","serverId":"server_1","workerId":"work_1"}
+        """))
     }
 
     func testDecodesTheChatMessageEntityAndItsNullAnswer() throws {
@@ -131,18 +134,18 @@ final class ChatRealtimeEffectsTests: XCTestCase {
             .reactionUpdated(.init(serverID: "s", chatID: "chat_1", messageID: "m1")),
             .reactionUpdated(.init(serverID: "s", chatID: "chat_1", messageID: "m1")),
             .claimChanged(.init(serverID: "s", chatID: "chat_1", messageID: "m2", kind: .created)),
-            .cloudAgentWorkUpdated(.init(serverID: "s", chatID: "chat_2", messageID: "w1", workID: "work_1")),
+            .cloudAgentWorkUpdated(.init(serverID: "s", chatID: "chat_2", taskID: "task_2", workID: "work_1")),
         ], serverID: "s")
 
         XCTAssertEqual(effects.entityRefreshes, [
             EntityRefresh(chatID: "chat_1", messageID: "m1"),
             EntityRefresh(chatID: "chat_1", messageID: "m2"),
-            EntityRefresh(chatID: "chat_2", messageID: "w1"),
         ])
+        XCTAssertEqual(effects.changedTaskIDs, ["task_2"])
         XCTAssertTrue(effects.tailSequenceByChatID.isEmpty)
         XCTAssertEqual(effects.liveReactionMessageIDs, ["m1"])
         XCTAssertEqual(effects.cloudAgentWorkChatIDs, ["chat_2"])
-        XCTAssertTrue(effects.reloadsActiveCloudAgentWork)
+        XCTAssertTrue(effects.reloadsActiveWorkers)
     }
 
     func testTaskEventsNameEachChangedTaskOnce() {

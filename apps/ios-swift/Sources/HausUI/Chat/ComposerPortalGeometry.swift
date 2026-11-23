@@ -18,10 +18,10 @@ struct ComposerPortalGeometry {
     /// the bezel.
     static let nestingInset: CGFloat = 12
     /// The plus button's centre measured in from the composer shell's leading edge: the shell's own
-    /// 10pt inset plus half the 32pt button.
-    private static let plusCenterInset: CGFloat = 28
-    /// The plus button's centre measured up from the composer shell's bottom edge: the shell's 7pt
-    /// bottom padding plus half the 34pt controls row.
+    /// 6pt inset plus half the 36pt circle.
+    private static let plusCenterInset: CGFloat = 24
+    /// The plus button's centre measured up from the composer shell's bottom edge: the shell's 6pt
+    /// bottom padding plus half the 36pt controls row.
     private static let plusCenterLift: CGFloat = 24
 
     private var isSourceMenu: Bool { overlay == .sources }

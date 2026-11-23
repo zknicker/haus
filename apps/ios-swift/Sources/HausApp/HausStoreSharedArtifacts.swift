@@ -18,6 +18,16 @@ extension HausStore {
         projections.retireReferenceChips()
     }
 
+    /// The Drive path a library link names, once its metadata has landed. A
+    /// link pinned to one revision has none: Drive shows the newest revision,
+    /// so a pinned link keeps the viewer that shows the revision it names.
+    func sharedArtifactDrivePath(_ target: SharedArtifactLinkTarget) -> String? {
+        guard target.revisionID == nil, case .loaded(let artifact) = projections.sharedArtifacts.loads[target.key] else {
+            return nil
+        }
+        return artifact.path
+    }
+
     /// A library chip's presentation once its metadata has landed. Until then
     /// the parser's own chip stands (the link's words, or `Artifact`), and a
     /// first sight starts the read. A failed read keeps the fallback: the chip

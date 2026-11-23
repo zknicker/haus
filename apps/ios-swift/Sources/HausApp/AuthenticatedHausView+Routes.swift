@@ -1,108 +1,75 @@
+import HausAppModel
 import HausModels
 import HausUI
 import SwiftUI
 
-/// How the root canvas and the root stack's routes are opened.
-///
-/// The Inbox is the canvas the app lands on, not a screen pushed over one: a
-/// landing screen with a navigation title and a Back chevron claims there is
-/// somewhere behind it, and on a cold start there is not. The Chat canvas and
-/// the Inbox therefore take turns in the one canvas slot, and the drawer —
-/// its toggle, its veil, its pan — belongs to the slot rather than to either
+/// Every open in the app goes through the router; these turn the things views
+/// hand back (a Home row, a Chat, a search result, a claim) into routes.
 extension AuthenticatedHausView {
-    /// The Inbox page. Every section reads a Store snapshot, so the page adds
-    /// no load of its own beyond the gathered refresh it asks for on arrival
-    /// and on pull.
-    @ViewBuilder
-    func inboxCanvas(
-        contentInsets: EdgeInsets,
-        onOpenSidebar: @escaping () -> Void
-    ) -> some View {
-        InboxPageView(
-            greetingName: store.inboxGreetingName,
-            agentWeeks: store.inboxAgentWeeks(),
-            unread: store.inboxUnreadRows,
-            cloudAgentWork: store.activeCloudAgentWork,
-            workingAgents: store.inboxWorkingAgents,
-            resolveActor: { agentID, userID in
-                store.actorPresentation(agentID: agentID, userID: userID)
-            },
-            onOpen: openInboxRequest,
-            onMarkRead: { rowID in
-                Task { await store.markInboxRowRead(id: rowID) }
-            },
-            onRefresh: { await store.loadInbox() },
-            onOpenSidebar: onOpenSidebar,
-            contentInsets: contentInsets
-        )
-    }
-
-    /// The sidebar's Inbox row: the canvas goes back to the Inbox, and anything
-    /// pushed over it comes off.
-    func openInbox() {
-        path.removeAll()
-        showsInboxCanvas = true
-    }
-
-    func openInboxRequest(_ request: InboxOpenRequest) {
-        switch request {
-        case .agent(let agentID):
-            openAgentDM(agentID)
-        case .chat(let chatID):
-            openCanvasChat(.chat(chatID))
-        case .cloudAgentWork(let workID):
-            guard let work = store.activeCloudAgentWork?.first(where: { $0.work.id == workID }) else { return }
-            openCloudAgentWork(work)
-        case .task(let taskID):
-            openTask(taskID)
-        }
-    }
-
-    private func openCloudAgentWork(_ work: ActiveCloudAgentWork) {
+    /// A Happening now row opens the Task its Worker runs for.
+    func openActiveWorker(workID: String) {
+        guard let work = store.activeWorkers?.first(where: { $0.work.id == workID }) else { return }
         switch work.location {
         case .task(_, let taskID):
-            openTask(taskID)
+            router.open(.task(taskID: taskID))
         }
     }
 
-    func openPushNotification(_ payload: PushNotificationPayload) async {
-        guard payload.serverID == store.activeServer?.id else {
-            PushNotifications.logger.notice("Ignoring a notification for another Server.")
-            return
+    /// A Chat's route by its kind: Channels open in Projects, DMs in Home, and
+    /// a Task's own Chat as its Task.
+    func route(forChatID chatID: String, messageID: String? = nil) -> HausRoute {
+        if store.chatsByID[chatID] == nil, let taskID = store.taskID(forChatID: chatID) {
+            return .task(taskID: taskID, messageID: messageID)
         }
-        switch payload.route {
-        case .chat(let chatID):
-            openCanvasChat(.chat(chatID))
-        case .task(let taskID, _):
-            path.removeAll()
-            openTask(taskID)
+        switch store.chatsByID[chatID]?.kind {
+        case .dm?: return .dm(chatID: chatID, messageID: messageID)
+        default: return .channel(chatID: chatID, messageID: messageID)
         }
     }
 
-    /// An Agent's own Chat is where a person talks to it, so an Agent row lands
-    /// on the canvas rather than pushing another screen over the Inbox.
-    func openAgentDM(_ agentID: String) {
-        guard let destination = store.chatDestinations.agentDestination(agentID: agentID) else {
-            return
+    func route(for destination: ChatDestination) -> HausRoute {
+        switch destination.kind {
+        case .agentDirectMessage(let agent): .captainDM(agentID: agent.id)
+        case .humanDirectMessage: .dm(chatID: destination.pendingKey)
+        case .channel: .channel(chatID: destination.pendingKey)
         }
-        openCanvasChat(destination.id)
     }
 
-    /// The one way a route puts a Chat on the canvas: everything covering the
-    /// canvas comes off, and the Inbox stops being what it shows.
-    func openCanvasChat(_ id: ChatDestination.ID, revealing messageID: String? = nil) {
-        path.removeAll()
-        showsInboxCanvas = false
-        canvasScrollTarget = if case .chat(let chatID) = id, let messageID {
-            MessageScrollTarget(chatID: chatID, messageID: messageID)
-        } else {
-            nil
+    func conversation(for destination: ChatDestination) -> HausConversation {
+        switch destination.id {
+        case .chat(let chatID): .chat(chatID)
+        case .agentDM(let agentID): .captain(agentID)
         }
-        selectedDestinationID = id
-        canvasRouteRevision += 1
+    }
+
+    func destination(for conversation: HausConversation) -> ChatDestination? {
+        switch conversation {
+        case .chat(let chatID): store.chatDestinations.first { $0.id == .chat(chatID) }
+        case .captain(let agentID): store.chatDestinations.agentDestination(agentID: agentID)
+        case .task: nil
+        }
     }
 
     func openClaim(_ item: ClaimListItem) {
-        openCanvasChat(.chat(item.claim.chatID), revealing: item.claim.messageID)
+        router.open(route(forChatID: item.claim.chatID, messageID: item.claim.messageID), from: .outside)
+    }
+
+    /// A push tap: switch Servers first when it is for another one, then route,
+    /// and consume it only once it has routed.
+    func routePendingPush() async {
+        let outcome = push.taps.route(
+            into: router,
+            activeServerID: store.activeServer?.id,
+            memberServerIDs: store.servers.map(\.id)
+        )
+        guard case .needsSwitch(let serverID) = outcome else { return }
+        await switchServer(serverID)
+        guard store.activeServer?.id == serverID else { return }
+        _ = push.taps.route(into: router, activeServerID: serverID, memberServerIDs: store.servers.map(\.id))
+    }
+
+    func switchServer(_ serverID: String) async {
+        await store.switchServer(serverID)
+        router.adopt(serverID: store.activeServer?.id)
     }
 }

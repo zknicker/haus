@@ -16,15 +16,30 @@ public enum InAppReferenceRoutes {
     public static var openMessage: ((MessageReferenceTarget) -> Void)?
     /// Opens a Task from a Task reference chip.
     public static var openTask: ((TaskReferenceTarget) -> Void)?
+    /// Opens a Worker from a `worker://` reference.
+    public static var openWorker: ((String) -> Void)?
+    /// The native open for a pull request address the App holds a reading
+    /// for; nil leaves the address to the system browser.
+    public static var openPullRequest: ((URL) -> (() -> Void)?)?
+    /// The native Drive open for a library link whose file the App knows; nil
+    /// keeps the artifact viewer.
+    public static var openDriveArtifact: ((SharedArtifactLinkTarget) -> (() -> Void)?)?
 
     /// The in-app action a link stands for, or nil when the system should
     /// open it as an ordinary address.
     public static func action(for url: URL) -> (() -> Void)? {
         if let artifact = SharedArtifactLinkTarget(inAppURL: url) {
-            return { SharedArtifactPresenter.present(artifact) }
+            return openDriveArtifact?(artifact) ?? { SharedArtifactPresenter.present(artifact) }
         }
         if let task = TaskReferenceTarget(url: url) {
             return { openTask?(task) }
+        }
+        if let workerID = WorkerMarkdownLink.workID(target: url.absoluteString) {
+            return { openWorker?(workerID) }
+        }
+        if RichReferenceWireForm.pullRequestNumber(in: url.absoluteString) != nil,
+           let open = openPullRequest?(url) {
+            return open
         }
         guard let message = MessageReferenceTarget(url: url) else { return nil }
         return { openMessage?(message) }

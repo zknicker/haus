@@ -66,6 +66,9 @@ public struct TaskRecord: Decodable, Identifiable, Hashable, Sendable {
     public let priority: TaskPriority
     public let dueOn: String?
     public let labelIDs: [String]
+    public let projectID: String?
+    public let keyID: String?
+    public let number: Int?
 
     public init(
         id: String,
@@ -84,7 +87,10 @@ public struct TaskRecord: Decodable, Identifiable, Hashable, Sendable {
         assignee: TaskActor? = nil,
         priority: TaskPriority = .none,
         dueOn: String? = nil,
-        labelIDs: [String] = []
+        labelIDs: [String] = [],
+        projectID: String? = nil,
+        keyID: String? = nil,
+        number: Int? = nil
     ) {
         self.id = id
         self.key = key
@@ -103,6 +109,9 @@ public struct TaskRecord: Decodable, Identifiable, Hashable, Sendable {
         self.priority = priority
         self.dueOn = dueOn
         self.labelIDs = labelIDs
+        self.projectID = projectID
+        self.keyID = keyID
+        self.number = number
     }
 
     enum CodingKeys: String, CodingKey {
@@ -123,6 +132,9 @@ public struct TaskRecord: Decodable, Identifiable, Hashable, Sendable {
         case priority
         case dueOn
         case labelIDs = "labelIds"
+        case projectID = "projectId"
+        case keyID = "keyId"
+        case number
     }
 
     public init(from decoder: Decoder) throws {
@@ -144,6 +156,9 @@ public struct TaskRecord: Decodable, Identifiable, Hashable, Sendable {
         priority = (try? container.decodeIfPresent(TaskPriority.self, forKey: .priority)) ?? TaskPriority.none
         dueOn = try container.decodeIfPresent(String.self, forKey: .dueOn)
         labelIDs = (try? container.decodeIfPresent([String].self, forKey: .labelIDs)) ?? []
+        projectID = try container.decodeIfPresent(String.self, forKey: .projectID)
+        keyID = try container.decodeIfPresent(String.self, forKey: .keyID)
+        number = try container.decodeIfPresent(Int.self, forKey: .number)
     }
 }
 

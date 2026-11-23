@@ -57,7 +57,7 @@ extension TaskStatusShape {
 struct TaskStatusDisc: View {
     let status: TaskStatusShape
     var size: CGFloat = 16
-    var surface: Color = HausPlatformColor.background
+    var surface: Color = HausPlatformColor.canvas
 
     var body: some View {
         ZStack {

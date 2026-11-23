@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The whole row opens an in-place menu; the up/down chevron marks it as a picker.
+/// The whole row opens an in-place menu of the choices, its current one as the value.
 public struct PickerRow<Value: Hashable>: View {
     private let title: String
     private let value: Value
@@ -41,18 +41,14 @@ public struct PickerRow<Value: Hashable>: View {
             }
         } label: {
             SettingsRow(title: title, value: selectedTitle, icon: icon, showsDivider: false) {
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
+                SettingsChevron()
             }
         }
         .tint(.primary)
         .accessibilityLabel("\(title), \(selectedTitle)")
         .overlay(alignment: .bottom) {
             if showsDivider {
-                Divider()
-                    .padding(.leading, 54)
+                SettingsSeparator()
             }
         }
     }

@@ -101,7 +101,7 @@ extension HausStore {
                 let runtimeConfiguration = SettingsAgentRuntimeConfiguration(
                     desired: desiredConfiguration,
                     effective: effectiveConfiguration,
-                    runtimes: computer?.reportedInventory?.runtimes.map(SettingsRuntime.init) ?? [],
+                    runtimes: (modelConnections?.runtimeCatalog ?? []).map(SettingsRuntime.init),
                     computerHealth: computer?.health,
                     status: agent.status,
                     canEdit: canManageServer
@@ -131,7 +131,10 @@ extension HausStore {
             isHealthy: computer.health == .healthy,
             system: computerSystemLabel(computer),
             // A Computer that has never reported has no version to show.
-            version: computer.productVersion.map { "v\($0)" } ?? ""
+            version: computer.productVersion.map { "v\($0)" } ?? "",
+            workers: computer.workersEnabled.map { enabled in
+                SettingsComputerWorkers(isEnabled: enabled, canChange: computer.canChangeWorkers ?? false)
+            }
         )
     }
 

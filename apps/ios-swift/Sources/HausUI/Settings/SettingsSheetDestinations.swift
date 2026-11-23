@@ -66,7 +66,6 @@ extension SettingsSheet {
                     stoppedClaims: stoppedClaims,
                     onOpenClaim: { item in
                         stoppedClaims.open(item)
-                        dismiss()
                     }
                 )
             } else {
@@ -96,26 +95,14 @@ extension SettingsSheet {
                     viewerZone: HumanTimezone.viewerZone(saved: data.viewer.timezone),
                     onOpenChat: { chatID in
                         automations.openChat(chatID)
-                        dismiss()
                     }
                 )
             } else {
                 SettingsUnavailableView(title: "Automations")
             }
-        case .server:
-            ServerDetailsView(server: data.server)
-        case .people:
-            ServerPeopleView(members: data.members)
-        case .computers:
-            ServerComputersView(computers: data.computers)
-        case .cloudAgents:
-            CloudAgentSettingsView(
-                computers: data.computers,
-                canManage: canManageServer,
-                actions: cloudAgentActions
-            )
-        case .appInfo:
-            AppInfoView()
+        case .automations, .drive, .general, .notifications, .captains, .models, .modelUsage, .projects, .project,
+             .server, .people, .computers, .cloudAgents, .appInfo:
+            hubDestination(for: route)
         case .description(let ownerID, let title):
             DescriptionEditorView(
                 title: title,
@@ -128,7 +115,5 @@ extension SettingsSheet {
         }
     }
 
-    var canManageServer: Bool {
-        ["owner", "admin"].contains(data.server.role.lowercased())
-    }
+    var canManageServer: Bool { data.canManageServer }
 }

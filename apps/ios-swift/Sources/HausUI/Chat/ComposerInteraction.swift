@@ -26,6 +26,9 @@ public final class ComposerInteraction {
     var composerSurfaceFrame: CGRect?
     /// Holds the chat's bottom inset still while the portal owns the screen.
     var portalFreeze = ComposerPortalFreeze()
+    /// Whether the focused card stands at its draft's height or at full height. It lives here,
+    /// beside the staged attachments, so a portal round trip keeps a full-height draft standing.
+    var draftHeight = ComposerDraftHeight.card
 
     private var preparationTask: Task<Void, Never>?
 
@@ -108,6 +111,7 @@ public final class ComposerInteraction {
         composerSurfaceFrame = nil
         errorMessage = nil
         portalFreeze.release()
+        draftHeight = .card
     }
 
     /// Tears down all staged composer state. Deleting the staged files without
@@ -117,7 +121,7 @@ public final class ComposerInteraction {
     /// calls this — the shell, when a destination leaves the list. Leaving a
     /// screen does not: the files are the user's, and staging them is not a
     /// commitment to send from the Chat they were staged in.
-    func cleanUp() {
+    public func cleanUp() {
         preparationTask?.cancel()
         attachments.forEach(ComposerAttachmentStager.remove)
         attachments.removeAll()

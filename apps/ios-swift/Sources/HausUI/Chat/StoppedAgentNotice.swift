@@ -105,11 +105,7 @@ struct StoppedAgentNotice: View {
 /// composer's chrome rather than text laid over the transcript.
 private struct StoppedAgentNoticeSurface: ViewModifier {
     func body(content: Content) -> some View {
-        if #available(iOS 26, macOS 26, *) {
-            content.glassEffect(.regular, in: .haus(HausRadius.large))
-        } else {
-            content.background(.thinMaterial, in: .haus(HausRadius.large))
-        }
+        content.glassEffect(.regular, in: .haus(HausRadius.large))
     }
 }
 

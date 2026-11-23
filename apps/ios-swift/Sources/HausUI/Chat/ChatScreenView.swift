@@ -1,11 +1,14 @@
 import SwiftUI
 
 public struct ChatScreenView: View {
-    private let chat: ChatDestination
+    let chat: ChatDestination
     private let messages: [MessagePresentation]
     private let isMessageHistoryLoaded: Bool
     private let isConnected: Bool
     private let onOpenSidebar: () -> Void
+    /// The back circle's action. Until a navigation stack hosts the screen it falls back to the
+    /// sidebar, which is where back leads today.
+    private let onBack: (() -> Void)?
     private let onOpenChatDetails: () -> Void
     private let onOpenSearch: () -> Void
     private let onSend: (String, [ComposerAttachment]) async -> Bool
@@ -14,10 +17,15 @@ public struct ChatScreenView: View {
     private let onOpenAttachment: (MessageAttachmentPresentation) async throws -> URL
     private let onOpenAgent: (String) -> Void
     private let onCall: (() -> Void)?
+    /// Place-specific actions for the header's `…` menu, such as Stop on a Captain DM.
+    private let menuActions: [ChatHeaderMenuAction]
+    /// The place's Work pill over the composer; nil or hidden while it has no work.
+    let workPill: WorkPillState?
+    let onOpenWork: () -> Void
     private let history: MessageHistoryNavigation
-    private let mentionOptions: [MentionOptionPresentation]
+    let mentionOptions: [MentionOptionPresentation]
     private let onLoadMentionOptions: () async -> Void
-    private let contentInsets: EdgeInsets
+    let contentInsets: EdgeInsets
     /// The message ids this Chat's transcript is showing. The App turns them
     /// into the read acknowledgement; the screen only forwards them.
     private let onVisibleMessagesChange: ([String]) -> Void
@@ -25,17 +33,23 @@ public struct ChatScreenView: View {
     @Binding private var scrollTargetMessageID: String?
     /// The draft is owned above this screen, which is remounted per Chat, so a
     /// half-typed message survives a switch away and back.
-    @Binding private var draft: String
+    @Binding var draft: String
     /// Owned above this screen for the same reason the draft is: staged
     /// attachments belong to the Chat, not to the screen drawing it.
-    private let composerInteraction: ComposerInteraction
-    @FocusState private var isComposerFocused: Bool
-    @Namespace private var composerTransitionNamespace
-    @State private var inlineReply: MessageReplyReferencePresentation?
+    let composerInteraction: ComposerInteraction
+    @FocusState var isComposerFocused: Bool
+    @Namespace var composerTransitionNamespace
+    @State var inlineReply: MessageReplyReferencePresentation?
     /// The keyboard's reach from the screen bottom, read from UIKit (`onKeyboardInsetChange`);
     /// nil until the first reading, when the shell's home-indicator inset stands in.
-    @State private var keyboardInset: CGFloat?
-    @Environment(\.hausDrawerEngaged) private var isDrawerEngaged
+    @State var keyboardInset: CGFloat?
+    /// Turn details asked for by a message's "View turn details"; the header presents it.
+    @State private var turnDetailsFocus: TurnDetailsFocus?
+    @State var pendingModelChange: PendingModelChange?
+    /// Set once the Server refuses a model change; the inner nil is a refusal with no reason.
+    @State var modelRefusal: String??
+    @State var modelChangeError: String?
+    @Environment(\.chatEngagementSource) var engagementSource
 
     public init(
         chat: ChatDestination,
@@ -45,6 +59,7 @@ public struct ChatScreenView: View {
         composerInteraction: ComposerInteraction,
         isConnected: Bool,
         onOpenSidebar: @escaping () -> Void,
+        onBack: (() -> Void)? = nil,
         onOpenChatDetails: @escaping () -> Void,
         onOpenSearch: @escaping () -> Void,
         onSend: @escaping (String, [ComposerAttachment]) async -> Bool,
@@ -55,6 +70,9 @@ public struct ChatScreenView: View {
         },
         onOpenAgent: @escaping (String) -> Void = { _ in },
         onCall: (() -> Void)? = nil,
+        menuActions: [ChatHeaderMenuAction] = [],
+        workPill: WorkPillState? = nil,
+        onOpenWork: @escaping () -> Void = {},
         history: MessageHistoryNavigation = .init(),
         mentionOptions: [MentionOptionPresentation] = [],
         onLoadMentionOptions: @escaping () async -> Void = {},
@@ -71,6 +89,7 @@ public struct ChatScreenView: View {
         self.isMessageHistoryLoaded = isMessageHistoryLoaded
         self.isConnected = isConnected
         self.onOpenSidebar = onOpenSidebar
+        self.onBack = onBack
         self.onOpenChatDetails = onOpenChatDetails
         self.onOpenSearch = onOpenSearch
         self.onSend = onSend
@@ -78,6 +97,9 @@ public struct ChatScreenView: View {
         self.onOpenAttachment = onOpenAttachment
         self.onOpenAgent = onOpenAgent
         self.onCall = onCall
+        self.menuActions = menuActions
+        self.workPill = workPill
+        self.onOpenWork = onOpenWork
         self.history = history
         self.mentionOptions = mentionOptions
         self.onLoadMentionOptions = onLoadMentionOptions
@@ -89,54 +111,26 @@ public struct ChatScreenView: View {
         // `TranscriptListView.animatesEntrance`); the header and composer
         // stay on the SwiftUI modifier.
         timeline
-            // The header floats over the transcript rather than capping it, so glass has
-            // live content to refract behind it. The shell ignores safe areas on this
-            // canvas, so the status-bar clearance that used to sit on the outer VStack
-            // moves onto the header itself, inside the bar. It is a `chromeBar` and not a
-            // plain inset because the soft edge below only paints behind a declared bar.
+            // The header floats over the transcript rather than capping it, so glass has live
+            // content to refract behind it. It is a `chromeBar` and not a plain inset because the
+            // soft edge below only paints behind a declared bar.
             .chromeBar(edge: .top, spacing: 0) {
                 ChatScreenHeader(
                     chat: chat,
                     isConnected: isConnected,
-                    onOpenSidebar: onOpenSidebar,
+                    onBack: onBack ?? onOpenSidebar,
                     onOpenChatDetails: onOpenChatDetails,
                     onOpenSearch: onOpenSearch,
-                    onCall: onCall
+                    onCall: onCall,
+                    menuActions: menuActions,
+                    turnDetails: $turnDetailsFocus
                 )
-                    .padding(.top, contentInsets.top)
-                    .openingEntrance(.header)
+                .padding(.top, contentInsets.top)
+                .openingEntrance(.header)
             }
-            // The composer floats over the transcript rather than capping it, so glass has
-            // live content to refract. The inset still reserves the same scroll clearance
-            // the old opaque band did. This end stays a plain inset: the clearance it
-            // reserves is the transcript's own scroll bound, so a resting or dragged
-            // transcript never puts a sharp row below the composer, and the only rows that
-            // reach it are the ones its glass is already refracting.
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                VStack(spacing: 0) {
-                    ChatComposerStatus(peerAgentID: chat.kind.peerAgentID)
-                    MessageComposerView(
-                        text: $draft,
-                        interaction: composerInteraction,
-                        placeholder: "Message \(chat.kind.isChannel ? "#" : "")\(chat.title)",
-                        isTextFocused: $isComposerFocused,
-                        allowsAttachments: chat.durableChat != nil,
-                        mentionOptions: mentionOptions,
-                        inlineReply: inlineReply,
-                        onCancelInlineReply: { inlineReply = nil },
-                        transitionNamespace: composerTransitionNamespace,
-                        onSend: sendMessage
-                    )
-                    // The shell ignores the keyboard, so this inset is the canvas's only keyboard
-                    // response. Each reading arrives in its own transaction: the keyboard's curve
-                    // for a rise or fall, none while a finger drags the keyboard down.
-                    .padding(.bottom, chatBottomInset)
-                    .openingEntrance(.composer)
-                }
-            }
-            // The portal is drawn in an overlay window above the keyboard, measured against the
-            // display rather than against this screen: the card keeps its full height and its gap
-            // from the true screen bottom while the keyboard slides out from behind it.
+            // The composer floats over the transcript rather than capping it; the inset reserves
+            // the transcript's scroll clearance (see `composer`).
+            .safeAreaInset(edge: .bottom, spacing: 0) { composer }
             .composerAttachmentPortal(
                 interaction: composerInteraction,
                 transitionNamespace: composerTransitionNamespace
@@ -151,23 +145,11 @@ public struct ChatScreenView: View {
                     keyboardInset = sample.inset
                 }
             }
-            // The keyboard leaves before anything covers the composer — the drawer, a pushed
-            .onChange(of: isDrawerEngaged) { _, engaged in
-                if engaged { isComposerFocused = false }
-            }
-            .background(.background)
+            .modelChangeConfirmation($pendingModelChange, onConfirm: applyModelChange)
+            .modelChangeFailure($modelChangeError)
+            .background(HausPlatformColor.canvas)
             .task(id: chat.id) { await onLoadMentionOptions() }
     }
-
-    /// The keyboard reaches this screen as a bottom safe-area inset from the shell. Freezing that
-    /// one number is what keeps the transcript and the composer pixel-static across the keyboard
-    /// leaving and returning behind an open portal: it sets how far the composer sits off the
-    /// screen bottom, and through the composer's own height it sets the transcript's clearance.
-    private var chatBottomInset: CGFloat {
-        composerInteraction.portalFreeze.bottomInset(live: liveBottomInset)
-    }
-
-    private var liveBottomInset: CGFloat { keyboardInset ?? contentInsets.bottom }
 
     /// A caller's safe-area attachment lands on the timeline's transcript root, so the
     /// transcript scrolls beneath both the header and the composer instead of clipping under
@@ -178,15 +160,25 @@ public struct ChatScreenView: View {
             messages: messages,
             isMessageHistoryLoaded: isMessageHistoryLoaded,
             emptyStateDescription: emptyStateDescription,
+            style: chat.kind.transcriptStyle,
             onContentTap: { isComposerFocused = false },
             allowsInlineReplies: chat.durableChat != nil && onSendInlineReply != nil,
             onSelectInlineReply: selectInlineReply,
             onOpenAttachment: onOpenAttachment,
             onOpenAgent: onOpenAgent,
+            onViewTurnDetails: turnDetailsAction,
             history: history,
             scrollTargetMessageID: $scrollTargetMessageID,
             onVisibleMessagesChange: onVisibleMessagesChange
         )
+    }
+
+    /// "View turn details" on a Captain's message, where the App gave turn details a source.
+    private var turnDetailsAction: ((MessagePresentation) -> Void)? {
+        guard chat.durableChat != nil, engagementSource?.turnDetails != nil else { return nil }
+        return { message in
+            turnDetailsFocus = TurnDetailsFocus(agentIDs: [message.author.id], messageDate: message.createdAt)
+        }
     }
 
     private var emptyStateDescription: String {
@@ -209,7 +201,7 @@ public struct ChatScreenView: View {
         isComposerFocused = true
     }
 
-    private func sendMessage(
+    func sendMessage(
         _ content: String,
         _ attachments: [ComposerAttachment]
     ) async -> Bool {
@@ -227,21 +219,5 @@ public struct ChatScreenView: View {
             self.inlineReply = inlineReply
         }
         return sent
-    }
-}
-
-extension ChatKind {
-    /// An Agent DM's peer, whose stopped notice sits over the composer.
-    public var peerAgentID: String? {
-        if case .agentDirectMessage(let agent) = self { agent.id } else { nil }
-    }
-
-    var isChannel: Bool {
-        if case .channel = self { true } else { false }
-    }
-
-    /// An Agent DM's title already shows its Agent, so its row is the thought.
-    var engagementStyle: HeaderEngagementStyle {
-        if case .agentDirectMessage = self { .subtitle } else { .roster }
     }
 }

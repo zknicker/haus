@@ -1,24 +1,8 @@
 import Foundation
 import HausModels
 
-extension CloudAgentPresentation {
-    public static func runStatusLabel(_ status: CloudAgentStatus) -> String {
-        switch status {
-        case .queued: "Queued"
-        case .running: "Running"
-        case .completed: "Completed"
-        case .failed: "Failed"
-        case .cancelled: "Stopped"
-        case .expired: "Expired"
-        case .pendingInput: "Waiting on you"
-        }
-    }
-
-    public var newestRun: CloudAgentRun? { work.runs.first }
-
-    public var runStatusText: String {
-        Self.runStatusLabel(newestRun?.status ?? work.status)
-    }
+extension WorkerPresentation {
+    public var newestRun: WorkerTurn? { work.runs.first }
 
     public var newestRunSummary: String? {
         guard let summary = newestRun?.summary else { return nil }
@@ -28,9 +12,9 @@ extension CloudAgentPresentation {
 }
 
 public struct TaskPullRequestPresentation: Identifiable, Hashable, Sendable {
-    public let reading: CloudAgentPullRequestReading
+    public let reading: PullRequestReading
 
-    public init(reading: CloudAgentPullRequestReading) {
+    public init(reading: PullRequestReading) {
         self.reading = reading
     }
 
@@ -41,7 +25,7 @@ public struct TaskPullRequestPresentation: Identifiable, Hashable, Sendable {
         return "PR #\(reading.number) · \(title)"
     }
 
-    public var url: URL? { CloudAgentPresentation.externalURL(reading.url) }
+    public var url: URL? { WorkerPresentation.externalURL(reading.url) }
 
     public var stateLabel: String { Self.stateLabel(reading.state) }
 
@@ -80,34 +64,17 @@ public struct TaskPullRequestPresentation: Identifiable, Hashable, Sendable {
     }
 }
 
-public struct TaskAttachedWorkPresentation: Hashable, Sendable {
-    public let cloudAgents: [CloudAgentPresentation]
-    public let pullRequests: [TaskPullRequestPresentation]
-
-    public init(cloudAgents: [CloudAgentPresentation], pullRequests: [CloudAgentPullRequestReading]) {
-        self.cloudAgents = cloudAgents
-        let shown = Set(cloudAgents.compactMap { $0.pullRequestURL?.absoluteString })
-        self.pullRequests = pullRequests
-            .filter { !shown.contains($0.url) }
-            .map(TaskPullRequestPresentation.init)
-    }
-
-    public static let empty = TaskAttachedWorkPresentation(cloudAgents: [], pullRequests: [])
-
-    public var isEmpty: Bool { cloudAgents.isEmpty && pullRequests.isEmpty }
-}
-
+/// A Task chat's header: the Task's key, title, and state. Its Workers and
+/// pull requests live in the Work view.
 public struct TaskChatHeaderPresentation: Hashable, Sendable {
     public let key: String
     public let title: String
     public let state: TaskState
-    public let attachedWork: TaskAttachedWorkPresentation
 
-    public init(key: String, title: String, state: TaskState, attachedWork: TaskAttachedWorkPresentation) {
+    public init(key: String, title: String, state: TaskState) {
         self.key = key
         self.title = title
         self.state = state
-        self.attachedWork = attachedWork
     }
 
     public var stateLabel: String { TaskStateLabel.text(state) }

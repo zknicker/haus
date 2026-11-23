@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Press feedback for buttons that draw their own content.
 ///
-/// On iOS 26 system glass owns the whole press treatment, so glass controls
+/// System glass owns the whole press treatment, so glass controls
 /// never use this. Everything else that `.plain` leaves inert — drawn
 /// circles, cards, list rows — takes one of two treatments: compact controls
 /// scale toward the finger, and full-width rows highlight instead, because a

@@ -8,12 +8,12 @@ final class RealtimeStreamRestartsTests: XCTestCase {
     /// The iPhone's focused subscriptions, `taskLabel.onUpdated` and the
     /// `server.onUpdated` membership sentinel included.
     func testTheIPhoneSubscribesToEveryFocusedChatStream() {
-        XCTAssertEqual(Set(RealtimeStream.allCases.map(\.path)), [
+        XCTAssertEqual(Set(RealtimeStream.liveSession.map(\.path)), [
             "chat.onMessageCreated", "chat.onMessageReactionUpdated", "chat.onRead",
             "chat.onLifecycle", "worker.onUpdated",
             "claim.onChanged", "taskLabel.onUpdated", "task.onCreated",
             "task.onUpdated", "task.onFollowUpdated", "agent.onLifecycle", "agent.onActivity",
-            "computer.onUpdated", "server.onUpdated",
+            "computer.onUpdated", "server.onUpdated", "project.onUpdated", "artifact.onUpdated",
         ])
     }
 
@@ -154,14 +154,14 @@ final class RealtimeStreamRestartsTests: XCTestCase {
         XCTAssertEqual(RealtimeStream.taskFollowUpdated.ownedProjections, [.unreadTasks])
         XCTAssertEqual(
             RealtimeStream.cloudAgentWorkUpdated.ownedProjections,
-            [.openTranscripts, .chatList, .activeCloudAgentWork]
+            [.openTranscripts, .chatList, .activeWorkers]
         )
         XCTAssertEqual(RealtimeStream.chatLifecycle.ownedProjections, [.chatList])
-        XCTAssertEqual(RealtimeStream.agentLifecycle.ownedProjections, [.agentAvailability, .serverUsage])
+        XCTAssertEqual(RealtimeStream.agentLifecycle.ownedProjections, [.agentAvailability])
         XCTAssertEqual(RealtimeStream.agentActivity.ownedProjections, [.agentActivity])
         XCTAssertEqual(
             RealtimeStream.computerUpdated.ownedProjections,
-            [.agentAvailability, .agentActivity, .serverUsage, .computers]
+            [.agentAvailability, .agentActivity, .computers]
         )
     }
 
@@ -178,18 +178,15 @@ final class RealtimeStreamRestartsTests: XCTestCase {
         XCTAssertFalse(RealtimeStream.computerUpdated.reportsOutage)
     }
 
-    /// The Inbox's Unread section is the Chat list; the message and read
+    /// The unread dots read the Chat list; the message and read
     /// streams own it, so a start of either reconciles it and their events
-    /// read it again. Its usage strip is owned by lifecycle and Computer
-    /// updates.
-    func testTheInboxProjectionsHaveStreamOwners() {
+    /// read it again.
+    func testTheChatListHasStreamOwners() {
         for stream: RealtimeStream in [.messageCreated, .chatRead] {
             for isRestart in [false, true] {
                 XCTAssertTrue(stream.startReconciliation(isRestart: isRestart).contains(.chatList), stream.path)
             }
         }
-        let usageOwners = Set(RealtimeStream.allCases.filter { $0.ownedProjections.contains(.serverUsage) })
-        XCTAssertEqual(usageOwners, [.agentLifecycle, .computerUpdated])
     }
 
     func testOnlyMessagesAndPresenceReportAnOutage() {

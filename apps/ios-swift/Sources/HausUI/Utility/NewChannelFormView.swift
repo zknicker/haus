@@ -126,14 +126,16 @@ public struct NewChannelFormView: View {
                             toggle(agent.id)
                         } label: {
                             HStack(spacing: 12) {
-                                AvatarView(name: agent.displayName, url: agent.avatarURL, size: 32)
+                                CaptainMark(name: agent.displayName, side: 32) {
+                                    AvatarView(name: agent.displayName, url: agent.avatarURL, size: 32 * 2.squareRoot())
+                                }
                                 Text(agent.displayName)
                                     .foregroundStyle(.primary)
                                 Spacer(minLength: 8)
                                 Image(systemName: selectedAgentIDs.contains(agent.id) ? "checkmark.circle.fill" : "circle")
                                     .font(.title3)
                                     .foregroundStyle(
-                                        selectedAgentIDs.contains(agent.id) ? Color.accentColor : Color.secondary
+                                        selectedAgentIDs.contains(agent.id) ? HausPlatformColor.accentInk : Color.secondary
                                     )
                                     .accessibilityHidden(true)
                             }

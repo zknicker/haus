@@ -111,9 +111,9 @@ private struct QuickReactionTileStyle: ButtonStyle {
             .frame(maxWidth: .infinity)
             .aspectRatio(1, contentMode: .fit)
             .frame(maxHeight: 56)
-            .background(isSelected ? Color.accentColor.opacity(0.18) : HausPlatformColor.groupedSurface, in: shape)
+            .background(isSelected ? HausPlatformColor.accent.opacity(0.18) : HausPlatformColor.groupedSurface, in: shape)
             .overlay {
-                if isSelected { shape.strokeBorder(Color.accentColor, lineWidth: 1.5) }
+                if isSelected { shape.strokeBorder(HausPlatformColor.accent, lineWidth: 1.5) }
             }
             .overlay { shape.fill(Color.primary.opacity(configuration.isPressed ? 0.08 : 0)) }
             .contentShape(shape)

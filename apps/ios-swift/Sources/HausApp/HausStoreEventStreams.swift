@@ -17,7 +17,7 @@ extension HausStore {
         stopEventStreams()
         realtimeServerID = serverID
         streamRestarts = RealtimeStreamRestarts()
-        for stream in RealtimeStream.allCases {
+        for stream in RealtimeStream.liveSession {
             startStream(stream, serverID: serverID)
         }
     }
@@ -34,6 +34,7 @@ extension HausStore {
     }
 
     private func startStream(_ stream: RealtimeStream, serverID: String) {
+        guard stream.joinsLiveSession else { return }
         let task: Task<Void, Never> = switch stream {
         case .messageCreated:
             streamTask(stream, serverID: serverID) { (store, event: MessageCreatedEvent) in
@@ -52,7 +53,7 @@ extension HausStore {
                 await store.receive(.lifecycle(event), serverID: serverID)
             }
         case .cloudAgentWorkUpdated:
-            streamTask(stream, serverID: serverID) { (store, event: CloudAgentWorkUpdatedEvent) in
+            streamTask(stream, serverID: serverID) { (store, event: WorkerUpdatedEvent) in
                 await store.receive(.cloudAgentWorkUpdated(event), serverID: serverID)
             }
         case .claimChanged:
@@ -92,6 +93,23 @@ extension HausStore {
                 guard event.serverID == serverID else { return }
                 await store.reloadServerList(serverID: serverID)
             }
+        case .projectUpdated:
+            // One Project's settings changed; `project.list` is read whole, so
+            // a burst of updates shares the coalesced pass its start uses.
+            streamTask(stream, serverID: serverID) { (store, event: ProjectUpdatedEvent) in
+                guard event.serverID == serverID else { return }
+                store.requestRecovery(stream.ownedProjections, serverID: serverID)
+            }
+        case .artifactUpdated:
+            // The named file's preview reads at once (every open one for a
+            // null id); the listings share the coalesced pass.
+            streamTask(stream, serverID: serverID) { (store, event: ArtifactUpdatedEvent) in
+                guard event.serverID == serverID else { return }
+                store.requestRecovery([.driveListings], serverID: serverID)
+                await store.drive.refreshFiles(changedArtifact: event.artifactID)
+            }
+        case .agentUpdated, .agentExecutionJournal, .modelConnectionsUpdated:
+            preconditionFailure("\(stream.path) is not part of the live session.")
         }
         eventTasks.replace(stream, with: task)
     }
@@ -185,19 +203,18 @@ extension HausStore {
 
     /// `membership_lost`: final for every stream of the Server. Closes the
     /// siblings, cancels in-flight reads (a cancelled read writes nothing),
-    /// clears the Server's state, and reloads the Server list. Idempotent:
+    /// clears the Server's state, snapshot, and drafts, and reloads the
+    /// Server list, which picks another Server or the empty state. Idempotent:
     /// several streams may end with the refusal.
     func handleMembershipLost(serverID: String) async {
         guard activeServer?.id == serverID, !membershipLossInFlight else { return }
         membershipLossInFlight = true
         defer { membershipLossInFlight = false }
         Self.logger.notice("Server membership lost; clearing its state")
-        stopEventStreams()
-        cancelTranscriptReads()
-        resetInlineReplyCache()
-        discardServerScopedState()
+        lostServer = activeServer
+        leaveActiveServer()
         servers.removeAll { $0.id == serverID }
-        hasLiveServerState = false
+        await lifecycle.membershipLost(serverID)
         state = .loading
         await loadLiveServer(attempt: 0)
     }

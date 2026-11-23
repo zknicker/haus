@@ -156,6 +156,7 @@ struct RichMessageInlineView: View {
 
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.legibilityWeight) private var legibilityWeight
+    @Environment(\.richMessageLineHeight) private var lineHeight
 
     #if canImport(UIKit)
     var body: some View {
@@ -165,7 +166,8 @@ struct RichMessageInlineView: View {
                 textStyle: textStyle,
                 dynamicTypeSize: dynamicTypeSize,
                 legibilityWeight: legibilityWeight,
-                appearance: appearance
+                appearance: appearance,
+                lineHeight: lineHeight
             ),
             markRevision: markRevision
         )

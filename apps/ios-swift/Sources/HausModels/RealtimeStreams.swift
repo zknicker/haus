@@ -23,8 +23,26 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
     /// `server.updated`, so this stream ends with `membership_lost` for
     /// whoever just lost access.
     case serverUpdated = "server.onUpdated"
+    case projectUpdated = "project.onUpdated"
+    case agentUpdated = "agent.onUpdated"
+    case agentExecutionJournal = "agent.onExecutionJournal"
+    case artifactUpdated = "artifact.onUpdated"
+    case modelConnectionsUpdated = "modelConnections.onUpdated"
+
+    public static let liveSession = allCases.filter(\.joinsLiveSession)
 
     public var path: String { rawValue }
+
+    public var joinsLiveSession: Bool {
+        switch self {
+        case .agentUpdated, .agentExecutionJournal, .modelConnectionsUpdated:
+            false
+        case .messageCreated, .messageReactionUpdated, .chatRead, .chatLifecycle, .cloudAgentWorkUpdated,
+             .claimChanged, .taskLabelUpdated, .taskCreated, .taskUpdated, .taskFollowUpdated, .agentLifecycle,
+             .agentActivity, .computerUpdated, .serverUpdated, .projectUpdated, .artifactUpdated:
+            true
+        }
+    }
 
     /// Whether this stream's outage is the Server's: the connection indicator
     /// follows these. Activity and the annotation streams are decoration on
@@ -44,7 +62,7 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
         case .claimChanged:
             [.openTranscripts, .chatList]
         case .cloudAgentWorkUpdated:
-            [.openTranscripts, .chatList, .activeCloudAgentWork]
+            [.openTranscripts, .chatList, .activeWorkers]
         case .chatLifecycle:
             [.chatList]
         case .taskLabelUpdated:
@@ -54,15 +72,20 @@ public enum RealtimeStream: String, CaseIterable, Hashable, Sendable {
         case .taskFollowUpdated:
             [.unreadTasks]
         case .agentLifecycle:
-            // A settled turn moves the usage the Inbox strip ranks.
-            [.agentAvailability, .serverUsage]
+            [.agentAvailability]
         case .agentActivity:
             [.agentActivity]
         case .computerUpdated:
             // A Computer attaching or detaching moves every Agent it runs.
-            [.agentAvailability, .agentActivity, .serverUsage, .computers]
+            [.agentAvailability, .agentActivity, .computers]
         case .serverUpdated:
             [.serverList]
+        case .projectUpdated:
+            [.projects]
+        case .artifactUpdated:
+            [.driveListings, .driveFiles]
+        case .agentUpdated, .agentExecutionJournal, .modelConnectionsUpdated:
+            []
         }
     }
 
@@ -91,13 +114,17 @@ public enum RealtimeProjection: Hashable, Sendable, CaseIterable {
     /// `taskLabel.list`, once loaded.
     case taskLabels
     case unreadTasks
-    case activeCloudAgentWork
+    case activeWorkers
     case agentAvailability
     case agentActivity
-    /// `stats.live`: the Inbox strip's token usage, once loaded.
-    case serverUsage
     /// `computer.list`.
     case computers
+    /// `project.list`, once loaded.
+    case projects
+    /// Every held Drive listing: the browsed folder and each place's recent files.
+    case driveListings
+    /// Every file preview opened (`artifact.byPath`).
+    case driveFiles
 }
 
 /// Why the Server refused or ended a stream (`hausRefusal` in the tRPC error data).

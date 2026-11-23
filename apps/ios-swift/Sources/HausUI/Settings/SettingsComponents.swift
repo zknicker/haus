@@ -1,5 +1,28 @@
 import SwiftUI
 
+extension HausRadius {
+    /// You's grouped cards.
+    static let settingsCard: CGFloat = 26
+}
+
+/// You's card geometry from the mocks: 52pt rows, a 20pt glyph 20pt in,
+/// titles at 56pt, and separators inset to the titles.
+enum SettingsCardMetrics {
+    static let rowHeight: CGFloat = 52
+    static let leadingInset: CGFloat = 20
+    static let trailingInset: CGFloat = 18
+    static let iconSide: CGFloat = 18
+    static let iconGap: CGFloat = 18
+    static let valueGap: CGFloat = 10
+    static let separatorTrailing: CGFloat = 16
+
+    static var titleInset: CGFloat { leadingInset + iconSide + iconGap }
+
+    nonisolated static func separatorLeading(hasIcon: Bool) -> CGFloat {
+        hasIcon ? titleInset : leadingInset
+    }
+}
+
 public struct SettingsSection<Content: View>: View {
     private let title: String?
     private let footer: String?
@@ -20,10 +43,8 @@ public struct SettingsSection<Content: View>: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             if let title {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 16)
+                SectionCountLabel(title)
+                    .padding(.horizontal, SettingsCardMetrics.leadingInset)
             }
 
             content()
@@ -31,9 +52,9 @@ public struct SettingsSection<Content: View>: View {
             if let footer {
                 Text(footer)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(HausPlatformColor.mutedInk)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, SettingsCardMetrics.leadingInset)
             }
         }
     }
@@ -50,8 +71,34 @@ public struct SettingsListGroup<Content: View>: View {
         VStack(spacing: 0) {
             content()
         }
-        .background(HausPlatformColor.groupedSurface, in: .haus(HausRadius.grouped))
-        .clipShape(.haus(HausRadius.grouped))
+        .background(HausPlatformColor.card, in: .haus(HausRadius.settingsCard))
+        .clipShape(.haus(HausRadius.settingsCard))
+    }
+}
+
+/// The rule between card rows, inset to the titles.
+struct SettingsSeparator: View {
+    var leading: CGFloat = SettingsCardMetrics.titleInset
+
+    var body: some View {
+        Rectangle()
+            .fill(HausPlatformColor.hairline)
+            .frame(height: 1)
+            .padding(.leading, leading)
+            .padding(.trailing, SettingsCardMetrics.separatorTrailing)
+            .accessibilityHidden(true)
+    }
+}
+
+/// The small trailing chevron of a row that pushes a screen.
+struct SettingsChevron: View {
+    @ScaledMetric(relativeTo: .body) private var size: CGFloat = 10
+
+    var body: some View {
+        Image(systemName: "chevron.right")
+            .font(.system(size: size, weight: .medium))
+            .foregroundStyle(HausPlatformColor.faintInk)
+            .accessibilityHidden(true)
     }
 }
 
@@ -59,7 +106,7 @@ public struct DisclosureRow: View {
     private let title: String
     private let subtitle: String?
     private let value: String?
-    private let icon: HausIconName
+    private let icon: HausIconName?
     private let showsDivider: Bool
     private let action: () -> Void
 
@@ -67,7 +114,7 @@ public struct DisclosureRow: View {
         _ title: String,
         subtitle: String? = nil,
         value: String? = nil,
-        icon: HausIconName,
+        icon: HausIconName?,
         showsDivider: Bool = true,
         action: @escaping () -> Void
     ) {
@@ -88,18 +135,14 @@ public struct DisclosureRow: View {
                 icon: icon,
                 showsDivider: false
             ) {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.tertiary)
-                    .accessibilityHidden(true)
+                SettingsChevron()
             }
         }
         .buttonStyle(.plain)
         .accessibilityLabel([title, value ?? subtitle].compactMap { $0 }.joined(separator: ", "))
         .overlay(alignment: .bottom) {
             if showsDivider {
-                Divider()
-                    .padding(.leading, 54)
+                SettingsSeparator(leading: SettingsCardMetrics.separatorLeading(hasIcon: icon != nil))
             }
         }
     }

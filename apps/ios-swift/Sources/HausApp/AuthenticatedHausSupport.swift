@@ -20,7 +20,3 @@ struct SettingsUnavailableSheet: View {
         }
     }
 }
-
-enum HausRootRoute: Hashable {
-    case task(taskID: String)
-}

@@ -1,4 +1,5 @@
 import Foundation
+import HausModels
 
 public struct TRPCError: Error, Equatable, LocalizedError, Sendable {
     public let message: String

@@ -5,7 +5,7 @@ public enum TaskStateLabel {
     public static func text(_ state: TaskState) -> String {
         switch state {
         case .todo: "Todo"
-        case .open: "Open"
+        case .open: "In progress"
         case .done: "Done"
         case .canceled: "Canceled"
         case .unknown: "Unknown state"

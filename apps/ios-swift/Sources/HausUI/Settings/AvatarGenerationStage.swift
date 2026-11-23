@@ -190,7 +190,7 @@ private struct AvatarGenerationRing: View {
     var body: some View {
         if reduceMotion {
             Circle()
-                .strokeBorder(Color.accentColor.opacity(0.6), lineWidth: 4)
+                .strokeBorder(HausPlatformColor.accent.opacity(0.6), lineWidth: 4)
         } else {
             TimelineView(.animation) { context in
                 let phase = context.date.timeIntervalSinceReferenceDate
@@ -198,7 +198,7 @@ private struct AvatarGenerationRing: View {
                 Circle()
                     .strokeBorder(
                         AngularGradient(
-                            colors: [.accentColor.opacity(0), .accentColor.opacity(0.2), .accentColor],
+                            colors: [HausPlatformColor.accent.opacity(0), HausPlatformColor.accent.opacity(0.2), HausPlatformColor.accent],
                             center: .center
                         ),
                         lineWidth: 4
@@ -215,15 +215,10 @@ private struct AvatarStageCounter: View {
     let count: Int
 
     var body: some View {
-        Group {
-            if #available(iOS 26, macOS 26, *) {
-                label.glassEffect(.regular, in: .capsule)
-            } else {
-                label.background(.thinMaterial, in: .capsule)
-            }
-        }
-        .accessibilityHidden(true)
-        .accessibilityIdentifier("avatar-stage-counter")
+        label
+            .glassEffect(.regular, in: .capsule)
+            .accessibilityHidden(true)
+            .accessibilityIdentifier("avatar-stage-counter")
     }
 
     private var label: some View {

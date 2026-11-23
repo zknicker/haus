@@ -19,16 +19,22 @@ struct MessageRowAccessibilityActions {
         _ message: MessagePresentation,
         canReplyInline: Bool,
         onReact: @escaping () -> Void,
-        onReply: @escaping () -> Void
+        onReply: @escaping () -> Void,
+        onViewTurnDetails: (() -> Void)? = nil
     ) -> Self {
         guard !message.isPending else { return .none }
         return MessageRowAccessibilityActions(
             onReact: onReact,
-            actions: MessageActionMenu.groups(for: message, canReplyInline: canReplyInline).flatMap(\.self),
+            actions: MessageActionMenu.groups(
+                for: message,
+                canReplyInline: canReplyInline,
+                canViewTurnDetails: onViewTurnDetails != nil
+            ).flatMap(\.self),
             perform: { action in
                 switch action {
                 case .reply: onReply()
                 case .copyText: MessageClipboard.copy(message)
+                case .viewTurnDetails: onViewTurnDetails?()
                 }
             }
         )

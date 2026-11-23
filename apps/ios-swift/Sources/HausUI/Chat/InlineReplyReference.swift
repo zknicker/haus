@@ -15,11 +15,7 @@ struct InlineReplyPreview: View {
                 InlineReplyElbow()
                     .frame(width: InlineReplyElbow.railWidth)
                 HStack(spacing: 6) {
-                    AvatarView(
-                        name: reference.author.name,
-                        url: reference.author.avatarURL,
-                        size: avatarSize
-                    )
+                    MessageAuthorAvatar(author: reference.author, size: avatarSize, showsPresence: false)
                     Text(reference.author.name)
                         .fontWeight(.medium)
                         .layoutPriority(1)

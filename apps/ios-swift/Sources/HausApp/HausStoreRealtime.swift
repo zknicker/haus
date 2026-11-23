@@ -1,4 +1,5 @@
 import Foundation
+import HausAppModel
 import HausModels
 import HausUI
 import OSLog
@@ -137,9 +138,16 @@ extension HausStore {
     /// pass, so a foreground or reconnect lands as a single repaint rather than
     /// a stagger of half-updated lists.
     func refreshServerSnapshot(serverID: String) async throws {
+        guard let ticket = scope.ticket, ticket.serverID == serverID else { return }
         let lifecycleRevisionAtStart = lifecycleRevision
         async let iconBadge: Void = refreshIconBadge()
         let snapshot = try await fetchServerSnapshot(serverID: serverID)
+        // A switch while the reads were out leaves this answer for a Server
+        // the app no longer shows.
+        guard scope.isCurrent(ticket) else {
+            await iconBadge
+            return
+        }
         apply(snapshot, lifecycleRevisionAtStart: lifecycleRevisionAtStart)
         await iconBadge
 
@@ -162,11 +170,16 @@ extension HausStore {
         var gathered: Set<RealtimeProjection> = [.serverList, .chatList, .agentAvailability]
         if snapshot.activity != nil { gathered.insert(.agentActivity) }
         let current = realtimeReconciliation.landed(gathered, readStartedAt: snapshot.readStart)
-        if current.contains(.serverList) {
-            if servers.first?.id != snapshot.servers.first?.id {
-                resetInlineReplyCache()
+        if current.contains(.serverList), let serverID = activeServer?.id {
+            switch ServerSelection.change(activeServerID: serverID, current: servers, loaded: snapshot.servers) {
+            case .membershipLost:
+                Task { await self.handleMembershipLost(serverID: serverID) }
+                return
+            case let .updated(list):
+                servers = list
+            case .unchanged:
+                break
             }
-            if servers != snapshot.servers { servers = snapshot.servers }
         }
         if current.contains(.chatList) {
             chats = snapshot.chats

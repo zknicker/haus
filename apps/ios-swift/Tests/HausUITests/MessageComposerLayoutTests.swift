@@ -89,8 +89,8 @@ final class MessageComposerLayoutTests: XCTestCase {
 
     func testCollapsedPlaceholderClearsThePlusButton() {
         let width: CGFloat = 300
-        let attachmentWidth: CGFloat = 32
-        let sendWidth: CGFloat = 34
+        let attachmentWidth: CGFloat = 36
+        let sendWidth: CGFloat = 36
         let fieldWidth = ComposerControlLayout.compactFieldWidth(
             inWidth: width,
             attachmentWidth: attachmentWidth,
@@ -98,7 +98,7 @@ final class MessageComposerLayoutTests: XCTestCase {
         )
         let fieldOrigin = attachmentWidth + ComposerControlLayout.compactFieldGap
 
-        XCTAssertEqual(ComposerControlLayout.compactFieldGap, 12)
+        XCTAssertEqual(ComposerControlLayout.compactFieldGap, 10)
         XCTAssertEqual(
             width - sendWidth - (fieldOrigin + fieldWidth),
             ComposerControlLayout.compactSendGap
@@ -194,8 +194,8 @@ final class MessageComposerLayoutTests: XCTestCase {
         )
         let anchor = box.popAnchor
 
-        // The plus sits 28pt in from the composer's leading edge, 24pt up from its bottom.
-        XCTAssertEqual(anchor.x, (12 + 28 - box.origin.x) / box.width, accuracy: 0.0001)
+        // The plus sits 24pt in from the composer's leading edge, 24pt up from its bottom.
+        XCTAssertEqual(anchor.x, (12 + 24 - box.origin.x) / box.width, accuracy: 0.0001)
         XCTAssertEqual(anchor.y, (760 - 24 - box.origin.y) / box.height, accuracy: 0.0001)
         // In the card's lower-leading region, where the button it came from actually is — the
         // card sinks one key row past the plus with a keyboard up, so the anchor rides above

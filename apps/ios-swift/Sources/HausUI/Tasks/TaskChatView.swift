@@ -2,7 +2,6 @@ import SwiftUI
 
 public struct TaskChatView: View {
     let header: TaskChatHeaderPresentation?
-    let contextLabel: String?
     let startedFrom: TaskStartedFromPresentation?
     let onOpenOrigin: () -> Void
     private let messageProvider: () -> [MessagePresentation]
@@ -16,12 +15,23 @@ public struct TaskChatView: View {
     private let mentionOptions: [MentionOptionPresentation]
     private let onLoadMentionOptions: () async -> Void
     private let onVisibleMessagesChange: ([String]) -> Void
+    /// The Task's fields and the writes that change them; nil while the Task
+    /// is not loaded, which leaves the header read-only.
+    let editing: TaskChatEditing?
+    let unreadMessageID: String?
+    /// The Task's Work pill over the composer; nil or hidden while it has no work.
+    private let workPill: WorkPillState?
+    private let onOpenWork: () -> Void
+    let onOpenWorker: (String) -> Void
 
-    @State private var draft = ""
+    /// Owned above this screen, keyed by Server and Task, so leaving the Task
+    /// keeps the draft and its staged files.
+    @Binding private var draft: String
+    private let composerInteraction: ComposerInteraction
     @State var projection = TaskTranscriptProjection()
-    @State private var showsOutage = false
+    @State var showsOutage = false
     @State private var holdExpired = false
-    @State private var isNearNewest = true
+    @State var isNearNewest = true
     @State var reveal: TranscriptReveal?
     @State var highlightedMessageID: String?
     @State var attachmentPreview: AttachmentPreview?
@@ -30,19 +40,25 @@ public struct TaskChatView: View {
     @Environment(\.reactionStickers) var reactionBoard
     @State var actionMessage: MessagePresentation?
     @State var heldMessageID: String?
-    @State private var composerInteraction = ComposerInteraction()
+    @State var unreadJump = TranscriptUnreadJump(messageID: nil)
+    @State var isStatusPresented = false
+    @State var isDuePresented = false
+    @State var editFailure: String?
+    @AppStorage(ScrollNewMessagesToTop.storageKey)
+    var scrollsNewMessagesToTop = ScrollNewMessagesToTop.defaultValue
     @FocusState private var isComposerFocused: Bool
     @Namespace private var composerTransitionNamespace
 
     public init(
         header: TaskChatHeaderPresentation?,
-        contextLabel: String?,
         startedFrom: TaskStartedFromPresentation?,
         onOpenOrigin: @escaping () -> Void,
         messages: @escaping () -> [MessagePresentation],
         isLoaded: Bool,
         isConnected: Bool = true,
         isReadOnly: Bool = false,
+        draft: Binding<String>,
+        composerInteraction: ComposerInteraction,
         onSend: @escaping (String, [ComposerAttachment]) async -> Bool,
         onOpenAttachment: @escaping (MessageAttachmentPresentation) async throws -> URL = { attachment in
             guard let localURL = attachment.localURL else { throw CancellationError() }
@@ -51,22 +67,33 @@ public struct TaskChatView: View {
         history: MessageHistoryNavigation = .init(),
         engagementChatID: String? = nil,
         landingMessageID: String? = nil,
+        unreadMessageID: String? = nil,
+        editing: TaskChatEditing? = nil,
+        workPill: WorkPillState? = nil,
+        onOpenWork: @escaping () -> Void = {},
+        onOpenWorker: @escaping (String) -> Void = { _ in },
         mentionOptions: [MentionOptionPresentation] = [],
         onLoadMentionOptions: @escaping () async -> Void = {},
         onVisibleMessagesChange: @escaping ([String]) -> Void = { _ in }
     ) {
         self.header = header
-        self.contextLabel = contextLabel
         self.startedFrom = startedFrom
         self.onOpenOrigin = onOpenOrigin
         self.messageProvider = messages
         self.isLoaded = isLoaded
         self.isConnected = isConnected
         self.isReadOnly = isReadOnly
+        _draft = draft
+        self.composerInteraction = composerInteraction
         self.onSend = onSend
         self.onOpenAttachment = onOpenAttachment
         self.history = history
         self.engagementChatID = engagementChatID
+        self.unreadMessageID = unreadMessageID
+        self.editing = editing
+        self.workPill = workPill
+        self.onOpenWork = onOpenWork
+        self.onOpenWorker = onOpenWorker
         self.mentionOptions = mentionOptions
         self.onLoadMentionOptions = onLoadMentionOptions
         self.onVisibleMessagesChange = onVisibleMessagesChange
@@ -76,8 +103,25 @@ public struct TaskChatView: View {
     }
 
     static let firstPageHold = Duration.milliseconds(1_200)
+    /// How far the header scrim reaches below the navigation bar: short of the
+    /// transcript's own top clearance, so a resting first row stays crisp.
+    static let scrimOverhang: CGFloat = 10
 
     public var body: some View {
+        chrome(screen)
+            .connectionOutage(isConnected: isConnected, showsOutage: $showsOutage)
+            .task { await onLoadMentionOptions() }
+            .task { await editing?.loadLabels() }
+            .task(id: highlightedMessageID) { await fadeHighlight() }
+            .task {
+                guard !isLoaded else { return }
+                try? await Task.sleep(for: Self.firstPageHold)
+                holdExpired = true
+            }
+            .messageActionDrawer(for: $actionMessage, board: reactionBoard)
+    }
+
+    private var screen: some View {
         let messages = messageProvider()
         projection.update(startedFrom: startedFrom, messages: messages, hasOlder: history.hasOlder)
         let items = projection.items
@@ -92,24 +136,22 @@ public struct TaskChatView: View {
                             HeaderEngagement(chatID: engagementChatID, style: .roster)
                         }
                     }
-                    .safeAreaInset(edge: .top, spacing: 0) {
-                        if let header {
-                            TaskChatHeader(header: header, maxHeight: geometry.size.height * 0.4)
-                        }
-                    }
                     .safeAreaInset(edge: .bottom, spacing: 0) {
-                        if isReadOnly {
-                            ReadOnlyConversationNotice()
-                        } else {
-                            MessageComposerView(
-                                text: $draft,
-                                interaction: composerInteraction,
-                                placeholder: header.map { "Message \($0.key)" } ?? "Message",
-                                isTextFocused: $isComposerFocused,
-                                mentionOptions: mentionOptions,
-                                transitionNamespace: composerTransitionNamespace,
-                                onSend: onSend
-                            )
+                        VStack(spacing: 0) {
+                            WorkPillSlot(state: workPill, open: onOpenWork)
+                            if isReadOnly {
+                                ReadOnlyConversationNotice()
+                            } else {
+                                MessageComposerView(
+                                    text: $draft,
+                                    interaction: composerInteraction,
+                                    place: .task,
+                                    isTextFocused: $isComposerFocused,
+                                    mentionOptions: mentionOptions,
+                                    transitionNamespace: composerTransitionNamespace,
+                                    onSend: onSend
+                                )
+                            }
                         }
                     }
             }
@@ -123,7 +165,7 @@ public struct TaskChatView: View {
                 liveBottomInset: geometry.safeAreaInsets.bottom
             )
         }
-        .background(.background)
+        .background(HausPlatformColor.canvas)
         .attachmentPreview(
             $attachmentPreview,
             images: projection.imagePages,
@@ -136,19 +178,9 @@ public struct TaskChatView: View {
                 reveal = nil
             }
         }
-        .inlineNavigationTitle(
-            header?.key ?? "",
-            subtitle: showsOutage ? ConnectionOutage.title : contextLabel
-        )
-        .connectionOutage(isConnected: isConnected, showsOutage: $showsOutage)
-        .task { await onLoadMentionOptions() }
-        .task(id: highlightedMessageID) { await fadeHighlight() }
-        .task {
-            guard !isLoaded else { return }
-            try? await Task.sleep(for: Self.firstPageHold)
-            holdExpired = true
+        .onChange(of: unreadMessageID, initial: true) { _, id in
+            unreadJump = TranscriptUnreadJump(messageID: id)
         }
-        .messageActionDrawer(for: $actionMessage, board: reactionBoard)
     }
 
     private func transcript(items: [TaskTranscriptItem], rowRevision: Int) -> some View {
@@ -159,15 +191,12 @@ public struct TaskChatView: View {
                 bottomInset: proxy.safeAreaInsets.bottom,
                 showsAccessory: history.hasOlder,
                 onAppend: { previousItems, items, isNearNewest in
-                    let previousLatest = previousItems.last(where: { $0.message != nil })?.id
-                    if previousLatest == nil { return .snapToNewest }
-                    if items.last?.isPending == true { return .animateToNewest }
-                    return isNearNewest && history.followsLatest ? .followNewest : .stay
+                    appendBehavior(previousItems: previousItems, items: items, isNearNewest: isNearNewest)
                 },
                 reveal: reveal,
                 isNearNewest: $isNearNewest,
                 onContentTap: { isComposerFocused = false },
-                onVisibleItems: onVisibleMessagesChange,
+                onVisibleItems: observeVisibleMessages,
                 onLongPress: { item in actionMessage = Self.drawerMessage(for: item) },
                 onHoldChange: { item in heldMessageID = item.flatMap(Self.drawerMessage(for:))?.id },
                 rowRevision: rowRevision,
@@ -184,20 +213,22 @@ public struct TaskChatView: View {
             )
             .ignoresSafeArea()
             .transcriptTopDissolve(safeAreaTop: proxy.safeAreaInsets.top)
-            .overlay(alignment: .bottom) {
-                if !isNearNewest || history.hasNewer {
-                    TranscriptJumpButton(label: "Scroll to latest message") {
-                        Task {
-                            let id = history.hasNewer ? await history.loadLatest() : messageProvider().last?.id
-                            if let id {
-                                reveal = TranscriptReveal(token: UUID(), id: id, animated: !history.hasNewer)
-                            }
-                        }
-                    }
-                    .padding(.bottom, 10)
-                    .safeAreaPadding(.bottom)
-                }
+            .overlay(alignment: .top) {
+                ChromeTopScrim(fade: ChromeTopScrim.rowFade + Self.scrimOverhang)
+                    .frame(height: proxy.safeAreaInsets.top + Self.scrimOverhang)
+                    .frame(maxHeight: .infinity, alignment: .top)
+                    .ignoresSafeArea()
             }
         }
+        .overlay(alignment: .bottomTrailing) { jumpStack }
+        .animation(.easeOut(duration: 0.18), value: jumps)
+    }
+
+    private func observeVisibleMessages(_ ids: [String]) {
+        if unreadJump.messageID != nil {
+            let next = unreadJump.observing(visibleIDs: ids, loadedIDs: projection.messageIDs)
+            if next != unreadJump { unreadJump = next }
+        }
+        onVisibleMessagesChange(ids)
     }
 }

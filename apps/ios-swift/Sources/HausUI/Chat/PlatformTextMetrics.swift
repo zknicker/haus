@@ -14,7 +14,7 @@ typealias PlatformFont = NSFont
 typealias PlatformColor = NSColor
 #endif
 
-/// The vertical metrics of the system font behind a `Font.TextStyle`.
+/// The vertical metrics of the font behind a `Font.TextStyle`.
 struct PlatformFontMetrics: Equatable {
     /// The size the text style resolves to at this Dynamic Type size.
     let pointSize: CGFloat
@@ -31,7 +31,7 @@ struct PlatformFontMetrics: Equatable {
     var lineHeight: CGFloat { ascent + descent + leading }
 }
 
-/// The system font behind a `Font.TextStyle`, and its vertical metrics.
+/// The Haus font behind a `Font.TextStyle`, and its vertical metrics.
 ///
 /// SwiftUI does not expose the font it resolves, and a message body needs both
 /// the font itself — to set its words and its mention labels in one run — and
@@ -57,8 +57,9 @@ enum PlatformTextMetrics {
     /// measured from that font rather than from the text style's.
     static func metrics(of font: PlatformFont) -> PlatformFontMetrics { measure(font) }
 
-    /// The system font a text style resolves to at this Dynamic Type size and
-    /// legibility weight.
+    /// The Haus font a text style resolves to at this Dynamic Type size and
+    /// legibility weight: Inter at the size and nearest weight of the system
+    /// font the style resolves to, so it scales exactly as the system does.
     ///
     /// The body's words and a mention's label are set in it at the same size,
     /// which is what puts them on one baseline. Bold Text is a trait of the
@@ -68,6 +69,16 @@ enum PlatformTextMetrics {
         for style: Font.TextStyle,
         dynamicTypeSize: DynamicTypeSize,
         legibilityWeight: LegibilityWeight? = nil
+    ) -> PlatformFont {
+        let system = systemFont(for: style, dynamicTypeSize: dynamicTypeSize, legibilityWeight: legibilityWeight)
+        guard HausTypeface.isRegistered else { return system }
+        return HausTypeface.nearest(to: system).platformFont(size: system.pointSize)
+    }
+
+    private static func systemFont(
+        for style: Font.TextStyle,
+        dynamicTypeSize: DynamicTypeSize,
+        legibilityWeight: LegibilityWeight?
     ) -> PlatformFont {
         #if canImport(UIKit)
         return UIFont.preferredFont(
