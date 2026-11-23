@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v29.2.1 - 2026-11-23
+
+- Haus for iPhone 13.0.3 makes the composer calm again. The grabber that dragged a draft to full height is gone, because swipes meant to dismiss the keyboard caught it. **Scroll new messages to top** is now off by default, so a sent message lands at the bottom instead of above a screen of empty space. Server, Haus Computer, Haus Agent and Haus for Desktop are unchanged.
+
 ## v29.2.0 - 2026-11-23
 
 - Settings → Repositories lists every repo on the Server with the Devices that hold a folder for it and whether the Haus GitHub App can reach it. **Grant on GitHub** opens the installation's settings and **Recheck** asks again. **Add repository** adds a folder on a Device you attached. In Haus for Desktop 7.4.0, **Choose folder…** opens the macOS folder picker; older desktop builds and browsers take a typed path.
