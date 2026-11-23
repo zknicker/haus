@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v29.1.0 - 2026-11-23
+
+- Haus for iPhone 13.0.0 is rebuilt around five tabs: Home, Projects, Tasks, You and Search, in a compact glass bar. Press anywhere on the bar and drag to switch tabs. **Ask anything** above the bar starts a Task for a Captain. Scrolling down a list folds the bar to your current tab, the field and Search, and screens you open from a list hide it.
+- Home shows your Captains, the Workers running now, recent chats and Tasks, and your open Tasks. Projects lists your Projects with their open Tasks. Tasks filters by state, owner and Project. You holds settings and Drive. Search finds messages, Tasks, Captains, Projects and people, and offers New task, New project, Go to tasks and Go to settings.
+- Each chat and Task has a Work view listing its Workers, pull requests and files. A Worker opens to its report and steps, and you can send it a follow-up.
+- Chats on iPhone are denser and start at the top when short, and Captains always show as rounded squares. Copy a message by long-pressing it.
+- The Inbox page and the drawer are gone; unread chats show on Home. Server, Haus Computer, Haus Agent and Haus for Desktop are unchanged.
+
 ## v29.0.0 - 2026-11-22
 
 - Repositories belong to the Server, and each Device lists its repo folders under Settings → Devices → (Device) → Repositories. The person who attached the Device adds a local clone with **Add folder**, and Owners and Admins can remove one. A folder needs a `github.com` origin and shows Missing or Different origin when it moves or is re-pointed. `haus-computer repo add <path>`, `repo list` and `repo remove <owner/name>` do the same from the Mac. Projects no longer keep their own repo list.
