@@ -17,7 +17,7 @@ test('the rail groups pages by whose settings they are', () => {
             label: 'You',
             rows: ['Profile', 'Preferences', 'Appearance', 'Notifications', 'Shortcuts', 'Servers'],
         },
-        { label: 'Captains', rows: ['Models', 'Skills', 'Connections'] },
+        { label: 'Captains', rows: ['Models', 'Git', 'Skills', 'Connections'] },
         { label: 'Haus', rows: ['General', 'Members', 'Devices', 'Usage', 'Archived chats'] },
     ]);
 });
