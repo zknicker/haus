@@ -12,6 +12,8 @@ import {
 } from './app-place-model.ts';
 import { computerAppPlaces } from './app-places-computers.ts';
 
+const projectGeneralSection = 'features/settings/projects/project-general-section.tsx';
+
 /** Where things live in Haus App, for Agents answering "where do I…". */
 export const appPlaces: readonly AppPlace[] = [
     {
@@ -109,16 +111,33 @@ export const appPlaces: readonly AppPlace[] = [
     {
         area: 'channels',
         task: 'Rename a channel or change its description',
-        path: ['Project actions', 'Name & description…'],
+        path: ['Project actions', 'Project settings', 'General'],
         who: 'anyone',
-        anchors: [channelActions(), label(channelActionsMenu, 'Name & description…')],
+        anchors: [
+            channelActions(),
+            label(channelActionsMenu, 'Project settings'),
+            label(projectGeneralSection, 'General'),
+        ],
     },
     {
         area: 'channels',
         task: "Change a channel's icon or color",
-        path: ['Project actions', 'Icon & color'],
+        path: ['Project actions', 'Project settings', '(the mark beside its name)'],
         who: 'anyone',
-        anchors: [channelActions(), label(channelActionsMenu, 'Icon & color')],
+        anchors: [channelActions(), label(channelActionsMenu, 'Project settings')],
+    },
+    {
+        area: 'channels',
+        task: "Choose where a channel's Workers run by default",
+        path: ['Settings', 'Projects', '(the project)', 'Workers', 'Default place'],
+        who: 'anyone',
+        note: 'With No default, a Worker start must name its place.',
+        anchors: [
+            settingsEntry(),
+            settingsSection('projects'),
+            label('features/settings/projects/project-workers-section.tsx', 'Workers'),
+            label('features/settings/projects/project-workers-section.tsx', 'Default place'),
+        ],
     },
     {
         area: 'channels',

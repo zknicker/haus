@@ -15,7 +15,7 @@ import {
     readProjectDefaultPlace,
     readUsablePlaces,
 } from './resolve-worker-place.ts';
-import { chooseCarrier, readDefaultPlace } from './worker-carrier.ts';
+import { chooseCarrier } from './worker-carrier.ts';
 import { chooseWorkerModel } from './worker-model.ts';
 
 export interface WorkerStartPlan {
@@ -32,7 +32,7 @@ export async function resolveWorkerStart(
     input: AgentWorkerStartInput & { projectId: string; requested: WorkerPlace | null }
 ) {
     const { serverId } = runner;
-    const place = input.requested ?? (await readFallbackPlace(tx, runner, input.projectId));
+    const place = input.requested ?? (await readProjectPlace(tx, runner.serverId, input.projectId));
     if (place.kind !== 'computer') {
         if (input.runtime || input.model) {
             throw new WorkerOptionCloudError(place.kind);
@@ -80,24 +80,16 @@ export async function resolveWorkerStart(
     } satisfies WorkerStartPlan;
 }
 
-async function readFallbackPlace(
-    tx: HausDatabase,
-    runner: Pick<ResolvedRunner, 'agentId' | 'serverId'>,
-    projectId: string
-) {
-    const projectDefault = await readProjectDefaultPlace(tx, runner.serverId, projectId);
-    if (projectDefault) {
-        if (!(await isPlaceUsable(tx, runner.serverId, projectDefault))) {
-            throw new WorkerProjectDefaultUnusableError(
-                projectDefault,
-                await readUsablePlaces(tx, runner.serverId)
-            );
-        }
-        return projectDefault;
+async function readProjectPlace(tx: HausDatabase, serverId: string, projectId: string) {
+    const projectDefault = await readProjectDefaultPlace(tx, serverId, projectId);
+    if (!projectDefault) {
+        throw new WorkerPlaceRequiredError(await readUsablePlaces(tx, serverId));
     }
-    const cloudDefault = await readDefaultPlace(tx, runner);
-    if (!cloudDefault) {
-        throw new WorkerPlaceRequiredError(await readUsablePlaces(tx, runner.serverId));
+    if (!(await isPlaceUsable(tx, serverId, projectDefault))) {
+        throw new WorkerProjectDefaultUnusableError(
+            projectDefault,
+            await readUsablePlaces(tx, serverId)
+        );
     }
-    return { kind: cloudDefault } satisfies WorkerPlace;
+    return projectDefault;
 }
