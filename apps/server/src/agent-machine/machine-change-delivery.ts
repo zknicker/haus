@@ -2,7 +2,7 @@ import type { DeliveryTransport } from '../agent-delivery/delivery.ts';
 import { readAgentServerId } from '../agent-delivery/store.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
-import { advanceMachineChange } from './advance-machine-change.ts';
+import { advanceMachineChange, type MachineChangeStep } from './advance-machine-change.ts';
 import { commitMachineChangeStep, type MachineFences } from './machine-change-effects.ts';
 import { listPendingChanges } from './machine-change-store.ts';
 
@@ -30,6 +30,15 @@ export async function advanceAgentMachine(
         });
     });
     await commitMachineChangeStep(step, deps);
+}
+
+export async function commitMachineSteps(
+    deps: MachineChangeDeps,
+    steps: readonly MachineChangeStep[]
+) {
+    for (const step of steps) {
+        await commitMachineChangeStep(step, deps);
+    }
 }
 
 export async function advancePendingMachines(

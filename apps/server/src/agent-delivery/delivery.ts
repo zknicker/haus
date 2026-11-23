@@ -12,14 +12,12 @@ import type { MachineChangeStep } from '../agent-machine/advance-machine-change.
 import {
     advanceAgentMachine,
     advancePendingMachines,
+    commitMachineSteps,
     type MachineChangeDeps,
 } from '../agent-machine/machine-change-delivery.ts';
-import {
-    commitMachineChangeStep,
-    type MachineFences,
-    unfencedMachines,
-} from '../agent-machine/machine-change-effects.ts';
+import { type MachineFences, unfencedMachines } from '../agent-machine/machine-change-effects.ts';
 import { machineChangeHolds } from '../agent-machine/machine-change-read.ts';
+import { invalidateFlush } from '../agent-machine/machine-change-store.ts';
 import { retireOnServerComputers } from '../computers/agent-retirement.ts';
 import { revokeRunnerCredentialsForRun } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
@@ -28,6 +26,7 @@ import type { PreparedRealtimeEvent } from '../realtime/topic.ts';
 import { publishRealtime } from '../realtime/topic.ts';
 import { artifactUpdatedTopic } from '../realtime/topics.ts';
 import { settleReminderScript } from '../reminders/reminder-script-delivery.ts';
+import { sendReminderScript } from '../reminders/reminder-script-placement.ts';
 import { recordReminderWakeUsage } from '../reminders/reminder-wake-usage.ts';
 import { readActiveAgentActivity } from '../server-agents/agent-activity-history.ts';
 import { appendServerAgentActivity } from '../server-agents/agent-activity.ts';
@@ -140,9 +139,7 @@ export class AgentDelivery {
 
     /** Commits Machine switches made inside another transaction, such as a Device removal. */
     async commitMachineSteps(steps: readonly MachineChangeStep[]) {
-        for (const step of steps) {
-            await commitMachineChangeStep(step, this.machineDeps());
-        }
+        await commitMachineSteps(this.machineDeps(), steps);
     }
 
     /**
@@ -488,8 +485,8 @@ export class AgentDelivery {
         await sendAgentConfiguration(this.db, this.transport, input);
     }
 
-    dispatchReminderScript(computerId: string, command: ReminderScriptCommand): void {
-        this.transport.send(computerId, command);
+    async dispatchReminderScript(input: { command: ReminderScriptCommand; computerId: string }) {
+        await sendReminderScript(this.db, this.transport, input.computerId, input.command);
     }
 
     async onReminderScriptResult(computerId: string, result: ReminderScriptResult): Promise<void> {
@@ -499,6 +496,7 @@ export class AgentDelivery {
             result,
             async (tx, input) => await this.enqueue(tx, input)
         );
+        await this.advanceMachineChange(result.agentId);
         const serverId = await store.readAgentServerId(this.db, result.agentId);
         if (serverId) {
             await this.dispatchAgent(result.agentId, serverId);
@@ -626,6 +624,7 @@ export class AgentDelivery {
         if (!(admitted && mayLead(admitted.lead))) {
             return null;
         }
+        await invalidateFlush(tx, { agentId, serverId: state.serverId });
         const first = admitted.lead;
         // A sub-agent wake, Drive conflict, or Task assignment is concrete work with no Chat:
         // a chatless run. A wake or conflict runs alone; Task assignments coalesce: ten

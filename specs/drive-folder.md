@@ -162,17 +162,22 @@ decision 7, [ADR 0054](../docs/adr/0054-drive-holds-what-agents-know-and-follow.
 The Server keeps the request in `agent_machine_changes` and moves it a step at a time
 (`apps/server/src/agent-machine/advance-machine-change.ts`):
 
-1. **Turn.** It waits while the Agent has an active run. No new run starts while the change can
-   move, so the next turn runs on the new Machine.
+1. **Turn and scripts.** It waits while the Agent has an active run, and while a reminder script
+   it sent to the online old Machine has not answered. No new run starts while the change can
+   move, so the next turn runs on the new Machine. A run admitted anyway, while the old Machine
+   was offline, voids any flush sent before it, so its edits are flushed again.
 2. **Flush.** With the old Machine online it sends `drive-flush` with a fresh flush id. The
    Computer pushes the folder under that id and closes the push even when nothing changed
    (`flushDriveForRun`), and the close is what tells the Server the folder reached Drive. The
-   change switches only then. A flush that has not closed in two minutes, or whose Machine
+   change switches only then. A flush with any file that failed sends no close, so it stays
+   pending until a resend lands every file. A flush that has not closed in two minutes, or whose Machine
    reconnects, is sent again under a new id. Conflicts follow the ordinary push rules.
 3. **Old Machine offline.** The person waits, and the Agent keeps working with no Machine to sync
    until the old one reconnects and flushes; or they move from the last synced revision, which
    switches at once and leaves unpushed edits in the old folder, unmerged. Removing a Device moves
-   its Agents this way.
+   its Agents this way. A reminder script the old Machine was sent and never answered is fenced:
+   its fire is marked failed, its late result is refused, and it does not rerun on the new
+   Machine. A script fire never sent anywhere replays there.
 4. **Switch.** `agents.computer_id` changes and `agents.placement_generation` goes up by one. A
    run records its generation in `agent_run_triggers`, a push in `drive_pushes`, and a push opened
    for a run of an older generation is refused `AGENT_MOVED`, like a push from before a full reset.

@@ -39,7 +39,7 @@
         "apps/computer/src/setup-resume.test.ts": 325,
         "apps/computer/src/update.test.ts": 340,
         "apps/ios-swift/Tests/HausTransportTests/TRPCClientTests.swift": 322,
-        "apps/server/src/agent-delivery/delivery.ts": 799,
+        "apps/server/src/agent-delivery/delivery.ts": 798,
         "apps/server/src/agent-delivery/store.ts": 725,
         "apps/server/src/computers/login-service.ts": 321,
         "apps/server/src/development/seed-server.ts": 331,
