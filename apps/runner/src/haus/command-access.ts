@@ -39,6 +39,7 @@ const commandTable: Readonly<Record<string, Readonly<Record<string, CommandAcces
         unassign: serverOnly,
         update: serverOnly,
     },
+    computer: { list: serverOnly },
     connection: { grant: serverOnly, list: serverOnly, revoke: serverOnly },
     drive: {
         share: serverOnly,

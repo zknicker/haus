@@ -1,3 +1,5 @@
+import { computerTargetBounds, computerTargetDescription } from './computer-target.ts';
+
 const argsInputSchema = {
     additionalProperties: false,
     properties: {
@@ -7,6 +9,11 @@ const argsInputSchema = {
             minItems: 1,
             type: 'array',
         },
+        computer: {
+            ...computerTargetBounds,
+            description: computerTargetDescription,
+            type: 'string',
+        },
     },
     required: ['args'],
     type: 'object',
@@ -14,7 +21,7 @@ const argsInputSchema = {
 
 export const browserTool = {
     description:
-        'Use the Chrome browser selected in your machine’s Browser settings. Pass agent-browser command arguments, for example ["tab","new","https://example.com"], ["snapshot","-i"], ["click","@e1"]. Agents share signed-in accounts and tabs. Create your own tab and operate only on your own tabs; leave service and other agents’ tabs alone. Screenshots and PDFs are written on the machine; view them with your edit tool.',
+        'Use the Chrome browser selected in the Computer’s Browser settings, on your home Computer or the one `computer` names. Pass agent-browser command arguments in `args`, for example ["tab","new","https://example.com"], ["snapshot","-i"], ["click","@e1"]. Agents share signed-in accounts and tabs. Create your own tab and operate only on your own tabs; leave service and other agents’ tabs alone. Screenshots and PDFs are written on that Computer; view them with your edit tool on the same Computer.',
     inputSchema: argsInputSchema,
     name: 'browser',
     title: 'Browser',
@@ -22,7 +29,7 @@ export const browserTool = {
 
 export const desktopTool = {
     description:
-        'Use the macOS desktop of your machine through agent-desktop. Pass one command’s arguments, for example ["skills","get","desktop"], ["snapshot","--app","Finder","-i"], ["click","@s1:e8"]. Read `skills get desktop` before first use. It works only on a Device where a person turned on Computer use allowed. Screenshots are written on the machine; view them with your edit tool.',
+        'Use the macOS desktop of your home Computer, or of the one `computer` names, through agent-desktop. Pass one command’s arguments in `args`, for example ["skills","get","desktop"], ["snapshot","--app","Finder","-i"], ["click","@s1:e8"]. Read `skills get desktop` before first use. It works only on a Device where a person turned on Computer use allowed. Screenshots are written on that Computer; view them with your edit tool on the same Computer.',
     inputSchema: argsInputSchema,
     name: 'desktop',
     title: 'Desktop',

@@ -52,6 +52,7 @@ export interface InvocationHandlerInput {
 
 export interface InvocationHandler {
     connected: () => Promise<void>;
+    fence: (agentId: string) => Promise<void>;
     receive: (frame: unknown) => boolean;
     settled: () => Promise<void>;
 }

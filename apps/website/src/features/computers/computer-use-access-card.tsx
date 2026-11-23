@@ -26,7 +26,7 @@ export function ComputerUseAccessCard({
         <section>
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>
-                    <ItemCardGroup.Title>Access</ItemCardGroup.Title>
+                    <ItemCardGroup.Title>Computer use</ItemCardGroup.Title>
                 </ItemCardGroup.Header>
                 <ComputerUseStop
                     computerId={computerId}
@@ -45,6 +45,9 @@ export function ComputerUseAccessCard({
                             agents={computer.computerUseAgents}
                             canChange={computer.canChangeComputerUse}
                             computerId={computerId}
+                            grantedAgentIds={computer.agentAccessGrants.map(
+                                (grant) => grant.agentId
+                            )}
                             serverId={serverId}
                         />
                     ) : null}

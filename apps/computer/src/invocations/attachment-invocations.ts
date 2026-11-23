@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { invocationCommandSchemas } from '@haus/api';
+import { agentFenceCommandSchema, invocationCommandSchemas } from '@haus/api';
 import { agentDesktopToolsRoot } from '../desktop/agent-desktop-binary.ts';
 import { driveSyncFrames } from '../drive/drive-sync-frames.ts';
 import { bashRunner } from './bash.ts';
@@ -13,14 +13,19 @@ import { createInvocationPayloads } from './payloads.ts';
 
 interface AttachmentInvocations {
     connected: () => void;
+    fence: (agentId: string) => Promise<void>;
     receive: (frame: unknown) => boolean;
 }
 
-type Arrival = { kind: 'connected' } | { frame: unknown; kind: 'frame' };
+type Arrival =
+    | { kind: 'connected' }
+    | { agentId: string; fenced: () => void; kind: 'fence' }
+    | { frame: unknown; kind: 'frame' };
 
-const frameTypes = new Set<unknown>(
-    invocationCommandSchemas.map((schema) => schema.shape.type.value)
-);
+const frameTypes = new Set<unknown>([
+    ...invocationCommandSchemas.map((schema) => schema.shape.type.value),
+    agentFenceCommandSchema.shape.type.value,
+]);
 
 const attachments = new Map<string, AttachmentInvocations>();
 
@@ -42,6 +47,10 @@ export function attachmentInvocations(
             ready.receive(arrival.frame);
             return;
         }
+        if (arrival.kind === 'fence') {
+            void ready.fence(arrival.agentId).then(arrival.fenced);
+            return;
+        }
         void ready.connected().catch(logFailure);
     };
     const created: AttachmentInvocations = {
@@ -51,6 +60,14 @@ export function attachmentInvocations(
                 return;
             }
             arrivals.push({ kind: 'connected' });
+        },
+        fence: (agentId) => {
+            if (handler) {
+                return handler.fence(agentId);
+            }
+            const { promise, resolve } = Promise.withResolvers<void>();
+            arrivals.push({ agentId, fenced: resolve, kind: 'fence' });
+            return promise;
         },
         receive: (frame) => {
             if (driveSync.receive(frame)) {
@@ -95,6 +112,11 @@ export function attachmentInvocations(
         },
         (error) => {
             attachments.delete(attachment.serverId);
+            for (const arrival of arrivals.splice(0)) {
+                if (arrival.kind === 'fence') {
+                    arrival.fenced();
+                }
+            }
             logFailure(error);
         }
     );

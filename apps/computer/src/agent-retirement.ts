@@ -11,12 +11,14 @@ import {
     workspaceVolumePaths,
 } from './workspace-volumes/workspace-volume.ts';
 
+export const retirableAgentId = /^agt_[A-Za-z0-9_-]{16}$/u;
+
 export function parseAgentRetireCommand(frame: unknown): AgentRetireCommand | null {
     if (
         !isRecord(frame) ||
         frame.type !== 'agent-retire' ||
         typeof frame.agentId !== 'string' ||
-        !/^agt_[A-Za-z0-9_-]{16}$/u.test(frame.agentId)
+        !retirableAgentId.test(frame.agentId)
     ) {
         return null;
     }
@@ -36,7 +38,7 @@ export async function purgeRetiredAgent(input: {
     pacing?: DetachPacing;
     serverId: string;
 }): Promise<void> {
-    if (!/^agt_[A-Za-z0-9_-]{16}$/u.test(input.agentId)) {
+    if (!retirableAgentId.test(input.agentId)) {
         throw new Error('Invalid Agent id.');
     }
     if (!/^srv_[A-Za-z0-9_-]{16}$/u.test(input.serverId)) {

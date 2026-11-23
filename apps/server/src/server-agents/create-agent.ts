@@ -5,7 +5,7 @@ import { type AvatarBytes, createAvatarId, readAvatarBytes } from '../avatars/av
 import type { HausDatabase } from '../postgres/connection.ts';
 import { violatesConstraint } from '../postgres/constraint-violation.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { agentsTable, avatarsTable, chatsTable } from '../postgres/schema.ts';
+import { agentsTable, avatarsTable, chatsTable, computersTable } from '../postgres/schema.ts';
 import {
     homeChangeEvents,
     openAgentHomeReads,
@@ -43,6 +43,7 @@ export async function createAgent(
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const creator = await requireAgentCreationAuthority(tx, member, input.serverId);
+        await requireAttachedHome(tx, creator, input);
         await requireHomeProject(tx, creator, {
             projectId: input.homeProjectId,
             serverId: input.serverId,
@@ -195,6 +196,28 @@ async function requireAgentCreationAuthority(
         throw new AgentConfigDeniedError('Only a Server Owner or Admin can create an Agent.');
     }
     return member;
+}
+
+async function requireAttachedHome(
+    db: Pick<HausDatabase, 'select'>,
+    creator: HausUser,
+    input: { computerId: string; serverId: string }
+) {
+    const [computer] = await db
+        .select({ attachedByUserId: computersTable.attachedByUserId })
+        .from(computersTable)
+        .where(
+            and(
+                eq(computersTable.serverId, input.serverId),
+                eq(computersTable.id, input.computerId)
+            )
+        )
+        .limit(1);
+    if (computer && computer.attachedByUserId !== creator.id) {
+        throw new AgentConfigDeniedError(
+            'Only the person who attached that Computer can create an Agent on it.'
+        );
+    }
 }
 
 async function requireAllChannelId(db: Pick<HausDatabase, 'select'>, serverId: string) {

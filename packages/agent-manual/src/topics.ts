@@ -1,5 +1,6 @@
 import { appTopic } from './app-topic.ts';
 import { cliFamilyTopics } from './cli-family-topics.ts';
+import { computersTopic } from './computers-topic.ts';
 import { archetypeRecipes } from './corpus/archetypes.ts';
 import { cliFamilyTopicsA } from './corpus/cli-families-a.ts';
 import { cliFamilyTopicsB } from './corpus/cli-families-b.ts';
@@ -51,7 +52,7 @@ Manual lookups require a natural-language --intent and --reason, each 12–500 c
     {
         body: `Haus Agents use the CLI as their only collaboration output channel.
 
-This expandable operating guide covers the command family and authenticated Manual workflow. Core command families include haus message, haus inbox, haus server, haus channel, haus profile, haus claim, haus task, haus reminder, haus attachment, haus drive, haus skill, haus agent, and haus manual. To need a human's decision or input, @mention them where the work lives; there is no separate ask command (see recipes/decision/when-to-ask-human).
+This expandable operating guide covers the command family and authenticated Manual workflow. Core command families include haus message, haus inbox, haus server, haus channel, haus profile, haus claim, haus task, haus reminder, haus attachment, haus drive, haus skill, haus agent, haus computer, and haus manual. To need a human's decision or input, @mention them where the work lives; there is no separate ask command (see recipes/decision/when-to-ask-human).
 
 Read the current identity with haus profile show. List your unread conversations with haus inbox check, read one with haus message read --target <target> --unread, and drain new deliveries with haus message check. Send durable collaboration with haus message send, adding --done to mark the message that answers the request where it arrived (omit on interim posts; see replies).
 
@@ -90,6 +91,7 @@ export const manualTopics: readonly ManualTopic[] = [
     ...workTopics,
     rulesTopic,
     secretsTopic,
+    computersTopic,
     appTopic,
     ...cliFamilyTopicsA,
     ...cliFamilyTopicsB,

@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import {
     computerUseAgentsSummary,
+    computerUseCaptains,
     computerUseNeedsGrant,
     computerUsePermissions,
     nextComputerUseAgents,
@@ -16,8 +17,9 @@ const ready = {
 } as const;
 
 const captains = [
-    { displayName: 'Cove', id: 'agt_cove' },
-    { displayName: 'Forge', id: 'agt_forge' },
+    { displayName: 'Cove', home: true, id: 'agt_cove' },
+    { displayName: 'Forge', home: true, id: 'agt_forge' },
+    { displayName: 'Wren', home: false, id: 'agt_wren' },
 ];
 
 test('a ready Device needs nothing, and an older Computer that reports no readiness has no rows', () => {
@@ -77,6 +79,26 @@ test('the Captains summary says all includes later Captains, and names a named l
     expect(computerUseAgentsSummary({ agentIds: [], kind: 'named' }, captains)).toBe(
         'No Captains. Pick at least one.'
     );
+});
+
+test('all covers only home Captains, and a named list can name a Captain Agent access allows', () => {
+    expect(
+        computerUseAgentsSummary({ agentIds: ['agt_cove', 'agt_wren'], kind: 'named' }, captains)
+    ).toBe('Only Cove and Wren.');
+    expect(
+        computerUseCaptains(
+            [
+                { computerId: 'cmp_other', displayName: 'Wren', id: 'agt_wren' },
+                { computerId: 'cmp_other', displayName: 'Pike', id: 'agt_pike' },
+                { computerId: 'cmp_studio', displayName: 'Cove', id: 'agt_cove' },
+            ],
+            'cmp_studio',
+            ['agt_wren']
+        )
+    ).toEqual([
+        { displayName: 'Cove', home: true, id: 'agt_cove' },
+        { displayName: 'Wren', home: false, id: 'agt_wren' },
+    ]);
 });
 
 test('computer use is offered only on macOS', () => {

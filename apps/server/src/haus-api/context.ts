@@ -50,8 +50,8 @@ export interface HausContext {
     githubApp: GithubApp | null;
     hausDb: HausDatabase;
     hausSessions: HausSessions;
-    /** Open machine invocations; Stop Agent Input cancels a Device's `desktop` command through it. */
-    invocations: Pick<InvocationRouter, 'stopDesktop'>;
+    /** Open machine invocations; Stop Agent Input and Agent access revokes act through it. */
+    invocations: Pick<InvocationRouter, 'fenceAgent' | 'stopDesktop'>;
     /** HTTP response handle for ending SSE subscriptions on local sign-out. */
     httpSessionConnection: HttpSessionConnection | null;
     managedSkills: ManagedSkillSeeder;
@@ -106,7 +106,7 @@ export interface HausContextDependencies {
     githubApp: GithubApp | null;
     hausDb: HausDatabase;
     hausSessions: HausSessions;
-    invocations: Pick<InvocationRouter, 'stopDesktop'>;
+    invocations: Pick<InvocationRouter, 'fenceAgent' | 'stopDesktop'>;
     managedSkills: ManagedSkillSeeder;
     mcpIconResolver: McpIconResolver;
     mcpOAuthRelay: McpOAuthRelay;

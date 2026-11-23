@@ -10,26 +10,26 @@ export async function requireComputerSteward(
     member: HausUser | null,
     input: { computerId: string; serverId: string }
 ) {
-    const server = await requireServerMembership(db, member, input.serverId);
-    const [computer] = await db
-        .select({ attachedByUserId: computersTable.attachedByUserId, id: computersTable.id })
-        .from(computersTable)
-        .where(
-            and(
-                eq(computersTable.serverId, input.serverId),
-                eq(computersTable.id, input.computerId)
-            )
-        )
-        .limit(1);
-    if (!computer) {
-        throw new ComputerSetupDeniedError('That Computer no longer exists.');
-    }
-    if (!(member && isComputerSteward(server.role, computer.attachedByUserId, member.id))) {
+    const { computer, role } = await readStewardedComputer(db, member, input);
+    if (!(member && isComputerSteward(role, computer.attachedByUserId, member.id))) {
         throw new ComputerSetupDeniedError(
             'Only the person who attached this Computer, an Owner, or an Admin can change what runs on it.'
         );
     }
     return { ...computer, stewardUserId: member.id };
+}
+
+export async function requireComputerAttacher(
+    db: HausDatabase,
+    member: HausUser | null,
+    input: { computerId: string; serverId: string },
+    refusal: string
+) {
+    const { computer } = await readStewardedComputer(db, member, input);
+    if (!(member && computer.attachedByUserId === member.id)) {
+        throw new ComputerSetupDeniedError(refusal);
+    }
+    return { ...computer, attacherUserId: member.id };
 }
 
 export function isComputerSteward(
@@ -42,4 +42,30 @@ export function isComputerSteward(
         role === 'admin' ||
         (memberId !== undefined && attachedByUserId === memberId)
     );
+}
+
+async function readStewardedComputer(
+    db: HausDatabase,
+    member: HausUser | null,
+    input: { computerId: string; serverId: string }
+) {
+    const server = await requireServerMembership(db, member, input.serverId);
+    const [computer] = await db
+        .select({
+            attachedByUserId: computersTable.attachedByUserId,
+            id: computersTable.id,
+            workersEnabled: computersTable.workersEnabled,
+        })
+        .from(computersTable)
+        .where(
+            and(
+                eq(computersTable.serverId, input.serverId),
+                eq(computersTable.id, input.computerId)
+            )
+        )
+        .limit(1);
+    if (!computer) {
+        throw new ComputerSetupDeniedError('That Computer no longer exists.');
+    }
+    return { computer, role: server.role };
 }

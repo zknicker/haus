@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import {
+    agentFenceCommandSchema,
     agentPathSegment,
     type InvokeCommand,
     invocationOutcomeNotices,
@@ -16,6 +17,7 @@ import type { InvocationHandler, InvocationHandlerInput } from './operation.ts';
 
 interface ActiveInvocation {
     accepted: Promise<AcceptedRecord | null>;
+    agentId: string;
     controller: AbortController;
 }
 
@@ -54,7 +56,7 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
         }
         const controller = new AbortController();
         const accepted = accept(command);
-        active.set(id, { accepted, controller });
+        active.set(id, { accepted, agentId: command.agentId, controller });
         track(
             queue.run(command.agentId, async () => {
                 const record = await accepted;
@@ -113,6 +115,15 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
         input.send(result);
     }
 
+    function fence(agentId: string) {
+        for (const entry of active.values()) {
+            if (entry.agentId === agentId) {
+                entry.controller.abort('cancel');
+            }
+        }
+        return queue.settled(agentId);
+    }
+
     async function answerFromLedger(agentId: string, invocationId: string) {
         const record = await ledger.read(agentId, invocationId);
         if (!record) {
@@ -163,6 +174,7 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
                 agentByInvocation.delete(invocationId);
             }
         },
+        fence,
         receive: (frame) => {
             if (!isRecord(frame)) {
                 return false;
@@ -174,6 +186,11 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
                 case 'invoke-cancel':
                     withParsed(invokeCancelCommandSchema, frame, ({ invocationId }) =>
                         active.get(invocationId)?.controller.abort('cancel')
+                    );
+                    return true;
+                case 'agent-fence':
+                    withParsed(agentFenceCommandSchema, frame, ({ agentId }) =>
+                        track(fence(agentId))
                     );
                     return true;
                 case 'invoke-result-ack':

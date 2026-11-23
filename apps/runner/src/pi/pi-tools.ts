@@ -4,6 +4,7 @@ import { arr, int, obj, oneOf, opt, str, tuple } from '@earendil-works/pi-schema
 import { runnerToolDescriptions } from '@haus/agent-prompt';
 import type { InvocationOutcome } from '@haus/api';
 import type { RunTools, ToolOutcome } from '../run-context.ts';
+import { computerTargetBounds, computerTargetDescription } from '../tools/computer-target.ts';
 import { webFetch } from '../web/web-fetch.ts';
 import { type SearchBackend, webSearch } from '../web/web-search.ts';
 import type { PiToolFamily } from './pi-models.ts';
@@ -73,7 +74,7 @@ export function piTools(family: PiToolFamily, search: WebSearchRoute, binding: P
                 binding.run(api.callId, context, (tools, signal) =>
                     tools.applyPatch(api.callId, args, signal)
                 ),
-            parameters: obj({ input: str({ minLength: 1 }) }),
+            parameters: obj({ computer: computerField(), input: str({ minLength: 1 }) }),
         }),
         bash: defineTool({
             ...shared('bash'),
@@ -83,6 +84,7 @@ export function piTools(family: PiToolFamily, search: WebSearchRoute, binding: P
                 ),
             parameters: obj({
                 command: str({ minLength: 1 }),
+                computer: computerField(),
                 description: opt(str()),
                 timeout: opt(int({ maximum: 600_000, minimum: 1 })),
             }),
@@ -103,6 +105,7 @@ export function piTools(family: PiToolFamily, search: WebSearchRoute, binding: P
                 ),
             parameters: obj({
                 command: arr(str(), { minItems: 1 }),
+                computer: computerField(),
                 timeout_ms: opt(int({ maximum: 600_000, minimum: 1 })),
                 workdir: opt(str({ minLength: 1 })),
             }),
@@ -115,6 +118,7 @@ export function piTools(family: PiToolFamily, search: WebSearchRoute, binding: P
                 ),
             parameters: obj({
                 command: oneOf(['view', 'create', 'str_replace', 'insert']),
+                computer: computerField(),
                 file_text: opt(str()),
                 insert_line: opt(int({ minimum: 0 })),
                 new_str: opt(str()),
@@ -129,7 +133,7 @@ export function piTools(family: PiToolFamily, search: WebSearchRoute, binding: P
                 binding.run(api.callId, context, (tools, signal) =>
                     tools.viewImage(api.callId, args, signal)
                 ),
-            parameters: obj({ path: str({ minLength: 1 }) }),
+            parameters: obj({ computer: computerField(), path: str({ minLength: 1 }) }),
         }),
         web_fetch: defineTool({
             ...shared('web_fetch'),
@@ -160,6 +164,10 @@ export function piTools(family: PiToolFamily, search: WebSearchRoute, binding: P
         const tool: ToolRegistration = all[name];
         return tool;
     });
+}
+
+function computerField() {
+    return opt(str({ ...computerTargetBounds, description: computerTargetDescription }));
 }
 
 function shared(name: RunnerToolName) {

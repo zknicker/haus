@@ -12,6 +12,7 @@ import { unfollowAgentTask } from './attention.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
 import { registerAgentChannelRoutes } from './channel-routes.ts';
 import { registerAgentClaimRoutes } from './claim-routes.ts';
+import { registerAgentComputerRoutes } from './computer-routes.ts';
 import { registerAgentConnectionRoutes } from './connection-routes.ts';
 import { readAgentServerDirectory } from './directory.ts';
 import { registerAgentDispatchIds } from './dispatch-hooks.ts';
@@ -104,6 +105,7 @@ export function registerAgentApiRoutes(
         postCommitWork: options.postCommitWork,
     });
     registerAgentChannelRoutes(app, { db: options.db });
+    registerAgentComputerRoutes(app, { computers: options.computers, db: options.db });
     registerAgentConnectionRoutes(app, options.db);
     registerWorkerReportRoute(app, { db: options.db });
     registerAgentWorkerRoutes(app, {

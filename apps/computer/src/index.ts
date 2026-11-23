@@ -5,6 +5,7 @@ import { arch, homedir, platform } from 'node:os';
 import { join } from 'node:path';
 import type { AgentSkillImportCommand, AgentSkillImportRecord } from '@haus/api';
 import * as commandFrames from './agent-command-frames.ts';
+import { sendAgentHeld } from './agent-held.ts';
 import { handleAgentResetFrame } from './agent-reset-frames.ts';
 import {
     parseAgentRetireCommand,
@@ -936,6 +937,7 @@ async function connect(
                     daemonWork.workers?.attach(sendFrame);
                     const initialReport = Promise.resolve().then(async () => {
                         await Promise.all([
+                            sendAgentHeld(sendFrame, dataRoot, attachment.serverId),
                             sendComputerReport(sendFrame, attachment.serverId, computerName, true),
                             sendSystemEventReport(dataRoot, sendFrame, attachment.serverId),
                             sendComputerDiskReport(dataRoot, sendFrame),
@@ -1020,11 +1022,15 @@ async function connect(
             if (retirement) {
                 retiredAgents.add(retirement.agentId);
                 void trackWriter(
-                    purgeRetiredAgent({
-                        agentId: retirement.agentId,
-                        dataRoot,
-                        serverId: attachment.serverId,
-                    })
+                    invocations
+                        .fence(retirement.agentId)
+                        .then(() =>
+                            purgeRetiredAgent({
+                                agentId: retirement.agentId,
+                                dataRoot,
+                                serverId: attachment.serverId,
+                            })
+                        )
                         .catch((error) => reportRetirementError(retirement.agentId, error))
                         .then(() => reportComputer())
                         .catch(reportStateError)

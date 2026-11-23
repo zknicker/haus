@@ -1,12 +1,14 @@
 import { createRouter } from '../trpc.ts';
 import { checkComputerUpdateProcedure } from './check-update.ts';
 import { desktopActivityProcedure } from './desktop-activity.ts';
+import { grantAgentAccessProcedure } from './grant-agent-access.ts';
 import { listComputersProcedure } from './list.ts';
 import { computerLoginRouter } from './login/router.ts';
 import { onDesktopActivityProcedure } from './on-desktop-activity.ts';
 import { onComputerUpdatedProcedure } from './on-updated.ts';
 import { refreshComputerInventoryProcedure } from './refresh-inventory.ts';
 import { removeComputerProcedure } from './remove.ts';
+import { revokeAgentAccessProcedure } from './revoke-agent-access.ts';
 import { setComputerUseAgentsProcedure } from './set-computer-use-agents.ts';
 import { setComputerUseProcedure } from './set-computer-use.ts';
 import { setComputerWorkersProcedure } from './set-workers.ts';
@@ -20,12 +22,14 @@ import { validateComputerProcedure } from './validate.ts';
 export const computerRouter = createRouter({
     checkUpdate: checkComputerUpdateProcedure,
     desktopActivity: desktopActivityProcedure,
+    grantAgentAccess: grantAgentAccessProcedure,
     list: listComputersProcedure,
     login: computerLoginRouter,
     onDesktopActivity: onDesktopActivityProcedure,
     onUpdated: onComputerUpdatedProcedure,
     remove: removeComputerProcedure,
     refreshInventory: refreshComputerInventoryProcedure,
+    revokeAgentAccess: revokeAgentAccessProcedure,
     setComputerUse: setComputerUseProcedure,
     setComputerUseAgents: setComputerUseAgentsProcedure,
     setWorkers: setComputerWorkersProcedure,

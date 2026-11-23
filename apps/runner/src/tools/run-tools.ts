@@ -42,7 +42,13 @@ export function createRunTools(input: {
     const mcp = createMcpClient(authority);
     const runCommand = async (
         toolCallId: string,
-        command: { cwd?: string; machine: string; script: string; timeoutMs?: number },
+        command: {
+            computer?: string;
+            cwd?: string;
+            machine: string;
+            script: string;
+            timeoutMs?: number;
+        },
         signal: AbortSignal
     ) => {
         const route = await routeBashCommand(command.script);
@@ -50,6 +56,7 @@ export function createRunTools(input: {
             return await runHausCommand({
                 argv: route.argv,
                 authority,
+                computer: command.computer,
                 invocations,
                 proxy,
                 signal,
@@ -65,7 +72,7 @@ export function createRunTools(input: {
             await invocations.invoke(
                 toolCallId,
                 { command: command.machine, cwd: command.cwd, kind: 'bash' },
-                { requestedTimeoutMs: command.timeoutMs, signal }
+                { computer: command.computer, requestedTimeoutMs: command.timeoutMs, signal }
             )
         );
     };
@@ -82,14 +89,19 @@ export function createRunTools(input: {
                 await invocations.invoke(
                     toolCallId,
                     { edit: parsed.data, kind: 'edit' },
-                    { signal }
+                    { computer: patch.computer, signal }
                 )
             );
         },
         bash(toolCallId, bash, signal) {
             return runCommand(
                 toolCallId,
-                { machine: bash.command, script: bash.command, timeoutMs: bash.timeout },
+                {
+                    computer: bash.computer,
+                    machine: bash.command,
+                    script: bash.command,
+                    timeoutMs: bash.timeout,
+                },
                 signal
             );
         },
@@ -102,7 +114,7 @@ export function createRunTools(input: {
                 await invocations.invoke(
                     toolCallId,
                     { edit: command.command, kind: 'edit' },
-                    { signal }
+                    { computer: edit.computer, signal }
                 ),
                 command.command,
                 signal
@@ -127,7 +139,13 @@ export function createRunTools(input: {
             const { command, script } = shellCommandOf(shell.command);
             return runCommand(
                 toolCallId,
-                { cwd: shell.workdir, machine: command, script, timeoutMs: shell.timeout_ms },
+                {
+                    computer: shell.computer,
+                    cwd: shell.workdir,
+                    machine: command,
+                    script,
+                    timeoutMs: shell.timeout_ms,
+                },
                 signal
             );
         },
@@ -136,7 +154,7 @@ export function createRunTools(input: {
                 await invocations.invoke(
                     toolCallId,
                     { kind: 'view-image', path: view.path },
-                    { signal }
+                    { computer: view.computer, signal }
                 )
             );
         },

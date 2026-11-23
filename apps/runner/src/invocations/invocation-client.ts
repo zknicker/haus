@@ -24,6 +24,12 @@ export interface InvocationAnswer {
     readonly timeoutMs: number;
 }
 
+export interface InvokeOptions {
+    readonly computer?: string;
+    readonly requestedTimeoutMs?: number;
+    readonly signal: AbortSignal;
+}
+
 interface OpenInvocation {
     answered: boolean;
     readonly key: DispatchKey;
@@ -60,7 +66,7 @@ export function createInvocationClient(input: {
         toolCallId: string,
         kind: InvocationOperation['kind'],
         prepare: (key: DispatchKey, signal: AbortSignal) => Promise<InvocationOperation>,
-        options: { requestedTimeoutMs?: number; signal: AbortSignal }
+        options: InvokeOptions
     ) => {
         const { timeoutMs, timeoutNote } = clampTimeout(kind, options.requestedTimeoutMs);
         options.signal.throwIfAborted();
@@ -119,6 +125,7 @@ export function createInvocationClient(input: {
             input.link.send({
                 ...key,
                 agentId: input.agentId,
+                ...(options.computer === undefined ? {} : { computer: options.computer }),
                 operation,
                 timeoutMs,
                 type: 'invocation-request',
@@ -129,17 +136,13 @@ export function createInvocationClient(input: {
         return { frame, timeoutMs, timeoutNote } satisfies InvocationAnswer;
     };
     return {
-        invoke(
-            toolCallId: string,
-            operation: InvocationOperation,
-            options: { requestedTimeoutMs?: number; signal: AbortSignal }
-        ) {
+        invoke(toolCallId: string, operation: InvocationOperation, options: InvokeOptions) {
             return dispatch(toolCallId, operation.kind, async () => operation, options);
         },
         writeFile(
             toolCallId: string,
             file: { bytes: Uint8Array; mode: number; path: string },
-            options: { signal: AbortSignal }
+            options: { computer?: string; signal: AbortSignal }
         ) {
             return dispatch(
                 toolCallId,
@@ -223,9 +226,10 @@ function outcomeLines(
             ];
         case 'cancelled':
             return [...body, 'Cancelled before it finished.'];
-        case 'unknown':
         case 'offline':
-            return [invocationOutcomeNotices[outcome]];
+            return body.length > 0 ? body : [invocationOutcomeNotices.offline];
+        case 'unknown':
+            return [invocationOutcomeNotices.unknown];
         default:
             return outcome satisfies never;
     }
