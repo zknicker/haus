@@ -14,10 +14,6 @@ struct ComposerControlLayout: Layout {
     /// The collapsed pill's floor, the send circle's diameter at the default
     /// size; scaled by the caller too.
     var compactMinimumHeight: CGFloat = 36
-    /// The expanded height while a finger drags the grabber.
-    var expandedHeightFloor: CGFloat = 0
-    /// True at full height: the expanded card takes every point it is offered.
-    var fillsProposedHeight = false
 
     /// Text zone floor when expanded, so a single line sits close to the controls row
     /// instead of leaving the reference's tall dead space beneath it.
@@ -46,20 +42,6 @@ struct ComposerControlLayout: Layout {
         max(0, width - attachmentWidth - sendWidth - compactFieldGap - compactSendGap)
     }
 
-    /// The expanded height: the draft's natural height, raised to a drag floor or, at full height,
-    /// to the offered height — never past what is offered.
-    nonisolated static func expandedHeight(
-        natural: CGFloat,
-        floor: CGFloat,
-        offered: CGFloat?,
-        fills: Bool
-    ) -> CGFloat {
-        let fillTarget = fills ? (offered ?? natural) : natural
-        let wanted = max(natural, floor, fillTarget)
-        guard let offered else { return wanted }
-        return min(wanted, max(natural, offered))
-    }
-
     var animatableData: CGFloat {
         get { expansion }
         set { expansion = newValue }
@@ -71,7 +53,7 @@ struct ComposerControlLayout: Layout {
         cache: inout ()
     ) -> CGSize {
         guard subviews.count == 4 else { return .zero }
-        return metrics(width: proposal.width, height: proposal.height, subviews: subviews).size
+        return metrics(width: proposal.width, subviews: subviews).size
     }
 
     func placeSubviews(
@@ -81,7 +63,7 @@ struct ComposerControlLayout: Layout {
         cache: inout ()
     ) {
         guard subviews.count == 4 else { return }
-        let layout = metrics(width: bounds.width, height: bounds.height, subviews: subviews)
+        let layout = metrics(width: bounds.width, subviews: subviews)
 
         for (subview, frame) in zip(subviews, layout.frames) {
             subview.place(
@@ -92,13 +74,12 @@ struct ComposerControlLayout: Layout {
         }
     }
 
-    private func metrics(width: CGFloat?, height: CGFloat?, subviews: Subviews) -> Metrics {
+    private func metrics(width: CGFloat?, subviews: Subviews) -> Metrics {
         let progress = min(max(expansion, 0), 1)
         let fieldProgress = Self.fieldProgress(for: progress)
         let attachmentSize = subviews[0].sizeThatFits(.unspecified)
         let sendSize = subviews[3].sizeThatFits(.unspecified)
         let proposedWidth = width ?? attachmentSize.width + sendSize.width + 180
-        let offeredHeight = height.flatMap { $0.isFinite ? $0 : nil }
         let compactFieldWidth = Self.compactFieldWidth(
             inWidth: proposedWidth,
             attachmentWidth: attachmentSize.width,
@@ -111,14 +92,8 @@ struct ComposerControlLayout: Layout {
         let compactFieldHeight = min(naturalFieldHeight, compactFieldHeightLimit)
         let controlsHeight = max(attachmentSize.height, sendSize.height)
         let compactHeight = max(compactMinimumHeight, controlsHeight, compactFieldHeight)
-        let naturalExpandedHeight = Self.expandedTopHeight(forFieldHeight: naturalFieldHeight)
+        let expandedHeight = Self.expandedTopHeight(forFieldHeight: naturalFieldHeight)
             + Self.expandedRowSpacing + controlsHeight
-        let expandedHeight = Self.expandedHeight(
-            natural: naturalExpandedHeight,
-            floor: expandedHeightFloor,
-            offered: offeredHeight,
-            fills: fillsProposedHeight
-        )
         let expandedFieldHeight = expandedHeight - Self.expandedRowSpacing - controlsHeight
         let totalHeight = interpolate(compactHeight, expandedHeight, progress: progress)
 

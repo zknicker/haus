@@ -27,9 +27,6 @@ public struct MessageComposerView: View {
     /// True while a surface tap re-issues a focus summons, so the momentary
     /// focus drop never reaches the expansion layout.
     @State private var isReissuingFocus = false
-    /// The live height floor while a finger holds the grabber.
-    @State private var dragFloor: CGFloat?
-    @State private var controlsHeight: CGFloat = 0
 
     public init(
         text: Binding<String>,
@@ -67,7 +64,7 @@ public struct MessageComposerView: View {
             surface: { composerSurface }
         )
             .padding(.horizontal, ComposerSurfaceMetrics.sideMargin)
-            .padding(.top, isFullHeight ? ComposerSurfaceMetrics.fullHeightTopClearance : 4)
+            .padding(.top, 4)
             .padding(.bottom, isExpanded ? 8 : 0)
             // No opaque band: the transcript runs to the bottom of the screen and passes under the
             // glass, which is the only thing that gives it something to be translucent against.
@@ -76,7 +73,6 @@ public struct MessageComposerView: View {
             .sensoryFeedback(.success, trigger: attachmentReadyFeedback)
             .sensoryFeedback(.impact(weight: .light), trigger: sendFeedback)
             .sensoryFeedback(.error, trigger: sendFailureFeedback)
-            .sensoryFeedback(.selection, trigger: interaction.draftHeight)
             // Text focus belongs to the portal freeze, which restores exactly what the portal
             // interrupted; this view only moves VoiceOver's cursor back to the plus button when no
             // keyboard is coming back to claim it.
@@ -89,14 +85,6 @@ public struct MessageComposerView: View {
                     await Task.yield()
                     isAttachmentButtonFocused = !isTextFocused
                 }
-            }
-            // A full-height draft that collapses on its own settles back to the card. A portal
-            // round trip does not count: it hands focus back to the draft it interrupted.
-            .onChange(of: isExpanded) { _, expanded in
-                guard !expanded else { return }
-                dragFloor = nil
-                guard interaction.overlay == nil, !interaction.portalFreeze.isEngaged else { return }
-                interaction.draftHeight = .card
             }
             .onChange(of: interaction.attachmentReadySequence) { _, _ in
                 let addedCount = interaction.lastReadyAttachmentCount
@@ -165,20 +153,12 @@ public struct MessageComposerView: View {
     private var surfaceBody: some View {
         composerContents
             .padding(.horizontal, ComposerSurfaceMetrics.expandedControlInset)
-            .padding(.top, isExpanded ? ComposerGrabber.zoneHeight : ComposerSurfaceMetrics.restingControlInset)
+            .padding(.top, isExpanded
+                ? ComposerSurfaceMetrics.expandedTextTopInset
+                : ComposerSurfaceMetrics.restingControlInset)
             .padding(.bottom, isExpanded
                 ? ComposerSurfaceMetrics.expandedControlInset
                 : ComposerSurfaceMetrics.restingControlInset)
-            .overlay(alignment: .top) {
-                if isExpanded {
-                    ComposerGrabber(
-                        draftHeight: $interaction.draftHeight,
-                        dragFloor: $dragFloor,
-                        currentHeight: controlsHeight
-                    )
-                    .transition(.opacity)
-                }
-            }
             .composerGlassSurface(cornerRadius: surfaceCornerRadius)
     }
 
@@ -209,9 +189,7 @@ public struct MessageComposerView: View {
             ComposerControlLayout(
                 expansion: isExpanded ? 1 : 0,
                 compactFieldHeightLimit: compactFieldHeightLimit,
-                compactMinimumHeight: controlDiameter,
-                expandedHeightFloor: isExpanded ? dragFloor ?? 0 : 0,
-                fillsProposedHeight: isFullHeight && dragFloor == nil
+                compactMinimumHeight: controlDiameter
             ) {
                 ComposerCircleButton(
                     icon: .plus,
@@ -231,7 +209,6 @@ public struct MessageComposerView: View {
                 )
                 .composerSendPresence(canSend)
             }
-            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { controlsHeight = $0 }
         }
     }
 
@@ -244,13 +221,8 @@ public struct MessageComposerView: View {
                     .allowsHitTesting(false)
             }
 
-            ComposerMessageInput(
-                text: $text,
-                options: mentionOptions,
-                label: placeholder,
-                fillsHeight: isExpanded && (isFullHeight || dragFloor != nil)
-            )
-            .focused($isTextFocused)
+            ComposerMessageInput(text: $text, options: mentionOptions, label: placeholder)
+                .focused($isTextFocused)
         }
         .clipped()
     }
@@ -292,8 +264,6 @@ public struct MessageComposerView: View {
         )
     }
 
-    private var isFullHeight: Bool { isExpanded && interaction.draftHeight == .full }
-
     private var surfaceCornerRadius: CGFloat {
         isExpanded
             ? ComposerSurfaceMetrics.expandedCornerRadius
@@ -308,7 +278,6 @@ public struct MessageComposerView: View {
         text = ""
         interaction.attachments = []
         interaction.errorMessage = nil
-        withAnimation(ComposerDraftHeight.settleMotion) { interaction.draftHeight = .card }
         sendFeedback += 1
         Task {
             // True means the message is the viewer's row in the transcript — sent, or kept there

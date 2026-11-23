@@ -10,23 +10,18 @@ struct ComposerMessageInput: View {
     @Binding var text: String
     let options: [MentionOptionPresentation]
     let label: String
-    /// True while the card stands taller than its draft: the field takes the whole text zone, so
-    /// a long draft scrolls inside all of it.
-    var fillsHeight = false
 
     var body: some View {
         #if os(iOS)
         ComposerTextView(
             text: $text,
             options: options,
-            accessibilityLabel: label,
-            fillsHeight: fillsHeight
+            accessibilityLabel: label
         )
         #else
         TextField("", text: $text, axis: .vertical)
             .foregroundStyle(.primary)
             .lineLimit(1...6)
-            .frame(maxHeight: fillsHeight ? .infinity : nil, alignment: .top)
         #endif
     }
 }
@@ -51,7 +46,6 @@ struct ComposerTextView: UIViewRepresentable {
     @Binding var text: String
     let options: [MentionOptionPresentation]
     let accessibilityLabel: String
-    var fillsHeight = false
     /// The field grows with its text up to this many lines, then scrolls.
     var maximumLines = 6
 
@@ -104,11 +98,7 @@ struct ComposerTextView: UIViewRepresentable {
         )
         let lineHeight = context.coordinator.font?.lineHeight ?? fitted.height
         let cap = ceil(lineHeight * CGFloat(maximumLines))
-        let natural = min(ceil(fitted.height), cap)
-        if fillsHeight, let offered = proposal.height, offered.isFinite {
-            return CGSize(width: width, height: max(natural, offered))
-        }
-        return CGSize(width: width, height: natural)
+        return CGSize(width: width, height: min(ceil(fitted.height), cap))
     }
 
     private func apply(to view: ComposerUITextView, coordinator: ComposerTextCoordinator) {

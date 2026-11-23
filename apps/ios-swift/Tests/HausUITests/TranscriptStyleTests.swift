@@ -152,6 +152,6 @@ struct TranscriptStyleTests {
         #expect(behavior(.animate, false, true) == .followNewest)
         #expect(behavior(.ignore, false, true) == .stay)
         #expect(behavior(.snap, false, true) == .snapToNewest)
-        #expect(ScrollNewMessagesToTop.defaultValue)
+        #expect(!ScrollNewMessagesToTop.defaultValue)
     }
 }
