@@ -2859,6 +2859,16 @@
         --border-width-field: 0.5px;
     }
 
+    /*
+     * The web has no shell card, so dark paints a field and the card it sits on
+     * the same `--surface`: an editable field in a settings row vanished into
+     * its row. The desktop's hairline, without its step.
+     */
+    :root:is([data-theme="dark"], .dark):not([data-shell-variant]) {
+        --field-border: color-mix(in oklab, var(--foreground) 7%, transparent);
+        --border-width-field: 0.5px;
+    }
+
     /* band: one rounded card, inset from the canvas, holds sidebar and content. */
     [data-shell-variant="band"] .app-shell .app-shell-body {
         padding-inline: var(--shell-card-gutter);
