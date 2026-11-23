@@ -1,4 +1,4 @@
-import { agentRepoListSchema } from '@haus/api';
+import { type AgentCoAuthors, agentCoAuthorSchema, agentRepoListSchema } from '@haus/api';
 import * as z from 'zod';
 import { type AgentApiRequester, createAgentApiClient } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
@@ -53,7 +53,22 @@ const CHECKOUT_COMMAND: SubCommand = {
     usage: 'haus repo checkout <owner/name> [--ref <ref>]',
 };
 
-export const REPO_SUBCOMMANDS: SubCommand[] = [LIST_COMMAND, CHECKOUT_COMMAND];
+const CO_AUTHOR_COMMAND: SubCommand = {
+    allowExtraPositionals: true,
+    examples: ['haus repo co-author @ada', 'haus repo co-author @ada @grace'],
+    flags: [],
+    name: 'co-author',
+    notes: [
+        'Name each person whose message you are acting on; end every commit with the lines it prints.',
+        'Your commits are authored by the Haus GitHub App bot, so the trailers say who asked.',
+    ],
+    positionals: ['<@handle>...'],
+    run: (args) => runRepoCoAuthor(defaultDeps(), args.positionals),
+    summary: 'Print the Co-authored-by trailers for the people who asked',
+    usage: 'haus repo co-author <@handle> [<@handle>...]',
+};
+
+export const REPO_SUBCOMMANDS: SubCommand[] = [LIST_COMMAND, CHECKOUT_COMMAND, CO_AUTHOR_COMMAND];
 
 /**
  * Reads `haus repo checkout` args the way dispatch would, so the runner, which
@@ -72,6 +87,31 @@ export async function runRepoList(deps: RepoDeps) {
     const response = await deps.client.request('/api/agent/repos', repoListResponseSchema);
     deps.write(renderRepoList(response));
     return 0;
+}
+
+export async function runRepoCoAuthor(deps: RepoDeps, people: readonly string[]) {
+    if (people.length === 0 || people.some((person) => !person.startsWith('@'))) {
+        throw new AgentCliError('INVALID_ARG', 'Name each person as an @handle.', {
+            nextAction:
+                'Run `haus repo co-author @handle` with each person whose message you are acting on.',
+        });
+    }
+    const answer = await deps.client.request('/api/agent/repos/co-authors', agentCoAuthorSchema, {
+        body: { people: people.map((person) => person.slice(1)) },
+        method: 'POST',
+    });
+    deps.write(renderCoAuthors(answer));
+    return answer.coAuthors.length > 0 ? 0 : 1;
+}
+
+export function renderCoAuthors(answer: AgentCoAuthors) {
+    const lines = answer.coAuthors.map(({ trailer }) => trailer);
+    const notes = answer.missing.map(({ handle, reason }) =>
+        reason === 'no-email'
+            ? `# @${handle} has no email on their Haus account, so leave them out.`
+            : `# No one on this Server is @${handle}.`
+    );
+    return `${[...lines, ...notes].join('\n')}\n`;
 }
 
 export function renderRepoList(list: RepoList) {

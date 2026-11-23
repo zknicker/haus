@@ -129,7 +129,7 @@ export async function removeCleanWorktree(input: {
 export async function removeCleanWorktreesOf(
     root: string,
     id: string,
-    options: { credentials: GitCredentials; deleteBranch: boolean }
+    options: { credentials: GitCredentials | 'fetched'; deleteBranch: boolean }
 ) {
     const kept: string[] = [];
     for (const worktree of (await listWorktrees(root)).filter((found) => found.id === id)) {

@@ -1,5 +1,6 @@
 import { basename, dirname } from 'node:path';
 import { agentCheckoutText, checkoutAgentWorktree } from '../repos/agent-worktrees.ts';
+import { githubAppGit } from '../repos/github-git.ts';
 import { WorkerCheckoutError } from '../workers/computer/git.ts';
 import { type OperationRunner, stoppedOutcome, textResult } from './operation.ts';
 
@@ -18,6 +19,10 @@ export function createRepoCheckoutRunner(agentsRoot: string) {
                 ...scope,
                 agentId: context.agentId,
                 folder: operation.folder,
+                git: githubAppGit(scope.dataRoot, scope.serverId, {
+                    access: 'write',
+                    invocationId: context.invocationId,
+                }),
                 ref: operation.ref,
                 repository: operation.repository,
                 signal: context.signal,

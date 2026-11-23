@@ -12,7 +12,7 @@ export async function releasePartitionWorktrees(dataRoot: string, serverId: stri
     const keep = new Set<string>();
     for (const id of await directories(root)) {
         const kept = await removeCleanWorktreesOf(root, id, {
-            credentials: 'machine',
+            credentials: id.startsWith('agt_') ? 'fetched' : 'machine',
             deleteBranch: false,
         });
         for (const path of kept) {

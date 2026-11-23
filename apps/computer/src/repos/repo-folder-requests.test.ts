@@ -3,6 +3,7 @@ import { mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { repoFolderResultSchema } from '@haus/api';
 import { checkoutAgentWorktree } from './agent-worktrees.ts';
+import { githubAppGit } from './github-git.ts';
 import { answerRepoFolderOperation, handleRepoFolderRequest } from './repo-folder-requests.ts';
 import { git, registerRepoFixture } from './repo.fixture.ts';
 
@@ -86,6 +87,10 @@ describe('repo folder requests', () => {
             ...scope,
             agentId: 'agt_alpha',
             folder,
+            git: githubAppGit(scope.dataRoot, scope.serverId, {
+                access: 'write',
+                invocationId: 'inv_t',
+            }),
             ref: null,
             repository: 'acme/app',
         });

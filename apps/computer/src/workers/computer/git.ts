@@ -1,10 +1,15 @@
 import { repoNameSchema } from '@haus/api';
+import {
+    type GithubAppGit,
+    githubGitArgs,
+    githubGitRefusalPrefix,
+} from '../../repos/github-git.ts';
 
 export class WorkerCheckoutError extends Error {
     override readonly name = 'WorkerCheckoutError';
 }
 
-export type GitCredentials = 'machine' | 'none';
+export type GitCredentials = 'machine' | 'none' | GithubAppGit;
 
 interface GitOptions {
     action: string;
@@ -27,7 +32,7 @@ export async function runGit(args: readonly string[], options: GitOptions) {
             return stdout.trim();
         }
         if (!(lockError.test(stderr) && attempt < lockAttempts) || options.signal?.aborted) {
-            throw new WorkerCheckoutError(`Could not ${options.action}: ${lastLine(stderr)}`);
+            throw new WorkerCheckoutError(`Could not ${options.action}: ${failureLine(stderr)}`);
         }
         await Bun.sleep(lockBackoffMs * attempt);
     }
@@ -78,7 +83,8 @@ const githubRemotes = [
 ];
 
 async function spawnGit(args: readonly string[], options: GitOptions) {
-    const agent = options.credentials === 'none';
+    const credentials = options.credentials ?? 'machine';
+    const agent = credentials !== 'machine';
     const {
         GIT_ASKPASS: askpass,
         GIT_SSH: gitSsh,
@@ -99,7 +105,9 @@ async function spawnGit(args: readonly string[], options: GitOptions) {
         ...(agent ? { GIT_SSH_COMMAND: keylessSsh } : machine),
         GIT_TERMINAL_PROMPT: '0',
     };
-    const child = Bun.spawn(['git', ...(agent ? ['-c', 'credential.helper='] : []), ...args], {
+    const config =
+        credentials === 'machine' ? [] : githubGitArgs(credentials === 'none' ? null : credentials);
+    const child = Bun.spawn(['git', ...config, ...args], {
         cwd: options.cwd,
         env,
         killSignal: 'SIGKILL',
@@ -117,7 +125,9 @@ async function spawnGit(args: readonly string[], options: GitOptions) {
     return { code, stderr, stdout };
 }
 
-function lastLine(text: string) {
+function failureLine(text: string) {
     const lines = text.trim().split('\n');
-    return (lines.at(-1) ?? '').slice(0, 300) || 'git failed';
+    const refusal = lines.find((line) => line.startsWith(githubGitRefusalPrefix));
+    const line = refusal?.slice(githubGitRefusalPrefix.length) ?? lines.at(-1) ?? '';
+    return line.slice(0, 300) || 'git failed';
 }

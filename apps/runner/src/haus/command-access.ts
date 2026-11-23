@@ -63,7 +63,7 @@ const commandTable: Readonly<Record<string, Readonly<Record<string, CommandAcces
         unfollow: serverOnly,
     },
     profile: { show: serverOnly, update: serverOnly },
-    repo: { checkout: repoCheckout, list: serverOnly },
+    repo: { checkout: repoCheckout, 'co-author': serverOnly, list: serverOnly },
     reminder: {
         cancel: serverOnly,
         list: serverOnly,

@@ -11,6 +11,7 @@ import {
     pruneIdleAgentWorktrees,
     removeAgentWorktrees,
 } from './agent-worktrees.ts';
+import { githubAppGit } from './github-git.ts';
 import { git, registerRepoFixture } from './repo.fixture.ts';
 import { lastUseMs, worktreeGitDirs } from './worktree-marker.ts';
 
@@ -25,6 +26,10 @@ function setup() {
             agentId,
             dataRoot: fixture.dataRoot,
             folder,
+            git: githubAppGit(fixture.dataRoot, 'srv_1', {
+                access: 'write',
+                invocationId: 'inv_checkout',
+            }),
             ref,
             repository: 'acme/app',
             serverId: 'srv_1',
@@ -57,14 +62,12 @@ describe('haus repo checkout', () => {
         );
     });
 
-    test('a fetch the Captain cannot make refuses, naming the GitHub App, and makes nothing', async () => {
+    test('a fetch the Captain cannot make refuses with the reason and makes nothing', async () => {
         const { checkout, cutOff, folder, path } = setup();
         cutOff(folder);
         const refused = await checkout().catch((error: Error) => error.message);
 
-        expect(refused).toBe(
-            `This Computer could not fetch acme/app into ${folder}. A Captain fetches without the machine's own GitHub login or SSH keys, so a private repo, or an SSH origin, needs the Haus GitHub App's access, which Haus does not give Computers yet. Hand the work to a Worker with \`haus worker start --repo acme/app\` meanwhile, or ask the person who attached this Computer.`
-        );
+        expect(refused).toStartWith(`Could not fetch acme/app into ${folder}: `);
         expect(existsSync(path)).toBe(false);
     });
 
