@@ -2,11 +2,6 @@ import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
 import { repoNameSchema } from './repos.ts';
 
-// Git on a Computer as the Server's Haus GitHub App (ADR 0060 decision 5). A
-// Computer's git credential helper asks the Server for a short-lived
-// installation token scoped to one repo; the token never enters the Agent's
-// environment or a tool result.
-
 export const computerGitCredentialPath = '/computer/github/git-credential';
 export const computerGitIdentityPath = '/computer/github/bot';
 
@@ -77,9 +72,7 @@ export const agentCoAuthorSchema = z
             .max(20),
         missing: z
             .array(
-                z
-                    .object({ handle: z.string(), reason: z.enum(['unknown', 'no-email']) })
-                    .strict()
+                z.object({ handle: z.string(), reason: z.enum(['unknown', 'no-email']) }).strict()
             )
             .max(20),
     })

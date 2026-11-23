@@ -19,13 +19,6 @@ import type { createScopedInstallationTokens } from './installation-tokens.ts';
 type Reader = Pick<HausDatabase, 'select'>;
 type ScopedTokens = ReturnType<typeof createScopedInstallationTokens>;
 
-/**
- * A token for git on a Computer, scoped to one repo, as the Server's Haus
- * GitHub App (ADR 0060 decision 5). `write` serves an open Agent invocation on
- * that Computer and needs the Agent's grant on the GitHub connection; `read`
- * serves the Computer's own cleanup fetch of an Agent's worktree. Both need a
- * folder for the repo on that Computer and the App installed on its owner.
- */
 export async function issueComputerGitCredential(
     db: Reader,
     tokens: ScopedTokens,
@@ -44,7 +37,11 @@ export async function issueComputerGitCredential(
     }
     if (
         request.access === 'write' &&
-        !(await isAgentAllowedOn(db, { agentId, computerId: computer.id, serverId: computer.serverId }))
+        !(await isAgentAllowedOn(db, {
+            agentId,
+            computerId: computer.id,
+            serverId: computer.serverId,
+        }))
     ) {
         return refused('agent_not_allowed', 'This Agent no longer has access to this Computer.');
     }
@@ -65,7 +62,7 @@ export async function issueComputerGitCredential(
     ) {
         return refused(
             'github_connection_not_granted',
-            `This Agent has no access to the GitHub connection, so it cannot push to ${repository} as the Haus GitHub App. Ask an Owner or Admin to give it access in Settings → Connections → GitHub.`
+            `This Agent has no access to the GitHub connection, so it cannot reach ${repository} as the Haus GitHub App. Ask an Owner or Admin to give it access in Settings → Connections → GitHub.`
         );
     }
     try {

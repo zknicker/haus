@@ -1,14 +1,14 @@
 import { repoNameSchema } from '@haus/api';
-import { type GithubAppGit, githubGitArgs, githubGitRefusalPrefix } from '../../repos/github-git.ts';
+import {
+    type GithubAppGit,
+    githubGitArgs,
+    githubGitRefusalPrefix,
+} from '../../repos/github-git.ts';
 
 export class WorkerCheckoutError extends Error {
     override readonly name = 'WorkerCheckoutError';
 }
 
-/**
- * Whose login git may use: the machine's own (Workers), none at all, or only
- * the Haus GitHub App through the Computer's credential helper (Agents).
- */
 export type GitCredentials = 'machine' | 'none' | GithubAppGit;
 
 interface GitOptions {
@@ -105,7 +105,8 @@ async function spawnGit(args: readonly string[], options: GitOptions) {
         ...(agent ? { GIT_SSH_COMMAND: keylessSsh } : machine),
         GIT_TERMINAL_PROMPT: '0',
     };
-    const config = credentials === 'machine' ? [] : githubGitArgs(credentials === 'none' ? null : credentials);
+    const config =
+        credentials === 'machine' ? [] : githubGitArgs(credentials === 'none' ? null : credentials);
     const child = Bun.spawn(['git', ...config, ...args], {
         cwd: options.cwd,
         env,

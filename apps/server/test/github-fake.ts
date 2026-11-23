@@ -107,7 +107,13 @@ function answerMint(fake: FakeState, token: string, id: number, body: RequestIni
     const scope = body ? (JSON.parse(String(body)) as { repositories?: string[] }) : {};
     const allowed = fake.installationRepositories.get(id);
     if (allowed && !(scope.repositories ?? []).every((name) => allowed.includes(name))) {
-        return Response.json({ message: 'There is at least one repository that does not exist or is not accessible to the parent installation.' }, { status: 422 });
+        return Response.json(
+            {
+                message:
+                    'There is at least one repository that does not exist or is not accessible to the parent installation.',
+            },
+            { status: 422 }
+        );
     }
     const minted = `ghs_fake${fake.mints.length + 1}`;
     fake.mints.push({ body: scope, installationId: id, token: minted });

@@ -15,11 +15,6 @@ import { issueComputerGitCredential } from './computer-git-credential.ts';
 import type { GithubApp } from './github-app.ts';
 import { createScopedInstallationTokens } from './installation-tokens.ts';
 
-/**
- * A Computer's git as the Haus GitHub App: the bot's commit identity, and a
- * repo-scoped installation token for its credential helper. Both answer with
- * the Computer's own credential and are never cached by a proxy.
- */
 export function registerComputerGitRoutes(
     app: FastifyInstance,
     options: { db: HausDatabase; githubApp: GithubApp | null }

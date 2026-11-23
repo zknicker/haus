@@ -2,7 +2,6 @@ import * as z from 'zod';
 import { GithubApiError, githubRequest } from './github-api.ts';
 import type { GithubApp } from './github-app.ts';
 
-/** GitHub issues installation tokens for an hour; replace one well before that. */
 const tokenRefreshMarginMs = 5 * 60_000;
 
 const installationTokenSchema = z.object({
@@ -15,15 +14,16 @@ export interface InstallationToken {
     token: string;
 }
 
-/** A narrower token: one repository, and only the permissions named. */
 export interface InstallationTokenScope {
     permissions: Record<string, 'read' | 'write'>;
     repositories: readonly string[];
 }
 
-/** Mints and caches each installation's token, replacing it well before it expires. */
 export function createInstallationTokens(app: GithubApp, now: () => number = Date.now) {
-    const cache = createTokenCache((installationId: number) => mintInstallationToken(app, installationId), now);
+    const cache = createTokenCache(
+        (installationId: number) => mintInstallationToken(app, installationId),
+        now
+    );
     return {
         forget: (installationId: number) => cache.forget(String(installationId)),
         read: async (installationId: number) =>
@@ -31,7 +31,6 @@ export function createInstallationTokens(app: GithubApp, now: () => number = Dat
     };
 }
 
-/** Mints and caches scoped tokens, one per installation, repository and permission set. */
 export function createScopedInstallationTokens(app: GithubApp, now: () => number = Date.now) {
     const cache = createTokenCache(
         (input: { installationId: number; scope: InstallationTokenScope }) =>
@@ -90,7 +89,7 @@ function createTokenCache<Input>(
         forget(key: string) {
             cached.delete(key);
         },
-        read(key: string, input: Input): Promise<InstallationToken> {
+        read(key: string, input: Input) {
             const held = cached.get(key);
             if (held && held.expiresAt - tokenRefreshMarginMs > now()) {
                 return Promise.resolve(held);

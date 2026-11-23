@@ -6,11 +6,6 @@ const unknownForMs = 5 * 60_000;
 
 const known = new Map<string, { identity: GitIdentity | null; until: number }>();
 
-/**
- * The Haus GitHub App bot that Agent commits are authored as, read from the
- * attachment's Server and kept an hour. A Server with no App, or one that does
- * not answer, leaves Agent commits without it, and is asked again later.
- */
 export async function readGithubBotIdentity(serverRoot: string, now = Date.now()) {
     const held = known.get(serverRoot);
     if (held && held.until > now) {
@@ -34,6 +29,7 @@ async function fetchIdentity(serverRoot: string) {
     const response = await fetch(new URL(computerGitIdentityPath, attachment.serverOrigin), {
         headers: { authorization: `Bearer ${attachment.credential}` },
         redirect: 'error',
+        signal: AbortSignal.timeout(10_000),
     });
     if (response.status === 503) {
         return null;

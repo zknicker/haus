@@ -4,7 +4,6 @@ import { utimes, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { agentWorktreeIdleMs } from '@haus/api';
 import { withAgentUse } from './agent-use.ts';
-import { githubAppGit } from './github-git.ts';
 import {
     agentCheckoutText,
     agentWorktreeOf,
@@ -12,6 +11,7 @@ import {
     pruneIdleAgentWorktrees,
     removeAgentWorktrees,
 } from './agent-worktrees.ts';
+import { githubAppGit } from './github-git.ts';
 import { git, registerRepoFixture } from './repo.fixture.ts';
 import { lastUseMs, worktreeGitDirs } from './worktree-marker.ts';
 

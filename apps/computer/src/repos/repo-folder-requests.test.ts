@@ -87,7 +87,10 @@ describe('repo folder requests', () => {
             ...scope,
             agentId: 'agt_alpha',
             folder,
-            git: githubAppGit(scope.dataRoot, scope.serverId, { access: 'write', invocationId: 'inv_t' }),
+            git: githubAppGit(scope.dataRoot, scope.serverId, {
+                access: 'write',
+                invocationId: 'inv_t',
+            }),
             ref: null,
             repository: 'acme/app',
         });

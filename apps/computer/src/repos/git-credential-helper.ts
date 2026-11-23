@@ -16,13 +16,6 @@ interface HelperIo {
     writeOut(text: string): void;
 }
 
-/**
- * `haus-computer __git-credential <server-root> <subject> <operation>`, the
- * git credential helper for Agent git. For `get` on a GitHub HTTPS repo it asks
- * the Server for an installation token scoped to that repo and hands it to git
- * on stdout, where only git reads it. A refusal goes to stderr, and `quit`
- * stops git from trying anything else.
- */
 export async function runGitCredentialHelper(args: readonly string[], io: HelperIo) {
     const [serverRoot, subject, operation] = args;
     if (!(serverRoot && subject) || operation !== 'get') {
@@ -37,19 +30,19 @@ export async function runGitCredentialHelper(args: readonly string[], io: Helper
         return refuse(io, 'This Computer is not attached to that Server any more.');
     }
     const response = await fetch(new URL(computerGitCredentialPath, attachment.serverOrigin), {
-            body: JSON.stringify(
-                subject.startsWith('inv_')
-                    ? { access: 'write', invocationId: subject, repository }
-                    : { access: 'read', agentId: subject, repository }
-            ),
-            headers: {
-                authorization: `Bearer ${attachment.credential}`,
-                'content-type': 'application/json',
-            },
-            method: 'POST',
-            redirect: 'error',
-        })
-        .catch(() => null);
+        body: JSON.stringify(
+            subject.startsWith('inv_')
+                ? { access: 'write', invocationId: subject, repository }
+                : { access: 'read', agentId: subject, repository }
+        ),
+        headers: {
+            authorization: `Bearer ${attachment.credential}`,
+            'content-type': 'application/json',
+        },
+        method: 'POST',
+        redirect: 'error',
+        signal: AbortSignal.timeout(30_000),
+    }).catch(() => null);
     if (response === null) {
         return refuse(io, 'This Computer could not reach the Haus Server for a GitHub token.');
     }

@@ -28,7 +28,6 @@ export interface AgentCheckout {
     agentId: string;
     dataRoot: string;
     folder: string;
-    /** The Haus GitHub App through the helper, for the command that asked. */
     git: GithubAppGit;
     ref: string | null;
     repository: string;
@@ -149,7 +148,6 @@ export async function touchAgentWorktreeAt(path: string, root: string) {
     }
 }
 
-/** Cleanup fetches an Agent's worktree as the Haus GitHub App, never the machine's login. */
 function cleanupGit(scope: { dataRoot: string; serverId: string }, agentId: string) {
     const credentials: GitCredentials = githubAppGit(scope.dataRoot, scope.serverId, {
         access: 'read',

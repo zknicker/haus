@@ -7,7 +7,10 @@ import { computerGitCredentialPath } from '@haus/api';
 import { agentGitEnvironment, githubAppGit } from './github-git.ts';
 
 const serverId = 'srv_gitgitgitgitgitgi';
-const identity = { email: '41898282+haus-test[bot]@users.noreply.github.com', name: 'haus-test[bot]' };
+const identity = {
+    email: '41898282+haus-test[bot]@users.noreply.github.com',
+    name: 'haus-test[bot]',
+};
 const asked: unknown[] = [];
 let root: string;
 let server: ReturnType<typeof Bun.serve>;
@@ -71,7 +74,10 @@ afterAll(async () => {
 });
 
 test("an Agent command's git gets a token scoped to the repo from the Server, never a person's", async () => {
-    const filled = await git(['credential', 'fill'], 'protocol=https\nhost=github.com\npath=Acme/App.git\n\n');
+    const filled = await git(
+        ['credential', 'fill'],
+        'protocol=https\nhost=github.com\npath=Acme/App.git\n\n'
+    );
 
     expect(filled.exitCode).toBe(0);
     expect(filled.stdout).toContain('username=x-access-token\npassword=ghs_scoped\n');
@@ -84,15 +90,18 @@ test("an Agent command's git gets a token scoped to the repo from the Server, ne
         .trim()
         .split('\n');
     expect(helpers.slice(-2)).toEqual(['', environment.GIT_CONFIG_VALUE_1 ?? '']);
-}, 30_000);
+});
 
 test('a refusal stops git with the reason, and asks nothing else', async () => {
-    const filled = await git(['credential', 'fill'], 'protocol=https\nhost=github.com\npath=acme/secret.git\n\n');
+    const filled = await git(
+        ['credential', 'fill'],
+        'protocol=https\nhost=github.com\npath=acme/secret.git\n\n'
+    );
 
     expect(filled.exitCode).not.toBe(0);
     expect(filled.stderr).toContain('haus: The Haus GitHub App needs access to acme/secret.');
     expect(filled.stdout).not.toContain('password=');
-}, 30_000);
+});
 
 test('GitHub SSH remotes go over HTTPS, and commits are the bot', async () => {
     const remote = await git(['ls-remote', '--get-url', 'git@github.com:acme/app.git']);

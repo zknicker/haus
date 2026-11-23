@@ -4,11 +4,6 @@ import { reminderScriptEnvironment } from '../reminder-script.ts';
 import { readGithubBotIdentity } from '../repos/github-bot-identity.ts';
 import { agentGitEnvironment, githubAppGit } from '../repos/github-git.ts';
 
-/**
- * Where an Agent command runs and its environment. Its git reaches GitHub only
- * as the Haus GitHub App, through the Computer's credential helper for this
- * command, and commits as the App's bot.
- */
 export async function invocationEnvironment(
     agentsRoot: string,
     command: { agentId: string; invocationId: string },
