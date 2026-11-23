@@ -11,8 +11,6 @@ struct MessageTimelineRow: View {
     let isContinuation: Bool
     /// Whether the inline-reply reference leads this row (`TranscriptRowGrouping`).
     var showsReplyReference = true
-    /// Copy sits once under a Captain's reply, not under each of its rows.
-    var showsCopy = true
     let isHighlighted: Bool
     /// Held under a finger, or the target of the open action drawer.
     var isPressed = false
