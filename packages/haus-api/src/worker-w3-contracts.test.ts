@@ -56,10 +56,11 @@ test('a start names one repo, lower-cased, and its place, runtime, and model are
     expect(agentWorkerStartInputSchema.parse(full)).toEqual(full);
 });
 
-test('places list each Computer with its switch, runtimes, repo folders, and slots', () => {
+test('places list each Computer with its access, switch, runtimes, repo folders, and slots', () => {
     const response: WorkerPlacesResponse = {
         places: [
             {
+                allowed: true,
                 computerId: 'cmp_abcdefghijklmnop',
                 freeSlots: 3,
                 kind: 'computer',

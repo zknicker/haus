@@ -6,7 +6,6 @@ import {
     agentInvocationsTable,
     agentsTable,
     computersTable,
-    computerUseAgentsTable,
     serverMembershipsTable,
     serversTable,
 } from '../postgres/schema.ts';
@@ -24,9 +23,6 @@ export interface DesktopRefusalSubject {
 export function desktopGateCause(device: DesktopDevice, online: boolean) {
     if (!device.enabled) {
         return 'off' as const;
-    }
-    if (!(device.scope === 'all' ? device.home : device.listed)) {
-        return 'not-listed' as const;
     }
     if (device.operatingSystem !== null && device.operatingSystem.toLowerCase() !== 'darwin') {
         return 'not-mac' as const;
@@ -49,11 +45,8 @@ export async function readDesktopDevice(
             attacherHandle: serverMembershipsTable.handle,
             changedAt: computersTable.computerUseChangedAt,
             enabled: computersTable.computerUseEnabled,
-            homeComputerId: agentsTable.computerId,
             inventory: computersTable.reportedInventory,
-            listedAgentId: computerUseAgentsTable.agentId,
             operatingSystem: computersTable.operatingSystem,
-            scope: computersTable.computerUseScope,
             slug: serversTable.slug,
         })
         .from(computersTable)
@@ -72,13 +65,6 @@ export async function readDesktopDevice(
                 eq(serverMembershipsTable.userId, computersTable.attachedByUserId)
             )
         )
-        .leftJoin(
-            computerUseAgentsTable,
-            and(
-                eq(computerUseAgentsTable.computerId, computersTable.id),
-                eq(computerUseAgentsTable.agentId, input.agentId)
-            )
-        )
         .where(
             and(
                 eq(computersTable.serverId, input.serverId),
@@ -94,12 +80,9 @@ export async function readDesktopDevice(
         attacherHandle: row.attacherHandle,
         changedAt: row.changedAt,
         enabled: row.enabled,
-        home: row.homeComputerId === input.computerId,
-        listed: row.listedAgentId !== null,
         name: computerLabel({ id: input.computerId, name: row.inventory?.name }),
         operatingSystem: row.operatingSystem,
         readiness: row.inventory?.computerUse,
-        scope: row.scope,
         slug: row.slug,
     };
 }

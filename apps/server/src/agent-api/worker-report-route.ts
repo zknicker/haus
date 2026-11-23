@@ -23,7 +23,7 @@ export function registerWorkerReportRoute(app: FastifyInstance, options: { db: H
         }
         if (!scope.live) {
             return (await isSettled(db, scope))
-                ? sendWorkerFailure(reply, new WorkerTurnSettledError())
+                ? sendWorkerFailure(reply, new WorkerTurnSettledError(), null)
                 : sendAgentApiError(
                       reply,
                       401,
@@ -43,7 +43,7 @@ export function registerWorkerReportRoute(app: FastifyInstance, options: { db: H
         try {
             return await recordWorkerReport(db, scope, parsed.data);
         } catch (cause) {
-            return sendWorkerFailure(reply, cause);
+            return sendWorkerFailure(reply, cause, null);
         }
     });
 }

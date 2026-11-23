@@ -30,17 +30,14 @@ export function desktopRefusalText(facts: DesktopRefusalFacts) {
 function reasonText(facts: DesktopRefusalFacts) {
     const { device, link } = facts;
     const page = `Settings → Devices → ${device} (${link})`;
-    const steward = facts.attacherHandle
-        ? `@${facts.attacherHandle}, or an Owner or Admin,`
-        : `The person who attached ${device}, or an Owner or Admin,`;
     const person = facts.attacherHandle
         ? `@${facts.attacherHandle}`
         : `the person who attached ${device}`;
     switch (facts.cause) {
         case 'off':
-            return `Computer use is off on ${device}${facts.changedAt ? ` (since ${dateText(facts.changedAt)})` : ' and has never been turned on'}. ${steward} can turn it on in ${page}.`;
+            return `Computer use is off on ${device}${facts.changedAt ? ` (since ${dateText(facts.changedAt)})` : ' and has never been turned on'}. Only ${person} can turn it on, in ${page}.`;
         case 'not-listed':
-            return `Computer use on ${device} isn't allowed for ${facts.agentName}. ${steward} can add ${facts.agentName} in ${page}.`;
+            return `Computer use on ${device} isn't allowed for ${facts.agentName}. Only ${person} can turn it on, in ${page}.`;
         case 'not-mac':
             return `Computer use runs on macOS Devices, and ${device} isn't a Mac.`;
         case 'offline':

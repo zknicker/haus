@@ -57,5 +57,8 @@ export function computerSettingsLink(
     appOrigin: string,
     computer: Pick<ComputerFacts, 'id' | 'slug'>
 ) {
-    return new URL(`/s/${computer.slug}/settings/computers/${computer.id}`, appOrigin).toString();
+    return new URL(
+        `/s/${computer.slug}/settings/computers/${computer.id}#access`,
+        appOrigin
+    ).toString();
 }

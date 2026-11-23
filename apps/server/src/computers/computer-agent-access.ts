@@ -1,11 +1,8 @@
 import type { ComputerAgentAccessGrant, ComputerAgentAccessInput } from '@haus/api';
 import { and, asc, eq, inArray } from 'drizzle-orm';
+import { isAgentAllowedOn } from '../computer-access/agent-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    agentsTable,
-    computerAgentAccessTable,
-    computerUseAgentsTable,
-} from '../postgres/schema.ts';
+import { agentsTable, computerAgentAccessTable } from '../postgres/schema.ts';
 import type { HausUser } from '../users/haus-user.ts';
 import { requireComputerAttacher, requireComputerSteward } from './computer-steward.ts';
 
@@ -33,7 +30,7 @@ export async function grantComputerAgentAccess(
         }
         if (agent.computerId === computer.id) {
             throw new ComputerAgentAccessInvalidError(
-                'That Captain lives on this Device, so it already has access.'
+                'This Device is that Captain’s Machine, so it already has access.'
             );
         }
         await tx
@@ -66,19 +63,10 @@ export async function revokeComputerAgentAccess(
                 )
             )
             .returning({ agentId: computerAgentAccessTable.agentId });
-        if (deleted.length === 0) {
-            return { computerId: computer.id, revoked: false };
-        }
-        await tx
-            .delete(computerUseAgentsTable)
-            .where(
-                and(
-                    eq(computerUseAgentsTable.serverId, input.serverId),
-                    eq(computerUseAgentsTable.computerId, computer.id),
-                    eq(computerUseAgentsTable.agentId, input.agentId)
-                )
-            );
-        return { computerId: computer.id, revoked: true };
+        const barred =
+            deleted.length > 0 &&
+            !(await isAgentAllowedOn(tx, { ...input, computerId: computer.id }));
+        return { barred, computerId: computer.id };
     });
 }
 

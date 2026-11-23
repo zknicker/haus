@@ -1072,6 +1072,13 @@
       "when": 1795403124146,
       "tag": "0153_computer-agent-access",
       "breakpoints": true
+    },
+    {
+      "idx": 153,
+      "version": "7",
+      "when": 1795471264987,
+      "tag": "0154_captain-access",
+      "breakpoints": true
     }
   ]
 }

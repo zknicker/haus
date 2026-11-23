@@ -9,7 +9,8 @@ import * as z from 'zod';
  * - `WORKER_TASK_CLOSED`: the Task is done or canceled.
  * - `WORKER_PLACE_REQUIRED`: no `--on` and no usable default; the message lists the usable places.
  * - `WORKER_PLACE_UNAVAILABLE`: the place is not usable now, such as an offline Computer or no ready carrier.
- * - `WORKER_PLACE_OFF`: the Computer's **Workers can run here** switch is off.
+ * - `WORKER_PLACE_OFF`: the Computer's **Run Workers here** setting is Off.
+ * - `WORKER_PLACE_NO_ACCESS`: the Computer's Agent access does not allow this Agent; the message links its Device page.
  * - `WORKER_PLACE_AMBIGUOUS`: two Computers share that name; the message lists their `computer:<id>` forms.
  * - `WORKER_RUNTIME_UNAVAILABLE`: the requested runtime, or every runtime, is not ready there.
  * - `WORKER_MODEL_UNAVAILABLE`: the runtime there cannot run that model, or reports none; the message lists the models it can.
@@ -28,6 +29,7 @@ export const workerRefusalCodes = [
     'WORKER_PLACE_REQUIRED',
     'WORKER_PLACE_UNAVAILABLE',
     'WORKER_PLACE_OFF',
+    'WORKER_PLACE_NO_ACCESS',
     'WORKER_PLACE_AMBIGUOUS',
     'WORKER_RUNTIME_UNAVAILABLE',
     'WORKER_MODEL_UNAVAILABLE',

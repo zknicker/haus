@@ -1,10 +1,13 @@
 import type { AgentWorkerStartInput, WorkerPlace, WorkerRuntime } from '@haus/api';
+import { isAgentAllowedOn } from '../computer-access/agent-access.ts';
+import { readComputerFacts } from '../computer-access/computer-facts.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { computerPlaceLabel, readComputerPlace, readyRuntimeOf } from './computer-places.ts';
 import { WorkerOptionCloudError, WorkerPlaceRequiredError } from './errors.ts';
 import {
     WorkerComputerUnavailableError,
+    WorkerPlaceNoAccessError,
     WorkerPlaceOffError,
     WorkerPlaceUnknownError,
     WorkerProjectDefaultUnusableError,
@@ -54,6 +57,7 @@ export async function resolveWorkerStart(
         throw new WorkerPlaceUnknownError(`computer:${place.computerId}`);
     }
     const label = computerPlaceLabel(computer);
+    await requireAgentAccess(tx, { ...runner, computerId: computer.computerId });
     if (!computer.workersEnabled) {
         throw new WorkerPlaceOffError(label);
     }
@@ -78,6 +82,20 @@ export async function resolveWorkerStart(
         repository: input.repository,
         runtime,
     } satisfies WorkerStartPlan;
+}
+
+async function requireAgentAccess(
+    tx: HausDatabase,
+    input: { agentId: string; computerId: string; serverId: string }
+) {
+    if (await isAgentAllowedOn(tx, input)) {
+        return;
+    }
+    const facts = await readComputerFacts(tx, input);
+    if (!facts) {
+        throw new WorkerPlaceUnknownError(`computer:${input.computerId}`);
+    }
+    throw new WorkerPlaceNoAccessError(facts);
 }
 
 async function readProjectPlace(tx: HausDatabase, serverId: string, projectId: string) {

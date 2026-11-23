@@ -25,11 +25,6 @@ test('haus computer list shows every Computer with home, access, computer use an
         enabled: true,
         serverId: board.setup.serverId,
     });
-    await board.attacher.trpc.computer.setComputerUseAgents.mutate({
-        agents: { agentIds: [board.setup.agentId], kind: 'named' },
-        computerId: board.laptopId,
-        serverId: board.setup.serverId,
-    });
 
     const listed = agentComputerListResponseSchema.parse(await listComputers(board.setup.agentId));
 
@@ -59,6 +54,15 @@ test('haus computer list shows every Computer with home, access, computer use an
         { allowed: false, computerId: board.laptopId, computerUse: false, home: false },
         { allowed: true, computerId: board.setup.computerId, home: true },
     ]);
+
+    await board.attacher.trpc.computer.setAgentAccessScope.mutate({
+        computerId: board.laptopId,
+        scope: 'all',
+        serverId: board.setup.serverId,
+    });
+    expect(
+        agentComputerListResponseSchema.parse(await listComputers(board.peerAgentId)).computers[0]
+    ).toMatchObject({ allowed: true, computerId: board.laptopId, computerUse: true, home: false });
 });
 
 test('retiring an Agent fences it, then sends agent-retire, to an online Computer that is not its home', async () => {

@@ -26,7 +26,7 @@ let noAccess: string;
 beforeAll(async () => {
     setup = await startInvocationHarness({ slug: 'invocation-fence' });
     laptopCredential = await attachComputer(setup, { id: laptopId, name: 'Laptop' });
-    const link = `${harnessAppOrigin}/s/invocation-fence/settings/computers/${laptopId}`;
+    const link = `${harnessAppOrigin}/s/invocation-fence/settings/computers/${laptopId}#access`;
     noAccess = `You don't have access to Laptop. Only @ada can give you access, in Settings → Devices → Laptop (${link}). Run \`haus computer list\` to see the Computers you can use.`;
     runner = connectRunner(setup.harness, testRunnerToken);
     await runner.next(frameOfType('runner-hello-accepted'));

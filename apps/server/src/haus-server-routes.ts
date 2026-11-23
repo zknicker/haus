@@ -102,6 +102,7 @@ export async function registerHausServerRoutes(
     registerComputerGitRoutes(app, { db, githubApp: dependencies.githubApp });
     registerAgentApiRoutes(app, {
         agentDelivery: dependencies.agentDelivery,
+        appOrigin: dependencies.appOrigin,
         avatarImageService: dependencies.avatarImageService,
         attachmentRoot: dependencies.attachmentRoot,
         computers: dependencies.computerConnections,

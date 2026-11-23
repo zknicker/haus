@@ -12,7 +12,7 @@ export const revokeAgentAccessProcedure = memberProcedure
     .mutation(async ({ ctx, input }) => {
         try {
             const revoked = await revokeComputerAgentAccess(ctx.hausDb, ctx.member, input);
-            if (revoked.revoked) {
+            if (revoked.barred) {
                 ctx.invocations.fenceAgent({
                     agentId: input.agentId,
                     computerId: revoked.computerId,

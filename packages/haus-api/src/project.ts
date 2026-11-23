@@ -89,7 +89,7 @@ export const projectListSchema = z.array(projectSchema);
  * - `PROJECT_HAS_AGENTS`: archiving or deleting a Project that is still some
  *   Agent's home; move them first.
  * - `PROJECT_NAME_FIXED`: renaming `#all`, whose name is always `all`.
- * - `WORKER_PLACE_OFF`: a Computer default place whose "Workers can run here" switch is off.
+ * - `WORKER_PLACE_OFF`: a Computer default place whose "Run Workers here" setting is Off.
  */
 export const projectErrorCodeSchema = z.enum([
     'PROJECT_HAS_AGENTS',

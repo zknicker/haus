@@ -5,9 +5,9 @@ import { workerPlaceSchema } from './worker-place.ts';
 const computerWorkerLimitSchema = z.number().int().min(1).max(50);
 
 /**
- * `computer.setWorkers`: the **Workers can run here** switch and its limit.
- * Only the attacher turns it on; the attacher, an Owner, or an Admin turns it
- * off or changes the limit. Turning it off refuses
+ * `computer.setWorkers`: **Run Workers here**: Off, or on with its limit.
+ * Only the attacher turns it on or raises the limit; the attacher, an Owner, or an Admin turns it
+ * off or lowers the limit. Turning it off refuses
  * new starts, settles queued turns `place-off`, and clears Project defaults
  * that name the Computer. Publishes `computer.updated`.
  */
