@@ -488,6 +488,11 @@ through a tool result waits on the SDK carrying one, so Claude models get page i
 
 ### `haus` runs on the runner
 
+> **Amended 2026-11-22 by
+> [ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
+> decision 5:** a `haus` flag that names a machine path reads or writes it on the Computer the
+> enclosing `bash` or `shell` call targeted, not always on the home.
+
 The `haus` CLI is the Agent's way to act in Haus, and it never needs the machine. When a `bash`
 or `shell` command is exactly one `haus` invocation, the runner runs it itself against the Server
 with the run credential, and nothing reaches the machine. That covers every message send, so an
@@ -747,6 +752,13 @@ per path.
 same maximum again, so a bad frame cannot hold a command past it.
 
 ### Lifecycle
+
+> **Amended 2026-11-22 by
+> [ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
+> decision 4:** the request may carry a frame-level `computer`, the id or name the tool call
+> gave. Route resolves it on the Server, records the resolved id, and sends the call there instead
+> of the home after the target and access checks, which fail closed and run before the row is
+> recorded. A refusal keeps its text when it is answered again.
 
 1. **Request.** The runner records the dispatch as accepted in its ledger, then sends
    `invocation-request` with `runId`, `toolCallId`, `seq`, and the operation. The Server keys it

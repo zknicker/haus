@@ -55,6 +55,13 @@ Computer runs look and act commands and answers `failed` for a refused one.
 
 ## The Device settings
 
+> **Amended 2026-11-22 by
+> [ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
+> decision 4:** a separate Agent access list decides which Agents may run any tool on the Device.
+> The Captains list keeps its rows, and `all` still means the Device's home Agents. A named entry
+> may also be an Agent that access list allows, so a borrowed Agent reaches the desktop only when
+> it is named. Revoking an Agent's access deletes its named entry here.
+
 The Server holds two settings on the Computer record.
 
 | Setting | Default | Meaning |
@@ -81,6 +88,14 @@ The Server holds two settings on the Computer record.
   per-chat ask would make the Agent wait for a person. There is no Projects scope; name Captains.
 
 ## The gate
+
+> **Amended 2026-11-22 by
+> [ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
+> decision 4:** before these causes, every invocation kind is refused `not-found` when its target
+> is no Computer on the Agent's Server and `no-access` when the Agent is not on that Computer's
+> access list, on request and on every resend. The gate runs before the router records the row,
+> so a refusal is never first written `offline`. A Device the gate cannot find refuses instead of
+> passing.
 
 The invocation router checks every `desktop` invocation after it records the ledger row and
 before it sends `invoke`, and again whenever it resends an unaccepted `desktop` invoke on a

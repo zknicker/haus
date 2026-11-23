@@ -49,6 +49,11 @@ Workers and their places are [ADR 0056](../docs/adr/0056-agents-run-quiet-worker
 
 ## Creating a Project
 
+> **Superseded in part 2026-11-22 by
+> [ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md):**
+> "New project" asks for a name and a purpose, the Server allocates the key, and there is no repo
+> step.
+
 - Only people create Projects. "New project" asks for a name and a key, suggests the key from the
   name with `suggestProjectKey` (`packages/haus-api/src/project-key.ts`), and creates the channel, its `projects` row, and the key's ledger entry in one
   transaction. The key is optional on `project.create`: without one the Server allocates it by
@@ -58,6 +63,10 @@ Workers and their places are [ADR 0056](../docs/adr/0056-agents-run-quiet-worker
 - A new Project has no Agents. A person adds them in its settings.
 
 ## Settings
+
+> **Superseded in part 2026-11-22 by
+> [ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md):** the
+> Repos row goes. Repos belong to the Server, and each Computer lists its own repo folders.
 
 Settings sit behind the channel header menu. There is no Overview pane.
 
@@ -121,6 +130,12 @@ starts with a digit is prefixed with `P` before step 2.
   and Tasks, so the history it never heard is not unread.
 
 ### Repos
+
+> **Superseded 2026-11-22 by
+> [ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md):**
+> `project_repos` and `project_repo_links` retire. A repo belongs to the Server, any Agent or
+> Worker in any Project may use it, and each Computer's attacher adds that Computer's repo
+> folders. This section describes the shipped W3 contract until the rewrite.
 
 - A repo is a `project_repos` row: the Project and a repository (`owner/name`), unique per
   Project. A link is a `project_repo_links` row: the repo, a Computer, and an optional local
@@ -187,6 +202,10 @@ Agent of its own, and every Agent is refused `TASK_PROJECT_NOT_HOME` outside its
   report the Project's key and home Agents.
 
 ## Archiving and deleting
+
+> **Superseded in part 2026-11-22 by
+> [ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md):**
+> deleting a Project deletes no repos, because repos belong to the Server.
 
 - A Project with home Agents cannot be archived or deleted. The Server refuses with
   `PROJECT_HAS_AGENTS` and names them. A person moves them first. Retired Agents do not count;
