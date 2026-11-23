@@ -153,7 +153,7 @@ export function AgentCreationForm({
                     <InventorySelect
                         description={
                             reported.length === 0
-                                ? 'Connect a device before you can create this Captain.'
+                                ? 'Connect a device in Settings → Devices to create a Captain.'
                                 : undefined
                         }
                         disabled={reported.length === 0}

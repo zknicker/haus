@@ -14,12 +14,14 @@ import { createInvocationPayloads } from './payloads.ts';
 
 interface AttachmentInvocations {
     connected: () => void;
+    disconnected: () => void;
     fence: (agentId: string) => Promise<void>;
     receive: (frame: unknown) => boolean;
 }
 
 type Arrival =
     | { kind: 'connected' }
+    | { kind: 'disconnected' }
     | { agentId: string; fenced: () => void; kind: 'fence' }
     | { frame: unknown; kind: 'frame' };
 
@@ -52,6 +54,10 @@ export function attachmentInvocations(
             void ready.fence(arrival.agentId).then(arrival.fenced);
             return;
         }
+        if (arrival.kind === 'disconnected') {
+            ready.disconnected();
+            return;
+        }
         void ready.connected().catch(logFailure);
     };
     const created: AttachmentInvocations = {
@@ -66,6 +72,13 @@ export function attachmentInvocations(
                 return;
             }
             arrivals.push({ kind: 'connected' });
+        },
+        disconnected: () => {
+            if (handler) {
+                deliver(handler, { kind: 'disconnected' });
+                return;
+            }
+            arrivals.push({ kind: 'disconnected' });
         },
         fence: (agentId) => {
             if (handler) {

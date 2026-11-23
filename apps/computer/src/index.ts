@@ -879,6 +879,7 @@ async function connect(
     let opened = false;
     return await new Promise<AttachmentConnectionOutcome>((resolve) => {
         socket.addEventListener('close', () => {
+            invocations.disconnected();
             detachSender();
             heartbeat?.dispose();
             void Promise.allSettled([

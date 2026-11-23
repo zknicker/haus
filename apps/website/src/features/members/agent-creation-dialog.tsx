@@ -1,4 +1,4 @@
-import type { Agent, ComputerInventory } from '@haus/api';
+import type { Agent } from '@haus/api';
 import { Alert, Modal, Spinner } from '@heroui/react';
 import type * as React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -8,13 +8,9 @@ import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { useModelConnections } from '../../hooks/servers/use-model-connections.ts';
 import { openSettingsTab } from '../../hooks/shell/use-settings-opener.ts';
-import { computerLabel } from '../computers/presentation.ts';
 import { serverComputersRoute } from '../servers/server-routes.ts';
-import {
-    AgentCreationForm,
-    type AgentCreationSubmitValues,
-    type ReportedComputer,
-} from './agent-creation-form.tsx';
+import { creatableComputers } from './agent-creation-defaults.ts';
+import { AgentCreationForm, type AgentCreationSubmitValues } from './agent-creation-form.tsx';
 
 interface AgentCreationDialogProps {
     error: { message: string } | null;
@@ -52,16 +48,7 @@ export function AgentCreationDialog({
               }
           }
         : undefined;
-    const reported: ReportedComputer[] = (computers.data ?? [])
-        .map((computer) => ({
-            id: computer.id,
-            inventory: {
-                ...(computer.reportedInventory ?? {}),
-                runtimes: runnerModels,
-            } as ComputerInventory,
-            label: computerLabel(computer),
-        }))
-        .filter((computer) => computer.inventory.runtimes.length > 0);
+    const reported = creatableComputers(computers.data ?? [], runnerModels);
 
     return (
         <Modal.Backdrop isDismissable isOpen={open} onOpenChange={onOpenChange}>

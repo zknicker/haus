@@ -7,7 +7,7 @@ test('New Captain with no device leads to Settings → Devices', async ({ page }
     await page.getByRole('button', { name: 'New Captain' }).click();
     const createDialog = page.getByRole('dialog', { name: 'Create Captain' });
     await expect(
-        createDialog.getByText('Connect a device before you can create this Captain.')
+        createDialog.getByText('Connect a device in Settings → Devices to create a Captain.')
     ).toBeVisible();
     await createDialog.getByRole('button', { name: 'Add a device' }).click();
 

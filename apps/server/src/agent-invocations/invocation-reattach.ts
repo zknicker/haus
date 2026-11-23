@@ -43,7 +43,7 @@ export function reattachInvocations(input: ReattachInput) {
         return fenced.length;
     }
 
-    async function reattach(computerId: string) {
+    async function fenceHeld(computerId: string) {
         const held = uniqueAgents([
             ...(await readHeldAgents(db, computerId)),
             ...agentsOpenOn(open, computerId),
@@ -53,6 +53,9 @@ export function reattachInvocations(input: ReattachInput) {
                 fence({ ...agent, computerId });
             }
         }
+    }
+
+    async function reattach(computerId: string) {
         for (const [invocationId, invocation] of [...open]) {
             if (invocation.computerId !== computerId) {
                 continue;
@@ -98,5 +101,5 @@ export function reattachInvocations(input: ReattachInput) {
         }
     }
 
-    return { fence, reattach };
+    return { fence, fenceHeld, reattach };
 }

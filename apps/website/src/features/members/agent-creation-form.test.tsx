@@ -115,6 +115,6 @@ test('with no device, New Captain offers a way to add one', () => {
         />
     );
 
-    expect(markup).toContain('Connect a device before you can create this Captain.');
+    expect(markup).toContain('Connect a device in Settings → Devices to create a Captain.');
     expect(markup).toContain('Add a device');
 });

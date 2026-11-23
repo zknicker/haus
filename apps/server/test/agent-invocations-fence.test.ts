@@ -66,7 +66,9 @@ test('a resend after reconnect checks access again and fences instead of sending
     `;
 
     laptop = await connectComputer(setup.harness, laptopCredential);
-    await laptop.next(frameOfType('agent-fence', { agentId: setup.agentId }));
+    const order = laptop.frames.map((frame) => frame.type);
+    expect(order.indexOf('agent-fence')).toBeGreaterThanOrEqual(0);
+    expect(order.indexOf('agent-fence')).toBeLessThan(order.indexOf('bootstrap-accepted'));
     const refused = await answerFor('run_resend');
 
     expect(refused).toMatchObject({ outcome: 'failed' });

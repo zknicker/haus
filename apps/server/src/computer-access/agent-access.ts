@@ -8,18 +8,15 @@ export async function isAgentAllowedOn(
     db: Reader,
     input: { agentId: string; computerId: string; serverId: string }
 ) {
-    const [home] = await db
-        .select({ id: agentsTable.id })
+    const [agent] = await db
+        .select({ computerId: agentsTable.computerId, retiredAt: agentsTable.retiredAt })
         .from(agentsTable)
-        .where(
-            and(
-                eq(agentsTable.serverId, input.serverId),
-                eq(agentsTable.id, input.agentId),
-                eq(agentsTable.computerId, input.computerId)
-            )
-        )
+        .where(and(eq(agentsTable.serverId, input.serverId), eq(agentsTable.id, input.agentId)))
         .limit(1);
-    if (home) {
+    if (!agent || agent.retiredAt !== null) {
+        return false;
+    }
+    if (agent.computerId === input.computerId) {
         return true;
     }
     const [grant] = await db

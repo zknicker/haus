@@ -228,7 +228,7 @@ function routeInvocations(input: RouterInput) {
         }
     }
 
-    const { fence, reattach } = reattachInvocations({
+    const { fence, fenceHeld, reattach } = reattachInvocations({
         answer,
         appOrigin,
         computers,
@@ -251,6 +251,7 @@ function routeInvocations(input: RouterInput) {
                 console.error('[haus] invocation reattach failed', error)
             );
         },
+        computerAttaching: fenceHeld,
         fenceAgent(target: { agentId: string; computerId: string; serverId: string }) {
             const key = fenceKey(target);
             fenceEpochs.set(key, (fenceEpochs.get(key) ?? 0) + 1);
