@@ -49,20 +49,15 @@ const gitSections: ReadonlyArray<{
     {
         facts: [
             {
-                info: 'Captains commit, push and open pull requests as the Server’s Haus GitHub App.',
-                title: 'Commit author',
-                value: 'Haus bot',
-            },
-            {
-                info: 'Each commit names the person whose message the Captain is acting on, so a shared channel never credits the wrong person.',
-                title: 'Co-author',
-                value: 'Whoever asked',
-            },
-            {
-                info: 'Every Captain branch starts with this, then the Captain and the branch name.',
+                info: 'A Captain checks out a repo as a git worktree on its own branch: haus/<captain>/<repo>.',
                 mono: true,
                 title: 'Branch prefix',
                 value: 'haus/',
+            },
+            {
+                info: 'Captains can’t push yet. When they can, they’ll commit as the Haus bot with whoever asked as co-author.',
+                title: 'Commit author',
+                value: 'Coming soon',
             },
         ],
         title: 'Captains',

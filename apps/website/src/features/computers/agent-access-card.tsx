@@ -64,6 +64,26 @@ export function AgentAccessRows({
     );
 }
 
+export function AgentAccessUnresolved({ onRetry }: { onRetry: (() => void) | null }) {
+    return (
+        <ItemCard>
+            <ItemCard.Content>
+                <SettingsRowTitle info={agentAccessDescription}>Captain access</SettingsRowTitle>
+                {onRetry ? (
+                    <ItemCard.Description>Couldn’t load Captains.</ItemCard.Description>
+                ) : null}
+            </ItemCard.Content>
+            {onRetry ? (
+                <ItemCard.Action>
+                    <Button onPress={onRetry} size="sm" variant="secondary">
+                        Retry
+                    </Button>
+                </ItemCard.Action>
+            ) : null}
+        </ItemCard>
+    );
+}
+
 export function CaptainPicker({
     candidates,
     isDisabled,
