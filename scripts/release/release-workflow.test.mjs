@@ -223,6 +223,10 @@ test('Release workflow stays under the cap and preserves the operator graph', ()
     assert.match(workflow, /Haus_\$\{\{ needs\.plan\.outputs\.app_version \}\}_arm64\.dmg/);
     assert.match(workflow, /node scripts\/release\/publish-haus-snapshot\.mjs/);
     assert.ok(
+        workflow.indexOf('run: node scripts/release/record-shipped-targets.mjs') <
+            workflow.indexOf('node scripts/release/verify-release.mjs --preflight')
+    );
+    assert.ok(
         workflow.indexOf('node scripts/release/verify-release.mjs --preflight') <
             workflow.indexOf('node scripts/release/publish-haus-snapshot.mjs')
     );

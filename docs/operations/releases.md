@@ -142,6 +142,16 @@ agent may widen the release for compatibility or an explicit operational reason.
 target uses its own published baseline, a target left out keeps its pending changes visible to the
 next release preparation.
 
+A target's baseline is the newest ledger entry that publishes it and has a resolving tag: the
+product tag `v<haus version>` that Finalize creates when the whole release succeeds,
+`computer-v<computer version>` that Publish Computer pushes after its own verified publish, or
+`release/<target>/v<haus version>` for Server, App, iOS, and Haus Agent. Finalize's first step pushes
+that per-target tag for each selected target whose own jobs succeeded (Server needs Publish and
+Promote; Haus Agent needs Server and Computer), even when a sibling failed. When a target other
+than iOS fails, the release stays failed: preflight still rejects it, so no product tag, GitHub
+Release, or snapshot is published. A retry release then plans only the failed and newly changed targets. Recording is idempotent: an
+existing tag at the same source is reused, and one at a different source fails instead of moving.
+
 The same target-scoped evidence feeds changelog writing. Agent judgment picks the targets, assigns versions, groups commits into user-facing outcomes, and removes internal
 churn and filler before the release PR.
 
