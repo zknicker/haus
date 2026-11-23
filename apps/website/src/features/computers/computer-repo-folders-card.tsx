@@ -1,13 +1,15 @@
 import type { RepoFolderState } from '@haus/api';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { Button } from '@heroui/react';
-import { useState } from 'react';
+import { Button, Separator } from '@heroui/react';
+import { Fragment, useState } from 'react';
 import {
     useComputerRepoFolderStates,
     useComputerRepoFolders,
 } from '../../hooks/servers/use-computer-repo-folders.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
-import { ComputerRepoFolderAddDialog } from './computer-repo-folder-add-dialog.tsx';
+import { useServerList } from '../../hooks/servers/use-server-list.ts';
+import { SettingsEmptyRow } from '../settings/layout/settings-empty.tsx';
+import { AddRepoDialog } from '../settings/repos/add-repo-dialog.tsx';
 import { ComputerRepoFolderRow } from './computer-repo-folder-row.tsx';
 
 export function ComputerRepoFoldersCard({
@@ -27,6 +29,7 @@ export function ComputerRepoFoldersCard({
     const hasFolders = (folders.data?.folders.length ?? 0) > 0;
     const states = useComputerRepoFolderStates(target, isOnline && hasFolders);
     const reported = isOnline ? states.data?.states : undefined;
+    const serverSlug = useServerList().data?.find((server) => server.id === serverId)?.slug;
     const [isAdding, setIsAdding] = useState(false);
 
     if (!computer) {
@@ -37,10 +40,10 @@ export function ComputerRepoFoldersCard({
         <section>
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>
-                    <ItemCardGroup.Title>Repositories</ItemCardGroup.Title>
+                    <ItemCardGroup.Title>Folders</ItemCardGroup.Title>
                     {folders.data?.canAdd ? (
                         <Button
-                            isDisabled={!isOnline}
+                            isDisabled={!(isOnline && serverSlug)}
                             onPress={() => setIsAdding(true)}
                             size="sm"
                             variant="secondary"
@@ -52,20 +55,18 @@ export function ComputerRepoFoldersCard({
                 {folders.data ? (
                     <ItemCardGroup>
                         {folders.data.folders.length === 0 ? (
-                            <ItemCard>
-                                <ItemCard.Content>
-                                    <ItemCard.Title>No repo folders</ItemCard.Title>
-                                </ItemCard.Content>
-                            </ItemCard>
+                            <SettingsEmptyRow>No folders yet</SettingsEmptyRow>
                         ) : (
-                            folders.data.folders.map((folder) => (
-                                <ComputerRepoFolderRow
-                                    canRemove={folders.data.canRemove}
-                                    folder={folder}
-                                    key={folder.repository}
-                                    state={folderState(reported, folder.path)}
-                                    target={target}
-                                />
+                            folders.data.folders.map((folder, index) => (
+                                <Fragment key={folder.repository}>
+                                    {index > 0 ? <Separator /> : null}
+                                    <ComputerRepoFolderRow
+                                        canRemove={folders.data.canRemove}
+                                        folder={folder}
+                                        state={folderState(reported, folder.path)}
+                                        target={target}
+                                    />
+                                </Fragment>
                             ))
                         )}
                     </ItemCardGroup>
@@ -73,7 +74,7 @@ export function ComputerRepoFoldersCard({
                     <ItemCardGroup>
                         <ItemCard>
                             <ItemCard.Content>
-                                <ItemCard.Title>Repositories unavailable</ItemCard.Title>
+                                <ItemCard.Title>Folders unavailable</ItemCard.Title>
                                 <ItemCard.Description>{folders.error.message}</ItemCard.Description>
                             </ItemCard.Content>
                             <ItemCard.Action>
@@ -89,8 +90,13 @@ export function ComputerRepoFoldersCard({
                     </ItemCardGroup>
                 ) : null}
             </ItemCardGroup>
-            {isAdding ? (
-                <ComputerRepoFolderAddDialog onClose={() => setIsAdding(false)} target={target} />
+            {isAdding && serverSlug ? (
+                <AddRepoDialog
+                    computerId={computerId}
+                    onClose={() => setIsAdding(false)}
+                    serverId={serverId}
+                    serverSlug={serverSlug}
+                />
             ) : null}
         </section>
     );

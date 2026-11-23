@@ -118,7 +118,11 @@ test('adding a folder answers the App access for the repo it names', async () =>
         path: '/Users/ada/src/gadgets',
         serverId: fixture.serverId,
     });
-    await answerNext({ kind: 'inspect', path: '/Users/ada/src/gadgets', repository: 'Acme/Gadgets' });
+    await answerNext({
+        kind: 'inspect',
+        path: '/Users/ada/src/gadgets',
+        repository: 'Acme/Gadgets',
+    });
 
     expect(await adding).toEqual({
         added: true,

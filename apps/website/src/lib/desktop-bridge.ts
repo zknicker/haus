@@ -78,6 +78,8 @@ export interface HausDesktopBridge {
         computerName: string;
         vault: { id: string; name: string };
     }) => Promise<unknown>;
+    /** This Mac's Computer id on a Server, or null; validate with `parseLocalComputerId`. */
+    localComputerId?: (serverId: string) => Promise<unknown>;
     /** Lists one vault's items (approved in 1Password); validate with `parseOnePasswordItemsReply`. */
     onePasswordItems?: (request: { account: string; vaultId: string }) => Promise<unknown>;
     /** Lists grantable 1Password vaults (approved in 1Password); validate with `parseOnePasswordVaultsReply`. */
@@ -110,6 +112,8 @@ export interface HausDesktopBridge {
      */
     openedFromWindow?: boolean;
     openWindow: (route: string) => Promise<void>;
+    /** The native folder picker; validate with `parseRepoFolderPick`. Older shells lack it. */
+    pickRepoFolder?: () => Promise<unknown>;
     /** The opener's query cache copy this window opened with, once per page load; synchronous. */
     queryCacheClaim?: () => unknown;
     /** What the App menu's Tab and View items can do for this window (`DesktopMenuState`). */

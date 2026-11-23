@@ -12,11 +12,6 @@ import { readRepoGithubAccess } from './repo-github-access.ts';
 
 type Connections = Pick<ComputerConnections, 'isOnline' | 'repoFolders'>;
 
-/**
- * Every repo on the Server's list with its folders and the App's access to
- * it. Each online Device with folders is asked once whether they are still
- * there; a Device that is offline or does not answer leaves its states null.
- */
 export async function listRepos(
     db: HausDatabase,
     connections: Connections,

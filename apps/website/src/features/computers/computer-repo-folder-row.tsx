@@ -1,14 +1,17 @@
 import type { RepoFolder, RepoFolderState } from '@haus/api';
 import { ItemCard } from '@heroui-pro/react';
-import { Button, Dropdown, Label } from '@heroui/react';
+import { Button, Dropdown, Label, toast } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
+import { useRepos } from '../../hooks/repos/use-repos.ts';
 import {
     type RepoFolderTarget,
     useRemoveRepoFolder,
 } from '../../hooks/servers/use-computer-repo-folders.ts';
+import { writeClipboardText } from '../../lib/clipboard.ts';
 import { SettingsStatusChip, SettingsStatusTitle } from '../settings/layout/settings-row-title.tsx';
-import { SettingsFact, SettingsRowError } from '../settings/layout/settings-text.tsx';
+import { SettingsRowError } from '../settings/layout/settings-text.tsx';
+import { folderStateLabels, repoAccessChips } from '../settings/repos/repo-access.ts';
 
 export function ComputerRepoFolderRow({
     canRemove,
@@ -22,71 +25,90 @@ export function ComputerRepoFolderRow({
     target: RepoFolderTarget;
 }) {
     const remove = useRemoveRepoFolder(target);
-    const chip = state ? stateChips[state] : null;
+    const access = useRepos(target.serverId).data?.repos.find(
+        (repo) => repo.repository === folder.repository
+    )?.githubAccess;
+    const accessChip = access ? repoAccessChips[access.status] : null;
     return (
         <ItemCard>
             <ItemCard.Content>
                 <SettingsStatusTitle
                     status={
-                        chip ? (
-                            <SettingsStatusChip color="warning">{chip}</SettingsStatusChip>
-                        ) : null
+                        <>
+                            {state && state !== 'present' ? (
+                                <SettingsStatusChip color="warning">
+                                    {capitalize(folderStateLabels[state])}
+                                </SettingsStatusChip>
+                            ) : null}
+                            {accessChip ? (
+                                <SettingsStatusChip color={accessChip.color}>
+                                    {accessChip.label}
+                                </SettingsStatusChip>
+                            ) : null}
+                        </>
                     }
                 >
-                    {folder.repository}
+                    <span title={folder.path}>{folder.path}</span>
                 </SettingsStatusTitle>
-                <ItemCard.Description title={folder.path}>{folder.path}</ItemCard.Description>
+                <ItemCard.Description>
+                    {folder.addedBy ? folder.repository : `${folder.repository}, Haus’s own clone`}
+                </ItemCard.Description>
                 <SettingsRowError>{remove.error?.message}</SettingsRowError>
             </ItemCard.Content>
             <ItemCard.Action>
-                <div className="flex items-center gap-2">
-                    <SettingsFact>{adderLabel(folder)}</SettingsFact>
-                    {canRemove ? (
-                        <Dropdown>
-                            <Button
-                                aria-label={`${folder.repository} actions`}
-                                isIconOnly
-                                isPending={remove.isPending}
-                                size="sm"
-                                variant="ghost"
-                            >
-                                <Icon aria-hidden="true" icon={MoreHorizontalIcon} size={16} />
-                            </Button>
-                            <Dropdown.Popover placement="bottom end">
-                                <Dropdown.Menu
-                                    onAction={(key) => {
-                                        if (key === 'remove') {
-                                            remove.mutate({
-                                                ...target,
-                                                repository: folder.repository,
-                                            });
-                                        }
-                                    }}
+                <Dropdown>
+                    <Button
+                        aria-label={`${folder.repository} actions`}
+                        isIconOnly
+                        isPending={remove.isPending}
+                        size="sm"
+                        variant="ghost"
+                    >
+                        <Icon aria-hidden="true" icon={MoreHorizontalIcon} size={16} />
+                    </Button>
+                    <Dropdown.Popover placement="bottom end">
+                        <Dropdown.Menu
+                            onAction={(key) => {
+                                if (key === 'copy') {
+                                    void copyPath(folder.path);
+                                }
+                                if (key === 'remove') {
+                                    remove.mutate({ ...target, repository: folder.repository });
+                                }
+                            }}
+                        >
+                            <Dropdown.Item id="copy" textValue="Copy path">
+                                <Label>Copy path</Label>
+                            </Dropdown.Item>
+                            {canRemove ? (
+                                <Dropdown.Item
+                                    id="remove"
+                                    isDisabled={remove.isPending}
+                                    textValue="Remove"
+                                    variant="danger"
                                 >
-                                    <Dropdown.Item
-                                        id="remove"
-                                        isDisabled={remove.isPending}
-                                        textValue="Remove folder"
-                                        variant="danger"
-                                    >
-                                        <Label>Remove folder</Label>
-                                    </Dropdown.Item>
-                                </Dropdown.Menu>
-                            </Dropdown.Popover>
-                        </Dropdown>
-                    ) : null}
-                </div>
+                                    <Label>Remove</Label>
+                                </Dropdown.Item>
+                            ) : null}
+                        </Dropdown.Menu>
+                    </Dropdown.Popover>
+                </Dropdown>
             </ItemCard.Action>
         </ItemCard>
     );
 }
 
-const stateChips = {
-    missing: 'Missing',
-    'other-origin': 'Different origin',
-    present: null,
-} as const satisfies Record<RepoFolderState, null | string>;
+async function copyPath(path: string) {
+    try {
+        await writeClipboardText(path);
+        toast.success('Path copied');
+    } catch (error) {
+        toast.danger('Could not copy the path', {
+            description: error instanceof Error ? error.message : undefined,
+        });
+    }
+}
 
-function adderLabel(folder: RepoFolder) {
-    return folder.addedBy ? `Added by ${folder.addedBy.name}` : 'Haus clone';
+function capitalize(label: string) {
+    return `${label.charAt(0).toUpperCase()}${label.slice(1)}`;
 }

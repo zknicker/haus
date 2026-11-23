@@ -5,7 +5,6 @@ import { repoFolderTrpcError } from '../../repos/repo-errors.ts';
 import { readRepoGithubAccess } from '../../repos/repo-github-access.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
-/** Adds the folder, then answers whether the Haus GitHub App reaches the repo it names. */
 export const addComputerRepoFolderProcedure = memberProcedure
     .input(computerAddRepoFolderInputSchema)
     .output(computerAddRepoFolderResultSchema)

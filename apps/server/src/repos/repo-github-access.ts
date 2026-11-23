@@ -9,17 +9,14 @@ import { githubInstallationsTable, mcpConnectionsTable } from '../postgres/schem
 type Reader = Pick<HausDatabase, 'select'>;
 type Installation = Pick<
     typeof githubInstallationsTable.$inferSelect,
-    'accountId' | 'accountLogin' | 'accountType' | 'installationId' | 'repositorySelection' | 'status'
+    | 'accountId'
+    | 'accountLogin'
+    | 'accountType'
+    | 'installationId'
+    | 'repositorySelection'
+    | 'status'
 >;
 
-/**
- * The Haus GitHub App's access to each repo, decided the way a Captain's push
- * is (specs/github-app-connection.md#git-on-a-computer): a repo maps to the
- * live installation on its owner. An installation on all repositories reaches
- * it. A selected one reaches it when GitHub mints a read token scoped to it;
- * the stored `accessible_repository_ids` are the connection user's reach by
- * GitHub id, and a Server repo is only an `owner/name`.
- */
 export async function readRepoGithubAccess(db: Reader, app: GithubApp | null, serverId: string) {
     const connectionId = await readGithubConnectionId(db, serverId);
     if (!(app && connectionId)) {
@@ -86,7 +83,10 @@ async function readGithubConnectionId(db: Reader, serverId: string) {
         .select({ id: mcpConnectionsTable.id })
         .from(mcpConnectionsTable)
         .where(
-            and(eq(mcpConnectionsTable.serverId, serverId), eq(mcpConnectionsTable.preset, 'github'))
+            and(
+                eq(mcpConnectionsTable.serverId, serverId),
+                eq(mcpConnectionsTable.preset, 'github')
+            )
         )
         .orderBy(asc(mcpConnectionsTable.createdAt))
         .limit(1);

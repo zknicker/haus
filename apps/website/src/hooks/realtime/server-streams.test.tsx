@@ -90,6 +90,7 @@ describe('Server-level stream hooks', () => {
             read('computer.systemLog', { computerId: 'cmp_1', serverId }),
             read('computer.repoFolders', { computerId: 'cmp_1', serverId }),
             read('computer.repoFolderStates', { computerId: 'cmp_1', serverId }),
+            read('repo.list', { serverId }),
             read('agent.activeActivity', { serverId }),
             read('agent.deliveryState', { serverId }),
             read('agent.list', { serverId }),
@@ -99,6 +100,7 @@ describe('Server-level stream hooks', () => {
         expect(onRecovery).toContainEqual(read('computer.systemLog', { serverId }));
         expect(onRecovery).toContainEqual(read('computer.repoFolders', { serverId }));
         expect(onRecovery).toContainEqual(read('computer.repoFolderStates', { serverId }));
+        expect(onRecovery).toContainEqual(read('repo.list', { serverId }));
     });
 
     test('mcp.onUpdated refreshes the MCP reads', async () => {

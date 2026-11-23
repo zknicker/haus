@@ -1,12 +1,12 @@
 import { expect, test } from 'bun:test';
-import type { ComputerRepoFolders, RepoFolderState } from '@haus/api';
+import type { ComputerRepoFolders, RepoFolderState, RepoList } from '@haus/api';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createTRPCQueryUtils } from '@trpc/react-query';
 import { observable } from '@trpc/server/observable';
 import type React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { hausTrpc } from '../../lib/haus-server.tsx';
-import { RepoFolderDisclosure } from './computer-repo-folder-add-dialog.tsx';
+import { RepoFolderDisclosure } from '../settings/repos/repo-folder-disclosure.tsx';
 import { ComputerRepoFoldersCard } from './computer-repo-folders-card.tsx';
 
 const serverId = 'srv_devices';
@@ -32,51 +32,59 @@ const folders = [
     },
 ];
 
-test('the attacher sees each folder with its repo, path and adder, a row menu, and Add folder', () => {
+const repos: RepoList = {
+    canInstallGithubApp: true,
+    githubConnectionId: 'mcp_github',
+    repos: [
+        { folders: [], githubAccess: { status: 'ready' }, repository: 'haus/haus' },
+        {
+            folders: [],
+            githubAccess: { installation: null, status: 'app-needs-access' },
+            repository: 'haus/tools',
+        },
+    ],
+};
+
+test('Folders lists each path with its repo, App access, a row menu, and Add folder', () => {
     const html = render({
         folders: { canAdd: true, canRemove: true, folders },
+        repos,
         states: [
             { path: checkout, state: 'present' },
             { path: clone, state: 'missing' },
         ],
     });
 
-    expect(html).toContain('Repositories');
-    expect(html).toContain('haus/haus');
+    expect(html).toContain('Folders');
     expect(html).toContain(checkout);
-    expect(html).toContain('Added by Ada');
-    expect(html).toContain('haus/tools');
+    expect(html).toContain('haus/haus');
     expect(html).toContain(clone);
-    expect(html).toContain('Haus clone');
+    expect(html).toContain('haus/tools, Haus’s own clone');
+    expect(html).toContain('Ready');
+    expect(html).toContain('App access needed');
     expect(html.match(/Missing/gu)).toHaveLength(1);
+    expect(html.match(/<hr/gu)).toHaveLength(1);
     expect(html).toContain('aria-label="haus/haus actions"');
     expect(html).toContain('aria-label="haus/tools actions"');
     expect(html).toMatch(/<button[^>]*>Add folder<\/button>/u);
     expect(html).not.toMatch(/<button[^>]*disabled=""[^>]*>Add folder/u);
 });
 
-test('an Admin who is not the attacher can remove a folder but not add one', () => {
-    const html = render({ folders: { canAdd: false, canRemove: true, folders } });
+test('someone who cannot add still sees every folder with its menu, and no Add folder', () => {
+    const html = render({ folders: { canAdd: false, canRemove: false, folders } });
 
+    expect(html).toContain('haus/haus');
     expect(html).toContain('haus/haus actions');
     expect(html).not.toContain('Add folder');
 });
 
-test('a member who can neither add nor remove sees the folders without any menu', () => {
-    const html = render({ folders: { canAdd: false, canRemove: false, folders } });
-
-    expect(html).toContain('haus/haus');
-    expect(html).not.toContain('actions"');
-    expect(html).not.toContain('Add folder');
-});
-
-test('the empty state shows only once the folders loaded with none', () => {
+test('the empty row shows only once the folders loaded with none', () => {
     expect(render({ folders: { canAdd: true, canRemove: true, folders: [] } })).toContain(
-        'No repo folders'
+        'No folders yet'
     );
     const loading = render({});
-    expect(loading).toContain('Repositories');
-    expect(loading).not.toContain('No repo folders');
+    expect(loading).toContain('Folders');
+    expect(loading).not.toContain('No folders yet');
 });
 
 test('an offline Device keeps its folders listed and holds Add folder', () => {
@@ -91,7 +99,7 @@ test('an offline Device keeps its folders listed and holds Add folder', () => {
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>Add folder/u);
 });
 
-test('Add folder says what the folder grants', () => {
+test('the add flow says what the folder grants', () => {
     const html = renderToStaticMarkup(<RepoFolderDisclosure />);
 
     expect(html).toContain(
@@ -102,6 +110,7 @@ test('Add folder says what the folder grants', () => {
 function render(input: {
     folders?: ComputerRepoFolders;
     health?: string;
+    repos?: RepoList;
     states?: { path: string; state: RepoFolderState }[];
 }) {
     const queryClient = new QueryClient({
@@ -111,6 +120,7 @@ function render(input: {
         links: [() => () => observable(() => () => undefined)],
     });
     const utils = createTRPCQueryUtils({ client, queryClient });
+    utils.server.list.setData(undefined, [{ id: serverId, slug: 'devices' }] as never);
     utils.computer.list.setData({ serverId }, [
         {
             health: input.health ?? 'healthy',
@@ -125,6 +135,9 @@ function render(input: {
     }
     if (input.states) {
         utils.computer.repoFolderStates.setData(target, { states: input.states });
+    }
+    if (input.repos) {
+        utils.repo.list.setData({ serverId }, input.repos);
     }
     return renderToStaticMarkup(
         <Providers client={client} queryClient={queryClient}>

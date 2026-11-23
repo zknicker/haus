@@ -52,6 +52,7 @@ module.exports = {
         'electron/onepassword.cjs',
         'electron/onepassword-cli.cjs',
         'electron/preload.cjs',
+        'electron/repo-folder-ipc.cjs',
         'electron/skool-login.cjs',
         'electron/provider-app-deeplinks.cjs',
         'electron/query-cache-handoff.cjs',

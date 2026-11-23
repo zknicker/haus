@@ -18,12 +18,13 @@ export function useComputerRepoFolderStates(target: RepoFolderTarget, enabled: b
     });
 }
 
-export function useAddRepoFolder(target: RepoFolderTarget) {
+export function useAddRepoFolder() {
     const utils = hausTrpc.useUtils();
     return hausTrpc.computer.addRepoFolder.useMutation({
-        onSuccess: () => {
-            void utils.computer.repoFolders.invalidate(target);
-            void utils.computer.repoFolderStates.invalidate(target);
+        onSuccess: (_added, { computerId, serverId }) => {
+            void utils.computer.repoFolders.invalidate({ computerId, serverId });
+            void utils.computer.repoFolderStates.invalidate({ computerId, serverId });
+            void utils.repo.list.invalidate({ serverId });
         },
     });
 }
@@ -34,6 +35,7 @@ export function useRemoveRepoFolder(target: RepoFolderTarget) {
         onSuccess: () => {
             void utils.computer.repoFolders.invalidate(target);
             void utils.computer.repoFolderStates.invalidate(target);
+            void utils.repo.list.invalidate({ serverId: target.serverId });
         },
     });
 }

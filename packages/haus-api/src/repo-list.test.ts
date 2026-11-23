@@ -1,5 +1,9 @@
 import { expect, test } from 'bun:test';
-import { computerAddRepoFolderResultSchema, repoGithubAccessSchema, repoListSchema } from './repo-list.ts';
+import {
+    computerAddRepoFolderResultSchema,
+    repoGithubAccessSchema,
+    repoListSchema,
+} from './repo-list.ts';
 
 const installation = {
     account: { id: 77, login: 'Acme', type: 'Organization' },

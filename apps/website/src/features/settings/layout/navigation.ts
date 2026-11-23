@@ -148,7 +148,7 @@ export const settingsNavItems = [
         icon: RepositoryIcon,
         id: 'repos',
         label: 'Repositories',
-        rows: [],
+        rows: ['Add repository', 'GitHub App access', 'Grant on GitHub', 'GitHub installation'],
     },
     {
         access: 'everyone',
