@@ -77,11 +77,7 @@ export async function dispatchSubcommand(
  * Validate a subcommand's raw args against its flags and positional arity, the
  * way dispatch does. `--help` skips the arity check. Throws UsageError.
  */
-export function parseSubcommandArgs(
-    groupName: string,
-    sub: SubCommand,
-    raw: readonly string[]
-) {
+export function parseSubcommandArgs(groupName: string, sub: SubCommand, raw: readonly string[]) {
     const spec = toCliCommand(groupName, sub);
     const parsed = parseArgs(spec, [...raw]);
     if (!parsed.help) {

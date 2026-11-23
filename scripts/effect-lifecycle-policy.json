@@ -1308,17 +1308,6 @@
                 "timer": 0
             }
         },
-        "apps/computer/src/workers/computer/checkout.ts": {
-            "disposition": "finite-cleanup",
-            "reason": "A new Worker checkout is cloned into a private staging sibling that is renamed into place, and lexical finally removes the staging folder whether the clone finished or failed. Git children are awaited with their own timeouts.",
-            "risks": {
-                "abortController": 0,
-                "catchAndIgnore": 0,
-                "finallyBlock": 1,
-                "manualPromise": 0,
-                "timer": 0
-            }
-        },
         "apps/computer/src/workers/computer/drive-seed.ts": {
             "disposition": "finite-cleanup",
             "reason": "A new Worker drive folder is seeded into a private staging sibling that is renamed into place after its records persist, and lexical finally removes the staging folder whether the seed finished or failed.",

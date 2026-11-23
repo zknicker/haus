@@ -10,9 +10,7 @@ const repoListResponseSchema = z.looseObject({
         .array(
             z.looseObject({
                 ...repoEntryShape,
-                computers: z
-                    .array(z.looseObject(repoEntryShape.computers.element.shape))
-                    .max(100),
+                computers: z.array(z.looseObject(repoEntryShape.computers.element.shape)).max(100),
             })
         )
         .max(1000),

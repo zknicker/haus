@@ -7,13 +7,13 @@ import { invocationText, invocationToolOutcome } from '../invocations/invocation
 import type { RunAuthority, ToolOutcome } from '../run-context.ts';
 import { hausCommandAccess } from './command-access.ts';
 import type { HausProxy } from './haus-proxy.ts';
-import { repoCheckoutCall, runRepoCheckout } from './repo-checkout.ts';
 import {
     type MachinePath,
     machinePathOf,
     planMachinePaths,
     restoreMachinePaths,
 } from './machine-paths.ts';
+import { repoCheckoutCall, runRepoCheckout } from './repo-checkout.ts';
 
 const agentCliEntrypoint = fileURLToPath(import.meta.resolve('@haus/agent-cli/bin'));
 

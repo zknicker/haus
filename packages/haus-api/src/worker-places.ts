@@ -1,8 +1,8 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
+import { repoNameSchema } from './repos.ts';
 import { taskKeySchema } from './task-key.ts';
 import { workerRuntimeReadinessSchema } from './worker-runtime.ts';
-import { repoNameSchema } from './repos.ts';
 
 /** `GET /api/agent/workers/places?task=<KEY-n>`: `task` marks the Project default. */
 export const workerPlacesInputSchema = z.object({ task: taskKeySchema.optional() }).strict();

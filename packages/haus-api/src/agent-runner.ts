@@ -31,10 +31,10 @@ import {
 } from './agent-workspace-files.ts';
 import { idSchema } from './chat.ts';
 import { computerInventoryRefreshRequestSchema } from './computer-inventory-refresh.ts';
-import { repoFolderRequestSchema } from './repos.ts';
 import { computerSecretsRequestSchema } from './computer-secrets.ts';
 import { hostSkillFileRequestSchema } from './host-skill-file.ts';
 import { reminderScriptCommandSchema } from './reminder-script-frames.ts';
+import { repoFolderRequestSchema } from './repos.ts';
 import {
     serverDeleteCommandSchema,
     serverRuntimeSettingsCommandSchema,

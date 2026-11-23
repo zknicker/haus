@@ -5,7 +5,7 @@ export const reposTopic: ManualNavigationTopic = {
     aliases: ['repo folders', 'repo checkout', 'worktree'],
     body: `# Repos
 
-A repo is a GitHub \`owner/name\` on the Server's list, and any Agent or Worker in any Project can use any of them. A repo joins the list when a Computer gets a folder for it or a Worker starts on it. Each Computer lists where its repos live as repo folders, one per repo. The person who attached the Computer adds them at Settings → Devices → (the device) → Repositories, or with \`haus-computer repo add <path>\` on the machine.
+A repo is a GitHub \`owner/name\` on the Server's list, and any Agent or Worker in any Project can use any of them. A repo joins the list when a Computer gets a folder for it or a Worker starts on it. Each Computer lists where its repos live as repo folders, one per repo. The person who attached the Computer adds them at Settings → Devices → (your device) → Repositories → Add folder, or with \`haus-computer repo add <path>\` on the machine.
 
 \`haus repo list\` shows each repo and the Computers with a folder for it. A Worker can use a repo with no folder: its Computer clones it first (see workers).
 

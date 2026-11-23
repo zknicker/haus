@@ -11,10 +11,6 @@ import {
 import { computersTable } from './computers.ts';
 import { serverMembershipsTable } from './server-memberships.ts';
 
-/**
- * The Server's repo list (ADR 0060): a lower-cased GitHub `owner/name`. A repo
- * joins only after a folder add, a Computer's clone, or a cloud Worker start.
- */
 export const reposTable = pgTable(
     'repos',
     {
@@ -32,10 +28,6 @@ export const reposTable = pgTable(
     ]
 );
 
-/**
- * Where a repo lives on one Computer: one folder per repo per Computer. A null
- * `added_by_user_id` is Haus's own clone in the Server's partition.
- */
 export const repoFoldersTable = pgTable(
     'repo_folders',
     {

@@ -10,10 +10,6 @@ export type RepoCheckoutCall =
     | { readonly kind: 'invoke'; readonly operation: RepoCheckoutOperation }
     | { readonly kind: 'refused'; readonly text: string };
 
-/**
- * `haus repo checkout` (ADR 0060) runs on the runner: it becomes a
- * `repo-checkout` invocation the Server gates and the Computer carries out.
- */
 export function repoCheckoutCall(rest: readonly string[]) {
     const args = readCheckoutArgs(rest);
     if (args instanceof UsageError) {

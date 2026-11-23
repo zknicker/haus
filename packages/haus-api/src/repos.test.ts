@@ -17,14 +17,14 @@ test('an Agent branch is haus/<agent-id>/<name>', () => {
 });
 
 test('a checkout names its repo and ref, and only the Server sets its folder', () => {
-    const operation = { kind: 'repo-checkout', ref: null, repository: 'ZKnicker/Grotto' };
+    const operation = { kind: 'repo-checkout', ref: null, repository: 'ZKnicker/Grotto' } as const;
     expect(invocationOperationSchema.parse(operation)).toEqual({
         ...operation,
         repository: 'zknicker/grotto',
     });
-    expect(
-        invocationOperationSchema.safeParse({ ...operation, folder: 'relative' }).success
-    ).toBe(false);
+    expect(invocationOperationSchema.safeParse({ ...operation, folder: 'relative' }).success).toBe(
+        false
+    );
 });
 
 test('folder requests take an absolute path', () => {
@@ -32,7 +32,7 @@ test('folder requests take an absolute path', () => {
         operation: { kind: 'inspect', path: '/Users/zach/Programming/grotto' },
         requestId: 'req_1',
         type: 'repo-folder-request',
-    };
+    } as const;
     expect(repoFolderRequestSchema.parse(inspect)).toEqual(inspect);
     expect(
         repoFolderRequestSchema.safeParse({

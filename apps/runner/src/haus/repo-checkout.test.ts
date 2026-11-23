@@ -72,9 +72,15 @@ describe('haus repo checkout on the runner', () => {
 
     test.each([
         ['haus repo checkout', 'Expected 1 argument (<owner/name>), got 0.'],
-        ['haus repo checkout haus/haus --force', "Unknown flag '--force' for 'haus repo checkout'."],
+        [
+            'haus repo checkout haus/haus --force',
+            "Unknown flag '--force' for 'haus repo checkout'.",
+        ],
         ['haus repo checkout haus', 'Invalid repository "haus". A repo reads as owner/name.'],
-        [`haus repo checkout haus/haus --ref ${'r'.repeat(201)}`, 'The ref must be 1 to 200 characters.'],
+        [
+            `haus repo checkout haus/haus --ref ${'r'.repeat(201)}`,
+            'The ref must be 1 to 200 characters.',
+        ],
     ])('a usage error sends nothing: %s', async (command, message) => {
         const { run, server } = await startedRun();
 

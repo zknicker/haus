@@ -118,6 +118,11 @@ export const invocationEditSchema = z.discriminatedUnion('command', [
 ]);
 export type InvocationEdit = z.infer<typeof invocationEditSchema>;
 
+/**
+ * One machine operation. `repo-checkout` is `haus repo checkout` (ADR 0060): the
+ * runner never sends its `folder`; the Server's gate sets it from the target
+ * Computer's repo folders, or refuses when there is none.
+ */
 export const invocationOperationSchema = z.discriminatedUnion('kind', [
     z
         .object({
@@ -155,12 +160,6 @@ export const invocationOperationSchema = z.discriminatedUnion('kind', [
             kind: z.literal('desktop'),
         })
         .strict(),
-    /**
-     * `haus repo checkout` (ADR 0060): a worktree on `haus/<agent-id>/<name>` of
-     * the target Computer's folder for `repository`. The runner never sends
-     * `folder`; the Server's gate sets it from the Computer's repo folders, or
-     * refuses when there is none, so the Computer never clones for an Agent.
-     */
     z
         .object({
             folder: repoFolderPathSchema.optional(),

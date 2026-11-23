@@ -127,9 +127,7 @@ export const workerHeldFrameSchema = z
     .object({
         keptWorktrees: z
             .array(
-                z
-                    .object({ path: z.string().trim().min(1).max(1024), workerId: idSchema })
-                    .strict()
+                z.object({ path: z.string().trim().min(1).max(1024), workerId: idSchema }).strict()
             )
             .max(1000)
             .default([]),

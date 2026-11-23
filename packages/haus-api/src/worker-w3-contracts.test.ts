@@ -185,4 +185,3 @@ test('settings inputs carry the switch and the default place', () => {
         projectSetDefaultWorkerPlaceInputSchema.parse({ ...toComputer, place: null }).place
     ).toBeNull();
 });
-
