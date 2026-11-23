@@ -10,6 +10,7 @@ import { artifactZipTickets } from './artifacts/zip-tickets.ts';
 import { registerAttachmentRoutes } from './attachments/attachment-routes.ts';
 import { registerAvatarRoutes } from './avatars/avatar-routes.ts';
 import { registerComputerRoutes } from './computers/routes.ts';
+import { registerComputerGitRoutes } from './github/computer-git-routes.ts';
 import { type GithubRouteOptions, registerGithubRoutes } from './github/routes.ts';
 import { registerGithubSetupRoute } from './github/setup-route.ts';
 import type { createHausContextFactory, HausContextDependencies } from './haus-api/context.ts';
@@ -90,6 +91,7 @@ export async function registerHausServerRoutes(
     registerAvatarRoutes(app, { db });
     registerComputerRoutes(app, {
         appOrigin: dependencies.appOrigin,
+        connections: dependencies.computerConnections,
         db,
     });
     registerInvocationPayloadRoutes(app, {
@@ -97,6 +99,7 @@ export async function registerHausServerRoutes(
         root: dependencies.attachmentRoot,
         runtime: dependencies.runtime,
     });
+    registerComputerGitRoutes(app, { db, githubApp: dependencies.githubApp });
     registerAgentApiRoutes(app, {
         agentDelivery: dependencies.agentDelivery,
         avatarImageService: dependencies.avatarImageService,

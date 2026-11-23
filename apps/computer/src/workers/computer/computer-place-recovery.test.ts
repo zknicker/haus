@@ -72,7 +72,8 @@ describe('a Computer that restarts', () => {
                 turnId: 'wkt_b',
                 type: 'worker-turn-ended',
             },
-            { type: 'worker-held', workerIds: ['wrk_a', 'wrk_b'] },
+            { clones: [], type: 'repo-clones' },
+            { keptWorktrees: [], type: 'worker-held', workerIds: ['wrk_a', 'wrk_b'] },
             { attempt: 1, turnId: 'wkt_b', type: 'worker-turn-accepted' },
             expect.objectContaining({ exit: 'uncertain', turnId: 'wkt_b' }),
         ]);
@@ -118,6 +119,7 @@ describe('a drive push that fails', () => {
 
         expect(frames.map((frame) => frame.type)).toEqual([
             'worker-turn-accepted',
+            'repo-clones',
             'worker-turn-session',
             'worker-turn-input-accepted',
         ]);
@@ -129,7 +131,7 @@ describe('a drive push that fails', () => {
         await place.connected();
 
         expect(computer.drive.text('agents/alpha/notes.md')).toBe('Written before the stop.');
-        expect(frames.slice(3)).toEqual([
+        expect(frames.slice(4)).toEqual([
             {
                 attempt: 1,
                 branch,
@@ -140,7 +142,11 @@ describe('a drive push that fails', () => {
                 turnId: 'wkt_1',
                 type: 'worker-turn-ended',
             },
-            { type: 'worker-held', workerIds: ['wrk_1'] },
+            {
+                clones: [{ path: clone(computer.root), repository: 'acme/app' }],
+                type: 'repo-clones',
+            },
+            { keptWorktrees: [], type: 'worker-held', workerIds: ['wrk_1'] },
         ]);
         await place.close('wrk_1');
         expect(existsSync(place.journal.layout('wrk_1').root)).toBe(false);
@@ -209,7 +215,7 @@ function recordedSchedule() {
 }
 
 describe('closing a Worker', () => {
-    test('removes its worktree and folder, twice over, and keeps its branch', async () => {
+    test('removes its clean worktree with its local branch and its folder, twice over', async () => {
         const computer = computerPlaces();
         const { frames, place, sent } = computer.place();
         await place.accept(computerStart());
@@ -218,13 +224,54 @@ describe('closing a Worker', () => {
         await place.close('wrk_1');
         await place.connected();
 
-        const clone = join(computer.root, 'data', 'repos', 'acme', 'app');
+        const folder = clone(computer.root);
         expect(existsSync(place.journal.layout('wrk_1').root)).toBe(false);
-        expect(git(clone, 'worktree', 'list').split('\n')).toHaveLength(1);
-        expect(git(clone, 'branch', '--list', branch)).toBe(branch);
-        expect(frames.at(-1)).toEqual({ type: 'worker-held', workerIds: [] });
+        expect(
+            existsSync(join(computer.root, 'data', 'servers', 'srv_1', 'worktrees', 'wrk_1'))
+        ).toBe(false);
+        expect(git(folder, 'worktree', 'list').split('\n')).toHaveLength(1);
+        expect(git(folder, 'branch', '--list', branch)).toBe('');
+        expect(frames.at(-1)).toEqual({ keptWorktrees: [], type: 'worker-held', workerIds: [] });
+    });
+
+    test('keeps a worktree with unpushed work, and reports it as kept once its journal is gone', async () => {
+        const computer = computerPlaces();
+        const { frames, place, sent } = computer.place({ turn: commitThenFinish });
+        await place.accept(computerStart());
+        await sent('worker-turn-ended');
+        await place.close('wrk_1');
+        await place.connected();
+
+        const path = join(
+            computer.root,
+            'data',
+            'servers',
+            'srv_1',
+            'worktrees',
+            'wrk_1',
+            'acme',
+            'app'
+        );
+        expect(git(path, 'log', '--format=%s', '-1')).toBe('unpushed work');
+        expect(frames.at(-1)).toEqual({
+            keptWorktrees: [{ path, workerId: 'wrk_1' }],
+            type: 'worker-held',
+            workerIds: ['wrk_1'],
+        });
     });
 });
+
+function clone(root: string) {
+    return join(root, 'data', 'servers', 'srv_1', 'repos', 'acme', 'app');
+}
+
+function commitThenFinish(context: FakeTurnContext<WorkerHarnessLaunch>) {
+    const identity = ['-c', 'user.name=T', '-c', 'user.email=t@haus.test'];
+    Bun.spawnSync(['git', ...identity, 'commit', '--allow-empty', '-m', 'unpushed work'], {
+        cwd: context.input.cwd,
+    });
+    return [];
+}
 
 async function* writeThenWait(context: FakeTurnContext<WorkerHarnessLaunch>) {
     const [drive] = context.input.writableRoots;

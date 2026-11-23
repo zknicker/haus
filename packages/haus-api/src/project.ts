@@ -5,7 +5,6 @@ import { idSchema } from './chat-contract-primitives.ts';
 import { chatSchema } from './chat.ts';
 import { taskKeyPrefixSchema } from './task-key-ledger.ts';
 import { workerPlaceViewSchema } from './worker-place.ts';
-import { projectRepoSchema } from './worker-settings.ts';
 
 export const projectNameSchema = z
     .string()
@@ -26,7 +25,6 @@ export const projectSchema = z
         key: taskKeyPrefixSchema,
         keyEditable: z.boolean(),
         name: projectNameSchema,
-        repos: z.array(projectRepoSchema),
         serverId: idSchema,
         taskKeyId: idSchema,
     })

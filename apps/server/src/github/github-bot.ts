@@ -2,21 +2,21 @@ import { and, eq, ne, sql } from 'drizzle-orm';
 import * as z from 'zod';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { githubInstallationsTable } from '../postgres/schema.ts';
-import { GithubApiError, githubRequest } from './github-api.ts';
 import type { GithubApp } from './github-app.ts';
+import { createInstallationTokens } from './installation-tokens.ts';
 
-/** GitHub issues installation tokens for an hour; replace one well before that. */
-const tokenRefreshMarginMs = 5 * 60_000;
-
-const installationTokenSchema = z.object({
-    expires_at: z.iso.datetime(),
-    token: z.string().min(1),
-});
-
+const rpcIdSchema = z.union([z.string(), z.number()]);
 const toolCallSchema = z.object({
+    id: rpcIdSchema,
     method: z.literal('tools/call'),
-    params: z.object({ arguments: z.object({ owner: z.string().min(1) }) }),
+    params: z.object({
+        arguments: z.object({ owner: z.string().min(1).optional() }).optional(),
+        name: z.string().min(1),
+    }),
 });
+
+/** Reads that name no owner, such as search and `get_me`, run as the signed-in person. */
+const ownerlessRead = /^(?:get|list|search)_/u;
 
 type McpFetch = (url: string | URL, init?: RequestInit) => Promise<Response>;
 
@@ -32,10 +32,12 @@ export interface GithubBot {
 }
 
 /**
- * A tool call naming an `owner` with a bound installation runs as the App, so
- * GitHub attributes it to the bot. Every other request keeps the connection's
- * user token. A call with an installation never falls back to the user token:
- * a failed mint fails the call rather than posting under a person's name.
+ * An Agent's tool call naming an `owner` runs as the App, so GitHub attributes
+ * it to the bot, and is refused when the App is not installed on that owner.
+ * It never falls back to the user token: a failed mint fails the call rather
+ * than posting under a person's name. The one exception is a read that names
+ * no owner (`get_`, `list_`, `search_`), which keeps the connection's user
+ * token, as discovery does; any other ownerless call is refused.
  */
 export function createGithubBot(
     app: GithubApp,
@@ -45,10 +47,28 @@ export function createGithubBot(
     const tokens = createInstallationTokens(app, now);
     return {
         fetch: (connectionId, next) => async (url, init) => {
-            const owner = toolCallOwner(init?.body);
-            const installationId = owner ? await findInstallation(connectionId, owner) : null;
-            if (installationId === null) {
+            const call = readToolCall(init?.body);
+            if (call === null) {
                 return await next(url, init);
+            }
+            if (call.kind === 'unreadable') {
+                return refusal(call.id, 'Haus could not read this GitHub tool call.');
+            }
+            const { owner } = call;
+            if (owner === undefined) {
+                return ownerlessRead.test(call.name)
+                    ? await next(url, init)
+                    : refusal(
+                          call.id,
+                          `${call.name} names no owner, so it would act as the person who signed in to GitHub. Agents act on GitHub only as the Haus GitHub App: name the repository owner.`
+                      );
+            }
+            const installationId = await findInstallation(connectionId, owner);
+            if (installationId === null) {
+                return refusal(
+                    call.id,
+                    `The Haus GitHub App is not installed on ${owner}, so Agents cannot act there. Ask an Owner or Admin to install it on ${owner}.`
+                );
             }
             const send = async () => {
                 const headers = new Headers(init?.headers);
@@ -83,66 +103,45 @@ export function githubInstallationLookup(db: HausDatabase): GithubInstallationLo
     };
 }
 
-/** Mints and caches each installation's token, replacing it well before it expires. */
-export function createInstallationTokens(app: GithubApp, now: () => number = Date.now) {
-    const cached = new Map<number, { expiresAt: number; token: string }>();
-    const minting = new Map<number, Promise<string>>();
-
-    const mint = async (installationId: number) => {
-        const { body } = await githubRequest(
-            {
-                credential: { jwt: await app.signer.jwt(), kind: 'app' },
-                method: 'POST',
-                path: `/app/installations/${installationId}/access_tokens`,
-            },
-            app.transport
-        );
-        const { expiresAt, token } = readInstallationToken(body);
-        cached.set(installationId, { expiresAt, token });
-        return token;
-    };
-
-    return {
-        forget(installationId: number) {
-            cached.delete(installationId);
-        },
-        read(installationId: number): Promise<string> {
-            const held = cached.get(installationId);
-            if (held && held.expiresAt - tokenRefreshMarginMs > now()) {
-                return Promise.resolve(held.token);
-            }
-            const pending = minting.get(installationId);
-            if (pending) {
-                return pending;
-            }
-            const started = mint(installationId).finally(() => minting.delete(installationId));
-            minting.set(installationId, started);
-            return started;
-        },
-    };
-}
-
-function readInstallationToken(body: unknown): { expiresAt: number; token: string } {
-    const parsed = installationTokenSchema.safeParse(body);
-    if (!parsed.success) {
-        throw new GithubApiError(
-            'retryable',
-            null,
-            'GitHub sent an unreadable installation token.'
-        );
-    }
-    return { expiresAt: Date.parse(parsed.data.expires_at), token: parsed.data.token };
-}
-
-/** The `owner` argument of a JSON-RPC `tools/call` body, if the request is one. */
-function toolCallOwner(body: RequestInit['body']): string | null {
-    if (typeof body !== 'string') {
+/**
+ * A JSON-RPC `tools/call` body's id, tool and `owner` argument; null for any
+ * other request, and `unreadable` for a tool call whose arguments do not parse.
+ */
+function readToolCall(body: RequestInit['body']) {
+    const message = typeof body === 'string' ? parseJson(body) : null;
+    if (!(isRecord(message) && message.method === 'tools/call')) {
         return null;
     }
+    const parsed = toolCallSchema.safeParse(message);
+    if (!parsed.success) {
+        const id = rpcIdSchema.safeParse(message.id);
+        return { id: id.success ? id.data : null, kind: 'unreadable' as const };
+    }
+    return {
+        id: parsed.data.id,
+        kind: 'call' as const,
+        name: parsed.data.params.name,
+        owner: parsed.data.params.arguments?.owner,
+    };
+}
+
+function parseJson(text: string) {
     try {
-        const parsed = toolCallSchema.safeParse(JSON.parse(body));
-        return parsed.success ? parsed.data.params.arguments.owner : null;
+        return JSON.parse(text) as unknown;
     } catch {
         return null;
     }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/** A tool result the Agent reads as a failed call; nothing reaches GitHub. */
+function refusal(id: number | string | null, text: string) {
+    return Response.json({
+        id,
+        jsonrpc: '2.0',
+        result: { content: [{ text, type: 'text' }], isError: true },
+    });
 }

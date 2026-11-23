@@ -88,13 +88,27 @@ export function computerUseAgentKeys(agents: ComputerUseAgents) {
     return agents.kind === 'all' ? [allCaptainsKey] : agents.agentIds;
 }
 
+export function computerUseCaptains<
+    Agent extends { computerId: string | null; displayName: string; id: string },
+>(agents: readonly Agent[], computerId: string, grantedAgentIds: readonly string[]) {
+    return agents
+        .filter((agent) => agent.computerId === computerId || grantedAgentIds.includes(agent.id))
+        .map((agent) => ({
+            displayName: agent.displayName,
+            home: agent.computerId === computerId,
+            id: agent.id,
+        }))
+        .sort((a, b) => Number(b.home) - Number(a.home));
+}
+
 export function computerUseAgentsSummary(
     agents: ComputerUseAgents,
-    captains: readonly { displayName: string; id: string }[]
+    captains: readonly { displayName: string; home: boolean; id: string }[]
 ) {
     if (agents.kind === 'all') {
-        return captains.length > 0
-            ? `All Captains on this Device, including ones added later (now ${listNames(captains.map((captain) => captain.displayName))}).`
+        const home = captains.filter((captain) => captain.home);
+        return home.length > 0
+            ? `All Captains on this Device, including ones added later (now ${listNames(home.map((captain) => captain.displayName))}).`
             : 'All Captains on this Device, including ones added later.';
     }
     const names = agents.agentIds

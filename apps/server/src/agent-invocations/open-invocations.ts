@@ -7,11 +7,19 @@ export interface OpenInvocation {
     cancelled: boolean;
     command: InvokeCommand;
     computerId: string;
+    fenced: boolean;
     grace: { cancel(): void };
+    homeComputerId: string | null;
     key: DispatchKey;
     runSettled: boolean;
     serverId: string;
     stopped: boolean;
+}
+
+export interface FenceTarget {
+    agentId: string;
+    computerId: string;
+    serverId: string;
 }
 
 export function announceDesktopActivity(invocation: OpenInvocation) {
@@ -56,19 +64,17 @@ export function stoppedResult(invocationId: string) {
     return result;
 }
 
-export function resendGateInput(
-    appOrigin: string,
-    invocationId: string,
-    invocation: OpenInvocation
-) {
-    return {
-        agentId: invocation.command.agentId,
-        appOrigin,
-        computerId: invocation.computerId,
-        invocationId,
-        key: { ...invocation.key, agentId: invocation.command.agentId },
-        online: true,
-        operation: invocation.command.operation,
-        serverId: invocation.serverId,
-    };
+export function markFenced(open: Map<string, OpenInvocation>, target: FenceTarget) {
+    const fenced: [string, OpenInvocation][] = [];
+    for (const [invocationId, invocation] of open) {
+        if (
+            invocation.computerId === target.computerId &&
+            invocation.serverId === target.serverId &&
+            invocation.command.agentId === target.agentId
+        ) {
+            invocation.fenced = true;
+            fenced.push([invocationId, invocation]);
+        }
+    }
+    return fenced;
 }

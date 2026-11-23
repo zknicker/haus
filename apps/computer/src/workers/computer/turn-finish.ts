@@ -1,4 +1,5 @@
 import type {
+    RepoClonesFrame,
     WorkerHeldFrame,
     WorkerTurnAcceptedFrame,
     WorkerTurnActivityFrame,
@@ -18,6 +19,7 @@ import type { ComputerTurnJournal, ComputerTurnRef } from './turn-journal.ts';
 import type { ComputerTurnEnding, ComputerTurnRecord } from './turn-record.ts';
 
 export type ComputerPlaceFrame =
+    | RepoClonesFrame
     | WorkerHeldFrame
     | WorkerTurnAcceptedFrame
     | WorkerTurnActivityFrame

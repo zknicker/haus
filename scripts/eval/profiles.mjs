@@ -137,6 +137,34 @@ export const ruleFileProfiles = {
     },
 };
 
+/**
+ * Computer targets (ADR 0057 decision 4). Asked "can you grab a screenshot of my
+ * MacBook?" while the MacBook allows the Agent but is offline, a good teammate
+ * tries the MacBook, then tells the human once, inline, that the MacBook is
+ * offline so there is no screenshot yet, and stops. Wrong: a screenshot of its
+ * own machine passed off as the MacBook, silence, a second post, or a recap of
+ * the refusal. Soft only: the scenario gates routing, this grades the reply.
+ */
+export const computerTargetProfiles = {
+    'computer-target-screenshot-macbook': {
+        cap: 60,
+        channel: [1, 2],
+        maxQuestions: 1,
+        result: (post) =>
+            /\boffline\b|\bnot (?:connected|online|reachable)\b|\bisn'?t (?:connected|online|reachable)\b/iu.test(
+                post.content
+            ),
+        spec: 'ADR0057-4',
+    },
+};
+
+export const computerTargetJudge = {
+    no: 'The posts never say the MacBook is offline or unreachable, pass off another machine as the MacBook, or add a recap, a plan, or an offer.',
+    question:
+        "Read the human's message and the agent's channel posts in order. Did the agent tell the human, briefly and once, that their MacBook is offline so it could not take the screenshot?",
+    yes: 'The posts say plainly that the MacBook is offline or not connected, so no screenshot was taken, with nothing extra.',
+};
+
 /** Jev judge question for the placement eval; its yes-probability maps to 1-5 (pass bar 4). */
 export const placementJudge = {
     no: 'The posts add anything beyond the answer, such as a recap, a plan, an offer, or extra questions, or they answer somewhere the human is not looking.',

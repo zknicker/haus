@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { getOpenLinksIn, readOpenLinksIn } from '../../../hooks/browser/open-links-preference.ts';
-import { applyOpenLinksIn, LinksGroup } from './links-section.tsx';
+import { applyOpenLinksIn, OpenLinksInRow } from './links-section.tsx';
 
 describe('open links in', () => {
     test('renders the choice', () => {
-        const markup = renderToStaticMarkup(<LinksGroup value="haus" />);
+        const markup = renderToStaticMarkup(<OpenLinksInRow value="haus" />);
         expect(markup).toContain('Open links in');
     });
 

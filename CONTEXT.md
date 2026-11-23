@@ -49,6 +49,13 @@ Computers; one physical machine may have a separate Computer attachment in multi
 servers. The physical installation shares only installed software and native runtime/model access.
 _Avoid_: Hosted Computer, Haus server, tenant, Haus Computer installation, agent runtime, model provider
 
+**Agent access**:
+The per-Computer list of Agents whose tool calls may run there. The Computer's home Agents are
+always on it and never listed; every other Agent is a named grant that only the person who
+attached the Computer adds, and that person, an Owner, or an Admin removes. A call it refuses
+answers `no-access` and runs nothing. Computer use is a further list inside it, for `desktop`.
+_Avoid_: Computer sharing, borrowed Agent, Computer permission
+
 **Haus Computer**:
 The local service installation that connects a physical machine to zero or more Haus servers and
 supervises each Server-scoped Computer attachment independently. One resident OS service supervises
@@ -233,9 +240,10 @@ _Avoid_: Reusable join link, Server membership
 
 **Agent**:
 A persistent non-human Server member whose collaboration identity belongs to one Haus server.
-An Agent is created on one Computer, where its workspace and execution state live; that assignment
-never changes. An offline Computer leaves the Agent offline, and the Computer cannot be removed
-until the Agent is explicitly deleted.
+An Agent has one home Computer, the Computer it was created on, where its workspace lives and its
+tools run by default. A tool call may also name any other Computer whose Agent access list
+allows it (ADR 0057 decision 4). The home Computer cannot be removed until the Agent is
+explicitly deleted.
 _Avoid_: Hosted Agent, Agent session, Agent turn, executor, Computer
 
 **Agent handle**:
@@ -343,30 +351,33 @@ _Avoid_: cloud agent, Cloud Agent work, Run, harness subagent, named teammate
 
 **Computer place**:
 The place `computer:<computerId>`: a Worker that runs as a native Claude Code or Codex session on
-that Computer, with the machine user's own logins, in its own `git worktree` and branch of a
-linked Project repo, and its own drive folder. It is usable only while the Computer's **Workers
-can run here** switch is on, the Computer is online, and some runtime there is ready.
+that Computer, with the machine user's own logins, in its own `git worktree` and branch of each
+of its repos' folders there (ADR 0060), and its own drive folder. It is usable only while the
+Computer's **Workers can run here** switch is on, the Computer is online, and some runtime there
+is ready.
 _Avoid_: local cloud agent, device place, machine Worker
 
 **Workers can run here**:
 The per-Computer switch, Server state on the Computer record, that lets Agents run unattended
-Worker sessions there. Only the person who attached the Computer, an Owner, or an Admin sets it,
-with the Computer's Worker limit beside it. It is off for a newly attached Computer. Turning it off
+Worker sessions there. Only the person who attached the Computer turns it on; that person, an
+Owner, or an Admin turns it off or sets the Worker limit beside it (ADR 0057 decision 4). It is off for a newly attached Computer. Turning it off
 refuses new starts and follow-ups there, settles queued turns `place-off`, lets working turns
 finish, and clears Project defaults that name the Computer. Carrying a cloud place needs no switch.
 _Avoid_: local execution toggle, Worker mode, enable Workers
 
-**Project repo**:
-A repository (`owner/name`) that belongs to a Project, a `project_repos` row. Workers of the
-Project's Tasks run in it. A start that omits `--repo` uses the Project's only repo.
-_Avoid_: linked repo (that is a repo link), workspace repo, Project repository setting
+**Repo**:
+A GitHub repository (`owner/name`) known to the Server, once a folder for it was added or a clone
+of it succeeded. Any Agent or Worker in any Project may use it
+([ADR 0060](docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md), which
+retires the per-Project `project_repos` rows).
+_Avoid_: Project repo, workspace repo, Project repository setting
 
-**Repo link**:
-A Project repo made available on one Computer, a `project_repo_links` row, with an optional local
-checkout path; without one the Computer clones the repo into its data root on first use. A Computer
-place needs a link for the Worker's repo. The person who attached the Computer, an Owner, or an
-Admin links it.
-_Avoid_: checkout setting, repo mapping, clone
+**Repo folder**:
+Where one repo lives on one Computer: an existing checkout the Computer's attacher added, or Haus's
+own clone in the Server's partition (`servers/<server-id>/repos/<owner>/<name>`), made the first
+time a Worker needs the repo there. Workers and Agents work in git worktrees of it, which share
+its `.git` (ADR 0060, which retires `project_repo_links`).
+_Avoid_: repo link, linked repo, checkout setting, repo mapping
 
 **Turn credential**:
 The short-lived, model-visible credential (`HAUS_WORKER_TOKEN`) a Computer mints for one Worker

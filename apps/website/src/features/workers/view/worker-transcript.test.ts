@@ -169,3 +169,32 @@ test('questions closed without an answer show in full, since no card holds them'
     expect(items[0]?.message.content).toContain('Which database?');
     expect(items.map((item) => item.message.content)).not.toContain('Asked a question');
 });
+
+test('a closed Worker that kept unpushed work ends on one line naming its worktree', () => {
+    const kept = '/Users/ada/.haus/computer/servers/srv_one/worktrees/wkr_one/haus/haus';
+    const items = workerTranscriptMessages({
+        chatId: 'cht_task',
+        liveLine: null,
+        reportMessages: new Map(),
+        serverId: 'srv_one',
+        work: work({
+            closedAt: '2026-09-04T13:00:00.000Z',
+            keptWorktree: kept,
+            turns: [turn({ input: [brief], outcome: { kind: 'report', report: askReport } })],
+        }),
+    });
+
+    expect(items.at(-1)).toMatchObject({
+        message: { content: `Kept unpushed work at ${kept}` },
+        notice: true,
+    });
+    expect(
+        workerTranscriptMessages({
+            chatId: 'cht_task',
+            liveLine: null,
+            reportMessages: new Map(),
+            serverId: 'srv_one',
+            work: work({ turns: [turn({ input: [brief] })] }),
+        }).map((item) => item.message.content)
+    ).not.toContain(`Kept unpushed work at ${kept}`);
+});

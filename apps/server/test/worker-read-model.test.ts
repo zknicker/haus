@@ -9,11 +9,7 @@ import { setProjectDefaultWorkerPlace } from '../src/projects/project-worker-def
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { registerTestConnections } from './test-computer-connections.ts';
 import { type WorkerBoard, seedWorkerBoard } from './worker-board.fixture.ts';
-import {
-    addLinkedRepo,
-    attachAnotherComputer,
-    setComputerPlace,
-} from './worker-computer-place.fixture.ts';
+import { attachAnotherComputer, setComputerPlace } from './worker-computer-place.fixture.ts';
 
 let cluster: TestDatabase;
 let connection: HausConnection;
@@ -34,19 +30,18 @@ const owner = (board: WorkerBoard) => ({ id: board.seed.userId });
 async function readProject(board: WorkerBoard) {
     const projects = await listProjects(connection.db, owner(board), board.seed.serverId);
     const project = projects.find((candidate) => candidate.chatId === board.seed.channelId);
-    return { defaultWorkerPlace: project?.defaultWorkerPlace, repos: project?.repos };
+    return {
+        defaultWorkerPlace: project?.defaultWorkerPlace,
+        repos: project && 'repos' in project,
+    };
 }
 
-test('a Project reads its default place with the Computer name and its repos with each link', async () => {
+test('a Project reads its default place with the Computer name and carries no repos', async () => {
     const board = await seedWorkerBoard(connection.db);
     const computerId = board.seed.computerId;
     await setComputerPlace(connection.db, board, computerId, { name: 'mini' });
-    expect(await readProject(board)).toEqual({ defaultWorkerPlace: null, repos: [] });
+    expect(await readProject(board)).toEqual({ defaultWorkerPlace: null, repos: false });
 
-    const linked = await addLinkedRepo(connection.db, board, 'haus/haus', [
-        { checkoutPath: '/Users/person/src/haus', computerId },
-    ]);
-    const unlinked = await addLinkedRepo(connection.db, board, 'haus/site', []);
     await setProjectDefaultWorkerPlace(connection.db, owner(board), {
         place: { computerId, kind: 'computer' },
         projectId: board.seed.channelId,
@@ -55,16 +50,7 @@ test('a Project reads its default place with the Computer name and its repos wit
 
     expect(await readProject(board)).toEqual({
         defaultWorkerPlace: { computerId, computerName: 'mini', kind: 'computer' },
-        repos: [
-            {
-                id: linked,
-                links: [
-                    { checkoutPath: '/Users/person/src/haus', computerId, computerName: 'mini' },
-                ],
-                repository: 'haus/haus',
-            },
-            { id: unlinked, links: [], repository: 'haus/site' },
-        ],
+        repos: false,
     });
 
     await setProjectDefaultWorkerPlace(connection.db, owner(board), {

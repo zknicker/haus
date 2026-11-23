@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ComputerAgentGrid } from './computer-agents.tsx';
+import { ComputerAgentGrid, ComputerAgentsEmpty } from './computer-agents.tsx';
 
 test('Computer Agents render as a HeroUI Pro data grid', () => {
     const html = renderToStaticMarkup(
@@ -16,7 +16,6 @@ test('Computer Agents render as a HeroUI Pro data grid', () => {
                     wakePause: null,
                 },
             ]}
-            state={{ status: 'ready' }}
         />
     );
 
@@ -33,42 +32,27 @@ test('Computer Agents render as a HeroUI Pro data grid', () => {
     expect(html).not.toContain('min-h-64');
 });
 
-test('Computer Agents keep the data grid shell when empty', () => {
-    const html = renderToStaticMarkup(
-        <ComputerAgentGrid onOpenAgent={() => undefined} rows={[]} state={{ status: 'ready' }} />
-    );
+test('an empty device shows one stock row, not an empty table', () => {
+    const html = renderToStaticMarkup(<ComputerAgentsEmpty state={{ status: 'ready' }} />);
 
-    expect(html).toContain('data-slot="data-grid"');
-    expect(html).toContain('Captain');
-    expect(html).not.toContain('Runtime');
-    expect(html).toContain('Model');
-    expect(html).toContain('Status');
-    expect(html).toContain('data-slot="empty-state"');
-    expect(html).toContain('min-h-64');
-    expect(html).toContain('No Captains assigned');
+    expect(html).not.toContain('data-slot="data-grid"');
+    expect(html).toContain('No Captains on this device');
 });
 
-test('Computer Agents show a loading state before first data', () => {
-    const html = renderToStaticMarkup(
-        <ComputerAgentGrid onOpenAgent={() => undefined} rows={[]} state={{ status: 'loading' }} />
-    );
+test('Computer Agents stay blank before first data', () => {
+    const html = renderToStaticMarkup(<ComputerAgentsEmpty state={{ status: 'loading' }} />);
 
     expect(html).toContain('Loading Captains');
-    expect(html).toContain('min-h-64');
-    expect(html).not.toContain('No Captains assigned');
+    expect(html).toContain('aria-busy="true"');
+    expect(html).not.toContain('No Captains on this device');
 });
 
 test('Computer Agents distinguish an unavailable directory from an empty one', () => {
     const html = renderToStaticMarkup(
-        <ComputerAgentGrid
-            onOpenAgent={() => undefined}
-            rows={[]}
-            state={{ onRetry: () => undefined, status: 'unavailable' }}
-        />
+        <ComputerAgentsEmpty state={{ onRetry: () => undefined, status: 'unavailable' }} />
     );
 
     expect(html).toContain('Captains unavailable');
-    expect(html).toContain('min-h-64');
-    expect(html).toContain('Try again');
-    expect(html).not.toContain('No Captains assigned');
+    expect(html).toContain('Retry');
+    expect(html).not.toContain('No Captains on this device');
 });

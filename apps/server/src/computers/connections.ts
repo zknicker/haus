@@ -20,6 +20,7 @@ import { BrowserReplyOffice } from './browser-reply-office.ts';
 import { CloudAgentCapabilityReplyOffice } from './cloud-agent-capability-reply-office.ts';
 import { HostSkillFileReplies } from './host-skill-file-replies.ts';
 import { InventoryRefreshReplies } from './inventory-refresh-replies.ts';
+import { RepoFolderReplies } from './repo-folder-replies.ts';
 import { RuntimeSettingsSends } from './runtime-settings-sends.ts';
 import { SecretsReplyOffice } from './secrets-reply-office.ts';
 
@@ -46,6 +47,7 @@ interface AttachedComputer {
 export class ComputerConnections implements DeliveryTransport {
     readonly hostSkillFiles: HostSkillFileReplies;
     readonly inventoryRefresh: InventoryRefreshReplies;
+    readonly repoFolders: RepoFolderReplies;
     /** Every `server-runtime-settings` send, ordered per Server. */
     readonly runtimeSettings = new RuntimeSettingsSends(this);
     readonly secrets: SecretsReplyOffice;
@@ -55,30 +57,14 @@ export class ComputerConnections implements DeliveryTransport {
     private readonly cloudAgentCapabilityReplies: CloudAgentCapabilityReplyOffice;
 
     constructor(runtime: EffectRuntime<never>) {
-        this.hostSkillFiles = new HostSkillFileReplies({
-            runtime,
-            send: (computerId, frame) => this.send(computerId, frame),
-        });
-        this.inventoryRefresh = new InventoryRefreshReplies({
-            runtime,
-            send: (computerId, frame) => this.send(computerId, frame),
-        });
-        this.agentReplies = new AgentReplyOffice({
-            runtime,
-            send: (computerId, frame) => this.send(computerId, frame),
-        });
-        this.cloudAgentCapabilityReplies = new CloudAgentCapabilityReplyOffice({
-            runtime,
-            send: (computerId, frame) => this.send(computerId, frame),
-        });
-        this.browserReplies = new BrowserReplyOffice({
-            runtime,
-            send: (computerId, frame) => this.send(computerId, frame),
-        });
-        this.secrets = new SecretsReplyOffice({
-            runtime,
-            send: (computerId, frame) => this.send(computerId, frame),
-        });
+        const send = (computerId: string, frame: AgentCommand) => this.send(computerId, frame);
+        this.hostSkillFiles = new HostSkillFileReplies({ runtime, send });
+        this.inventoryRefresh = new InventoryRefreshReplies({ runtime, send });
+        this.repoFolders = new RepoFolderReplies({ runtime, send });
+        this.agentReplies = new AgentReplyOffice({ runtime, send });
+        this.cloudAgentCapabilityReplies = new CloudAgentCapabilityReplyOffice({ runtime, send });
+        this.browserReplies = new BrowserReplyOffice({ runtime, send });
+        this.secrets = new SecretsReplyOffice({ runtime, send });
     }
 
     register(computerId: string, computer: AttachedComputer): void {
@@ -88,6 +74,7 @@ export class ComputerConnections implements DeliveryTransport {
     unregister(computerId: string): void {
         this.hostSkillFiles.disconnect(computerId);
         this.inventoryRefresh.disconnect(computerId);
+        this.repoFolders.disconnect(computerId);
         this.attached.delete(computerId);
         this.agentReplies.disconnect(computerId);
         this.browserReplies.disconnect(computerId);

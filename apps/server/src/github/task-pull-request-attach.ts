@@ -5,7 +5,7 @@ import { pullRequestReadingsTable, taskPullRequestsTable } from '../postgres/sch
 import { toPullRequestReading } from '../workers/pull-request-readings.ts';
 import { GithubApiError } from './github-api.ts';
 import type { GithubApp } from './github-app.ts';
-import { createInstallationTokens } from './github-bot.ts';
+import { createInstallationTokens } from './installation-tokens.ts';
 import { type GithubPullRequestFacts, readGithubPullRequest } from './pull-request-read.ts';
 import { findPullRequestInstallation } from './pull-request-refresh.ts';
 

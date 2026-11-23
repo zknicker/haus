@@ -1,5 +1,5 @@
 import { EmptyState } from '@heroui-pro/react';
-import { Button, Tooltip } from '@heroui/react';
+import { Button, SearchField, Tooltip } from '@heroui/react';
 import { InformationCircleIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { useState } from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
@@ -7,7 +7,11 @@ import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { SettingsPageColumn } from '../settings/layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../settings/layout/settings-page-header.tsx';
-import { buildHostSkillSections, type HostSkill } from './host-skill-catalog.ts';
+import {
+    buildHostSkillSections,
+    filterHostSkillSections,
+    type HostSkill,
+} from './host-skill-catalog.ts';
 import { HostSkillDialog } from './host-skill-dialog.tsx';
 import { HostSkillSection } from './host-skill-section.tsx';
 
@@ -16,7 +20,9 @@ export function SkillsSettings({ serverId }: { serverId: string }) {
     const computers = useComputers(serverId);
     const agents = useAgents(serverId);
     const [selected, setSelected] = useState<HostSkill | null>(null);
-    const sections = buildHostSkillSections(computers.data ?? []);
+    const [query, setQuery] = useState('');
+    const installed = buildHostSkillSections(computers.data ?? []);
+    const sections = filterHostSkillSections(installed, query);
     const skillAgents = new Map(
         (agents.data ?? []).map((agent) => [
             agent.id,
@@ -27,6 +33,20 @@ export function SkillsSettings({ serverId }: { serverId: string }) {
     return (
         <SettingsPageColumn width="table">
             <SettingsPageHeader info={<SkillsInfo />} title="Skills" />
+            {installed.length > 0 ? (
+                <SearchField
+                    aria-label="Search skills"
+                    className="w-64 max-w-full"
+                    onChange={setQuery}
+                    value={query}
+                >
+                    <SearchField.Group>
+                        <SearchField.SearchIcon />
+                        <SearchField.Input placeholder="Search skills" />
+                        <SearchField.ClearButton />
+                    </SearchField.Group>
+                </SearchField>
+            ) : null}
             {computers.error && !computers.data ? (
                 <SkillsMessage
                     description="Haus couldn’t load the device skill inventory. Try opening this page again."
@@ -36,11 +56,14 @@ export function SkillsSettings({ serverId }: { serverId: string }) {
                 sections.length > 0 ? (
                     sections.map((section) => (
                         <HostSkillSection
+                            isFiltered={query.trim().length > 0}
                             key={section.id}
                             onSelect={setSelected}
                             section={section}
                         />
                     ))
+                ) : installed.length > 0 ? (
+                    <p className="text-muted py-8 text-center text-sm">No skills match.</p>
                 ) : (
                     <SkillsMessage
                         description="Skills installed on a device appear here once it reports them."

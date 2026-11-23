@@ -18,12 +18,14 @@ export interface RunAuthority {
 
 export interface BashToolInput {
     readonly command: string;
+    readonly computer?: string;
     readonly description?: string;
     readonly timeout?: number;
 }
 
 export interface EditToolInput {
     readonly command: 'view' | 'create' | 'str_replace' | 'insert';
+    readonly computer?: string;
     readonly file_text?: string;
     readonly insert_line?: number;
     readonly new_str?: string;
@@ -38,15 +40,18 @@ export interface ExecuteToolInput {
 
 export interface ShellToolInput {
     readonly command: readonly string[];
+    readonly computer?: string;
     readonly timeout_ms?: number;
     readonly workdir?: string;
 }
 
 export interface ApplyPatchToolInput {
+    readonly computer?: string;
     readonly input: string;
 }
 
 export interface ViewImageToolInput {
+    readonly computer?: string;
     readonly path: string;
 }
 

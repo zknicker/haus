@@ -12,6 +12,7 @@ const families = [
     'message',
     'profile',
     'reminder',
+    'repo',
     'server',
     'skill',
     'trigger',

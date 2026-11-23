@@ -40,7 +40,9 @@ export function CloudAgentCapabilityRow({
                         {view.statusLabel}
                     </Chip>
                 </ItemCard.Title>
-                <ItemCard.Description>{view.description}</ItemCard.Description>
+                <ItemCard.Description className="whitespace-normal">
+                    {view.description}
+                </ItemCard.Description>
             </ItemCard.Content>
             <ItemCard.Action>
                 <div className="flex items-center gap-2">

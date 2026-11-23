@@ -39,7 +39,7 @@ export function ComputerSystemLog({
         <section>
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>
-                    <ItemCardGroup.Title>System Log</ItemCardGroup.Title>
+                    <ItemCardGroup.Title>System log</ItemCardGroup.Title>
                 </ItemCardGroup.Header>
                 {systemLog.data?.hasFrequentDisconnects ? (
                     <Alert status="warning">

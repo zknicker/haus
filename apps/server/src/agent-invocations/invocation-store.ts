@@ -1,13 +1,9 @@
-import type {
-    DesktopRefusal,
-    InvocationOperationKind,
-    InvocationRequestFrame,
-    InvokeResult,
-} from '@haus/api';
-import { and, asc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
+import type { InvocationRefusal, InvocationRequestFrame, InvokeResult } from '@haus/api';
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentInvocationsTable, agentsTable } from '../postgres/schema.ts';
+import type { InvocationVerdict } from './invocation-gate.ts';
 
 export type InvocationRecord = typeof agentInvocationsTable.$inferSelect;
 
@@ -32,30 +28,27 @@ export async function recordInvocation(
     input: {
         computerId: string | null;
         frame: InvocationRequestFrame;
-        offline: boolean;
-        operationKind: InvocationOperationKind;
+        requestedAt: Date;
         serverId: string;
         timeoutMs: number;
+        verdict: InvocationVerdict;
     }
 ) {
-    const now = new Date();
-    const { frame } = input;
+    const { frame, requestedAt, verdict } = input;
     const [created] = await db
         .insert(agentInvocationsTable)
         .values({
             agentId: frame.agentId,
             computerId: input.computerId,
             id: createOpaqueId('inv'),
-            operationKind: input.operationKind,
-            requestedAt: now,
+            operationKind: frame.operation.kind,
+            requestedAt,
             runId: frame.runId,
             seq: frame.seq,
             serverId: input.serverId,
             timeoutMs: input.timeoutMs,
             toolCallId: frame.toolCallId,
-            ...(input.offline
-                ? { finishedAt: now, outcome: 'offline' as const, state: 'finished' as const }
-                : { state: 'sent' as const }),
+            ...verdictColumns(verdict, requestedAt),
         })
         .onConflictDoNothing()
         .returning();
@@ -82,48 +75,54 @@ export async function recordInvocation(
 }
 
 export async function recordSendFailure(db: HausDatabase, invocationId: string) {
-    await db
+    const [record] = await db
         .update(agentInvocationsTable)
         .set({ finishedAt: new Date(), outcome: 'offline', state: 'finished' })
         .where(
             and(eq(agentInvocationsTable.id, invocationId), eq(agentInvocationsTable.state, 'sent'))
-        );
+        )
+        .returning();
+    return record ?? null;
 }
 
-export async function recordDesktopRefusal(
-    db: HausDatabase,
-    invocationId: string,
-    refusal: DesktopRefusal
-) {
+export async function recordGateRefusal(db: HausDatabase, invocationId: string) {
     const [refused] = await db
         .update(agentInvocationsTable)
-        .set({
-            finishedAt: sql`coalesce(${agentInvocationsTable.finishedAt}, now())`,
-            outcome: sql`case when ${agentInvocationsTable.state} = 'sent' then 'failed' else ${agentInvocationsTable.outcome} end`,
-            refusal,
-            state: 'finished',
-        })
+        .set({ finishedAt: new Date(), outcome: 'failed', state: 'finished' })
         .where(
-            and(
-                eq(agentInvocationsTable.id, invocationId),
-                isNull(agentInvocationsTable.refusal),
-                or(
-                    eq(agentInvocationsTable.state, 'sent'),
-                    and(
-                        eq(agentInvocationsTable.state, 'finished'),
-                        eq(agentInvocationsTable.outcome, 'offline')
-                    )
-                )
-            )
+            and(eq(agentInvocationsTable.id, invocationId), eq(agentInvocationsTable.state, 'sent'))
         )
         .returning({ outcome: agentInvocationsTable.outcome });
-    return refused?.outcome === 'failed' || refused?.outcome === 'offline' ? refused.outcome : null;
+    if (refused) {
+        return 'failed' as const;
+    }
+    const [settled] = await db
+        .select({ outcome: agentInvocationsTable.outcome })
+        .from(agentInvocationsTable)
+        .where(eq(agentInvocationsTable.id, invocationId))
+        .limit(1);
+    return settled?.outcome === 'offline' ? ('offline' as const) : null;
 }
 
-export async function recordScreenRefusal(
+export async function recordSentRefusal(
     db: HausDatabase,
     invocationId: string,
-    refusal: DesktopRefusal
+    refusal: InvocationRefusal
+) {
+    const [record] = await db
+        .update(agentInvocationsTable)
+        .set({ finishedAt: new Date(), outcome: 'failed', refusal, state: 'finished' })
+        .where(
+            and(eq(agentInvocationsTable.id, invocationId), eq(agentInvocationsTable.state, 'sent'))
+        )
+        .returning();
+    return record ?? null;
+}
+
+export async function recordFinishedRefusal(
+    db: HausDatabase,
+    invocationId: string,
+    refusal: InvocationRefusal
 ) {
     await db
         .update(agentInvocationsTable)
@@ -232,4 +231,22 @@ export async function recordOpenInvocationsUnknown(db: HausDatabase) {
         .update(agentInvocationsTable)
         .set({ finishedAt: new Date(), outcome: 'unknown', state: 'unknown' })
         .where(inArray(agentInvocationsTable.state, openStates));
+}
+
+function verdictColumns(verdict: InvocationVerdict, at: Date) {
+    switch (verdict.kind) {
+        case 'send':
+            return { state: 'sent' as const };
+        case 'offline':
+            return { finishedAt: at, outcome: 'offline' as const, state: 'finished' as const };
+        case 'refuse':
+            return {
+                finishedAt: at,
+                outcome: verdict.outcome,
+                refusal: verdict.refusal,
+                state: 'finished' as const,
+            };
+        default:
+            return verdict satisfies never;
+    }
 }

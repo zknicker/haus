@@ -1,6 +1,7 @@
 import * as z from 'zod';
 import { idSchema } from './chat.ts';
 import type { components } from './generated/openapi.d.ts';
+import { repoNameSchema } from './repos.ts';
 import { taskKeySchema } from './task-key.ts';
 import { workerTurnAttemptSchema } from './worker-computer-frames.ts';
 import { workerObservedResultSchema, workerTurnInputTextMaxLength } from './worker-outcome.ts';
@@ -12,7 +13,6 @@ import {
     workerBranchSchema,
     workerProviderResultSchema,
     workerRefSchema,
-    workerRepositorySchema,
     workerSchema,
     workerSummaryMaxLength,
     workerTitleSchema,
@@ -71,7 +71,7 @@ export type WorkerUpdatedEvent = z.infer<typeof workerUpdatedEventSchema>;
 /**
  * `haus worker start`: the brief and where it runs. `place` takes the object
  * or any string form, a Computer name included; without it the Task's Project
- * default applies. `repository` defaults to the Project's only repo. `runtime`
+ * default applies. `repository` is required: a GitHub `owner/name`. `runtime`
  * and `model` are for Computer places and refuse `WORKER_OPTION_CLOUD`
  * elsewhere. Every refusal comes before anything is written. `nonce` makes a
  * retried start return the same Worker.
@@ -82,7 +82,7 @@ export const agentWorkerStartInputSchema = z
         model: workerModelSchema.optional(),
         nonce: nonceSchema,
         place: workerPlaceInputSchema.optional(),
-        repository: workerRepositorySchema.optional(),
+        repository: repoNameSchema,
         runtime: workerRuntimeSchema.optional(),
         startingRef: workerRefSchema.nullable().default(null),
         task: taskKeySchema.optional(),

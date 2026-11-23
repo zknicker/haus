@@ -1,6 +1,7 @@
 import { readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { processExists } from './pid-lock.ts';
+import { releasePartitionWorktrees } from './repos/partition-worktrees.ts';
 import {
     detachServerWorkspaces,
     listDirectories,
@@ -57,7 +58,13 @@ export async function purgeServerPartition(
                 `Server partition kept: ${stuck.length} workspace volume(s) are still mounted.`
             );
         }
-        await removePartition(partitionRoot);
+        const keep = await releasePartitionWorktrees(input.dataRoot, input.serverId);
+        await removePartition(partitionRoot, keep);
+        if (keep.length > 0) {
+            console.warn(
+                `Kept ${keep.length} path(s) of deleted Server ${input.serverId} that hold unpushed work: ${keep.join(', ')}. Each later start retries them.`
+            );
+        }
     }
     await releaseVacantReservations(input.dataRoot);
 }
@@ -105,13 +112,25 @@ async function markPendingPurge(partitionRoot: string): Promise<boolean> {
     }
 }
 
-async function removePartition(partitionRoot: string) {
-    for (const entry of await readdir(partitionRoot)) {
-        if (entry !== pendingPurgeMarker) {
-            await rm(join(partitionRoot, entry), { force: true, recursive: true });
+async function removePartition(partitionRoot: string, keep: readonly string[]) {
+    await removeExcept(partitionRoot, keep);
+    if (keep.length === 0) {
+        await rm(partitionRoot, { force: true, recursive: true });
+    }
+}
+
+async function removeExcept(folder: string, keep: readonly string[]) {
+    for (const entry of await readdir(folder)) {
+        const path = join(folder, entry);
+        if (entry === pendingPurgeMarker || keep.includes(path)) {
+            continue;
+        }
+        if (keep.some((kept) => kept.startsWith(`${path}/`))) {
+            await removeExcept(path, keep);
+        } else {
+            await rm(path, { force: true, recursive: true });
         }
     }
-    await rm(partitionRoot, { force: true, recursive: true });
 }
 
 /** The purging pid, `0` when unreadable (an owner that died mid-write), or null. */

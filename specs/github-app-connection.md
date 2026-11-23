@@ -1,8 +1,9 @@
 ---
-summary: Normative contract for the built-in GitHub connection — the Haus GitHub App, sign-in, installation binding and owner authority, repository access, lifecycle reconciliation, deletion, tokens, environment, migration from the OAuth App, App UI, and the implementation plan.
+summary: Normative contract for the built-in GitHub connection — the Haus GitHub App, sign-in, installation binding and owner authority, repository access, lifecycle reconciliation, deletion, tokens, Agent identity and Agent git on a Computer, environment, migration from the OAuth App, App UI, and the implementation plan.
 read_when:
   - changing the GitHub connection, its sign-in, installations, permissions, or repository access
   - changing GitHub App credentials, environment items, or token handling
+  - changing how an Agent's git on a Computer pushes, its credential helper, or its commit identity
   - implementing any slice of the GitHub App work (see Implementation plan)
 ---
 
@@ -180,6 +181,7 @@ deletion leaves Triggers `agent_access_revoked` at their next match.
 | User refresh (`ghr_`) | 6 months | `mcp_secrets` | refresh; expiry means **Sign in required** |
 | App JWT (RS256) | ≤ 10 minutes | memory | installation reads, delivery API, minting |
 | Installation (`ghs_`) | 1 hour | memory | Agent tool calls on a bound installation |
+| Scoped installation (`ghs_`) | 1 hour | Server memory; git's pipe on the Computer | Agent git for one repo ([Git on a Computer](#git-on-a-computer)) |
 
 `apps/server/src/github/app-auth.ts` signs the JWT (`iat` 60 s back, `exp` 9 minutes).
 
@@ -188,8 +190,16 @@ deletion leaves Triggers `agent_access_revoked` at their next match.
 Agents share one GitHub identity, the Haus App bot. `apps/server/src/github/github-bot.ts` wraps the
 GitHub connection's MCP fetch: a `tools/call` whose `owner` argument matches a live installation on
 that connection (by account login, case-insensitive) is sent with that installation's token, so
-GitHub attributes it to the bot. Discovery, and any call with no `owner` or no matching
-installation, keep the user token and write as the signed-in person.
+GitHub attributes it to the bot. A `tools/call` whose `owner` has no installation is refused with a
+tool error that names the owner, and nothing reaches GitHub, so an Agent never writes as the
+signed-in person (2026-11-23; until then it fell back to the user token).
+
+**The exception.** Discovery (`initialize`, `tools/list`) and a read that names no `owner`, by tool
+name `get_*`, `list_*` or `search_*` (`get_me`, `search_code`, `search_issues` with no owner), keep
+the connection's user token, because no installation answers for them and they change nothing.
+They read as the signed-in person, within what that person can see. Any other ownerless call, such
+as `create_repository` in the person's own account, is refused. A tool call whose arguments do not
+parse is refused rather than sent.
 
 A call with a matching installation never falls back to the user token: a failed mint, including
 for a suspended installation, fails the call. A 401 mints once more and retries. An installation
@@ -202,6 +212,49 @@ line to the `body` of every GitHub tool that writes text people read: comments, 
 review comments, issues, and pull requests. It applies whichever token the call uses, and an edit
 that sends the line back is not signed twice. Actions with no text, such as a bare approval, carry
 no signature.
+
+## Git on a Computer
+
+An Agent commits, pushes and opens pull requests itself, as the bot
+([ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md) decision
+5). Its pull requests go through the MCP tools above. Its git on a Computer gets a token this way:
+
+- **The helper.** Every Agent command's environment configures git through `GIT_CONFIG_*`, scoped
+  to that command's processes: `credential.helper` is reset, which drops any inherited helper
+  (Apple's git ships `osxkeychain` in its system config, and `gh` adds one), then set to
+  `haus-computer __git-credential <server-root> <invocation-id>`, with
+  `credential.https://github.com.useHttpPath` on and `git@github.com:` and `ssh://git@github.com/`,
+  with or without `:22`, rewritten to `https://github.com/`. The machine's own GitHub login, keychain and SSH keys are
+  never used. Workers keep the machine's login (ADR 0056 decision 7).
+- **The token.** Git asks the helper only after GitHub answers 401, so public fetches never ask.
+  For a GitHub HTTPS repo the helper reads the attachment's Computer credential and calls
+  `POST /computer/github/git-credential`. The Server mints an installation token with
+  `repositories: [<name>]` and `permissions: { contents: write }` for an open Agent invocation
+  on that Computer, or `contents: read` for the Computer's own cleanup fetch, and caches it per
+  installation, repo and access, replaced five minutes before expiry. The helper writes it to
+  git's stdin pipe only: it is not in the environment, the command line, a tool result or a log.
+- **Which installation.** A repo `owner/name` maps to the live (`active`) installation on the
+  Server whose account login is `owner`. GitHub allows one installation per account, so there is
+  at most one.
+- **Refusals.** The helper prints the refusal on stderr after `haus: ` and answers `quit=1`, so git
+  stops there. The Server refuses when the App is not installed on the owner or its token cannot
+  reach the repo ("The Haus GitHub App needs access to owner/name."), when the Agent has no grant on
+  the installation's GitHub connection (write only), when the Computer has no folder for the repo,
+  when the Agent is not allowed on the Computer, and when the invocation is no longer open. The App
+  holds no Workflows permission, so GitHub refuses a push that changes `.github/workflows/`.
+- **Identity.** `GET /computer/github/bot` answers `<slug>[bot]` and
+  `<id>+<slug>[bot]@users.noreply.github.com`. The Server reads the bot's user id once per process
+  from `GET /users/<slug>[bot]`; the Computer keeps the answer an hour and sets
+  `GIT_AUTHOR_*` and `GIT_COMMITTER_*` in every Agent command. Until the bot is known, because
+  the Server has no App or does not answer, the name is empty, so git refuses each commit and
+  names `haus-github-app-bot-unavailable-commit-again-shortly` rather than committing as a folder's
+  own `user.name`. A failed read is asked again on the next command; a Server with no App, after a
+  minute. Each commit ends with a
+  `Co-authored-by:` trailer per person whose message the turn answers, which
+  `haus repo co-author @handle…` prints from their Haus account's name and email.
+- **Trust boundary.** Agent commands run as the machine user, so an Agent can run the helper itself
+  for a token while its command is open. The token reaches one repo, for an hour at most, and only
+  repos with a folder on that Computer.
 
 ## No Haus-owned tools in v1
 

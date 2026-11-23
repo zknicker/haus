@@ -12,6 +12,7 @@ import { unfollowAgentTask } from './attention.ts';
 import { authorizeAgentRunner, sendAgentApiError, sendAgentReadError } from './auth.ts';
 import { registerAgentChannelRoutes } from './channel-routes.ts';
 import { registerAgentClaimRoutes } from './claim-routes.ts';
+import { registerAgentComputerRoutes } from './computer-routes.ts';
 import { registerAgentConnectionRoutes } from './connection-routes.ts';
 import { readAgentServerDirectory } from './directory.ts';
 import { registerAgentDispatchIds } from './dispatch-hooks.ts';
@@ -27,6 +28,7 @@ import { registerAgentProfileRoutes } from './profile-routes.ts';
 import { registerAgentPullRequestAttachRoute } from './pull-request-attach-route.ts';
 import { registerAgentReactionRoutes } from './reaction-routes.ts';
 import { registerAgentReminderRoutes } from './reminder-routes.ts';
+import { registerAgentRepoRoutes } from './repo-routes.ts';
 import { registerAgentTaskRoutes } from './task-routes.ts';
 import { registerAgentTriggerRoutes } from './trigger-routes.ts';
 import { registerWorkerReportRoute } from './worker-report-route.ts';
@@ -104,6 +106,7 @@ export function registerAgentApiRoutes(
         postCommitWork: options.postCommitWork,
     });
     registerAgentChannelRoutes(app, { db: options.db });
+    registerAgentComputerRoutes(app, { computers: options.computers, db: options.db });
     registerAgentConnectionRoutes(app, options.db);
     registerWorkerReportRoute(app, { db: options.db });
     registerAgentWorkerRoutes(app, {
@@ -123,6 +126,7 @@ export function registerAgentApiRoutes(
     registerAgentMcpRoutes(app, { db: options.db, runtime: options.mcpRuntime });
     registerAgentReactionRoutes(app, options.db);
     registerAgentReminderRoutes(app, options.db);
+    registerAgentRepoRoutes(app, options.db);
     registerAgentClaimRoutes(app, {
         agentDelivery: options.agentDelivery,
         db: options.db,

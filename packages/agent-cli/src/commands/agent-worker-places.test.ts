@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import type { AgentApiRequest } from '../agent-api-client.ts';
 import { AgentCliError } from '../agent-error.ts';
+import { UsageError } from '../parse.ts';
 import { args, requester, work } from './agent-worker-fixture.ts';
 import { runWorkerPlaces } from './agent-worker-places.ts';
 import { runWorkerStart } from './agent-worker.ts';
@@ -22,15 +23,15 @@ function deps(seen: AgentApiRequest[], output: string[] = []) {
     };
 }
 
-test('a Computer start sends its place, runtime, and model, and leaves the repo to the Project', async () => {
+test('a Computer start sends its place, runtime, model, and repo', async () => {
     const seen: AgentApiRequest[] = [];
     const output: string[] = [];
     const startArgs = args({
         '--model': 'gpt-5.6-sol',
         '--on': 'computer:mini',
+        '--repo': 'Haus/Haus',
         '--runtime': 'codex',
     });
-    delete startArgs.values['--repo'];
 
     expect(await runWorkerStart(startArgs, deps(seen, output))).toBe(0);
     expect(seen[0]?.body).toEqual({
@@ -38,6 +39,7 @@ test('a Computer start sends its place, runtime, and model, and leaves the repo 
         model: 'gpt-5.6-sol',
         nonce: 'worker-nonce',
         place: 'computer:mini',
+        repository: 'haus/haus',
         runtime: 'codex',
         startingRef: 'main',
         task: 'SEC-12',
@@ -46,6 +48,20 @@ test('a Computer start sends its place, runtime, and model, and leaves the repo 
     expect(output.join('').split('\n')[0]).toBe(
         `Worker ${work.id} started on mini (computer:cmp_1234567890abcdef) in codex for SEC-12: Fix the flaky delivery test (haus/haus@main).`
     );
+});
+
+test('a start with no --repo is a usage error and sends nothing', async () => {
+    const seen: AgentApiRequest[] = [];
+    const startArgs = args();
+    delete startArgs.values['--repo'];
+
+    const refused = runWorkerStart(startArgs, deps(seen));
+
+    await expect(refused).rejects.toBeInstanceOf(UsageError);
+    await expect(refused).rejects.toThrow(
+        '--repo is required. Name the repository as owner/name, for example --repo haus/haus.'
+    );
+    expect(seen).toEqual([]);
 });
 
 test('an unknown runtime fails before anything is sent', async () => {
@@ -77,7 +93,7 @@ test('a place refusal gains the step to list places', async () => {
     });
 });
 
-test('places lists every place with its switch, runtimes, repos, slots, and the default', async () => {
+test('places lists every place with its switch, runtimes, repo folders, slots, and the default', async () => {
     const seen: AgentApiRequest[] = [];
     const output: string[] = [];
     const response = {
@@ -87,7 +103,7 @@ test('places lists every place with its switch, runtimes, repos, slots, and the 
                 freeSlots: 3,
                 kind: 'computer',
                 limit: 4,
-                linkedRepositories: ['acme/app'],
+                repoFolders: ['acme/app', 'acme/site'],
                 name: 'mini',
                 online: true,
                 projectDefault: true,
@@ -107,7 +123,7 @@ test('places lists every place with its switch, runtimes, repos, slots, and the 
                 freeSlots: 4,
                 kind: 'computer',
                 limit: 4,
-                linkedRepositories: [],
+                repoFolders: [],
                 name: 'laptop',
                 online: true,
                 projectDefault: false,
@@ -117,7 +133,6 @@ test('places lists every place with its switch, runtimes, repos, slots, and the 
             },
             { freeSlots: 10, kind: 'cursor', limit: 10, projectDefault: false, ready: true },
         ],
-        repositories: ['acme/app'],
         task: 'SEC-12',
     };
     await runWorkerPlaces(
@@ -136,8 +151,8 @@ test('places lists every place with its switch, runtimes, repos, slots, and the 
     expect(seen[0]?.query).toEqual({ path: '/api/agent/workers/places', task: 'SEC-12' });
     expect(output.join('')).toBe(
         [
-            'Places for SEC-12 (Project repos: acme/app):',
-            'computer:cmp_1234567890abcdef mini: ready, 3 of 4 slots free; runtimes claude-code, codex (Codex has no login on this Computer. Run codex login.); repos acme/app [Project default]',
+            'Places for SEC-12:',
+            'computer:cmp_1234567890abcdef mini: ready, 3 of 4 slots free; runtimes claude-code, codex (Codex has no login on this Computer. Run codex login.); repo folders acme/app, acme/site [Project default]',
             'computer:cmp_abcdef1234567890 laptop: Workers can run here is off',
             'cursor: ready, 10 of 10 slots free',
             '',

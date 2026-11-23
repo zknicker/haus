@@ -18,7 +18,7 @@ export function ProfileIdentityPending({ error }: { error?: string }) {
             ) : null}
             {[
                 { title: 'Photo' },
-                { title: 'Display Name' },
+                { title: 'Display name' },
                 { info: handleInfo, title: 'Handle' },
                 { info: timezoneInfo, title: 'Timezone' },
             ].map((row, index) => (
@@ -37,13 +37,10 @@ export function ProfileIdentityPending({ error }: { error?: string }) {
                                 <div aria-hidden="true" className="size-10" />
                             ) : (
                                 <TextField
-                                    aria-label={
-                                        row.title === 'Display Name' ? 'Display name' : row.title
-                                    }
+                                    aria-label={row.title}
                                     className="w-56 max-w-full"
                                     isDisabled
                                     value=""
-                                    variant="secondary"
                                 >
                                     <Input />
                                 </TextField>

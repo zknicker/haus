@@ -9,6 +9,7 @@ import {
 import { agentReasoningEffortSchema } from './agent-execution.ts';
 import { agentIdleCompactionReportSchema } from './agent-idle-compaction.ts';
 import {
+    invocationComputerTargetSchema,
     invocationOperationSchema,
     invocationOutcomeSchema,
     invocationOutputSchema,
@@ -85,6 +86,8 @@ export const invocationRequestFrameSchema = z
     .object({
         ...dispatchKeySchema.shape,
         agentId: idSchema,
+        /** The call's `computer` field as the model wrote it; absent runs on the home Computer. */
+        computer: invocationComputerTargetSchema.optional(),
         operation: invocationOperationSchema,
         timeoutMs: z.number().int().positive().max(invocationTimeoutsMs.bash.max).optional(),
         type: z.literal('invocation-request'),

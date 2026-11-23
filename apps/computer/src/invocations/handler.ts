@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import {
+    agentFenceCommandSchema,
     agentPathSegment,
     type InvokeCommand,
     invocationOutcomeNotices,
@@ -12,10 +13,12 @@ import { holdDriveFolder } from '../drive/turn-sync.ts';
 import { createKeyedQueue } from '../keyed-queue.ts';
 import { cancelledBeforeStart, executeInvocation } from './handler-run.ts';
 import { type AcceptedRecord, createLedger, finishedRecord, type Ledger } from './ledger.ts';
+import { createOfflineHold } from './offline-hold.ts';
 import type { InvocationHandler, InvocationHandlerInput } from './operation.ts';
 
 interface ActiveInvocation {
     accepted: Promise<AcceptedRecord | null>;
+    agentId: string;
     controller: AbortController;
 }
 
@@ -25,6 +28,7 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
     const active = new Map<string, ActiveInvocation>();
     const queue = createKeyedQueue((error) => console.error('Invocation did not finish.', error));
     const pending = new Set<Promise<void>>();
+    const offline = createOfflineHold();
 
     function track(work: Promise<void>) {
         const tracked = work.catch((error: unknown) =>
@@ -54,7 +58,7 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
         }
         const controller = new AbortController();
         const accepted = accept(command);
-        active.set(id, { accepted, controller });
+        active.set(id, { accepted, agentId: command.agentId, controller });
         track(
             queue.run(command.agentId, async () => {
                 const record = await accepted;
@@ -96,6 +100,7 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
         controller: AbortController
     ) {
         const id = command.invocationId;
+        await offline.released(controller.signal);
         const result = controller.signal.aborted
             ? cancelledBeforeStart(id)
             : await executeInvocation(command, {
@@ -111,6 +116,15 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
             active.delete(id);
         }
         input.send(result);
+    }
+
+    function fence(agentId: string) {
+        for (const entry of active.values()) {
+            if (entry.agentId === agentId) {
+                entry.controller.abort('cancel');
+            }
+        }
+        return queue.settled(agentId);
     }
 
     async function answerFromLedger(agentId: string, invocationId: string) {
@@ -139,14 +153,14 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
     }
 
     async function settled() {
-        if (pending.size > 0) {
-            await Promise.all(pending);
-            await settled();
+        while (pending.size > offline.parked()) {
+            await Promise.race([...pending, offline.parking()]);
         }
     }
 
     return {
         connected: async () => {
+            offline.release();
             const records = await ledger.list();
             const unconfirmed = records
                 .flatMap((record) =>
@@ -163,6 +177,8 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
                 agentByInvocation.delete(invocationId);
             }
         },
+        disconnected: offline.hold,
+        fence,
         receive: (frame) => {
             if (!isRecord(frame)) {
                 return false;
@@ -174,6 +190,11 @@ export async function createInvocationHandler(input: InvocationHandlerInput) {
                 case 'invoke-cancel':
                     withParsed(invokeCancelCommandSchema, frame, ({ invocationId }) =>
                         active.get(invocationId)?.controller.abort('cancel')
+                    );
+                    return true;
+                case 'agent-fence':
+                    withParsed(agentFenceCommandSchema, frame, ({ agentId }) =>
+                        track(fence(agentId))
                     );
                     return true;
                 case 'invoke-result-ack':

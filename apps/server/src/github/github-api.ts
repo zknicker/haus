@@ -5,12 +5,15 @@
 const githubApiBaseUrl = 'https://api.github.com';
 const githubApiVersion = '2022-11-28';
 
-/** Who a request acts as: the App itself (JWT), one installation, or the connection's user. */
+/** Who a request acts as: the App itself (JWT), one installation, the connection's user, or nobody. */
 export type GithubCredential =
     | { jwt: string; kind: 'app' }
+    | { kind: 'anonymous' }
     | { kind: 'installation' | 'user'; token: string };
 
 export interface GithubRequest {
+    /** A JSON request body. */
+    body?: Record<string, unknown>;
     credential: GithubCredential;
     method?: 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
     /** Path under the API root, such as `/app/installations/42`, or a full `Link` URL. */
@@ -62,18 +65,18 @@ export async function githubRequest(
     transport: GithubApiTransport = {}
 ): Promise<GithubResponse> {
     const url = githubUrl(request, transport.baseUrl ?? githubApiBaseUrl);
+    const authorization = authorizationOf(request.credential);
+    const headers: Record<string, string> = {
+        accept: 'application/vnd.github+json',
+        ...(authorization ? { authorization } : {}),
+        ...(request.body ? { 'content-type': 'application/json' } : {}),
+        'x-github-api-version': githubApiVersion,
+    };
     let response: Response;
     try {
         response = await (transport.fetch ?? fetch)(url, {
-            headers: {
-                accept: 'application/vnd.github+json',
-                authorization: `Bearer ${
-                    request.credential.kind === 'app'
-                        ? request.credential.jwt
-                        : request.credential.token
-                }`,
-                'x-github-api-version': githubApiVersion,
-            },
+            ...(request.body ? { body: JSON.stringify(request.body) } : {}),
+            headers,
             method: request.method ?? 'GET',
         });
     } catch (cause) {
@@ -112,6 +115,17 @@ export function classifyGithubFailure(
         return 'retryable';
     }
     return 'refused';
+}
+
+function authorizationOf(credential: GithubCredential) {
+    switch (credential.kind) {
+        case 'anonymous':
+            return null;
+        case 'app':
+            return `Bearer ${credential.jwt}`;
+        default:
+            return `Bearer ${credential.token}`;
+    }
 }
 
 function isRateLimited(headers: Headers) {

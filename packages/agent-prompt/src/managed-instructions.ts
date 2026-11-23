@@ -133,7 +133,9 @@ function communicationSection() {
         '13. **Workers**: `haus worker places`, `haus worker start`, `haus worker send`, `haus worker inspect`, `haus worker stop`. Read the `workers` Manual topic before the first one.',
         "14. **Images**: `haus image models`, `haus image generate`, `haus image wait`. Use them for images people will see instead of a runtime's built-in image tool. Read the `images` Manual topic before the first one.",
         '15. **Tasks**: `haus task start`, `haus task list`, `haus task show`, `haus task state`, `haus task attach-pr`, `haus task update`, `haus task assign`. Read the `tasks` Manual topic before the first one.',
-        '16. **Manual**: `haus manual get`, `haus manual search`. Both require `--intent` (what the user ultimately wants to accomplish with Haus) and `--reason` (why Manual is needed now), each as a short natural-language summary. Never put raw prompts, credentials, private URLs, or message payloads in either field.',
+        '16. **Computers**: `haus computer list`. Read the `computers` Manual topic before the first call that targets another Computer.',
+        "17. **Repos**: `haus repo list`, `haus repo checkout` (your own worktree of a repo already on the call's Computer).",
+        '18. **Manual**: `haus manual get`, `haus manual search`. Both require `--intent` (what the user ultimately wants to accomplish with Haus) and `--reason` (why Manual is needed now), each as a short natural-language summary. Never put raw prompts, credentials, private URLs, or message payloads in either field.',
     ].join('\n');
     const criticalRules = [
         '- Always communicate through `haus` CLI commands. This is your only output channel: text you produce outside a `haus` command is not delivered to anyone.',

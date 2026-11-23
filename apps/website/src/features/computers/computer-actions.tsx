@@ -1,32 +1,21 @@
-import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
+import { ItemCardGroup } from '@heroui-pro/react';
 import { CodeBlock } from '@heroui-pro/react/code-block';
-import { Button, Separator, Tooltip } from '@heroui/react';
 import { useState } from 'react';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
-import {
-    type ComputerRemovalAvailability,
-    computerRemovalDescription,
-    useComputerRemovalAvailability,
-} from './computer-removal.ts';
 import { ComputerUpdateControls } from './computer-update-controls.tsx';
 import {
     ComputerUpdatePreviewMenu,
     type ComputerUpdatePreviewState,
 } from './computer-update-preview.tsx';
 
-export function ComputerActions({
+export function ComputerUpdates({
     computerId,
-    onRemove,
     serverId,
-    serverSlug,
 }: {
     computerId: string;
-    onRemove: () => void;
     serverId: string;
-    serverSlug: string;
 }) {
     const computers = useComputers(serverId);
-    const removalAvailability = useComputerRemovalAvailability(serverId, computerId);
     const [updatePreviewState, setUpdatePreviewState] =
         useState<ComputerUpdatePreviewState>('live');
     const computer = computers.data?.find((candidate) => candidate.id === computerId);
@@ -36,10 +25,10 @@ export function ComputerActions({
     }
 
     return (
-        <section className="grid gap-8">
+        <section>
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header className="flex items-center justify-between">
-                    <ItemCardGroup.Title>Device management</ItemCardGroup.Title>
+                    <ItemCardGroup.Title>Updates</ItemCardGroup.Title>
                     {import.meta.env.DEV ? (
                         <ComputerUpdatePreviewMenu
                             onChange={setUpdatePreviewState}
@@ -53,11 +42,8 @@ export function ComputerActions({
                         previewState={updatePreviewState}
                         serverId={serverId}
                     />
-                    <Separator />
-                    <ComputerRemovalAction availability={removalAvailability} onRemove={onRemove} />
                 </ItemCardGroup>
             </ItemCardGroup>
-            <RecoveryCommands serverSlug={serverSlug} />
         </section>
     );
 }
@@ -80,7 +66,7 @@ export function RecoveryCommands({ serverSlug }: { serverSlug: string }) {
     return (
         <ItemCardGroup variant="transparent">
             <ItemCardGroup.Header>
-                <ItemCardGroup.Title>Recovery Commands</ItemCardGroup.Title>
+                <ItemCardGroup.Title>Recovery commands</ItemCardGroup.Title>
             </ItemCardGroup.Header>
             <CodeBlock>
                 <CodeBlock.Header>
@@ -90,47 +76,5 @@ export function RecoveryCommands({ serverSlug }: { serverSlug: string }) {
                 <CodeBlock.Code code={commands} language="shellscript" />
             </CodeBlock>
         </ItemCardGroup>
-    );
-}
-
-export function ComputerRemovalAction({
-    availability,
-    onRemove,
-}: {
-    availability: ComputerRemovalAvailability;
-    onRemove: () => void;
-}) {
-    const isBlocked = availability.status !== 'ready';
-    const description = computerRemovalDescription(availability);
-    const button = (
-        <Button isDisabled={isBlocked} onPress={onRemove} size="sm" variant="danger-soft">
-            Remove device
-        </Button>
-    );
-
-    return (
-        <ItemCard>
-            <ItemCard.Content>
-                <ItemCard.Title>Remove device</ItemCard.Title>
-                <ItemCard.Description>
-                    Permanently remove this device. All Captains must be deleted first.
-                </ItemCard.Description>
-            </ItemCard.Content>
-            <ItemCard.Action>
-                {isBlocked ? (
-                    <Tooltip delay={0}>
-                        <Tooltip.Trigger aria-label={description}>
-                            <span className="inline-flex cursor-not-allowed">{button}</span>
-                        </Tooltip.Trigger>
-                        <Tooltip.Content showArrow>
-                            <Tooltip.Arrow />
-                            <p className="max-w-xs">{description}</p>
-                        </Tooltip.Content>
-                    </Tooltip>
-                ) : (
-                    button
-                )}
-            </ItemCard.Action>
-        </ItemCard>
     );
 }

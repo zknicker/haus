@@ -2,6 +2,7 @@ import { AgentCliError, renderAgentCliError } from './agent-error.ts';
 import { AGENT_SUBCOMMANDS } from './commands/agent-agent.ts';
 import { ATTACHMENT_SUBCOMMANDS } from './commands/agent-attachment.ts';
 import { CLAIM_SUBCOMMANDS } from './commands/agent-claim.ts';
+import { COMPUTER_SUBCOMMANDS } from './commands/agent-computer.ts';
 import { CONNECTION_SUBCOMMANDS } from './commands/agent-connection.ts';
 import { CHANNEL_SUBCOMMANDS, SERVER_SUBCOMMANDS } from './commands/agent-directory.ts';
 import { DRIVE_SUBCOMMANDS } from './commands/agent-drive.ts';
@@ -11,6 +12,7 @@ import { MANUAL_EXAMPLE_FLOWS, MANUAL_SUBCOMMANDS } from './commands/agent-manua
 import { MESSAGE_SUBCOMMANDS } from './commands/agent-message.ts';
 import { PROFILE_SUBCOMMANDS } from './commands/agent-profile.ts';
 import { REMINDER_SUBCOMMANDS } from './commands/agent-reminder.ts';
+import { REPO_SUBCOMMANDS } from './commands/agent-repo.ts';
 import { SKILL_SUBCOMMANDS } from './commands/agent-skill.ts';
 import { TASK_SUBCOMMANDS } from './commands/agent-task.ts';
 import { TRIGGER_SUBCOMMANDS } from './commands/agent-trigger.ts';
@@ -25,6 +27,7 @@ export const commandGroups = {
     channel: CHANNEL_SUBCOMMANDS,
     claim: CLAIM_SUBCOMMANDS,
     worker: WORKER_SUBCOMMANDS,
+    computer: COMPUTER_SUBCOMMANDS,
     connection: CONNECTION_SUBCOMMANDS,
     drive: DRIVE_SUBCOMMANDS,
     image: IMAGE_SUBCOMMANDS,
@@ -33,6 +36,7 @@ export const commandGroups = {
     message: MESSAGE_SUBCOMMANDS,
     profile: PROFILE_SUBCOMMANDS,
     reminder: REMINDER_SUBCOMMANDS,
+    repo: REPO_SUBCOMMANDS,
     server: SERVER_SUBCOMMANDS,
     skill: SKILL_SUBCOMMANDS,
     task: TASK_SUBCOMMANDS,

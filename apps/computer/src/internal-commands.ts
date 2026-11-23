@@ -1,6 +1,7 @@
 import { runAgentCli } from '@haus/agent-cli';
 import { validateEmbeddedAgentDesktop } from './desktop/agent-desktop-binary.ts';
 import { validateMcpExecutor } from './mcp-executor-release.ts';
+import { runGitCredentialHelper } from './repos/git-credential-helper.ts';
 import { validateComputerRuntimeAssets } from './runtime/runtime-assets.ts';
 import { runWorkerCli } from './worker-cli/worker-cli.ts';
 
@@ -11,6 +12,13 @@ export async function runInternalCommand(args: string[]): Promise<boolean> {
             return true;
         case '__agent':
             process.exitCode = await runAgentCli(args.slice(1));
+            return true;
+        case '__git-credential':
+            process.exitCode = await runGitCredentialHelper(args.slice(1), {
+                stdin: await new Response(Bun.stdin.stream()).text(),
+                writeErr: (text) => process.stderr.write(text),
+                writeOut: (text) => process.stdout.write(text),
+            });
             return true;
         case '__worker':
             process.exitCode = await runWorkerCli(args.slice(1));

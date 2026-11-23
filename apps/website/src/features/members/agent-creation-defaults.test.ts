@@ -1,7 +1,52 @@
 import { expect, test } from 'bun:test';
 import type { Agent } from '@haus/api';
+import type { HausOutputs } from '../../lib/haus-server.tsx';
 import type { ReportedComputer } from './agent-creation-contract.ts';
-import { resolveAgentCreationDefaults } from './agent-creation-defaults.ts';
+import { creatableComputers, resolveAgentCreationDefaults } from './agent-creation-defaults.ts';
+
+type Computer = HausOutputs['computer']['list'][number];
+
+const runnerModels = [
+    { id: 'codex', label: 'Codex', models: [{ id: 'gpt-5.6-sol', label: 'Sol' }] },
+];
+
+test('offers only the Computers the person attached', () => {
+    const computers = [
+        { attachedByCurrentUser: false, id: 'cmp_theirs', name: 'Their Laptop' },
+        { attachedByCurrentUser: true, id: 'cmp_mine', name: 'My Studio' },
+    ] as Computer[];
+
+    const offered = creatableComputers(computers, runnerModels);
+
+    expect(offered.map((computer) => [computer.id, computer.label])).toEqual([
+        ['cmp_mine', 'My Studio'],
+    ]);
+    expect(resolveAgentCreationDefaults(offered, []).computerId).toBe('cmp_mine');
+});
+
+test('offers nothing when the person attached no Computer', () => {
+    const computers = [
+        { attachedByCurrentUser: false, id: 'cmp_theirs', name: 'Their Laptop' },
+    ] as Computer[];
+
+    const offered = creatableComputers(computers, runnerModels);
+
+    expect(offered).toEqual([]);
+    expect(resolveAgentCreationDefaults(offered, []).computerId).toBe('');
+});
+
+test('does not default to a Computer the person did not attach, even the first Agent’s', () => {
+    const computers = [
+        { attachedByCurrentUser: false, id: 'cmp_theirs', name: 'Their Laptop' },
+        { attachedByCurrentUser: true, id: 'cmp_mine', name: 'My Studio' },
+    ] as Computer[];
+
+    const defaults = resolveAgentCreationDefaults(creatableComputers(computers, runnerModels), [
+        { computerId: 'cmp_theirs', desiredRuntimeId: 'codex' } as Agent,
+    ]);
+
+    expect(defaults.computerId).toBe('cmp_mine');
+});
 
 const reported: ReportedComputer[] = [
     {

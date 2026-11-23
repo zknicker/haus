@@ -6,6 +6,8 @@
 import { UsageError } from './args.mjs';
 import {
     attentionProfiles,
+    computerTargetJudge,
+    computerTargetProfiles,
     githubTriggerProfiles,
     placementJudge,
     placementProfiles,
@@ -134,6 +136,17 @@ export const evals = {
         ],
         summary:
             'Tasks a person assigns are worked one at a time, most urgent first, skipping one blocked on a person; Tasks the Agent starts itself may run side by side.',
+    },
+    // Per-call Computer targets (ADR 0057 decision 4). Serial: the MacBook
+    // scenario seeds a second Computer on the stack. It needs the change, so a
+    // baseline build fails it at the seed; read stays-home's baseline rate.
+    'computer-target': {
+        judge: computerTargetJudge,
+        lanes: 1,
+        profiles: computerTargetProfiles,
+        scenarios: ['computer-target-stays-home', 'computer-target-screenshot-macbook'],
+        summary:
+            'A tool call that names no Computer runs on the home Computer, and "a screenshot of my MacBook" goes to the MacBook.',
     },
     // Two Agents and a human in one channel, each scenario with a decoy the
     // Manual card warns against. Serial: the scenarios assert silence.

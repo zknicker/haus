@@ -13,7 +13,7 @@ import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
-import { projectReposTable, workerTurnsTable, workersTable } from '../postgres/schema.ts';
+import { workerTurnsTable, workersTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { withDispatch } from './dispatch-worker-turns.ts';
 import { WorkerConflictError } from './errors.ts';
@@ -65,17 +65,6 @@ export async function startWorker(
             serverId: runner.serverId,
             taskChatId: task.chatId,
         });
-        if (plan.addRepository) {
-            await tx
-                .insert(projectReposTable)
-                .values({
-                    id: createOpaqueId('prp'),
-                    projectId: task.projectId,
-                    repository: plan.repository,
-                    serverId: runner.serverId,
-                })
-                .onConflictDoNothing();
-        }
         const workerId = createOpaqueId('wkr');
         await tx.insert(workersTable).values({
             agentId: runner.agentId,
@@ -156,8 +145,7 @@ async function readStartedByNonce(
         worker.taskId !== taskId ||
         (requested && formatWorkerPlace(workerPlaceOf(worker)) !== formatWorkerPlace(requested)) ||
         worker.title !== input.title ||
-        (input.repository !== undefined &&
-            worker.repository.toLowerCase() !== input.repository.toLowerCase()) ||
+        worker.repository.toLowerCase() !== input.repository ||
         worker.startingRef !== input.startingRef ||
         turn.input?.[0]?.text !== input.brief
     ) {

@@ -10,6 +10,7 @@ import type { HausUser } from '../users/haus-user.ts';
 import { withDispatch } from '../workers/dispatch-worker-turns.ts';
 import { settleWorkerTurnAsFailed } from '../workers/settle-worker-turn.ts';
 import { requireComputerSteward } from './computer-steward.ts';
+import { ComputerSetupDeniedError } from './service.ts';
 
 export async function setComputerWorkers(
     db: HausDatabase,
@@ -21,6 +22,15 @@ export async function setComputerWorkers(
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const computer = await requireComputerSteward(tx, member, input);
+        if (
+            input.enabled &&
+            !computer.workersEnabled &&
+            computer.attachedByUserId !== computer.stewardUserId
+        ) {
+            throw new ComputerSetupDeniedError(
+                'Only the person who attached this Computer can turn on "Workers can run here".'
+            );
+        }
         await tx
             .update(computersTable)
             .set({

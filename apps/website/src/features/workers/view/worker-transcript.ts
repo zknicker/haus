@@ -33,7 +33,10 @@ export function workerTranscriptMessages(input: {
     liveLine: null | string;
     reportMessages: ReadonlyMap<string, ChatMessage>;
     serverId: string;
-    work: Pick<Worker, 'closedAt' | 'closingAt' | 'id' | 'place' | 'turns' | 'updatedAt'>;
+    work: Pick<
+        Worker,
+        'closedAt' | 'closingAt' | 'id' | 'keptWorktree' | 'place' | 'turns' | 'updatedAt'
+    >;
 }) {
     const base = { chatId: input.chatId, serverId: input.serverId };
     const author = workerAuthor(input.work);
@@ -75,6 +78,18 @@ export function workerTranscriptMessages(input: {
                 content: input.liveLine,
                 createdAt: input.work.updatedAt,
                 id: `${input.work.id}:live`,
+            }),
+            notice: true,
+            steps: null,
+        });
+    }
+    if (input.work.keptWorktree) {
+        items.push({
+            message: message(base, {
+                author,
+                content: `Kept unpushed work at ${input.work.keptWorktree}`,
+                createdAt: input.work.closedAt ?? input.work.updatedAt,
+                id: `${input.work.id}:kept-worktree`,
             }),
             notice: true,
             steps: null,

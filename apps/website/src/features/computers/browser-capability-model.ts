@@ -2,6 +2,7 @@ import type { AgentRuntimeBrowserSettings } from '@haus/api';
 
 export type BrowserCapabilityStatus =
     | 'attention'
+    | 'checking'
     | 'not-configured'
     | 'off'
     | 'ready'
@@ -14,6 +15,15 @@ export interface BrowserCapabilityView {
     status: BrowserCapabilityStatus;
     statusLabel: string;
 }
+
+export const browserCheckingView: BrowserCapabilityView = {
+    canConfigure: false,
+    canDisable: false,
+    canEnable: false,
+    description: 'Asking this device about its Chrome.',
+    status: 'checking',
+    statusLabel: 'Checking',
+};
 
 export function browserCapabilityView({
     error,

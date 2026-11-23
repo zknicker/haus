@@ -1,10 +1,11 @@
 import type { WorkerRuntime, WorkerTurnStartFrame } from '@haus/api';
 import type { RuntimeSession } from '../../runtime/driver.ts';
 import { activityLine, activityThrottle } from './activity.ts';
-import { addWorkerCheckout, checkoutGitRoots } from './checkout.ts';
+import { addWorkerWorktree, worktreeGitRoots } from './checkout.ts';
 import { mintTurnCredential } from './credentials.ts';
 import { pullWorkerDrive } from './drive-sync.ts';
 import { prepareWorkerCli, workerResumeState } from './harness.ts';
+import { worktreePath } from './layout.ts';
 import { resolveWorkerRepo } from './repos.ts';
 import { workerStepReporter, workerTextMask } from './step-summary.ts';
 import {
@@ -98,6 +99,11 @@ export async function launchComputerTurn(
     await finishTurn(context, ref, await runHarness(context, launchable, prepared, active));
 }
 
+function workerWorktreePath(context: ComputerPlaceContext, frame: Launchable) {
+    const { dataRoot, serverId } = context.repos;
+    return worktreePath(dataRoot, serverId, frame.workerId, frame.checkout.repository);
+}
+
 function stoppedBeforeLaunch(active: ActiveTurn) {
     return exitOf(active, 'exited') === 'stopped' ? 'stopped' : 'crashed-before-launch';
 }
@@ -111,11 +117,12 @@ async function prepare(
     const signal = active.abort.signal;
     const layout = context.journal.layout(frame.workerId);
     const repoPath = await resolveWorkerRepo(frame.checkout, { ...context.repos, signal });
-    await context.journal.setRepo(frame.workerId, repoPath);
-    await addWorkerCheckout({
+    const worktree = workerWorktreePath(context, frame);
+    await context.journal.setRepo(frame.workerId, { repoPath, worktreePath: worktree });
+    await addWorkerWorktree({
         branch: frame.checkout.branch,
-        checkout: layout.checkout,
-        repoPath,
+        folder: repoPath,
+        path: worktree,
         signal,
         startingRef: frame.checkout.startingRef,
     });
@@ -125,7 +132,7 @@ async function prepare(
     }
     await pullWorkerDrive({ agentId: file.agentId, layout, server: context.server }, token);
     return {
-        cwd: layout.checkout,
+        cwd: worktree,
         env: await prepareWorkerCli(layout, context.server.serverOrigin, token),
         modelId: frame.model.id,
         runtimeId: frame.runtime,
@@ -133,7 +140,7 @@ async function prepare(
             layout.drive,
             layout.report,
             layout.tmp,
-            ...(await checkoutGitRoots(layout.checkout, frame.checkout.branch)),
+            ...(await worktreeGitRoots(worktree)),
         ],
     };
 }
@@ -182,7 +189,7 @@ async function runHarness(
         }
         const layout = context.journal.layout(frame.workerId);
         const redact = workerTextMask({
-            checkout: layout.checkout,
+            checkout: launch.cwd,
             drive: layout.drive,
             environment: { ...process.env, ...launch.env },
             token: launch.env.HAUS_WORKER_TOKEN,

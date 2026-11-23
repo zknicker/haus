@@ -85,6 +85,7 @@ export function toWorker(row: WorkerRow, details: WorkerDetails = noDetails): Wo
         environmentName: row.environmentName,
         id: row.id,
         job: deriveWorkerJob({ startedAt, status: row.status, terminalAt, turns: recent }),
+        keptWorktree: row.keptWorktreePath,
         launchMessageId: row.launchMessageId,
         model: row.model,
         originChatId: row.originChatId,

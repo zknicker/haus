@@ -12,8 +12,6 @@ const nextActions: Partial<Record<WorkerRefusalCode, string>> = {
     WORKER_PLACE_OFF: `${placesStep}, then pick another place or ask a person to turn on Workers can run here for that Computer.`,
     WORKER_PLACE_REQUIRED: `${placesStep}, then start again with --on <place>.`,
     WORKER_PLACE_UNAVAILABLE: `${placesStep}, then pick a ready place.`,
-    WORKER_REPO_NOT_LINKED: `${placesStep}, then pick a Computer that links the repo or ask a person to link it there.`,
-    WORKER_REPO_UNKNOWN: 'Name the repository with --repo owner/name.',
     WORKER_RUNTIME_UNAVAILABLE: `${placesStep}, then pick a ready --runtime there or leave it out.`,
 };
 

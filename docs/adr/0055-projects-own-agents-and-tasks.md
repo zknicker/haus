@@ -13,7 +13,9 @@ read_when:
 
 ## Status
 
-Accepted 2026-11-19. Not yet implemented. Part of the direction in
+Accepted 2026-11-19. Not yet implemented. Proposed to be amended 2026-11-22 by
+[ADR 0060](0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md) in decisions 2 and 4:
+a Project carries no repos, because repos belong to the Server. Part of the direction in
 [the Capy and Amp proposal](../proposals/capy-product-model.md), with
 [ADR 0054](0054-drive-holds-what-agents-know-and-follow.md) (Drive) and
 [ADR 0056](0056-agents-run-quiet-workers-anywhere.md) (Workers). Amends

@@ -67,7 +67,7 @@
         "test:computer": "VARLOCK_ENV=test varlock run -- bun run --filter @haus/computer test",
         "test:fast": "VARLOCK_ENV=test varlock run -- bun test packages scripts apps/website/electron",
         "test:licensed": "VARLOCK_ENV=test varlock run -- node --test scripts/release/desktop-release-dependencies.licensed-check.mjs",
-        "test:prompt-contract": "VARLOCK_ENV=test varlock run -- bun test packages/agent-prompt/src/managed-instructions.test.ts packages/agent-prompt/src/managed-instructions-inbox.test.ts packages/agent-prompt/src/managed-instructions-artifacts.test.ts packages/agent-prompt/src/managed-instructions-memory.test.ts packages/agent-prompt/src/skill-listing.test.ts packages/agent-prompt/src/runner-text.test.ts packages/agent-prompt/src/rules-block.test.ts",
+        "test:prompt-contract": "VARLOCK_ENV=test varlock run -- bun test packages/agent-prompt/src/managed-instructions.test.ts packages/agent-prompt/src/managed-instructions-inbox.test.ts packages/agent-prompt/src/managed-instructions-artifacts.test.ts packages/agent-prompt/src/managed-instructions-memory.test.ts packages/agent-prompt/src/managed-instructions-families.test.ts packages/agent-prompt/src/skill-listing.test.ts packages/agent-prompt/src/runner-text.test.ts packages/agent-prompt/src/rules-block.test.ts",
         "test:server": "VARLOCK_ENV=test varlock run -- bun run --filter @haus/server test",
         "test:tracer": "cd apps/website && bun x playwright test --config agent-e2e/playwright.config.ts",
         "typecheck": "bun run typecheck:fast && bun run typecheck:licensed",

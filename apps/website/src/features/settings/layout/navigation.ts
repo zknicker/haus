@@ -4,6 +4,7 @@ import {
     ArchiveIcon,
     ComputerIcon,
     Exchange01Icon,
+    GitBranchIcon,
     KeyboardIcon,
     Notification03Icon,
     PaintBoardIcon,
@@ -22,7 +23,6 @@ export const settingsNavItems = [
         access: 'everyone',
         icon: UserCircleIcon,
         id: 'profile',
-        kind: 'page',
         label: 'Profile',
         rows: ['Display name', 'Handle', 'Photo', 'Timezone', 'Sign out'],
     },
@@ -30,7 +30,6 @@ export const settingsNavItems = [
         access: 'everyone',
         icon: PreferenceHorizontalIcon,
         id: 'preferences',
-        kind: 'page',
         label: 'Preferences',
         rows: ['Window layout', 'Show claims in chat', 'Open links in'],
     },
@@ -38,7 +37,6 @@ export const settingsNavItems = [
         access: 'everyone',
         icon: PaintBoardIcon,
         id: 'appearance',
-        kind: 'page',
         label: 'Appearance',
         rows: [
             'Mode',
@@ -60,7 +58,6 @@ export const settingsNavItems = [
         access: 'everyone',
         icon: Notification03Icon,
         id: 'notifications',
-        kind: 'page',
         label: 'Notifications',
         rows: ['System notifications', "Notify me when I'm needed", 'Test notification'],
     },
@@ -68,7 +65,6 @@ export const settingsNavItems = [
         access: 'everyone',
         icon: KeyboardIcon,
         id: 'shortcuts',
-        kind: 'page',
         label: 'Shortcuts',
         rows: ['Keyboard shortcuts', ...shortcutRegistry.map((shortcut) => shortcut.command)],
     },
@@ -76,7 +72,6 @@ export const settingsNavItems = [
         access: 'everyone',
         icon: Exchange01Icon,
         id: 'servers',
-        kind: 'page',
         label: 'Servers',
         rows: ['Your Servers', 'Switch Server', 'Create Server', 'Join Server'],
     },
@@ -84,7 +79,6 @@ export const settingsNavItems = [
         access: 'everyone',
         icon: AiBrain01Icon,
         id: 'models',
-        kind: 'page',
         label: 'Models',
         rows: [
             'Claude plan',
@@ -100,9 +94,15 @@ export const settingsNavItems = [
     },
     {
         access: 'everyone',
+        icon: GitBranchIcon,
+        id: 'git',
+        label: 'Git',
+        rows: ['Branch prefix', 'Commit author'],
+    },
+    {
+        access: 'everyone',
         icon: ZapIcon,
         id: 'skills',
-        kind: 'page',
         label: 'Skills',
         rows: ['Skill library', 'Installed skills'],
     },
@@ -110,7 +110,6 @@ export const settingsNavItems = [
         access: 'everyone',
         icon: Plug01Icon,
         id: 'connections',
-        kind: 'page',
         label: 'Connections',
         rows: ['MCP', 'GitHub', 'Captain access'],
     },
@@ -118,7 +117,6 @@ export const settingsNavItems = [
         access: 'operator',
         icon: ComputerIcon,
         id: 'computers',
-        kind: 'page',
         label: 'Devices',
         rows: ['Add device', 'Browser', 'Secrets', '1Password', 'Updates'],
     },
@@ -126,7 +124,6 @@ export const settingsNavItems = [
         access: 'everyone',
         icon: ServerStack01Icon,
         id: 'general',
-        kind: 'page',
         label: 'General',
         rows: ['Name', 'Address', 'Server ID', 'Idle compaction', 'Delete Server'],
     },
@@ -134,7 +131,6 @@ export const settingsNavItems = [
         access: 'everyone',
         icon: UserMultipleIcon,
         id: 'members',
-        kind: 'page',
         label: 'Members',
         rows: ['Invite', 'Invitations', 'Roles', 'Remove member', 'Leave Server'],
     },
@@ -142,7 +138,6 @@ export const settingsNavItems = [
         access: 'everyone',
         icon: Analytics01Icon,
         id: 'usage',
-        kind: 'page',
         label: 'Usage',
         rows: ['Tokens', 'Processed', 'Cache hit rate', 'Token usage detail'],
     },
@@ -150,27 +145,23 @@ export const settingsNavItems = [
         access: 'everyone',
         icon: ArchiveIcon,
         id: 'archived',
-        kind: 'link',
         label: 'Archived chats',
-        rows: [],
+        rows: ['Restore'],
     },
 ] as const satisfies ReadonlyArray<{
     access: 'everyone' | 'operator';
     icon: IconSvgElement;
     id: string;
-    kind: 'link' | 'page';
     label: string;
     rows: readonly string[];
 }>;
 
 export type SettingsNavItem = (typeof settingsNavItems)[number];
 export type SettingsRouteTab = SettingsNavItem['id'];
-export type SettingsNavLinkId = Extract<SettingsNavItem, { kind: 'link' }>['id'];
-export type SettingsPageId = Extract<SettingsNavItem, { kind: 'page' }>['id'];
-
-export const settingsPages = settingsNavItems.filter(
-    (item): item is Extract<SettingsNavItem, { kind: 'page' }> => item.kind === 'page'
-);
+/** The page's name for the window and its desktop tab; undefined off a known page. */
+export function settingsPageLabel(id: string | undefined) {
+    return settingsNavItems.find((item) => item.id === id)?.label;
+}
 
 export const settingsNavSections = [
     {
@@ -178,7 +169,7 @@ export const settingsNavSections = [
         itemIds: ['profile', 'preferences', 'appearance', 'notifications', 'shortcuts', 'servers'],
         label: 'You',
     },
-    { id: 'captains', itemIds: ['models', 'skills', 'connections'], label: 'Captains' },
+    { id: 'captains', itemIds: ['models', 'git', 'skills', 'connections'], label: 'Captains' },
     {
         id: 'haus',
         itemIds: ['general', 'members', 'computers', 'usage', 'archived'],

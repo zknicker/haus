@@ -4,18 +4,14 @@ import { Navigate, useParams } from 'react-router-dom';
 import { ComputerPage } from '../../features/computers/computer-page.tsx';
 import { DevicesPage } from '../../features/computers/devices-page.tsx';
 import { HumanProfile } from '../../features/members/human-profile/human-profile.tsx';
+import { ArchivedChatsPage } from '../../features/servers/chat/archived-chats-page.tsx';
 import { MembersPage } from '../../features/servers/members-page.tsx';
 import { RequireOperator } from '../../features/servers/require-operator.tsx';
 import { useServerContext } from '../../features/servers/server-context.ts';
-import {
-    serverArchivedChatsRoute,
-    serverSettingsSectionRoute,
-} from '../../features/servers/server-routes.ts';
+import { serverSettingsSectionRoute } from '../../features/servers/server-routes.ts';
 import { AppearanceSettings } from '../../features/settings/appearance/page.tsx';
-import type {
-    SettingsNavLinkId,
-    SettingsPageId,
-} from '../../features/settings/layout/navigation.ts';
+import { GitSettings } from '../../features/settings/git/page.tsx';
+import type { SettingsRouteTab } from '../../features/settings/layout/navigation.ts';
 import { ConnectionPage } from '../../features/settings/mcp/connection-page.tsx';
 import { ConnectionsPage } from '../../features/settings/mcp/connections-page.tsx';
 import { useConnectionSignIn } from '../../features/settings/mcp/use-connection-sign-in.ts';
@@ -38,8 +34,9 @@ interface SectionContext {
 }
 
 /** Section registry: one renderer per settings section, no dispatch chain. */
-const sectionRenderers: Record<SettingsPageId, (context: SectionContext) => ReactNode> = {
+const sectionRenderers: Record<SettingsRouteTab, (context: SectionContext) => ReactNode> = {
     appearance: () => <AppearanceSettings />,
+    archived: ({ server }) => <ArchivedChatsPage server={server} />,
     computers: ({ server }) => (
         <RequireOperator description={devicesOperatorOnly} role={server.role}>
             <DevicesPage serverId={server.id} serverSlug={server.slug} />
@@ -47,6 +44,7 @@ const sectionRenderers: Record<SettingsPageId, (context: SectionContext) => Reac
     ),
     connections: () => <ConnectionsPage embedded />,
     general: ({ server }) => <ServerSettings server={server} />,
+    git: () => <GitSettings />,
     members: ({ server }) => <MembersSection server={server} />,
     models: ({ server }) => (
         <ModelsSettings
@@ -63,19 +61,6 @@ const sectionRenderers: Record<SettingsPageId, (context: SectionContext) => Reac
     skills: ({ server }) => <SkillsSettings serverId={server.id} />,
     usage: ({ server }) => <AgentsUsageOverview serverId={server.id} />,
 };
-
-/**
- * Entry points, not sections. Archived chats is a chat list with its own
- * standalone route, and the settings rail links out to it. The rail builds every row's href from its id, so the click lands here
- * and hands off.
- */
-const linkedSectionRoutes: Record<SettingsNavLinkId, (server: ServerSummary) => string> = {
-    archived: (server) => serverArchivedChatsRoute(server.slug),
-};
-
-const linkedSections = new Map<string, (server: ServerSummary) => string>(
-    Object.entries(linkedSectionRoutes)
-);
 
 const sections = new Map<string, (context: SectionContext) => ReactNode>(
     Object.entries(sectionRenderers)
@@ -96,10 +81,6 @@ export function SettingsSectionRoute() {
     const renamed = renamedSections[section];
     if (renamed) {
         return <Navigate replace to={`../${renamed}`} />;
-    }
-    const linkedTo = linkedSections.get(section);
-    if (linkedTo) {
-        return <Navigate replace to={linkedTo(server)} />;
     }
     const render = sections.get(section);
     if (!render) {

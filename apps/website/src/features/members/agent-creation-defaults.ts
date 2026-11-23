@@ -1,5 +1,38 @@
-import { type Agent, modelDefaultReasoningEffort } from '@haus/api';
+import {
+    type Agent,
+    type ComputerInventory,
+    type ComputerRuntime,
+    modelDefaultReasoningEffort,
+} from '@haus/api';
+import type { HausOutputs } from '../../lib/haus-server.tsx';
+import { computerLabel } from '../computers/presentation.ts';
 import type { AgentCreationSubmitValues, ReportedComputer } from './agent-creation-contract.ts';
+
+type Computer = HausOutputs['computer']['list'][number];
+
+/**
+ * The Computers a person may create an Agent on: the ones they attached, each
+ * offering the Server's runner models.
+ */
+export function creatableComputers(
+    computers: readonly Computer[],
+    runnerModels: readonly ComputerRuntime[]
+) {
+    return computers
+        .filter((computer) => computer.attachedByCurrentUser)
+        .map(
+            (computer) =>
+                ({
+                    id: computer.id,
+                    inventory: {
+                        ...(computer.reportedInventory ?? {}),
+                        runtimes: [...runnerModels],
+                    } as ComputerInventory,
+                    label: computerLabel(computer),
+                }) satisfies ReportedComputer
+        )
+        .filter((computer) => computer.inventory.runtimes.length > 0);
+}
 
 /**
  * Where a new Agent starts: the Server's first Agent's execution configuration

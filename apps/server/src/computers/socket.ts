@@ -183,16 +183,17 @@ export function startComputerAttachmentSocket(
                 serverId: computer.serverId,
                 updatePhase: hello.update.phase,
             });
+            await invocations.computerAttaching(computer.id);
+            if (closed) {
+                return;
+            }
             socket.send(
                 JSON.stringify({
                     mode: ordinary ? 'ordinary' : 'update-required',
                     type: 'bootstrap-accepted',
                 })
             );
-            computerUpdatedTopic.announce({
-                computerId: computer.id,
-                serverId: computer.serverId,
-            });
+            computerUpdatedTopic.announce({ computerId: computer.id, serverId: computer.serverId });
             if (!ordinary) {
                 return;
             }
@@ -206,8 +207,7 @@ export function startComputerAttachmentSocket(
                     readServerRuntimeSettingsCommand(db, computer.serverId)
                 )
                 .catch(() => undefined);
-            // Idempotent reconnect: resend unacknowledged deliveries and drain
-            // any pending inbox for this Computer's Agents.
+            // Idempotent reconnect: resend unacknowledged deliveries, drain pending inboxes.
             void clearStartRejectedHolds(db, computer.id)
                 .then(() => delivery.onComputerReconnect(computer.id))
                 .catch(() => undefined);

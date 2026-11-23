@@ -197,8 +197,9 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   page: "Haus" links to the Inbox, every crumb but the last is a destination, the current page
   is the unlinked end, and a trail deeper than three crumbs folds its middle into one menu
   (`band-trail.ts`). Inbox, Tasks, Activity, Search, and Files are sections (Haus › Tasks);
-  Settings reads Haus › Settings › page (› record), Archived chats Haus › Settings › Archived
-  chats, and an Agent Haus › Agent (› section), the Agent and member crumbs wearing their face.
+  a Settings record reads Haus › Settings › page › record, and an Agent Haus › Agent (› section),
+  the Agent and member crumbs wearing their face. A top-level Settings page draws no trail: the
+  rail's current row, the page title and the tab (named for the page) already say where you are.
   The band carries no page glyph and no title apart from the trail: the trail is the one
   representation of where you are, beside a desktop tab too. A chat is the one exception: on the
   web its band is its identity row (`SectionHeader`), and on desktop it has none. Embedded
@@ -320,14 +321,13 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   built through `cn()` or a variable, so read the component's anatomy before
   reaching for a wrapper.
 * One Settings page groups its rail as **You** (Profile, Preferences, Appearance,
-  Notifications, Shortcuts, Servers), **Captains** (Models, Skills,
-  Connections), and **Haus** (General, Members, Devices, Usage, then Archived
+  Notifications, Shortcuts, Servers), **Captains** (Models, Git, Skills,
+  Connections; Git states what is built today as facts, with no controls: the Captain `haus/` branch prefix and Workers' own git login, with Captain commit identity marked coming soon), and **Haus** (General, Members, Devices, Usage, then Archived
   chats). Shortcuts is generated from `features/shortcuts/shortcut-registry.ts`,
   which its test holds to the real key handlers. Which Servers you belong to is about you, so switching, creating,
   and joining sit in the personal scope. Archived chats is a
-  link-out, not a settings page: it keeps its own standalone route and the
-  rail hands off to it (`settingsNavLinkItems`, resolved by
-  `SettingsSectionRoute`). Browser controls live on each
+  settings page like the rest (`/s/:slug/settings/archived`); the old
+  `/s/:slug/archived` address redirects there. Browser controls live on each
   Computer; the former Browser URL redirects there. Back is a stock
   `Sidebar.Group` inside the same `Sidebar.Content` as the settings rows.
   `features/settings/layout/navigation.ts` is the source of that grouping and

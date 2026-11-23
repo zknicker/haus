@@ -2,7 +2,11 @@ import type { AgentRuntimeBrowserSettings, AgentRuntimeSaveBrowserSettings } fro
 import { ItemCard } from '@heroui-pro/react';
 import { Button } from '@heroui/react';
 import * as React from 'react';
-import { browserCapabilityView } from '../../computers/browser-capability-model.ts';
+import {
+    type BrowserCapabilityView,
+    browserCapabilityView,
+    browserCheckingView,
+} from '../../computers/browser-capability-model.ts';
 import { BrowserSettingsDialog } from './browser-settings-dialog.tsx';
 import {
     type BrowserSettingsDraft,
@@ -34,27 +38,11 @@ export function BrowserSettingsCard({
     onSave: (input: AgentRuntimeSaveBrowserSettings) => Promise<unknown> | undefined;
     settings: BrowserSettings | null;
 }) {
-    if (isLoading) {
-        return <BrowserSkeleton />;
-    }
-
-    if (!settings) {
-        const view = browserCapabilityView({ error, settings: null });
+    if (isLoading || !settings) {
         return (
-            <ItemCard>
-                <ItemCard.Content>
-                    <ItemCard.Title>
-                        Chrome
-                        <BrowserStatusChip view={view} />
-                    </ItemCard.Title>
-                    <ItemCard.Description>{view.description}</ItemCard.Description>
-                </ItemCard.Content>
-                <ItemCard.Action>
-                    <Button isDisabled size="sm" variant="secondary">
-                        Configure
-                    </Button>
-                </ItemCard.Action>
-            </ItemCard>
+            <InertBrowserRow
+                view={isLoading ? browserCheckingView : browserCapabilityView({ error, settings })}
+            />
         );
     }
 
@@ -149,11 +137,21 @@ export function BrowserSettingsControl({
     );
 }
 
-/** Blank while loading — the app shows no skeletons on synced surfaces. */
-function BrowserSkeleton() {
+function InertBrowserRow({ view }: { view: BrowserCapabilityView }) {
     return (
-        <div aria-busy="true" className="min-h-14">
-            <span className="sr-only">Loading Browser settings</span>
-        </div>
+        <ItemCard>
+            <ItemCard.Content>
+                <ItemCard.Title>
+                    Chrome
+                    <BrowserStatusChip view={view} />
+                </ItemCard.Title>
+                <ItemCard.Description>{view.description}</ItemCard.Description>
+            </ItemCard.Content>
+            <ItemCard.Action>
+                <Button isDisabled size="sm" variant="secondary">
+                    Configure
+                </Button>
+            </ItemCard.Action>
+        </ItemCard>
     );
 }

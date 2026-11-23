@@ -46,7 +46,6 @@ export function ComputerPage({
                 ) : computer ? (
                     <ComputerDetail
                         computerId={computer.id}
-                        onRemove={() => setRemoving(true)}
                         serverId={serverId}
                         serverSlug={serverSlug}
                     />

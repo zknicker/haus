@@ -1,10 +1,10 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
+import { repoNameSchema } from './repos.ts';
 import { taskKeySchema } from './task-key.ts';
 import { workerRuntimeReadinessSchema } from './worker-runtime.ts';
-import { workerRepositorySchema } from './worker-shared.ts';
 
-/** `GET /api/agent/workers/places?task=<KEY-n>`: `task` marks the Project default and scopes repos. */
+/** `GET /api/agent/workers/places?task=<KEY-n>`: `task` marks the Project default. */
 export const workerPlacesInputSchema = z.object({ task: taskKeySchema.optional() }).strict();
 
 const slotsShape = {
@@ -15,8 +15,8 @@ const slotsShape = {
 };
 
 /**
- * One Computer place. `linkedRepositories` are the repos linked on it, of the
- * Task's Project when `task` is given. Every Computer is listed, switch off
+ * One Computer place. `repoFolders` are the repos it has a folder for; a Worker
+ * there in any other repo clones it first. Every Computer is listed, switch off
  * included, so the Agent can say why one is not usable.
  */
 export const computerWorkerPlaceEntrySchema = z
@@ -24,7 +24,7 @@ export const computerWorkerPlaceEntrySchema = z
         ...slotsShape,
         computerId: idSchema,
         kind: z.literal('computer'),
-        linkedRepositories: z.array(workerRepositorySchema).max(200),
+        repoFolders: z.array(repoNameSchema).max(500),
         name: z.string().trim().min(1).max(100).nullable(),
         online: z.boolean(),
         runtimes: z.array(workerRuntimeReadinessSchema).max(2),
@@ -39,11 +39,10 @@ export const workerPlaceEntrySchema = z.discriminatedUnion('kind', [
 ]);
 export type WorkerPlaceEntry = z.infer<typeof workerPlaceEntrySchema>;
 
-/** `haus worker places`: every place, and the Task's Project repos when `task` is given. */
+/** `haus worker places`: every place. */
 export const workerPlacesResponseSchema = z
     .object({
         places: z.array(workerPlaceEntrySchema).max(200),
-        repositories: z.array(workerRepositorySchema).max(200),
         task: taskKeySchema.nullable(),
     })
     .strict();

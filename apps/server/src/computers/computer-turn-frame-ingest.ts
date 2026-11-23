@@ -1,4 +1,5 @@
 import {
+    agentHeldFrameSchema,
     workerHeldFrameSchema,
     workerTurnActivityFrameSchema,
     workerTurnStepsFrameSchema,
@@ -19,6 +20,7 @@ import {
 } from '../workers/computer-turn-frames.ts';
 import { recordComputerTurnQuestion } from '../workers/record-computer-turn-question.ts';
 import { settleComputerTurn } from '../workers/settle-computer-turn.ts';
+import { answerHeldAgents } from './agent-retirement.ts';
 
 export async function applyComputerTurnFrame(input: {
     computerId: string;
@@ -63,6 +65,10 @@ export async function applyComputerTurnFrame(input: {
     const held = workerHeldFrameSchema.safeParse(frame);
     if (held.success) {
         return await answerHeldWorkers(db, scope, held.data);
+    }
+    const heldAgents = agentHeldFrameSchema.safeParse(frame);
+    if (heldAgents.success) {
+        return await answerHeldAgents(db, scope, heldAgents.data);
     }
     return undefined;
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { buildHostSkillSections } from './host-skill-catalog.ts';
+import { buildHostSkillSections, filterHostSkillSections } from './host-skill-catalog.ts';
 
 const skill = (name: string) => ({ description: '', id: `hsk_${name}`, name, source: name });
 
@@ -42,6 +42,41 @@ describe('buildHostSkillSections', () => {
             },
         ]);
         expect(sections.map((section) => section.title)).toEqual(['Studio', 'Device']);
+    });
+});
+
+describe('filterHostSkillSections', () => {
+    const sections = buildHostSkillSections([
+        {
+            health: 'healthy',
+            id: 'cmp_a',
+            name: 'Studio',
+            reportedInventory: {
+                importableSkills: [
+                    skill('release-haus'),
+                    { ...skill('tasks'), description: 'Use for the shared Tasks board.' },
+                ],
+            },
+        },
+        {
+            health: 'healthy',
+            id: 'cmp_b',
+            name: 'Laptop',
+            reportedInventory: { importableSkills: [skill('deploy')] },
+        },
+    ]);
+
+    it('matches a skill by name or description and drops sections left empty', () => {
+        const byName = filterHostSkillSections(sections, 'Release');
+        expect(byName.map((section) => section.title)).toEqual(['Studio']);
+        expect(byName[0]?.skills.map((entry) => entry.skill.name)).toEqual(['release-haus']);
+        expect(
+            filterHostSkillSections(sections, 'board')[0]?.skills.map((entry) => entry.skill.name)
+        ).toEqual(['tasks']);
+    });
+
+    it('keeps every section for an empty query', () => {
+        expect(filterHostSkillSections(sections, '  ')).toEqual(sections);
     });
 });
 

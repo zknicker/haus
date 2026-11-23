@@ -9,13 +9,15 @@ import { SettingsPageHeader } from '../settings/layout/settings-page-header.tsx'
 import { ComputerUsageCapacity } from '../usage/computer-usage-capacity.tsx';
 import { BrowserCapabilityCard } from './browser-capability-card.tsx';
 import { CloudAgentCapabilityCard } from './cloud-agent-capability-card.tsx';
-import { ComputerActions } from './computer-actions.tsx';
+import { ComputerAccessSection } from './computer-access-section.tsx';
+import { ComputerUpdates } from './computer-actions.tsx';
 import { ComputerAgents } from './computer-agents.tsx';
+import { ComputerDiagnostics } from './computer-diagnostics.tsx';
 import { ComputerDiskChip, ComputerDiskWarning } from './computer-disk-warning.tsx';
 import { ComputerInventoryRefresh } from './computer-inventory-refresh.tsx';
+import { ComputerRepoFoldersCard } from './computer-repo-folders-card.tsx';
 import { ComputerRuntimeIssues } from './computer-runtime-issues.tsx';
-import { ComputerSystemLog } from './computer-system-log-card.tsx';
-import { ComputerUseAccessCard } from './computer-use-access-card.tsx';
+import { ComputerUsePermissionsSection } from './computer-use-access-card.tsx';
 import {
     computerHealthColor,
     computerHealthLabel,
@@ -28,12 +30,10 @@ import { SecretsCapabilityCard } from './secrets-capability-card.tsx';
 
 export function ComputerDetail({
     computerId,
-    onRemove,
     serverId,
     serverSlug,
 }: {
     computerId: string;
-    onRemove: () => void;
     serverId: string;
     serverSlug: string;
 }) {
@@ -120,6 +120,9 @@ export function ComputerDetail({
 
             <ComputerDiskWarning computerId={computerId} serverId={serverId} />
             <ComputerRuntimeIssues computerId={computerId} serverId={serverId} />
+            <ComputerAccessSection computerId={computerId} serverId={serverId} />
+            <ComputerUsePermissionsSection computerId={computerId} serverId={serverId} />
+            <ComputerRepoFoldersCard computerId={computerId} serverId={serverId} />
             <section>
                 <ItemCardGroup variant="transparent">
                     <ItemCardGroup.Header className="flex items-start justify-between gap-3">
@@ -133,16 +136,14 @@ export function ComputerDetail({
                     />
                 </ItemCardGroup>
             </section>
-
-            <ComputerUseAccessCard computerId={computerId} serverId={serverId} />
             <BrowserCapabilityCard computerId={computerId} serverId={serverId} />
             <CloudAgentCapabilityCard computerId={computerId} serverId={serverId} />
             <SecretsCapabilityCard computerId={computerId} serverId={serverId} />
             <ComputerAgents computerId={computerId} serverId={serverId} />
-            <ComputerSystemLog computerId={computerId} key={computerId} serverId={serverId} />
-            <ComputerActions
+            <ComputerUpdates computerId={computerId} serverId={serverId} />
+            <ComputerDiagnostics
                 computerId={computerId}
-                onRemove={onRemove}
+                key={computerId}
                 serverId={serverId}
                 serverSlug={serverSlug}
             />

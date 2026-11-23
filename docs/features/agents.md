@@ -17,7 +17,14 @@ Agent's execution host, workspace, Agent-local skills, credentials, resume
 state, and effective runtime state. Server retains only reported skill
 metadata for offline display.
 
-An Agent remains assigned to one Computer for its lifetime. The App changes
+An Agent has one home Computer, the Computer it was created on, where its
+workspace lives and its tools run by default. No API or App surface changes the
+home yet; Move to device is a later feature. Only a Computer's attacher may
+create an Agent there. A tool call may also name another Computer with its
+`computer` field, and it runs there when that Computer's Agent access list
+allows the Agent
+([ADR 0057](../adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
+decision 4, [Computer use](computer-use.md#device-page)). The App changes
 desired configuration through Server APIs; it never chooses workspace paths or
 writes Computer-local files.
 

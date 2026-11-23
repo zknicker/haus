@@ -1,10 +1,11 @@
 ---
-summary: The Project tRPC procedures (`project.create`, `project.update`, `project.list`, `project.onUpdated`), their inputs, results, refusal codes, and the key rule the Server applies.
+summary: The Project tRPC procedures (`project.create`, `project.update`, `project.list`, `project.onUpdated`), their inputs, results, refusal codes, and the key rule the Server applies, plus the Server-level repo list and each Computer's repo folders (ADR 0060).
 read_when:
   - calling or changing `project.create`, `project.update`, `project.list`, or `project.onUpdated`
   - creating or renaming a channel, or changing its description, icon, color, or key
   - handling `TASK_KEY_TAKEN`, `PROJECT_KEY_FIXED`, `PROJECT_HAS_AGENTS`, `PROJECT_NAME_FIXED`, or `COVE_HOME_FIXED`
   - reading a Project's home Agents or moving an Agent's home (`agent.setHome`)
+  - calling or changing `computer.repoFolders`, `addRepoFolder`, `removeRepoFolder`, `repoFolderStates`, or `/computer/repos/*`
 ---
 
 # Projects API
@@ -28,9 +29,8 @@ non-retired Agents whose home it is, oldest first). The channel's `Chat.particip
 same set, ordered by id. `agent.setHome` moves an Agent between Projects and publishes
 `project.onUpdated` for both ([Agents API](agents.md)). For Workers, a Project also carries
 `defaultWorkerPlace`, the place view (`{ kind: 'computer', computerId, computerName }`,
-`{ kind: 'cursor' }`, `{ kind: 'claude' }`) or null, and `repos`, each
-`{ id, repository, links: [{ computerId, computerName, checkoutPath }] }` by repository.
-`computerName` is the Computer's reported name, or null before it reports one.
+`{ kind: 'cursor' }`, `{ kind: 'claude' }`) or null. A Project carries no repos
+([Repos and repo folders](#repos-and-repo-folders)).
 
 - `project.create` makes the channel, its creator's membership, its ledger entry, and its
   `projects` row in one transaction. A new Project has no Agents. Without `key` the Server
@@ -50,6 +50,41 @@ same set, ordered by id. `agent.setHome` moves an Agent between Projects and pub
   chat list, and `project.onUpdated`.
 - Archiving or deleting a Project goes through `chat.archiveChannel` and `chat.deleteChannel`.
   Deleting one deletes its Tasks with their Chats; cloud work they had stays and leaves them.
+
+## Repos and repo folders
+
+Repos belong to the Server, and each Computer lists its repo folders
+([ADR 0060](../adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md)). The contracts live in `packages/haus-api/src/repos.ts`. A repo is a
+lower-cased GitHub `owner/name`; a folder is `{ computerId, repository, path, addedBy, addedAt }`,
+where a null `addedBy` is Haus's own clone. `project.addRepo`, `removeRepo`, `linkRepo` and
+`unlinkRepo` are deleted.
+
+| Procedure | Input | Result |
+| --- | --- | --- |
+| `computer.repoFolders` (query) | `serverId`, `computerId` | `{ folders, canAdd, canRemove }`: `canAdd` for the attacher, `canRemove` also for Owners and Admins |
+| `computer.addRepoFolder` | `serverId`, `computerId`, `path` | The online Computer reads the folder's real path and its `origin`, which must be on `github.com`; only the attacher adds, one folder per repo per Computer |
+| `computer.removeRepoFolder` | `serverId`, `computerId`, `repository` | The attacher, an Owner or an Admin removes it; refuses while a Haus worktree of it exists, naming them |
+| `computer.repoFolderStates` (query) | `serverId`, `computerId` | Each folder `present`, `missing`, or `other-origin`, asked of the online Computer |
+
+Changes publish `computer.updated`. On the machine, `haus-computer repo add <path>`, `list` and
+`remove` call `POST /computer/repos/add|list|remove` with the person's Haus Computer login
+([ADR 0022](../adr/0022-computer-login-sessions-authorize-management.md)). A Computer reports
+Haus's own clones with `repo-clones`, and each becomes its folder for that repo. Agents read the
+list with `GET /api/agent/repos` (`haus repo list`) and check out with `haus repo checkout`, a
+`repo-checkout` invocation the Server sends only to a Computer with a folder for that repo.
+`POST /api/agent/repos/co-authors` (`haus repo co-author @handle…`) answers a `Co-authored-by:`
+trailer per person, from their Haus account name and email, and names who has no email.
+
+An Agent's git on a Computer reaches GitHub only as the Haus GitHub App
+([specs/github-app-connection.md](../../specs/github-app-connection.md#git-on-a-computer)). The
+Computer's credential helper calls `POST /computer/github/git-credential` with the Computer
+credential and `{ access: 'write', invocationId, repository }` (git inside an open Agent command)
+or `{ access: 'read', agentId, repository }` (the Computer's own cleanup fetch), and gets
+`{ token, expiresAt }`: an installation token scoped to that one repo with `contents` at that
+level. A refusal is `403 { code, error }` with `github_app_needs_access`,
+`github_connection_not_granted`, `repo_folder_missing`, `agent_not_allowed` or
+`invocation_not_open`, and `503 github_app_unavailable` when the Server has no App.
+`GET /computer/github/bot` answers the bot's git identity, `{ name: '<slug>[bot]', email }`.
 
 ## Refusals
 

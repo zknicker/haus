@@ -1,8 +1,9 @@
 ---
-summary: The Projects contract. Humans create Projects and each Project is its channel; `#all` stays the everyone channel and is not a Project. A Project carries one Task key, its home Agents, repos linked per Computer, its `AGENTS.md`, and the default place for its Workers. Every Agent has exactly one Project. Covers the data shape, settings and who edits them, `#all`, Agent placement, and the one-time migration from channels.
+summary: The Projects contract. Humans create Projects and each Project is its channel; `#all` stays the everyone channel and is not a Project. A Project carries one Task key, its home Agents, its `AGENTS.md`, and the default place for its Workers; it has no repos, which belong to the Server (ADR 0060). Every Agent has exactly one Project. Covers the data shape, settings and who edits them, `#all`, Agent placement, and the one-time migration from channels.
 read_when:
   - creating, configuring, archiving, or listing Projects or their channels
-  - changing a Project's key, its Agents, its repos, its `AGENTS.md`, or its default Worker place
+  - changing a Project's key, its Agents, its `AGENTS.md`, or its default Worker place
+  - deciding whether a Project should list repos (it does not: ADR 0060)
   - changing an Agent's Project
   - changing what an Agent may read, post in, or start Tasks in across Projects
   - writing or running the channels-to-Projects migration
@@ -37,7 +38,7 @@ Workers and their places are [ADR 0056](../docs/adr/0056-agents-run-quiet-worker
   refuses a Project on `#all` (migration `0142_all-is-a-chat`, ADR 0059 decision 5). The default
   place landed with W3 (migration 0144). A check keeps the Computer id set exactly when the place
   is `computer`, and the API renders it as `computer:<computerId>`.
-  Repos are `project_repos` rows ([Repos](#repos)). Home Agents are `agents.home_project_id`
+  A Project has no repos ([Repos](#repos)). Home Agents are `agents.home_project_id`
   ([Agents](#agents)). Name, description, icon, color, archive, and delete stay on the channel's
   Chat row as they are today ([chats.md](chats.md#channels-are-projects)).
 - The wire noun is `project`. `packages/haus-api/src/project.ts` holds `projectSchema` (the fields
@@ -49,10 +50,12 @@ Workers and their places are [ADR 0056](../docs/adr/0056-agents-run-quiet-worker
 
 ## Creating a Project
 
-- Only people create Projects. "New project" asks for a name and a key, suggests the key from the
-  name with `suggestProjectKey` (`packages/haus-api/src/project-key.ts`), and creates the channel, its `projects` row, and the key's ledger entry in one
-  transaction. The key is optional on `project.create`: without one the Server allocates it by
-  the key rule. The creator becomes the channel's first human member. There is no "New channel".
+- Only people create Projects. "New project" asks for a name, and the Server allocates the key by
+  the key rule (`suggestProjectKey` in `packages/haus-api/src/project-key.ts`). It creates the
+  channel, its `projects` row, and the key's ledger entry in one transaction. The key is optional
+  on `project.create`. There is no repo step
+  ([ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md)
+  decision 1). Asking for a purpose, the channel description, at creation is not built yet. The creator becomes the channel's first human member. There is no "New channel".
 - Agents cannot create Projects. `POST /api/agent/channels/create` and `haus channel create` are
   deleted. An Agent asked for a new Project says that a person creates it in the App.
 - A new Project has no Agents. A person adds them in its settings.
@@ -67,7 +70,6 @@ Settings sit behind the channel header menu. There is no Overview pane.
 | Key | `projects.task_key_id` | J2 |
 | Agents | `agents.home_project_id` | J3 |
 | `AGENTS.md` | A link that opens `projects/<key>/AGENTS.md` in Drive | J2 |
-| Repos, and which Computers link each | `project_repos`, `project_repo_links` | W3 (API), W4 (UI) |
 | Default place for Workers | `projects.default_worker_place` | W3 (API), W4 (UI) |
 
 - Any person who can open the Project edits its settings, as channel editing works today. Agents
@@ -122,19 +124,16 @@ starts with a digit is prefixed with `P` before step 2.
 
 ### Repos
 
-- A repo is a `project_repos` row: the Project and a repository (`owner/name`), unique per
-  Project. A link is a `project_repo_links` row: the repo, a Computer, and an optional local
-  checkout path. A null path means the Computer clones the repo into its own data root on first
-  use. A repo can be linked on several Computers and on none.
-- Workers of the Project's Tasks run in their own clone of a linked repo
-  ([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md) decisions 6 and 7).
-  [Workers](workers.md#layout) owns the Worker side of this contract.
-- The person who attached a Computer, or an Owner or Admin, links a repo on that Computer, the
-  same people who set its "Workers can run here" switch.
-- The API exists since W3: `project.addRepo`, `project.removeRepo`, `project.linkRepo`, and
-  `project.unlinkRepo`, each publishing `project.updated`. The settings UI is W4. Until it ships, a
-  Worker start that names a repo the Project lacks adds it
-  ([Workers](workers.md#w3-transitional-decisions)).
+A Project has no repos
+([ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md)).
+`project_repos` and `project_repo_links` retired in migration `0152_repos-belong-to-the-server`.
+
+- A repo is a Server-level `repos` row, a lower-cased GitHub `owner/name`. Any Agent or Worker in
+  any Project may use any repo. A repo joins the list only after a Computer's repo folder is added,
+  a Computer clones it for a Worker, or a cloud provider starts a Worker on it.
+- Each Computer lists where its repos live as `repo_folders`, added by its attacher from the
+  Device page or `haus-computer repo add`. [Workers](workers.md#layout) owns how Workers use them,
+  and [docs/api/projects.md](../docs/api/projects.md#repos-and-repo-folders) the API.
 
 ### Default place for Workers
 
@@ -193,7 +192,8 @@ Agent of its own, and every Agent is refused `TASK_PROJECT_NOT_HOME` outside its
   deleting the Project moves any retired Agent homed there to the Haus project.
 - Otherwise archiving and deleting a Project are the channel's archive and delete
   ([chats.md](chats.md#config-and-observation)). Deleting a Project deletes its Tasks with the
-  channel, its `projects` row, and its repos. Its key's ledger entry stays, so its numbers are
+  channel and its `projects` row. It deletes no repos, because repos belong to the Server. Its
+  key's ledger entry stays, so its numbers are
   never reused. Cloud work attached to those Tasks stays and loses its Task.
 
 ## Migration from channels

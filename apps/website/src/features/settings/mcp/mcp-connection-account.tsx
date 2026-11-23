@@ -35,7 +35,7 @@ export function McpAccountSection({
     }
 
     return (
-        <ConnectionSection title="Connected Account">
+        <ConnectionSection title="Connected account">
             <ItemCardGroup variant="outline">
                 {connection.connected ? (
                     <AccountRow

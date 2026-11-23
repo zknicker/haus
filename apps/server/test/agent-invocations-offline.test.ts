@@ -14,7 +14,7 @@ import {
     testRunnerToken,
 } from './runner.fixture.ts';
 
-const offlineText = 'The machine is offline. Nothing ran. `haus` and `execute` still work.';
+const noticeText = 'The machine is offline. Nothing ran. `haus` and `execute` still work.';
 let setup: InvocationHarness;
 let runner: RunnerClient;
 
@@ -31,7 +31,7 @@ test('a detached Computer answers offline at once and records it', async () => {
     runner = connectRunner(setup.harness, testRunnerToken);
     await runner.next(frameOfType('runner-hello-accepted'));
 
-    const answer = await requestOffline('run_detached', 'toolu_detached');
+    const answer = await requestOffline('run_detached', 'toolu_detached', homeOfflineText());
 
     expect(await recorded('run_detached')).toEqual([
         { computer_id: setup.computerId, outcome: 'offline', state: 'finished' },
@@ -49,7 +49,7 @@ test('a Computer in update-required mode answers offline and is sent nothing', a
         'update-required'
     );
 
-    await requestOffline('run_updating', 'toolu_updating');
+    await requestOffline('run_updating', 'toolu_updating', homeOfflineText());
 
     expect(await recorded('run_updating')).toEqual([
         { computer_id: setup.computerId, outcome: 'offline', state: 'finished' },
@@ -65,7 +65,7 @@ test('an Agent with no Computer answers offline and records no machine', async (
         where id = ${setup.agentId}
     `;
 
-    await requestOffline('run_unplaced', 'toolu_unplaced');
+    await requestOffline('run_unplaced', 'toolu_unplaced', noticeText);
 
     expect(await recorded('run_unplaced')).toEqual([
         { computer_id: null, outcome: 'offline', state: 'finished' },
@@ -89,7 +89,7 @@ test('a turn whose machine is offline completes with only haus calls', async () 
     const { runId } = start.start as { runId: string };
     runner.send({ agentId: setup.agentId, runId, type: 'ack' });
 
-    await requestOffline(runId, 'toolu_machine');
+    await requestOffline(runId, 'toolu_machine', noticeText);
     const sent = await fetch(new URL('/api/agent/messages/send', setup.harness.url), {
         body: JSON.stringify({
             content: 'Machine is offline.',
@@ -109,13 +109,17 @@ test('a turn whose machine is offline completes with only haus calls', async () 
     expect(await settled).toMatchObject({ outcome: 'completed', runId });
 });
 
-async function requestOffline(runId: string, toolCallId: string) {
+function homeOfflineText() {
+    return `${setup.computerId} is offline. Nothing ran. \`haus\` and \`execute\` still work, and \`haus computer list\` shows which Computers are online.`;
+}
+
+async function requestOffline(runId: string, toolCallId: string, text: string) {
     runner.send(invocationRequest(setup.agentId, runId, toolCallId));
     const answer = await runner.next(frameOfType('invocation-result', { toolCallId }));
     expect(answer).toMatchObject({
         agentId: setup.agentId,
         outcome: 'offline',
-        output: { kind: 'text', text: offlineText },
+        output: { kind: 'text', text },
         runId,
         seq: 0,
         toolCallId,

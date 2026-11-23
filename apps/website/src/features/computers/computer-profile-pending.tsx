@@ -8,12 +8,13 @@ export function ComputerProfilePending() {
             <SettingsPageHeader title="Device" />
 
             {[
+                'Access',
+                'Repositories',
                 'Plan usage',
                 'Browser',
                 'Cloud Agents',
                 'Captains on this device',
-                'System Log',
-                'Device management',
+                'Updates',
             ].map((title) => (
                 <section key={title}>
                     <ItemCardGroup variant="transparent">

@@ -6,11 +6,7 @@ import { join } from 'node:path';
 import type { AgentSkillImportCommand, AgentSkillImportRecord } from '@haus/api';
 import * as commandFrames from './agent-command-frames.ts';
 import { handleAgentResetFrame } from './agent-reset-frames.ts';
-import {
-    parseAgentRetireCommand,
-    purgeRetiredAgent,
-    reportRetirementError,
-} from './agent-retirement.ts';
+import { handleAgentRetireFrame } from './agent-retire-frames.ts';
 import { handleAgentSkillFileRequest } from './agent-skill-files.ts';
 import { AttachmentConnectionWork } from './attachment-connection-work.ts';
 import { type AttachmentConnectionOutcome, runAttachmentDaemon } from './attachment-daemon-loop.ts';
@@ -56,6 +52,12 @@ import {
 import { printComputerHeader, printComputerHelpPage } from './cli/chrome.ts';
 import { findComputerCommandHelp, resolveComputerHelpRequest } from './cli/help.ts';
 import { cliColorsEnabled, createCliRenderer, stdoutRenderer } from './cli/render.ts';
+import { runRepoCommand } from './cli/repo-command.ts';
+import {
+    ComputerRequestError,
+    isComputerMachineUnlinked,
+    postComputerRoute,
+} from './cli/server-request.ts';
 import { runningComputerApp } from './computer-app.ts';
 import { sendComputerDiskReport } from './computer-disk.ts';
 import { readComputerName } from './computer-name.ts';
@@ -94,6 +96,8 @@ import {
     runComputerLogin,
 } from './login.ts';
 import { parseReminderScriptCommand, runReminderScript } from './reminder-script.ts';
+import { startAgentWorktreeSweep } from './repos/agent-worktree-sweep.ts';
+import { handleRepoFolderRequest } from './repos/repo-folder-requests.ts';
 import {
     handsOffToResident,
     installResidentService,
@@ -398,6 +402,15 @@ async function main(args: string[]) {
         });
         return;
     }
+    if (command === 'repo') {
+        await runRepoCommand(args.slice(1), {
+            dataRoot,
+            listAttachments,
+            print: (line) => console.log(line),
+            render: stdoutRenderer,
+        });
+        return;
+    }
     if (command === 'attach') {
         if (!target?.startsWith('/')) {
             await printIncompleteCommand('attach', headerPrinted);
@@ -550,7 +563,7 @@ async function issueAttachment(
         origin: session.origin,
         slug,
     });
-    const response = await request<AttachResponse>(
+    const response = await postComputerRoute<AttachResponse>(
         '/computer/attach',
         {
             accessToken: session.accessToken,
@@ -614,56 +627,10 @@ async function requiredAttachment(target: string | undefined) {
 }
 
 async function validate(attachment: Attachment) {
-    await request(
+    await postComputerRoute(
         '/computer/validate',
         { credentialHash: hash(attachment.credential), serverId: attachment.serverId },
         attachment.serverOrigin
-    );
-}
-
-async function request<Response>(
-    path: string,
-    body: object,
-    origin = serverOrigin
-): Promise<Response> {
-    const response = await fetch(new URL(path, origin), {
-        body: JSON.stringify(body),
-        headers: { 'content-type': 'application/json' },
-        method: 'POST',
-        redirect: 'error',
-    });
-    let payload: Response & { code?: string; error?: string };
-    try {
-        payload = (await response.json()) as Response & { code?: string; error?: string };
-    } catch {
-        payload = {} as Response & { code?: string; error?: string };
-    }
-    if (!response.ok) {
-        throw new ComputerRequestError(
-            payload.error ?? 'Computer request was rejected.',
-            payload.code,
-            response.status
-        );
-    }
-    return payload;
-}
-
-class ComputerRequestError extends Error {
-    constructor(
-        message: string,
-        readonly code: string | undefined,
-        readonly status: number
-    ) {
-        super(message);
-        this.name = 'ComputerRequestError';
-    }
-}
-
-function isComputerMachineUnlinked(error: unknown): boolean {
-    return (
-        error instanceof ComputerRequestError &&
-        error.status === 403 &&
-        error.code === 'computer_machine_unlinked'
     );
 }
 
@@ -883,6 +850,7 @@ async function connect(
     let opened = false;
     return await new Promise<AttachmentConnectionOutcome>((resolve) => {
         socket.addEventListener('close', () => {
+            invocations.disconnected();
             detachSender();
             heartbeat?.dispose();
             void Promise.allSettled([
@@ -977,6 +945,11 @@ async function connect(
                     startCloudAgentModelCatalogRefresh(connectionWork, () =>
                         trackWriter(reportComputer())
                     );
+                    startAgentWorktreeSweep(connectionWork, {
+                        dataRoot,
+                        serverId: attachment.serverId,
+                        track: trackWriter,
+                    });
                     return;
                 }
                 if (process.env.HAUS_COMPUTER_ONESHOT === '1') {
@@ -1016,19 +989,17 @@ async function connect(
             ) {
                 return;
             }
-            const retirement = parseAgentRetireCommand(frame);
-            if (retirement) {
-                retiredAgents.add(retirement.agentId);
-                void trackWriter(
-                    purgeRetiredAgent({
-                        agentId: retirement.agentId,
-                        dataRoot,
-                        serverId: attachment.serverId,
-                    })
-                        .catch((error) => reportRetirementError(retirement.agentId, error))
-                        .then(() => reportComputer())
-                        .catch(reportStateError)
-                );
+            if (
+                handleAgentRetireFrame(frame, {
+                    dataRoot,
+                    fence: invocations.fence,
+                    onFailure: reportStateError,
+                    report: () => reportComputer(),
+                    retiredAgents,
+                    serverId: attachment.serverId,
+                    track: trackWriter,
+                })
+            ) {
                 return;
             }
             const skillImport = parseAgentSkillImportCommand(frame);
@@ -1059,7 +1030,8 @@ async function connect(
             if (
                 handleAgentWorkspaceRequest(frame, frameContext) ||
                 handleBrowserRequest(frame, { ...frameContext, browserRoot }) ||
-                handleComputerSecretsRequest(frame, frameContext)
+                handleComputerSecretsRequest(frame, frameContext) ||
+                handleRepoFolderRequest(frame, frameContext)
             ) {
                 return;
             }

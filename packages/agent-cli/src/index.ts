@@ -1,4 +1,5 @@
 export { commandGroups, runAgentCli } from './agent-cli.ts';
+export { readRepoCheckout } from './commands/agent-repo.ts';
 export { AgentApiClient, type AgentApiRequester } from './agent-api-client.ts';
 export { AgentCliError, renderAgentCliError } from './agent-error.ts';
 export { type ParsedArgs, UsageError } from './parse.ts';

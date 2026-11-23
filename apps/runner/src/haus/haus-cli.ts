@@ -13,6 +13,7 @@ import {
     planMachinePaths,
     restoreMachinePaths,
 } from './machine-paths.ts';
+import { repoCheckoutCall, runRepoCheckout } from './repo-checkout.ts';
 
 const agentCliEntrypoint = fileURLToPath(import.meta.resolve('@haus/agent-cli/bin'));
 
@@ -21,6 +22,7 @@ const machineFileReadMaxBytes = 256 * 1024 ** 2;
 export async function runHausCommand(input: {
     argv: readonly string[];
     authority: RunAuthority;
+    computer?: string;
     invocations: InvocationClient;
     proxy: HausProxy;
     signal: AbortSignal;
@@ -32,12 +34,22 @@ export async function runHausCommand(input: {
     if (access.kind === 'refused') {
         return refusal(access.text);
     }
+    if (access.kind === 'repo-checkout') {
+        const checkout = repoCheckoutCall(input.argv.slice(2));
+        if (checkout.kind === 'refused') {
+            return refusal(checkout.text);
+        }
+        if (checkout.kind === 'invoke') {
+            return runRepoCheckout(checkout.operation, input);
+        }
+    }
+    const machineFlags = access.kind === 'run' ? access.machineFlags : [];
     const root = await mkdtemp(join(tmpdir(), 'haus-runner-cli-'));
     const workdir = join(root, 'work');
     await mkdir(workdir);
     await mkdir(join(root, 'home'));
     try {
-        const plan = planMachinePaths(input.argv, access.machineFlags);
+        const plan = planMachinePaths(input.argv, machineFlags);
         for (const path of plan.paths) {
             await mkdir(dirname(join(workdir, path.standIn)), { recursive: true });
             if (path.direction === 'read') {
@@ -48,7 +60,7 @@ export async function runHausCommand(input: {
             }
         }
         const run = await spawnAgentCli({ ...input, argv: plan.argv, root, workdir });
-        const notes = access.machineFlags.some((flag) => flag.direction === 'write')
+        const notes = machineFlags.some((flag) => flag.direction === 'write')
             ? await writeMachineFiles(workdir, plan.paths, input)
             : [];
         const text = [restoreMachinePaths(run.output, plan.paths), ...notes, ...run.notes]
@@ -114,15 +126,11 @@ async function spawnAgentCli(input: {
     }
 }
 
-async function readMachineFile(
-    path: MachinePath,
-    workdir: string,
-    input: { invocations: InvocationClient; signal: AbortSignal; toolCallId: string }
-) {
+async function readMachineFile(path: MachinePath, workdir: string, input: MachineFileCall) {
     const answer = await input.invocations.invoke(
         input.toolCallId,
         { kind: 'file-read', maxBytes: machineFileReadMaxBytes, path: path.machinePath },
-        { signal: input.signal }
+        { computer: input.computer, signal: input.signal }
     );
     if (answer.frame.outcome !== 'completed') {
         return invocationToolOutcome(answer);
@@ -137,7 +145,7 @@ async function readMachineFile(
 async function writeMachineFiles(
     workdir: string,
     paths: readonly MachinePath[],
-    input: { invocations: InvocationClient; signal: AbortSignal; toolCallId: string }
+    input: MachineFileCall
 ) {
     const notes: string[] = [];
     for (const file of await filesUnder(workdir)) {
@@ -145,7 +153,7 @@ async function writeMachineFiles(
         const answer = await input.invocations.writeFile(
             input.toolCallId,
             { bytes: await readFile(file), mode: 0o600, path: machinePath },
-            { signal: input.signal }
+            { computer: input.computer, signal: input.signal }
         );
         if (answer.frame.outcome !== 'completed') {
             notes.push(`${machinePath} was not written to the machine.`);
@@ -153,6 +161,13 @@ async function writeMachineFiles(
         }
     }
     return notes;
+}
+
+interface MachineFileCall {
+    readonly computer?: string;
+    readonly invocations: InvocationClient;
+    readonly signal: AbortSignal;
+    readonly toolCallId: string;
 }
 
 async function filesUnder(dir: string) {
