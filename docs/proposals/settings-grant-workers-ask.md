@@ -17,6 +17,10 @@ Status:
   under [Council](#council).
 - It replaces the per-chat Ask record, grant scopes and Ask cards that this proposal held earlier
   the same day. Git history keeps that version.
+- **Amended 2026-11-23** by
+  [ADR 0057's Machine amendment](../adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md#amendment-2026-11-23-the-machine-replaces-the-home-computer):
+  computer use is one switch over every Captain with access to the Device, so the Captains list
+  under [Computer use](#computer-use) retires. Settings grant, conversations ask stands.
 
 Research inputs live in the shared session notes folder, outside the repo:
 - `capy-ask-permission-findings.md` and `capy-asks-shots/` cover Capy 0.9.2.

@@ -1,11 +1,12 @@
 ---
 status: accepted
-summary: Drive is the existing Files drive, renamed and extended with three areas (Haus, each Project, each Agent), revisions attributed to an Agent, Worker or person and a Task, and a per-area change counter. It holds the rule layers (Haus, Project and Agent AGENTS.md, plus each Agent's WORKER.md), MEMORY.md, notes, reports and skills, and everyone can read everything. Each Agent keeps a plain drive/ folder on its machine that pulls changes at turn start and pushes changes after the reply; the Server merges clean text edits and turns real conflicts into a kept-both copy plus a drive_conflict inbox item. The runner reads rules and memory from the Server. Accepted 2026-11-19, not yet implemented; amended 2026-11-20 (a Drive citation opens its revision in the file viewer, not beside the chat).
+summary: Drive is the existing Files drive, renamed and extended with three areas (Haus, each Project, each Agent), revisions attributed to an Agent, Worker or person and a Task, and a per-area change counter. It holds the rule layers (Haus, Project and Agent AGENTS.md, plus each Agent's WORKER.md), MEMORY.md, notes, reports and skills, and everyone can read everything. Each Agent keeps a plain drive/ folder on its machine that pulls changes at turn start and pushes changes after the reply; the Server merges clean text edits and turns real conflicts into a kept-both copy plus a drive_conflict inbox item. The runner reads rules and memory from the Server. Accepted 2026-11-19, not yet implemented; amended 2026-11-20 (a Drive citation opens its revision in the file viewer, not beside the chat); amended 2026-11-23 (the folder lives on the Agent's Machine, and a Machine change waits for the old Machine's push, or moves from the last synced revision when that Mac is offline, fenced by a placement generation).
 read_when:
   - changing Files, the artifact drive, Agent workspaces, or where MEMORY.md, notes and skills live
   - changing how rules (AGENTS.md, WORKER.md, conversation style) reach an Agent or a Worker
   - adding versions, attribution, History, or Restore to stored files
   - changing the drive/ folder on a machine, turn-start pull, turn-end push, or Drive conflicts
+  - changing what happens to an Agent's drive/ folder when its Machine changes
   - changing the drive_conflict inbox item, or deciding who can read an Agent's files
   - changing where an Agent writes a "from now on" rule
 ---
@@ -25,6 +26,12 @@ people see conflicts instead of copies, and citations follow the turn's push. Pa
 [ADR 0057](0057-agents-run-on-the-server-and-machines-run-their-tools.md) (runtime). Amends
 [ADR 0052](0052-memory-is-one-capped-file-and-heartbeats-retire.md), extends the Files contract in
 `specs/artifact-drive.md`, and replaces the durable half of `specs/workspace.md`.
+
+Amended 2026-11-23 in decisions 4 and 5 by
+[ADR 0057's Machine amendment](0057-agents-run-on-the-server-and-machines-run-their-tools.md#amendment-2026-11-23-the-machine-replaces-the-home-computer):
+an Agent's `drive/` folder lives on its Machine, which can now change, and
+[the handoff](#amendment-2026-11-23-drive-on-a-machine-change) says what happens to the folder
+when it does.
 
 ## Context
 
@@ -125,6 +132,38 @@ searchable threads. Rules people can edit outlast facts a model remembers.
 12. **v1 Drive page.** History, Compare and Restore. Compare renders two stored revisions with
     `@pierre/diffs` (Apache-2.0), so it needs no Server work. The Agent page links its rule files.
 
+## Amendment 2026-11-23: Drive on a Machine change
+
+An Agent's "machine" in decisions 4 and 5 is its Machine
+([ADR 0057](0057-agents-run-on-the-server-and-machines-run-their-tools.md#amendment-2026-11-23-the-machine-replaces-the-home-computer)),
+and a person can now change it. The folder never moves between Macs. The Server is canonical, so
+the new Machine pulls Drive into a fresh folder, and the handoff only has to make sure the old
+folder's edits reached the Server first, or that everyone knows they did not.
+
+**Today a settled turn proves nothing.** The turn-end push is one frame, sent to the Agent's
+current Computer only while it is online (`apps/server/src/runner/ingest.ts:145-162`), so a
+settled turn does not show that local edits reached Drive. The old Machine also loses its way to
+push the moment `agents.computer_id` changes: the Drive sync credential is minted only for the
+Agent's own Computer (`apps/server/src/computers/runner-credentials.ts:54-56`), and the reconnect
+push covers only Agents assigned there
+(`apps/server/src/agent-delivery/drive-reconcile.ts:8-29`).
+
+**The handoff.**
+
+1. **Between turns.** The change waits until the Agent's turn settles.
+2. **Flush.** With the old Machine online, Haus asks it to push and switches the Machine only
+   after that push lands. Its conflicts follow decision 6 as usual.
+3. **Old Machine offline.** The person can wait for it, or move from the last synced revision.
+   Moving says that edits not yet pushed stay in the old folder, and that Haus will not merge them.
+4. **Fence.** Each change bumps the Agent's durable placement generation. A push from a run that
+   started under an older generation is refused, the way a push from an earlier reset generation
+   is today (`apps/server/src/postgres/schema/agents.ts:90`). The old folder stays on that Mac
+   for recovery.
+5. **Pull.** The new Machine's first turn pulls into an empty folder, as a first turn does.
+
+What a change back to a Mac that still holds an old folder does with it is decided with the
+implementation.
+
 ## Considered and rejected
 
 - **A mounted remote filesystem or a Capy-style sync engine.** Continuous two-way sync with lazy
@@ -187,5 +226,8 @@ Follow-up:
 - Done: `specs/artifact-drive.md` carries areas, attribution, the change counter, pushes and
   conflicts, and `specs/drive-folder.md` carries the machine folder, pull and push.
 - Rewrite `specs/workspace.md` to this model.
+- 2026-11-23: the Machine change handoff in `specs/drive-folder.md`: the flush, the offline
+  choice, the placement generation on pushes, and the Drive sync credential and reconnect push
+  for the old Machine during the flush.
 - The prompt's memory and rule text changes go through the guarded prompt contract: the size cap,
   the divergence register, and a `tune-agent-behavior` baseline.

@@ -1,6 +1,6 @@
 ---
 status: proposed
-summary: A Project is an area of work and asks for no repos. Repos belong to the Server, identified by GitHub `owner/name`, and any Agent or Worker in any Project may use any of them. Each Computer lists where its repos live as repo folders, added by its attacher from the Device page or `haus-computer repo add`; a Worker that needs a repo with no folder clones it into the Server's partition, and that clone becomes the folder. Workers and Agents work in git worktrees of the folder at `<dataRoot>/servers/<serverId>/worktrees/<worker-or-agent-id>/<owner>/<name>/`, for Claude Code and Codex alike, reversing the 2026-11-21 move to separate clones; a Codex Worker writing hooks or config into the shared `.git`, or moving `main`, is an accepted risk disclosed at "Add folder". A Worker takes one repo. An Agent gets a worktree on its own named branch with `haus repo checkout`, only for repos already on that Computer, and commits, pushes and opens pull requests there as the Server's Haus GitHub App bot, with the person who asked as co-author. A Worker's worktree goes when it closes once its commits are on the remote, an Agent's after 7 days unused once clean, and unpushed work always stays. A repo joins the Server's list only after a successful folder add or clone. `project_repos` and `project_repo_links` retire. Implemented 2026-11-22; Agent pushes, pull requests and commit identity (slice C) 2026-11-23.
+summary: A Project is an area of work and asks for no repos. Repos belong to the Server, identified by GitHub `owner/name`, and any Agent or Worker in any Project may use any of them. Each Computer lists where its repos live as repo folders, added by its attacher from the Device page or `haus-computer repo add`; a Worker that needs a repo with no folder clones it into the Server's partition, and that clone becomes the folder. Workers and Agents work in git worktrees of the folder at `<dataRoot>/servers/<serverId>/worktrees/<worker-or-agent-id>/<owner>/<name>/`, for Claude Code and Codex alike, reversing the 2026-11-21 move to separate clones; a Codex Worker writing hooks or config into the shared `.git`, or moving `main`, is an accepted risk disclosed at "Add folder". A Worker takes one repo. An Agent gets a worktree on its own named branch with `haus repo checkout`, only for repos already on that Computer, and commits, pushes and opens pull requests there as the Server's Haus GitHub App bot, with the person who asked as co-author. A Worker's worktree goes when it closes once its commits are on the remote, an Agent's after 7 days unused once clean, and unpushed work always stays. A repo joins the Server's list only after a successful folder add or clone. `project_repos` and `project_repo_links` retire. Implemented 2026-11-22; Agent pushes, pull requests and commit identity (slice C) 2026-11-23. Amended 2026-11-23: when an Agent's Machine changes, its worktrees and uncommitted work stay on the old Mac.
 read_when:
   - changing where repos are recorded, how a Computer finds or clones a repo, or repo folders
   - changing Project creation or Project settings that mention repos
@@ -10,6 +10,7 @@ read_when:
   - changing an Agent's commit identity, its branch prefix, or how it pushes and opens pull requests
   - changing which login a checkout, cleanup or purge fetch of an Agent's worktree uses
   - migrating or deleting `project_repos` or `project_repo_links`
+  - changing what happens to an Agent's worktrees when its Machine changes
 ---
 
 # ADR 0060: Repos Belong to the Server, and Agents Work in Worktrees
@@ -31,6 +32,11 @@ call reaches there and where Workers and Agents work on disk.
 Implemented 2026-11-22 (slice B). Agent pushes, pull requests and commit identity in decision 5
 implemented 2026-11-23 (slice C), as
 [specs/github-app-connection.md](../../specs/github-app-connection.md#git-on-a-computer) describes.
+
+Amended 2026-11-23 by
+[ADR 0057's Machine amendment](0057-agents-run-on-the-server-and-machines-run-their-tools.md#amendment-2026-11-23-the-machine-replaces-the-home-computer):
+[worktrees stay on the old Mac](#amendment-2026-11-23-worktrees-stay-on-the-old-mac) when an
+Agent's Machine changes.
 
 ## Context
 
@@ -254,6 +260,25 @@ implemented 2026-11-23 (slice C), as
 
 8. **Cloud Workers keep cloning from GitHub.** For Cursor and Claude cloud Workers the repo list
    only names the repo. They never need a folder.
+
+## Amendment 2026-11-23: worktrees stay on the old Mac
+
+An Agent's Machine can now change
+([ADR 0057](0057-agents-run-on-the-server-and-machines-run-their-tools.md#amendment-2026-11-23-the-machine-replaces-the-home-computer)).
+A worktree lives on the Computer whose folder it came from, under that Computer's data root
+(`worktreesRoot` and `worktreePath`, `apps/computer/src/workers/computer/layout.ts:50-58`), so a
+Machine change moves none of them.
+
+- **What stays.** Every worktree, its branch, and its uncommitted and unpushed work stay on the
+  old Mac. "Change machine" says so before it saves.
+- **What carries.** Only what the Agent pushed. On the new Machine it runs `haus repo checkout`
+  again, which needs a folder for the repo there (decision 5).
+- **Reaching the old ones.** An Agent that keeps access on the old Mac reaches them with a
+  per-call `computer` target.
+- **Cleanup is unchanged.** Decision 6 still removes a clean one 7 days after its last use, and
+  never removes unpushed work.
+- **Carrying work across** (Capy's "Continue on", which moves the branch and uncommitted work and
+  ends the turn) is deferred.
 
 ## Considered and rejected
 

@@ -3,6 +3,7 @@ summary: Normative Workers contract (ADR 0056). A Worker is a quiet, scoped run 
 read_when:
   - changing Workers, Worker turns, Worker reports, or the `haus worker` CLI family
   - changing where a Worker runs, the "Workers can run here" switch, the Project's default place, or concurrency limits
+  - changing whether Agent access gates a Worker start on a Computer
   - changing what a Worker reads at launch, WORKER.md delivery, or the Haus Worker instructions
   - changing how people or Agents send a Worker a follow-up or stop it
   - changing a Worker on a Computer, its worktree, its credential, or its drive/ folder
@@ -195,6 +196,15 @@ user can reach. OS isolation is the follow-up
 working turns finish, refuses new starts and follow-ups with `WORKER_PLACE_OFF`, and settles turns
 queued there as failed `place-off`. It also clears every Project default that names the Computer
 ([Projects](projects.md#default-place-for-workers)).
+
+**Agent access (2026-11-23, not yet implemented).** An Agent starts a Worker on a `computer:`
+place only when that Computer's Agent access allows it, beside the switch
+([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md#amendment-2026-11-23-workers-honor-agent-access)).
+Access allows the Agent whose Machine it is, an Agent with a grant there, and every Agent when the
+Computer allows All Captains on this Server. The check covers `--on` and the Project default, and
+its refusal names the setting and links the Device page. Today `resolveWorkerStart` checks only
+the switch, online state and a ready runtime
+(`apps/server/src/workers/resolve-worker-start.ts:51-64`). Cloud places are unchanged.
 
 **Carrying a cloud place.** A cloud Worker's provider login lives on a Computer, as it does today.
 So each cloud Worker has a carrier Computer: one whose provider capability is ready. Carrying needs

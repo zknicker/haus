@@ -1,9 +1,10 @@
 ---
 status: accepted
-summary: Agents run Workers, scoped parallel runs attached to a Task, on any Computer that allows them or on Cursor or Claude in the cloud. Workers replace cloud agents. Each one gets the rule stack plus its Agent's WORKER.md at launch and on change, uses its machine's own logins, stays quiet while working, and ends with a typed report (done, needs-you, failed). People send a Worker follow-ups between turns and can stop it while it runs. PRs attach through reports, and commits carry a Haus-Task trailer for tracing. Agents coordinate only in the open, and there are no forks. Accepted 2026-11-19, not yet implemented.
+summary: Agents run Workers, scoped parallel runs attached to a Task, on any Computer that allows them or on Cursor or Claude in the cloud. Workers replace cloud agents. Each one gets the rule stack plus its Agent's WORKER.md at launch and on change, uses its machine's own logins, stays quiet while working, and ends with a typed report (done, needs-you, failed). People send a Worker follow-ups between turns and can stop it while it runs. PRs attach through reports, and commits carry a Haus-Task trailer for tracing. Agents coordinate only in the open, and there are no forks. Accepted 2026-11-19, not yet implemented. Amended 2026-11-23: an Agent starts a Worker on a Computer only where that Computer's Agent access allows it.
 read_when:
   - changing cloud agents, Workers, Runs, or `haus cloud-agent` / `haus worker`
   - changing where delegated work runs, the Project default place, or per-Computer Worker access
+  - changing whether an Agent may start a Worker on a Computer its Agent access does not allow
   - changing what a Worker reads, how it reports, or what it posts in a Task
   - changing how people or Agents talk to, stop, or supervise a Worker
   - changing agent-to-agent communication, commit trailers, or Worker deliverables
@@ -13,7 +14,10 @@ read_when:
 
 ## Status
 
-Accepted 2026-11-19. Not yet implemented. Proposed to be amended 2026-11-22 by
+Accepted 2026-11-19. Not yet implemented. Amended 2026-11-23 in decision 6 by
+[ADR 0057's Machine amendment](0057-agents-run-on-the-server-and-machines-run-their-tools.md#amendment-2026-11-23-the-machine-replaces-the-home-computer):
+[Workers honor Agent access](#amendment-2026-11-23-workers-honor-agent-access). Proposed to be
+amended 2026-11-22 by
 [ADR 0060](0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md) in decisions 6 and 7
 and the 2026-11-21 follow-up: repos belong to the Server, and a Worker on a Computer works in git
 worktrees of that Computer's repo folders. Amended 2026-11-22 by
@@ -124,6 +128,35 @@ runs silent until they finish or are blocked.
 
 13. **No forks.** A side conversation with an Agent is a DM, and an inline reply stays in the open
     on its message.
+
+## Amendment 2026-11-23: Workers honor Agent access
+
+**The gap.** A Computer's Agent access list says which Agents may run tools there
+([ADR 0057](0057-agents-run-on-the-server-and-machines-run-their-tools.md) decision 4), but only
+the invocation gate (`apps/server/src/agent-invocations/invocation-gate.ts:56`), the send fence
+(`apps/server/src/agent-invocations/fence-epochs.ts:19`) and the git credential
+(`apps/server/src/github/computer-git-credential.ts:40`) check it. A Worker start checks the
+switch, that the Computer is online and a ready runtime
+(`apps/server/src/workers/resolve-worker-start.ts:51-64`). So an Agent the attacher never allowed
+can start a Worker there, and a Worker gets the machine user's full local access (decision 7), more
+than the Agent's own shell.
+
+**The rule.** Decision 6 gains a second condition: an Agent starts a Worker on a `computer:`
+place only when that Computer's Agent access allows the Agent, as well as the **Workers can run
+here** switch being on.
+- It applies to `--on` and to the Project default place alike.
+- Agent access allows an Agent whose Machine is that Computer, an Agent with a grant there, and
+  every Agent when the Computer allows All Captains on this Server.
+- The refusal names the setting and links to the Device page, and the Agent asks a person in
+  plain text. There is no in-chat Ask
+  ([ADR 0037](0037-humans-are-addressed-by-mention.md)).
+- A cloud place is unchanged: carrying it needs only the provider login, as decision 2 says.
+- A running Worker keeps its place. Whether a later revoke also stops the Agent's Workers on that
+  Computer is decided with the implementation.
+
+**Changed capability.** An Agent can no longer start a Worker on a Computer that does not allow
+it. On a Server whose Computers keep the default Selected Captains setting, that is every
+Computer other than the Agent's Machine and its grants.
 
 ## Considered and rejected
 
