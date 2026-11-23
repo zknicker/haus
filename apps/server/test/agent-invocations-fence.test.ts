@@ -87,20 +87,28 @@ test('revoking access fences open calls on an online Computer, which cancels the
 
     await revoke();
     await laptop.next(frameOfType('agent-fence', { agentId: setup.agentId }));
-    for (const invoke of [accepted, waiting]) {
+    const outputs = [
+        { invoke: accepted, text: 'building 3/10' },
+        { invoke: waiting, text: 'Cancelled before it started.' },
+    ];
+    for (const { invoke, text } of outputs) {
         laptop.send({
             invocationId: invoke.invocationId,
             outcome: 'cancelled',
-            output: { kind: 'text', text: 'cancelled' },
+            output: { kind: 'text', text },
             truncated: false,
             type: 'invoke-result',
         });
     }
 
-    for (const runId of ['run_fence_accepted', 'run_fence_waiting']) {
+    const expected = {
+        run_fence_accepted: `${noAccess}\n\nOutput before it stopped:\nbuilding 3/10`,
+        run_fence_waiting: noAccess,
+    };
+    for (const [runId, text] of Object.entries(expected)) {
         const answer = await answerFor(runId);
         expect(answer).toMatchObject({ outcome: 'cancelled' });
-        expect(textOf(answer)).toBe(noAccess);
+        expect(textOf(answer)).toBe(text);
         expect(await ledger(runId)).toEqual([
             {
                 computer_id: laptopId,

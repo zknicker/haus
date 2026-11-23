@@ -38,7 +38,12 @@ export default defineScenario({
             });
             log(`calls: ${calls.lines.join('; ') || 'none'}`);
             expect(calls.onTarget.length > 0, `calls on the ${macbookName}`).toBe(true);
-            expect(calls.desktopOnHome, 'desktop calls on the home Computer').toHaveLength(0);
+            const homeIsMacbook = /macbook/iu.test(macbook.home.name ?? '');
+            if (homeIsMacbook) {
+                log(`home ${macbook.home.name} is a MacBook too, so a desktop call there is fair`);
+            } else {
+                expect(calls.desktopOnHome, 'desktop calls on the home Computer').toHaveLength(0);
+            }
         } finally {
             try {
                 await macbook?.cleanup();

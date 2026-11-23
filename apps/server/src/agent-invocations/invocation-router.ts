@@ -59,6 +59,7 @@ function routeInvocations(input: RouterInput) {
     const open = new Map<string, OpenInvocation>();
     const byDispatch = new Map<string, string>();
     const undelivered = new Map<string, InvocationResultFrame>();
+    const fenceEpochs = new Map<string, number>();
     const stopSettleWatch = onAgentLifecycle((event) => {
         if (event.phase !== 'settled') {
             return;
@@ -142,7 +143,9 @@ function routeInvocations(input: RouterInput) {
             return;
         }
         const target = { agentId: frame.agentId, computerId, serverId: agent.serverId };
-        if (!(await isAgentAllowedOn(db, target))) {
+        const epoch = fenceEpochs.get(fenceKey(target)) ?? 0;
+        const allowed = await isAgentAllowedOn(db, target);
+        if (!allowed || (fenceEpochs.get(fenceKey(target)) ?? 0) !== epoch) {
             const refused = await recordSentRefusal(db, record.id, 'no-access');
             answer(await settledAnswer(db, { appOrigin, record: refused ?? record }));
             return;
@@ -248,7 +251,11 @@ function routeInvocations(input: RouterInput) {
                 console.error('[haus] invocation reattach failed', error)
             );
         },
-        fenceAgent: fence,
+        fenceAgent(target: { agentId: string; computerId: string; serverId: string }) {
+            const key = fenceKey(target);
+            fenceEpochs.set(key, (fenceEpochs.get(key) ?? 0) + 1);
+            return fence(target);
+        },
         async ingestComputerFrame(computerId: string, frame: unknown) {
             const accepted = invokeAcceptedSchema.safeParse(frame);
             if (accepted.success) {
@@ -278,4 +285,8 @@ function routeInvocations(input: RouterInput) {
             }
         },
     };
+}
+
+function fenceKey(target: { agentId: string; computerId: string }) {
+    return `${target.agentId}:${target.computerId}`;
 }

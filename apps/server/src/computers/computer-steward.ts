@@ -63,7 +63,8 @@ async function readStewardedComputer(
                 eq(computersTable.id, input.computerId)
             )
         )
-        .limit(1);
+        .limit(1)
+        .for('update');
     if (!computer) {
         throw new ComputerSetupDeniedError('That Computer no longer exists.');
     }

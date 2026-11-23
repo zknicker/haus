@@ -28,6 +28,7 @@ import {
 } from './invocation-store.ts';
 
 const namedKinds = new Set<InvocationOperationKind>(['bash', 'browser', 'desktop', 'edit']);
+const notStartedText = 'Cancelled before it started.';
 
 export async function settledAnswer(
     db: HausDatabase,
@@ -67,16 +68,19 @@ export async function machineResultAnswer(
     }
 ) {
     const { record, result } = input;
-    const refusal = refusalOf(input);
+    const answer = resultAnswer(record, result);
+    const stoppedDesktop =
+        input.stopped && record.operationKind === 'desktop' && result.outcome === 'cancelled';
+    const refusal = stoppedDesktop && !result.refusal ? null : refusalOf(input);
     if (refusal && record.state === 'finished') {
         await recordFinishedRefusal(db, record.id, refusal);
-        return await settledAnswer(db, {
+        const refused = await settledAnswer(db, {
             appOrigin: input.appOrigin,
             record: { ...record, refusal },
         });
+        return refusal === 'no-access' ? withPartialOutput(refused, result) : refused;
     }
-    const answer = resultAnswer(record, result);
-    if (input.stopped && record.operationKind === 'desktop' && result.outcome === 'cancelled') {
+    if (stoppedDesktop) {
         const text = await desktopStoppedText(db, record);
         return { ...answer, output: { kind: 'text' as const, text } };
     }
@@ -145,6 +149,15 @@ async function namedOffHome(
     }
     const computer = await readComputerFacts(db, { computerId, serverId: record.serverId });
     return withLeadLine(answer, ranOnLine(computer?.name ?? computerId));
+}
+
+function withPartialOutput(answer: InvocationResultFrame, result: InvokeResult) {
+    const partial = result.output.kind === 'text' ? result.output.text.trim() : '';
+    if (answer.output.kind !== 'text' || partial.length === 0 || partial === notStartedText) {
+        return answer;
+    }
+    const text = `${answer.output.text}\n\nOutput before it stopped:\n${partial}`;
+    return { ...answer, output: { kind: 'text' as const, text } };
 }
 
 function refusalOf(input: { fenced: boolean; record: InvocationRecord; result: InvokeResult }) {

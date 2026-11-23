@@ -76,6 +76,29 @@ test('the computer use list names a granted Agent and refuses one the Device doe
     expect(await computerUseRows()).toEqual([{ agent_id: board.setup.agentId }]);
 });
 
+test("a home change drops only the old home's computer use entry, not a borrowed one", async () => {
+    const { agentId, computerId, harness, serverId } = board.setup;
+    const studio = computerId;
+    await harness.sql`
+        insert into computer_use_agents (agent_id, computer_id, server_id)
+        values (${agentId}, ${studio}, ${serverId})
+    `;
+    await harness.sql`update agents set computer_id = ${board.laptopId} where id = ${agentId}`;
+
+    expect(await computerUseRows()).toEqual([{ agent_id: agentId }]);
+    expect(
+        await harness.sql`
+            select agent_id from computer_use_agents where computer_id = ${studio}
+        `
+    ).toEqual([]);
+
+    await harness.sql`update agents set computer_id = ${studio} where id = ${agentId}`;
+    await harness.sql`
+        insert into computer_use_agents (agent_id, computer_id, server_id)
+        values (${agentId}, ${board.laptopId}, ${serverId})
+    `;
+});
+
 test('an Admin revokes access, which drops its computer use entry and fences the Agent there', async () => {
     const input = accessInput(board);
     expect(await board.admin.trpc.computer.revokeAgentAccess.mutate(input)).toEqual({
