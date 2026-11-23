@@ -5,6 +5,7 @@ import { isAgentAllowedOn } from '../computer-access/agent-access.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentUpdatedTopic, computerUpdatedTopic } from '../realtime/topics.ts';
 import { listReminderScriptCommands } from '../reminders/reminder-script-delivery.ts';
+import { sendReminderScript } from '../reminders/reminder-script-placement.ts';
 import type { MachineChangeStep } from './advance-machine-change.ts';
 
 export interface MachineFences {
@@ -44,7 +45,7 @@ export async function commitMachineChangeStep(
     }
     for (const command of await listReminderScriptCommands(deps.db, step.to)) {
         if (command.agentId === step.agentId) {
-            deps.transport.send(step.to, command);
+            await sendReminderScript(deps.db, deps.transport, step.to, command);
         }
     }
     for (const computerId of [step.from, step.to]) {

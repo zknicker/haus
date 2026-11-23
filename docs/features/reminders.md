@@ -113,8 +113,11 @@ new command id.
   anchoring note — and the link into Automations. A
   deleted reminder's run history reads as not found rather than empty.
 - **Computer-local scripts.** A script payload is at most 16 KiB. The Server
-  stores it but never runs or interprets it. The assigned Computer executes it
-  once in the Agent workspace, with the same PATH and environment (minus
+  stores it but never runs or interprets it. The Agent's Machine executes it
+  once in the Agent workspace, and a fire stays bound to the Machine and
+  placement it was sent to: only that Machine's result settles it, a Machine
+  change waits for it, and a change away from an offline Machine marks it
+  failed rather than running it twice. It runs with the same PATH and environment (minus
   secrets) the Agent's own shell commands get, so a script that calls
   `haus-secrets` works. Empty success stays quiet; output or failure
   reaches the Agent on the wake itself, not as a message in the conversation, and

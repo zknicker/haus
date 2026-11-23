@@ -1,0 +1,4 @@
+ALTER TABLE "reminder_agent_attention" ADD COLUMN "dispatched_computer_id" text;--> statement-breakpoint
+ALTER TABLE "reminder_agent_attention" ADD COLUMN "dispatched_placement_generation" integer;--> statement-breakpoint
+ALTER TABLE "reminder_agent_attention" ADD CONSTRAINT "reminder_agent_attention_dispatch" CHECK (("reminder_agent_attention"."dispatched_computer_id" is null) = ("reminder_agent_attention"."dispatched_placement_generation" is null)
+                and ("reminder_agent_attention"."dispatched_computer_id" is null or "reminder_agent_attention"."attention_kind" = 'reminder_script'));

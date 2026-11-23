@@ -205,6 +205,8 @@ export const reminderAgentAttentionTable = pgTable(
     {
         agentId: text('agent_id').notNull(),
         anchorChatId: text('anchor_chat_id').notNull(),
+        dispatchedComputerId: text('dispatched_computer_id'),
+        dispatchedPlacementGeneration: integer('dispatched_placement_generation'),
         fireId: text('fire_id').notNull(),
         id: text('id').primaryKey(),
         kind: text('attention_kind').notNull().$type<'reminder' | 'reminder_script'>(),
@@ -246,6 +248,11 @@ export const reminderAgentAttentionTable = pgTable(
                 (${table.kind} = 'reminder_script'
                     AND octet_length(${table.script}) between 1 and 16384)
             )`
+        ),
+        check(
+            'reminder_agent_attention_dispatch',
+            sql`(${table.dispatchedComputerId} is null) = (${table.dispatchedPlacementGeneration} is null)
+                and (${table.dispatchedComputerId} is null or ${table.kind} = 'reminder_script')`
         ),
     ]
 );

@@ -25,6 +25,44 @@ export async function closeFlush(setup: InvocationHarness, credential: string, f
     return closed.status;
 }
 
+export async function seedScriptFire(
+    setup: InvocationHarness,
+    input: { dispatchedTo?: string; key: string }
+) {
+    const { agentId, harness, owner, serverId } = setup;
+    const chatId = (await owner.trpc.chat.ensureAgentDm.mutate({ agentId, serverId })).id;
+    await owner.trpc.chat.send.mutate({
+        chatId,
+        content: `Anchor ${input.key}`,
+        nonce: `anchor_${input.key}`,
+        serverId,
+    });
+    const [anchor] = (await harness.sql`
+        select id from chat_messages where nonce = ${`anchor_${input.key}`}
+    `) as { id: string }[];
+    await harness.sql`
+        insert into reminders (id, server_id, owner_agent_id, anchor_chat_id, anchor_message_id,
+            created_at, fire_at, status, timezone, title, updated_at, script)
+        values (${`rem_${input.key}`}, ${serverId}, ${agentId}, ${chatId}, ${anchor?.id},
+            now(), now(), 'fired', 'UTC', 'Deploy check', now(), 'printf deployed')
+    `;
+    await harness.sql`
+        insert into reminder_fires (id, server_id, reminder_id, fired_at, scheduled_for, has_script)
+        values (${`fire_${input.key}`}, ${serverId}, ${`rem_${input.key}`}, now(), now(), true)
+    `;
+    await harness.sql`
+        insert into reminder_agent_attention (id, server_id, agent_id, anchor_chat_id, fire_id,
+            attention_kind, queued_at, reminder_id, script, dispatched_computer_id,
+            dispatched_placement_generation)
+        select ${`att_${input.key}`}, ${serverId}, ${agentId}, ${chatId}, ${`fire_${input.key}`},
+            'reminder_script', now(), ${`rem_${input.key}`}, 'printf deployed',
+            ${input.dispatchedTo ?? null},
+            case when ${input.dispatchedTo ?? null}::text is null then null else placement_generation end
+        from agents where id = ${agentId}
+    `;
+    return `att_${input.key}`;
+}
+
 export function nextAfter(
     client: FrameClient | RunnerClient,
     predicate: (frame: RunnerFrame) => boolean

@@ -10,6 +10,7 @@ import {
 } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { reminderEnvelope } from './reminder-envelope.ts';
+import { scriptsFor } from './reminder-script-placement.ts';
 import { decideReminderWake } from './reminder-wake-decision.ts';
 
 export async function listReminderScriptCommands(
@@ -29,11 +30,10 @@ export async function listReminderScriptCommands(
             agentsTable,
             and(
                 eq(agentsTable.serverId, reminderAgentAttentionTable.serverId),
-                eq(agentsTable.id, reminderAgentAttentionTable.agentId),
-                eq(agentsTable.computerId, computerId)
+                eq(agentsTable.id, reminderAgentAttentionTable.agentId)
             )
         )
-        .where(eq(reminderAgentAttentionTable.kind, 'reminder_script'))
+        .where(and(eq(reminderAgentAttentionTable.kind, 'reminder_script'), scriptsFor(computerId)))
         .orderBy(asc(reminderAgentAttentionTable.queuedAt), asc(reminderAgentAttentionTable.id));
     return rows.flatMap((row) =>
         row.script
@@ -71,6 +71,10 @@ export async function settleReminderScript(
     const [identity] = await db
         .select({
             computerId: agentsTable.computerId,
+            dispatchedComputerId: reminderAgentAttentionTable.dispatchedComputerId,
+            dispatchedPlacementGeneration:
+                reminderAgentAttentionTable.dispatchedPlacementGeneration,
+            placementGeneration: agentsTable.placementGeneration,
             serverId: reminderAgentAttentionTable.serverId,
         })
         .from(reminderAgentAttentionTable)
@@ -89,7 +93,7 @@ export async function settleReminderScript(
             )
         )
         .limit(1);
-    if (!identity || identity.computerId !== computerId) {
+    if (!(identity && ranOnItsPlacement(identity, computerId))) {
         return;
     }
     await db.transaction(async (tx) => {
@@ -229,4 +233,22 @@ export async function settleReminderScript(
             source: 'reminder',
         });
     });
+}
+
+function ranOnItsPlacement(
+    identity: {
+        computerId: string | null;
+        dispatchedComputerId: string | null;
+        dispatchedPlacementGeneration: number | null;
+        placementGeneration: number;
+    },
+    computerId: string
+) {
+    if (identity.dispatchedComputerId === null) {
+        return identity.computerId === computerId;
+    }
+    return (
+        identity.dispatchedComputerId === computerId &&
+        identity.dispatchedPlacementGeneration === identity.placementGeneration
+    );
 }

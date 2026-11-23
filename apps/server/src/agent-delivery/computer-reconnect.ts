@@ -1,5 +1,6 @@
 import type { HausDatabase } from '../postgres/connection.ts';
 import { listReminderScriptCommands } from '../reminders/reminder-script-delivery.ts';
+import { sendReminderScript } from '../reminders/reminder-script-placement.ts';
 import type { DeliveryTransport } from './delivery.ts';
 import { listComputerAgents, reconcileConfigureFrame } from './dispatch-config.ts';
 import { readDeliveryState } from './store.ts';
@@ -14,7 +15,7 @@ export async function reconcileComputerAgents(
 ) {
     const { db, transport } = deps;
     for (const command of await listReminderScriptCommands(db, computerId)) {
-        transport.send(computerId, command);
+        await sendReminderScript(db, transport, computerId, command);
     }
     for (const agent of await listComputerAgents(db, computerId)) {
         if (agent.retiredAt) {

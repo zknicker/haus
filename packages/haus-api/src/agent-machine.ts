@@ -26,10 +26,11 @@ export const agentSetMachineInputSchema = z
 export type AgentSetMachineInput = z.infer<typeof agentSetMachineInputSchema>;
 
 /**
- * What a pending change waits for: `turn`, the Agent's current turn to settle; `drive`, the old
- * Machine's push of its folder; `machine`, the old Machine to come online and push.
+ * What a pending change waits for: `turn`, the Agent's current turn to settle; `script`, a
+ * reminder script still running on the old Machine; `drive`, the old Machine's push of its
+ * folder; `machine`, the old Machine to come online and push.
  */
-export const agentMachineWaitSchema = z.enum(['turn', 'drive', 'machine']);
+export const agentMachineWaitSchema = z.enum(['turn', 'script', 'drive', 'machine']);
 export type AgentMachineWait = z.infer<typeof agentMachineWaitSchema>;
 
 export const agentMachineChangeSchema = z
