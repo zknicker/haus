@@ -49,7 +49,7 @@ test('an unconnected Computer offers Connect and no disconnect', () => {
     expect(view).toMatchObject({ canConnect: true, canDisconnect: false, status: 'not-connected' });
 
     const html = render(view);
-    expect(html).toContain('>Cursor<');
+    expect(html).toContain('>Cursor Cloud<');
     expect(html).toContain('Not connected');
     expect(html).toContain('Connect');
     expect(html).not.toContain('Cursor actions');
@@ -200,7 +200,7 @@ test('Claude reuses the Computer’s Claude Code login: it checks again and neve
     });
     expect(signedOut).toMatchObject({ canConnect: true, connectLabel: 'Check again' });
     expect(signedOut.description).toContain('Claude Code');
-    expect(render(signedOut)).toContain('>Claude<');
+    expect(render(signedOut)).toContain('>Claude Cloud<');
 
     const ready = cloudAgentCapabilityView({
         isConnecting: false,

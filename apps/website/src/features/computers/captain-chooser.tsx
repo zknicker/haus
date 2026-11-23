@@ -56,6 +56,7 @@ export function CaptainChooser({
                         </SearchField>
                         <ListBox
                             aria-label="Captains with access"
+                            escapeKeyBehavior="none"
                             className="max-h-[min(20rem,calc(100dvh-12rem))] overflow-y-auto"
                             disabledKeys={isPending ? captains.map(({ id }) => id) : keys.disabled}
                             onSelectionChange={(next) => {

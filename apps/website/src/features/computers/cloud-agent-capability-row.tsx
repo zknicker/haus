@@ -25,13 +25,14 @@ export function CloudAgentCapabilityRow({
             <ItemCard.Content>
                 <SettingsStatusTitle
                     info={view.description}
+                    infoLabel={`About ${title}`}
                     status={
                         <SettingsStatusChip color={statusColor(view.status)}>
                             {view.statusLabel}
                         </SettingsStatusChip>
                     }
                 >
-                    {title}
+                    {`${title} Cloud`}
                 </SettingsStatusTitle>
             </ItemCard.Content>
             <ItemCard.Action>
