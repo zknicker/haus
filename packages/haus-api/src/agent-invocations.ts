@@ -1,6 +1,7 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
 import { screenRefusalSchema } from './computer-use.ts';
+import { repoFolderPathSchema, repoNameSchema } from './repos.ts';
 
 /** Every invocation frame stays under this size; larger bytes move as attachment references. */
 export const invocationFrameMaxBytes = 1024 * 1024;
@@ -16,6 +17,7 @@ export const invocationOperationKindSchema = z.enum([
     'file-write',
     'browser',
     'desktop',
+    'repo-checkout',
 ]);
 export type InvocationOperationKind = z.infer<typeof invocationOperationKindSchema>;
 
@@ -26,6 +28,7 @@ export const invocationTimeoutsMs = {
     edit: { default: 30_000, max: 30_000 },
     'file-read': { default: 60_000, max: 60_000 },
     'file-write': { default: 60_000, max: 60_000 },
+    'repo-checkout': { default: 300_000, max: 300_000 },
     'view-image': { default: 30_000, max: 30_000 },
 } as const satisfies Record<InvocationOperationKind, { default: number; max: number }>;
 
@@ -150,6 +153,20 @@ export const invocationOperationSchema = z.discriminatedUnion('kind', [
         .object({
             args: z.array(z.string().max(32_768)).min(1).max(100),
             kind: z.literal('desktop'),
+        })
+        .strict(),
+    /**
+     * `haus repo checkout` (ADR 0060): a worktree on `haus/<agent-id>/<name>` of
+     * the target Computer's folder for `repository`. The runner never sends
+     * `folder`; the Server's gate sets it from the Computer's repo folders, or
+     * refuses when there is none, so the Computer never clones for an Agent.
+     */
+    z
+        .object({
+            folder: repoFolderPathSchema.optional(),
+            kind: z.literal('repo-checkout'),
+            ref: z.string().trim().min(1).max(200).nullable(),
+            repository: repoNameSchema,
         })
         .strict(),
 ]);

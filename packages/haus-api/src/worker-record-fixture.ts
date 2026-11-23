@@ -9,6 +9,7 @@ export const work = {
     environmentId: null,
     environmentName: null,
     id: 'caw_1234567890abcdef',
+    keptWorktree: null,
     job: { followUp: null, startedAt: '2026-09-04T12:00:30.000Z', state: 'working' },
     launchMessageId: 'msg_1234567890abcdef',
     model: null,
