@@ -9,11 +9,14 @@ public final class HausRouter {
     public var selectedTab: HausTab = .home {
         didSet {
             if selectedTab == .search, oldValue != .search { tabBeforeSearch = oldValue }
-            if selectedTab != oldValue { chromeScroll.expand() }
+            if selectedTab != oldValue { unfoldChrome() }
         }
     }
     /// Whether the selected tab root's scrolling has folded the bottom chrome.
-    public private(set) var chromeScroll = BottomChromeScroll()
+    /// The only scroll state views observe: it changes once per fold, while
+    /// the tracker below changes on every scroll frame.
+    public private(set) var isChromeCollapsed = false
+    @ObservationIgnored private var chromeScroll = BottomChromeScroll()
     /// The tab Search returns to when it closes.
     public private(set) var tabBeforeSearch: HausTab = .home
     public private(set) var paths: [HausTab: [HausRoute]] = [:]
@@ -115,10 +118,14 @@ public final class HausRouter {
     public func scrollRoot(_ tab: HausTab, from old: Double, to new: Double) {
         guard selectedTab == tab else { return }
         chromeScroll.scroll(from: old, to: new)
+        if isChromeCollapsed != chromeScroll.isCollapsed {
+            isChromeCollapsed = chromeScroll.isCollapsed
+        }
     }
 
     public func unfoldChrome() {
         chromeScroll.expand()
+        if isChromeCollapsed { isChromeCollapsed = false }
     }
 
     public func pop() {

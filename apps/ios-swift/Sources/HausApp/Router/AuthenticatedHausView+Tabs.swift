@@ -37,7 +37,7 @@ extension AuthenticatedHausView {
                     HausBottomChrome(
                         selection: $router.selectedTab,
                         items: tabBarItems,
-                        isCollapsed: router.chromeScroll.isCollapsed && router.showsAskAnything,
+                        isCollapsed: router.isChromeCollapsed && router.showsAskAnything,
                         onExpand: { router.unfoldChrome() },
                         onAsk: router.showsAskAnything ? { router.present(.askAnything) } : nil
                     )
