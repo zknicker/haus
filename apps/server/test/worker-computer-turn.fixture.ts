@@ -6,14 +6,11 @@ import { computersTable, workerTurnsTable } from '../src/postgres/schema.ts';
 import { settleComputerTurn } from '../src/workers/settle-computer-turn.ts';
 import { mintWorkerTurnCredential } from '../src/workers/worker-credentials.ts';
 import { type WorkerBoard, readTurns, seedWorkerBoard, startOn } from './worker-board.fixture.ts';
-import { addLinkedRepo, setComputerPlace } from './worker-computer-place.fixture.ts';
+import { setComputerPlace } from './worker-computer-place.fixture.ts';
 
 export async function computerPlaceBoard(db: HausDatabase) {
     const board = await seedWorkerBoard(db);
     await setComputerPlace(db, board, board.seed.computerId, { limit: 50, name: 'mini' });
-    await addLinkedRepo(db, board, 'haus/haus', [
-        { checkoutPath: null, computerId: board.seed.computerId },
-    ]);
     return board;
 }
 

@@ -215,6 +215,11 @@ export const workerSchema = z
         /** The environment's name, when the carrier could read it, for display. */
         environmentName: z.string().trim().min(1).max(200).nullable(),
         id: workerIdSchema,
+        /**
+         * A closed Computer-place Worker's worktree that kept unpushed work, as the
+         * Computer's `worker-held` report names it; null once it is clean or gone.
+         */
+        keptWorktree: z.string().trim().min(1).max(1024).nullable(),
         /** The Server's reading of the whole job across its turns (`deriveWorkerJob`). */
         job: workerJobSchema,
         launchMessageId: workerIdSchema.nullable(),

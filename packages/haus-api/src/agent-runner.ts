@@ -34,6 +34,7 @@ import { computerInventoryRefreshRequestSchema } from './computer-inventory-refr
 import { computerSecretsRequestSchema } from './computer-secrets.ts';
 import { hostSkillFileRequestSchema } from './host-skill-file.ts';
 import { reminderScriptCommandSchema } from './reminder-script-frames.ts';
+import { repoFolderRequestSchema } from './repos.ts';
 import {
     serverDeleteCommandSchema,
     serverRuntimeSettingsCommandSchema,
@@ -107,6 +108,7 @@ export type AgentSkillImportCommand = z.infer<typeof agentSkillImportCommandSche
 /** Every typed frame the Server sends down a Computer attachment socket. */
 export const agentCommandSchema = z.discriminatedUnion('type', [
     computerInventoryRefreshRequestSchema,
+    repoFolderRequestSchema,
     agentStartCommandSchema,
     agentStopCommandSchema,
     agentStopBackgroundCommandSchema,

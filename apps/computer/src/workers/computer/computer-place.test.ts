@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
+    repoClonesFrameSchema,
     workerHeldFrameSchema,
     workerTurnAcceptedFrameSchema,
     workerTurnActivityFrameSchema,
@@ -25,6 +26,7 @@ import type { WorkerHarnessLaunch } from './harness.ts';
 
 const computerPlaces = registerComputerPlaces();
 const wireSchemas = {
+    'repo-clones': repoClonesFrameSchema,
     'worker-held': workerHeldFrameSchema,
     'worker-turn-accepted': workerTurnAcceptedFrameSchema,
     'worker-turn-activity': workerTurnActivityFrameSchema,
@@ -54,6 +56,23 @@ describe('a Worker turn on a Computer', () => {
 
         expect(frames).toEqual([
             { attempt: 1, turnId: 'wkt_1', type: 'worker-turn-accepted' },
+            {
+                clones: [
+                    {
+                        path: join(
+                            computer.root,
+                            'data',
+                            'servers',
+                            'srv_1',
+                            'repos',
+                            'acme',
+                            'app'
+                        ),
+                        repository: 'acme/app',
+                    },
+                ],
+                type: 'repo-clones',
+            },
             { sessionId: 'thread-9', turnId: 'wkt_1', type: 'worker-turn-session' },
             {
                 attempt: 1,
@@ -187,6 +206,7 @@ describe('a Worker turn on a Computer', () => {
 
         expect(claude.frames.map((frame) => frame.type)).toEqual([
             'worker-turn-accepted',
+            'repo-clones',
             'worker-turn-session',
             'worker-turn-ended',
         ]);

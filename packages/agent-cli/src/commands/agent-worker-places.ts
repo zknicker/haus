@@ -32,16 +32,19 @@ export const PLACES_COMMAND: SubCommand = {
     examples: ['haus worker places --task SEC-12'],
     flags: [
         {
-            description: 'Mark the Task’s Project default and list its linked repos',
+            description: 'Mark the Task’s Project default',
             name: '--task',
             valueName: '<KEY-n>',
         },
     ],
     name: 'places',
-    notes: ['Name a place on start with --on: computer:<id>, a Computer name, cursor, or claude.'],
+    notes: [
+        'Name a place on start with --on: computer:<id>, a Computer name, cursor, or claude.',
+        'A Worker on a Computer with no folder for its repo clones it there first.',
+    ],
     positionals: [],
     run: (args) => runWorkerPlaces(args, defaultDeps()),
-    summary: 'List where Workers can run, with readiness, runtimes, repos, and free slots',
+    summary: 'List where Workers can run, with readiness, runtimes, repo folders, and free slots',
     usage: 'haus worker places [--task <KEY-n>]',
 };
 
@@ -56,11 +59,7 @@ export async function runWorkerPlaces(args: ParsedArgs, deps: WorkerDeps) {
 }
 
 export function renderWorkerPlaces(response: PlacesResponse) {
-    const projectRepos =
-        response.repositories.length > 0
-            ? ` (Project repos: ${response.repositories.join(', ')})`
-            : '';
-    const heading = response.task ? `Places for ${response.task}${projectRepos}:` : 'Places:';
+    const heading = response.task ? `Places for ${response.task}:` : 'Places:';
     const start = `haus worker start --task ${response.task ?? '<KEY-n>'} --on <place> --title <text>`;
     return `${[heading, ...response.places.map(placeLine), '', `Start one with ${start}.`].join('\n')}\n`;
 }
@@ -85,9 +84,9 @@ function placeLine(place: PlaceEntry) {
                 : `${runtime.runtime} (${runtime.detail ?? 'not ready'})`
         )
         .join(', ');
-    const linked =
-        place.linkedRepositories.length > 0 ? `; repos ${place.linkedRepositories.join(', ')}` : '';
-    return `${lead}: ${slots(place)}; runtimes ${runtimes || 'none'}${linked}${marker}`;
+    const folders =
+        place.repoFolders.length > 0 ? `; repo folders ${place.repoFolders.join(', ')}` : '';
+    return `${lead}: ${slots(place)}; runtimes ${runtimes || 'none'}${folders}${marker}`;
 }
 
 function slots(place: { freeSlots: number; limit: number; ready: boolean }) {

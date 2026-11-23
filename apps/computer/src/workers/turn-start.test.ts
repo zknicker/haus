@@ -18,7 +18,7 @@ const accepted = {
 const launched = (frame: WorkerComputerFrame) =>
     frame.type === 'worker-observation' && frame.observation.providerRunId !== undefined;
 const turnFrames = (frames: WorkerComputerFrame[]) =>
-    frames.filter((frame) => frame.type !== 'worker-held');
+    frames.filter((frame) => frame.type !== 'worker-held' && frame.type !== 'repo-clones');
 
 test('a first turn is journaled and acknowledged before the provider launches it', async () => {
     const f = await supervisors(createFakeCloudAgentProvider());

@@ -8,12 +8,14 @@ import {
     advanceWorkerTurn,
     isTerminalWorkerTurnStatus,
     projectWorker,
+    repoNameSchema,
 } from '@haus/api';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
 import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentInboxTable, tasksTable, workerTurnsTable, workersTable } from '../postgres/schema.ts';
+import { upsertRepo } from '../repos/repo-folder-write.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
 import { withDispatch } from './dispatch-worker-turns.ts';
 import { mergeBranchEvidence } from './merge-branch-evidence.ts';
@@ -127,6 +129,7 @@ export async function applyWorkerObservation(
                     eq(workersTable.id, observation.workerId)
                 )
             );
+        await recordCloudRepo(tx, worker, observation);
         if (
             turn.status === 'queued' &&
             turn.workerMdRevisionId &&
@@ -165,6 +168,20 @@ export async function applyWorkerObservation(
             workerIds: [worker.id],
         });
     });
+}
+
+async function recordCloudRepo(
+    tx: HausDatabase,
+    worker: typeof workersTable.$inferSelect,
+    observation: WorkerObservation
+) {
+    if (worker.place === 'computer' || worker.providerAgentId || !observation.providerAgentId) {
+        return;
+    }
+    const repository = repoNameSchema.safeParse(worker.repository);
+    if (repository.success) {
+        await upsertRepo(tx, { repository: repository.data, serverId: worker.serverId });
+    }
 }
 
 async function queueStallNotice(

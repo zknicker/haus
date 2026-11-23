@@ -133,7 +133,7 @@ test('a turn ends with one exit from the settlement table', () => {
 });
 
 test('a Computer reports what it holds, and the Server closes a held Worker', () => {
-    const held: WorkerHeldFrame = { type: 'worker-held', workerIds: [] };
+    const held: WorkerHeldFrame = { keptWorktrees: [], type: 'worker-held', workerIds: [] };
     expect(workerHeldFrameSchema.parse(held)).toEqual(held);
     const close: WorkerCloseCommand = { type: 'worker-close', workerId: 'wkr_1234567890abcdef' };
     expect(agentCommandSchema.parse(close)).toEqual(close);

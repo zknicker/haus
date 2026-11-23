@@ -5,7 +5,7 @@ import type { CliRenderer } from './render.ts';
  * help page, per-command pages, and incomplete/unknown command recovery.
  */
 
-const commandGroups = ['Get started', 'Service', 'Inspect', 'Account'] as const;
+const commandGroups = ['Get started', 'Service', 'Repos', 'Inspect', 'Account'] as const;
 
 type CommandGroup = (typeof commandGroups)[number];
 
@@ -99,6 +99,27 @@ export const computerCommands: ComputerCommandHelp[] = [
         notes: ['--rollback restores the previous verified app.'],
         summary: 'Update to the latest release, or roll back',
         usage: 'upgrade [--rollback]',
+    },
+    {
+        args: [
+            { name: 'add <path>', summary: 'Add a checkout whose origin is a repo on github.com' },
+            { name: 'list', summary: "Show this Computer's repo folders and Haus worktrees" },
+            {
+                name: 'remove <owner/name>',
+                summary: 'Drop the folder once no Haus worktree uses it',
+            },
+            serverSlugArg,
+        ],
+        group: 'Repos',
+        name: 'repo',
+        notes: [
+            'Workers and Captains work in git worktrees of a folder and share its .git.',
+            'A Worker can change its branches, including main, and its hooks and config.',
+            'Only the person who attached this Computer adds a folder.',
+            'Name /server-slug when this Computer is attached to more than one Server.',
+        ],
+        summary: 'Add, list, or remove the repo folders Workers and Captains use',
+        usage: 'repo add <path> | list | remove <owner/name> [/server-slug]',
     },
     {
         group: 'Inspect',

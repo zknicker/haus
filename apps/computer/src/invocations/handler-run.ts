@@ -4,6 +4,7 @@ import {
     type InvokeResult,
     invocationTimeoutsMs,
 } from '@haus/api';
+import { withAgentUse } from '../repos/agent-use.ts';
 import { invocationEnvironment } from './environment.ts';
 import {
     type InvocationPayloads,
@@ -12,6 +13,7 @@ import {
     type OperationRunners,
     textResult,
 } from './operation.ts';
+import { recordWorktreeUse } from './worktree-use.ts';
 
 export async function executeInvocation(
     command: InvokeCommand,
@@ -34,15 +36,19 @@ export async function executeInvocation(
             command.agentId,
             operation.kind === 'bash' ? operation.cwd : undefined
         );
-        result = await runOperation(input.runners, operation, {
-            agentId: command.agentId,
-            cwd,
-            env,
-            invocationId: command.invocationId,
-            logPath: input.logPath,
-            payloads: input.payloads,
-            signal: input.controller.signal,
-            timeoutMs,
+        result = await withAgentUse(command.agentId, async () => {
+            const ran = await runOperation(input.runners, operation, {
+                agentId: command.agentId,
+                cwd,
+                env,
+                invocationId: command.invocationId,
+                logPath: input.logPath,
+                payloads: input.payloads,
+                signal: input.controller.signal,
+                timeoutMs,
+            });
+            await recordWorktreeUse(input.agentsRoot, operation, { cwd, env }).catch(logUseFailure);
+            return ran;
         });
     } catch (error) {
         result = textResult('failed', error instanceof Error ? error.message : String(error));
@@ -99,5 +105,13 @@ function runOperation(
             return runners.browser(operation, context);
         case 'desktop':
             return runners.desktop(operation, context);
+        case 'repo-checkout':
+            return runners['repo-checkout'](operation, context);
     }
+}
+
+function logUseFailure(cause: unknown) {
+    console.error(
+        `Could not record an Agent worktree use: ${cause instanceof Error ? cause.message : cause}`
+    );
 }

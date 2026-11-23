@@ -3,9 +3,9 @@ import { and, asc, eq, lt, sql } from 'drizzle-orm';
 import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, chatsTable, workerTurnsTable, workersTable } from '../postgres/schema.ts';
+import { readRepoFolder } from '../repos/repo-folder-read.ts';
 import { readTask } from '../tasks/task-read.ts';
 import { composeWorkerInput } from './compose-worker-input.ts';
-import { readWorkerRepoLink } from './read-worker-repo-link.ts';
 import { workerPlaceOf } from './worker-row-place.ts';
 
 type TurnRow = typeof workerTurnsTable.$inferSelect;
@@ -69,7 +69,7 @@ export async function workerTurnStartFrame(
             place.kind === 'computer'
                 ? {
                       branch,
-                      checkoutPath: (await readWorkerRepoLink(tx, worker))?.checkoutPath ?? null,
+                      checkoutPath: (await readRepoFolder(tx, carriedRepo(worker)))?.path ?? null,
                       repository: worker.repository,
                       startingRef: worker.startingRef,
                   }
@@ -94,6 +94,14 @@ export async function workerTurnStartFrame(
         workerId: worker.id,
         workerMdRevisionId: composed.workerMdRevisionId,
     } satisfies WorkerTurnStartFrame;
+}
+
+function carriedRepo(worker: WorkerRow) {
+    return {
+        computerId: worker.carrierComputerId,
+        repository: worker.repository,
+        serverId: worker.serverId,
+    };
 }
 
 async function agentHandleOf(tx: HausDatabase, worker: WorkerRow) {

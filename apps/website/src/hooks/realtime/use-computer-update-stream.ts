@@ -9,8 +9,8 @@ import type { RealtimeServer } from './realtime-server.ts';
 import { useSubscriptionRestart } from './use-subscription-restart.ts';
 
 /**
- * `computer.onUpdated`: attachment, inventory, or update progress. It moves
- * the Server detail, the Computer list and log, Agent activity and delivery
+ * `computer.onUpdated`: attachment, inventory, repo folders, or update progress.
+ * It moves the Server detail, the Computer list, log and repo folders, Agent activity and delivery
  * (a detached Computer stops its Agents), usage, and the Cloud Agent model
  * catalog a report can carry.
  */
@@ -48,12 +48,10 @@ export function applyComputerUpdate(
     invalidate(getQueryKey(hausTrpc.worker.listAutomations, { serverId }));
     invalidate(getQueryKey(hausTrpc.server.bySlug, { slug: server.slug }));
     invalidate(getQueryKey(hausTrpc.computer.list, { serverId }));
-    invalidate(
-        getQueryKey(
-            hausTrpc.computer.systemLog,
-            computerId ? { computerId, serverId } : { serverId }
-        )
-    );
+    const computer = computerId ? { computerId, serverId } : { serverId };
+    invalidate(getQueryKey(hausTrpc.computer.systemLog, computer));
+    invalidate(getQueryKey(hausTrpc.computer.repoFolders, computer));
+    invalidate(getQueryKey(hausTrpc.computer.repoFolderStates, computer));
     invalidate(getQueryKey(hausTrpc.agent.activeActivity, { serverId }));
     invalidate(getQueryKey(hausTrpc.agent.deliveryState, { serverId }));
     invalidate(getQueryKey(hausTrpc.agent.list, { serverId }));

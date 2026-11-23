@@ -120,6 +120,25 @@ export async function recordDesktopRefusal(
     return refused?.outcome === 'failed' || refused?.outcome === 'offline' ? refused.outcome : null;
 }
 
+export async function recordGateRefusal(db: HausDatabase, invocationId: string) {
+    const [refused] = await db
+        .update(agentInvocationsTable)
+        .set({ finishedAt: new Date(), outcome: 'failed', state: 'finished' })
+        .where(
+            and(eq(agentInvocationsTable.id, invocationId), eq(agentInvocationsTable.state, 'sent'))
+        )
+        .returning({ outcome: agentInvocationsTable.outcome });
+    if (refused) {
+        return 'failed' as const;
+    }
+    const [settled] = await db
+        .select({ outcome: agentInvocationsTable.outcome })
+        .from(agentInvocationsTable)
+        .where(eq(agentInvocationsTable.id, invocationId))
+        .limit(1);
+    return settled?.outcome === 'offline' ? ('offline' as const) : null;
+}
+
 export async function recordScreenRefusal(
     db: HausDatabase,
     invocationId: string,

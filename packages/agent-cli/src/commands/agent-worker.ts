@@ -1,14 +1,14 @@
 import {
     formatTaskTarget,
+    repoNameSchema,
     workerModelSchema,
     workerPlaceTextSchema,
-    workerRepositorySchema,
     workerRuntimeSchema,
     workerTitleSchema,
 } from '@haus/api';
 import { agentWorkerStartResponseSchema } from '../agent-api-schemas.ts';
 import { AgentCliError } from '../agent-error.ts';
-import type { ParsedArgs } from '../parse.ts';
+import { type ParsedArgs, UsageError } from '../parse.ts';
 import type { SubCommand } from '../subcommand.ts';
 import { renderWorkerSend, renderWorkerStart, renderWorkerStop } from '../worker-render.ts';
 import {
@@ -41,7 +41,7 @@ const START_COMMAND: SubCommand = {
             valueName: '<computer:<name>|<name>|cursor|claude>',
         },
         {
-            description: "Repository as owner/name; omit for the Project's only repo",
+            description: 'Repository as owner/name; any repo works on any place',
             name: '--repo',
             valueName: '<owner/name>',
         },
@@ -67,7 +67,7 @@ const START_COMMAND: SubCommand = {
     positionals: [],
     run: (args) => runWorkerStart(args, defaultDeps()),
     summary: 'Start a Worker on a Task with the brief from stdin',
-    usage: 'haus worker start --task <KEY-n> --title <text> [--on <place>] [--repo <owner/name>] [--ref <ref>] [--runtime <claude-code|codex>] [--model <id>]',
+    usage: 'haus worker start --task <KEY-n> --repo <owner/name> --title <text> [--on <place>] [--ref <ref>] [--runtime <claude-code|codex>] [--model <id>]',
 };
 
 const SEND_COMMAND: SubCommand = {
@@ -126,7 +126,7 @@ export async function runWorkerStart(args: ParsedArgs, deps: WorkerDeps) {
                 ...(model ? { model } : {}),
                 nonce: deps.mintNonce(),
                 ...(place ? { place } : {}),
-                ...(repository ? { repository } : {}),
+                repository,
                 ...(runtime ? { runtime } : {}),
                 startingRef,
                 task,
@@ -201,9 +201,11 @@ function taskRequired(message: string) {
 function readRepository(args: ParsedArgs) {
     const raw = args.values['--repo']?.trim();
     if (!raw) {
-        return null;
+        throw new UsageError(
+            '--repo is required. Name the repository as owner/name, for example --repo haus/haus.'
+        );
     }
-    const parsed = workerRepositorySchema.safeParse(raw);
+    const parsed = repoNameSchema.safeParse(raw);
     if (!parsed.success) {
         throw new AgentCliError('INVALID_ARG', `Invalid repository "${raw}".`, {
             nextAction: 'Use --repo owner/name, for example --repo haus/haus.',

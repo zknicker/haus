@@ -90,6 +90,7 @@ export async function registerHausServerRoutes(
     registerAvatarRoutes(app, { db });
     registerComputerRoutes(app, {
         appOrigin: dependencies.appOrigin,
+        connections: dependencies.computerConnections,
         db,
     });
     registerInvocationPayloadRoutes(app, {

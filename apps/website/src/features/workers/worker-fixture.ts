@@ -43,6 +43,7 @@ export function workerFixture(overrides: WorkerFixtureOverrides = {}): Worker {
         environmentId: null,
         environmentName: null,
         id: 'caw_one',
+        keptWorktree: null,
         launchMessageId: null,
         model: null,
         originChatId: null,

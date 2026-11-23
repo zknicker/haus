@@ -18,7 +18,7 @@ An Agent runs one turn at a time. A Worker is how it does parallel work: a scope
 one Task, briefed by the Agent, working where the work is, and reporting back.
 [ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md) decides the model. This spec is
 the contract. [Cloud places](cloud-agents.md) carries what is specific to `cursor` and `claude`.
-[Tasks](tasks.md) owns the Task, and [Projects](projects.md) owns repos and the default place.
+[Tasks](tasks.md) owns the Task, and [Projects](projects.md) owns the default place and where repos are listed.
 
 A Worker replaces the cloud agent. Its record is the cloud agent work record, its turns are the
 former Runs, and its card is the former attached-work card. "Cloud agent" stops being a product
@@ -42,11 +42,6 @@ the people and the Agent on it, and a merged pull request never closes it.
 
 ## Record
 
-> **Superseded in part 2026-11-22 by
-> [ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md):**
-> `repository` is any repo the Server knows, not one of the Task's Project repos. It stays one
-> repo.
-
 The Server is canonical. It mints every id, timestamp, and credential. Computers and providers
 report evidence against those ids and never invent one.
 
@@ -65,7 +60,7 @@ type Worker = {
     place: WorkerPlace;
     carrierComputerId: string; // runs it, or carries its cloud place
     title: string;
-    repository: string; // owner/name, one of the Task's Project repos
+    repository: string; // GitHub owner/name, lower-cased since ADR 0060; any repo, one per Worker
     startingRef: string | null;
     branch: string | null; // reported by the Worker or the provider
     runtime: 'claude-code' | 'codex' | null; // Computer places only
@@ -229,19 +224,13 @@ the limit waits as `queued`, first come first served per place, and starts when 
 
 ## The CLI
 
-> **Superseded in part 2026-11-22 by
-> [ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md):**
-> `--repo` is required, takes one repo, and may name any repo. A Computer place clones a repo it
-> has no folder for into the Server's partition instead of refusing `WORKER_REPO_NOT_LINKED`,
-> `WORKER_REPO_UNKNOWN` goes, and `haus worker places` lists each Computer's repo folders.
-
 `haus worker` is the Agent surface. After R4 an Agent calls it through `execute`, and the Server
 handles it. A Worker calls only `haus worker report` and the Drive read commands.
 
 | Command | Who | What it does |
 | --- | --- | --- |
-| `haus worker places [--task <KEY-n>]` | Agent | Lists every place with its switch, readiness, runtimes, linked repos, and free slots, and marks the Task's Project default |
-| `haus worker start --task <KEY-n> --title <t> [--on <place>] [--repo <owner/name>] [--ref <ref>] [--runtime claude-code\|codex] [--model <id>]` | Agent | Starts a Worker with the brief on stdin |
+| `haus worker places [--task <KEY-n>]` | Agent | Lists every place with its switch, readiness, runtimes, repo folders, and free slots, and marks the Task's Project default |
+| `haus worker start --task <KEY-n> --title <t> --repo <owner/name> [--on <place>] [--ref <ref>] [--runtime claude-code\|codex] [--model <id>]` | Agent | Starts a Worker with the brief on stdin |
 | `haus worker send --worker <id> [--interrupt]` | Agent | Queues a follow-up from stdin. `--interrupt` stops the working turn, drops older queued follow-ups, then sends |
 | `haus worker stop --worker <id>` | Agent | Stops the working or queued turn and drops queued follow-ups |
 | `haus worker inspect [--task <KEY-n>] [--worker <id> [--report]]` | Agent | Lists the Agent's Workers, or one Worker with its turns, inputs, reports, branch, and pull requests |
@@ -250,12 +239,12 @@ handles it. A Worker calls only `haus worker report` and the Drive read commands
 **Start.** The Server refuses before writing anything when the Task is missing, closed, or one the
 Agent cannot post in (`WORKER_TASK_REQUIRED`, `WORKER_TASK_CLOSED`), when the place is unusable
 (`WORKER_PLACE_REQUIRED`, `WORKER_PLACE_OFF`, `WORKER_PLACE_UNAVAILABLE`, `WORKER_PLACE_AMBIGUOUS`),
-when `--repo` is omitted and the Project has no repo or several (`WORKER_REPO_UNKNOWN`), when a
-Computer place has not linked the repo (`WORKER_REPO_NOT_LINKED`), or when the requested runtime,
-or every runtime, is not ready there (`WORKER_RUNTIME_UNAVAILABLE`). `--repo` defaults to the
-Project's only repo. A named repo the Project lacks joins its repos until the Project settings UI
-ships them ([Migration](#w3-transitional-decisions)). A Computer place still needs a link, which a
-repo that just joined has none of. `--runtime` defaults to the first ready of Claude Code and Codex
+or when the requested runtime, or every runtime, is not ready there (`WORKER_RUNTIME_UNAVAILABLE`).
+`--repo` is required and takes one GitHub `owner/name`, lower-cased; a start without it is a CLI
+usage error ([ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md) decision 5). Any repo works on any place. A Computer with no folder
+for it clones it once into the Server's partition ([Layout](#layout)), and that clone puts the
+repo on the Server's list. A cloud Worker's start puts it there once the provider starts.
+`--runtime` defaults to the first ready of Claude Code and Codex
 on that Computer. `--model` must be one the Computer reports that runtime can run (Claude Code's
 `opus`, `sonnet`, and `haiku` aliases included), or the start is refused with
 `WORKER_MODEL_UNAVAILABLE` listing the ones it can. Left out, it is the delegating Agent's own
@@ -296,7 +285,7 @@ The first turn carries, in this order:
 5. The brief.
 
 Each Drive file is inlined with its path and revision id. A missing file is left out. The repo's
-own `AGENTS.md` comes from the Worker's checkout. Codex and Cursor load it natively. For Claude
+own `AGENTS.md` comes from the Worker's worktree. Codex and Cursor load it natively. For Claude
 Code, local or cloud, the Haus Worker instructions tell the Worker to read it first, because
 Claude Code loads `CLAUDE.md` instead.
 
@@ -461,17 +450,12 @@ Worker keeps its harness on the machine.
 
 ### Layout
 
-> **Superseded 2026-11-22 by
-> [ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md)** for
-> the checkout: a Worker's repo is a git worktree of that Computer's repo folder, at
-> `servers/<serverId>/worktrees/<worker-id>/<owner>/<name>/`, not a clone under `checkout/`, and
-> its branch lives in the folder from the start. The rest of this layout stands.
-
 Everything a Worker owns on the machine sits under its Server attachment's partition of the
-Computer data root, `servers/<serverId>/workers/<worker-id>/`:
+Computer data root ([ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md)):
 
 ```text
-servers/<serverId>/workers/<worker-id>/checkout/            the Worker's own clone of the Project repo
+servers/<serverId>/worktrees/<worker-id>/<owner>/<name>/    the Worker's git worktree of the repo folder
+servers/<serverId>/repos/<owner>/<name>/                    Haus's own clone, when the Computer has no folder
 servers/<serverId>/workers/<worker-id>/drive/               the Worker's drive/ folder
 servers/<serverId>/workers/<worker-id>/drive-refused/       files a push refused
 servers/<serverId>/workers/<worker-id>/runtime/drive.json   the folder's bookkeeping
@@ -481,38 +465,35 @@ servers/<serverId>/workers/<worker-id>/runtime/bin/         the Worker's haus wr
 servers/<serverId>/workers/<worker-id>/runtime/tmp/         the harness's TMPDIR
 ```
 
-The checkout is the Worker's own clone of the repo's base clone on that Computer: the link's
-`checkoutPath`, used after its `origin` matches `owner/name`, or a clone in `repos/<owner>/<name>`
-under the data root, made once through a temp sibling and a rename. The Worker's clone is a local
-clone, so its objects are hardlinks and cost no storage, made in a temp sibling and renamed into
-place. It drops the base clone's branches and its own `origin`, and includes the base clone's config, so
-origin, credential helpers, hooks, and a partial clone's promisor carry over. Every ref, reflog,
-`packed-refs`, config, and `gc` write the Worker makes lands in its own `.git`, so it can fetch,
-push with `-u`, rebase, delete its own branches, and pack refs without reaching any ref it does
-not own. The branch is new, `haus/<worker-id>/<key>-<n>` with the key in lower case, from the
-base clone's branch of that name when one survives an earlier checkout, else from `--ref`, else
-from the remote default branch, after the base clone fetches. Later turns reuse the checkout.
-Checkout add and remove for one repo run one at a time. A checkout an earlier Computer made as a
-`git worktree` keeps working as one until its Worker closes. The drive folder sits outside the checkout ([Drive folder](drive-folder.md)),
-so the repo never sees it. A new drive folder seeds from a byte-checked copy of the freshest
-Worker folder on the machine before its first pull ([Drive folder](drive-folder.md#workers)).
+The worktree is a `git worktree` of the Computer's repo folder for the Worker's repo
+([Projects](projects.md#repos)): the folder in the start's `checkoutPath`, used after its `origin`
+is the repo on `github.com`, or Haus's own clone at `servers/<serverId>/repos/<owner>/<name>`,
+cloned once with the machine's `gh` or git login through a temp sibling and a rename. A clone
+becomes the Computer's folder for that repo: the Computer reports its clones with `repo-clones` on
+every connect and after each new clone. A failed clone fails the launch and names the repo. A
+folder that is gone or whose `origin` names another repo fails the launch with its path.
+
+The worktree sits outside the folder, so the person's `git status`, editor and watchers never see
+it, and shares the folder's `.git`. The branch is `haus/<worker-id>/<key>-<n>` with the key in
+lower case, so it is in the person's repo from the first commit. It starts from that branch when
+it already exists, else from `--ref`, else from the remote default branch, after the folder
+fetches. Fetching moves the person's remote-tracking refs. Later turns reuse the worktree.
+Worktree add and remove for one folder run one at a time, and the Computer's own git steps retry
+a lock error a bounded number of times, because the person and other Workers share
+`packed-refs.lock` and `config.lock`. The drive folder sits outside the worktree
+([Drive folder](drive-folder.md)), so the repo never sees it. A new drive folder seeds from a
+byte-checked copy of the freshest Worker folder on the machine before its first pull
+([Drive folder](drive-folder.md#workers)).
 
 ### Run a turn
 
-> **Superseded in part 2026-11-22 by
-> [ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md):** no
-> turn fails `repo-unlinked`, and in step 5 a Codex Worker's writable roots name the repo
-> folder's whole `.git`.
-
 The Server dispatches a Computer-place turn only while the switch is on, the Computer is online,
-and the Computer has a free slot under its `worker_limit`. A queued turn whose repo has no link on
-that Computer, because it was unlinked or removed after the turn queued, settles failed
-`launch-refused` with detail `repo-unlinked` when dispatch reaches it, and no start is sent. Only a
-link with a null `checkoutPath` means "clone into the data root".
+and the Computer has a free slot under its `worker_limit`. Any repo can run on any Computer place.
 
 1. The Server sends `worker-turn-start` with the turn id, the attempt, the composed input, the
-   `WORKER.md` revision it inlines, the runtime and model, the checkout (repository, linked
-   `checkoutPath` or null, branch, starting ref), and, from the second turn, `resumeSessionId`.
+   `WORKER.md` revision it inlines, the runtime and model, the checkout (repository, the
+   Computer's folder for it as `checkoutPath` or null for Haus's own clone, branch, starting
+   ref), and, from the second turn, `resumeSessionId`.
    The frame is idempotent by turn id. Each send or resend is a new attempt
    (`worker_turns.dispatch_attempt`), and only the current attempt may launch.
 2. The Computer journals the turn and answers `worker-turn-accepted` with the attempt. From here
@@ -527,17 +508,18 @@ link with a null `checkoutPath` means "clone into the data root".
    ends the turn `refused`, and nothing launches. A re-mint for the same attempt revokes the
    earlier token. The Server keeps only the token's hash, and the Computer journals the newest
    token before it launches.
-4. It adds or reuses the checkout, then pulls the drive folder with the turn credential.
-5. It runs the harness in the checkout under the machine user's own environment, so Claude Code,
+4. It adds or reuses the worktree, then pulls the drive folder with the turn credential.
+5. It runs the harness in the worktree under the machine user's own environment, so Claude Code,
    Codex, git, and `gh` use the logins already on that machine. The first turn starts a new
    session. Later turns resume it. Claude Code runs with `bypassPermissions`, the machine user's
    HOME, every settings layer, and no Haus MCP or system prompt. Codex runs with its
    `workspace-write` sandbox and network access, the user's `CODEX_HOME`, native `AGENTS.md`
-   loading, and the checkout, its `.git` (which Codex otherwise keeps read-only), the drive
-   folder, the report folder, and `runtime/tmp` as writable roots, so it cannot move the base
-   clone's `main` or another Worker's branch. An earlier `git worktree` checkout names its worktree git
-   dir, the shared object store, and only its own branch's ref and reflog folders
-   (`refs/heads/haus/<worker-id>`) instead. `/tmp` and the inherited `$TMPDIR` are excluded. Both
+   loading, and the worktree, the repo folder's whole git common dir (which Codex otherwise keeps
+   read-only), the drive folder, the report folder, and `runtime/tmp` as writable roots. The
+   narrowed roots #424 tried could not fetch, keep a push's upstream, delete the Worker's own
+   branch or `gc`, so a Codex Worker can move the person's `main`, delete their branches, or write
+   `.git/hooks` and `.git/config` that run the next time they use `git` there. That is the risk
+   [ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md) accepts and the "Add folder" disclosure names. `/tmp` and the inherited `$TMPDIR` are excluded. Both
    harnesses get `TMPDIR`, `TMP`, and `TEMP` pointed at the Worker's `runtime/tmp`. Both run
    unattended and use none of the Agent host tools, warm pool, or background work.
 6. The harness gets `haus` on `PATH` and the turn credential in `HAUS_WORKER_TOKEN`. That `haus`
@@ -597,12 +579,6 @@ A Computer-place turn whose Computer stays disconnected for 30 minutes settles a
 
 ### Closing
 
-> **Superseded in part 2026-11-22 by
-> [ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md):** step
-> 5 removes the worktree once it is clean and its commits are on the remote, and deletes its
-> local branch. Otherwise it keeps both, and `worker-held` on each connect names the kept
-> worktree for the Worker card, since the final `worker_report` (step 4) goes out first.
-
 When a Task becomes done or canceled, the Server closes each of its Workers in this order:
 
 1. It marks the Worker closing. From here every start, follow-up, and report for it is refused.
@@ -614,22 +590,25 @@ When a Task becomes done or canceled, the Server closes each of its Workers in t
 4. It delivers each Worker's final outcome to the delegating Agent as one `worker_report` item
    ([inbox](inbox.md#worker-items)). A written report posts as usual. A `stopped` outcome posts
    nothing.
-5. It sets `closedAt` and sends the Computer place `worker-close { workerId }`. Only then does the
-   Computer fetch the Worker's `haus/<worker-id>/` branches into the base clone, plus every other
-   local branch (and a detached HEAD) holding commits no remote-tracking ref has, as
-   `haus/<worker-id>/kept/<name>` (`kept/detached-head` for HEAD). Then it deletes the checkout (an
-   earlier `git worktree` checkout is force-removed and pruned instead) and the drive folder. The
-   branches stay, so committed work survives. A close that cannot keep them, because the fetch
-   fails or the base clone was moved or deleted, leaves the whole Worker folder, and the next
-   connect's `worker-close` tries again. The native session files stay where the harness
-   keeps them. `worker-close` is idempotent.
+5. It sets `closedAt` and sends the Computer place `worker-close { workerId }`. The Computer
+   removes the Worker's worktree when it is clean, and deletes its local branch, which the remote
+   keeps. Clean means no uncommitted or untracked changes and every commit on the branch on a
+   remote-tracking ref, checked against a fresh fetch; a failed fetch counts as not clean.
+   Otherwise the worktree stays with its branch, so unpushed work is never deleted. The drive
+   folder and journal go either way. The native session files stay where the harness keeps them.
+   `worker-close` is idempotent.
 
 A place that is offline gets steps 3 and 5 when it reconnects. The Server settles the turn on its
 own side at step 3, through the settlement table's `stopped` rows: a recorded draft posts as the
 report with its citations and pull requests, and no draft settles `stopped`. It never waits on the
 place to deliver step 4. A `stop` of an offline Worker settles the same way. On every connect the Computer
-sends `worker-held { workerIds }`, the Workers whose checkout or drive folder it still holds, even
-when the list is empty, and the Server answers with `worker-close` for each one that is closed.
+sends `worker-held { workerIds, keptWorktrees }`, the Workers whose worktree or drive folder it
+still holds, even when the list is empty, and the Server answers with `worker-close` for each one
+that is closed. `keptWorktrees` names each closed Worker's kept worktree. The Server stores the
+path (`workers.kept_worktree_path`) and the Worker card shows it, because the final
+`worker_report` (step 4) went out before step 5 kept it. Each resent `worker-close` removes a kept
+worktree once it is clean, and forgets it once the person removed it. A worktree whose folder is
+gone is broken, and the Computer never deletes it on its own.
 
 ## Deliverables
 
@@ -815,13 +794,8 @@ W2 migrates every caller and deletes the cloud agent path in one change.
 
 ### W3 transitional decisions
 
-> **Superseded in part 2026-11-22 by
-> [ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md):** the
-> "Repos until the Project settings UI ships them" decision retires with `project_repos`, not
-> with a Project settings UI.
-
 W3 (Workers on Computers) ships the Server and Computer halves with no App UI. People have no App
-control yet for a Computer's switch, a Project's repos, or its default place, so W3 keeps these
+control yet for a Computer's switch or a Project's default place, so W3 keeps these
 until W4 and the Project settings UI replace them. Each says what retires it.
 
 - **Start precedence.** A start runs on `--on`. Otherwise on the Task's Project default, and a
@@ -831,13 +805,8 @@ until W4 and the Project settings UI replace them. Each says what retires it.
   **Make default**, below, which leaves the order this spec's [default place](#places) names.
 - **Make default as the last fallback.** The per-Computer **Make default** cloud provider is the
   third step above. It retires when the Project settings UI ships the default place.
-- **Repos until the Project settings UI ships them.** Migration 0144 backfills `project_repos`
-  from each Project's Workers' `repository`, skipping taskless history. A start that names a
-  `--repo` the Project lacks adds it to the Project's repos. `WORKER_REPO_UNKNOWN` applies only
-  when `--repo` is omitted and the Project has no repo or several. A Computer place still needs a
-  link on that Computer (`WORKER_REPO_NOT_LINKED`), so the auto-add only starts cloud Workers. It
-  retires when people manage repos in Project settings. A named repo the Project lacks then
-  refuses with `WORKER_REPO_UNKNOWN`.
+- **Repos until the Project settings UI ships them.** Retired 2026-11-22 with `project_repos`
+  ([ADR 0060](../docs/adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md)). Repos belong to the Server and `--repo` is required.
 - **New Worker drive folders pulled in full** until a seed copied only files whose bytes match
   their records. That seed now runs ([Drive folder](drive-folder.md#workers)), so this decision
   is retired.
@@ -869,11 +838,11 @@ W2 to W4 add these.
 | Stop settles a working or queued turn as `stopped` and drops queued follow-ups | `apps/server/test/worker-stop.test.ts` |
 | A person's follow-up posts in the Task, reaches the Agent, and runs only after the working turn settles | `apps/server/test/worker-follow-up.test.ts` |
 | A changed `WORKER.md` rides the next turn once, and an unchanged one never repeats | `apps/server/test/worker-turn-input.test.ts` |
-| A start without a usable place, switch, or linked repo writes nothing | `apps/server/test/worker-start.test.ts` |
+| A start without a usable place or switch writes nothing | `apps/server/test/worker-start.test.ts` |
 | The turn credential reports for its own turn only and cannot send a message | `apps/server/test/worker-credential.test.ts` |
 | A pull request change wakes the Agent of each settled Worker that reported it, once per head commit | `apps/server/test/pull-request-wake.test.ts` |
 | A `WORKER.md` change while a turn is queued rides that turn, and advances only on acknowledgement | `apps/server/test/worker-turn-input.test.ts` |
-| Closing a Task stops and settles its Workers, delivers each outcome, then removes checkouts | `apps/server/test/worker-close.test.ts` |
+| Closing a Task stops and settles its Workers, delivers each outcome, then removes clean worktrees | `apps/server/test/worker-close.test.ts` |
 | A pending local follow-up left from the W2 migration is dropped, and the Server's start still runs | `apps/computer/src/workers/pre-worker-journal.test.ts` |
 | A crash after acceptance never reruns the turn | `apps/computer/src/workers/turn-journal.test.ts` |
 | A Computer that restarts ends each turn it left mid-launch without running it, and finishes a push it left | `apps/computer/src/workers/computer/computer-place-recovery.test.ts` |

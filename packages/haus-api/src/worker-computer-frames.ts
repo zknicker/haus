@@ -16,9 +16,10 @@ export const workerTurnAttemptSchema = z.number().int().positive();
 export const workerNativeSessionIdSchema = z.string().trim().min(1).max(200);
 
 /**
- * Where a Computer-place turn runs: a `git worktree` of the linked clone at
- * `checkoutPath`, or of a clone in the Computer's data root when it is null,
- * on `branch` from `startingRef` (the remote default branch when null).
+ * Where a Computer-place turn runs (ADR 0060): a `git worktree` of the
+ * Computer's repo folder at `checkoutPath`, or of Haus's own clone in the
+ * Server's partition when it has none, on `branch` from `startingRef` (the
+ * remote default branch when null).
  */
 export const workerCheckoutSchema = z
     .object({
@@ -117,9 +118,19 @@ export const workerTurnEndedFrameSchema = z
     .strict();
 export type WorkerTurnEndedFrame = z.infer<typeof workerTurnEndedFrameSchema>;
 
-/** Computer to Server, on every connect: the Workers whose checkout or drive folder it still holds. */
+/**
+ * Computer to Server, on every connect: the Workers whose worktree or drive
+ * folder it still holds. `keptWorktrees` are closed Workers' worktrees kept
+ * because they hold unpushed work; the Worker card shows the path.
+ */
 export const workerHeldFrameSchema = z
     .object({
+        keptWorktrees: z
+            .array(
+                z.object({ path: z.string().trim().min(1).max(1024), workerId: idSchema }).strict()
+            )
+            .max(1000)
+            .default([]),
         type: z.literal('worker-held'),
         workerIds: z.array(idSchema).max(1000),
     })
@@ -127,8 +138,9 @@ export const workerHeldFrameSchema = z
 export type WorkerHeldFrame = z.infer<typeof workerHeldFrameSchema>;
 
 /**
- * Server to Computer (Closing step 5): remove this closed Worker's worktree
- * and drive folder. Idempotent; resent for each closed Worker in `worker-held`.
+ * Server to Computer (Closing step 5): remove this closed Worker's drive
+ * folder, and its worktree once clean. Idempotent; resent for each closed
+ * Worker in `worker-held`, so a kept worktree goes once it is clean or gone.
  */
 export const workerCloseCommandSchema = z
     .object({ type: z.literal('worker-close'), workerId: idSchema })
