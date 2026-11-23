@@ -33,7 +33,6 @@ function render(view: ReturnType<typeof cloudAgentCapabilityView>) {
             isBusy={false}
             onConnect={() => undefined}
             onDisconnect={() => undefined}
-            onMakeDefault={() => undefined}
             onSetEnvironment={() => undefined}
             view={view}
         />
@@ -209,19 +208,20 @@ test('Claude reuses the Computer’s Claude Code login: it checks again and neve
         provider: 'claude',
         state: { ...connected, expiresAt: null, isDefault: false, provider: 'claude' },
     });
-    expect(ready).toMatchObject({ canDisconnect: false, canMakeDefault: true, isDefault: false });
-    expect(render(ready)).toContain('aria-label="Claude actions"');
+    expect(ready).toMatchObject({ canDisconnect: false, status: 'ready' });
+    expect(render(ready)).not.toContain('aria-label="Claude actions"');
 });
 
-test('the default provider wears a Default chip and cannot be made default again', () => {
+test('a row offers no Make default: the Project default decides where Workers run', () => {
     const view = cloudAgentCapabilityView({
         isConnecting: false,
         isOffline: false,
         provider: 'cursor',
         state: connected,
     });
-    expect(view).toMatchObject({ canMakeDefault: false, isDefault: true });
-    expect(render(view)).toContain('Default');
+    const html = render(view);
+    expect(html).not.toContain('Make default');
+    expect(html).not.toContain('>Default<');
 });
 
 test('recovered Computer state supersedes a lost connect response', () => {

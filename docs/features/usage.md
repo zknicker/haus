@@ -3,7 +3,7 @@ summary: Usage surfaces for Agent token volume, Computer plan capacity, spend si
 read_when:
   - changing Agent usage, plan capacity, spend, provider activity, or runtime health views
   - changing where operational usage appears in the App
-  - changing the Cloud Agents row's Connect/Disconnect, Make default, or Claude's environment picker
+  - changing the Cloud Workers rows' Connect/Disconnect or Claude's environment picker
 ---
 
 # Usage
@@ -48,9 +48,8 @@ while you read it.
 * **Cloud Workers.** The same Computer page carries a **Cloud Workers** section with one **Cursor**
   row and one **Claude** row; each row's status detail sits in its info tooltip. Plan usage for
   the Computer's Worker runtimes (Claude Code and Codex) sits in the page's collapsed
-  Diagnostics. **Make default** on a row chooses the place a
-  `haus worker start` without `--on` uses when the Agent is assigned to this Computer (Cursor until
-  changed). Claude uses the Computer's own Claude Code sign-in, so its row offers **Check again** instead of a Connect flow. The Claude row also carries an environment picker that
+  Diagnostics. A row no longer chooses any Worker's place: a `haus worker start` without `--on`
+  uses the Task's Project default (Settings → Projects). Claude uses the Computer's own Claude Code sign-in, so its row offers **Check again** instead of a Connect flow. The Claude row also carries an environment picker that
   pins which Anthropic-hosted environment this Computer's Claude launches use, defaulting to
   **Claude's default (not pinned)**; a pin that goes stale (removed or archived) fails the next
   launch outright instead of silently falling back to Claude Code's own choice. The
