@@ -1,17 +1,11 @@
 import type { InvocationResultFrame } from '@haus/api';
-import { isAgentAllowedOn } from '../computer-access/agent-access.ts';
+import { readAgentsBarredFrom } from '../computer-access/agent-access.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { settledAnswer } from './invocation-answers.ts';
 import { gateInvocation } from './invocation-gate.ts';
-import { readHeldAgents, recordSentRefusal } from './invocation-store.ts';
-import {
-    agentsOpenOn,
-    type FenceTarget,
-    markFenced,
-    type OpenInvocation,
-    uniqueAgents,
-} from './open-invocations.ts';
+import { recordSentRefusal } from './invocation-store.ts';
+import { type FenceTarget, markFenced, type OpenInvocation } from './open-invocations.ts';
 
 interface ReattachInput {
     answer(frame: InvocationResultFrame): void;
@@ -44,14 +38,8 @@ export function reattachInvocations(input: ReattachInput) {
     }
 
     async function fenceHeld(computerId: string) {
-        const held = uniqueAgents([
-            ...(await readHeldAgents(db, computerId)),
-            ...agentsOpenOn(open, computerId),
-        ]);
-        for (const agent of held) {
-            if (!(await isAgentAllowedOn(db, { ...agent, computerId }))) {
-                fence({ ...agent, computerId });
-            }
+        for (const agent of await readAgentsBarredFrom(db, computerId)) {
+            fence({ ...agent, computerId });
         }
     }
 

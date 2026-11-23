@@ -123,7 +123,7 @@ test('revoking access fences open calls on an online Computer, which cancels the
     expect(textOf(await replay('run_fence_accepted'))).toBe(noAccess);
 });
 
-test('revoking access settles an unaccepted call at once when its Computer is offline', async () => {
+test('a revoke while the Computer is offline settles the call and fences it on reconnect', async () => {
     await grant();
     call('run_fence_offline');
     await laptop.next(frameOfType('invoke', { runId: 'run_fence_offline' }));
@@ -138,6 +138,15 @@ test('revoking access settles an unaccepted call at once when its Computer is of
     expect(await ledger('run_fence_offline')).toEqual([
         { computer_id: laptopId, outcome: 'failed', refusal: 'no-access', state: 'finished' },
     ]);
+
+    laptop = await connectComputer(setup.harness, laptopCredential);
+    const order = laptop.frames.map((frame) => frame.type);
+    const fenced = laptop.frames.findIndex(
+        (frame) => frame.type === 'agent-fence' && frame.agentId === setup.agentId
+    );
+    expect(fenced).toBeGreaterThanOrEqual(0);
+    expect(fenced).toBeLessThan(order.indexOf('bootstrap-accepted'));
+    expect(order).not.toContain('invoke');
 });
 
 function call(runId: string, kind: 'bash' | 'desktop' = 'bash') {

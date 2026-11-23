@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { agentsTable, computerAgentAccessTable } from '../postgres/schema.ts';
+import { agentsTable, computerAgentAccessTable, computersTable } from '../postgres/schema.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
@@ -47,4 +47,32 @@ export async function readGrantedComputerIds(
             )
         );
     return new Set(rows.map(({ computerId }) => computerId));
+}
+
+export async function readAgentsBarredFrom(db: Reader, computerId: string) {
+    const rows = await db
+        .select({
+            agentId: agentsTable.id,
+            granted: computerAgentAccessTable.agentId,
+            homeComputerId: agentsTable.computerId,
+            retiredAt: agentsTable.retiredAt,
+            serverId: agentsTable.serverId,
+        })
+        .from(computersTable)
+        .innerJoin(agentsTable, eq(agentsTable.serverId, computersTable.serverId))
+        .leftJoin(
+            computerAgentAccessTable,
+            and(
+                eq(computerAgentAccessTable.computerId, computersTable.id),
+                eq(computerAgentAccessTable.agentId, agentsTable.id)
+            )
+        )
+        .where(eq(computersTable.id, computerId));
+    return rows
+        .filter(
+            (row) =>
+                row.retiredAt !== null ||
+                (row.homeComputerId !== computerId && row.granted === null)
+        )
+        .map(({ agentId, serverId }) => ({ agentId, serverId }));
 }

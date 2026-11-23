@@ -1,5 +1,5 @@
 import type { InvocationRefusal, InvocationRequestFrame, InvokeResult } from '@haus/api';
-import { and, asc, eq, inArray, isNull, or } from 'drizzle-orm';
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { createOpaqueId } from '../postgres/opaque-id.ts';
 import { agentInvocationsTable, agentsTable } from '../postgres/schema.ts';
@@ -131,27 +131,6 @@ export async function recordFinishedRefusal(
             and(
                 eq(agentInvocationsTable.id, invocationId),
                 eq(agentInvocationsTable.state, 'finished')
-            )
-        );
-}
-
-export async function readHeldAgents(db: HausDatabase, computerId: string) {
-    return await db
-        .selectDistinct({
-            agentId: agentInvocationsTable.agentId,
-            serverId: agentInvocationsTable.serverId,
-        })
-        .from(agentInvocationsTable)
-        .where(
-            and(
-                eq(agentInvocationsTable.computerId, computerId),
-                or(
-                    inArray(agentInvocationsTable.state, openStates),
-                    and(
-                        eq(agentInvocationsTable.state, 'unknown'),
-                        isNull(agentInvocationsTable.lateOutcome)
-                    )
-                )
             )
         );
 }
