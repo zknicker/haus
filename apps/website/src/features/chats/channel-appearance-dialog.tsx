@@ -3,8 +3,8 @@ import { Button, Form, Modal, toast } from '@heroui/react';
 import * as React from 'react';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
 import { useChannelUpdate } from '../../hooks/servers/use-channel-update.ts';
+import { SettingsRowError } from '../settings/layout/settings-text.tsx';
 import { type ChannelAppearance, ChannelAppearanceFields } from './channel-appearance-fields.tsx';
-import { ChannelDialogError } from './channel-dialog-error.tsx';
 import { channelNoun } from './channel-noun.ts';
 
 /** A channel's icon and color, with the catalog open in the dialog itself. */
@@ -65,7 +65,7 @@ export function ChannelAppearanceDialog({ chat, onClose }: { chat: Chat; onClose
                                 gridSize="tall"
                                 onChange={setAppearance}
                             />
-                            <ChannelDialogError message={updateChannel.error?.message ?? null} />
+                            <SettingsRowError>{updateChannel.error?.message}</SettingsRowError>
                         </Form>
                     </Modal.Body>
                     <Modal.Footer>

@@ -1,9 +1,9 @@
 import { Button, FieldError, Form, InputGroup, Label, Modal, TextField } from '@heroui/react';
 import * as React from 'react';
 import { ChannelIconBox } from '../../components/chats/channel-icon-box.tsx';
+import { SettingsRowError } from '../settings/layout/settings-text.tsx';
 import type { ChannelAppearance } from './channel-appearance-fields.tsx';
 import { ChannelAppearancePicker } from './channel-appearance-picker.tsx';
-import { ChannelDialogError } from './channel-dialog-error.tsx';
 import { channelHandleIssue } from './channel-handle.ts';
 
 interface ChannelCreateDialogProps {
@@ -97,7 +97,7 @@ function ChannelCreateForm({ errorMessage, isPending, onSubmit }: ChannelCreateF
                         </InputGroup>
                         {handleIssue ? <FieldError>{handleIssue}</FieldError> : null}
                     </TextField>
-                    <ChannelDialogError message={errorMessage} />
+                    <SettingsRowError>{errorMessage}</SettingsRowError>
                 </Form>
             </Modal.Body>
             <Modal.Footer>

@@ -91,6 +91,12 @@ test('search finds Projects and Repositories by name', () => {
     ]);
 });
 
+test('search finds the Projects page by its New project control', () => {
+    assert.deepEqual(railShape({ canOperate: false, query: 'new proj' }), [
+        { label: 'Haus', rows: ['Projects · New project'] },
+    ]);
+});
+
 test('search does not reveal operator pages to members', () => {
     assert.deepEqual(railShape({ canOperate: false, query: '1password' }), []);
     assert.deepEqual(railShape({ canOperate: true, query: '1password' }), [
