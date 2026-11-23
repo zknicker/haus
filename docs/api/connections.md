@@ -27,7 +27,9 @@ The App uses the Haus Server `mcp` tRPC router:
 configuration. The endpoint, every OAuth discovery and token fetch, and connection icon requests
 are rejected when the literal host or any DNS-resolved address (including redirect targets) falls
 in a private, loopback, link-local, CGNAT, or unspecified range, unless the operator-only
-`HAUS_MCP_ALLOW_PRIVATE_NETWORKS` env var is set. Public connection reads expose header names and
+`HAUS_MCP_ALLOW_PRIVATE_NETWORKS` env var is set. A cross-origin redirect drops every header
+outside a small safe list, and a cross-origin 307 or 308 is refused outright when the request
+carries a body, because those statuses resend it (for an OAuth token request, the client secret and code). Public connection reads expose header names and
 discovered tool names, never secret values. Preset creation resolves immutable Server-owned coordinates; each preset fixes its authentication kind. CoinGecko creates a keyless `none`
 connection to `https://mcp.api.coingecko.com/sse` and discovers tools immediately. `google-calendar` and `github` present a configured Server OAuth client
 (`HAUS_GOOGLE_OAUTH_CLIENT_*`, and the Haus GitHub App's `HAUS_GITHUB_APP_CLIENT_*`) because their
