@@ -62,7 +62,10 @@ export function ModelsSettings({
                     <ItemCardGroup.Title>
                         Reported models
                         {computers.data ? (
-                            <span className="text-muted ms-2 tabular-nums">{models.length}</span>
+                            <span className="text-muted ms-2 tabular-nums">
+                                <span className="sr-only"> </span>
+                                {models.length}
+                            </span>
                         ) : null}
                     </ItemCardGroup.Title>
                     {/* Scoped to this section, so it rides in the section header
