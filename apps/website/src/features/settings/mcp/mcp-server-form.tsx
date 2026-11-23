@@ -173,7 +173,7 @@ function OAuthAdvancedFields({
     return (
         <Disclosure>
             <Disclosure.Heading>
-                <Button slot="trigger" variant="ghost">
+                <Button size="sm" slot="trigger" variant="ghost">
                     Advanced OAuth settings
                     <Disclosure.Indicator />
                 </Button>

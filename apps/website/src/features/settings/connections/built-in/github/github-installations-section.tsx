@@ -1,6 +1,6 @@
 import type { GithubInstallation, GithubInstallCandidate } from '@haus/api';
 import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { Button, Dropdown, Label, Separator } from '@heroui/react';
+import { Button, Description, Dropdown, Label, Separator } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Fragment, useState } from 'react';
 import { EntityAvatar } from '../../../../../components/ui/entity-avatar.tsx';
@@ -9,9 +9,9 @@ import { useGithubBindInstallation } from '../../../../../hooks/github/use-githu
 import { useGithubInstallCandidates } from '../../../../../hooks/github/use-github-install-candidates.ts';
 import { useGithubInstallations } from '../../../../../hooks/github/use-github-installations.ts';
 import { useGithubStartInstall } from '../../../../../hooks/github/use-github-start-install.ts';
+import { SettingsEmptyRow } from '../../../layout/settings-empty.tsx';
 import { SettingsStatusChip, SettingsStatusTitle } from '../../../layout/settings-row-title.tsx';
 import { ConnectionSection } from '../../../mcp/connection-section.tsx';
-import { ConnectionAddRow } from '../../../mcp/mcp-connection-account.tsx';
 import type { BuiltInConnectionSectionProps } from '../built-in-connection-definition.ts';
 import {
     githubCandidateDescription,
@@ -25,8 +25,8 @@ import { GithubSetupNotice } from './github-setup-notice.tsx';
 /**
  * The GitHub accounts this connection reaches through the Haus App, one row
  * each. Installing and adding need the connection's signed-in GitHub user, so
- * those actions appear only while it is connected; existing rows stay listed
- * either way, because disconnecting keeps installations.
+ * the header's add control appears only while it is connected; existing rows
+ * stay listed either way, because disconnecting keeps installations.
  */
 export function GithubInstallationsSection({
     connection,
@@ -46,25 +46,33 @@ export function GithubInstallationsSection({
     return (
         <>
             {notice}
-            <ConnectionSection count={rows.length} title="Installations">
-                <ItemCardGroup variant="outline">
-                    {rows.map((installation, index) => (
-                        <Fragment key={installation.id}>
-                            {index > 0 ? <Separator /> : null}
-                            <InstallationRow
-                                installation={installation}
-                                onRemove={() => setRemoving(installation)}
-                            />
-                        </Fragment>
-                    ))}
-                    {connection.connected ? (
-                        <InstallRows
+            <ConnectionSection
+                action={
+                    connection.connected ? (
+                        <InstallAction
                             candidates={candidates.data ?? []}
                             connectionId={connection.id}
-                            leadingSeparator={rows.length > 0}
                             serverId={serverId}
                         />
-                    ) : null}
+                    ) : null
+                }
+                count={rows.length > 0 ? rows.length : undefined}
+                title="Installations"
+            >
+                <ItemCardGroup>
+                    {rows.length > 0 ? (
+                        rows.map((installation, index) => (
+                            <Fragment key={installation.id}>
+                                {index > 0 ? <Separator /> : null}
+                                <InstallationRow
+                                    installation={installation}
+                                    onRemove={() => setRemoving(installation)}
+                                />
+                            </Fragment>
+                        ))
+                    ) : (
+                        <SettingsEmptyRow>No installations yet.</SettingsEmptyRow>
+                    )}
                 </ItemCardGroup>
                 <GithubInstallationRemoveDialog
                     connectionId={connection.id}
@@ -152,47 +160,67 @@ function InstallationRow({
 }
 
 /**
- * The card's add rows, in the shape of "Add another account" above them.
- * Install on GitHub leads, and is the whole card while nothing is installed.
- * Each existing installation GitHub reports the signed-in user owns, and Haus
- * has not bound, is one press away as its own row.
+ * The section's add control. Install on GitHub is the whole control until
+ * GitHub reports installations the signed-in user owns and Haus has not
+ * bound; then one Add menu offers both, each existing installation one
+ * press away.
  */
-function InstallRows({
+function InstallAction({
     candidates,
     connectionId,
-    leadingSeparator,
     serverId,
 }: {
     candidates: readonly GithubInstallCandidate[];
     connectionId: string;
-    leadingSeparator: boolean;
     serverId: string;
 }) {
     const startInstall = useGithubStartInstall(serverId, connectionId);
     const bind = useGithubBindInstallation(serverId, connectionId);
 
-    return (
-        <>
-            {leadingSeparator ? <Separator /> : null}
-            <ConnectionAddRow
+    if (candidates.length === 0) {
+        return (
+            <Button
                 isPending={startInstall.isPending}
                 onPress={() => void startInstall.start()}
-                title="Install on GitHub"
-            />
-            {candidates.map((candidate) => (
-                <Fragment key={candidate.githubInstallationId}>
-                    <Separator />
-                    <ConnectionAddRow
-                        description={githubCandidateDescription(candidate)}
-                        isPending={
-                            bind.isPending &&
-                            bind.variables?.githubInstallationId === candidate.githubInstallationId
-                        }
-                        onPress={() => bind.bind(candidate.githubInstallationId)}
-                        title={`Add existing installation on ${candidate.account.login}`}
-                    />
-                </Fragment>
-            ))}
-        </>
+                size="sm"
+                variant="secondary"
+            >
+                Install on GitHub
+            </Button>
+        );
+    }
+
+    return (
+        <Dropdown>
+            <Button
+                isPending={startInstall.isPending || bind.isPending}
+                size="sm"
+                variant="secondary"
+            >
+                Add installation
+            </Button>
+            <Dropdown.Popover placement="bottom end">
+                <Dropdown.Menu>
+                    <Dropdown.Item
+                        id="install"
+                        onAction={() => void startInstall.start()}
+                        textValue="Install on GitHub"
+                    >
+                        <Label>Install on GitHub</Label>
+                    </Dropdown.Item>
+                    {candidates.map((candidate) => (
+                        <Dropdown.Item
+                            id={`candidate-${candidate.githubInstallationId}`}
+                            key={candidate.githubInstallationId}
+                            onAction={() => bind.bind(candidate.githubInstallationId)}
+                            textValue={`Add existing installation on ${candidate.account.login}`}
+                        >
+                            <Label>Add existing installation on {candidate.account.login}</Label>
+                            <Description>{githubCandidateDescription(candidate)}</Description>
+                        </Dropdown.Item>
+                    ))}
+                </Dropdown.Menu>
+            </Dropdown.Popover>
+        </Dropdown>
     );
 }

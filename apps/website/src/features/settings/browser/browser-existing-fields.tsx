@@ -1,8 +1,9 @@
 import type { AgentRuntimeBrowserConnection, AgentRuntimeBrowserSettings } from '@haus/api';
 import { ItemCard } from '@heroui-pro/react';
 import { Separator } from '@heroui/react';
-import { SettingsFact } from '../layout/settings-text.tsx';
-import { BrowserChoice } from './browser-choice.tsx';
+import { cn } from '../../../lib/utils.ts';
+import { SettingsFact, SettingsRowWarning } from '../layout/settings-text.tsx';
+import { BrowserChoice, browserControlWidth } from './browser-choice.tsx';
 
 export function BrowserExistingFields({
     connection,
@@ -42,6 +43,12 @@ export function BrowserExistingFields({
             <ItemCard>
                 <ItemCard.Content>
                     <ItemCard.Title>Running browser</ItemCard.Title>
+                    {settings.browsers.length ? null : (
+                        <SettingsRowWarning>
+                            No compatible running browsers found. Start Chrome with browser
+                            automation enabled, then refresh.
+                        </SettingsRowWarning>
+                    )}
                 </ItemCard.Content>
                 <ItemCard.Action>
                     <BrowserChoice
@@ -87,7 +94,7 @@ function BrowserFact({ label, value }: { label: string; value: string }) {
             <ItemCard.Content>
                 <ItemCard.Title>{label}</ItemCard.Title>
             </ItemCard.Content>
-            <ItemCard.Action className="w-64 max-w-full min-w-0 shrink">
+            <ItemCard.Action className={cn(browserControlWidth, 'min-w-0 shrink')}>
                 <SettingsFact className="block truncate text-right" title={value}>
                     {value}
                 </SettingsFact>

@@ -3,6 +3,7 @@ import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Button, Separator, Switch, Tooltip } from '@heroui/react';
 import { ArrowReloadHorizontalIcon, BrowserIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
+import { SettingsRowTitle } from '../layout/settings-row-title.tsx';
 import { SettingsRowError } from '../layout/settings-text.tsx';
 import { BROWSER_DIALOG_FORM_ID, BrowserDialog } from './browser-dialog.tsx';
 import { BrowserExistingFields } from './browser-existing-fields.tsx';
@@ -60,7 +61,9 @@ export function BrowserSettingsDialog({
                 <ItemCardGroup>
                     <ItemCard>
                         <ItemCard.Content>
-                            <ItemCard.Title>Allow Captain access</ItemCard.Title>
+                            <SettingsRowTitle info="Captains share this browser’s accounts and tabs. Its current owner keeps it running; disconnecting Haus leaves it open.">
+                                Allow Captain access
+                            </SettingsRowTitle>
                         </ItemCard.Content>
                         <ItemCard.Action className="flex items-center gap-2">
                             <Tooltip delay={0}>
@@ -97,21 +100,6 @@ export function BrowserSettingsDialog({
                         onChange={(connection) => onDraftChange({ ...draft, connection })}
                         settings={settings}
                     />
-                    <Separator />
-                    <ItemCard>
-                        <ItemCard.Content>
-                            <ItemCard.Description className="whitespace-normal">
-                                Captains share this browser’s accounts and tabs. Its current owner
-                                keeps it running; disconnecting Haus leaves it open.
-                            </ItemCard.Description>
-                            {settings.browsers.length ? null : (
-                                <ItemCard.Description className="whitespace-normal">
-                                    No compatible running browsers found. Start Chrome with browser
-                                    automation enabled, then refresh.
-                                </ItemCard.Description>
-                            )}
-                        </ItemCard.Content>
-                    </ItemCard>
                 </ItemCardGroup>
                 <SettingsRowError>{setupError ?? error}</SettingsRowError>
             </div>

@@ -1,8 +1,6 @@
 import { type ModelConnection, type ModelProvider, modelProviderSchema } from '@haus/api';
 import { DataGrid, ItemCardGroup } from '@heroui-pro/react';
 import { Button, Dropdown, Label } from '@heroui/react';
-import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
-import { Icon } from '../../../../components/ui/icon.tsx';
 import { useModelConnections } from '../../../../hooks/servers/use-model-connections.ts';
 import { SettingsRowError } from '../../layout/settings-text.tsx';
 import { ConnectDialog } from './connect-dialog.tsx';
@@ -110,8 +108,8 @@ export function ModelConnectionsTable({
 function ProviderPicker({ onPick }: { onPick: (provider: ModelProvider) => void }) {
     return (
         <Dropdown>
-            <Button aria-label="Add connection" isIconOnly size="sm" variant="ghost">
-                <Icon aria-hidden="true" icon={PlusSignIcon} size={16} />
+            <Button size="sm" variant="secondary">
+                Add connection
             </Button>
             <Dropdown.Popover placement="bottom end">
                 <Dropdown.Menu>

@@ -24,10 +24,7 @@ export function BrowserRow({
     return (
         <ItemCard>
             <ItemCard.Content>
-                <SettingsStatusTitle status={<BrowserStatusChip view={view} />}>
-                    Chrome
-                </SettingsStatusTitle>
-                <ItemCard.Description>{view.description}</ItemCard.Description>
+                <BrowserStatusTitle view={view} />
             </ItemCard.Content>
             <ItemCard.Action>
                 {settings.configured ? (
@@ -104,9 +101,18 @@ function BrowserActionsMenu({
     );
 }
 
-export function BrowserStatusChip({ view }: { view: BrowserCapabilityView }) {
+export function BrowserStatusTitle({ view }: { view: BrowserCapabilityView }) {
     return (
-        <SettingsStatusChip color={statusColor(view.status)}>{view.statusLabel}</SettingsStatusChip>
+        <SettingsStatusTitle
+            info={view.description}
+            status={
+                <SettingsStatusChip color={statusColor(view.status)}>
+                    {view.statusLabel}
+                </SettingsStatusChip>
+            }
+        >
+            Chrome
+        </SettingsStatusTitle>
     );
 }
 
