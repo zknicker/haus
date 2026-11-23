@@ -69,14 +69,25 @@ export const computerAppPlaces: readonly AppPlace[] = [
     {
         area: 'connections-and-computers',
         task: 'Add a repo folder to a Computer',
-        path: ['Settings', 'Devices', '(your device)', 'Repositories', 'Add folder'],
+        path: ['Settings', 'Devices', '(your device)', 'Folders', 'Add folder'],
         who: 'anyone',
         note: 'Only the person who attached the Device.',
         anchors: [
             settingsEntry(),
             computers(),
-            label('features/computers/computer-repo-folders-card.tsx', 'Repositories'),
+            label('features/computers/computer-repo-folders-card.tsx', 'Folders'),
             label('features/computers/computer-repo-folders-card.tsx', 'Add folder'),
+        ],
+    },
+    {
+        area: 'connections-and-computers',
+        task: "Add a repo, or check the Haus GitHub App's access to it",
+        path: ['Settings', 'Repositories', 'Add repository'],
+        who: 'anyone',
+        anchors: [
+            settingsEntry(),
+            settingsSection('repos'),
+            label('features/settings/repos/page.tsx', 'Add repository'),
         ],
     },
     {

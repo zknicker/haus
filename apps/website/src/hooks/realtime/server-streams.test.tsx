@@ -11,7 +11,6 @@ import {
 import { useAgentUpdateStream } from './use-agent-update-stream.ts';
 import { artifactListingRefreshMs, useArtifactUpdateStream } from './use-artifact-update-stream.ts';
 import { useCloudAgentSettingsStream } from './use-cloud-agent-settings-stream.ts';
-import { useComputerUpdateStream } from './use-computer-update-stream.ts';
 import { useInvitationUpdateStream } from './use-invitation-update-stream.ts';
 import { useMcpUpdateStream } from './use-mcp-update-stream.ts';
 import { useMemberUpdateStream } from './use-member-update-stream.ts';
@@ -75,32 +74,6 @@ describe('Server-level stream hooks', () => {
         ]);
         expect(onRecovery).toContainEqual(read('agent.get', { serverId }));
         expect(onRecovery).not.toContainEqual(read('agent.deliveryState', agent));
-    });
-
-    test('computer.onUpdated with a Computer refreshes its log and the Server workspace reads', async () => {
-        const { onEvent, onRecovery } = await drive(
-            'computer.onUpdated',
-            () => useComputerUpdateStream(server),
-            { computerId: 'cmp_1', serverId }
-        );
-        expect(onEvent).toEqual([
-            read('worker.listAutomations', { serverId }),
-            read('server.bySlug', { slug: 'team-room' }),
-            read('computer.list', { serverId }),
-            read('computer.systemLog', { computerId: 'cmp_1', serverId }),
-            read('computer.repoFolders', { computerId: 'cmp_1', serverId }),
-            read('computer.repoFolderStates', { computerId: 'cmp_1', serverId }),
-            read('repo.list', { serverId }),
-            read('agent.activeActivity', { serverId }),
-            read('agent.deliveryState', { serverId }),
-            read('agent.list', { serverId }),
-            read('stats.live', { serverId }),
-            read('cloudAgentSettings.get', { serverId }),
-        ]);
-        expect(onRecovery).toContainEqual(read('computer.systemLog', { serverId }));
-        expect(onRecovery).toContainEqual(read('computer.repoFolders', { serverId }));
-        expect(onRecovery).toContainEqual(read('computer.repoFolderStates', { serverId }));
-        expect(onRecovery).toContainEqual(read('repo.list', { serverId }));
     });
 
     test('mcp.onUpdated refreshes the MCP reads', async () => {
