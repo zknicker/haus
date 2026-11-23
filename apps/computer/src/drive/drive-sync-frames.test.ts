@@ -35,6 +35,7 @@ test('drive-pull and drive-push frames sync the Agent folder under a run credent
         sync.receive({
             agentId: 'agt_alpha',
             runId: 'run_1',
+            placementGeneration: 0,
             sessionGeneration: 2,
             type: 'drive-pull',
         })
@@ -50,6 +51,7 @@ test('drive-pull and drive-push frames sync the Agent folder under a run credent
         sync.receive({
             agentId: 'agt_alpha',
             runId: 'run_1',
+            placementGeneration: 0,
             sessionGeneration: 2,
             type: 'drive-push',
         })
@@ -74,6 +76,7 @@ test('drive-pull and drive-push frames sync the Agent folder under a run credent
         sync.receive({
             agentId: '../agt_alpha',
             runId: 'run_2',
+            placementGeneration: 0,
             sessionGeneration: 2,
             type: 'drive-pull',
         })
@@ -83,6 +86,7 @@ test('drive-pull and drive-push frames sync the Agent folder under a run credent
         sync.receive({
             agentId: 'agt_alpha',
             runId: 'run_0',
+            placementGeneration: 0,
             sessionGeneration: 1,
             type: 'drive-push',
         })
@@ -110,6 +114,7 @@ test('a drive-push for a folder a full reset discarded sends nothing', async () 
     sync.receive({
         agentId: 'agt_alpha',
         runId: 'run_1',
+        placementGeneration: 0,
         sessionGeneration: 2,
         type: 'drive-push',
     });
@@ -134,6 +139,7 @@ test('a cancelled invocation stops waiting on a stalled drive sync for its Agent
     sync.receive({
         agentId: 'agt_alpha',
         runId: 'run_1',
+        placementGeneration: 0,
         sessionGeneration: 1,
         type: 'drive-pull',
     });
@@ -172,6 +178,7 @@ test('a sync renews its drive-sync credential as it runs and revokes every one i
     sync.receive({
         agentId: 'agt_alpha',
         runId: 'run_1',
+        placementGeneration: 0,
         sessionGeneration: 1,
         type: 'drive-pull',
     });
@@ -194,24 +201,52 @@ test('a queued sync from a replaced session generation never runs', async () => 
     sync.receive({
         agentId: 'agt_alpha',
         runId: 'run_a',
+        placementGeneration: 0,
         sessionGeneration: 1,
         type: 'drive-pull',
     });
     sync.receive({
         agentId: 'agt_alpha',
         runId: 'run_b',
+        placementGeneration: 0,
         sessionGeneration: 1,
         type: 'drive-pull',
     });
     sync.receive({
         agentId: 'agt_alpha',
         runId: 'run_c',
+        placementGeneration: 0,
         sessionGeneration: 2,
         type: 'drive-pull',
     });
     await settleDriveFolder(join(agentsRoot, 'agt_alpha'));
 
     expect(authority.minted.map((mint) => (mint as { runId: string }).runId)).toEqual(['run_c']);
+});
+
+test('a drive-flush frame pushes under its flush id and closes that push', async () => {
+    server = startDriveServer();
+    const authority = startAuthority(server);
+    front = authority.server;
+    agentsRoot = await mkdtemp(join(tmpdir(), 'haus-drive-sync-'));
+    const sync = driveSyncFrames(agentsRoot, {
+        credential: 'computer-credential',
+        serverOrigin: `http://127.0.0.1:${front.port}`,
+    });
+
+    expect(
+        sync.receive({
+            agentId: 'agt_alpha',
+            flushId: 'flush_1',
+            placementGeneration: 0,
+            sessionGeneration: 1,
+            type: 'drive-flush',
+        })
+    ).toBe(true);
+    await settleDriveFolder(join(agentsRoot, 'agt_alpha'));
+
+    expect(authority.minted.map((mint) => (mint as { runId: string }).runId)).toEqual(['flush_1']);
+    expect(server.requests).toContain('POST /api/agent/drive/push/close');
 });
 
 function startAuthority(drive: DriveServer, mintGate: Promise<void> = Promise.resolve()) {

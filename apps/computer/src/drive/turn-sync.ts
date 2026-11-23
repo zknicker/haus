@@ -1,5 +1,6 @@
 import { once } from 'node:events';
 import { driveRemote } from './drive-remote.ts';
+import { claimFolderPlacement } from './folder-placement.ts';
 import { driveFolderLayout } from './folder-state.ts';
 import { pullDrive } from './pull.ts';
 import { planDrivePush, sendDrivePush } from './push.ts';
@@ -27,6 +28,7 @@ export interface DriveRun {
     current: () => boolean;
     now: () => number;
     mint: () => Promise<{ runnerId: string; runnerToken: string }>;
+    placementGeneration: number;
     revoke: (runnerId: string) => Promise<unknown>;
     runId: string;
     serverOrigin: string;
@@ -35,7 +37,7 @@ export interface DriveRun {
 
 export function pullDriveForRun(agentRoot: string, run: DriveRun) {
     return inFolderTurn(agentRoot, async () => {
-        if (!run.current() || discardedFolders.has(agentRoot)) {
+        if (!(await mayTouchFolder(agentRoot, run))) {
             return;
         }
         await withRunToken(run, 'drive-pull-failed', async (token) => {
@@ -52,7 +54,7 @@ export function pullDriveForRun(agentRoot: string, run: DriveRun) {
 
 export function pushDriveForRun(agentRoot: string, run: DriveRun) {
     return inFolderTurn(agentRoot, async () => {
-        if (!run.current() || discardedFolders.has(agentRoot)) {
+        if (!(await mayTouchFolder(agentRoot, run))) {
             return;
         }
         const plan = await planDrivePush(driveFolderLayout(agentRoot, run.agentId));
@@ -67,6 +69,33 @@ export function pushDriveForRun(agentRoot: string, run: DriveRun) {
             }
         });
     });
+}
+
+export function flushDriveForRun(agentRoot: string, run: DriveRun) {
+    return inFolderTurn(agentRoot, async () => {
+        if (!(await mayTouchFolder(agentRoot, run))) {
+            return;
+        }
+        const plan = await planDrivePush(driveFolderLayout(agentRoot, run.agentId));
+        await withRunToken(run, 'drive-flush-failed', async (token) => {
+            const remote = driveRemote({ serverOrigin: run.serverOrigin, token });
+            if (!plan.isEmpty) {
+                const pushed = await sendDrivePush(plan, remote, run.runId);
+                for (const file of pushed.failed) {
+                    run.warn('drive-flush-file-failed', `${file.path}: ${file.message}`);
+                }
+            }
+            await remote.close(run.runId);
+        });
+    });
+}
+
+async function mayTouchFolder(agentRoot: string, run: DriveRun) {
+    if (!run.current() || discardedFolders.has(agentRoot)) {
+        return false;
+    }
+    const layout = driveFolderLayout(agentRoot, run.agentId);
+    return (await claimFolderPlacement(agentRoot, layout, run.placementGeneration)) !== 'stale';
 }
 
 async function withRunToken(

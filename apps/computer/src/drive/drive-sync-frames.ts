@@ -2,11 +2,12 @@ import { join } from 'node:path';
 import {
     agentPathSegment,
     type DriveSyncCommand,
+    driveFlushCommandSchema,
     drivePullCommandSchema,
     drivePushCommandSchema,
 } from '@haus/api';
 import { mintRunCredential, revokeRunCredential } from '../runner-authority.ts';
-import { type DriveRun, pullDriveForRun, pushDriveForRun } from './turn-sync.ts';
+import { type DriveRun, flushDriveForRun, pullDriveForRun, pushDriveForRun } from './turn-sync.ts';
 
 export function driveSyncFrames(
     agentsRoot: string,
@@ -26,10 +27,11 @@ export function driveSyncFrames(
                 });
                 return true;
             }
+            const runId = command.type === 'drive-flush' ? command.flushId : command.runId;
             if (command.sessionGeneration < (generations.get(command.agentId) ?? 0)) {
                 console.warn('Ignored a drive sync frame from an earlier Agent session.', {
                     agentId: command.agentId,
-                    runId: command.runId,
+                    runId,
                     sessionGeneration: command.sessionGeneration,
                 });
                 return true;
@@ -43,22 +45,23 @@ export function driveSyncFrames(
                         agentId: command.agentId,
                         chatId: null,
                         purpose: 'drive-sync',
-                        runId: command.runId,
+                        runId,
                     }),
                 now,
+                placementGeneration: command.placementGeneration,
                 revoke: (runnerId) => revokeRunCredential(attachment, runnerId),
-                runId: command.runId,
+                runId,
                 serverOrigin: attachment.serverOrigin,
                 warn: (event, detail) =>
                     console.warn('Drive folder sync did not finish.', {
                         agentId: command.agentId,
                         detail,
                         event,
-                        runId: command.runId,
+                        runId,
                     }),
             };
             const agentRoot = join(agentsRoot, agentPathSegment(command.agentId));
-            const sync = command.type === 'drive-pull' ? pullDriveForRun : pushDriveForRun;
+            const sync = syncOf[command.type];
             void sync(agentRoot, run).catch((error: unknown) =>
                 run.warn(
                     'drive-sync-failed',
@@ -69,6 +72,12 @@ export function driveSyncFrames(
         },
     };
 }
+
+const syncOf = {
+    'drive-flush': flushDriveForRun,
+    'drive-pull': pullDriveForRun,
+    'drive-push': pushDriveForRun,
+} as const;
 
 function isAgentSegment(agentId: string) {
     try {
@@ -86,5 +95,10 @@ function parseDriveSync(frame: unknown) {
         return command;
     }
     const push = drivePushCommandSchema.safeParse(frame);
-    return push.success ? push.data : null;
+    if (push.success) {
+        const command: DriveSyncCommand = push.data;
+        return command;
+    }
+    const flush = driveFlushCommandSchema.safeParse(frame);
+    return flush.success ? flush.data : null;
 }
