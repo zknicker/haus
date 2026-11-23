@@ -53,6 +53,7 @@ test('only the attacher adds a folder, and the online Computer names its real pa
     expect(inspect.operation).toEqual({ kind: 'inspect', path: '/Users/ada/src/haus/' });
     expect(await adding).toEqual({
         added: true,
+        githubAccess: { status: 'github-not-connected' },
         path: '/Users/ada/src/haus',
         repository: 'haus/haus',
     });

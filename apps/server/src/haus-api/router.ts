@@ -23,6 +23,7 @@ import { modelConnectionsRouter } from './model-connections/router.ts';
 import { projectRouter } from './project/router.ts';
 import { pushRouter } from './push/router.ts';
 import { reminderRouter } from './reminder/router.ts';
+import { repoRouter } from './repo/router.ts';
 import { serverRouter } from './server/router.ts';
 import { sessionRouter } from './session/router.ts';
 import { statsRouter } from './stats/router.ts';
@@ -62,6 +63,7 @@ export const hausRouter = createRouter({
     project: projectRouter,
     push: pushRouter,
     reminder: reminderRouter,
+    repo: repoRouter,
     server: serverRouter,
     session: sessionRouter,
     stats: statsRouter,

@@ -1,33 +1,32 @@
-import { computerAddRepoFolderInputSchema, repoFolderPathSchema, repoNameSchema } from '@haus/api';
-import { z } from 'zod';
+import { computerAddRepoFolderInputSchema, computerAddRepoFolderResultSchema } from '@haus/api';
 import { computerUpdatedTopic } from '../../realtime/topics.ts';
 import { addRepoFolderFromApp } from '../../repos/manage-repo-folders.ts';
 import { repoFolderTrpcError } from '../../repos/repo-errors.ts';
+import { readRepoGithubAccess } from '../../repos/repo-github-access.ts';
 import { memberProcedure } from '../server/procedure.ts';
 
+/** Adds the folder, then answers whether the Haus GitHub App reaches the repo it names. */
 export const addComputerRepoFolderProcedure = memberProcedure
     .input(computerAddRepoFolderInputSchema)
-    .output(
-        z
-            .object({ added: z.boolean(), path: repoFolderPathSchema, repository: repoNameSchema })
-            .strict()
-    )
+    .output(computerAddRepoFolderResultSchema)
     .mutation(async ({ ctx, input }) => {
+        let added: Awaited<ReturnType<typeof addRepoFolderFromApp>>;
         try {
-            const added = await addRepoFolderFromApp(
+            added = await addRepoFolderFromApp(
                 ctx.hausDb,
                 ctx.computerConnections,
                 ctx.member?.id ?? null,
                 input
             );
-            if (added.added) {
-                computerUpdatedTopic.announce({
-                    computerId: input.computerId,
-                    serverId: input.serverId,
-                });
-            }
-            return added;
         } catch (cause) {
             throw repoFolderTrpcError(cause);
         }
+        if (added.added) {
+            computerUpdatedTopic.announce({
+                computerId: input.computerId,
+                serverId: input.serverId,
+            });
+        }
+        const github = await readRepoGithubAccess(ctx.hausDb, ctx.githubApp, input.serverId);
+        return { ...added, githubAccess: await github.accessOf(added.repository) };
     });
