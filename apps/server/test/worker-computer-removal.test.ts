@@ -72,6 +72,7 @@ test('removing a Computer fails the turns it carried machine-removed, reports ea
         {
             computerId: carrierId,
             confirmation: 'REMOVE',
+            machineMoves: [],
             serverId: seed.serverId,
         }
     );
@@ -199,7 +200,7 @@ async function startOnRemovedCarrier(
         connection.db,
         delivery,
         { id: seed.userId },
-        { computerId: carrierId, confirmation: 'REMOVE', serverId: seed.serverId }
+        { computerId: carrierId, confirmation: 'REMOVE', machineMoves: [], serverId: seed.serverId }
     );
     return worker.id;
 }
