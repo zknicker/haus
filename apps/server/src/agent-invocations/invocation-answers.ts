@@ -14,7 +14,13 @@ import {
 import { readComputerFacts } from '../computer-access/computer-facts.ts';
 import { desktopStoppedText, renderDesktopRefusal } from '../computer-use/computer-use-gate.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import { keyOf, noticeAnswer, resultAnswer, textAnswer, withLeadLine } from './invocation-frames.ts';
+import {
+    keyOf,
+    noticeAnswer,
+    resultAnswer,
+    textAnswer,
+    withLeadLine,
+} from './invocation-frames.ts';
 import {
     type InvocationRecord,
     readAgentMachine,
@@ -40,7 +46,11 @@ export async function settledAnswer(
         return await offlineAnswer(db, record);
     }
     return await namedOffHome(db, {
-        answer: textAnswer(record, outcome, 'This call already finished; its output was answered once.'),
+        answer: textAnswer(
+            record,
+            outcome,
+            'This call already finished; its output was answered once.'
+        ),
         record,
     });
 }
@@ -60,7 +70,10 @@ export async function machineResultAnswer(
     const refusal = refusalOf(input);
     if (refusal && record.state === 'finished') {
         await recordFinishedRefusal(db, record.id, refusal);
-        return await settledAnswer(db, { appOrigin: input.appOrigin, record: { ...record, refusal } });
+        return await settledAnswer(db, {
+            appOrigin: input.appOrigin,
+            record: { ...record, refusal },
+        });
     }
     const answer = resultAnswer(record, result);
     if (input.stopped && record.operationKind === 'desktop' && result.outcome === 'cancelled') {

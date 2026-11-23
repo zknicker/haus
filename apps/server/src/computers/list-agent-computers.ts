@@ -7,7 +7,6 @@ import type { ComputerConnections } from './connections.ts';
 
 type Reader = Pick<HausDatabase, 'select'>;
 
-/** `haus computer list`: every Computer on the Agent's Server, as that Agent sees it. */
 export async function listAgentComputers(
     db: Reader,
     connections: Pick<ComputerConnections, 'isOnline'>,

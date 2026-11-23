@@ -50,15 +50,15 @@ test('0151 keeps every invocation and lets only a not-found refusal record no Co
         expect(
             await rejects(database, { computerId: null, outcome: 'failed', refusal: 'no-access' })
         ).toBe(true);
-        expect(await rejects(database, { computerId: null, outcome: 'failed', refusal: null })).toBe(
-            true
-        );
+        expect(
+            await rejects(database, { computerId: null, outcome: 'failed', refusal: null })
+        ).toBe(true);
         expect(
             await rejects(database, { computerId: null, outcome: 'completed', refusal: null })
         ).toBe(true);
-        expect(await rejects(database, { computerId: null, outcome: 'offline', refusal: null })).toBe(
-            false
-        );
+        expect(
+            await rejects(database, { computerId: null, outcome: 'offline', refusal: null })
+        ).toBe(false);
     } finally {
         await database.close();
         await cluster.stop();

@@ -2,7 +2,10 @@ import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
 import { Button, Dropdown, Label } from '@heroui/react';
 import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
-import { useGrantAgentAccess, useRevokeAgentAccess } from '../../hooks/computer-access/use-agent-access.ts';
+import {
+    useGrantAgentAccess,
+    useRevokeAgentAccess,
+} from '../../hooks/computer-access/use-agent-access.ts';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { useMembers } from '../../hooks/servers/use-members.ts';
@@ -16,11 +19,13 @@ import {
     homeCaptainsSummary,
 } from './agent-access-model.ts';
 
-/**
- * A Device's Agent access list (ADR 0057 decision 4): home Captains always
- * run tools here, and the attacher names any other Captain one at a time.
- */
-export function AgentAccessCard({ computerId, serverId }: { computerId: string; serverId: string }) {
+export function AgentAccessCard({
+    computerId,
+    serverId,
+}: {
+    computerId: string;
+    serverId: string;
+}) {
     const computers = useComputers(serverId);
     const computer = computers.data?.find((candidate) => candidate.id === computerId);
     const agents = useAgents(serverId);
@@ -77,7 +82,9 @@ export function AgentAccessSection({
                 <ItemCardGroup.Header className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                         <ItemCardGroup.Title>Agent access</ItemCardGroup.Title>
-                        <ItemCardGroup.Description>{agentAccessDescription}</ItemCardGroup.Description>
+                        <ItemCardGroup.Description>
+                            {agentAccessDescription}
+                        </ItemCardGroup.Description>
                     </div>
                     {canGrant ? (
                         <CaptainPicker
@@ -100,7 +107,9 @@ export function AgentAccessSection({
                         <ItemCard key={captain.id}>
                             <ItemCard.Content>
                                 <ItemCard.Title>{captain.displayName}</ItemCard.Title>
-                                <ItemCard.Description>Allowed by {captain.grantedBy}</ItemCard.Description>
+                                <ItemCard.Description>
+                                    Allowed by {captain.grantedBy}
+                                </ItemCard.Description>
                             </ItemCard.Content>
                             {canRevoke ? (
                                 <ItemCard.Action>

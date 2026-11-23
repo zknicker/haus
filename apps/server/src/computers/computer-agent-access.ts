@@ -49,7 +49,6 @@ export async function grantComputerAgentAccess(
     });
 }
 
-/** Deletes the grant and the Agent's computer use entry; `revoked` says whether the caller must fence. */
 export async function revokeComputerAgentAccess(
     db: HausDatabase,
     member: HausUser | null,

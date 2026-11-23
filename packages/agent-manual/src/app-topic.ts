@@ -13,6 +13,7 @@ const areaHeadings: Record<AppArea, string> = {
 
 const roleLabels: Record<AppPlaceRole, string | null> = {
     anyone: null,
+    attacher: 'the person who attached it',
     'owner-or-admin': 'Owner or Admin',
     owner: 'Server Owner',
 };
@@ -45,7 +46,7 @@ export const appTopic: ManualNavigationTopic = {
 When someone asks where to find or change something, give the path below exactly as written. Each step is a label they will see, and a step in parentheses is their own choice, such as which device.
 
 - Name only places this topic lists. If it is not here, say you are not sure where it lives rather than guessing a path.
-- Say who can do it. When the asker lacks that role, name who can: an Owner or Admin, or the Server Owner.
+- Say who can do it. When the asker lacks that role, name who can: an Owner or Admin, the Server Owner, or the person who attached the device.
 - These paths are for the desktop and web App. Haus also has an iPhone app on the same Server, laid out differently and without some of these screens; say so rather than giving a path from here. There is no Android app.
 - Some things have no App screen. People set a reminder by asking an Agent, so offer to set it yourself with \`haus reminder\`. No App setting turns on avatar generation.
 

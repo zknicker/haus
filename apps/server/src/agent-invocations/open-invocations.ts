@@ -82,7 +82,10 @@ export function markFenced(open: Map<string, OpenInvocation>, target: FenceTarge
 export function agentsOpenOn(open: Map<string, OpenInvocation>, computerId: string) {
     return [...open.values()]
         .filter((invocation) => invocation.computerId === computerId)
-        .map((invocation) => ({ agentId: invocation.command.agentId, serverId: invocation.serverId }));
+        .map((invocation) => ({
+            agentId: invocation.command.agentId,
+            serverId: invocation.serverId,
+        }));
 }
 
 export function uniqueAgents(agents: readonly { agentId: string; serverId: string }[]) {

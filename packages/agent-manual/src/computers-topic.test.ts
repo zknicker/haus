@@ -25,8 +25,8 @@ test('it explains haus computer list, who grants access, and every refusal cause
 test('it says where off-home calls run, that Drive stays home, and that the folders are scratch', () => {
     expect(body).toContain('with `HOME` set to its sibling `home`');
     expect(body).toContain('That folder has no `drive/`: Drive stays on your home.');
-    expect(body).toContain('reach a person\'s files by absolute path');
-    expect(body).toContain('Full Reset recreates only your home\'s folders');
+    expect(body).toContain("reach a person's files by absolute path");
+    expect(body).toContain("Full Reset recreates only your home's folders");
 });
 
 test('a MacBook screenshot uploads from the same Computer the desktop call targeted', () => {
@@ -36,7 +36,9 @@ test('a MacBook screenshot uploads from the same Computer the desktop call targe
     expect(body).toContain(
         '`bash` with `computer: "macbook"` running `haus attachment upload --path /tmp/shot.png`'
     );
-    expect(body).toContain('`haus attachment view <id> --output <path>` in a call that targets the second');
+    expect(body).toContain(
+        '`haus attachment view <id> --output <path>` in a call that targets the second'
+    );
 });
 
 test('an Agent asking about another machine finds the computers topic', () => {

@@ -175,15 +175,14 @@ resolve. The Worker record shows the place as `workerPlaceViewSchema`, which add
 reported name (`computerName`, null when unknown). Inputs, frames, and storage never carry the
 name.
 
-> **Amended 2026-11-22 by
-> [ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
-> decision 4:** only the attacher turns the switch on. The attacher, Owners and Admins can turn it
-> off.
-
-**The switch.** A Computer runs Workers locally only while its **Workers can run here** switch is on. The
-person who attached the Computer, or an Owner or Admin, sets it from the Computer's settings
-(`computer.setWorkers`, with the Worker limit; the App control is W4). `computer.list` shows
-`workersEnabled`, `workerLimit`, and `canChangeWorkers`, whether the viewer may set them. Owners
+**The switch.** A Computer runs Workers locally only while its **Workers can run here** switch is on. Only
+the person who attached the Computer turns it on, because it hands the machine user's access to
+the Server's Agents
+([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
+decision 4). The attacher, an Owner, or an Admin may turn it off or change the Worker limit
+(`computer.setWorkers`; the App control is W4). `computer.list` shows `workersEnabled`,
+`workerLimit`, `canChangeWorkers` (whether the viewer may call `computer.setWorkers`), and
+`canEnableWorkers` (whether the viewer may turn it on). Owners
 and Admins see every Computer there, and a plain member sees only the Computers they attached. The
 switch is Server state on the Computer record (`computers.workers_enabled`), and the Server checks it at every start and
 follow-up. It is off for a newly attached Computer. Turning it on lets Agents run unattended Claude
@@ -193,8 +192,8 @@ Code or Codex sessions there under that machine's logins ([Run](#run-a-turn)).
 unsandboxed, so it can read anything that user can, including the Computer's own Haus credential.
 With it, a Worker can act as the Computer and as every Agent the Computer hosts, beyond its Task.
 Turning the switch on therefore gives that Server's Agents the machine user's full local access:
-the same trust as the machine's GitHub and model logins, which is why only the attacher, an Owner,
-or an Admin may set it. The turn credential scopes what a Worker is handed, not what the machine
+the same trust as the machine's GitHub and model logins, which is why only the attacher may turn
+it on. The turn credential scopes what a Worker is handed, not what the machine
 user can reach. OS isolation is the follow-up
 ([ADR 0056](../docs/adr/0056-agents-run-quiet-workers-anywhere.md) decision 7). Turning it off lets
 working turns finish, refuses new starts and follow-ups with `WORKER_PLACE_OFF`, and settles turns

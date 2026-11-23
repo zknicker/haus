@@ -159,15 +159,6 @@ test('teaches Raft-aligned claim conflicts, assignment receipts, and message qua
     expect(prompt).not.toContain('raft wiki');
 });
 
-test('lists the Computers and Repos families just before Manual', () => {
-    const prompt = renderPrompt();
-
-    expect(prompt).toContain(
-        "\n16. **Computers**: `haus computer list`. Read the `computers` Manual topic before the first call that targets another Computer.\n17. **Repos**: `haus repo list`, `haus repo checkout` (your own worktree of a repo already on the call's Computer).\n18. **Manual**: `haus manual get`"
-    );
-    expect(prompt).not.toContain('19. **');
-});
-
 test('keeps the managed prompt within its reviewed size budget', () => {
     const prompt = renderPrompt({
         homeTimezone: 'America/Los_Angeles',

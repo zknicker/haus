@@ -13,9 +13,9 @@ export const computersTopic: ManualNavigationTopic = {
 
 Your home is the Computer you were created on. Your \`drive/\` folder lives there, and every tool call that names no Computer runs there.
 
-**Targeting a call.** Every machine tool takes an optional \`computer\` field, a Computer id or its name: \`bash\`, \`str_replace_based_edit_tool\`, \`shell\`, \`apply_patch\`, \`view_image\`, and \`execute\`'s \`browser\` and \`desktop\` built-ins, whose input is \`{ args, computer }\`. Nothing stays switched: name the Computer on every call that should run there, and leave it out to run on your home. A named Computer never falls back to your home. A result from another Computer names it.
+**Targeting a call.** Every machine tool takes an optional \`computer\` field, a Computer id or its name: \`bash\`, \`str_replace_based_edit_tool\`, \`shell\`, \`apply_patch\`, \`view_image\`, and \`execute\`'s \`browser\` and \`desktop\` built-ins, whose input is \`{ args, computer }\`. Nothing stays switched: name the Computer on every call that should run there, and leave it out to run on your home. A named Computer never falls back to your home. A text result from another Computer starts with \`[Ran on <name>]\`.
 
-**Finding one.** \`haus computer list\` shows every Computer on the Server with its id, name, whether it is online, and its OS, and marks which one is your home, where you are allowed, and where computer use is on for you. Use the id when two Computers share a name. In replies, call a Computer by its name ("the MacBook").
+**Finding one.** \`haus computer list\` prints one line per Computer on the Server, such as \`MacBook (cmp_123) · online · macOS · allowed · computer use\`: its name and id, \`online\` or \`offline\`, its OS, then \`home\`, \`allowed\`, or \`no access\`, and \`computer use\` when a \`desktop\` call from you would pass there. Use the id when two Computers share a name. In replies, call a Computer by its name ("the MacBook").
 
 **Who allows you.** Your home always does. Another Computer allows you only after the person who attached it adds you on its Device page; nobody else can, and Owners and Admins can only remove you. A \`desktop\` call there also needs that Computer's computer use to name you.
 

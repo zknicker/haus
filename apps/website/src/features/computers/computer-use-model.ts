@@ -88,7 +88,6 @@ export function computerUseAgentKeys(agents: ComputerUseAgents) {
     return agents.kind === 'all' ? [allCaptainsKey] : agents.agentIds;
 }
 
-/** Who computer use can name: this Device's Captains, then Captains its Agent access allows. */
 export function computerUseCaptains<
     Agent extends { computerId: string | null; displayName: string; id: string },
 >(agents: readonly Agent[], computerId: string, grantedAgentIds: readonly string[]) {

@@ -126,7 +126,8 @@ test('desktop for a borrowed Agent: all means home Agents only, and naming it le
     ]);
     expect(textOf(await replay('run_borrowed', laptopId, 'desktop'))).toBe(textOf(refused));
 
-    await setup.harness.sql`update computers set computer_use_scope = 'named' where id = ${laptopId}`;
+    await setup.harness
+        .sql`update computers set computer_use_scope = 'named' where id = ${laptopId}`;
     await setup.harness.sql`
         insert into computer_use_agents (server_id, computer_id, agent_id)
         values (${setup.serverId}, ${laptopId}, ${setup.agentId})

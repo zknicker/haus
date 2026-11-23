@@ -4,7 +4,6 @@ import { listAgentComputers } from '../computers/list-agent-computers.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { authorizeAgentRunner, sendAgentApiError } from './auth.ts';
 
-/** The Agent-scoped Computer route behind `haus computer list`. */
 export function registerAgentComputerRoutes(
     app: FastifyInstance,
     dependencies: { computers: Pick<ComputerConnections, 'isOnline'>; db: HausDatabase }

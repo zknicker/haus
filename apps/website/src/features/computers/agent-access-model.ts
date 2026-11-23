@@ -25,7 +25,7 @@ export function agentAccessView({
     computerId: string;
     grants: readonly Pick<ComputerAgentAccessGrant, 'agentId' | 'grantedByUserId'>[];
     personName: (userId: string) => string;
-}): AgentAccessView {
+}) {
     const home = agents.filter((agent) => agent.computerId === computerId).map(captainOf);
     const granted = grants.flatMap((grant) => {
         const agent = agents.find((candidate) => candidate.id === grant.agentId);
@@ -39,7 +39,7 @@ export function agentAccessView({
         .filter((agent) => !taken.has(agent.id))
         .map(captainOf)
         .sort((a, b) => a.displayName.localeCompare(b.displayName));
-    return { candidates, granted, home };
+    return { candidates, granted, home } satisfies AgentAccessView;
 }
 
 export function homeCaptainsSummary(home: readonly AccessCaptain[]) {
@@ -52,6 +52,10 @@ function listNames(names: readonly string[]) {
     return new Intl.ListFormat('en', { style: 'long', type: 'conjunction' }).format(names);
 }
 
-function captainOf(agent: AccessCaptain): AccessCaptain {
-    return { avatarUrl: agent.avatarUrl, displayName: agent.displayName, id: agent.id };
+function captainOf(agent: AccessCaptain) {
+    return {
+        avatarUrl: agent.avatarUrl,
+        displayName: agent.displayName,
+        id: agent.id,
+    } satisfies AccessCaptain;
 }

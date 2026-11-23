@@ -9,11 +9,6 @@ import {
 import type { HausClient } from './haus-client.ts';
 import { addMember } from './model-connection.fixture.ts';
 
-/**
- * Two Computers on one Server: the Owner attached the Studio, home to Orbit
- * and Peer; Bea, a plain member, attached the Laptop. Cal is an Admin who
- * attached neither.
- */
 export interface AgentAccessBoard {
     admin: HausClient;
     attacher: HausClient;

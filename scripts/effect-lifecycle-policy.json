@@ -263,6 +263,17 @@
                 "timer": 0
             }
         },
+        "apps/computer/src/invocations/attachment-invocations.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "An agent-fence that arrives before the invocation handler is ready waits in the arrival queue on one resolver, which the queue settles when it delivers the fence or when the handler fails to start; no timer or listener is attached.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 0,
+                "manualPromise": 1,
+                "timer": 0
+            }
+        },
         "apps/computer/src/invocations/bash.ts": {
             "disposition": "external-adapter",
             "reason": "Adapts one bash process group to an invocation: the abort listener and the five-second SIGKILL timer are cleared in lexical finally once the shell and its pipes settle.",

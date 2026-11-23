@@ -1,6 +1,5 @@
 import { hausTrpc } from '../../lib/haus-server.tsx';
 
-/** `computer.grantAgentAccess`; `computer.updated` brings the grant into the list. */
 export function useGrantAgentAccess(serverId: string) {
     const utils = hausTrpc.useUtils();
     const input = { serverId };
@@ -10,7 +9,6 @@ export function useGrantAgentAccess(serverId: string) {
     });
 }
 
-/** `computer.revokeAgentAccess`; the grant and its named computer use entry leave the list at once. */
 export function useRevokeAgentAccess(serverId: string) {
     const utils = hausTrpc.useUtils();
     const input = { serverId };

@@ -31,7 +31,6 @@ export async function retireOnServerComputers(
     }
 }
 
-/** Answers `agent-retire` for each held Agent that is retired or gone from the Computer's Server. */
 export async function answerHeldAgents(
     db: Reader,
     scope: { computerId: string; serverId: string },
