@@ -55,9 +55,14 @@ const gitSections: ReadonlyArray<{
                 value: 'haus/',
             },
             {
-                info: 'Captains can’t push yet. When they can, they’ll commit as the Haus bot with whoever asked as co-author.',
+                info: 'Captains commit as the Haus GitHub App’s bot, with whoever asked as co-author.',
                 title: 'Commit author',
-                value: 'Coming soon',
+                value: 'Haus bot, requester co-author',
+            },
+            {
+                info: 'Captains push their branches and open pull requests through the Haus GitHub App, which needs access to the repo.',
+                title: 'Pushes and pull requests',
+                value: 'Haus GitHub App',
             },
         ],
         title: 'Captains',
