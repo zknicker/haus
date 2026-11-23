@@ -5,6 +5,7 @@ import {
     liveReminderScriptExecution,
     type ReminderScriptExecutionRunner,
 } from './reminder-script-execution.ts';
+import { agentGitEnvironment } from './repos/github-git.ts';
 import { runtimeSearchPath } from './runtime-discovery.ts';
 import { secretsPaths } from './secrets/store.ts';
 
@@ -159,6 +160,7 @@ export function reminderScriptEnvironment(
     serverId: string
 ): Record<string, string> {
     const environment: Record<string, string> = {
+        ...agentGitEnvironment(null, null),
         HOME: home,
         PATH: [secretsPaths(dataRoot, serverId).binDir, runtimeSearchPath()].join(':'),
     };

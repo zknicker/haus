@@ -12,7 +12,11 @@ test('bash invocations cannot reach the bundled agent-desktop by name or locatio
     const toolsRoot = agentDesktopToolsRoot(dataRoot);
     const install = await installAgentDesktop(toolsRoot);
     const agentsRoot = join(dataRoot, 'servers', 'srv_isolation', 'agents');
-    const { cwd, env } = await invocationEnvironment(agentsRoot, 'agt_isolation', undefined);
+    const { cwd, env } = await invocationEnvironment(
+        agentsRoot,
+        { agentId: 'agt_isolation', invocationId: 'inv_isolation' },
+        undefined
+    );
 
     expect(Object.values(env).filter((value) => value?.includes(join(dataRoot, 'tools')))).toEqual(
         []

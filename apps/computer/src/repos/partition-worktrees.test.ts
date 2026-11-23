@@ -8,6 +8,7 @@ import { addWorkerWorktree } from '../workers/computer/checkout.ts';
 import { worktreePath } from '../workers/computer/layout.ts';
 import { resolveWorkerRepo } from '../workers/computer/repos.ts';
 import { checkoutAgentWorktree } from './agent-worktrees.ts';
+import { githubAppGit } from './github-git.ts';
 import { git, registerRepoFixture } from './repo.fixture.ts';
 
 const repos = registerRepoFixture();
@@ -34,6 +35,7 @@ describe('worktrees when a Server or an Agent goes', () => {
                 agentId,
                 dataRoot,
                 folder: clone,
+                git: githubAppGit(dataRoot, serverId, { access: 'write', invocationId: 'inv_t' }),
                 ref: null,
                 repository: 'acme/app',
                 serverId,
@@ -44,6 +46,7 @@ describe('worktrees when a Server or an Agent goes', () => {
             agentId: 'agt_bbbbbbbbbbbbbbbb',
             dataRoot,
             folder: person,
+            git: githubAppGit(dataRoot, serverId, { access: 'write', invocationId: 'inv_t' }),
             ref: null,
             repository: 'acme/app',
             serverId,
@@ -73,6 +76,7 @@ describe('worktrees when a Server or an Agent goes', () => {
             agentId,
             dataRoot,
             folder,
+            git: githubAppGit(dataRoot, serverId, { access: 'write', invocationId: 'inv_t' }),
             ref: null,
             repository: 'acme/app',
             serverId,

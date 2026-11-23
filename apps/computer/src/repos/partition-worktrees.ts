@@ -6,13 +6,19 @@ import { directories } from '../workers/computer/repos.ts';
 import { hasCode } from '../workers/durable-json.ts';
 import { removeCleanWorktreesOf } from './worktree.ts';
 
+/**
+ * A purge's last pass over a deleted Server's worktrees. A Worker's are checked
+ * with the machine's login, as it pushed with it. An Agent's are checked
+ * against what is already fetched: the Server, and with it the Haus GitHub App
+ * token, is gone, and the Agent's own pushes moved its remote-tracking refs.
+ */
 export async function releasePartitionWorktrees(dataRoot: string, serverId: string) {
     const root = worktreesRoot(dataRoot, serverId);
     const clones = reposRoot(dataRoot, serverId);
     const keep = new Set<string>();
     for (const id of await directories(root)) {
         const kept = await removeCleanWorktreesOf(root, id, {
-            credentials: 'machine',
+            credentials: id.startsWith('agt_') ? 'fetched' : 'machine',
             deleteBranch: false,
         });
         for (const path of kept) {

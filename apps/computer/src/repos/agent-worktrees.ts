@@ -1,10 +1,11 @@
 import { existsSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { agentRepoBranch, agentWorktreeIdleMs } from '@haus/api';
-import { runGit, WorkerCheckoutError } from '../workers/computer/git.ts';
+import { type GitCredentials, runGit, WorkerCheckoutError } from '../workers/computer/git.ts';
 import { worktreePath, worktreesRoot } from '../workers/computer/layout.ts';
 import { verifyRepoFolder } from '../workers/computer/repos.ts';
 import { withAgentCleanup } from './agent-use.ts';
+import { type GithubAppGit, githubAppGit } from './github-git.ts';
 import {
     lastUseMs,
     readMarker,
@@ -14,7 +15,6 @@ import {
 } from './worktree-marker.ts';
 import {
     addWorktree,
-    fetchFolder,
     hasLocalWork,
     listWorktrees,
     removeCleanWorktree,
@@ -28,6 +28,8 @@ export interface AgentCheckout {
     agentId: string;
     dataRoot: string;
     folder: string;
+    /** The Haus GitHub App through the helper, for the command that asked. */
+    git: GithubAppGit;
     ref: string | null;
     repository: string;
     serverId: string;
@@ -45,12 +47,15 @@ export async function checkoutAgentWorktree(input: AgentCheckout) {
         );
     }
     const before = existing ? await readMarker(path) : null;
-    if (!(await fetchFolder(input.folder, 'none', input.signal))) {
-        throw new WorkerCheckoutError(needsGithubAppText(input.repository, input.folder));
-    }
+    await runGit(['fetch', '--quiet', 'origin'], {
+        action: `fetch ${input.repository} into ${input.folder}`,
+        credentials: input.git,
+        cwd: input.folder,
+        signal: input.signal,
+    });
     const added = await addWorktree({
         branch,
-        credentials: 'none',
+        credentials: input.git,
         fetch: 'done',
         folder: input.folder,
         path,
@@ -96,7 +101,8 @@ export async function pruneIdleAgentWorktrees(input: {
         if (!(isAgentId(worktree.id) && (await idle(worktree.path)))) {
             continue;
         }
-        if ((await worktreeState(worktree.path, 'machine')) !== 'clean') {
+        const credentials = cleanupGit(input, worktree.id);
+        if ((await worktreeState(worktree.path, credentials)) !== 'clean') {
             continue;
         }
         const state = await withAgentCleanup(worktree.id, async () =>
@@ -122,7 +128,7 @@ export function removeAgentWorktrees(input: {
     serverId: string;
 }) {
     return removeCleanWorktreesOf(worktreesRoot(input.dataRoot, input.serverId), input.agentId, {
-        credentials: 'machine',
+        credentials: cleanupGit(input, input.agentId),
         deleteBranch: false,
     });
 }
@@ -143,8 +149,13 @@ export async function touchAgentWorktreeAt(path: string, root: string) {
     }
 }
 
-function needsGithubAppText(repository: string, folder: string) {
-    return `This Computer could not fetch ${repository} into ${folder}. A Captain fetches without the machine's own GitHub login or SSH keys, so a private repo, or an SSH origin, needs the Haus GitHub App's access, which Haus does not give Computers yet. Hand the work to a Worker with \`haus worker start --repo ${repository}\` meanwhile, or ask the person who attached this Computer.`;
+/** Cleanup fetches an Agent's worktree as the Haus GitHub App, never the machine's login. */
+function cleanupGit(scope: { dataRoot: string; serverId: string }, agentId: string) {
+    const credentials: GitCredentials = githubAppGit(scope.dataRoot, scope.serverId, {
+        access: 'read',
+        agentId,
+    });
+    return credentials;
 }
 
 function isAgentId(id: string) {
@@ -161,7 +172,7 @@ async function resetAgentWorktree(
             );
         }
         const from = await startPoint({
-            credentials: 'none',
+            credentials: input.git,
             folder: input.folder,
             ref: input.ref,
         });

@@ -33,7 +33,7 @@ export async function executeInvocation(
     try {
         const { cwd, env } = await invocationEnvironment(
             input.agentsRoot,
-            command.agentId,
+            command,
             operation.kind === 'bash' ? operation.cwd : undefined
         );
         result = await withAgentUse(command.agentId, async () => {
