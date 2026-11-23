@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## v29.2.0 - 2026-11-23
+
+- Settings → Repositories lists every repo on the Server with the Devices that hold a folder for it and whether the Haus GitHub App can reach it. **Grant on GitHub** opens the installation's settings and **Recheck** asks again. **Add repository** adds a folder on a Device you attached. In Haus for Desktop 7.4.0, **Choose folder…** opens the macOS folder picker; older desktop builds and browsers take a typed path.
+- Settings → Projects lists your Projects. Each Project page sets its name, description, icon and color, Captains, and the default place its Workers run. **Project settings** in a channel's actions menu opens it.
+- A Worker started without a place runs at its Project's default place. When the Project has none, the start is refused with `WORKER_PLACE_REQUIRED`, instead of running on the Device's default Cloud Agent.
+- The Devices list shows each Device as one row with its status and version. The Device page groups Captain access, **Workers can run here**, computer use and macOS permissions under Access, puts Chrome and 1Password under Tools, and renames Cloud Agents to Cloud Workers without **Make default**. **Check for updates** and **Remove device** live in its ••• menu, and an update check that stalls now shows as stalled with its recovery action.
+- Settings pages have icons in the navigation, and every sidebar uses the same row height. Captains → Git says Captain commits are authored by the Haus bot and pushed through the Haus GitHub App.
+- GitHub `workflow_run`, `check_suite` and `check_run` Triggers no longer wake a Captain for CI from a fork by default, and `workflow_job` Triggers need `authors: anyone` to fire at all. Set **Authors** to anyone, or `--authors anyone` on `haus trigger`, to keep the old behavior. Branch and tag names in a GitHub trigger's summary line moved below the untrusted-data marker, and every line break in a trigger, reminder or claim payload is indented.
+- A Server MCP connection no longer replays a request to a different origin on a 307 or 308 redirect.
+- Haus for Desktop 7.4.0 runs on Electron 45 and needs macOS 13 or later.
+- Server 28.1.0, Haus for Desktop 7.4.0, Haus Computer 25.1.0 and Haus Agent 17.1.0 publish together. Haus Agent 17.1.0 teaches Captains the Project default place, the Repositories page, the Device page's Folders and Tools sections, and `haus trigger --authors` on CI Triggers. Computer protocol 48 is unchanged, so either can update first. No database migration. Haus for iPhone is unchanged.
+
 ## v29.1.2 - 2026-11-23
 
 - Haus for iPhone 13.0.2 scrolls Home, Projects, Tasks and You smoothly again. In 13.0.1, every scroll frame redrew the whole app. Server, Haus Computer, Haus Agent and Haus for Desktop are unchanged.
