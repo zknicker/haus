@@ -57,3 +57,18 @@ export const folderStateLabels = {
     missing: 'missing',
     'other-origin': 'different origin',
 } as const;
+
+export function accessSentence(
+    status: Exclude<RepoGithubAccessStatus, 'ready'>,
+    repository: string
+) {
+    return accessSentences[status].replace('{repo}', repository);
+}
+
+const accessSentences = {
+    'app-needs-access':
+        'Captains push and open pull requests through the Haus GitHub App, which needs access to {repo}.',
+    'github-not-connected':
+        'Captains push and open pull requests through the Haus GitHub App. Connect GitHub so they can reach {repo}.',
+    'github-unavailable': 'GitHub did not answer, so Haus could not check its access to {repo}.',
+} as const;

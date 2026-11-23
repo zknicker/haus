@@ -11,7 +11,7 @@ import { SettingsStatusChip, SettingsStatusTitle } from '../layout/settings-row-
 import { SettingsFact, SettingsRowWarning } from '../layout/settings-text.tsx';
 import { deviceReachNotice } from './add-repo-devices.ts';
 import { RepoAccessActions } from './repo-access-actions.tsx';
-import { repoAccessChips } from './repo-access.ts';
+import { accessSentence, repoAccessChips } from './repo-access.ts';
 
 export function AddRepoResult({
     added,
@@ -60,21 +60,16 @@ export function AddRepoResult({
                                     </SettingsFact>
                                 </ItemCard.Description>
                             </ItemCard.Content>
-                            <ItemCard.Action>
-                                <RepoAccessActions
-                                    access={access}
-                                    serverId={serverId}
-                                    serverSlug={serverSlug}
-                                />
-                            </ItemCard.Action>
                         </ItemCard>
                     </ItemCardGroup>
-                    {access.status === 'app-needs-access' ? (
-                        <p>
-                            Captains push and open pull requests through the Haus GitHub App, which
-                            needs access to {added.repository}.
-                        </p>
-                    ) : null}
+                    {access.status === 'ready' ? null : (
+                        <p>{accessSentence(access.status, added.repository)}</p>
+                    )}
+                    <RepoAccessActions
+                        access={access}
+                        serverId={serverId}
+                        serverSlug={serverSlug}
+                    />
                     <DeviceReach
                         computerId={added.computerId}
                         serverId={serverId}
