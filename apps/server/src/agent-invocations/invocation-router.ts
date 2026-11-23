@@ -10,6 +10,7 @@ import {
     invokeResultSchema,
 } from '@haus/api';
 import { onAgentLifecycle } from '../agent-delivery/lifecycle.ts';
+import { isAgentAllowedOn } from '../computer-access/agent-access.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { RunnerLink } from '../runner/runner-link.ts';
@@ -138,6 +139,12 @@ function routeInvocations(input: RouterInput) {
         const { computerId } = decision;
         if (decision.verdict.kind !== 'send' || computerId === null) {
             answer(await settledAnswer(db, { appOrigin, candidates: decision.candidates, record }));
+            return;
+        }
+        const target = { agentId: frame.agentId, computerId, serverId: agent.serverId };
+        if (!(await isAgentAllowedOn(db, target))) {
+            const refused = await recordSentRefusal(db, record.id, 'no-access');
+            answer(await settledAnswer(db, { appOrigin, record: refused ?? record }));
             return;
         }
         const command: InvokeCommand = {
