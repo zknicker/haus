@@ -1,5 +1,7 @@
 import SwiftUI
 
+#if canImport(UIKit)
+
 /// One icon in the tab bar. A missing `image` falls back to the symbol.
 public struct HausTabBarItem<Tab: Hashable>: Identifiable {
     public let tab: Tab
@@ -110,4 +112,4 @@ public struct HausBottomChrome<Tab: Hashable>: View {
             .glassEffect(.regular.interactive(), in: .capsule)
     }
 }
-
+#endif

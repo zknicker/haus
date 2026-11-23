@@ -1,92 +1,110 @@
 import SwiftUI
 
-/// The bar's icons over one selection pill. A press anywhere on the bar lifts
-/// the pill into a glass bubble that follows the finger, the way the system
-/// tab bar does, and lets go onto the tab under it.
+#if canImport(UIKit)
+
+/// The bar's icons over a system segmented control. On iOS 26 the segmented
+/// control is the one component besides the system tab bar whose selection
+/// lifts into the Liquid Glass bubble on a press and follows the finger, so the
+/// bar gets that native feel at Capy's 49pt instead of the system bar's 62pt.
+/// The control draws only its selection; the icons sit over it and let touches
+/// through.
 struct HausTabBar<Tab: Hashable>: View {
     @Binding var selection: Tab
     let items: [HausTabBarItem<Tab>]
-    @Environment(\.colorScheme) private var colorScheme
-    /// The finger's x across the bar while it is down.
-    @State private var pressX: CGFloat?
 
     private static var inset: CGFloat { 3 }
-    private static var pillHeight: CGFloat { 42 }
 
     var body: some View {
-        GeometryReader { proxy in
-            let slot = (proxy.size.width - 2 * Self.inset) / CGFloat(max(items.count, 1))
-            ZStack(alignment: .leading) {
-                pill(slot: slot)
-                HStack(spacing: 0) {
-                    ForEach(items) { item in
-                        Button { selection = item.tab } label: {
-                            HausTabBarIcon(item: item, isSelected: item.tab == highlighted(slot: slot))
-                                .frame(width: slot, height: Self.pillHeight)
-                        }
-                        .buttonStyle(.plain)
+        TabSegmentedControl(
+            count: items.count,
+            selectedIndex: Binding(
+                get: { items.firstIndex { $0.tab == selection } ?? 0 },
+                set: { index in if items.indices.contains(index) { selection = items[index].tab } }
+            )
+        )
+        .accessibilityHidden(true)
+        .overlay {
+            HStack(spacing: 0) {
+                ForEach(items) { item in
+                    HausTabBarIcon(item: item, isSelected: item.tab == selection)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .contentShape(.rect)
+                        .accessibilityElement()
                         .accessibilityLabel(item.label)
-                        .accessibilityAddTraits(item.tab == selection ? .isSelected : [])
-                    }
+                        .accessibilityAddTraits(item.tab == selection ? [.isButton, .isSelected] : .isButton)
+                        .accessibilityAction { selection = item.tab }
                 }
             }
-            .padding(.horizontal, Self.inset)
-            .frame(height: proxy.size.height)
-            .contentShape(Capsule())
-            .highPriorityGesture(press(slot: slot))
-            .animation(.spring(duration: 0.32, bounce: 0.22), value: pressX == nil)
-            .animation(.spring(duration: 0.32, bounce: 0.22), value: selection)
+            .allowsHitTesting(false)
         }
+        .padding(Self.inset)
         .frame(height: HausBottomChrome<Tab>.barHeight)
         .sensoryFeedback(.selection, trigger: selection)
     }
+}
 
-    @ViewBuilder
-    private func pill(slot: CGFloat) -> some View {
-        if let pressX {
-            Capsule()
-                .fill(.clear)
-                .frame(width: slot * 1.12, height: Self.pillHeight * 1.12)
-                .glassEffect(.regular.interactive(), in: .capsule)
-                .offset(x: clamped(pressX, slot: slot) - slot * 0.56 - Self.inset)
-        } else if let index = items.firstIndex(where: { $0.tab == selection }) {
-            Capsule()
-                .fill(.black.opacity(colorScheme == .dark ? 0.45 : 0.07))
-                .frame(width: slot, height: Self.pillHeight)
-                .offset(x: CGFloat(index) * slot)
+/// A segmented control that shows only its selection: no track, no
+/// dividers, no titles. The selection is the piece iOS 26 turns into glass.
+private struct TabSegmentedControl: UIViewRepresentable {
+    let count: Int
+    @Binding var selectedIndex: Int
+
+    func makeUIView(context: Context) -> TracklessSegmentedControl {
+        let control = TracklessSegmentedControl(items: Array(repeating: "", count: count))
+        control.selectedSegmentIndex = selectedIndex
+        control.backgroundColor = .clear
+        control.selectedSegmentTintColor = UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor.black.withAlphaComponent(0.45)
+                : UIColor.black.withAlphaComponent(0.07)
+        }
+        control.addTarget(context.coordinator, action: #selector(Coordinator.changed(_:)), for: .valueChanged)
+        return control
+    }
+
+    func updateUIView(_ control: TracklessSegmentedControl, context: Context) {
+        context.coordinator.selectedIndex = $selectedIndex
+        if control.selectedSegmentIndex != selectedIndex {
+            control.selectedSegmentIndex = selectedIndex
         }
     }
 
-    private func press(slot: CGFloat) -> some Gesture {
-        DragGesture(minimumDistance: 0)
-            .onChanged { pressX = $0.location.x }
-            .onEnded { value in
-                if let tab = tab(at: value.location.x, slot: slot) { selection = tab }
-                pressX = nil
-            }
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: TracklessSegmentedControl, context: Context) -> CGSize? {
+        CGSize(width: proposal.width ?? 0, height: proposal.height ?? 0)
     }
 
-    /// The tab under the finger while it is down, otherwise the selection.
-    private func highlighted(slot: CGFloat) -> Tab? {
-        guard let pressX else { return selection }
-        return tab(at: pressX, slot: slot)
+    func makeCoordinator() -> Coordinator {
+        Coordinator(selectedIndex: $selectedIndex)
     }
 
-    private func tab(at x: CGFloat, slot: CGFloat) -> Tab? {
-        guard !items.isEmpty, slot > 0 else { return nil }
-        let index = Int(((x - Self.inset) / slot).rounded(.down))
-        return items[min(max(index, 0), items.count - 1)].tab
-    }
+    final class Coordinator: NSObject {
+        var selectedIndex: Binding<Int>
 
-    /// The bubble's center, kept inside the bar.
-    private func clamped(_ x: CGFloat, slot: CGFloat) -> CGFloat {
-        let half = slot / 2
-        let upper = Self.inset + slot * CGFloat(items.count) - half
-        return min(max(x, Self.inset + half), upper)
+        init(selectedIndex: Binding<Int>) {
+            self.selectedIndex = selectedIndex
+        }
+
+        @objc func changed(_ control: UISegmentedControl) {
+            selectedIndex.wrappedValue = control.selectedSegmentIndex
+        }
     }
 }
 
-/// A tab's photo or symbol. The selected pill alone marks a photo; a symbol
+/// Hides the control's track and dividers, which UIKit draws as image views
+/// under the selection indicator (the last subview). This leans on UIKit's
+/// private layout: if a later iOS changes it, the track shows again under the
+/// glass bar rather than anything breaking.
+final class TracklessSegmentedControl: UISegmentedControl {
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        let indicator = subviews.last
+        for case let view as UIImageView in subviews where view !== indicator {
+            view.alpha = 0
+        }
+    }
+}
+
+/// A tab's photo or symbol. The selection alone marks a photo; a symbol
 /// also takes the accent.
 struct HausTabBarIcon<Tab: Hashable>: View {
     let item: HausTabBarItem<Tab>
@@ -100,8 +118,9 @@ struct HausTabBarIcon<Tab: Hashable>: View {
                 .clipShape(Circle())
         } else {
             Image(systemName: item.systemImage)
-                .font(.system(size: 19, weight: .medium))
+                .font(.system(size: 19, weight: .regular))
                 .foregroundStyle(isSelected ? HausPlatformColor.accent : HausPlatformColor.label)
         }
     }
 }
+#endif
