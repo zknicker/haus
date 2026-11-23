@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { createTRPCQueryUtils } from '@trpc/react-query';
+import { createTRPCQueryUtils, getQueryKey } from '@trpc/react-query';
 import { observable } from '@trpc/server/observable';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { hausTrpc } from '../../lib/haus-server.tsx';
@@ -83,9 +83,21 @@ test('a Mac whose permissions moved to the app says macOS asks again', () => {
     expect(html).toContain('~/.local/share/haus-computer/Haus Computer.app');
 });
 
-function render(overrides: Record<string, unknown>) {
+test('computer use stays usable when the Captain roster fails to load', () => {
+    const html = render({ canChangeComputerUse: true, computerUseEnabled: true }, 'error');
+
+    expect(html).toContain('Computer use allowed');
+    expect(html).toContain('Captain access');
+    expect(html).toContain('Couldn’t load Captains.');
+    expect(html).toContain('Retry');
+    expect(html).not.toContain('aria-label="Add Captain"');
+});
+
+function render(overrides: Record<string, unknown>, roster: 'error' | 'ready' = 'ready') {
     const queryClient = new QueryClient({
-        defaultOptions: { queries: { retry: false, staleTime: Number.POSITIVE_INFINITY } },
+        defaultOptions: {
+            queries: { retry: false, retryOnMount: false, staleTime: Number.POSITIVE_INFINITY },
+        },
     });
     const client = hausTrpc.createClient({
         links: [() => () => observable(() => () => undefined)],
@@ -105,7 +117,16 @@ function render(overrides: Record<string, unknown>) {
             ...overrides,
         },
     ] as never);
-    utils.agent.list.setData({ serverId }, [] as never);
+    if (roster === 'ready') {
+        utils.agent.list.setData({ serverId }, [] as never);
+    } else {
+        queryClient
+            .getQueryCache()
+            .build(queryClient, {
+                queryKey: getQueryKey(hausTrpc.agent.list, { serverId }, 'query'),
+            })
+            .setState({ error: new Error('roster down'), status: 'error' });
+    }
     utils.computer.desktopActivity.setData({ computerId, serverId }, { commands: [] });
     return renderToStaticMarkup(
         <QueryClientProvider client={queryClient}>

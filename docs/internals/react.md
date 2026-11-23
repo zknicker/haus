@@ -322,7 +322,7 @@ whichever is first (`use-agent-hub-reveal.ts`). Nothing above the lists moves wh
   reaching for a wrapper.
 * One Settings page groups its rail as **You** (Profile, Preferences, Appearance,
   Notifications, Shortcuts, Servers), **Captains** (Models, Git, Skills,
-  Connections; Git states today's commit identity and branch prefix as facts, with no controls), and **Haus** (General, Members, Devices, Usage, then Archived
+  Connections; Git states what is built today as facts, with no controls: the Captain `haus/` branch prefix and Workers' own git login, with Captain commit identity marked coming soon), and **Haus** (General, Members, Devices, Usage, then Archived
   chats). Shortcuts is generated from `features/shortcuts/shortcut-registry.ts`,
   which its test holds to the real key handlers. Which Servers you belong to is about you, so switching, creating,
   and joining sit in the personal scope. Archived chats is a

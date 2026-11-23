@@ -9,7 +9,7 @@ import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { useMembers } from '../../hooks/servers/use-members.ts';
 import { withSaveErrorToast } from '../../lib/saving-toast.ts';
 import { humanDirectory } from '../servers/human-identity.ts';
-import { AgentAccessRows, CaptainPicker } from './agent-access-card.tsx';
+import { AgentAccessRows, AgentAccessUnresolved, CaptainPicker } from './agent-access-card.tsx';
 import { agentAccessView } from './agent-access-model.ts';
 import { ComputerUseRows } from './computer-use-access-card.tsx';
 import { supportsComputerUse } from './computer-use-model.ts';
@@ -29,15 +29,17 @@ export function ComputerAccessSection({
     const members = useMembers(serverId).data?.members;
     const grant = useGrantAgentAccess(serverId);
     const revoke = useRevokeAgentAccess(serverId);
-    if (!(computer && agents.data)) {
+    if (!computer) {
         return null;
     }
-    const view = agentAccessView({
-        agents: agents.data,
-        computerId,
-        grants: computer.agentAccessGrants,
-        personName: humanDirectory(members ?? []).name,
-    });
+    const view = agents.data
+        ? agentAccessView({
+              agents: agents.data,
+              computerId,
+              grants: computer.agentAccessGrants,
+              personName: humanDirectory(members ?? []).name,
+          })
+        : null;
     const isPending = grant.isPending || revoke.isPending;
     const computerUse = supportsComputerUse(computer);
 
@@ -46,7 +48,7 @@ export function ComputerAccessSection({
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header className="flex items-start justify-between gap-3">
                     <ItemCardGroup.Title>Access</ItemCardGroup.Title>
-                    {computer.canGrantAgentAccess ? (
+                    {view && computer.canGrantAgentAccess ? (
                         <CaptainPicker
                             candidates={view.candidates}
                             isDisabled={isPending}
@@ -66,16 +68,22 @@ export function ComputerAccessSection({
                     />
                 ) : null}
                 <ItemCardGroup className="overflow-hidden">
-                    <AgentAccessRows
-                        canRevoke={computer.canRevokeAgentAccess}
-                        isPending={isPending}
-                        onRevoke={(agentId) => {
-                            withSaveErrorToast(() =>
-                                revoke.mutateAsync({ agentId, computerId, serverId })
-                            ).catch(() => undefined);
-                        }}
-                        view={view}
-                    />
+                    {view ? (
+                        <AgentAccessRows
+                            canRevoke={computer.canRevokeAgentAccess}
+                            isPending={isPending}
+                            onRevoke={(agentId) => {
+                                withSaveErrorToast(() =>
+                                    revoke.mutateAsync({ agentId, computerId, serverId })
+                                ).catch(() => undefined);
+                            }}
+                            view={view}
+                        />
+                    ) : (
+                        <AgentAccessUnresolved
+                            onRetry={agents.isError ? () => void agents.refetch() : null}
+                        />
+                    )}
                     {computerUse ? (
                         <>
                             <Separator />

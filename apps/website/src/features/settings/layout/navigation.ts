@@ -97,7 +97,7 @@ export const settingsNavItems = [
         icon: GitBranchIcon,
         id: 'git',
         label: 'Git',
-        rows: ['Commit author', 'Co-author', 'Branch prefix'],
+        rows: ['Branch prefix', 'Commit author'],
     },
     {
         access: 'everyone',
