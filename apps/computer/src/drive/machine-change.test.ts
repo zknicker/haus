@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
+import { createHash } from 'node:crypto';
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -37,6 +38,40 @@ test('a flush pushes a local edit and then closes its push', async () => {
     await flushDriveForRun(agentRoot, run({ runId: 'flush_1' }));
 
     expect(server.text('agents/alpha/notes/heron.md')).toBe('copper heron');
+    expect(server.requests.at(-1)).toBe('POST /api/agent/drive/push/close');
+});
+
+test('a flush with a failed file sends no close, and the resend lands it with a fresh request id', async () => {
+    server = startDriveServer();
+    agentRoot = await mkdtemp(join(tmpdir(), 'haus-machine-change-'));
+    await pullDriveForRun(agentRoot, run({ runId: 'run_1' }));
+    const notes = join(folder(), 'agents', 'alpha', 'notes');
+    await mkdir(notes, { recursive: true });
+    await writeFile(join(notes, 'first.md'), 'first');
+    await pushDriveForRun(agentRoot, run({ runId: 'run_1' }));
+    await writeFile(join(notes, 'second.md'), 'second');
+    const layout = driveFolderLayout(agentRoot, 'agt_alpha');
+    const state = JSON.parse(await readFile(layout.stateFile, 'utf8'));
+    const reused = {
+        request_id: server.requestIds[0] ?? '',
+        sha256: createHash('sha256').update('second').digest('hex'),
+    };
+    await writeFile(
+        layout.stateFile,
+        JSON.stringify({ ...state, pendingCreates: { 'agents/alpha/notes/second.md': reused } })
+    );
+    const warnings: string[] = [];
+    const closesBefore = closes();
+
+    await flushDriveForRun(agentRoot, run({ runId: 'flush_1', warnings }));
+
+    expect(warnings).toEqual(['drive-flush-file-failed']);
+    expect(closes()).toBe(closesBefore);
+    expect(server.text('agents/alpha/notes/second.md')).toBe(null);
+
+    await flushDriveForRun(agentRoot, run({ runId: 'flush_2' }));
+
+    expect(server.text('agents/alpha/notes/second.md')).toBe('second');
     expect(server.requests.at(-1)).toBe('POST /api/agent/drive/push/close');
 });
 
@@ -84,7 +119,11 @@ function folder() {
     return driveFolderLayout(agentRoot, 'agt_alpha').folder;
 }
 
-function run(input: { placementGeneration?: number; runId: string }) {
+function closes() {
+    return server.requests.filter((line) => line.endsWith('/push/close')).length;
+}
+
+function run(input: { placementGeneration?: number; runId: string; warnings?: string[] }) {
     return {
         agentId: 'agt_alpha',
         current: () => true,
@@ -95,7 +134,10 @@ function run(input: { placementGeneration?: number; runId: string }) {
         runId: input.runId,
         serverOrigin: server.origin,
         warn: (event: string, detail: string) => {
-            throw new Error(`${event}: ${detail}`);
+            if (!input.warnings) {
+                throw new Error(`${event}: ${detail}`);
+            }
+            input.warnings.push(event);
         },
     } satisfies DriveRun;
 }
