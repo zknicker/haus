@@ -1,11 +1,8 @@
 import { ItemCard } from '@heroui-pro/react';
 import { Button } from '@heroui/react';
-import { useEffect, useReducer } from 'react';
 import type { HausOutputs } from '../../lib/haus-server.tsx';
 import { SettingsStatusChip, SettingsStatusTitle } from '../settings/layout/settings-row-title.tsx';
 import { UpdateProgressBar } from '../updates/haus-update-progress.tsx';
-import { offlineComputerUpdateExpiry } from '../updates/offline-computer-update.ts';
-import { stalledComputerUpdateExpiry } from '../updates/stalled-computer-update.ts';
 import { computerUpdateStatus, computerUpdateView } from './computer-update-model.ts';
 
 export type ComputerUpdateComputer = HausOutputs['computer']['list'][number];
@@ -26,7 +23,6 @@ export function ComputerUpdateCard({
     onCheck: () => void;
     onUpdate: () => void;
 }) {
-    useUpdateExpiryRefresh(computer);
     const view = computerUpdateView({
         ...updateInput(computer),
         isChecking: isChecking || isStarting,
@@ -82,24 +78,6 @@ export function ComputerUpdateCard({
             </ItemCard.Action>
         </ItemCard>
     );
-}
-
-/** Re-renders when an active update crosses its unconfirmed or stalled bound. */
-function useUpdateExpiryRefresh(computer: ComputerUpdateComputer) {
-    const [, refreshTime] = useReducer((value: number) => value + 1, 0);
-    const progress = {
-        health: computer.health,
-        phase: computer.updatePhase,
-        updateUpdatedAt: computer.updateUpdatedAt,
-    };
-    const expiry = offlineComputerUpdateExpiry(progress) ?? stalledComputerUpdateExpiry(progress);
-    useEffect(() => {
-        if (expiry === null || expiry <= Date.now()) {
-            return;
-        }
-        const timer = window.setTimeout(refreshTime, expiry - Date.now());
-        return () => window.clearTimeout(timer);
-    }, [expiry]);
 }
 
 export function updateInput(computer: ComputerUpdateComputer) {

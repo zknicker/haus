@@ -8,6 +8,7 @@ import {
     type ComputerUpdatePreviewState,
     previewComputerUpdate,
 } from './computer-update-preview.tsx';
+import { useUpdateExpiryRefresh } from './use-update-expiry-refresh.ts';
 
 export function ComputerUpdates({
     computerId,
@@ -20,11 +21,12 @@ export function ComputerUpdates({
 }) {
     const computers = useComputers(serverId);
     const live = computers.data?.find((candidate) => candidate.id === computerId);
+    const computer = live ? previewComputerUpdate(live, previewState) : undefined;
+    useUpdateExpiryRefresh(computer);
 
-    if (!live) {
+    if (!computer) {
         return null;
     }
-    const computer = previewComputerUpdate(live, previewState);
     if (!showsComputerUpdateCard(updateInput(computer))) {
         return null;
     }
