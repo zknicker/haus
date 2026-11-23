@@ -40,6 +40,7 @@ test('computer.onUpdated with a Computer refreshes its log, folders, the repo li
         read('repo.list', { serverId }),
         read('agent.activeActivity', { serverId }),
         read('agent.deliveryState', { serverId }),
+        read('agent.machine', { serverId }),
         read('agent.list', { serverId }),
         read('stats.live', { serverId }),
         read('cloudAgentSettings.get', { serverId }),

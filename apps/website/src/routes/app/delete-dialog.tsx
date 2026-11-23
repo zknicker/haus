@@ -3,6 +3,8 @@ import * as React from 'react';
 import { SettingsRowError } from '../../features/settings/layout/settings-text.tsx';
 
 export function DeleteDialog({
+    canConfirm = true,
+    children,
     confirmation,
     description,
     error,
@@ -11,6 +13,8 @@ export function DeleteDialog({
     pending,
     title,
 }: {
+    canConfirm?: boolean;
+    children?: React.ReactNode;
     confirmation: string;
     description: string;
     error?: string;
@@ -33,6 +37,7 @@ export function DeleteDialog({
                         <AlertDialog.Body>
                             <div className="grid gap-4">
                                 <p>{description}</p>
+                                {children}
                                 <TextField
                                     autoComplete="off"
                                     fullWidth
@@ -53,7 +58,7 @@ export function DeleteDialog({
                                 Cancel
                             </Button>
                             <Button
-                                isDisabled={typed !== confirmation}
+                                isDisabled={!canConfirm || typed !== confirmation}
                                 isPending={pending}
                                 onPress={onConfirm}
                                 type="button"

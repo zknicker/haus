@@ -1,18 +1,11 @@
 import type { Agent } from '@haus/api';
-import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { Button, Chip } from '@heroui/react';
+import { ItemCardGroup } from '@heroui-pro/react';
 import type * as React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
 import type { ServerDetail } from '../../../lib/haus-server.tsx';
 import { AgentTools as AgentConnections } from '../../../routes/app/agent-tools.tsx';
-import {
-    computerHealthColor,
-    computerHealthLabel,
-    computerLabel,
-} from '../../computers/presentation.ts';
-import { serverComputerRoute } from '../../servers/server-routes.ts';
+import { AgentMachineRow } from './agent-machine-row.tsx';
 import { AgentPermissions } from './agent-permissions.tsx';
 import { AgentRuntime } from './agent-runtime.tsx';
 import { canOpenAgentSection } from './agent-sections.ts';
@@ -23,52 +16,16 @@ import { AgentSkills } from './agent-skills.tsx';
  * while that query loads or fails, so a slow Computer never blanks the page.
  */
 
-/** Runs on: the Computer this Agent lives on, then the model it runs. */
+/** Runs on: the Captain's Machine, then the model it runs. */
 export function AgentRuntimeSection({ agent, server }: { agent: Agent; server: ServerDetail }) {
-    const navigate = useNavigate();
     const computers = useComputers(server.id);
     const computer = computers.data?.find((candidate) => candidate.id === agent.computerId);
-    const canView = server.role !== 'member';
     const canEdit = server.role === 'owner' || server.role === 'admin';
 
     return (
         <>
-            <SectionShell title="Device">
-                {computers.error && !computers.data ? (
-                    <SectionError message={computers.error.message} />
-                ) : computers.data ? (
-                    <ItemCard>
-                        <ItemCard.Content>
-                            <ItemCard.Title>
-                                {computer ? computerLabel(computer) : 'Assigned device unavailable'}
-                            </ItemCard.Title>
-                        </ItemCard.Content>
-                        <ItemCard.Action className="flex items-center gap-2">
-                            {computer ? (
-                                <Chip
-                                    color={computerHealthColor(computer.health)}
-                                    size="sm"
-                                    variant="soft"
-                                >
-                                    <Chip.Label>{computerHealthLabel(computer.health)}</Chip.Label>
-                                </Chip>
-                            ) : null}
-                            {canView ? (
-                                <Button
-                                    onPress={() =>
-                                        navigate(serverComputerRoute(server.slug, agent.computerId))
-                                    }
-                                    size="sm"
-                                    variant="secondary"
-                                >
-                                    View
-                                </Button>
-                            ) : null}
-                        </ItemCard.Action>
-                    </ItemCard>
-                ) : (
-                    <SectionPending label="Loading device" />
-                )}
+            <SectionShell title="Machine">
+                <AgentMachineRow agent={agent} canEdit={canEdit} />
             </SectionShell>
             <AgentRuntime
                 agent={agent}
