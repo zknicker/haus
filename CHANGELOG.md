@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## v29.1.1 - 2026-11-23
+
+- Haus for iPhone 13.0.1 delivers the 13.0.0 changes to TestFlight. The 13.0.0 build stopped before upload, so 13.0.1 is the first build with the new five-tab iPhone app. Server, Haus Computer, Haus Agent and Haus for Desktop are unchanged.
+
 ## v29.1.0 - 2026-11-23
 
 - Haus for iPhone 13.0.0 is rebuilt around five tabs: Home, Projects, Tasks, You and Search, in a compact glass bar. Press anywhere on the bar and drag to switch tabs. **Ask anything** above the bar starts a Task for a Captain. Scrolling down a list folds the bar to your current tab, the field and Search, and screens you open from a list hide it.
