@@ -22,10 +22,9 @@ export async function setComputerWorkers(
     return await db.transaction(async (tx) => {
         await lockServerRow(tx, input.serverId);
         const computer = await requireComputerSteward(tx, member, input);
-        const widens =
-            input.enabled &&
-            (!computer.workersEnabled ||
-                (input.limit !== undefined && input.limit > computer.workerLimit));
+        const turnsOn = input.enabled && !computer.workersEnabled;
+        const raisesLimit = input.limit !== undefined && input.limit > computer.workerLimit;
+        const widens = turnsOn || raisesLimit;
         if (widens && computer.attachedByUserId !== computer.stewardUserId) {
             throw new ComputerSetupDeniedError(
                 'Only the person who attached this Device can turn on Run Workers here or raise its limit.'
