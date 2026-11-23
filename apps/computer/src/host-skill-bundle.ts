@@ -73,22 +73,33 @@ export async function copySkillBundle(files: SkillBundleFile[], destination: str
 }
 
 export function skillDescription(content: string) {
-    const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/u)?.[1];
-    const parsed = frontmatter ? parseFrontmatter(frontmatter) : null;
-    const described =
-        typeof parsed?.description === 'string'
-            ? parsed.description.trim()
-            : typeof parsed?.summary === 'string'
-              ? parsed.summary.trim()
-              : null;
+    let body = content;
+    let described: string | null = null;
+    for (let block = frontmatterBlock.exec(body); block; block = frontmatterBlock.exec(body)) {
+        described ||= frontmatterDescription(block[1] ?? '');
+        body = body.slice(block[0].length);
+    }
     return (
         described ||
-        content
+        body
             .split('\n')
             .map((line) => line.replace(/^#+\s*/u, '').trim())
             .find((line) => Boolean(line) && line !== '---') ||
         'Agent skill'
     ).slice(0, 500);
+}
+
+const frontmatterBlock = /^\s*---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/u;
+
+function frontmatterDescription(frontmatter: string) {
+    const parsed = parseFrontmatter(frontmatter);
+    const value =
+        typeof parsed?.description === 'string'
+            ? parsed.description
+            : typeof parsed?.summary === 'string'
+              ? parsed.summary
+              : '';
+    return value.trim() || null;
 }
 
 function parseFrontmatter(content: string): Record<string, unknown> | null {

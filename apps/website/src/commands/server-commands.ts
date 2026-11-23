@@ -19,7 +19,7 @@ import {
     serverSettingsSectionRoute,
     tasksRoute,
 } from '../features/servers/server-routes.ts';
-import { settingsPages } from '../features/settings/layout/navigation.ts';
+import { settingsNavItems } from '../features/settings/layout/navigation.ts';
 import { getRouteTabIcon } from '../features/shell/route-tab-presentation.tsx';
 import { writeClipboardText } from '../lib/clipboard.ts';
 import { requestChatComposerFocus } from './chat-composer-focus.ts';
@@ -216,7 +216,7 @@ function buildCurrentChatGroup(context: CommandContext, currentChat: Chat): AppC
 
 function buildSettingsGroup(context: CommandContext): AppCommandGroup {
     return {
-        commands: settingsPages
+        commands: settingsNavItems
             .filter((item) => item.access === 'everyone')
             .map((item) => ({
                 icon: item.icon,

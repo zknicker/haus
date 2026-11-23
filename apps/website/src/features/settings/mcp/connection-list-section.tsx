@@ -4,11 +4,7 @@ import { Plug01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
 import { useConnections } from '../../../hooks/servers/use-connections.ts';
-import {
-    SettingsCardGrid,
-    SettingsGridCard,
-    SettingsGridCheck,
-} from '../layout/settings-card-grid.tsx';
+import { SettingsCardGrid, SettingsGridCard } from '../layout/settings-card-grid.tsx';
 import { ConnectionGlyph } from './connection-mark.tsx';
 import { toConnectionView } from './connection-view.tsx';
 import { connectionStatusLabel, type McpConnection } from './mcp-server-shared.ts';
@@ -58,9 +54,7 @@ export function ConnectionListSection({
                             {connectionAccountLabel(connection)}
                         </ItemCard.Description>
                     </ItemCard.Content>
-                    {connection.connected ? (
-                        <SettingsGridCheck label={connectionStatusLabel(connection)} />
-                    ) : (
+                    {connection.connected ? null : (
                         <ItemCard.Action>
                             <Chip size="sm" variant="soft">
                                 {connectionStatusLabel(connection)}
@@ -117,9 +111,19 @@ function connectionsStatus({
     return null;
 }
 
-function connectionAccountLabel(connection: McpConnection) {
-    if (connection.accountLabel) {
+export function connectionAccountLabel(
+    connection: Pick<McpConnection, 'accountLabel' | 'builtIn' | 'name'>
+) {
+    if (connection.accountLabel && !echoesName(connection.accountLabel, connection.name)) {
         return connection.accountLabel;
     }
     return connection.builtIn ? 'Built in' : 'Custom';
+}
+
+function echoesName(label: string, name: string) {
+    return comparable(name).includes(comparable(label));
+}
+
+function comparable(text: string) {
+    return text.toLowerCase().replace(/[^a-z0-9]/gu, '');
 }

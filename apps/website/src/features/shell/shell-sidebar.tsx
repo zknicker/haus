@@ -185,12 +185,17 @@ export function ShellSidebarPage({ children }: ShellSidebarPageProps) {
  */
 export function ShellSidebarPageContent({
     children,
+    className,
     sourceTabId = null,
 }: {
     children: React.ReactNode;
+    /** A page's theme hook, such as `settings-rail` for the Settings rail's own density. */
+    className?: string;
     sourceTabId?: string | null;
 }) {
     return (
-        <Sidebar.Content data-source-tab-id={sourceTabId ?? undefined}>{children}</Sidebar.Content>
+        <Sidebar.Content className={className} data-source-tab-id={sourceTabId ?? undefined}>
+            {children}
+        </Sidebar.Content>
     );
 }

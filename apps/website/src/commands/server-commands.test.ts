@@ -130,7 +130,7 @@ describe('Server command groups', () => {
             .find((group) => group.id === 'navigation')
             ?.commands.find((command) => command.title === 'Archived chats')
             ?.run();
-        expect(navigated).toEqual(['/s/dev/archived']);
+        expect(navigated).toEqual(['/s/dev/settings/archived']);
     });
 
     test('omits a retired Agent DM from chat commands', () => {

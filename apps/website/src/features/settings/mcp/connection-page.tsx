@@ -89,7 +89,7 @@ export function ConnectionPage({
                 {signIn.retryMessage ? (
                     <Alert status="danger">
                         <Alert.Content>
-                            <Alert.Title>Connection Failed</Alert.Title>
+                            <Alert.Title>Connection failed</Alert.Title>
                             <Alert.Description>{signIn.retryMessage}</Alert.Description>
                         </Alert.Content>
                     </Alert>

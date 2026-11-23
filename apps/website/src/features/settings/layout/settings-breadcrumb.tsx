@@ -10,21 +10,9 @@ import { PageBand } from '../../shell/page-band.tsx';
 import { type SettingsRouteTab, settingsNavItems } from './navigation.ts';
 
 /**
- * Where you are, on one line at the top-left of the settings content column.
- *
- * The content column's top band is that line, so the trail fills it through
- * `PageBand` (on desktop, the band inside the Settings tab).
- *
- * The trail is the product, then Settings, then the page:
- * "Haus › Settings › Profile". The rail's group headings (You, Captains,
- * Devices, Haus) are not crumbs — they are headings in the rail, not places — and
- * naming them here made the trail read as a path through pages that do not
- * exist.
- *
- * Every crumb but the last is a destination: Haus is the Inbox, the app's
- * front page, and Settings is the settings root. A page stops being the
- * destination once you are inside one of its records, so it takes an href
- * and the record becomes the current crumb.
+ * The way back out of a record inside Settings: "Haus › Settings › Members ›
+ * Zach". A top-level page draws no trail, since the rail's current row, the
+ * page title and the tab already say where you are.
  */
 export function SettingsBreadcrumb({
     pathname,
@@ -40,7 +28,7 @@ export function SettingsBreadcrumb({
     const leaf = useLeafCrumb(pathname, serverId);
     const crumb = section ? resolveCrumb(section) : undefined;
 
-    if (!crumb) {
+    if (!(crumb && isRecordRoute(pathname))) {
         return null;
     }
 
@@ -51,10 +39,9 @@ export function SettingsBreadcrumb({
     };
     return (
         <PageBand>
-            {/* A page stops being the destination once you are inside one of its records. */}
             <PageBand.Trail
-                crumbs={leaf ? [settings, page] : [settings]}
-                current={leaf ? leafCrumb(leaf) : crumb.label}
+                crumbs={[settings, page]}
+                current={leaf ? leafCrumb(leaf) : undefined}
             />
         </PageBand>
     );
@@ -83,9 +70,9 @@ type LeafCrumb =
  * entries and nothing has to plumb a name back through context.
  */
 function useLeafCrumb(pathname: string, serverId: string): LeafCrumb | undefined {
-    const userId = matchRecordId(pathname, '/settings/members/humans/');
-    const connectionId = matchRecordId(pathname, '/settings/connections/');
-    const computerId = matchRecordId(pathname, '/settings/computers/');
+    const [userId, connectionId, computerId] = recordMarkers.map((marker) =>
+        matchRecordId(pathname, marker)
+    );
     const member = useMember(serverId, userId);
     const connection = useConnection(serverId, connectionId).data;
     const computer = useComputers(serverId, { enabled: computerId !== undefined }).data?.find(
@@ -107,6 +94,16 @@ function useLeafCrumb(pathname: string, serverId: string): LeafCrumb | undefined
     }
     return undefined;
 }
+
+function isRecordRoute(pathname: string) {
+    return recordMarkers.some((marker) => matchRecordId(pathname, marker) !== undefined);
+}
+
+const recordMarkers = [
+    '/settings/members/humans/',
+    '/settings/connections/',
+    '/settings/computers/',
+];
 
 function matchRecordId(pathname: string, marker: string): string | undefined {
     const start = pathname.indexOf(marker);

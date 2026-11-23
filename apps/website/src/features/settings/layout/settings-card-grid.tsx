@@ -1,8 +1,6 @@
 import { ItemCard, ItemCardGroup, PressableFeedback } from '@heroui-pro/react';
 import { Button } from '@heroui/react';
-import { Tick02Icon } from '@hugeicons-pro/core-stroke-rounded';
 import type React from 'react';
-import { Icon } from '../../../components/ui/icon.tsx';
 
 /**
  * A browsable catalog section on a Settings page — Skills and Connections
@@ -107,24 +105,6 @@ export function SettingsGridItem({ children }: { children: React.ReactNode }) {
         <ItemCard className="min-w-0" variant="transparent">
             {children}
         </ItemCard>
-    );
-}
-
-/**
- * The quiet trailing mark for a row that is already in place — an installed
- * skill, a ready connection. A row that needs attention shows its status
- * instead; one that can be added shows its add control.
- */
-export function SettingsGridCheck({
-    label,
-}: {
-    /** Names the state when the section title does not already say it. */
-    label?: string;
-}) {
-    return (
-        <ItemCard.Action>
-            <Icon aria-label={label} className="text-muted" icon={Tick02Icon} size={18} />
-        </ItemCard.Action>
     );
 }
 

@@ -90,7 +90,7 @@ function HeaderCredentialsForm({
                     {/* Saved values never come back from the Server, so the
                         caveat belongs to the fields it constrains. */}
                     <SecretFieldsEditor
-                        addLabel="Add Header"
+                        addLabel="Add header"
                         description="Existing values are never shown. Re-enter every header you want to keep."
                         entries={headers}
                         onChange={setHeaders}

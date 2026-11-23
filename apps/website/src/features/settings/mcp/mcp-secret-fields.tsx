@@ -79,7 +79,7 @@ export function SecretFieldsEditor({
                             >
                                 <Icon icon={Cancel01Icon} />
                             </Button>
-                            <Tooltip.Content placement="top">Remove Entry</Tooltip.Content>
+                            <Tooltip.Content placement="top">Remove entry</Tooltip.Content>
                         </Tooltip>
                     </div>
                 ))}

@@ -51,7 +51,7 @@ test('cold Tasks navigation paints its shell before the Tasks module arrives', a
     ).toHaveCount(0);
 });
 
-test('Settings navigation changes the sidebar and breadcrumb while section code is unavailable', async ({
+test('Settings navigation changes the sidebar and title while section code is unavailable', async ({
     page,
 }) => {
     let release = () => {};
@@ -69,7 +69,7 @@ test('Settings navigation changes the sidebar and breadcrumb while section code 
     try {
         await openSettings(page);
         await expect(page.getByRole('row', { name: 'Back to chat', exact: true })).toBeVisible();
-        await expect(page.getByRole('list', { name: 'Breadcrumbs' })).toContainText('Profile');
+        await expect(page).toHaveTitle('Profile — Haus');
         await expect(page.locator('.skeleton')).toHaveCount(0);
     } finally {
         release();

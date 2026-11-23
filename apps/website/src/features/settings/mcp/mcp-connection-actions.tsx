@@ -18,7 +18,7 @@ export function ConnectionDestructiveDialog({
         action === 'delete'
             ? 'Remove'
             : action === 'replace-credentials'
-              ? 'Replace Credentials'
+              ? 'Replace credentials'
               : 'Disconnect';
     return (
         <AlertDialog isOpen={action !== null} onOpenChange={onOpenChange}>

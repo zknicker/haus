@@ -1017,7 +1017,13 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   field `size`. A settings page reads in one of two measures (`SettingsPageColumn`): a ×153
   (~574px) form column, or a ×212 (~795px) column for pages led by a table or catalog.
   Controls in one group share one width, and rows in one list box are divided by a stock
-  `Separator`.
+  `Separator`. A page is one list box where it can be (Preferences): split it into sections
+  only when the groups mean something. The page title, section headings, page-level search
+  fields, tables and card edges share the column's one left edge; row text keeps its inset
+  inside the card. The Settings rail runs a ~26px row pitch against the chat sidebar's ~31px:
+  one `.settings-rail` override in `default-theme.css` sizes its rows, group labels and search
+  field (Zach chose Settings-only density, 2026-11-22). A catalog row carries no check mark when its section title already says
+  Installed or Connected, and no description that only repeats its own name.
   Connection logos use `ConnectionGlyph` inside the shared surface tile: artwork occupies
   75% of the box with `object-fit: contain`, preserving circular and irregular brand shapes
   without cropping them. Artwork inherits the tile's corner radius so square brand

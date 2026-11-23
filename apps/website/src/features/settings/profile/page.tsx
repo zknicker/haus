@@ -119,7 +119,7 @@ function ProfileIdentity({ serverId, viewer }: { serverId: string; viewer: Serve
             <Separator />
             <ItemCard>
                 <ItemCard.Content>
-                    <ItemCard.Title>Display Name</ItemCard.Title>
+                    <ItemCard.Title>Display name</ItemCard.Title>
                     <SettingsRowError>{updateProfile.error?.message}</SettingsRowError>
                 </ItemCard.Content>
                 <ItemCard.Action>
@@ -137,7 +137,6 @@ function ProfileIdentity({ serverId, viewer }: { serverId: string; viewer: Serve
                         }}
                         onChange={setDisplayName}
                         value={displayName}
-                        variant="secondary"
                     >
                         <Input placeholder="Your name" />
                     </TextField>
@@ -164,7 +163,6 @@ function ProfileIdentity({ serverId, viewer }: { serverId: string; viewer: Serve
                         }}
                         onChange={setHandle}
                         value={handle}
-                        variant="secondary"
                     >
                         <Input placeholder="your-handle" />
                     </TextField>
@@ -195,14 +193,13 @@ function SignOutSection() {
             <ItemCardGroup className="overflow-hidden">
                 <ItemCard>
                     <ItemCard.Content>
-                        <ItemCard.Title>This device</ItemCard.Title>
-                        <ItemCard.Description>
-                            Sign out of Haus here. Your chats stay on the Server.
-                        </ItemCard.Description>
+                        <SettingsRowTitle info="Sign out of Haus here. Your chats stay on the Server.">
+                            This device
+                        </SettingsRowTitle>
                     </ItemCard.Content>
                     <ItemCard.Action>
                         <Button onPress={signOut} size="sm" variant="danger-soft">
-                            Sign Out
+                            Sign out
                         </Button>
                     </ItemCard.Action>
                 </ItemCard>

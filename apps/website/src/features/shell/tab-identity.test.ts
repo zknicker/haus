@@ -44,8 +44,8 @@ test('app paths parse to the page they show', () => {
         { kind: 'artifact', shared: null, title: 'Plan' }
     );
     expect(parseTabPage(app('/s/acme/settings/members'))).toEqual({
-        kind: 'section',
-        section: 'settings',
+        kind: 'settings',
+        page: 'members',
     });
     expect(parseTabPage(app('/s/acme/inbox'))).toEqual({ kind: 'home' });
     expect(parseTabPage(app('/s/acme/artifacts'))).toEqual({
@@ -183,4 +183,15 @@ test('the Server root is Home', () => {
     const home = { label: 'Home', mark: { glyph: 'home', kind: 'glyph' }, place: null };
     expect(resolveTabIdentity(parseTabPage(app('/s/acme')), records)).toEqual(home);
     expect(resolveTabIdentity(parseTabPage(app('/s/acme/')), records)).toEqual(home);
+});
+
+test('a Settings tab is named for the page it shows', () => {
+    expect(resolveTabIdentity(parseTabPage(app('/s/acme/settings/archived')), records)).toEqual({
+        label: 'Archived chats',
+        mark: { glyph: 'settings', kind: 'glyph' },
+        place: null,
+    });
+    expect(resolveTabIdentity(parseTabPage(app('/s/acme/settings')), records).label).toBe(
+        'Settings'
+    );
 });

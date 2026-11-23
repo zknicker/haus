@@ -127,7 +127,7 @@ export function AgentsUsageOverview({ serverId }: { serverId: string }) {
                     title="No Captain usage yet"
                 />
             ) : usage.error ? (
-                <UsageEmptyCard description={usage.error.message} title="Usage Unavailable" />
+                <UsageEmptyCard description={usage.error.message} title="Usage unavailable" />
             ) : (
                 <TokenUsageSkeleton />
             )}

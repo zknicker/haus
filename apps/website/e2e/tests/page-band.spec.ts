@@ -14,8 +14,6 @@ test('every surface leads its band with Back, Forward, and a Haus trail', async 
         ['activity', ['Haus', 'Activity']],
         ['search', ['Haus', 'Search']],
         ['artifacts', ['Haus', 'Drive']],
-        ['settings/profile', ['Haus', 'Settings', 'Profile']],
-        ['archived', ['Haus', 'Settings', 'Archived chats']],
     ] as const;
     for (const [path, crumbs] of surfaces) {
         await page.goto(`/s/${slug}/${path}`);
@@ -29,12 +27,16 @@ test('every surface leads its band with Back, Forward, and a Haus trail', async 
         expect(backBox && trailBox && backBox.x < trailBox.x).toBeTruthy();
     }
 
+    // A top-level Settings page draws no trail: the rail, title and tab say where you are.
+    await page.goto(`/s/${slug}/settings/profile`);
+    await expect(trail).toHaveCount(0);
+
     // Back and Forward step the tab's history across surfaces, not one page's own.
     await expect(forward).toBeDisabled();
     await back.click();
-    await expect(page).toHaveURL(new RegExp(`/s/${slug}/settings/profile$`, 'u'));
-    await back.click();
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts$`, 'u'));
+    await back.click();
+    await expect(page).toHaveURL(new RegExp(`/s/${slug}/search$`, 'u'));
     await forward.click();
-    await expect(page).toHaveURL(new RegExp(`/s/${slug}/settings/profile$`, 'u'));
+    await expect(page).toHaveURL(new RegExp(`/s/${slug}/artifacts$`, 'u'));
 });

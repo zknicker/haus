@@ -15,7 +15,7 @@ export function ConnectionChipsSection({ preset }: { preset: McpPreset | null })
     }
 
     return (
-        <ConnectionSection title="In Chat">
+        <ConnectionSection title="In chat">
             <ItemCardGroup variant="outline">
                 {chips.map(({ description, kind, title }) => {
                     const { Sample } = connectionChipViews[kind];

@@ -20,7 +20,7 @@ export function serverPageRoutes({ desktop }: { desktop: boolean }): RouteObject
     return [
         { index: true, Component: serverRouteComponent('ServerDefaultPage') },
         { path: 'search', Component: serverRouteComponent('SearchRoute') },
-        { path: 'archived', Component: serverRouteComponent('ArchivedChatsRoute') },
+        { path: 'archived', element: <Navigate replace to="../settings/archived" /> },
         { path: 'chats/:chatId', Component: serverRouteComponent('ChatRoute') },
         { path: 'dm/:agentId', Component: serverRouteComponent('ImplicitAgentDmRoute') },
         { path: 'inbox', Component: serverRouteComponent('InboxPage') },
