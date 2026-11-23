@@ -56,6 +56,16 @@ Computer runs look and act commands and answers `failed` for a refused one.
 
 ## The Device settings
 
+**2026-11-23, not yet implemented.**
+[ADR 0057's Machine amendment](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md#amendment-2026-11-23-the-machine-replaces-the-home-computer)
+replaces this section, "The gate" and "App" until the rewrite:
+- An Agent's home is its Machine, which a person can change.
+- Agent access is Selected Captains or All Captains on this Server, and only the attacher widens
+  it.
+- Computer use is one switch over every Agent with access. The Captains list, its `all` scope and
+  `not-listed` go.
+- The migration turns a Device's switch off wherever one switch would widen its desktop access.
+
 The Server holds two lists on each Device
 ([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
 decision 4). **Agent access** decides which Agents may run any tool there. **Computer use**

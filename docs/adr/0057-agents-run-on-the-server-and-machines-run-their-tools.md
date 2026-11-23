@@ -1,11 +1,12 @@
 ---
 status: accepted
-summary: An Agent's loop runs on the Server in a sandboxed runner, on the Claude Agent SDK for Claude plans and Pi Durable for every other model, with sessions on the runner's persistent volume. Each Agent is pinned to one harness, and the first harness ships before the second. The Agent has one home Computer, where its drive/ folder lives and its tools run by default; amended 2026-11-22, every machine tool takes an optional per-call `computer` target, each Computer keeps an Agent access list (home Agents, plus Agents its attacher names) beside its unchanged computer use list, only the attacher grants access, places a home or turns on Workers can run here, the Server resolves the target and its gate fails closed for every invocation kind, revoke and retire are fenced against queued calls, off-home calls run in the Agent's own folder on that Computer, `haus` file paths follow the call's target, and the Agent finds its Computers with `haus computer list`. Moving the home ships later. Its tools are bash and edit, the haus CLI run by the runner, and the one execute tool. Every invocation has an id, is recorded as accepted before it runs, and never reruns after an unknown outcome; an offline machine answers at once. Model logins are configured in the App and held encrypted by the Server, several per provider. Inbox items go to the runner. Workers keep native harnesses on machines. User-configured local MCP is descoped. Accepted 2026-11-19, not yet implemented.
+summary: An Agent's loop runs on the Server in a sandboxed runner, on the Claude Agent SDK for Claude plans and Pi Durable for every other model, with sessions on the runner's persistent volume. Each Agent is pinned to one harness, and the first harness ships before the second. Amended 2026-11-23, each Agent has a changeable Machine instead of a home Computer, where its drive/ folder syncs and its tools run by default; it is set at creation and changed in the Agent's settings or DM, never a chat composer, between turns, with the destination attacher's consent, a Drive flush and a durable placement generation, and worktrees stay on the old Mac. Every machine tool takes an optional per-call `computer` target (2026-11-22). Each Computer's Agent access is Selected Captains or All Captains on this Server; only the attacher widens it, stewards narrow it, the Machine always has it, and Workers honor it. Computer use is one switch over every Agent with access, migrated so nobody's desktop access widens. There are no in-chat permission Asks. The Server resolves the target and its gate fails closed for every invocation kind, revoke and retire are fenced against queued calls, off-Machine calls run in the Agent's own folder on that Computer, `haus` file paths follow the call's target, and the Agent finds its Computers with `haus computer list`. Its tools are bash and edit, the haus CLI run by the runner, and the one execute tool. Every invocation has an id, is recorded as accepted before it runs, and never reruns after an unknown outcome; an offline machine answers at once. Model logins are configured in the App and held encrypted by the Server, several per provider. Inbox items go to the runner. Workers keep native harnesses on machines. User-configured local MCP is descoped. Accepted 2026-11-19, not yet implemented.
 read_when:
   - changing where an Agent's loop runs, its harnesses, or where its session is stored
   - changing the Agent's machine, moving an Agent, or what an Agent can do while its machine is offline
   - changing which Computers an Agent's tool calls may target, a Computer's Agent access list, or `haus computer list`
-  - changing who may place an Agent's home on a Computer, or turn on Workers can run here
+  - changing who may set or change an Agent's Machine, what a Machine change carries, or turn on Workers can run here
+  - changing a Computer's Agent access setting (Selected or All Captains) or the computer use switch
   - changing the Agent's tools, the invocation contract, timeouts, offline answers, refusals, or the Computer result ledger
   - changing which harness an Agent runs on, or resetting or retiring an Agent
   - changing who holds model logins for Agents or Workers
@@ -27,6 +28,11 @@ several connections per provider ([specs/model-connections.md](../../specs/model
 not runner settings with no sign-in screens. Amended 2026-11-22 in decisions 4, 5, 6, 10 and 11
 to adopt Capy's device model after a council review: an Agent keeps one home Computer, each
 machine tool call may target another Computer that allows it, and computer use has shipped.
+Amended 2026-11-23 in decisions 4, 5, 6, 10 and 11, accepted by Zach after a second council
+review: the home Computer becomes the Agent's changeable Machine, Agent access gains an All
+Captains setting that Workers honor, and computer use becomes one switch
+([the amendment](#amendment-2026-11-23-the-machine-replaces-the-home-computer)). Where the
+amendment and the earlier text disagree, the amendment wins.
 [ADR 0060](0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md) decides which repos
 those calls reach and where Workers and Agents work on disk. Part of the direction in
 [the Capy and Amp proposal](../proposals/capy-product-model.md), with
@@ -79,7 +85,9 @@ that any of your threads can use" ([Capy Desktop](https://capy.ai/blog/capy-desk
 4. **An Agent has a home Computer, and each tool call may target another Computer that allows
    it.** (Amended 2026-11-22. It said: one machine where its tools run, a setting changed while
    idle, with nothing carried over.) A machine is a Computer or a Haus-hosted cloud machine, and
-   v1 supports Computers only.
+   v1 supports Computers only. **2026-11-23:** the home is now the Agent's Machine, and the Home,
+   Placing a home, Two lists, Who grants and Moving the home bullets below read as
+   [the amendment](#amendment-2026-11-23-the-machine-replaces-the-home-computer) changes them.
    - **Home.** Each Agent has one home Computer (`agents.computer_id`), the Computer it was
      created on. Its `drive/` folder lives there (decision 10), and a machine tool call that names
      no target runs there.
@@ -257,12 +265,14 @@ that any of your threads can use" ([Capy Desktop](https://capy.ai/blog/capy-desk
     at turn start and pushed after the reply
     ([ADR 0054](0054-drive-holds-what-agents-know-and-follow.md)). Other Computers get no
     `drive/` folder (amended 2026-11-22). Prompt composition moves from the Computer to the
-    runner.
+    runner. (Amended 2026-11-23: the folder lives on the Agent's Machine, and a Machine change
+    hands it over as [ADR 0054](0054-drive-holds-what-agents-know-and-follow.md) describes.)
 
 11. **Built-in machine tools only.** agent-browser is built in and managed by Haus. agent-desktop
     and the per-Computer "Computer use allowed" switch shipped as computer use
     ([specs/computer-use.md](../../specs/computer-use.md); amended 2026-11-22, it said they ship
-    in a later phase).
+    in a later phase). (Amended 2026-11-23: computer use is one switch over every Agent that
+    Agent access allows on that Computer.)
     User-configured local MCP servers are descoped. If they return, they follow Capy: a launch
     recipe in Project settings, run on the working machine, with availability shown per Computer.
 
@@ -272,6 +282,208 @@ that any of your threads can use" ([Capy Desktop](https://capy.ai/blog/capy-desk
     before Agents move in one cutover that resets every session, and no Agent stays on a
     Computer after it. Sub-agents and background shells end with the cutover, and Workers take
     over parallel and long work.
+
+## Amendment 2026-11-23: the Machine replaces the home Computer
+
+Accepted by Zach on 2026-11-23 after a council review (Opus, GPT Sol and Gemini Neon). It
+amends decisions 4, 5, 6, 10 and 11. Decisions 5 and 6 read "the Agent's Machine" wherever
+they say "the home Computer", and "Agent access allows" wherever they say a Computer "allows
+it".
+
+### Context
+
+- **The Computer never changes.** `configureAgent` says "The Computer assignment is immutable"
+  (`apps/server/src/server-agents/configure-agent.ts:46-47`), and nothing else writes
+  `agents.computer_id` after creation. `agent.setHome` moves the home *Project*
+  (`apps/server/src/projects/agent-home.ts:51-60`), so "home" names two different things in code.
+- **A dead Mac strands its Agents.** Removing a Computer refuses while a live Agent is assigned to
+  it: "Delete every assigned Agent before removing this Computer"
+  (`apps/server/src/computers/remove-computer.ts:48-63`).
+- **Reaching a second Mac took two grants.** On Haus 29.2.0 a person gave Cove access to their
+  MacBook, and `desktop` still refused. The computer use select read "All Captains"
+  (`apps/website/src/features/computers/computer-use-captains-row.tsx:71-72`), but `all` admits
+  only the Computer's home Agents
+  (`apps/server/src/computer-use/desktop-device.ts:28`), and the MacBook had none.
+- **Workers skip Agent access.** `isAgentAllowedOn` is called only by the invocation gate
+  (`apps/server/src/agent-invocations/invocation-gate.ts:56`), the send fence
+  (`apps/server/src/agent-invocations/fence-epochs.ts:19`) and the git credential
+  (`apps/server/src/github/computer-git-credential.ts:40`). A Worker start checks the switch,
+  that the Computer is online and a ready runtime
+  (`apps/server/src/workers/resolve-worker-start.ts:51-64`). So any Agent may start an
+  unsandboxed Worker on any Computer whose **Workers can run here** is on, a larger grant than the
+  shell access the list guards.
+
+### Decision
+
+1. **An Agent has a Machine.** It is the Computer the Agent's machine tools run on when a call
+   names no target, and where its `drive/` folder syncs. It is a working setting, like the
+   model, not where the Agent lives: an Agent belongs only to its Project
+   ([ADR 0055](0055-projects-own-agents-and-tasks.md)).
+   - It is set at creation, and changed in the Agent's settings or its DM. Never from a channel
+     or chat composer: an Agent has one global session
+     ([ADR 0011](0011-agents-own-one-global-session.md)), so a change moves its default in every
+     chat at once, and the confirmation says so. This keeps decision 4's rejection of a sticky
+     switch.
+   - The UI never says "home" for a Computer. Docs say Machine. Contracts and storage keep
+     `agents.computer_id` and `computerId` until the implementation renames them, so a doc that
+     names the field says it holds the Machine.
+
+2. **The per-call `computer` target stays**, gated by Agent access as before. Cove keeps the Mac
+   mini as its Machine and reaches the MacBook for one screenshot. Changing the Machine is not
+   how an Agent reaches another Computer for a call.
+
+3. **Agent access is Selected Captains or All Captains on this Server.** The UI calls it
+   Captain access.
+   - **Selected Captains** is the default: today's named list.
+   - **All Captains on this Server** allows every live Agent on the Server.
+   - An Agent whose Machine is this Computer always has access, as a home Agent does today
+     (`apps/server/src/computer-access/agent-access.ts:19-21`).
+   - Only the attacher widens it, by granting an Agent or choosing All Captains. The attacher,
+     Owners and Admins narrow it, by revoking an Agent or choosing Selected Captains, and each
+     narrowing fences the Agents it bars, as a revoke does today. Choosing Selected Captains keeps
+     the named rows.
+   - At migration every Computer is Selected Captains with its rows unchanged, so nobody's access
+     changes. This is the "All Agents" grant decision 4 deferred.
+
+4. **Workers honor Agent access.** An Agent may start a Worker on a `computer:` place only when
+   Agent access allows it there, beside the **Workers can run here** switch. Cloud places are
+   unchanged. [ADR 0056](0056-agents-run-quiet-workers-anywhere.md) carries the rule.
+
+5. **Computer use is one switch.** On, every Agent that Agent access allows on the Computer may
+   use `desktop` there. Off refuses every `desktop` call.
+   - The `all` scope, which meant home Agents only, and the named list retire, with
+     `computers.computer_use_scope`, `computer_use_agents`, and the `agents_computer_use_moved`
+     trigger (`apps/server/drizzle/postgres/0150_computer-use-captains.sql:18-24`, replaced at
+     `0153_computer-agent-access.sql:17-22`). The gate no longer produces `not-listed`, and the
+     refusal CHECK keeps it for old ledger rows.
+   - The switch keeps today's stewards: the attacher, Owners and Admins
+     (`apps/server/src/computers/set-computer-use.ts:14`).
+   - **Changed capability.** A person can no longer let an Agent run shell on a Computer while
+     keeping it off the desktop there when the switch is on. Access is the grant, and the switch
+     says whether access includes the desktop.
+   - **Migration.** It must not widen anyone's desktop access. For each Computer it compares
+     today's desktop set D (nobody when the switch is off; the home Agents for `all`; the rows for
+     `named`) with its access set A (live home Agents plus `computer_agent_access` rows):
+
+     | Today | After |
+     | --- | --- |
+     | Switch off | Off |
+     | Switch on, and D equals A | On |
+     | Switch on, and D is smaller than A: `all` with any access grant, a `named` list missing an Agent that has access, or an empty `named` list | Off, with `computer_use_changed_at` set to the migration |
+
+     D is never larger than A: a named entry needs access
+     (`apps/server/src/computers/set-computer-use-agents.ts:23-33`), and a revoke deletes it
+     (`apps/server/src/computers/computer-agent-access.ts:72-80`). The third row narrows: the
+     Agents in D lose the desktop there until a steward turns the switch on, which then covers
+     all of A. The migration logs each Computer it turns off. It never translates `all` into
+     "every Agent with access". Access rows are untouched, so no shell access changes either.
+   - **Possible later, not decided:** Off, Screen only and Full control, split by
+     `desktopCommandClass`'s look and act classes
+     (`packages/haus-api/src/computer-use.ts:170-185`). Today the gate treats looking and acting
+     alike (`apps/server/src/agent-invocations/invocation-gate.ts:59-64`).
+
+6. **No in-chat permission Asks.** [ADR 0037](0037-humans-are-addressed-by-mention.md) as
+   amended 2026-11-21 stands: settings grant, conversations ask. A `no-access`, computer use or
+   Worker start refusal names the setting and links to the Computer's Device page, as desktop
+   refusals do today (`apps/server/src/computer-use/desktop-device.ts:123-145`). The Agent asks a
+   person in plain text.
+
+7. **Changing an Agent's Machine** replaces "Moving the home ships later".
+   - **Who.** A person who may configure the Agent, an Owner or Admin
+     (`apps/server/src/server-agents/configure-agent.ts:66-70`), with the destination attacher's
+     consent: the Agent already has access there, or the destination's attacher makes the change,
+     and the change is their grant. Creation follows the same rule. Today it is attacher-only
+     (`apps/server/src/server-agents/create-agent.ts:201-222`), and All Captains on this Server
+     adds the second path. Leaving a Computer needs no consent from it, and the Agent keeps access
+     there only through a grant row.
+   - **Between turns.** A change requested during a turn applies after the turn settles, as a
+     model change does (`apps/server/src/agent-delivery/deferred-configuration.ts:27`). The
+     session stays on the runner and is not reset.
+   - **Drive.** Haus flushes the old Machine's push before the switch, or, when that Mac is
+     offline, offers to move from the last synced revision. [ADR
+     0054](0054-drive-holds-what-agents-know-and-follow.md) carries the handoff.
+   - **Fencing.** Each change bumps a durable placement generation on the Agent. Work started
+     under an older generation (a Drive push, an invocation routed to the default, a reminder
+     script) is refused, the way a Drive push from an earlier reset generation is
+     (`apps/server/src/postgres/schema/agents.ts:90`). Today's send fence keeps its epochs in a
+     per-process map (`apps/server/src/agent-invocations/fence-epochs.ts:10-12`) that a Server
+     restart loses. When the change leaves the Agent with no access on the old Machine, the old
+     Machine is fenced as on a revoke. Calls with an explicit target keep their resolved Computer.
+   - **Worktrees and uncommitted work stay on the old Mac.**
+     [ADR 0060](0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md) carries the
+     rule, and the confirmation says so.
+   - **The action is "Change machine".** Capy's "Continue on", which carries the branch and
+     uncommitted work across, is deferred.
+   - **Removing a Computer** offers to change the Machine of each live Agent on it, instead of
+     refusing until they are deleted.
+
+8. **What a Machine change must carry.** Each of these routes by `agents.computer_id` today and
+   is a follow-up for the change:
+   - reminder scripts, dispatched to the Agent's Computer
+     (`apps/server/src/reminders/scheduler.ts:219-229`) and settled only from it
+     (`apps/server/src/reminders/reminder-script-delivery.ts:92`);
+   - workspace and skill reads (`apps/server/src/server-agents/agent-workspace.ts:63-70`,
+     `apps/server/src/server-agents/agent-skill-file.ts:85-92`);
+   - `activeRunComputerId` (`apps/server/src/postgres/schema/agent-delivery.ts:21`): the turn-end
+     Drive push reads the Agent's current Computer, not the run's
+     (`apps/server/src/runner/ingest.ts:145-162`);
+   - the Drive sync credential, minted only for the Agent's own Computer
+     (`apps/server/src/computers/runner-credentials.ts:54-56`), and the reconnect Drive
+     reconcile, which covers only Agents assigned there
+     (`apps/server/src/agent-delivery/drive-reconcile.ts:8-29`);
+   - the fence epochs, which today live in memory.
+
+### Considered and rejected
+
+- **A Machine picker in the chat composer**, as Capy has. A Capy Captain is one thread. A Haus
+  Agent's session spans every chat, so the picker is the sticky switch decision 4 rejects.
+- **Dropping the per-call target** now that the Machine can change. One screenshot of the MacBook
+  would move Cove's Drive and default, then move them back.
+- **A Personal Device policy for "your own Captains"**, as Capy has. An Agent has no owner: its
+  creator is provenance, and an Agent made by an Agent has no human creator
+  (`apps/server/src/server-agents/create-agent.ts:82-83`). Channels are open, so a teammate could
+  reach the laptop through any such Agent.
+- **In-chat "Allow once" and "Always allow"**. It reverses ADR 0037, stalls the one session while
+  it waits, and needs rules for who may press it in a shared channel.
+- **Two lists with better labels.** One capability would still need two grants.
+- **Migrating `all` to every Agent with access.** It grants the desktop to every borrowed Agent.
+
+### Consequences
+
+Amended:
+
+- [ADR 0054](0054-drive-holds-what-agents-know-and-follow.md): the Drive handoff on a Machine
+  change.
+- [ADR 0056](0056-agents-run-quiet-workers-anywhere.md) and
+  [specs/workers.md](../../specs/workers.md): Workers honor Agent access.
+- [ADR 0058](0058-the-ui-uses-capy-names.md): Machine, and the Device page labels.
+- [ADR 0060](0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md): worktrees stay
+  on the old Mac.
+- [specs/computer-use.md](../../specs/computer-use.md): a dated note until the rewrite.
+- [CONTEXT.md](../../CONTEXT.md): Machine, with home Computer as a word to avoid.
+
+Changed capability: shell without the desktop on a Computer whose switch is on; desktop access on
+a Computer the migration turns off; and Worker starts on a Computer the Agent has no access to.
+
+Deferred: Cloud as a Machine; no Machine at all, which needs the `agents_configuration` CHECK
+(`apps/server/src/postgres/schema/agents.ts:186-191`), `toAgent`
+(`apps/server/src/server-agents/agent-shape.ts:88-90`) and the active roster's join on Computers
+(`apps/server/src/server-agents/query-agents.ts:66-79`) to change; "Continue on"; and per-Agent
+people Access.
+
+Follow-up:
+
+- The Agent access setting and its migration, the attacher-only widening, and the Worker start
+  check.
+- The computer use migration in decision 5, and the retired scope, table and trigger.
+- `agent.setMachine` (not `agent.setHome`, which moves the Project), the placement generation, the
+  Drive handoff, the decision 8 list, and the removal flow.
+- The App: Machine in the create form and the Agent's settings and DM, the Device page labels
+  ([ADR 0058](0058-the-ui-uses-capy-names.md)), and refusal links.
+- Rewrite [specs/computer-use.md](../../specs/computer-use.md) "The Device settings", "The
+  gate" and "App", and note the change in [docs/features/computer-use.md](../features/computer-use.md)
+  and [docs/features/agents.md](../features/agents.md). The Manual's targeting topic calls the
+  default the Machine.
 
 ## Considered and rejected
 
@@ -408,7 +620,8 @@ Deleted:
 - Codex native image generation for Agents. Agents generate images with `haus image`.
 
 Deferred (2026-11-22): Move to device ("Continue on"), `transfer_files`, an "All Agents" access
-grant, and Drive on Computers other than the home.
+grant, and Drive on Computers other than the home. The 2026-11-23 amendment decides the "All
+Agents" grant and a Machine change without carrying work; "Continue on" stays deferred.
 
 Follow-up:
 

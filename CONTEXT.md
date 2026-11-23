@@ -50,11 +50,17 @@ servers. The physical installation shares only installed software and native run
 _Avoid_: Hosted Computer, Haus server, tenant, Haus Computer installation, agent runtime, model provider
 
 **Agent access**:
-The per-Computer list of Agents whose tool calls may run there. The Computer's home Agents are
-always on it and never listed; every other Agent is a named grant that only the person who
-attached the Computer adds, and that person, an Owner, or an Admin removes. A call it refuses
-answers `no-access` and runs nothing. Computer use is a further list inside it, for `desktop`.
+The per-Computer setting for which Agents may run tools and start Workers there: selected Agents,
+or every Agent on the Server. An Agent whose Machine is that Computer always has it. Only the
+person who attached the Computer widens it. Computer use is one switch over every Agent it allows.
+The UI calls it Captain access.
 _Avoid_: Computer sharing, borrowed Agent, Computer permission
+
+**Machine**:
+The Computer an Agent's tools run on by default and where its `drive/` folder syncs. It is a
+changeable working setting of the Agent, like its model; the Agent belongs to its Project, not to
+its Machine.
+_Avoid_: home Computer, home Device, home Agent
 
 **Haus Computer**:
 The local service installation that connects a physical machine to zero or more Haus servers and
@@ -240,10 +246,8 @@ _Avoid_: Reusable join link, Server membership
 
 **Agent**:
 A persistent non-human Server member whose collaboration identity belongs to one Haus server.
-An Agent has one home Computer, the Computer it was created on, where its workspace lives and its
-tools run by default. A tool call may also name any other Computer whose Agent access list
-allows it (ADR 0057 decision 4). The home Computer cannot be removed until the Agent is
-explicitly deleted.
+An Agent belongs to one Project and has one Machine, where its tools run by default. A tool call
+may also name any other Computer whose Agent access allows it.
 _Avoid_: Hosted Agent, Agent session, Agent turn, executor, Computer
 
 **Agent handle**:
