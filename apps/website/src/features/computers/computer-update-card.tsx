@@ -42,7 +42,7 @@ export function ComputerUpdateCard({
     return (
         <ItemCard>
             <ItemCard.Content>
-                <ItemCard.Title>Software Update</ItemCard.Title>
+                <ItemCard.Title>Software update</ItemCard.Title>
                 <ItemCard.Description>
                     {view.detail ?? 'Check for and install the latest production release.'}
                 </ItemCard.Description>

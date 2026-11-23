@@ -1619,6 +1619,15 @@
     }
 
     /*
+     * A settings disclosure's trigger (a Device's Diagnostics) is a quiet aside
+     * like a section's "Show all": it hangs its `sm` padding (×3) outside the
+     * column so its label starts on the page's left edge.
+     */
+    .settings-frame .disclosure__heading > .button--ghost {
+        margin-inline-start: calc(var(--spacing) * -3);
+    }
+
+    /*
      * And on FileTree rows: Pro ships `.file-tree__item` at ×1, while every
      * interactive item row (sidebar menu items, list-box items) sits on the
      * ×2 items tier — a file rail beside the app sidebar read as two corner

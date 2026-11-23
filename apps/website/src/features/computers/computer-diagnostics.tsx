@@ -24,10 +24,10 @@ export function ComputerDiagnostics({
                 </Disclosure.Heading>
                 <Disclosure.Content>
                     {isExpanded ? (
-                        <Disclosure.Body className="flex flex-col gap-8 pt-4">
+                        <div className="flex flex-col gap-8 pt-4">
                             <ComputerSystemLog computerId={computerId} serverId={serverId} />
                             <RecoveryCommands serverSlug={serverSlug} />
-                        </Disclosure.Body>
+                        </div>
                     ) : null}
                 </Disclosure.Content>
             </Disclosure>
