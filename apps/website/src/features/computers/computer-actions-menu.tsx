@@ -5,6 +5,7 @@ import { computerRemovalDescription, useComputerRemovalAvailability } from './co
 import { type ComputerUpdateComputer, updateInput } from './computer-update-card.tsx';
 import { computerUpdateView } from './computer-update-model.ts';
 import { useComputerUpdateActions } from './use-computer-update-actions.ts';
+import { useUpdateExpiryRefresh } from './use-update-expiry-refresh.ts';
 
 export function ComputerActionsMenu({
     computer,
@@ -19,6 +20,7 @@ export function ComputerActionsMenu({
 }) {
     const availability = useComputerRemovalAvailability(serverId, computer.id);
     const update = useComputerUpdateActions({ computerId: computer.id, isPreview, serverId });
+    useUpdateExpiryRefresh(computer);
     const view = computerUpdateView({ ...updateInput(computer), isChecking: update.isChecking });
     const canRemove = availability.status === 'ready';
 
