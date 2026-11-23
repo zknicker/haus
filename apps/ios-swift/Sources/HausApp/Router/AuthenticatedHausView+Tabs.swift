@@ -4,44 +4,75 @@ import HausUI
 import SwiftUI
 
 /// The root: five tabs, each with its own `NavigationStack` bound to the
-/// router, the "Ask anything" accessory, and the router's one sheet.
+/// router, and the router's one sheet. The system tab bar stays hidden; the
+/// Capy-sized bottom chrome floats over the tabs instead, and each tab's
+/// content clears it through the bottom safe area.
 extension AuthenticatedHausView {
     var tabShell: some View {
         TabView(selection: $router.selectedTab) {
             Tab(value: HausTab.home) {
-                adaptiveStack(.home) { homeRoot }
-            } label: {
-                tabIcon("Home", systemImage: "house")
+                adaptiveStack(.home) { homeRoot }.toolbar(.hidden, for: .tabBar)
             }
             Tab(value: HausTab.projects) {
-                adaptiveStack(.projects) { projectsRoot }
-            } label: {
-                tabIcon("Projects", systemImage: "number")
+                adaptiveStack(.projects) { projectsRoot }.toolbar(.hidden, for: .tabBar)
             }
             Tab(value: HausTab.tasks) {
-                adaptiveStack(.tasks) { tasksRoot }
-            } label: {
-                tabIcon("Tasks", systemImage: "list.bullet")
+                adaptiveStack(.tasks) { tasksRoot }.toolbar(.hidden, for: .tabBar)
             }
             Tab(value: HausTab.you) {
-                youStack
-            } label: {
-                (youTabIcon ?? Image(systemName: "person.crop.circle"))
-                    .accessibilityLabel("You")
+                youStack.toolbar(.hidden, for: .tabBar)
             }
-            Tab(value: HausTab.search, role: .search) {
-                searchRoot
-            } label: {
-                tabIcon("Search", systemImage: "magnifyingglass")
+            Tab(value: HausTab.search) {
+                searchRoot.toolbar(.hidden, for: .tabBar)
             }
         }
-        .tabBarMinimizeBehavior(.onScrollDown)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if router.showsTabBar {
+                Color.clear.frame(height: max(bottomChromeClearance - deviceBottomInset, 0))
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if router.showsTabBar {
+                HausBottomChrome(
+                    selection: $router.selectedTab,
+                    items: tabBarItems,
+                    onAsk: router.showsAskAnything ? { router.present(.askAnything) } : nil
+                )
+                .padding(.bottom, Self.bottomChromeInset - deviceBottomInset)
+                .ignoresSafeArea(.keyboard)
+            }
+        }
+        .background {
+            GeometryReader { proxy in
+                Color.clear.onChange(of: proxy.safeAreaInsets.bottom, initial: true) { deviceBottomInset = $1 }
+            }
+            .ignoresSafeArea(.keyboard)
+        }
         .onRegularWidthChange { router.layout = $0 ? .split : .stack }
-        .askAnythingAccessory(isEnabled: router.showsTabBar) { router.present(.askAnything) }
         .sheet(item: sheetBinding) { routerSheet($0) }
         .task(id: store.settingsData?.viewer.avatarURL) {
             youTabIcon = await TabAvatarImage.image(url: store.settingsData?.viewer.avatarURL)
         }
+    }
+
+    private static let bottomChromeInset: CGFloat = 22
+
+    /// Height from the screen's bottom edge to the top of the chrome.
+    private var bottomChromeClearance: CGFloat {
+        let ask = router.showsAskAnything
+            ? HausBottomChrome<HausTab>.accessoryHeight + HausBottomChrome<HausTab>.gap
+            : 0
+        return Self.bottomChromeInset + HausBottomChrome<HausTab>.barHeight + ask
+    }
+
+    private var tabBarItems: [HausTabBarItem<HausTab>] {
+        [
+            HausTabBarItem(.home, label: "Home", systemImage: "house"),
+            HausTabBarItem(.projects, label: "Projects", systemImage: "number"),
+            HausTabBarItem(.tasks, label: "Tasks", systemImage: "list.bullet"),
+            HausTabBarItem(.you, label: "You", systemImage: "person.crop.circle", image: youTabIcon),
+            HausTabBarItem(.search, label: "Search", systemImage: "magnifyingglass"),
+        ]
     }
 
     func stack<Root: View>(_ tab: HausTab, @ViewBuilder root: () -> Root) -> some View {
@@ -79,7 +110,6 @@ extension AuthenticatedHausView {
                         .id(side)
                 }
             }
-            .toolbar(side == nil ? .visible : .hidden, for: .tabBar)
         }
     }
 
@@ -99,28 +129,5 @@ extension AuthenticatedHausView {
 
     private var sheetBinding: Binding<HausSheet?> {
         Binding(get: { router.sheet }, set: { if $0 == nil { router.dismissSheet() } })
-    }
-
-    private func tabIcon(_ title: String, systemImage: String) -> some View {
-        Image(systemName: systemImage).accessibilityLabel(title)
-    }
-}
-
-private struct AskAnythingAccessoryModifier: ViewModifier {
-    let isEnabled: Bool
-    let action: () -> Void
-
-    func body(content: Content) -> some View {
-        if #available(iOS 26.1, *) {
-            content.tabViewBottomAccessory(isEnabled: isEnabled) { AskAnythingAccessory(action: action) }
-        } else {
-            content.tabViewBottomAccessory { AskAnythingAccessory(action: action) }
-        }
-    }
-}
-
-private extension View {
-    func askAnythingAccessory(isEnabled: Bool, action: @escaping () -> Void) -> some View {
-        modifier(AskAnythingAccessoryModifier(isEnabled: isEnabled, action: action))
     }
 }

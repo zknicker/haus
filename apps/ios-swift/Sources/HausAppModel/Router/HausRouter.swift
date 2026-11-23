@@ -51,8 +51,18 @@ public final class HausRouter {
         return topRoute?.conversation
     }
 
+    /// Stacked, a conversation owns the bottom edge; split, the bar stays
+    /// until a side pane needs the width.
     public var showsTabBar: Bool {
-        !(topRoute?.isChat ?? false)
+        switch panes(selectedTab) {
+        case let .split(_, _, side): side == nil
+        case let .stack(path): !(path.last?.isChat ?? false)
+        }
+    }
+
+    /// Search has its own field, so "Ask anything" sits out there.
+    public var showsAskAnything: Bool {
+        showsTabBar && selectedTab != .search
     }
 
     /// Inside a tab, a route pushes onto that tab's stack; in a split tab a

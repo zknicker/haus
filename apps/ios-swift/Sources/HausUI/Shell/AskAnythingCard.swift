@@ -126,8 +126,8 @@ public struct AskAnythingAccessory: View {
             HStack(spacing: 10) {
                 Image(systemName: "plus")
                     .font(.body.weight(.medium))
-                    .frame(width: 36, height: 36)
-                    .glassEffect(.regular, in: .circle)
+                    .frame(width: 35, height: 35)
+                    .background(HausPlatformColor.label.opacity(0.12), in: .circle)
                 Text("Ask anything")
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 0)

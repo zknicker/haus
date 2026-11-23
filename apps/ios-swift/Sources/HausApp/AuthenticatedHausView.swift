@@ -11,6 +11,8 @@ struct AuthenticatedHausView: View {
     @State var ask = AskAnythingDraft()
     @State var youTabIcon: Image?
     @State var taskBoardFilter = TaskBoardFilter()
+    /// The bottom safe area without the keyboard, for the chrome's clearance.
+    @State var deviceBottomInset: CGFloat = 0
     /// iOS reaches `.active` through `.inactive` from both a real suspension and
     /// a Control Center pull or app-switcher peek. Only the first is a stale
     /// cache, so the refresh waits for a phase run that actually backgrounded.

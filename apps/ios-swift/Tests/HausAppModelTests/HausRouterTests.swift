@@ -125,6 +125,20 @@ struct HausRouterTests {
         #expect(!router.showsTabBar)
     }
 
+    @Test("Split keeps the tab bar beside a chat until a side pane opens; Search drops Ask anything")
+    func splitAndSearchChrome() {
+        let router = HausRouter()
+        router.layout = .split
+        router.open(.task(taskID: "task_1"))
+        #expect(router.showsTabBar)
+        #expect(router.showsAskAnything)
+        router.open(.worker(workerID: "w_1"))
+        #expect(!router.showsTabBar)
+        router.selectedTab = .search
+        #expect(router.showsTabBar)
+        #expect(!router.showsAskAnything)
+    }
+
     @Test("Switching Servers resets every stack; adopting the first Server does not")
     func serverSwitchResets() {
         let router = HausRouter()
