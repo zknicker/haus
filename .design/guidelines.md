@@ -1020,7 +1020,9 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   `Separator`. A page is one list box where it can be (Preferences): split it into sections
   only when the groups mean something. The page title, section headings, page-level search
   fields, tables and card edges share the column's one left edge; row text keeps its inset
-  inside the card. A catalog row carries no check mark when its section title already says
+  inside the card. The Settings rail runs a ~26px row pitch against the chat sidebar's ~31px:
+  one `.settings-rail` override in `default-theme.css` sizes its rows, group labels and search
+  field (Zach chose Settings-only density, 2026-11-22). A catalog row carries no check mark when its section title already says
   Installed or Connected, and no description that only repeats its own name.
   Connection logos use `ConnectionGlyph` inside the shared surface tile: artwork occupies
   75% of the box with `object-fit: contain`, preserving circular and irregular brand shapes
