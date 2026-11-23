@@ -12,6 +12,7 @@ import {
     type OperationRunners,
     textResult,
 } from './operation.ts';
+import { recordWorktreeUse } from './worktree-use.ts';
 
 export async function executeInvocation(
     command: InvokeCommand,
@@ -44,6 +45,7 @@ export async function executeInvocation(
             signal: input.controller.signal,
             timeoutMs,
         });
+        await recordWorktreeUse(input.agentsRoot, operation, { cwd, env }).catch(logUseFailure);
     } catch (error) {
         result = textResult('failed', error instanceof Error ? error.message : String(error));
     } finally {
@@ -99,5 +101,13 @@ function runOperation(
             return runners.browser(operation, context);
         case 'desktop':
             return runners.desktop(operation, context);
+        case 'repo-checkout':
+            return runners['repo-checkout'](operation, context);
     }
+}
+
+function logUseFailure(cause: unknown) {
+    console.error(
+        `Could not record an Agent worktree use: ${cause instanceof Error ? cause.message : cause}`
+    );
 }

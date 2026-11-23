@@ -1,6 +1,7 @@
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { AgentRetireCommand } from '@haus/api';
+import { removeAgentWorktrees } from './repos/agent-worktrees.ts';
 import { detachMountsUnder } from './workspace-volumes/computer-volumes.ts';
 import type { WorkspaceDisk } from './workspace-volumes/disk-image.ts';
 import { releaseWorkspace, withStorageLock } from './workspace-volumes/storage-ledger.ts';
@@ -42,6 +43,11 @@ export async function purgeRetiredAgent(input: {
     if (!/^srv_[A-Za-z0-9_-]{16}$/u.test(input.serverId)) {
         throw new Error('Invalid Server id.');
     }
+    await removeAgentWorktrees(input).catch((error: unknown) => {
+        console.error(
+            `Agent ${input.agentId}'s worktrees were not all checked: ${error instanceof Error ? error.message : error}`
+        );
+    });
     const agentRoot = join(input.dataRoot, 'servers', input.serverId, 'agents', input.agentId);
     const volume = {
         ...(input.disk === undefined ? {} : { disk: input.disk }),

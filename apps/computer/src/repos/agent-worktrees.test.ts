@@ -1,0 +1,151 @@
+import { describe, expect, test } from 'bun:test';
+import { existsSync } from 'node:fs';
+import { utimes, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { agentWorktreeIdleMs } from '@haus/api';
+import {
+    agentCheckoutText,
+    agentWorktreeOf,
+    checkoutAgentWorktree,
+    pruneIdleAgentWorktrees,
+    removeAgentWorktrees,
+} from './agent-worktrees.ts';
+import { git, registerRepoFixture } from './repo.fixture.ts';
+import { lastUseMs, worktreeGitDirs } from './worktree-marker.ts';
+
+const repos = registerRepoFixture();
+const agentId = 'agt_alpha';
+
+function setup() {
+    const fixture = repos();
+    const folder = fixture.folder();
+    const checkout = (ref: string | null = null) =>
+        checkoutAgentWorktree({
+            agentId,
+            dataRoot: fixture.dataRoot,
+            folder,
+            ref,
+            repository: 'acme/app',
+            serverId: 'srv_1',
+        });
+    const path = join(fixture.dataRoot, 'servers', 'srv_1', 'worktrees', agentId, 'acme', 'app');
+    return { ...fixture, checkout, folder, path };
+}
+
+describe('haus repo checkout', () => {
+    test("makes the Agent's worktree on its named branch off the remote default, and reuses it", async () => {
+        const { checkout, folder, path } = setup();
+        const first = await checkout();
+        git(path, 'commit', '--quiet', '--allow-empty', '-m', 'agent work');
+        const second = await checkout();
+
+        expect(first).toEqual({
+            branch: 'haus/agt_alpha/app',
+            fetched: true,
+            from: 'origin/main',
+            path,
+            reused: false,
+        });
+        expect(second).toMatchObject({ fetched: null, reused: true });
+        expect(git(path, 'log', '--format=%s')).toBe('agent work\nfirst');
+        expect(git(folder, 'branch', '--list', 'haus/*')).toBe('+ haus/agt_alpha/app');
+        expect(agentCheckoutText(first)).toBe(
+            [
+                `Made the worktree ${path} on haus/agt_alpha/app, from origin/main.`,
+                `Run \`cd ${path}\` to work there. Once nothing in it is uncommitted or unpushed, it goes 7 days after its last use; the branch stays.`,
+            ].join('\n')
+        );
+    });
+
+    test('a failed fetch still checks out from the local refs, and says so', async () => {
+        const { checkout, cutOff, folder, path } = setup();
+        cutOff(folder);
+        const receipt = await checkout();
+
+        expect(receipt).toMatchObject({ fetched: false, from: 'origin/main', reused: false });
+        expect(git(path, 'log', '--format=%s', '-1')).toBe('first');
+        expect(agentCheckoutText(receipt)).toContain(
+            'Origin could not be fetched, so it starts from this folder’s last fetch.'
+        );
+    });
+
+    test('a new --ref moves a clean worktree, and refuses one with unpushed work', async () => {
+        const { checkout, path } = setup();
+        await checkout();
+        const moved = await checkout('feature');
+        git(path, 'commit', '--quiet', '--allow-empty', '-m', 'unpushed');
+        const refused = await checkout('main').catch((error: Error) => error.message);
+
+        expect(moved).toMatchObject({ fetched: true, from: 'origin/feature', reused: true });
+        expect(refused).toBe(
+            `${path} has uncommitted or unpushed work on haus/agt_alpha/app, so it was not moved to main. Commit and push it first, or check out without --ref.`
+        );
+        expect(git(path, 'log', '--format=%s', '-1')).toBe('unpushed');
+    });
+
+    test('a folder whose origin is another repo is refused', async () => {
+        const { checkout, folder } = setup();
+        git(folder, 'remote', 'set-url', 'origin', 'git@github.com:acme/other.git');
+
+        expect(await checkout().catch((error: Error) => error.message)).toBe(
+            `${folder} is a clone of git@github.com:acme/other.git, not acme/app.`
+        );
+    });
+});
+
+describe('Agent worktree cleanup', () => {
+    test('the sweep removes a clean worktree unused for 7 days and keeps its branch', async () => {
+        const { checkout, dataRoot, folder, path } = setup();
+        await checkout();
+        const last = await lastUseMs(path);
+        const early = await pruneIdleAgentWorktrees({
+            dataRoot,
+            now: (last ?? 0) + agentWorktreeIdleMs - 1000,
+            serverId: 'srv_1',
+        });
+        const late = await pruneIdleAgentWorktrees({
+            dataRoot,
+            now: (last ?? 0) + agentWorktreeIdleMs + 1000,
+            serverId: 'srv_1',
+        });
+
+        expect(early).toEqual([]);
+        expect(late).toEqual([path]);
+        expect(existsSync(join(dataRoot, 'servers', 'srv_1', 'worktrees'))).toBe(true);
+        expect(existsSync(join(dataRoot, 'servers', 'srv_1', 'worktrees', agentId))).toBe(false);
+        expect(git(folder, 'branch', '--list', 'haus/*')).toBe('haus/agt_alpha/app');
+    });
+
+    test('the sweep and retirement keep a worktree with uncommitted work', async () => {
+        const { checkout, dataRoot, path } = setup();
+        await checkout();
+        await writeFile(join(path, 'draft.md'), 'not committed');
+        const dirs = await worktreeGitDirs(path);
+        const old = new Date(Date.now() - 2 * agentWorktreeIdleMs);
+        for (const file of ['haus-worktree.json', 'index']) {
+            await utimes(join(dirs?.admin ?? '', file), old, old);
+        }
+
+        expect(await pruneIdleAgentWorktrees({ dataRoot, serverId: 'srv_1' })).toEqual([]);
+        expect(await removeAgentWorktrees({ agentId, dataRoot, serverId: 'srv_1' })).toEqual([
+            path,
+        ]);
+        expect(existsSync(join(path, 'draft.md'))).toBe(true);
+    });
+
+    test('a path inside an Agent worktree names it; Worker worktrees and other paths do not', () => {
+        const root = '/data/servers/srv_1/worktrees';
+
+        expect(agentWorktreeOf(`${root}/agt_alpha/acme/app/src/index.ts`, root)).toBe(
+            `${root}/agt_alpha/acme/app`
+        );
+        expect(agentWorktreeOf(`${root}/agt_alpha/acme/app`, root)).toBe(
+            `${root}/agt_alpha/acme/app`
+        );
+        expect(agentWorktreeOf(`${root}/wrk_1/acme/app/a.ts`, root)).toBeNull();
+        expect(agentWorktreeOf(`${root}/agt_alpha/acme`, root)).toBeNull();
+        expect(
+            agentWorktreeOf('/data/servers/srv_1/agents/agt_alpha/workspace/a.ts', root)
+        ).toBeNull();
+    });
+});

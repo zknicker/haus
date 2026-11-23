@@ -1,8 +1,9 @@
-import type { WorkerHeldFrame, WorkerTurnStartFrame } from '@haus/api';
+import type { WorkerTurnStartFrame } from '@haus/api';
 import type { PullRequestReader } from '../github/pull-request-reader.ts';
-import { removeWorkerCheckout } from './checkout.ts';
+import { closeWorkerWorktrees } from './checkout.ts';
 import type { WorkerServer } from './credentials.ts';
 import { type WorkerDriverFactory, workerDriverFactory } from './harness.ts';
+import { logPlaceFailure as logFailure, sendRepoClones, sendWorkerHeld } from './place-reports.ts';
 import { PushRetry, type Schedule, timerSchedule } from './push-retry.ts';
 import { removeTree } from './remove-tree.ts';
 import type { RepoOptions } from './repos.ts';
@@ -24,7 +25,7 @@ export interface ComputerPlaceOptions {
     driver?: WorkerDriverFactory;
     now?: () => number;
     reader: PullRequestReader;
-    repos?: Omit<RepoOptions, 'dataRoot' | 'signal'>;
+    repos?: Pick<RepoOptions, 'remoteUrl'>;
     schedule?: Schedule;
     server: WorkerServer;
     serverId: string;
@@ -42,9 +43,11 @@ export class ComputerWorkerPlace {
     private send: ((frame: ComputerPlaceFrame) => unknown) | null = null;
     private readonly context: ComputerPlaceContext;
     private readonly schedule: Schedule;
+    private readonly partition: { dataRoot: string; serverId: string };
     readonly journal: ComputerTurnJournal;
 
     constructor(options: ComputerPlaceOptions) {
+        this.partition = { dataRoot: options.dataRoot, serverId: options.serverId };
         this.journal = new ComputerTurnJournal(options.dataRoot, options.serverId);
         this.schedule = options.schedule ?? timerSchedule;
         this.context = {
@@ -52,7 +55,12 @@ export class ComputerWorkerPlace {
             journal: this.journal,
             now: options.now ?? Date.now,
             reader: options.reader,
-            repos: { ...options.repos, dataRoot: options.dataRoot },
+            repos: {
+                ...options.repos,
+                dataRoot: options.dataRoot,
+                onCloned: () => sendRepoClones(this.context, this.partition),
+                serverId: options.serverId,
+            },
             send: (frame) => this.send?.(frame),
             server: options.server,
         };
@@ -81,11 +89,8 @@ export class ComputerWorkerPlace {
                 );
             }
         }
-        const held: WorkerHeldFrame = {
-            type: 'worker-held',
-            workerIds: await this.journal.heldWorkerIds(),
-        };
-        this.context.send(held);
+        await sendRepoClones(this.context, this.partition);
+        await sendWorkerHeld(this.context, this.partition);
     }
 
     async accept(frame: WorkerTurnStartFrame) {
@@ -157,11 +162,7 @@ export class ComputerWorkerPlace {
         if (Object.values(file?.turns ?? {}).some((turn) => turn.phase === 'pushing')) {
             return;
         }
-        await removeWorkerCheckout({
-            checkout: layout.checkout,
-            repoPath: file?.repoPath ?? null,
-            workerId,
-        });
+        await closeWorkerWorktrees(this.partition.dataRoot, this.partition.serverId, workerId);
         await removeTree(layout.root);
     }
 
@@ -286,13 +287,4 @@ async function halt(running: Running, reason: string) {
 
 function refOf(frame: WorkerTurnStartFrame) {
     return { turnId: frame.turnId, workerId: frame.workerId };
-}
-
-function logFailure(operation: string, ref: ComputerTurnRef | null, cause: unknown) {
-    console.error('Worker turn did not finish.', {
-        cause: cause instanceof Error ? cause.message : String(cause),
-        operation,
-        turnId: ref?.turnId ?? null,
-        workerId: ref?.workerId ?? null,
-    });
 }
