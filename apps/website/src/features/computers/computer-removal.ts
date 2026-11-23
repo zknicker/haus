@@ -1,31 +1,37 @@
 import { useAgents } from '../../hooks/members/use-agents.ts';
 
+export interface RemovalCaptain {
+    displayName: string;
+    id: string;
+}
+
 export type ComputerRemovalAvailability =
     | { status: 'checking' }
     | { status: 'error' }
-    | { agentNames: string[]; status: 'blocked' }
-    | { status: 'ready' };
+    | { captains: RemovalCaptain[]; status: 'ready' };
 
 /**
- * Whether this Computer can be removed right now. Both the shell band's menu and
- * the management card gate on this, so the rule for "all Agents must be deleted
- * first" lives here rather than being re-derived per surface.
+ * Whether this Device can be removed right now, and which Captains use it as their Machine.
+ * Removal changes each one's Machine (ADR 0057 decision 7), so they no longer block it; the
+ * shell band's menu and the removal dialog both read this.
  */
-export function useComputerRemovalAvailability(
-    serverId: string,
-    computerId: string
-): ComputerRemovalAvailability {
+export function useComputerRemovalAvailability(serverId: string, computerId: string) {
     const agents = useAgents(serverId);
 
     if (agents.data === undefined) {
-        return agents.error ? { status: 'error' } : { status: 'checking' };
+        const pending: ComputerRemovalAvailability = agents.error
+            ? { status: 'error' }
+            : { status: 'checking' };
+        return pending;
     }
 
-    const assignedAgents = agents.data.filter((agent) => agent.computerId === computerId);
-
-    return assignedAgents.length > 0
-        ? { agentNames: assignedAgents.map((agent) => agent.displayName), status: 'blocked' }
-        : { status: 'ready' };
+    const ready: ComputerRemovalAvailability = {
+        captains: agents.data
+            .filter((agent) => agent.computerId === computerId)
+            .map(({ displayName, id }) => ({ displayName, id })),
+        status: 'ready',
+    };
+    return ready;
 }
 
 export function computerRemovalDescription(availability: ComputerRemovalAvailability) {
@@ -33,13 +39,7 @@ export function computerRemovalDescription(availability: ComputerRemovalAvailabi
         return 'This immediately revokes this device’s credential.';
     }
     if (availability.status === 'checking') {
-        return 'Checking for assigned Captains…';
+        return 'Checking which Captains use this device…';
     }
-    if (availability.status === 'error') {
-        return 'Assigned Captains could not be verified. Try again.';
-    }
-    if (availability.agentNames.length === 1) {
-        return `Delete ${availability.agentNames[0]} before removing this device.`;
-    }
-    return `Delete all ${availability.agentNames.length} assigned Captains before removing this device.`;
+    return 'The Captains using this device could not be loaded. Try again.';
 }

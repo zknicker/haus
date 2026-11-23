@@ -57,6 +57,8 @@ export async function closePushIn(
     return { listed, wakes };
 }
 
+const fencedCodes = new Set<string>(['AGENT_MOVED', 'AGENT_RESET']);
+
 function pushWriter(push: DrivePush) {
     return (
         push.workerId && push.taskId
@@ -88,7 +90,7 @@ async function listConflicts(tx: HausDatabase, serverId: string, outcomes: Drive
     const conflicts = outcomes.flatMap((outcome) =>
         outcome.outcome === 'kept_both' ||
         outcome.outcome === 'kept_edit' ||
-        (outcome.outcome === 'refused' && outcome.code !== 'AGENT_RESET')
+        (outcome.outcome === 'refused' && !fencedCodes.has(outcome.code))
             ? [outcome]
             : []
     );

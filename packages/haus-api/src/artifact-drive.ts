@@ -126,6 +126,7 @@ export const artifactErrorCodeSchema = z.enum([
     'AUTH_UNAVAILABLE',
     'PUSH_CLOSED',
     'AGENT_RESET',
+    'AGENT_MOVED',
 ]);
 export type ArtifactErrorCode = z.infer<typeof artifactErrorCodeSchema>;
 

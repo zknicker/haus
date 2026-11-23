@@ -45,10 +45,15 @@ export class AgentLoopRoute {
         return this.runner.isOnline() && !(await awaitsCutover(tx, agentId));
     }
 
-    send(host: AgentLoopHost, frame: LoopFrame) {
+    send(host: AgentLoopHost, frame: LoopFrame, placementGeneration?: number) {
         const sent = this.toRunner(frame);
-        if (sent && frame.type === 'runner-start' && host.machineId) {
-            this.pullDrive(host.machineId, frame.start);
+        if (
+            sent &&
+            frame.type === 'runner-start' &&
+            host.machineId &&
+            placementGeneration !== undefined
+        ) {
+            this.pullDrive(host.machineId, { ...frame.start, placementGeneration });
         }
         return sent;
     }
@@ -60,11 +65,17 @@ export class AgentLoopRoute {
 
     private pullDrive(
         machineId: string,
-        start: { agentId: string; runId: string; sessionGeneration: number }
+        start: {
+            agentId: string;
+            placementGeneration: number;
+            runId: string;
+            sessionGeneration: number;
+        }
     ) {
         if (this.transport.isOnline(machineId)) {
             this.transport.send(machineId, {
                 agentId: start.agentId,
+                placementGeneration: start.placementGeneration,
                 runId: start.runId,
                 sessionGeneration: start.sessionGeneration,
                 type: 'drive-pull',
@@ -88,7 +99,10 @@ export class AgentLoopRoute {
         const reasoningEffort =
             state?.activeRunId === start.runId ? state.activeRunReasoningEffort : null;
         const [agent] = await tx
-            .select({ sessionResetKind: agentsTable.sessionResetKind })
+            .select({
+                placementGeneration: agentsTable.placementGeneration,
+                sessionResetKind: agentsTable.sessionResetKind,
+            })
             .from(agentsTable)
             .where(eq(agentsTable.id, start.agentId));
         if (!agent) {
@@ -103,6 +117,7 @@ export class AgentLoopRoute {
         });
         const bound: DispatchPlan = {
             ...plan,
+            placementGeneration: agent.placementGeneration,
             frame: {
                 ...(reasoningEffort ? { reasoningEffort } : {}),
                 modelConnectionId,

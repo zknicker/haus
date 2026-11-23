@@ -9,7 +9,7 @@ import type { RealtimeServer } from './realtime-server.ts';
 import { useSubscriptionRestart } from './use-subscription-restart.ts';
 
 /**
- * `agent.onUpdated`: an Agent's configuration, profile, delivery control,
+ * `agent.onUpdated`: an Agent's configuration, Machine, profile, delivery control,
  * skills, or workspace files, or the roster. A named Agent refreshes its own
  * reads; a null id refreshes every Agent read of the Server.
  */
@@ -51,6 +51,7 @@ export function applyAgentUpdate(
     if (agentId) {
         invalidate(getQueryKey(hausTrpc.agent.deliveryState, scope));
     }
+    invalidate(getQueryKey(hausTrpc.agent.machine, scope));
     invalidate(getQueryKey(hausTrpc.agent.conversationStyle, scope));
     invalidate(getQueryKey(hausTrpc.agent.skillFile, scope));
     invalidate(getQueryKey(hausTrpc.agent.workspaceFile, scope));

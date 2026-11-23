@@ -1,3 +1,4 @@
+import { computerRemovalMoveSchema } from '@haus/api';
 import { TRPCError } from '@trpc/server';
 import { z } from 'zod';
 import { removeServerComputer } from '../../computers/remove-computer.ts';
@@ -13,6 +14,7 @@ export const removeComputerProcedure = memberProcedure
             .object({
                 computerId: z.string().min(1),
                 confirmation: z.string().trim(),
+                machineMoves: z.array(computerRemovalMoveSchema).max(500).default([]),
                 serverId: serverIdSchema,
             })
             .strict()
@@ -27,6 +29,7 @@ export const removeComputerProcedure = memberProcedure
                 ctx.artifactStorage
             );
             ctx.computerConnections.disconnectComputer(removed.computerId);
+            await ctx.agentDelivery.commitMachineSteps(removed.moved);
             computerUpdatedTopic.announce({
                 computerId: input.computerId,
                 serverId: input.serverId,

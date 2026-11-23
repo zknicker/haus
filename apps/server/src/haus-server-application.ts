@@ -106,7 +106,8 @@ export async function createHausServerApplication(
             connectedHaus.db,
             computerConnections,
             runtime,
-            runnerLink
+            runnerLink,
+            invocations
         );
         modelConnections.whenChanged(cutoverSweep(connectedHaus.db, agentDelivery).sweep);
         const startedPostCommitWork = new ServerPostCommitWork(runtime);

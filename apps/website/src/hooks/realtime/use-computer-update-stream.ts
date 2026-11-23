@@ -11,8 +11,8 @@ import { useSubscriptionRestart } from './use-subscription-restart.ts';
 /**
  * `computer.onUpdated`: attachment, inventory, repo folders, or update progress.
  * It moves the Server detail, the Computer list, log and repo folders, Agent activity and delivery
- * (a detached Computer stops its Agents), usage, and the Cloud Agent model
- * catalog a report can carry.
+ * (a detached Computer stops its Agents), what a pending Machine change waits for, usage, and
+ * the Cloud Agent model catalog a report can carry.
  */
 export function useComputerUpdateStream(server: RealtimeServer | undefined) {
     const coalescer = useTargetedReadCoalescer();
@@ -55,6 +55,7 @@ export function applyComputerUpdate(
     invalidate(getQueryKey(hausTrpc.repo.list, { serverId }));
     invalidate(getQueryKey(hausTrpc.agent.activeActivity, { serverId }));
     invalidate(getQueryKey(hausTrpc.agent.deliveryState, { serverId }));
+    invalidate(getQueryKey(hausTrpc.agent.machine, { serverId }));
     invalidate(getQueryKey(hausTrpc.agent.list, { serverId }));
     invalidate(getQueryKey(hausTrpc.stats.live, { serverId }));
     invalidate(getQueryKey(hausTrpc.cloudAgentSettings.get, { serverId }));

@@ -2,6 +2,7 @@ import type { InvocationOperation, InvocationRefusal, InvocationRequestFrame } f
 import { isAgentAllowedOn } from '../computer-access/agent-access.ts';
 import { desktopGateRefusal } from '../computer-use/computer-use-gate.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
+import { readRunPlacement } from './invocation-placement.ts';
 import { resolveInvocationTarget } from './invocation-target.ts';
 
 export type InvocationVerdict =
@@ -15,10 +16,17 @@ export async function decideInvocation(
         frame: InvocationRequestFrame;
         home: string | null;
         isOnline: (computerId: string) => boolean;
+        placementGeneration: number;
         serverId: string;
     }
 ) {
     const { frame, serverId } = input;
+    if (frame.computer === undefined) {
+        const run = await readRunPlacement(db, { ...frame, serverId });
+        if (run !== null && run !== input.placementGeneration) {
+            return { candidates: [], computerId: input.home, verdict: refused('moved') };
+        }
+    }
     const target = await resolveInvocationTarget(db, {
         home: input.home,
         requested: frame.computer,

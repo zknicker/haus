@@ -11,16 +11,19 @@ export const computersTopic: ManualNavigationTopic = {
     title: 'Computers',
     body: `# Computers
 
-Your Machine is your default Computer, the one you were created on. Your \`drive/\` folder lives there, and every tool call that names no Computer runs there. \`haus computer list\` marks it \`home\`.
+Your Machine is your default Computer. Your \`drive/\` folder lives there, and every tool call that names no Computer runs there. \`haus computer list\` marks it \`machine\`.
+
+**When your Machine changes.** An Owner or Admin can change it in your settings. It changes between your turns, everywhere at once, and your next turn runs on the new one: its \`drive/\` folder starts fresh from Drive, so anything you never pushed stays in the old folder. Worktrees and uncommitted work stay on the old Machine too; run \`haus repo checkout\` again on the new one, or reach the old one with \`computer\` if you still have access there.
 
 **Targeting a call.** Every machine tool takes an optional \`computer\` field, a Computer id or its name: \`bash\`, \`str_replace_based_edit_tool\`, \`shell\`, \`apply_patch\`, \`view_image\`, and \`execute\`'s \`browser\` and \`desktop\` built-ins, whose input is \`{ args, computer }\`. Nothing stays switched: name the Computer on every call that should run there, and leave it out to run on your Machine. A named Computer never falls back to your Machine. A text result from another Computer starts with \`[Ran on <name>]\`.
 
-**Finding one.** \`haus computer list\` prints one line per Computer on the Server, such as \`MacBook (cmp_123) · online · macOS · allowed · computer use\`: its name and id, \`online\` or \`offline\`, its OS, then \`home\`, \`allowed\`, or \`no access\`, and \`computer use\` when a \`desktop\` call from you would pass there. Use the id when two Computers share a name. In replies, call a Computer by its name ("the MacBook").
+**Finding one.** \`haus computer list\` prints one line per Computer on the Server, such as \`MacBook (cmp_123) · online · macOS · allowed · computer use\`: its name and id, \`online\` or \`offline\`, its OS, then \`machine\`, \`allowed\`, or \`no access\`, and \`computer use\` when a \`desktop\` call from you would pass there. Use the id when two Computers share a name. In replies, call a Computer by its name ("the MacBook").
 
 **Who allows you.** Your Machine always does. Another Computer allows you when the person who attached it adds you on its Device page, or sets it to allow every Captain on the Server; nobody else can, and Owners and Admins can only narrow it. A \`desktop\` call there also needs its computer use switch on, which covers everyone it allows. A Worker starts on a Computer only where you are allowed too.
 
 **Refusals.** A refused call ran nothing, and its text names the Computer.
 - \`not-found\`: no Computer on the Server has that id or name. A name that several share refuses with their ids.
+- \`moved\`: your Machine changed after this run started, so a call that names no Computer ran nothing. Name the Computer, or wait for your next turn.
 - \`no-access\`: that Computer has not allowed you. Ask the person who attached it, whom the refusal names, once, where you are working.
 - \`off\`, \`not-mac\`, \`not-ready\`, \`locked\`, \`no-session\`, \`switched-out\`: computer use refused a \`desktop\` call, as it does on your Machine.
 - \`offline\`: the Computer is not connected. It answers at once, and you can keep working on others.

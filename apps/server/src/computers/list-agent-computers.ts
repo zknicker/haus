@@ -17,7 +17,7 @@ export async function listAgentComputers(
         .from(agentsTable)
         .where(and(eq(agentsTable.serverId, runner.serverId), eq(agentsTable.id, runner.agentId)))
         .limit(1);
-    const homeId = agent?.computerId ?? null;
+    const machineId = agent?.computerId ?? null;
     const reachable = await readAccessibleComputerIds(db, runner);
     const computers = await db
         .select({
@@ -29,13 +29,13 @@ export async function listAgentComputers(
         .from(computersTable)
         .where(eq(computersTable.serverId, runner.serverId));
     const entries = computers.map((computer) => {
-        const home = computer.id === homeId;
-        const allowed = home || reachable.has(computer.id);
+        const machine = computer.id === machineId;
+        const allowed = machine || reachable.has(computer.id);
         return {
             allowed,
             computerId: computer.id,
             computerUse: computer.computerUseEnabled && allowed,
-            home,
+            machine,
             name: computer.inventory?.name ?? null,
             online: connections.isOnline(computer.id),
             operatingSystem: computer.operatingSystem,

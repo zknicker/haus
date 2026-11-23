@@ -65,6 +65,7 @@ describe('Server-level stream hooks', () => {
             read('server.bySlug', { slug: 'team-room' }),
             read('agent.get', agent),
             read('agent.deliveryState', agent),
+            read('agent.machine', agent),
             read('agent.conversationStyle', agent),
             read('agent.skillFile', agent),
             read('agent.workspaceFile', agent),

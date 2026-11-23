@@ -12,6 +12,7 @@ export * from './schema/agent-invocations.ts';
 export * from './schema/agent-managed-skills.ts';
 export * from './schema/agent-manual-audit.ts';
 export * from './schema/agent-message-follows.ts';
+export * from './schema/agent-machine-changes.ts';
 export * from './schema/agent-run-triggers.ts';
 export * from './schema/agent-runner-credentials.ts';
 export * from './schema/agent-session-rotations.ts';

@@ -1,6 +1,7 @@
 import { drivePushCloseInputSchema } from '@haus/api';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { confirmFlush } from '../agent-machine/machine-change-store.ts';
 import { type ArtifactActor, artifactAccess } from '../artifacts/access.ts';
 import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { ArtifactThumbnails } from '../artifacts/thumbnails.ts';
@@ -16,7 +17,7 @@ import { authorizeDrivePusher } from './worker-auth.ts';
 export function registerAgentDrivePushRoutes(
     app: FastifyInstance,
     options: {
-        agentDelivery: Pick<AgentDelivery, 'dispatchAgent' | 'enqueue'>;
+        agentDelivery: Pick<AgentDelivery, 'advanceMachineChange' | 'dispatchAgent' | 'enqueue'>;
         budget: number;
         db: HausDatabase;
         postCommitWork: Pick<ServerPostCommitWork, 'wakeAgents'>;
@@ -71,6 +72,17 @@ export function registerAgentDrivePushRoutes(
                     input.push_id
                 );
                 push.wake(closed.wakes);
+                if (
+                    access.agentId &&
+                    !access.worker &&
+                    (await confirmFlush(options.db, {
+                        agentId: access.agentId,
+                        pushId: input.push_id,
+                        serverId: access.serverId,
+                    }))
+                ) {
+                    await options.agentDelivery.advanceMachineChange(access.agentId);
+                }
                 return { listed: closed.listed };
             })
     );

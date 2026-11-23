@@ -82,7 +82,7 @@ export const agentInvocationsTable = pgTable(
         ),
         check(
             'agent_invocations_refusal',
-            sql`${table.refusal} is null or (${table.refusal} in ('not-found', 'no-access', 'off', 'not-listed', 'not-mac', 'offline', 'not-ready', 'locked', 'no-session', 'switched-out') and ${table.state} = 'finished')`
+            sql`${table.refusal} is null or (${table.refusal} in ('not-found', 'no-access', 'moved', 'off', 'not-listed', 'not-mac', 'offline', 'not-ready', 'locked', 'no-session', 'switched-out') and ${table.state} = 'finished')`
         ),
         check(
             'agent_invocations_sent_shape',

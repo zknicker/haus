@@ -3,6 +3,7 @@ import type { HausDatabase } from '../postgres/connection.ts';
 import { gateRepoCheckout } from '../repos/repo-checkout-gate.ts';
 import type { createFenceEpochs } from './fence-epochs.ts';
 import { settledAnswer } from './invocation-answers.ts';
+import { placementUnchanged } from './invocation-placement.ts';
 import { type InvocationRecord, recordSentRefusal } from './invocation-store.ts';
 
 export async function gateSend(
@@ -12,6 +13,7 @@ export async function gateSend(
         computerId: string;
         fenceEpochs: ReturnType<typeof createFenceEpochs>;
         frame: InvocationRequestFrame;
+        placementGeneration: number | null;
         record: InvocationRecord;
         serverId: string;
     }
@@ -29,10 +31,26 @@ export async function gateSend(
         return gated;
     }
     const target = { agentId: frame.agentId, computerId, serverId };
+    const { placementGeneration } = input;
+    if (
+        placementGeneration !== null &&
+        !(await placementUnchanged(db, { agentId: frame.agentId, placementGeneration, serverId }))
+    ) {
+        return await refuse(db, appOrigin, record, 'moved');
+    }
     if (await input.fenceEpochs.allowsSend(db, target)) {
         return gated;
     }
-    const refused = await recordSentRefusal(db, record.id, 'no-access');
+    return await refuse(db, appOrigin, record, 'no-access');
+}
+
+async function refuse(
+    db: HausDatabase,
+    appOrigin: string,
+    record: InvocationRecord,
+    refusal: 'moved' | 'no-access'
+) {
+    const refused = await recordSentRefusal(db, record.id, refusal);
     return {
         answer: await settledAnswer(db, { appOrigin, record: refused ?? record }),
         kind: 'refused' as const,

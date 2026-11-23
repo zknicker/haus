@@ -94,7 +94,12 @@ test('a Computer default needs the switch on, and removing the Computer clears i
         connection.db,
         delivery,
         owner(board),
-        { computerId: other, confirmation: 'REMOVE', serverId: board.seed.serverId },
+        {
+            computerId: other,
+            confirmation: 'REMOVE',
+            machineMoves: [],
+            serverId: board.seed.serverId,
+        },
         null
     );
 

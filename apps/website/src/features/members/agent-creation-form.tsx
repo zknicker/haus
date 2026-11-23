@@ -157,7 +157,7 @@ export function AgentCreationForm({
                                 : undefined
                         }
                         disabled={reported.length === 0}
-                        label="Device"
+                        label="Machine"
                         onChange={(nextId) => {
                             const next = reported.find((entry) => entry.id === nextId);
                             const firstRuntime = next?.inventory.runtimes[0];

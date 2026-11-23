@@ -17,10 +17,17 @@ Agent's execution host, workspace, Agent-local skills, credentials, resume
 state, and effective runtime state. Server retains only reported skill
 metadata for offline display.
 
-An Agent has one Machine, the Computer it was created on, where its workspace
-lives and its tools run by default (`agents.computer_id`). No API or App surface
-changes the Machine yet; Change machine is the next slice of
-[ADR 0057's amendment](../adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md#amendment-2026-11-23-the-machine-replaces-the-home-computer).
+An Agent has one Machine, the Computer where its `drive/` folder syncs and its
+tools run by default (`agents.computer_id`). An Owner or Admin changes it from
+the Machine row of the Agent's Runs on section (`agent.setMachine`), onto a
+Device whose Captain access already allows the Agent or that they attached
+themselves, whose change is the grant. The change waits for the current turn,
+then for the old Machine to push its folder, and the row says which; an offline
+old Machine can be waited for or left behind from the last synced revision.
+Worktrees and uncommitted work stay on the old Mac. Removing a Device asks for a
+new Machine for each Captain on it instead of refusing
+([Drive folder](../../specs/drive-folder.md#when-the-machine-changes),
+[ADR 0057's amendment](../adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md#amendment-2026-11-23-the-machine-replaces-the-home-computer)).
 A Computer's attacher may create an Agent there, and so may any Owner or Admin
 when that Computer allows All Captains on this Server. A tool call may also
 name another Computer with its `computer` field, and it runs there when that

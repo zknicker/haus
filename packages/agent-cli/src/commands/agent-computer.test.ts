@@ -18,7 +18,7 @@ test('computer list shows each Computer with its state, OS, access, and computer
                     allowed: true,
                     computerId: studio,
                     computerUse: true,
-                    home: true,
+                    machine: true,
                     name: 'Studio',
                     online: true,
                     operatingSystem: 'macOS',
@@ -27,7 +27,7 @@ test('computer list shows each Computer with its state, OS, access, and computer
                     allowed: true,
                     computerId: macbook,
                     computerUse: false,
-                    home: false,
+                    machine: false,
                     name: 'MacBook',
                     online: false,
                     operatingSystem: 'macOS',
@@ -36,7 +36,7 @@ test('computer list shows each Computer with its state, OS, access, and computer
                     allowed: false,
                     computerId: mini,
                     computerUse: false,
-                    home: false,
+                    machine: false,
                     name: null,
                     online: true,
                     operatingSystem: null,
@@ -45,11 +45,11 @@ test('computer list shows each Computer with its state, OS, access, and computer
         })
     ).toBe(
         [
-            `Studio (${studio}) · online · macOS · home · computer use`,
+            `Studio (${studio}) · online · macOS · machine · computer use`,
             `MacBook (${macbook}) · offline · macOS · allowed`,
             `Unnamed (${mini}) · online · no access`,
             '',
-            'Target one with the `computer` field (its name or id) on a bash, shell, edit, view_image, or execute call. Without it, tools run on your home Computer.',
+            'Target one with the `computer` field (its name or id) on a bash, shell, edit, view_image, or execute call. Without it, tools run on your Machine.',
             '',
         ].join('\n')
     );

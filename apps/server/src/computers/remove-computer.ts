@@ -1,5 +1,7 @@
-import { and, eq, isNull } from 'drizzle-orm';
+import type { ComputerRemovalMove } from '@haus/api';
+import { and, eq } from 'drizzle-orm';
 import type { AgentDelivery } from '../agent-delivery/delivery.ts';
+import { moveAgentsOffRemovedComputer } from '../agent-machine/removal-moves.ts';
 import type { ArtifactStorage } from '../artifacts/storage.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { agentsTable, computersTable } from '../postgres/schema.ts';
@@ -11,14 +13,20 @@ import { failRemovedCarrierTurns } from '../workers/fail-removed-carrier-turns.t
 import { ComputerSetupDeniedError } from './service.ts';
 
 /**
- * A Computer credential is deleted only after every assigned Agent is retired.
- * The Worker turns it carried fail `machine-removed` in the same transaction.
+ * Deletes a Computer credential, first changing the Machine of every live Agent on it to the
+ * Computer `machineMoves` names (ADR 0057 decision 7). The Worker turns it carried fail
+ * `machine-removed` in the same transaction.
  */
 export async function removeServerComputer(
     db: HausDatabase,
     agentDelivery: AgentDelivery,
     member: HausUser | null,
-    input: { computerId: string; confirmation: string; serverId: string },
+    input: {
+        computerId: string;
+        confirmation: string;
+        machineMoves: readonly ComputerRemovalMove[];
+        serverId: string;
+    },
     storage: ArtifactStorage | null
 ) {
     return await db.transaction(async (tx) => {
@@ -45,22 +53,12 @@ export async function removeServerComputer(
         if (!computer) {
             throw new ComputerSetupDeniedError('That Computer no longer exists.');
         }
-        const [assigned] = await tx
-            .select({ id: agentsTable.id })
-            .from(agentsTable)
-            .where(
-                and(
-                    eq(agentsTable.serverId, input.serverId),
-                    eq(agentsTable.computerId, computer.id),
-                    isNull(agentsTable.retiredAt)
-                )
-            )
-            .limit(1);
-        if (assigned) {
-            throw new ComputerSetupDeniedError(
-                'Delete every assigned Agent before removing this Computer.'
-            );
-        }
+        const moved = await moveAgentsOffRemovedComputer(tx, {
+            computerId: computer.id,
+            moves: input.machineMoves,
+            serverId: input.serverId,
+            userId: member.id,
+        });
         await tx
             .update(agentsTable)
             .set({ computerId: null, desiredModelId: null, desiredRuntimeId: null })
@@ -76,6 +74,6 @@ export async function removeServerComputer(
         });
         const projectIds = await clearComputerDefaults(tx, input.serverId, computer.id);
         await tx.delete(computersTable).where(eq(computersTable.id, computer.id));
-        return { computerId: computer.id, projectIds, workers };
+        return { computerId: computer.id, moved, projectIds, workers };
     });
 }
