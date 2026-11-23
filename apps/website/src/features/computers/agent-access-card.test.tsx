@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createTRPCQueryUtils } from '@trpc/react-query';
 import { observable } from '@trpc/server/observable';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { agentAccessView } from './agent-access-model.ts';
 import { ComputerAccessSection } from './computer-access-section.tsx';
@@ -33,6 +34,10 @@ test('an allowed Captain is a row of its own, and Home Captains are not listed a
 
 test('with nobody allowed, the list says only its Home Captains can run here', () => {
     expect(render({})).toContain('Only its Home Captains');
+});
+
+test('the Access section is the #access target that links land on', () => {
+    expect(render({})).toMatch(/<section id="access"/u);
 });
 
 test('the attacher adds through a labeled Add, and a steward removes through the row menu', () => {
@@ -119,7 +124,9 @@ function render(overrides: Record<string, unknown>) {
     return renderToStaticMarkup(
         <QueryClientProvider client={queryClient}>
             <hausTrpc.Provider client={client} queryClient={queryClient}>
-                <ComputerAccessSection computerId={computerId} serverId={serverId} />
+                <MemoryRouter initialEntries={[`/settings/computers/${computerId}#access`]}>
+                    <ComputerAccessSection computerId={computerId} serverId={serverId} />
+                </MemoryRouter>
             </hausTrpc.Provider>
         </QueryClientProvider>
     );

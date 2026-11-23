@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createTRPCQueryUtils, getQueryKey } from '@trpc/react-query';
 import { observable } from '@trpc/server/observable';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { ComputerAccessSection } from './computer-access-section.tsx';
 
@@ -180,7 +181,9 @@ function render(overrides: Record<string, unknown>, roster: 'error' | 'ready' = 
     return renderToStaticMarkup(
         <QueryClientProvider client={queryClient}>
             <hausTrpc.Provider client={client} queryClient={queryClient}>
-                <ComputerAccessSection computerId={computerId} serverId={serverId} />
+                <MemoryRouter>
+                    <ComputerAccessSection computerId={computerId} serverId={serverId} />
+                </MemoryRouter>
             </hausTrpc.Provider>
         </QueryClientProvider>
     );

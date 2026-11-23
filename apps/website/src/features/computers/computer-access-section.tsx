@@ -1,5 +1,6 @@
 import { ItemCardGroup } from '@heroui-pro/react';
 import { Separator } from '@heroui/react';
+import { useLocation } from 'react-router-dom';
 import {
     useGrantAgentAccess,
     useRevokeAgentAccess,
@@ -18,6 +19,8 @@ import { ComputerUseStop } from './computer-use-stop.tsx';
 import { ComputerWorkersRow } from './computer-workers-row.tsx';
 import { computerLabel } from './presentation.ts';
 
+const accessSectionId = 'access';
+
 export function ComputerAccessSection({
     computerId,
     serverId,
@@ -31,6 +34,7 @@ export function ComputerAccessSection({
     const members = useMembers(serverId).data?.members;
     const grant = useGrantAgentAccess(serverId);
     const revoke = useRevokeAgentAccess(serverId);
+    const location = useLocation();
     if (!computer) {
         return null;
     }
@@ -47,7 +51,10 @@ export function ComputerAccessSection({
     const deviceName = computerLabel(computer);
 
     return (
-        <section>
+        <section
+            id={accessSectionId}
+            ref={location.hash === `#${accessSectionId}` ? scrollIntoView : undefined}
+        >
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>
                     <ItemCardGroup.Title>Access</ItemCardGroup.Title>
@@ -102,4 +109,8 @@ export function ComputerAccessSection({
             </ItemCardGroup>
         </section>
     );
+}
+
+function scrollIntoView(node: HTMLElement | null) {
+    node?.scrollIntoView({ block: 'start' });
 }
