@@ -64,7 +64,8 @@ private struct TabSegmentedControl: UIViewRepresentable {
 
     func updateUIView(_ control: TracklessSegmentedControl, context: Context) {
         context.coordinator.selectedIndex = $selectedIndex
-        if control.selectedSegmentIndex != selectedIndex {
+        control.committedIndex = selectedIndex
+        if !control.isTracking, control.selectedSegmentIndex != selectedIndex {
             control.selectedSegmentIndex = selectedIndex
         }
     }
@@ -94,7 +95,35 @@ private struct TabSegmentedControl: UIViewRepresentable {
 /// under the selection indicator (the last subview). This leans on UIKit's
 /// private layout: if a later iOS changes it, the track shows again under the
 /// glass bar rather than anything breaking.
+///
+/// The bubble only lifts from the selected segment, so a press anywhere first
+/// moves the selection under the finger. The tab itself changes on release,
+/// as in the system tab bar, and a cancelled press puts the selection back.
 final class TracklessSegmentedControl: UISegmentedControl {
+    /// The tab SwiftUI has selected, which a press does not change until it ends.
+    var committedIndex = 0
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if let touch = touches.first, numberOfSegments > 0, bounds.width > 0 {
+            let width = bounds.width / CGFloat(numberOfSegments)
+            let index = Int(touch.location(in: self).x / width)
+            selectedSegmentIndex = min(max(index, 0), numberOfSegments - 1)
+        }
+        super.touchesBegan(touches, with: event)
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesEnded(touches, with: event)
+        if selectedSegmentIndex != committedIndex {
+            sendActions(for: .valueChanged)
+        }
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesCancelled(touches, with: event)
+        selectedSegmentIndex = committedIndex
+    }
+
     override func layoutSubviews() {
         super.layoutSubviews()
         let indicator = subviews.last
