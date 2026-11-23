@@ -18,6 +18,10 @@ export interface FakeGithub {
     app: GithubApp;
     /** Status overrides for `GET /app/installations/{id}` (404, 429, 503…). */
     appStatus: Map<number, number>;
+    /** Installation id → repository names its scoped tokens may name (absent: any). */
+    installationRepositories: Map<number, string[]>;
+    /** Every installation token minted, with the scope asked for. */
+    mints: { body: unknown; installationId: number; token: string }[];
     /** User tokens GitHub now answers 401 for (expired). */
     expired: Set<string>;
     installations: Map<number, FakeInstallation>;
@@ -48,6 +52,8 @@ export async function createFakeGithub(): Promise<FakeGithub> {
     };
     const fake = {
         appStatus: new Map(),
+        installationRepositories: new Map(),
+        mints: [],
         expired: new Set<string>(),
         installations: new Map(),
         memberships: new Map(),
@@ -74,6 +80,13 @@ function answer(fake: FakeState, input: RequestInfo | URL, init?: RequestInit) {
         return answerRefresh(fake, new URLSearchParams(String(init?.body ?? '')));
     }
     const token = new Headers(init?.headers).get('authorization')?.replace(/^Bearer /u, '') ?? '';
+    const mint = /^\/app\/installations\/(\d+)\/access_tokens$/u.exec(url.pathname);
+    if (mint && init?.method === 'POST') {
+        return answerMint(fake, token, Number(mint[1]), init.body);
+    }
+    if (decodeURIComponent(url.pathname) === '/users/haus-test[bot]') {
+        return Response.json({ id: fakeBotUserId, login: 'haus-test[bot]', type: 'Bot' });
+    }
     const appInstallation = /^\/app\/installations\/(\d+)$/u.exec(url.pathname);
     if (appInstallation) {
         return answerAppInstallation(fake, token, Number(appInstallation[1]));
@@ -82,6 +95,26 @@ function answer(fake: FakeState, input: RequestInfo | URL, init?: RequestInit) {
         return new Response(null, { status: 401 });
     }
     return answerUser(fake, token, url.pathname);
+}
+
+/** The faked App's bot user id, as `GET /users/haus-test[bot]` answers it. */
+export const fakeBotUserId = 41_898_282;
+
+function answerMint(fake: FakeState, token: string, id: number, body: RequestInit['body']) {
+    if (!(token.startsWith('eyJ') && fake.installations.has(id))) {
+        return new Response(null, { status: token.startsWith('eyJ') ? 404 : 401 });
+    }
+    const scope = body ? (JSON.parse(String(body)) as { repositories?: string[] }) : {};
+    const allowed = fake.installationRepositories.get(id);
+    if (allowed && !(scope.repositories ?? []).every((name) => allowed.includes(name))) {
+        return Response.json({ message: 'There is at least one repository that does not exist or is not accessible to the parent installation.' }, { status: 422 });
+    }
+    const minted = `ghs_fake${fake.mints.length + 1}`;
+    fake.mints.push({ body: scope, installationId: id, token: minted });
+    return Response.json(
+        { expires_at: new Date(Date.now() + 3_600_000).toISOString(), token: minted },
+        { status: 201 }
+    );
 }
 
 function answerRefresh(fake: FakeState, body: URLSearchParams) {

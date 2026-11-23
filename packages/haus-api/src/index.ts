@@ -154,6 +154,7 @@ export * from './execution-bookkeeping.ts';
 export * from './execution-shell-script.ts';
 export * from './execution-tool-kind.ts';
 export * from './github.ts';
+export * from './github-git.ts';
 export * from './github-trigger-events.ts';
 export * from './haus-agent-version.ts';
 export * from './haus-release.ts';

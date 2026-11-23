@@ -15,14 +15,44 @@ describe('createGithubBot', () => {
         expect(harness.owners).toEqual(['MerchBaseCo']);
     });
 
-    test('keeps the user token without an installation or an owner', async () => {
+    test('keeps the user token for discovery and ownerless reads', async () => {
         const harness = await createHarness();
-        await harness.call(toolCall('someone-else'));
-        await harness.call(JSON.stringify({ method: 'tools/call', params: { arguments: {} } }));
-        await harness.call(JSON.stringify({ method: 'tools/list', params: {} }));
+        await harness.call(ownerlessCall('search_code'));
+        await harness.call(ownerlessCall('get_me'));
+        await harness.call(JSON.stringify({ id: 3, method: 'tools/list', params: {} }));
         await harness.call('not json');
         expect(harness.sent).toEqual(new Array(4).fill(userAuthorization));
         expect(harness.mints()).toBe(0);
+    });
+
+    test('refuses an owner without an installation instead of acting as the person', async () => {
+        const harness = await createHarness();
+        const body = await (await harness.call(toolCall('someone-else'))).json();
+        expect(body).toMatchObject({
+            id: 7,
+            result: {
+                content: [
+                    {
+                        text: 'The Haus GitHub App is not installed on someone-else, so Agents cannot act there. Ask an Owner or Admin to install it on someone-else.',
+                    },
+                ],
+                isError: true,
+            },
+        });
+        expect(harness.sent).toEqual([]);
+    });
+
+    test('refuses an ownerless write and an unreadable tool call', async () => {
+        const harness = await createHarness();
+        const write = await (await harness.call(ownerlessCall('create_repository'))).json();
+        const unreadable = await (
+            await harness.call(
+                JSON.stringify({ id: 9, method: 'tools/call', params: { arguments: { owner: 1 } } })
+            )
+        ).json();
+        expect(write).toMatchObject({ id: 7, result: { isError: true } });
+        expect(unreadable).toMatchObject({ id: 9, result: { isError: true } });
+        expect(harness.sent).toEqual([]);
     });
 
     test('reuses a token until shortly before it expires', async () => {
@@ -59,9 +89,14 @@ describe('createGithubBot', () => {
 
 function toolCall(owner = 'merchbaseco') {
     return JSON.stringify({
+        id: 7,
         method: 'tools/call',
         params: { arguments: { owner, repo: 'core' }, name: 'add_issue_comment' },
     });
+}
+
+function ownerlessCall(name: string) {
+    return JSON.stringify({ id: 7, method: 'tools/call', params: { arguments: {}, name } });
 }
 
 async function createHarness() {
