@@ -274,6 +274,17 @@
                 "timer": 0
             }
         },
+        "apps/computer/src/invocations/offline-hold.ts": {
+            "disposition": "finite-cleanup",
+            "reason": "While the Server socket is down, a queued invocation waits on one shared resolver that reconnect resolves, or on its own call's abort signal; the once listener lives on that call's AbortController, which is dropped when the call settles, and parking resolvers only signal tests that a call is waiting.",
+            "risks": {
+                "abortController": 0,
+                "catchAndIgnore": 0,
+                "finallyBlock": 1,
+                "manualPromise": 4,
+                "timer": 0
+            }
+        },
         "apps/computer/src/invocations/bash.ts": {
             "disposition": "external-adapter",
             "reason": "Adapts one bash process group to an invocation: the abort listener and the five-second SIGKILL timer are cleared in lexical finally once the shell and its pipes settle.",
