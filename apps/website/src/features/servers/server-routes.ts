@@ -112,6 +112,11 @@ export function settingsConnectionRoute(slug: string, connectionId: string) {
     return `${serverSettingsSectionRoute(slug, 'connections')}/${encodeURIComponent(connectionId)}`;
 }
 
+/** One Project's settings, a record inside Settings → Projects. The id is the Project's chat id. */
+export function settingsProjectRoute(slug: string, projectId: string) {
+    return `${serverSettingsSectionRoute(slug, 'projects')}/${encodeURIComponent(projectId)}`;
+}
+
 export function serverSettingsSectionRoute(slug: string, section: string) {
     return `${serverSettingsRoute(slug)}/${section}`;
 }

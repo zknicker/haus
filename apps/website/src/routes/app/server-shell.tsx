@@ -3,6 +3,7 @@ import { AppLayout } from '@heroui-pro/react';
 import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 import { AppShell, AppShellDragRegion } from '../../components/ui/app-shell.tsx';
+import { CapyFooterSections } from '../../features/capy-shell/capy-footer-sections.tsx';
 import { CapySidebarFooter } from '../../features/capy-shell/capy-sidebar-footer.tsx';
 import {
     CapySidebarActions,
@@ -116,7 +117,15 @@ export function ServerShell({
                                                 onOpenSettings={openSettings}
                                                 serverId={server.id}
                                                 slug={slug}
-                                            />
+                                            >
+                                                {/* The Settings rail keeps only the account control. */}
+                                                {activeSidebarPage === 'settings' ? null : (
+                                                    <CapyFooterSections
+                                                        serverId={server.id}
+                                                        slug={slug}
+                                                    />
+                                                )}
+                                            </CapySidebarFooter>
                                         }
                                         markHref={serverRoute(slug)}
                                         settingsAction={capyActions}
