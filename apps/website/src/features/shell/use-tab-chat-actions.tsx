@@ -19,6 +19,7 @@ import {
 } from '../servers/chat/chat-context-menu-items.tsx';
 import { useChannelActions } from '../servers/chat/use-channel-actions.tsx';
 import { useDmActions } from '../servers/chat/use-dm-actions.ts';
+import { settingsProjectRoute } from '../servers/server-routes.ts';
 import { parseTabPage } from './tab-identity.ts';
 import { useDesktopShell } from './use-tab-navigator.ts';
 
@@ -47,6 +48,7 @@ export function useTabChatActions() {
             }
         },
         openFiles,
+        openSettings: (chatId) => openPath(settingsProjectRoute(server.slug, chatId)),
         slug: server.slug,
     });
     const dm = useDmActions({ openFiles, openPath, slug: server.slug });
