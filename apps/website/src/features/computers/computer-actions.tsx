@@ -1,48 +1,42 @@
 import { ItemCardGroup } from '@heroui-pro/react';
 import { CodeBlock } from '@heroui-pro/react/code-block';
-import { useState } from 'react';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
+import { updateInput } from './computer-update-card.tsx';
 import { ComputerUpdateControls } from './computer-update-controls.tsx';
+import { showsComputerUpdateCard } from './computer-update-model.ts';
 import {
-    ComputerUpdatePreviewMenu,
     type ComputerUpdatePreviewState,
+    previewComputerUpdate,
 } from './computer-update-preview.tsx';
 
 export function ComputerUpdates({
     computerId,
+    previewState,
     serverId,
 }: {
     computerId: string;
+    previewState: ComputerUpdatePreviewState;
     serverId: string;
 }) {
     const computers = useComputers(serverId);
-    const [updatePreviewState, setUpdatePreviewState] =
-        useState<ComputerUpdatePreviewState>('live');
-    const computer = computers.data?.find((candidate) => candidate.id === computerId);
+    const live = computers.data?.find((candidate) => candidate.id === computerId);
 
-    if (!computer) {
+    if (!live) {
+        return null;
+    }
+    const computer = previewComputerUpdate(live, previewState);
+    if (!showsComputerUpdateCard(updateInput(computer))) {
         return null;
     }
 
     return (
-        <section>
-            <ItemCardGroup variant="transparent">
-                <ItemCardGroup.Header>
-                    <ItemCardGroup.Title>Updates</ItemCardGroup.Title>
-                    {import.meta.env.DEV ? (
-                        <ComputerUpdatePreviewMenu
-                            onChange={setUpdatePreviewState}
-                            value={updatePreviewState}
-                        />
-                    ) : null}
-                </ItemCardGroup.Header>
-                <ItemCardGroup>
-                    <ComputerUpdateControls
-                        computer={computer}
-                        previewState={updatePreviewState}
-                        serverId={serverId}
-                    />
-                </ItemCardGroup>
+        <section aria-label="Software update">
+            <ItemCardGroup>
+                <ComputerUpdateControls
+                    computer={computer}
+                    isPreview={previewState !== 'live'}
+                    serverId={serverId}
+                />
             </ItemCardGroup>
         </section>
     );

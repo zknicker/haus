@@ -31,13 +31,13 @@ test('a populated Computer page never presents its attach flow while inventory l
     );
     try {
         await page.goto(`/s/loading-computer-hq/settings/computers/${computerId}`);
-        await expect(page.getByRole('heading', { name: 'Plan usage', exact: true })).toBeVisible();
+        await expect(page.locator('main [aria-busy="true"]')).toHaveCount(1);
         await expect(page.getByText('Attach a device')).toHaveCount(0);
         await expect(page.locator('.skeleton')).toHaveCount(0);
     } finally {
         release();
     }
-    await expect(page.getByRole('heading', { name: 'Plan usage', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Access', exact: true })).toBeVisible();
     await expect(page.getByText('Attach a device')).toHaveCount(0);
 });
 
@@ -60,8 +60,13 @@ test('an offline Computer with an old reported version cannot start an update', 
 
     await page.goto(`/s/offline-computer-hq/settings/computers/${computerId}`);
     await expect(page.getByText('v1.0.0', { exact: true }).first()).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Offline', exact: true })).toBeDisabled();
     await expect(page.getByRole('button', { name: 'Update to v1.1.0' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Device actions' }).click();
+    await expect(page.getByRole('menuitem', { name: /Check for updates/u })).toHaveAttribute(
+        'aria-disabled',
+        'true'
+    );
+    await expect(page.getByText('Reconnect this device to check for updates.')).toBeVisible();
 });
 
 test('an Owner updates one Computer from Settings through isolated progress', async ({ page }) => {
@@ -78,12 +83,14 @@ test('an Owner updates one Computer from Settings through isolated progress', as
 
     await page.goto('/s/computer-hq/computers');
     await expect(page).toHaveURL(/\/s\/computer-hq\/settings\/computers$/u);
-    const devices = page.getByRole('grid', { name: 'Devices' });
-    await expect(devices.getByRole('row')).toHaveCount(2);
-    await devices.getByRole('row').nth(1).click();
+    await expect(page.getByRole('heading', { name: 'Your devices', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Other devices', exact: true })).toHaveCount(0);
+    const device = page.getByRole('link', { name: /^Device\b/u });
+    await expect(device).toHaveCount(1);
+    await device.click();
     await expect(page).toHaveURL(/\/s\/computer-hq\/settings\/computers\/[^/]+$/u);
     await expect(page.getByText('Awaiting first report')).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Recovery Commands' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Diagnostics' })).toBeVisible();
 
     const computer = new WebSocket(
         `ws://127.0.0.1:${process.env.HAUS_SERVER_PORT}/computer/attachment`
@@ -102,7 +109,7 @@ test('an Owner updates one Computer from Settings through isolated progress', as
     await expect(detail.getByText('Update required', { exact: true }).first()).toBeVisible();
 
     await page.getByRole('button', { name: 'Check', exact: true }).click();
-    await expect(page.getByText('Update available')).toBeVisible();
+    await expect(page.getByText('Update available').first()).toBeVisible();
     const updateButton = page.getByRole('button', { name: 'Update to v1.1.0' });
     await expect(updateButton).toBeEnabled();
 
@@ -144,7 +151,9 @@ test('an Owner updates one Computer from Settings through isolated progress', as
     expect(await reconnected).toMatchObject({ mode: 'ordinary' });
     await expect(detail.getByText('v1.1.0', { exact: true }).first()).toBeVisible();
 
-    await page.getByRole('button', { name: 'Check', exact: true }).click();
+    await expect(page.getByRole('region', { name: 'Software update' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Device actions' }).click();
+    await page.getByRole('menuitem', { name: /Check for updates/u }).click();
     await expect(page.getByText('Haus Computer is up to date', { exact: true })).toBeVisible();
     await expect(page.getByText('Version 1.1.0 is the latest production release.')).toBeVisible();
     await expect(page.getByRole('button', { name: /Update to/u })).toHaveCount(0);

@@ -87,6 +87,7 @@ test('runtime sign-in help stays open while hovering and copying the command', a
             })
         );
         await page.goto(`/s/${slug}/settings/computers/${attachment.computerId}`);
+        await page.getByRole('button', { name: 'Diagnostics' }).click();
         const trigger = page.getByRole('button', { name: 'Claude Code: authentication details' });
         await expect(trigger).toBeVisible({ timeout: 20_000 });
         const card = page.getByRole('dialog', { name: 'Claude Code help' });

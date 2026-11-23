@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { ComputerUpdateComputer } from './computer-update-card.tsx';
 import { ComputerUpdateCard } from './computer-update-card.tsx';
+import { showsComputerUpdateCard } from './computer-update-model.ts';
 import { computerUpdatePreviewStates, previewComputerUpdate } from './computer-update-preview.tsx';
 
 const computer = {
@@ -17,7 +18,7 @@ const computer = {
     updateUpdatedAt: new Date().toISOString(),
 } as ComputerUpdateComputer;
 
-test('keeps Software Update copy stable after a failed check', () => {
+test('a failed check shows its status and a retry, not the raw detail', () => {
     const html = renderUpdateCard({
         ...computer,
         updateDetail: 'Production Haus Computer 1.4.4 does not satisfy protocol 10.',
@@ -25,9 +26,29 @@ test('keeps Software Update copy stable after a failed check', () => {
         updatePhase: 'failed',
     });
 
-    expect(html).toContain('Check for and install the latest production release.');
+    expect(html).toContain('Update failed');
+    expect(html).toContain('>Check<');
     expect(html).not.toContain('does not satisfy protocol');
     expect(html).not.toContain('Recover with');
+});
+
+test('the Updates card shows only while an update needs a person or is in flight', () => {
+    const shows = (overrides: Partial<Parameters<typeof showsComputerUpdateCard>[0]>) =>
+        showsComputerUpdateCard({
+            health: 'healthy',
+            phase: 'idle',
+            updateUpdatedAt: new Date().toISOString(),
+            ...overrides,
+        });
+
+    expect(shows({})).toBe(false);
+    expect(shows({ phase: 'checking' })).toBe(false);
+    expect(shows({ phase: 'complete', targetVersion: '1.5.0' })).toBe(false);
+    expect(shows({ phase: 'available', targetVersion: '1.5.0' })).toBe(true);
+    expect(shows({ phase: 'downloading' })).toBe(true);
+    expect(shows({ phase: 'failed' })).toBe(true);
+    expect(shows({ health: 'update-required' })).toBe(true);
+    expect(shows({ health: 'offline', phase: 'available' })).toBe(false);
 });
 
 test('uses the HeroUI progress bar for determinate and indeterminate update phases', () => {
@@ -71,7 +92,7 @@ test('an offline update stops showing endless progress after its connection wind
     });
 
     expect(html).toContain('did not reconnect after installation');
-    expect(html).toContain('Unconfirmed');
+    expect(html).toContain('Update unconfirmed');
     expect(html).not.toContain('progress-bar');
 });
 

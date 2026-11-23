@@ -22,6 +22,7 @@ export function SecretsCapabilityRow({
         <ItemCard>
             <ItemCard.Content>
                 <SettingsStatusTitle
+                    info={view.description}
                     status={
                         <SettingsStatusChip color={statusColor(view.status)}>
                             {view.statusLabel}
@@ -30,7 +31,6 @@ export function SecretsCapabilityRow({
                 >
                     1Password
                 </SettingsStatusTitle>
-                <ItemCard.Description>{view.description}</ItemCard.Description>
             </ItemCard.Content>
             <ItemCard.Action>
                 <div className="flex items-center gap-2">

@@ -3,7 +3,7 @@ summary: Usage surfaces for Agent token volume, Computer plan capacity, spend si
 read_when:
   - changing Agent usage, plan capacity, spend, provider activity, or runtime health views
   - changing where operational usage appears in the App
-  - changing the Cloud Agents row's Connect/Disconnect, Make default, or Claude's environment picker
+  - changing the Cloud Workers rows' Connect/Disconnect or Claude's environment picker
 ---
 
 # Usage
@@ -45,10 +45,11 @@ while you read it.
   SuperGrok and API-key connections show none. See
   [Model connections](../../specs/model-connections.md#plan-capacity).
 
-* **Cloud Agents.** Beside the runtime capacity cards, the same Computer page carries one **Cursor
-  Cloud Agents** row and one **Claude Cloud Agents** row. **Make default** on a row no longer chooses
-  any Worker's place: a `haus worker start` without `--on` uses the Task's Project default (Settings →
-  Projects) and refuses when there is none. Claude uses the Computer's own Claude Code sign-in, so its row offers **Check again** instead of a Connect flow. The Claude row also carries an environment picker that
+* **Cloud Workers.** The same Computer page carries a **Cloud Workers** section with one **Cursor**
+  row and one **Claude** row; each row's status detail sits in its info tooltip. Plan usage for
+  the Computer's Worker runtimes (Claude Code and Codex) sits in the page's collapsed
+  Diagnostics. A row no longer chooses any Worker's place: a `haus worker start` without `--on`
+  uses the Task's Project default (Settings → Projects) and refuses when there is none. Claude uses the Computer's own Claude Code sign-in, so its row offers **Check again** instead of a Connect flow. The Claude row also carries an environment picker that
   pins which Anthropic-hosted environment this Computer's Claude launches use, defaulting to
   **Claude's default (not pinned)**; a pin that goes stale (removed or archived) fails the next
   launch outright instead of silently falling back to Claude Code's own choice. The
@@ -91,7 +92,7 @@ counted only a turn's last model request, so no reliable correction exists.
 
 ## Hosted data flow
 
-Computer settings includes **Refresh** beside Runtimes. Owners and Admins can ask an online
+Computer settings includes **Refresh** beside Plan usage in Diagnostics. Owners and Admins can ask an online
 Computer to rescan installed runtimes and their models without restarting it. The scan replaces
 only runtime inventory, preserving the Computer name, skills, and Cloud Agent readiness. Server
 events update runtime rows, Agent runtime/model choices, and usage views together; the App does

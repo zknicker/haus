@@ -1,8 +1,10 @@
 ---
-summary: The Device page's Access card (Captain access: which Captains may run tools on a Device, its own always may and only the attacher adds others; then on a Mac the "Computer use allowed" switch, off by default, and which Captains may use it), the macOS permissions section right after it with live re-checks, and Stop Agent Input.
+summary: The Device page's layout and its Access box (Captain access: which Captains may run tools on a Device, its own always may and only the attacher adds others; Workers can run here and its limit; then on a Mac the "Computer use" switch, off by default, which Captains may use it, and the macOS permissions, one Granted row or troubleshooting rows with live re-checks), and Stop Agent Input.
 read_when:
+  - changing the Device page's sections, its ⋯ menu, or when its Software update row shows
   - changing Settings → Devices → (Device) → Access, Captain access, or what a Captain sees when it lacks access
-  - changing the Access card's Computer use allowed switch or its Captains picker
+  - changing the Workers can run here switch or its limit on the Device page
+  - changing the Access box's Computer use switch or its Captains picker
   - changing the macOS permission rows, their deep links, or the Copy path row
   - changing Stop Agent Input or what a person sees when a Captain is refused computer use
 ---
@@ -16,34 +18,43 @@ it. It can look at and operate the desktop of a macOS Device when a person allow
 
 ## Device page
 
-The page runs Access, macOS permissions, Repositories, Plan usage, Browser, Cloud Agents, Secrets,
-Captains on this device and Updates. Diagnostics (the system log and recovery commands) is closed
-at the bottom until opened. Remove device lives only in the page's `⋯` menu.
+The page runs Access, Repositories, Tools (Chrome and 1Password), Cloud Workers and Home
+Captains. A Software update row sits above Access only while an update is available, in flight,
+failed, or required. Diagnostics (plan usage, the system log and recovery commands) is closed at
+the bottom until opened. Check for updates and Remove device live in the page's `⋯` menu.
 
-**Settings → Devices → (Device)** leads with one **Access** card on every Device. Its first row,
+**Settings → Devices → (Device)** leads with one **Access** box on every Device. Its first row,
 **Captain access**, explains itself in its info tooltip: "An allowed Captain runs commands on this
-device as its user, and anyone who can message the Captain can ask it to."
+device as its user, and anyone who can message the Captain can ask it to. Its Home Captains are
+always allowed."
 
-- The row reads "Always allowed: Cove and Forge.", the Device's own Captains. They can't be removed.
-- Each Captain from another Device that is allowed here has a row, "Allowed by Ada".
-- Only the person who attached the Device adds a Captain, with **Add Captain** (the + in the
-  section header). The attacher, Owners, and Admins can **Remove** one, which also takes it off
-  the Computer use Captains list and cancels what it is running here.
+- The Device's own Captains are always allowed and are listed under Home Captains, not here.
+- Each Captain from another Device that is allowed here has a row: its avatar and name, and a `⋯`
+  menu. With none, the row reads "Only its Home Captains".
+- Only the person who attached the Device adds a Captain, with the **Add** button on the Captain
+  access row. The attacher, Owners, and Admins can **Remove** one from its `⋯` menu, which also
+  takes it off the Computer use Captains list and cancels what it is running here.
 - A Captain without access that tries a tool here is refused, and asks the attacher once with a
   link to this page.
 
-On a macOS Device the same card continues with computer use.
+The box continues with **Workers can run here**, a switch, off for a new Device. Only the person
+who attached the Device turns it on; they, an Owner, or an Admin turn it off. While it is on, a
+select beside it sets how many Worker turns run here at once (default 4)
+([Workers](../../specs/workers.md#places)).
 
-- **Computer use allowed** (info tooltip: "Captains can see the screen and click and type in
-  applications on this Device."): a switch, off by default. While it is off, every desktop command a Captain tries on
+On a macOS Device the same box continues with computer use.
+
+- **Computer use** (info tooltip: "Captains can see the screen and click and type in
+  applications on this device."): a switch, off by default. While it is off, every desktop command a Captain tries on
   that Device is refused, and the Captain asks in the chat with a link to this page.
 - **Captains**, once the switch is on: All Captains (this Device's own, including ones added
-  later), or only the ones you pick, which may include Captains Agent access allows. The
-  description names them. A Captain that moves to another Device, or loses its access, drops off
-  the list.
-- **Stop Agent Input**: while a Captain is driving the Device, the Access card says "Cove is using
-  Studio" with a Stop button. Stop cancels the running command at once, and the Captain is told a
-  person stopped it.
+  later), or only the ones you pick, which may include Captains Agent access allows. Its info
+  tooltip names them. With no Captain on or allowed on the Device, the row reads "No Captains can
+  use this device". A Captain that moves to another Device, or loses its access, drops off the
+  list.
+- **Stop Agent Input**: while a Captain is driving the Device, the Access section says "Cove is
+  using Studio" with a Stop button. Stop cancels the running command at once, and the Captain is
+  told a person stopped it.
 
 The Device's attacher, Owners, and Admins can change the switch and the list. Anyone else sees
 them disabled. A change shows at once and rolls back with a toast if the Server refuses it. A
@@ -53,8 +64,10 @@ change it.
 ## macOS permissions
 
 agent-desktop ships inside Haus Computer, so nobody installs it. Like Haus Computer itself, it runs
-on Apple Silicon Macs only. Once the switch is on, **macOS permissions**, its own section right
-after Access, lists what macOS needs to allow, one row each:
+on Apple Silicon Macs only. Once the switch is on, the Access box ends with **macOS
+permissions**. When everything is granted it is one row with a Granted chip, its info tooltip
+naming the panes. When a permission is denied or couldn't be checked, it opens into one row per
+permission:
 
 - **System & App Protection Override** on macOS 27.3 and later (Device Control and Data Access on
   27.0–27.2, Accessibility before that): lets Captains read and click the apps on screen.

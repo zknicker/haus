@@ -69,7 +69,7 @@ export function CloudAgentSignInDialog({
                         </Modal.Heading>
                         <p>
                             {view.status === 'connected'
-                                ? `${computerName} can now start Cloud Agents.`
+                                ? `${computerName} can now run Workers on Cursor.`
                                 : `Sign in with your browser to connect ${computerName}.`}
                         </p>
                     </Modal.Header>
@@ -201,7 +201,7 @@ function statusTitle(view: CloudAgentSignInView): string {
         case 'waiting':
             return 'Waiting for you to sign in';
         case 'connected':
-            return 'Ready for Cloud Agents';
+            return 'Ready for Workers on Cursor';
         case 'failed':
             return 'Sign-in incomplete';
         case 'offline':
@@ -218,7 +218,7 @@ function statusDescription(view: CloudAgentSignInView): string {
         case 'connected':
             return view.email
                 ? `Connected as ${view.email}.`
-                : 'This device can now start Cloud Agents.';
+                : 'This device can now run Workers on Cursor.';
         case 'failed':
             return 'Try again for a new sign-in link.';
         case 'offline':

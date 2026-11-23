@@ -102,7 +102,7 @@ test('settings navigation names the page and reaches Server deletion', async ({
 
     await page.goto(`/s/${slug}/settings/browser`);
     await expect(page).toHaveURL(new RegExp(`/s/${slug}/settings/computers$`, 'u'));
-    await page.getByRole('row', { name: /Settings Computer/u }).click();
+    await page.getByRole('link', { name: /Settings Computer/u }).click();
     await expect(page).toHaveURL(
         new RegExp(`/s/${slug}/settings/computers/cmp_e2esettings00000$`, 'u')
     );

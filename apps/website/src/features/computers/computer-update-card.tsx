@@ -1,11 +1,12 @@
 import { ItemCard } from '@heroui-pro/react';
-import { Button, Tooltip } from '@heroui/react';
+import { Button } from '@heroui/react';
 import { useEffect, useReducer } from 'react';
 import type { HausOutputs } from '../../lib/haus-server.tsx';
+import { SettingsStatusChip, SettingsStatusTitle } from '../settings/layout/settings-row-title.tsx';
 import { UpdateProgressBar } from '../updates/haus-update-progress.tsx';
 import { offlineComputerUpdateExpiry } from '../updates/offline-computer-update.ts';
 import { stalledComputerUpdateExpiry } from '../updates/stalled-computer-update.ts';
-import { computerUpdateView } from './computer-update-model.ts';
+import { computerUpdateStatus, computerUpdateView } from './computer-update-model.ts';
 
 export type ComputerUpdateComputer = HausOutputs['computer']['list'][number];
 
@@ -27,74 +28,57 @@ export function ComputerUpdateCard({
 }) {
     useUpdateExpiryRefresh(computer);
     const view = computerUpdateView({
-        health: computer.health,
-        installedVersion: computer.productVersion,
+        ...updateInput(computer),
         isChecking: isChecking || isStarting,
-        phase: computer.updatePhase,
-        targetVersion: computer.updateTargetVersion,
-        updateUpdatedAt: computer.updateUpdatedAt,
     });
     const downloadProgress = computerDownloadProgress(computer);
+    const status = computerUpdateStatus(updateInput(computer));
     const isCheckPending = isChecking || (computer.updatePhase === 'checking' && !view.stalled);
-    const showCheck = view.canCheck || isCheckPending;
     const showUpdate = view.canUpdate || isStarting;
 
     return (
         <ItemCard>
             <ItemCard.Content>
-                <ItemCard.Title>Software update</ItemCard.Title>
-                <ItemCard.Description>
-                    {view.detail ?? 'Check for and install the latest production release.'}
-                </ItemCard.Description>
+                <SettingsStatusTitle
+                    status={
+                        status ? (
+                            <SettingsStatusChip color={status.color}>
+                                {status.label}
+                            </SettingsStatusChip>
+                        ) : null
+                    }
+                >
+                    Software update
+                </SettingsStatusTitle>
+                {view.detail ? (
+                    <ItemCard.Description className="whitespace-normal">
+                        {view.detail}
+                    </ItemCard.Description>
+                ) : null}
             </ItemCard.Content>
             <ItemCard.Action>
                 {view.isUpdateActive ? (
                     <UpdateProgressBar label={view.label} progress={downloadProgress} />
-                ) : (
-                    <div className="flex items-center gap-2">
-                        {/* An unreachable Computer still shows its control, disabled
-                            and named for the reason, rather than an empty slot. */}
-                        {view.canCheck || showCheck ? (
-                            <Button
-                                isDisabled={!view.canCheck}
-                                isPending={isCheckPending}
-                                onPress={onCheck}
-                                size="sm"
-                                variant="secondary"
-                            >
-                                Check
-                            </Button>
-                        ) : (
-                            <Tooltip delay={0}>
-                                <Tooltip.Trigger aria-label={view.label}>
-                                    <span className="inline-flex cursor-not-allowed">
-                                        <Button isDisabled size="sm" variant="secondary">
-                                            {view.unconfirmed ? 'Unconfirmed' : 'Offline'}
-                                        </Button>
-                                    </span>
-                                </Tooltip.Trigger>
-                                <Tooltip.Content showArrow>
-                                    <Tooltip.Arrow />
-                                    <p className="max-w-xs">
-                                        {view.unconfirmed
-                                            ? 'Reconnect this device to confirm the installed version.'
-                                            : 'Reconnect this device to check for updates.'}
-                                    </p>
-                                </Tooltip.Content>
-                            </Tooltip>
-                        )}
-                        {showUpdate ? (
-                            <Button
-                                isDisabled={!view.canUpdate || isUpdateBlocked}
-                                isPending={isStarting}
-                                onPress={onUpdate}
-                                size="sm"
-                            >
-                                {updateButtonLabel(computer.updateTargetVersion)}
-                            </Button>
-                        ) : null}
-                    </div>
-                )}
+                ) : showUpdate ? (
+                    <Button
+                        isDisabled={!view.canUpdate || isUpdateBlocked}
+                        isPending={isStarting}
+                        onPress={onUpdate}
+                        size="sm"
+                    >
+                        {updateButtonLabel(computer.updateTargetVersion)}
+                    </Button>
+                ) : view.canCheck || isCheckPending ? (
+                    <Button
+                        isDisabled={!view.canCheck}
+                        isPending={isCheckPending}
+                        onPress={onCheck}
+                        size="sm"
+                        variant="secondary"
+                    >
+                        Check
+                    </Button>
+                ) : null}
             </ItemCard.Action>
         </ItemCard>
     );
@@ -116,6 +100,16 @@ function useUpdateExpiryRefresh(computer: ComputerUpdateComputer) {
         const timer = window.setTimeout(refreshTime, expiry - Date.now());
         return () => window.clearTimeout(timer);
     }, [expiry]);
+}
+
+export function updateInput(computer: ComputerUpdateComputer) {
+    return {
+        health: computer.health,
+        installedVersion: computer.productVersion,
+        phase: computer.updatePhase,
+        targetVersion: computer.updateTargetVersion,
+        updateUpdatedAt: computer.updateUpdatedAt,
+    };
 }
 
 function updateButtonLabel(version: string | null) {

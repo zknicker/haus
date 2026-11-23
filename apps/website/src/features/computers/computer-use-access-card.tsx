@@ -1,13 +1,12 @@
 import { ItemCard } from '@heroui-pro/react';
 import { Separator, Switch } from '@heroui/react';
 import { useSetComputerUseEnabled } from '../../hooks/computer-use/use-computer-use-enabled.ts';
-import { useComputers } from '../../hooks/servers/use-computers.ts';
 import type { HausOutputs } from '../../lib/haus-server.tsx';
 import { withSaveErrorToast } from '../../lib/saving-toast.ts';
 import { SettingsRowTitle } from '../settings/layout/settings-row-title.tsx';
 import { ComputerUseCaptainsRow } from './computer-use-captains-row.tsx';
-import { computerUseDescription, supportsComputerUse } from './computer-use-model.ts';
-import { ComputerUsePermissions } from './computer-use-permissions.tsx';
+import { computerUseDescription } from './computer-use-model.ts';
+import { ComputerUsePermissionRows } from './computer-use-permissions.tsx';
 import { computerLabel } from './presentation.ts';
 
 type AccessComputer = HausOutputs['computer']['list'][number];
@@ -37,33 +36,15 @@ export function ComputerUseRows({
                         grantedAgentIds={computer.agentAccessGrants.map((grant) => grant.agentId)}
                         serverId={serverId}
                     />
+                    <ComputerUsePermissionRows
+                        computerId={computer.id}
+                        deviceName={computerLabel(computer)}
+                        readiness={computer.reportedInventory?.computerUse}
+                        serverId={serverId}
+                    />
                 </>
             ) : null}
         </>
-    );
-}
-
-export function ComputerUsePermissionsSection({
-    computerId,
-    serverId,
-}: {
-    computerId: string;
-    serverId: string;
-}) {
-    const computers = useComputers(serverId);
-    const computer = computers.data?.find((candidate) => candidate.id === computerId);
-    if (!(computer && supportsComputerUse(computer) && computer.computerUseEnabled)) {
-        return null;
-    }
-    return (
-        <section>
-            <ComputerUsePermissions
-                computerId={computerId}
-                deviceName={computerLabel(computer)}
-                readiness={computer.reportedInventory?.computerUse}
-                serverId={serverId}
-            />
-        </section>
     );
 }
 
@@ -82,13 +63,11 @@ export function ComputerUseAccessRow({
     return (
         <ItemCard>
             <ItemCard.Content>
-                <SettingsRowTitle info={computerUseDescription}>
-                    Computer use allowed
-                </SettingsRowTitle>
+                <SettingsRowTitle info={computerUseDescription}>Computer use</SettingsRowTitle>
             </ItemCard.Content>
             <ItemCard.Action>
                 <Switch
-                    aria-label="Computer use allowed"
+                    aria-label="Computer use"
                     isDisabled={!canChange || setEnabled.isPending}
                     isSelected={enabled}
                     onChange={(next) => {

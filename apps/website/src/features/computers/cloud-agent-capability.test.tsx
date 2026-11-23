@@ -33,7 +33,6 @@ function render(view: ReturnType<typeof cloudAgentCapabilityView>) {
             isBusy={false}
             onConnect={() => undefined}
             onDisconnect={() => undefined}
-            onMakeDefault={() => undefined}
             onSetEnvironment={() => undefined}
             view={view}
         />
@@ -50,10 +49,10 @@ test('an unconnected Computer offers Connect and no disconnect', () => {
     expect(view).toMatchObject({ canConnect: true, canDisconnect: false, status: 'not-connected' });
 
     const html = render(view);
-    expect(html).toContain('Cursor Cloud Agents');
+    expect(html).toContain('>Cursor<');
     expect(html).toContain('Not connected');
     expect(html).toContain('Connect');
-    expect(html).not.toContain('Cursor Cloud Agents actions');
+    expect(html).not.toContain('Cursor actions');
 });
 
 test('a connected Computer names its account and hides Disconnect behind the row menu', () => {
@@ -68,7 +67,7 @@ test('a connected Computer names its account and hides Disconnect behind the row
 
     const html = render(view);
     expect(html).toContain('Ready');
-    expect(html).toContain('aria-label="Cursor Cloud Agents actions"');
+    expect(html).toContain('aria-label="Cursor actions"');
     // The trigger is an icon-only ghost button, like every other row menu.
     expect(html).toContain('button--icon-only');
     // Disconnect lives in the menu popover, which does not render until opened.
@@ -201,7 +200,7 @@ test('Claude reuses the Computer’s Claude Code login: it checks again and neve
     });
     expect(signedOut).toMatchObject({ canConnect: true, connectLabel: 'Check again' });
     expect(signedOut.description).toContain('Claude Code');
-    expect(render(signedOut)).toContain('Claude Cloud Agents');
+    expect(render(signedOut)).toContain('>Claude<');
 
     const ready = cloudAgentCapabilityView({
         isConnecting: false,
@@ -209,19 +208,20 @@ test('Claude reuses the Computer’s Claude Code login: it checks again and neve
         provider: 'claude',
         state: { ...connected, expiresAt: null, isDefault: false, provider: 'claude' },
     });
-    expect(ready).toMatchObject({ canDisconnect: false, canMakeDefault: true, isDefault: false });
-    expect(render(ready)).toContain('aria-label="Claude Cloud Agents actions"');
+    expect(ready).toMatchObject({ canDisconnect: false, status: 'ready' });
+    expect(render(ready)).not.toContain('aria-label="Claude actions"');
 });
 
-test('the default provider wears a Default chip and cannot be made default again', () => {
+test('a row offers no Make default: the Project default decides where Workers run', () => {
     const view = cloudAgentCapabilityView({
         isConnecting: false,
         isOffline: false,
         provider: 'cursor',
         state: connected,
     });
-    expect(view).toMatchObject({ canMakeDefault: false, isDefault: true });
-    expect(render(view)).toContain('Default');
+    const html = render(view);
+    expect(html).not.toContain('Make default');
+    expect(html).not.toContain('>Default<');
 });
 
 test('recovered Computer state supersedes a lost connect response', () => {

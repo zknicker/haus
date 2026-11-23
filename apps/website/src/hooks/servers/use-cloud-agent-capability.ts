@@ -37,25 +37,6 @@ export function useCloudAgentCancelSignIn(target: CloudAgentCapabilityTarget) {
 }
 
 /**
- * The default is one flag across the Computer's providers, so every provider's
- * snapshot on that Computer is read again once it moves.
- */
-export function useCloudAgentMakeDefault(target: CloudAgentCapabilityTarget) {
-    const utils = hausTrpc.useUtils();
-    const options = useCapabilityMutationOptions(target);
-    return hausTrpc.cloudAgentProvider.makeDefault.useMutation({
-        ...options,
-        onSuccess: async (state: CloudAgentCapabilityState) => {
-            await options.onSuccess(state);
-            await utils.cloudAgentProvider.get.invalidate({
-                computerId: target.computerId,
-                serverId: target.serverId,
-            });
-        },
-    });
-}
-
-/**
  * Claude only: pins (or, with `null`, unpins) the Anthropic-hosted cloud
  * environment this Computer's Claude launches run on.
  */

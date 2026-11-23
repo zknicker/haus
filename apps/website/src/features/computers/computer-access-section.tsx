@@ -1,5 +1,6 @@
 import { ItemCardGroup } from '@heroui-pro/react';
 import { Separator } from '@heroui/react';
+import { useLocation } from 'react-router-dom';
 import {
     useGrantAgentAccess,
     useRevokeAgentAccess,
@@ -9,12 +10,16 @@ import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { useMembers } from '../../hooks/servers/use-members.ts';
 import { withSaveErrorToast } from '../../lib/saving-toast.ts';
 import { humanDirectory } from '../servers/human-identity.ts';
-import { AgentAccessRows, AgentAccessUnresolved, CaptainPicker } from './agent-access-card.tsx';
+import { CaptainAccessRows, CaptainAccessUnresolved } from './agent-access-card.tsx';
 import { agentAccessView } from './agent-access-model.ts';
 import { ComputerUseRows } from './computer-use-access-card.tsx';
 import { supportsComputerUse } from './computer-use-model.ts';
+import { ComputerUsePermissionNotices } from './computer-use-permissions.tsx';
 import { ComputerUseStop } from './computer-use-stop.tsx';
+import { ComputerWorkersRow } from './computer-workers-row.tsx';
 import { computerLabel } from './presentation.ts';
+
+const accessSectionId = 'access';
 
 export function ComputerAccessSection({
     computerId,
@@ -29,6 +34,7 @@ export function ComputerAccessSection({
     const members = useMembers(serverId).data?.members;
     const grant = useGrantAgentAccess(serverId);
     const revoke = useRevokeAgentAccess(serverId);
+    const location = useLocation();
     if (!computer) {
         return null;
     }
@@ -42,36 +48,43 @@ export function ComputerAccessSection({
         : null;
     const isPending = grant.isPending || revoke.isPending;
     const computerUse = supportsComputerUse(computer);
+    const deviceName = computerLabel(computer);
 
     return (
-        <section>
+        <section
+            id={accessSectionId}
+            ref={location.hash === `#${accessSectionId}` ? scrollIntoView : undefined}
+        >
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>
                     <ItemCardGroup.Title>Access</ItemCardGroup.Title>
-                    {view && computer.canGrantAgentAccess ? (
-                        <CaptainPicker
-                            candidates={view.candidates}
-                            isDisabled={isPending}
-                            onPick={(agentId) => {
+                </ItemCardGroup.Header>
+                {computerUse ? (
+                    <>
+                        <ComputerUseStop
+                            computerId={computerId}
+                            deviceName={deviceName}
+                            serverId={serverId}
+                        />
+                        {computer.computerUseEnabled ? (
+                            <ComputerUsePermissionNotices
+                                deviceName={deviceName}
+                                readiness={computer.reportedInventory?.computerUse}
+                            />
+                        ) : null}
+                    </>
+                ) : null}
+                <ItemCardGroup>
+                    {view ? (
+                        <CaptainAccessRows
+                            canGrant={computer.canGrantAgentAccess}
+                            canRevoke={computer.canRevokeAgentAccess}
+                            isPending={isPending}
+                            onGrant={(agentId) => {
                                 withSaveErrorToast(() =>
                                     grant.mutateAsync({ agentId, computerId, serverId })
                                 ).catch(() => undefined);
                             }}
-                        />
-                    ) : null}
-                </ItemCardGroup.Header>
-                {computerUse ? (
-                    <ComputerUseStop
-                        computerId={computerId}
-                        deviceName={computerLabel(computer)}
-                        serverId={serverId}
-                    />
-                ) : null}
-                <ItemCardGroup>
-                    {view ? (
-                        <AgentAccessRows
-                            canRevoke={computer.canRevokeAgentAccess}
-                            isPending={isPending}
                             onRevoke={(agentId) => {
                                 withSaveErrorToast(() =>
                                     revoke.mutateAsync({ agentId, computerId, serverId })
@@ -80,10 +93,12 @@ export function ComputerAccessSection({
                             view={view}
                         />
                     ) : (
-                        <AgentAccessUnresolved
+                        <CaptainAccessUnresolved
                             onRetry={agents.isError ? () => void agents.refetch() : null}
                         />
                     )}
+                    <Separator />
+                    <ComputerWorkersRow computer={computer} serverId={serverId} />
                     {computerUse ? (
                         <>
                             <Separator />
@@ -94,4 +109,8 @@ export function ComputerAccessSection({
             </ItemCardGroup>
         </section>
     );
+}
+
+function scrollIntoView(node: HTMLElement | null) {
+    node?.scrollIntoView({ block: 'start' });
 }

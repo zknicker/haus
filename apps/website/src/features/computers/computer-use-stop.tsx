@@ -38,7 +38,7 @@ export function ComputerUseStop({
                         { computerId, serverId },
                         {
                             onError: (error) =>
-                                toast.danger('Could not stop agent input', {
+                                toast.danger('Couldn’t stop Captain input', {
                                     description: error.message,
                                 }),
                         }

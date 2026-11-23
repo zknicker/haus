@@ -9,39 +9,30 @@ export function CloudAgentCapabilityRow({
     isBusy,
     onConnect,
     onDisconnect,
-    onMakeDefault,
     onSetEnvironment,
     view,
 }: {
-    /** A disconnect or default change is in flight, so the row menu waits for it. */
+    /** A disconnect is in flight, so the row menu waits for it. */
     isBusy: boolean;
     onConnect: () => void;
     onDisconnect: () => void;
-    onMakeDefault: () => void;
     onSetEnvironment: (environmentId: string) => void;
     view: CloudAgentCapabilityView;
 }) {
-    const title = `${view.providerName} Cloud Agents`;
+    const title = view.providerName;
     return (
         <ItemCard>
             <ItemCard.Content>
                 <SettingsStatusTitle
+                    info={view.description}
                     status={
-                        <>
-                            {view.isDefault ? (
-                                <SettingsStatusChip>Default</SettingsStatusChip>
-                            ) : null}
-                            <SettingsStatusChip color={statusColor(view.status)}>
-                                {view.statusLabel}
-                            </SettingsStatusChip>
-                        </>
+                        <SettingsStatusChip color={statusColor(view.status)}>
+                            {view.statusLabel}
+                        </SettingsStatusChip>
                     }
                 >
                     {title}
                 </SettingsStatusTitle>
-                <ItemCard.Description className="whitespace-normal">
-                    {view.description}
-                </ItemCard.Description>
             </ItemCard.Content>
             <ItemCard.Action>
                 <div className="flex items-center gap-2">
@@ -89,7 +80,7 @@ export function CloudAgentCapabilityRow({
                                 : view.connectLabel}
                         </Button>
                     )}
-                    {view.canDisconnect || view.canMakeDefault ? (
+                    {view.canDisconnect ? (
                         <Dropdown>
                             <Button
                                 aria-label={`${title} actions`}
@@ -101,27 +92,15 @@ export function CloudAgentCapabilityRow({
                             </Button>
                             <Dropdown.Popover placement="bottom end">
                                 <Dropdown.Menu>
-                                    {view.canMakeDefault ? (
-                                        <Dropdown.Item
-                                            id="make-default"
-                                            isDisabled={isBusy}
-                                            onAction={onMakeDefault}
-                                            textValue="Make default"
-                                        >
-                                            <Label>Make default</Label>
-                                        </Dropdown.Item>
-                                    ) : null}
-                                    {view.canDisconnect ? (
-                                        <Dropdown.Item
-                                            id="disconnect"
-                                            isDisabled={isBusy}
-                                            onAction={onDisconnect}
-                                            textValue={`Disconnect ${view.providerName}`}
-                                            variant="danger"
-                                        >
-                                            <Label>Disconnect {view.providerName}</Label>
-                                        </Dropdown.Item>
-                                    ) : null}
+                                    <Dropdown.Item
+                                        id="disconnect"
+                                        isDisabled={isBusy}
+                                        onAction={onDisconnect}
+                                        textValue={`Disconnect ${view.providerName}`}
+                                        variant="danger"
+                                    >
+                                        <Label>Disconnect {view.providerName}</Label>
+                                    </Dropdown.Item>
                                 </Dropdown.Menu>
                             </Dropdown.Popover>
                         </Dropdown>

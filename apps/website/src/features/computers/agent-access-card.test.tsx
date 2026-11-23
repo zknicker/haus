@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createTRPCQueryUtils } from '@trpc/react-query';
 import { observable } from '@trpc/server/observable';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
 import { hausTrpc } from '../../lib/haus-server.tsx';
 import { agentAccessView } from './agent-access-model.ts';
 import { ComputerAccessSection } from './computer-access-section.tsx';
@@ -21,34 +22,40 @@ const wrenGrant = {
     grantedByUserId: 'usr_ada',
 };
 
-test('home Captains are always allowed and a named Captain shows who allowed it', () => {
+test('an allowed Captain is a row of its own, and Home Captains are not listed again', () => {
     const html = render({ agentAccessGrants: [wrenGrant] });
 
     expect(html).toContain('Access');
     expect(html).toContain('aria-label="About Captain access"');
-    expect(html).toContain('Captain access');
-    expect(html).toContain('Always allowed: Cove and Forge.');
     expect(html).toContain('Wren');
-    expect(html).toContain('Allowed by Ada');
-    expect(html).not.toContain('aria-label="Remove Cove"');
+    expect(html).not.toContain('Cove');
+    expect(html).not.toContain('Only its Home Captains');
 });
 
-test('the attacher can add a Captain, and a steward can remove a named one', () => {
+test('with nobody allowed, the list says only its Home Captains can run here', () => {
+    expect(render({})).toContain('Only its Home Captains');
+});
+
+test('the Access section is the #access target that links land on', () => {
+    expect(render({})).toMatch(/<section id="access"/u);
+});
+
+test('the attacher adds through a labeled Add, and a steward removes through the row menu', () => {
     const attacher = render({
         agentAccessGrants: [wrenGrant],
         canGrantAgentAccess: true,
         canRevokeAgentAccess: true,
     });
-    expect(attacher).toContain('aria-label="Add Captain"');
-    expect(attacher).toContain('aria-label="Remove Wren"');
+    expect(attacher).toMatch(/aria-label="Add Captain"[^>]*>Add</u);
+    expect(attacher).toContain('aria-label="Wren actions"');
 
     const admin = render({ agentAccessGrants: [wrenGrant], canRevokeAgentAccess: true });
     expect(admin).not.toContain('aria-label="Add Captain"');
-    expect(admin).toContain('aria-label="Remove Wren"');
+    expect(admin).toContain('aria-label="Wren actions"');
 
     const member = render({ agentAccessGrants: [wrenGrant] });
     expect(member).not.toContain('aria-label="Add Captain"');
-    expect(member).not.toContain('aria-label="Remove Wren"');
+    expect(member).not.toContain('aria-label="Wren actions"');
 });
 
 test('the add picker offers only Captains that are neither home nor already allowed', () => {
@@ -94,8 +101,12 @@ function render(overrides: Record<string, unknown>) {
     utils.computer.list.setData({ serverId }, [
         {
             agentAccessGrants: [],
+            canChangeWorkers: false,
+            canEnableWorkers: false,
             canGrantAgentAccess: false,
             canRevokeAgentAccess: false,
+            workerLimit: 4,
+            workersEnabled: false,
             canChangeComputerUse: false,
             computerUseAgents: { kind: 'all' },
             computerUseEnabled: false,
@@ -113,7 +124,9 @@ function render(overrides: Record<string, unknown>) {
     return renderToStaticMarkup(
         <QueryClientProvider client={queryClient}>
             <hausTrpc.Provider client={client} queryClient={queryClient}>
-                <ComputerAccessSection computerId={computerId} serverId={serverId} />
+                <MemoryRouter initialEntries={[`/settings/computers/${computerId}#access`]}>
+                    <ComputerAccessSection computerId={computerId} serverId={serverId} />
+                </MemoryRouter>
             </hausTrpc.Provider>
         </QueryClientProvider>
     );

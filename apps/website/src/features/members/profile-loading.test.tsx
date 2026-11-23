@@ -35,23 +35,14 @@ test('Profile settings renders disabled identity fields before its directory res
     expect(markup).toContain('aria-busy="true"');
 });
 
-test('Computer profile reserves all its sections before its roster resolves', () => {
+test('a device page stays blank before its roster resolves', () => {
     const markup = render(
         <ComputerPage computerId="cmp_one" serverId={server.id} serverSlug={server.slug} />
     );
-    for (const label of [
-        'Access',
-        'Repositories',
-        'Plan usage',
-        'Browser',
-        'Cloud Agents',
-        'Captains on this device',
-        'Updates',
-    ]) {
-        expect(markup).toContain(label);
-    }
+    expect(markup).toContain('aria-busy="true"');
+    expect(markup).not.toContain('Access');
     expect(markup).not.toContain('Attach a device');
-    expect(markup).not.toContain('No Captains assigned');
+    expect(markup).not.toContain('Device unavailable');
 });
 
 test('Agent usage reserves the tile and link without inventing a token total', () => {

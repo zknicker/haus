@@ -1,4 +1,3 @@
-import { ItemCardGroup } from '@heroui-pro/react';
 import { toast } from '@heroui/react';
 import { useState } from 'react';
 import {
@@ -14,11 +13,11 @@ import { SecretsConnectDialog } from './secrets-connect-dialog.tsx';
 import { SecretsDisconnectDialog } from './secrets-disconnect-dialog.tsx';
 
 /**
- * Secrets is a Computer capability: one 1Password vault every Agent on this
- * Computer can read through `haus-secrets`. The token lives on the Computer;
- * this row reads the Computer's own status report.
+ * 1Password in the Tools box: one vault every Captain on this device can read
+ * through `haus-secrets`. The token lives on the device; the row reads the
+ * device's own status report.
  */
-export function SecretsCapabilityCard({
+export function SecretsCapability({
     computerId,
     serverId,
 }: {
@@ -76,26 +75,19 @@ export function SecretsCapabilityCard({
     };
 
     return (
-        <section>
-            <ItemCardGroup variant="transparent">
-                <ItemCardGroup.Header>
-                    <ItemCardGroup.Title>Secrets</ItemCardGroup.Title>
-                </ItemCardGroup.Header>
-                <ItemCardGroup>
-                    <SecretsCapabilityRow
-                        isBusy={refresh.isPending || disconnect.isPending}
-                        onConnect={() => {
-                            setDialog('connect');
-                            void flow.start();
-                        }}
-                        onDisconnect={() => setDialog('disconnect')}
-                        onRefresh={() => {
-                            void handleRefresh();
-                        }}
-                        view={view}
-                    />
-                </ItemCardGroup>
-            </ItemCardGroup>
+        <>
+            <SecretsCapabilityRow
+                isBusy={refresh.isPending || disconnect.isPending}
+                onConnect={() => {
+                    setDialog('connect');
+                    void flow.start();
+                }}
+                onDisconnect={() => setDialog('disconnect')}
+                onRefresh={() => {
+                    void handleRefresh();
+                }}
+                view={view}
+            />
             {dialog === 'connect' ? (
                 <SecretsConnectDialog
                     computerName={computerName}
@@ -124,6 +116,6 @@ export function SecretsCapabilityCard({
                     serviceAccountName={status.serviceAccountName}
                 />
             ) : null}
-        </section>
+        </>
     );
 }
