@@ -42,15 +42,15 @@ export function ChannelActionsMenu({
                     textValue="Icon and color"
                 >
                     <Icon aria-hidden="true" icon={PaintBrush03Icon} size={16} />
-                    <Label>Icon &amp; color</Label>
+                    <Label>Icon &amp; color…</Label>
                 </Dropdown.Item>
                 <Dropdown.Item
                     id="captains"
                     isDisabled={Boolean(chat.archivedAt)}
-                    textValue="Captains in this Project"
+                    textValue="Captains in this project"
                 >
                     <Icon aria-hidden="true" icon={UserMultipleIcon} size={16} />
-                    <Label>Captains in this Project…</Label>
+                    <Label>Captains in this project…</Label>
                 </Dropdown.Item>
             </Dropdown.Section>
             <Separator />

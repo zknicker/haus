@@ -18,7 +18,7 @@ export function ConnectionTrustDialog({
                     <AlertDialog.Dialog>
                         <AlertDialog.Header>
                             <AlertDialog.Icon status="warning" />
-                            <AlertDialog.Heading>Trust This Sign-In Service?</AlertDialog.Heading>
+                            <AlertDialog.Heading>Trust this sign-in service?</AlertDialog.Heading>
                         </AlertDialog.Header>
                         <AlertDialog.Body>
                             {request?.connection.name} uses{' '}
@@ -30,7 +30,7 @@ export function ConnectionTrustDialog({
                                 Cancel
                             </Button>
                             <Button onPress={onConfirm} slot="close">
-                                Trust and Continue
+                                Trust and continue
                             </Button>
                         </AlertDialog.Footer>
                     </AlertDialog.Dialog>

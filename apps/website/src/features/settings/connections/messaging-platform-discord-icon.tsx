@@ -6,21 +6,3 @@ export function DiscordIcon({ className }: { className?: string }) {
         </svg>
     );
 }
-
-export function ChevronIcon({ className, expanded }: { className?: string; expanded: boolean }) {
-    return (
-        <svg
-            aria-hidden="true"
-            className={`${className} transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            viewBox="0 0 24 24"
-        >
-            <title>Toggle</title>
-            <path d="m6 9 6 6 6-6" />
-        </svg>
-    );
-}

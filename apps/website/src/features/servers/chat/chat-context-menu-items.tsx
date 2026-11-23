@@ -40,10 +40,10 @@ export function ChannelContextMenuItems({
             <ContextMenu.Item
                 id="captains"
                 isDisabled={archived}
-                textValue="Captains in this Project"
+                textValue="Captains in this project"
             >
                 <Icon aria-hidden="true" icon={UserMultipleIcon} size={16} />
-                <Label>Captains in this Project…</Label>
+                <Label>Captains in this project…</Label>
             </ContextMenu.Item>
             {actions.filesAvailable ? (
                 <>

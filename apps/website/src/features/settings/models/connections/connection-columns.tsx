@@ -87,7 +87,7 @@ function AccountCell({ row }: { row: AccountRow }) {
             <ModelAccountMark account={row.mark} />
             <span className="flex min-w-0 flex-col">
                 <span className="text-foreground truncate font-medium">{row.title}</span>
-                <span className="text-muted truncate text-xs">{row.subtitle}</span>
+                <span className="text-muted truncate text-sm">{row.subtitle}</span>
             </span>
         </span>
     );

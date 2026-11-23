@@ -47,7 +47,7 @@ export function ComputerUseStop({
                 size="sm"
                 variant="danger"
             >
-                Stop Agent Input
+                Stop Captain input
             </Button>
         </Alert>
     );
