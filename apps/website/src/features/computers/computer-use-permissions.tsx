@@ -1,11 +1,16 @@
 import type { ComputerUseReadiness } from '@haus/api';
-import { ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { Alert, Button, toast } from '@heroui/react';
-import { Copy01Icon, Image01Icon, Mouse01Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { ItemCard } from '@heroui-pro/react';
+import { Alert, Button, Separator, toast } from '@heroui/react';
+import { Copy01Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { Fragment } from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { useComputerUseRecheck } from '../../hooks/computer-use/use-computer-use-recheck.ts';
 import { writeClipboardText } from '../../lib/clipboard.ts';
-import { SettingsStatusChip, SettingsStatusTitle } from '../settings/layout/settings-row-title.tsx';
+import {
+    SettingsRowTitle,
+    SettingsStatusChip,
+    SettingsStatusTitle,
+} from '../settings/layout/settings-row-title.tsx';
 import {
     type ComputerUsePermission,
     computerUseNeedsGrant,
@@ -13,20 +18,15 @@ import {
     defaultComputerAppPath,
     permissionStateLabel,
 } from './computer-use-model.ts';
+import { StatusInfoTitle } from './status-info-title.tsx';
 
-export function ComputerUsePermissions({
-    computerId,
+export function ComputerUsePermissionNotices({
     deviceName,
     readiness,
-    serverId,
 }: {
-    computerId: string;
     deviceName: string;
     readiness: ComputerUseReadiness | undefined;
-    serverId: string;
 }) {
-    const needsGrant = computerUseNeedsGrant(readiness);
-    const recheck = useComputerUseRecheck({ active: needsGrant, computerId, serverId });
     if (readiness && !readiness.installed) {
         return (
             <Alert status="warning">
@@ -41,41 +41,87 @@ export function ComputerUsePermissions({
             </Alert>
         );
     }
+    if (readiness?.permissionsMoved) {
+        return (
+            <Alert status="warning">
+                <Alert.Indicator />
+                <Alert.Content>
+                    <Alert.Title>Haus Computer is an app now, so macOS asks again</Alert.Title>
+                </Alert.Content>
+            </Alert>
+        );
+    }
+    return null;
+}
+
+export function ComputerUsePermissionRows({
+    computerId,
+    deviceName,
+    readiness,
+    serverId,
+}: {
+    computerId: string;
+    deviceName: string;
+    readiness: ComputerUseReadiness | undefined;
+    serverId: string;
+}) {
+    const needsGrant = computerUseNeedsGrant(readiness);
+    const recheck = useComputerUseRecheck({ active: needsGrant, computerId, serverId });
     const permissions = computerUsePermissions(readiness);
     if (permissions.length === 0) {
         return null;
     }
-    const appPath = readiness?.appPath ?? defaultComputerAppPath;
+    if (!needsGrant) {
+        return (
+            <>
+                <Separator />
+                <ItemCard>
+                    <ItemCard.Content>
+                        <StatusInfoTitle
+                            info={`Computer use needs ${permissions.map((permission) => permission.pane).join(' and ')}.`}
+                            status={
+                                <SettingsStatusChip color="success">Granted</SettingsStatusChip>
+                            }
+                        >
+                            macOS permissions
+                        </StatusInfoTitle>
+                    </ItemCard.Content>
+                </ItemCard>
+            </>
+        );
+    }
     return (
-        <ItemCardGroup variant="transparent">
-            <ItemCardGroup.Header>
-                <ItemCardGroup.Title>macOS permissions</ItemCardGroup.Title>
-                {needsGrant ? (
+        <>
+            <Separator />
+            <ItemCard>
+                <ItemCard.Content>
+                    <SettingsRowTitle info="Grant these on the device itself in System Settings › Privacy & Security.">
+                        macOS permissions
+                    </SettingsRowTitle>
+                </ItemCard.Content>
+                <ItemCard.Action>
                     <Button
                         isPending={recheck.isPending}
                         onPress={() => recheck.mutate({ computerId, serverId })}
                         size="sm"
-                        variant="ghost"
+                        variant="secondary"
                     >
                         Check again
                     </Button>
-                ) : null}
-            </ItemCardGroup.Header>
-            {readiness?.permissionsMoved ? (
-                <Alert status="warning">
-                    <Alert.Indicator />
-                    <Alert.Content>
-                        <Alert.Title>Haus Computer is an app now, so macOS asks again</Alert.Title>
-                    </Alert.Content>
-                </Alert>
-            ) : null}
-            <ItemCardGroup>
-                {permissions.map((permission) => (
-                    <PermissionRow key={permission.id} permission={permission} />
-                ))}
-                {needsGrant ? <AppPathRow appPath={appPath} deviceName={deviceName} /> : null}
-            </ItemCardGroup>
-        </ItemCardGroup>
+                </ItemCard.Action>
+            </ItemCard>
+            {permissions.map((permission) => (
+                <Fragment key={permission.id}>
+                    <Separator />
+                    <PermissionRow permission={permission} />
+                </Fragment>
+            ))}
+            <Separator />
+            <AppPathRow
+                appPath={readiness?.appPath ?? defaultComputerAppPath}
+                deviceName={deviceName}
+            />
+        </>
     );
 }
 
@@ -83,12 +129,6 @@ function PermissionRow({ permission }: { permission: ComputerUsePermission }) {
     const granted = permission.state === 'granted';
     return (
         <ItemCard>
-            <ItemCard.Icon>
-                <Icon
-                    icon={permission.id === 'accessibility' ? Mouse01Icon : Image01Icon}
-                    size={16}
-                />
-            </ItemCard.Icon>
             <ItemCard.Content>
                 <SettingsStatusTitle
                     status={
@@ -108,7 +148,7 @@ function PermissionRow({ permission }: { permission: ComputerUsePermission }) {
                     <Button
                         onPress={() => window.location.assign(permission.settingsUrl)}
                         size="sm"
-                        variant="outline"
+                        variant="secondary"
                     >
                         Open Settings
                     </Button>
@@ -137,7 +177,7 @@ function AppPathRow({ appPath, deviceName }: { appPath: string; deviceName: stri
                         );
                     }}
                     size="sm"
-                    variant="ghost"
+                    variant="secondary"
                 >
                     <Icon icon={Copy01Icon} size={16} />
                     Copy path

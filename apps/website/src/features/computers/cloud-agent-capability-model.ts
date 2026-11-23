@@ -32,14 +32,14 @@ const providerAccess: Record<
 > = {
     claude: {
         connectLabel: 'Check again',
-        missing: 'Install Claude Code on this device to use Claude cloud agents.',
+        missing: 'Install Claude Code on this device to run Workers on Claude.',
         notConnected:
             'Sign in to Claude Code on this device with your Claude account, then check again.',
         plan: 'Claude cloud sessions bill to that Claude plan.',
     },
     cursor: {
         connectLabel: 'Connect',
-        missing: 'This device cannot reach Cursor’s Cloud Agents.',
+        missing: 'This device cannot reach Cursor.',
         notConnected:
             'Connect this device to Cursor so Captains can delegate work to Workers on Cursor.',
         plan: 'Workers on Cursor bill to that Cursor plan.',
@@ -72,7 +72,7 @@ export function cloudAgentCapabilityView(input: {
             ...identity,
             canConnect: false,
             canDisconnect: false,
-            description: 'Reconnect this device to manage its Cloud Agent access.',
+            description: 'Reconnect this device to manage its Cloud Workers.',
             status: 'unavailable',
             statusLabel: 'Unavailable',
         };

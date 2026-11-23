@@ -1,24 +1,31 @@
 import { ItemCard } from '@heroui-pro/react';
 import { Button, Dropdown, Label, Separator } from '@heroui/react';
-import { PlusSignIcon } from '@hugeicons-pro/core-stroke-rounded';
+import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Fragment } from 'react';
+import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
 import { Icon } from '../../components/ui/icon.tsx';
+import { SettingsEmptyRow } from '../settings/layout/settings-empty.tsx';
 import { SettingsRowTitle } from '../settings/layout/settings-row-title.tsx';
+import { SettingsRowError } from '../settings/layout/settings-text.tsx';
 import {
     type AccessCaptain,
     type AgentAccessView,
     agentAccessDescription,
-    homeCaptainsSummary,
+    grantedCaptainsEmpty,
 } from './agent-access-model.ts';
 
-export function AgentAccessRows({
+export function CaptainAccessRows({
+    canGrant,
     canRevoke,
     isPending,
+    onGrant,
     onRevoke,
     view,
 }: {
+    canGrant: boolean;
     canRevoke: boolean;
     isPending: boolean;
+    onGrant: (agentId: string) => void;
     onRevoke: (agentId: string) => void;
     view: AgentAccessView;
 }) {
@@ -29,49 +36,43 @@ export function AgentAccessRows({
                     <SettingsRowTitle info={agentAccessDescription}>
                         Captain access
                     </SettingsRowTitle>
-                    <ItemCard.Description className="whitespace-normal">
-                        {homeCaptainsSummary(view.home)}
-                    </ItemCard.Description>
                 </ItemCard.Content>
+                {canGrant ? (
+                    <ItemCard.Action>
+                        <CaptainPicker
+                            candidates={view.candidates}
+                            isDisabled={isPending}
+                            onPick={onGrant}
+                        />
+                    </ItemCard.Action>
+                ) : null}
             </ItemCard>
-            {view.granted.map((captain) => (
-                <Fragment key={captain.id}>
-                    <Separator />
-                    <ItemCard>
-                        <ItemCard.Content>
-                            <ItemCard.Title>{captain.displayName}</ItemCard.Title>
-                            <ItemCard.Description>
-                                Allowed by {captain.grantedBy}
-                            </ItemCard.Description>
-                        </ItemCard.Content>
-                        {canRevoke ? (
-                            <ItemCard.Action>
-                                <Button
-                                    aria-label={`Remove ${captain.displayName}`}
-                                    isDisabled={isPending}
-                                    onPress={() => onRevoke(captain.id)}
-                                    size="sm"
-                                    variant="secondary"
-                                >
-                                    Remove
-                                </Button>
-                            </ItemCard.Action>
-                        ) : null}
-                    </ItemCard>
-                </Fragment>
-            ))}
+            <Separator />
+            {view.granted.length === 0 ? (
+                <SettingsEmptyRow>{grantedCaptainsEmpty(view.home)}</SettingsEmptyRow>
+            ) : (
+                view.granted.map((captain, index) => (
+                    <Fragment key={captain.id}>
+                        {index > 0 ? <Separator /> : null}
+                        <GrantedCaptainRow
+                            canRevoke={canRevoke}
+                            captain={captain}
+                            isPending={isPending}
+                            onRevoke={onRevoke}
+                        />
+                    </Fragment>
+                ))
+            )}
         </>
     );
 }
 
-export function AgentAccessUnresolved({ onRetry }: { onRetry: (() => void) | null }) {
+export function CaptainAccessUnresolved({ onRetry }: { onRetry: (() => void) | null }) {
     return (
         <ItemCard>
             <ItemCard.Content>
                 <SettingsRowTitle info={agentAccessDescription}>Captain access</SettingsRowTitle>
-                {onRetry ? (
-                    <ItemCard.Description>Couldn’t load Captains.</ItemCard.Description>
-                ) : null}
+                {onRetry ? <SettingsRowError>Couldn’t load Captains.</SettingsRowError> : null}
             </ItemCard.Content>
             {onRetry ? (
                 <ItemCard.Action>
@@ -84,7 +85,55 @@ export function AgentAccessUnresolved({ onRetry }: { onRetry: (() => void) | nul
     );
 }
 
-export function CaptainPicker({
+function GrantedCaptainRow({
+    canRevoke,
+    captain,
+    isPending,
+    onRevoke,
+}: {
+    canRevoke: boolean;
+    captain: AccessCaptain;
+    isPending: boolean;
+    onRevoke: (agentId: string) => void;
+}) {
+    return (
+        <ItemCard>
+            <EntityAvatar name={captain.displayName} size="sm" src={captain.avatarUrl} />
+            <ItemCard.Content>
+                <ItemCard.Title>{captain.displayName}</ItemCard.Title>
+            </ItemCard.Content>
+            {canRevoke ? (
+                <ItemCard.Action>
+                    <Dropdown>
+                        <Button
+                            aria-label={`${captain.displayName} actions`}
+                            isIconOnly
+                            size="sm"
+                            variant="ghost"
+                        >
+                            <Icon aria-hidden="true" icon={MoreHorizontalIcon} size={16} />
+                        </Button>
+                        <Dropdown.Popover placement="bottom end">
+                            <Dropdown.Menu>
+                                <Dropdown.Item
+                                    id="remove"
+                                    isDisabled={isPending}
+                                    onAction={() => onRevoke(captain.id)}
+                                    textValue={`Remove ${captain.displayName}`}
+                                    variant="danger"
+                                >
+                                    <Label>Remove</Label>
+                                </Dropdown.Item>
+                            </Dropdown.Menu>
+                        </Dropdown.Popover>
+                    </Dropdown>
+                </ItemCard.Action>
+            ) : null}
+        </ItemCard>
+    );
+}
+
+function CaptainPicker({
     candidates,
     isDisabled,
     onPick,
@@ -98,11 +147,10 @@ export function CaptainPicker({
             <Button
                 aria-label="Add Captain"
                 isDisabled={isDisabled || candidates.length === 0}
-                isIconOnly
                 size="sm"
-                variant="ghost"
+                variant="secondary"
             >
-                <Icon aria-hidden="true" icon={PlusSignIcon} size={16} />
+                Add
             </Button>
             <Dropdown.Popover placement="bottom end">
                 <Dropdown.Menu>
@@ -113,6 +161,11 @@ export function CaptainPicker({
                             onAction={() => onPick(captain.id)}
                             textValue={captain.displayName}
                         >
+                            <EntityAvatar
+                                name={captain.displayName}
+                                size={20}
+                                src={captain.avatarUrl}
+                            />
                             <Label>{captain.displayName}</Label>
                         </Dropdown.Item>
                     ))}

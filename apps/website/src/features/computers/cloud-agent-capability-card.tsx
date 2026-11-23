@@ -1,15 +1,15 @@
 import { cloudAgentProviders } from '@haus/api';
 import { ItemCardGroup } from '@heroui-pro/react';
+import { Separator } from '@heroui/react';
+import { Fragment } from 'react';
 import { CloudAgentProviderCapability } from './cloud-agent-provider-capability.tsx';
 
 /**
- * Cloud Agent provider access on this Computer — a capability of the machine,
- * beside its runtimes, not a runtime itself. The two stay separate because a
- * provider's cloud credential and its runtime CLI can live in different
- * stores even for one account. One row per provider; the default is the one
- * `haus worker start` uses when an Agent names none.
+ * The cloud places this device carries Workers to: one row per provider, its
+ * login kept on this device. The default is the one `haus worker start` uses
+ * when a Captain names none.
  */
-export function CloudAgentCapabilityCard({
+export function CloudWorkersSection({
     computerId,
     serverId,
 }: {
@@ -20,16 +20,18 @@ export function CloudAgentCapabilityCard({
         <section>
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>
-                    <ItemCardGroup.Title>Cloud Agents</ItemCardGroup.Title>
+                    <ItemCardGroup.Title>Cloud Workers</ItemCardGroup.Title>
                 </ItemCardGroup.Header>
                 <ItemCardGroup>
-                    {cloudAgentProviders.map((provider) => (
-                        <CloudAgentProviderCapability
-                            computerId={computerId}
-                            key={provider}
-                            provider={provider}
-                            serverId={serverId}
-                        />
+                    {cloudAgentProviders.map((provider, index) => (
+                        <Fragment key={provider}>
+                            {index > 0 ? <Separator /> : null}
+                            <CloudAgentProviderCapability
+                                computerId={computerId}
+                                provider={provider}
+                                serverId={serverId}
+                            />
+                        </Fragment>
                     ))}
                 </ItemCardGroup>
             </ItemCardGroup>

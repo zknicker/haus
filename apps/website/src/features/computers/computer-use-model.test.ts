@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import {
     computerUseAgentsSummary,
+    computerUseAgentsValue,
     computerUseCaptains,
     computerUseNeedsGrant,
     computerUsePermissions,
@@ -71,7 +72,7 @@ test('the Captains picker moves between all and a named list, and never saves an
 
 test('the Captains summary says all includes later Captains, and names a named list', () => {
     expect(computerUseAgentsSummary({ kind: 'all' }, captains)).toBe(
-        'All Captains on this Device, including ones added later (now Cove and Forge).'
+        'All Captains on this device, including ones added later (now Cove and Forge).'
     );
     expect(computerUseAgentsSummary({ agentIds: ['agt_forge'], kind: 'named' }, captains)).toBe(
         'Only Forge.'
@@ -99,6 +100,16 @@ test('all covers only home Captains, and a named list can name a Captain Agent a
         { displayName: 'Cove', home: true, id: 'agt_cove' },
         { displayName: 'Wren', home: false, id: 'agt_wren' },
     ]);
+});
+
+test('the Captains select reads all, one name, or a count', () => {
+    expect(computerUseAgentsValue({ kind: 'all' }, captains)).toBe('All Captains');
+    expect(computerUseAgentsValue({ agentIds: ['agt_forge'], kind: 'named' }, captains)).toBe(
+        'Forge'
+    );
+    expect(
+        computerUseAgentsValue({ agentIds: ['agt_cove', 'agt_wren'], kind: 'named' }, captains)
+    ).toBe('2 Captains');
 });
 
 test('computer use is offered only on macOS', () => {

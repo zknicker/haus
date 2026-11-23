@@ -1,7 +1,7 @@
 import type { ComputerAgentAccessGrant } from '@haus/api';
 
 export const agentAccessDescription =
-    'An allowed Captain runs commands on this device as its user, and anyone who can message the Captain can ask it to.';
+    'An allowed Captain runs commands on this device as its user, and anyone who can message the Captain can ask it to. Its Home Captains are always allowed.';
 
 export interface AccessCaptain {
     avatarUrl: string | null;
@@ -42,14 +42,8 @@ export function agentAccessView({
     return { candidates, granted, home } satisfies AgentAccessView;
 }
 
-export function homeCaptainsSummary(home: readonly AccessCaptain[]) {
-    return home.length > 0
-        ? `Always allowed: ${listNames(home.map((captain) => captain.displayName))}.`
-        : 'None yet.';
-}
-
-function listNames(names: readonly string[]) {
-    return new Intl.ListFormat('en', { style: 'long', type: 'conjunction' }).format(names);
+export function grantedCaptainsEmpty(home: readonly AccessCaptain[]) {
+    return home.length > 0 ? 'Only its Home Captains' : 'No Captains yet';
 }
 
 function captainOf(agent: AccessCaptain) {

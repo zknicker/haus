@@ -60,6 +60,44 @@ export function computerUpdateView(input: ComputerUpdateInput) {
     };
 }
 
+/**
+ * The Updates card is there only while an update needs a person or is worth
+ * watching: one is available, in flight, failed, stalled, unconfirmed, or the
+ * device needs one to keep working. Checking lives in the page's ••• menu.
+ */
+export function showsComputerUpdateCard(input: ComputerUpdateInput) {
+    const view = computerUpdateView(input);
+    return (
+        view.canUpdate ||
+        view.isUpdateActive ||
+        view.stalled ||
+        view.unconfirmed ||
+        input.phase === 'failed' ||
+        input.health === 'update-required'
+    );
+}
+
+/**
+ * The status chip beside "Software update" on the Updates card. An update in
+ * flight has none: its progress bar already names the phase.
+ */
+export function computerUpdateStatus(input: ComputerUpdateInput) {
+    const view = computerUpdateView(input);
+    if (view.isUpdateActive) {
+        return null;
+    }
+    if (view.unconfirmed || view.stalled) {
+        return { color: 'warning', label: view.label } as const;
+    }
+    if (input.phase === 'failed') {
+        return { color: 'danger', label: view.label } as const;
+    }
+    if (input.health === 'update-required' && !view.canUpdate) {
+        return { color: 'warning', label: 'Update required' } as const;
+    }
+    return { color: view.canUpdate ? 'accent' : 'default', label: view.label } as const;
+}
+
 export function computerUpdatePhaseLabel(phase: ComputerUpdatePhase) {
     return phaseLabels[phase];
 }

@@ -45,8 +45,10 @@ while you read it.
   SuperGrok and API-key connections show none. See
   [Model connections](../../specs/model-connections.md#plan-capacity).
 
-* **Cloud Agents.** Beside the runtime capacity cards, the same Computer page carries one **Cursor
-  Cloud Agents** row and one **Claude Cloud Agents** row. **Make default** on a row chooses the place a
+* **Cloud Workers.** The same Computer page carries a **Cloud Workers** section with one **Cursor**
+  row and one **Claude** row; each row's status detail sits in its info tooltip. Plan usage for
+  the Computer's Worker runtimes (Claude Code and Codex) sits in the page's collapsed
+  Diagnostics. **Make default** on a row chooses the place a
   `haus worker start` without `--on` uses when the Agent is assigned to this Computer (Cursor until
   changed). Claude uses the Computer's own Claude Code sign-in, so its row offers **Check again** instead of a Connect flow. The Claude row also carries an environment picker that
   pins which Anthropic-hosted environment this Computer's Claude launches use, defaulting to
@@ -91,7 +93,7 @@ counted only a turn's last model request, so no reliable correction exists.
 
 ## Hosted data flow
 
-Computer settings includes **Refresh** beside Runtimes. Owners and Admins can ask an online
+Computer settings includes **Refresh** beside Plan usage in Diagnostics. Owners and Admins can ask an online
 Computer to rescan installed runtimes and their models without restarting it. The scan replaces
 only runtime inventory, preserving the Computer name, skills, and Cloud Agent readiness. Server
 events update runtime rows, Agent runtime/model choices, and usage views together; the App does

@@ -2,8 +2,9 @@ import { ItemCard } from '@heroui-pro/react';
 import { Button, Dropdown, Label, ListBox, Select } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../components/ui/icon.tsx';
-import { SettingsStatusChip, SettingsStatusTitle } from '../settings/layout/settings-row-title.tsx';
+import { SettingsStatusChip } from '../settings/layout/settings-row-title.tsx';
 import type { CloudAgentCapabilityView } from './cloud-agent-capability-model.ts';
+import { StatusInfoTitle } from './status-info-title.tsx';
 
 export function CloudAgentCapabilityRow({
     isBusy,
@@ -21,11 +22,12 @@ export function CloudAgentCapabilityRow({
     onSetEnvironment: (environmentId: string) => void;
     view: CloudAgentCapabilityView;
 }) {
-    const title = `${view.providerName} Cloud Agents`;
+    const title = view.providerName;
     return (
         <ItemCard>
             <ItemCard.Content>
-                <SettingsStatusTitle
+                <StatusInfoTitle
+                    info={view.description}
                     status={
                         <>
                             {view.isDefault ? (
@@ -38,10 +40,7 @@ export function CloudAgentCapabilityRow({
                     }
                 >
                     {title}
-                </SettingsStatusTitle>
-                <ItemCard.Description className="whitespace-normal">
-                    {view.description}
-                </ItemCard.Description>
+                </StatusInfoTitle>
             </ItemCard.Content>
             <ItemCard.Action>
                 <div className="flex items-center gap-2">

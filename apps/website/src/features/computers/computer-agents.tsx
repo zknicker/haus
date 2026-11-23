@@ -1,18 +1,22 @@
-import { DataGrid, type DataGridColumn, ItemCard, ItemCardGroup } from '@heroui-pro/react';
-import { Button } from '@heroui/react';
+import { ItemCard, ItemCardGroup, PressableFeedback } from '@heroui-pro/react';
+import { Button, Separator } from '@heroui/react';
+import { ArrowRight01Icon } from '@hugeicons-pro/core-stroke-rounded';
+import { Fragment } from 'react';
 import { EntityAvatar } from '../../components/ui/entity-avatar.tsx';
+import { Icon } from '../../components/ui/icon.tsx';
 import { useOpenAgentProfile } from '../../hooks/agents/use-open-agent-profile.ts';
 import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import type { HausOutputs } from '../../lib/haus-server.tsx';
 import { availabilityBadgeColor } from '../members/agent-avatar.tsx';
-import { SettingsStatusChip } from '../settings/layout/settings-row-title.tsx';
+import { SettingsEmptyRow } from '../settings/layout/settings-empty.tsx';
+import { SettingsStatusChip, SettingsStatusTitle } from '../settings/layout/settings-row-title.tsx';
+import { SettingsFact } from '../settings/layout/settings-text.tsx';
 import { agentExecutionLabels, availabilityLabel } from './presentation.ts';
 
 type Agent = HausOutputs['agent']['list'][number];
-type Computer = HausOutputs['computer']['list'][number];
 
-interface ComputerAgentRow {
+export interface HomeCaptainRow {
     availability: Agent['availability'];
     avatarUrl: string | null;
     displayName: string;
@@ -21,153 +25,116 @@ interface ComputerAgentRow {
     wakePause: Agent['wakePause'];
 }
 
-type ComputerAgentGridState =
-    | { status: 'loading' | 'ready' }
-    | { onRetry: () => void; status: 'unavailable' };
-
 export function ComputerAgents({ computerId, serverId }: { computerId: string; serverId: string }) {
     const openAgentProfile = useOpenAgentProfile();
     const agents = useAgents(serverId);
     const computers = useComputers(serverId);
     const computer = computers.data?.find((candidate) => candidate.id === computerId);
-    const items = (agents.data ?? []).filter((agent) => agent.computerId === computerId);
 
     if (!computer) {
         return null;
     }
 
-    const rows = computerAgentRows(items, computer.reportedInventory);
-    const gridState: ComputerAgentGridState =
-        agents.data !== undefined
-            ? { status: 'ready' }
-            : agents.isError
-              ? { onRetry: () => void agents.refetch(), status: 'unavailable' }
-              : { status: 'loading' };
-
     return (
         <section>
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header>
-                    <ItemCardGroup.Title>
-                        Captains on this device
-                        {agents.data ? (
-                            <span className="text-muted ms-2 tabular-nums">{rows.length}</span>
-                        ) : null}
-                    </ItemCardGroup.Title>
+                    <ItemCardGroup.Title>Home Captains</ItemCardGroup.Title>
                 </ItemCardGroup.Header>
-                {rows.length > 0 ? (
-                    <ComputerAgentGrid onOpenAgent={openAgentProfile} rows={rows} />
-                ) : (
-                    <ComputerAgentsEmpty state={gridState} />
-                )}
+                {agents.data ? (
+                    <HomeCaptainList
+                        onOpenAgent={openAgentProfile}
+                        rows={agents.data
+                            .filter((agent) => agent.computerId === computerId)
+                            .map((agent) => homeCaptainRow(agent, computer.reportedInventory))}
+                    />
+                ) : agents.isError ? (
+                    <ItemCardGroup>
+                        <ItemCard>
+                            <ItemCard.Content>
+                                <ItemCard.Title>Couldn’t load Captains</ItemCard.Title>
+                            </ItemCard.Content>
+                            <ItemCard.Action>
+                                <Button
+                                    onPress={() => void agents.refetch()}
+                                    size="sm"
+                                    variant="secondary"
+                                >
+                                    Retry
+                                </Button>
+                            </ItemCard.Action>
+                        </ItemCard>
+                    </ItemCardGroup>
+                ) : null}
             </ItemCardGroup>
         </section>
     );
 }
 
-export function ComputerAgentGrid({
+export function HomeCaptainList({
     onOpenAgent,
     rows,
 }: {
     onOpenAgent: (agentId: string) => void;
-    rows: ComputerAgentRow[];
+    rows: readonly HomeCaptainRow[];
 }) {
     return (
-        <DataGrid
-            aria-label="Captains on this device"
-            columns={agentColumns}
-            contentClassName="min-w-160"
-            data={rows}
-            getRowId={(item) => item.id}
-            onRowAction={(key) => onOpenAgent(String(key))}
-        />
-    );
-}
-
-export function ComputerAgentsEmpty({ state }: { state: ComputerAgentGridState }) {
-    if (state.status === 'loading') {
-        return (
-            <div aria-busy="true" className="min-h-14">
-                <span className="sr-only">Loading Captains</span>
-            </div>
-        );
-    }
-    return (
         <ItemCardGroup>
-            <ItemCard>
-                <ItemCard.Content>
-                    <ItemCard.Title>
-                        {state.status === 'unavailable'
-                            ? 'Captains unavailable'
-                            : 'No Captains on this device'}
-                    </ItemCard.Title>
-                </ItemCard.Content>
-                {state.status === 'unavailable' ? (
-                    <ItemCard.Action>
-                        <Button onPress={state.onRetry} size="sm" variant="secondary">
-                            Retry
-                        </Button>
-                    </ItemCard.Action>
-                ) : null}
-            </ItemCard>
+            {rows.length === 0 ? (
+                <SettingsEmptyRow>No Captains live on this device</SettingsEmptyRow>
+            ) : (
+                rows.map((row, index) => (
+                    <Fragment key={row.id}>
+                        {index > 0 ? <Separator /> : null}
+                        <ItemCard<'button'>
+                            className="relative w-full cursor-(--cursor-interactive) overflow-hidden text-left"
+                            onClick={() => onOpenAgent(row.id)}
+                            render={(props) => <button type="button" {...props} />}
+                        >
+                            <PressableFeedback.Highlight />
+                            <EntityAvatar name={row.displayName} size="sm" src={row.avatarUrl} />
+                            <ItemCard.Content>
+                                <SettingsStatusTitle
+                                    status={
+                                        <SettingsStatusChip
+                                            color={availabilityBadgeColor(row.availability)}
+                                        >
+                                            {availabilityLabel(row)}
+                                        </SettingsStatusChip>
+                                    }
+                                >
+                                    {row.displayName}
+                                </SettingsStatusTitle>
+                            </ItemCard.Content>
+                            <ItemCard.Action>
+                                <div className="flex items-center gap-2">
+                                    <SettingsFact>{row.model}</SettingsFact>
+                                    <Icon
+                                        aria-hidden="true"
+                                        className="text-muted"
+                                        icon={ArrowRight01Icon}
+                                        size={16}
+                                    />
+                                </div>
+                            </ItemCard.Action>
+                        </ItemCard>
+                    </Fragment>
+                ))
+            )}
         </ItemCardGroup>
     );
 }
 
-function computerAgentRows(
-    agents: Agent[],
-    inventory: Computer['reportedInventory']
-): ComputerAgentRow[] {
-    return agents.map((agent) => {
-        const execution = agentExecutionLabels(agent, inventory);
-        return {
-            avatarUrl: agent.avatarUrl,
-            availability: agent.availability,
-            displayName: agent.displayName,
-            id: agent.id,
-            wakePause: agent.wakePause,
-            model: execution.model,
-        };
-    });
+function homeCaptainRow(
+    agent: Agent,
+    inventory: HausOutputs['computer']['list'][number]['reportedInventory']
+): HomeCaptainRow {
+    return {
+        availability: agent.availability,
+        avatarUrl: agent.avatarUrl,
+        displayName: agent.displayName,
+        id: agent.id,
+        model: agentExecutionLabels(agent, inventory).model,
+        wakePause: agent.wakePause,
+    };
 }
-
-const agentColumns: DataGridColumn<ComputerAgentRow>[] = [
-    {
-        allowsSorting: true,
-        cell: (item) => (
-            <div className="flex min-w-0 items-center gap-3">
-                <EntityAvatar
-                    className="shrink-0"
-                    name={item.displayName}
-                    size="sm"
-                    src={item.avatarUrl}
-                />
-                <p className="truncate font-medium">{item.displayName}</p>
-            </div>
-        ),
-        header: 'Captain',
-        id: 'displayName',
-        isRowHeader: true,
-        minWidth: 180,
-        sortFn: (a, b) => a.displayName.localeCompare(b.displayName),
-    },
-    {
-        accessorKey: 'model',
-        allowsSorting: true,
-        cellClassName: 'text-muted',
-        header: 'Model',
-        id: 'model',
-        minWidth: 160,
-    },
-    {
-        align: 'end',
-        cell: (item) => (
-            <SettingsStatusChip color={availabilityBadgeColor(item.availability)}>
-                {availabilityLabel(item)}
-            </SettingsStatusChip>
-        ),
-        header: 'Status',
-        id: 'availability',
-        minWidth: 100,
-    },
-];

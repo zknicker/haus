@@ -27,7 +27,7 @@ function render(view: ReturnType<typeof cloudAgentCapabilityView>) {
 
 function shownEnvironment(markup: string) {
     return markup.match(
-        /aria-label="Claude Cloud Agents environment"[\s\S]*?data-slot="select-value"[^>]*><span[^>]*>([^<]+)</
+        /aria-label="Claude environment"[\s\S]*?data-slot="select-value"[^>]*><span[^>]*>([^<]+)</
     )?.[1];
 }
 
@@ -52,7 +52,7 @@ test('the environment Select renders only for Claude, and not for Cursor', () =>
         },
     });
     expect(claudeReady.environments).toEqual([{ id: 'env_a', name: 'Primary' }]);
-    expect(render(claudeReady)).toContain('aria-label="Claude Cloud Agents environment"');
+    expect(render(claudeReady)).toContain('aria-label="Claude environment"');
 });
 
 test('a Computer always reports a pin once Computer auto-pins it, so the row reads ready, never a warning', () => {
@@ -93,7 +93,7 @@ test('the rare Computer whose account has no environment at all still reads read
 
     const html = render(view);
     expect(html).not.toContain('Needs environment');
-    expect(html).not.toContain('aria-label="Claude Cloud Agents environment"');
+    expect(html).not.toContain('aria-label="Claude environment"');
 });
 
 test('a pinned environment shows as the Select’s value', () => {

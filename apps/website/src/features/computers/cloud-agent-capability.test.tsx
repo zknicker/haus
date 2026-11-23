@@ -50,10 +50,10 @@ test('an unconnected Computer offers Connect and no disconnect', () => {
     expect(view).toMatchObject({ canConnect: true, canDisconnect: false, status: 'not-connected' });
 
     const html = render(view);
-    expect(html).toContain('Cursor Cloud Agents');
+    expect(html).toContain('>Cursor<');
     expect(html).toContain('Not connected');
     expect(html).toContain('Connect');
-    expect(html).not.toContain('Cursor Cloud Agents actions');
+    expect(html).not.toContain('Cursor actions');
 });
 
 test('a connected Computer names its account and hides Disconnect behind the row menu', () => {
@@ -68,7 +68,7 @@ test('a connected Computer names its account and hides Disconnect behind the row
 
     const html = render(view);
     expect(html).toContain('Ready');
-    expect(html).toContain('aria-label="Cursor Cloud Agents actions"');
+    expect(html).toContain('aria-label="Cursor actions"');
     // The trigger is an icon-only ghost button, like every other row menu.
     expect(html).toContain('button--icon-only');
     // Disconnect lives in the menu popover, which does not render until opened.
@@ -201,7 +201,7 @@ test('Claude reuses the Computer’s Claude Code login: it checks again and neve
     });
     expect(signedOut).toMatchObject({ canConnect: true, connectLabel: 'Check again' });
     expect(signedOut.description).toContain('Claude Code');
-    expect(render(signedOut)).toContain('Claude Cloud Agents');
+    expect(render(signedOut)).toContain('>Claude<');
 
     const ready = cloudAgentCapabilityView({
         isConnecting: false,
@@ -210,7 +210,7 @@ test('Claude reuses the Computer’s Claude Code login: it checks again and neve
         state: { ...connected, expiresAt: null, isDefault: false, provider: 'claude' },
     });
     expect(ready).toMatchObject({ canDisconnect: false, canMakeDefault: true, isDefault: false });
-    expect(render(ready)).toContain('aria-label="Claude Cloud Agents actions"');
+    expect(render(ready)).toContain('aria-label="Claude actions"');
 });
 
 test('the default provider wears a Default chip and cannot be made default again', () => {

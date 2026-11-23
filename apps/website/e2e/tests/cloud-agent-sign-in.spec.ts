@@ -2,7 +2,7 @@ import { sendBootstrap, socketMessage, socketOpen } from '../support/computer-so
 import { attachComputer, createTestServer } from '../support/server.ts';
 import { expect, test } from '../support/test.ts';
 
-test('an Owner connects a Computer to Cursor Cloud Agents from Settings', async ({
+test('an Owner connects a Computer to Cursor for Cloud Workers from Settings', async ({
     page,
 }, testInfo) => {
     const { client: owner } = await createTestServer(page, {
@@ -24,9 +24,11 @@ test('an Owner connects a Computer to Cursor Cloud Agents from Settings', async 
 
     await page.goto(`/s/worker-hq/settings/computers/${computerId}`);
     const detail = page.getByRole('main', { name: 'Scrollable main content' });
-    await expect(detail.getByText('Cursor Cloud Agents')).toBeVisible();
+    await expect(detail.getByRole('heading', { name: 'Cloud Workers', exact: true })).toBeVisible();
     // Each provider has its own row; this test drives Cursor's.
-    const cursorRow = detail.locator('.item-card', { hasText: 'Cursor Cloud Agents' });
+    const cursorRow = detail.locator('.item-card', {
+        has: page.getByRole('button', { name: 'About Cursor', exact: true }),
+    });
     await expect(cursorRow.getByText('Not connected')).toBeVisible();
 
     await cursorRow.getByRole('button', { name: 'Connect', exact: true }).click();
@@ -78,10 +80,9 @@ test('an Owner connects a Computer to Cursor Cloud Agents from Settings', async 
     await expect(page.getByRole('dialog', { name: 'Cursor connected' })).toBeVisible();
     await page.getByRole('button', { name: 'Done', exact: true }).click();
     await expect(cursorRow.getByText('Ready', { exact: true })).toBeVisible();
-    await expect(cursorRow.getByText(/Connected as delegate@example.com/u)).toBeVisible();
-    await expect(
-        cursorRow.getByRole('button', { name: 'Cursor Cloud Agents actions' })
-    ).toBeVisible();
+    await expect(cursorRow.getByRole('button', { name: 'Cursor actions' })).toBeVisible();
+    await cursorRow.getByRole('button', { name: 'About Cursor', exact: true }).hover();
+    await expect(page.getByText(/Connected as delegate@example.com/u)).toBeVisible();
     computer.close();
 });
 

@@ -175,7 +175,8 @@ the person who attached the Computer turns it on, because it hands the machine u
 the Server's Agents
 ([ADR 0057](../docs/adr/0057-agents-run-on-the-server-and-machines-run-their-tools.md)
 decision 4). The attacher, an Owner, or an Admin may turn it off or change the Worker limit
-(`computer.setWorkers`; the App control is W4). `computer.list` shows `workersEnabled`,
+(`computer.setWorkers`; the App control is the switch and limit select in the Device page's
+Access box). `computer.list` shows `workersEnabled`,
 `workerLimit`, `canChangeWorkers` (whether the viewer may call `computer.setWorkers`), and
 `canEnableWorkers` (whether the viewer may turn it on). Owners
 and Admins see every Computer there, and a plain member sees only the Computers they attached. The

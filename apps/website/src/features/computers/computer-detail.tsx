@@ -1,23 +1,20 @@
 import type { ComputerRuntimeId } from '@haus/api';
-import { ItemCardGroup } from '@heroui-pro/react';
 import { Chip } from '@heroui/react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { ProfileFact, ProfileFacts } from '../../components/ui/profile-facts.tsx';
 import { useComputers } from '../../hooks/servers/use-computers.ts';
 import { SettingsPageColumn } from '../settings/layout/settings-page-column.tsx';
 import { SettingsPageHeader } from '../settings/layout/settings-page-header.tsx';
-import { ComputerUsageCapacity } from '../usage/computer-usage-capacity.tsx';
-import { BrowserCapabilityCard } from './browser-capability-card.tsx';
-import { CloudAgentCapabilityCard } from './cloud-agent-capability-card.tsx';
+import { CloudWorkersSection } from './cloud-agent-capability-card.tsx';
 import { ComputerAccessSection } from './computer-access-section.tsx';
 import { ComputerUpdates } from './computer-actions.tsx';
 import { ComputerAgents } from './computer-agents.tsx';
 import { ComputerDiagnostics } from './computer-diagnostics.tsx';
 import { ComputerDiskChip, ComputerDiskWarning } from './computer-disk-warning.tsx';
-import { ComputerInventoryRefresh } from './computer-inventory-refresh.tsx';
 import { ComputerRepoFoldersCard } from './computer-repo-folders-card.tsx';
 import { ComputerRuntimeIssues } from './computer-runtime-issues.tsx';
-import { ComputerUsePermissionsSection } from './computer-use-access-card.tsx';
+import { ComputerToolsSection } from './computer-tools-section.tsx';
+import type { ComputerUpdatePreviewState } from './computer-update-preview.tsx';
 import {
     computerHealthColor,
     computerHealthLabel,
@@ -26,16 +23,19 @@ import {
     computerRuntimePresentations,
     computerSystemLabel,
 } from './presentation.ts';
-import { SecretsCapabilityCard } from './secrets-capability-card.tsx';
 
 export function ComputerDetail({
     computerId,
+    onUpdatePreviewChange,
     serverId,
     serverSlug,
+    updatePreview,
 }: {
     computerId: string;
+    onUpdatePreviewChange: (state: ComputerUpdatePreviewState) => void;
     serverId: string;
     serverSlug: string;
+    updatePreview: ComputerUpdatePreviewState;
 }) {
     const computers = useComputers(serverId);
     const computer = computers.data?.find((candidate) => candidate.id === computerId);
@@ -44,30 +44,16 @@ export function ComputerDetail({
         return null;
     }
 
-    const runtimes = computerRuntimePresentations(computer.reportedInventory);
-    const detectedRuntimeIds = runtimes
-        .filter(
-            (
-                runtime
-            ): runtime is typeof runtime & {
-                id: ComputerRuntimeId;
-            } => runtime.detected && isComputerRuntimeId(runtime.id)
-        )
-        .map((runtime) => runtime.id);
+    const workerRuntimeIds = computerRuntimePresentations(computer.reportedInventory)
+        .filter((runtime) => runtime.detected)
+        .map((runtime) => runtime.id)
+        .filter(isWorkerRuntimeId);
+    const online = computer.health !== 'offline';
 
     return (
-        // The settings nav is one reading column; a Computer is a settings
-        // destination inside it, not a dashboard. At `wide` this page alone
-        // jumped from 768px to 1280px mid-nav, and its four-column tables spent
-        // the extra 512px on gutters.
         <SettingsPageColumn width="table">
             <SettingsPageHeader
                 aside={
-                    // The dated facts are what this Computer has done, so they
-                    // are the record's own column at the far end of the title
-                    // line — not a third paragraph under a name that already
-                    // has two. The header wraps them under the title, still
-                    // left-aligned, once the reading column is too narrow.
                     <ProfileFacts>
                         {computer.productVersion ? (
                             <ProfileFact
@@ -78,7 +64,7 @@ export function ComputerDetail({
                         ) : null}
                         <ProfileFact
                             className="tabular-nums"
-                            label="Last connected"
+                            label={online ? 'Connected' : 'Last connected'}
                             value={
                                 computer.lastConnectedAt
                                     ? formatTimestamp(computer.lastConnectedAt)
@@ -93,14 +79,6 @@ export function ComputerDetail({
                     </ProfileFacts>
                 }
                 meta={
-                    // What this Computer is — reachable, and which machine —
-                    // reads as one identity line under the title. Both facts
-                    // are the same kind of thing, so both are the same `sm`
-                    // Chip: the machine used to be a bare `text-sm` paragraph
-                    // beside a chip whose label sets its own smaller step, so
-                    // the two sat at different sizes and never quite shared a
-                    // centerline. Matching chips make that alignment structural
-                    // rather than something to nudge.
                     <div className="flex min-w-0 flex-wrap items-center gap-2">
                         <Chip color={computerHealthColor(computer.health)} size="sm" variant="soft">
                             <Chip.Label>{computerHealthLabel(computer.health)}</Chip.Label>
@@ -120,39 +98,32 @@ export function ComputerDetail({
 
             <ComputerDiskWarning computerId={computerId} serverId={serverId} />
             <ComputerRuntimeIssues computerId={computerId} serverId={serverId} />
+            <ComputerUpdates
+                computerId={computerId}
+                previewState={updatePreview}
+                serverId={serverId}
+            />
             <ComputerAccessSection computerId={computerId} serverId={serverId} />
-            <ComputerUsePermissionsSection computerId={computerId} serverId={serverId} />
             <ComputerRepoFoldersCard computerId={computerId} serverId={serverId} />
-            <section>
-                <ItemCardGroup variant="transparent">
-                    <ItemCardGroup.Header>
-                        <ItemCardGroup.Title>Plan usage</ItemCardGroup.Title>
-                        <ComputerInventoryRefresh computerId={computerId} serverId={serverId} />
-                    </ItemCardGroup.Header>
-                    <ComputerUsageCapacity
-                        computerId={computerId}
-                        detectedRuntimeIds={detectedRuntimeIds}
-                        serverId={serverId}
-                    />
-                </ItemCardGroup>
-            </section>
-            <BrowserCapabilityCard computerId={computerId} serverId={serverId} />
-            <CloudAgentCapabilityCard computerId={computerId} serverId={serverId} />
-            <SecretsCapabilityCard computerId={computerId} serverId={serverId} />
+            <ComputerToolsSection computerId={computerId} serverId={serverId} />
+            <CloudWorkersSection computerId={computerId} serverId={serverId} />
             <ComputerAgents computerId={computerId} serverId={serverId} />
-            <ComputerUpdates computerId={computerId} serverId={serverId} />
             <ComputerDiagnostics
                 computerId={computerId}
                 key={computerId}
+                onUpdatePreviewChange={onUpdatePreviewChange}
+                runtimeIds={workerRuntimeIds}
                 serverId={serverId}
                 serverSlug={serverSlug}
+                updatePreview={updatePreview}
             />
         </SettingsPageColumn>
     );
 }
 
-function isComputerRuntimeId(value: string): value is ComputerRuntimeId {
-    return value === 'codex' || value === 'claude-code' || value === 'grok-build';
+/** Workers run Claude Code or Codex; Grok Build is no longer a runtime (ADR 0057). */
+function isWorkerRuntimeId(value: string): value is ComputerRuntimeId {
+    return value === 'codex' || value === 'claude-code';
 }
 
 function formatTimestamp(value: Date | string) {
