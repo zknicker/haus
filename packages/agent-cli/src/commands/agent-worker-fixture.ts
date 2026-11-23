@@ -13,6 +13,7 @@ export const work = {
     environmentName: null,
     id: 'wkr_1234567890abcdef',
     job: { followUp: null, startedAt: null, state: 'working' },
+    keptWorktree: null,
     launchMessageId: null,
     model: null,
     originChatId: null,

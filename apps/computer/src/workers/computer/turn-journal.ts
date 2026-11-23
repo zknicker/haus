@@ -76,12 +76,12 @@ export class ComputerTurnJournal {
         });
     }
 
-    setRepo(workerId: string, repoPath: string) {
+    setRepo(workerId: string, repo: { repoPath: string; worktreePath: string }) {
         return this.change(workerId, (file) => {
             if (!file) {
                 throw new Error(`Worker ${workerId} is not journaled here.`);
             }
-            return { file: { ...file, repoPath }, result: undefined };
+            return { file: { ...file, ...repo }, result: undefined };
         });
     }
 
@@ -139,6 +139,7 @@ function emptyFile(workerId: string, agentId: string) {
     return {
         agentId,
         repoPath: null,
+        worktreePath: null,
         turns: {},
         version: 1,
         workerId,

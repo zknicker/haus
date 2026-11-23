@@ -12,6 +12,7 @@ import { techniqueRecipesA } from './corpus/techniques-a.ts';
 import { techniqueRecipesB } from './corpus/techniques-b.ts';
 import { driveTopic } from './drive-topic.ts';
 import { productTopics } from './product-topics.ts';
+import { reposTopic } from './repos-topic.ts';
 import { rulesTopic } from './rules-topic.ts';
 import { secretsTopic } from './secrets-topic.ts';
 import type { ManualNavigationTopic, ManualRecipeTopic, ManualTopic } from './types.ts';
@@ -89,6 +90,7 @@ export const manualTopics: readonly ManualTopic[] = [
     ...navigationTopics,
     ...productTopics,
     ...workTopics,
+    reposTopic,
     rulesTopic,
     secretsTopic,
     computersTopic,

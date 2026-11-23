@@ -1,5 +1,5 @@
 {
-  "id": "2686d567-024c-4284-a3cc-ae5d3dbc7e68",
+  "id": "80cb4849-b698-42f5-b6a5-c48992c50cf2",
   "prevId": "8945faf3-4b45-42d5-8435-719a7c7e6f0c",
   "version": "7",
   "dialect": "postgresql",
@@ -2361,11 +2361,11 @@
         },
         "agent_invocations_refusal": {
           "name": "agent_invocations_refusal",
-          "value": "\"agent_invocations\".\"refusal\" is null or (\"agent_invocations\".\"refusal\" in ('not-found', 'no-access', 'off', 'not-listed', 'not-mac', 'offline', 'not-ready', 'locked', 'no-session', 'switched-out') and \"agent_invocations\".\"state\" = 'finished')"
+          "value": "\"agent_invocations\".\"refusal\" is null or (\"agent_invocations\".\"refusal\" in ('off', 'not-listed', 'not-mac', 'offline', 'not-ready', 'locked', 'no-session', 'switched-out') and \"agent_invocations\".\"state\" = 'finished')"
         },
         "agent_invocations_sent_shape": {
           "name": "agent_invocations_sent_shape",
-          "value": "\"agent_invocations\".\"computer_id\" is not null or \"agent_invocations\".\"outcome\" = 'offline' or coalesce(\"agent_invocations\".\"refusal\", '') = 'not-found'"
+          "value": "\"agent_invocations\".\"computer_id\" is not null or \"agent_invocations\".\"outcome\" = 'offline'"
         }
       },
       "isRLSEnabled": false
@@ -7181,6 +7181,12 @@
           "primaryKey": true,
           "notNull": true
         },
+        "kept_worktree_path": {
+          "name": "kept_worktree_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "launch_message_id": {
           "name": "launch_message_id",
           "type": "text",
@@ -8204,104 +8210,6 @@
       "compositePrimaryKeys": {
         "computer_use_agents_computer_id_agent_id_pk": {
           "name": "computer_use_agents_computer_id_agent_id_pk",
-          "columns": [
-            "computer_id",
-            "agent_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.computer_agent_access": {
-      "name": "computer_agent_access",
-      "schema": "",
-      "columns": {
-        "agent_id": {
-          "name": "agent_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "computer_id": {
-          "name": "computer_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "granted_at": {
-          "name": "granted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "granted_by_user_id": {
-          "name": "granted_by_user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "server_id": {
-          "name": "server_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "computer_agent_access_computer_fk": {
-          "name": "computer_agent_access_computer_fk",
-          "tableFrom": "computer_agent_access",
-          "tableTo": "computers",
-          "columnsFrom": [
-            "server_id",
-            "computer_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "computer_agent_access_agent_fk": {
-          "name": "computer_agent_access_agent_fk",
-          "tableFrom": "computer_agent_access",
-          "tableTo": "agents",
-          "columnsFrom": [
-            "server_id",
-            "agent_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "computer_agent_access_granter_fk": {
-          "name": "computer_agent_access_granter_fk",
-          "tableFrom": "computer_agent_access",
-          "tableTo": "server_memberships",
-          "columnsFrom": [
-            "server_id",
-            "granted_by_user_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "user_id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "computer_agent_access_computer_id_agent_id_pk": {
-          "name": "computer_agent_access_computer_id_agent_id_pk",
           "columns": [
             "computer_id",
             "agent_id"
@@ -11777,202 +11685,6 @@
       },
       "isRLSEnabled": false
     },
-    "public.project_repo_links": {
-      "name": "project_repo_links",
-      "schema": "",
-      "columns": {
-        "checkout_path": {
-          "name": "checkout_path",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "computer_id": {
-          "name": "computer_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "linked_by_user_id": {
-          "name": "linked_by_user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "project_repo_id": {
-          "name": "project_repo_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "server_id": {
-          "name": "server_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "project_repo_links_repo_fk": {
-          "name": "project_repo_links_repo_fk",
-          "tableFrom": "project_repo_links",
-          "tableTo": "project_repos",
-          "columnsFrom": [
-            "server_id",
-            "project_repo_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "project_repo_links_computer_fk": {
-          "name": "project_repo_links_computer_fk",
-          "tableFrom": "project_repo_links",
-          "tableTo": "computers",
-          "columnsFrom": [
-            "server_id",
-            "computer_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "project_repo_links_linker_membership_fk": {
-          "name": "project_repo_links_linker_membership_fk",
-          "tableFrom": "project_repo_links",
-          "tableTo": "server_memberships",
-          "columnsFrom": [
-            "server_id",
-            "linked_by_user_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "user_id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "project_repo_links_pkey": {
-          "name": "project_repo_links_pkey",
-          "columns": [
-            "project_repo_id",
-            "computer_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "project_repo_links_checkout_path_shape": {
-          "name": "project_repo_links_checkout_path_shape",
-          "value": "\"project_repo_links\".\"checkout_path\" is null\n                or char_length(\"project_repo_links\".\"checkout_path\") between 1 and 1024"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.project_repos": {
-      "name": "project_repos",
-      "schema": "",
-      "columns": {
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "repository": {
-          "name": "repository",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "server_id": {
-          "name": "server_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "project_repos_project_fk": {
-          "name": "project_repos_project_fk",
-          "tableFrom": "project_repos",
-          "tableTo": "projects",
-          "columnsFrom": [
-            "server_id",
-            "project_id"
-          ],
-          "columnsTo": [
-            "server_id",
-            "chat_id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "project_repos_server_id_key": {
-          "name": "project_repos_server_id_key",
-          "nullsNotDistinct": false,
-          "columns": [
-            "server_id",
-            "id"
-          ]
-        },
-        "project_repos_repository_key": {
-          "name": "project_repos_repository_key",
-          "nullsNotDistinct": false,
-          "columns": [
-            "server_id",
-            "project_id",
-            "repository"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "project_repos_id_shape": {
-          "name": "project_repos_id_shape",
-          "value": "\"project_repos\".\"id\" ~ '^prp_[A-Za-z0-9_-]{16}$'"
-        },
-        "project_repos_repository_shape": {
-          "name": "project_repos_repository_shape",
-          "value": "\"project_repos\".\"repository\" ~ '^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$'\n                and char_length(\"project_repos\".\"repository\") <= 200"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.projects": {
       "name": "projects",
       "schema": "",
@@ -15240,6 +14952,185 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.repo_folders": {
+      "name": "repo_folders",
+      "schema": "",
+      "columns": {
+        "added_by_user_id": {
+          "name": "added_by_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "computer_id": {
+          "name": "computer_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "path": {
+          "name": "path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "repository": {
+          "name": "repository",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "server_id": {
+          "name": "server_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "repo_folders_repo_fk": {
+          "name": "repo_folders_repo_fk",
+          "tableFrom": "repo_folders",
+          "tableTo": "repos",
+          "columnsFrom": [
+            "server_id",
+            "repository"
+          ],
+          "columnsTo": [
+            "server_id",
+            "repository"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "repo_folders_computer_fk": {
+          "name": "repo_folders_computer_fk",
+          "tableFrom": "repo_folders",
+          "tableTo": "computers",
+          "columnsFrom": [
+            "server_id",
+            "computer_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "repo_folders_adder_membership_fk": {
+          "name": "repo_folders_adder_membership_fk",
+          "tableFrom": "repo_folders",
+          "tableTo": "server_memberships",
+          "columnsFrom": [
+            "server_id",
+            "added_by_user_id"
+          ],
+          "columnsTo": [
+            "server_id",
+            "user_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "repo_folders_pkey": {
+          "name": "repo_folders_pkey",
+          "columns": [
+            "server_id",
+            "computer_id",
+            "repository"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "repo_folders_path_key": {
+          "name": "repo_folders_path_key",
+          "nullsNotDistinct": false,
+          "columns": [
+            "server_id",
+            "computer_id",
+            "path"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "repo_folders_path_shape": {
+          "name": "repo_folders_path_shape",
+          "value": "\"repo_folders\".\"path\" like '/%' and char_length(\"repo_folders\".\"path\") between 2 and 1024"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.repos": {
+      "name": "repos",
+      "schema": "",
+      "columns": {
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "repository": {
+          "name": "repository",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "server_id": {
+          "name": "server_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "repos_server_fk": {
+          "name": "repos_server_fk",
+          "tableFrom": "repos",
+          "tableTo": "servers",
+          "columnsFrom": [
+            "server_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "repos_pkey": {
+          "name": "repos_pkey",
+          "columns": [
+            "server_id",
+            "repository"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "repos_repository_shape": {
+          "name": "repos_repository_shape",
+          "value": "\"repos\".\"repository\" ~ '^[a-z0-9._-]+/[a-z0-9._-]+$'\n                and char_length(\"repos\".\"repository\") <= 200"
+        }
+      },
       "isRLSEnabled": false
     }
   },

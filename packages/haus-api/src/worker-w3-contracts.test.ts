@@ -16,11 +16,8 @@ import {
 } from './worker-report-draft.ts';
 import type { WorkerRuntimeReadiness } from './worker-runtime.ts';
 import {
-    type ProjectRepo,
     type ProjectSetDefaultWorkerPlaceInput,
     computerSetWorkersInputSchema,
-    projectLinkRepoInputSchema,
-    projectRepoSchema,
     projectSetDefaultWorkerPlaceInputSchema,
 } from './worker-settings.ts';
 import { type Worker, workerSchema } from './worker-shared.ts';
@@ -40,9 +37,14 @@ test('a Worker record carries its runtime, model, branch, and WORKER.md revision
     expect(workerSchema.safeParse({ ...work, runtime: 'grok-build' }).success).toBe(false);
 });
 
-test('a start names its place, runtime, model, and repository, all optional', () => {
+test('a start names one repo, lower-cased, and its place, runtime, and model are optional', () => {
     const brief = { brief: 'Fix it.', nonce: 'n-1', task: 'SEC-12', title: 'Fix the flake' };
-    expect(agentWorkerStartInputSchema.parse(brief)).toEqual({ ...brief, startingRef: null });
+    expect(agentWorkerStartInputSchema.safeParse(brief).success).toBe(false);
+    expect(agentWorkerStartInputSchema.parse({ ...brief, repository: 'Haus/Haus' })).toEqual({
+        ...brief,
+        repository: 'haus/haus',
+        startingRef: null,
+    });
     const full: AgentWorkerStartInput = {
         ...brief,
         model: 'gpt-5.5',
@@ -54,7 +56,7 @@ test('a start names its place, runtime, model, and repository, all optional', ()
     expect(agentWorkerStartInputSchema.parse(full)).toEqual(full);
 });
 
-test('places list each Computer with its switch, runtimes, repos, and slots', () => {
+test('places list each Computer with its switch, runtimes, repo folders, and slots', () => {
     const response: WorkerPlacesResponse = {
         places: [
             {
@@ -62,11 +64,11 @@ test('places list each Computer with its switch, runtimes, repos, and slots', ()
                 freeSlots: 3,
                 kind: 'computer',
                 limit: 4,
-                linkedRepositories: ['haus/haus'],
                 name: 'mini',
                 online: true,
                 projectDefault: true,
                 ready: true,
+                repoFolders: ['haus/haus'],
                 runtimes: [
                     { detail: null, ready: true, runtime: 'claude-code' },
                     { detail: 'Not signed in', ready: false, runtime: 'codex' },
@@ -75,7 +77,6 @@ test('places list each Computer with its switch, runtimes, repos, and slots', ()
             },
             { freeSlots: 10, kind: 'cursor', limit: 10, projectDefault: false, ready: false },
         ],
-        repositories: ['haus/haus'],
         task: 'SEC-12',
     };
     expect(workerPlacesResponseSchema.parse(response)).toEqual(response);
@@ -141,8 +142,8 @@ test('a turn credential mints for its attempt or names why the fence refused', (
 
 test('the new refusals ride the Worker refusal codes', () => {
     expect(workerRefusalCodes).toContain('WORKER_PLACE_OFF');
-    expect(workerRefusalCodes).toContain('WORKER_REPO_UNKNOWN');
-    expect(workerRefusalCodes).toContain('WORKER_REPO_NOT_LINKED');
+    expect(workerRefusalCodes).not.toContain('WORKER_REPO_UNKNOWN');
+    expect(workerRefusalCodes).not.toContain('WORKER_REPO_NOT_LINKED');
     expect(workerRefusalCodes).toContain('WORKER_RUNTIME_UNAVAILABLE');
     expect(workerRefusalCodes).toContain('WORKER_OPTION_CLOUD');
 });
@@ -157,7 +158,7 @@ test('inventory reports Worker runtimes, and an older inventory reports none', (
     expect(computerInventorySchema.parse({ runtimes: [] }).workerRuntimes).toBeUndefined();
 });
 
-test('settings inputs carry the switch, the default place, and a repo link', () => {
+test('settings inputs carry the switch and the default place', () => {
     expect(
         computerSetWorkersInputSchema.parse({
             computerId: 'cmp_one',
@@ -183,29 +184,4 @@ test('settings inputs carry the switch, the default place, and a repo link', () 
     expect(
         projectSetDefaultWorkerPlaceInputSchema.parse({ ...toComputer, place: null }).place
     ).toBeNull();
-    const link = {
-        checkoutPath: null,
-        computerId: 'cmp_one',
-        projectRepoId: 'prp_one',
-        serverId: 'srv_one',
-    };
-    expect(projectLinkRepoInputSchema.parse(link)).toEqual(link);
-});
-
-test('a Project repo lists each Computer link, and a link may wait for a Computer name', () => {
-    const repo: ProjectRepo = {
-        id: 'prp_1',
-        links: [
-            { checkoutPath: '/Users/person/src/haus', computerId: 'cmp_1', computerName: 'mini' },
-            { checkoutPath: null, computerId: 'cmp_2', computerName: null },
-        ],
-        repository: 'haus/haus',
-    };
-    expect(projectRepoSchema.parse(repo)).toEqual(repo);
-    expect(
-        projectRepoSchema.safeParse({
-            ...repo,
-            links: [{ checkoutPath: '', computerId: 'cmp_1', computerName: 'mini' }],
-        }).success
-    ).toBe(false);
 });

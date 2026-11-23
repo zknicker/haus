@@ -2,9 +2,12 @@ import { type ModelConnection, providerSearchesWeb } from '@haus/api';
 import { Button, Dropdown, Label, ProgressBar, Switch } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../../components/ui/icon.tsx';
-import { type DisplayPlanWindow, usageColor } from '../../../usage/runtime-plan-windows.ts';
+import {
+    type DisplayPlanWindow,
+    percentLeft,
+    usageColor,
+} from '../../../usage/runtime-plan-windows.ts';
 import { SettingsRowError } from '../../layout/settings-text.tsx';
-import { percentLeft } from './connections-table-model.ts';
 import {
     type ConnectionAction,
     connectionActionLabels,

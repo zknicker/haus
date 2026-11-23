@@ -10,7 +10,7 @@ import {
     settingsSection,
     triggerManageGroup,
 } from './app-place-model.ts';
-import { connectionPlaces } from './connection-app-places.ts';
+import { computerAppPlaces } from './app-places-computers.ts';
 
 /** Where things live in Haus App, for Agents answering "where do I…". */
 export const appPlaces: readonly AppPlace[] = [
@@ -188,7 +188,7 @@ export const appPlaces: readonly AppPlace[] = [
         who: 'owner-or-admin',
         anchors: [...agentProfile(), agentSection('connections')],
     },
-    ...connectionPlaces,
+    ...computerAppPlaces,
     {
         area: 'server',
         task: 'See Agent usage',

@@ -155,9 +155,13 @@ transcripts, and workspace files never reach the Server. Settling a turn queues 
 transaction; stalls queue `worker_stall` and pull request changes `pull_request`.
 Migration 0144 adds Workers on Computers. `computers` gains `workers_enabled` (off by default),
 `worker_limit` (1 to 50, default 4), and `disconnected_at`, which the `machine-offline` sweep reads.
-`project_repos` (`prp_`, unique per Project and repository) and `project_repo_links` (per Computer,
-an optional `checkout_path`, the linking member) carry repos; the migration backfills repos from
-the Workers that have a Task. `projects.default_worker_place` and `default_worker_computer_id` hold
+It also added `project_repos` and `project_repo_links`, which migration
+`0152_repos-belong-to-the-server` retired ([ADR 0060](../adr/0060-repos-belong-to-the-server-and-agents-work-in-worktrees.md)): `repos` holds the Server's
+repo list, one lower-cased `owner/name` per Server (backfilled from every Worker's `repository`
+and the old Project repos), and `repo_folders` holds where each repo lives on a Computer (one per
+repo per Computer, the absolute `path`, and `added_by_user_id`, null for Haus's own clone). The
+same migration adds `workers.kept_worktree_path`, a closed Worker's worktree kept for unpushed
+work. `projects.default_worker_place` and `default_worker_computer_id` hold
 the default, tied by a check, so removing a Computer or switching it off clears both first.
 `workers` gains `runtime` (set exactly for a Computer place), `model`, `branch`,
 `native_session_id` (set once), and `worker_md_revision_id` (the delivered `WORKER.md`).

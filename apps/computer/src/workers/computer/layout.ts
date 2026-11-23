@@ -19,7 +19,6 @@ export function workerLayoutIn(workersFolder: string, workerId: string) {
     const runtime = join(root, 'runtime');
     return {
         bin: join(runtime, 'bin'),
-        checkout: join(root, 'checkout'),
         drive: join(root, 'drive'),
         report: join(runtime, 'report'),
         reportFile: join(runtime, 'report', 'receipt.json'),
@@ -39,10 +38,36 @@ export function workerLayoutIn(workersFolder: string, workerId: string) {
 }
 export type WorkerLayout = ReturnType<typeof workerLayout>;
 
-export function repoClonePath(dataRoot: string, repository: string) {
-    const [owner, name] = repository.toLowerCase().split('/');
-    if (!(owner && name) || owner.startsWith('.') || name.startsWith('.')) {
+export function reposRoot(dataRoot: string, serverId: string) {
+    return join(dataRoot, 'servers', serverId, 'repos');
+}
+
+export function repoClonePath(dataRoot: string, serverId: string, repository: string) {
+    const { name, owner } = repoParts(repository);
+    return join(reposRoot(dataRoot, serverId), owner, name);
+}
+
+export function worktreesRoot(dataRoot: string, serverId: string) {
+    return join(dataRoot, 'servers', serverId, 'worktrees');
+}
+
+export function worktreePath(dataRoot: string, serverId: string, id: string, repository: string) {
+    if (!pathSafeId.test(id)) {
+        throw new Error(`"${id}" cannot name a worktree folder.`);
+    }
+    const { name, owner } = repoParts(repository);
+    return join(worktreesRoot(dataRoot, serverId), id, owner, name);
+}
+
+export function repoParts(repository: string) {
+    const parts = repository.toLowerCase().split('/');
+    const [owner, name] = parts;
+    if (parts.length !== 2 || !(owner && name) || [owner, name].some(unsafePart)) {
         throw new Error(`"${repository}" cannot name a repository folder.`);
     }
-    return join(dataRoot, 'repos', owner, name);
+    return { name, owner };
+}
+
+function unsafePart(part: string) {
+    return part === '.' || part === '..' || !/^[a-z0-9._-]+$/u.test(part);
 }

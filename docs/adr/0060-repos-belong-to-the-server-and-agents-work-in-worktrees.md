@@ -1,6 +1,6 @@
 ---
 status: proposed
-summary: A Project is an area of work and asks for no repos. Repos belong to the Server, identified by GitHub `owner/name`, and any Agent or Worker in any Project may use any of them. Each Computer lists where its repos live as repo folders, added by its attacher from the Device page or `haus-computer repo add`; a Worker that needs a repo with no folder clones it into the Server's partition, and that clone becomes the folder. Workers and Agents work in git worktrees of the folder at `<dataRoot>/servers/<serverId>/worktrees/<worker-or-agent-id>/<owner>/<name>/`, for Claude Code and Codex alike, reversing the 2026-11-21 move to separate clones; a Codex Worker writing hooks or config into the shared `.git`, or moving `main`, is an accepted risk disclosed at "Add folder". A Worker takes one repo. An Agent gets a worktree on its own named branch with `haus repo checkout`, only for repos already on that Computer, and commits, pushes and opens pull requests there as the Server's Haus GitHub App bot, with the person who asked as co-author. A Worker's worktree goes when it closes once its commits are on the remote, an Agent's after 7 days unused once clean, and unpushed work always stays. A repo joins the Server's list only after a successful folder add or clone. `project_repos` and `project_repo_links` retire. Proposed 2026-11-22, not yet implemented.
+summary: A Project is an area of work and asks for no repos. Repos belong to the Server, identified by GitHub `owner/name`, and any Agent or Worker in any Project may use any of them. Each Computer lists where its repos live as repo folders, added by its attacher from the Device page or `haus-computer repo add`; a Worker that needs a repo with no folder clones it into the Server's partition, and that clone becomes the folder. Workers and Agents work in git worktrees of the folder at `<dataRoot>/servers/<serverId>/worktrees/<worker-or-agent-id>/<owner>/<name>/`, for Claude Code and Codex alike, reversing the 2026-11-21 move to separate clones; a Codex Worker writing hooks or config into the shared `.git`, or moving `main`, is an accepted risk disclosed at "Add folder". A Worker takes one repo. An Agent gets a worktree on its own named branch with `haus repo checkout`, only for repos already on that Computer, and commits, pushes and opens pull requests there as the Server's Haus GitHub App bot, with the person who asked as co-author. A Worker's worktree goes when it closes once its commits are on the remote, an Agent's after 7 days unused once clean, and unpushed work always stays. A repo joins the Server's list only after a successful folder add or clone. `project_repos` and `project_repo_links` retire. Implemented 2026-11-22 except Agent pushes, pull requests and commit identity (slice C).
 read_when:
   - changing where repos are recorded, how a Computer finds or clones a repo, or repo folders
   - changing Project creation or Project settings that mention repos
@@ -26,6 +26,9 @@ follow-up, [specs/projects.md](../../specs/projects.md) and
 [ADR 0057](0057-agents-run-on-the-server-and-machines-run-their-tools.md) decision 4 (amended
 2026-11-22), which decides which Computer a tool call runs on. This ADR decides which repos the
 call reaches there and where Workers and Agents work on disk.
+
+Implemented 2026-11-22 (slice B), except Agent pushes, pull requests and commit identity in
+decision 5, which slice C builds.
 
 ## Context
 
@@ -225,7 +228,7 @@ call reaches there and where Workers and Agents work on disk.
    - **Retirement and detaching.** Retiring an Agent (ADR 0057 decision 4) and purging a Server's
      partition remove each clean worktree from its folder and keep its branch. A worktree with
      uncommitted changes stays where it is, and `haus-computer repo list` shows it until the
-     person removes it.
+     person removes it. A purge also keeps the Haus clone backing any worktree it keeps.
 
 7. **`project_repos` and `project_repo_links` retire.** The migration:
    - makes a `repos` row for each distinct `workers.repository` on a Server, and for the one

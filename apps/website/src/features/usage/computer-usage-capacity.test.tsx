@@ -14,7 +14,7 @@ test('keeps a Computer plan snapshot visible while the Computer is offline', () 
     expect(markup).toContain('Codex');
     expect(markup).toContain('Weekly Limit');
     expect(markup).not.toContain('5h Limit');
-    expect(markup).toContain('13%');
+    expect(markup).toContain('87%');
     expect(markup).toContain('Usage out of date');
     expect(markup).not.toContain('Last updated');
 });
@@ -81,20 +81,20 @@ test('renders only detected runtime cards without token details', () => {
     expect(markup).toContain('Grok Build');
     expect(markup).not.toContain('Codex');
     expect(markup).toContain('Weekly Limit');
-    expect(markup).toContain('5h limit');
-    expect(markup).toContain('>11%<');
+    expect(markup).toContain('5h left');
+    expect(markup).toContain('>89%<');
     expect(markup).toContain('tooltip__trigger flex');
     // Runtimes render through the same DataGrid as the Agents table on this
     // page, so both share one header, surface, and row treatment.
     expect(markup).toContain('data-slot="data-grid"');
-    expect(markup).toContain('Weekly limit');
+    expect(markup).toContain('7d left');
     expect(markup).toContain('Details');
     // A weekly meter per runtime, plus a burst meter only where the runtime has
     // a 5-hour window; the runtime without one gets an inert track instead of a
     // zero-value bar that would announce "0%".
     expect(markup.match(/role="progressbar"/g)).toHaveLength(3);
     expect(markup).toContain('No 5-hour limit');
-    expect(markup).toContain('5-hour limit, 11% used.');
+    expect(markup).toContain('5-hour limit, 89% left.');
     expect(markup).not.toContain('auto-rows-fr');
     expect(markup).not.toContain('OpenRouter');
 });

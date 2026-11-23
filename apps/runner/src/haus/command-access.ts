@@ -7,14 +7,17 @@ export interface MachineFlag {
 
 type CommandAccess =
     | { readonly kind: 'run'; readonly machineFlags: readonly MachineFlag[] }
+    | { readonly kind: 'repo-checkout' }
     | { readonly kind: 'workspace'; readonly nextAction: string };
 
 export type HausCommandAccess =
     | { readonly kind: 'run'; readonly machineFlags: readonly MachineFlag[] }
-    | { readonly kind: 'refused'; readonly text: string };
+    | { readonly kind: 'refused'; readonly text: string }
+    | { readonly kind: 'repo-checkout' };
 
 const bare = '[flags]';
 const serverOnly = { kind: 'run', machineFlags: [] } as const satisfies CommandAccess;
+const repoCheckout = { kind: 'repo-checkout' } as const satisfies CommandAccess;
 const readDriveFolder =
     'Read the current version in your `drive/` folder with file commands; `haus drive versions` lists its history.';
 
@@ -60,6 +63,7 @@ const commandTable: Readonly<Record<string, Readonly<Record<string, CommandAcces
         unfollow: serverOnly,
     },
     profile: { show: serverOnly, update: serverOnly },
+    repo: { checkout: repoCheckout, list: serverOnly },
     reminder: {
         cancel: serverOnly,
         list: serverOnly,

@@ -37,7 +37,7 @@ export function InvitePopover({ serverId }: { serverId: string }) {
 
     return (
         <Popover isOpen={open} onOpenChange={(next) => (next ? setOpen(true) : close())}>
-            <Button>Invite</Button>
+            <Button variant="secondary">Invite</Button>
             <Popover.Content className="w-[min(22rem,calc(100vw-2rem))]" placement="bottom end">
                 <Popover.Dialog>
                     {issued ? (

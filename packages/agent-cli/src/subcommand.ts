@@ -57,13 +57,11 @@ export async function dispatchSubcommand(
     const rest = bareSub ? raw : named;
 
     try {
-        const spec = toCliCommand(groupName, sub);
-        const parsed = parseArgs(spec, rest);
+        const parsed = parseSubcommandArgs(groupName, sub, rest);
         if (parsed.help) {
             printSubHelp(sub, process.stdout, helpFooter);
             return 0;
         }
-        validateArity(spec, sub, parsed);
         return await sub.run(parsed);
     } catch (error) {
         if (error instanceof UsageError) {
@@ -73,6 +71,19 @@ export async function dispatchSubcommand(
         }
         throw error;
     }
+}
+
+/**
+ * Validate a subcommand's raw args against its flags and positional arity, the
+ * way dispatch does. `--help` skips the arity check. Throws UsageError.
+ */
+export function parseSubcommandArgs(groupName: string, sub: SubCommand, raw: readonly string[]) {
+    const spec = toCliCommand(groupName, sub);
+    const parsed = parseArgs(spec, [...raw]);
+    if (!parsed.help) {
+        validateArity(spec, sub, parsed);
+    }
+    return parsed;
 }
 
 /** Exact-arity check for declared positionals; UsageError carries the spec. */

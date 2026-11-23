@@ -10,16 +10,17 @@ import {
     invokeResultSchema,
 } from '@haus/api';
 import { onAgentLifecycle } from '../agent-delivery/lifecycle.ts';
-import { isAgentAllowedOn } from '../computer-access/agent-access.ts';
 import type { ComputerConnections } from '../computers/connections.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
 import type { RunnerLink } from '../runner/runner-link.ts';
+import { createFenceEpochs } from './fence-epochs.ts';
 import { machineResultAnswer, offlineAnswer, settledAnswer } from './invocation-answers.ts';
 import { type InvocationClock, systemInvocationClock } from './invocation-clock.ts';
 import { clampTimeoutMs, noticeAnswer } from './invocation-frames.ts';
 import { decideInvocation } from './invocation-gate.ts';
 import { bindRunnerUpload } from './invocation-payloads.ts';
 import { reattachInvocations } from './invocation-reattach.ts';
+import { gateSend } from './invocation-send-gate.ts';
 import {
     readAgentMachine,
     recordAccepted,
@@ -59,7 +60,7 @@ function routeInvocations(input: RouterInput) {
     const open = new Map<string, OpenInvocation>();
     const byDispatch = new Map<string, string>();
     const undelivered = new Map<string, InvocationResultFrame>();
-    const fenceEpochs = new Map<string, number>();
+    const fenceEpochs = createFenceEpochs();
     const stopSettleWatch = onAgentLifecycle((event) => {
         if (event.phase !== 'settled') {
             return;
@@ -142,18 +143,25 @@ function routeInvocations(input: RouterInput) {
             answer(await settledAnswer(db, { appOrigin, candidates: decision.candidates, record }));
             return;
         }
-        const target = { agentId: frame.agentId, computerId, serverId: agent.serverId };
-        const epoch = fenceEpochs.get(fenceKey(target)) ?? 0;
-        const allowed = await isAgentAllowedOn(db, target);
-        if (!allowed || (fenceEpochs.get(fenceKey(target)) ?? 0) !== epoch) {
-            const refused = await recordSentRefusal(db, record.id, 'no-access');
-            answer(await settledAnswer(db, { appOrigin, record: refused ?? record }));
+        const scope = {
+            appOrigin,
+            computerId,
+            fenceEpochs,
+            frame,
+            record,
+            serverId: agent.serverId,
+        };
+        const gated = await gateSend(db, scope);
+        if (gated.kind === 'refused') {
+            if (gated.answer) {
+                answer(gated.answer);
+            }
             return;
         }
         const command: InvokeCommand = {
             agentId: frame.agentId,
             invocationId: record.id,
-            operation: frame.operation,
+            operation: gated.operation,
             runId: frame.runId,
             timeoutMs,
             type: 'invoke',
@@ -253,8 +261,7 @@ function routeInvocations(input: RouterInput) {
         },
         computerAttaching: fenceHeld,
         fenceAgent(target: { agentId: string; computerId: string; serverId: string }) {
-            const key = fenceKey(target);
-            fenceEpochs.set(key, (fenceEpochs.get(key) ?? 0) + 1);
+            fenceEpochs.bump(target);
             return fence(target);
         },
         async ingestComputerFrame(computerId: string, frame: unknown) {
@@ -286,8 +293,4 @@ function routeInvocations(input: RouterInput) {
             }
         },
     };
-}
-
-function fenceKey(target: { agentId: string; computerId: string }) {
-    return `${target.agentId}:${target.computerId}`;
 }

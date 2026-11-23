@@ -10,6 +10,7 @@ import { and, eq, isNull, sql } from 'drizzle-orm';
 import type { HausDatabase } from '../postgres/connection.ts';
 import { workerTurnsTable, workersTable } from '../postgres/schema.ts';
 import { lockServerRow } from '../servers/server-lock.ts';
+import { recordKeptWorktrees } from './kept-worktrees.ts';
 import { heldWorkerCloseFrames } from './worker-close-frames.ts';
 import type { WorkerEffects } from './worker-effects.ts';
 import { prepareWorkerEvents } from './worker-events.ts';
@@ -134,8 +135,9 @@ export async function answerHeldWorkers(
     scope: FrameScope,
     frame: WorkerHeldFrame
 ) {
+    const changed = await recordKeptWorktrees(db, scope, frame.keptWorktrees);
     return {
-        events: [],
+        events: await prepareWorkerEvents(db, { serverId: scope.serverId, workerIds: changed }),
         frames: await heldWorkerCloseFrames(
             db,
             { id: scope.computerId, serverId: scope.serverId },

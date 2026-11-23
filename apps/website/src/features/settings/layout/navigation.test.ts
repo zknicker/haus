@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { settingsNavGroups, settingsNavItems, settingsPages } from './navigation.ts';
+import { settingsNavGroups, settingsNavItems, settingsPageLabel } from './navigation.ts';
 
 function railShape(input: { canOperate: boolean; query: string }) {
     return settingsNavGroups(input).map((group) => ({
@@ -87,8 +87,9 @@ test('search finds the Background rows under Appearance', () => {
     ]);
 });
 
-test('the command palette lists pages, never link-outs', () => {
-    const ids: string[] = settingsPages.map((item) => item.id);
-    assert.ok(ids.includes('usage'));
-    assert.ok(!ids.includes('archived'));
+test('a page names its window and tab; anything else falls back to Settings', () => {
+    assert.equal(settingsPageLabel('archived'), 'Archived chats');
+    assert.equal(settingsPageLabel('computers'), 'Devices');
+    assert.equal(settingsPageLabel('retired'), undefined);
+    assert.equal(settingsPageLabel(undefined), undefined);
 });

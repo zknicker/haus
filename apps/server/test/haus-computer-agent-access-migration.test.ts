@@ -6,9 +6,9 @@ import { SQL } from 'bun';
 import { migrateHausDatabase } from '../src/postgres/migrations.ts';
 import { startEmptyDatabase } from './postgres-cluster.ts';
 
-const migrationTag = '0151_computer-agent-access';
+const migrationTag = '0153_computer-agent-access';
 
-test('0151 keeps every invocation and lets only a not-found refusal record no Computer', async () => {
+test('0153 keeps every invocation and lets only a not-found refusal record no Computer', async () => {
     const cluster = await startEmptyDatabase();
     const folder = await mkdtemp(join(tmpdir(), 'haus-computer-agent-access-'));
     const database = new SQL({ max: 1, url: cluster.databaseUrl });
@@ -21,14 +21,14 @@ test('0151 keeps every invocation and lets only a not-found refusal record no Co
                 ...journal,
                 entries: journal.entries.filter((entry: { idx: number }) => entry.idx <= idx),
             });
-        await writeFile(journalPath, through(150));
+        await writeFile(journalPath, through(151));
         await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder);
         await seedInvocations(database);
         expect(
             await rejects(database, { computerId: null, outcome: 'failed', refusal: 'not-found' })
         ).toBe(true);
 
-        await writeFile(journalPath, through(151));
+        await writeFile(journalPath, through(152));
         expect(await migrateHausDatabase(cluster.databaseUrl, 'haus', 'haus', folder)).toEqual([
             migrationTag,
         ]);

@@ -1,6 +1,7 @@
 import * as z from 'zod';
 import { idSchema } from './chat-contract-primitives.ts';
 import { desktopRefusalSchema, screenRefusalSchema } from './computer-use.ts';
+import { repoFolderPathSchema, repoNameSchema } from './repos.ts';
 
 /**
  * A machine tool call's optional `computer` field: a Computer id or a unique
@@ -36,6 +37,7 @@ export const invocationOperationKindSchema = z.enum([
     'file-write',
     'browser',
     'desktop',
+    'repo-checkout',
 ]);
 export type InvocationOperationKind = z.infer<typeof invocationOperationKindSchema>;
 
@@ -46,6 +48,7 @@ export const invocationTimeoutsMs = {
     edit: { default: 30_000, max: 30_000 },
     'file-read': { default: 60_000, max: 60_000 },
     'file-write': { default: 60_000, max: 60_000 },
+    'repo-checkout': { default: 300_000, max: 300_000 },
     'view-image': { default: 30_000, max: 30_000 },
 } as const satisfies Record<InvocationOperationKind, { default: number; max: number }>;
 
@@ -135,6 +138,11 @@ export const invocationEditSchema = z.discriminatedUnion('command', [
 ]);
 export type InvocationEdit = z.infer<typeof invocationEditSchema>;
 
+/**
+ * One machine operation. `repo-checkout` is `haus repo checkout` (ADR 0060): the
+ * runner never sends its `folder`; the Server's gate sets it from the target
+ * Computer's repo folders, or refuses when there is none.
+ */
 export const invocationOperationSchema = z.discriminatedUnion('kind', [
     z
         .object({
@@ -170,6 +178,14 @@ export const invocationOperationSchema = z.discriminatedUnion('kind', [
         .object({
             args: z.array(z.string().max(32_768)).min(1).max(100),
             kind: z.literal('desktop'),
+        })
+        .strict(),
+    z
+        .object({
+            folder: repoFolderPathSchema.optional(),
+            kind: z.literal('repo-checkout'),
+            ref: z.string().trim().min(1).max(200).nullable(),
+            repository: repoNameSchema,
         })
         .strict(),
 ]);

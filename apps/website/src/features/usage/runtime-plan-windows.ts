@@ -17,6 +17,10 @@ export function selectWindow(
     return window ? { ...window, label } : null;
 }
 
+export function percentLeft(window: Pick<PlanWindow, 'usedPercent'>) {
+    return Math.round(100 - window.usedPercent);
+}
+
 export function usageColor(usedPercent: number): 'accent' | 'danger' | 'warning' {
     if (usedPercent >= 90) {
         return 'danger';

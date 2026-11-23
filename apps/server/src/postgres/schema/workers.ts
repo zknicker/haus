@@ -33,6 +33,8 @@ export const workersTable = pgTable(
         environmentId: text('environment_id'),
         environmentName: text('environment_name'),
         id: text('id').primaryKey(),
+        /** A closed Computer-place Worker's worktree kept for unpushed work, from `worker-held`. */
+        keptWorktreePath: text('kept_worktree_path'),
         launchMessageId: text('launch_message_id'),
         /** As requested; null leaves the runtime's own default. */
         model: text('model'),

@@ -9,8 +9,7 @@ import {
     settingsSection,
 } from './app-place-model.ts';
 
-/** The App places for connections, Computers, and model accounts, in the app topic's order. */
-export const connectionPlaces: readonly AppPlace[] = [
+export const computerAppPlaces: readonly AppPlace[] = [
     {
         area: 'connections-and-computers',
         task: 'Connect a service such as GitHub or an MCP server',
@@ -65,6 +64,19 @@ export const connectionPlaces: readonly AppPlace[] = [
             computers(),
             label('features/computers/cloud-agent-capability-card.tsx', 'Cloud Agents'),
             label('features/computers/cloud-agent-capability-row.tsx', 'Make default'),
+        ],
+    },
+    {
+        area: 'connections-and-computers',
+        task: 'Add a repo folder to a Computer',
+        path: ['Settings', 'Devices', '(your device)', 'Repositories', 'Add folder'],
+        who: 'anyone',
+        note: 'Only the person who attached the Device.',
+        anchors: [
+            settingsEntry(),
+            computers(),
+            label('features/computers/computer-repo-folders-card.tsx', 'Repositories'),
+            label('features/computers/computer-repo-folders-card.tsx', 'Add folder'),
         ],
     },
     {

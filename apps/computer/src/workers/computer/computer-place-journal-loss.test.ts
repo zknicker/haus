@@ -42,6 +42,7 @@ describe('a Computer that lost its Worker journal', () => {
 
         expect(frames.map((frame) => frame.type)).toEqual([
             'worker-turn-accepted',
+            'repo-clones',
             'worker-turn-session',
             'worker-turn-input-accepted',
         ]);

@@ -50,6 +50,7 @@ export type ComputerTurnPhase = ComputerTurnRecord['phase'];
 export const computerWorkerFileSchema = z.object({
     agentId: idSchema,
     repoPath: z.string().min(1).nullable(),
+    worktreePath: z.string().min(1).nullable().default(null),
     turns: z.record(z.string(), computerTurnRecordSchema),
     version: z.literal(1),
     workerId: idSchema,

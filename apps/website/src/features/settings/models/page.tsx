@@ -59,7 +59,7 @@ export function ModelsSettings({
             <ItemCardGroup variant="transparent">
                 <ItemCardGroup.Header className="flex flex-wrap items-center justify-between gap-3">
                     <ItemCardGroup.Title>
-                        Reported Models
+                        Reported models
                         {computers.data ? (
                             <span className="text-muted ms-2 tabular-nums">{models.length}</span>
                         ) : null}

@@ -4,7 +4,6 @@ import {
     SettingsCardGrid,
     SettingsCardGridMore,
     SettingsGridCard,
-    SettingsGridCheck,
 } from '../settings/layout/settings-card-grid.tsx';
 import type { HostSkill, HostSkillSection as Section } from './host-skill-catalog.ts';
 import { SkillMark } from './skill-mark.tsx';
@@ -14,14 +13,17 @@ const collapsedCount = 6;
 
 /** One section of installed skills, collapsed to its first rows until asked. */
 export function HostSkillSection({
+    isFiltered,
     onSelect,
     section,
 }: {
+    isFiltered: boolean;
     onSelect: (entry: HostSkill) => void;
     section: Section;
 }) {
     const [expanded, setExpanded] = useState(false);
-    const visible = expanded ? section.skills : section.skills.slice(0, collapsedCount);
+    const visible =
+        expanded || isFiltered ? section.skills : section.skills.slice(0, collapsedCount);
     const hiddenNames = section.skills
         .slice(visible.length)
         .map((entry) => formatSkillName(entry.skill.name));
@@ -48,8 +50,6 @@ export function HostSkillSection({
                             {entry.skill.description}
                         </ItemCard.Description>
                     </ItemCard.Content>
-                    {/* Decorative: the section title already says Installed. */}
-                    <SettingsGridCheck />
                 </SettingsGridCard>
             ))}
         </SettingsCardGrid>

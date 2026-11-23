@@ -229,7 +229,7 @@ test('closing a Task sends worker-close, and a held closed Worker is closed agai
     const held = await answerHeldWorkers(
         connection.db,
         { computerId: board.seed.computerId, serverId: board.seed.serverId },
-        { type: 'worker-held', workerIds: [workerId, 'wkr_gone000000000000'] }
+        { keptWorktrees: [], type: 'worker-held', workerIds: [workerId, 'wkr_gone000000000000'] }
     );
     expect(held.frames.map(({ frame }) => frame)).toEqual([
         { type: 'worker-close', workerId },

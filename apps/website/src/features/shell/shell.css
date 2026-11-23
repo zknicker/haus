@@ -240,6 +240,16 @@
         );
     }
 
+    /* The Settings rail's rows are shorter (`default-theme.css`), so its lead row centres on that. */
+    .app-shell
+        .settings-rail
+        > [data-slot='sidebar-group']:first-child
+        [data-slot='sidebar-menu-item']:first-child {
+        margin-block-start: calc(
+            (var(--app-shell-band-height) - var(--settings-rail-row)) / 2
+        );
+    }
+
     /*
      * Route changes may add or remove the contextual left sidebar. Reflow the
      * workspace immediately; right-side inspector panes own their own motion.

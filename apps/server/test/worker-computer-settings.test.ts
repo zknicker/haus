@@ -4,24 +4,13 @@ import { removeServerComputer } from '../src/computers/remove-computer.ts';
 import { setComputerWorkers } from '../src/computers/set-computer-workers.ts';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
-import {
-    agentInboxTable,
-    projectsTable,
-    serverMembershipsTable,
-    usersTable,
-} from '../src/postgres/schema.ts';
-import { linkProjectRepo, unlinkProjectRepo } from '../src/projects/project-repos.ts';
+import { projectsTable, serverMembershipsTable, usersTable } from '../src/postgres/schema.ts';
 import { setProjectDefaultWorkerPlace } from '../src/projects/project-worker-defaults.ts';
 import { sendAgentFollowUp } from '../src/workers/worker-operations.ts';
 import { offlineDelivery } from './agent-inbox-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
 import { type WorkerBoard, readTurns, seedWorkerBoard, startOn } from './worker-board.fixture.ts';
-import {
-    addLinkedRepo,
-    attachAnotherComputer,
-    setComputerPlace,
-} from './worker-computer-place.fixture.ts';
-import { endTurn } from './worker-computer-turn.fixture.ts';
+import { attachAnotherComputer, setComputerPlace } from './worker-computer-place.fixture.ts';
 
 let cluster: TestDatabase;
 let connection: HausConnection;
@@ -39,10 +28,7 @@ afterAll(async () => {
 async function computerBoard(limit = 1) {
     const board = await seedWorkerBoard(connection.db);
     await setComputerPlace(connection.db, board, board.seed.computerId, { limit, name: 'mini' });
-    const projectRepoId = await addLinkedRepo(connection.db, board, 'haus/haus', [
-        { checkoutPath: null, computerId: board.seed.computerId },
-    ]);
-    return { board, projectRepoId };
+    return { board };
 }
 
 const owner = (board: WorkerBoard) => ({ id: board.seed.userId });
@@ -116,8 +102,8 @@ test('a Computer default needs the switch on, and removing the Computer clears i
     expect(await readDefault(board)).toEqual({ computerId: null, place: null });
 });
 
-test("only the attacher, an Owner, or an Admin sets a Computer's switch or links a repo on it", async () => {
-    const { board, projectRepoId } = await computerBoard();
+test("only the attacher, an Owner, or an Admin sets a Computer's switch", async () => {
+    const { board } = await computerBoard();
     const { delivery } = offlineDelivery(connection.db, board.seed);
     const member = await addMember(board, 'member');
     const attached = await attachAnotherComputer(connection.db, board);
@@ -135,70 +121,15 @@ test("only the attacher, an Owner, or an Admin sets a Computer's switch or links
             null
         )
     ).rejects.toThrow(denied);
-    await expect(
-        linkProjectRepo(
-            connection.db,
-            { id: member },
-            {
-                checkoutPath: null,
-                computerId: board.seed.computerId,
-                projectRepoId,
-                serverId: board.seed.serverId,
-            }
-        )
-    ).rejects.toThrow(denied);
-    await setComputerWorkers(
-        connection.db,
-        delivery,
-        { id: member },
-        { computerId: attached, enabled: true, limit: 2, serverId: board.seed.serverId },
-        null
-    );
     expect(
-        await linkProjectRepo(
+        await setComputerWorkers(
             connection.db,
+            delivery,
             { id: member },
-            {
-                checkoutPath: '/src/haus',
-                computerId: attached,
-                projectRepoId,
-                serverId: board.seed.serverId,
-            }
+            { computerId: attached, enabled: true, limit: 2, serverId: board.seed.serverId },
+            null
         )
-    ).toEqual({ computerId: attached, projectRepoId });
-});
-
-test('a queued turn whose repo was unlinked from its Computer fails launch-refused when a slot frees', async () => {
-    const { board, projectRepoId } = await computerBoard();
-    const { delivery } = offlineDelivery(connection.db, board.seed);
-    const working = (await startOn(connection.db, board, { place: 'mini' })).receipt.worker;
-    const queued = (await startOn(connection.db, board, { place: 'mini' })).receipt.worker;
-    await unlinkProjectRepo(connection.db, owner(board), {
-        computerId: board.seed.computerId,
-        projectRepoId,
-        serverId: board.seed.serverId,
-    });
-    const [workingTurn] = await readTurns(connection.db, working.id);
-    const [queuedTurn] = await readTurns(connection.db, queued.id);
-
-    const freed = await endTurn(connection.db, delivery, board, {
-        exit: 'exited',
-        turnId: workingTurn?.id ?? '',
-    });
-
-    expect((await readTurns(connection.db, queued.id)).map((turn) => turn.outcome)).toEqual([
-        { detail: 'repo-unlinked', kind: 'failed', reason: 'launch-refused' },
-    ]);
-    expect(
-        freed?.frames.filter(
-            ({ frame }) => frame.type === 'worker-turn-start' && frame.turnId === queuedTurn?.id
-        )
-    ).toEqual([]);
-    const items = await connection.db
-        .select({ source: agentInboxTable.source })
-        .from(agentInboxTable)
-        .where(eq(agentInboxTable.workerTurnId, queuedTurn?.id ?? ''));
-    expect(items).toEqual([{ source: 'worker_report' }]);
+    ).toMatchObject({ computerId: attached });
 });
 
 async function readDefault(board: WorkerBoard) {

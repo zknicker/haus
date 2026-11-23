@@ -1,14 +1,22 @@
 import { afterAll, beforeAll, expect, test } from 'bun:test';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { connectHausDatabase, type HausConnection } from '../src/postgres/connection.ts';
 import { projectsTable, workersTable } from '../src/postgres/schema.ts';
 import { startWorker } from '../src/workers/start-worker.ts';
+import { offlineDelivery } from './agent-inbox-harness.ts';
 import { startMigratedDatabase, type TestDatabase } from './postgres-cluster.ts';
-import { type WorkerBoard, seedWorkerBoard, startInput, startOn } from './worker-board.fixture.ts';
 import {
-    addLinkedRepo,
+    type WorkerBoard,
+    observe,
+    readTurns,
+    seedWorkerBoard,
+    startInput,
+    startOn,
+} from './worker-board.fixture.ts';
+import {
+    addRepoFolders,
     attachAnotherComputer,
-    readProjectRepositories,
+    readServerRepositories,
     setComputerPlace,
 } from './worker-computer-place.fixture.ts';
 
@@ -28,20 +36,16 @@ afterAll(async () => {
 async function computerBoard() {
     const board = await seedWorkerBoard(connection.db);
     await setComputerPlace(connection.db, board, board.seed.computerId, { name: 'mini' });
-    await addLinkedRepo(connection.db, board, 'haus/haus', [
-        { checkoutPath: '/Users/zach/haus', computerId: board.seed.computerId },
+    await addRepoFolders(connection.db, board, 'haus/haus', [
+        { computerId: board.seed.computerId, path: '/Users/zach/haus' },
     ]);
     return board;
 }
 
-test('a start on a Computer by name runs its first ready runtime in a worktree of the linked clone', async () => {
+test("a start on a Computer by name runs its first ready runtime in a worktree of the Computer's folder", async () => {
     const board = await computerBoard();
 
-    const started = await startOn(connection.db, board, {
-        model: 'opus',
-        place: 'mini',
-        repository: undefined,
-    });
+    const started = await startOn(connection.db, board, { model: 'opus', place: 'mini' });
 
     const { worker } = started.receipt;
     expect([worker.place, worker.runtime, worker.model, worker.repository]).toEqual([
@@ -88,9 +92,6 @@ test('every unusable Computer start refuses with its reason and writes nothing',
         '--runtime and --model are for Computer places'
     );
     await expect(refuse({ place: 'nowhere' })).rejects.toThrow('No place is named nowhere.');
-    await expect(refuse({ place: 'mini', repository: 'haus/other' })).rejects.toThrow(
-        'haus/other is not linked on mini.'
-    );
     await setComputerPlace(connection.db, board, computerId, { ready: [] });
     await expect(refuse({ place: 'mini' })).rejects.toThrow('No Worker runtime is ready on mini.');
     await setComputerPlace(connection.db, board, computerId, { health: 'offline' });
@@ -107,7 +108,7 @@ test('every unusable Computer start refuses with its reason and writes nothing',
         `This Task's Project runs Workers on computer:${computerId}, which can't take one now.`
     );
     expect(await countWorkers(board)).toBe(0);
-    expect(await readProjectRepositories(connection.db, board)).toEqual(['haus/haus']);
+    expect(await readServerRepositories(connection.db, board)).toEqual(['haus/haus']);
 });
 
 test('two Computers that share a name refuse the bare name and list their id forms', async () => {
@@ -125,22 +126,45 @@ test('two Computers that share a name refuse the bare name and list their id for
     expect(byId.receipt.worker.carrierComputerId).toBe(board.seed.computerId);
 });
 
-test('repos: a named new repo joins the Project, an omitted one is its only repo, and several need --repo', async () => {
-    const board = await seedWorkerBoard(connection.db);
-    const refuse = (overrides: Parameters<typeof startInput>[1]) =>
-        startWorker(connection.db, board.runner, startInput(board, overrides), null);
+test('a Computer place takes a repo it has no folder for, and the start frame clones it', async () => {
+    const board = await computerBoard();
 
-    await expect(refuse({ repository: undefined })).rejects.toThrow(
-        "This Task's Project has no repos yet. Name the repository with --repo <owner/name>."
-    );
-    await startOn(connection.db, board, { repository: 'Haus/Haus' });
-    expect(await readProjectRepositories(connection.db, board)).toEqual(['Haus/Haus']);
-    const omitted = await startOn(connection.db, board, { repository: undefined });
-    expect(omitted.receipt.worker.repository).toBe('Haus/Haus');
-    await startOn(connection.db, board, { repository: 'haus/docs' });
-    await expect(refuse({ repository: undefined })).rejects.toThrow(
-        "This Task's Project has several repos, so name one with --repo: Haus/Haus, haus/docs."
-    );
+    const started = await startOn(connection.db, board, {
+        place: 'mini',
+        repository: 'haus/docs',
+    });
+
+    expect(started.receipt.worker.repository).toBe('haus/docs');
+    expect(started.effects.frames[0]?.frame).toMatchObject({
+        checkout: { checkoutPath: null, repository: 'haus/docs' },
+    });
+    expect(await readServerRepositories(connection.db, board)).toEqual(['haus/haus']);
+});
+
+test('a cloud start adds its repo once the provider starts it, and a refused start adds nothing', async () => {
+    const board = await seedWorkerBoard(connection.db);
+    const { delivery } = offlineDelivery(connection.db, board.seed);
+
+    await expect(
+        startWorker(
+            connection.db,
+            board.runner,
+            startInput(board, { place: 'cursor', repository: 'haus/typo', runtime: 'codex' }),
+            null
+        )
+    ).rejects.toThrow('--runtime and --model are for Computer places');
+    const started = await startOn(connection.db, board, { repository: 'haus/docs' });
+    const [turn] = await readTurns(connection.db, started.receipt.worker.id);
+    expect(await readServerRepositories(connection.db, board)).toEqual([]);
+
+    await observe(connection.db, delivery, board, {
+        providerAgentId: 'bc-1',
+        status: 'running',
+        turnId: turn?.id ?? '',
+        workerId: started.receipt.worker.id,
+    });
+
+    expect(await readServerRepositories(connection.db, board)).toEqual(['haus/docs']);
 });
 
 test("a start without --on uses the Project's Computer default before the Agent's cloud default", async () => {
@@ -158,12 +182,7 @@ test("a start without --on uses the Project's Computer default before the Agent'
 test('a Computer past its own Worker limit queues while another Computer still starts', async () => {
     const board = await computerBoard();
     await setComputerPlace(connection.db, board, board.seed.computerId, { limit: 1 });
-    const other = await attachAnotherComputer(connection.db, board, { name: 'studio' });
-    await connection.db.execute(sql`
-        insert into project_repo_links (server_id, project_repo_id, computer_id, linked_by_user_id)
-        select server_id, id, ${other}, ${board.seed.userId} from project_repos
-        where project_id = ${board.seed.channelId}
-    `);
+    await attachAnotherComputer(connection.db, board, { name: 'studio' });
 
     const first = await startOn(connection.db, board, { place: 'mini' });
     const second = await startOn(connection.db, board, { place: 'mini' });

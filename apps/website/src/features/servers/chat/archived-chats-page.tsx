@@ -5,11 +5,16 @@ import { useNavigate } from 'react-router-dom';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { useArchivedChats } from '../../../hooks/servers/use-archived-chats.ts';
 import { useChannelUnarchive } from '../../../hooks/servers/use-channel-lifecycle.ts';
-import type { ServerDetail } from '../../../lib/haus-server.tsx';
-import { PageBand } from '../../shell/page-band.tsx';
-import { serverChatRoute, serverSettingsRoute } from '../server-routes.ts';
+import type { ServerSummary } from '../../../lib/haus-server.tsx';
+import { SettingsPageColumn } from '../../settings/layout/settings-page-column.tsx';
+import { SettingsPageHeader } from '../../settings/layout/settings-page-header.tsx';
+import { serverChatRoute } from '../server-routes.ts';
 
-export function ArchivedChatsPage({ server }: { server: ServerDetail }) {
+export function ArchivedChatsPage({
+    server,
+}: {
+    server: Pick<ServerSummary, 'id' | 'role' | 'slug'>;
+}) {
     const navigate = useNavigate();
     const chats = useArchivedChats(server.id);
     const unarchive = useChannelUnarchive();
@@ -17,76 +22,68 @@ export function ArchivedChatsPage({ server }: { server: ServerDetail }) {
     const items = chats.data ?? [];
 
     return (
-        <section aria-label="Archived projects" className="flex min-h-0 flex-1 flex-col">
-            {/* The Settings rail links here, so the trail runs through Settings. */}
-            <PageBand>
-                <PageBand.Trail
-                    crumbs={[{ href: serverSettingsRoute(server.slug), label: 'Settings' }]}
-                    current="Archived chats"
-                />
-            </PageBand>
-            <div className="mx-auto min-h-0 w-full max-w-3xl flex-1 overflow-y-auto p-6 pt-8">
-                {chats.isPending ? (
-                    <div aria-busy="true" className="min-h-full">
-                        <span className="sr-only">Loading archived projects</span>
-                    </div>
-                ) : items.length === 0 ? (
-                    <EmptyState>
-                        <EmptyState.Header>
-                            <EmptyState.Media variant="icon">
+        <SettingsPageColumn>
+            <SettingsPageHeader title="Archived chats" />
+            {chats.isPending ? (
+                <div aria-busy="true" className="min-h-32">
+                    <span className="sr-only">Loading archived chats</span>
+                </div>
+            ) : items.length === 0 ? (
+                <EmptyState>
+                    <EmptyState.Header>
+                        <EmptyState.Media variant="icon">
+                            <Icon aria-hidden="true" icon={ArchiveIcon} />
+                        </EmptyState.Media>
+                        <EmptyState.Title>No archived chats</EmptyState.Title>
+                        <EmptyState.Description>
+                            Archived chats stay readable and can be restored here.
+                        </EmptyState.Description>
+                    </EmptyState.Header>
+                </EmptyState>
+            ) : (
+                <ListView
+                    aria-label="Archived chats"
+                    items={items}
+                    onAction={(key) => navigate(serverChatRoute(server.slug, String(key)))}
+                    variant="secondary"
+                >
+                    {(chat) => (
+                        <ListView.Item id={chat.id} textValue={chat.name ?? 'channel'}>
+                            <ListView.ItemContent>
                                 <Icon aria-hidden="true" icon={ArchiveIcon} />
-                            </EmptyState.Media>
-                            <EmptyState.Title>No archived projects</EmptyState.Title>
-                            <EmptyState.Description>
-                                Archived projects stay readable and can be restored here.
-                            </EmptyState.Description>
-                        </EmptyState.Header>
-                    </EmptyState>
-                ) : (
-                    <ListView
-                        aria-label="Archived projects"
-                        items={items}
-                        onAction={(key) => navigate(serverChatRoute(server.slug, String(key)))}
-                        variant="secondary"
-                    >
-                        {(chat) => (
-                            <ListView.Item id={chat.id} textValue={chat.name ?? 'channel'}>
-                                <ListView.ItemContent>
-                                    <Icon aria-hidden="true" icon={ArchiveIcon} />
-                                    <div className="flex min-w-0 flex-col">
-                                        <ListView.Title>#{chat.name}</ListView.Title>
-                                        <ListView.Description>
-                                            Archived {formatArchivedAt(chat.archivedAt)}
-                                        </ListView.Description>
-                                    </div>
-                                </ListView.ItemContent>
-                                {canManage ? (
-                                    <ListView.ItemAction>
-                                        <Button
-                                            isPending={
-                                                unarchive.isPending &&
-                                                unarchive.variables?.chatId === chat.id
-                                            }
-                                            onPress={() =>
-                                                unarchive.mutate({
-                                                    chatId: chat.id,
-                                                    serverId: chat.serverId,
-                                                })
-                                            }
-                                            size="sm"
-                                            variant="outline"
-                                        >
-                                            Restore
-                                        </Button>
-                                    </ListView.ItemAction>
-                                ) : null}
-                            </ListView.Item>
-                        )}
-                    </ListView>
-                )}
-                {chats.error ? <p className="text-danger text-sm">{chats.error.message}</p> : null}
-            </div>
-        </section>
+                                <div className="flex min-w-0 flex-col">
+                                    <ListView.Title>#{chat.name}</ListView.Title>
+                                    <ListView.Description>
+                                        Archived {formatArchivedAt(chat.archivedAt)}
+                                    </ListView.Description>
+                                </div>
+                            </ListView.ItemContent>
+                            {canManage ? (
+                                <ListView.ItemAction>
+                                    <Button
+                                        isPending={
+                                            unarchive.isPending &&
+                                            unarchive.variables?.chatId === chat.id
+                                        }
+                                        onPress={() =>
+                                            unarchive.mutate({
+                                                chatId: chat.id,
+                                                serverId: chat.serverId,
+                                            })
+                                        }
+                                        size="sm"
+                                        variant="secondary"
+                                    >
+                                        Restore
+                                    </Button>
+                                </ListView.ItemAction>
+                            ) : null}
+                        </ListView.Item>
+                    )}
+                </ListView>
+            )}
+            {chats.error ? <p className="text-danger text-sm">{chats.error.message}</p> : null}
+        </SettingsPageColumn>
     );
 }
 

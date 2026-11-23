@@ -11,8 +11,6 @@ import * as z from 'zod';
  * - `WORKER_PLACE_UNAVAILABLE`: the place is not usable now, such as an offline Computer or no ready carrier.
  * - `WORKER_PLACE_OFF`: the Computer's **Workers can run here** switch is off.
  * - `WORKER_PLACE_AMBIGUOUS`: two Computers share that name; the message lists their `computer:<id>` forms.
- * - `WORKER_REPO_UNKNOWN`: no `--repo` where the Project has several, or one that is not the Project's.
- * - `WORKER_REPO_NOT_LINKED`: the Computer place has not linked that repo.
  * - `WORKER_RUNTIME_UNAVAILABLE`: the requested runtime, or every runtime, is not ready there.
  * - `WORKER_MODEL_UNAVAILABLE`: the runtime there cannot run that model, or reports none; the message lists the models it can.
  * - `WORKER_OPTION_CLOUD`: `--runtime` or `--model` on a cloud place.
@@ -31,8 +29,6 @@ export const workerRefusalCodes = [
     'WORKER_PLACE_UNAVAILABLE',
     'WORKER_PLACE_OFF',
     'WORKER_PLACE_AMBIGUOUS',
-    'WORKER_REPO_UNKNOWN',
-    'WORKER_REPO_NOT_LINKED',
     'WORKER_RUNTIME_UNAVAILABLE',
     'WORKER_MODEL_UNAVAILABLE',
     'WORKER_OPTION_CLOUD',

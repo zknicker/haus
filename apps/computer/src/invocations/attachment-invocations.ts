@@ -11,6 +11,7 @@ import { fileReadRunner, fileWriteRunner, viewImageRunner } from './files.ts';
 import { createInvocationHandler } from './handler.ts';
 import type { InvocationHandler } from './operation.ts';
 import { createInvocationPayloads } from './payloads.ts';
+import { createRepoCheckoutRunner } from './repo-checkout.ts';
 
 interface AttachmentInvocations {
     connected: () => void;
@@ -119,6 +120,7 @@ export function attachmentInvocations(
             edit: editRunner,
             'file-read': fileReadRunner,
             'file-write': fileWriteRunner,
+            'repo-checkout': createRepoCheckoutRunner(join(serverRoot, 'agents')),
             'view-image': viewImageRunner,
         },
         send: (frame) => daemonWork.send(frame),

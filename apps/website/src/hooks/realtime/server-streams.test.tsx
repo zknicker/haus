@@ -73,7 +73,6 @@ describe('Server-level stream hooks', () => {
             read('agent.list', { serverId }),
             read('chat.list', { serverId }),
         ]);
-        // Recovery is the broad (null id) row.
         expect(onRecovery).toContainEqual(read('agent.get', { serverId }));
         expect(onRecovery).not.toContainEqual(read('agent.deliveryState', agent));
     });
@@ -89,6 +88,8 @@ describe('Server-level stream hooks', () => {
             read('server.bySlug', { slug: 'team-room' }),
             read('computer.list', { serverId }),
             read('computer.systemLog', { computerId: 'cmp_1', serverId }),
+            read('computer.repoFolders', { computerId: 'cmp_1', serverId }),
+            read('computer.repoFolderStates', { computerId: 'cmp_1', serverId }),
             read('agent.activeActivity', { serverId }),
             read('agent.deliveryState', { serverId }),
             read('agent.list', { serverId }),
@@ -96,6 +97,8 @@ describe('Server-level stream hooks', () => {
             read('cloudAgentSettings.get', { serverId }),
         ]);
         expect(onRecovery).toContainEqual(read('computer.systemLog', { serverId }));
+        expect(onRecovery).toContainEqual(read('computer.repoFolders', { serverId }));
+        expect(onRecovery).toContainEqual(read('computer.repoFolderStates', { serverId }));
     });
 
     test('mcp.onUpdated refreshes the MCP reads', async () => {

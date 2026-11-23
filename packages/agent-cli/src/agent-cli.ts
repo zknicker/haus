@@ -12,6 +12,7 @@ import { MANUAL_EXAMPLE_FLOWS, MANUAL_SUBCOMMANDS } from './commands/agent-manua
 import { MESSAGE_SUBCOMMANDS } from './commands/agent-message.ts';
 import { PROFILE_SUBCOMMANDS } from './commands/agent-profile.ts';
 import { REMINDER_SUBCOMMANDS } from './commands/agent-reminder.ts';
+import { REPO_SUBCOMMANDS } from './commands/agent-repo.ts';
 import { SKILL_SUBCOMMANDS } from './commands/agent-skill.ts';
 import { TASK_SUBCOMMANDS } from './commands/agent-task.ts';
 import { TRIGGER_SUBCOMMANDS } from './commands/agent-trigger.ts';
@@ -35,6 +36,7 @@ export const commandGroups = {
     message: MESSAGE_SUBCOMMANDS,
     profile: PROFILE_SUBCOMMANDS,
     reminder: REMINDER_SUBCOMMANDS,
+    repo: REPO_SUBCOMMANDS,
     server: SERVER_SUBCOMMANDS,
     skill: SKILL_SUBCOMMANDS,
     task: TASK_SUBCOMMANDS,

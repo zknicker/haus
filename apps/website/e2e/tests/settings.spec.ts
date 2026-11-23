@@ -112,11 +112,8 @@ test('settings navigation names the page and reaches Server deletion', async ({
     await expect(page.getByRole('navigation', { name: 'Breadcrumb' })).toContainText('Devices');
 });
 
-/**
- * Usage is a settings page, so the rail stays while you read it. Archived chats
- * is a chat list with its own route, so that row leaves Settings.
- */
-test('Usage keeps the settings rail and Archived chats links out', async ({ page }) => {
+/** Usage and Archived chats are settings pages, so the rail stays while you read them. */
+test('Usage and Archived chats keep the settings rail', async ({ page }) => {
     await signInAsAppHuman(page);
     await page.goto(`/s/${slug}/settings/profile`);
     await page.getByRole('row', { exact: true, name: 'Usage' }).click();
@@ -124,9 +121,16 @@ test('Usage keeps the settings rail and Archived chats links out', async ({ page
     await expect(page.getByRole('heading', { exact: true, level: 1, name: 'Usage' })).toBeVisible();
     await expect(page.getByRole('treegrid', { name: 'Haus', exact: true })).toBeVisible();
 
-    await page.goto(`/s/${slug}/settings/profile`);
     await page.getByRole('row', { exact: true, name: 'Archived chats' }).click();
-    await expect(page).toHaveURL(new RegExp(`/s/${slug}/archived$`, 'u'));
+    await expect(page).toHaveURL(new RegExp(`/s/${slug}/settings/archived$`, 'u'));
+    await expect(
+        page.getByRole('heading', { exact: true, level: 1, name: 'Archived chats' })
+    ).toBeVisible();
+    await expect(page.getByRole('treegrid', { name: 'Haus', exact: true })).toBeVisible();
+    await expect(page).toHaveTitle('Archived chats — Haus');
+
+    await page.goto(`/s/${slug}/archived`);
+    await expect(page).toHaveURL(new RegExp(`/s/${slug}/settings/archived$`, 'u'));
 });
 
 test('reads and updates the canonical human identity in Profile settings', async ({ page }) => {

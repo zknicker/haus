@@ -1,5 +1,5 @@
 import type { ModelConnection } from '@haus/api';
-import type { DisplayPlanWindow, PlanWindow } from '../../../usage/runtime-plan-windows.ts';
+import type { DisplayPlanWindow } from '../../../usage/runtime-plan-windows.ts';
 import type { ModelAccountMarkId } from './model-account-mark.tsx';
 import { connectionName } from './model-connection-model.ts';
 
@@ -69,10 +69,6 @@ export function connectionCountLabel(count: number) {
         return 'No connections';
     }
     return count === 1 ? '1 connection' : `${count} connections`;
-}
-
-export function percentLeft(window: Pick<PlanWindow, 'usedPercent'>) {
-    return Math.round(100 - window.usedPercent);
 }
 
 export function soonestReset(usage: Pick<PlanUsage, 'fiveHour' | 'weekly'>, now: number) {

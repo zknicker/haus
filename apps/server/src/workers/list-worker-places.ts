@@ -4,15 +4,12 @@ import {
     type WorkerPlacesResponse,
     cloudAgentProviders,
 } from '@haus/api';
-import { and, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { resolveTaskTargetChat } from '../agent-api/resolve-task-target.ts';
 import type { ResolvedRunner } from '../computers/runner-credentials.ts';
 import type { HausDatabase } from '../postgres/connection.ts';
-import {
-    projectRepoLinksTable,
-    projectReposTable,
-    workerPlaceLimitsTable,
-} from '../postgres/schema.ts';
+import { workerPlaceLimitsTable } from '../postgres/schema.ts';
+import { readRepoFolderNames } from '../repos/repo-folder-read.ts';
 import { readTask } from '../tasks/task-read.ts';
 import { isComputerPlaceUsable, readComputerPlaces } from './computer-places.ts';
 import { defaultWorkerPlaceLimit, readFreeSlots } from './dispatch-worker-turns.ts';
@@ -42,7 +39,12 @@ export async function listWorkerPlaces(
         Math.max(0, Math.min(limit, free.get(key) ?? 0));
     const ready = new Set((await readReadyPlaces(db, serverId)).map((place) => place.kind));
     const limits = await cloudLimits(db, serverId);
-    const links = await readLinks(db, serverId, task?.projectId ?? null);
+    const computers = await readComputerPlaces(db, serverId);
+    const folders = await readRepoFolderNames(
+        db,
+        serverId,
+        computers.map((computer) => computer.computerId)
+    );
     const places: WorkerPlaceEntry[] = [
         ...cloudAgentProviders.map((kind) => ({
             freeSlots: slotsOf(kind, limits.get(kind) ?? 0),
@@ -51,31 +53,21 @@ export async function listWorkerPlaces(
             projectDefault: isDefault({ kind }),
             ready: ready.has(kind),
         })),
-        ...(await readComputerPlaces(db, serverId)).map((computer) => ({
+        ...computers.map((computer) => ({
             computerId: computer.computerId,
             freeSlots: slotsOf(`computer:${computer.computerId}`, computer.limit),
             kind: 'computer' as const,
             limit: computer.limit,
-            linkedRepositories: [
-                ...new Set(
-                    links
-                        .filter((link) => link.computerId === computer.computerId)
-                        .map((link) => link.repository)
-                ),
-            ],
             name: computer.name,
             online: computer.online,
             projectDefault: isDefault({ computerId: computer.computerId, kind: 'computer' }),
             ready: isComputerPlaceUsable(computer),
+            repoFolders: folders.get(computer.computerId) ?? [],
             runtimes: computer.runtimes,
             workersEnabled: computer.workersEnabled,
         })),
     ];
-    return {
-        places,
-        repositories: task ? await readProjectRepositories(db, serverId, task.projectId) : [],
-        task: task?.key ?? null,
-    } satisfies WorkerPlacesResponse;
+    return { places, task: task?.key ?? null } satisfies WorkerPlacesResponse;
 }
 
 async function readPlacesTask(
@@ -101,41 +93,4 @@ async function cloudLimits(db: Reader, serverId: string) {
             rows.find((row) => row.place === place)?.limit ?? defaultWorkerPlaceLimit,
         ])
     );
-}
-
-async function readLinks(db: Reader, serverId: string, projectId: string | null) {
-    return await db
-        .select({
-            computerId: projectRepoLinksTable.computerId,
-            repository: projectReposTable.repository,
-        })
-        .from(projectRepoLinksTable)
-        .innerJoin(
-            projectReposTable,
-            and(
-                eq(projectReposTable.serverId, projectRepoLinksTable.serverId),
-                eq(projectReposTable.id, projectRepoLinksTable.projectRepoId)
-            )
-        )
-        .where(
-            and(
-                eq(projectRepoLinksTable.serverId, serverId),
-                projectId ? eq(projectReposTable.projectId, projectId) : undefined
-            )
-        )
-        .orderBy(projectReposTable.repository);
-}
-
-async function readProjectRepositories(db: Reader, serverId: string, projectId: string) {
-    const rows = await db
-        .select({ repository: projectReposTable.repository })
-        .from(projectReposTable)
-        .where(
-            and(
-                eq(projectReposTable.serverId, serverId),
-                eq(projectReposTable.projectId, projectId)
-            )
-        )
-        .orderBy(projectReposTable.repository);
-    return rows.map((row) => row.repository);
 }

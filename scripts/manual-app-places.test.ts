@@ -82,8 +82,8 @@ test('the app topic renders each place as one line with its role and caveat', ()
     expect(body).toContain('Haus App lists no support email, phone number, or response time');
     expect(
         body.length,
-        'raised to 5413 for the Agent access place, its attacher role, and the other-Computer answer (ADR 0057 decision 4)'
-    ).toBeLessThanOrEqual(5413);
+        'raised from 5000 for the Models connection place, the Repositories place (ADR 0060), and the Agent access place, its attacher role and the other-Computer answer (ADR 0057)'
+    ).toBeLessThanOrEqual(5553);
 });
 
 function anchorRoot(anchor: AppPlaceAnchor): string {

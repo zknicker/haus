@@ -3,11 +3,7 @@ import type { ComputerRuntime, WorkerRuntime } from '@haus/api';
 import { and, eq } from 'drizzle-orm';
 import type { HausDatabase } from '../src/postgres/connection.ts';
 import { createOpaqueId } from '../src/postgres/opaque-id.ts';
-import {
-    computersTable,
-    projectRepoLinksTable,
-    projectReposTable,
-} from '../src/postgres/schema.ts';
+import { computersTable, repoFoldersTable, reposTable } from '../src/postgres/schema.ts';
 import type { WorkerBoard } from './worker-board.fixture.ts';
 
 interface ComputerPlaceSetup {
@@ -86,36 +82,32 @@ export async function attachAnotherComputer(
     return computerId;
 }
 
-export async function addLinkedRepo(
+export async function addRepoFolders(
     db: HausDatabase,
     board: WorkerBoard,
     repository: string,
-    links: ReadonlyArray<{ checkoutPath: string | null; computerId: string }>
+    folders: ReadonlyArray<{ computerId: string; path: string }>
 ) {
-    const projectRepoId = createOpaqueId('prp');
-    await db.insert(projectReposTable).values({
-        id: projectRepoId,
-        projectId: board.seed.channelId,
-        repository,
-        serverId: board.seed.serverId,
-    });
-    for (const link of links) {
-        await db.insert(projectRepoLinksTable).values({
-            checkoutPath: link.checkoutPath,
-            computerId: link.computerId,
-            linkedByUserId: board.seed.userId,
-            projectRepoId,
+    await db
+        .insert(reposTable)
+        .values({ repository, serverId: board.seed.serverId })
+        .onConflictDoNothing();
+    for (const folder of folders) {
+        await db.insert(repoFoldersTable).values({
+            addedByUserId: board.seed.userId,
+            computerId: folder.computerId,
+            path: folder.path,
+            repository,
             serverId: board.seed.serverId,
         });
     }
-    return projectRepoId;
 }
 
-export async function readProjectRepositories(db: HausDatabase, board: WorkerBoard) {
+export async function readServerRepositories(db: HausDatabase, board: WorkerBoard) {
     const rows = await db
-        .select({ repository: projectReposTable.repository })
-        .from(projectReposTable)
-        .where(eq(projectReposTable.projectId, board.seed.channelId))
-        .orderBy(projectReposTable.repository);
+        .select({ repository: reposTable.repository })
+        .from(reposTable)
+        .where(eq(reposTable.serverId, board.seed.serverId))
+        .orderBy(reposTable.repository);
     return rows.map((row) => row.repository);
 }
