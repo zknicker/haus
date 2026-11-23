@@ -28,7 +28,7 @@ export const computerAppPlaces: readonly AppPlace[] = [
     {
         area: 'connections-and-computers',
         task: 'Connect a 1Password vault to a Computer',
-        path: ['Settings', 'Devices', '(your device)', 'Secrets', 'Connect 1Password'],
+        path: ['Settings', 'Devices', '(your device)', 'Tools', 'Connect 1Password'],
         who: 'owner',
         note: 'Desktop App only.',
         anchors: [settingsEntry(), computers(), secrets(), label(secretsRow, 'Connect 1Password')],
@@ -36,7 +36,7 @@ export const computerAppPlaces: readonly AppPlace[] = [
     {
         area: 'connections-and-computers',
         task: 'Pick up items newly added to that vault',
-        path: ['Settings', 'Devices', '(your device)', 'Secrets', 'Refresh items'],
+        path: ['Settings', 'Devices', '(your device)', 'Tools', 'Refresh items'],
         who: 'owner',
         note: 'Desktop App only.',
         anchors: [settingsEntry(), computers(), secrets(), label(secretsRow, 'Refresh items')],
@@ -57,12 +57,12 @@ export const computerAppPlaces: readonly AppPlace[] = [
     {
         area: 'connections-and-computers',
         task: "Choose a Computer's default Cloud Agent provider",
-        path: ['Settings', 'Devices', '(your device)', 'Cloud Agents', 'Make default'],
+        path: ['Settings', 'Devices', '(your device)', 'Cloud Workers', 'Make default'],
         who: 'owner-or-admin',
         anchors: [
             settingsEntry(),
             computers(),
-            label('features/computers/cloud-agent-capability-card.tsx', 'Cloud Agents'),
+            label('features/computers/cloud-agent-capability-card.tsx', 'Cloud Workers'),
             label('features/computers/cloud-agent-capability-row.tsx', 'Make default'),
         ],
     },

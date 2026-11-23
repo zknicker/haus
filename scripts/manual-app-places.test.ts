@@ -56,7 +56,7 @@ test('a hand-written App path the map does not know is reported', () => {
     expect(
         unmappedAppPaths('Ask the Server Owner to open Computer settings → Secrets, then retry.')
     ).toEqual([['Ask the Server Owner to open Computer settings', 'Secrets']]);
-    expect(unmappedAppPaths('Then open Settings → Devices → (your device) → Secrets.')).toEqual([]);
+    expect(unmappedAppPaths('Then open Settings → Devices → (your device) → Tools.')).toEqual([]);
     expect(unmappedAppPaths('Status moves `todo` → `in_progress` → `done`.')).toEqual([]);
 });
 
@@ -64,7 +64,7 @@ test('the app topic renders each place as one line with its role and caveat', ()
     const body = getManualTopic('app')?.body ?? '';
     expect(body).toContain('- Change your timezone: Settings → Profile → Timezone.\n');
     expect(body).toContain(
-        '- Connect a 1Password vault to a Computer: Settings → Devices → (your device) → Secrets → Connect 1Password (Server Owner). Desktop App only.\n'
+        '- Connect a 1Password vault to a Computer: Settings → Devices → (your device) → Tools → Connect 1Password (Server Owner). Desktop App only.\n'
     );
     expect(body).toContain('## Channels\n\n- Create a channel: Projects → New project.');
     expect(renderAppPlace(placeFor('Rename a channel or change its description'))).toBe(

@@ -83,7 +83,7 @@ test('a Worker starts on a Task at --on, the Project default, or the cloud defau
         '`haus worker start --task <KEY-n> --repo <owner/name> --title <text> [--on <place>] [--ref <ref>] [--runtime <claude-code|codex>] [--model <id>]`'
     );
     expect(body).toContain(
-        "Without `--on` a start runs on the Task's Project default, else on your Computer's ready cloud default (Settings → Devices → (your device) → Cloud Agents → Make default)."
+        "Without `--on` a start runs on the Task's Project default, else on your Computer's ready cloud default (Settings → Devices → (your device) → Cloud Workers → Make default)."
     );
     expect(body).toContain('`WORKER_TASK_REQUIRED`');
     expect(body).toContain('`WORKER_PLACE_REQUIRED`');

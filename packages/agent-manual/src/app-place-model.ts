@@ -72,5 +72,5 @@ export function computers(): AppPlaceAnchor {
 }
 
 export function secrets(): AppPlaceAnchor {
-    return label('features/computers/secrets-capability-card.tsx', 'Secrets');
+    return label('features/computers/computer-tools-section.tsx', 'Tools');
 }
