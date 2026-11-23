@@ -20,13 +20,11 @@ export function JoinServerDialog({
                 <Modal.Dialog>
                     <Modal.CloseTrigger />
                     <Modal.Header>
-                        <Modal.Icon className="bg-default text-foreground">
+                        <Modal.Icon className="modal__icon--neutral">
                             <Icon className="size-5" icon={Link01Icon} />
                         </Modal.Icon>
                         <Modal.Heading>Join a Server</Modal.Heading>
-                        <p className="text-muted mt-1.5 text-sm leading-5">
-                            Paste an invitation link or token.
-                        </p>
+                        <p>Paste an invitation link or token.</p>
                     </Modal.Header>
                     <Modal.Body>
                         <Form

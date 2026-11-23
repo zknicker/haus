@@ -36,7 +36,7 @@ export function NotificationsSection() {
             <ItemCardGroup.Header>
                 <ItemCardGroup.Title>System notifications</ItemCardGroup.Title>
             </ItemCardGroup.Header>
-            <ItemCardGroup className="overflow-hidden">
+            <ItemCardGroup>
                 <ItemCard>
                     <ItemCard.Content>
                         <SettingsRowTitle info="DMs, @mentions, and replies while Haus is in the background.">

@@ -18,14 +18,25 @@ test('the rail groups pages by whose settings they are', () => {
             rows: ['Profile', 'Preferences', 'Appearance', 'Notifications', 'Shortcuts', 'Servers'],
         },
         { label: 'Captains', rows: ['Models', 'Git', 'Skills', 'Connections'] },
-        { label: 'Haus', rows: ['General', 'Members', 'Devices', 'Usage', 'Archived chats'] },
+        {
+            label: 'Haus',
+            rows: [
+                'General',
+                'Members',
+                'Projects',
+                'Repositories',
+                'Devices',
+                'Usage',
+                'Archived chats',
+            ],
+        },
     ]);
 });
 
 test('Devices is an operator page, so members never see it', () => {
     assert.deepEqual(railShape({ canOperate: false, query: '' }).at(-1), {
         label: 'Haus',
-        rows: ['General', 'Members', 'Usage', 'Archived chats'],
+        rows: ['General', 'Members', 'Projects', 'Repositories', 'Usage', 'Archived chats'],
     });
 });
 
@@ -71,6 +82,15 @@ test('search finds a shortcut by its command and the test notification by name',
     ]);
 });
 
+test('search finds Projects and Repositories by name', () => {
+    assert.deepEqual(railShape({ canOperate: false, query: 'proj' }), [
+        { label: 'Haus', rows: ['Projects'] },
+    ]);
+    assert.deepEqual(railShape({ canOperate: false, query: 'reposit' }), [
+        { label: 'Haus', rows: ['Repositories'] },
+    ]);
+});
+
 test('search does not reveal operator pages to members', () => {
     assert.deepEqual(railShape({ canOperate: false, query: '1password' }), []);
     assert.deepEqual(railShape({ canOperate: true, query: '1password' }), [
@@ -90,6 +110,8 @@ test('search finds the Background rows under Appearance', () => {
 test('a page names its window and tab; anything else falls back to Settings', () => {
     assert.equal(settingsPageLabel('archived'), 'Archived chats');
     assert.equal(settingsPageLabel('computers'), 'Devices');
+    assert.equal(settingsPageLabel('projects'), 'Projects');
+    assert.equal(settingsPageLabel('repos'), 'Repositories');
     assert.equal(settingsPageLabel('retired'), undefined);
     assert.equal(settingsPageLabel(undefined), undefined);
 });

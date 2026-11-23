@@ -51,17 +51,13 @@ export function SkillDialog({
                     <Modal.Dialog>
                         <Modal.CloseTrigger />
                         <Modal.Header>
-                            {/* Modal.Icon carries no background of its own;
-                                the stock idiom pairs it with a soft fill. */}
-                            <Modal.Icon className="bg-default text-foreground">
+                            <Modal.Icon className="modal__icon--neutral">
                                 <Icon className="size-5" icon={SparklesIcon} />
                             </Modal.Icon>
                             <Modal.Heading>
                                 {skill ? formatSkillName(skill.name) : 'Captain skill'}
                             </Modal.Heading>
-                            <p className="text-muted mt-1.5 text-sm leading-5">
-                                Edit this Captain’s own copy of SKILL.md.
-                            </p>
+                            <p>Edit this Captain’s own copy of SKILL.md.</p>
                         </Modal.Header>
                         <Modal.Body>
                             <div className="grid gap-3">

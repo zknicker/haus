@@ -6,6 +6,7 @@ export {
     DeferredSettingsConnectionRoute,
     DeferredSettingsDeviceRoute,
     DeferredSettingsHumanRoute,
+    DeferredSettingsProjectRoute,
     DeferredSettingsSectionRoute,
 } from './deferred-settings-route.tsx';
 export { InboxPage } from './inbox-page.tsx';

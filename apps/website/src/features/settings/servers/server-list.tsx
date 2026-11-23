@@ -23,7 +23,7 @@ export function ServerList({ servers }: { servers: ServerSummary[] }) {
 
     return (
         <nav aria-label="Your Servers">
-            <ItemCardGroup className="overflow-hidden">
+            <ItemCardGroup>
                 {servers.map((server, index) => (
                     <Fragment key={server.id}>
                         {index > 0 ? <Separator /> : null}
@@ -42,7 +42,7 @@ function ServerRow({ server }: { server: ServerSummary }) {
     return (
         <ItemCard<'a'>
             aria-current={isCurrent ? 'page' : undefined}
-            className="focus-visible:ring-focus relative w-full cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2"
+            className="relative w-full cursor-(--cursor-interactive) overflow-hidden text-left"
             render={(props) => <Link {...props} to={route} />}
         >
             <PressableFeedback.Highlight />

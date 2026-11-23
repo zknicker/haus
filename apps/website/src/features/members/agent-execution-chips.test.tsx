@@ -1,6 +1,10 @@
 import { expect, test } from 'bun:test';
 import type { AgentReasoningEffort } from '@haus/api';
-import { LowSignalIcon, MediumSignalIcon, SignalFull02Icon } from '@hugeicons/core-free-icons';
+import {
+    LowSignalIcon,
+    MediumSignalIcon,
+    SignalFull02Icon,
+} from '@hugeicons-pro/core-stroke-rounded';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { Icon } from '../../components/ui/icon.tsx';
 import { AgentExecutionChips } from './agent-execution-chips.tsx';

@@ -81,7 +81,7 @@ export function SecretsCapabilityCard({
                 <ItemCardGroup.Header>
                     <ItemCardGroup.Title>Secrets</ItemCardGroup.Title>
                 </ItemCardGroup.Header>
-                <ItemCardGroup className="overflow-hidden">
+                <ItemCardGroup>
                     <SecretsCapabilityRow
                         isBusy={refresh.isPending || disconnect.isPending}
                         onConnect={() => {

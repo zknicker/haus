@@ -1,5 +1,5 @@
 import { Button } from '@heroui/react';
-import { ArrowLeft01Icon } from '@hugeicons/core-free-icons';
+import { ArrowLeft01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { questionTakeoverLabel } from './ask-copy.ts';

@@ -1,12 +1,14 @@
+import type * as React from 'react';
 import { HausUpdateFooterContainer } from '../updates/haus-update-footer-container.tsx';
 import { CapyAccountMenu } from './capy-account-menu.tsx';
-import { CapyFooterSections } from './capy-footer-sections.tsx';
 
 export function CapySidebarFooter({
+    children,
     onOpenSettings,
     serverId,
     slug,
 }: {
+    children?: React.ReactNode;
     onOpenSettings: () => void;
     serverId: string;
     slug: string;
@@ -16,7 +18,7 @@ export function CapySidebarFooter({
             <HausUpdateFooterContainer slug={slug} />
             <div className="flex w-full items-center justify-between gap-1">
                 <CapyAccountMenu onOpenSettings={onOpenSettings} serverId={serverId} />
-                <CapyFooterSections serverId={serverId} slug={slug} />
+                {children}
             </div>
         </div>
     );

@@ -42,13 +42,11 @@ export function SecretsConnectDialog({
                 <Modal.Dialog>
                     <Modal.CloseTrigger />
                     <Modal.Header>
-                        <Modal.Icon className="bg-default text-foreground">
+                        <Modal.Icon className="modal__icon--neutral">
                             <Icon className="size-5" icon={Key01Icon} />
                         </Modal.Icon>
                         <Modal.Heading>Connect 1Password</Modal.Heading>
-                        <p className="text-muted mt-1.5 text-sm leading-5">
-                            Every Captain on {computerName} gets read-only access to one vault.
-                        </p>
+                        <p>Every Captain on {computerName} gets read-only access to one vault.</p>
                     </Modal.Header>
                     <Modal.Body>
                         {state.step === 'choosing' ? (
@@ -70,7 +68,7 @@ export function SecretsConnectDialog({
                                 )}
                             </ListBox>
                         ) : (
-                            <ItemCardGroup className="overflow-hidden">
+                            <ItemCardGroup>
                                 <ItemCard>
                                     <ItemCard.Content>
                                         <ItemCard.Title aria-live="polite">

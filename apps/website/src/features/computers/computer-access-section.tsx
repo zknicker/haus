@@ -46,7 +46,7 @@ export function ComputerAccessSection({
     return (
         <section>
             <ItemCardGroup variant="transparent">
-                <ItemCardGroup.Header className="flex items-start justify-between gap-3">
+                <ItemCardGroup.Header>
                     <ItemCardGroup.Title>Access</ItemCardGroup.Title>
                     {view && computer.canGrantAgentAccess ? (
                         <CaptainPicker
@@ -67,7 +67,7 @@ export function ComputerAccessSection({
                         serverId={serverId}
                     />
                 ) : null}
-                <ItemCardGroup className="overflow-hidden">
+                <ItemCardGroup>
                     {view ? (
                         <AgentAccessRows
                             canRevoke={computer.canRevokeAgentAccess}

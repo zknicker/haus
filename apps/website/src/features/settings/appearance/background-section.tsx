@@ -31,7 +31,7 @@ export function BackgroundSection({ theme }: { theme: ColorTheme }) {
 
     return (
         <ItemCardGroup variant="transparent">
-            <ItemCardGroup.Header className="flex items-center justify-between">
+            <ItemCardGroup.Header>
                 <ItemCardGroup.Title>Background</ItemCardGroup.Title>
                 <Button
                     isDisabled={isDefault}
@@ -89,7 +89,7 @@ function ImageRow({
 }) {
     const url = useBackgroundImageUrl(image);
     return (
-        <ItemCardGroup className="overflow-hidden">
+        <ItemCardGroup>
             <ItemCard>
                 <ItemCard.Content>
                     <ItemCard.Title>Image</ItemCard.Title>

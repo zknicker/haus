@@ -52,7 +52,7 @@ export function RunnerModelForm({
     return (
         <>
             <Modal.Header>
-                <Modal.Icon className="bg-default text-foreground">
+                <Modal.Icon className="modal__icon--neutral">
                     <Icon className="size-5" icon={CpuIcon} />
                 </Modal.Icon>
                 <Modal.Heading>Model</Modal.Heading>

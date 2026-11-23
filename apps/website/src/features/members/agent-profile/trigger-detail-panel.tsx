@@ -73,9 +73,7 @@ export function TriggerDetailPanel({
         <>
             <Sheet.Header>
                 <Sheet.Heading>{trigger.title}</Sheet.Heading>
-                <p className="text-muted mt-1.5 text-sm leading-5">
-                    {`${triggerKindLabel(trigger.kind)} trigger`}
-                </p>
+                <p>{`${triggerKindLabel(trigger.kind)} trigger`}</p>
             </Sheet.Header>
             <Sheet.Body>
                 {/* A single auto track is sized by its widest row's min-content,

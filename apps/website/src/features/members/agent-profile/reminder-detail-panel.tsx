@@ -45,7 +45,7 @@ export function ReminderDetailPanel({
         <>
             <Sheet.Header>
                 <Sheet.Heading>{reminder.title}</Sheet.Heading>
-                <p className="text-muted mt-1.5 text-sm leading-5">{reminderKindLabel(kind)}</p>
+                <p>{reminderKindLabel(kind)}</p>
             </Sheet.Header>
             <Sheet.Body>
                 <div className="grid grid-cols-[minmax(0,1fr)] gap-6">

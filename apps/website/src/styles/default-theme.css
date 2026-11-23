@@ -996,6 +996,35 @@
     }
 
     /*
+     * The slot is the glyph's box, so a 16px glyph draws at 16px. Stock's
+     * slot is `size-5` on the sidebar's compact spacing, 13.7px, and the svg
+     * is a shrinkable flex item: every nav glyph squeezed to 13.7px wide,
+     * a step smaller and lighter than the search field's glyph above them.
+     *
+     * A nav icon is its label's other half, so it takes the label's ink.
+     * Stock paints resting icons `--muted` and only the current row's
+     * `--foreground`, so the rail read as pale marks with one black one, and
+     * the current row's weight came from the icon instead of its fill.
+     */
+    .sidebar__menu-icon {
+        width: 1rem;
+        height: 1rem;
+        color: var(--foreground);
+    }
+
+    /*
+     * Hugeicons draws a 1.5 stroke on a 24-unit grid. At the nav's 16px that
+     * renders 1px, a hairline beside a 13px label, where Capy's rail draws
+     * ~1.33px. 2 units renders 1.33px. Only the design stroke moves (dots
+     * drawn at 2 or 3 keep theirs), and only on a glyph sitting straight in
+     * the slot: a Task's status disc or an avatar there wraps its own art.
+     */
+    .sidebar__menu-icon > svg [stroke-width='1.5'],
+    .sidebar .search-field__search-icon [stroke-width='1.5'] {
+        stroke-width: 2;
+    }
+
+    /*
      * A search field leading a sidebar (the Settings rail) is the head of the
      * navigation's icon column: its glyph sits where the rows' icons sit, at
      * HeroUI's fixed 0.5rem row inset, and at their 16px. Stock puts it ×3 in
@@ -1507,6 +1536,17 @@
     }
 
     /*
+     * A pressable row (an ItemCard rendered as a link or button) rings inside
+     * its own edge, on the corners above: an outer ring would cross the
+     * separators between rows and spill past the group. Pro ships no focus
+     * style for a pressable ItemCard, so rows had each hand-rolled one.
+     */
+    :is(a, button).item-card:focus-visible {
+        outline: 2px solid var(--focus);
+        outline-offset: -2px;
+    }
+
+    /*
      * Hover follows the pointer. Pro fades PressableFeedback's highlight over
      * 150ms, so sweeping down a list of pressable rows crossfaded two rows at
      * once and the fill trailed the pointer. Stock menus, list boxes, and
@@ -1859,6 +1899,21 @@
     }
 
     /*
+     * A section header that carries a control (an Add button, a picker, a
+     * refresh) lays it at the trailing edge. Stock's header is a plain block
+     * with no action slot, so fourteen call sites each hand-built the row,
+     * four different ways. A header holding only its title and description
+     * keeps stock's stack. Wraps so a narrow column drops the control below.
+     */
+    .item-card-group__header:has(> :not(.item-card-group__title, .item-card-group__description)) {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: calc(var(--spacing) * 3);
+    }
+
+    /*
      * Stock grid layout paints every direct card with a surface and shadow
      * (`.item-card-group--grid > [data-slot="item-card"]`), which outranks the
      * card's own variant — a transparent card in a grid came back boxed. A
@@ -1968,6 +2023,30 @@
         background-color: var(--surface);
         box-shadow: var(--surface-shadow);
         color: var(--foreground);
+    }
+
+    /*
+     * Stock's Modal.Icon has no ground of its own; HeroUI's examples give it
+     * `bg-default text-foreground` at each call site, and nine dialogs had
+     * copied that. The neutral tile is a modifier instead.
+     */
+    .modal__icon--neutral {
+        background-color: var(--default);
+        color: var(--foreground);
+    }
+
+    /*
+     * A dialog's description is the one muted line under its heading: a plain
+     * `<p>` in a Modal, Drawer or Sheet header. Stock has no part for it, and
+     * HeroUI's examples style it inline, which two dozen dialogs copied in two
+     * drifted variants. `haus/heroui-compound-children` keeps call sites from
+     * restyling it.
+     */
+    :is(.modal__header, .drawer__header, .sheet__header) > p {
+        margin-block-start: calc(var(--spacing) * 1.5);
+        color: var(--muted);
+        font-size: var(--text-sm);
+        line-height: 1.25rem;
     }
 
     .item-card-group--catalog .item-card__icon svg,

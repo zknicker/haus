@@ -36,7 +36,7 @@ export function ComputerRepoFoldersCard({
     return (
         <section>
             <ItemCardGroup variant="transparent">
-                <ItemCardGroup.Header className="flex items-start justify-between gap-3">
+                <ItemCardGroup.Header>
                     <ItemCardGroup.Title>Repositories</ItemCardGroup.Title>
                     {folders.data?.canAdd ? (
                         <Button
@@ -50,7 +50,7 @@ export function ComputerRepoFoldersCard({
                     ) : null}
                 </ItemCardGroup.Header>
                 {folders.data ? (
-                    <ItemCardGroup className="overflow-hidden">
+                    <ItemCardGroup>
                         {folders.data.folders.length === 0 ? (
                             <ItemCard>
                                 <ItemCard.Content>
@@ -70,7 +70,7 @@ export function ComputerRepoFoldersCard({
                         )}
                     </ItemCardGroup>
                 ) : folders.isError ? (
-                    <ItemCardGroup className="overflow-hidden">
+                    <ItemCardGroup>
                         <ItemCard>
                             <ItemCard.Content>
                                 <ItemCard.Title>Repositories unavailable</ItemCard.Title>

@@ -5,6 +5,7 @@ import { Fragment } from 'react';
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useAgentGrant } from '../../../hooks/members/use-agent-grant.ts';
 import { useAgents } from '../../../hooks/members/use-agents.ts';
+import { SettingsEmptyRow } from '../layout/settings-empty.tsx';
 import { ConnectionSection } from './connection-section.tsx';
 import type { McpConnection } from './mcp-server-shared.ts';
 
@@ -39,13 +40,7 @@ export function McpAgentAccessSection({
                         </Fragment>
                     ))
                 ) : (
-                    <ItemCard>
-                        <ItemCard.Content>
-                            <ItemCard.Description>
-                                No Captains on this Server yet.
-                            </ItemCard.Description>
-                        </ItemCard.Content>
-                    </ItemCard>
+                    <SettingsEmptyRow>No Captains on this Server yet.</SettingsEmptyRow>
                 )}
             </ItemCardGroup>
         </ConnectionSection>

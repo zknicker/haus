@@ -20,9 +20,7 @@ export function AddComputerDialog({
                     <Modal.CloseTrigger />
                     <Modal.Header>
                         <Modal.Heading>Add device</Modal.Heading>
-                        <p className="text-muted mt-1.5 text-sm leading-5">
-                            Run Captains on your own Mac.
-                        </p>
+                        <p>Run Captains on your own Mac.</p>
                     </Modal.Header>
                     <AddDeviceSteps key={serverId} serverId={serverId} serverSlug={serverSlug} />
                 </Modal.Dialog>

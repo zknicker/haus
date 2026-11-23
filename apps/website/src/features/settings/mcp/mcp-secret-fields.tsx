@@ -1,5 +1,5 @@
 import { Button, Description, Fieldset, Input, TextField, Tooltip } from '@heroui/react';
-import { Cancel01Icon } from '@hugeicons/core-free-icons';
+import { Cancel01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
 import { createSecretDraftEntry, type SecretDraftEntry } from './mcp-server-shared.ts';
 
@@ -77,7 +77,7 @@ export function SecretFieldsEditor({
                                 type="button"
                                 variant="ghost"
                             >
-                                <Icon icon={Cancel01Icon} />
+                                <Icon icon={Cancel01Icon} size={16} />
                             </Button>
                             <Tooltip.Content placement="top">Remove entry</Tooltip.Content>
                         </Tooltip>

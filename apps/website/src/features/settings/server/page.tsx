@@ -31,7 +31,7 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
                 <ItemCardGroup.Header>
                     <ItemCardGroup.Title>Identity</ItemCardGroup.Title>
                 </ItemCardGroup.Header>
-                <ItemCardGroup className="overflow-hidden">
+                <ItemCardGroup>
                     <ItemCard>
                         <ItemCard.Content>
                             <ItemCard.Title>Name</ItemCard.Title>
@@ -57,7 +57,7 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
                             <ItemCard.Title>Server ID</ItemCard.Title>
                         </ItemCard.Content>
                         <ItemCard.Action className="flex items-center gap-1">
-                            <SettingsFact className="font-mono text-xs">{server.id}</SettingsFact>
+                            <SettingsFact className="font-mono">{server.id}</SettingsFact>
                             <CopyButton label="Copy Server ID" value={server.id} />
                         </ItemCard.Action>
                     </ItemCard>
@@ -69,7 +69,7 @@ export function ServerSettings({ server }: { server: ServerSummary }) {
                     <ItemCardGroup.Header>
                         <ItemCardGroup.Title>Danger</ItemCardGroup.Title>
                     </ItemCardGroup.Header>
-                    <ItemCardGroup className="overflow-hidden">
+                    <ItemCardGroup>
                         <ItemCard>
                             <ItemCard.Content>
                                 <ItemCard.Title>This Server</ItemCard.Title>

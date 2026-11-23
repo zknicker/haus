@@ -36,13 +36,11 @@ export function BrowserDialog({
                         line. A control laid out beside the heading replaces
                         that layout; controls belong in the body. */}
                     <Modal.Header>
-                        <Modal.Icon className="bg-default text-foreground">
+                        <Modal.Icon className="modal__icon--neutral">
                             <Icon className="size-5" icon={icon} />
                         </Modal.Icon>
                         <Modal.Heading>{title}</Modal.Heading>
-                        {description ? (
-                            <p className="text-muted mt-1.5 text-sm leading-5">{description}</p>
-                        ) : null}
+                        {description ? <p>{description}</p> : null}
                     </Modal.Header>
                     <Modal.Body>
                         <Form

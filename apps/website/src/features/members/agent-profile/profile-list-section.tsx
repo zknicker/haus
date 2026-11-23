@@ -23,7 +23,7 @@ export function ProfileListSection({
 }) {
     return (
         <ItemCardGroup variant="transparent">
-            <ItemCardGroup.Header className="flex items-center justify-between gap-3">
+            <ItemCardGroup.Header>
                 <ItemCardGroup.Title>
                     {title}
                     {count === undefined ? null : (

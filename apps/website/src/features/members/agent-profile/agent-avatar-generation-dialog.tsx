@@ -46,8 +46,8 @@ export function AvatarGenerationDialog({
                 <Modal.Dialog>
                     <Modal.CloseTrigger isDisabled={session.saving} />
                     <Modal.Header>
-                        <Modal.Heading>Generate Avatar</Modal.Heading>
-                        <p className="text-muted text-sm leading-5">
+                        <Modal.Heading>Generate avatar</Modal.Heading>
+                        <p>
                             Describe a character and get a pixel-art portrait. Try a few; nothing
                             changes until you use one.
                         </p>

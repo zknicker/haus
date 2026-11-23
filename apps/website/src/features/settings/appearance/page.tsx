@@ -18,7 +18,7 @@ export function AppearanceSettings() {
     return (
         <SettingsPageColumn>
             <SettingsPageHeader title="Appearance" />
-            <ItemCardGroup className="overflow-hidden">
+            <ItemCardGroup>
                 <ModeRow />
             </ItemCardGroup>
             <ThemeGallery />

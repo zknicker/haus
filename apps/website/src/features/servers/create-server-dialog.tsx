@@ -20,13 +20,11 @@ export function CreateServerDialog({
                 <Modal.Dialog>
                     <Modal.CloseTrigger />
                     <Modal.Header>
-                        <Modal.Icon className="bg-default text-foreground">
+                        <Modal.Icon className="modal__icon--neutral">
                             <Icon className="size-5" icon={ServerStack01Icon} />
                         </Modal.Icon>
                         <Modal.Heading>Create a Server</Modal.Heading>
-                        <p className="text-muted mt-1.5 text-sm leading-5">
-                            Start a new place for your people and Captains.
-                        </p>
+                        <p>Start a new place for your people and Captains.</p>
                     </Modal.Header>
                     <Modal.Body>
                         <Form

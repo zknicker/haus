@@ -31,7 +31,7 @@ export function ServersSettingsView({ servers }: { servers: ServerSummary[] | un
             <ItemCardGroup variant="transparent">
                 {/* Creating and joining both add a row to this list, so the
                     controls belong to the section rather than the page. */}
-                <ItemCardGroup.Header className="flex flex-wrap items-center justify-between gap-3">
+                <ItemCardGroup.Header>
                     <ItemCardGroup.Title>Your Servers</ItemCardGroup.Title>
                     <div className="flex items-center gap-2">
                         <Button onPress={() => setDialog('join')} size="sm" variant="secondary">

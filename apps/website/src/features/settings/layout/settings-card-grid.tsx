@@ -39,7 +39,7 @@ export function SettingsCardGrid({
 }) {
     return (
         <ItemCardGroup className="item-card-group--catalog" variant="transparent">
-            <ItemCardGroup.Header className="flex items-center justify-between gap-3">
+            <ItemCardGroup.Header>
                 <ItemCardGroup.Title>
                     {title}
                     {count === undefined ? null : (
@@ -82,7 +82,7 @@ export function SettingsGridCard({
     return (
         <ItemCard<'button'>
             aria-label={label}
-            className="focus-visible:ring-focus relative w-full min-w-0 cursor-(--cursor-interactive) overflow-hidden text-left outline-none focus-visible:ring-2"
+            className="relative w-full min-w-0 cursor-(--cursor-interactive) overflow-hidden text-left"
             // The handler rides on ItemCard, not on the rendered button:
             // `render` spreads the component's own props last.
             onClick={onPress}

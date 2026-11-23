@@ -19,6 +19,8 @@ import { ModelsSettings } from '../../features/settings/models/page.tsx';
 import { NotificationsSettings } from '../../features/settings/notifications/page.tsx';
 import { PreferencesSettings } from '../../features/settings/preferences/page.tsx';
 import { ProfileSettings } from '../../features/settings/profile/page.tsx';
+import { ProjectSettings, ProjectsSettings } from '../../features/settings/projects/page.tsx';
+import { ReposSettings } from '../../features/settings/repos/page.tsx';
 import { ServerSettings } from '../../features/settings/server/page.tsx';
 import { ServersSettings } from '../../features/settings/servers/page.tsx';
 import { ShortcutsSettings } from '../../features/settings/shortcuts/page.tsx';
@@ -56,6 +58,8 @@ const sectionRenderers: Record<SettingsRouteTab, (context: SectionContext) => Re
     notifications: () => <NotificationsSettings />,
     preferences: () => <PreferencesSettings />,
     profile: ({ server }) => <ProfileSettings serverId={server.id} />,
+    projects: () => <ProjectsSettings />,
+    repos: () => <ReposSettings />,
     servers: () => <ServersSettings />,
     shortcuts: () => <ShortcutsSettings />,
     skills: ({ server }) => <SkillsSettings serverId={server.id} />,
@@ -96,6 +100,13 @@ function MembersSection({ server }: { server: ServerSummary }) {
         return <p className="text-danger m-auto text-sm">Couldn’t load members.</p>;
     }
     return <MembersPage directory={directory.data} serverId={server.id} serverSlug={server.slug} />;
+}
+
+/** One Project's settings, a record inside Settings → Projects. */
+export function SettingsProjectRoute() {
+    const { projectId = '' } = useParams();
+    const { server } = useServerContext();
+    return <ProjectSettings key={projectId} projectId={projectId} serverId={server.id} />;
 }
 
 export function SettingsDeviceRoute() {

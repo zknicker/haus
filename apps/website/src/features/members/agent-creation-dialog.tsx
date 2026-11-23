@@ -57,9 +57,7 @@ export function AgentCreationDialog({
                     <Modal.CloseTrigger />
                     <Modal.Header>
                         <Modal.Heading>Create Captain</Modal.Heading>
-                        <p className="text-muted mt-1.5 text-sm leading-5">
-                            Choose where this Captain runs and tune its starting configuration.
-                        </p>
+                        <p>Choose where this Captain runs and tune its starting configuration.</p>
                     </Modal.Header>
                     {computers.isPending ? (
                         <Modal.Body>

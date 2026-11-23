@@ -1,5 +1,6 @@
 import { EntityAvatar } from '../../../components/ui/entity-avatar.tsx';
 import { useMember } from '../../../hooks/members/use-member.ts';
+import { useProjects } from '../../../hooks/projects/use-projects.ts';
 import { useComputers } from '../../../hooks/servers/use-computers.ts';
 import { useConnection } from '../../../hooks/servers/use-connection.ts';
 import { computerLabel } from '../../computers/presentation.ts';
@@ -59,24 +60,27 @@ function leafCrumb(leaf: LeafCrumb): BandCrumb {
 
 type LeafCrumb =
     | { avatarUrl: string | null; kind: 'human'; name: string }
-    | { kind: 'connection' | 'device'; name: string };
+    | { kind: 'connection' | 'device' | 'project'; name: string };
 
 /**
  * The record a section sub-route is showing: a human in Members, one MCP
- * connection in Connections, or one device in Devices. Agents have their own page outside Settings.
+ * connection in Connections, one device in Devices, or one Project in Projects. Agents have their own page outside Settings.
  *
  * Read here rather than pushed up from the detail page: these are the queries
  * those pages already run, so React Query serves them from the same cache
  * entries and nothing has to plumb a name back through context.
  */
 function useLeafCrumb(pathname: string, serverId: string): LeafCrumb | undefined {
-    const [userId, connectionId, computerId] = recordMarkers.map((marker) =>
+    const [userId, connectionId, computerId, projectId] = recordMarkers.map((marker) =>
         matchRecordId(pathname, marker)
     );
     const member = useMember(serverId, userId);
     const connection = useConnection(serverId, connectionId).data;
     const computer = useComputers(serverId, { enabled: computerId !== undefined }).data?.find(
         (candidate) => candidate.id === computerId
+    );
+    const project = useProjects(projectId === undefined ? undefined : serverId).data?.find(
+        (candidate) => candidate.chatId === projectId
     );
 
     if (userId && member.data) {
@@ -92,6 +96,9 @@ function useLeafCrumb(pathname: string, serverId: string): LeafCrumb | undefined
     if (computerId && computer) {
         return { kind: 'device', name: computerLabel(computer) };
     }
+    if (projectId && project) {
+        return { kind: 'project', name: project.name };
+    }
     return undefined;
 }
 
@@ -103,6 +110,7 @@ const recordMarkers = [
     '/settings/members/humans/',
     '/settings/connections/',
     '/settings/computers/',
+    '/settings/projects/',
 ];
 
 function matchRecordId(pathname: string, marker: string): string | undefined {

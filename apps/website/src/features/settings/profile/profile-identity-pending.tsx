@@ -10,7 +10,7 @@ export const handleInfo = 'Your unique @name on this Server.';
 /** Reserve the identity rows without inventing an editable member. */
 export function ProfileIdentityPending({ error }: { error?: string }) {
     return (
-        <ItemCardGroup aria-busy={!error} className="overflow-hidden">
+        <ItemCardGroup aria-busy={!error}>
             {error ? (
                 <p className="text-danger text-sm" role="alert">
                     {error}

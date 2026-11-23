@@ -1,9 +1,11 @@
 import { Sidebar } from '@heroui-pro/react';
 import { SearchField } from '@heroui/react';
+import { Search01Icon } from '@hugeicons-pro/core-stroke-rounded';
 import * as React from 'react';
 import { Icon } from '../../components/ui/icon.tsx';
 import { serverSettingsSectionRoute } from '../servers/server-routes.ts';
 import { type SettingsRouteTab, settingsNavGroups } from '../settings/layout/navigation.ts';
+import { SettingsEmptyState } from '../settings/layout/settings-empty.tsx';
 import {
     SettingsRailRouter,
     useSettingsRailNavigate,
@@ -64,9 +66,7 @@ export function SettingsSidebar({
                     </Sidebar.Group>
                 ))}
                 {groups.length === 0 ? (
-                    <p className="text-muted px-4 py-2 text-sm" role="status">
-                        No settings match
-                    </p>
+                    <SettingsEmptyState role="status" title="No settings match" />
                 ) : null}
             </ShellSidebarPageContent>
         </SettingsRailRouter>
@@ -98,7 +98,10 @@ function SettingsSearch({
                 value={query}
             >
                 <SearchField.Group>
-                    <SearchField.SearchIcon />
+                    {/* The rail's own glyph, so it draws at the nav icons' weight. */}
+                    <SearchField.SearchIcon>
+                        <Icon icon={Search01Icon} />
+                    </SearchField.SearchIcon>
                     <SearchField.Input placeholder="Search settings" />
                     <SearchField.ClearButton />
                 </SearchField.Group>

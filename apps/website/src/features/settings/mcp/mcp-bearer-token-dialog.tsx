@@ -112,7 +112,7 @@ function BearerTokenForm({
     return (
         <>
             <Modal.Header>
-                <Modal.Icon className="bg-default text-foreground overflow-hidden">
+                <Modal.Icon className="modal__icon--neutral overflow-hidden">
                     <ConnectionGlyph
                         connection={{
                             icon: mcpPresetIcons[preset] ?? null,
@@ -122,7 +122,7 @@ function BearerTokenForm({
                     />
                 </Modal.Icon>
                 <Modal.Heading>{heading}</Modal.Heading>
-                <p className="text-muted mt-1.5 text-sm leading-5">{guide.summary}</p>
+                <p>{guide.summary}</p>
             </Modal.Header>
             <Modal.Body>
                 <Form

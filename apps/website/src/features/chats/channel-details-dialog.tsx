@@ -71,7 +71,7 @@ export function ChannelDetailsDialog({ chat, onClose }: { chat: Chat; onClose: (
                     <Modal.CloseTrigger />
                     <Modal.Header>
                         <Modal.Heading>Edit {noun.lower}</Modal.Heading>
-                        <p className="text-muted text-sm leading-5">
+                        <p>
                             Captains address the {noun.lower} by its name and read the description
                             to learn what belongs here.
                         </p>

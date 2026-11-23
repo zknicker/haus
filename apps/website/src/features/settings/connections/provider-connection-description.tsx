@@ -38,7 +38,7 @@ export function ProviderConnectionDetail({
     if (state === 'live' && target) {
         return (
             <Chip size="sm" variant="soft">
-                Secure Storage
+                Secure storage
             </Chip>
         );
     }

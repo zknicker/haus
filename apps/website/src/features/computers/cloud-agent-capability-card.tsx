@@ -22,7 +22,7 @@ export function CloudAgentCapabilityCard({
                 <ItemCardGroup.Header>
                     <ItemCardGroup.Title>Cloud Agents</ItemCardGroup.Title>
                 </ItemCardGroup.Header>
-                <ItemCardGroup className="overflow-hidden">
+                <ItemCardGroup>
                     {cloudAgentProviders.map((provider) => (
                         <CloudAgentProviderCapability
                             computerId={computerId}

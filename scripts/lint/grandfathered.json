@@ -123,6 +123,10 @@
         "scripts/release/ios-provisioning-profile.mjs": 26
     },
     "rules": {
+        "haus/heroui-compound-children": [
+            "apps/website/src/features/chats/chat-transcript-system-step.tsx",
+            "apps/website/src/features/chats/server-turn-details-drawer.tsx"
+        ],
         "import/no-cycle": [
             "apps/computer/src/workspace-volumes/workspace-directory.ts",
             "apps/computer/src/workspace-volumes/workspace-volume.ts",

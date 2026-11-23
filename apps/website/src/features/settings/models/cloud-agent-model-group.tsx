@@ -34,7 +34,7 @@ export function CloudAgentModelGroup({
             <ItemCardGroup.Header>
                 <ItemCardGroup.Title>Workers</ItemCardGroup.Title>
             </ItemCardGroup.Header>
-            <ItemCardGroup className="overflow-hidden">
+            <ItemCardGroup>
                 {cloudAgentProviders.map((provider) => (
                     <CloudAgentProviderModelRows
                         canManage={canManage}

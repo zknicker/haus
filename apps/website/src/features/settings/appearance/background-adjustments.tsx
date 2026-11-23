@@ -19,7 +19,7 @@ export function BackgroundAdjustments({
 }) {
     return (
         <div className="grid gap-2">
-            <ItemCardGroup className="overflow-hidden">
+            <ItemCardGroup>
                 <ItemCard>
                     <ItemCard.Content>
                         <ItemCard.Title>Effect</ItemCard.Title>

@@ -22,7 +22,7 @@ export function CustomThemeDetails({ theme }: { theme: CustomTheme }) {
     };
 
     return (
-        <ItemCardGroup className="overflow-hidden">
+        <ItemCardGroup>
             <ItemCard>
                 <ItemCard.Content>
                     <ItemCard.Title>Name</ItemCard.Title>

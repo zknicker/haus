@@ -8,6 +8,7 @@ import { useAgents } from '../../hooks/members/use-agents.ts';
 import { useAgentHomeMove } from '../../hooks/projects/use-agent-home-move.ts';
 import { useProjects } from '../../hooks/projects/use-projects.ts';
 import { projectCaptains } from '../../lib/project-homes.ts';
+import { SettingsEmptyRow } from '../settings/layout/settings-empty.tsx';
 import { SettingsRowError } from '../settings/layout/settings-text.tsx';
 import { ProjectSelect } from './project-select.tsx';
 
@@ -34,13 +35,11 @@ export function ProjectCaptainsDialog({ chat, onClose }: { chat: Chat; onClose: 
                             <ChannelIconBox color={chat.color} icon={chat.icon} size="modal" />
                         </Modal.Icon>
                         <Modal.Heading>Captains in #{chat.name}</Modal.Heading>
-                        <p className="text-muted text-sm leading-5">
-                            Captains hear the Project they live in and start their Tasks there.
-                        </p>
+                        <p>Captains hear the Project they live in and start their Tasks there.</p>
                     </Modal.Header>
                     <Modal.Body>
                         <ItemCardGroup variant="transparent">
-                            <ItemCardGroup.Header className="flex items-center justify-between gap-3">
+                            <ItemCardGroup.Header>
                                 <ItemCardGroup.Title>Captains</ItemCardGroup.Title>
                                 <Dropdown>
                                     <Button
@@ -81,13 +80,7 @@ export function ProjectCaptainsDialog({ chat, onClose }: { chat: Chat; onClose: 
                             </ItemCardGroup.Header>
                             <ItemCardGroup variant="outline">
                                 {loaded && captains.length === 0 ? (
-                                    <ItemCard>
-                                        <ItemCard.Content>
-                                            <ItemCard.Description>
-                                                No Captains live here.
-                                            </ItemCard.Description>
-                                        </ItemCard.Content>
-                                    </ItemCard>
+                                    <SettingsEmptyRow>No Captains live here.</SettingsEmptyRow>
                                 ) : null}
                                 {captains.map((agent, index) => (
                                     <React.Fragment key={agent.id}>

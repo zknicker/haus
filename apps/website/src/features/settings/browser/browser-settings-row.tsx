@@ -1,9 +1,10 @@
 import type { AgentRuntimeBrowserSettings } from '@haus/api';
 import { ItemCard } from '@heroui-pro/react';
-import { Button, Chip, Dropdown, Label } from '@heroui/react';
+import { Button, Dropdown, Label } from '@heroui/react';
 import { MoreHorizontalIcon } from '@hugeicons-pro/core-stroke-rounded';
 import { Icon } from '../../../components/ui/icon.tsx';
 import type { BrowserCapabilityView } from '../../computers/browser-capability-model.ts';
+import { SettingsStatusChip, SettingsStatusTitle } from '../layout/settings-row-title.tsx';
 
 type BrowserSettings = AgentRuntimeBrowserSettings;
 
@@ -23,10 +24,9 @@ export function BrowserRow({
     return (
         <ItemCard>
             <ItemCard.Content>
-                <ItemCard.Title>
+                <SettingsStatusTitle status={<BrowserStatusChip view={view} />}>
                     Chrome
-                    <StatusChip view={view} />
-                </ItemCard.Title>
+                </SettingsStatusTitle>
                 <ItemCard.Description>{view.description}</ItemCard.Description>
             </ItemCard.Content>
             <ItemCard.Action>
@@ -104,21 +104,10 @@ function BrowserActionsMenu({
     );
 }
 
-function StatusChip({ view }: { view: BrowserCapabilityView }) {
-    return (
-        <Chip
-            className="ms-2 align-middle"
-            color={statusColor(view.status)}
-            size="sm"
-            variant="soft"
-        >
-            {view.statusLabel}
-        </Chip>
-    );
-}
-
 export function BrowserStatusChip({ view }: { view: BrowserCapabilityView }) {
-    return <StatusChip view={view} />;
+    return (
+        <SettingsStatusChip color={statusColor(view.status)}>{view.statusLabel}</SettingsStatusChip>
+    );
 }
 
 function statusColor(status: BrowserCapabilityView['status']) {

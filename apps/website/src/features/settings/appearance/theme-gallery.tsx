@@ -23,7 +23,7 @@ export function ThemeGallery() {
 
     return (
         <ItemCardGroup variant="transparent">
-            <ItemCardGroup.Header className="flex items-center justify-between">
+            <ItemCardGroup.Header>
                 <ItemCardGroup.Title>Theme</ItemCardGroup.Title>
                 <Button onPress={() => createThemeFrom(theme)} size="sm" variant="ghost">
                     <Icon aria-hidden="true" icon={Add01Icon} size={16} />

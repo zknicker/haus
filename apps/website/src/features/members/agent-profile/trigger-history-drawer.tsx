@@ -43,9 +43,7 @@ export function TriggerHistoryDrawer({
                         read after the answer it qualifies. */}
                     <Drawer.Header>
                         <Drawer.Heading>History</Drawer.Heading>
-                        <p className="text-muted mt-1.5 text-sm leading-5">
-                            {retentionNote(rows?.length ?? 0)}
-                        </p>
+                        <p>{retentionNote(rows?.length ?? 0)}</p>
                     </Drawer.Header>
                     <Drawer.Body>
                         <DataGrid

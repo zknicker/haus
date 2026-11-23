@@ -49,7 +49,7 @@ export function ConnectionDetails({
 }) {
     return (
         <div className="flex flex-col items-start gap-2 py-1 whitespace-normal">
-            <p className="text-muted text-xs">{connectionInfo(connection)}</p>
+            <p className="text-muted text-sm">{connectionInfo(connection)}</p>
             <SettingsRowError>{connectionFailure(connection)}</SettingsRowError>
             {providerSearchesWeb(connection.provider) ? (
                 <Switch
