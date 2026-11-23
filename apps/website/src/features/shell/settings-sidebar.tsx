@@ -32,7 +32,7 @@ export function SettingsSidebar({
     const railTabId = useSettingsRailTabId();
     return (
         <SettingsRailRouter>
-            <ShellSidebarPageContent className="settings-rail" sourceTabId={railTabId}>
+            <ShellSidebarPageContent sourceTabId={railTabId}>
                 {backRoute ? <SidebarBackToChatRow route={backRoute} /> : null}
                 <SettingsSearch
                     firstRoute={firstRoute(groups, slug)}

@@ -659,7 +659,7 @@ InputGroup prefix has no divider; the field keeps its outer border and focus rin
 | Token | Raw value | Formula / source | HeroUI variable | Tailwind / component equivalent | Purpose |
 | --- | --- | --- | --- | --- | --- |
 | `spacing` | `3.75px` |  | `--spacing` | Prefer Tailwind spacing utilities like `gap-4`, `p-6`, `px-8`, and `space-y-4`. | Base spacing unit used by the generated Tailwind spacing scale. |
-| `spacing compact` | `3.1875px` | `spacing × 0.85` | `--spacing-compact` | Applied at the sidebar boundary. | Compact navigation rhythm for persistent sidebar rows. |
+| `spacing compact` | `2.7375px` | `spacing × 0.73` | `--spacing-compact` | Applied at the sidebar boundary. | One navigation density for every sidebar: a single-line row on a ~26px pitch. |
 | `spacing dense` | `3px` | `spacing × 0.8` | `--spacing-dense` | Applied at menu, listbox, dropdown, select, combobox, and context-menu popover boundaries. | Tightest spacing step for transient lists that users scan. |
 | `field border width` | `Light: 0.5px; Dark: 0px (0.5px inside the desktop shell card)` |  | `--border-width-field` | Prefer HeroUI field components; use this only for custom field implementations. | Border width used by form fields and field-like cells. Light draws the hairline; dark keeps HeroUI's borderless field except on the lifted shell card. |
 | `field border width alias` | `0px` |  | `--field-border-width` | Prefer `--border-width-field` for new CSS. | Compatibility alias for field border width. |
@@ -1020,9 +1020,10 @@ fix a single surface. `styles/text-selection-contract.test.ts` guards the defaul
   `Separator`. A page is one list box where it can be (Preferences): split it into sections
   only when the groups mean something. The page title, section headings, page-level search
   fields, tables and card edges share the column's one left edge; row text keeps its inset
-  inside the card. The Settings rail runs a ~26px row pitch against the chat sidebar's ~31px:
-  one `.settings-rail` override in `default-theme.css` sizes its rows, group labels and search
-  field (Zach chose Settings-only density, 2026-11-22). A catalog row carries no check mark when its section title already says
+  inside the card. All sidebars share one density (Zach chose one density, 2026-11-23): the
+  Settings rail and the chat sidebar both run `--spacing-compact`, a ~26px pitch for a text
+  row, and the rail's search field and group labels take it with no rail-only rule. A catalog
+  row carries no check mark when its section title already says
   Installed or Connected, and no description that only repeats its own name.
   Connection logos use `ConnectionGlyph` inside the shared surface tile: artwork occupies
   75% of the box with `object-fit: contain`, preserving circular and irregular brand shapes

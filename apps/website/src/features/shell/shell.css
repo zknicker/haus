@@ -219,11 +219,11 @@
      * pitch continues underneath, unbroken.
      *
      * The row's box is HeroUI's `.sidebar__menu-item-content` min-height,
-     * `--spacing * 9`, read here in the sidebar's compact density scope. The
-     * label's line box runs the row 0.9px past that min-height, so this lands
-     * the midline within half a pixel of the topbar's rather than exactly on
-     * it — the honest cost of deriving the offset from a token instead of
-     * measuring one page's row and freezing the number.
+     * `--spacing * 9`, read here in the sidebar's compact density scope. A
+     * text row is exactly that box; a row led by a 24px mark runs 0.7px past
+     * it, so its midline lands within half a pixel of the topbar's — the
+     * honest cost of deriving the offset from a token instead of measuring
+     * one page's row and freezing the number.
      *
      * It is the sidebar's first navigation row that leads the column, whichever
      * page is mounted — Inbox in chat navigation, Back on the settings pages —
@@ -237,16 +237,6 @@
         [data-slot='sidebar-menu-item']:first-child {
         margin-block-start: calc(
             (var(--app-shell-band-height) - var(--spacing) * 9) / 2
-        );
-    }
-
-    /* The Settings rail's rows are shorter (`default-theme.css`), so its lead row centres on that. */
-    .app-shell
-        .settings-rail
-        > [data-slot='sidebar-group']:first-child
-        [data-slot='sidebar-menu-item']:first-child {
-        margin-block-start: calc(
-            (var(--app-shell-band-height) - var(--settings-rail-row)) / 2
         );
     }
 
